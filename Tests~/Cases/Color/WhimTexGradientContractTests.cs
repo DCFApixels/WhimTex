@@ -95,11 +95,11 @@ public static class WhimTexGradientContractTests
         RejectClipboard(raw, "Raw Unity JSON is not gradient clipboard JSON");
         foreach (var value in new[] {g, new WhimTexGradient()})
         {
-            var document = ScriptableObject.CreateInstance<TextureCompositor>();
+            var document = ScriptableObject.CreateInstance<WhimTexDocument>();
             try
             {
                 document.layers.Add(new GradientLayerBehaviour {gradient = value.Clone()});
-                typeof(TextureCompositor).GetMethod("NormalizeModel", Flags).Invoke(document, null);
+                typeof(WhimTexDocument).GetMethod("NormalizeModel", Flags).Invoke(document, null);
                 string compact = WhimTexDocumentJson.Write(document, new WhimTexJsonWriteOptions {Mode = WhimTexJsonWriteMode.Compact}).Json;
                 Check(!compact.Contains("transition"), "Compact document retains retired transition");
                 using var restored = WhimTexDocumentJson.Read(compact);

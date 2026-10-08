@@ -11,7 +11,7 @@ public static class HdrGroupTests
 // Opt-in after manual compilation, using a live Editor C# evaluation bridge.
 // No project build, source import, scene edit or persistent asset is performed.
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var document = UnityBRun.Create<DCFApixels.WhimTex.TextureCompositor>();
+var document = UnityBRun.Create<DCFApixels.WhimTex.WhimTexDocument>();
 var drawing = new DCFApixels.WhimTex.DrawingLayerBehaviour();
 int checks = 0;
 void Check(bool condition, string message) { UnityBRun.Check(!(!condition), message); checks++; }

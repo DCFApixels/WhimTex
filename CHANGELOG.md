@@ -4,6 +4,10 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Layer Settings renames Color & Blending to Rendering and Swizzle to Mapping, including related code, shader uniforms, hints, presets and export messages. Channel routing is now LayerChannelMapping / ChannelMappingSource / channelMapping in C#, JSON/TIFF and agent API; the settings view is LayerRenderingSettingsView. Document JSON, TIFF container and tagged model versions advance from 1 to 2; old document versions and the swizzle key are unsupported. Rendering behavior is unchanged.
+
 ## [0.13.0] - 2026-10-08
 
 ### Added

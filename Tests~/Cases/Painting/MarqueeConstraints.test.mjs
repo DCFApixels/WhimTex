@@ -5,7 +5,7 @@ const context = new TestContext("MarqueeConstraints source/reference tests");
 const assert = context.assert;
 context.case("MarqueeConstraints original assertion inputs and source contracts", async () => {
   const read = p => readFileSync(new URL('../../../src/' + p, import.meta.url), 'utf8');
-  const source = read('TextureCompositorWindow.AreaSelectionView.cs');
+  const source = read('WhimTexWindow.AreaSelectionView.cs');
   function body(signature, next) {
       const block = source.split(signature)[1].split(next)[0];
       return block.slice(block.indexOf('{') + 1, block.lastIndexOf('}'));
@@ -47,7 +47,7 @@ context.case("MarqueeConstraints original assertion inputs and source contracts"
       assert.ok(source.includes(`RegisterCallback<${event}Event>`));
       assert.ok(source.includes(`UnregisterCallback<${event}Event>`));
   }
-  assert.match(read('TextureCompositorWindow.Tools.cs'), /tool == CanvasTool.Shape \|\| tool == CanvasTool.RectangleSelect\)\s*button.Add\(new ToolDropdownMarker\(\)\)/);
+  assert.match(read('WhimTexWindow.Tools.cs'), /tool == CanvasTool.Shape \|\| tool == CanvasTool.RectangleSelect\)\s*button.Add\(new ToolDropdownMarker\(\)\)/);
   assert.match(read('WhimTexSplitView.uss'), /\.whimtex-tool-dropdown-marker \{\s*position: absolute;\s*right: 1px;\s*bottom: 1px;/);
 
   context.facts.referenceChecks = checks;

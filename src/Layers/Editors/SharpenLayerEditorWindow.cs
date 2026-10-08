@@ -8,12 +8,12 @@ namespace DCFApixels.WhimTex
     {
         protected override Type EditedLayerType => typeof(SharpenLayerBehaviour);
         protected override string LayerPreviewTitle => "Layer Preview (Sharpen)";
-        public static void Open(SharpenLayerBehaviour layer, TextureCompositor compositor) =>
-            OpenPropertiesWindow<SharpenLayerEditorWindow>(layer, compositor);
+        public static void Open(SharpenLayerBehaviour layer, WhimTexDocument activeDocument) =>
+            OpenPropertiesWindow<SharpenLayerEditorWindow>(layer, activeDocument);
         protected override void BuildSettings(VisualElement root, Layer source) =>
-            BuildFields(root, (SharpenLayerBehaviour)source, Compositor, ApplyLayerChange, SettingsBindings, AddEffectTarget);
+            BuildFields(root, (SharpenLayerBehaviour)source, Document, ApplyLayerChange, SettingsBindings, AddEffectTarget);
 
-        internal static void BuildFields(VisualElement root, SharpenLayerBehaviour layer, TextureCompositor compositor,
+        internal static void BuildFields(VisualElement root, SharpenLayerBehaviour layer, WhimTexDocument activeDocument,
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings,
             Action<VisualElement, TargetedLayerBehaviour> addEffectTarget)
         {

@@ -34,8 +34,8 @@ namespace DCFApixels.WhimTex
                 // During painting use the same low-cost approximation as the
                 // preview path. The settled render switches to a wider,
                 // Gaussian-weighted neighbourhood in the shader.
-                material.SetInt("_Fast", context.compositor.InteractiveEffects ? 1 : 0);
-                if (context.compositor.InteractiveEffects)
+                material.SetInt("_Fast", context.activeDocument.InteractiveEffects ? 1 : 0);
+                if (context.activeDocument.InteractiveEffects)
                 {
                     result = Allocate(context.width, context.height);
                     material.SetInt("_UseBlur", 0);

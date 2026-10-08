@@ -46,11 +46,11 @@ context.case('BrushClipboard original assertions and branches', async () => {
       {...standard,source:'HLSL'}, {...standard,settings:{flow:2}},
       {...standard,settings:{typo:true}}, {...standard,source:'standard'},
     ]) assert.equal(matches(schema,invalid),false,JSON.stringify(invalid));
-    const paste=read('src/TextureCompositorWindow.AreaSelection.cs');
+    const paste=read('src/WhimTexWindow.AreaSelection.cs');
     assert.match(paste, /catch \(Exception exception\) \{ ReportClipboardPasteError\("Paste failed", exception\); \}/);
     assert.match(paste, /Debug\.LogError\("\[WhimTex\] " \+ operation \+ ":\\n" \+ exception, this\)/);
-    assert.match(read('src/TextureCompositorWindow.BrushClipboard.cs'), /ReportClipboardPasteError\("Brush JSON paste failed", error\)/);
-    assert.match(read('src/TextureCompositorWindow.ImageUrl.cs'), /ReportClipboardPasteError\("Image paste failed", exception\)/);
+    assert.match(read('src/WhimTexWindow.BrushClipboard.cs'), /ReportClipboardPasteError\("Brush JSON paste failed", error\)/);
+    assert.match(read('src/WhimTexWindow.ImageUrl.cs'), /ReportClipboardPasteError\("Image paste failed", exception\)/);
     assert.ok(paste.indexOf('TryPasteBrushClipboard(clipboardText)') < paste.indexOf('TryPasteImageUrl'));
 });
 

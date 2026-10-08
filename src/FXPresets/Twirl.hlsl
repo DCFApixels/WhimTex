@@ -3,7 +3,6 @@
 // @group
 // @param float _Angle = 180 [~-720 .. ~720] // Twist angle in degrees at local radius 1. Zero removes the twist; the sign reverses direction.
 // @param transform2D _Area
-// @formerlyserializedas(_InputTiling)
 // @param enum _Tiling = Clamp {Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3} // Sampling outside the input image: extend its edge, repeat, mirror, or return transparency.
 // @endgroup
 

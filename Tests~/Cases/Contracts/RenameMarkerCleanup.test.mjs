@@ -39,11 +39,11 @@ context.case("RenameMarkerCleanup original assertion inputs and source contracts
       entry.file + ': only the obsolete alias changed');
     assert.match(current, /@param hidden float _Opacity/);
   }
-  // User-authored files may contain the supported rename directive; it is not a Unity migration attribute.
-  assert.match(read('src/ShaderFXMetadata.cs'), /internal static bool HasFormerName/);
-  assert.match(read('src/ShaderFXPresetWriter.cs'), /@formerlyserializedas/);
-  assert.match(read('src/BrushTipProgram.cs'), /@formerlyserializedas/);
+  for (const file of ['src/ShaderFXMetadata.cs', 'src/ShaderFXPresetWriter.cs', 'src/BrushTipProgram.cs',
+    'src/ShaderFX.cs', 'ExternalTools~/WhimTexVSCode/metadata.js', 'ExternalTools~/WhimTexVSCode/extension.js'])
+    assert.doesNotMatch(read(file), /formerlyserializedas|formerlySerializedAs|HasFormerName/);
+  for (const file of fs.readdirSync(path.join(root, 'src/FXPresets')).filter(file => file.endsWith('.hlsl')))
+    assert.doesNotMatch(read('src/FXPresets/' + file), /@formerlyserializedas/, file);
 
 });
 await finish(context);
-

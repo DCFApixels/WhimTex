@@ -9,7 +9,7 @@ public static class EyedropperTests
     static string Execute()
     {
 // Opt-in after manual compilation. Pure CPU helpers only; no screen capture, windows, preferences or asset writes.
-var windowType = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+var windowType = typeof(DCFApixels.WhimTex.WhimTexWindow);
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
 var sample = windowType.GetMethod("CanvasScreenSample", Hidden);
 var place = windowType.GetMethod("CanvasEyedropperLensRect", Hidden);

@@ -41,7 +41,7 @@ public static class PatchQuiltingFeatherTests
         var pixels=new Color[size*size];
         for(int y=0;y<size;y++)for(int x=0;x<size;x++)pixels[y*size+x]=new Color(x/(float)size,y/(float)size,(x+y)/(2f*size),1);
         t.SetPixels(pixels);t.Apply(false,false);
-        var method=typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.PatchQuiltingSeamless").GetMethod("Render",F);
+        var method=typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.PatchQuiltingSeamless").GetMethod("Render",F);
         Color[] Render(int quality,int edge,float width,float feather,int matching)
         {
             var result=(RenderTexture)method.Invoke(null,new object[]{t,size,size,(MakeSeamlessLayerBehaviour.PoissonEdges)edge,width,feather,
@@ -80,7 +80,7 @@ public static class PatchQuiltingFeatherTests
         for(int i=0;i<pixels.Length;i++){float g=pixels[i].g;pixels[i]=new Color(g,g,g,1);}
         var source=global::WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(w,h,TextureFormat.RGBAFloat,false,true));source.SetPixels(pixels);source.Apply(false,false);
         var sheet=global::WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(w*3,h*2,TextureFormat.RGBA32,false,true));var output=new Color[w*3*h*2];
-        var render=typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.PatchQuiltingSeamless").GetMethod("Render",F);
+        var render=typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.PatchQuiltingSeamless").GetMethod("Render",F);
         try
         {
             for(int row=0;row<2;row++)for(int col=0;col<3;col++)
@@ -103,7 +103,7 @@ public static class PatchQuiltingFeatherTests
     static string Run()
     {
         checks=0;
-        var shader=Shader.Find("Hidden/TextureCompositor/PatchQuilting");
+        var shader=Shader.Find("Hidden/WhimTex/PatchQuilting");
         Check(shader!=null&&shader.isSupported&&!ShaderUtil.ShaderHasError(shader),"Shader compiles");
         int w=128,h=64;
         var source=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(w,h,TextureFormat.RGBAFloat,false,true));

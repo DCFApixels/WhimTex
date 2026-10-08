@@ -38,11 +38,11 @@ function asyncLifecycle(value) {
 }
 context.case('Removed production helpers stay removed', () => {
     for (const [file, name] of [
-        ['src/TextureCompositor.cs', 'CloneEmbeddedShaderFX'],
-        ['src/TextureCompositor.cs', 'CloneDrawingLayerTextures'],
+        ['src/WhimTexDocument.cs', 'CloneEmbeddedShaderFX'],
+        ['src/WhimTexDocument.cs', 'CloneDrawingLayerTextures'],
         ['src/Layers/SDFLayerBehaviour.cs', 'ConvertDistance'],
         ['src/MissingLayerRecovery.cs', 'GradientTime'],
-        ['src/TextureCompositorWindow.UI.cs', 'FillRect'],
+        ['src/WhimTexWindow.UI.cs', 'FillRect'],
         ['src/WhimTexDocumentSerializer.cs', 'ReflectedFieldCount']
     ]) assert.doesNotMatch(read(file), new RegExp('\\b' + name + '\\s*\\('), name);
     const walk = dir => fs.readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap(entry =>

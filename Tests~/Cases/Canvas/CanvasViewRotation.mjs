@@ -8,10 +8,10 @@ const assert = context.assert;
 context.case('CanvasViewRotation original assertions and branches', async () => {
     const read = path => readFileSync(new URL('../../../src/' + path, import.meta.url), 'utf8');
     const viewport = read('CanvasViewport.cs');
-    const ui = read('TextureCompositorWindow.UI.cs');
-    const zoom = read('TextureCompositorWindow.Zoom.cs');
-    const transform = read('TextureCompositorWindow.Transform.cs');
-    const selection = read('TextureCompositorWindow.AreaSelectionView.cs');
+    const ui = read('WhimTexWindow.UI.cs');
+    const zoom = read('WhimTexWindow.Zoom.cs');
+    const transform = read('WhimTexWindow.Transform.cs');
+    const selection = read('WhimTexWindow.AreaSelectionView.cs');
     
     // Evaluate the actual scalar expressions from the C# rotation helpers, not a second matrix.
     function deltaMethod(name) {
@@ -134,8 +134,8 @@ context.case('CanvasViewRotation original assertions and branches', async () => 
     assert.match(ui, /y = viewport.ToViewDelta\(y\)/);
     assert.match(constrainSource, /anchor = toolkitCanvas.ToView\(new Vector2/);
     assert.ok(!constrainSource.includes('ToCanvas'), 'Shift constrains in screen space before the shared painting conversion');
-    assert.match(read('TextureCompositorWindow.cs'), /mousePosition = toolkitCanvas.ToCanvas\(mousePosition\)/);
-    assert.match(read('TextureCompositorWindow.Tiling.cs'), /ImageRect.Contains\(toolkitCanvas.ToCanvas\(position\)\)/);
+    assert.match(read('WhimTexWindow.cs'), /mousePosition = toolkitCanvas.ToCanvas\(mousePosition\)/);
+    assert.match(read('WhimTexWindow.Tiling.cs'), /ImageRect.Contains\(toolkitCanvas.ToCanvas\(position\)\)/);
     assert.match(transform, /lastPointerPosition = point;\s*point = owner.toolkitCanvas.ToCanvas\(point\)/);
     assert.match(selection, /point = owner.toolkitCanvas.ToCanvas\(point\)/);
     assert.match(selection, /Rect bounds = owner.toolkitCanvas.VisibleCanvasBounds/);

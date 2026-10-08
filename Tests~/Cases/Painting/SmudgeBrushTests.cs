@@ -19,13 +19,13 @@ public static class SmudgeBrushTests
     static object Get(object owner, string name) => owner.GetType().GetField(name, Flags).GetValue(owner);
     static void Set(object owner, string name, object value) => owner.GetType().GetField(name, Flags).SetValue(owner, value);
     static Texture2D Pixels(DrawingLayerBehaviour layer) => (Texture2D)typeof(DrawingLayerBehaviour).GetProperty("StoredTexture", Flags).GetValue(layer);
-    static TextureCompositor Document(int width = 128, int height = 64)
+    static WhimTexDocument Document(int width = 128, int height = 64)
     {
-        var doc = S.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var doc = S.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         doc.width = width; doc.height = height;
         return doc;
     }
-    static DrawingLayerBehaviour Drawing(TextureCompositor doc, Func<int, int, Color> color, int width = 128, int height = 64)
+    static DrawingLayerBehaviour Drawing(WhimTexDocument doc, Func<int, int, Color> color, int width = 128, int height = 64)
     {
         var texture = S.Own(new Texture2D(width, height, TextureFormat.RGBAHalf, false, true));
         var values = new Color[width * height];
@@ -36,14 +36,14 @@ public static class SmudgeBrushTests
         Call(doc, "NormalizeModel");
         return drawing;
     }
-    static void Begin(TextureCompositor doc, DrawingLayerBehaviour layer, Vector2 uv, float size = 20, RenderTexture sample = null, bool tiled = false, float mixing = -1)
+    static void Begin(WhimTexDocument doc, DrawingLayerBehaviour layer, Vector2 uv, float size = 20, RenderTexture sample = null, bool tiled = false, float mixing = -1)
     {
         Call(doc, "GetPaintTransform", layer.Owner);
         Call(layer, "PrepareStroke", doc.width, doc.height, "Smudge test");
         Call(layer, "BeginStroke", uv);
         Call(layer, "BeginSmudgeStroke", uv, doc.width, doc.height, size, sample, tiled, mixing < 0 ? scenarioMixing : mixing);
     }
-    static void Segment(TextureCompositor doc, DrawingLayerBehaviour layer, Vector2 from, Vector2 to,
+    static void Segment(WhimTexDocument doc, DrawingLayerBehaviour layer, Vector2 from, Vector2 to,
         float strength = .95f, float flow = 1, float hardness = .8f, Texture selection = null) =>
         Call(layer, "SmudgeSegment", from, to, doc.width, doc.height, hardness, strength, flow, selection);
     static void End(DrawingLayerBehaviour layer)
@@ -381,7 +381,7 @@ public static class SmudgeBrushTests
     static void VerifyPickupMixture(System.Collections.Generic.List<string> reports)
     {
         const int width = 24, height = 24;
-        var material = S.Own(new Material(Shader.Find("Hidden/TextureCompositor/SmudgeBrush")));
+        var material = S.Own(new Material(Shader.Find("Hidden/WhimTex/SmudgeBrush")));
         var source = S.Own(new Texture2D(width, height, TextureFormat.RGBAFloat, false, true));
         var carry = S.Own(new Texture2D(width, height, TextureFormat.RGBAFloat, false, true));
         var target = S.Temporary(RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear));
@@ -549,7 +549,7 @@ public static class SmudgeBrushTests
         groupDoc.layers.Clear(); groupDoc.layers.Add(group);
         var groupTransform = group.transform; groupTransform.rotation = 12; groupTransform.scale = new Vector2(.85f, .85f); group.transform = groupTransform;
         Call(groupDoc, "NormalizeModel");
-        Color[] Compose(TextureCompositor model) { var image = S.Own(model.ComposeCanvas()); try { return image.GetPixels(); } finally { S.Destroy(image); } }
+        Color[] Compose(WhimTexDocument model) { var image = S.Own(model.ComposeCanvas()); try { return image.GetPixels(); } finally { S.Destroy(image); } }
         var groupBefore = Compose(groupDoc);
         Begin(groupDoc, grouped, Start); Segment(groupDoc, grouped, Start, Finish); End(grouped);
         var groupAfter = Compose(groupDoc);
@@ -569,11 +569,11 @@ public static class SmudgeBrushTests
         group.children.Add(clipBase); Call(groupDoc, "NormalizeModel");
         var clipped = Compose(groupDoc);
         T.True(clipped[0].a < .01f && clipped[32 * 128 + 64].a > .9f, "Clipping still masks the smudged Drawing");
-        var copy = S.Own((TextureCompositor)Call(typeof(WhimTexDocumentFile), "CreateEditableCopy", alphaDoc));
+        var copy = S.Own((WhimTexDocument)Call(typeof(WhimTexDocumentFile), "CreateEditableCopy", alphaDoc));
         var restored = (DrawingLayerBehaviour)copy.layers[0].Behaviour;
         T.Near(carried.r, Pixels(restored).GetPixel(72, 32).r, .005, "Smudged HDR pixels survive document roundtrip");
         var exportImage = S.Own(alphaDoc.ComposeCanvas());
-        var encode = typeof(TextureCompositorWindow).GetMethod("EncodeExportTexture", Flags);
+        var encode = typeof(WhimTexWindow).GetMethod("EncodeExportTexture", Flags);
         object Format(string name) => Enum.Parse(encode.GetParameters()[1].ParameterType, name);
         var png = (byte[])encode.Invoke(null, new[] { (object)exportImage, Format("Png") });
         var decoded = S.Own(new Texture2D(1, 1, TextureFormat.RGBA32, false));
@@ -583,10 +583,10 @@ public static class SmudgeBrushTests
         T.True(exr.Length > 100 && BitConverter.ToUInt32(exr, 0) == 20000630, "Actual smudged HDR composition exports as EXR");
     });
 
-    static TextureCompositorWindow Window(out TextureCompositor doc)
+    static WhimTexWindow Window(out WhimTexDocument doc)
     {
-        var window = S.Own(ScriptableObject.CreateInstance<TextureCompositorWindow>());
-        doc = S.Own((TextureCompositor)Get(window, "compositor")); doc.width = 128; doc.height = 64;
+        var window = S.Own(ScriptableObject.CreateInstance<WhimTexWindow>());
+        doc = S.Own((WhimTexDocument)Get(window, "activeDocument")); doc.width = 128; doc.height = 64;
         return window;
     }
 
@@ -595,7 +595,7 @@ public static class SmudgeBrushTests
     public static string Api() => FixtureContext.Run("Smudge API validation and Undo/Redo", () =>
     {
         var window = Window(out var doc); var layer = Drawing(doc, Split);
-        string session = (string)typeof(TextureCompositorWindow).GetProperty("AgentSessionId", Flags).GetValue(window);
+        string session = (string)typeof(WhimTexWindow).GetProperty("AgentSessionId", Flags).GetValue(window);
         string Operation(string extra = "") => "{\"op\":\"smudgeStroke\",\"layer\":" + Q(layer.Id) + ",\"points\":[[40,32],[84,32]],\"size\":20,\"strength\":0.95" + extra + "}";
         Reply Batch(string op, bool dry = false)
         {
@@ -700,7 +700,7 @@ public static class SmudgeBrushTests
             T.True(mixing != null && mixing.showInputField, "Mixing slider has editable percentage");
             mixing.value = 25;
             T.Near(.25, (float)Get(settings, "smudgeMixing"), 1e-6, "Mixing control updates the actual tool");
-            T.True(Call(typeof(TextureCompositorWindow), "ParseCanvasTool", "SmudgeBrush").ToString() == "SmudgeBrush", "Smudge is a persistent base tool");
+            T.True(Call(typeof(WhimTexWindow), "ParseCanvasTool", "SmudgeBrush").ToString() == "SmudgeBrush", "Smudge is a persistent base tool");
             var capture = new IconCapture { button = button, owner = window };
             capture.style.height = 1; window.rootVisualElement.Add(capture); window.Repaint();
             try

@@ -11,7 +11,7 @@ try {
     const view = read('src/Editor/LayerShaderFXView.cs');
     const clipboard = read('src/Editor/ShaderFXClipboard.cs');
     const shaderFx = read('src/ShaderFX.cs');
-    const undo = read('src/TextureCompositor.Api.cs');
+    const undo = read('src/WhimTexDocument.Api.cs');
 
     assert.match(view, /GUIContent\("Copy FX"\)/);
     assert.match(view, /GUIContent\("Paste FX As New"\)/);

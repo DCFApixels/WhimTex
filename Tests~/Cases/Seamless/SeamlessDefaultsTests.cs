@@ -25,7 +25,7 @@ public static class SeamlessDefaultsTests
     }
     static string ExecuteMain()
     {
-        checks=0;var assembly=typeof(TextureCompositor).Assembly;
+        checks=0;var assembly=typeof(WhimTexDocument).Assembly;
         var model=MakeSeamlessLayerBehaviour.CreateDefault();Defaults(model);
         var registry=assembly.GetType("DCFApixels.WhimTex.LayerTypeRegistry");
         var entry=registry.GetMethod("Find",F,null,new[]{typeof(string)},null).Invoke(null,new object[]{"makeSeamless"});

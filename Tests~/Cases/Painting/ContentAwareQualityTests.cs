@@ -19,7 +19,7 @@ static System.Threading.CancellationToken Cancellation;
     const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
     const int W = 129, H = 97;
     static string Folder => Scope.Temp + "/FillQuality";
-    static readonly Type Algorithm = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.ContentAwareFill", true);
+    static readonly Type Algorithm = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.ContentAwareFill", true);
     static readonly Type Input = Algorithm.GetNestedType("Input", Flags);
     static readonly string[] Cases = { "edge", "diagonal", "stripes", "texture-flat", "gradient", "alpha-hdr", "noisy-edge", "shading" };
     static Color[] RunAlgorithm(Color[] pixels, byte[] mask, int quality, int seed, Action<float> progress = null, CancellationToken token = default)

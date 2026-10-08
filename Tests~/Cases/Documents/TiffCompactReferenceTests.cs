@@ -49,7 +49,7 @@ public static class TiffCompactReferenceTests
             Check(string.Equals(actual, expectedHash, StringComparison.OrdinalIgnoreCase), name + " SHA-256 is stable");
         }
         Check(WhimTexDocumentFile.IsDocument(path), name + " is a WhimTex TIFF");
-        Check(WhimTexDocumentFile.TryLoad(path, out TextureCompositor document, out string error),
+        Check(WhimTexDocumentFile.TryLoad(path, out WhimTexDocument document, out string error),
             name + " opens: " + error);
         try
         {

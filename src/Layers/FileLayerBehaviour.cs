@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
         [SerializeField, HideInInspector] internal string portableAssetGuid;
         [SerializeField, HideInInspector] internal string portableAssetLocalId;
 
-        internal void AssignSourceTexture(Texture2D texture, TextureCompositor owner, bool initializeCanvas = false)
+        internal void AssignSourceTexture(Texture2D texture, WhimTexDocument owner, bool initializeCanvas = false)
         {
             portableAssetGuid = null;
             portableAssetLocalId = null;
@@ -36,7 +36,7 @@ namespace DCFApixels.WhimTex
                 transform = fitted;
         }
 
-        private bool CanInitializeCanvas(TextureCompositor owner)
+        private bool CanInitializeCanvas(WhimTexDocument owner)
         {
             if (owner == null) return false;
             if (owner.layers != null)
@@ -55,8 +55,8 @@ namespace DCFApixels.WhimTex
         {
             if (sourceTexture == null)
                 return null;
-            Texture2D source = context.compositor != null
-                ? context.compositor.ResolveOriginalFileTexture(sourceTexture)
+            Texture2D source = context.activeDocument != null
+                ? context.activeDocument.ResolveOriginalFileTexture(sourceTexture)
                 : sourceTexture;
             return ApplyTransformAndFx(source != null ? source : sourceTexture, context);
         }

@@ -16,7 +16,7 @@ public static class ImageUrlPasteTests
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
     static object Call(object obj, string name, params object[] args) => obj.GetType().GetMethod(name, F).Invoke(obj, args);
     static object Field(object obj, string name) => obj.GetType().GetField(name, F).GetValue(obj);
-    static bool Pending(TextureCompositorWindow window) => (bool)window.GetType().GetProperty("HasPendingImageUrl", F).GetValue(window);
+    static bool Pending(WhimTexWindow window) => (bool)window.GetType().GetProperty("HasPendingImageUrl", F).GetValue(window);
     static int checks;
     static void Check(bool yes, string message) { checks++; UnityBRun.Check(!(!yes), message); }
     sealed class ImageServer : IDisposable
@@ -59,7 +59,7 @@ public static class ImageUrlPasteTests
             finally { cancellation.Dispose(); }
         }
     }
-    static async Task WaitDownload(TextureCompositorWindow window)
+    static async Task WaitDownload(WhimTexWindow window)
     {
         for (int i = 0; i < 300 && Pending(window); i++) await UnityBRun.Delay(20);
         Check(!Pending(window), "Loopback download did not finish.");
@@ -68,8 +68,8 @@ public static class ImageUrlPasteTests
     {
         checks = 0;
         Undo.IncrementCurrentGroup();
-        var window = UnityBRun.Create<TextureCompositorWindow>();
-        var doc = UnityBRun.Track((TextureCompositor)Field(window, "compositor"));
+        var window = UnityBRun.Create<WhimTexWindow>();
+        var doc = UnityBRun.Track((WhimTexDocument)Field(window, "activeDocument"));
         var source = UnityBRun.Track(new Texture2D(32, 16, TextureFormat.RGBA32, false, false));
         try
         {
@@ -145,8 +145,8 @@ public static class ImageUrlPasteTests
                     (Func<Texture2D, bool>)(image => { throw new Exception("Applied to switched document."); }),
                     (Action<bool>)(ok => completed = ok));
                 Undo.ClearUndo(doc);
-                var next = UnityBRun.Create<TextureCompositor>();
-                Call(window, "SetCompositor", next);
+                var next = UnityBRun.Create<WhimTexDocument>();
+                Call(window, "SetDocument", next);
                 doc = next;
                 Check(!Pending(window) && completed == false && doc.layers.Count == 0, "Document switch did not cancel download.");
                 server.Dispose();

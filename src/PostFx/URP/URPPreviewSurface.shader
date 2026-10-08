@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/URPPreviewSurface"
+Shader "Hidden/WhimTex/URPPreviewSurface"
 {
     Properties
     {

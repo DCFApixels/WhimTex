@@ -21,14 +21,14 @@ public static class ShaderFXLocalCoordinatesTests
     private static void ExecuteMain()
     {
         const BindingFlags F=BindingFlags.Instance|BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic;
-        var doc=ScriptableObject.CreateInstance<TextureCompositor>();
+        var doc=ScriptableObject.CreateInstance<WhimTexDocument>();
         doc.width=doc.height=64;
         ShaderFX fx=null;
         int checks=0;
         try
         {
             string code="float4 ApplyFX(float2 uv, float4 color) { float2 p=LayerToLocal(uv)-0.5; color.a*=step(dot(p,p),0.04); return color; }";
-            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
+            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
             typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(fx,null);
             Layer group=new GroupLayerBehaviour(), layer=new ColorFillLayerBehaviour();
             doc.layers.Add(group); group.children.Add(layer); layer.fx.Add(fx);
@@ -44,7 +44,7 @@ public static class ShaderFXLocalCoordinatesTests
                     var m=group.transform.ToMatrix(64,64); m.m20=.2; m.m21=.1;
                     context.True(!(!group.transform.TrySetMatrix(m)), "Invalid test transform");
                 }
-                var world=(TextureTransform)typeof(TextureCompositor).GetMethod("GetCanvasTransform",F).Invoke(doc,new object[]{layer});
+                var world=(TextureTransform)typeof(WhimTexDocument).GetMethod("GetCanvasTransform",F).Invoke(doc,new object[]{layer});
                 world.ToMatrix(64,64).TryInverse(out var inverse);
                 var texture=doc.ComposeCanvas();
                 try

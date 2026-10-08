@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/Blend"
+Shader "Hidden/WhimTex/Blend"
 {
     Properties
     {

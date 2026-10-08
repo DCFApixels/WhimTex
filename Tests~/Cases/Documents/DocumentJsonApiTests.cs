@@ -39,7 +39,7 @@ public static class DocumentJsonApiTests
             string revision = Check(WhimTexApi.Inspect(path)).document.revision;
             Check(WhimTexApi.DocumentJson("{\"apiVersion\":1,\"action\":\"write\",\"assetPath\":\"" + path + "\",\"expectedRevision\":\"" + revision + "\",\"mode\":\"Compact\",\"json\":" + json + "}"));
             UnityBRun.Check(!(File.ReadAllText(path).Contains("\"whiteNoiseColor\"")), "Write ignored Compact mode.");
-            string fragment = "{\"format\":\"whimtex.document\",\"version\":1,\"document\":{\"width\":32,\"height\":32},\"layers\":[{\"id\":\"incoming\",\"layerName\":\"Inserted\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}";
+            string fragment = "{\"format\":\"whimtex.document\",\"version\":2,\"document\":{\"width\":32,\"height\":32},\"layers\":[{\"id\":\"incoming\",\"layerName\":\"Inserted\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}";
             revision = Check(WhimTexApi.Inspect(path)).document.revision;
             Check(WhimTexApi.DocumentJson("{\"apiVersion\":1,\"action\":\"insert\",\"assetPath\":\"" + path + "\",\"expectedRevision\":\"" + revision + "\",\"json\":" + fragment + "}"));
             string replacementId;

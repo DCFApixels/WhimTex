@@ -16,7 +16,7 @@ namespace DCFApixels.WhimTex
 
         internal override RenderTexture Render(in LayerRenderContext context)
         {
-            // The compositor owns both pass-through and isolated group evaluation.
+            // The activeDocument owns both pass-through and isolated group evaluation.
             return null;
         }
     }

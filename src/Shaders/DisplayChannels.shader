@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/DisplayChannels"
+Shader "Hidden/WhimTex/DisplayChannels"
 {
     Properties
     {

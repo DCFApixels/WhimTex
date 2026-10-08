@@ -11,18 +11,18 @@ namespace DCFApixels.WhimTex
     {
         protected override Type EditedLayerType => typeof(FileLayerBehaviour);
 
-        public static void Open(FileLayerBehaviour layer, TextureCompositor compositor)
+        public static void Open(FileLayerBehaviour layer, WhimTexDocument activeDocument)
         {
-            OpenPropertiesWindow<FileLayerEditorWindow>(layer, compositor);
+            OpenPropertiesWindow<FileLayerEditorWindow>(layer, activeDocument);
         }
 
         protected override void BuildSettings(VisualElement root, Layer source)
         {
-            BuildFields(root, (FileLayerBehaviour)source, Compositor, ApplyLayerChange, SettingsBindings);
+            BuildFields(root, (FileLayerBehaviour)source, Document, ApplyLayerChange, SettingsBindings);
         }
 
         internal static void BuildFields(
-            VisualElement root, FileLayerBehaviour layer, TextureCompositor compositor,
+            VisualElement root, FileLayerBehaviour layer, WhimTexDocument activeDocument,
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings)
         {
 
@@ -32,7 +32,7 @@ namespace DCFApixels.WhimTex
             texture.SetValueWithoutNotify(layer.sourceTexture);
             bindings.Track(texture, () => (UnityEngine.Object)layer.sourceTexture);
             texture.RegisterValueChangedCallback(evt =>
-                applyChange("Change Source Texture", () => layer.AssignSourceTexture(evt.newValue as Texture2D, compositor, initializeCanvas: true)));
+                applyChange("Change Source Texture", () => layer.AssignSourceTexture(evt.newValue as Texture2D, activeDocument, initializeCanvas: true)));
             root.Add(texture);
         }
     }
@@ -42,18 +42,18 @@ namespace DCFApixels.WhimTex
         protected override Type EditedLayerType => typeof(ColorFillLayerBehaviour);
         protected override bool ImmediateLayerPreviewUpdates => true;
 
-        public static void Open(ColorFillLayerBehaviour layer, TextureCompositor compositor)
+        public static void Open(ColorFillLayerBehaviour layer, WhimTexDocument activeDocument)
         {
-            OpenPropertiesWindow<ColorFillLayerEditorWindow>(layer, compositor);
+            OpenPropertiesWindow<ColorFillLayerEditorWindow>(layer, activeDocument);
         }
 
         protected override void BuildSettings(VisualElement root, Layer source)
         {
-            BuildFields(root, (ColorFillLayerBehaviour)source, Compositor, ApplyLayerChange, SettingsBindings);
+            BuildFields(root, (ColorFillLayerBehaviour)source, Document, ApplyLayerChange, SettingsBindings);
         }
 
         internal static void BuildFields(
-            VisualElement root, ColorFillLayerBehaviour layer, TextureCompositor compositor,
+            VisualElement root, ColorFillLayerBehaviour layer, WhimTexDocument activeDocument,
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings)
         {
 

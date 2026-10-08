@@ -10,10 +10,10 @@ namespace DCFApixels.WhimTex
     // Unity reload/Undo but is not part of the portable file model.
     internal static class WhimTexDocumentService
     {
-        private static readonly Dictionary<UnityEngine.Object, TextureCompositor> Views = new();
+        private static readonly Dictionary<UnityEngine.Object, WhimTexDocument> Views = new();
         private static readonly HashSet<string> Writers = new(StringComparer.OrdinalIgnoreCase);
 
-        internal static string PathOf(TextureCompositor document)
+        internal static string PathOf(WhimTexDocument document)
         {
             var binding = document == null ? null : document.documentBinding;
             if (binding == null) return null;
@@ -23,7 +23,7 @@ namespace DCFApixels.WhimTex
             return path;
         }
 
-        internal static void Bind(TextureCompositor document, string path)
+        internal static void Bind(WhimTexDocument document, string path)
         {
             var info = new FileInfo(path);
             if (document.documentBinding == null || document.documentBinding.owner != document)
@@ -40,10 +40,10 @@ namespace DCFApixels.WhimTex
             binding.dirty = false;
         }
 
-        internal static void Attach(UnityEngine.Object view, TextureCompositor document) => Views[view] = document;
+        internal static void Attach(UnityEngine.Object view, WhimTexDocument document) => Views[view] = document;
         internal static void Detach(UnityEngine.Object view) => Views.Remove(view);
 
-        internal static TextureCompositor FindDisplayed(string path)
+        internal static WhimTexDocument FindDisplayed(string path)
         {
             foreach (var pair in Views)
                 if (pair.Key != null && pair.Value != null && string.Equals(PathOf(pair.Value), path, StringComparison.OrdinalIgnoreCase))
@@ -58,11 +58,11 @@ namespace DCFApixels.WhimTex
             return !string.IsNullOrEmpty(path) && WhimTexDocumentFile.IsDocument(path);
         }
 
-        internal static bool IsOwnOutput(TextureCompositor document, UnityEngine.Object asset) => document != null && asset != null &&
+        internal static bool IsOwnOutput(WhimTexDocument document, UnityEngine.Object asset) => document != null && asset != null &&
             (asset == document.OutputTexture || !string.IsNullOrEmpty(PathOf(document)) &&
                 string.Equals(PathOf(document), AssetDatabase.GetAssetPath(asset), StringComparison.OrdinalIgnoreCase));
 
-        internal static IDisposable BeginWrite(TextureCompositor document, string path)
+        internal static IDisposable BeginWrite(WhimTexDocument document, string path)
         {
             path = NormalizeDestination(path);
             var displayed = FindDisplayed(path);

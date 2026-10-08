@@ -14,7 +14,7 @@ public static class QuiltingSeedLayoutTests
     {
         
         var focus=EditorWindow.focusedWindow;var window=job.Scope.Own(ScriptableObject.CreateInstance<EditorWindow>());
-        var assembly=typeof(TextureCompositor).Assembly;
+        var assembly=typeof(WhimTexDocument).Assembly;
         var model=MakeSeamlessLayerBehaviour.CreateDefault();model.mode=MakeSeamlessLayerBehaviour.SeamlessMode.PatchQuilting;
         int step=0;float previousInput=0,smallInput=0;string report="";
         void Cleanup() => job.DisposeOwned();

@@ -18,7 +18,7 @@ context.case('FileLayerCanvas original assertions and branches', async () => {
       'Original source texture is resolved before assigning the canvas size');
     
     const condition = file.match(/if \((initializeCanvas .*CanInitializeCanvas\(owner\))\)/)[1];
-    const canInitializeSource = file.split('private bool CanInitializeCanvas(TextureCompositor owner)')[1]
+    const canInitializeSource = file.split('private bool CanInitializeCanvas(WhimTexDocument owner)')[1]
       .split('public override Texture2D')[0].trim()
       .replace('foreach (Layer layer in owner.layers)', 'for (const layer of owner.layers)')
       .replace('!ReferenceEquals(layer, Owner)', 'layer !== this.Owner');
@@ -44,8 +44,8 @@ context.case('FileLayerCanvas original assertions and branches', async () => {
     const second = {};
     assert.equal(canInitialize.call(second, sole), false, 'Only the first item of a multi-file drop sets the size');
     
-    assert.match(read('src/TextureCompositorWindow.TextureDrop.cs'), /AssignSourceTexture\(texture, owner.compositor, initializeCanvas: true\)/);
-    assert.match(read('src/Layers/Editors/FileLayerEditorWindow.cs'), /AssignSourceTexture\(evt.newValue as Texture2D, compositor, initializeCanvas: true\)/);
+    assert.match(read('src/WhimTexWindow.TextureDrop.cs'), /AssignSourceTexture\(texture, owner.activeDocument, initializeCanvas: true\)/);
+    assert.match(read('src/Layers/Editors/FileLayerEditorWindow.cs'), /AssignSourceTexture\(evt.newValue as Texture2D, activeDocument, initializeCanvas: true\)/);
     assert.match(read('src/Automation/WhimTexApi.Layers.cs'), /file.AssignSourceTexture\(texture, document\);/);
 });
 

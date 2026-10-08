@@ -43,7 +43,7 @@ namespace DCFApixels.WhimTex
             return result;
         });
 
-        private static JArray RunCommonOperations(TextureCompositor document, JArray operations, bool execute, string documentPath = null)
+        private static JArray RunCommonOperations(WhimTexDocument document, JArray operations, bool execute, string documentPath = null)
         {
             var aliases = new Dictionary<string, Layer>(StringComparer.Ordinal);
             var results = new JArray();
@@ -58,7 +58,7 @@ namespace DCFApixels.WhimTex
             return results;
         }
 
-        private static void ValidateAgentBudget(TextureCompositor document)
+        private static void ValidateAgentBudget(WhimTexDocument document)
         {
             long pixels = 0;
             int count = 0;

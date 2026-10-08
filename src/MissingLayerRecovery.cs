@@ -26,7 +26,7 @@ namespace DCFApixels.WhimTex
                 " Kept defaults for unavailable or incompatible fields: " + string.Join(", ", Skipped) + ".");
         }
 
-        internal static Record FindRecord(TextureCompositor document, string behaviourId)
+        internal static Record FindRecord(WhimTexDocument document, string behaviourId)
         {
             if (string.IsNullOrEmpty(behaviourId)) return null;
             Record found = null;
@@ -48,7 +48,7 @@ namespace DCFApixels.WhimTex
             return found;
         }
 
-        internal static Report Copy(Record record, LayerBehaviour destination, TextureCompositor document)
+        internal static Report Copy(Record record, LayerBehaviour destination, WhimTexDocument document)
         {
             var report = new Report();
             if (record == null) return report;
@@ -68,7 +68,7 @@ namespace DCFApixels.WhimTex
             return fields;
         }
 
-        private static void CopyFields(JObject source, object destination, TextureCompositor document, Report report, string path, int depth)
+        private static void CopyFields(JObject source, object destination, WhimTexDocument document, Report report, string path, int depth)
         {
             var fields = Fields(destination.GetType());
             foreach (var property in source.Properties())
@@ -85,7 +85,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static bool TryValue(JToken token, Type type, object original, TextureCompositor document,
+        private static bool TryValue(JToken token, Type type, object original, WhimTexDocument document,
             Report report, string path, int depth, out object value)
         {
             value = original;

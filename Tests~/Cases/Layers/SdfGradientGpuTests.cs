@@ -7,7 +7,7 @@ public static class SdfGradientGpuTests
     static string ExecuteMain()
     {
 
-        var shader = Shader.Find("Hidden/TextureCompositor/SdfGradient");
+        var shader = Shader.Find("Hidden/WhimTex/SdfGradient");
         foreach (var m in ShaderUtil.GetShaderMessages(shader))
             WhimTex.Tests.UnityC.FixtureContext.Context.True(!(m.severity == UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error), m.message);
         var material = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(shader));

@@ -21,8 +21,8 @@ public static class SeamlessEmptyEdgesTests
     }
     static string ExecuteMain()
     {
-        checks=0;var assembly=typeof(TextureCompositor).Assembly;
-        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());doc.width=32;doc.height=24;
+        checks=0;var assembly=typeof(WhimTexDocument).Assembly;
+        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());doc.width=32;doc.height=24;
         var t=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(32,24,TextureFormat.RGBAFloat,false,true));var p=new Color[32*24];
         for(int i=0;i<p.Length;i++)p[i]=new Color(.3f+Mathf.Sin(i*.3f),.5f,.7f,i%5==0?0:.8f);
         t.SetPixels(p);t.Apply(false,false);

@@ -15,19 +15,19 @@ public static class NewDocumentWindowTests
     static void Body()
     {
         // Unity Pipeline eval_file: temporary test tabs only; preserve all original documents.
-        var type = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+        var type = typeof(DCFApixels.WhimTex.WhimTexWindow);
         const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-        var field = type.GetField("compositor", Flags);
+        var field = type.GetField("activeDocument", Flags);
         var parentField = typeof(EditorWindow).GetField("m_Parent", Flags);
         WhimTex.Tests.UnityC.FixtureContext.Context.True(parentField != null,
             "Approved test-only dock-host field remains available");
         var previousFocus = EditorWindow.focusedWindow;
-        var originals = Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositorWindow>();
-        var originalDocuments = new System.Collections.Generic.Dictionary<DCFApixels.WhimTex.TextureCompositorWindow, object>();
+        var originals = Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.WhimTexWindow>();
+        var originalDocuments = new System.Collections.Generic.Dictionary<DCFApixels.WhimTex.WhimTexWindow, object>();
         foreach (var item in originals) originalDocuments[item] = field.GetValue(item);
-        var origin = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(EditorWindow.CreateWindow<DCFApixels.WhimTex.TextureCompositorWindow>("New Document Test", type));
-        var created = new System.Collections.Generic.List<DCFApixels.WhimTex.TextureCompositorWindow>();
-        var document = (DCFApixels.WhimTex.TextureCompositor)field.GetValue(origin);
+        var origin = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(EditorWindow.CreateWindow<DCFApixels.WhimTex.WhimTexWindow>("New Document Test", type));
+        var created = new System.Collections.Generic.List<DCFApixels.WhimTex.WhimTexWindow>();
+        var document = (DCFApixels.WhimTex.WhimTexDocument)field.GetValue(origin);
         int checks = 0;
         void Check(bool value, string message) { WhimTex.Tests.UnityC.FixtureContext.Context.True(value, message); checks++; }
         try
@@ -38,9 +38,9 @@ public static class NewDocumentWindowTests
             Check(origin.hasUnsavedChanges, "Source has unsaved edits");
             for (int i = 0; i < 2; i++)
             {
-                var next = (DCFApixels.WhimTex.TextureCompositorWindow)type.GetMethod("OpenNewDocument", Flags).Invoke(origin, null);
+                var next = (DCFApixels.WhimTex.WhimTexWindow)type.GetMethod("OpenNewDocument", Flags).Invoke(origin, null);
                 created.Add(next);
-                var blank = (DCFApixels.WhimTex.TextureCompositor)field.GetValue(next);
+                var blank = (DCFApixels.WhimTex.WhimTexDocument)field.GetValue(next);
                 Check(next != origin && blank != document, "New window and document instances");
                 Check(blank.layers.Count == 0 && !AssetDatabase.Contains(blank), "Empty unsaved document");
                 Check(next.titleContent.text == "Untitled" && next.titleContent.image != null, "Default tab name and icon");

@@ -147,7 +147,7 @@ Thanks to the authors and maintainers of the libraries that help power WhimTex:
 - **[FastNoiseLite](https://github.com/Auburn/FastNoiseLite)** — Jordan Peck and contributors;
   the HLSL implementation powers the Noise layer. [Included MIT license](ThirdPartyNotices.md#fastnoiselite).
 - **[Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)** — James Newton-King and contributors;
-  JSON serialization for compositor documents and the agent API, provided through Unity's package.
+  JSON serialization for document documents and the agent API, provided through Unity's package.
   [Included third-party licenses](Documentation~/Licenses/Newtonsoft-ThirdPartyNotices.md).
 - **[Unity Burst](https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/index.html)** and
   **[Unity Collections](https://docs.unity3d.com/Packages/com.unity.collections@2.5/manual/index.html)** —

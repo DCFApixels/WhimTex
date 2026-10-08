@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
     public static partial class WhimTexDocumentFile
     {
         /// <summary>Exports JSON without rebinding or marking the source document saved.</summary>
-        public static WhimTexJsonWriteResult ExportJson(TextureCompositor document, string path, WhimTexJsonWriteOptions options = null)
+        public static WhimTexJsonWriteResult ExportJson(WhimTexDocument document, string path, WhimTexJsonWriteOptions options = null)
         {
             if (!WhimTexDocumentJson.IsJsonPath(path)) throw new WhimTexDocumentException("Expected a .json destination.");
             path = WhimTexDocumentService.NormalizeDestination(path);
@@ -22,7 +22,7 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
-        public static string SaveJson(TextureCompositor document, string path, WhimTexJsonWriteOptions options = null, bool deferImport = false)
+        public static string SaveJson(WhimTexDocument document, string path, WhimTexJsonWriteOptions options = null, bool deferImport = false)
         {
             if (document == null) throw new WhimTexDocumentException("There is no document to save.");
             options ??= new WhimTexJsonWriteOptions { Mode = document.JsonWriteMode };
@@ -41,7 +41,7 @@ namespace DCFApixels.WhimTex
             return path;
         }
 
-        internal static void SaveJsonSnapshot(TextureCompositor source, TextureCompositor snapshot, string path, WhimTexJsonWriteOptions options)
+        internal static void SaveJsonSnapshot(WhimTexDocument source, WhimTexDocument snapshot, string path, WhimTexJsonWriteOptions options)
         {
             path = WhimTexDocumentService.NormalizeDestination(path);
             using var lease = WhimTexDocumentService.BeginWrite(source, path);
@@ -51,7 +51,7 @@ namespace DCFApixels.WhimTex
             snapshot.jsonWriteMode = options?.Mode ?? WhimTexJsonWriteMode.FullOptimized;
         }
 
-        private static WhimTexJsonWriteResult WriteJsonFile(TextureCompositor document, string path, WhimTexJsonWriteOptions options)
+        private static WhimTexJsonWriteResult WriteJsonFile(WhimTexDocument document, string path, WhimTexJsonWriteOptions options)
         {
             if (document == null || AssetDatabase.Contains(document))
                 throw new WhimTexDocumentException("Editable documents must be in-memory models, not Unity assets.");
@@ -62,7 +62,7 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
-        private static bool TryLoadJson(string path, out TextureCompositor document, out string error, bool prepareEffects,
+        private static bool TryLoadJson(string path, out WhimTexDocument document, out string error, bool prepareEffects,
             out IReadOnlyList<string> warnings)
         {
             document = null;
@@ -74,7 +74,7 @@ namespace DCFApixels.WhimTex
                 using var read = WhimTexDocumentJson.Read(File.ReadAllText(path), prepareEffects);
                 warnings = read.Warnings;
                 foreach (string warning in read.Warnings)
-                    if (!read.Effects.Exists(effect => effect.UnavailableReason == warning)) Debug.LogWarning("WhimTex: " + warning);
+                    if (!read.Effects.Exists(effect => effect.DiagnosticNotice == warning)) Debug.LogWarning("WhimTex: " + warning);
                 document = read.TakeDocument();
                 document.name = Path.GetFileNameWithoutExtension(path);
                 if (document.name.EndsWith(".whimtex", StringComparison.OrdinalIgnoreCase)) document.name = document.name.Substring(0, document.name.Length - 8);

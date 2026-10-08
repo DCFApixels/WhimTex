@@ -159,18 +159,18 @@ namespace WhimTex.Tests.UnityA
             BoolPreference("WhimTex.ColorPicker.Channels");
             BoolPreference("DCFApixels.WhimTex.ColorPicker.HistoryExpanded");
             BoolPreference("DCFApixels.WhimTex.HdrColorInputs");
-            var inputType = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexColorInputs", true);
+            var inputType = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexColorInputs", true);
             var hdrField = inputType.GetField("hdr", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
             object savedHdr = hdrField.GetValue(null);
             restores.Add(() => { if (!object.Equals(hdrField.GetValue(null), savedHdr)) hdrField.SetValue(null, savedHdr); });
             // Window lifecycle clears these package-owned drag slots through public DragAndDrop.
-            foreach (string key in new[] { "DCFApixels.WhimTex.DraggedLayerId", "DCFApixels.WhimTex.DraggedLayers", "DCFApixels.WhimTex.DraggedCompositorId", "DCFApixels.WhimTex.DraggedWindow" })
+            foreach (string key in new[] { "DCFApixels.WhimTex.DraggedLayerId", "DCFApixels.WhimTex.DraggedLayers", "DCFApixels.WhimTex.DraggedDocumentId", "DCFApixels.WhimTex.DraggedWindow" })
             {
                 string slot = key; object value = UnityEditor.DragAndDrop.GetGenericData(slot);
                 restores.Add(() => UnityEditor.DragAndDrop.SetGenericData(slot, value));
             }
             // Restore the package cache independently of the persisted preference's presence.
-            var channels = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexColorChannels", true);
+            var channels = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexColorChannels", true);
             var field = channels.GetField("enabled", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
             object saved = field.GetValue(null);
             restores.Add(() => { if (!object.Equals(field.GetValue(null), saved)) field.SetValue(null, saved); });
@@ -363,19 +363,19 @@ namespace WhimTex.Tests.UnityA
             void Clean(System.Action action) { try { action(); } catch (System.Exception error) { failures.Add(error); } }
             try
             {
-                if (window is DCFApixels.WhimTex.TextureCompositorWindow compositorWindow)
+                if (window is DCFApixels.WhimTex.WhimTexWindow documentWindow)
                 {
                     Clean(() =>
                     {
                         var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-                        var document = (DCFApixels.WhimTex.TextureCompositor)typeof(DCFApixels.WhimTex.TextureCompositorWindow).GetField("compositor", flags).GetValue(window);
+                        var document = (DCFApixels.WhimTex.WhimTexDocument)typeof(DCFApixels.WhimTex.WhimTexWindow).GetField("activeDocument", flags).GetValue(window);
                         if (document != null && !UnityEditor.AssetDatabase.Contains(document))
                         {
                             Clean(() => UnityEditor.Undo.ClearUndo(document));
                             Clean(() => ClearDrawingUndo(document.layers));
                         }
                     });
-                    Clean(compositorWindow.DiscardChanges);
+                    Clean(documentWindow.DiscardChanges);
                 }
                 // A CreateInstance-only window has no host. Public panel attachment is
                 // sufficient here because every shown fixture uses the UI Toolkit root.
@@ -580,7 +580,7 @@ namespace WhimTex.Tests.UnityA
         {
             if (window == null) return;
             var type = window.GetType();
-            if (type.Assembly != typeof(DCFApixels.WhimTex.TextureCompositorWindow).Assembly || type.Name != "ContentFillWindow")
+            if (type.Assembly != typeof(DCFApixels.WhimTex.WhimTexWindow).Assembly || type.Name != "ContentFillWindow")
                 throw new System.InvalidOperationException("Only an owned WhimTex ContentFillWindow can be joined.");
             const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
             type.GetMethod("Cancel", flags).Invoke(window, null);

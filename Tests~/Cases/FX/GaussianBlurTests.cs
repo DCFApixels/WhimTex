@@ -10,8 +10,8 @@ public static class GaussianBlurTests
     {
 // Opt-in after manual compilation. Transient objects only; no imports, saves or Undo operations.
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var compositorType = typeof(DCFApixels.WhimTex.TextureCompositor);
-var document = UnityBRun.Create<DCFApixels.WhimTex.TextureCompositor>();
+var documentType = typeof(DCFApixels.WhimTex.WhimTexDocument);
+var document = UnityBRun.Create<DCFApixels.WhimTex.WhimTexDocument>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = 33; document.height = 25;
 var texture = UnityBRun.Track(new UnityEngine.Texture2D(33,25,UnityEngine.TextureFormat.RGBAFloat,false,true));
@@ -19,13 +19,13 @@ texture.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 var source = new DCFApixels.WhimTex.FileLayerBehaviour { sourceTexture = texture, colorRange = DCFApixels.WhimTex.LayerColorRange.HDR };
 var gaussian = new DCFApixels.WhimTex.BlurLayerBehaviour { radius = 4, colorRange = DCFApixels.WhimTex.LayerColorRange.HDR };
 document.layers.Add(gaussian); document.layers.Add(source);
-compositorType.GetMethod("NormalizeModel",flags).Invoke(document,null);
+documentType.GetMethod("NormalizeModel",flags).Invoke(document,null);
 int checks = 0;
 void Check(bool value,string message) { UnityBRun.Check(!(!value), message); checks++; }
 void Upload(UnityEngine.Color[] values) { texture.SetPixels(values); texture.Apply(false,false); }
 UnityEngine.Color[] Render()
 {
-    var rt = (UnityEngine.RenderTexture)compositorType.GetMethod("RenderLayerPreview",flags).Invoke(document,new object[]{gaussian.Owner,33});
+    var rt = (UnityEngine.RenderTexture)documentType.GetMethod("RenderLayerPreview",flags).Invoke(document,new object[]{gaussian.Owner,33});
     var previous = UnityEngine.RenderTexture.active;
     var read = UnityBRun.Track(new UnityEngine.Texture2D(33,25,UnityEngine.TextureFormat.RGBAFloat,false,true));
     try

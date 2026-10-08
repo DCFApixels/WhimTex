@@ -90,14 +90,14 @@ context.case('BrushTipPersistence original assertions and branches', async () =>
     assert.equal(settings.dynamics.tip,child);
     assign(settings,db,editor,null);
     assert.equal(settings.brushTipPresetPath,'','Explicit clear forgets the preset tip');
-    const window=read('src/TextureCompositorWindow.cs'), tools=read('src/TextureCompositorWindow.Tools.cs');
+    const window=read('src/WhimTexWindow.cs'), tools=read('src/WhimTexWindow.Tools.cs');
     for(const event of ['delayCall','projectChanged']) {
       assert.ok(window.includes(`EditorApplication.${event} += RestoreBrushTipAfterReload`));
       assert.ok(window.includes(`EditorApplication.${event} -= RestoreBrushTipAfterReload`));
     }
     assert.ok(tools.includes('paintSettings.RememberBrushTip();'));
     assert.ok(!tools.includes('paintSettings.dynamics.tip == null ? string.Empty'));
-    assert.ok(read('src/TextureCompositorWindow.Brushes.cs').includes('paintSettings.SetBrushTip(texture)'));
+    assert.ok(read('src/WhimTexWindow.Brushes.cs').includes('paintSettings.SetBrushTip(texture)'));
 });
 
 await finish(context);

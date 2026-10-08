@@ -21,7 +21,7 @@ namespace DCFApixels.WhimTex
                     " MiB; maximum 256 MiB per embedded texture and 1 GiB total. Reduce Drawing source resolution or split the document. Original files are unchanged.");
         }
 
-        internal static long Validate(TextureCompositor document)
+        internal static long Validate(WhimTexDocument document)
         {
             if (document.width < 1 || document.height < 1 || document.width > 16384 || document.height > 16384)
                 throw new WhimTexDocumentException("TIFF canvas dimensions must be between 1 and 16384.");

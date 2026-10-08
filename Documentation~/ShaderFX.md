@@ -18,9 +18,8 @@ stack below a position, add a **Shader Processor** layer instead.
 
 ## Shader FX: a first snippet, parameters and reusable code
 
-Parameters are authored only with `// @param` in HLSL. When reading a 0.12.5 document or
-Shader FX asset preset, saved manual uniforms are converted to declarations while retaining
-their values and references. This file conversion does not restore a manual authoring mode.
+Parameters are authored only with `// @param` in HLSL. Saved manual uniforms are not
+converted into declarations; there is no manual parameter authoring mode or migration.
 
 Declare the parameter in the code, then click **Apply**:
 
@@ -34,13 +33,21 @@ float4 ApplyFX(float2 uv, float4 color)
 ```
 
 Parameter declarations generate uniforms and editor controls automatically; the supported types are described below.
-Code and declarations stay drafts until **Apply**, including an Apply request from saving the working file in the bundled VS Code integration. A failed Apply skips the FX, including any previously compiled version, until successful recompilation. Code, values and enabled state remain editable. Yellow indicators in Layers, the FX section and the effect header remain visible when collapsed. Ordinary compiler warnings do not disable a successfully compiled FX. JSON loading/saving retains broken effects and reports diagnostics without aborting the document; TIFF save validation is unchanged.
+Code and declarations stay drafts until **Apply**, including an Apply request from saving the working file in the bundled VS Code integration. A failed Apply skips the FX, including any previously compiled version, until successful recompilation. Code, values and enabled state remain editable. Yellow indicators in Layers, the FX section and the effect header expose errors and warnings even when collapsed. Warnings do not disable a successfully compiled FX. JSON loading/saving retains broken effects and reports diagnostics without aborting the document; TIFF save validation is unchanged.
+
+FX compilation, declaration validation, source/include failures and catalog reloads share one
+diagnostic list with `Error`, `Warning` and `Info` severity, message and optional source location.
+Normal Apply and transient agent compilation use the same collector. Diagnostics, UI indicators,
+agent responses and WhimTex Console entries use those records; the API does not reclassify display text.
+Console uses Error for errors and Warning for warnings, deduplicated by source path and formatted
+diagnostic until scripts reload. Suppression affects only Console, never UI/API diagnostics.
+Fixing all issues clears the indicators; a successful Apply with warnings keeps them visible.
 
 `LayerToLocal(uv)` converts canvas UV to local layer UV, including parent transforms and perspective. Use it for procedural shapes that should follow the layer. It does not clamp or wrap UV; `SampleInput` still expects canvas UV.
 
 `SampleInput(uv)` reads the layer after earlier FX. Return straight RGBA; opacity/blending
 come later. Built-in inputs include `_MainTex`, `_MainTex_TexelSize`, `_InputSize`,
-`_CanvasSize` (width, height, 1/width, 1/height) and `_PreviewScale`. Do not redeclare generated uniforms.
+`_CanvasSize` (width, height, 1/width, 1/height) and `_RenderScale`. Do not redeclare generated uniforms.
 
 `SampleInput(uv, tiling)` selects input addressing: `0` Clamp, `1` Repeat, `2` Mirror,
 `3` Clip (transparent outside UV 0–1). Repeat interpolates across both image seams with
@@ -52,18 +59,18 @@ Declare an ordinary enum to expose the choice:
 // @param enum _InputTiling = Clamp {Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3}
 ```
 
-The three-argument form `SampleInput(uv, tiling, filterRepeat)` uses coordinate wrapping
-without seam interpolation when `filterRepeat` is zero. Linked Displacement Map files
-written before this helper retain that behavior through a hidden `_RepeatFiltering=0`
-parameter on refresh; new instances default to 1. Its `_Tiling` parameter reads saved
-`_InputEdge` values and identities through `@formerlyserializedas(_InputEdge)`;
-the numeric values remain stable. Other Distortion presets read `_InputTiling` through
-the same metadata; UV Transform still uses `_InputTiling`. Detached source is not rewritten.
+Distortion presets use `_Tiling`; UV Transform uses `_InputTiling`. Previous parameter
+names and old linked-preset layouts are not migrated. Detached source is not rewritten.
 The original one-argument helper is unchanged. `Unbounded` is not a raster addressing mode.
-WhimTex FX are deterministic: Unity time inputs such as `_Time`, `_SinTime`, `_CosTime`,
-`_TimeParameters` and `unity_DeltaTime` are not supported and are not updated by the preview cache.
-Their use is allowed for compatibility, but Apply adds a warning to Diagnostics and the result
-is treated as non-cacheable. Use an explicit parameter when a value must change the effect.
+Unity time inputs such as `_Time`, `_SinTime`, `_CosTime`, `_TimeParameters` and
+`unity_DeltaTime` are allowed: their use does not block compilation or Apply. WhimTex does not
+control their updates, so results may differ between Canvas, thumbnails and export.
+Apply adds a warning to Diagnostics and disables reusable result caching for the FX.
+Agent compilation returns the same warning in `diagnostics` and `warnings`, not `errors`.
+The warning uses the same diagnostic and Console mechanism as other FX warnings; there is no
+time-specific reporting path. Repeated Apply, agent preflight and rendering do not repeat it;
+Diagnostics and API warnings remain available every time. Use an explicit parameter for
+predictable time-dependent behavior. This is the current warning-only policy, not a legacy exception.
 
 Standard `#include` supports project/package paths and relative paths. Relative paths start in
 the document/FX asset folder, or Assets before the first save. After library edits, click Apply again;
@@ -102,11 +109,9 @@ Out-of-frame coordinates follow Tiling, which defaults to Clamp. UV Transform's 
 to Clip; the other built-in distortion presets default to Clamp. The field follows the
 effect's parameters, outside Transform 2D foldouts, and is independent of layer Tiling/map wrapping.
 
-On linked built-in preset refresh, 0.12.5 From Polar's saved Area moves to Input,
-and Output becomes neutral, preserving the rendered result. To Polar's saved Area
-becomes Output, with neutral Input. Presets already using Input/Area retain both
-frames, with Area renamed to Output. The provisional Source Center value becomes the
-corresponding frame's position. Detached presets keep their embedded source.
+Linked preset refresh matches parameters by their current names and types. Old Area,
+Source Center and one-frame layouts are not converted to Input/Output. Detached presets
+keep their embedded source.
 
 ## Edge Outline preset
 
@@ -282,17 +287,13 @@ Use `// @if _Mode == 1` or `// @if _Mode != 1` before one or more `// @param` li
 // @endif
 ```
 
-Use `// @header(Lighting)` before a `// @param` declaration to add a bold, non-collapsible heading above that control. Use `// @helpbox(Your hint text.)` to show an informational help box above the parameter instead. `// @formerlyserializedas(_OldName)` declares an old parameter name for the next declaration; when the new name is applied, compatible saved values and parameter identity migrate from the old name. Repeat the directive to support multiple previous names. This is useful when renaming a uniform: update the HLSL code to use the new name and leave the old name as migration metadata. All three directives are UI/serialization metadata, not uniforms; they are preserved when saving or exporting presets. A rename directive must be followed by a parameter declaration; headings and help boxes without one are ignored. HLSL brushes support these decorations and rename aliases too.
+Use `// @header(Lighting)` before a `// @param` declaration to add a bold, non-collapsible heading above that control. Use `// @helpbox(Your hint text.)` to show an informational help box above the parameter instead. Both are UI metadata, not uniforms, and are preserved when exporting FX and brush presets. Headings and help boxes without a following parameter are ignored. Previous-name migration directives are not supported.
 
-Built-in Color Filter, Negative, Mask, Gradient Map and HSV use `_Opacity`, as they already did in 0.12.5;
-pre-0.12.5 `_Amount`/`_Density` aliases are removed. The user-authored rename directive remains supported,
-including in saved 0.12.5 FX/brush sources. It is independent of Unity migration attributes, which are no
-longer used by the document reader.
+Built-in Color Filter, Negative, Mask, Gradient Map and HSV use `_Opacity`, without old-name aliases.
 
 ```hlsl
 // @header(Lighting)
 // @helpbox(Keep this value subtle to preserve the input colors.)
-// @formerlyserializedas(_OldLightTint)
 // @param color _LightColor = (1, 1, 1, 1)
 // @param float _Intensity = 1 [0 .. ~4]
 ```
@@ -522,6 +523,6 @@ and retains the original layers in a hidden Source Layers folder.
 
 ## Baking implementation
 
-The stack's **Apply All** and **⋮ → Apply** bake rendered pixels; they are distinct from compiling code with **Code → Apply**. A per-FX bake consumes the inclusive prefix, preserving the remaining stack. The result is Drawing with unchanged logical Transform; serialized pixel-frame compensation prevents double-transforming the snapshot, and converted groups retain their FX coordinate frame. Painting uses the pixel frame, while Transform editing uses the logical frame. The snapshot is canvas-sized linear half-float, before layer opacity/blending/swizzle/clipping.
+The stack's **Apply All** and **⋮ → Apply** bake rendered pixels; they are distinct from compiling code with **Code → Apply**. A per-FX bake consumes the inclusive prefix, preserving the remaining stack. The result is Drawing with unchanged logical Transform; serialized pixel-frame compensation prevents double-transforming the snapshot, and converted groups retain their FX coordinate frame. Painting uses the pixel frame, while Transform editing uses the logical frame. The snapshot is canvas-sized linear half-float, before layer opacity/blending/channelMapping/clipping.
 
 Shader Processor baking reconstructs its stack-position backdrop, inheriting external input through Pass Through ancestors and starting transparent inside isolated/clipped groups. Its Normal becomes Overwrite; Drawing stores `processorSnapshot` and `processorNormalBlend` to retain premultiplied before/after opacity interpolation instead of ordinary straight-RGBA Overwrite. Other blend modes retain their ordinary behavior. Processor snapshots remain clipping boundaries so existing orphan clipping layers do not acquire a new base; explicitly enabling clipping on the Drawing opts into ordinary clipping semantics. The lower layers are unchanged, but their future edits no longer regenerate the snapshot. Flags survive repeated Apply, native clipboard, TIFF and Undo/Redo.

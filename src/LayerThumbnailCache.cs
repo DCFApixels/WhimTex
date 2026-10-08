@@ -19,11 +19,11 @@ namespace DCFApixels.WhimTex
         private readonly HashSet<Layer> alive = new HashSet<Layer>();
         private readonly List<Layer> removed = new List<Layer>();
         private readonly EffectRenderCache renders = new EffectRenderCache(snapshotShaders: true) { BudgetBytes = 8L * 1024 * 1024 };
-        private readonly TextureCompositor document;
+        private readonly WhimTexDocument document;
         private double nextCheck, deferUntil;
         internal int RenderCount { get; private set; }
 
-        internal LayerThumbnailCache(TextureCompositor document) => this.document = document;
+        internal LayerThumbnailCache(WhimTexDocument document) => this.document = document;
 
         internal void Invalidate() => nextCheck = 0;
 
@@ -85,7 +85,7 @@ namespace DCFApixels.WhimTex
                     reduced = RenderTexture.GetTemporary(Mathf.Max(1, Mathf.RoundToInt(rendered.width * scale)),
                         Mathf.Max(1, Mathf.RoundToInt(rendered.height * scale)), 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                     Graphics.Blit(rendered, reduced);
-                    next = TextureCompositor.CopyToTexture2D(reduced);
+                    next = WhimTexDocument.CopyToTexture2D(reduced);
                 }
                 Destroy(entry);
                 entry.texture = next;

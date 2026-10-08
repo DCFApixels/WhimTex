@@ -10,7 +10,7 @@ using Object=UnityEngine.Object;
 public static class QuiltingAlongSearchTests
 {
     const BindingFlags F=BindingFlags.Static|BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic;
-    static Type Core=>typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.PatchQuiltingSeamless");
+    static Type Core=>typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.PatchQuiltingSeamless");
     static int checks;
     static void Check(bool ok,string message){ WhimTex.Tests.UnityC.FixtureContext.Context.True(ok, message); checks++; }
     static Color[] Read(RenderTexture rt)
@@ -34,7 +34,7 @@ public static class QuiltingAlongSearchTests
     }
     static string Run()
     {
-        checks=0;var shader=Shader.Find("Hidden/TextureCompositor/PatchQuilting");
+        checks=0;var shader=Shader.Find("Hidden/WhimTex/PatchQuilting");
         Check(shader!=null&&shader.isSupported&&!ShaderUtil.ShaderHasError(shader),"Shader compiles");
         Check(new MakeSeamlessLayerBehaviour().quiltingAlongSearch==0,"Off by default");
         var rowMap=Core.GetMethod("DonorRow",F);

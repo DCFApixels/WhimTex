@@ -10,15 +10,18 @@ namespace DCFApixels.WhimTex
         // Deliberately not an ExecuteJson envelope: clipboard data can only create a detached tree.
         internal sealed class ProceduralClipboard : IDisposable
         {
-            internal TextureCompositor Document;
+            internal WhimTexDocument Document;
             internal bool HasCanvas;
             internal readonly List<ShaderFX> Effects = new List<ShaderFX>();
             internal readonly List<string> Warnings = new List<string>();
             internal void Compile()
             {
                 foreach (var effect in Effects)
-                    if (!effect.TryPrepareDocumentEffect(out string warning) && !Warnings.Contains(warning))
+                {
+                    effect.TryPrepareDocumentEffect(out string warning);
+                    if (warning != null && !Warnings.Contains(warning))
                         Warnings.Add(warning);
+                }
                 ValidateTargets(Document, null);
                 foreach (var effect in Effects)
                     foreach (var parameter in effect.TextureLayerParameters())
@@ -71,7 +74,7 @@ namespace DCFApixels.WhimTex
             return data;
         }
 
-        internal static void PreparePortableDestination(ProceduralClipboard data, TextureCompositor destination)
+        internal static void PreparePortableDestination(ProceduralClipboard data, WhimTexDocument destination)
         {
             foreach (var layer in Enumerate(data.Document.layers))
                 if (layer.Behaviour is FileLayerBehaviour file && file.sourceTexture != null &&
@@ -82,10 +85,10 @@ namespace DCFApixels.WhimTex
                 }
         }
 
-        internal static string WritePortableClipboard(TextureCompositor document, List<Layer> requested)
+        internal static string WritePortableClipboard(WhimTexDocument document, List<Layer> requested)
             => WritePortableClipboardReport(document, requested, out _);
 
-        internal static string WritePortableClipboardReport(TextureCompositor document, List<Layer> requested, out List<string> warnings)
+        internal static string WritePortableClipboardReport(WhimTexDocument document, List<Layer> requested, out List<string> warnings)
         {
             var result = WhimTexDocumentJson.WriteLayers(document, requested,
                 new WhimTexJsonWriteOptions { AllowDrawingOmission = true });

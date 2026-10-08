@@ -70,9 +70,9 @@ public static class ProceduralThumbnailsTests
             Check(ellipse == null && blue.GetPixel(9,9).b > .9f && blue.GetPixel(9,9).r < .01f, "Color edits refresh pixels");
             var resized = Preview(shape, 32);
             Check(blue == null, "Resizing releases old thumbnail");
-            var nativeBefore = UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositor>().Length;
+            var nativeBefore = UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.WhimTexDocument>().Length;
             for (int i = 0; i < 12; i++) { noise.seed++; Preview(noise); }
-            Check(UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositor>().Length == nativeBefore, "No transient document leaks");
+            Check(UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.WhimTexDocument>().Length == nativeBefore, "No transient document leaks");
             Release(shape); Check(resized == null, "Resource release destroys thumbnail");
             Preview(shape);
             var replacement = Preview(shape);

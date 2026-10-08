@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -34,7 +34,6 @@
       }
     ],
     "nextCopyNumber": 1,
-    "spriteSlices": [],
     "width": 512,
     "height": 512,
     "outputFilter": "Bilinear",
@@ -54,7 +53,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [],
@@ -102,7 +101,7 @@
           "blendMode": "Normal",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [],
@@ -234,7 +233,7 @@
           "blendMode": "Normal",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [],
@@ -291,7 +290,7 @@
           "blendMode": "Normal",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [],
@@ -339,7 +338,7 @@
               "blendMode": "Normal",
               "colorRange": "Standard",
               "blendRange": "Standard",
-              "swizzle": {
+              "channelMapping": {
                 "packed": 0
               },
               "fx": [],
@@ -400,7 +399,7 @@
               "blendMode": "Normal",
               "colorRange": "Standard",
               "blendRange": "Standard",
-              "swizzle": {
+              "channelMapping": {
                 "packed": 0
               },
               "fx": [],
@@ -465,7 +464,7 @@
           "blendMode": "Normal",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [],
@@ -587,7 +586,7 @@
           "blendMode": "Normal",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [
@@ -601,29 +600,25 @@
                   "name": "_HeartWidth",
                   "type": "Float",
                   "floatValue": 1.0,
-                  "id": "1f2a23b7ec1d4aee97610bbdb4a7eebf",
-                  "declaredInCode": true
+                  "id": "1f2a23b7ec1d4aee97610bbdb4a7eebf"
                 },
                 {
                   "name": "_NotchDepth",
                   "type": "Float",
                   "floatValue": 1.0,
-                  "id": "28dc051991b74f5d9438898a39e558bf",
-                  "declaredInCode": true
+                  "id": "28dc051991b74f5d9438898a39e558bf"
                 },
                 {
                   "name": "_TipLength",
                   "type": "Float",
                   "floatValue": 1.0,
-                  "id": "aa2eabc8102e48deaf12cd20df6492fb",
-                  "declaredInCode": true
+                  "id": "aa2eabc8102e48deaf12cd20df6492fb"
                 },
                 {
                   "name": "_Fullness",
                   "type": "Float",
                   "floatValue": 1.0,
-                  "id": "14378ec4dfbc404f94fe2e860b4666ce",
-                  "declaredInCode": true
+                  "id": "14378ec4dfbc404f94fe2e860b4666ce"
                 }
               ],
               "shaderKey": "93631b06c547453b92e3a16480cb137d",
@@ -684,7 +679,7 @@
           "blendMode": "Normal",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [],

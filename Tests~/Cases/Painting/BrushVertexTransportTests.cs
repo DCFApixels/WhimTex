@@ -14,7 +14,7 @@ static System.Threading.CancellationToken Cancellation;
 private static string BodyRun()
 {
 // Transient GPU probe, no project compilation, asset imports or document changes.
-var material = new UnityEngine.Material(UnityEngine.Shader.Find("Hidden/TextureCompositor/PaintBrush"));
+var material = new UnityEngine.Material(UnityEngine.Shader.Find("Hidden/WhimTex/PaintBrush"));
 var mesh = new UnityEngine.Mesh();
 var target = UnityEngine.RenderTexture.GetTemporary(32, 32, 0, UnityEngine.RenderTextureFormat.ARGBHalf, UnityEngine.RenderTextureReadWrite.Linear);
 var readback = new UnityEngine.Texture2D(32, 32, UnityEngine.TextureFormat.RGBAFloat, false, true);

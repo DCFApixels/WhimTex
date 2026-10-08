@@ -13,7 +13,7 @@ static System.Threading.CancellationToken Cancellation;
     const string Root = "Packages/com.dcfapixels.whimtex/";
     const BindingFlags F = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static;
     static object Read(string json) => typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", F).Invoke(null, new object[] { json, 512, 512 });
-    static TextureCompositor Document(object data) => (TextureCompositor)data.GetType().GetField("Document", F).GetValue(data);
+    static WhimTexDocument Document(object data) => (WhimTexDocument)data.GetType().GetField("Document", F).GetValue(data);
     static void Compile(object data) => data.GetType().GetMethod("Compile", F).Invoke(data, null);
     private static string BodyRun()
     {
@@ -43,14 +43,14 @@ static System.Threading.CancellationToken Cancellation;
         }
         return null;
     }
-    static Color[] Pixels(TextureCompositor document)
+    static Color[] Pixels(WhimTexDocument document)
     {
         var previous = RenderTexture.active;
         RenderTexture rendered = null;
         Texture2D pixels = null;
         try
         {
-            rendered = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvas", F).Invoke(document, new object[] { 64 });
+            rendered = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderCanvas", F).Invoke(document, new object[] { 64 });
             T.True(!(rendered == null), "Missing preview");
             pixels = new Texture2D(rendered.width, rendered.height, TextureFormat.RGBAFloat, false, true);
             RenderTexture.active = rendered;

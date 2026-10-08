@@ -15,10 +15,10 @@ public static class LayerCompositionWindowTests
     static void Body()
     {
         // Pipeline eval_file: separate unsaved window, no Show(), project assets or existing documents.
-        var windowType = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+        var windowType = typeof(DCFApixels.WhimTex.WhimTexWindow);
         var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-        var window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>());
-        var doc = (DCFApixels.WhimTex.TextureCompositor)windowType.GetField("compositor", flags).GetValue(window);
+        var window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexWindow>());
+        var doc = (DCFApixels.WhimTex.WhimTexDocument)windowType.GetField("activeDocument", flags).GetValue(window);
         doc.width = doc.height = 8;
         int checks = 0;
         void Check(bool condition, string message) { WhimTex.Tests.UnityC.FixtureContext.Context.True(condition, message); checks++; }

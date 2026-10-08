@@ -158,9 +158,9 @@ static System.Threading.CancellationToken Cancellation;
     static async Task BodyAllHeaders(int first, int count, bool dynamic)
     {
         const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-        var type = typeof(TextureCompositorWindow);
-        var window = Scope.OwnWindow(ScriptableObject.CreateInstance<TextureCompositorWindow>());
-        var document = (TextureCompositor)type.GetField("compositor", flags).GetValue(window);
+        var type = typeof(WhimTexWindow);
+        var window = Scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
+        var document = (WhimTexDocument)type.GetField("activeDocument", flags).GetValue(window);
         document.width = document.height = 32;
         Layer layer = new DrawingLayerBehaviour(); document.layers.Add(layer);
         type.GetField("selectedLayerId", flags).SetValue(window, layer.Id);
@@ -297,7 +297,7 @@ static System.Threading.CancellationToken Cancellation;
         window.ShowUtility(); window.position = new Rect(150, 150, 650, 80);
         var root = window.rootVisualElement;
         root.styleSheets.Add(AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.dcfapixels.whimtex/src/WhimTexSplitView.uss"));
-        var row = (VisualElement)Activator.CreateInstance(typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexCanvasHeaderRow", true), true);
+        var row = (VisualElement)Activator.CreateInstance(typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexCanvasHeaderRow", true), true);
         row.AddToClassList("whimtex-tool-settings-row"); row.AddToClassList("whimtex-brush-header"); root.Add(row);
         var size = new FloatField("Size") { value = 122 }; size.AddToClassList("whimtex-brush-size");
         row.Add(size);
@@ -402,10 +402,10 @@ private static async Task BodyLiveHeader()
 {
     const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static
         | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
-    var type = typeof(TextureCompositorWindow);
-    var window = Scope.OwnWindow(ScriptableObject.CreateInstance<TextureCompositorWindow>());
+    var type = typeof(WhimTexWindow);
+    var window = Scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
     window.name = TestName;
-    var document = Scope.OwnObject((TextureCompositor)type.GetField("compositor", flags).GetValue(window));
+    var document = Scope.OwnObject((WhimTexDocument)type.GetField("activeDocument", flags).GetValue(window));
     document.width = document.height = 32;
     Layer layer = new DrawingLayerBehaviour(); document.layers.Add(layer);
     type.GetField("selectedLayerId", flags).SetValue(window, layer.Id);

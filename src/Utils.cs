@@ -296,33 +296,33 @@ namespace DCFApixels.WhimTex
             EditorApplication.quitting += Dispose;
         }
 
-        public static Material Blend => GetOrCreate(ref blendMaterial, "Hidden/TextureCompositor/Blend");
-        public static Material Hdr => GetOrCreate(ref hdrMaterial, "Hidden/TextureCompositor/Hdr");
-        public static Material NormalMap => GetOrCreate(ref normalMapMaterial, "Hidden/TextureCompositor/NormalMap");
-        public static Material GaussianBlur => GetOrCreate(ref gaussianBlurMaterial, "Hidden/TextureCompositor/GaussianBlur");
-        public static Material BlurBrush => GetOrCreate(ref blurBrushMaterial, "Hidden/TextureCompositor/BlurBrush");
-        public static Material SmudgeBrush => GetOrCreate(ref smudgeBrushMaterial, "Hidden/TextureCompositor/SmudgeBrush");
-        public static Material SmudgeTransport => GetOrCreate(ref smudgeTransportMaterial, "Hidden/TextureCompositor/SmudgeTransport");
-        public static Material HealingBrush => GetOrCreate(ref healingBrushMaterial, "Hidden/TextureCompositor/HealingBrush");
-        public static Material Sharpen => GetOrCreate(ref sharpenMaterial, "Hidden/TextureCompositor/Sharpen");
-        public static Material MotionBlur => GetOrCreate(ref motionBlurMaterial, "Hidden/TextureCompositor/MotionBlur");
-        public static Material MakeSeamless => GetOrCreate(ref makeSeamlessMaterial, "Hidden/TextureCompositor/MakeSeamless");
-        public static Material GpuFourierTransform => GetOrCreate(ref gpuFourierTransformMaterial, "Hidden/TextureCompositor/GpuFourierTransform");
-        public static Material ScreenedSeamless => GetOrCreate(ref screenedSeamlessMaterial, "Hidden/TextureCompositor/ScreenedSeamless");
-        public static Material HistogramSeamless => GetOrCreate(ref histogramSeamlessMaterial, "Hidden/TextureCompositor/HistogramSeamless");
-        public static Material PatchQuilting => GetOrCreate(ref patchQuiltingMaterial, "Hidden/TextureCompositor/PatchQuilting");
-        public static Material Noise => GetOrCreate(ref noiseMaterial, "Hidden/TextureCompositor/Noise");
-        public static Material Gradient => GetOrCreate(ref gradientMaterial, "Hidden/TextureCompositor/Gradient");
-        public static Material FillUv => GetOrCreate(ref fillUvMaterial, "Hidden/TextureCompositor/FillUv");
-        public static Material FillPattern => GetOrCreate(ref fillPatternMaterial, "Hidden/TextureCompositor/FillPattern");
-        public static Material Shape => GetOrCreate(ref shapeMaterial, "Hidden/TextureCompositor/Shape");
-        public static Material EffectCache => GetOrCreate(ref effectCacheMaterial, "Hidden/TextureCompositor/EffectCache");
-        public static Material Transform => GetOrCreate(ref transformMaterial, "Hidden/TextureCompositor/Transform");
-        public static Material PaintBrush => GetOrCreate(ref paintBrushMaterial, "Hidden/TextureCompositor/PaintBrush");
-        public static Material DisplayChannels => GetOrCreate(ref displayChannelsMaterial, "Hidden/TextureCompositor/DisplayChannels");
+        public static Material Blend => GetOrCreate(ref blendMaterial, "Hidden/WhimTex/Blend");
+        public static Material Hdr => GetOrCreate(ref hdrMaterial, "Hidden/WhimTex/Hdr");
+        public static Material NormalMap => GetOrCreate(ref normalMapMaterial, "Hidden/WhimTex/NormalMap");
+        public static Material GaussianBlur => GetOrCreate(ref gaussianBlurMaterial, "Hidden/WhimTex/GaussianBlur");
+        public static Material BlurBrush => GetOrCreate(ref blurBrushMaterial, "Hidden/WhimTex/BlurBrush");
+        public static Material SmudgeBrush => GetOrCreate(ref smudgeBrushMaterial, "Hidden/WhimTex/SmudgeBrush");
+        public static Material SmudgeTransport => GetOrCreate(ref smudgeTransportMaterial, "Hidden/WhimTex/SmudgeTransport");
+        public static Material HealingBrush => GetOrCreate(ref healingBrushMaterial, "Hidden/WhimTex/HealingBrush");
+        public static Material Sharpen => GetOrCreate(ref sharpenMaterial, "Hidden/WhimTex/Sharpen");
+        public static Material MotionBlur => GetOrCreate(ref motionBlurMaterial, "Hidden/WhimTex/MotionBlur");
+        public static Material MakeSeamless => GetOrCreate(ref makeSeamlessMaterial, "Hidden/WhimTex/MakeSeamless");
+        public static Material GpuFourierTransform => GetOrCreate(ref gpuFourierTransformMaterial, "Hidden/WhimTex/GpuFourierTransform");
+        public static Material ScreenedSeamless => GetOrCreate(ref screenedSeamlessMaterial, "Hidden/WhimTex/ScreenedSeamless");
+        public static Material HistogramSeamless => GetOrCreate(ref histogramSeamlessMaterial, "Hidden/WhimTex/HistogramSeamless");
+        public static Material PatchQuilting => GetOrCreate(ref patchQuiltingMaterial, "Hidden/WhimTex/PatchQuilting");
+        public static Material Noise => GetOrCreate(ref noiseMaterial, "Hidden/WhimTex/Noise");
+        public static Material Gradient => GetOrCreate(ref gradientMaterial, "Hidden/WhimTex/Gradient");
+        public static Material FillUv => GetOrCreate(ref fillUvMaterial, "Hidden/WhimTex/FillUv");
+        public static Material FillPattern => GetOrCreate(ref fillPatternMaterial, "Hidden/WhimTex/FillPattern");
+        public static Material Shape => GetOrCreate(ref shapeMaterial, "Hidden/WhimTex/Shape");
+        public static Material EffectCache => GetOrCreate(ref effectCacheMaterial, "Hidden/WhimTex/EffectCache");
+        public static Material Transform => GetOrCreate(ref transformMaterial, "Hidden/WhimTex/Transform");
+        public static Material PaintBrush => GetOrCreate(ref paintBrushMaterial, "Hidden/WhimTex/PaintBrush");
+        public static Material DisplayChannels => GetOrCreate(ref displayChannelsMaterial, "Hidden/WhimTex/DisplayChannels");
         public static Material AlphaConversion => GetOrCreate(
             ref alphaConversionMaterial,
-            "Hidden/TextureCompositor/AlphaConversion");
+            "Hidden/WhimTex/AlphaConversion");
 
         private static Material GetOrCreate(ref Material material, string shaderName)
         {
@@ -403,10 +403,10 @@ namespace DCFApixels.WhimTex
 
     public abstract class LayerEditorWindowBase : EditorWindow
     {
-        [SerializeField] private TextureCompositor compositor;
+        [SerializeField] private WhimTexDocument activeDocument;
         [SerializeField] private string layerId;
         [SerializeField] private bool transformSettingsExpanded;
-        [SerializeField] private bool colorSettingsExpanded;
+        [SerializeField] private bool renderingSettingsExpanded;
         [SerializeField] private bool propertiesExpanded = true;
         [SerializeField] private bool fxExpanded;
         [SerializeField] private LayerPreviewPanel.ViewState layerPreviewState = new LayerPreviewPanel.ViewState();
@@ -420,16 +420,16 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private bool interfaceRefreshRequested;
         [NonSerialized] private Layer boundLayer;
         [NonSerialized] private LayerBehaviour boundBehaviour;
-        [NonSerialized] private TextureCompositor boundCompositor;
+        [NonSerialized] private WhimTexDocument boundDocument;
         internal readonly WhimTexUI.ValueBindings SettingsBindings = new WhimTexUI.ValueBindings();
 
         protected Layer CurrentLayer => currentLayer;
-        protected TextureCompositor Compositor => compositor;
+        protected WhimTexDocument Document => activeDocument;
         protected virtual string LayerPreviewTitle => "Layer Preview";
         protected virtual bool ImmediateLayerPreviewUpdates => false;
         protected abstract Type EditedLayerType { get; }
 
-        protected static void OpenPropertiesWindow<T>(Layer layer, TextureCompositor owner)
+        protected static void OpenPropertiesWindow<T>(Layer layer, WhimTexDocument owner)
             where T : LayerEditorWindowBase
         {
             T window = CreateInstance<T>();
@@ -438,10 +438,10 @@ namespace DCFApixels.WhimTex
             window.ShowUtility();
         }
 
-        protected void Initialize(Layer layer, TextureCompositor owner)
+        protected void Initialize(Layer layer, WhimTexDocument owner)
         {
             currentLayer = layer;
-            compositor = owner;
+            activeDocument = owner;
             layerId = layer?.Id;
             minSize = new Vector2(320f, 430f);
             InvalidateEffectTargetOptions();
@@ -453,16 +453,16 @@ namespace DCFApixels.WhimTex
         protected virtual void OnEnable()
         {
             titleContent = WhimTexBranding.WindowTitle(titleContent.text);
-            TextureCompositor.Changed += OnCompositorChanged;
-            TextureCompositor.RenderResourcesChanged += OnCompositorChanged;
+            WhimTexDocument.Changed += OnDocumentChanged;
+            WhimTexDocument.RenderResourcesChanged += OnDocumentChanged;
             WhimTexApi.LiveEditLocksChanged += RefreshAgentLock;
             RequestLayerPreview(true);
         }
 
         protected virtual void OnDisable()
         {
-            TextureCompositor.Changed -= OnCompositorChanged;
-            TextureCompositor.RenderResourcesChanged -= OnCompositorChanged;
+            WhimTexDocument.Changed -= OnDocumentChanged;
+            WhimTexDocument.RenderResourcesChanged -= OnDocumentChanged;
             WhimTexApi.LiveEditLocksChanged -= RefreshAgentLock;
             layerPreview?.Dispose();
             layerPreview = null;
@@ -483,11 +483,11 @@ namespace DCFApixels.WhimTex
 
         protected abstract void BuildSettings(VisualElement root, Layer layer);
 
-        private void RefreshAgentLock() => rootVisualElement.SetEnabled(!WhimTexApi.IsLayerContentLocked(compositor, currentLayer));
+        private void RefreshAgentLock() => rootVisualElement.SetEnabled(!WhimTexApi.IsLayerContentLocked(activeDocument, currentLayer));
 
         protected void ApplyLayerChange(string undoName, Action change)
         {
-            if (compositor == null || change == null || WhimTexApi.IsLayerContentLocked(compositor, currentLayer))
+            if (activeDocument == null || change == null || WhimTexApi.IsLayerContentLocked(activeDocument, currentLayer))
                 return;
             if (!ResolveLayer() || !ReferenceEquals(boundLayer, currentLayer) || !ReferenceEquals(boundBehaviour, boundLayer?.Behaviour))
             {
@@ -495,13 +495,13 @@ namespace DCFApixels.WhimTex
                 return;
             }
 
-            Undo.RecordObject(compositor, undoName);
+            Undo.RecordObject(activeDocument, undoName);
             applyingChange = true;
             try
             {
                 change();
-                compositor.NormalizeModel();
-                compositor.MarkChanged();
+                activeDocument.NormalizeModel();
+                activeDocument.MarkChanged();
                 InvalidateEffectTargetOptions();
             }
             finally
@@ -514,7 +514,7 @@ namespace DCFApixels.WhimTex
 
         protected void AddEffectTarget(VisualElement root, TargetedLayerBehaviour effect)
         {
-            effectTargetSettings = new EffectTargetSettingsView(compositor, ApplyLayerChange, SettingsBindings);
+            effectTargetSettings = new EffectTargetSettingsView(activeDocument, ApplyLayerChange, SettingsBindings);
             effectTargetSettings.Build(root, effect);
         }
 
@@ -534,7 +534,7 @@ namespace DCFApixels.WhimTex
                     titleContent = WhimTexBranding.WindowTitle(title);
             }
             Layer nextLayer = valid ? currentLayer : null;
-            if (interfaceBuilt && ReferenceEquals(boundLayer, nextLayer) && ReferenceEquals(boundBehaviour, nextLayer?.Behaviour) && boundCompositor == compositor)
+            if (interfaceBuilt && ReferenceEquals(boundLayer, nextLayer) && ReferenceEquals(boundBehaviour, nextLayer?.Behaviour) && boundDocument == activeDocument)
             {
                 shaderFXView?.Refresh();
                 SettingsBindings.Refresh(forceValues);
@@ -543,7 +543,7 @@ namespace DCFApixels.WhimTex
             interfaceBuilt = true;
             boundLayer = nextLayer;
             boundBehaviour = nextLayer?.Behaviour;
-            boundCompositor = compositor;
+            boundDocument = activeDocument;
             SettingsBindings.Clear();
             shaderFXView = null;
             layerPreview?.Dispose();
@@ -559,16 +559,16 @@ namespace DCFApixels.WhimTex
             {
                 WhimTexUI.AddHelpBox(
                     root,
-                    "The edited layer no longer exists in this compositor.",
+                    "The edited layer no longer exists in this document.",
                     HelpBoxMessageType.Info);
                 return;
             }
 
             ScrollView scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.AddToClassList("whimtex-properties-scroll");
-            shaderFXView = WhimTexUI.BuildLayerInspectorSections(scroll, currentLayer, compositor,
+            shaderFXView = WhimTexUI.BuildLayerInspectorSections(scroll, currentLayer, activeDocument,
                 ApplyLayerChange, SettingsBindings, properties => BuildSettings(properties, currentLayer),
-                colorSettingsExpanded, value => colorSettingsExpanded = value,
+                renderingSettingsExpanded, value => renderingSettingsExpanded = value,
                 propertiesExpanded, value => propertiesExpanded = value,
                 fxExpanded, value => fxExpanded = value,
                 transformSettingsExpanded, value => transformSettingsExpanded = value);
@@ -576,16 +576,16 @@ namespace DCFApixels.WhimTex
             root.Add(scroll);
             layerPreviewState ??= new LayerPreviewPanel.ViewState();
             layerPreview = new LayerPreviewPanel(layerPreviewState) { tooltip = LayerPreviewTitle };
-            layerPreview.Bind(compositor, currentLayer);
+            layerPreview.Bind(activeDocument, currentLayer);
             root.Add(layerPreview);
         }
 
         private bool ResolveLayer()
         {
-            if (compositor == null || string.IsNullOrEmpty(layerId))
+            if (activeDocument == null || string.IsNullOrEmpty(layerId))
                 return false;
 
-            currentLayer = compositor.FindLayer(layerId);
+            currentLayer = activeDocument.FindLayer(layerId);
 
             return currentLayer != null && EditedLayerType.IsInstanceOfType(currentLayer.Behaviour);
         }
@@ -595,11 +595,11 @@ namespace DCFApixels.WhimTex
             effectTargetSettings?.Invalidate();
         }
 
-        private void OnCompositorChanged(TextureCompositor changedCompositor)
+        private void OnDocumentChanged(WhimTexDocument changedDocument)
         {
-            if (changedCompositor != compositor || applyingChange)
+            if (changedDocument != activeDocument || applyingChange)
                 return;
-            if (TextureCompositor.IsRefreshingUndo)
+            if (WhimTexDocument.IsRefreshingUndo)
             {
                 OnUndoRedo();
                 return;

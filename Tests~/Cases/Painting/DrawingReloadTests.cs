@@ -11,7 +11,7 @@ public static class DrawingReloadTests
 // Opt-in after manual compilation. Temporary CPU textures/documents only; no windows, assets, Undo or reload triggered.
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 var drawingType = typeof(DCFApixels.WhimTex.DrawingLayerBehaviour);
-var documentType = typeof(DCFApixels.WhimTex.TextureCompositor);
+var documentType = typeof(DCFApixels.WhimTex.WhimTexDocument);
 var pixelsField = drawingType.GetField("pixels", Hidden);
 var disable = documentType.GetMethod("OnDisable", Hidden);
 var enable = documentType.GetMethod("OnEnable", Hidden);
@@ -23,7 +23,7 @@ void Check(bool condition, string message)
 }
 foreach (var format in new[] { UnityEngine.TextureFormat.RGBA32, UnityEngine.TextureFormat.RGBAHalf })
 {
-    var document = UnityBRun.Create<DCFApixels.WhimTex.TextureCompositor>();
+    var document = UnityBRun.Create<DCFApixels.WhimTex.WhimTexDocument>();
     document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
     var textures = new System.Collections.Generic.List<UnityEngine.Texture2D>();
     var layers = new System.Collections.Generic.List<DCFApixels.WhimTex.DrawingLayerBehaviour>();

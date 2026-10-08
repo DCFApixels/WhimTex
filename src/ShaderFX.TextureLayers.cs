@@ -44,7 +44,7 @@ namespace DCFApixels.WhimTex
         }
     }
 
-    public sealed partial class TextureCompositor
+    public sealed partial class WhimTexDocument
     {
         internal bool IsUsableShaderTexture(Layer consumer, string sourceId)
         {

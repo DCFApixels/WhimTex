@@ -16,12 +16,12 @@ namespace DCFApixels.WhimTex
         private readonly PopupField<Layer> layer;
         private readonly HelpBox warning;
         private readonly List<Layer> choices = new List<Layer> { null };
-        private TextureCompositor document;
+        private WhimTexDocument document;
 
         internal ShaderFXTextureField(ShaderFX effect, string id, string label)
         {
             this.effect = effect; this.id = id;
-            document = TextureCompositorWindow.FindFXTransformDocument(effect);
+            document = WhimTexWindow.FindFXTransformDocument(effect);
             source = new EnumField(label + " Source", ShaderFXTextureSource.Texture);
             TwoChoiceDropdown.Attach(source);
             source.tooltip = "None: transparent. Self: image immediately before this FX. Texture: asset (white if empty). Layer: another layer, including hidden sources.";
@@ -59,7 +59,7 @@ namespace DCFApixels.WhimTex
 
         private void RefreshChoices()
         {
-            if (document == null) document = TextureCompositorWindow.FindFXTransformDocument(effect);
+            if (document == null) document = WhimTexWindow.FindFXTransformDocument(effect);
             if (document != null) document.GetShaderTextureOptions(effect, choices);
             else { choices.Clear(); choices.Add(null); }
             var selected = document != null ? document.FindLayer(Parameter?.textureLayerId) : null;
@@ -82,7 +82,7 @@ namespace DCFApixels.WhimTex
                 warning.EnableInClassList("whimtex-shader-fx-hidden", true);
                 return;
             }
-            if (document == null) document = TextureCompositorWindow.FindFXTransformDocument(effect);
+            if (document == null) document = WhimTexWindow.FindFXTransformDocument(effect);
             var selected = document != null ? document.FindLayer(p.textureLayerId) : null;
             if (selected != null && !layer.choices.Contains(selected)) layer.choices.Add(selected);
             layer.SetValueWithoutNotify(selected);
@@ -116,8 +116,8 @@ namespace DCFApixels.WhimTex
             {
                 layer = null; texture = null;
                 if (!target.enabledInHierarchy || owner.effect == null || WhimTexApi.IsShaderFXContentLocked(owner.effect)) return false;
-                if (owner.document == null) owner.document = TextureCompositorWindow.FindFXTransformDocument(owner.effect);
-                layer = TextureCompositorWindow.GetDraggedLayerForDocument(owner.document);
+                if (owner.document == null) owner.document = WhimTexWindow.FindFXTransformDocument(owner.effect);
+                layer = WhimTexWindow.GetDraggedLayerForDocument(owner.document);
                 if (layer != null) return owner.document != null && owner.document.IsUsableShaderTexture(owner.effect, layer.Id);
                 if (DragAndDrop.objectReferences.Length == 1) texture = DragAndDrop.objectReferences[0] as Texture2D;
                 return texture != null;
@@ -138,7 +138,7 @@ namespace DCFApixels.WhimTex
                     p.textureSource = layer != null ? ShaderFXTextureSource.Layer : ShaderFXTextureSource.Texture;
                     if (layer != null) p.textureLayerId = layer.Id; else p.textureValue = texture;
                 });
-                if (layer != null) TextureCompositorWindow.ClearDraggedLayerReference();
+                if (layer != null) WhimTexWindow.ClearDraggedLayerReference();
             }
             private void Clear() => owner.layer.RemoveFromClassList("whimtex-effect-target--drop");
             private void Leave(DragLeaveEvent e) => Clear();

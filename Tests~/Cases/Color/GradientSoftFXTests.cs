@@ -10,7 +10,7 @@ public static class GradientSoftFXTests
     static string ExecuteMain()
     {
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
-        var doc = UnityBRun.Create<TextureCompositor>();
+        var doc = UnityBRun.Create<WhimTexDocument>();
         doc.hideFlags = HideFlags.HideAndDontSave;
         ShaderFX fx = null;
         RenderTexture target = null;
@@ -21,7 +21,7 @@ public static class GradientSoftFXTests
         {
             const string code = "// @param gradient _Ramp\nfloat4 ApplyFX(float2 uv, float4 color) { return _Ramp_Sample(uv.x); }";
             fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null,
-                new[] {typeof(TextureCompositor), typeof(string), typeof(List<ShaderFXParameter>)}, null).Invoke(null,
+                new[] {typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>)}, null).Invoke(null,
                 new object[] {doc, code, new List<ShaderFXParameter>()});
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fx, null);
             var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);

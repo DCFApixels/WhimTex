@@ -1,6 +1,6 @@
 # Clipboard JSON examples for AI authors
 
-The nine procedural recipes below use **`whimtex.document`, version 1**, the same format as
+The nine procedural recipes below use **`whimtex.document`, version 2**, the same format as
 document files, Copy as JSON and agent serialization. Read the [authoring guide](../../AI/README.md),
 [shared contract](../../JSON_FORMAT.md) and [document schema](../../AI/document.schema.json).
 
@@ -34,4 +34,4 @@ The example image below can be used for this workflow.
 
 ![Example source image](stone-wall.png)
 
-Old `whimtex.layers` payloads must be [converted in 0.12.5 before upgrading](../../AI/LEGACY_LAYERS.md).
+Old `whimtex.layers` payloads require [a matching older checkout](../../AI/LEGACY_LAYERS.md); there is no migration to the current document format.

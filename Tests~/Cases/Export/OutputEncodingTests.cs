@@ -15,13 +15,13 @@ using Object = UnityEngine.Object;
 public static class OutputEncodingTests
 {
     const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
-    static Type TypeOf(string name) => typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex." + name, true);
+    static Type TypeOf(string name) => typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex." + name, true);
     static object Call(Type type, object owner, string name, params object[] args) => type.GetMethod(name, Any).Invoke(owner, args);
     static object Field(object owner, string name) => owner.GetType().GetField(name, Any).GetValue(owner);
     static int checks;
     static void Check(bool yes, string message) { WhimTex.Tests.UnityC.FixtureContext.Context.True(yes, message); checks++; }
     static TextureImporter Importer(string path) => (TextureImporter)AssetImporter.GetAtPath(path);
-    static void Reencode(string path, bool srgb, TextureCompositor owner)
+    static void Reencode(string path, bool srgb, WhimTexDocument owner)
     {
         try { Call(TypeOf("WhimTexOutputEncoding"), null, "Change", path, srgb, owner); }
         catch (TargetInvocationException error) { throw error.InnerException; }
@@ -74,10 +74,10 @@ public static class OutputEncodingTests
         // WhimTex.Tests.UnityC.FixtureContext.Scope.AssetFolder() created this unique owned folder.
         var owned = new List<Object>();
         var previousFocus = EditorWindow.focusedWindow;
-        TextureCompositorWindow window = null;
+        WhimTexWindow window = null;
         try
         {
-            var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>()); owned.Add(doc);
+            var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>()); owned.Add(doc);
             doc.width = doc.height = 16;
             var fill = new ColorFillLayerBehaviour { color = new Color(.75f, .43f, .17f, .61f) };
             doc.layers.Add(new Layer(fill));
@@ -143,7 +143,7 @@ public static class OutputEncodingTests
             Check(!Pixels(path).SequenceEqual(original), "next normal Save commits edits without stale revision conflict");
             Call(TypeOf("WhimTexDocumentService"), null, "Detach", doc);
 
-            var fresh = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>()); owned.Add(fresh);
+            var fresh = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>()); owned.Add(fresh);
             fresh.width = fresh.height = 4;
             fresh.layers.Add(new Layer(new ColorFillLayerBehaviour { color = Color.gray }));
             WhimTexDocumentFile.SetOutputSrgb(fresh, false);
@@ -183,9 +183,9 @@ public static class OutputEncodingTests
             var sourcePixels = (Texture2D)typeof(DrawingLayerBehaviour).GetProperty("StoredTexture", Any).GetValue(drawing);
             Check(lazyPixels.GetRawTextureData<byte>().ToArray().SequenceEqual(sourcePixels.GetRawTextureData<byte>().ToArray()), "deferred Drawing revision survives output rewrite");
             Reencode(path, true, restored);
-            window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositorWindow>());
+            window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexWindow>());
             window.Show();
-            Call(typeof(TextureCompositorWindow), window, "SetCompositor", restored);
+            Call(typeof(WhimTexWindow), window, "SetDocument", restored);
             await Task.Delay(120, token);
             var toggle = window.rootVisualElement.Q<Toggle>("canvasOutputSrgb");
             Check(toggle != null && toggle.value, "sRGB toggle visible beside Precision");
@@ -229,7 +229,7 @@ public static class OutputEncodingTests
             Check(!Stored(path) && !Importer(path).sRGBTexture, "discard does not apply pending encoding");
             Undo.ClearUndo(restored);
             restored.outputPrecision = WhimTexOutputPrecision.Float32;
-            Call(typeof(TextureCompositorWindow), window, "RefreshToolkitInterface", true);
+            Call(typeof(WhimTexWindow), window, "RefreshToolkitInterface", true);
             toggle = window.rootVisualElement.Q<Toggle>("canvasOutputSrgb");
             await Task.Delay(150, token);
             Check(toggle != null && !toggle.value && !toggle.enabledSelf, "Float32 disables sRGB control");
@@ -240,7 +240,7 @@ public static class OutputEncodingTests
             if (window != null) { global::WhimTex.Tests.UnityC.FixtureContext.Scope.CloseWindow(window); }
             foreach (var item in owned)
             {
-                if (item is TextureCompositor compositor) Call(TypeOf("WhimTexDocumentService"), null, "Detach", compositor);
+                if (item is WhimTexDocument activeDocument) Call(TypeOf("WhimTexDocumentService"), null, "Detach", activeDocument);
                 if (item != null) WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(item);
             }
             WhimTex.Tests.UnityC.FixtureContext.Scope.DeleteAsset(dir);

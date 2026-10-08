@@ -14,9 +14,9 @@ static System.Threading.CancellationToken Cancellation;
 private static string BodyRun()
 {
 // Opt-in after manual compilation. Transient documents/textures only; no asset saves or imports.
-var type = typeof(DCFApixels.WhimTex.TextureCompositor);
+var type = typeof(DCFApixels.WhimTex.WhimTexDocument);
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var doc = Scope.OwnObject(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+var doc = Scope.OwnObject(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
 doc.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 doc.width = doc.height = 8;
 int checks = 0;
@@ -134,9 +134,9 @@ try
     Stack(group, basis);
 
     // Alpha remapping and transforms happen before clipping; sources stay unmodified.
-    basis.swizzle[3] = DCFApixels.WhimTex.SwizzleChannel.Zero;
-    Near(Pixel().a, 0, "Base Swizzle determines clipping coverage");
-    basis.swizzle = default;
+    basis.channelMapping[3] = DCFApixels.WhimTex.ChannelMappingSource.Zero;
+    Near(Pixel().a, 0, "Base ChannelMapping determines clipping coverage");
+    basis.channelMapping = default;
     basis.transform.tiling = DCFApixels.WhimTex.TransformTilingMode.Clip;
     basis.transform.position = new UnityEngine.Vector2(100, 100);
     Near(Pixel().a, 0, "Base Transform determines clipping coverage");

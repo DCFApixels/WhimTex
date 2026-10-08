@@ -48,7 +48,7 @@ static System.Threading.CancellationToken Cancellation;
             .Invoke(null, new object[] { File.ReadAllText(Folder + "manifest.json"), typeof(Manifest) });
         Check(manifest.samples.Length == 38, "Expected 38 samples.");
         Check(start >= 0 && start < manifest.samples.Length && count > 0, "Invalid sample range.");
-        var ldr = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.HdrUtility")
+        var ldr = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.HdrUtility")
             .GetMethod("ToLdr", BindingFlags.Static | BindingFlags.NonPublic);
         int checkedCount = 0;
         for (int sampleIndex = start; sampleIndex < Math.Min(start + count, manifest.samples.Length); sampleIndex++)

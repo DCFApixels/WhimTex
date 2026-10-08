@@ -26,7 +26,7 @@ namespace DCFApixels.WhimTex
                 current = Allocate(context.width, context.height);
                 Graphics.Blit(context.input, current, material, 0);
                 int reduction = 1;
-                if (context.compositor.InteractiveEffects)
+                if (context.activeDocument.InteractiveEffects)
                     while (pixels / reduction > 24f && reduction < 16 &&
                         context.width / reduction >= 4 && context.height / reduction >= 4)
                         reduction *= 2;

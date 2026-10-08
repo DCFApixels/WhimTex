@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
     public static partial class WhimTexDocumentFile
     {
         /// <summary>Output encoding, not the working space or Drawing storage format.</summary>
-        public static bool GetOutputSrgb(TextureCompositor document)
+        public static bool GetOutputSrgb(WhimTexDocument document)
         {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (document.outputPrecision == WhimTexOutputPrecision.Float32) return false;
@@ -20,7 +20,7 @@ namespace DCFApixels.WhimTex
         /// Sets pending output encoding and marks the document changed; Save writes it to the TIFF.
         /// Float output always remains linear. Call on the Editor main thread; callers own Undo.
         /// </summary>
-        public static void SetOutputSrgb(TextureCompositor document, bool srgb)
+        public static void SetOutputSrgb(WhimTexDocument document, bool srgb)
         {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (AssetDatabase.Contains(document))
@@ -31,10 +31,10 @@ namespace DCFApixels.WhimTex
             document.MarkChanged();
         }
 
-        internal static void ReencodeOutput(string path, bool srgb, TextureCompositor owner)
+        internal static void ReencodeOutput(string path, bool srgb, WhimTexDocument owner)
         {
             using var operation = new WhimTexDocumentOperation("Change TIFF output encoding");
-            TextureCompositor saved = null;
+            WhimTexDocument saved = null;
             Texture2D composite = null;
             try
             {
@@ -90,7 +90,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static void RebindDeferredDrawing(TextureCompositor owner, string path, long oldLength, long oldTicks)
+        private static void RebindDeferredDrawing(WhimTexDocument owner, string path, long oldLength, long oldTicks)
         {
             string absolutePath = Path.GetFullPath(path);
             var pending = new Stack<Layer>(owner.layers);

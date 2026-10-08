@@ -16,8 +16,8 @@ public static class MakeSeamlessTests
     {
         // Opt-in only AFTER the user manually compiles. Transient objects; no imports or asset writes.
         var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-        var type = typeof(DCFApixels.WhimTex.TextureCompositor);
-        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+        var type = typeof(DCFApixels.WhimTex.WhimTexDocument);
+        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
         document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
         document.width = 33; document.height = 25;
         var texture = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new UnityEngine.Texture2D(33,25,UnityEngine.TextureFormat.RGBAFloat,false,true));
@@ -73,7 +73,7 @@ public static class MakeSeamlessTests
             var before=Render(); source.enabled=false; var hidden=Render();
             for(int i=0;i<before.Length;i++) Same(before[i],hidden[i],"Hidden input");
             var json=UnityEngine.JsonUtility.ToJson(document);
-            var copy=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+            var copy=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
             try
             {
                 UnityEngine.JsonUtility.FromJsonOverwrite(json,copy);

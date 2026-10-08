@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/MakeSeamless"
+Shader "Hidden/WhimTex/MakeSeamless"
 {
     Properties { _MainTex ("Source", 2D) = "white" {} }
     SubShader

@@ -6,7 +6,7 @@ public static class GradientGpuRunTests
     {
 // Unity Pipeline eval_file. Transient objects only; no scene/asset writes or Undo.
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var document = UnityBRun.Create<DCFApixels.WhimTex.TextureCompositor>();
+var document = UnityBRun.Create<DCFApixels.WhimTex.WhimTexDocument>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = document.height = 512;
 var layer = new DCFApixels.WhimTex.GradientLayerBehaviour();
@@ -56,7 +56,7 @@ void Compare(string label, int w = 65, int h = 33, float tolerance = .002f)
 }
 try
 {
-    var shader = UnityEngine.Shader.Find("Hidden/TextureCompositor/Gradient");
+    var shader = UnityEngine.Shader.Find("Hidden/WhimTex/Gradient");
     Check(shader != null && shader.isSupported, "Gradient shader supported");
     foreach (var message in UnityEditor.ShaderUtil.GetShaderMessages(shader))
         Check(message.severity != UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error, message.message);

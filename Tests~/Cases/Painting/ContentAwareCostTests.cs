@@ -13,7 +13,7 @@ static System.Threading.CancellationToken Cancellation;
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
     private static string BodyRun()
     {
-        var algorithm = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.ContentAwareFill", true);
+        var algorithm = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.ContentAwareFill", true);
         var levelType = algorithm.GetNestedType("Level", F);
         var sampleType = algorithm.GetNestedType("PatchSample", F);
         int checks = 0;

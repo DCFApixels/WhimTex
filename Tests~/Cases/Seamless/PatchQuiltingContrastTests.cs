@@ -7,7 +7,7 @@ using Object=UnityEngine.Object;
 public static class PatchQuiltingContrastTests
 {
     const BindingFlags F=BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Static|BindingFlags.Instance;
-    static Type Core=>typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.PatchQuiltingSeamless");
+    static Type Core=>typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.PatchQuiltingSeamless");
     static int checks;
     static void Check(bool b,string text){ WhimTex.Tests.UnityC.FixtureContext.Context.True(b, text); checks++; }
     static Color[] Read(RenderTexture rt)

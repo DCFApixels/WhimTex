@@ -13,13 +13,13 @@ public static class NoiseControlsTests
         const BindingFlags flags=BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance|BindingFlags.Static;
         int checks=0;
         void Check(bool ok,string message){ WhimTex.Tests.UnityC.FixtureContext.Context.True(ok, message); checks++; }
-        var document=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>()); document.width=document.height=32;
+        var document=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>()); document.width=document.height=32;
         var noise=new NoiseLayerBehaviour();document.layers.Add(noise);
         var root=new VisualElement();
         var window=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<EditorWindow>());
         window.titleContent=new GUIContent("Noise controls check");
         window.rootVisualElement.Add(root);window.ShowUtility();
-        var ui=typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexUI");
+        var ui=typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexUI");
         var bindingsType=ui.GetNestedType("ValueBindings",BindingFlags.NonPublic);
         var bindings=Activator.CreateInstance(bindingsType,true);
         Action<string,Action> change=(name,action)=>action();
@@ -133,7 +133,7 @@ public static class NoiseControlsTests
             Check(copy.Scale3D==noise.Scale3D,"Serialized Scale XYZ round trip");
             string portable=(string)typeof(WhimTexApi).GetMethod("WritePortableClipboard",flags).Invoke(null,new object[]{document,document.layers});
             using var pasted=(IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard",flags).Invoke(null,new object[]{portable,32,32});
-            var pastedDoc=(TextureCompositor)pasted.GetType().GetField("Document",flags).GetValue(pasted);
+            var pastedDoc=(WhimTexDocument)pasted.GetType().GetField("Document",flags).GetValue(pasted);
             var pastedNoise=(NoiseLayerBehaviour)pastedDoc.layers[0].Behaviour;
             Check(pastedNoise.periodic1D&&pastedNoise.dimensions==noise.dimensions,"Optimized clipboard retains active 1D Seamless settings");
             using var full = WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(document, new WhimTexJsonWriteOptions {Mode = WhimTexJsonWriteMode.Full}).Json);
@@ -145,7 +145,7 @@ public static class NoiseControlsTests
             Check(!olderJson.Contains("\"scaleZ\""),"Old input actually omits Scale Z");
             using var older = WhimTexDocumentJson.Read(olderJson);
             Check(((NoiseLayerBehaviour)older.Document.layers[0].Behaviour).scaleZ==1,"Missing Scale Z defaults to 1");
-            var binaryCopy=WhimTex.Tests.UnityC.FixtureContext.Scope.Own((TextureCompositor)typeof(WhimTexDocumentFile).GetMethod("CreateEditableCopy",flags).Invoke(null,new object[]{document}));
+            var binaryCopy=WhimTex.Tests.UnityC.FixtureContext.Scope.Own((WhimTexDocument)typeof(WhimTexDocumentFile).GetMethod("CreateEditableCopy",flags).Invoke(null,new object[]{document}));
             Check(((NoiseLayerBehaviour)binaryCopy.layers[0].Behaviour).Scale3D==noise.Scale3D,"TIFF model serializer retains Scale Z");
             return "PASS Noise controls, Z slices and cache: "+checks;
         }

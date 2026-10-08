@@ -24,7 +24,7 @@ public static class UserSettingsCleanupTests
     });
 
     const BindingFlags F = BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-    static readonly Type Settings = typeof(TextureCompositorWindow).Assembly.GetType("DCFApixels.WhimTex.WhimTexUserSettings", true);
+    static readonly Type Settings = typeof(WhimTexWindow).Assembly.GetType("DCFApixels.WhimTex.WhimTexUserSettings", true);
     static int checks;
     sealed class Preference
     {
@@ -56,7 +56,7 @@ public static class UserSettingsCleanupTests
     {
         checks = 0;
         var preferences = new List<Preference>();
-        var windows = new List<TextureCompositorWindow>();
+        var windows = new List<WhimTexWindow>();
         var caches = new Dictionary<FieldInfo, object>();
         void Remember(string key, string kind) => preferences.Add(new Preference(key, kind));
         var appearance = new[] {
@@ -67,7 +67,7 @@ public static class UserSettingsCleanupTests
         };
         string root = fixture.TempFolder();
         string folderKey = Key(Settings, "PresetsFolderKey");
-        var windowType = typeof(TextureCompositorWindow);
+        var windowType = typeof(WhimTexWindow);
         string toolKey = Key(windowType, "CanvasToolPrefKey");
         string returnKey = Key(windowType, "CanvasTransformReturnToolPrefKey");
         string scaleKey = Key(windowType, "PaintingCanvasScalePrefKey");
@@ -128,7 +128,7 @@ public static class UserSettingsCleanupTests
             EditorPrefs.SetFloat(oldScale, .125f);
             EditorPrefs.SetString(oldPaint, "{\"brushSize\":913,\"blurOpacity\":0.13}");
             foreach (string key in new[] { toolKey, returnKey, scaleKey, paintKey }) EditorPrefs.DeleteKey(key);
-            var window = ScriptableObject.CreateInstance<TextureCompositorWindow>(); windows.Add(window);
+            var window = ScriptableObject.CreateInstance<WhimTexWindow>(); windows.Add(window);
             Check(Read(window, "canvasTool").ToString() == "None" &&
                 Read(window, "canvasTransformReturnTool").ToString() == "None", "Old tool selections ignored");
             Check((float)Read(window, "paintingCanvasScale") == 1f, "Old quality setting ignored");
@@ -136,7 +136,7 @@ public static class UserSettingsCleanupTests
             EditorPrefs.SetString(toolKey, "Brush"); EditorPrefs.SetString(returnKey, "Pencil");
             EditorPrefs.SetFloat(scaleKey, .25f);
             EditorPrefs.SetString(paintKey, "{\"brushSize\":57,\"blurFlow\":0.23}");
-            var restored = ScriptableObject.CreateInstance<TextureCompositorWindow>(); windows.Add(restored);
+            var restored = ScriptableObject.CreateInstance<WhimTexWindow>(); windows.Add(restored);
             Check(Read(restored, "canvasTool").ToString() == "Brush" &&
                 Read(restored, "canvasTransformReturnTool").ToString() == "Pencil", "Current tools reload");
             Check((float)Read(restored, "paintingCanvasScale") == .25f, "Current quality reloads");

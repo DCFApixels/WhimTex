@@ -15,7 +15,7 @@ public static class HSVTests
         const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
         const string path = "Packages/com.dcfapixels.whimtex/src/FXPresets/HSV.hlsl";
 
-        var owner = UnityBRun.Create<TextureCompositor>();
+        var owner = UnityBRun.Create<WhimTexDocument>();
         owner.hideFlags = HideFlags.HideAndDontSave;
         ShaderFX fx = null;
         Texture2D input = null, output = null;
@@ -23,7 +23,7 @@ public static class HSVTests
         var previous = RenderTexture.active; bool srgb = GL.sRGBWrite;
         try
         {
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { owner, File.ReadAllText(path), new List<ShaderFXParameter>() });
+            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { owner, File.ReadAllText(path), new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fx, null);
             var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
             var colors = new[] { Color.black, Color.white, Color.red, Color.green, Color.blue, new Color(.18f,.18f,.18f), new Color(4,.6f,.02f), new Color(-.2f,.3f,.1f) };

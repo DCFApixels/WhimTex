@@ -22,7 +22,7 @@ public static class DocumentJsonOperationsTests
         Check(reply.success, text);
         return reply;
     }
-    static Layer Add(TextureCompositor doc, LayerBehaviour behaviour)
+    static Layer Add(WhimTexDocument doc, LayerBehaviour behaviour)
     {
         var layer = new Layer(behaviour);
         typeof(Layer).GetMethod("AssignNewId", F).Invoke(layer, null);
@@ -36,7 +36,7 @@ public static class DocumentJsonOperationsTests
     static string ExecuteRun()
     {
         checks = 0;
-        var source = UnityBRun.Create<TextureCompositor>();
+        var source = UnityBRun.Create<WhimTexDocument>();
         string prefix = UnityBRun.AssetPath("__WhimTexJsonOperations_") + Guid.NewGuid().ToString("N");
         string selectedPath = prefix + "_selected.whimtex.json", destinationPath = prefix + "_destination.whimtex.json";
         try
@@ -44,7 +44,7 @@ public static class DocumentJsonOperationsTests
             source.width = 64; source.height = 32; source.outputFilter = FilterMode.Point; source.outputSrgb = false;
             var selected = Add(source, new ShapeLayerBehaviour { kind = ShapeLayerBehaviour.ShapeKind.Ellipse });
             Add(source, new ColorFillLayerBehaviour());
-            typeof(TextureCompositor).GetMethod("NormalizeModel", F).Invoke(source, null);
+            typeof(WhimTexDocument).GetMethod("NormalizeModel", F).Invoke(source, null);
             foreach (WhimTexJsonWriteMode mode in Enum.GetValues(typeof(WhimTexJsonWriteMode)))
             {
                 var options = new WhimTexJsonWriteOptions { Mode = mode };
@@ -82,7 +82,7 @@ public static class DocumentJsonOperationsTests
                 Api(Request("write", json, PathField(selectedPath)));
                 Check(!File.ReadAllText(selectedPath).Contains("\"kind\": \"fragment\""), "Write retained discriminator.");
 
-                var destination = UnityBRun.Create<TextureCompositor>();
+                var destination = UnityBRun.Create<WhimTexDocument>();
                 string keptId;
                 try
                 {

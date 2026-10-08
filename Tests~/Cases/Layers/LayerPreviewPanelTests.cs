@@ -121,8 +121,8 @@ public static class LayerPreviewPanelTests
         }
 
         var focus = EditorWindow.focusedWindow;
-        var window = job.Scope.Own(ScriptableObject.CreateInstance<TextureCompositorWindow>());
-        var doc = (TextureCompositor)Get(window, "compositor");
+        var window = job.Scope.Own(ScriptableObject.CreateInstance<WhimTexWindow>());
+        var doc = (WhimTexDocument)Get(window, "activeDocument");
         var properties = job.Scope.Own(ScriptableObject.CreateInstance<FileLayerEditorWindow>());
         var tex = job.Scope.Own(new Texture2D(4, 4, TextureFormat.RGBAFloat, false, true) { hideFlags = HideFlags.HideAndDontSave });
         var pixels = Enumerable.Range(0, 16).Select(i => new Color(.1f + i * .035f, .25f, .6f - i * .025f, .1f + i * .05f)).ToArray();

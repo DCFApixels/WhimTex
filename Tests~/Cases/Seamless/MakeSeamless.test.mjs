@@ -108,7 +108,7 @@ context.case("MakeSeamless original assertion inputs and source contracts", asyn
   assert.match(read('src/LayerTypeRegistry.cs'), /MakeSeamlessLayerBehaviour.CreateDefault/);
   assert.match(read('src/Utils.cs'), /DestroyImmediate\(gpuFourierTransformMaterial\)/);
   assert.match(read('src/ScreenedSeamless.cs'), /RenderTextureFormat.ARGBFloat/);
-  assert.match(read('src/TextureCompositorWindow.Inspector.cs'), /MakeSeamlessLayerEditorWindow.BuildFields/);
+  assert.match(read('src/WhimTexWindow.Inspector.cs'), /MakeSeamlessLayerEditorWindow.BuildFields/);
 
   const editor = read('src/Layers/Editors/MakeSeamlessLayerEditorWindow.cs');
   assert.ok(editor.includes('LabeledEdges("Mirror Direction", BuildEdgeSelector'));

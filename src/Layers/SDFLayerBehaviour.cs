@@ -38,7 +38,7 @@ namespace DCFApixels.WhimTex
             if (context.input == null)
                 return null;
 
-            Texture2D inputTexture = TextureCompositor.CopyToTexture2D(context.input, uploadToGpu: false);
+            Texture2D inputTexture = WhimTexDocument.CopyToTexture2D(context.input, uploadToGpu: false);
             NativeArray<float> signedDistances = default;
             Texture2D resultTexture = null;
             RenderTexture colored = null;
@@ -69,7 +69,7 @@ namespace DCFApixels.WhimTex
                 resultTexture.Apply(false, false);
                 if (gradientMaterial == null)
                 {
-                    var shader = Shader.Find("Hidden/TextureCompositor/SdfGradient");
+                    var shader = Shader.Find("Hidden/WhimTex/SdfGradient");
                     if (shader == null || !shader.isSupported) throw new InvalidOperationException("SDF gradient shader unavailable.");
                     gradientMaterial = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
                 }

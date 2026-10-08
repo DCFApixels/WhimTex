@@ -15,8 +15,8 @@ static System.Threading.CancellationToken Cancellation;
     {
         const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
         var createDraft = typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null,
-            new[] { typeof(TextureCompositor), typeof(string), typeof(List<ShaderFXParameter>) }, null);
-        var doc = Scope.OwnObject(ScriptableObject.CreateInstance<TextureCompositor>());
+            new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+        var doc = Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
         doc.width = doc.height = 8;
         var input = new Texture2D(8, 8, TextureFormat.RGBAFloat, false, true);
         var read = new Texture2D(8, 8, TextureFormat.RGBAFloat, false, true);

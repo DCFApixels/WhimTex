@@ -11,7 +11,7 @@ context.case('BrushFlip original assertions and branches', async () => {
     const dynamics = read('src/BrushDynamics.cs');
     const brush = read('src/Layers/DrawingLayerBehaviour.Brush.cs');
     const shader = read('src/Shaders/PaintBrush.shader');
-    const ui = read('src/TextureCompositorWindow.Brushes.cs');
+    const ui = read('src/WhimTexWindow.Brushes.cs');
     const sampleBody = dynamics.match(/internal bool SampleFlip\([^)]*\)\s*\{([^}]+)\}/)[1];
     const flip = new Function('state', 'stampIndex', 'dimension', 'probability', 'SampleRandom',
       sampleBody.replace(/(\d)f\b/g, '$1').replace(/ref state/g, 'state'));

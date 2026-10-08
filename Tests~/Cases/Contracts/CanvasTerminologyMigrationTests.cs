@@ -9,7 +9,7 @@ static WhimTex.Tests.TestContext T;
 static WhimTex.Tests.UnityA.UnityAScope Scope;
 static System.Threading.CancellationToken Cancellation;
 
-    private static void SetState(TextureCompositorWindow window)
+    private static void SetState(WhimTexWindow window)
     {
         var data = new SerializedObject(window);
         data.FindProperty("canvasChannels").intValue = 5;
@@ -31,15 +31,15 @@ static System.Threading.CancellationToken Cancellation;
     }
     private static string BodyRun()
     {
-        var window = Scope.OwnWindow(ScriptableObject.CreateInstance<TextureCompositorWindow>());
-        TextureCompositorWindow copy = null;
+        var window = Scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
+        WhimTexWindow copy = null;
         int checks = 0;
         void Check(bool condition, string message)
         { T.True(condition, message); }
         try
         {
             SetState(window);
-            void Verify(TextureCompositorWindow target)
+            void Verify(WhimTexWindow target)
             {
                 var data = new SerializedObject(target);
                 Check(data.FindProperty("canvasChannels").intValue == 5, "Channel selection retained");
@@ -61,7 +61,7 @@ static System.Threading.CancellationToken Cancellation;
             Verify(window);
             string saved = EditorJsonUtility.ToJson(window);
             Check(saved.Contains("\"canvasChannels\"") && !saved.Contains("\"previewChannels\""), "Writes canonical field names");
-            copy = Scope.OwnWindow(ScriptableObject.CreateInstance<TextureCompositorWindow>());
+            copy = Scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
             EditorJsonUtility.FromJsonOverwrite(saved, copy);
             Verify(copy);
 

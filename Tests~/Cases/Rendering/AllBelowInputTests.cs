@@ -34,9 +34,9 @@ static System.Threading.CancellationToken Cancellation;
     private static string BodyRun()
     {
         checks = 0;
-        var doc = Scope.OwnObject(ScriptableObject.CreateInstance<TextureCompositor>());
+        var doc = Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
         doc.hideFlags = HideFlags.HideAndDontSave; doc.width = doc.height = 32;
-        var cache = (IDisposable)Activator.CreateInstance(typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache"), true);
+        var cache = (IDisposable)Activator.CreateInstance(typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache"), true);
         var textures = new List<Texture2D>();
         var effects = new List<TargetedLayerBehaviour>();
         var active = RenderTexture.active; bool srgb = GL.sRGBWrite;
@@ -99,7 +99,7 @@ static System.Threading.CancellationToken Cancellation;
             doc.layers.Insert(0, blur); Normalize();
             int publishes = 0;
             Action<Layer, RenderTexture> observer = (layer, pixels) => { if (layer == lower || layer == upper) publishes++; };
-            var publication = typeof(TextureCompositor).GetEvent("LayerPreviewRendered", F);
+            var publication = typeof(WhimTexDocument).GetEvent("LayerPreviewRendered", F);
             publication.GetAddMethod(true).Invoke(doc, new object[] { observer });
             try { cache.Dispose(); Cached(); Check(publishes == 2, "Main path reuses accumulator without rendering lower sources twice"); }
             finally { publication.GetRemoveMethod(true).Invoke(doc, new object[] { observer }); }
@@ -118,7 +118,7 @@ static System.Threading.CancellationToken Cancellation;
             Check(Stamp(blur) == before, "Changes above effect do not invalidate its input"); doc.layers.RemoveAt(0);
 
             doc.layers.Clear(); doc.layers.Add(upper); doc.layers.Add(lower);
-            var processor = new ShaderProcessorLayerBehaviour(); processor.swizzle[0] = SwizzleChannel.B; processor.swizzle[2] = SwizzleChannel.R;
+            var processor = new ShaderProcessorLayerBehaviour(); processor.channelMapping[0] = ChannelMappingSource.B; processor.channelMapping[2] = ChannelMappingSource.R;
             doc.layers.Insert(0, processor); Normalize();
             Layer processedReference = new FileLayerBehaviour { sourceTexture = Snapshot(), enabled = false, colorRange = LayerColorRange.HDR };
             doc.layers.Insert(0, blur); doc.layers.Add(processedReference); Normalize();
@@ -160,7 +160,7 @@ static System.Threading.CancellationToken Cancellation;
             }
             blur.inputMode = EffectInputMode.AllBelow;
             var serialized = JsonUtility.ToJson(doc);
-            var roundtrip = Scope.OwnObject(ScriptableObject.CreateInstance<TextureCompositor>());
+            var roundtrip = Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
             try { JsonUtility.FromJsonOverwrite(serialized, roundtrip); Check(((TargetedLayerBehaviour)roundtrip.layers[0].children[0].Behaviour).inputMode == EffectInputMode.AllBelow, "Serialization preserves new mode"); }
             finally { UnityEngine.Object.DestroyImmediate(roundtrip); }
 
@@ -179,14 +179,14 @@ static System.Threading.CancellationToken Cancellation;
             operation.Invoke(null, new object[] { doc, Parse("{\"op\":\"target\",\"layer\":\"" + blur.Id + "\",\"input\":\"AllBelow\"}"), new Dictionary<string, Layer>(), false });
             Check(blur.inputMode == EffectInputMode.AllBelow && blur.TargetLayerId == null, "API sets stack input without target");
             var readClipboard = api.GetMethod("ReadProceduralClipboard", F);
-            var clipboard = readClipboard.Invoke(null, new object[] { "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"AllBelow\"}},{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}", 32, 32 });
+            var clipboard = readClipboard.Invoke(null, new object[] { "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"AllBelow\"}},{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}", 32, 32 });
             try
             {
-                var pasted = (TextureCompositor)clipboard.GetType().GetField("Document", F).GetValue(clipboard);
+                var pasted = (WhimTexDocument)clipboard.GetType().GetField("Document", F).GetValue(clipboard);
                 Check(((TargetedLayerBehaviour)pasted.layers[0].Behaviour).inputMode == EffectInputMode.AllBelow, "Portable clipboard retains stack input");
             }
             finally { ((IDisposable)clipboard).Dispose(); }
-            var copied = (TextureCompositor)Call(doc, "CaptureLayerClipboard", new List<Layer> { blur });
+            var copied = (WhimTexDocument)Call(doc, "CaptureLayerClipboard", new List<Layer> { blur });
             try { Check(((TargetedLayerBehaviour)copied.layers[0].Behaviour).inputMode == EffectInputMode.AllBelow, "Native copy keeps stack-relative mode without copying sources"); }
             finally { UnityEngine.Object.DestroyImmediate(copied); }
             bool incompleteRejected = false;
@@ -200,14 +200,14 @@ static System.Threading.CancellationToken Cancellation;
             var restored = readClipboard.Invoke(null, new object[] { portable, 32, 32 });
             try
             {
-                var pasted = (TextureCompositor)restored.GetType().GetField("Document", F).GetValue(restored);
+                var pasted = (WhimTexDocument)restored.GetType().GetField("Document", F).GetValue(restored);
                 Check(((TargetedLayerBehaviour)pasted.layers[0].Behaviour).inputMode == EffectInputMode.AllBelow, "Portable copy roundtrip does not turn stack input into a specific target");
             }
             finally { ((IDisposable)restored).Dispose(); }
             foreach (string invalid in new[] {
-                "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"missing\"}}]}",
-                "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\"}}]}",
-                "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"inputMode\":\"AllBelow\"}}]}" })
+                "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"missing\"}}]}",
+                "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\"}}]}",
+                "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"inputMode\":\"AllBelow\"}}]}" })
             {
                 bool rejected = false;
                 try
@@ -218,8 +218,8 @@ static System.Threading.CancellationToken Cancellation;
                 catch (TargetInvocationException ex) { rejected = ex.GetBaseException() is WhimTexDocumentException; }
                 Check(rejected, "Invalid clipboard input rejected");
             }
-            var bindings = Activator.CreateInstance(typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexUI+ValueBindings"), true);
-            var view = Activator.CreateInstance(typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.EffectTargetSettingsView"), F, null,
+            var bindings = Activator.CreateInstance(typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexUI+ValueBindings"), true);
+            var view = Activator.CreateInstance(typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.EffectTargetSettingsView"), F, null,
                 new object[] { doc, (Action<string, Action>)((name, apply) => apply()), bindings }, null);
             var root = new VisualElement(); Call(view, "Build", root, blur);
             Check(root.Q<EnumField>().value.Equals(EffectInputMode.AllBelow), "Shared inspector shows All Below");

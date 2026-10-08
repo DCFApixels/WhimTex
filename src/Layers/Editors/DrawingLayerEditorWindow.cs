@@ -9,18 +9,18 @@ namespace DCFApixels.WhimTex
     {
         protected override Type EditedLayerType => typeof(DrawingLayerBehaviour);
 
-        public static void Open(DrawingLayerBehaviour layer, TextureCompositor compositor)
+        public static void Open(DrawingLayerBehaviour layer, WhimTexDocument activeDocument)
         {
-            OpenPropertiesWindow<DrawingLayerEditorWindow>(layer, compositor);
+            OpenPropertiesWindow<DrawingLayerEditorWindow>(layer, activeDocument);
         }
 
         protected override void BuildSettings(VisualElement root, Layer source)
         {
-            BuildFields(root, (DrawingLayerBehaviour)source, Compositor, ApplyLayerChange, SettingsBindings);
+            BuildFields(root, (DrawingLayerBehaviour)source, Document, ApplyLayerChange, SettingsBindings);
         }
 
         internal static void BuildFields(
-            VisualElement root, DrawingLayerBehaviour layer, TextureCompositor compositor,
+            VisualElement root, DrawingLayerBehaviour layer, WhimTexDocument activeDocument,
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings)
         {
             WhimTexUI.ApplyWindowStyles(root);

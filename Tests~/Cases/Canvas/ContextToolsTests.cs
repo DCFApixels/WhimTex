@@ -16,7 +16,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
 static System.Threading.CancellationToken Cancellation;
 
     const BindingFlags Instance = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
-    static readonly Type WindowType = typeof(TextureCompositorWindow);
+    static readonly Type WindowType = typeof(WhimTexWindow);
     static object Tool(string name) => Enum.Parse(WindowType.GetNestedType("CanvasTool", BindingFlags.NonPublic), name);
     static object Read(object target, string field) => target.GetType().GetField(field, Instance).GetValue(target);
     static void Write(object target, string field, object value) => target.GetType().GetField(field, Instance).SetValue(target, value);
@@ -60,7 +60,7 @@ static System.Threading.CancellationToken Cancellation;
 
     sealed class ToolbarLayoutTrace : IDisposable
     {
-        readonly TextureCompositorWindow window;
+        readonly WhimTexWindow window;
         readonly VisualElement root;
         readonly ScrollView scroll;
         readonly VisualElement button;
@@ -77,7 +77,7 @@ static System.Threading.CancellationToken Cancellation;
         string previous;
         public int ActiveSubscriptions => callbacks.Count + (updateSubscribed ? 1 : 0);
         public int GeometryCallbackCount { get; private set; }
-        public ToolbarLayoutTrace(TextureCompositorWindow owner, string output,
+        public ToolbarLayoutTrace(WhimTexWindow owner, string output,
             Action<ToolbarLayoutTrace, string> faultProbe = null)
         {
             window = owner; path = output; probe = faultProbe;
@@ -191,7 +191,7 @@ static System.Threading.CancellationToken Cancellation;
         }
     }
 
-    static void SendTraceGeometryEvents(TextureCompositorWindow window)
+    static void SendTraceGeometryEvents(WhimTexWindow window)
     {
         var root = window.rootVisualElement;
         var scroll = root.Q<ScrollView>("canvasToolScroll");
@@ -210,15 +210,15 @@ static System.Threading.CancellationToken Cancellation;
         var previousPrefs = new string[prefs.Length];
         for (int i = 0; i < prefs.Length; i++) previousPrefs[i] = EditorPrefs.HasKey(prefs[i]) ? EditorPrefs.GetString(prefs[i]) : null;
         var previousFocus = EditorWindow.focusedWindow;
-        TextureCompositorWindow window = null;
+        WhimTexWindow window = null;
         ShaderFX fx = null;
         ToolbarLayoutTrace trace = null;
         int checks = 0;
         void Check(bool ok, string message) { T.True(ok, message); }
         try
         {
-            window = Scope.OwnWindow(ScriptableObject.CreateInstance<TextureCompositorWindow>());
-            var document = (TextureCompositor)Read(window, "compositor");
+            window = Scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
+            var document = (WhimTexDocument)Read(window, "activeDocument");
             document.width = document.height = 32;
             var first = new GradientLayerBehaviour();
             var second = new GradientLayerBehaviour();

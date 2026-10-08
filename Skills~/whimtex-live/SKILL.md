@@ -201,7 +201,7 @@ cancelled task or bypass revision_conflict. A lock on a group covers its own set
 - Closing/switching the window or reloading scripts interrupts the job. Rediscover, inspect and explain
   the interrupted reservation; do not deliver into whichever document is now active.
 - Live completion does not save. Leave saving to the user unless explicitly requested, and never treat
-  a rendered PNG or a live output update as proof that the compositor file has been saved.
+  a rendered PNG or a live output update as proof that the document file has been saved.
 - A path-based TIFF batch is not a save command for an open window. Its `save:false` edits are
   discarded after the request; use Assistant for the open document and Headless Live for a retained
   window-independent candidate. Save an open document through its window.

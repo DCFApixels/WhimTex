@@ -44,7 +44,7 @@ public static class DocumentBurstIntegrityTests
         byte[] integrity = manifestStream.ToArray();
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8, true);
-        writer.Write(Encoding.ASCII.GetBytes("WHIMTEXD")); writer.Write(1); writer.Write(3);
+        writer.Write(Encoding.ASCII.GetBytes("WHIMTEXD")); writer.Write(2); writer.Write(3);
         void Entry(string name, int flag, long rawBytes, long storedBytes)
         {
             byte[] label = Encoding.UTF8.GetBytes(name);

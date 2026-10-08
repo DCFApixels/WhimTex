@@ -33,6 +33,10 @@ WHIMTEXD container
 footer: int64 container length + WHIMTEXD
 ```
 
+The current container and tagged model both use version **2**. Version-1 documents are
+unsupported and rejected explicitly; there is no automatic conversion in this checkout.
+Channel routing is stored as `Layer.channelMapping` / `LayerChannelMapping`.
+
 The container is a binary appendage, not a ZIP archive and not a second Unity asset. The TIFF
 part remains a valid image for Unity. The footer gives WhimTex the exact start and length of the
 appendage without scanning the whole file. A cheap document check reads the TIFF signature and
@@ -45,7 +49,7 @@ platform overrides belong to Unity's normal Texture Importer and are not part of
 
 ## Blocks and model
 
-The first logical block is `document`. It contains the tagged WhimTex model (version 1): layers,
+The first logical block is `document`. It contains the tagged WhimTex model (version 2): layers,
 groups, transforms, settings, gradients, document color history, FX source and references. Drawing layers use separate named
 pixel blocks. Other embedded textures may use their own blocks. Block names and lengths are recorded
 in the directory before the block payloads, so the reader can validate bounds before allocating data.
@@ -77,9 +81,10 @@ Unknown serialized fields, missing types or unresolved references appear in a pe
 on open. Saving blocks data loss by default. Interactive Save/Save As offers a recovery copy, cancellation,
 or explicitly accepted saving of the loaded data only; the latter can discard unread data. A copy preserves
 the original for recovery, not unread data inside the new file. C# callers can opt in with
-`Save(..., allowDataLoss:true)`; automatic saves remain protected. Float Vector2/3 values may expand
-to Vector3/4 with zero-filled new components; narrowing remains protected.
-Legacy `.asset` documents are unsupported. Convert them to TIFF using WhimTex 0.12.5 before upgrading.
+`Save(..., allowDataLoss:true)`; automatic saves remain protected. Serialized vector tags must match
+their field types exactly; mismatches are diagnosed, not widened or narrowed.
+Legacy `.asset` and version-1 TIFF documents are unsupported. A matching older checkout
+is required to edit them; this checkout does not provide migration.
 [Unified JSON](JSON_FORMAT.md) is also supported for editable settings without Drawing pixels or an image carrier.
 Ordinary PNG, JPEG, TGA,
 EXR and PSD export produces flattened/export files; those exports do not carry editable WhimTex layers.

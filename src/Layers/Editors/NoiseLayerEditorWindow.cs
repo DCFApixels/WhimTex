@@ -9,10 +9,10 @@ namespace DCFApixels.WhimTex
     {
         protected override Type EditedLayerType => typeof(NoiseLayerBehaviour);
         protected override bool ImmediateLayerPreviewUpdates => true;
-        public static void Open(NoiseLayerBehaviour layer, TextureCompositor compositor) =>
-            OpenPropertiesWindow<NoiseLayerEditorWindow>(layer, compositor);
+        public static void Open(NoiseLayerBehaviour layer, WhimTexDocument activeDocument) =>
+            OpenPropertiesWindow<NoiseLayerEditorWindow>(layer, activeDocument);
         protected override void BuildSettings(VisualElement root, Layer source) =>
-            BuildFields(root, (NoiseLayerBehaviour)source, Compositor, ApplyLayerChange, SettingsBindings);
+            BuildFields(root, (NoiseLayerBehaviour)source, Document, ApplyLayerChange, SettingsBindings);
 
         private static int NewSeed(int previous)
         {
@@ -122,7 +122,7 @@ namespace DCFApixels.WhimTex
             layer.inverted = random.Next(2) != 0;
         }
 
-        internal static void BuildFields(VisualElement root, NoiseLayerBehaviour layer, TextureCompositor compositor,
+        internal static void BuildFields(VisualElement root, NoiseLayerBehaviour layer, WhimTexDocument activeDocument,
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings)
         {
             var randomAll = WhimTexUI.CreateToolbarButton("Random All", () =>

@@ -21,7 +21,7 @@ namespace DCFApixels.WhimTex
     /// </summary>
     public sealed class WhimTexDocumentContainer : IDisposable
     {
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;
         public const string DocumentBlock = "document";
 
         private const string PayloadMagic = "WHIMTEXD";
@@ -448,7 +448,7 @@ namespace DCFApixels.WhimTex
                 result._entries[name] = entry;
                 position = checked(position + (int)entry.storedLength);
             }
-            if (!result.Contains(IntegrityBlock)) throw new WhimTexDocumentException("The document integrity manifest is missing. Resave older files in WhimTex 0.12.5.");
+            if (!result.Contains(IntegrityBlock)) throw new WhimTexDocumentException("The document integrity manifest is missing. This file is incomplete or unsupported by the current document format.");
             result._source = stream;
             result._sourceStart = start;
             return result;
@@ -551,7 +551,7 @@ namespace DCFApixels.WhimTex
             if (Encoding.ASCII.GetString(payload, 0, 8) != PayloadMagic)
                 throw new WhimTexDocumentException("The file does not contain a WhimTex document.");
             int version = BitConverter.ToInt32(payload, 8);
-            if (version <= 0 || version > CurrentVersion)
+            if (version != CurrentVersion)
                 throw new WhimTexDocumentException("Unsupported document version: " + version + ".");
             int count = BitConverter.ToInt32(payload, 12);
             if (count < 0 || count > MaximumBlockCount) throw new WhimTexDocumentException("Invalid block count: " + count + ".");
@@ -596,7 +596,7 @@ namespace DCFApixels.WhimTex
                 // inflate every drawing layer and does not hold pixels and textures in memory together.
             }
             if (offset != payload.Length) throw new WhimTexDocumentException("Unexpected trailing container data.");
-            if (!result.Contains(IntegrityBlock)) throw new WhimTexDocumentException("The document integrity manifest is missing. Resave older files in WhimTex 0.12.5.");
+            if (!result.Contains(IntegrityBlock)) throw new WhimTexDocumentException("The document integrity manifest is missing. This file is incomplete or unsupported by the current document format.");
             return result;
         }
 

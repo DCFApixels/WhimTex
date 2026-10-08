@@ -9,9 +9,9 @@ context.case('GuideSettings original assertions and branches', async () => {
     const read = name => readFileSync(new URL(`../../../src/${name}`, import.meta.url), 'utf8');
     const settings = read('WhimTexUserSettings.cs');
     const ui = read('WhimTexUserSettingsWindow.cs');
-    const guides = read('TextureCompositorWindow.Guides.cs');
-    const snap = read('TextureCompositorWindow.GuideSnapping.cs');
-    const transform = read('TextureCompositorWindow.Transform.cs');
+    const guides = read('WhimTexWindow.Guides.cs');
+    const snap = read('WhimTexWindow.GuideSnapping.cs');
+    const transform = read('WhimTexWindow.Transform.cs');
     assert.match(settings, /DefaultSnapRadius = 8f/);
     assert.match(settings, /MinimumSnapRadius = 1f/);
     assert.match(settings, /MaximumSnapRadius = 64f/);
@@ -31,7 +31,7 @@ context.case('GuideSettings original assertions and branches', async () => {
         assert.ok(guides.includes(`WhimTexUserSettings.Guide${kind}Color`));
     }
     assert.match(guides, /if \(deleting\) lineColor = new Color\(1f, .35f, .25f, .9f\)/);
-    assert.match(read('TextureCompositorWindow.cs'), /OnCanvasViewAppearanceChanged\(\)[\s\S]*?canvasGuideOverlay\?\.MarkDirtyRepaint\(\)/);
+    assert.match(read('WhimTexWindow.cs'), /OnCanvasViewAppearanceChanged\(\)[\s\S]*?canvasGuideOverlay\?\.MarkDirtyRepaint\(\)/);
 });
 
 await finish(context);

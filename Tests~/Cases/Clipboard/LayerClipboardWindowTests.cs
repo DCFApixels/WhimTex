@@ -16,12 +16,12 @@ public static class LayerClipboardWindowTests
     {
         // Unity Pipeline eval_file: unshown temporary windows, not the user's open documents.
         const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static;
-        var type = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+        var type = typeof(DCFApixels.WhimTex.WhimTexWindow);
         var clipboard = type.Assembly.GetType("DCFApixels.WhimTex.LayerClipboard", true);
-        var first = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>());
-        var second = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>());
-        var source = (DCFApixels.WhimTex.TextureCompositor)type.GetField("compositor", Flags).GetValue(first);
-        var target = (DCFApixels.WhimTex.TextureCompositor)type.GetField("compositor", Flags).GetValue(second);
+        var first = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexWindow>());
+        var second = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexWindow>());
+        var source = (DCFApixels.WhimTex.WhimTexDocument)type.GetField("activeDocument", Flags).GetValue(first);
+        var target = (DCFApixels.WhimTex.WhimTexDocument)type.GetField("activeDocument", Flags).GetValue(second);
         string savedClipboard = GUIUtility.systemCopyBuffer;
         
         var priorClipboardSnapshot = clipboard.GetField("snapshot", Flags).GetValue(null);
@@ -35,13 +35,13 @@ public static class LayerClipboardWindowTests
         int testGroup = Undo.GetCurrentGroup();
         void Check(bool ok, string message) { WhimTex.Tests.UnityC.FixtureContext.Context.True(ok, message); checks++; }
         object Call(object owner, string method, params object[] args) => owner.GetType().GetMethod(method, Flags).Invoke(owner, args);
-        void Command(DCFApixels.WhimTex.TextureCompositorWindow window, string name)
+        void Command(DCFApixels.WhimTex.WhimTexWindow window, string name)
         {
             using var evt = UnityEngine.UIElements.ExecuteCommandEvent.GetPooled(name);
             evt.target = window.rootVisualElement;
             Call(window, "ExecuteAreaCommand", evt);
         }
-        void Key(DCFApixels.WhimTex.TextureCompositorWindow window, KeyCode key, bool shift = false, UnityEngine.UIElements.VisualElement targetElement = null)
+        void Key(DCFApixels.WhimTex.WhimTexWindow window, KeyCode key, bool shift = false, UnityEngine.UIElements.VisualElement targetElement = null)
         {
             var systemEvent = new Event { type = EventType.KeyDown, keyCode = key, modifiers = EventModifiers.Control | (shift ? EventModifiers.Shift : EventModifiers.None) };
             using var evt = UnityEngine.UIElements.KeyDownEvent.GetPooled(systemEvent);
@@ -100,7 +100,7 @@ public static class LayerClipboardWindowTests
             clipboard.GetField("marker", Flags).SetValue(null, priorClipboardMarker);
             clipboard.GetField("revision", Flags).SetValue(null,
                 (string)priorClipboardMarker == savedClipboard
-                    ? typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.ImageClipboard", true).GetProperty("Revision", Flags).GetValue(null) : priorClipboardRevision);
+                    ? typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.ImageClipboard", true).GetProperty("Revision", Flags).GetValue(null) : priorClipboardRevision);
             type.GetField("areaClipboard", Flags).SetValue(null, savedArea);
             Undo.RevertAllDownToGroup(testGroup);
             if (first != null) { first.DiscardChanges(); WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(first); }

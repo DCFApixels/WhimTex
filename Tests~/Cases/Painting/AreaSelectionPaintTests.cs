@@ -79,7 +79,7 @@ try
         finally { Call(layer, "ReleaseTransientResources"); }
     }
     }
-    var document = Scope.OwnObject(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+    var document = Scope.OwnObject(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
     document.hideFlags = UnityEngine.HideFlags.HideAndDontSave; document.width = document.height = 16;
     try
     {

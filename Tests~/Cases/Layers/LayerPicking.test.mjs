@@ -5,9 +5,9 @@ const context = new TestContext("LayerPicking source/reference tests");
 const assert = context.assert;
 context.case("LayerPicking original assertion inputs and source contracts", async () => {
   const read = name => readFileSync(new URL(`../../../src/${name}`, import.meta.url), 'utf8');
-  const renderer = read('TextureCompositor.LayerPicking.cs');
-  const window = read('TextureCompositorWindow.LayerPicking.cs');
-  const ui = read('TextureCompositorWindow.UI.cs');
+  const renderer = read('WhimTexDocument.LayerPicking.cs');
+  const window = read('WhimTexWindow.LayerPicking.cs');
+  const ui = read('WhimTexWindow.UI.cs');
   const settings = read('WhimTexUserSettings.cs');
   const settingsWindow = read('WhimTexUserSettingsWindow.cs');
   const expression = renderer.match(/MeetsPickThreshold\(float alpha, float threshold\) => ([^;]+);/)[1];
@@ -48,7 +48,7 @@ context.case("LayerPicking original assertion inputs and source contracts", asyn
   assert.match(renderer, /FindClippingBaseIndex/);
   assert.ok(!/MarkChanged\(|Undo\.|SetDirty\(/.test(renderer + window), 'Picking only changes window selection');
   assert.match(ui, /BindCanvasSettingsRow\(pickRow, CanvasTool.None\)/);
-  assert.match(read('TextureCompositorWindow.Tools.cs'), /Layer Select \(V\)/);
+  assert.match(read('WhimTexWindow.Tools.cs'), /Layer Select \(V\)/);
 
 });
 await finish(context);

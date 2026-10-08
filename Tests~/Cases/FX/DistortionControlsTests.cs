@@ -24,7 +24,7 @@ public static class DistortionControlsTests
     {
         var owned = new List<UnityEngine.Object>();
         T Own<T>(T value) where T : UnityEngine.Object { owned.Add(value); return value; }
-        var doc = Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var doc = Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         doc.width = W; doc.height = H;
         var input = Own(new Texture2D(W, H, TextureFormat.RGBAFloat, false, true)
             { filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp, anisoLevel = 0 });
@@ -43,7 +43,7 @@ public static class DistortionControlsTests
         var getMaterial = typeof(ShaderFX).GetMethod("GetMaterial", F);
         var notify = typeof(ShaderFX).GetMethod("NotifyValuesChanged", F);
         var draft = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-            new[] { typeof(TextureCompositor), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+            new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
         var apply = typeof(ShaderFX).GetMethod("ApplyAgentDraft", F);
         var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView", true);
         var refresh = viewType.GetMethod("Refresh", F);
@@ -283,14 +283,14 @@ public static class DistortionControlsTests
                 child.fx.Remove(fx); Layer group = new GroupLayerBehaviour(); group.children.Add(child); group.fx.Add(fx);
                 doc.layers.Clear(); doc.layers.Add(group);
                 Same(baseline, Composite(), "Group input matches ordinary layer: " + pair.Key);
-                var thumbnail = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderAgentLayerPreview", F).Invoke(doc, new object[] { group, W });
+                var thumbnail = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderAgentLayerPreview", F).Invoke(doc, new object[] { group, W });
                 try
                 {
                     RenderTexture.active = thumbnail; read.ReadPixels(new Rect(0, 0, W, H), 0, 0); read.Apply();
                     Same(baseline, read.GetPixels(), "Group thumbnail: " + pair.Key, .008f);
                 }
                 finally { RenderTexture.active = previous; RenderTexture.ReleaseTemporary(thumbnail); }
-                var exported = (Texture2D)typeof(TextureCompositor).GetMethod("RenderPsdGroupContent", F).Invoke(doc, new object[] { group });
+                var exported = (Texture2D)typeof(WhimTexDocument).GetMethod("RenderPsdGroupContent", F).Invoke(doc, new object[] { group });
                 try
                 {
                     var display = (Color[])baseline.Clone(); for (int i = 0; i < display.Length; i++) display[i] = display[i].gamma;

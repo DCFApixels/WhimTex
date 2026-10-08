@@ -38,9 +38,9 @@ context.case('Original file hashes, render coverage and unsupported asset bounda
         renders.add(createHash('sha256').update(bytes).digest('hex'));
     }
     assert.equal(renders.size, 3, 'Procedural, SDR and HDR fixtures need distinct rendered images');
-    const compositor = fs.readFileSync(path.join(root, 'src/TextureCompositor.cs'), 'utf8');
-    assert.doesNotMatch(compositor, /\[CreateAssetMenu\(/);
-    assert.ok(!fs.existsSync(path.join(root, 'src/Editor/TextureCompositorProjectPreview.cs')));
-    context.facts = { fileHashes: 30, supportedDocuments: 7, archivedDocuments: 1, distinctRenders: 3 };
+    const activeDocument = fs.readFileSync(path.join(root, 'src/WhimTexDocument.cs'), 'utf8');
+    assert.doesNotMatch(activeDocument, /\[CreateAssetMenu\(/);
+    assert.ok(!fs.existsSync(path.join(root, 'src/Editor/WhimTexDocumentProjectPreview.cs')));
+    context.facts = { fileHashes: 30, historicalDocuments: 7, archivedAssetDocuments: 1, distinctRenders: 3 };
 });
 await finish(context);

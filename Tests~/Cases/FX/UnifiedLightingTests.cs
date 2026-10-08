@@ -22,12 +22,12 @@ public static class UnifiedLightingTests
     const BindingFlags F=BindingFlags.Instance|BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic;
     private static void ExecuteMain()
     {
-        var doc=ScriptableObject.CreateInstance<TextureCompositor>();doc.width=doc.height=128;
+        var doc=ScriptableObject.CreateInstance<WhimTexDocument>();doc.width=doc.height=128;
         var effects=new List<ShaderFX>();int checks=0;
         void Check(bool value,string message){ context.True(value, message); }
         ShaderFX FX(string code)
         {
-            var fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
+            var fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
             effects.Add(fx);
             try { typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(fx,null); }
             catch(TargetInvocationException e) { throw new Exception(e.InnerException?.ToString() ?? e.ToString()); }
@@ -38,7 +38,7 @@ public static class UnifiedLightingTests
         try
         {
             var normal=FX(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/NormalLighting.hlsl"));
-            var bevel=FX(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/SdfBevel.hlsl"));
+            var bevel=FX(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/BevelEmboss.hlsl"));
             var ramp=FX("float4 ApplyFX(float2 uv,float4 c){float h=.25+.5*uv.x;return float4(h,h,h,1);}");
             var packed=FX("float4 ApplyFX(float2 uv,float4 c){return float4(normalize(float3(-3.0/128,0,1))*.5+.5,1);}");
             Layer host=new ColorFillLayerBehaviour();doc.layers.Add(host);
@@ -80,4 +80,3 @@ public static class UnifiedLightingTests
         finally{foreach(var fx in effects)UnityEngine.Object.DestroyImmediate(fx);UnityEngine.Object.DestroyImmediate(doc);}
     }
 }
-

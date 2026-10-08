@@ -8,7 +8,7 @@ public static class NoiseWarpScaleTests
     const BindingFlags F = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static;
     static string ExecuteRun()
     {
-        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         doc.width = doc.height = 64;
         var n = new NoiseLayerBehaviour { Scale=new Vector2(.68f,.43f), offset=new Vector3(.371f,-.619f,.371f),
             octaves=3, lacunarity=2.84f, warpStrength=.5f };
@@ -25,7 +25,7 @@ public static class NoiseWarpScaleTests
         var latticeType=typeof(NoiseLayerBehaviour).Assembly.GetType("DCFApixels.WhimTex.NoiseLatticeSettings");
         var lattice=Activator.CreateInstance(latticeType,true);
         var apply=latticeType.GetMethod("Apply",F);
-        var material=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(Shader.Find("Hidden/TextureCompositor/Noise")));
+        var material=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(Shader.Find("Hidden/WhimTex/Noise")));
         try
         {
             foreach(var dimension in new[]{NoiseLayerBehaviour.NoiseDimensions.TwoD,NoiseLayerBehaviour.NoiseDimensions.ThreeD})

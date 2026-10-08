@@ -46,17 +46,17 @@ public static class UvUiCaptureDiagnostic
     }
     static async Task Execute(TestContext context, CancellationToken token, object[] state)
     {
-        TextureCompositorWindow window = null;
-        TextureCompositor document = null;
+        WhimTexWindow window = null;
+        WhimTexDocument document = null;
         Mesh mesh = null;
         var previousFocus = EditorWindow.focusedWindow;
         try
         {
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-            var type = typeof(TextureCompositorWindow);
-            window = ScriptableObject.CreateInstance<TextureCompositorWindow>();
+            var type = typeof(WhimTexWindow);
+            window = ScriptableObject.CreateInstance<WhimTexWindow>();
             window.name = "WhimTex UV " + Guid.NewGuid().ToString("N");
-            document = (TextureCompositor)type.GetField("compositor", flags).GetValue(window);
+            document = (WhimTexDocument)type.GetField("activeDocument", flags).GetValue(window);
             document.width = 512; document.height = 512;
             document.layers.Add(new Layer(new ColorFillLayerBehaviour { color = new Color(.24f,.25f,.3f,1) }));
             mesh = new Mesh { name = "UV smoke mesh", hideFlags = HideFlags.HideAndDontSave };
@@ -66,7 +66,7 @@ public static class UvUiCaptureDiagnostic
             var uvs = new Vector2[mesh.vertexCount];
             for (int i=0;i<uvs.Length;i++) uvs[i] = new Vector2(mesh.vertices[i].x, mesh.vertices[i].y);
             mesh.uv = uvs; mesh.triangles = new[]{0,1,2,0,2,3,4,5,6,4,6,7,8,9,10};
-            typeof(TextureCompositor).GetField("uvReferenceMesh", flags).SetValue(document, mesh);
+            typeof(WhimTexDocument).GetField("uvReferenceMesh", flags).SetValue(document, mesh);
             type.GetField("uvEnabled", flags).SetValue(window, true);
             type.GetField("uvExpanded", flags).SetValue(window, true);
             type.GetField("postFxExpanded", flags).SetValue(window, false);
@@ -96,7 +96,7 @@ public static class UvUiCaptureDiagnostic
         }
     }
     // Private: only Execute's created fixture can reach this producer.
-    static byte[] CaptureCreatedWindow(TextureCompositorWindow window, TestContext context)
+    static byte[] CaptureCreatedWindow(WhimTexWindow window, TestContext context)
     {
         var rect = window.position;
         int width = (int)rect.width, height = (int)rect.height;

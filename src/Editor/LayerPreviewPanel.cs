@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
         private readonly VisualElement channels;
         private readonly Button[] channelButtons = new Button[4];
         private readonly ResizeManipulator resize;
-        private TextureCompositor document;
+        private WhimTexDocument document;
         private Layer boundLayer;
         private LayerBehaviour boundBehaviour;
         private string layerId;
@@ -87,7 +87,7 @@ namespace DCFApixels.WhimTex
             UpdateLayout();
         }
 
-        internal void Bind(TextureCompositor owner, Layer layer)
+        internal void Bind(WhimTexDocument owner, Layer layer)
         {
             if (disposed || (document == owner && ReferenceEquals(boundLayer, layer) && ReferenceEquals(boundBehaviour, layer?.Behaviour))) return;
             if (!ReferenceEquals(document, null)) document.LayerPreviewRendered -= OnLayerPreviewRendered;
@@ -118,8 +118,8 @@ namespace DCFApixels.WhimTex
             attached = true;
             layoutParent = parent;
             layoutParent?.RegisterCallback<GeometryChangedEvent>(OnGeometry);
-            TextureCompositor.Changed += OnChanged;
-            TextureCompositor.RenderResourcesChanged += OnChanged;
+            WhimTexDocument.Changed += OnChanged;
+            WhimTexDocument.RenderResourcesChanged += OnChanged;
             if (document != null) document.LayerPreviewRendered += OnLayerPreviewRendered;
             EditorApplication.update += Tick;
             RequestLayerPreview(true);
@@ -128,7 +128,7 @@ namespace DCFApixels.WhimTex
 
         private void OnDetach(DetachFromPanelEvent evt) => Stop();
         private void OnGeometry(GeometryChangedEvent evt) => UpdateLayout();
-        private void OnChanged(TextureCompositor changed) { if (changed == document) RequestLayerPreview(); }
+        private void OnChanged(WhimTexDocument changed) { if (changed == document) RequestLayerPreview(); }
 
         private bool CanDisplay()
         {
@@ -316,8 +316,8 @@ namespace DCFApixels.WhimTex
             resize.Release();
             attached = false;
             EditorApplication.update -= Tick;
-            TextureCompositor.Changed -= OnChanged;
-            TextureCompositor.RenderResourcesChanged -= OnChanged;
+            WhimTexDocument.Changed -= OnChanged;
+            WhimTexDocument.RenderResourcesChanged -= OnChanged;
             if (!ReferenceEquals(document, null)) document.LayerPreviewRendered -= OnLayerPreviewRendered;
             layoutParent?.UnregisterCallback<GeometryChangedEvent>(OnGeometry);
             layoutParent = null;

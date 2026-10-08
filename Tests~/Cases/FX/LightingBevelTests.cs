@@ -10,12 +10,12 @@ public static class LightingBevelTests
     static string ExecuteMain()
     {
         const BindingFlags F=BindingFlags.Instance|BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic;
-        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>()); doc.width=doc.height=128;
+        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>()); doc.width=doc.height=128;
         var effects=new List<ShaderFX>(); int checks=0;
         void Check(bool ok,string message){ WhimTex.Tests.UnityC.FixtureContext.Context.True(ok, message); checks++; }
         ShaderFX FX(string code)
         {
-            var fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
+            var fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
             effects.Add(fx); typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(fx,null); return fx;
         }
         ShaderFXParameter P(ShaderFX fx,string name) => ((List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(fx)).Find(p=>p.name==name);
@@ -28,7 +28,7 @@ public static class LightingBevelTests
         try
         {
             var lighting=FX(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/NormalLighting.hlsl"));
-            var bevel=FX(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/SdfBevel.hlsl"));
+            var bevel=FX(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/BevelEmboss.hlsl"));
             Check(P(lighting,"_BaseColor").colorValue.a==0 && P(bevel,"_BaseColor").colorValue.a==0,"transparent lighting defaults");
             P(lighting,"_BaseColor").colorValue=Color.white;
             Layer normal=new ColorFillLayerBehaviour(); doc.layers.Add(normal);
@@ -84,7 +84,7 @@ public static class LightingBevelTests
             heightLayer.enabled=false;
             heightLayer.fx.Add(normal.fx[0]);
             doc.layers.Add(heightLayer);
-            typeof(TextureCompositor).GetMethod("NormalizeModel",F).Invoke(doc,null);
+            typeof(WhimTexDocument).GetMethod("NormalizeModel",F).Invoke(doc,null);
             normal.fx[0]=FX("float4 ApplyFX(float2 uv,float4 c){return 0;}");
             P(bevel,"_HeightMap").textureSource=ShaderFXTextureSource.Layer;
             P(bevel,"_HeightMap").textureLayerId=heightLayer.Id;

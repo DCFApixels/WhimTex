@@ -47,7 +47,7 @@ translations: "en/normal-map.md,ru/normal-map.md,zh/normal-map.md"
 
 ## 为材质保存
 
-单独输出法线贴图时，请保持 **Normal** 混合、完全不透明和原始 [Swizzle](color.md)，不要重排通道。
+单独输出法线贴图时，请保持 **Normal** 混合、完全不透明和原始 [Mapping](color.md)，不要重排通道。
 避免使用颜色效果，它们会扭曲浮雕。
 
 为 PNG/TGA/PSD 选择 **Advanced → Encoding → Packed Color**。将导出的 PNG 或 TGA 以

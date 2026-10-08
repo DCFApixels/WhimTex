@@ -4,16 +4,18 @@
 
 - Code task: read [context overview](Context~/HANDOFF.md); consult only relevant sections of [feature decisions](Context~/DECISIONS.md). These files supplement these rules; they are not a task queue.
 - Browser AI / clipboard JSON / standalone HLSL: [AI_AUTHORING.md](AI_AUTHORING.md) → [contract](Documentation~/AI/README.md) → [examples](Documentation~/Examples/Clipboard/README.md).
-- Edit an open compositor: read [whimtex-live skill](Skills~/whimtex-live/SKILL.md) first, then [LiveAgentAPI](Documentation~/LiveAgentAPI.md) as needed.
-- Edit a compositor by path: [AgentAPI](Documentation~/AgentAPI.md).
+- Edit an open document: read [whimtex-live skill](Skills~/whimtex-live/SKILL.md) first, then [LiveAgentAPI](Documentation~/LiveAgentAPI.md) as needed.
+- Edit a document by path: [AgentAPI](Documentation~/AgentAPI.md).
 - Texture/VFX authoring references: [internal agent samples](Samples~/AgentTextures/README.md). 38 procedural JSON recipes with individual PNG previews, at most 256 pixels on the longest axis; no bundled TIFF duplicates. Read the manifest descriptions/tags and only the relevant examples.
 - Do not load all references for an unrelated task. These files describe rules and decisions, not Git status or a task queue.
 
 ## Identity and compatibility
 
 - Product: WhimTex. Package: `com.dcfapixels.whimtex`. Namespace: `DCFApixels.WhimTex`; assemblies: `DCFApixels.WhimTex*`.
-- Preserve the `whimtex_*` command naming convention, `whimtex-live` skill ID, `Temp/WhimTex/` preview path and `whimtex-` USS prefix. During the explicitly requested legacy cleanup, public C# and agent API contracts may change without compatibility aliases; update internal clients and documentation together.
-- The legacy-cleanup compatibility baseline is TIFF/JSON documents and presets written/saved by WhimTex 0.12.5. Compositor `.asset` documents are excluded: convert them to TIFF with 0.12.5 before upgrading. This baseline is not its C# API, agent calls or user settings. User settings (including EditorPrefs, stored values/schema, window state and layouts) may be changed, reset or removed without backward compatibility or migration. This does not authorize moving/deleting existing preset-library files. Preserve file contents, references and rendered results through explicit readers/converters. Retire older rename markers only when they are unnecessary for this file baseline; unknown data must remain protected against lossy saves. This permission does not authorize unrelated future format breaks.
+- Preserve the `whimtex_*` command naming convention, `whimtex-live` skill ID, `Temp/WhimTex/` preview path and `whimtex-` USS prefix as product conventions, not compatibility aliases. Update internal clients and documentation together when contracts change.
+- Development after 0.13.0 has no backward-compatibility requirement, including with 0.13.0 itself. TIFF/JSON documents, brush/gradient/FX presets, public C# and agent APIs, user settings and window state may change without migrations or aliases. The former 0.12.5 file baseline no longer constrains redesigns. Version-specific readers, converters, rename markers, defaults snapshots and compatibility tests may be retired as part of the relevant requested change; do not remove unrelated behavior solely because compatibility is optional.
+- Format breaks must be identifiable and unsupported input must receive a clear diagnostic, not be silently interpreted as the current format. Keep current-format roundtrip correctness, atomic saving and protection against unconfirmed data loss. Dropping compatibility does not authorize overwriting, converting, moving or deleting existing user documents/preset-library files. Existing compatibility code describes current implementation until deliberately changed; it is not a future guarantee.
+- Continue incompatible development on `dev`. Create a separate release branch before the next release when requested; do not create one now or rewrite the published `v0.13.0` tag/release. Branch creation, pushes and releases require authorization for the current task.
 - Repository: `DCFApixels/WhimTex`; site: https://dcfapixels.github.io/WhimTex/.
 - Never increase version without an explicit request, including when committing/pushing.
 - Never mention or use names of external graphics editors in code, identifiers, comments, UI, tests/examples, documentation, changelogs, commit messages, pull requests or release notes. Describe behavior generically; do not use editor names as shorthand or comparisons.
@@ -29,7 +31,7 @@
 - Do not introduce or extend solutions that access Unity internal/non-public APIs through reflection without explicit user approval. This includes reflected delegates, compatibility wrappers, and test or diagnostic code. Prefer supported public APIs; if no suitable alternative exists, explain the limitation and request approval before implementation. Existing reflection-based integrations and general feature requests are not authorization for new internal-API dependencies.
 - Follow root project AGENTS.md. Compile only through the connected Unity Editor/Pipeline; no standalone MSBuild or dotnet build. One compilation at a time; check completion/errors. Player builds require a separate request.
 - Explicitly target the intended Unity project. Missing tools do not authorize installing packages, starting another Editor or changing unrelated projects/assets.
-- For compositor authoring use `WhimTexApi`, not generated YAML or simulated clicks. Source-code work does not require the authoring API.
+- For document authoring use `WhimTexApi`, not generated YAML or simulated clicks. Source-code work does not require the authoring API.
 - Prefer linked built-in/project FX: discover them with `whimtex_fx_catalog`, add through `presetId`, and adjust parameters with `set`. Do not copy unchanged preset HLSL into `code`; reserve inline code for custom algorithms or intentionally independent variants. User-library embedding remains the API's normal behavior.
 - Inspect existing documents before path-based edits; use IDs and `@aliases`, not display names. Validate unfamiliar batches with `dryRun:true`; check inner API success, not just CLI transport success.
 - After ambiguous timeouts/save failures, inspect before retrying. Adds and strokes are not idempotent.
@@ -44,7 +46,7 @@
 - Inline shader work uses live `fx` requests, not separate shader files by default.
 - Live image completion inserts owned Drawing pixels. For path-based imported File workflows, generate the image externally, import with `whimtex_image_import`, reuse its returned path. Read the selected workflow's contract rather than mixing the two.
 - Preserve source resolution; fit with transforms. Drawing strokes are for painting/masks/touch-ups, not a substitute for requested image generation.
-- New document/layer clipboard recipes use `whimtex.document`; see `AI_AUTHORING.md` and `Documentation~/JSON_FORMAT.md`. The old `whimtex.layers` reader is removed; convert old payloads through 0.12.5 before upgrading. Plain image URL paste and brush-tip URL downloads remain separate from document JSON.
+- New document/layer clipboard recipes use `whimtex.document`; see `AI_AUTHORING.md` and `Documentation~/JSON_FORMAT.md`. Old clipboard/document formats require a matching older checkout; this checkout provides no migration to the current format. Plain image URL paste and brush-tip URL downloads remain separate from document JSON.
 
 ## UI and validation
 
@@ -56,7 +58,7 @@
 - Rendering changes: check composite, group/Target input, clipping, thumbnails and export; preserve caller render state and temporary-texture ownership.
 - Run relevant tests in `Tests~`; inspect each file and declared support sources first. Use the [opt-in test profiles](Tests~/RUNNING_TESTS.md) when applicable. Compilation/entry validation is not a runtime PASS or proof of full coverage. A review receipt does not grant asset permissions. Report skipped, manual, external-prerequisite and unverified behavior explicitly.
 - Test layout: start with the [test map](Tests~/README.md). Cases are grouped by subsystem; common support belongs in Framework. Use thematic or category profiles. Executable case/support sources belong only to Cases/Framework (except the explicitly declared current PSD writer); data belongs in Fixtures.
-- Frozen inputs: preserve 0.12.5 file fixtures and [registered render references](Tests~/Fixtures/Oracles/README.md). Authenticate their existing hashes; never regenerate a pre-change reference with the current implementation just to obtain a pass. Source images are inputs, not output goldens. Current tests do not depend on a Legacy folder, migration mappings or Git objects. Historical originals and migration evidence remain in Git history; see the test map for recovery references.
+- Frozen inputs: authenticate retained fixtures and [registered render references](Tests~/Fixtures/Oracles/README.md); never regenerate a pre-change reference with the current implementation just to obtain a pass. Source images are inputs, not output goldens. Old-version compatibility cases/fixtures are not a release requirement and may be retired with the affected contract; update the catalog/profiles and keep tests for current-format roundtrips and actual behavior. Current tests do not depend on a Legacy folder, migration mappings or Git objects. Historical originals and migration evidence remain in Git history; see the test map for recovery references.
 - Generated run reports, input bundles, Editor replies and recovery logs belong in project `Temp/WhimTex`, not in the package or Git. Keep only a compact human summary when requested. Fixture manifests and provenance are required inputs, not disposable run output. Do not restore historical migration reports into the working tree for ordinary test runs.
 
 ## Documentation and dependencies

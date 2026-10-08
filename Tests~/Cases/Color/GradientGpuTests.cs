@@ -10,7 +10,7 @@ public static class GradientGpuTests
     {
 // Unity Pipeline eval_file. Transient objects only; no scene/asset writes or Undo.
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var document = UnityBRun.Create<DCFApixels.WhimTex.TextureCompositor>();
+var document = UnityBRun.Create<DCFApixels.WhimTex.WhimTexDocument>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = document.height = 512;
 var layer = new DCFApixels.WhimTex.GradientLayerBehaviour();
@@ -63,7 +63,7 @@ void CompareFixedBoundaries()
     // Feed an exact uniform coordinate: no raster interpolation, radius or pixel-center rounding.
     // Test every boundary and both sides with the original color tolerance.
     var temporary = Render(1, 1); UnityEngine.RenderTexture.ReleaseTemporary(temporary);
-    var material = UnityBRun.Track(new UnityEngine.Material(UnityEngine.Shader.Find("Hidden/TextureCompositor/Gradient")));
+    var material = UnityBRun.Track(new UnityEngine.Material(UnityEngine.Shader.Find("Hidden/WhimTex/Gradient")));
     var output = UnityBRun.Track(new UnityEngine.RenderTexture(1, 1, 0, UnityEngine.RenderTextureFormat.ARGBFloat, UnityEngine.RenderTextureReadWrite.Linear));
     var readback = UnityBRun.Track(new UnityEngine.Texture2D(1, 1, UnityEngine.TextureFormat.RGBAFloat, false, true));
     var encode = typeof(DCFApixels.WhimTex.WhimTexGradient).GetMethod("EvaluateEncoded", flags);
@@ -113,7 +113,7 @@ void CompareFixedBoundaries()
 }
 try
 {
-    var shader = UnityEngine.Shader.Find("Hidden/TextureCompositor/Gradient");
+    var shader = UnityEngine.Shader.Find("Hidden/WhimTex/Gradient");
     Check(shader != null && shader.isSupported, "Gradient shader supported");
     foreach (var message in UnityEditor.ShaderUtil.GetShaderMessages(shader))
         Check(message.severity != UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error, message.message);

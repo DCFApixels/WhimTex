@@ -14,7 +14,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
 static System.Threading.CancellationToken Cancellation;
 
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
-    static readonly Type Algorithm = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.ContentAwareFill", true);
+    static readonly Type Algorithm = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.ContentAwareFill", true);
     static object New(string name) => Activator.CreateInstance(Algorithm.GetNestedType(name, F), true);
     static void Set(object o, string name, object value) => o.GetType().GetField(name, F).SetValue(o, value);
     static T Get<T>(object o, string name) => (T)o.GetType().GetField(name, F).GetValue(o);

@@ -13,37 +13,13 @@ public static class InputTilingTests
 {
     const BindingFlags F = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
     const int W = 13, H = 9;
-    // Original 0.12.5 input addressing, kept independently of the current sampling helper.
-    const string AddressReference = @"// @whimtex-effect Distortion/Displacement Map
-// @param enum _InputEdge = Clamp {Clamp: 0, Repeat: 1, Mirror: 2, Transparent: 3}
-// @param float _StrengthX = 5.2
-// @param float _StrengthY = -4.4
-// @param texture2D _DisplacementMap = self
-float2 AddressInputUV(float2 uv, float mode, float2 texelSize, out float inside)
-{
-    inside = 1.0;
-    if (mode < 0.5) return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);
-    if (mode < 1.5) return frac(uv);
-    if (mode < 2.5) return 1.0 - abs(frac(uv * 0.5) * 2.0 - 1.0);
-    inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
-    return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);
-}
-float4 ApplyFX(float2 uv, float4 color)
-{
-    float2 displacement = (tex2D(_DisplacementMap, uv).rg - 0.5) * 2.0 * float2(_StrengthX, _StrengthY);
-    float inside;
-    float2 sampleUV = AddressInputUV(uv + displacement * _CanvasSize.zw, _InputEdge, _MainTex_TexelSize.xy, inside);
-    return SampleInput(sampleUV) * inside;
-}";
-
     public static string Run() => TestContext.Run("FX input tiling: sampling, UI, persistence and render paths", t =>
     {
         using (var fixture = new MigrationD()) using (var h = new Harness(t))
         {
             h.CheckSampling();
             h.CheckPresets();
-            h.CheckRenamedTiling();
-            h.CheckFileCompatibility();
+
         }
     });
 
@@ -51,7 +27,7 @@ float4 ApplyFX(float2 uv, float4 color)
     {
         readonly TestContext t;
         readonly List<UnityEngine.Object> owned = new List<UnityEngine.Object>();
-        readonly TextureCompositor doc;
+        readonly WhimTexDocument doc;
         readonly Texture2D input, read, map;
         readonly Color[] pixels;
         readonly RenderTexture output;
@@ -68,7 +44,7 @@ float4 ApplyFX(float2 uv, float4 color)
         public Harness(TestContext tests)
         {
             t = tests;
-            doc = Own(ScriptableObject.CreateInstance<TextureCompositor>()); doc.width = W; doc.height = H;
+            doc = Own(ScriptableObject.CreateInstance<WhimTexDocument>()); doc.width = W; doc.height = H;
             input = Own(new Texture2D(7, 5, TextureFormat.RGBAFloat, false, true)
                 { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear, anisoLevel = 0 });
             pixels = new Color[35];
@@ -90,7 +66,7 @@ float4 ApplyFX(float2 uv, float4 color)
         ShaderFX Create(string source)
         {
             var create = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(TextureCompositor), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
             var fx = Own((ShaderFX)create.Invoke(null, new object[] { doc, source, new List<ShaderFXParameter>() }));
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
             return fx;
@@ -226,13 +202,13 @@ float4 ApplyFX(float2 uv, float4 color)
                     field.value = "Mirror";
                     t.Near(2, P(fx, parameter).floatValue, 0, "Attached UI field updates the actual stored value");
                     t.Equal(0, view.Query<Toggle>().ToList().FindAll(item => item.label == "Repeat Filtering").Count,
-                        "File compatibility filtering is not exposed as another user control");
+                        "No separate repeat-filtering control");
                 }
                 finally { view.RemoveFromHierarchy(); view.Clear(); }
                 if (name.EndsWith("Displacement Map"))
                 {
                     Set(fx, "_StrengthX", 5.2f); Set(fx, "_StrengthY", -4.4f);
-                    t.Near(1, P(fx, "_RepeatFiltering").floatValue, 0, "New displacement uses filtered repeat seams");
+                    t.True(P(fx, "_RepeatFiltering") == null, "No historical repeat-filtering flag");
                 }
                 if (name.EndsWith("Radial Shear")) P(fx, "_Offset").vectorValue = new Vector2(.27f, -.23f);
                 if (name.StartsWith("Transform/"))
@@ -252,10 +228,10 @@ float4 ApplyFX(float2 uv, float4 color)
                     doc.layers.Clear(); doc.layers.Add(child); var baseline = Composite();
                     child.fx.Remove(fx); Layer group = new GroupLayerBehaviour(); group.children.Add(child); group.fx.Add(fx);
                     doc.layers.Clear(); doc.layers.Add(group); Same(baseline, Composite(), "Group: " + name);
-                    var thumbnail = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderAgentLayerPreview", F).Invoke(doc, new object[] { group, W });
+                    var thumbnail = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderAgentLayerPreview", F).Invoke(doc, new object[] { group, W });
                     try { Same(baseline, Read(thumbnail), "Thumbnail: " + name, .008f); }
                     finally { RenderTexture.active = previous; RenderTexture.ReleaseTemporary(thumbnail); }
-                    var image = (Texture2D)typeof(TextureCompositor).GetMethod("RenderPsdGroupContent", F).Invoke(doc, new object[] { group });
+                    var image = (Texture2D)typeof(WhimTexDocument).GetMethod("RenderPsdGroupContent", F).Invoke(doc, new object[] { group });
                     try
                     {
                         var display = (Color[])baseline.Clone(); for (int i = 0; i < display.Length; i++) display[i] = display[i].gamma;
@@ -300,84 +276,7 @@ float4 ApplyFX(float2 uv, float4 color)
             finally { UnityEngine.Object.DestroyImmediate(image); }
         }
 
-        public void CheckRenamedTiling()
-        {
-            var codeProperty = typeof(ShaderFX).GetProperty("Code", F);
-            var guidField = typeof(ShaderFX).GetField("catalogGuid", F);
-            var reload = typeof(ShaderFX).GetMethod("ReloadCatalogSource", F);
-            foreach (var pair in presets)
-            {
-                if (pair.Key.StartsWith("Transform/")) continue;
-                string oldName = pair.Key.EndsWith("Displacement Map") ? "_InputEdge" : "_InputTiling";
-                string marker = "// @formerlyserializedas(" + oldName + ")";
-                string source = (string)codeProperty.GetValue(pair.Value);
-                t.True(source.Contains(marker), "Current preset declares its exact former tiling name: " + pair.Key);
-                // A removed unrelated field makes counts differ, so positional rename inference cannot pass this test.
-                string previousSource = source.Replace(marker, "").Replace("_Tiling", oldName) +
-                    "\n// @param hidden float _RemovedRenameProbe = 0\n";
-                foreach (int tiling in new[] { 0, 1, 2, 3 })
-                {
-                    var fx = Create(previousSource);
-                    Set(fx, oldName, tiling);
-                    string id = P(fx, oldName).id;
-                    int previousCount = ((List<ShaderFXParameter>)parameters.GetValue(fx)).Count;
-                    var expected = Render(fx);
-                    guidField.SetValue(fx, guidField.GetValue(pair.Value));
-                    reload.Invoke(fx, new object[] { true });
-                    t.True(previousCount != ((List<ShaderFXParameter>)parameters.GetValue(fx)).Count,
-                        "Rename must not depend on parameter positions");
-                    var renamed = P(fx, "_Tiling");
-                    t.True(renamed != null && P(fx, oldName) == null, "Old declaration becomes the current tiling field");
-                    t.Near(tiling, renamed.floatValue, 0, "Former name preserves saved tiling: " + pair.Key);
-                    t.Equal(id, renamed.id, "Former name preserves parameter identity");
-                    Same(expected, Render(fx), "Former name preserves rendering: " + pair.Key, .0001f);
-                    string exported = (string)writer.Invoke(null, new object[] { fx, "Tests/Renamed Tiling" });
-                    t.True(exported.Contains(marker), "Preset export retains the rename marker");
-                    var copy = Create(exported);
-                    t.Near(tiling, P(copy, "_Tiling").floatValue, 0, "Exported preset preserves renamed tiling");
-                    Same(expected, Render(copy), "Renamed preset export rendering", .0001f);
-                }
-            }
-        }
 
-        public void CheckFileCompatibility()
-        {
-            var fx = Create(AddressReference);
-            var expected = new Color[4][];
-            for (int tiling = 0; tiling < 4; tiling++) { Set(fx, "_InputEdge", tiling); expected[tiling] = Render(fx); }
-            string parameterId = P(fx, "_InputEdge").id;
-            Layer layer = new ColorFillLayerBehaviour(); layer.fx.Add(fx); doc.layers.Clear(); doc.layers.Add(layer);
-            typeof(TextureCompositor).GetMethod("NormalizeModel", F).Invoke(doc, null);
-            var oldJson = WhimTexDocumentJson.Write(doc);
-            using (var detached = WhimTexDocumentJson.Read(oldJson.Json))
-            {
-                t.Equal(0, detached.Warnings.Count, "Original independent HLSL still loads");
-                t.True(P((ShaderFX)detached.Document.layers[0].fx[0], "_RepeatFiltering") == null, "Detached code is not rewritten");
-            }
-            typeof(ShaderFX).GetField("catalogGuid", F).SetValue(fx, "7d755646c7a839e478c67bb36a2189f8");
-            var reload = typeof(ShaderFX).GetMethod("ReloadCatalogSource", F); reload.Invoke(fx, new object[] { true });
-            t.Near(0, P(fx, "_RepeatFiltering").floatValue, 0, "Linked files retain their previous repeat filtering");
-            t.Equal(parameterId, P(fx, "_Tiling").id, "Saved addressing parameter identity preserved");
-            t.Near(3, P(fx, "_Tiling").floatValue, 0, "Saved non-default addressing value survives the 0.12.5 upgrade");
-            for (int tiling = 0; tiling < 4; tiling++)
-            {
-                Set(fx, "_Tiling", tiling); Same(expected[tiling], Render(fx), "Original addressing parity: " + tiling, .0001f);
-            }
-            var json = WhimTexDocumentJson.Write(doc);
-            using (var restored = WhimTexDocumentJson.Read(json.Json))
-            {
-                t.Equal(0, restored.Warnings.Count, "Converted filtering loads without warnings");
-                var copy = (ShaderFX)restored.Document.layers[0].fx[0];
-                t.Near(0, P(copy, "_RepeatFiltering").floatValue, 0, "JSON preserves original filtering");
-                Same(Render(fx), Render(copy), "Converted JSON rendering", .0001f);
-            }
-            var preset = Create((string)writer.Invoke(null, new object[] { fx, "Tests/Saved Input Tiling" }));
-            t.Near(0, P(preset, "_RepeatFiltering").floatValue, 0, "HLSL export preserves original filtering");
-            Same(Render(fx), Render(preset), "Converted HLSL rendering", .0001f);
-            Set(fx, "_RepeatFiltering", 1); reload.Invoke(fx, new object[] { true });
-            t.Near(1, P(fx, "_RepeatFiltering").floatValue, 0, "Repeat catalog refresh does not reapply conversion");
-            t.Near(0, P(presets["Distortion/Displacement Map"], "_MapWrap").floatValue, 0, "Input tiling leaves map wrap independent");
-        }
 
         public void Dispose()
         {

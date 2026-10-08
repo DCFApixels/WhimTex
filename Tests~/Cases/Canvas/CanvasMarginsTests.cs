@@ -15,9 +15,9 @@ private static string BodyRun()
 {
 // Canvas margins check after manual compilation. Temporary document/window, no saved assets.
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var window = Scope.OwnWindow(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>());
+var window = Scope.OwnWindow(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexWindow>());
 var windowType = window.GetType();
-var document = (DCFApixels.WhimTex.TextureCompositor)windowType.GetField("compositor", Hidden).GetValue(window);
+var document = (DCFApixels.WhimTex.WhimTexDocument)windowType.GetField("activeDocument", Hidden).GetValue(window);
 object Call(object target, string name, params object[] args) => target.GetType().GetMethod(name, Hidden).Invoke(target, args);
 int checks = 0;
 void Check(bool value, string message) { T.True(value, message); }

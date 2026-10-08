@@ -57,11 +57,11 @@ public static class GradientDefaultsTests
             Check(gradient.Mode == mode, "Explicit clipboard mode preserved: " + mode);
             Check(gradient.Clone().Mode == mode, "Clone preserves mode");
             Check(JsonUtility.FromJson<WhimTexGradient>(JsonUtility.ToJson(gradient)).Mode == mode, "Serialized mode preserved");
-            var document = UnityBRun.Create<TextureCompositor>();
+            var document = UnityBRun.Create<WhimTexDocument>();
             try
             {
                 document.layers.Add(new GradientLayerBehaviour { gradient = gradient.Clone() });
-                typeof(TextureCompositor).GetMethod("NormalizeModel", F).Invoke(document, null);
+                typeof(WhimTexDocument).GetMethod("NormalizeModel", F).Invoke(document, null);
                 var json = WhimTexDocumentJson.Write(document, new WhimTexJsonWriteOptions { Mode = WhimTexJsonWriteMode.Compact }).Json;
                 using var restored = WhimTexDocumentJson.Read(json);
                 Check(((GradientLayerBehaviour)restored.Document.layers[0].Behaviour).gradient.Equals(gradient), "Compact document roundtrip: " + mode);

@@ -28,23 +28,23 @@ public static class RemainingLegacyCleanupTests
         checks = 0;
         Check(typeof(ShaderFXParameter).GetField("declaredInCode", F) == null, "No manual/code mode flag");
         Check(Package.GetType("DCFApixels.WhimTex.ShaderFXParameterDrawer") == null, "No manual drawer");
-        Check(typeof(TextureCompositorWindow).GetField("documentFilePath", F) == null &&
-            typeof(TextureCompositorWindow).GetField("documentFileGuid", F) == null &&
-            typeof(TextureCompositorWindow).GetField("documentFileOwner", F) == null, "No duplicated window binding");
+        Check(typeof(WhimTexWindow).GetField("documentFilePath", F) == null &&
+            typeof(WhimTexWindow).GetField("documentFileGuid", F) == null &&
+            typeof(WhimTexWindow).GetField("documentFileOwner", F) == null, "No duplicated window binding");
         foreach (string kind in new[] { "document", "fragment", "layers" })
-            Reject(() => WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":1,\"kind\":\"" + kind + "\",\"layers\":[]}", false).Dispose(), "Root kind accepted");
-        const string oldAxes = "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[" +
-            "{\"id\":\"noise\",\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\",\"scale\":23,\"warpScale\":3}}," +
-            "{\"id\":\"pattern\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"pattern\":{\"size\":37}}}," +
-            "{\"id\":\"shape\",\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\",\"roundness\":0.4,\"cornerRoundness\":[-1,0.2,-1,0]}}]}";
-        using (var read = WhimTexDocumentJson.Read(oldAxes, false))
+            Reject(() => WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":2,\"kind\":\"" + kind + "\",\"layers\":[]}", false).Dispose(), "Root kind accepted");
+        const string explicitAxes = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[" +
+            "{\"id\":\"noise\",\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\",\"scale\":23,\"scaleY\":23,\"warpScale\":3,\"warpScaleY\":3}}," +
+            "{\"id\":\"pattern\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"pattern\":{\"size\":37,\"sizeY\":37}}}," +
+            "{\"id\":\"shape\",\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\",\"cornerRoundness\":[0.4,0.2,0.4,0]}}]}";
+        using (var read = WhimTexDocumentJson.Read(explicitAxes, false))
         {
             var noise = (NoiseLayerBehaviour)read.Document.layers[0].Behaviour;
             var pattern = ((ColorFillLayerBehaviour)read.Document.layers[1].Behaviour).pattern;
             var shape = (ShapeLayerBehaviour)read.Document.layers[2].Behaviour;
-            Check(noise.scaleY == 23 && noise.warpScaleY == 3, "Omitted Compact axes normalized");
-            Check(pattern.sizeY == 37, "Pattern omitted axis normalized");
-            Check(shape.cornerRoundness == new Vector4(.4f, .2f, .4f, 0), "Each inherited corner normalized independently");
+            Check(noise.scaleY == 23 && noise.warpScaleY == 3, "Explicit Noise axes retained");
+            Check(pattern.sizeY == 37, "Explicit Pattern axis retained");
+            Check(shape.cornerRoundness == new Vector4(.4f, .2f, .4f, 0), "Explicit corners retained");
             foreach (WhimTexJsonWriteMode mode in Enum.GetValues(typeof(WhimTexJsonWriteMode)))
             {
                 var written = WhimTexDocumentJson.Write(read.Document, new WhimTexJsonWriteOptions { Mode = mode });
@@ -56,26 +56,22 @@ public static class RemainingLegacyCleanupTests
         Check(new NoiseLayerBehaviour().scaleY == 8 && new NoiseLayerBehaviour().warpScaleY == 1, "New Noise explicit defaults");
         Check(new FillPatternSettings().sizeY == 64 && new ShapeLayerBehaviour().cornerRoundness == Vector4.zero, "New Pattern/Shape explicit defaults");
 
-        foreach (bool declared in new[] { false, true })
+        using (var omitted = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[" +
+            "{\"id\":\"n\",\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\",\"scale\":23,\"warpScale\":3}}," +
+            "{\"id\":\"p\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"pattern\":{\"size\":37}}}]}" , false))
         {
-            const string removed = "float4 ApplyFX(float2 uv, float4 color) { return color; }";
-            string json = "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"fx-layer\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"" + removed +
-                "\",\"parameters\":[{\"name\":\"_Removed\",\"type\":\"Float\",\"floatValue\":0.625,\"declaredInCode\":" + (declared ? "true" : "false") + "}]}]}]}";
-            using var read = WhimTexDocumentJson.Read(json, false);
-            var effect = (ShaderFX)read.Document.layers[0].fx[0];
-            Check(Parameters(effect).Count == (declared ? 0 : 1), "Only saved manual definitions are converted; declared=" + declared);
-            if (declared) Check(Code(effect) == removed, "A removed 0.12.5 code declaration is not resurrected");
-            else
-            {
-                Set(effect, "code", removed);
-                string jsonDraft = WhimTexDocumentJson.Write(read.Document).Json;
-                using var again = WhimTexDocumentJson.Read(jsonDraft, false);
-                Check(Parameters((ShaderFX)again.Document.layers[0].fx[0]).Count == 0, "New JSON does not restore an unapplied declaration deletion");
-                Check(Parameters(effect).Count == 1, "JSON writing does not mutate the pending authoring state");
-            }
+            var noise = (NoiseLayerBehaviour)omitted.Document.layers[0].Behaviour;
+            Check(noise.scaleY == 8 && noise.warpScaleY == 1 && noise.scaleZ == 1, "Omitted Noise axes use fixed defaults, not X");
+            Check(((ColorFillLayerBehaviour)omitted.Document.layers[1].Behaviour).pattern.sizeY == 64, "Omitted Pattern axis uses fixed default");
         }
 
-        // Simulate the named-field 0.12.5 model without regenerating any frozen fixture.
+        foreach (bool declared in new[] { false, true })
+        {
+            string json = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"fx-layer\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"parameters\":[{\"name\":\"_Removed\",\"type\":\"Float\",\"declaredInCode\":" + (declared ? "true" : "false") + "}]}]}]}";
+            Reject(() => WhimTexDocumentJson.Read(json, false).Dispose(), "Removed declaration metadata accepted");
+        }
+
+        // An unapplied current draft retains stored values without generating declarations.
         var source = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<ShaderFX>());
         ShaderFX loaded = null;
         ShaderFX copied = null;
@@ -103,12 +99,12 @@ public static class RemainingLegacyCleanupTests
             byte[] bytes = (byte[])Call("WhimTexDocumentSerializer", "Serialize", source, container);
             var read = Call("WhimTexDocumentSerializer", "Deserialize", bytes, container, typeof(ShaderFX), null, false);
             loaded = (ShaderFX)read.GetType().GetProperty("Model", F).GetValue(read);
-            Check(Parameters(loaded).Count == saved.Count, "All saved parameter types declared");
+            Check(Parameters(loaded).Count == saved.Count, "All stored draft parameter types retained");
             Check(Code(loaded).StartsWith("// @whimtex-effect Tests/Saved\n"), "Header preserved");
             foreach (var old in saved)
             {
                 var modern = Parameters(loaded).Find(p => p.name == old.name);
-                Check(modern != null && modern.id == old.id && modern.controls.Count == 1, "Declaration and stable ID " + old.type);
+                Check(modern != null && modern.id == old.id && modern.controls.Count == 0, "Stored draft and stable ID " + old.type);
                 Check(modern.floatValue == old.floatValue && modern.colorValue == old.colorValue && modern.vectorValue == old.vectorValue, "Values " + old.type);
                 Check(modern.gradientValue.Equals(old.gradientValue) && modern.curveValue.Equals(old.curveValue), "Arbitrary gradient/curve " + old.type);
                 Check(modern.transformValue.position == old.transformValue.position && modern.transformValue.size == old.transformValue.size && modern.transformValue.rotation == old.transformValue.rotation, "Transform " + old.type);
@@ -120,9 +116,9 @@ public static class RemainingLegacyCleanupTests
             byte[] next = (byte[])Call("WhimTexDocumentSerializer", "Serialize", loaded, nextContainer);
             var nextRead = Call("WhimTexDocumentSerializer", "Deserialize", next, nextContainer, typeof(ShaderFX), null, false);
             copied = (ShaderFX)nextRead.GetType().GetProperty("Model", F).GetValue(nextRead);
-            Check(Code(copied) == canonical && Parameters(copied).Count == saved.Count, "Conversion idempotent");
+            Check(Code(copied) == canonical && Parameters(copied).Count == saved.Count, "Current draft roundtrip");
             Check(((IReadOnlyList<string>)nextRead.GetType().GetProperty("SkippedFields", F).GetValue(nextRead)).Count == 0, "No lost/unknown fields");
-            return "PASS: remaining legacy cleanup checks=" + checks + "; explicit axes/corners, root kind rejection, all 13 saved FX types/IDs/values, arbitrary curves/gradients, texture sampling and idempotence.";
+            return "PASS: remaining legacy cleanup checks=" + checks + "; explicit axes/corners, retired metadata rejection, stored FX draft types/IDs/values, arbitrary curves/gradients, texture sampling and idempotence.";
         }
         finally
         {

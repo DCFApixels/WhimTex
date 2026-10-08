@@ -13,7 +13,7 @@ namespace DCFApixels.WhimTex
 {
     public static partial class WhimTexApi
     {
-        private static void CaptureLiveInput(LiveJob job, TextureCompositorWindow window, JObject request)
+        private static void CaptureLiveInput(LiveJob job, WhimTexWindow window, JObject request)
         {
             string area = Text(request, "area", "canvas");
             Require(area == "canvas" || area == "selection", "area must be canvas or selection.");

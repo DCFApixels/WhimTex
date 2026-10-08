@@ -24,7 +24,7 @@ translations: "en/ai-authoring.md,ru/ai-authoring.md,zh/ai-authoring.md"
 请索取 **whimtex.document** JSON。知道真实资源标识时，可以引用项目中已有的图片。
 JSON 不保存 Drawing 像素；请通过普通粘贴、拖放或[连接到 Unity 的智能体](automation.md)添加图片。
 
-旧的链接图片 JSON 已不再支持。请[在升级前通过 0.12.5 转换](../AI/LEGACY_LAYERS.md)。
+旧的链接图片 JSON 已不再支持，也不会迁移。请[使用对应的旧版 checkout 编辑](../AI/LEGACY_LAYERS.md)。
 
 新图层会出现在现有合成之上，画布选区不会裁剪它们；详见[区域选择](selection.md)。
 如果 JSON 提供了尺寸，空文档会采用该尺寸。对于现有合成，请选择 **Apply Size**

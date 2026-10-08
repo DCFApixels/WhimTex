@@ -13,7 +13,7 @@ private static void Execute(TestContext context, MigrationD fixture)
 {
 // Run via Unity Pipeline eval_file. Transient meshes/documents only.
 var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static;
-var assembly = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly;
+var assembly = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly;
 var mapType = assembly.GetType("DCFApixels.WhimTex.UvIslandMap", true);
 var meshes = new System.Collections.Generic.List<UnityEngine.Mesh>();
 int checks = 0;
@@ -110,16 +110,16 @@ try
     for(int i=0;i<1000;i++) Check(Pick(denseMap,(i%97+.123f)/97,(i%89+.456f)/89)==0,"Spatial picking on dense island");
     timer.Stop(); double pickMs=timer.Elapsed.TotalMilliseconds;
     foreach(byte value in Raster(denseMap,0,257,129)) Check(value==255,"Dense triangulation has no selection cracks");
-    var doc=UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+    var doc=UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>();
     doc.hideFlags=UnityEngine.HideFlags.HideAndDontSave;
-    DCFApixels.WhimTex.TextureCompositor copy=null;
+    DCFApixels.WhimTex.WhimTexDocument copy=null;
     try
     {
-        typeof(DCFApixels.WhimTex.TextureCompositor).GetField("uvReferenceMesh",flags).SetValue(doc,dense);
-        typeof(DCFApixels.WhimTex.TextureCompositor).GetField("uvReferenceChannel",flags).SetValue(doc,1);
+        typeof(DCFApixels.WhimTex.WhimTexDocument).GetField("uvReferenceMesh",flags).SetValue(doc,dense);
+        typeof(DCFApixels.WhimTex.WhimTexDocument).GetField("uvReferenceChannel",flags).SetValue(doc,1);
         copy=UnityEngine.Object.Instantiate(doc);
-        Check(typeof(DCFApixels.WhimTex.TextureCompositor).GetField("uvReferenceMesh",flags).GetValue(copy)==dense,"Document clone keeps mesh reference");
-        Check((int)typeof(DCFApixels.WhimTex.TextureCompositor).GetField("uvReferenceChannel",flags).GetValue(copy)==1,"Document clone keeps UV channel");
+        Check(typeof(DCFApixels.WhimTex.WhimTexDocument).GetField("uvReferenceMesh",flags).GetValue(copy)==dense,"Document clone keeps mesh reference");
+        Check((int)typeof(DCFApixels.WhimTex.WhimTexDocument).GetField("uvReferenceChannel",flags).GetValue(copy)==1,"Document clone keeps UV channel");
     }
     finally { if(copy!=null) UnityEngine.Object.DestroyImmediate(copy); UnityEngine.Object.DestroyImmediate(doc); }
     return;

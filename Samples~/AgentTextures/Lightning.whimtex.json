@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -18,7 +18,6 @@
       }
     ],
     "nextCopyNumber": 1,
-    "spriteSlices": [],
     "width": 256,
     "height": 256,
     "outputFilter": "Bilinear",
@@ -38,7 +37,7 @@
       "blendMode": "Normal",
       "colorRange": "HDR",
       "blendRange": "HDR",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -52,8 +51,7 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "beb591bddbd74fe6a0ef56f9accb56cd",
-              "declaredInCode": true
+              "id": "beb591bddbd74fe6a0ef56f9accb56cd"
             },
             {
               "name": "_Tint",
@@ -64,8 +62,7 @@
                 1.0,
                 1.0
               ],
-              "id": "fd8f221217804cd29bce15dd0e46fb66",
-              "declaredInCode": true
+              "id": "fd8f221217804cd29bce15dd0e46fb66"
             }
           ],
           "shaderKey": "a5454e175aa640b9966b0dbd710b3131",
@@ -119,7 +116,7 @@
       "blendMode": "Add",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -133,15 +130,13 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "279dae2ef5a0471abed0b7bed606edde",
-              "declaredInCode": true
+              "id": "279dae2ef5a0471abed0b7bed606edde"
             },
             {
               "name": "_Gain",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "ee14d4e9e615436f8f5390fcd9cdf690",
-              "declaredInCode": true
+              "id": "ee14d4e9e615436f8f5390fcd9cdf690"
             },
             {
               "name": "_Tint",
@@ -152,8 +147,7 @@
                 1.0,
                 1.0
               ],
-              "id": "e3ebb2e2751b4d6ab1b67c0424db6f20",
-              "declaredInCode": true
+              "id": "e3ebb2e2751b4d6ab1b67c0424db6f20"
             }
           ],
           "shaderKey": "e5e146508ec04b57a15352c1dc8b13de",
@@ -213,7 +207,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -227,43 +221,37 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "27a18d7271df4e998249a460e2030157",
-              "declaredInCode": true
+              "id": "27a18d7271df4e998249a460e2030157"
             },
             {
               "name": "_Width",
               "type": "Float",
               "floatValue": 0.012,
-              "id": "a0c34967d0174fbcb9c5b91ee34c17d0",
-              "declaredInCode": true
+              "id": "a0c34967d0174fbcb9c5b91ee34c17d0"
             },
             {
               "name": "_Bend",
               "type": "Float",
               "floatValue": 0.143,
-              "id": "1ff2a97ceb844025bafe023f058cab3d",
-              "declaredInCode": true
+              "id": "1ff2a97ceb844025bafe023f058cab3d"
             },
             {
               "name": "_Seed",
               "type": "Float",
               "floatValue": 22.7,
-              "id": "a721d8b0b5eb40db9ab8c13a91a88dc3",
-              "declaredInCode": true
+              "id": "a721d8b0b5eb40db9ab8c13a91a88dc3"
             },
             {
               "name": "_Glow",
               "type": "Float",
               "floatValue": 0.53,
-              "id": "4c4a94bb8d1f4d14902a28e5d4048370",
-              "declaredInCode": true
+              "id": "4c4a94bb8d1f4d14902a28e5d4048370"
             },
             {
               "name": "_GlowWidth",
               "type": "Float",
               "floatValue": 1.8,
-              "id": "fe3ddb710d694973a638dce580cfddad",
-              "declaredInCode": true
+              "id": "fe3ddb710d694973a638dce580cfddad"
             }
           ],
           "shaderKey": "9792aa9789184eed91c5f416274ded3f",
@@ -324,7 +312,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -338,15 +326,13 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "8f1ac90e1b6e40ee8dbef707900c4bc0",
-              "declaredInCode": true
+              "id": "8f1ac90e1b6e40ee8dbef707900c4bc0"
             },
             {
               "name": "_Gain",
               "type": "Float",
               "floatValue": 1.24,
-              "id": "0f6f9a0c96dc4afa98c48e23800b3bbb",
-              "declaredInCode": true
+              "id": "0f6f9a0c96dc4afa98c48e23800b3bbb"
             },
             {
               "name": "_Tint",
@@ -357,8 +343,7 @@
                 1.0,
                 1.0
               ],
-              "id": "4255def73d6949029057d8fcf8b9cb2a",
-              "declaredInCode": true
+              "id": "4255def73d6949029057d8fcf8b9cb2a"
             }
           ],
           "shaderKey": "2a7fbff503604c27a0ffdccb08def7c7",

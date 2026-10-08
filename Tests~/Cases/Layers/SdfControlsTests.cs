@@ -41,24 +41,24 @@ public static class SdfControlsTests
             }
         }
         object Read(string json)=>typeof(WhimTexApi).GetMethod("ReadProceduralClipboard",F).Invoke(null,new object[]{json,128,128});
-        const string json="{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"shape\",\"sourceOffset\":[4,-3],\"sourceEdges\":\"Repeat\",\"contourOffset\":3,\"insideDistance\":8,\"outsideDistance\":24}},{\"id\":\"shape\",\"enabled\":false,\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\",\"kind\":\"Ellipse\"},\"transform\":{\"scale\":{\"x\":0.5,\"y\":0.5}}}]}";
+        const string json="{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"shape\",\"sourceOffset\":[4,-3],\"sourceEdges\":\"Repeat\",\"contourOffset\":3,\"insideDistance\":8,\"outsideDistance\":24}},{\"id\":\"shape\",\"enabled\":false,\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\",\"kind\":\"Ellipse\"},\"transform\":{\"scale\":{\"x\":0.5,\"y\":0.5}}}]}";
         using var data=(IDisposable)Read(json);
-        var doc=(TextureCompositor)data.GetType().GetField("Document",F).GetValue(data);
+        var doc=(WhimTexDocument)data.GetType().GetField("Document",F).GetValue(data);
         string exported=(string)typeof(WhimTexApi).GetMethod("WritePortableClipboard",F).Invoke(null,new object[]{doc,doc.layers});
         using var copy=(IDisposable)Read(exported);
-        var copied=(TextureCompositor)copy.GetType().GetField("Document",F).GetValue(copy);
+        var copied=(WhimTexDocument)copy.GetType().GetField("Document",F).GetValue(copy);
         var sdf=(SDFLayerBehaviour)copied.layers[0].Behaviour;
         Check(sdf.encoding == SDFLayerBehaviour.OutputEncoding.Gradient, "Default Gradient output");
         Check(WhimTexApi.Describe().Contains("sdfEncodings"), "Output choices discoverable");
         foreach (var outputMode in new[] { "LinearData", "Gradient" })
         {
-            string request = "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\",\"encoding\":\"" + outputMode + "\"}}]}";
+            string request = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\",\"encoding\":\"" + outputMode + "\"}}]}";
             using var parsed = (IDisposable)Read(request);
-            var parsedDoc = (TextureCompositor)parsed.GetType().GetField("Document",F).GetValue(parsed);
+            var parsedDoc = (WhimTexDocument)parsed.GetType().GetField("Document",F).GetValue(parsed);
             Check(((SDFLayerBehaviour)parsedDoc.layers[0].Behaviour).encoding.ToString() == outputMode, "Explicit output accepted: " + outputMode);
         }
         bool rejected = false;
-        try { using var invalid = (IDisposable)Read("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\",\"encoding\":\"ColorValues\"}}]}"); }
+        try { using var invalid = (IDisposable)Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\",\"encoding\":\"ColorValues\"}}]}"); }
         catch (TargetInvocationException e) { rejected = e.GetBaseException() is WhimTexDocumentException; }
         Check(rejected, "ColorValues is not an SDF output");
         Check(sdf.sourceOffset==new Vector2(4,-3)&&sdf.sourceEdges==SDFLayerBehaviour.SourceEdges.Repeat&&sdf.contourOffset==3&&sdf.insideDistance==8&&sdf.outsideDistance==24,"clipboard controls roundtrip");

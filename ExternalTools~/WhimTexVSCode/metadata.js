@@ -219,7 +219,7 @@ function directiveLines(source) {
 function validate(source) {
   const diagnostics = [], names = new Map(), declarations = [], groups = [], conditions = [];
   const directives = directiveLines(source);
-  let group = null, condition = null, aliases = [], headers = 0, helpBoxes = 0, control = null, controlCount = 0;
+  let group = null, condition = null, headers = 0, helpBoxes = 0, control = null, controlCount = 0;
   const report = (d, message, warning = false) => diagnostics.push({ line: d.line, start: d.start, end: d.length, message, warning });
   for (const d of directives) {
     const { name, body } = d;
@@ -240,8 +240,7 @@ function validate(source) {
           if (!body || body.split('/').some(p => !p.trim())) fail('Effect category/name must not contain empty segments.');
           break;
         case 'param': {
-          const p = { ...parseParameter(body), d, group, condition, aliases };
-          if (aliases.includes(p.name)) fail('A parameter cannot list its current name as a former name.');
+          const p = { ...parseParameter(body), d, group, condition };
           const existing = names.get(p.name);
           if (existing && existing.some(other => !compatible(other.type, p.type)))
             fail(`Conflicting storage types for ${p.name}.`);
@@ -249,7 +248,7 @@ function validate(source) {
           declarations.push(p);
           if (group) group.parameters.push(p);
           if (declarations.length > 128) report(d, 'At most 128 parameter controls are supported.');
-          aliases = []; headers = 0; helpBoxes = 0;
+          headers = 0; helpBoxes = 0;
           break;
         }
         case 'if': {
@@ -261,7 +260,7 @@ function validate(source) {
         case 'endif':
           if (body) fail('@endif takes no arguments.');
           if (!condition) fail('@endif has no matching @if.');
-          condition = null; aliases = []; headers = 0; helpBoxes = 0; break;
+          condition = null; headers = 0; helpBoxes = 0; break;
         case 'group': {
           if (group) fail('Nested @group blocks are not supported.');
           if (condition) fail('@group must be outside conditional blocks.');
@@ -276,14 +275,7 @@ function validate(source) {
           if (body) fail('@endgroup takes no arguments.');
           if (!group) fail('@endgroup has no matching @group.');
           if (condition) fail('Conditional block must end before @endgroup.');
-          group = null; aliases = []; headers = 0; helpBoxes = 0; break;
-        case 'formerlyserializedas': {
-          const match = body.match(/^\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)$/);
-          if (!match) fail('Expected @formerlyserializedas(_OldName).');
-          if (aliases.length >= 16) fail('A parameter may have at most 16 former names.');
-          if (aliases.includes(match[1])) fail(`Duplicate former name ${match[1]}.`);
-          aliases.push(match[1]); break;
-        }
+          group = null; headers = 0; helpBoxes = 0; break;
         case 'header': case 'helpbox': {
           const match = body.match(/^\((.*)\)$/);
           if (!match || !match[1].trim()) fail(`Expected @${name}(non-empty text).`);
@@ -296,10 +288,6 @@ function validate(source) {
   }
   if (condition) report(condition.d, '@if has no matching @endif.');
   if (group) report(group.d, '@group has no matching @endgroup.');
-  if (aliases.length) {
-    const last = directives.at(-1);
-    report(last, '@formerlyserializedas must be followed by a parameter declaration.');
-  }
   for (const g of groups) {
     if (!g.parameters.length) report(g.d, '@group must contain at least one parameter.');
     else if (!g.parameters.some(p => !p.hidden)) report(g.d, '@group must contain at least one visible parameter.');
@@ -309,14 +297,6 @@ function validate(source) {
       else if (controls.length !== 1) report(g.d, `Group header parameter ${g.header} must be declared once.`);
       else if (controls[0].group !== g || controls[0].condition)
         report(g.d, `Group header parameter ${g.header} must be unconditional and inside the group.`);
-    }
-  }
-  const owners = new Map();
-  for (const p of declarations) {
-    for (const alias of p.aliases) {
-      if (names.has(alias) && alias !== p.name || owners.has(alias) && owners.get(alias) !== p.name)
-        report(p.d, `Former name ${alias} is used or claimed by another parameter.`);
-      owners.set(alias, p.name);
     }
   }
   for (const c of conditions) {

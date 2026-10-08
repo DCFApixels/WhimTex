@@ -16,14 +16,14 @@ private static string BodyRun()
 // Opt-in live-Editor eval AFTER manual compilation and shader import.
 // Only transient objects and in-memory image/JSON round-trips; no saved assets or document Undo.
 var ns = "DCFApixels.WhimTex.";
-var assembly = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly;
+var assembly = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly;
 var instance = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 var statics = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
 var utility = assembly.GetType(ns + "HdrUtility");
 T.True(!(typeof(DCFApixels.WhimTex.ColorFillLayerBehaviour).GetProperty("color") == null), "Manually compile the color compatibility fix before running this test.");
-var brushShader = Shader.Find("Hidden/TextureCompositor/PaintBrush");
+var brushShader = Shader.Find("Hidden/WhimTex/PaintBrush");
 T.True(!(brushShader.GetPropertyType(brushShader.FindPropertyIndex("_Color")) != UnityEngine.Rendering.ShaderPropertyType.Vector), "Manually import the fixed brush shader before running this test.");
-var doc = Scope.OwnObject(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+var doc = Scope.OwnObject(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
 doc.hideFlags = HideFlags.HideAndDontSave;
 doc.width = doc.height = 8;
 var layers = new List<DCFApixels.WhimTex.Layer>();
@@ -97,7 +97,7 @@ try
         Near(ldr.GetPixel(4, 4), color, "LDR export encoding");
         var png = new Texture2D(2, 2); objects.Add(png);
         png.LoadImage(ldr.EncodeToPNG()); Near(png.GetPixel(4, 4), color, "PNG memory round-trip");
-        var previewMaterial = new Material(Shader.Find("Hidden/TextureCompositor/DisplayChannels")); objects.Add(previewMaterial);
+        var previewMaterial = new Material(Shader.Find("Hidden/WhimTex/DisplayChannels")); objects.Add(previewMaterial);
         previewMaterial.SetVector("_Channels", Vector4.one); previewMaterial.SetFloat("_Exposure", 1);
         var preview = RenderTexture.GetTemporary(8, 8, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default);
         var previewRead = new Texture2D(8, 8, TextureFormat.RGBA32, false); objects.Add(previewRead);
@@ -163,7 +163,7 @@ try
     Use(top, source); Near(Pixel(), Decode(Color.Lerp(source.color, top.color, .5f)), "Standard opacity blends in sRGB");
 
     // Test both uniform layouts without compiling a Shader FX: cached FX used Color, new FX use Vector.
-    foreach (string shaderName in new[] { "Unlit/Color", "Hidden/TextureCompositor/PaintBrush" })
+    foreach (string shaderName in new[] { "Unlit/Color", "Hidden/WhimTex/PaintBrush" })
     {
         var shader = Shader.Find(shaderName);
         T.True(!(shader == null || !shader.isSupported), "Missing test shader: " + shaderName);

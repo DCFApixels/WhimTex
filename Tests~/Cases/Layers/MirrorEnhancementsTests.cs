@@ -11,7 +11,7 @@ public static class MirrorEnhancementsTests
 {
     const BindingFlags Flags=BindingFlags.Static|BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic;
     static int checks;
-    static readonly Assembly Assembly=typeof(TextureCompositor).Assembly;
+    static readonly Assembly Assembly=typeof(WhimTexDocument).Assembly;
     static void Check(bool value,string message) { WhimTex.Tests.UnityC.FixtureContext.Context.True(value, message); checks++; }
     static Color[] Read(RenderTexture rt)
     {
@@ -136,7 +136,7 @@ public static class MirrorEnhancementsTests
     {
         checks=0;
         object Call(object obj,string name,params object[] args)=>obj.GetType().GetMethod(name,Flags).Invoke(obj,args);
-        var document=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());document.width=32;document.height=16;
+        var document=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());document.width=32;document.height=16;
         var texture=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(32,16,TextureFormat.RGBAFloat,false,true));
         var renderedInput=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(32,16,TextureFormat.RGBAFloat,false,true));
         var pixels=new Color[512];
@@ -241,7 +241,7 @@ public static class MirrorEnhancementsTests
     static string ExecutePreview(byte[] input)
     {
         string dir=global::WhimTex.Tests.UnityC.FixtureContext.Scope.Temp+"/";
-        var t=global::WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(2,2,TextureFormat.RGBA32,false,false));var material=global::WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(Shader.Find("Hidden/TextureCompositor/MakeSeamless")));
+        var t=global::WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(2,2,TextureFormat.RGBA32,false,false));var material=global::WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(Shader.Find("Hidden/WhimTex/MakeSeamless")));
         var previous=RenderTexture.active;bool srgb=GL.sRGBWrite;
         try
         {

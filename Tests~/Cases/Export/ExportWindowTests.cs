@@ -10,8 +10,8 @@ using Object = UnityEngine.Object;
 public static class ExportWindowTests
 {
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
-    static readonly Type WindowType = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexExportWindow");
-    static readonly Type OptionsType = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexExportOptions");
+    static readonly Type WindowType = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexExportWindow");
+    static readonly Type OptionsType = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexExportOptions");
     static int checks;
     static void Check(bool ok, string message) { checks++; UnityBRun.Check(!(!ok), message); }
     static object Call(object target, string method, params object[] args)
@@ -25,21 +25,21 @@ public static class ExportWindowTests
         var f = target.GetType().GetField(field, F);
         f.SetValue(target, value is string text && f.FieldType.IsEnum ? Enum.Parse(f.FieldType, text) : value);
     }
-    static void Add(TextureCompositor document, LayerBehaviour behaviour)
+    static void Add(WhimTexDocument document, LayerBehaviour behaviour)
     {
         var layer = new Layer(behaviour); Call(layer, "AssignNewId"); document.layers.Add(layer);
     }
-    static string Full(TextureCompositor document) => WhimTexDocumentJson.Write(document, new WhimTexJsonWriteOptions { Mode = WhimTexJsonWriteMode.Full }).Json;
+    static string Full(WhimTexDocument document) => WhimTexDocumentJson.Write(document, new WhimTexJsonWriteOptions { Mode = WhimTexJsonWriteMode.Full }).Json;
     static void Reject(Action action, string text)
     { bool rejected = false; try { action(); } catch (InvalidOperationException) { rejected = true; } Check(rejected, text); }
     static string ExecuteRun()
     {
         checks = 0;
-        Check(typeof(TextureCompositorWindow).GetMethod("ShowSaveDocumentMenu", F) == null &&
-            typeof(TextureCompositorWindow).GetMethod("AddJsonMenu", F) == null &&
-            typeof(TextureCompositorWindow).GetMethod("SaveJsonFromWindow", F) == null, "Save As still exposes a JSON format picker.");
-        var document = UnityBRun.Create<TextureCompositor>();
-        var owner = UnityBRun.Create<TextureCompositorWindow>();
+        Check(typeof(WhimTexWindow).GetMethod("ShowSaveDocumentMenu", F) == null &&
+            typeof(WhimTexWindow).GetMethod("AddJsonMenu", F) == null &&
+            typeof(WhimTexWindow).GetMethod("SaveJsonFromWindow", F) == null, "Save As still exposes a JSON format picker.");
+        var document = UnityBRun.Create<WhimTexDocument>();
+        var owner = UnityBRun.Create<WhimTexWindow>();
         var window = (EditorWindow)UnityBRun.Create(WindowType);
         string token = Guid.NewGuid().ToString("N");
         string folder = Path.GetDirectoryName(UnityBRun.EvidencePath("ExportSmoke-" + token + "/Png.png"));
@@ -52,14 +52,14 @@ public static class ExportWindowTests
         {
             document.width = 32; document.height = 24;
             Add(document, new ColorFillLayerBehaviour { color = new Color(.2f, .4f, .6f, .5f) });
-            Call(document, "NormalizeModel"); Call(owner, "SetCompositor", document);
+            Call(document, "NormalizeModel"); Call(owner, "SetDocument", document);
             Set(window, "owner", owner); Set(window, "source", document); window.ShowUtility(); Call(window, "CreateGUI");
             var root = window.rootVisualElement;
             var dropdown = root.Q<DropdownField>("format");
             Check(dropdown.choices.Count == 7 && dropdown.index == 0, "Missing format/default PNG.");
             Check(dropdown.choices[6] == "WhimTex JSON (.json)" && WhimTexDocumentJson.Extension == ".json", "Wrong JSON extension.");
-            Check((string)typeof(TextureCompositorWindow).GetMethod("GetExportExtension", F).Invoke(null,
-                new[] { Enum.Parse(typeof(TextureCompositorWindow).GetNestedType("TextureExportFormat", F), "Json") }) == "json", "Path dialog extension is not json.");
+            Check((string)typeof(WhimTexWindow).GetMethod("GetExportExtension", F).Invoke(null,
+                new[] { Enum.Parse(typeof(WhimTexWindow).GetNestedType("TextureExportFormat", F), "Json") }) == "json", "Path dialog extension is not json.");
             Check(root.Q<Button>("export").text == "Export…" && root.Q<Button>("cancel") != null, "Actions missing.");
             dropdown.index = 6;
             Check(root.Q<DropdownField>("jsonMode").index == 0, "JSON default is not Full Optimized.");
@@ -114,8 +114,8 @@ public static class ExportWindowTests
             Reject(() => Call(options, "Validate"), "Invalid JPEG quality accepted.");
             Set(options, "jpegQuality", 95);
             pixels.SetPixels(new[] { new Color(3, .5f, .2f, .7f), Color.black, Color.white, Color.red }); pixels.Apply();
-            var encode = typeof(TextureCompositorWindow).GetMethod("EncodeExportTextureWithOptions", F);
-            var formatType = typeof(TextureCompositorWindow).GetNestedType("TextureExportFormat", F);
+            var encode = typeof(WhimTexWindow).GetMethod("EncodeExportTextureWithOptions", F);
+            var formatType = typeof(WhimTexWindow).GetNestedType("TextureExportFormat", F);
             byte[] low = (byte[])encode.Invoke(null, new object[] { pixels, Enum.Parse(formatType, "Jpeg"), 10, Texture2D.EXRFlags.CompressZIP });
             byte[] high = (byte[])encode.Invoke(null, new object[] { pixels, Enum.Parse(formatType, "Jpeg"), 95, Texture2D.EXRFlags.CompressZIP });
             Check(Convert.ToBase64String(low) != Convert.ToBase64String(high), "JPEG quality does not reach encoder.");
@@ -132,14 +132,14 @@ public static class ExportWindowTests
             Check(!root.Q("drawingWarning").ClassListContains("whimtex-hidden"), "Drawing loss warning missing.");
             dropdown.index = 0;
             Check(root.Q("drawingWarning").ClassListContains("whimtex-hidden"), "Drawing warning leaked to PNG.");
-            Set(owner, "compositor", null); Call(window, "RefreshState");
+            Set(owner, "activeDocument", null); Call(window, "RefreshState");
             Check(!root.Q<Button>("export").enabledSelf && !root.Q("sourceWarning").ClassListContains("whimtex-hidden"), "Stale source can export.");
             Reject(() => Call(owner, "ExportDocumentToPath", document, options, jsonPath), "Changed source accepted.");
             return "";
         }
         finally
         {
-            Call(owner, "SetCompositor", new object[] { null });
+            Call(owner, "SetDocument", new object[] { null });
             Object.DestroyImmediate(window); Object.DestroyImmediate(owner);
             Object.DestroyImmediate(document); if (pixels != null) Object.DestroyImmediate(pixels);
             if (File.Exists(asset)) AssetDatabase.DeleteAsset(asset);
@@ -207,11 +207,11 @@ public static class ExportWindowTests
             focus = Identity(EditorWindow.focusedWindow),
             focusName = EditorWindow.focusedWindow == null ? null : EditorWindow.focusedWindow.name };
         SaveJournal(journal); // Keep partial ownership recoverable if subsequent setup fails.
-        var owner = ScriptableObject.CreateInstance<TextureCompositorWindow>();
+        var owner = ScriptableObject.CreateInstance<WhimTexWindow>();
         owner.name = OwnedName(journal, "owner"); journal.owner = Identity(owner); SaveJournal(journal);
-        var initial = (TextureCompositor)Get(owner, "compositor");
+        var initial = (WhimTexDocument)Get(owner, "activeDocument");
         if (initial != null) { initial.name = OwnedName(journal, "initialDocument"); journal.initialDocument = Identity(initial); SaveJournal(journal); }
-        var document = ScriptableObject.CreateInstance<TextureCompositor>();
+        var document = ScriptableObject.CreateInstance<WhimTexDocument>();
         document.name = OwnedName(journal, "document"); journal.document = Identity(document); SaveJournal(journal);
         document.width = document.height = 16;
         var drawing = new DrawingLayerBehaviour();
@@ -231,7 +231,7 @@ public static class ExportWindowTests
         }
         context.True(ReferenceEquals(Get(drawing, "pixels"), pixels) && Owned<Texture2D>(journal, journal.pixels, "pixels") == pixels,
             "Drawing adopted the exact journal-owned pixels without losing cleanup ownership");
-        Call(owner, "SetCompositor", document);
+        Call(owner, "SetDocument", document);
         try { WindowType.GetMethod("Open", F).Invoke(null, new object[] { owner, document }); }
         finally
         {
@@ -266,9 +266,9 @@ public static class ExportWindowTests
         var journal = ReadJournal(runId);
         // Validate all identities before closing anything; a stale journal cannot target a user object.
         var window = Owned<EditorWindow>(journal, journal.window, "window");
-        var owner = Owned<TextureCompositorWindow>(journal, journal.owner, "owner");
-        var document = Owned<TextureCompositor>(journal, journal.document, "document");
-        var initial = Owned<TextureCompositor>(journal, journal.initialDocument, "initialDocument");
+        var owner = Owned<WhimTexWindow>(journal, journal.owner, "owner");
+        var document = Owned<WhimTexDocument>(journal, journal.document, "document");
+        var initial = Owned<WhimTexDocument>(journal, journal.initialDocument, "initialDocument");
         var pixels = Owned<Texture2D>(journal, journal.pixels, "pixels");
         var errors = new System.Collections.Generic.List<Exception>();
         foreach (Object value in new Object[] { window, owner, document, initial, pixels })
@@ -276,7 +276,7 @@ public static class ExportWindowTests
                 try { if (value is EditorWindow w) UnityBRun.CloseOwned(w); else { Undo.ClearUndo(value); Object.DestroyImmediate(value); } }
                 catch (Exception error) { errors.Add(error); }
         if (errors.Count != 0) throw new AggregateException("Owned visual cleanup failed; journal retained for retry.", errors);
-        context.True(Owned<EditorWindow>(journal, journal.window, "window") == null && Owned<TextureCompositorWindow>(journal, journal.owner, "owner") == null, "Owned visual windows closed");
+        context.True(Owned<EditorWindow>(journal, journal.window, "window") == null && Owned<WhimTexWindow>(journal, journal.owner, "owner") == null, "Owned visual windows closed");
         foreach (var w in Resources.FindObjectsOfTypeAll<EditorWindow>())
             if (Identity(w) == journal.focus && w.name == journal.focusName) { w.Focus(); break; }
         SessionState.EraseString(VisualKey(runId));
@@ -313,10 +313,10 @@ public static class ExportWindowTests
         }
         // Validate every ordinary ownership guard before changing even the pixels name.
         var window = Owned<EditorWindow>(journal, journal.window, "window");
-        var owner = Owned<TextureCompositorWindow>(journal, journal.owner, "owner");
-        var document = Owned<TextureCompositor>(journal, journal.document, "document");
-        Owned<TextureCompositor>(journal, journal.initialDocument, "initialDocument");
-        context.True(owner != null && document != null && ReferenceEquals(Get(owner, "compositor"), document),
+        var owner = Owned<WhimTexWindow>(journal, journal.owner, "owner");
+        var document = Owned<WhimTexDocument>(journal, journal.document, "document");
+        Owned<WhimTexDocument>(journal, journal.initialDocument, "initialDocument");
+        context.True(owner != null && document != null && ReferenceEquals(Get(owner, "activeDocument"), document),
             "Recovery owner holds the exact ID/name/nonasset-owned document");
         context.True(window == null || (ReferenceEquals(Get(window, "owner"), owner) && ReferenceEquals(Get(window, "source"), document)),
             "Recovery export window still references only this owned owner/document");

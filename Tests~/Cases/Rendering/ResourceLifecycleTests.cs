@@ -51,8 +51,8 @@ public static class ResourceLifecycleTests
         
         for (int mode = 0; mode < 3; mode++)
         {
-            var window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>());
-            var document = (DCFApixels.WhimTex.TextureCompositor)typeof(DCFApixels.WhimTex.TextureCompositorWindow).GetField("compositor", Hidden).GetValue(window);
+            var window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexWindow>());
+            var document = (DCFApixels.WhimTex.WhimTexDocument)typeof(DCFApixels.WhimTex.WhimTexWindow).GetField("activeDocument", Hidden).GetValue(window);
             try
             {
                 Check(!window.hasUnsavedChanges, "A new untouched document has no close warning");
@@ -101,7 +101,7 @@ public static class ResourceLifecycleTests
             }
         }
         
-        var owner = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+        var owner = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
         var external = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.ShaderFX>());
         try
         {

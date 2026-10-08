@@ -17,7 +17,7 @@ public static class LayerBehaviourSwapTests
         // Pipeline eval_file after manual compilation. Transient document, balanced own Undo group.
         WhimTex.Tests.UnityC.FixtureContext.Context.True(!(GUIUtility.hotControl != 0), "Finish the current UI gesture before running Undo checks.");
         const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
         doc.hideFlags = HideFlags.HideAndDontSave;
         doc.width = doc.height = 8;
         Texture2D owned = null;

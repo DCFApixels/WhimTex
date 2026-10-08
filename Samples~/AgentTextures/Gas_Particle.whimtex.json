@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "colorHistory": [
       [
@@ -53,7 +53,6 @@
       }
     ],
     "nextCopyNumber": 23,
-    "spriteSlices": [],
     "width": 256,
     "height": 256,
     "outputFilter": "Bilinear",
@@ -73,7 +72,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [],
@@ -132,7 +131,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [],
@@ -180,7 +179,7 @@
           "blendMode": "Add",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 41624
           },
           "fx": [],
@@ -228,7 +227,7 @@
               "blendMode": "Normal",
               "colorRange": "Standard",
               "blendRange": "Standard",
-              "swizzle": {
+              "channelMapping": {
                 "packed": 0
               },
               "fx": [
@@ -242,29 +241,25 @@
                       "name": "_Opacity",
                       "type": "Float",
                       "floatValue": 1.0,
-                      "id": "8b3e0cb231d349c2b06be376282a8d54",
-                      "declaredInCode": true
+                      "id": "8b3e0cb231d349c2b06be376282a8d54"
                     },
                     {
                       "name": "_InBlack",
                       "type": "Float",
                       "floatValue": 0.078,
-                      "id": "915fe32f37554af58267a089937f4f16",
-                      "declaredInCode": true
+                      "id": "915fe32f37554af58267a089937f4f16"
                     },
                     {
                       "name": "_InWhite",
                       "type": "Float",
                       "floatValue": 0.66,
-                      "id": "bfc78fa7e85246839d96d1dc6e9584e8",
-                      "declaredInCode": true
+                      "id": "bfc78fa7e85246839d96d1dc6e9584e8"
                     },
                     {
                       "name": "_Gamma",
                       "type": "Float",
                       "floatValue": 1.71,
-                      "id": "bfc632f1c4174e37b93fbdcea1ecc69f",
-                      "declaredInCode": true
+                      "id": "bfc632f1c4174e37b93fbdcea1ecc69f"
                     },
                     {
                       "name": "_Curve",
@@ -293,29 +288,25 @@
                           ]
                         ]
                       },
-                      "id": "2b63cbd1e9504620b0543d0014d675c8",
-                      "declaredInCode": true
+                      "id": "2b63cbd1e9504620b0543d0014d675c8"
                     },
                     {
                       "name": "_OutBlack",
                       "type": "Float",
                       "floatValue": 0.0,
-                      "id": "e68809626e484d90b0042e695e180ee5",
-                      "declaredInCode": true
+                      "id": "e68809626e484d90b0042e695e180ee5"
                     },
                     {
                       "name": "_OutWhite",
                       "type": "Float",
                       "floatValue": 1.0,
-                      "id": "939b1183654747cf8f7679782404e375",
-                      "declaredInCode": true
+                      "id": "939b1183654747cf8f7679782404e375"
                     },
                     {
                       "name": "_PreserveColor",
                       "type": "Bool",
                       "floatValue": 0.0,
-                      "id": "4cd92eacf2484a6f8c0921a1fcc94d47",
-                      "declaredInCode": true
+                      "id": "4cd92eacf2484a6f8c0921a1fcc94d47"
                     }
                   ],
                   "shaderKey": "aecc1e7413e44df78d6fc25bb30d5ef4",
@@ -331,8 +322,7 @@
                       "name": "_DisplacementMap",
                       "type": "Texture2D",
                       "textureSource": "Self",
-                      "id": "c67bac2d62204041bad9c7b3307254ec",
-                      "declaredInCode": true
+                      "id": "c67bac2d62204041bad9c7b3307254ec"
                     },
                     {
                       "name": "_MapTransform",
@@ -360,64 +350,55 @@
                           "m22": 0.0
                         }
                       },
-                      "id": "78b192c68e0e4e8fa0fd5cb824b02a1c",
-                      "declaredInCode": true
+                      "id": "78b192c68e0e4e8fa0fd5cb824b02a1c"
                     },
                     {
                       "name": "_MapWrap",
                       "type": "Float",
                       "floatValue": 0.0,
-                      "id": "4a51c55b73904e86a53edeb876a7b5a3",
-                      "declaredInCode": true
+                      "id": "4a51c55b73904e86a53edeb876a7b5a3"
                     },
                     {
                       "name": "_Mode",
                       "type": "Float",
                       "floatValue": 1.0,
-                      "id": "eb8bcb743c2a4a14abf35566e55322a4",
-                      "declaredInCode": true
+                      "id": "eb8bcb743c2a4a14abf35566e55322a4"
                     },
                     {
                       "name": "_Neutral",
                       "type": "Float",
                       "floatValue": 0.328,
-                      "id": "88feb514adc64aebb5e15b3584a45336",
-                      "declaredInCode": true
+                      "id": "88feb514adc64aebb5e15b3584a45336"
                     },
                     {
                       "name": "_MapChannel",
                       "type": "Float",
                       "floatValue": 0.0,
-                      "id": "234fed0af651461bbb4607018e32073d",
-                      "declaredInCode": true
+                      "id": "234fed0af651461bbb4607018e32073d"
                     },
                     {
                       "name": "_StrengthX",
                       "type": "Float",
                       "floatValue": 0.0,
-                      "id": "3f9dd5163947453d877f9738f458ec56",
-                      "declaredInCode": true
+                      "id": "3f9dd5163947453d877f9738f458ec56"
                     },
                     {
                       "name": "_StrengthY",
                       "type": "Float",
                       "floatValue": 0.0,
-                      "id": "bb6a0588e7834a758fbbca7391845eda",
-                      "declaredInCode": true
+                      "id": "bb6a0588e7834a758fbbca7391845eda"
                     },
                     {
                       "name": "_Direction",
                       "type": "Float",
                       "floatValue": 4.0,
-                      "id": "9a6c14be8a92450f9c431c04d79ddf70",
-                      "declaredInCode": true
+                      "id": "9a6c14be8a92450f9c431c04d79ddf70"
                     },
                     {
                       "name": "_Strength",
                       "type": "Float",
                       "floatValue": 7.0,
-                      "id": "4efd0445ec8d49caa3277ce947aaebdc",
-                      "declaredInCode": true
+                      "id": "4efd0445ec8d49caa3277ce947aaebdc"
                     },
                     {
                       "name": "_Center",
@@ -428,64 +409,55 @@
                         0.0,
                         0.0
                       ],
-                      "id": "52cdb00d7670412796ac6aa6f08cd3da",
-                      "declaredInCode": true
+                      "id": "52cdb00d7670412796ac6aa6f08cd3da"
                     },
                     {
                       "name": "_Angle",
                       "type": "Float",
                       "floatValue": -32.0,
-                      "id": "6dd8c1349042480c922eeca484a37e61",
-                      "declaredInCode": true
+                      "id": "6dd8c1349042480c922eeca484a37e61"
                     },
                     {
                       "name": "_Depth",
                       "type": "Float",
                       "floatValue": 4.0,
-                      "id": "0a98148ba3744667aa274e61281fda68",
-                      "declaredInCode": true
+                      "id": "0a98148ba3744667aa274e61281fda68"
                     },
                     {
                       "name": "_ViewAngle",
                       "type": "Float",
                       "floatValue": 0.0,
-                      "id": "a8f47d5ebc954c958bc1a953b2d48a13",
-                      "declaredInCode": true
+                      "id": "a8f47d5ebc954c958bc1a953b2d48a13"
                     },
                     {
                       "name": "_ViewElevation",
                       "type": "Float",
                       "floatValue": 60.0,
-                      "id": "f636f6a18c9841ed95d50621de2c3cd8",
-                      "declaredInCode": true
+                      "id": "f636f6a18c9841ed95d50621de2c3cd8"
                     },
                     {
                       "name": "_ParallaxSteps",
                       "type": "Float",
                       "floatValue": 8.0,
-                      "id": "07b0dd089a0340e4a88f9df9aca966da",
-                      "declaredInCode": true
+                      "id": "07b0dd089a0340e4a88f9df9aca966da"
                     },
                     {
                       "name": "_InvertHeight",
                       "type": "Bool",
                       "floatValue": 0.0,
-                      "id": "c2b2a78a4f294a349514a0b2fb84f5eb",
-                      "declaredInCode": true
+                      "id": "c2b2a78a4f294a349514a0b2fb84f5eb"
                     },
                     {
                       "name": "_MaskSource",
                       "type": "Float",
                       "floatValue": 0.0,
-                      "id": "0b1ed4d08669466c9c7c052b96515912",
-                      "declaredInCode": true
+                      "id": "0b1ed4d08669466c9c7c052b96515912"
                     },
                     {
                       "name": "_InvertMask",
                       "type": "Bool",
                       "floatValue": 0.0,
-                      "id": "fc2d3fbf0b6c4f249f7b7fa69989010e",
-                      "declaredInCode": true
+                      "id": "fc2d3fbf0b6c4f249f7b7fa69989010e"
                     },
                     {
                       "name": "_MaskProfile",
@@ -514,43 +486,37 @@
                           ]
                         ]
                       },
-                      "id": "f35bc7ed71f6420cab848b497d55d2e3",
-                      "declaredInCode": true
+                      "id": "f35bc7ed71f6420cab848b497d55d2e3"
                     },
                     {
                       "name": "_MapMaskChannel",
                       "type": "Float",
                       "floatValue": 0.0,
-                      "id": "37ca2dadb840496b89ff266a1d50b2e3",
-                      "declaredInCode": true
+                      "id": "37ca2dadb840496b89ff266a1d50b2e3"
                     },
                     {
                       "name": "_StrengthMask",
                       "type": "Texture2D",
                       "textureSource": "None",
-                      "id": "495b0fc5f48d446abf2a224848036a62",
-                      "declaredInCode": true
+                      "id": "495b0fc5f48d446abf2a224848036a62"
                     },
                     {
                       "name": "_SeparateMaskChannel",
                       "type": "Float",
                       "floatValue": 0.0,
-                      "id": "e9c7d419762c40ab8d0bfa0d069d4c12",
-                      "declaredInCode": true
+                      "id": "e9c7d419762c40ab8d0bfa0d069d4c12"
                     },
                     {
                       "name": "_Mix",
                       "type": "Float",
                       "floatValue": 1.0,
-                      "id": "8edf6a6ae6114af3a144da6807084790",
-                      "declaredInCode": true
+                      "id": "8edf6a6ae6114af3a144da6807084790"
                     },
                     {
                       "name": "_InputEdge",
                       "type": "Float",
                       "floatValue": 0.0,
-                      "id": "e197c38e7b5b404f8b9fc76eba2d0b7e",
-                      "declaredInCode": true
+                      "id": "e197c38e7b5b404f8b9fc76eba2d0b7e"
                     }
                   ],
                   "shaderKey": "4329e20e9d77490fbf089ffe2b71ecfc",
@@ -601,7 +567,7 @@
                   "blendMode": "Normal",
                   "colorRange": "Standard",
                   "blendRange": "Standard",
-                  "swizzle": {
+                  "channelMapping": {
                     "packed": 0
                   },
                   "fx": [],
@@ -662,7 +628,7 @@
                   "blendMode": "Normal",
                   "colorRange": "Standard",
                   "blendRange": "Standard",
-                  "swizzle": {
+                  "channelMapping": {
                     "packed": 0
                   },
                   "fx": [],
@@ -710,7 +676,7 @@
                       "blendMode": "Overlay",
                       "colorRange": "Standard",
                       "blendRange": "Standard",
-                      "swizzle": {
+                      "channelMapping": {
                         "packed": 0
                       },
                       "fx": [],
@@ -785,7 +751,7 @@
                       "blendMode": "Multiply",
                       "colorRange": "Standard",
                       "blendRange": "Standard",
-                      "swizzle": {
+                      "channelMapping": {
                         "packed": 0
                       },
                       "fx": [],
@@ -824,7 +790,7 @@
                         "dimensions": "TwoD",
                         "seed": -1009338501,
                         "scale": 3.1,
-                        "scaleY": 0.0,
+                        "scaleY": 3.1,
                         "linkScale": true,
                         "offset": [
                           52.5,
@@ -852,7 +818,7 @@
                       "blendMode": "Normal",
                       "colorRange": "Standard",
                       "blendRange": "Standard",
-                      "swizzle": {
+                      "channelMapping": {
                         "packed": 0
                       },
                       "fx": [
@@ -866,29 +832,25 @@
                               "name": "_Opacity",
                               "type": "Float",
                               "floatValue": 1.0,
-                              "id": "df746225cc4e422cbc535bdf6d14328d",
-                              "declaredInCode": true
+                              "id": "df746225cc4e422cbc535bdf6d14328d"
                             },
                             {
                               "name": "_InBlack",
                               "type": "Float",
                               "floatValue": 0.135,
-                              "id": "13150d7a60cb47dba2e88d3b38613510",
-                              "declaredInCode": true
+                              "id": "13150d7a60cb47dba2e88d3b38613510"
                             },
                             {
                               "name": "_InWhite",
                               "type": "Float",
                               "floatValue": 1.0,
-                              "id": "efc88ed296614202a21d3fdcb56eb9a1",
-                              "declaredInCode": true
+                              "id": "efc88ed296614202a21d3fdcb56eb9a1"
                             },
                             {
                               "name": "_Gamma",
                               "type": "Float",
                               "floatValue": 0.74,
-                              "id": "49cf136e941b466a85e02e9ae8128ec5",
-                              "declaredInCode": true
+                              "id": "49cf136e941b466a85e02e9ae8128ec5"
                             },
                             {
                               "name": "_Curve",
@@ -917,29 +879,25 @@
                                   ]
                                 ]
                               },
-                              "id": "37c6d69f86a446a2911cf104ce763bc8",
-                              "declaredInCode": true
+                              "id": "37c6d69f86a446a2911cf104ce763bc8"
                             },
                             {
                               "name": "_OutBlack",
                               "type": "Float",
                               "floatValue": 0.0,
-                              "id": "7f1ab84a74a44ee19927a9b0e659f467",
-                              "declaredInCode": true
+                              "id": "7f1ab84a74a44ee19927a9b0e659f467"
                             },
                             {
                               "name": "_OutWhite",
                               "type": "Float",
                               "floatValue": 1.0,
-                              "id": "8a0f1956a1fe43e58b695816e9e20b69",
-                              "declaredInCode": true
+                              "id": "8a0f1956a1fe43e58b695816e9e20b69"
                             },
                             {
                               "name": "_PreserveColor",
                               "type": "Bool",
                               "floatValue": 0.0,
-                              "id": "cff52f01563e43ea8c0b115f26f11e49",
-                              "declaredInCode": true
+                              "id": "cff52f01563e43ea8c0b115f26f11e49"
                             }
                           ],
                           "shaderKey": "36b72ed0d37f4bfa9a87ccfc2ea442a7",
@@ -1029,7 +987,7 @@
           "blendMode": "Add",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 43544
           },
           "fx": [],
@@ -1077,7 +1035,7 @@
               "blendMode": "Normal",
               "colorRange": "Standard",
               "blendRange": "Standard",
-              "swizzle": {
+              "channelMapping": {
                 "packed": 0
               },
               "fx": [
@@ -1091,29 +1049,25 @@
                       "name": "_Opacity",
                       "type": "Float",
                       "floatValue": 1.0,
-                      "id": "bd677345e9ca436ba6e3536641f00834",
-                      "declaredInCode": true
+                      "id": "bd677345e9ca436ba6e3536641f00834"
                     },
                     {
                       "name": "_InBlack",
                       "type": "Float",
                       "floatValue": 0.0,
-                      "id": "6d5d3c8eb3864b629c9323be52f73031",
-                      "declaredInCode": true
+                      "id": "6d5d3c8eb3864b629c9323be52f73031"
                     },
                     {
                       "name": "_InWhite",
                       "type": "Float",
                       "floatValue": 0.83,
-                      "id": "73d9d6dafce04c8a8ee98a313d290582",
-                      "declaredInCode": true
+                      "id": "73d9d6dafce04c8a8ee98a313d290582"
                     },
                     {
                       "name": "_Gamma",
                       "type": "Float",
                       "floatValue": 1.53,
-                      "id": "11c7f6a70b6c439eb6d23eacef51e228",
-                      "declaredInCode": true
+                      "id": "11c7f6a70b6c439eb6d23eacef51e228"
                     },
                     {
                       "name": "_Curve",
@@ -1151,29 +1105,25 @@
                           ]
                         ]
                       },
-                      "id": "6d829c4931e345daacb51c5e504e1940",
-                      "declaredInCode": true
+                      "id": "6d829c4931e345daacb51c5e504e1940"
                     },
                     {
                       "name": "_OutBlack",
                       "type": "Float",
                       "floatValue": 0.0,
-                      "id": "7cd94d88eee3405e99c66ef2366c3b57",
-                      "declaredInCode": true
+                      "id": "7cd94d88eee3405e99c66ef2366c3b57"
                     },
                     {
                       "name": "_OutWhite",
                       "type": "Float",
                       "floatValue": 1.0,
-                      "id": "6a3a2e5920d24a1ea6a9c2db9b2afb10",
-                      "declaredInCode": true
+                      "id": "6a3a2e5920d24a1ea6a9c2db9b2afb10"
                     },
                     {
                       "name": "_PreserveColor",
                       "type": "Bool",
                       "floatValue": 0.0,
-                      "id": "0d95ad655f4c463c967db834326ad110",
-                      "declaredInCode": true
+                      "id": "0d95ad655f4c463c967db834326ad110"
                     }
                   ],
                   "shaderKey": "7d0cf46dd555458cbd59c3756125ccf0",
@@ -1224,7 +1174,7 @@
                   "blendMode": "HardLight",
                   "colorRange": "Standard",
                   "blendRange": "Standard",
-                  "swizzle": {
+                  "channelMapping": {
                     "packed": 0
                   },
                   "fx": [],
@@ -1300,7 +1250,7 @@
                   "blendMode": "HardLight",
                   "colorRange": "Standard",
                   "blendRange": "Standard",
-                  "swizzle": {
+                  "channelMapping": {
                     "packed": 0
                   },
                   "fx": [
@@ -1314,29 +1264,25 @@
                           "name": "_Opacity",
                           "type": "Float",
                           "floatValue": 1.0,
-                          "id": "da94710018a148b5a0734dbe77ef533d",
-                          "declaredInCode": true
+                          "id": "da94710018a148b5a0734dbe77ef533d"
                         },
                         {
                           "name": "_InBlack",
                           "type": "Float",
                           "floatValue": 0.268,
-                          "id": "66b35eb0685745339fc9e31c7ba7e2be",
-                          "declaredInCode": true
+                          "id": "66b35eb0685745339fc9e31c7ba7e2be"
                         },
                         {
                           "name": "_InWhite",
                           "type": "Float",
                           "floatValue": 1.0,
-                          "id": "569baaba981646cbbc143426f3e017ee",
-                          "declaredInCode": true
+                          "id": "569baaba981646cbbc143426f3e017ee"
                         },
                         {
                           "name": "_Gamma",
                           "type": "Float",
                           "floatValue": 0.76,
-                          "id": "2899c8bf96ec4869924af59fd113f60a",
-                          "declaredInCode": true
+                          "id": "2899c8bf96ec4869924af59fd113f60a"
                         },
                         {
                           "name": "_Curve",
@@ -1365,29 +1311,25 @@
                               ]
                             ]
                           },
-                          "id": "aa930f2b5dc94d01a08382e2749a623d",
-                          "declaredInCode": true
+                          "id": "aa930f2b5dc94d01a08382e2749a623d"
                         },
                         {
                           "name": "_OutBlack",
                           "type": "Float",
                           "floatValue": 0.0,
-                          "id": "1edd603ee3684e679d2732cb3d67cf41",
-                          "declaredInCode": true
+                          "id": "1edd603ee3684e679d2732cb3d67cf41"
                         },
                         {
                           "name": "_OutWhite",
                           "type": "Float",
                           "floatValue": 0.31,
-                          "id": "fc6de45378994a968b84136f9692936c",
-                          "declaredInCode": true
+                          "id": "fc6de45378994a968b84136f9692936c"
                         },
                         {
                           "name": "_PreserveColor",
                           "type": "Bool",
                           "floatValue": 1.0,
-                          "id": "4c8d67df2d0741d8b76930b67eb1fae7",
-                          "declaredInCode": true
+                          "id": "4c8d67df2d0741d8b76930b67eb1fae7"
                         }
                       ],
                       "shaderKey": "a54ad13ac9f340469097796a2ebab245",
@@ -1429,7 +1371,7 @@
                     "dimensions": "TwoD",
                     "seed": -1445441339,
                     "scale": 8.47,
-                    "scaleY": 0.0,
+                    "scaleY": 8.47,
                     "linkScale": true,
                     "offset": [
                       -919.0079,
@@ -1466,7 +1408,7 @@
                   "blendMode": "Normal",
                   "colorRange": "Standard",
                   "blendRange": "Standard",
-                  "swizzle": {
+                  "channelMapping": {
                     "packed": 0
                   },
                   "fx": [
@@ -1480,8 +1422,7 @@
                           "name": "_DisplacementMap",
                           "type": "Texture2D",
                           "textureSource": "Self",
-                          "id": "97e1629d15e440c0aec2d85c3218a55e",
-                          "declaredInCode": true
+                          "id": "97e1629d15e440c0aec2d85c3218a55e"
                         },
                         {
                           "name": "_MapTransform",
@@ -1509,64 +1450,55 @@
                               "m22": 0.0
                             }
                           },
-                          "id": "931ea62f6bf0434e8641cc80366f22bc",
-                          "declaredInCode": true
+                          "id": "931ea62f6bf0434e8641cc80366f22bc"
                         },
                         {
                           "name": "_MapWrap",
                           "type": "Float",
                           "floatValue": 0.0,
-                          "id": "710cce8dce4f417a83e493eedad152dc",
-                          "declaredInCode": true
+                          "id": "710cce8dce4f417a83e493eedad152dc"
                         },
                         {
                           "name": "_Mode",
                           "type": "Float",
                           "floatValue": 1.0,
-                          "id": "cbc929efb22548008753d52c180c6217",
-                          "declaredInCode": true
+                          "id": "cbc929efb22548008753d52c180c6217"
                         },
                         {
                           "name": "_Neutral",
                           "type": "Float",
                           "floatValue": 0.5,
-                          "id": "7408623dcea94f70a83fdd39cf8a14f1",
-                          "declaredInCode": true
+                          "id": "7408623dcea94f70a83fdd39cf8a14f1"
                         },
                         {
                           "name": "_MapChannel",
                           "type": "Float",
                           "floatValue": 0.0,
-                          "id": "940ee0fddb1947de932ea9b97699b771",
-                          "declaredInCode": true
+                          "id": "940ee0fddb1947de932ea9b97699b771"
                         },
                         {
                           "name": "_StrengthX",
                           "type": "Float",
                           "floatValue": 0.0,
-                          "id": "9c49383f95e843fa8410337713489f83",
-                          "declaredInCode": true
+                          "id": "9c49383f95e843fa8410337713489f83"
                         },
                         {
                           "name": "_StrengthY",
                           "type": "Float",
                           "floatValue": 0.0,
-                          "id": "9b4b24f831e84a4192f1823c03d466a7",
-                          "declaredInCode": true
+                          "id": "9b4b24f831e84a4192f1823c03d466a7"
                         },
                         {
                           "name": "_Direction",
                           "type": "Float",
                           "floatValue": 4.0,
-                          "id": "dae05db445bf4c8ea43c4aa9693f3691",
-                          "declaredInCode": true
+                          "id": "dae05db445bf4c8ea43c4aa9693f3691"
                         },
                         {
                           "name": "_Strength",
                           "type": "Float",
                           "floatValue": 10.0,
-                          "id": "841cd44354a94fb198a0159e5f9f6526",
-                          "declaredInCode": true
+                          "id": "841cd44354a94fb198a0159e5f9f6526"
                         },
                         {
                           "name": "_Center",
@@ -1577,64 +1509,55 @@
                             0.0,
                             0.0
                           ],
-                          "id": "1f5f4ee8c4924261995a84637a1d86af",
-                          "declaredInCode": true
+                          "id": "1f5f4ee8c4924261995a84637a1d86af"
                         },
                         {
                           "name": "_Angle",
                           "type": "Float",
                           "floatValue": 25.0,
-                          "id": "5920ad66f17b42d88ce4e44470c9cf3b",
-                          "declaredInCode": true
+                          "id": "5920ad66f17b42d88ce4e44470c9cf3b"
                         },
                         {
                           "name": "_Depth",
                           "type": "Float",
                           "floatValue": 4.0,
-                          "id": "9af6f522ba9c4958a0442687d358875b",
-                          "declaredInCode": true
+                          "id": "9af6f522ba9c4958a0442687d358875b"
                         },
                         {
                           "name": "_ViewAngle",
                           "type": "Float",
                           "floatValue": 0.0,
-                          "id": "25c03f56074141b2abcea9717549a7aa",
-                          "declaredInCode": true
+                          "id": "25c03f56074141b2abcea9717549a7aa"
                         },
                         {
                           "name": "_ViewElevation",
                           "type": "Float",
                           "floatValue": 60.0,
-                          "id": "383cfe72dd894c84b43a439282d3c01d",
-                          "declaredInCode": true
+                          "id": "383cfe72dd894c84b43a439282d3c01d"
                         },
                         {
                           "name": "_ParallaxSteps",
                           "type": "Float",
                           "floatValue": 8.0,
-                          "id": "87f6798233f6491cba18041f8c2d69e0",
-                          "declaredInCode": true
+                          "id": "87f6798233f6491cba18041f8c2d69e0"
                         },
                         {
                           "name": "_InvertHeight",
                           "type": "Bool",
                           "floatValue": 0.0,
-                          "id": "00d76e4a66fc44a29f91dda8314bbf02",
-                          "declaredInCode": true
+                          "id": "00d76e4a66fc44a29f91dda8314bbf02"
                         },
                         {
                           "name": "_MaskSource",
                           "type": "Float",
                           "floatValue": 0.0,
-                          "id": "5b07ede1fd5d43ea98ad9c504247e038",
-                          "declaredInCode": true
+                          "id": "5b07ede1fd5d43ea98ad9c504247e038"
                         },
                         {
                           "name": "_InvertMask",
                           "type": "Bool",
                           "floatValue": 0.0,
-                          "id": "84abfa61568042dd894b0d6a959c05be",
-                          "declaredInCode": true
+                          "id": "84abfa61568042dd894b0d6a959c05be"
                         },
                         {
                           "name": "_MaskProfile",
@@ -1663,43 +1586,37 @@
                               ]
                             ]
                           },
-                          "id": "d33db12f2dcf499eba98f30f82bdb9bd",
-                          "declaredInCode": true
+                          "id": "d33db12f2dcf499eba98f30f82bdb9bd"
                         },
                         {
                           "name": "_MapMaskChannel",
                           "type": "Float",
                           "floatValue": 0.0,
-                          "id": "d48a8396bbb9468aafc518a92f823226",
-                          "declaredInCode": true
+                          "id": "d48a8396bbb9468aafc518a92f823226"
                         },
                         {
                           "name": "_StrengthMask",
                           "type": "Texture2D",
                           "textureSource": "None",
-                          "id": "0f53c50d4de64b4daf1db304cf55bfc9",
-                          "declaredInCode": true
+                          "id": "0f53c50d4de64b4daf1db304cf55bfc9"
                         },
                         {
                           "name": "_SeparateMaskChannel",
                           "type": "Float",
                           "floatValue": 0.0,
-                          "id": "7347a4cdee35455694d34d38ec10f5b0",
-                          "declaredInCode": true
+                          "id": "7347a4cdee35455694d34d38ec10f5b0"
                         },
                         {
                           "name": "_Mix",
                           "type": "Float",
                           "floatValue": 1.0,
-                          "id": "34464411bff34b61b7702c53f66bc890",
-                          "declaredInCode": true
+                          "id": "34464411bff34b61b7702c53f66bc890"
                         },
                         {
                           "name": "_InputEdge",
                           "type": "Float",
                           "floatValue": 0.0,
-                          "id": "f6873a7741de4f7db0e57a8a04b16409",
-                          "declaredInCode": true
+                          "id": "f6873a7741de4f7db0e57a8a04b16409"
                         }
                       ],
                       "shaderKey": "2acf7197480e42e8a52a0b8baa57937e",
@@ -1750,7 +1667,7 @@
                       "blendMode": "Multiply",
                       "colorRange": "Standard",
                       "blendRange": "Standard",
-                      "swizzle": {
+                      "channelMapping": {
                         "packed": 0
                       },
                       "fx": [],
@@ -1789,7 +1706,7 @@
                         "dimensions": "TwoD",
                         "seed": 1680892913,
                         "scale": 1.8,
-                        "scaleY": 0.0,
+                        "scaleY": 1.8,
                         "linkScale": true,
                         "offset": [
                           0.37,
@@ -1821,7 +1738,7 @@
                       "blendMode": "Multiply",
                       "colorRange": "Standard",
                       "blendRange": "Standard",
-                      "swizzle": {
+                      "channelMapping": {
                         "packed": 0
                       },
                       "fx": [],
@@ -1860,7 +1777,7 @@
                         "dimensions": "TwoD",
                         "seed": 38,
                         "scale": 7.0,
-                        "scaleY": 0.0,
+                        "scaleY": 7.0,
                         "linkScale": true,
                         "offset": [
                           0.37,
@@ -1896,7 +1813,7 @@
                       "blendMode": "Normal",
                       "colorRange": "Standard",
                       "blendRange": "Standard",
-                      "swizzle": {
+                      "channelMapping": {
                         "packed": 0
                       },
                       "fx": [],
@@ -1953,7 +1870,7 @@
                       "blendMode": "Normal",
                       "colorRange": "Standard",
                       "blendRange": "Standard",
-                      "swizzle": {
+                      "channelMapping": {
                         "packed": 0
                       },
                       "fx": [
@@ -1967,29 +1884,25 @@
                               "name": "_Opacity",
                               "type": "Float",
                               "floatValue": 1.0,
-                              "id": "ee4beda45f8c4dc080c9ebd26eb87f6b",
-                              "declaredInCode": true
+                              "id": "ee4beda45f8c4dc080c9ebd26eb87f6b"
                             },
                             {
                               "name": "_InBlack",
                               "type": "Float",
                               "floatValue": 0.28,
-                              "id": "32e6928ae77d4cbdbf91028ee00801d8",
-                              "declaredInCode": true
+                              "id": "32e6928ae77d4cbdbf91028ee00801d8"
                             },
                             {
                               "name": "_InWhite",
                               "type": "Float",
                               "floatValue": 1.0,
-                              "id": "aa9d97acf9094138bb6a516d70b487d2",
-                              "declaredInCode": true
+                              "id": "aa9d97acf9094138bb6a516d70b487d2"
                             },
                             {
                               "name": "_Gamma",
                               "type": "Float",
                               "floatValue": 1.0,
-                              "id": "c2c1fca5214d458697426ca4a501757a",
-                              "declaredInCode": true
+                              "id": "c2c1fca5214d458697426ca4a501757a"
                             },
                             {
                               "name": "_Curve",
@@ -2018,29 +1931,25 @@
                                   ]
                                 ]
                               },
-                              "id": "38e13fbacd744903bf83df2f83bd725b",
-                              "declaredInCode": true
+                              "id": "38e13fbacd744903bf83df2f83bd725b"
                             },
                             {
                               "name": "_OutBlack",
                               "type": "Float",
                               "floatValue": 0.0,
-                              "id": "77bdc0953b8c4d9db1a3b2cddbabb04e",
-                              "declaredInCode": true
+                              "id": "77bdc0953b8c4d9db1a3b2cddbabb04e"
                             },
                             {
                               "name": "_OutWhite",
                               "type": "Float",
                               "floatValue": 1.0,
-                              "id": "59babb3b47324e10b9ab839891646fc9",
-                              "declaredInCode": true
+                              "id": "59babb3b47324e10b9ab839891646fc9"
                             },
                             {
                               "name": "_PreserveColor",
                               "type": "Bool",
                               "floatValue": 0.0,
-                              "id": "0c1756ca795d4a60875163497097b044",
-                              "declaredInCode": true
+                              "id": "0c1756ca795d4a60875163497097b044"
                             }
                           ],
                           "shaderKey": "8321ef084a9643a3ba0cbece062a9cd3",
@@ -2082,7 +1991,7 @@
                         "dimensions": "TwoD",
                         "seed": -1933409451,
                         "scale": 3.4,
-                        "scaleY": 0.0,
+                        "scaleY": 3.4,
                         "linkScale": true,
                         "offset": [
                           0.41,
@@ -2130,7 +2039,7 @@
           "blendMode": "Normal",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 43664
           },
           "fx": [
@@ -2144,29 +2053,25 @@
                   "name": "_Opacity",
                   "type": "Float",
                   "floatValue": 1.0,
-                  "id": "261bfa02de554fb38c1b6f1ae76e0fe9",
-                  "declaredInCode": true
+                  "id": "261bfa02de554fb38c1b6f1ae76e0fe9"
                 },
                 {
                   "name": "_InBlack",
                   "type": "Float",
                   "floatValue": 0.0,
-                  "id": "f914990a17724a1cabb34be0a6b9bd70",
-                  "declaredInCode": true
+                  "id": "f914990a17724a1cabb34be0a6b9bd70"
                 },
                 {
                   "name": "_InWhite",
                   "type": "Float",
                   "floatValue": 0.86,
-                  "id": "8841ebcf76314634b4fcb8966f0c09fa",
-                  "declaredInCode": true
+                  "id": "8841ebcf76314634b4fcb8966f0c09fa"
                 },
                 {
                   "name": "_Gamma",
                   "type": "Float",
                   "floatValue": 0.63,
-                  "id": "116e56c8d8784728bf178f749f1f9eed",
-                  "declaredInCode": true
+                  "id": "116e56c8d8784728bf178f749f1f9eed"
                 },
                 {
                   "name": "_Curve",
@@ -2195,29 +2100,25 @@
                       ]
                     ]
                   },
-                  "id": "628013f353604447b9dcb189a964b77e",
-                  "declaredInCode": true
+                  "id": "628013f353604447b9dcb189a964b77e"
                 },
                 {
                   "name": "_OutBlack",
                   "type": "Float",
                   "floatValue": 0.0,
-                  "id": "e3a56e67e1014206b98ab93ed05ef28f",
-                  "declaredInCode": true
+                  "id": "e3a56e67e1014206b98ab93ed05ef28f"
                 },
                 {
                   "name": "_OutWhite",
                   "type": "Float",
                   "floatValue": 1.0,
-                  "id": "6bc14ae95a924f8b82337d76e42058ae",
-                  "declaredInCode": true
+                  "id": "6bc14ae95a924f8b82337d76e42058ae"
                 },
                 {
                   "name": "_PreserveColor",
                   "type": "Bool",
                   "floatValue": 1.0,
-                  "id": "1ae97d63ecb7467a9f9e9c545236c333",
-                  "declaredInCode": true
+                  "id": "1ae97d63ecb7467a9f9e9c545236c333"
                 }
               ],
               "shaderKey": "bbb6ef178b7244a8b75416392a7945da",
@@ -2268,7 +2169,7 @@
               "blendMode": "Normal",
               "colorRange": "Standard",
               "blendRange": "Standard",
-              "swizzle": {
+              "channelMapping": {
                 "packed": 0
               },
               "fx": [],
@@ -2328,7 +2229,7 @@
               "blendMode": "Normal",
               "colorRange": "Standard",
               "blendRange": "Standard",
-              "swizzle": {
+              "channelMapping": {
                 "packed": 0
               },
               "fx": [],
@@ -2376,7 +2277,7 @@
                   "blendMode": "Multiply",
                   "colorRange": "Standard",
                   "blendRange": "Standard",
-                  "swizzle": {
+                  "channelMapping": {
                     "packed": 0
                   },
                   "fx": [],
@@ -2478,7 +2379,7 @@
                   "blendMode": "Normal",
                   "colorRange": "Standard",
                   "blendRange": "Standard",
-                  "swizzle": {
+                  "channelMapping": {
                     "packed": 0
                   },
                   "fx": [],
@@ -2517,7 +2418,7 @@
                     "dimensions": "TwoD",
                     "seed": -1869768435,
                     "scale": 7.9,
-                    "scaleY": 0.0,
+                    "scaleY": 7.9,
                     "linkScale": true,
                     "offset": [
                       814.9,
@@ -2549,7 +2450,7 @@
                   "blendMode": "Screen",
                   "colorRange": "Standard",
                   "blendRange": "Standard",
-                  "swizzle": {
+                  "channelMapping": {
                     "packed": 0
                   },
                   "fx": [],
@@ -2588,7 +2489,7 @@
                     "dimensions": "TwoD",
                     "seed": -675661633,
                     "scale": 4.45,
-                    "scaleY": 0.0,
+                    "scaleY": 4.45,
                     "linkScale": true,
                     "offset": [
                       394.305237,
@@ -2624,7 +2525,7 @@
                   "blendMode": "Normal",
                   "colorRange": "Standard",
                   "blendRange": "Standard",
-                  "swizzle": {
+                  "channelMapping": {
                     "packed": 0
                   },
                   "fx": [
@@ -2638,29 +2539,25 @@
                           "name": "_Opacity",
                           "type": "Float",
                           "floatValue": 1.0,
-                          "id": "3c9695ae9fbd4e84b684efee0f6831a3",
-                          "declaredInCode": true
+                          "id": "3c9695ae9fbd4e84b684efee0f6831a3"
                         },
                         {
                           "name": "_InBlack",
                           "type": "Float",
                           "floatValue": 0.0,
-                          "id": "d59cf984ffcd43879e453741ffd4c37c",
-                          "declaredInCode": true
+                          "id": "d59cf984ffcd43879e453741ffd4c37c"
                         },
                         {
                           "name": "_InWhite",
                           "type": "Float",
                           "floatValue": 0.7,
-                          "id": "cb51969760e248aa935b15900f2ce894",
-                          "declaredInCode": true
+                          "id": "cb51969760e248aa935b15900f2ce894"
                         },
                         {
                           "name": "_Gamma",
                           "type": "Float",
                           "floatValue": 1.4,
-                          "id": "d0066a6995cd418bb915ae35a961a201",
-                          "declaredInCode": true
+                          "id": "d0066a6995cd418bb915ae35a961a201"
                         },
                         {
                           "name": "_Curve",
@@ -2689,29 +2586,25 @@
                               ]
                             ]
                           },
-                          "id": "0169393ed90d402ea25675f0916e013c",
-                          "declaredInCode": true
+                          "id": "0169393ed90d402ea25675f0916e013c"
                         },
                         {
                           "name": "_OutBlack",
                           "type": "Float",
                           "floatValue": 0.0,
-                          "id": "af559558a57d451293f8cbf3847c821b",
-                          "declaredInCode": true
+                          "id": "af559558a57d451293f8cbf3847c821b"
                         },
                         {
                           "name": "_OutWhite",
                           "type": "Float",
                           "floatValue": 1.0,
-                          "id": "dd0a2571251a4fa4bdf87d3c6fbc3881",
-                          "declaredInCode": true
+                          "id": "dd0a2571251a4fa4bdf87d3c6fbc3881"
                         },
                         {
                           "name": "_PreserveColor",
                           "type": "Bool",
                           "floatValue": 0.0,
-                          "id": "5f65a2c234934acbbc61e1965990f747",
-                          "declaredInCode": true
+                          "id": "5f65a2c234934acbbc61e1965990f747"
                         }
                       ],
                       "shaderKey": "22ced94255e140d584d6b577cd274ddc",
@@ -2753,7 +2646,7 @@
                     "dimensions": "TwoD",
                     "seed": -419543719,
                     "scale": 2.54,
-                    "scaleY": 0.0,
+                    "scaleY": 2.54,
                     "linkScale": true,
                     "offset": [
                       939.6,

@@ -83,7 +83,7 @@
       "guide-settings-v2",
       "guide-snapping-v2",
       "layer-auto-scroll-v2",
-      "layer-color-settings-v2",
+      "layer-rendering-settings-v2",
       "layer-composition-v2",
       "layer-navigation-v2",
       "layer-picking-v2",
@@ -117,7 +117,7 @@
       "shape-corners-v2",
       "shape-picker-v2",
       "signal-fx-v2",
-      "swizzle-math-v2",
+      "channel-mapping-math-v2",
       "ui-refactor-v2",
       "user-settings-cleanup-v2",
       "uv-islands-v2",
@@ -126,7 +126,7 @@
       "reference-fixtures"
     ],
     "verify": [
-      "swizzle-ui",
+      "channel-mapping-ui",
       "smudge-hybrid",
       "smudge-hybrid-integration",
       "smudge-quality",
@@ -186,7 +186,7 @@
       "guide-settings-v2",
       "guide-snapping-v2",
       "layer-auto-scroll-v2",
-      "layer-color-settings-v2",
+      "layer-rendering-settings-v2",
       "layer-composition-v2",
       "layer-navigation-v2",
       "layer-picking-v2",
@@ -220,12 +220,14 @@
       "shape-corners-v2",
       "shape-picker-v2",
       "signal-fx-v2",
-      "swizzle-math-v2",
+      "channel-mapping-math-v2",
       "ui-refactor-v2",
       "user-settings-cleanup-v2",
       "uv-islands-v2",
       "shader-fx0125-preset-v2",
       "shader-fx-activity-v2",
+      "shader-fx-time-warning",
+      "shader-fx-diagnostics",
       "shader-fx-catalog-performance-v2",
       "shader-fx-catalog-v2",
       "shader-fx-conditional-parameters-v2",
@@ -235,7 +237,7 @@
       "shader-fx-drag-v2",
       "shader-fx-external-code-cache-v2",
       "shader-fx-external-code-unity-v2",
-      "shader-fx-formerly-serialized-as-v2",
+      "shader-fx-parameter-identity",
       "shader-fx-group-v2",
       "shader-fx-local-coordinates-v2",
       "shader-fx-projective-v2",
@@ -252,7 +254,7 @@
       "skill-workflow-v2",
       "small-document-save-v2",
       "soft-range-v2",
-      "swizzle-v2",
+      "channel-mapping-v2",
       "tiff-agent-api-v2",
       "tiff-agent-diagnostics-v2",
       "tiff-compact-reference-gradient-v2",
@@ -308,6 +310,7 @@
       "canvas-filter-v2",
       "canvas-margins-v2",
       "canvas-render-naming-unity-v2",
+      "document-window-naming",
       "canvas-selection-v2",
       "canvas-terminology-migration-v2",
       "canvas-toolbar-start-v2",
@@ -335,7 +338,7 @@
       "color-pipeline-v2",
       "color-presets-v2",
       "compact-portable-clipboard-v2",
-      "compatibility0125-reader-v2",
+      "unknown-field-reader",
       "compatibility0125-v2",
       "content-aware-cost-v2",
       "content-aware-fill-v2",
@@ -384,7 +387,7 @@
       "document-save-cache-smoke-v2",
       "document-storage-boundary-smoke-v2",
       "incomplete-document-save",
-      "document-vector-widening-smoke-v2",
+      "document-vector-types-smoke-v2",
       "drawing-pattern-smoke-v2",
       "drawing-reload-smoke-v2",
       "drawing-resolution-smoke-v2",
@@ -457,7 +460,7 @@
       "motion-blur-api-v2",
       "motion-blur-v2",
       "multi-layer-transform-v2",
-      "native-manual-fx-file-v2",
+      "native-fx-preset-file-v2",
       "new-document-window-v2",
       "noise-api-v2",
       "noise-controls-v2",
@@ -612,7 +615,7 @@
       "reference-fixtures"
     ],
     "regressions": [
-      "swizzle-ui",
+      "channel-mapping-ui",
       "smudge-hybrid",
       "smudge-hybrid-integration",
       "smudge-quality",
@@ -645,10 +648,12 @@
       "shader-fx-vs-code-snippets-v2",
       "shape-corners-v2",
       "shape-picker-v2",
-      "swizzle-math-v2",
+      "channel-mapping-math-v2",
       "ui-refactor-v2",
       "shader-fx0125-preset-v2",
       "shader-fx-activity-v2",
+      "shader-fx-time-warning",
+      "shader-fx-diagnostics",
       "shader-fx-catalog-performance-v2",
       "shader-fx-catalog-v2",
       "shader-fx-conditional-parameters-v2",
@@ -658,7 +663,7 @@
       "shader-fx-drag-v2",
       "shader-fx-external-code-cache-v2",
       "shader-fx-external-code-unity-v2",
-      "shader-fx-formerly-serialized-as-v2",
+      "shader-fx-parameter-identity",
       "shader-fx-group-v2",
       "shader-fx-local-coordinates-v2",
       "shader-fx-projective-v2",
@@ -675,7 +680,7 @@
       "skill-workflow-v2",
       "small-document-save-v2",
       "soft-range-v2",
-      "swizzle-v2",
+      "channel-mapping-v2",
       "tiff-agent-api-v2",
       "tiff-agent-diagnostics-v2",
       "tiff-compact-reference-gradient-v2",
@@ -731,6 +736,7 @@
       "canvas-filter-v2",
       "canvas-margins-v2",
       "canvas-render-naming-unity-v2",
+      "document-window-naming",
       "canvas-selection-v2",
       "canvas-terminology-migration-v2",
       "canvas-toolbar-start-v2",
@@ -758,7 +764,7 @@
       "color-pipeline-v2",
       "color-presets-v2",
       "compact-portable-clipboard-v2",
-      "compatibility0125-reader-v2",
+      "unknown-field-reader",
       "compatibility0125-v2",
       "content-aware-cost-v2",
       "content-aware-fill-v2",
@@ -807,7 +813,7 @@
       "document-save-cache-smoke-v2",
       "document-storage-boundary-smoke-v2",
       "incomplete-document-save",
-      "document-vector-widening-smoke-v2",
+      "document-vector-types-smoke-v2",
       "drawing-pattern-smoke-v2",
       "drawing-reload-smoke-v2",
       "drawing-resolution-smoke-v2",
@@ -880,7 +886,7 @@
       "motion-blur-api-v2",
       "motion-blur-v2",
       "multi-layer-transform-v2",
-      "native-manual-fx-file-v2",
+      "native-fx-preset-file-v2",
       "new-document-window-v2",
       "noise-api-v2",
       "noise-controls-v2",
@@ -1069,7 +1075,7 @@
       "gradient-gpu-v2",
       "guide-settings-v2",
       "guide-snapping-v2",
-      "layer-color-settings-v2",
+      "layer-rendering-settings-v2",
       "layer-presentation-v2",
       "layer-type-registry-v2",
       "legacy-save-policy-v2",
@@ -1166,11 +1172,13 @@
       "test-api-contract",
       "psd-writer-v2",
       "shader-fx-activity-v2",
+      "shader-fx-time-warning",
+      "shader-fx-diagnostics",
       "shader-fx-catalog-performance-v2",
       "shader-fx-catalog-v2",
       "shader-fx-conditional-parameters-v2",
       "shader-fx-curve-v2",
-      "shader-fx-formerly-serialized-as-v2",
+      "shader-fx-parameter-identity",
       "shader-fx-group-v2",
       "shader-fx-local-coordinates-v2",
       "shader-fx-projective-v2",
@@ -1181,7 +1189,7 @@
       "shader-processor-v2",
       "shape-naming-v2",
       "shape-unity-v2",
-      "swizzle-v2",
+      "channel-mapping-v2",
       "tiff-compact-reference-gradient-v2",
       "tiff-compact-reference-drawing-v2",
       "tiled-canvas-v2",
@@ -1202,6 +1210,7 @@
       "brush-vertex-transport-v2",
       "builtin-fx-fields-v2",
       "canvas-render-naming-unity-v2",
+      "document-window-naming",
       "canvas-selection-v2",
       "clipboard-examples-v2",
       "clipping-mask-v2",
@@ -1209,7 +1218,7 @@
       "color-pipeline-v2",
       "color-presets-v2",
       "compact-portable-clipboard-v2",
-      "compatibility0125-reader-v2",
+      "unknown-field-reader",
       "content-aware-cost-v2",
       "content-aware-pyramid-v2",
       "content-aware-reconstruction-v2",
@@ -1251,7 +1260,7 @@
       "export-window-smoke-v2",
       "fill-pattern-smoke-v2",
       "gradient-clipboard-cleanup-smoke-v2",
-      "native-manual-fx-file-v2",
+      "native-fx-preset-file-v2",
       "portable-clipboard-v2",
       "portable-includes-v2",
       "refactoring-r01-r04-editable-copy-v2",
@@ -1273,13 +1282,13 @@
       "seamless-release-stress-2048-mode-4-v2"
     ],
     "rendering": [
-      "swizzle-ui",
+      "channel-mapping-ui",
       "smudge-hybrid-integration",
       "effect-cache-fingerprints",
       "display-channels-v2",
       "output-dependencies-v2",
-      "swizzle-math-v2",
-      "swizzle-v2",
+      "channel-mapping-math-v2",
+      "channel-mapping-v2",
       "tiling-v2",
       "all-below-input-v2",
       "clipping-mask-v2",
@@ -1319,6 +1328,8 @@
       "distortion-controls-v2",
       "input-tiling-v2",
       "shader-fx-activity-v2",
+      "shader-fx-time-warning",
+      "shader-fx-diagnostics",
       "shader-fx-catalog-performance-v2",
       "shader-fx-catalog-v2",
       "shader-fx-conditional-parameters-v2",
@@ -1355,7 +1366,7 @@
       "lighting-bevel-v2",
       "motion-blur-api-v2",
       "motion-blur-v2",
-      "native-manual-fx-file-v2",
+      "native-fx-preset-file-v2",
       "normal-map-api-v2",
       "normal-map-v2",
       "normal-normalize-v2",
@@ -1396,7 +1407,7 @@
       "blue-noise-v2",
       "file-layer-canvas-v2",
       "layer-auto-scroll-v2",
-      "layer-color-settings-v2",
+      "layer-rendering-settings-v2",
       "layer-composition-v2",
       "layer-navigation-v2",
       "layer-picking-v2",
@@ -1506,6 +1517,7 @@
       "user-settings-cleanup-v2",
       "user-settings-cleanup-unity-v2",
       "canvas-render-naming-unity-v2",
+      "document-window-naming",
       "canvas-terminology-migration-v2",
       "refactoring-r01-r04-editable-copy-v2",
       "refactoring-r01-r04-sharpen-material-order-v2",
@@ -1597,7 +1609,7 @@
       "canvas-header-brush-layout"
     ],
     "canvas": [
-      "swizzle-ui",
+      "channel-mapping-ui",
       "canvas-header-layout",
       "canvas-header-paint-layout",
       "canvas-header-brush-layout",
@@ -1658,7 +1670,7 @@
       "document-save-cache-smoke-v2",
       "document-storage-boundary-smoke-v2",
       "incomplete-document-save",
-      "document-vector-widening-smoke-v2",
+      "document-vector-types-smoke-v2",
       "file-navigation-smoke-v2",
       "missing-layer-data-v2",
       "new-document-window-v2",
@@ -1774,20 +1786,20 @@
     "compatibility-files": [
       "canonical-reader-v2",
       "frozen-files-v2",
-      "shader-fx-formerly-serialized-as-v2",
+      "shader-fx-parameter-identity",
       "tool-icon-compatibility-v2",
       "whim-tex-gradient-retired-field-v2",
       "base-heart-reference-v2",
-      "compatibility0125-reader-v2",
+      "unknown-field-reader",
       "compatibility0125-v2"
     ]
   },
   "scenarios": [
     {
-      "id": "swizzle-ui",
-      "file": "Tests~/Cases/Canvas/SwizzleUiTests.cs",
+      "id": "channel-mapping-ui",
+      "file": "Tests~/Cases/Canvas/ChannelMappingUiTests.cs",
       "runner": "run_script",
-      "entry": "SwizzleUiTests.Start",
+      "entry": "ChannelMappingUiTests.Start",
       "args": ["$runId"],
       "category": "regression",
       "timeoutMs": 60000,
@@ -1802,9 +1814,9 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Framework/Unity/AsyncD.cs"
       ],
-      "async": { "entry": "SwizzleUiTests.Poll", "args": ["$runId"], "pollMs": 100 },
-      "cancel": { "entry": "SwizzleUiTests.Cancel", "args": ["$runId"] },
-      "cleanup": { "entry": "SwizzleUiTests.Cleanup", "args": ["$runId"] }
+      "async": { "entry": "ChannelMappingUiTests.Poll", "args": ["$runId"], "pollMs": 100 },
+      "cancel": { "entry": "ChannelMappingUiTests.Cancel", "args": ["$runId"] },
+      "cleanup": { "entry": "ChannelMappingUiTests.Cleanup", "args": ["$runId"] }
     },
     {
       "id": "smudge-hybrid-performance-2048",
@@ -3171,10 +3183,10 @@
       "reviewFiles": [
         "Tests~/Framework/test-api.mjs",
         "Tests~/scripts/test-catalog.json",
-        "src/TextureCompositor.cs",
+        "src/WhimTexDocument.cs",
         "src/Layers/SDFLayerBehaviour.cs",
         "src/MissingLayerRecovery.cs",
-        "src/TextureCompositorWindow.UI.cs",
+        "src/WhimTexWindow.UI.cs",
         "src/WhimTexDocumentSerializer.cs",
         "src/Layers/GaussianKernel.cs",
         "src/Layers/DrawingLayerBehaviour.BlurBrush.cs",
@@ -3341,8 +3353,8 @@
       ]
     },
     {
-      "id": "layer-color-settings-v2",
-      "file": "Tests~/Cases/Layers/LayerColorSettings.test.mjs",
+      "id": "layer-rendering-settings-v2",
+      "file": "Tests~/Cases/Layers/LayerRenderingSettings.test.mjs",
       "runner": "node",
       "entry": null,
       "args": [],
@@ -4179,8 +4191,8 @@
       ]
     },
     {
-      "id": "swizzle-math-v2",
-      "file": "Tests~/Cases/Rendering/SwizzleMath.test.mjs",
+      "id": "channel-mapping-math-v2",
+      "file": "Tests~/Cases/Rendering/ChannelMappingMath.test.mjs",
       "runner": "node",
       "entry": null,
       "args": [],
@@ -4303,6 +4315,40 @@
         "Tests~/Framework/TestApi.cs",
         "Tests~/Framework/Unity/MigrationD.cs"
       ],
+      "reviewFiles": []
+    },
+    {
+      "id": "shader-fx-diagnostics",
+      "file": "Tests~/Cases/FX/ShaderFXDiagnosticsTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXDiagnosticsTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["regression", "shader-fx", "fx"],
+      "prerequisites": "Idle Test6.6 Editor with current WhimTex compiled and shader compilation available.",
+      "setup": "Owned transient FX/documents, unattached UI trees and read-only diagnostic snapshots; invalid HLSL deliberately produces captured Console errors. GUID source paths are labels only. No file/asset writes or Undo changes.",
+      "teardown": "Unsubscribes the public Console callback, unbinds own UI, destroys owned FX/documents/shaders and removes only this run's diagnostic suppression identities.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "shader-fx-time-warning",
+      "file": "Tests~/Cases/FX/ShaderFXTimeWarningTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXTimeWarningTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["regression", "shader-fx", "fx"],
+      "prerequisites": "Connected idle Test6.6 Editor with current WhimTex compiled and shader compilation available.",
+      "setup": "Transient FX only; GUID source paths are labels, not files. Captures owned time warnings through the public Unity logging callback.",
+      "teardown": "Unsubscribes the callback, destroys owned FX/shaders and removes only suppression entries newly logged by the run. Does not change user assets, windows or Undo history.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
       "reviewFiles": []
     },
     {
@@ -4580,28 +4626,25 @@
       "reviewFiles": []
     },
     {
-      "id": "shader-fx-formerly-serialized-as-v2",
-      "file": "Tests~/Cases/Compatibility/ShaderFXFormerlySerializedAsTests.cs",
+      "id": "shader-fx-parameter-identity",
+      "file": "Tests~/Cases/FX/ShaderFXParameterIdentityTests.cs",
       "runner": "run_script",
-      "entry": "ShaderFXFormerlySerializedAsTests.Run",
+      "entry": "ShaderFXParameterIdentityTests.Run",
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
       "effects": [],
       "groups": [
-        "regression",
-        "shader-fx",
-        "compatibility"
+        "shader-fx"
       ],
       "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
-      "setup": "owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>.",
-      "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+      "setup": "Owned in-memory data only; no project assets.",
+      "teardown": "Destroy only owned objects; no caller state mutation.",
       "result": {
         "kind": "structured"
       },
       "supportFiles": [
-        "Tests~/Framework/TestApi.cs",
-        "Tests~/Framework/Unity/MigrationD.cs"
+        "Tests~/Framework/TestApi.cs"
       ],
       "reviewFiles": []
     },
@@ -5103,10 +5146,10 @@
       "reviewFiles": []
     },
     {
-      "id": "swizzle-v2",
-      "file": "Tests~/Cases/Rendering/SwizzleTests.cs",
+      "id": "channel-mapping-v2",
+      "file": "Tests~/Cases/Rendering/ChannelMappingTests.cs",
       "runner": "run_script",
-      "entry": "SwizzleTests.Run",
+      "entry": "ChannelMappingTests.Run",
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
@@ -6568,7 +6611,7 @@
       "teardown": "Harness destroys owned objects and RTs; MigrationD restores borrowed Editor/GPU state.",
       "result": {"kind": "structured"},
       "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs"],
-      "reviewFiles": ["src/ShaderFXSourceBuilder.cs", "src/Layers/Layer.cs", "src/WhimTexFileCompatibility0125.cs", "src/FXPresets/UVTransform.hlsl", "src/FXPresets/Spherize.hlsl", "src/FXPresets/Twirl.hlsl", "src/FXPresets/RadialShear.hlsl", "src/FXPresets/PolarCoordinates.hlsl", "src/FXPresets/DisplacementMap.hlsl"]
+      "reviewFiles": ["src/ShaderFXSourceBuilder.cs", "src/Layers/Layer.cs", "src/FXPresets/UVTransform.hlsl", "src/FXPresets/Spherize.hlsl", "src/FXPresets/Twirl.hlsl", "src/FXPresets/RadialShear.hlsl", "src/FXPresets/PolarCoordinates.hlsl", "src/FXPresets/DisplacementMap.hlsl"]
     },
     {
       "id": "edge-outline-v2",
@@ -6812,6 +6855,23 @@
         "Tests~/Framework/TestApi.cs",
         "Tests~/Framework/Unity/UnityAScope.cs"
       ],
+      "reviewFiles": []
+    },
+    {
+      "id": "document-window-naming",
+      "file": "Tests~/Cases/Contracts/DocumentWindowNamingTests.cs",
+      "runner": "run_script",
+      "entry": "DocumentWindowNamingTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state"],
+      "groups": ["regression", "contracts", "canvas", "documents"],
+      "prerequisites": "Idle graphical Test6.6 Editor with current WhimTex compiled.",
+      "setup": "Owned transient documents and one unshown test window; script/GUID reads, in-memory JSON and TIFF model-block roundtrips, small Canvas renders. No file or asset writes.",
+      "teardown": "Destroys the owned window/documents and restores caller render state and drag data; does not save user documents or change Undo history.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
       "reviewFiles": []
     },
     {
@@ -7695,26 +7755,25 @@
       "reviewFiles": []
     },
     {
-      "id": "compatibility0125-reader-v2",
-      "file": "Tests~/Cases/Compatibility/Compatibility0125ReaderTests.cs",
+      "id": "unknown-field-reader",
+      "file": "Tests~/Cases/Documents/UnknownFieldReaderTests.cs",
       "runner": "run_script",
-      "entry": "Compatibility0125ReaderTests.Run",
+      "entry": "UnknownFieldReaderTests.Run",
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
       "effects": [],
       "groups": [
-        "compatibility"
+        "documents"
       ],
       "prerequisites": "Idle graphical Test6.6 Editor with current WhimTex package; review source and declared effects. Parent serializes verification.",
-      "setup": "Independent copied/adapted assertion inputs; scoped owned resources, GUID fixture paths and caller-state snapshots.",
-      "teardown": "Body using/finally and UnityAScope restore GPU state, focus, clipboard, touched prefs; destroy only owned resources; delete only owned GUID fixture and temporary outputs.",
+      "setup": "Owned in-memory data only; no project assets.",
+      "teardown": "Destroy only owned objects; no caller state mutation.",
       "result": {
         "kind": "structured"
       },
       "supportFiles": [
-        "Tests~/Framework/TestApi.cs",
-        "Tests~/Framework/Unity/UnityAScope.cs"
+        "Tests~/Framework/TestApi.cs"
       ],
       "reviewFiles": []
     },
@@ -7726,21 +7785,18 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": [
-        "assets"
-      ],
+      "effects": [],
       "groups": [
         "compatibility"
       ],
-      "prerequisites": "Idle graphical Test6.6 Editor with current WhimTex package; review source and declared effects. Parent serializes verification.",
-      "setup": "Independent copied/adapted assertion inputs; scoped owned resources, GUID fixture paths and caller-state snapshots.",
-      "teardown": "Body using/finally and UnityAScope restore GPU state, focus, clipboard, touched prefs; destroy only owned resources; delete only owned GUID fixture and temporary outputs.",
+      "prerequisites": "Idle Test6.6 Editor with current WhimTex compiled; frozen inputs are read-only.",
+      "setup": "Verify archived hashes, explicitly reject old document versions and retain independent brush/gradient preset checks. No imported assets.",
+      "teardown": "Destroy only owned detached document/tip objects; frozen files and open user documents remain unchanged.",
       "result": {
         "kind": "structured"
       },
       "supportFiles": [
-        "Tests~/Framework/TestApi.cs",
-        "Tests~/Framework/Unity/UnityAScope.cs"
+        "Tests~/Framework/TestApi.cs"
       ],
       "reviewFiles": []
     },
@@ -9457,13 +9513,13 @@
       "teardown": "Dispose owned models/window; restore graphics, focus and selection; remove only the run's GUID-owned asset directory. Native confirmation clicks are not automated.",
       "result": {"kind": "structured"},
       "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityBSupport.cs"],
-      "reviewFiles": ["src/WhimTexDocumentFile.cs", "src/WhimTexDocumentFile.Json.cs", "src/WhimTexDocumentJson.cs", "src/TextureCompositorWindow.DocumentFile.cs", "src/TextureCompositorWindow.Json.cs", "src/TextureCompositorWindow.UI.cs"]
+      "reviewFiles": ["src/WhimTexDocumentFile.cs", "src/WhimTexDocumentFile.Json.cs", "src/WhimTexDocumentJson.cs", "src/WhimTexWindow.DocumentFile.cs", "src/WhimTexWindow.Json.cs", "src/WhimTexWindow.UI.cs"]
     },
     {
-      "id": "document-vector-widening-smoke-v2",
-      "file": "Tests~/Cases/Documents/DocumentVectorWideningTests.cs",
+      "id": "document-vector-types-smoke-v2",
+      "file": "Tests~/Cases/Documents/DocumentVectorTypesTests.cs",
       "runner": "run_script",
-      "entry": "DocumentVectorWideningTests.Run",
+      "entry": "DocumentVectorTypesTests.Run",
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
@@ -11268,7 +11324,7 @@
       ],
       "reviewFiles": [
         "src/FXPresets/NormalLighting.hlsl",
-        "src/FXPresets/SdfBevel.hlsl"
+        "src/FXPresets/BevelEmboss.hlsl"
       ]
     },
     {
@@ -11735,10 +11791,10 @@
       "reviewFiles": []
     },
     {
-      "id": "native-manual-fx-file-v2",
-      "file": "Tests~/Cases/FX/NativeManualFxFileTests.cs",
+      "id": "native-fx-preset-file-v2",
+      "file": "Tests~/Cases/FX/NativeFxPresetFileTests.cs",
       "runner": "run_script",
-      "entry": "NativeManualFxFileTests.Run",
+      "entry": "NativeFxPresetFileTests.Run",
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
@@ -14464,7 +14520,7 @@
       "reviewFiles": [
         "src/FXPresets/PolarCoordinates.hlsl",
         "src/ShaderFX.Catalog.cs",
-        "src/WhimTexFileCompatibility0125.cs"
+        "src/WhimTexDocumentJson.cs"
       ]
     },
     {

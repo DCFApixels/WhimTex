@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/GaussianBlur"
+Shader "Hidden/WhimTex/GaussianBlur"
 {
     Properties
     {

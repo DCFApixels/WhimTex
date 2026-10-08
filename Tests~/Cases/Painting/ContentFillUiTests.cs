@@ -10,16 +10,16 @@ static WhimTex.Tests.TestContext T;
 static WhimTex.Tests.UnityA.UnityAScope Scope;
 static System.Threading.CancellationToken Cancellation;
 
-private static DCFApixels.WhimTex.TextureCompositorWindow SetupFixture(){
+private static DCFApixels.WhimTex.WhimTexWindow SetupFixture(){
 // Temporary, unsaved fixture. Run ContentFillUiTests.cs to check and close it.
 var f=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Public;
-var type=typeof(DCFApixels.WhimTex.TextureCompositorWindow);
-foreach(var item in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositorWindow>())
+var type=typeof(DCFApixels.WhimTex.WhimTexWindow);
+foreach(var item in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.WhimTexWindow>())
     T.True(!(item.name==(Scope.Tag + "-fill")), "Finish the previous ContentFillUiTests first.");
 var previous=UnityEditor.EditorWindow.focusedWindow;
-var window=Scope.OwnWindow(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>());
+var window=Scope.OwnWindow(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexWindow>());
 window.name=(Scope.Tag + "-fill");
-var doc=(DCFApixels.WhimTex.TextureCompositor)type.GetField("compositor",f).GetValue(window);
+var doc=(DCFApixels.WhimTex.WhimTexDocument)type.GetField("activeDocument",f).GetValue(window);
 doc.width=128;doc.height=96;
 doc.layers.Add(new DCFApixels.WhimTex.Layer(new DCFApixels.WhimTex.ColorFillLayerBehaviour{color=new UnityEngine.Color(.125f,.5f,.25f,1)}));
 type.GetMethod("SelectOnlyLayer",f).Invoke(window,new object[]{doc.layers[0].Id});
@@ -44,14 +44,14 @@ return window;
 }
 private static async Task<string> FillAssertions(){
 var f=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.Static;
-var type=typeof(DCFApixels.WhimTex.TextureCompositorWindow);var fillType=type.GetNestedType("ContentFillWindow",f);
-DCFApixels.WhimTex.TextureCompositorWindow window=null;
-foreach(var item in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositorWindow>())if(item.name==(Scope.Tag + "-fill"))window=item;
+var type=typeof(DCFApixels.WhimTex.WhimTexWindow);var fillType=type.GetNestedType("ContentFillWindow",f);
+DCFApixels.WhimTex.WhimTexWindow window=null;
+foreach(var item in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.WhimTexWindow>())if(item.name==(Scope.Tag + "-fill"))window=item;
 T.True(!(window==null), "Run ContentFillUiSetup first.");
 UnityEditor.EditorWindow fill=null;
 foreach(var item in UnityEngine.Resources.FindObjectsOfTypeAll(fillType))if((object)fillType.GetField("owner",f).GetValue(item)==window)fill=OwnFill((UnityEditor.EditorWindow)item);
 var previous=window.rootVisualElement.userData as UnityEditor.EditorWindow;
-var doc=(DCFApixels.WhimTex.TextureCompositor)type.GetField("compositor",f).GetValue(window);
+var doc=(DCFApixels.WhimTex.WhimTexDocument)type.GetField("activeDocument",f).GetValue(window);
 int checks=0;void Check(bool value,string label){ T.True(value, label); }
 object Read(string name)=>fillType.GetField(name,f).GetValue(fill);
 object Call(string name,params object[] args)=>fillType.GetMethod(name,f).Invoke(fill,args);
@@ -83,8 +83,8 @@ try
     }
     Check(((UnityEngine.Vector2)added.transform.position)==new UnityEngine.Vector2(-1,-8),"Cropped image correct canvas-space placement");
     Check(((UnityEngine.Vector2)added.transform.scale)==new UnityEngine.Vector2(82f/128,56f/96),"Cropped pixels retain native size");
-    // Render the actual new layer through the compositor, not just the CPU result.
-    var source=typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("RenderAreaSelectionSource",f);
+    // Render the actual new layer through the activeDocument, not just the CPU result.
+    var source=typeof(DCFApixels.WhimTex.WhimTexDocument).GetMethod("RenderAreaSelectionSource",f);
     var rendered=(UnityEngine.Texture2D)source.Invoke(doc,new object[]{added});
     try
     {
@@ -120,7 +120,7 @@ try
     fillType.GetField("sampling",f).SetValue(fill,System.Enum.Parse(fillType.GetNestedType("Sampling",f),"CustomSelection"));
     Call("Generate");task=(System.Threading.Tasks.Task)Read("task");await WaitForWorker(task);Call("Update");
     Check(Read("result")!=null,"Custom sampling generates result");
-    typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("MarkChanged",f).Invoke(doc,null);
+    typeof(DCFApixels.WhimTex.WhimTexDocument).GetMethod("MarkChanged",f).Invoke(doc,null);
     Check(Read("result")==null&&!((UnityEngine.UIElements.Button)Read("applyButton")).enabledSelf,"Source edit invalidates result");
     int previousCount=doc.layers.Count;Call("Apply");Check(doc.layers.Count==previousCount,"Stale apply cannot add layer");
     Call("Generate");Call("Cancel");task=(System.Threading.Tasks.Task)Read("task");
@@ -194,7 +194,7 @@ static void CaptureScreen(EditorWindow window)
 }
 static EditorWindow OwnFill(EditorWindow fill) { Scope.OwnWindow(fill); Scope.FinallyAsync(() => WhimTex.Tests.UnityA.UnityAFillWorker.Stop(fill)); return fill; }
 static async Task WaitForWorker(Task task) { if(task==null)return; while(!task.IsCompleted) await WhimTex.Tests.UnityA.UnityAAsync.Delay(25,Cancellation); }
-private static async Task<string> BodyFillScenario() { const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic; var fillType=typeof(TextureCompositorWindow).GetNestedType("ContentFillWindow",flags); var existing=(Task)fillType.GetField("activeTask",flags).GetValue(null); T.True(existing==null || existing.IsCompleted,"Do not borrow a running Content Fill worker"); var owner = SetupFixture(); await WhimTex.Tests.UnityA.UnityAAsync.Delay(300, Cancellation); EditorWindow fill=null; foreach(var item in Resources.FindObjectsOfTypeAll(fillType)) if((object)fillType.GetField("owner",flags).GetValue(item)==owner) fill=(EditorWindow)item; T.True(fill!=null,"Owned fill fixture is present"); await WaitForWorker((Task)fillType.GetField("task",flags).GetValue(fill)); await WhimTex.Tests.UnityA.UnityACapture.Capture(fill,Scope.Temp+"/content-fill-ui.png",Cancellation); CaptureScreen(fill); await FillAssertions(); return null; }
+private static async Task<string> BodyFillScenario() { const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic; var fillType=typeof(WhimTexWindow).GetNestedType("ContentFillWindow",flags); var existing=(Task)fillType.GetField("activeTask",flags).GetValue(null); T.True(existing==null || existing.IsCompleted,"Do not borrow a running Content Fill worker"); var owner = SetupFixture(); await WhimTex.Tests.UnityA.UnityAAsync.Delay(300, Cancellation); EditorWindow fill=null; foreach(var item in Resources.FindObjectsOfTypeAll(fillType)) if((object)fillType.GetField("owner",flags).GetValue(item)==owner) fill=(EditorWindow)item; T.True(fill!=null,"Owned fill fixture is present"); await WaitForWorker((Task)fillType.GetField("task",flags).GetValue(fill)); await WhimTex.Tests.UnityA.UnityACapture.Capture(fill,Scope.Temp+"/content-fill-ui.png",Cancellation); CaptureScreen(fill); await FillAssertions(); return null; }
 public static string Start(string runId) => WhimTex.Tests.UnityA.UnityAAsync.Start(runId, (context, cancellation) => WhimTex.Tests.UnityA.UnityAScope.RunOwnedAsync(async scope => { T = context; Scope = scope; Cancellation = cancellation; try { await BodyFillScenario(); } finally { T = null; Scope = null; } }));
 public static string Poll(string runId) => WhimTex.Tests.UnityA.UnityAAsync.Poll(runId);
 public static System.Threading.Tasks.Task<string> Cancel(string runId) => WhimTex.Tests.UnityA.UnityAAsync.Cancel(runId);

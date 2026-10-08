@@ -13,7 +13,7 @@ using Object = UnityEngine.Object;
 public static class DocumentProductionTests
 {
     const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-    static Type T(string name) => typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex." + name, true);
+    static Type T(string name) => typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex." + name, true);
     static object Call(Type type, object instance, string name, params object[] args)
     {
         try { return type.GetMethods(Any).Single(m => m.Name == name && m.GetParameters().Length == args.Length).Invoke(instance, args); }
@@ -70,7 +70,7 @@ public static class DocumentProductionTests
         string folder = UnityBRun.AssetPath("WhimTexProduction_") + Guid.NewGuid().ToString("N");
         UnityBRun.EnsureFolder(folder);
         var owned = new List<Object>();
-        var doc = UnityBRun.Create<TextureCompositor>(); owned.Add(doc);
+        var doc = UnityBRun.Create<WhimTexDocument>(); owned.Add(doc);
         doc.hideFlags = HideFlags.HideAndDontSave; doc.width = 32; doc.height = 16;
         var fill = new ColorFillLayerBehaviour { color = new Color(.5173f, .1317f, .0171f, .73f) };
         doc.layers.Add(new Layer(fill) { colorRange = LayerColorRange.HDR });
@@ -117,7 +117,7 @@ public static class DocumentProductionTests
             Check(Bits(File.ReadAllBytes(path)) == 32, "Auto still chooses HDR when needed");
             byte[] saved = File.ReadAllBytes(path);
             fill.color = Color.green;
-            Call(typeof(TextureCompositor), doc, "MarkChanged");
+            Call(typeof(WhimTexDocument), doc, "MarkChanged");
             foreach (string stage in new[] { "Checking document limits", "Rendering composite", "Encoding TIFF strips", "Writing document blocks", "Finishing file write" })
             {
                 using var operation = Operation((s, _) => s == stage);
@@ -179,7 +179,7 @@ public static class DocumentProductionTests
 
     static void DrawingOpen(string folder, List<Object> owned)
     {
-        var doc = UnityBRun.Create<TextureCompositor>(); owned.Add(doc);
+        var doc = UnityBRun.Create<WhimTexDocument>(); owned.Add(doc);
         doc.hideFlags = HideFlags.HideAndDontSave; doc.width = doc.height = 64;
         var expected = new List<byte[]>();
         for (int i = 0; i < 3; i++)
@@ -194,12 +194,12 @@ public static class DocumentProductionTests
         }
         string path = folder + "/Drawing.tiff";
         WhimTexDocumentFile.Save(doc, path);
-        int count = Resources.FindObjectsOfTypeAll<TextureCompositor>().Length;
+        int count = Resources.FindObjectsOfTypeAll<WhimTexDocument>().Length;
         var deferred = WhimTexDocumentFile.Load(path); owned.Add(deferred);
         var deferredPixels = (Texture2D)typeof(DrawingLayerBehaviour).GetProperty("StoredTexture", Any)
             .GetValue(deferred.layers[0].Behaviour);
         Check(deferredPixels != null, "deferred Drawing block materializes on first access");
-        Check(Resources.FindObjectsOfTypeAll<TextureCompositor>().Length == count + 1, "deferred open owns one document");
+        Check(Resources.FindObjectsOfTypeAll<WhimTexDocument>().Length == count + 1, "deferred open owns one document");
         var restored = WhimTexDocumentFile.Load(path); owned.Add(restored);
         for (int i = 0; i < 3; i++)
         {
@@ -220,7 +220,7 @@ public static class DocumentProductionTests
         }
         string damaged = folder + "/Damaged.tiff";
         File.WriteAllBytes(damaged, file);
-        TextureCompositor damagedDocument = null;
+        WhimTexDocument damagedDocument = null;
         try
         {
             Reject(() =>
@@ -231,10 +231,10 @@ public static class DocumentProductionTests
         }
         finally { if (damagedDocument != null) Object.DestroyImmediate(damagedDocument); }
         var previousFocus = EditorWindow.focusedWindow;
-        var window = UnityBRun.Create<TextureCompositorWindow>();
+        var window = UnityBRun.Create<WhimTexWindow>();
         try
         {
-            Call(typeof(TextureCompositorWindow), window, "SetCompositor", restored);
+            Call(typeof(WhimTexWindow), window, "SetDocument", restored);
             window.ShowUtility();
             window.CreateGUI();
             var precision = window.rootVisualElement.Q<PopupField<string>>("canvasOutputPrecision");

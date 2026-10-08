@@ -7,8 +7,8 @@ const assert = context.assert;
 
 context.case('CanvasViewGuides original assertions and branches', async () => {
     const read = p => readFileSync(new URL('../../../src/' + p, import.meta.url), 'utf8');
-    const src = read('TextureCompositorWindow.Guides.cs');
-    const ui = read('TextureCompositorWindow.UI.cs');
+    const src = read('WhimTexWindow.Guides.cs');
+    const ui = read('WhimTexWindow.UI.cs');
     const view = read('CanvasViewport.cs');
     const close = (a, b, epsilon = 1e-6) => assert.ok(Math.abs(a - b) < epsilon, `${a} vs ${b}`);
     class V {
@@ -111,12 +111,12 @@ context.case('CanvasViewGuides original assertions and branches', async () => {
     assert.match(src, /else if \(!discard && owner.canvasGuides.Count < MaxCanvasGuides\)\s*\{\s*owner.RememberCanvasGuides\(\);\s*owner.canvasGuides.Add\(pending\)/);
     assert.match(src, /!control && !alt/);
     const guideToolPolicy = src.match(/private bool CanMoveCanvasGuides => ([\s\S]*?);/)[1];
-    const contextTools = read('TextureCompositorWindow.ContextTools.cs');
+    const contextTools = read('WhimTexWindow.ContextTools.cs');
     const temporaryPolicy = contextTools.match(/private static bool IsTemporaryCanvasTool\(CanvasTool tool\) =>\s*([\s\S]*?);/)[1];
     const isTemporary = new Function('tool', `return ${temporaryPolicy.replace(/CanvasTool\.(\w+)/g, '"$1"')};`);
     const evaluatePolicy = new Function('canvasTool', 'IsTemporaryCanvasTool', `return ${guideToolPolicy.replace(/CanvasTool\.(\w+)/g, '"$1"')};`);
     const canInteract = tool => evaluatePolicy(tool, isTemporary);
-    const toolsSource = read('TextureCompositorWindow.Tools.cs');
+    const toolsSource = read('WhimTexWindow.Tools.cs');
     const toolNames = toolsSource.match(/enum CanvasTool\s*\{([^}]+)\}/)[1].split(',').map(name => name.trim());
     for (const tool of toolNames)
         assert.equal(canInteract(tool), ['None', 'Transform', 'Zoom', 'FXTransform', 'FXPoint', 'FXNormal'].includes(tool), `${tool}: guide interaction policy`);
@@ -129,7 +129,7 @@ context.case('CanvasViewGuides original assertions and branches', async () => {
     const guideHit = src.split('private int Hit(Vector2 point, bool toolPriority = true)')[1].split('internal bool WantsCursor')[0];
     assert.ok(guideHit.indexOf('owner.CanvasToolWantsPointer(point)') < guideHit.indexOf('for ('),
         'Guide hover yields to any active tool before selecting a guide');
-    const transformSource = read('TextureCompositorWindow.Transform.cs');
+    const transformSource = read('WhimTexWindow.Transform.cs');
     const priority = transformSource.split('internal bool WantsPointer(Vector2 point)')[1].split('private void OnDown')[0];
     assert.match(priority, /!owner.IsCanvasTransformEnabled/);
     assert.match(priority, /HitTest\(owner.toolkitCanvas.ToCanvas\(point\), owner.CurrentCanvasTransform/);
@@ -161,9 +161,9 @@ context.case('CanvasViewGuides original assertions and branches', async () => {
     assert.match(src, /if \(CanContinueDrag\)/);
     assert.match(src, /bounds, owner.CanMoveCanvasGuides && !owner.canvasGuidesLocked &&\s*\(i == hovered \|\| i == owner.selectedCanvasGuide\), false/);
     assert.ok(!src.match(/private bool Ready => ([\s\S]*?);/)[1].includes('CanMoveCanvasGuides'), 'Guide visibility must not depend on the selected tool');
-    const setTool = read('TextureCompositorWindow.ContextTools.cs').split('private void ChangeCanvasTool(CanvasTool tool)')[1];
+    const setTool = read('WhimTexWindow.ContextTools.cs').split('private void ChangeCanvasTool(CanvasTool tool)')[1];
     assert.ok(setTool.indexOf('CancelCanvasZoomGesture();') >= 0 && setTool.indexOf('CancelCanvasZoomGesture();') < setTool.indexOf('canvasTool = tool;'), 'Switching tools must cancel an uncommitted guide drag');
-    assert.match(read('TextureCompositorWindow.Zoom.cs'), /CancelCanvasZoomGesture\(\)\s*\{\s*canvasGuideManipulator\?\.Cancel\(\);/);
+    assert.match(read('WhimTexWindow.Zoom.cs'), /CancelCanvasZoomGesture\(\)\s*\{\s*canvasGuideManipulator\?\.Cancel\(\);/);
     assert.match(src, /owner.areaSelectionManipulator\?\.HasGesture/);
     for (const [event, callback] of [['PointerDown', 'Down'], ['PointerMove', 'Move'], ['PointerUp', 'Up']])
         for (const op of ['Register', 'Unregister'])
@@ -179,11 +179,11 @@ context.case('CanvasViewGuides original assertions and branches', async () => {
     assert.match(src, /RegisterCallback<PointerDownEvent>\(canvasGuideManipulator.RailDown, TrickleDown.TrickleDown\)/);
     assert.match(src, /UnregisterCallback<PointerDownEvent>\(RailDown, TrickleDown.TrickleDown\)/);
     for (const tool of ['Point', 'Normal']) {
-        const code = read(`TextureCompositorWindow.${tool}.cs`);
+        const code = read(`WhimTexWindow.${tool}.cs`);
         assert.match(code, /!WantsPointer\(e.localPosition\)/, 'Hover and actual tool capture share one hit-test');
     }
     assert.match(ui, /KeyCode.Escape && canvasGuideManipulator\?\.IsDragging == true/);
-    assert.match(read('TextureCompositorWindow.cs'), /ClearCanvasGuides\(\);\s*canvasGuidesDocument = next;[\s\S]*?compositor = next/);
+    assert.match(read('WhimTexWindow.cs'), /ClearCanvasGuides\(\);\s*canvasGuidesDocument = next;[\s\S]*?activeDocument = next/);
     assert.ok(!/\bUndo\.|RenderTexture|MarkChanged|SetDirty/.test(src), 'Guides remain window-local and outside the render/Undo pipeline');
     assert.match(src, /whimtex-canvas-surface/);
     assert.match(src, /ViewChanged \+= canvasGuideOverlay.MarkDirtyRepaint/);

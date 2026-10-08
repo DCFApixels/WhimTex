@@ -15,7 +15,7 @@ public static class LayerScrollViewTests
     static void Body()
     {
         // Clamp arithmetic is independent of layout and the legacy persistence fixture.
-        var window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>());
+        var window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexWindow>());
         try
         {
         window.titleContent = new GUIContent("WhimTex isolated scroll regression " + Guid.NewGuid().ToString("N"));

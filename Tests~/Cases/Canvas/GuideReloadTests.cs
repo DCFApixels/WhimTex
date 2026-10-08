@@ -13,7 +13,7 @@ public static class GuideReloadTests
     static string RunId;
     static WhimTex.Tests.TestContext context;
     private const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
-    private static readonly Type WindowType = typeof(TextureCompositorWindow);
+    private static readonly Type WindowType = typeof(WhimTexWindow);
     private static FieldInfo Field(string name) => WindowType.GetField(name, Hidden);
     private static void Check(bool condition, string message)
     {
@@ -23,11 +23,11 @@ public static class GuideReloadTests
     static string ExecutePrepare()
     {
         Check(SessionState.GetString(Key, "").Length == 0, "A guide reload test is already pending.");
-        var window = EditorWindow.CreateWindow<TextureCompositorWindow>();
+        var window = EditorWindow.CreateWindow<WhimTexWindow>();
         window.name = "WhimTex Guide Reload " + RunId;
         try
         {
-            var document = (TextureCompositor)Field("compositor").GetValue(window);
+            var document = (WhimTexDocument)Field("activeDocument").GetValue(window);
             document.name = "Guide Reload Test " + RunId;
             window.ShowUtility();
             window.CreateGUI();
@@ -55,7 +55,7 @@ public static class GuideReloadTests
         }
         catch (Exception primary)
         {
-            var document = (TextureCompositor)Field("compositor").GetValue(window);
+            var document = (WhimTexDocument)Field("activeDocument").GetValue(window);
             try { UnityBReload.Drain(new Action[] { () => UnityBRun.CloseOwned(window), () => UnityBReload.DestroyOwned(document) }); }
             catch (Exception cleanup) { throw new AggregateException("Begin failed and owned cleanup also failed", primary, cleanup); }
             throw;
@@ -67,17 +67,17 @@ public static class GuideReloadTests
         string marker = SessionState.GetString(Key, "");
         Check(marker.Length != 0, "Run Prepare before reloading scripts.");
         Check(marker == "Guide Reload Test " + RunId, "Owned GUID marker is unchanged.");
-        foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
+        foreach (var window in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
         {
-            var document = (TextureCompositor)Field("compositor").GetValue(window);
+            var document = (WhimTexDocument)Field("activeDocument").GetValue(window);
             if (document == null || document.name != marker) continue;
             Validate(window);
             window.CreateGUI();
             Validate(window);
-            var setDocument = WindowType.GetMethod("SetCompositor", Hidden);
+            var setDocument = WindowType.GetMethod("SetDocument", Hidden);
             setDocument.Invoke(window, new object[] { document });
             Validate(window);
-            var next = ScriptableObject.CreateInstance<TextureCompositor>();
+            var next = ScriptableObject.CreateInstance<WhimTexDocument>();
             next.name = "Guide Reload Test " + RunId;
             next.hideFlags = HideFlags.HideAndDontSave;
             setDocument.Invoke(window, new object[] { next });
@@ -90,15 +90,15 @@ public static class GuideReloadTests
         throw new Exception("Test document did not survive script reload.");
     }
 
-    private static void Validate(TextureCompositorWindow window)
+    private static void Validate(WhimTexWindow window)
     {
         var guides = (IList)Field("canvasGuides").GetValue(window);
         Check(guides.Count == 3, "Guide list was cleared during restoration.");
         Check((bool)Field("canvasGuidesHidden").GetValue(window), "Hidden state was lost.");
         Check((bool)Field("canvasGuidesLocked").GetValue(window), "Locked state was lost.");
         Check(!(bool)Field("canvasGuidesSnap").GetValue(window), "Snapping preference was lost.");
-        Check((TextureCompositor)Field("canvasGuidesDocument").GetValue(window) ==
-            (TextureCompositor)Field("compositor").GetValue(window), "Guide view is not bound to the restored document.");
+        Check((WhimTexDocument)Field("canvasGuidesDocument").GetValue(window) ==
+            (WhimTexDocument)Field("activeDocument").GetValue(window), "Guide view is not bound to the restored document.");
         for (int i = 0; i < guides.Count; i++)
         {
             var guide = guides[i];
@@ -129,13 +129,13 @@ public static class GuideReloadTests
         try {
         Bind(runId,null);
         var steps = new System.Collections.Generic.List<Action>();
-        foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>()) {
-            var document = (TextureCompositor)Field("compositor").GetValue(window);
+        foreach (var window in Resources.FindObjectsOfTypeAll<WhimTexWindow>()) {
+            var document = (WhimTexDocument)Field("activeDocument").GetValue(window);
             if (window.name != "WhimTex Guide Reload " + RunId && (document == null || document.name != "Guide Reload Test " + RunId)) continue;
             steps.Add(() => UnityBRun.CloseOwned(window));
             if (document != null && document.name == "Guide Reload Test " + RunId) steps.Add(() => UnityBReload.DestroyOwned(document));
         }
-        foreach (var document in Resources.FindObjectsOfTypeAll<TextureCompositor>())
+        foreach (var document in Resources.FindObjectsOfTypeAll<WhimTexDocument>())
             if (document.name == "Guide Reload Test " + RunId) steps.Add(() => UnityBReload.DestroyOwned(document));
         UnityBReload.Drain(steps);
         SessionState.EraseString(Key);

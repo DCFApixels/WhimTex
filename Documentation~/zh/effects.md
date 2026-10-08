@@ -173,7 +173,7 @@ Euclidean Antialiased 下，Outline 使用 Source Channel 的 50% 阈值，SDF �
 
 **Channels → R / G / B / A** 选择接收结果的通道，初始全部开启。
 关闭 A 可保留原透明度；关闭全部通道则跳过接缝处理。
-后续 FX、Swizzle 和图层混合仍可能改变图像。
+后续 FX、Mapping 和图层混合仍可能改变图像。
 
 方形控件选择当前步骤处理的边缘：
 

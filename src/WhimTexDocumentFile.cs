@@ -24,8 +24,8 @@ namespace DCFApixels.WhimTex
             internal DateTime written;
             internal bool srgb;
         }
-        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TextureCompositor, SaveSnapshot> Saves =
-            new System.Runtime.CompilerServices.ConditionalWeakTable<TextureCompositor, SaveSnapshot>();
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<WhimTexDocument, SaveSnapshot> Saves =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<WhimTexDocument, SaveSnapshot>();
 
         /// <summary>True when the file carries a WhimTex document, used to distinguish documents from plain images.</summary>
         public static bool IsDocument(string assetPath) => WhimTexDocumentJson.IsJsonPath(assetPath)
@@ -54,7 +54,7 @@ namespace DCFApixels.WhimTex
         }
 
         /// <summary>Saves the document and returns the TIFF path; HDR never changes its extension.</summary>
-        public static string Save(TextureCompositor document, string path, bool deferImport = false, bool allowDataLoss = false)
+        public static string Save(WhimTexDocument document, string path, bool deferImport = false, bool allowDataLoss = false)
         {
             if (WhimTexDocumentJson.IsJsonPath(path)) return SaveJson(document, path,
                 new WhimTexJsonWriteOptions { Mode = document == null ? WhimTexJsonWriteMode.FullOptimized : document.JsonWriteMode,
@@ -194,12 +194,12 @@ namespace DCFApixels.WhimTex
             return path;
         }
 
-        private static void ScheduleImportValidation(TextureCompositor document)
+        private static void ScheduleImportValidation(WhimTexDocument document)
         {
             var binding = document.documentBinding;
             string path = binding.path;
             long ticks = binding.writeTicks, length = binding.length;
-            var owner = new WeakReference<TextureCompositor>(document);
+            var owner = new WeakReference<WhimTexDocument>(document);
             void Verify()
             {
                 if (!owner.TryGetTarget(out var current) || current == null || current.documentBinding != binding || binding == null ||
@@ -221,7 +221,7 @@ namespace DCFApixels.WhimTex
         }
 
         /// <summary>Independent in-memory document snapshot with its own Drawing pixels and FX.</summary>
-        internal static TextureCompositor CreateEditableCopy(TextureCompositor source)
+        internal static WhimTexDocument CreateEditableCopy(WhimTexDocument source)
         {
             if (source == null || !string.IsNullOrEmpty(source.documentLoadWarning))
                 throw new WhimTexDocumentException("An incomplete document cannot be copied safely.");
@@ -232,8 +232,8 @@ namespace DCFApixels.WhimTex
             // An independent in-memory copy needs raw snapshots, not compressed-cache lookup/inflation.
             using var container = new WhimTexDocumentContainer { ReusePixelCache = false };
             var model = WhimTexDocumentSerializer.Serialize(source, container);
-            var read = WhimTexDocumentSerializer.Deserialize(model, container, typeof(TextureCompositor));
-            var copy = (TextureCompositor)read.Model;
+            var read = WhimTexDocumentSerializer.Deserialize(model, container, typeof(WhimTexDocument));
+            var copy = (WhimTexDocument)read.Model;
             if (copy == null || copy == source || AssetDatabase.Contains(copy))
                 throw new WhimTexDocumentException("The document copy did not produce an independent working model.");
             try
@@ -262,20 +262,20 @@ namespace DCFApixels.WhimTex
         }
 
         /// <summary>Loads an editable model; incomplete models are protected against lossy saves.</summary>
-        public static TextureCompositor Load(string path)
+        public static WhimTexDocument Load(string path)
         {
-            if (!TryLoad(path, out TextureCompositor document, out string error))
+            if (!TryLoad(path, out WhimTexDocument document, out string error))
                 throw new WhimTexDocumentException(error);
             return document;
         }
 
-        public static bool TryLoad(string path, out TextureCompositor document, out string error)
+        public static bool TryLoad(string path, out WhimTexDocument document, out string error)
             => TryLoad(path, out document, out error, true);
 
-        internal static bool TryLoad(string path, out TextureCompositor document, out string error, bool prepareEffects)
+        internal static bool TryLoad(string path, out WhimTexDocument document, out string error, bool prepareEffects)
             => TryLoad(path, out document, out error, prepareEffects, out _);
 
-        internal static bool TryLoad(string path, out TextureCompositor document, out string error, bool prepareEffects,
+        internal static bool TryLoad(string path, out WhimTexDocument document, out string error, bool prepareEffects,
             out IReadOnlyList<string> loadWarnings)
         {
             loadWarnings = Array.Empty<string>();
@@ -304,9 +304,9 @@ namespace DCFApixels.WhimTex
                     error = "The document has no model block.";
                     return false;
                 }
-                var read = WhimTexDocumentSerializer.Deserialize(model, container, typeof(TextureCompositor),
+                var read = WhimTexDocumentSerializer.Deserialize(model, container, typeof(WhimTexDocument),
                     Path.GetFullPath(path), deferDrawingTextures: true);
-                document = read.Model as TextureCompositor;
+                document = read.Model as WhimTexDocument;
                 if (document == null)
                 {
                     error = "The document model could not be reconstructed.";
@@ -358,7 +358,7 @@ namespace DCFApixels.WhimTex
         }
 
         /// <summary>The file image is the composite, so the loaded document points at it instead of at a sub-asset.</summary>
-        private static void BindImportedComposite(TextureCompositor document, string path)
+        private static void BindImportedComposite(WhimTexDocument document, string path)
         {
             // Unsaved document copies have no imported composite or TIFF carrier to inspect.
             if (string.IsNullOrEmpty(path)) return;
@@ -368,7 +368,7 @@ namespace DCFApixels.WhimTex
                 document.outputSrgb = srgb;
             var composite = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
             if (composite == null) return;
-            FieldInfo field = typeof(TextureCompositor).GetField(ModelField,
+            FieldInfo field = typeof(WhimTexDocument).GetField(ModelField,
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             field?.SetValue(document, composite);
         }
@@ -389,7 +389,7 @@ namespace DCFApixels.WhimTex
         }
 
         /// <summary>Shaders are not stored: every embedded effect is compiled again after loading.</summary>
-        private static void CompileEmbeddedEffects(TextureCompositor document)
+        private static void CompileEmbeddedEffects(WhimTexDocument document)
         {
             foreach (ShaderFX effect in EnumerateEffects(document))
             {
@@ -400,14 +400,14 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static void ValidateEffectsForSave(TextureCompositor document)
+        private static void ValidateEffectsForSave(WhimTexDocument document)
         {
             foreach (var effect in EnumerateEffects(document))
                 if (effect.LastApplyFailed || effect.HasPendingChanges)
                     throw new WhimTexDocumentException("Apply or fix Shader FX '" + effect.name + "' before saving. The existing TIFF was not changed. " + effect.Diagnostics);
         }
 
-        private static IEnumerable<ShaderFX> EnumerateEffects(TextureCompositor document)
+        private static IEnumerable<ShaderFX> EnumerateEffects(WhimTexDocument document)
         {
             var seen = new HashSet<ShaderFX>();
             var stack = new Stack<Layer>();

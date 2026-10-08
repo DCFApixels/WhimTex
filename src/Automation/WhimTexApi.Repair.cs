@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
 {
     public static partial class WhimTexApi
     {
-        private static void PaintRepair(TextureCompositor document, Layer target, JObject operation, bool execute)
+        private static void PaintRepair(WhimTexDocument document, Layer target, JObject operation, bool execute)
         {
             bool healing = Text(operation, "op") == "healStroke";
             bool smudge = Text(operation, "op") == "smudgeStroke";
@@ -131,7 +131,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static void HealPixels(TextureCompositor document, DrawingLayerBehaviour drawing, RenderTexture sample,
+        private static void HealPixels(WhimTexDocument document, DrawingLayerBehaviour drawing, RenderTexture sample,
             Vector2[] points, Texture2D suppliedMask, float size, float hardness, int search, bool tiled,
             HealingQuality quality, int seed, bool transparentOnly, ProjectiveMatrix inverse)
         {

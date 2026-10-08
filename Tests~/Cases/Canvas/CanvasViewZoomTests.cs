@@ -13,7 +13,7 @@ static System.Threading.CancellationToken Cancellation;
 
 private static string BodyRun()
 {
-var type = typeof(DCFApixels.WhimTex.TextureCompositorWindow).Assembly.GetType("DCFApixels.WhimTex.CanvasViewport", true);
+var type = typeof(DCFApixels.WhimTex.WhimTexWindow).Assembly.GetType("DCFApixels.WhimTex.CanvasViewport", true);
 var viewport = System.Activator.CreateInstance(type, true);
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 var bounds = new UnityEngine.Rect(0, 0, 808, 408);

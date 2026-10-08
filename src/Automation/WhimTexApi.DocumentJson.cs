@@ -59,7 +59,7 @@ namespace DCFApixels.WhimTex
             {
                 string path = DocumentPath(Text(request, "assetPath"));
                 Require(WhimTexDocumentJson.IsDocumentFile(path), "Expected a WhimTex JSON document.");
-                Require(TextureCompositorWindow.TryOpenWhimTexDocumentPath(path, out string error), error ?? "Could not open JSON document.", "open_failed");
+                Require(WhimTexWindow.TryOpenWhimTexDocumentPath(path, out string error), error ?? "Could not open JSON document.", "open_failed");
                 result["assetPath"] = path;
                 return result;
             }
@@ -80,7 +80,7 @@ namespace DCFApixels.WhimTex
             {
                 if (request["mode"] == null) options.Mode = parsed.Document.JsonWriteMode;
                 bool save = Bool(request, "save", true);
-                TextureCompositor existing = null;
+                WhimTexDocument existing = null;
                 string saved = targetPath;
                 try
                 {

@@ -128,7 +128,7 @@ context.case("MotionBlurMath original assertion inputs and source contracts", as
   }
   assert.doesNotMatch(ui, /\.Clear\(|\.style\.|isDelayed/);
   assert.match(read('src/EffectRenderCache.cs'), /effect\.RequiresColorInput/);
-  assert.match(read('src/TextureCompositor.cs'), /effect\.RequiresColorInput/);
+  assert.match(read('src/WhimTexDocument.cs'), /effect\.RequiresColorInput/);
   assert.match(read('src/LayerTypeRegistry.cs'), /new Entry\("blur", "Blur", "Blur", "Blur", typeof\(BlurLayerBehaviour\)/);
   assert.match(read('src/Automation/WhimTexApi.Inspect.cs'), /blurDefaults/);
   assert.match(read('src/Utils.cs'), /DestroyImmediate\(motionBlurMaterial\)/);

@@ -18,8 +18,6 @@ namespace DCFApixels.WhimTex
         private static readonly Regex GroupStart = new Regex(@"^\s*//\s*@group(?:\s*\((.*)\))?\s*$");
         private static readonly Regex GroupEnd = new Regex(@"^\s*//\s*@endgroup\s*$");
         private static readonly Regex ParameterPrefix = new Regex(@"^\s*//\s*@param\b");
-        private static readonly Regex FormerlySerializedAsStart = new Regex(@"^\s*//\s*@formerlyserializedas\b");
-        private static readonly Regex FormerlySerializedAs = new Regex(@"^\s*//\s*@formerlyserializedas\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*$");
 
         private sealed class GroupDefinition
         {
@@ -105,7 +103,6 @@ namespace DCFApixels.WhimTex
             int ifLine = 0;
             var pendingHeaders = new List<string>();
             var pendingHelpBoxes = new List<string>();
-            var pendingFormerNames = new List<string>();
             var groups = new List<GroupDefinition>();
             GroupDefinition activeGroup = null;
             do
@@ -118,21 +115,7 @@ namespace DCFApixels.WhimTex
                 bool groupEnd = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@endgroup\b");
                 bool ifDirective = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@if\b");
                 bool endifDirective = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@endif\b");
-                bool formerlySerializedAs = !blockComment && line != null && FormerlySerializedAsStart.IsMatch(line);
                 if (line != null) ShaderFXSourceBuilder.MaskComments(line, ref blockComment);
-                if (formerlySerializedAs)
-                {
-                    Match formerName = FormerlySerializedAs.Match(line);
-                    if (!formerName.Success)
-                        throw new FormatException($"Line {lineNumber}: expected // @formerlyserializedas(_OldName) immediately before a parameter declaration.");
-                    if (pendingFormerNames.Count >= 16)
-                        throw new FormatException($"Line {lineNumber}: a parameter may have at most 16 former names.");
-                    string former = formerName.Groups[1].Value;
-                    if (pendingFormerNames.Contains(former))
-                        throw new FormatException($"Line {lineNumber}: duplicate former parameter name {former}.");
-                    pendingFormerNames.Add(former);
-                    continue;
-                }
                 if (ifDirective)
                 {
                     if (visibleIfParameter != null) throw new FormatException($"Line {lineNumber}: nested @if blocks are not supported.");
@@ -155,7 +138,6 @@ namespace DCFApixels.WhimTex
                     ifLine = 0;
                     pendingHeaders.Clear();
                     pendingHelpBoxes.Clear();
-                    pendingFormerNames.Clear();
                     continue;
                 }
                 if (groupStart)
@@ -192,7 +174,6 @@ namespace DCFApixels.WhimTex
                     activeGroup = null;
                     pendingHeaders.Clear();
                     pendingHelpBoxes.Clear();
-                    pendingFormerNames.Clear();
                     continue;
                 }
                 if (sectionHeader)
@@ -224,8 +205,6 @@ namespace DCFApixels.WhimTex
                     if (!match.Success) throw new FormatException("Expected @param type name = value [min .. max], without a semicolon.");
                     string kind = match.Groups[1].Value;
                     string name = match.Groups[2].Value;
-                    if (pendingFormerNames.Contains(name))
-                        throw new FormatException("A parameter cannot list its current name as a former name: " + name);
                     var p = new ShaderFXParameter { name = name, floatValue = 0f, colorValue = Color.clear };
                     string value = match.Groups[3].Value.Trim();
                     bool explicitDefault = match.Groups[3].Success;
@@ -343,7 +322,6 @@ namespace DCFApixels.WhimTex
                     var control = new ShaderFXParameterControl { type = p.type, order = lineNumber, tooltip = tooltip, label = displayLabel,
                         headers = pendingHeaders.ToArray(),
                         helpBoxes = pendingHelpBoxes.ToArray(),
-                        formerlySerializedAs = pendingFormerNames.ToArray(),
                         hidden = hidden,
                         inGroup = activeGroup != null,
                         groupId = activeGroup?.id ?? 0,
@@ -353,7 +331,6 @@ namespace DCFApixels.WhimTex
                         visibleIfParameter = visibleIfParameter, visibleIfNotEqual = visibleIfNotEqual, visibleIfValue = visibleIfValue };
                     pendingHeaders.Clear();
                     pendingHelpBoxes.Clear();
-                    pendingFormerNames.Clear();
                     if (activeGroup != null)
                     {
                         activeGroup.parameterCount++;
@@ -399,7 +376,6 @@ namespace DCFApixels.WhimTex
             } while ((line = reader.ReadLine()) != null);
             if (visibleIfParameter != null) throw new FormatException($"Line {ifLine}: @if has no matching @endif.");
             if (activeGroup != null) throw new FormatException($"Line {activeGroup.line}: @group has no matching @endgroup.");
-            if (pendingFormerNames.Count > 0) throw new FormatException($"Line {lineNumber}: @formerlyserializedas must be followed by a parameter declaration.");
             foreach (var group in groups)
             {
                 if (group.parameterCount == 0) throw new FormatException($"Line {group.line}: @group must contain at least one parameter.");
@@ -414,18 +390,6 @@ namespace DCFApixels.WhimTex
                     !string.IsNullOrEmpty(headerControl.visibleIfParameter))
                     throw new FormatException($"Line {group.line}: group header parameter {group.headerParameter} must be unconditional and declared inside the group.");
             }
-            var formerNameOwners = new Dictionary<string, ShaderFXParameter>(StringComparer.Ordinal);
-            foreach (var parameter in result)
-                foreach (var control in parameter.controls)
-                    if (control.formerlySerializedAs != null)
-                        foreach (string formerName in control.formerlySerializedAs)
-                        {
-                            if (names.TryGetValue(formerName, out ShaderFXParameter currentOwner) && !ReferenceEquals(currentOwner, parameter))
-                                throw new FormatException($"Line {control.order}: former parameter name {formerName} is still used by another parameter.");
-                            if (formerNameOwners.TryGetValue(formerName, out ShaderFXParameter formerOwner) && !ReferenceEquals(formerOwner, parameter))
-                                throw new FormatException($"Line {control.order}: former parameter name {formerName} is claimed by more than one parameter.");
-                            formerNameOwners[formerName] = parameter;
-                        }
             foreach (var parameter in result)
                 foreach (var control in parameter.controls)
                     if (!string.IsNullOrEmpty(control.visibleIfParameter))
@@ -604,14 +568,6 @@ namespace DCFApixels.WhimTex
                         if (match == null)
                             match = old;
                     }
-                if (match == null)
-                    foreach (var old in previous)
-                        if (old != null && HasFormerName(p, old.name) &&
-                            (Compatible(old.type, p.type) || old.type == ShaderFXParameterType.Vector && p.type == ShaderFXParameterType.Vector3))
-                        {
-                            if (match == null)
-                                match = old;
-                        }
                 // A rename in place keeps identity. Do not guess across insertions/removals or reorders.
                 if (match == null && next.Count == previous.Count && previous[i] is ShaderFXParameter candidate &&
                     candidate.type == p.type && !next.Exists(item => item.name == candidate.name))
@@ -632,23 +588,6 @@ namespace DCFApixels.WhimTex
                 p.curveValue = match.curveValue == null ? null : WhimTexCurveTexture.Copy(match.curveValue);
                 p.transformValue = match.transformValue;
             }
-        }
-
-        internal static bool HasFormerName(ShaderFXParameter parameter, string name)
-        {
-            if (parameter?.controls == null || string.IsNullOrEmpty(name)) return false;
-            foreach (var control in parameter.controls)
-                if (control?.formerlySerializedAs != null)
-                    foreach (string formerName in control.formerlySerializedAs)
-                        if (formerName == name) return true;
-            return false;
-        }
-
-        internal static bool MatchesNameOrFormerName(ShaderFXParameter parameter, string name, ShaderFXParameterType type)
-        {
-            if (parameter == null || !(Compatible(parameter.type, type) || parameter.type == ShaderFXParameterType.Vector && type == ShaderFXParameterType.Vector3))
-                return false;
-            return parameter.name == name || HasFormerName(parameter, name);
         }
 
         internal static bool IsScalar(ShaderFXParameterType type) => type == ShaderFXParameterType.Float || type == ShaderFXParameterType.Bool || type == ShaderFXParameterType.Enum;

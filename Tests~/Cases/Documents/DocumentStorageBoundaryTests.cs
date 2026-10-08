@@ -20,14 +20,14 @@ public static class DocumentStorageBoundaryTests
     {
         string folder = UnityBRun.AssetPath("WhimTexStorageBoundary_") + Guid.NewGuid().ToString("N");
         UnityBRun.EnsureFolder(folder);
-        var document = UnityBRun.Create<TextureCompositor>();
-        TextureCompositor unexpected = null;
+        var document = UnityBRun.Create<WhimTexDocument>();
+        WhimTexDocument unexpected = null;
         try
         {
             document.hideFlags = HideFlags.HideAndDontSave;
             document.width = document.height = 16;
             document.layers.Add(new Layer(new ColorFillLayerBehaviour { color = Color.red }));
-            string archived = "Packages/com.dcfapixels.whimtex/Tests~/Fixtures/Compatibility0125/compositor.asset";
+            string archived = "Packages/com.dcfapixels.whimtex/Tests~/Fixtures/Compatibility0125/activeDocument.asset";
             Check(!WhimTexDocumentFile.IsDocument(archived), "archived asset is not a document");
             Check(!WhimTexDocumentFile.TryLoad(archived, out unexpected, out _) && unexpected == null, "asset load rejected");
             byte[] before = File.ReadAllBytes(archived);
@@ -44,7 +44,7 @@ public static class DocumentStorageBoundaryTests
                 WhimTexApi.ExecuteJson("{\"apiVersion\":1,\"assetPath\":\"" + disguised + "\",\"dryRun\":true,\"operations\":[]}")
             }) Check(response.Contains("\"success\":false") && response.Contains("invalid_path"), "agent asset path rejected");
             Check(typeof(WhimTexApi).GetMethod("Migrate") == null, "migration API removed");
-            Check(typeof(TextureCompositor).GetMethod("SaveLegacyAssetForCompatibility", BindingFlags.NonPublic | BindingFlags.Instance) == null, "legacy writer removed");
+            Check(typeof(WhimTexDocument).GetMethod("SaveLegacyAssetForCompatibility", BindingFlags.NonPublic | BindingFlags.Instance) == null, "legacy writer removed");
             string json = WhimTexDocumentFile.Save(document, folder + "/Modern.json");
             Check(WhimTexDocumentFile.IsDocument(tiff) && WhimTexDocumentFile.IsDocument(json), "TIFF and JSON remain supported");
             return "";

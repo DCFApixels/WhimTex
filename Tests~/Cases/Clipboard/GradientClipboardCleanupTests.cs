@@ -44,13 +44,13 @@ public static class GradientClipboardCleanupTests
     }
     static void UnknownDocument(string folder)
     {
-        var document = UnityBRun.Create<TextureCompositor>();
-        TextureCompositor loaded = null; Texture2D image = null;
+        var document = UnityBRun.Create<WhimTexDocument>();
+        WhimTexDocument loaded = null; Texture2D image = null;
         try
         {
             document.hideFlags = HideFlags.HideAndDontSave; document.width = document.height = 8;
             document.layers.Add(new GradientLayerBehaviour());
-            typeof(TextureCompositor).GetMethod("NormalizeModel", Any).Invoke(document, null);
+            typeof(WhimTexDocument).GetMethod("NormalizeModel", Any).Invoke(document, null);
             using var container = new WhimTexDocumentContainer();
             byte[] model = (byte[])Call("WhimTexDocumentSerializer", "Serialize", document, container);
             byte[] header = Encode(writer => { writer.Write((byte)29); writer.Write(typeof(WhimTexGradient).FullName); });
@@ -74,7 +74,7 @@ public static class GradientClipboardCleanupTests
             byte[] carrier = (byte[])Call("WhimTexTiffCarrier", "Write", container, image, null);
             string path = Path.Combine(folder, "UnknownTransition.tiff"); File.WriteAllBytes(path, carrier);
             loaded = WhimTexDocumentFile.Load(path);
-            string warning = (string)typeof(TextureCompositor).GetField("documentLoadWarning", Any).GetValue(loaded);
+            string warning = (string)typeof(WhimTexDocument).GetField("documentLoadWarning", Any).GetValue(loaded);
             Check(warning == "WhimTexGradient.transition", "TIFF unknown transition diagnosed");
             Same(((GradientLayerBehaviour)document.layers[0].Behaviour).gradient,
                 ((GradientLayerBehaviour)loaded.layers[0].Behaviour).gradient, "Diagnosed TIFF retains known data");

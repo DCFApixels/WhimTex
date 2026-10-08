@@ -12,7 +12,7 @@ public static class NoisePeriodicGpuTests
 {
     static string ExecuteRun(int kind = 3, int dimensions = 3, bool stress = false)
     {
-        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         doc.hideFlags = HideFlags.HideAndDontSave;
         doc.width = doc.height = 16;
         var noise = new NoiseLayerBehaviour { noiseType=(NoiseLayerBehaviour.NoiseType)kind,
@@ -22,7 +22,7 @@ public static class NoisePeriodicGpuTests
             WarpScale=new Vector2(2.3f,.7f) };
         doc.layers.Add(noise);
         var flags=BindingFlags.NonPublic|BindingFlags.Public|BindingFlags.Instance|BindingFlags.Static;
-        typeof(TextureCompositor).GetMethod("NormalizeModel",flags).Invoke(doc,null);
+        typeof(WhimTexDocument).GetMethod("NormalizeModel",flags).Invoke(doc,null);
         Texture2D image=null;
         double max=0, sum=0; int checks=0; string config="";
         try
@@ -47,7 +47,7 @@ public static class NoisePeriodicGpuTests
                         noise.weightedStrength=0;noise.warpStrength=100;
                     }
                     image=doc.ComposeCanvas(); config=key;
-                    foreach(var error in ShaderUtil.GetShaderMessages(Shader.Find("Hidden/TextureCompositor/Noise")))
+                    foreach(var error in ShaderUtil.GetShaderMessages(Shader.Find("Hidden/WhimTex/Noise")))
                         WhimTex.Tests.UnityC.FixtureContext.Context.True(!(error.severity.ToString()=="Error"), error.message);
                 }
                 int sample=int.Parse(c[5]);
@@ -60,7 +60,7 @@ public static class NoisePeriodicGpuTests
             WhimTex.Tests.UnityC.FixtureContext.Context.True(!(checks!=(stress?108:432)), "Missing fixture rows: "+checks);
             if(stress)return "PASS stress type="+kind+" dimensions="+dimensions+" samples="+checks+" max="+max+" mean="+(sum/checks);
             // Read the exact generated surface, without changing the shared material.
-            var mt=typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials");
+            var mt=typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials");
             var shared=(Material)mt.GetProperty("Noise",flags).GetValue(null);
             var material=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(shared){hideFlags=HideFlags.HideAndDontSave});
             // Copy dynamic integer uniforms explicitly; these are not ShaderLab properties.

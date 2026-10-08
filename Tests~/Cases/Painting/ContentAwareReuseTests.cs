@@ -12,7 +12,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
 static System.Threading.CancellationToken Cancellation;
 
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
-    static readonly Type Algorithm = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.ContentAwareFill", true);
+    static readonly Type Algorithm = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.ContentAwareFill", true);
     static readonly Type Level = Algorithm.GetNestedType("Level", F);
     static int checks;
     static void Check(bool value, string message) { T.True(value, message); }

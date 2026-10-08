@@ -17,12 +17,12 @@ var report = new System.Text.StringBuilder();
 int checks = 0;
 void Check(bool ok, string message) { UnityBRun.Check(!(!ok), "FAIL: " + message); checks++; }
 object Call(object target, string method, params object[] args) => target.GetType().GetMethod(method, Hidden).Invoke(target, args);
-var assembly = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly;
+var assembly = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly;
 var serializerType = assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSerializer", true);
 object Serialize(object document, DCFApixels.WhimTex.WhimTexDocumentContainer container) =>
     serializerType.GetMethod("Serialize", Static).Invoke(null, new[] { document, container });
 object Deserialize(byte[] model, DCFApixels.WhimTex.WhimTexDocumentContainer container) =>
-    serializerType.GetMethod("Deserialize", Static).Invoke(null, new object[] { model, container, typeof(DCFApixels.WhimTex.TextureCompositor), null, false });
+    serializerType.GetMethod("Deserialize", Static).Invoke(null, new object[] { model, container, typeof(DCFApixels.WhimTex.WhimTexDocument), null, false });
 object Property(object read, string name) => read.GetType().GetProperty(name, Hidden).GetValue(read);
 string[] MissingTypes(object read)
 {
@@ -51,7 +51,7 @@ byte[] Patch(byte[] model, string from, string to)
 }
 
 // --- a document with a behaviour that will become unknown, plus layers parsed after it ---
-var doc = UnityBRun.Create<DCFApixels.WhimTex.TextureCompositor>();
+var doc = UnityBRun.Create<DCFApixels.WhimTex.WhimTexDocument>();
 doc.width = doc.height = 8;
 doc.layers.Add(new DCFApixels.WhimTex.Layer(new DCFApixels.WhimTex.ColorFillLayerBehaviour { color = UnityEngine.Color.blue }) { layerName = "vanishing" });
 var group = new DCFApixels.WhimTex.Layer(new DCFApixels.WhimTex.GroupLayerBehaviour()) { layerName = "group", opacity = .5f };
@@ -69,7 +69,7 @@ report.Append("payload=").Append(model.Length).Append("B");
 string known = typeof(DCFApixels.WhimTex.ColorFillLayerBehaviour).FullName;
 byte[] damaged = Patch(model, known, known.Substring(0, known.Length - 1) + "X");
 var firstRead = Deserialize(damaged, container);
-var loaded = UnityBRun.Track((DCFApixels.WhimTex.TextureCompositor)Property(firstRead, "Model"));
+var loaded = UnityBRun.Track((DCFApixels.WhimTex.WhimTexDocument)Property(firstRead, "Model"));
 Check(loaded != null, "the document still loads");
 Check(loaded.layers.Count == 3, "all layers survive, got " + loaded.layers.Count);
 Check(loaded.layers[0].layerName == "vanishing" && loaded.layers[0].Behaviour == null,
@@ -90,7 +90,7 @@ report.Append(" missing=").Append(missing.Length);
 using var second = new DCFApixels.WhimTex.WhimTexDocumentContainer();
 byte[] again = (byte[])Serialize(loaded, second);
 var secondRead = Deserialize(again, second);
-var reloaded = UnityBRun.Track((DCFApixels.WhimTex.TextureCompositor)Property(secondRead, "Model"));
+var reloaded = UnityBRun.Track((DCFApixels.WhimTex.WhimTexDocument)Property(secondRead, "Model"));
 Check(reloaded.layers.Count == 3, "the document can be saved and loaded again");
 Check(reloaded.layers[1].children.Count == 1 && reloaded.layers[2].Behaviour is DCFApixels.WhimTex.OutlineLayerBehaviour,
     "structure survives a second pass");

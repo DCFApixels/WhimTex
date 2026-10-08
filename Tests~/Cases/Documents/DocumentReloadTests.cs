@@ -22,7 +22,7 @@ public static class DocumentReloadTests
     static string Key;
     static string RunId;
     static WhimTex.Tests.TestContext context;
-    static Type Session => typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSession");
+    static Type Session => typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSession");
     static void Check(bool condition, string message) { context.True(condition, message); }
     static string ExecutePrepare()
     {
@@ -33,7 +33,7 @@ public static class DocumentReloadTests
         UnityBReload.ValidateAssetDirectory(RunId, true);
         string folder = UnityBManualAssets.Create(RunId);
         EditorPrefs.SetString(Key, folder);
-        var doc = ScriptableObject.CreateInstance<TextureCompositor>();
+        var doc = ScriptableObject.CreateInstance<WhimTexDocument>();
         doc.name = RunId;
         doc.hideFlags = HideFlags.HideAndDontSave;
         doc.width = 64; doc.height = 32;
@@ -43,16 +43,16 @@ public static class DocumentReloadTests
         importer.isReadable = false; importer.SaveAndReimport();
         // Use a real EditorWindow host: a bare ScriptableObject is not restored by Unity
         // across an assembly reload and would make this probe test the wrong lifecycle.
-        var window = EditorWindow.CreateWindow<TextureCompositorWindow>();
+        var window = EditorWindow.CreateWindow<WhimTexWindow>();
         window.name = "WhimTex Document Reload " + RunId;
-        var previousDefault = (TextureCompositor)typeof(TextureCompositorWindow).GetField("compositor", Any).GetValue(window);
-        typeof(TextureCompositorWindow).GetMethod("SetCompositor", Any).Invoke(window, new object[] { doc });
+        var previousDefault = (WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument", Any).GetValue(window);
+        typeof(WhimTexWindow).GetMethod("SetDocument", Any).Invoke(window, new object[] { doc });
         if (previousDefault != null && previousDefault != doc) UnityEngine.Object.DestroyImmediate(previousDefault);
-        typeof(TextureCompositorWindow).GetMethod("BindDocumentFile", Any).Invoke(window, new object[] { path });
+        typeof(WhimTexWindow).GetMethod("BindDocumentFile", Any).Invoke(window, new object[] { path });
         window.Show();
         EditorPrefs.SetString(Key + ".guid", AssetDatabase.AssetPathToGUID(path));
         ((ColorFillLayerBehaviour)doc.layers[0].Behaviour).color = Color.green;
-        typeof(TextureCompositor).GetMethod("MarkChanged", Any).Invoke(doc, null);
+        typeof(WhimTexDocument).GetMethod("MarkChanged", Any).Invoke(doc, null);
         Check((bool)Session.GetMethod("Start", Any).Invoke(null, new object[] { doc, path }), "Live Update start");
         return "READY: run Unity recompile, wait for completion, then Verify. " + folder;
     }
@@ -65,11 +65,11 @@ public static class DocumentReloadTests
             throw new InvalidOperationException("Missing owned marker; real reload was not verified.");
         Check(folder == "Assets/WhimTexTestMigration/" + RunId, "owned test folder");
         string path = AssetDatabase.GUIDToAssetPath(EditorPrefs.GetString(Key + ".guid", ""));
-        TextureCompositorWindow found = null;
-        foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
+        WhimTexWindow found = null;
+        foreach (var window in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
             {
-                var document = (TextureCompositor)typeof(TextureCompositorWindow).GetField("compositor", Any).GetValue(window);
-                var service = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentService");
+                var document = (WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument", Any).GetValue(window);
+                var service = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentService");
                 if ((string)service.GetMethod("PathOf", Any).Invoke(null, new object[] { document }) == path) found = window;
             }
         if (found == null)
@@ -85,13 +85,13 @@ public static class DocumentReloadTests
         }
         {
             Check(found != null, "window restored");
-            var doc = (TextureCompositor)typeof(TextureCompositorWindow).GetField("compositor", Any).GetValue(found);
+            var doc = (WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument", Any).GetValue(found);
             object[] binding = { doc, null };
-            Check((bool)typeof(TextureCompositorWindow).GetMethod("TryGetDocumentFile", Any).Invoke(null, binding) && (string)binding[1] == path, "binding restored after domain reload");
+            Check((bool)typeof(WhimTexWindow).GetMethod("TryGetDocumentFile", Any).Invoke(null, binding) && (string)binding[1] == path, "binding restored after domain reload");
             Check(!((TextureImporter)AssetImporter.GetAtPath(path)).isReadable, "Read/Write restored across domain reload");
             Check(!(bool)Session.GetProperty("IsLive", Any).GetValue(null), "live session ended before reload");
             Check(doc.width == 64 && doc.height == 32 && ((ColorFillLayerBehaviour)doc.layers[0].Behaviour).color == Color.green, "unsaved document content retained");
-            var storageBinding = typeof(TextureCompositor).GetField("documentBinding", Any).GetValue(doc) as UnityEngine.Object;
+            var storageBinding = typeof(WhimTexDocument).GetField("documentBinding", Any).GetValue(doc) as UnityEngine.Object;
             Check(storageBinding != null, "storage binding survives reload independently of window fallback");
             WhimTexDocumentFile.Save(doc, path);
             Check((string)storageBinding.GetType().GetField("guid", Any).GetValue(storageBinding) == AssetDatabase.AssetPathToGUID(path), "save after reload retains storage GUID");
@@ -153,16 +153,16 @@ public static class DocumentReloadTests
             string live = (string)Session.GetProperty("LivePath", Any).GetValue(null);
             if (live != null && live.StartsWith(folder + "/", StringComparison.Ordinal)) Session.GetMethod("Stop", Any).Invoke(null, new object[] { "owned reload cleanup" });
         });
-        foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
+        foreach (var window in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
         {
-            var doc = (TextureCompositor)typeof(TextureCompositorWindow).GetField("compositor", Any).GetValue(window);
+            var doc = (WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument", Any).GetValue(window);
             if (window.name == "WhimTex Document Reload " + RunId || doc != null && doc.name == RunId)
             {
                 steps.Add(() => UnityBRun.CloseOwned(window));
                 if (doc != null && doc.name == RunId) steps.Add(() => UnityBReload.DestroyOwned(doc));
             }
         }
-        foreach (var doc in Resources.FindObjectsOfTypeAll<TextureCompositor>())
+        foreach (var doc in Resources.FindObjectsOfTypeAll<WhimTexDocument>())
             if (doc.name == RunId) steps.Add(() => UnityBReload.DestroyOwned(doc));
         steps.Add(() => {
             UnityBReload.ValidateAssetDirectory(RunId, false);

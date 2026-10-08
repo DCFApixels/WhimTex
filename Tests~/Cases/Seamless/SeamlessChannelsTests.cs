@@ -23,7 +23,7 @@ public static class SeamlessChannelsTests
     {
         checks=0;
         object Call(object obj,string method,params object[] args)=>obj.GetType().GetMethod(method,Flags).Invoke(obj,args);
-        var document=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());document.width=32;document.height=16;
+        var document=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());document.width=32;document.height=16;
         var input=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(32,16,TextureFormat.RGBAFloat,false,true));
         var pixels=new Color[512];
         for(int y=0;y<16;y++)for(int x=0;x<32;x++)pixels[y*32+x]=new Color(.2f+x*.02f,.8f-y*.03f,.45f+.13f*Mathf.Sin(x*.8f+y),.25f+x*.02f);
@@ -31,7 +31,7 @@ public static class SeamlessChannelsTests
         var source=new FileLayerBehaviour {sourceTexture=input,colorRange=LayerColorRange.HDR};
         var effect=MakeSeamlessLayerBehaviour.CreateDefault();effect.colorRange=LayerColorRange.HDR;
         document.layers.Add(effect);document.layers.Add(source);
-        var cache=Activator.CreateInstance(typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache"),true);
+        var cache=Activator.CreateInstance(typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache"),true);
         var focus=EditorWindow.focusedWindow;EditorWindow window=null;
         Undo.IncrementCurrentGroup();int undo=Undo.GetCurrentGroup();
         Color[] Render(string method,params object[] args)
@@ -82,13 +82,13 @@ public static class SeamlessChannelsTests
             var clipboard=typeof(WhimTexApi).GetMethod("ReadProceduralClipboard",Flags).Invoke(null,new object[]{json,32,16});
             try
             {
-                var copy=(TextureCompositor)clipboard.GetType().GetField("Document",Flags).GetValue(clipboard);
+                var copy=(WhimTexDocument)clipboard.GetType().GetField("Document",Flags).GetValue(clipboard);
                 var saved=(MakeSeamlessLayerBehaviour)copy.layers[0].Behaviour;
                 Check(!saved.processRed&&saved.processGreen&&!saved.processBlue&&!saved.processAlpha,"Portable roundtrip");
             }
             finally {((IDisposable)clipboard).Dispose();}
             window=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<EditorWindow>());window.titleContent=new GUIContent("Channel verification");window.Show();
-            var bindings=Activator.CreateInstance(typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexUI+ValueBindings"),true);
+            var bindings=Activator.CreateInstance(typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexUI+ValueBindings"),true);
             Action<string,Action> apply=(name,change)=>{Undo.RegisterCompleteObjectUndo(document,name);change();EditorUtility.SetDirty(document);Call(bindings,"Refresh",true);};
             typeof(MakeSeamlessLayerEditorWindow).GetMethod("BuildFields",Flags).Invoke(null,new object[]{window.rootVisualElement,effect,document,apply,bindings,new Action<VisualElement,TargetedLayerBehaviour>((r,l)=>{})});
             var root=window.rootVisualElement;

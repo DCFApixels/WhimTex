@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
     public sealed class WhimTexColorField : UnityEditor.UIElements.ColorField
     {
         public WhimTexColorRange Range { get; set; } = WhimTexColorRange.Switchable;
-        internal Func<TextureCompositor> Document;
+        internal Func<WhimTexDocument> Document;
         internal Func<Color> ReadPickerColor;
         internal Action<bool> HdrChanged;
         internal Action OpenPickerOverride;
@@ -59,7 +59,7 @@ namespace DCFApixels.WhimTex
         {
             if (!enabledInHierarchy) return;
             if (OpenPickerOverride != null) { OpenPickerOverride(); return; }
-            TextureCompositor ReadDocument() => WhimTexColorPicker.FindDocument(this) ?? Document?.Invoke();
+            WhimTexDocument ReadDocument() => WhimTexColorPicker.FindDocument(this) ?? Document?.Invoke();
             var document = ReadDocument();
             var picker = WhimTexColorPicker.Open(ReadPickerColor != null ? ReadPickerColor() : value, hdr, showAlpha, Range, document,
                 ApplyPickerColor, next => { hdr = next; HdrChanged?.Invoke(next); },

@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
     public static class QuiltingEquivalenceTests
     {
         static string Folder => global::WhimTex.Tests.UnityC.FixtureContext.Scope.Temp + "/";
-        static readonly System.Reflection.MethodInfo Current=typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.PatchQuiltingSeamless").GetMethod("Render",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
+        static readonly System.Reflection.MethodInfo Current=typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.PatchQuiltingSeamless").GetMethod("Render",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
         static Color[] Read(RenderTexture rt)
         {
             var old=RenderTexture.active;var t=global::WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(rt.width,rt.height,TextureFormat.RGBAFloat,false,true));
@@ -115,7 +115,7 @@ namespace DCFApixels.WhimTex
             MakeSeamlessLayerBehaviour.QuiltingQuality quality, int seed,
             MakeSeamlessLayerBehaviour.QuiltingChannels matching, Vector4 channels)
         {
-            var material = (Material)typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials")
+            var material = (Material)typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials")
                 .GetProperty("PatchQuilting",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.Public).GetValue(null);
             if (material == null || !material.shader.isSupported)
                 throw new InvalidOperationException("Patch Quilting shader is unavailable.");

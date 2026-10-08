@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/EffectCache"
+Shader "Hidden/WhimTex/EffectCache"
 {
     Properties
     {

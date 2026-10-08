@@ -34,7 +34,7 @@ TIFF 是 WhimTex 的主要文档格式。一个 `*.tiff` 文件同时是 Unity �
 ## 兼容性
 
 不要使用外部图像编辑器重新保存 WhimTex TIFF：它可能删除附加容器，只留下合成图像。旧版
-不再支持 `.asset` 文档。请在升级前使用 WhimTex 0.12.5 将其转换为 TIFF。
+`.asset` 文档和版本 1 文档均不受支持。请使用匹配的旧版 checkout 编辑旧文件；当前版本不提供自动迁移。
 [JSON 文档](saving.md#json-文档)是可编辑的文本替代格式，不含 Drawing 像素，也不是 Unity 纹理。PNG、JPEG、TGA 和
 EXR 只包含导出的图像，不包含可编辑图层。PSD 可以保留部分图层和效果，但不能替代 WhimTex 原文档。
 

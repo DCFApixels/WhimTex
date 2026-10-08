@@ -8,7 +8,7 @@ const assert = context.assert;
 context.case('DrawingReload original assertions and branches', async () => {
     const read = path => readFileSync(new URL('../../../src/' + path, import.meta.url), 'utf8');
     const drawing = read('Layers/DrawingLayerBehaviour.cs');
-    const compositor = read('TextureCompositor.cs');
+    const activeDocument = read('WhimTexDocument.cs');
     function body(source, signature) {
         const at = source.indexOf(signature);
         assert.ok(at >= 0, signature);
@@ -22,15 +22,15 @@ context.case('DrawingReload original assertions and branches', async () => {
         }
         return source.slice(start + 1, end - 1);
     }
-    const disable = body(compositor, 'private void OnDisable()');
-    const destroy = body(compositor, 'private void OnDestroy()');
+    const disable = body(activeDocument, 'private void OnDisable()');
+    const destroy = body(activeDocument, 'private void OnDestroy()');
     assert.ok(disable.includes('ReleaseLayerResources(layers, preserveDrawingPixels: true)'));
     assert.ok(destroy.includes('ReleaseLayerResources(layers)'));
-    const visit = body(compositor, 'private static void ReleaseLayerResources(');
+    const visit = body(activeDocument, 'private static void ReleaseLayerResources(');
     assert.ok(visit.includes('preserveDrawingPixels && layer?.Behaviour is DrawingLayerBehaviour drawing'));
     assert.ok(visit.includes('drawing.ReleasePaintResources()'));
     assert.ok(visit.includes('ReleaseLayerResources(group.layers, preserveDrawingPixels)'));
-    assert.ok(compositor.includes('bool preserveDrawingPixels = false'), 'Merge/deletion retain destructive cleanup by default');
+    assert.ok(activeDocument.includes('bool preserveDrawingPixels = false'), 'Merge/deletion retain destructive cleanup by default');
     const paint = body(drawing, 'internal void PaintSegment(');
     assert.ok(paint.indexOf('paintSurfaceDirty |= segmentStamps.Count > 0') < paint.indexOf('PaintBrushRenderer.Draw('));
     assert.ok(drawing.includes('[NonSerialized] private bool paintSurfaceDirty;'));
@@ -43,7 +43,7 @@ context.case('DrawingReload original assertions and branches', async () => {
         syncPending({ paintSurfaceDirty: dirty, pixels, SyncSurfaceToTexture() { calls++; } }, () => {});
         assert.equal(calls, dirty || pixels === null ? 1 : 0, 'Saving only reads back dirty/new Drawing surfaces');
     }
-    assert.ok(body(compositor, 'internal void SyncDrawingLayerTextures()').includes('drawing.SyncPendingSurfaceToTexture()'));
+    assert.ok(body(activeDocument, 'internal void SyncDrawingLayerTextures()').includes('drawing.SyncPendingSurfaceToTexture()'));
     assert.ok(body(drawing, 'private void ReleasePaintSurface()').includes('paintSurfaceDirty = false'));
     // The production method calls the private deferred-texture initializer. Keep that
     // dependency explicit in this source-level harness instead of relying on a global

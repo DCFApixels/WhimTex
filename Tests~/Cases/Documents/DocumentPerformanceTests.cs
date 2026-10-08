@@ -70,9 +70,9 @@ public static class DocumentPerformanceTests
             throw new ArgumentException("Probe budget exceeded.");
         string folder = UnityBRun.AssetPath("WhimTexPerformance_") + Guid.NewGuid().ToString("N");
         UnityBRun.EnsureFolder(folder);
-        var doc = UnityBRun.Create<TextureCompositor>(); doc.hideFlags = HideFlags.HideAndDontSave;
+        var doc = UnityBRun.Create<WhimTexDocument>(); doc.hideFlags = HideFlags.HideAndDontSave;
         doc.width = size; doc.height = size;
-        TextureCompositor loaded = null;
+        WhimTexDocument loaded = null;
         var ownedPixels = new List<Texture2D>();
         var report = new Report { unity = Application.unityVersion, graphics = SystemInfo.graphicsDeviceType.ToString(), size = size, layers = layers, hdr = hdr, randomPixels = randomPixels };
         Application.LogCallback log = (message, _, type) => {

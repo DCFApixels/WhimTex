@@ -58,7 +58,7 @@ context.case('BrushSdf original assertions and branches', async () => {
     assert.ok(shader.includes('coverage = gradient.a * tipOpacity;'));
     assert.ok(shader.includes('color.rgb *= gradient.rgb / max(gradient.a, .00001);'));
     assert.ok(!shader.includes('_TipThreshold') && !shader.includes('SdfTipCoverage'));
-    const dynamics = read('src/BrushDynamics.cs'), drawer = read('src/TextureCompositorWindow.Brushes.cs');
+    const dynamics = read('src/BrushDynamics.cs'), drawer = read('src/WhimTexWindow.Brushes.cs');
     assert.ok(dynamics.includes('public WhimTexGradient tipGradient = DefaultTipGradient();'));
     const usesSdfBody = dynamics.match(/internal bool UsesSdfGradient => ([^;]+);/)[1];
     const usesSdf = new Function('tip','tipSdf','proceduralMode','BrushProceduralMode','return '+usesSdfBody);
@@ -101,17 +101,17 @@ context.case('BrushSdf original assertions and branches', async () => {
     assert.ok(drawerControls.includes('new DropdownField("Mode"'));
     assert.ok(drawerControls.includes('AddBrushPercent(scroll, "Hardness", () => paintSettings.brushHardness'));
     assert.ok(drawerControls.includes('brushSettingsBindings, () => paintSettings.dynamics.tipGradient'));
-    const applyChange = read('src/TextureCompositorWindow.Tools.cs').split('private void ApplyPaintToolChange(Action change)')[1].split('private void SavePaintToolSettings')[0];
+    const applyChange = read('src/WhimTexWindow.Tools.cs').split('private void ApplyPaintToolChange(Action change)')[1].split('private void SavePaintToolSettings')[0];
     assert.ok(applyChange.includes('toolkitHeaderBindings.Refresh();'));
     assert.ok(applyChange.includes('brushSettingsBindings?.Refresh();'), 'Both copies update after editing either location');
-    assert.match(read('src/TextureCompositorWindow.UI.cs'), /brushRow.Add\(size\);\s*AddBrushEdgeHeader\(brushRow\);\s*AddBrushHeaderPercent\(brushRow, "Opacity"/);
+    assert.match(read('src/WhimTexWindow.UI.cs'), /brushRow.Add\(size\);\s*AddBrushEdgeHeader\(brushRow\);\s*AddBrushHeaderPercent\(brushRow, "Opacity"/);
     assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-brush-edge\s*\{\s*width: 150px;\s*height: 20px;\s*flex-shrink: 0;/);
     assert.ok(read('src/Layers/DrawingLayerBehaviour.cs').includes('GetBrushSdfGradient(dynamics, standardColorInputs)'));
     assert.ok(read('src/Automation/WhimTexApi.Paint.cs').includes('dynamics.tipGradient = ReadGradient(brush["tipGradient"])'));
     assert.ok(read('src/Automation/WhimTexApi.Inspect.cs').includes('["tipGradientKeys"] = GradientSnapshot(dynamics.tipGradient)'));
     assert.ok(read('src/PaintToolSettings.cs').includes('dynamics.tipGradient = defaults.dynamics.tipGradient'));
     assert.ok(read('src/PaintStrokeParameters.cs').includes('StandardColorInputs = source.StandardColorInputs'));
-    for(const path of ['src/PaintToolSettings.cs','src/TextureCompositorWindow.BrushPreview.cs'])
+    for(const path of ['src/PaintToolSettings.cs','src/WhimTexWindow.BrushPreview.cs'])
       assert.ok(read(path).includes('standardColorInputs: !WhimTexColorInputs.Hdr'));
     assert.ok(read('src/BrushPresetLibrary.cs').includes('JsonUtility.ToJson(settings.dynamics)'));
 });

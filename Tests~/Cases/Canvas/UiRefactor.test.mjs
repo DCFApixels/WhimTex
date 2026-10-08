@@ -41,19 +41,19 @@ context.case("UiRefactor original assertion inputs and source contracts", async 
   assert.match(target, /if \(status.messageType != messageType\) status.messageType = messageType/);
   assert.match(target, /else if \(source\?\.IsGroup == true\)/);
   assert.match(target, /IsUsableEffectTarget\(effect, effect.TargetLayerId\)/, 'Status still validates the current dependency');
-  const inspector = read('src/TextureCompositorWindow.Inspector.cs');
+  const inspector = read('src/WhimTexWindow.Inspector.cs');
   assert.match(inspector, /if \(forceValues\) toolkitInspectorEffectTarget\?\.Invalidate\(\)/);
-  const window = read('src/TextureCompositorWindow.cs');
-  assert.match(window, /private void OnCompositorChanged\(TextureCompositor changedCompositor\)[\s\S]*?toolkitInspectorEffectTarget\?\.Invalidate\(\)/);
-  const ui = read('src/TextureCompositorWindow.UI.cs');
+  const window = read('src/WhimTexWindow.cs');
+  assert.match(window, /private void OnDocumentChanged\(WhimTexDocument changedDocument\)[\s\S]*?toolkitInspectorEffectTarget\?\.Invalidate\(\)/);
+  const ui = read('src/WhimTexWindow.UI.cs');
   assert.match(ui, /toolkitLayerBindings.Clear\(\);\s*toolkitInspectorEffectTarget\?\.Invalidate\(\)/);
   const utils = read('src/Utils.cs');
-  assert.match(utils, /compositor.MarkChanged\(\);\s*InvalidateEffectTargetOptions\(\)/);
+  assert.match(utils, /activeDocument.MarkChanged\(\);\s*InvalidateEffectTargetOptions\(\)/);
   assert.match(utils, /private void OnUndoRedo\(\)\s*\{\s*InvalidateEffectTargetOptions\(\)/);
-  const compositor = read('src/TextureCompositor.cs');
-  assert.match(compositor, /CollectEffectTargetOptions\(layers, consumer, 0, targetIds, labels, new HashSet<Layer>\(\)\)/);
-  assert.match(compositor, /visited.Clear\(\);\s*if \(!LayerDependsOn\(candidate, consumer, visited\)\)/);
-  assert.match(compositor, /depth \+ 1,\s*targetIds,\s*labels,\s*visited\)/);
+  const activeDocument = read('src/WhimTexDocument.cs');
+  assert.match(activeDocument, /CollectEffectTargetOptions\(layers, consumer, 0, targetIds, labels, new HashSet<Layer>\(\)\)/);
+  assert.match(activeDocument, /visited.Clear\(\);\s*if \(!LayerDependsOn\(candidate, consumer, visited\)\)/);
+  assert.match(activeDocument, /depth \+ 1,\s*targetIds,\s*labels,\s*visited\)/);
   // Reusing a visited set must not leak reachability state between candidates, including cycles.
   function depends(graph, candidate, sought, visited) {
       if (candidate === sought) return true;

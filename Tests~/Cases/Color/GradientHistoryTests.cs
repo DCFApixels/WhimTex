@@ -19,7 +19,7 @@ public static class GradientHistoryTests
     static string ExecutePickerRecency()
     {
         if(Resources.FindObjectsOfTypeAll<WhimTexColorPicker>().Length!=0)throw new UnityBSkipException("BLOCKED: close user picker first.");
-        var doc=UnityBRun.Create<TextureCompositor>(); WhimTexColorPicker picker=null;
+        var doc=UnityBRun.Create<WhimTexDocument>(); WhimTexColorPicker picker=null;
         try
         {
             Call(doc,"RememberColor",Color.red);Call(doc,"RememberColor",Color.green);
@@ -86,7 +86,7 @@ public static class GradientHistoryTests
             var journal=new CaptureJournal{runId=runId,state="prepared",workflowToken=workflowToken,focus=Identity(EditorWindow.focusedWindow),focusName=EditorWindow.focusedWindow==null?null:EditorWindow.focusedWindow.name};
             SaveCapture(journal);
             if(workflowToken!=null)SessionState.SetString(WorkflowKey(runId),workflowToken);
-            var doc=ScriptableObject.CreateInstance<TextureCompositor>();doc.name=CaptureName(journal,"document");journal.document=Identity(doc);SaveCapture(journal);
+            var doc=ScriptableObject.CreateInstance<WhimTexDocument>();doc.name=CaptureName(journal,"document");journal.document=Identity(doc);SaveCapture(journal);
             for(int i=0;i<40;i++)Call(doc,"RememberColor",Color.HSVToRGB(i/40f,.7f,.8f));
             Call(doc,"RememberColor",new Color(4,2,.5f,.2f));
             var type=typeof(WhimTexGradientWindow).Assembly.GetType("DCFApixels.WhimTex.WhimTexGradientSession");
@@ -170,7 +170,7 @@ public static class GradientHistoryTests
         var journal=ReadCapture(runId);
         var window=CaptureOwned<WhimTexGradientWindow>(journal,journal.window,"window");
         var session=CaptureOwned<ScriptableObject>(journal,journal.session,"session");
-        var document=CaptureOwned<TextureCompositor>(journal,journal.document,"document");
+        var document=CaptureOwned<WhimTexDocument>(journal,journal.document,"document");
         var errors=new List<Exception>();
         foreach(UnityEngine.Object value in new UnityEngine.Object[]{window,session,document})if(value!=null)
             try{if(value is EditorWindow w)UnityBRun.CloseOwned(w);else{Undo.ClearUndo(value);UnityEngine.Object.DestroyImmediate(value);}}catch(Exception error){errors.Add(error);}
@@ -240,7 +240,7 @@ public static class GradientHistoryTests
 {
 
         if(Resources.FindObjectsOfTypeAll<WhimTexColorPicker>().Length!=0||Resources.FindObjectsOfTypeAll<WhimTexGradientWindow>().Length!=0) throw new UnityBSkipException("Close borrowed gradient/picker windows; not verified.");
-        var historyDoc=UnityBRun.Create<TextureCompositor>(); historyDoc.name=Name;
+        var historyDoc=UnityBRun.Create<WhimTexDocument>(); historyDoc.name=Name;
         for(int i=0;i<40;i++)Call(historyDoc,"RememberColor",Color.HSVToRGB(i/40f,.7f,.8f));
         Call(historyDoc,"RememberColor",new Color(4,2,.5f,.2f));
         var type=typeof(WhimTexGradientWindow).Assembly.GetType("DCFApixels.WhimTex.WhimTexGradientSession");
@@ -252,7 +252,7 @@ public static class GradientHistoryTests
 }
  await UnityBRun.Delay(250);
 
-        var w=Window(); var session=Get(w,"owner"); var doc=(TextureCompositor)Get(session,"document");
+        var w=Window(); var session=Get(w,"owner"); var doc=(WhimTexDocument)Get(session,"document");
         var list=(List<Color>)Get(doc,"colorHistory"); var grid=(VisualElement)Get(w,"historyGrid");
         Check(grid.childCount==list.Count&&grid.Q(className:"whimtex-picker-add-color")==null,"History without plus");
         var heading=w.rootVisualElement.Q("gradientColorHistory");

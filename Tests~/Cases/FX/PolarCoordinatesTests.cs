@@ -6,7 +6,7 @@ using UnityEditor;
 using UnityEngine;
 using DCFApixels.WhimTex;
 
-// In-memory GPU comparisons against the original mappings, including linked-preset conversion.
+// In-memory GPU comparisons against independent mappings, current frames, refresh and JSON.
 public static class PolarCoordinatesTests
 {
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
@@ -40,18 +40,19 @@ float4 ApplyFX(float2 uv, float4 color)
     float2 localUV = 0.5 + float2(cosine, sine) * radius * 0.5;
     return SampleInput(_Area_ToInput(localUV));
 }";
-    // Pre-rename two-frame mapping, independent of the current preset source.
-    const string InOutAreaReference = @"// @whimtex-effect Distortion/Polar Coordinates
+    // Independent two-frame mapping; no historic-name or linked-preset migration.
+    const string FramesReference = @"// @whimtex-effect Distortion/Polar Coordinates
 // @param hidden float _Amount = 1 [0 .. 1]
 // @param enum _Mode = 0 {ToPolar: 0, FromPolar: 1}
 // @param float _AngleOffset = 0 [~-180 .. ~180]
 // @param float _RadialOffset = 0 [~-1 .. ~1]
 // @param transform2D _Input
-// @param transform2D _Area
+// @param transform2D _Output
+// @param enum _Tiling = 0 {Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3}
 float4 ApplyFX(float2 uv, float4 color)
 {
     if (_Amount <= 0.0) return color;
-    float2 localUV = _Area_ToLocal(uv);
+    float2 localUV = _Output_ToLocal(uv);
     float2 mappedUV;
     if (_Mode < 0.5)
     {
@@ -69,15 +70,15 @@ float4 ApplyFX(float2 uv, float4 color)
         sincos(angle, sine, cosine);
         mappedUV = 0.5 + float2(cosine, sine) * radius * 0.5;
     }
-    return SampleInput(lerp(uv, _Input_ToInput(mappedUV), _Amount));
+    return SampleInput(lerp(uv, _Input_ToInput(mappedUV), _Amount), _Tiling);
 }";
     static string ExecuteMain()
     {
         const int size = 33; // Includes the exact center.
         // Package inputs are already imported; all comparison shaders/textures are in memory.
-        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         doc.width = doc.height = size;
-        var input = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(size, size, TextureFormat.RGBAFloat, false, true) { wrapMode = TextureWrapMode.Repeat });
+        var input = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(size, size, TextureFormat.RGBAFloat, false, true) { wrapMode = TextureWrapMode.Clamp });
         var read = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(size, size, TextureFormat.RGBAFloat, false, true));
         var output = WhimTex.Tests.UnityC.FixtureContext.Scope.Temporary(RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear));
         var previous = RenderTexture.active;
@@ -91,7 +92,7 @@ float4 ApplyFX(float2 uv, float4 color)
                 pixels[y * size + x] = new Color(x / 32f, y / 32f, ((x + y) % 7) / 6f, ((x * 3 + y) % 11) / 10f);
             input.SetPixels(pixels); input.Apply();
             var draft = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(TextureCompositor), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
             foreach (string code in new[] { File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/PolarCoordinates.hlsl"), ToReference, FromReference })
             {
                 var fx = (ShaderFX)draft.Invoke(null, new object[] { doc, code, new List<ShaderFXParameter>() });
@@ -165,96 +166,54 @@ float4 ApplyFX(float2 uv, float4 color)
             string guid = AssetDatabase.AssetPathToGUID("Packages/com.dcfapixels.whimtex/src/FXPresets/PolarCoordinates.hlsl");
             t.True(!string.IsNullOrEmpty(guid), "Polar Coordinates catalog GUID exists");
             var reload = typeof(ShaderFX).GetMethod("ReloadCatalogSource", F);
-            for (int mode = 0; mode < 2; mode++) foreach (bool centered in new[] { false, true })
-                foreach (var area in new[] { ShaderFXTransform.Default, translated, projective })
-                {
-                    // Keep the original reference constants intact; add only metadata for catalog conversion.
-                    string oldCode = mode == 0 ? ToReference : FromReference;
-                    oldCode += "\n// @param enum _Mode = 0 {ToPolar: 0, FromPolar: 1}";
-                    if (centered)
-                    {
-                        oldCode += "\n// @param point _Center = (0.5, 0.5)";
-                        oldCode = mode == 0
-                            ? oldCode.Replace("return SampleInput(sampleUV);", "float2 sourceOffset = _Center - 0.5;\n    return SampleInput(sampleUV + sourceOffset);")
-                            : oldCode.Replace("float angle = (uv.x", "float2 sourceOffset = _Center - 0.5;\n    uv -= sourceOffset;\n    float angle = (uv.x");
-                    }
-                    var oldFx = (ShaderFX)draft.Invoke(null, new object[] { doc, oldCode, new List<ShaderFXParameter>() });
-                    effects.Add(oldFx); typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(oldFx, null);
-                    var oldParameters = Parameters(oldFx);
-                    oldParameters.Find(p => p.name == "_Mode").floatValue = mode;
-                    oldParameters.Find(p => p.name == "_AngleOffset").floatValue = 37;
-                    oldParameters.Find(p => p.name == "_RadialOffset").floatValue = .2f;
-                    var oldArea = oldParameters.Find(p => p.name == "_Area"); oldArea.transformValue = area;
-                    var alignment = ShaderFXTransform.Default;
-                    if (centered)
-                    {
-                        oldParameters.Find(p => p.name == "_Center").vectorValue = new Vector2(.27f, .68f);
-                        alignment.position = new Double2(.27f, .68f);
-                    }
-                    var expected = Render(oldFx);
-                    Layer layer = new ColorFillLayerBehaviour(); layer.fx.Add(oldFx);
-                    doc.layers.Clear(); doc.layers.Add(layer);
-                    typeof(TextureCompositor).GetMethod("NormalizeModel", F).Invoke(doc, null);
-                    var oldJson = WhimTexDocumentJson.Write(doc);
-                    t.Equal(0, oldJson.Warnings.Count, "Old embedded preset serializes without data loss");
-                    using (var restored = WhimTexDocumentJson.Read(oldJson.Json))
-                    {
-                        t.Equal(0, restored.Warnings.Count, "Old embedded preset loads without warnings");
-                        var fx = (ShaderFX)restored.Document.layers[0].fx[0];
-                        t.True(Parameters(fx).Find(p => p.name == "_Input") == null, "Detached source is not rewritten");
-                        Compare(expected, Render(fx), "Detached old source retains its mapping");
-                        // TIFF preserves this catalog identity; JSON intentionally embeds independent source.
-                        typeof(ShaderFX).GetField("catalogGuid", F).SetValue(fx, guid);
-                        reload.Invoke(fx, new object[] { true });
-                        var next = Parameters(fx);
-                        t.True(next.Find(p => p.name == "_Input") != null, "Linked refresh adopted the new two-frame source");
-                        t.True(next.Find(p => p.name == "_Center") == null, "Source point becomes a frame position");
-                        var inputFrame = next.Find(p => p.name == "_Input"); var outputFrame = next.Find(p => p.name == "_Output");
-                        t.Equal(mode == 0 ? alignment : area, inputFrame.transformValue, "Converted input frame");
-                        t.Equal(mode == 0 ? area : alignment, outputFrame.transformValue, "Converted output frame");
-                        t.Equal(oldArea.id, mode == 0 ? outputFrame.id : inputFrame.id, "Saved frame identity follows its values");
-                        t.True(inputFrame.id != outputFrame.id, "Input/output identities are distinct");
-                        Compare(expected, Render(fx), $"Linked conversion retains mapping: mode {mode}, centered {centered}, storage {area.storage}");
-                        var exported = WhimTexDocumentJson.Write(restored.Document);
-                        t.Equal(0, exported.Warnings.Count, "Converted frames serialize without warnings");
-                        using (var copy = WhimTexDocumentJson.Read(exported.Json))
-                        {
-                            t.Equal(0, copy.Warnings.Count, "Converted frames reload without warnings");
-                            var copiedFx = (ShaderFX)copy.Document.layers[0].fx[0];
-                            t.Equal(inputFrame.transformValue, Parameters(copiedFx).Find(p => p.name == "_Input").transformValue, "Saved full input frame");
-                            t.Equal(outputFrame.transformValue, Parameters(copiedFx).Find(p => p.name == "_Output").transformValue, "Saved full output frame");
-                            Compare(expected, Render(copiedFx), "Converted JSON render parity");
-                        }
-                        // A later refresh must not move either frame again or discard new edits.
-                        inputFrame.transformValue = translated; outputFrame.transformValue = projective;
-                        reload.Invoke(fx, new object[] { true });
-                        t.Equal(translated, Parameters(fx).Find(p => p.name == "_Input").transformValue, "Input edit survives repeat refresh");
-                        t.Equal(projective, Parameters(fx).Find(p => p.name == "_Output").transformValue, "Output edit survives repeat refresh");
-                    }
-                }
+            var reference = (ShaderFX)draft.Invoke(null, new object[] { doc, FramesReference, new List<ShaderFXParameter>() });
+            effects.Add(reference); typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(reference, null);
+            var framePairs = new[] {
+                new[] { ShaderFXTransform.Default, translated },
+                new[] { translated, projective },
+                new[] { projective, translated }
+            };
             for (int mode = 0; mode < 2; mode++) foreach (float amount in new[] { .4f, 1f })
-            {
-                var fx = (ShaderFX)draft.Invoke(null, new object[] { doc, InOutAreaReference, new List<ShaderFXParameter>() });
-                effects.Add(fx); typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
-                var before = Parameters(fx);
-                before.Find(p => p.name == "_Mode").floatValue = mode;
-                before.Find(p => p.name == "_Amount").floatValue = amount;
-                before.Find(p => p.name == "_AngleOffset").floatValue = 37;
-                before.Find(p => p.name == "_RadialOffset").floatValue = .2f;
-                var oldInput = before.Find(p => p.name == "_Input"); oldInput.transformValue = translated;
-                var oldArea = before.Find(p => p.name == "_Area"); oldArea.transformValue = projective;
-                var expected = Render(fx);
-                typeof(ShaderFX).GetField("catalogGuid", F).SetValue(fx, guid);
-                reload.Invoke(fx, new object[] { true });
-                var next = Parameters(fx);
-                t.True(next.Find(p => p.name == "_Area") == null, "Area is removed from the current preset contract");
-                t.Equal(translated, next.Find(p => p.name == "_Input").transformValue, "Rename preserves existing Input");
-                t.Equal(oldInput.id, next.Find(p => p.name == "_Input").id, "Rename preserves Input identity");
-                t.Equal(projective, next.Find(p => p.name == "_Output").transformValue, "Rename preserves full Area as Output");
-                t.Equal(oldArea.id, next.Find(p => p.name == "_Output").id, "Rename preserves output identity");
-                t.Near(amount, next.Find(p => p.name == "_Amount").floatValue, 0, "Rename preserves Amount");
-                Compare(expected, Render(fx), "Two-frame Area rename render parity");
-            }
+                foreach (var pair in framePairs)
+                {
+                    foreach (var fx in new[] { effects[0], reference })
+                    {
+                        var p = Parameters(fx);
+                        p.Find(x => x.name == "_Mode").floatValue = mode;
+                        p.Find(x => x.name == "_Amount").floatValue = amount;
+                        p.Find(x => x.name == "_AngleOffset").floatValue = 37;
+                        p.Find(x => x.name == "_RadialOffset").floatValue = .2f;
+                        p.Find(x => x.name == "_Input").transformValue = pair[0];
+                        p.Find(x => x.name == "_Output").transformValue = pair[1];
+                    }
+                    var expected = Render(reference);
+                    Compare(expected, Render(effects[0]), "Independent Input/Output mapping");
+                    var parameters = Parameters(effects[0]);
+                    var inputFrame = parameters.Find(p => p.name == "_Input");
+                    var outputFrame = parameters.Find(p => p.name == "_Output");
+                    Layer layer = new ColorFillLayerBehaviour(); layer.fx.Add(effects[0]);
+                    doc.layers.Clear(); doc.layers.Add(layer);
+                    typeof(WhimTexDocument).GetMethod("NormalizeModel", F).Invoke(doc, null);
+                    var exported = WhimTexDocumentJson.Write(doc);
+                    t.Equal(0, exported.Warnings.Count, "Current frames serialize without warnings");
+                    using (var copy = WhimTexDocumentJson.Read(exported.Json))
+                    {
+                        t.Equal(0, copy.Warnings.Count, "Current frames reload without warnings");
+                        var fx = (ShaderFX)copy.Document.layers[0].fx[0];
+                        t.Equal(pair[0], Parameters(fx).Find(p => p.name == "_Input").transformValue, "Saved full Input frame");
+                        t.Equal(pair[1], Parameters(fx).Find(p => p.name == "_Output").transformValue, "Saved full Output frame");
+                        Compare(expected, Render(fx), "Current JSON render parity");
+                    }
+                    typeof(ShaderFX).GetField("catalogGuid", F).SetValue(effects[0], guid);
+                    reload.Invoke(effects[0], new object[] { true });
+                    var next = Parameters(effects[0]);
+                    t.True(next.Find(p => p.name == "_Area" || p.name == "_Center") == null, "Only current frame names");
+                    t.Equal(inputFrame.id, next.Find(p => p.name == "_Input").id, "Input identity survives current-source refresh");
+                    t.Equal(outputFrame.id, next.Find(p => p.name == "_Output").id, "Output identity survives current-source refresh");
+                    t.Equal(pair[0], next.Find(p => p.name == "_Input").transformValue, "Input edit survives refresh");
+                    t.Equal(pair[1], next.Find(p => p.name == "_Output").transformValue, "Output edit survives refresh");
+                    Compare(expected, Render(effects[0]), "Current linked refresh render parity");
+                }
             var catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog");
             int found = 0;
             foreach (var entry in (System.Collections.IEnumerable)catalog.GetMethod("GetEntries", F).Invoke(null, null))
@@ -264,7 +223,7 @@ float4 ApplyFX(float2 uv, float4 color)
                 WhimTex.Tests.UnityC.FixtureContext.Context.True(!(path.StartsWith("Distortion/Polar Coordinates/")), "Old catalog item remains.");
             }
             WhimTex.Tests.UnityC.FixtureContext.Context.True(!(found != 1), "Expected one unified catalog entry.");
-            return $"PASS: {checks} original GPU RGBA comparisons, linked conversion and JSON round-trips, no shader warnings, no mode recompilation, one catalog entry.";
+            return $"PASS: {checks} original GPU RGBA comparisons, current frame refresh and JSON round-trips, no shader warnings, no mode recompilation, one catalog entry.";
         }
         finally
         {

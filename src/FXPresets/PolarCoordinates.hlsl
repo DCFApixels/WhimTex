@@ -7,7 +7,6 @@
 // @param float _RadialOffset = 0 [~-1 .. ~1] // Radial offset in normalized coordinates.
 // @param transform2D _Input // Input frame: position, size and rotation of the source strip or circle.
 // @param transform2D _Output // Output frame: position, size and rotation of the resulting circle or strip.
-// @formerlyserializedas(_InputTiling)
 // @param enum _Tiling = Clamp {Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3} // Sampling outside the input image: extend its edge, repeat, mirror, or return transparency.
 // @endgroup
 

@@ -7,7 +7,7 @@ const assert = context.assert;
 
 context.case('CanvasViewBackdrop original assertions and branches', async () => {
     const read = path => readFileSync(new URL('../../../' + path, import.meta.url), 'utf8');
-    const ui = read('src/TextureCompositorWindow.UI.cs');
+    const ui = read('src/WhimTexWindow.UI.cs');
     const uss = read('src/WhimTexSplitView.uss');
     assert.ok(!/toolkitCanvas\.style\.margin(?:Left|Right|Top|Bottom)\s*=/.test(ui));
     assert.match(uss, /\.whimtex-layers-footer,\s*\.whimtex-canvas-view-footer\s*\{\s*height: 26px;/);

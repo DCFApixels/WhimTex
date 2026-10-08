@@ -13,17 +13,17 @@ public static class FillPatternTests
     static string ExecuteMain()
     {
 
-        var doc = UnityBRun.Create<TextureCompositor>();
+        var doc = UnityBRun.Create<WhimTexDocument>();
         doc.width = 127; doc.height = 91;
         var fill = new ColorFillLayerBehaviour { mode = ColorFillLayerBehaviour.FillMode.Pattern };
         Layer layer = fill; doc.layers.Add(layer);
-        var material = UnityBRun.Track(new Material(Shader.Find("Hidden/TextureCompositor/FillPattern")));
+        var material = UnityBRun.Track(new Material(Shader.Find("Hidden/WhimTex/FillPattern")));
         var output = RenderTexture.GetTemporary(127, 91, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
         var read = UnityBRun.Track(new Texture2D(127, 91, TextureFormat.RGBAFloat, false, true));
         var previous = RenderTexture.active; bool srgb = GL.sRGBWrite;
         Texture2D sheet = null;
         string folder = null;
-        TextureCompositor loaded = null;
+        WhimTexDocument loaded = null;
         ShaderFX effect = null;
         FillPatternSmokeWindow window = null;
         int checks = 0;
@@ -49,14 +49,14 @@ public static class FillPatternTests
             doc, null, 127, 91, 1f, true, true, null);
         void Prepare()
         {
-            typeof(TextureCompositor).GetMethod("RefreshTransformHierarchy", F).Invoke(doc, null);
+            typeof(WhimTexDocument).GetMethod("RefreshTransformHierarchy", F).Invoke(doc, null);
             typeof(FillPatternSettings).GetMethod("Prepare", F).Invoke(fill.pattern, new[] { material, (object)layer, context });
         }
         try
         {
             fill.pattern.Size = new Vector2(29,29);
             Check(fill.pattern.Size == new Vector2(29,29), "Explicit axes");
-            using (var legacyFile = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"pattern\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"pattern\":{\"size\":37}}}]}", false))
+            using (var legacyFile = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"pattern\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"pattern\":{\"size\":37}}}]}", false))
                 Check(((ColorFillLayerBehaviour)legacyFile.Document.layers[0].Behaviour).pattern.Size == new Vector2(37,37),
                     "0.12.5 file scalar normalized at read");
             Check(new FillPatternSettings().Size == new Vector2(64,64), "Modern explicit defaults");
@@ -221,14 +221,14 @@ public static class FillPatternTests
             var imported = (IDisposable)api.GetMethod("ReadProceduralClipboard",F).Invoke(null,new object[]{portable,127,91});
             try
             {
-                var pasted = (TextureCompositor)imported.GetType().GetField("Document",F).GetValue(imported);
+                var pasted = (WhimTexDocument)imported.GetType().GetField("Document",F).GetValue(imported);
                 var pastedFill = (ColorFillLayerBehaviour)pasted.layers[0].Behaviour;
                 Check(JsonUtility.ToJson(pastedFill.pattern)==JsonUtility.ToJson(fill.pattern),"Portable settings roundtrip");
             }
             finally { imported.Dispose(); }
             // Same FX must work on the layer and on an isolated group containing it.
             var draft=typeof(ShaderFX).GetMethod("CreateAgentDraft",F,null,
-                new[]{typeof(TextureCompositor),typeof(string),typeof(System.Collections.Generic.List<ShaderFXParameter>)},null);
+                new[]{typeof(WhimTexDocument),typeof(string),typeof(System.Collections.Generic.List<ShaderFXParameter>)},null);
             effect=(ShaderFX)draft.Invoke(null,new object[]{doc,
                 "float4 ApplyFX(float2 uv,float4 color){ return float4(1-color.rgb,color.a); }",
                 new System.Collections.Generic.List<ShaderFXParameter>()});
@@ -242,7 +242,7 @@ public static class FillPatternTests
             var groupFx=doc.ComposeCanvas();
             try { Same(withFx.GetPixels(),groupFx.GetPixels(),"Layer/group FX",.006f); }
             finally { UnityEngine.Object.DestroyImmediate(withFx);UnityEngine.Object.DestroyImmediate(groupFx); }
-            var exported=(Texture2D)typeof(TextureCompositor).GetMethod("RenderPsdGroupContent",F).Invoke(doc,new object[]{group});
+            var exported=(Texture2D)typeof(WhimTexDocument).GetMethod("RenderPsdGroupContent",F).Invoke(doc,new object[]{group});
             try { Check(exported!=null && exported.width==127,"Layered group export"); }
             finally { UnityEngine.Object.DestroyImmediate(exported); }
             group.fx.Clear();doc.layers.Clear();doc.layers.Add(layer);

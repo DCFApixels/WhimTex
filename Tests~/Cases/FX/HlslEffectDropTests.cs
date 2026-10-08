@@ -9,17 +9,17 @@ public static class HlslEffectDropTests
     static string ExecuteMain()
     {
         const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
-        var type = typeof(TextureCompositorWindow);
+        var type = typeof(WhimTexWindow);
         var catalog = type.Assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog");
         var inspect = catalog.GetMethod("InspectDroppedHlsl", BindingFlags.NonPublic | BindingFlags.Static);
         string path = "Packages/com.dcfapixels.whimtex/src/FXPresets/Gain.hlsl";
         var entry = inspect.Invoke(null, new object[] { path });
         UnityBRun.Check(!(entry == null), "Effect not recognized");
         UnityBRun.Check(!(inspect.Invoke(null, new object[] { "Assets/NotAnEffect.png" }) != null), "Unrelated file accepted");
-        var window = UnityBRun.Create<TextureCompositorWindow>();
+        var window = UnityBRun.Create<WhimTexWindow>();
         try
         {
-            var document = UnityBRun.Track((TextureCompositor)type.GetField("compositor", flags).GetValue(window));
+            var document = UnityBRun.Track((WhimTexDocument)type.GetField("activeDocument", flags).GetValue(window));
             var drop = type.GetMethod("ApplyDroppedHlsl", flags);
             drop.Invoke(window, new object[] { entry, null });
             UnityBRun.Check(!(document.layers.Count != 1 || !(document.layers[0].Behaviour is ShaderProcessorLayerBehaviour)), "Processor missing");

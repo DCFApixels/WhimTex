@@ -16,7 +16,7 @@ public static class PortableIncludesTests
         // Resolve accepts project-relative Assets/Packages paths. An absolute Temp
         // path selects the separate user-library policy and cannot test this contract.
         string folder = WhimTex.Tests.UnityC.FixtureContext.Scope.AssetFolder();
-        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         var effects = new List<ShaderFX>();
         int checks = 0;
         void Check(bool value, string label) { WhimTex.Tests.UnityC.FixtureContext.Context.True(value, label); checks++; }
@@ -39,7 +39,7 @@ public static class PortableIncludesTests
             string macros = "#define MULTIPLY(x) \\\n ((x) * 2)\n#if 1\n#endif\n";
             Check(Expand(macros).Replace("\r\n", "\n").Trim() == macros.Trim(), "Preprocessor definitions preserved");
             string original = "#include \"" + folder + "/parent.hlsl\"\nfloat4 ApplyFX(float2 uv, float4 color) { return Twice(color.r); }";
-            var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc, original, new List<ShaderFXParameter>() });
+            var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc, original, new List<ShaderFXParameter>() });
             effects.Add(fx);
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null); Check(true, "Original include draft compiles successfully");
             Layer layer = new ColorFillLayerBehaviour(); doc.layers.Add(layer); layer.fx.Add(fx);

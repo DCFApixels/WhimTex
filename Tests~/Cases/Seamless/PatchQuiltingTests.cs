@@ -10,7 +10,7 @@ public static class PatchQuiltingTests
 {
     const BindingFlags F=BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Static|BindingFlags.Instance;
     static int checks;
-    static Type Core=>typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.PatchQuiltingSeamless");
+    static Type Core=>typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.PatchQuiltingSeamless");
     static void Check(bool v,string m){ WhimTex.Tests.UnityC.FixtureContext.Context.True(v, m); checks++; }
     static Color[] Read(RenderTexture rt)
     {
@@ -26,7 +26,7 @@ public static class PatchQuiltingTests
     {
         checks=0;
 
-        var shader=Shader.Find("Hidden/TextureCompositor/PatchQuilting");
+        var shader=Shader.Find("Hidden/WhimTex/PatchQuilting");
         Check(shader!=null&&shader.isSupported&&!ShaderUtil.ShaderHasError(shader),"Shader compiles");
         var random=new System.Random(15);
         for(int rows=1;rows<7;rows++)for(int cols=1;cols<5;cols++)foreach(bool closed in new[]{false,true})
@@ -212,8 +212,8 @@ public static class PatchQuiltingTests
     {
         checks=0;
         object Call(object o,string name,params object[] a)=>o.GetType().GetMethod(name,F).Invoke(o,a);
-        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());doc.width=64;doc.height=48;
-        var cache=(IDisposable)Activator.CreateInstance(typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache"),true);
+        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());doc.width=64;doc.height=48;
+        var cache=(IDisposable)Activator.CreateInstance(typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache"),true);
         var effect=new MakeSeamlessLayerBehaviour{mode=MakeSeamlessLayerBehaviour.SeamlessMode.PatchQuilting,quiltingQuality=MakeSeamlessLayerBehaviour.QuiltingQuality.Draft,colorRange=LayerColorRange.HDR};
         var tex=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(64,48,TextureFormat.RGBAFloat,false,true));var pixels=new Color[64*48];
         for(int i=0;i<pixels.Length;i++)pixels[i]=new Color(.4f+.3f*Mathf.Sin(i*.231f),.5f+.4f*Mathf.Cos(i*.079f),.3f,1);
@@ -265,8 +265,8 @@ public static class PatchQuiltingTests
         checks=0;
         void Same(Color[] a,Color[] b,string message)=>PatchQuiltingTests.Same(a,b,message,.005f);
         object Call(object o,string name,params object[] args)=>o.GetType().GetMethod(name,F).Invoke(o,args);
-        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());doc.width=64;doc.height=48;
-        var cache=(IDisposable)Activator.CreateInstance(typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache"),true);
+        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());doc.width=64;doc.height=48;
+        var cache=(IDisposable)Activator.CreateInstance(typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache"),true);
         var t=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(64,48,TextureFormat.RGBAFloat,false,true));
         var input=new Color[64*48];for(int i=0;i<input.Length;i++)input[i]=new Color(.4f+.3f*Mathf.Sin(i*.231f),.5f+.4f*Mathf.Cos(i*.079f),.3f,1);
         t.SetPixels(input);t.Apply();
@@ -324,7 +324,7 @@ public static class PatchQuiltingTests
                 Check(saved.quiltingAlongSearch==alongSearch,"Along search portable roundtrip");
             }
             window=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<EditorWindow>());window.Show();
-            var bindings=Activator.CreateInstance(typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexUI+ValueBindings"),true);
+            var bindings=Activator.CreateInstance(typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexUI+ValueBindings"),true);
             Action<string,Action> apply=(label,change)=>{Undo.RegisterCompleteObjectUndo(doc,label);change();Call(bindings,"Refresh",true);};
             typeof(MakeSeamlessLayerEditorWindow).GetMethod("BuildFields",F).Invoke(null,new object[]{window.rootVisualElement,effect,doc,apply,bindings,new Action<VisualElement,TargetedLayerBehaviour>((r,l)=>{})});
             var root=window.rootVisualElement;

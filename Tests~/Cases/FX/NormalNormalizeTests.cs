@@ -11,7 +11,7 @@ public static class NormalNormalizeTests
     {
         const BindingFlags hidden = BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
         var assembly = typeof(ShaderFX).Assembly;
-        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         document.hideFlags = HideFlags.HideAndDontSave;
         ShaderFX fx = null;
         var previous = RenderTexture.active;
@@ -23,7 +23,7 @@ public static class NormalNormalizeTests
         try
         {
             string source = File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/Normalize.hlsl");
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", hidden, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, source, new List<ShaderFXParameter>() });
+            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", hidden, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, source, new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", hidden).Invoke(fx, null);
             var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", hidden).GetValue(fx);
             WhimTex.Tests.UnityC.FixtureContext.Context.True(!(parameters.Count != 1 || parameters[0].floatValue != 1), "Packed Color must default to true");

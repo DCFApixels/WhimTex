@@ -244,7 +244,7 @@ public static class PlayerReleaseTests
     }
 
     // Reflection is confined to package types. No Unity internals/reflected ownership DTOs.
-    static Type SessionType => typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSession", true);
+    static Type SessionType => typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSession", true);
     static object SessionCall(string name, Type[] signature, params object[] args)
     {
         var method = SessionType.GetMethod(name, PackageMembers, null, signature, null);
@@ -254,7 +254,7 @@ public static class PlayerReleaseTests
     }
     static bool IsLive => (bool)SessionType.GetProperty("IsLive", PackageMembers).GetValue(null);
     static string LivePath => (string)SessionType.GetProperty("LivePath", PackageMembers).GetValue(null);
-    static bool IsLiveFor(TextureCompositor doc) => (bool)SessionCall("IsLiveFor", new[] { typeof(TextureCompositor) }, doc);
+    static bool IsLiveFor(WhimTexDocument doc) => (bool)SessionCall("IsLiveFor", new[] { typeof(WhimTexDocument) }, doc);
     static void LiveIdle()
     {
         if (IsLive) throw new InvalidOperationException("A live session already exists; never stop/replace another document.");
@@ -372,10 +372,10 @@ public static class PlayerReleaseTests
         r.nativeCompilationComplete = true;
     });
 
-    static TextureCompositor FindDocument(State s)
+    static WhimTexDocument FindDocument(State s)
     {
-        TextureCompositor found = null;
-        foreach (var doc in Resources.FindObjectsOfTypeAll<TextureCompositor>())
+        WhimTexDocument found = null;
+        foreach (var doc in Resources.FindObjectsOfTypeAll<WhimTexDocument>())
             if (doc.name == DocumentMarker + s.runId && !AssetDatabase.Contains(doc))
             {
                 if (found != null) throw new InvalidOperationException("Ambiguous owned document marker.");
@@ -416,7 +416,7 @@ public static class PlayerReleaseTests
         if (IsLive)
         {
             Check(r, doc != null && IsLiveFor(doc) && LivePath == s.document, "Existing live session belongs to this exact document.");
-            SessionCall("StopFor", new[] { typeof(TextureCompositor), typeof(string) }, doc, "owned Player restart");
+            SessionCall("StopFor", new[] { typeof(WhimTexDocument), typeof(string) }, doc, "owned Player restart");
         }
         LiveIdle();
         if (doc == null) { doc = WhimTexDocumentFile.Load(s.document); doc.name = DocumentMarker + s.runId; doc.hideFlags = HideFlags.HideAndDontSave; }
@@ -424,7 +424,7 @@ public static class PlayerReleaseTests
             doc.layers[1].Behaviour is DrawingLayerBehaviour && doc.layers[2].Behaviour is DrawingLayerBehaviour &&
             !doc.layers[1].enabled && !doc.layers[2].enabled, "256px document retains both disabled Drawing layers.");
         ((ColorFillLayerBehaviour)doc.layers[0].Behaviour).color = Color.red;
-        Check(r, (bool)SessionCall("Start", new[] { typeof(TextureCompositor), typeof(string) }, doc, s.document), "Owned unsaved red Live Update starts.");
+        Check(r, (bool)SessionCall("Start", new[] { typeof(WhimTexDocument), typeof(string) }, doc, s.document), "Owned unsaved red Live Update starts.");
         SessionCall("Publish", Type.EmptyTypes);
         Check(r, IsLiveFor(doc) && LivePath == s.document, "Publish keeps the same owned Live Update.");
         var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(s.document);
@@ -447,7 +447,7 @@ public static class PlayerReleaseTests
         s.phase = "preparing"; WriteState(s);
         string resources = s.folder + "/Resources", images = resources + "/" + s.resourcePrefix;
         CreateFolder(s.folder, "Resources"); CreateFolder(resources, s.resourcePrefix);
-        var doc = ScriptableObject.CreateInstance<TextureCompositor>();
+        var doc = ScriptableObject.CreateInstance<WhimTexDocument>();
         doc.name = DocumentMarker + s.runId; doc.hideFlags = HideFlags.HideAndDontSave;
         doc.width = doc.height = 256; doc.layers.Add(new Layer(new ColorFillLayerBehaviour { color = Color.green }));
         for (int i = 0; i < 2; i++)
@@ -709,7 +709,7 @@ public static class PlayerReleaseTests
             if (IsLive && LivePath == s.document)
             {
                 Check(r, doc != null && IsLiveFor(doc), "Only our exact document owns the live stop.");
-                SessionCall("StopFor", new[] { typeof(TextureCompositor), typeof(string) }, doc, "owned Player cleanup");
+                SessionCall("StopFor", new[] { typeof(WhimTexDocument), typeof(string) }, doc, "owned Player cleanup");
                 Check(r, !IsLiveFor(doc), "Owned live session drained.");
             }
             if (doc != null) { Check(r, !IsLiveFor(doc), "Do not destroy a still-live owned document."); Undo.ClearUndo(doc); Object.DestroyImmediate(doc); }

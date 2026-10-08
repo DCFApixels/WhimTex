@@ -16,7 +16,7 @@ public static class PsdExportTests
     {
         // Opt-in after manual compilation. Requires graphics; never builds or recompiles the project.
         // Creates temporary in-memory documents and PSDs under Temp/WhimTex only.
-        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
         string folder = WhimTex.Tests.UnityC.FixtureContext.Scope.Temp;
         System.IO.Directory.CreateDirectory(folder);
         int checks = 0;

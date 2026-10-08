@@ -38,7 +38,7 @@ public static class GradientFXTests
             try { Parse(bad); } catch (TargetInvocationException e) when (e.InnerException is FormatException) { rejected = true; }
             Check(rejected, "Accepted invalid declaration: " + bad);
         }
-        var document = UnityBRun.Create<TextureCompositor>();
+        var document = UnityBRun.Create<WhimTexDocument>();
         document.hideFlags = HideFlags.HideAndDontSave;
         ShaderFX fx = null;
         VisualElement view = null;
@@ -48,7 +48,7 @@ public static class GradientFXTests
         bool srgb = GL.sRGBWrite;
         try
         {
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, code, new List<ShaderFXParameter>() });
+            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, code, new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fx, null);
             var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
             var context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), document, null, 8, 2, 1f, true, true, null);

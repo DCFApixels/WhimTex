@@ -6,8 +6,8 @@ namespace DCFApixels.WhimTex
     /// The payload keeps the same shape as the automatic pass — [type name][value count][name][value]… —
     /// so a document stays readable no matter which side wrote it, and a type may switch between the two
     /// modes without a format change. The automatic pass remains the default; this contract exists for the
-    /// types where reflection and per-field boxing cost more than the code does, and where migrations must
-    /// be explicit rather than implied by field names.
+    /// types where reflection and per-field boxing cost more than the code does. Each reader still uses
+    /// current field names and must report unavailable data instead of silently losing it.
     /// </para>
     /// <para>
     /// Writing must begin with <see cref="IWhimTexDocumentWriter.Begin"/> and the declared count must match

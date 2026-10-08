@@ -8,7 +8,7 @@ const assert = context.assert;
 context.case('BrushStrokePreview original assertions and branches', async () => {
     const read = path => readFileSync(new URL('../../../' + path, import.meta.url), 'utf8');
     const layer = read('src/Layers/DrawingLayerBehaviour.BrushPreview.cs');
-    const ui = read('src/TextureCompositorWindow.BrushPreview.cs');
+    const ui = read('src/WhimTexWindow.BrushPreview.cs');
     const body = layer.match(/internal static Vector2 BrushPreviewPoint[^]*?\{([^]*?)\n        \}/)[1]
       .replace('float margin', 'let margin').replace('new Vector2', 'point').replaceAll('Mathf.', 'math.')
       .replace(/(\d)f\b/g, '$1');
@@ -49,7 +49,7 @@ context.case('BrushStrokePreview original assertions and branches', async () => 
     assert.ok(ui.includes('EditorApplication.isCompiling || EditorApplication.isUpdating'));
     assert.ok(ui.includes('brushStrokePreviewSchedule?.Pause()'));
     assert.ok(ui.includes('ReleaseTransientResources()'));
-    assert.ok(read('src/TextureCompositorWindow.cs').includes('ReleaseBrushStrokePreview();'));
+    assert.ok(read('src/WhimTexWindow.cs').includes('ReleaseBrushStrokePreview();'));
     for(const forbidden of ['Undo.', 'AssetDatabase.', 'ReadPixels(', 'SyncSurfaceToTexture(', 'SaveAssets('])
       assert.ok(!(layer+ui).includes(forbidden), forbidden);
 });

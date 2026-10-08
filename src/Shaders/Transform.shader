@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/Transform"
+Shader "Hidden/WhimTex/Transform"
 {
     Properties
     {

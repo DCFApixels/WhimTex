@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -14,7 +14,6 @@
       }
     ],
     "nextCopyNumber": 1,
-    "spriteSlices": [],
     "width": 256,
     "height": 256,
     "outputFilter": "Bilinear",
@@ -34,7 +33,7 @@
       "blendMode": "Normal",
       "colorRange": "HDR",
       "blendRange": "HDR",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -48,8 +47,7 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "af5af0c0e0d84dde835ad02cc428091b",
-              "declaredInCode": true
+              "id": "af5af0c0e0d84dde835ad02cc428091b"
             },
             {
               "name": "_Tint",
@@ -60,15 +58,13 @@
                 1.0,
                 1.0
               ],
-              "id": "f497e999e1b74dc891da9252266e5424",
-              "declaredInCode": true
+              "id": "f497e999e1b74dc891da9252266e5424"
             },
             {
               "name": "_Brightness",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "1123aab9179d44d69cfd931253db20e4",
-              "declaredInCode": true
+              "id": "1123aab9179d44d69cfd931253db20e4"
             }
           ],
           "shaderKey": "3e89c550913c48c78623ee7595ed0a0d",
@@ -122,7 +118,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -136,8 +132,7 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "fdffd2fa4a6d440290006d0fd8f74200",
-              "declaredInCode": true
+              "id": "fdffd2fa4a6d440290006d0fd8f74200"
             },
             {
               "name": "_Center",
@@ -148,8 +143,7 @@
                 0.0,
                 0.0
               ],
-              "id": "0e83747323fb49db8bf60041831f0794",
-              "declaredInCode": true
+              "id": "0e83747323fb49db8bf60041831f0794"
             },
             {
               "name": "_Scale",
@@ -160,36 +154,31 @@
                 0.0,
                 0.0
               ],
-              "id": "ff3bf9a6aca74038b1df4188a935fde1",
-              "declaredInCode": true
+              "id": "ff3bf9a6aca74038b1df4188a935fde1"
             },
             {
               "name": "_Angle",
               "type": "Float",
               "floatValue": 0.0,
-              "id": "d6cd871c83d74f488656c233cb9457aa",
-              "declaredInCode": true
+              "id": "d6cd871c83d74f488656c233cb9457aa"
             },
             {
               "name": "_Mode",
               "type": "Float",
               "floatValue": 2.0,
-              "id": "fecf7c4c8f584b9799b5ddae102707df",
-              "declaredInCode": true
+              "id": "fecf7c4c8f584b9799b5ddae102707df"
             },
             {
               "name": "_Seed",
               "type": "Float",
               "floatValue": 17.0,
-              "id": "7061189c61eb4c6ea3d60a4ad98356ab",
-              "declaredInCode": true
+              "id": "7061189c61eb4c6ea3d60a4ad98356ab"
             },
             {
               "name": "_Frequency",
               "type": "Float",
               "floatValue": 5.0,
-              "id": "d48a1f087a684b8bb20ea6ce9960d7b7",
-              "declaredInCode": true
+              "id": "d48a1f087a684b8bb20ea6ce9960d7b7"
             },
             {
               "name": "_Stretch",
@@ -200,57 +189,49 @@
                 0.0,
                 0.0
               ],
-              "id": "9c01fdfb02fb447d8c61e516475fea72",
-              "declaredInCode": true
+              "id": "9c01fdfb02fb447d8c61e516475fea72"
             },
             {
               "name": "_Warp",
               "type": "Float",
               "floatValue": 0.7,
-              "id": "377f4ecbc1704a15966148174500f0d4",
-              "declaredInCode": true
+              "id": "377f4ecbc1704a15966148174500f0d4"
             },
             {
               "name": "_Strength",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "4347460396044e4b8174646dba6daf6d",
-              "declaredInCode": true
+              "id": "4347460396044e4b8174646dba6daf6d"
             },
             {
               "name": "_Radius",
               "type": "Float",
               "floatValue": 0.46,
-              "id": "b0ecca7305994866aa19a9b1bf1d78fb",
-              "declaredInCode": true
+              "id": "b0ecca7305994866aa19a9b1bf1d78fb"
             },
             {
               "name": "_Width",
               "type": "Float",
               "floatValue": 0.12,
-              "id": "216ec31b35ba44c7bd9036b3fefca2dc",
-              "declaredInCode": true
+              "id": "216ec31b35ba44c7bd9036b3fefca2dc"
             },
             {
               "name": "_Phase",
               "type": "Float",
               "floatValue": 0.0,
-              "id": "3b695d23323c460cb93a8c93cf4ee879",
-              "declaredInCode": true
+              "id": "3b695d23323c460cb93a8c93cf4ee879"
             },
             {
               "name": "_Encoding",
               "type": "Float",
               "floatValue": 0.0,
-              "id": "07bd9e14e9924fa3a0d1f2ef0da34843",
-              "declaredInCode": true
+              "id": "07bd9e14e9924fa3a0d1f2ef0da34843"
             },
             {
               "name": "_FlipY",
               "type": "Bool",
               "floatValue": 0.0,
-              "id": "ce0c7b8dd3ed4be982c89520bf75ba11",
-              "declaredInCode": true
+              "id": "ce0c7b8dd3ed4be982c89520bf75ba11"
             }
           ],
           "shaderKey": "80c1478a384d40509a1213ea5c18fb1e",

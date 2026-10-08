@@ -15,7 +15,7 @@ public static class LayerPickingTests
     static void Body()
     {
         // Run through Unity Pipeline eval_file. Transient document only; no user windows, assets or preferences are changed.
-        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
         document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
         document.width = document.height = 32;
         var method = document.GetType().GetMethod("PickLayerAtPixel", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
@@ -44,16 +44,16 @@ public static class LayerPickingTests
             Check(Pick(-1, 0) == null && Pick(32, 0) == null, "outside canvas");
             ((DCFApixels.WhimTex.ColorFillLayerBehaviour)front.Behaviour).color = UnityEngine.Color.clear;
             Check(Pick(threshold: 0f) == back, "zero threshold still skips transparent pixels");
-            front.swizzle = new DCFApixels.WhimTex.LayerSwizzle();
+            front.channelMapping = new DCFApixels.WhimTex.LayerChannelMapping();
             ((DCFApixels.WhimTex.ColorFillLayerBehaviour)front.Behaviour).color = UnityEngine.Color.white;
             var transform = DCFApixels.WhimTex.TextureTransform.Default;
             transform.scale = new UnityEngine.Vector2(.25f, .5f); transform.rotation = 90f;
             front.transform = transform;
             Check(Pick() == front && Pick(2, 2) == back, "transformed shape coverage");
             Check(Pick(threshold: 1f) == front, "fully opaque at 100%");
-            var swizzle = new DCFApixels.WhimTex.LayerSwizzle();
-            swizzle[3] = DCFApixels.WhimTex.SwizzleChannel.Zero; front.swizzle = swizzle;
-            Check(Pick() == back, "Swizzle alpha is part of coverage"); front.swizzle = default;
+            var channelMapping = new DCFApixels.WhimTex.LayerChannelMapping();
+            channelMapping[3] = DCFApixels.WhimTex.ChannelMappingSource.Zero; front.channelMapping = channelMapping;
+            Check(Pick() == back, "ChannelMapping alpha is part of coverage"); front.channelMapping = default;
             front.transform = DCFApixels.WhimTex.TextureTransform.Default;
             var group = NewLayer(new DCFApixels.WhimTex.GroupLayerBehaviour());
             ((DCFApixels.WhimTex.GroupLayerBehaviour)group.Behaviour).layers.Add(front);

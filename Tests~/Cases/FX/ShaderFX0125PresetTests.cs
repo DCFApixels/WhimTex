@@ -44,7 +44,7 @@ public static class ShaderFX0125PresetTests
         if (mask != null)
             Check(mask.controls[0].groupHeaderParameter == "_MaskChannel", "0.12.5 canonical group header retained");
     }
-    static void Compare(Color[] expected, TextureCompositor doc, string context)
+    static void Compare(Color[] expected, WhimTexDocument doc, string context)
     {
         var render = doc.ComposeCanvas();
         try
@@ -71,7 +71,7 @@ public static class ShaderFX0125PresetTests
         {
             foreach (string name in new[] { "ColorFilter", "Negative", "Mask", "GradientMap", "HSV" })
             {
-                TextureCompositor doc = null, loaded = null;
+                WhimTexDocument doc = null, loaded = null;
                 ShaderFX fx = null;
                 try
                 {
@@ -82,13 +82,13 @@ public static class ShaderFX0125PresetTests
                     Check(opacity != null, "Tag 0.12.5 already declares _Opacity: " + name);
                     opacity.floatValue = .37f;
                     string id = opacity.id;
-                    doc = ScriptableObject.CreateInstance<TextureCompositor>();
+                    doc = ScriptableObject.CreateInstance<WhimTexDocument>();
                     doc.hideFlags = HideFlags.HideAndDontSave;
                     doc.width = 16; doc.height = 16;
                     var layer = new Layer(new ColorFillLayerBehaviour { color = new Color(.24f, .57f, .83f, .68f) });
                     doc.layers.Add(layer);
                     fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                        new[] { typeof(TextureCompositor), typeof(string), typeof(List<ShaderFXParameter>) }, null)
+                        new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
                         .Invoke(null, new object[] { doc, old, saved });
                     layer.fx.Add(fx);
                     Call(fx, "ApplyAgentDraft");
@@ -108,7 +108,7 @@ public static class ShaderFX0125PresetTests
                     Compare(expected, doc, name + ": canonical preset");
                     string path = WhimTexDocumentFile.Save(doc, folder + "/" + name + ".tiff");
                     loaded = WhimTexDocumentFile.Load(path);
-                    Check(string.IsNullOrEmpty((string)typeof(TextureCompositor).GetField("documentLoadWarning", F).GetValue(loaded)),
+                    Check(string.IsNullOrEmpty((string)typeof(WhimTexDocument).GetField("documentLoadWarning", F).GetValue(loaded)),
                         "Complete TIFF read: " + name);
                     VerifyValues((ShaderFX)loaded.layers[0].fx[0], id);
                     Compare(expected, loaded, name + ": TIFF reopen");

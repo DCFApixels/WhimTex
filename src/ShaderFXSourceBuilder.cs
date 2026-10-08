@@ -16,7 +16,7 @@ namespace DCFApixels.WhimTex
         private const string InputSamplingSource = @"
 float _WhimTex_InputFilter;
 float4 SampleInput(float2 uv) { return tex2D(_MainTex, uv); }
-float4 SampleInput(float2 uv, float tiling, float filterRepeat)
+float4 SampleInput(float2 uv, float tiling)
 {
     float4 result = 0.0;
     if (tiling < 0.5) result = SampleInput(uv);
@@ -29,7 +29,7 @@ float4 SampleInput(float2 uv, float tiling, float filterRepeat)
     else
     {
         uv = frac(uv);
-        if (_WhimTex_InputFilter < 0.5 || filterRepeat < 0.5) result = SampleInput(uv);
+        if (_WhimTex_InputFilter < 0.5) result = SampleInput(uv);
         else
         {
             float2 size = _MainTex_TexelSize.zw;
@@ -47,11 +47,10 @@ float4 SampleInput(float2 uv, float tiling, float filterRepeat)
     }
     return result;
 }
-float4 SampleInput(float2 uv, float tiling) { return SampleInput(uv, tiling, 1.0); }
 ";
         private static readonly Regex Include = new Regex("^\\s*#\\s*(include|include_with_pragmas)\\s+\"([^\"]+)\"\\s*$");
         private static readonly Regex Identifier = new Regex("^[A-Za-z_][A-Za-z0-9_]*$");
-        private static readonly Regex UnsupportedTimeInput = new Regex(
+        private static readonly Regex UnityTimeInput = new Regex(
             @"(?<![A-Za-z0-9_])(_Time|_SinTime|_CosTime|_TimeParameters|unity_DeltaTime|unity_Time|unity_SinTime|unity_CosTime)(?![A-Za-z0-9_])",
             RegexOptions.CultureInvariant);
         private readonly string projectRoot = Path.GetDirectoryName(Application.dataPath);
@@ -95,13 +94,13 @@ float4 SampleInput(float2 uv, float tiling) { return SampleInput(uv, tiling, 1.0
             using var reader = new StringReader(source);
             string line;
             while ((line = reader.ReadLine()) != null)
-                foreach (Match match in UnsupportedTimeInput.Matches(MaskComments(line, ref blockComment)))
+                foreach (Match match in UnityTimeInput.Matches(MaskComments(line, ref blockComment)))
                     found.Add(match.Value);
             if (found.Count == 0) return null;
             var names = new List<string>(found);
             names.Sort(StringComparer.Ordinal);
             return "Warning: time-dependent Unity inputs (" + string.Join(", ", names) +
-                ") are not supported by WhimTex FX. The value is not updated by the document preview/cache; use an explicit parameter instead.";
+                ") are allowed, but WhimTex does not control their updates. Results may differ between Canvas, thumbnails and export. Result caching is disabled; use an explicit parameter for predictable behavior.";
         }
 
         internal static string Build(ShaderFX effect, string assetPath)
@@ -111,7 +110,7 @@ float4 SampleInput(float2 uv, float tiling) { return SampleInput(uv, tiling, 1.0
             StringBuilder uniforms = new StringBuilder();
             HashSet<string> names = new HashSet<string>(StringComparer.Ordinal)
             {
-                "_MainTex", "_MainTex_TexelSize", "_InputSize", "_CanvasSize", "_PreviewScale",
+                "_MainTex", "_MainTex_TexelSize", "_InputSize", "_CanvasSize", "_RenderScale",
                 "ApplyFX", "SampleInput", "LayerToLocal", "SpriteFXFragment", "vert_img", "v2f_img"
             };
             foreach (ShaderFXParameter parameter in effect.Parameters)
@@ -184,13 +183,13 @@ float4 SampleInput(float2 uv, float tiling) { return SampleInput(uv, tiling, 1.0
             string expanded = builder.ResolveIncludes(effect.Code ?? string.Empty, assetPath);
             if (Regex.IsMatch(expanded, @"\b_WhimTex_[A-Za-z0-9_]*"))
                 throw new InvalidOperationException("The _WhimTex_ prefix is reserved for generated shader data.");
-            return "Shader \"Hidden/TextureCompositor/ShaderFX/" + effect.ShaderKey + "\"\n{\n" +
+            return "Shader \"Hidden/WhimTex/ShaderFX/" + effect.ShaderKey + "\"\n{\n" +
                 "Properties {\n_MainTex (\"Input\", 2D) = \"white\" {}\n" +
                 "[HideInInspector] _WhimTex_InputFilter (\"Input Filter\", Float) = 1\n" + properties + "}\n" +
                 "SubShader { Cull Off ZWrite Off ZTest Always Blend Off\nPass {\nCGPROGRAM\n" +
                 "#pragma vertex vert_img\n#pragma fragment SpriteFXFragment\n#pragma target 3.5\n" +
                 "#include \"UnityCG.cginc\"\n" + NoiseLibraryInclude + "sampler2D _MainTex;\nfloat4 _MainTex_TexelSize;\n" +
-                "float4 _InputSize;\nfloat4 _CanvasSize;\nfloat _PreviewScale;\n" + uniforms +
+                "float4 _InputSize;\nfloat4 _CanvasSize;\nfloat _RenderScale;\n" + uniforms +
                 "float4 _WhimTex_LayerToLocalRow0, _WhimTex_LayerToLocalRow1, _WhimTex_LayerToLocalRow2;\n" +
                 "float2 LayerToLocal(float2 uv) { float3 p = float3(uv, 1); float w = dot(_WhimTex_LayerToLocalRow2.xyz, p); w = abs(w) < 1e-8 ? (w < 0 ? -1e-8 : 1e-8) : w; return float2(dot(_WhimTex_LayerToLocalRow0.xyz, p), dot(_WhimTex_LayerToLocalRow1.xyz, p)) / w; }\n" +
                 InputSamplingSource +

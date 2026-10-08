@@ -59,10 +59,8 @@
 // @endgroup
 // @group(Output Mix; _Mix)
 // @param hidden float _Mix = 1 [0 .. 1] // Blend the displaced sample with the original image.
-// @formerlyserializedas(_InputEdge)
 // @param enum _Tiling = Clamp {Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3} // Sampling outside the displaced input image, independent of map wrapping.
 // @endgroup
-// @param hidden bool _RepeatFiltering = true // Interpolate across repeat seams; saved earlier presets retain their original filtering.
 
 float ReadDisplacementChannel(float4 value, float channel)
 {
@@ -234,7 +232,7 @@ float4 ApplyFX(float2 uv, float4 color)
         parallaxUV = TraceParallax(uv, strengthMask, mapDDX, mapDDY, parallaxHeight);
 
     float2 inputUV = _Mode > 1.5 ? parallaxUV : uv + displacementPixels * strengthMask * _CanvasSize.zw;
-    float4 distorted = SampleInput(inputUV, _Tiling, _RepeatFiltering);
+    float4 distorted = SampleInput(inputUV, _Tiling);
     // if (_Mode > 1.5 && _SelfShadow > 0.5)
     // {
     //     float visibility = TraceParallaxSelfShadow(parallaxUV, parallaxHeight, strengthMask, mapDDX, mapDDY);

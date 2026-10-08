@@ -145,8 +145,8 @@ namespace DCFApixels.WhimTex
             else material.DisableKeyword("WT_NOISE_3D");
             if (EffectivePeriodic != PeriodicAxes.None) material.EnableKeyword("WT_NOISE_PERIODIC");
             else material.DisableKeyword("WT_NOISE_PERIODIC");
-            float width = context.compositor != null ? context.compositor.width : context.width;
-            float height = context.compositor != null ? context.compositor.height : context.height;
+            float width = context.activeDocument != null ? context.activeDocument.width : context.width;
+            float height = context.activeDocument != null ? context.activeDocument.height : context.height;
             float shortest = Mathf.Max(1f, Mathf.Min(width, height));
             material.SetVector("_NoiseDomain", new Vector4(width / shortest, height / shortest,
                 Limit(offset.x, -10000f, 10000f, 0f), Limit(offset.y, -10000f, 10000f, 0f)));

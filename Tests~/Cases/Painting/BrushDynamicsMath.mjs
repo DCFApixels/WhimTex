@@ -13,7 +13,7 @@ context.case('BrushDynamicsMath original assertions and branches', async () => {
     const paint = read('src/Layers/DrawingLayerBehaviour.cs');
     const shader = read('src/Shaders/PaintBrush.shader');
     const blend = read('src/Shaders/Blend.shader');
-    const ui = read('src/TextureCompositorWindow.PostFx.cs');
+    const ui = read('src/WhimTexWindow.PostFx.cs');
     const api = read('src/Automation/WhimTexApi.Paint.cs');
     const inspect = read('src/Automation/WhimTexApi.Inspect.cs');
     
@@ -60,7 +60,7 @@ context.case('BrushDynamicsMath original assertions and branches', async () => {
     assert.match(dynamics, /opacity < 1f \|\| !erase && blend != BlendMode.Normal/);
     assert.match(paint, /if \(isolatedStroke && segmentStamps.Count > 0\) EnsureAdvancedStroke/);
     assert.match(brush, /Graphics.Blit\(advancedStrokeBase, target, material, 1\)/);
-    assert.match(read('src/TextureCompositor.cs'), /Graphics.Blit\(accumulator, result, material, 0\)/);
+    assert.match(read('src/WhimTexDocument.cs'), /Graphics.Blit\(accumulator, result, material, 0\)/);
     assert.match(blend, /float4 fragBrush/);
     assert.match(shader, /multi_compile_local __ BRUSH_DYNAMICS BRUSH_TEXTURE/);
     assert.ok(!paint.includes('GL.MultiTexCoord4('), 'Only supported GL coordinate methods');
@@ -79,13 +79,13 @@ context.case('BrushDynamicsMath original assertions and branches', async () => {
       'Expanding Brushes collapses Post FX');
     assert.ok(!dynamics.includes('public Color tint'), 'No constant tint setting');
     assert.ok(!brush.includes('dynamics.tint;'), 'No hidden constant tint multiplier');
-    assert.ok(!read('src/TextureCompositorWindow.Brushes.cs').includes('new ColorField("Tint")'));
+    assert.ok(!read('src/WhimTexWindow.Brushes.cs').includes('new ColorField("Tint")'));
     assert.ok(!dynamics.includes('public bool randomTint'), 'Tint randomness is derived from gradient keys');
-    assert.ok(!read('src/TextureCompositorWindow.Brushes.cs').includes('new Toggle("Random Tint")'));
+    assert.ok(!read('src/WhimTexWindow.Brushes.cs').includes('new Toggle("Random Tint")'));
     assert.ok(dynamics.includes('alphas[0].alpha != alphas[i].alpha'), 'Alpha keys also enable randomness');
     assert.ok(brush.includes('if (!brushTintPrepared)'), 'Gradient analysis is outside the per-stamp loop');
     assert.ok(dynamics.includes('tintGradient.EvaluateEncoded(SampleRandom(ref state, stampIndex, 4)) : constantTint'));
-    assert.ok(read('src/TextureCompositorWindow.Brushes.cs').includes('paintSettings.dynamics.ResetTint()'));
+    assert.ok(read('src/WhimTexWindow.Brushes.cs').includes('paintSettings.dynamics.ResetTint()'));
     for (const field of ['opacity','flow','scatter','scatterBias','sizeJitter','angleJitter','angleOffset','flipX','flipY','rotationMode','randomAlgorithm','tip','tipChannel','tipSdf','proceduralMode','blend','blendApplication','seed']) {
       assert.ok(api.includes('"' + field + '"'), 'API write: ' + field);
       assert.ok(inspect.includes('["' + field + '"]'), 'API inspect: ' + field);
@@ -171,7 +171,7 @@ context.case('BrushDynamicsMath original assertions and branches', async () => {
     assert.ok(brush.includes('uint stampIndex = unchecked(firstStamp + (uint)i)'));
     for (let dim = 0; dim < 4; dim++) assert.ok(brush.includes('SampleRandom(ref brushRandomState, stampIndex, ' + dim + ')'));
     assert.ok(dynamics.includes(': Random01(ref state)'), 'Default Random retains the existing generator');
-    assert.ok(read('src/TextureCompositorWindow.Brushes.cs').includes('new EnumField("Randomization"'));
+    assert.ok(read('src/WhimTexWindow.Brushes.cs').includes('new EnumField("Randomization"'));
     const scalarJs = source => source.replace(/(\d)f\b/g, '$1').replace(/Mathf.Pow/g, 'Math.pow').replace(/Mathf.Sqrt/g, 'Math.sqrt');
     const scatterExponent = new Function('scatterBias', scalarJs(body('internal float GetScatterExponent')));
     const scatterRadius = new Function('sample', 'exponent', scalarJs(body('internal static float ScatterRadius')));
@@ -201,9 +201,9 @@ context.case('BrushDynamicsMath original assertions and branches', async () => {
     assert.match(dynamics, /scatterBias = Mathf.Clamp\(Finite\(scatterBias, 0f\), -1f, 1f\)/);
     assert.ok(brush.indexOf('dynamics.GetScatterExponent()') < brush.indexOf('for (long i'));
     assert.ok(brush.includes('BrushDynamics.ScatterRadius(dynamics.SampleRandom(ref brushRandomState, stampIndex, 1), scatterExponent)'));
-    assert.ok(read('src/TextureCompositorWindow.Brushes.cs').includes('new Slider("Scatter Bias", -100f, 100f)'));
+    assert.ok(read('src/WhimTexWindow.Brushes.cs').includes('new Slider("Scatter Bias", -100f, 100f)'));
     const settingsSource = read('src/PaintToolSettings.cs');
-    const drawerSource = read('src/TextureCompositorWindow.Brushes.cs');
+    const drawerSource = read('src/WhimTexWindow.Brushes.cs');
     for (const [section, fields] of [
       ['Tip', ['dynamics.tip', 'dynamics.source', 'dynamics.hlslCode', 'dynamics.hlslParameters', 'dynamics.hlslResolution', 'clipboardTipId', 'dynamics.tipChannel', 'dynamics.tipSdf', 'dynamics.proceduralMode', 'dynamics.tipGradient', 'brushTipGuid', 'brushTipLocalId', 'brushTipPresetPath']],
       ['Stamps', ['dynamics.randomAlgorithm', 'dynamics.scatter', 'dynamics.scatterBias', 'dynamics.sizeJitter', 'dynamics.angleJitter', 'dynamics.angleOffset', 'dynamics.rotationMode', 'dynamics.flipX', 'dynamics.flipY']],

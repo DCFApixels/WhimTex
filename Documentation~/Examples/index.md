@@ -9,7 +9,7 @@ permalink: "/reference/examples/"
 # JSON examples
 
 Copy a request and adapt all asset paths to the intended Unity project before executing it.
-Read the [API workflow](../AgentAPI.md#generated-image--compositor) first.
+Read the [API workflow](../AgentAPI.md#generated-image--document) first.
 These are batch command envelopes for `whimtex_batch_execute`, not stored documents or clipboard recipes.
 For editable `whimtex.document` files to open or paste, use the [document recipes](Clipboard/README.md)
 and [shared format](../JSON_FORMAT.md).

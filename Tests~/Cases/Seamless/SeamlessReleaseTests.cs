@@ -24,7 +24,7 @@ public static class SeamlessReleaseTests
         try{RenderTexture.active=rt;t.ReadPixels(new Rect(0,0,rt.width,rt.height),0,0,false);return t.GetPixels();}
         finally{RenderTexture.active=previous;WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(t);}
     }
-    static Color[] Render(TextureCompositor doc)
+    static Color[] Render(WhimTexDocument doc)
     {var rt=(RenderTexture)Call(doc,"RenderCanvasAtSize",doc.width,doc.height);try{return Read(rt);}finally{WhimTex.Tests.UnityC.FixtureContext.Scope.Release(rt);}}
     static void Same(Color[] a,Color[] b,string label,float tolerance=.003f)
     {
@@ -47,7 +47,7 @@ public static class SeamlessReleaseTests
         }
         t.SetPixels(p);t.Apply(false,false);return t;
     }
-    static MakeSeamlessLayerBehaviour Populate(TextureCompositor doc,int w,int h,int fixture,Mode mode)
+    static MakeSeamlessLayerBehaviour Populate(WhimTexDocument doc,int w,int h,int fixture,Mode mode)
     {
         doc.width=w;doc.height=h;doc.outputSrgb=false;doc.outputPrecision=WhimTexOutputPrecision.Float32;doc.layers.Clear();
         var input=Source(w,h,fixture);
@@ -66,7 +66,7 @@ public static class SeamlessReleaseTests
         foreach(var f in typeof(MakeSeamlessLayerBehaviour).GetFields(BindingFlags.Public|BindingFlags.Instance|BindingFlags.DeclaredOnly))
             Check(Equals(f.GetValue(a),f.GetValue(b)),"Persisted setting "+f.Name);
     }
-    static void Close(TextureCompositorWindow window)
+    static void Close(WhimTexWindow window)
     {if(window==null)return;global::WhimTex.Tests.UnityC.FixtureContext.Scope.CloseWindow(window);}
     static string ExecuteWorkflow()
     {
@@ -78,10 +78,10 @@ public static class SeamlessReleaseTests
         {
             foreach(Mode mode in new[]{Mode.OffsetBlend,Mode.Mirror,Mode.ScreenedPoisson,Mode.PatchQuilting})
             {
-                TextureCompositorWindow source=null,target=null;TextureCompositor doc=null,loaded=null,snapshot=null;
+                WhimTexWindow source=null,target=null;WhimTexDocument doc=null,loaded=null,snapshot=null;
                 try
                 {
-                    doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());var effect=Populate(doc,96,64,3,mode);
+                    doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());var effect=Populate(doc,96,64,3,mode);
                     var expected=Render(doc);string settings=JsonUtility.ToJson(effect);
                     string path=WhimTexDocumentFile.Save(doc,folder+"/"+mode+".tiff");
                     WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(doc);doc=null;
@@ -90,17 +90,17 @@ public static class SeamlessReleaseTests
                     Settings(JsonUtility.FromJson<MakeSeamlessLayerBehaviour>(settings),restored);
                     Same(expected,Render(loaded),mode+" save/close/reopen");
                     Check(restored.TargetLayerId==loaded.layers[1].Id,"Saved target");
-                    source=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositorWindow>());
-                    WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy((TextureCompositor)Get(source,"compositor"));Set(source,"compositor",loaded);loaded=null;
-                    source.ShowUtility();doc=(TextureCompositor)Get(source,"compositor");
+                    source=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexWindow>());
+                    WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy((WhimTexDocument)Get(source,"activeDocument"));Set(source,"activeDocument",loaded);loaded=null;
+                    source.ShowUtility();doc=(WhimTexDocument)Get(source,"activeDocument");
                     int editGroup;Undo.IncrementCurrentGroup();editGroup=Undo.GetCurrentGroup();
                     Call(source,"ExecuteModelChange","Release smoke seed",new Action(()=>((MakeSeamlessLayerBehaviour)doc.layers[0].Behaviour).quiltingSeed=71));
                     Undo.FlushUndoRecordObjects();Undo.PerformUndo();Check(((MakeSeamlessLayerBehaviour)doc.layers[0].Behaviour).quiltingSeed==-184,"Undo");
                     Undo.PerformRedo();Check(((MakeSeamlessLayerBehaviour)doc.layers[0].Behaviour).quiltingSeed==71,"Redo");
                     Undo.RevertAllDownToGroup(editGroup);
-                    target=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositorWindow>());target.ShowUtility();
-                    var dest=(TextureCompositor)Get(target,"compositor");dest.layers.Clear();dest.width=96;dest.height=64;
-                    snapshot=(TextureCompositor)Call(doc,"CaptureLayerClipboard",new List<Layer>(doc.layers));
+                    target=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexWindow>());target.ShowUtility();
+                    var dest=(WhimTexDocument)Get(target,"activeDocument");dest.layers.Clear();dest.width=96;dest.height=64;
+                    snapshot=(WhimTexDocument)Call(doc,"CaptureLayerClipboard",new List<Layer>(doc.layers));
                     Call(target,"PasteCopiedLayersAt",snapshot,dest.layers,0,null,false);
                     Check(dest.layers.Count==2,"Window copy count");
                     var copied=(MakeSeamlessLayerBehaviour)dest.layers[0].Behaviour;
@@ -111,8 +111,8 @@ public static class SeamlessReleaseTests
                     try
                     {
                         var linear=compose.GetPixels();Same(Render(doc),linear,mode+" export compose");
-                        var format=typeof(TextureCompositorWindow).GetNestedType("TextureExportFormat",F);
-                        byte[] png=(byte[])typeof(TextureCompositorWindow).GetMethod("EncodeExportTexture",F).Invoke(null,new object[]{compose,Enum.Parse(format,"Png")});
+                        var format=typeof(WhimTexWindow).GetNestedType("TextureExportFormat",F);
+                        byte[] png=(byte[])typeof(WhimTexWindow).GetMethod("EncodeExportTexture",F).Invoke(null,new object[]{compose,Enum.Parse(format,"Png")});
                         var decoded=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(2,2,TextureFormat.RGBA32,false,true));
                         try
                         {
@@ -133,10 +133,10 @@ public static class SeamlessReleaseTests
     }
     static string ExecutePreview()
     {
-        checks=0;var focus=EditorWindow.focusedWindow;var window=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositorWindow>());
+        checks=0;var focus=EditorWindow.focusedWindow;var window=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexWindow>());
         try
         {
-            var doc=(TextureCompositor)Get(window,"compositor");Populate(doc,768,512,2,Mode.PatchQuilting);window.ShowUtility();
+            var doc=(WhimTexDocument)Get(window,"activeDocument");Populate(doc,768,512,2,Mode.PatchQuilting);window.ShowUtility();
             var tool=window.GetType().GetField("canvasTool",F);
             tool.SetValue(window,Enum.Parse(tool.FieldType,"Pencil"));Call(window,"UpdateCanvasRender");
             var rt=(RenderTexture)Get(window,"canvasTexture");Check(rt.width==768&&rt.height==512,"Actual Pencil preview dimensions");
@@ -156,8 +156,8 @@ public static class SeamlessReleaseTests
     }
     static string ExecuteStress(int size=1024,int onlyMode=-1)
     {
-        checks=0;var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());var report=new StringBuilder();
-        var cache=(IDisposable)Activator.CreateInstance(typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache"),true);
+        checks=0;var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());var report=new StringBuilder();
+        var cache=(IDisposable)Activator.CreateInstance(typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache"),true);
         try
         {
             var layer=Populate(doc,size,size*3/4,4,Mode.OffsetBlend);layer.quiltingQuality=MakeSeamlessLayerBehaviour.QuiltingQuality.High;
@@ -181,12 +181,12 @@ public static class SeamlessReleaseTests
     static string ExecuteVisuals()
     {
         string folder=WhimTex.Tests.UnityC.FixtureContext.Scope.Temp;
-        const int n=192;var sheet=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(n*5,n*5,TextureFormat.RGB24,false,false));var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        const int n=192;var sheet=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(n*5,n*5,TextureFormat.RGB24,false,false));var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         try
         {
             for(int fixture=0;fixture<5;fixture++)
             {
-                if(fixture>0){WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(doc);doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());}
+                if(fixture>0){WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(doc);doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());}
                 var effect=Populate(doc,n,n,fixture,Mode.OffsetBlend);
                 effect.quiltingChannels=fixture==4?MakeSeamlessLayerBehaviour.QuiltingChannels.Independent:MakeSeamlessLayerBehaviour.QuiltingChannels.Linked;
                 for(int column=0;column<5;column++)
@@ -212,14 +212,14 @@ public static class SeamlessReleaseTests
     static string ExecuteMultiWindow()
     {
         checks=0;var focus=EditorWindow.focusedWindow;
-        var windows=new TextureCompositorWindow[2];var caches=new object[2];var report=new StringBuilder();
+        var windows=new WhimTexWindow[2];var caches=new object[2];var report=new StringBuilder();
         long Bytes(object cache)=>(long)cache.GetType().GetProperty("Bytes",F).GetValue(cache);
         try
         {
             for(int i=0;i<2;i++)
             {
-                var w=windows[i]=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositorWindow>());
-                var doc=(TextureCompositor)Get(w,"compositor");var layer=Populate(doc,1024,768,4,Mode.PatchQuilting);
+                var w=windows[i]=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexWindow>());
+                var doc=(WhimTexDocument)Get(w,"activeDocument");var layer=Populate(doc,1024,768,4,Mode.PatchQuilting);
                 layer.quiltingQuality=MakeSeamlessLayerBehaviour.QuiltingQuality.High;layer.quiltingSeed+=i;
                 w.ShowUtility();var tool=w.GetType().GetField("canvasTool",F);tool.SetValue(w,Enum.Parse(tool.FieldType,"Pencil"));
                 Call(w,"UpdateCanvasRender");caches[i]=Get(w,"canvasEffectCache");

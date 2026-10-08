@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/AlphaConversion"
+Shader "Hidden/WhimTex/AlphaConversion"
 {
     Properties
     {
@@ -49,7 +49,7 @@ Shader "Hidden/TextureCompositor/AlphaConversion"
                 else color = float4(color.rgb / color.a, color.a);
                 // Half-precision premultiplied storage can round RGB and alpha differently.
                 // Bound finite unpremultiplied values before the half target; keep nonfinite
-                // render values observable by the compositor's existing diagnostics.
+                // render values observable by the document's existing diagnostics.
                 if (_Mode < 1.5)
                 {
                     if ((asuint(color.r) & 0x7fffffffu) < 0x7f800000u) color.r = clamp(color.r, -65504.0, 65504.0);

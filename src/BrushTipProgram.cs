@@ -129,9 +129,6 @@ namespace DCFApixels.WhimTex
                     foreach(string title in p.controls[0].headers) result.AppendLine("// @header("+title+")");
                 if(p.controls.Count>0 && p.controls[0].helpBoxes != null)
                     foreach(string message in p.controls[0].helpBoxes) result.AppendLine("// @helpbox("+message+")");
-                if(p.controls.Count>0 && p.controls[0].formerlySerializedAs != null)
-                    foreach(string formerName in p.controls[0].formerlySerializedAs)
-                        result.AppendLine("// @formerlyserializedas("+formerName+")");
                 if(p.controls.Count>0 && !string.IsNullOrEmpty(p.controls[0].tooltip))declaration+=" // "+p.controls[0].tooltip;
                 result.AppendLine(declaration);
             }
@@ -139,7 +136,7 @@ namespace DCFApixels.WhimTex
             string line; bool block=false;
             while((line=reader.ReadLine())!=null)
             {
-                bool declaration=!block && Regex.IsMatch(line,@"^\s*//\s*@(?:param\b|\s*(?:header|helpbox|formerlyserializedas)\b)");
+                bool declaration=!block && Regex.IsMatch(line,@"^\s*//\s*@(?:param\b|\s*(?:header|helpbox)\b)");
                 ShaderFXSourceBuilder.MaskComments(line,ref block);
                 if(!declaration)result.AppendLine(line);
             }

@@ -9,9 +9,9 @@ const assert = context.assert;
 context.case('BrushPresets original assertions and branches', async () => {
     const read = path => readFileSync(new URL('../../../' + path, import.meta.url), 'utf8').replace(/\r\n/g,'\n');
     const library=read('src/BrushPresetLibrary.cs'), settings=read('src/PaintToolSettings.cs');
-    const ui=read('src/TextureCompositorWindow.BrushPresets.cs');
-    const drawer = read('src/TextureCompositorWindow.Brushes.cs').split('private void AddBrushEdgeHeader')[0]
-      + read('src/TextureCompositorWindow.BrushHlsl.cs');
+    const ui=read('src/WhimTexWindow.BrushPresets.cs');
+    const drawer = read('src/WhimTexWindow.Brushes.cs').split('private void AddBrushEdgeHeader')[0]
+      + read('src/WhimTexWindow.BrushHlsl.cs');
     assert.ok(drawer.includes('new FloatField("Size")'));
     assert.ok(drawer.includes('brushSettingsBindings.Track(size, () => paintSettings.brushSize)'));
     for (const [label, member] of [['Opacity', 'opacity'], ['Flow', 'flow']])

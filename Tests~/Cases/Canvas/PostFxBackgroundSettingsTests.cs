@@ -14,7 +14,7 @@ public static class PostFxBackgroundSettingsTests
     public static string Run() => WhimTex.Tests.UnityC.FixtureContext.Run("PostFxBackgroundSettingsTests", Body);
     static void Body()
     {
-        var assembly = typeof(DCFApixels.WhimTex.TextureCompositorWindow).Assembly;
+        var assembly = typeof(DCFApixels.WhimTex.WhimTexWindow).Assembly;
         var settings = assembly.GetType("DCFApixels.WhimTex.WhimTexUserSettings", true);
         var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
         var instanceFlags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
@@ -28,7 +28,7 @@ public static class PostFxBackgroundSettingsTests
         object originalMode = mode.GetValue(null), originalColor = color.GetValue(null);
         UnityEditor.EditorWindow preferences = null;
         var previousFocus = UnityEditor.EditorWindow.focusedWindow;
-        var windows = new System.Collections.Generic.List<DCFApixels.WhimTex.TextureCompositorWindow>();
+        var windows = new System.Collections.Generic.List<DCFApixels.WhimTex.WhimTexWindow>();
         var panels = new System.Collections.Generic.List<UnityEngine.UIElements.VisualElement>();
         int checks = 0;
         void Check(bool valid, string message) { WhimTex.Tests.UnityC.FixtureContext.Context.True(valid, message); checks++; }
@@ -41,7 +41,7 @@ public static class PostFxBackgroundSettingsTests
             preferences.GetType().GetMethod("CreateGUI").Invoke(preferences, null);
             for (int i = 0; i < 2; i++)
             {
-                var window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>());
+                var window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexWindow>());
                 windows.Add(window);
                 window.ShowUtility();
                 var panel = new UnityEngine.UIElements.VisualElement(); panels.Add(panel);

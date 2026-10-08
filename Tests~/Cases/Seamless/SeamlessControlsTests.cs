@@ -19,7 +19,7 @@ public static class SeamlessControlsTests
     }
     static Color[] Render(Texture t,bool histogram,Vector4 edges,float radius,float width,float contrast)
     {
-        var type=typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex."+(histogram?"HistogramSeamless":"ScreenedSeamless"));
+        var type=typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex."+(histogram?"HistogramSeamless":"ScreenedSeamless"));
         var rt=(RenderTexture)type.GetMethod("RenderConfigured",Flags).Invoke(null,histogram?
             new object[]{t,t.width,t.height,edges,width,contrast}:new object[]{t,t.width,t.height,
                 edges.x+edges.y==0?MakeSeamlessLayerBehaviour.PoissonEdges.TopAndBottom:edges.z+edges.w==0?MakeSeamlessLayerBehaviour.PoissonEdges.LeftAndRight:MakeSeamlessLayerBehaviour.PoissonEdges.AllEdges,radius});

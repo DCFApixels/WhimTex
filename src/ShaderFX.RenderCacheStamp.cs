@@ -39,7 +39,7 @@ namespace DCFApixels.WhimTex
         {
             public bool active, lastApplyFailed, shaderCreationRecorded;
             public Shader compiledShader;
-            public TextureCompositor embeddedOwner;
+            public WhimTexDocument embeddedOwner;
             public string diagnostics, documentIncludeBasePath, shaderKey;
             public string catalogGuid, catalogSourcePath, catalogDependencyHash;
         }

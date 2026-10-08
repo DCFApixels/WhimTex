@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -22,7 +22,6 @@
       }
     ],
     "nextCopyNumber": 1,
-    "spriteSlices": [],
     "width": 512,
     "height": 512,
     "outputFilter": "Bilinear",
@@ -42,7 +41,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [],
@@ -90,7 +89,7 @@
           "blendMode": "Multiply",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [],
@@ -182,7 +181,7 @@
           "blendMode": "Normal",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [],
@@ -239,7 +238,7 @@
           "blendMode": "Normal",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [],

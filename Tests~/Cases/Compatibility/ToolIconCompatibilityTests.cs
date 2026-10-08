@@ -24,8 +24,8 @@ public static class ToolIconCompatibilityTests
     {
         context = runContext;
         const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-        Type iconType = typeof(TextureCompositorWindow).GetNestedType("CanvasToolIcon", flags);
-        Type toolType = typeof(TextureCompositorWindow).GetNestedType("CanvasTool", flags);
+        Type iconType = typeof(WhimTexWindow).GetNestedType("CanvasToolIcon", flags);
+        Type toolType = typeof(WhimTexWindow).GetNestedType("CanvasTool", flags);
         var points = (Vector2[])iconType.GetField("BlurBrushOutline", flags).GetValue(null);
         int checks = 0;
         void Check(bool valid, string message) { context.True(valid, message); }

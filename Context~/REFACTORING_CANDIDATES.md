@@ -43,10 +43,10 @@ aliases, зависимые операции, ошибка в середине, 
 
 ### Где и что изменить
 
-- [RenderCanvasWithCache](../src/TextureCompositor.EffectCache.cs): cache, quality, `publishingLayerPreview`.
-- [RenderLayerThumbnail](../src/TextureCompositor.Thumbnails.cs), [PickLayerAtPixel](../src/TextureCompositor.LayerPicking.cs): cache, quality, diagnostics, `RenderTexture.active`.
-- [RasterizeFXPrefix](../src/TextureCompositor.ApplyFX.cs): свой save/restore cache и quality.
-- [RenderCanvasCore](../src/TextureCompositor.cs): отдельное владение созданным cache и temporary output.
+- [RenderCanvasWithCache](../src/WhimTexDocument.EffectCache.cs): cache, quality, `publishingLayerPreview`.
+- [RenderLayerThumbnail](../src/WhimTexDocument.Thumbnails.cs), [PickLayerAtPixel](../src/WhimTexDocument.LayerPicking.cs): cache, quality, diagnostics, `RenderTexture.active`.
+- [RasterizeFXPrefix](../src/WhimTexDocument.ApplyFX.cs): свой save/restore cache и quality.
+- [RenderCanvasCore](../src/WhimTexDocument.cs): отдельное владение созданным cache и temporary output.
 
 Подключать только подходящие entry points, не унифицировать их настройки. `lastLayerPreview*` —
 опубликованный результат успешного рендера, не временные поля вроде `publishingLayerPreview`.
@@ -65,8 +65,11 @@ Scope восстанавливает state, но не уничтожает borro
 ## Общие ограничения
 
 Запуск — через [RUNNING_TESTS.md](../Tests~/RUNNING_TESTS.md), после чтения выбранных исходников
-и проверки разрешений. Сохранить файлы 0.12.5, frozen fixtures, Compact defaults v1, Undo,
-source resolution, группы, Target, clipping, appearance и texture ownership.
+и проверки разрешений. Файловая/API-совместимость с прежними версиями, включая 0.13.0,
+не обязательна; правило — в [AGENTS.md](../AGENTS.md#identity-and-compatibility). Сохранить корректность
+текущего Save/reopen, Undo, source resolution, группы, Target, clipping, appearance и texture ownership,
+если их изменение не входит в запрос. Версионные тесты обновлять или удалять вместе со снятым контрактом,
+не подменяя старые эталоны ради PASS.
 Не объединять разные revision/save fingerprint/render stamp или разные контексты настроек кисти.
 Временный SO модели не является снятым document `.asset` форматом.
 

@@ -20,14 +20,14 @@ namespace DCFApixels.WhimTex
                 Require(!string.Equals(left, right, StringComparison.OrdinalIgnoreCase) || FileExists(left),
                     "At least one comparison path must be different or point to an existing document.", "invalid_path");
                 Require(!render || maxSize >= 1 && maxSize <= 4096, "maxSize must be 1..4096.");
-                TextureCompositor leftDocument = null, rightDocument = null;
+                WhimTexDocument leftDocument = null, rightDocument = null;
                 Texture2D leftPreview = null, rightPreview = null;
                 try
                 {
                     leftDocument = Load(left);
                     rightDocument = Load(right);
-                    Require(!TextureCompositorWindow.IsDocumentBusyForApi(leftDocument) &&
-                        !TextureCompositorWindow.IsDocumentBusyForApi(rightDocument),
+                    Require(!WhimTexWindow.IsDocumentBusyForApi(leftDocument) &&
+                        !WhimTexWindow.IsDocumentBusyForApi(rightDocument),
                         "Finish the current paint/transform gesture first.", "document_busy");
                     var result = Success();
                     result["leftPath"] = left;

@@ -315,7 +315,7 @@ namespace DCFApixels.WhimTex
             finally { candidate?.Dispose(); }
         }
 
-        private static JObject WriteTiffLivePreview(TextureCompositor document, string outputPath, bool overwrite, int maxSize)
+        private static JObject WriteTiffLivePreview(WhimTexDocument document, string outputPath, bool overwrite, int maxSize)
         {
             outputPath = outputPath.Replace('\\', '/');
             Require(outputPath.StartsWith("Temp/WhimTex/", StringComparison.Ordinal), "Preview output must be project-relative Temp/WhimTex/*.png.", "invalid_path");

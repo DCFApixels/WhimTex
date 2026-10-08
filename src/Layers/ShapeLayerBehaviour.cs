@@ -99,7 +99,7 @@ namespace DCFApixels.WhimTex
             if (material == null || !material.shader.isSupported)
                 throw new InvalidOperationException("Shape shader is unavailable or unsupported on this graphics device.");
             TextureTransform applied = context.applyTransform ? Owner.RenderTransform : TextureTransform.Default;
-            float width = context.compositor.width, height = context.compositor.height;
+            float width = context.activeDocument.width, height = context.activeDocument.height;
             material.SetVector("_CanvasSize", new Vector4(width, height, 0f, 0f));
             Owner.SetRenderInverse(material,"_ShapeRow",context);
             applied.GetDisplay(new Vector2(width,height),out _,out var displayScale,out _);
@@ -124,7 +124,7 @@ namespace DCFApixels.WhimTex
             {
                 GL.sRGBWrite = false;
                 Graphics.Blit(null, source, material);
-                var renderedContext = new LayerRenderContext(context.compositor, context.input, context.width,
+                var renderedContext = new LayerRenderContext(context.activeDocument, context.input, context.width,
                     context.height, context.scaleMultiplier, applyTransform: false, applyFx: context.applyFx);
                 return ApplyTransformAndFx(source, renderedContext);
             }

@@ -62,7 +62,7 @@ public static class ShaderFXTiffCatalogTests
             }
             Check(selected != null, "Could not find a project Shader FX preset.");
 
-            var document = ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+            var document = ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>();
             owned.Add(document);
             document.width = document.height = 16;
             var layer = new DCFApixels.WhimTex.Layer(new DCFApixels.WhimTex.ColorFillLayerBehaviour { color = Color.white });

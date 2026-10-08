@@ -18,8 +18,8 @@ public static class ScopedUndoTests
         // Do not run during editing. No assets are saved; tool preferences are restored.
         
         const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-        var documentType = typeof(DCFApixels.WhimTex.TextureCompositor);
-        var windowType = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+        var documentType = typeof(DCFApixels.WhimTex.WhimTexDocument);
+        var windowType = typeof(DCFApixels.WhimTex.WhimTexWindow);
         var changed = documentType.GetEvent("Changed", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
         object Call(object target, string name, params object[] args) => target.GetType().GetMethod(name, Hidden).Invoke(target, args);
         int checks = 0, firstNotifications = 0, secondNotifications = 0;
@@ -42,13 +42,13 @@ public static class ScopedUndoTests
         const string Preferences = "DCFApixels.WhimTex.PaintToolSettings";
         bool hadPreferences = EditorPrefs.HasKey(Preferences);
         string preferences = EditorPrefs.GetString(Preferences, "");
-        var first = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
-        var second = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+        var first = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
+        var second = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
         var unrelated = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(1, 1) { hideFlags = HideFlags.HideAndDontSave });
         Texture2D pixels = null;
-        DCFApixels.WhimTex.TextureCompositorWindow window = null;
+        DCFApixels.WhimTex.WhimTexWindow window = null;
         DCFApixels.WhimTex.ShaderFX effect = null;
-        Action<DCFApixels.WhimTex.TextureCompositor> handler = document =>
+        Action<DCFApixels.WhimTex.WhimTexDocument> handler = document =>
         {
             if (document == first) firstNotifications++;
             if (document == second) secondNotifications++;
@@ -113,7 +113,7 @@ public static class ScopedUndoTests
             Undo.PerformUndo();
             Check(firstNotifications == 1 && secondNotifications == 0, "FX Undo notifies only consuming documents");
         
-            window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>());
+            window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexWindow>());
             object settings = windowType.GetField("paintSettings", Hidden).GetValue(window);
             group = Begin("Edit before tool settings");
             Undo.RecordObject(first, "Edit before tool settings");

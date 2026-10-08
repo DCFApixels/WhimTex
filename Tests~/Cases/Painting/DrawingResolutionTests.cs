@@ -9,7 +9,7 @@ public static class DrawingResolutionTests
     static string ExecuteMain()
     {
         const BindingFlags hidden = BindingFlags.NonPublic | BindingFlags.Instance;
-        var document = UnityBRun.Create<TextureCompositor>();
+        var document = UnityBRun.Create<WhimTexDocument>();
         var source = UnityBRun.Track(new Texture2D(256, 256, TextureFormat.RGBA32, false, true));
         Texture2D readback = null;
         RenderTexture output = null;
@@ -31,7 +31,7 @@ public static class DrawingResolutionTests
             transform.scale = new Vector2(4, 4);
             layer.transform = transform;
             document.layers.Add(layer);
-            output = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvas", hidden)
+            output = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderCanvas", hidden)
                 .Invoke(document, new object[] { 64 });
             UnityBRun.Check(!(RenderTexture.active != previous), "Render target leaked.");
             RenderTexture.active = output;

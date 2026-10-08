@@ -21,7 +21,7 @@ context.case("RefactoringR01R04 original assertion inputs and source contracts",
   const brush = read('src/Layers/DrawingLayerBehaviour.BlurBrush.cs');
   assert.match(brush, /new Vector4\[GaussianKernel\.Capacity\]/);
   assert.match(brush, /GaussianKernel\.Upload\(blur, \.2f, 5, BlurBrushKernel\)/);
-  for (const file of ['src/Automation/WhimTexApi.Export.cs', 'src/TextureCompositorWindow.Export.cs']) {
+  for (const file of ['src/Automation/WhimTexApi.Export.cs', 'src/WhimTexWindow.Export.cs']) {
     const caller = read(file);
     assert.match(caller, /WhimTexRasterEncoder\.Encode\(/);
     assert.doesNotMatch(caller, /HdrUtility\.ToLdr|EncodeTo(?:PNG|JPG|TGA|EXR)/);
@@ -36,7 +36,7 @@ context.case("RefactoringR01R04 original assertion inputs and source contracts",
   assert.match(serializer, /Array\.AsReadOnly\(missingTypes\.ToArray\(\)\)/);
   assert.match(serializer, /Array\.AsReadOnly\(unresolvedReferences\.ToArray\(\)\)/);
   assert.match(serializer, /return context\.Result\(result\)/);
-  assert.match(serializer, /private const int FormatVersion = 1/);
+  assert.match(serializer, /private const int FormatVersion = 2/);
   const file = read('src/WhimTexDocumentFile.cs');
   assert.doesNotMatch(file, /WhimTexDocumentSerializer\.Last/);
   for (const name of ['SkippedFields', 'MissingTypes', 'UnresolvedReferences'])

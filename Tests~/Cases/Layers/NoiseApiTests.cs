@@ -113,7 +113,7 @@ public static class NoiseApiTests
         var sdf = new DCFApixels.WhimTex.SDFLayerBehaviour();
         Check(sdf.encoding == DCFApixels.WhimTex.SDFLayerBehaviour.OutputEncoding.Gradient &&
             sdf.gradient.Equals(new DCFApixels.WhimTex.NoiseLayerBehaviour().gradient), "SDF Gradient default and identical Noise palette");
-        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
         document.layers.Add(sdf);
         try
         {

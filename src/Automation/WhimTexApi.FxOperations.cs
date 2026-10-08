@@ -45,7 +45,7 @@ namespace DCFApixels.WhimTex
 
         private static string PresetId(ShaderFXCatalog.Entry entry) => string.IsNullOrEmpty(entry.guid) ? entry.path : entry.guid;
 
-        private static ShaderFX ReadPreset(TextureCompositor owner, ShaderFXCatalog.Entry entry, bool execute)
+        private static ShaderFX ReadPreset(WhimTexDocument owner, ShaderFXCatalog.Entry entry, bool execute)
         {
             Require(!entry.HasError, entry.error ?? "Invalid preset.", "invalid_preset");
             if (execute) return ShaderFX.FromCatalog(owner, entry);
@@ -60,7 +60,7 @@ namespace DCFApixels.WhimTex
             return ShaderFX.CreateAgentDraft(owner, source, parameters, entry.path);
         }
 
-        private static void ApplyFxOperations(TextureCompositor document, Layer layer, JToken token, bool execute, Dictionary<string, Layer> aliases)
+        private static void ApplyFxOperations(WhimTexDocument document, Layer layer, JToken token, bool execute, Dictionary<string, Layer> aliases)
         {
             Require(token is JArray edits && edits.Count <= 32, "edits must be an array of at most 32 FX operations.");
             foreach (var item in (JArray)token)
@@ -166,7 +166,7 @@ namespace DCFApixels.WhimTex
             return Int(spec, "index", -1, 0, layer.fx.Count - 1);
         }
 
-        private static ShaderFXParameter ReadFxParameterValue(ShaderFXParameter target, JToken token, TextureCompositor owner)
+        private static ShaderFXParameter ReadFxParameterValue(ShaderFXParameter target, JToken token, WhimTexDocument owner)
         {
             var value = target.Copy();
             var spec = new JObject { ["value"] = token };
@@ -258,7 +258,7 @@ namespace DCFApixels.WhimTex
             return value;
         }
 
-        private static void SetFxValues(ShaderFX effect, JToken token, TextureCompositor document)
+        private static void SetFxValues(ShaderFX effect, JToken token, WhimTexDocument document)
         {
             if (token == null) return;
             var values = Obj(token, "parameters (name/value object)");

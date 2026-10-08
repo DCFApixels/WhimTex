@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -18,7 +18,6 @@
       }
     ],
     "nextCopyNumber": 1,
-    "spriteSlices": [],
     "width": 256,
     "height": 128,
     "outputFilter": "Bilinear",
@@ -38,7 +37,7 @@
       "blendMode": "Normal",
       "colorRange": "HDR",
       "blendRange": "HDR",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -52,8 +51,7 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "9442d6373cda4b28ba7ae56d49198a9f",
-              "declaredInCode": true
+              "id": "9442d6373cda4b28ba7ae56d49198a9f"
             },
             {
               "name": "_Tint",
@@ -64,15 +62,13 @@
                 1.0,
                 1.0
               ],
-              "id": "62b503de025d4a31b7600bef843e85ed",
-              "declaredInCode": true
+              "id": "62b503de025d4a31b7600bef843e85ed"
             },
             {
               "name": "_Brightness",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "29e310359d0c45edb094c2feb9205603",
-              "declaredInCode": true
+              "id": "29e310359d0c45edb094c2feb9205603"
             }
           ],
           "shaderKey": "2ec33cc68d6c4433bfa70a57bfe031c2",
@@ -126,7 +122,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -140,8 +136,7 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "663a2430732a4507894425c92e493159",
-              "declaredInCode": true
+              "id": "663a2430732a4507894425c92e493159"
             },
             {
               "name": "_Center",
@@ -152,8 +147,7 @@
                 0.0,
                 0.0
               ],
-              "id": "e05f58a52fe745f3b986fd8f78545ee9",
-              "declaredInCode": true
+              "id": "e05f58a52fe745f3b986fd8f78545ee9"
             },
             {
               "name": "_Scale",
@@ -164,43 +158,37 @@
                 0.0,
                 0.0
               ],
-              "id": "bbe93a9b63414f5aa2e3cb215fd8169a",
-              "declaredInCode": true
+              "id": "bbe93a9b63414f5aa2e3cb215fd8169a"
             },
             {
               "name": "_Angle",
               "type": "Float",
               "floatValue": 0.0,
-              "id": "7d91b5f24c664d1791e440837f671598",
-              "declaredInCode": true
+              "id": "7d91b5f24c664d1791e440837f671598"
             },
             {
               "name": "_HalfLength",
               "type": "Float",
               "floatValue": 0.377,
-              "id": "88cd0ae1549148b4820a2bb7839b0d32",
-              "declaredInCode": true
+              "id": "88cd0ae1549148b4820a2bb7839b0d32"
             },
             {
               "name": "_HalfHeight",
               "type": "Float",
               "floatValue": 0.075,
-              "id": "32469d2afd4e4dae91c8c34b784c20f3",
-              "declaredInCode": true
+              "id": "32469d2afd4e4dae91c8c34b784c20f3"
             },
             {
               "name": "_Taper",
               "type": "Float",
               "floatValue": 1.35,
-              "id": "7fa4a6340b874c69896082c260710a03",
-              "declaredInCode": true
+              "id": "7fa4a6340b874c69896082c260710a03"
             },
             {
               "name": "_EdgeSoftness",
               "type": "Float",
               "floatValue": 3.5,
-              "id": "69a4ad6422554689bcf9ef8ad3e68e43",
-              "declaredInCode": true
+              "id": "69a4ad6422554689bcf9ef8ad3e68e43"
             }
           ],
           "shaderKey": "d97461b9a75242c487ea25786b615d80",
@@ -261,7 +249,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [],

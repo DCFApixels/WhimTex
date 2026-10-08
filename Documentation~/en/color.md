@@ -3,7 +3,7 @@ title: "Color, HDR and channels"
 parent: "English"
 nav_order: 11
 lang: "en"
-description: "Edit HDR textures and pack RGBA channels in Unity with WhimTex. Inspect individual channels, configure Swizzle and control layer color and blend ranges."
+description: "Edit HDR textures and pack RGBA channels in Unity with WhimTex. Inspect individual channels, configure Mapping and control layer color and blend ranges."
 permalink: "/en/color/"
 translations: "en/color.md,ru/color.md,zh/color.md"
 previous_page: "en/preview.md"
@@ -113,7 +113,7 @@ This is useful for luminous details you want to use with bloom.
 
 HDR values are real, but the current WhimTex editor previews are SDR, including the color picker and gradient editor. An HDR monitor alone does not make them display extra physical brightness. Lower **Preview EV** to inspect bright values without changing the color; intensity gradients in color fields are visual indicators, not HDR monitor output. The picker, gradient editor and Canvas View have independent exposure controls.
 
-In **Layer Settings → Color & Blending**, choose **HDR** in the header dropdown
+In **Layer Settings → Rendering**, choose **HDR** in the header dropdown
 to let the layer retain that extra brightness. **Standard** is the usual choice for ordinary artwork.
 
 The HDR button controls color picking; it does not convert your existing image.
@@ -123,7 +123,7 @@ The gradient editor has its own HDR switch for the selected color key; it does n
 
 ## Fine-tune a layer's color range
 
-You can leave **Color & Blending** closed for most work. Expand it to set the two ranges separately:
+You can leave **Rendering** closed for most work. Expand it to set the two ranges separately:
 
 | Setting | Controls |
 | :--- | :--- |
@@ -170,8 +170,8 @@ Deleted presets can be recovered from **Gradients/.trash**. Built-in Unity gradi
 [gradient JSON value](../AI/README.md#standalone-gradient-json), then right-click the gradient field
 or the gradient strip in its editor and choose **Paste**.
 
-Old gradient JSON is no longer accepted. Copy it again in 0.12.5 before upgrading;
-presets saved by 0.12.5 remain supported.
+Old gradient JSON is no longer accepted. Use the current gradient format;
+retired fields and previous names are not migrated.
 
 ### Shape the gradient on canvas
 
@@ -200,9 +200,11 @@ Some near-constant color remains; this is not a guarantee against every visible 
 At 0% Smoothness interpolation is linear in the selected working color space;
 Fixed uses hard bands. A narrow fade or a midpoint near an endpoint can still produce a visible rim.
 
-## Rearrange channels with Swizzle
+<a id="rearrange-channels-with-swizzle"></a>
 
-**Swizzle** chooses what goes into each output channel of a layer or group.
+## Rearrange channels with Channel Mapping
+
+**Mapping** chooses what goes into each output channel of a layer or group.
 For example, choose R in the R, G and B fields to make a grayscale image from the red channel.
 
 Each field offers the original channels, their inverses, black (`0`), white (`1`),
@@ -217,7 +219,7 @@ The arrow button on the right offers builtin presets:
 - **Luminance to Alpha:** make RGB white and use brightness as alpha (`1 1 1 Luminance`).
 - **Alpha to Grayscale:** show alpha as an opaque grayscale image (`A A A 1`).
 
-Changing a group's Swizzle treats its contents as one image, so outside blending can look different.
+Changing a group's Mapping treats its contents as one image, so outside blending can look different.
 
 ## Pack several masks
 
@@ -225,7 +227,7 @@ Select layers and choose **Assign Channels** in the row menu.
 The order is top to bottom, and each layer uses its red channel multiplied by its transparency.
 
 - **1–3 layers:** assign them to R, G and B. The upper selected layers use Add to combine the masks.
-- **4 layers:** assign them to R, G, B and A. This only sets Swizzle: with ordinary blending,
+- **4 layers:** assign them to R, G, B and A. This only sets Mapping: with ordinary blending,
   the RGB layers have no visible opacity, so it is not a ready-to-export four-channel combination.
 
 The command is unavailable for more than four layers. It leaves the layers separate.

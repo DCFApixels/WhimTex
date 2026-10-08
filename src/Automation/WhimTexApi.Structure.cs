@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
 {
     public static partial class WhimTexApi
     {
-        private static Layer EditLayerStructure(TextureCompositor document, Layer layer, JObject operation,
+        private static Layer EditLayerStructure(WhimTexDocument document, Layer layer, JObject operation,
             Dictionary<string, Layer> aliases, bool execute)
         {
             string op = Text(operation, "op");

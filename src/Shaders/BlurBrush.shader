@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/BlurBrush"
+Shader "Hidden/WhimTex/BlurBrush"
 {
     Properties
     {

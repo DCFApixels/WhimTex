@@ -9,7 +9,7 @@ public static class EyedropperCursorTests
     static string Execute()
     {
 // Opt-in after manual compilation. Temporary textures only; requires graphics, never sets the OS cursor or writes assets.
-var factory = typeof(DCFApixels.WhimTex.TextureCompositorWindow).GetMethod("CreateScreenEyedropperCursor",
+var factory = typeof(DCFApixels.WhimTex.WhimTexWindow).GetMethod("CreateScreenEyedropperCursor",
     System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
 int checks = 0;
 void Check(bool value, string message)

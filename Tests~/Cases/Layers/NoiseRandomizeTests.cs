@@ -16,13 +16,13 @@ public static class NoiseRandomizeTests
         int checks = 0;
         void Check(bool condition, string message) { WhimTex.Tests.UnityC.FixtureContext.Context.True(condition, message); checks++; }
         bool Grain(NoiseLayerBehaviour.NoiseType type) => type == NoiseLayerBehaviour.NoiseType.WhiteNoise || type == NoiseLayerBehaviour.NoiseType.BlueNoise;
-        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         doc.width = doc.height = 32;
         var noise = new NoiseLayerBehaviour { encoding = NoiseLayerBehaviour.OutputEncoding.Gradient,
             offset = new Vector3(12.5f, -37.25f, 4.75f), direction = 37.5f, periodic1D = true };
         var preservedOffset = noise.offset;
         doc.layers.Add(noise);
-        typeof(TextureCompositor).GetMethod("NormalizeModel", Any).Invoke(doc, null);
+        typeof(WhimTexDocument).GetMethod("NormalizeModel", Any).Invoke(doc, null);
         var layer = doc.layers[0];
         layer.layerName = "Preserve";
         layer.opacity = .7f;

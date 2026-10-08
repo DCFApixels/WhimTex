@@ -59,12 +59,12 @@ public static class HealingNoiseSeamDiagnosticTests
         {
             foreach (bool fractal in new[] { false, true })
             {
-                TextureCompositorWindow window = null; TextureCompositor document = null; Texture2D source = null;
+                WhimTexWindow window = null; WhimTexDocument document = null; Texture2D source = null;
                 bool shown = false;
                 try
                 {
-                    window = UnityBRun.Create<TextureCompositorWindow>();
-                    document = (TextureCompositor)Get(window, "compositor"); document.width = document.height = N;
+                    window = UnityBRun.Create<WhimTexWindow>();
+                    document = (WhimTexDocument)Get(window, "activeDocument"); document.width = document.height = N;
                     var noise = new NoiseLayerBehaviour { noiseType = NoiseLayerBehaviour.NoiseType.Perlin,
                         fractal = fractal ? NoiseLayerBehaviour.FractalType.FBm : NoiseLayerBehaviour.FractalType.None,
                         scale = 8, seed = 1337, encoding = NoiseLayerBehaviour.OutputEncoding.ColorValues };
@@ -83,7 +83,7 @@ public static class HealingNoiseSeamDiagnosticTests
                     Call(noise, "ReleaseTransientResources");
                     document.layers.Clear(); document.layers.Add(drawing); Call(document, "NormalizeModel");
                     Call(window, "SelectOnlyLayer", drawing.Id);
-                    var tool = typeof(TextureCompositorWindow).GetNestedType("CanvasTool", F);
+                    var tool = typeof(WhimTexWindow).GetNestedType("CanvasTool", F);
                     Call(window, "ChangeCanvasTool", Enum.Parse(tool, "HealingBrush"));
                     window.ShowUtility(); shown = true; window.position = new Rect(80, 80, 1050, 720);
                     await UnityBRun.Delay(150); Call(window, "RefreshToolkitInterface", false);

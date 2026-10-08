@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -14,7 +14,6 @@
       }
     ],
     "nextCopyNumber": 1,
-    "spriteSlices": [],
     "width": 256,
     "height": 256,
     "outputFilter": "Bilinear",
@@ -34,7 +33,7 @@
       "blendMode": "Normal",
       "colorRange": "HDR",
       "blendRange": "HDR",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -48,8 +47,7 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "079823343cf84c47a70339418cb198f2",
-              "declaredInCode": true
+              "id": "079823343cf84c47a70339418cb198f2"
             },
             {
               "name": "_Tint",
@@ -60,15 +58,13 @@
                 1.0,
                 1.0
               ],
-              "id": "dbcca840a7a14673ada00a3959a5ea87",
-              "declaredInCode": true
+              "id": "dbcca840a7a14673ada00a3959a5ea87"
             },
             {
               "name": "_Brightness",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "b51f3f6bcd5d44cfb9862d6e6876751d",
-              "declaredInCode": true
+              "id": "b51f3f6bcd5d44cfb9862d6e6876751d"
             }
           ],
           "shaderKey": "20b0cd06202d46438152654a6f651801",
@@ -122,7 +118,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -136,8 +132,7 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "610cd659916442f8ade869d2b13a9801",
-              "declaredInCode": true
+              "id": "610cd659916442f8ade869d2b13a9801"
             },
             {
               "name": "_Center",
@@ -148,8 +143,7 @@
                 0.0,
                 0.0
               ],
-              "id": "cf8b40b62dfe43d0b9cfd1a6035479f8",
-              "declaredInCode": true
+              "id": "cf8b40b62dfe43d0b9cfd1a6035479f8"
             },
             {
               "name": "_Scale",
@@ -160,57 +154,49 @@
                 0.0,
                 0.0
               ],
-              "id": "05b049d098ea4acbb13c2aea86725ad6",
-              "declaredInCode": true
+              "id": "05b049d098ea4acbb13c2aea86725ad6"
             },
             {
               "name": "_Angle",
               "type": "Float",
               "floatValue": 0.0,
-              "id": "c20c97c4d2e74f1f8f34255fe1841c79",
-              "declaredInCode": true
+              "id": "c20c97c4d2e74f1f8f34255fe1841c79"
             },
             {
               "name": "_Radius",
               "type": "Float",
               "floatValue": 0.3,
-              "id": "7d6cdbc38fd645d38787133c2a523143",
-              "declaredInCode": true
+              "id": "7d6cdbc38fd645d38787133c2a523143"
             },
             {
               "name": "_Width",
               "type": "Float",
               "floatValue": 0.065,
-              "id": "308876a8557c4a86b5b91cbaff68c81f",
-              "declaredInCode": true
+              "id": "308876a8557c4a86b5b91cbaff68c81f"
             },
             {
               "name": "_Opening",
               "type": "Float",
               "floatValue": 10.0,
-              "id": "9f8e884151f7405895a2222e0c19ffce",
-              "declaredInCode": true
+              "id": "9f8e884151f7405895a2222e0c19ffce"
             },
             {
               "name": "_Rays",
               "type": "Float",
               "floatValue": 90.0,
-              "id": "b1f1d2fed95947deab73902caa9b5c8f",
-              "declaredInCode": true
+              "id": "b1f1d2fed95947deab73902caa9b5c8f"
             },
             {
               "name": "_Brightness",
               "type": "Float",
               "floatValue": 0.55,
-              "id": "2b36f99606b742c5ac877b8ef0d1b67f",
-              "declaredInCode": true
+              "id": "2b36f99606b742c5ac877b8ef0d1b67f"
             },
             {
               "name": "_Hue",
               "type": "Float",
               "floatValue": 0.0,
-              "id": "119406f167c343518a35ab22fe187cab",
-              "declaredInCode": true
+              "id": "119406f167c343518a35ab22fe187cab"
             }
           ],
           "shaderKey": "9b83b8c20e364e3caa85f58b514c8182",

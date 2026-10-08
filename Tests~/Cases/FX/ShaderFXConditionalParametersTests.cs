@@ -27,7 +27,7 @@ public static class ShaderFXConditionalParametersTests
         const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
         var assembly = typeof(ShaderFX).Assembly;
         var createDraft = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-            new[] { typeof(TextureCompositor), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+            new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
         var parse = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata").GetMethod("Parse", F);
         List<ShaderFXParameter> Parse(string source) => (List<ShaderFXParameter>)parse.Invoke(null, new object[] { source, false, null });
         int checks = 0;
@@ -112,7 +112,7 @@ public static class ShaderFXConditionalParametersTests
             Check(rejected, "Accepted invalid conditional declarations: " + invalid);
         }
 
-        var document = ScriptableObject.CreateInstance<TextureCompositor>();
+        var document = ScriptableObject.CreateInstance<WhimTexDocument>();
         document.hideFlags = HideFlags.HideAndDontSave;
         ShaderFX fx = null;
         try
@@ -148,31 +148,32 @@ public static class ShaderFXConditionalParametersTests
                     presetName + " shows dither strength only when dithering is enabled");
                 if (presetName == "Pixelate")
                 {
-                    var colorMode = Control("_OneBit");
+                    var colorMode = Control("_ColorMode");
                     Check(colorMode.type == ShaderFXParameterType.Enum && colorMode.hidden && colorMode.groupTitle == "Color" &&
-                        colorMode.groupHeaderParameter == "_OneBit" && colorMode.optionNames.Length == 2 &&
+                        colorMode.groupHeaderParameter == "_ColorMode" && colorMode.optionNames.Length == 2 &&
                         colorMode.optionNames[0] == "Quantization" && colorMode.optionNames[1] == "OneBit" &&
                         colorMode.visibleIfParameter == null,
-                        "Pixelate exposes the existing _OneBit parameter as a two-choice group-header selector");
-                    Check(Control("_Levels").visibleIfParameter == "_OneBit" && !Control("_Levels").visibleIfNotEqual &&
-                        Control("_Levels").visibleIfValue == 0 && Control("_Gamma").visibleIfParameter == "_OneBit" &&
+                        "Pixelate exposes the _ColorMode parameter as a two-choice group-header selector");
+                    Check(Control("_Levels").visibleIfParameter == "_ColorMode" && !Control("_Levels").visibleIfNotEqual &&
+                        Control("_Levels").visibleIfValue == 0 && Control("_Gamma").visibleIfParameter == "_ColorMode" &&
                         !Control("_Gamma").visibleIfNotEqual && Control("_Gamma").visibleIfValue == 0,
                         "Pixelate shows color quantization controls only in Quantization mode");
-                    Check(Control("_LowColor").visibleIfParameter == "_OneBit" && !Control("_LowColor").visibleIfNotEqual &&
-                        Control("_LowColor").visibleIfValue == 1 && Control("_HighColor").visibleIfParameter == "_OneBit" &&
+                    Check(Control("_LowColor").visibleIfParameter == "_ColorMode" && !Control("_LowColor").visibleIfNotEqual &&
+                        Control("_LowColor").visibleIfValue == 1 && Control("_HighColor").visibleIfParameter == "_ColorMode" &&
                         !Control("_HighColor").visibleIfNotEqual && Control("_HighColor").visibleIfValue == 1,
                         "Pixelate shows two palette colors only in One Bit mode");
-                    Check(Parameter("_OneBit").type == ShaderFXParameterType.Float,
-                        "Pixelate keeps the existing numeric storage for _OneBit");
-                    foreach (string legacyValue in new[] { "false", "true" })
+                    Check(Parameter("_ColorMode").type == ShaderFXParameterType.Float,
+                        "Pixelate uses numeric storage for Color Mode");
+                    foreach (float modeValue in new[] { 0f, 1f })
                     {
-                        var previousOneBit = Parse("// @param bool _OneBit = " + legacyValue + "\n");
+                        var previousColorMode = Parse(presetCode);
+                        var previousMode = previousColorMode.Find(p => p.name == "_ColorMode");
+                        previousMode.floatValue = modeValue;
                         var nextColorMode = Parse(presetCode);
-                        preserveValues.Invoke(null, new object[] { nextColorMode, previousOneBit });
-                        var migratedOneBit = nextColorMode.Find(p => p.name == "_OneBit");
-                        float expected = legacyValue == "true" ? 1f : 0f;
-                        Check(migratedOneBit.floatValue == expected && migratedOneBit.id == previousOneBit[0].id,
-                            "Existing _OneBit=" + legacyValue + " value and parameter identity survive conversion to the two-choice enum");
+                        preserveValues.Invoke(null, new object[] { nextColorMode, previousColorMode });
+                        var retainedMode = nextColorMode.Find(p => p.name == "_ColorMode");
+                        Check(retainedMode.floatValue == modeValue && retainedMode.id == previousMode.id,
+                            "Current Color Mode value and identity survive declaration refresh");
                     }
                     Check(Control("_AlphaClip").hidden && Control("_AlphaClip").groupHeaderParameter == "_AlphaClip" &&
                         Control("_AlphaCutoff").inGroup && Control("_AlphaCutoff").visibleIfParameter == "_AlphaClip" &&
@@ -196,7 +197,7 @@ public static class ShaderFXConditionalParametersTests
                         var pixelRows = pixelateView.Query<VisualElement>(className: "whimtex-fx-conditional-parameter").ToList();
                         VisualElement Row(string label) => pixelRows.Find(row =>
                             row.Query<Label>().ToList().Exists(value => value.text == label));
-                        ShaderFXParameter colorMode = actualParameters.Find(p => p.name == "_OneBit");
+                        ShaderFXParameter colorMode = actualParameters.Find(p => p.name == "_ColorMode");
                         Check(pixelateView.Query<DropdownField>().ToList().Exists(field =>
                             string.IsNullOrEmpty(field.label) && field.choices.Count == 2),
                             "Pixelate color mode appears as an unlabeled two-choice selector beside the Color title");
@@ -274,4 +275,3 @@ public static class ShaderFXConditionalParametersTests
         }
     }
 }
-

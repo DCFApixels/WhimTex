@@ -149,7 +149,6 @@ namespace DCFApixels.WhimTex
                     !x.minimum.Equals(y.minimum) || !x.maximum.Equals(y.maximum) ||
                     x.visibleIfParameter != y.visibleIfParameter || x.visibleIfNotEqual != y.visibleIfNotEqual ||
                     !x.visibleIfValue.Equals(y.visibleIfValue) || !SameArray(x.headers, y.headers) || !SameArray(x.helpBoxes, y.helpBoxes) ||
-                    !SameArray(x.formerlySerializedAs, y.formerlySerializedAs) ||
                     x.hidden != y.hidden || x.inGroup != y.inGroup || x.groupId != y.groupId ||
                     x.groupTitle != y.groupTitle || x.groupHeaderParameter != y.groupHeaderParameter ||
                     !SameArray(x.optionNames, y.optionNames) || !SameArray(x.optionValues, y.optionValues))
@@ -168,7 +167,6 @@ namespace DCFApixels.WhimTex
                 copy.controls.Add(new ShaderFXParameterControl { type = c.type, order = c.order, tooltip = c.tooltip, label = c.label,
                     headers = c.headers == null ? null : (string[])c.headers.Clone(),
                     helpBoxes = c.helpBoxes == null ? null : (string[])c.helpBoxes.Clone(),
-                    formerlySerializedAs = c.formerlySerializedAs == null ? null : (string[])c.formerlySerializedAs.Clone(),
                     hidden = c.hidden, inGroup = c.inGroup, groupId = c.groupId,
                     groupTitle = c.groupTitle, groupHeaderParameter = c.groupHeaderParameter,
                     hasMinimum = c.hasMinimum, hasMaximum = c.hasMaximum,
@@ -435,7 +433,7 @@ namespace DCFApixels.WhimTex
         {
             var button = new Button(edit) { name = name, tooltip = "Edit on Canvas. " + tooltip };
             button.AddToClassList("whimtex-fx-parameter-action");
-            button.Add(TextureCompositorWindow.CreateTransformToolIcon());
+            button.Add(WhimTexWindow.CreateTransformToolIcon());
             return button;
         }
 
@@ -575,7 +573,7 @@ namespace DCFApixels.WhimTex
                     vector2.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = e.newValue));
                     refresh.Add(() => vector2.SetValueWithoutNotify(Find(id).vectorValue));
                     if (declaration.type == ShaderFXParameterType.Point)
-                        AddCanvasField(rowRoot, vector2, CreateCanvasEditButton("editFXPoint", () => TextureCompositorWindow.EditFXPoint(effect, id),
+                        AddCanvasField(rowRoot, vector2, CreateCanvasEditButton("editFXPoint", () => WhimTexWindow.EditFXPoint(effect, id),
                             "Drag the point handle, including outside the canvas."));
                     else rowRoot.Add(vector2);
                     break;
@@ -586,7 +584,7 @@ namespace DCFApixels.WhimTex
                     vector3.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = normal ? ShaderFXParameter.NormalizeNormal(e.newValue) : e.newValue));
                     refresh.Add(() => vector3.SetValueWithoutNotify(Find(id).vectorValue));
                     if (normal)
-                        AddCanvasField(rowRoot, vector3, CreateCanvasEditButton("editFXNormal", () => TextureCompositorWindow.EditFXNormal(effect, id),
+                        AddCanvasField(rowRoot, vector3, CreateCanvasEditButton("editFXNormal", () => WhimTexWindow.EditFXNormal(effect, id),
                             "Drag the direction handle. Click its endpoint to switch hemisphere."));
                     else rowRoot.Add(vector3);
                     break;
@@ -617,7 +615,7 @@ namespace DCFApixels.WhimTex
                     var transformToggle = foldout.Q<Toggle>();
                     foldout.hierarchy.Insert(0, transformHeader);
                     transformHeader.Add(transformToggle);
-                    var editTransform = CreateCanvasEditButton("editFXTransform", () => TextureCompositorWindow.EditFXTransform(effect, id),
+                    var editTransform = CreateCanvasEditButton("editFXTransform", () => WhimTexWindow.EditFXTransform(effect, id),
                         "Toggle the green FX frame on the selected layer.");
                     var resetTransform = new Button(() => Change(id, p => p.transformValue = ShaderFXTransform.Default))
                     {
@@ -630,7 +628,7 @@ namespace DCFApixels.WhimTex
                     var position = new Vector2Field("Position");
                     var size = new Vector2Field("Size");
                     var rotation = new DoubleField("Rotation");
-                    var document = TextureCompositorWindow.FindFXTransformDocument(effect);
+                    var document = WhimTexWindow.FindFXTransformDocument(effect);
                     Vector2 Dimensions() => document != null ? new Vector2(document.width, document.height) : Vector2.one;
                     position.tooltip = "Normalized input coordinates. (0.5, 0.5) is the image center.";
                     size.tooltip = "Relative to the input image. (1, 1) covers the whole image.";

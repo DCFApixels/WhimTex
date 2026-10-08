@@ -10,12 +10,12 @@ public static class GaussianSharedKernelTests
     const BindingFlags F = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
     static string ExecuteRun()
     {
-        var materials = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials");
+        var materials = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials");
         var cache = materials.GetField("gaussianBlurMaterial", F);
         var previousMaterial = cache.GetValue(null);
-        var fresh = UnityBRun.Track(new Material(Shader.Find("Hidden/TextureCompositor/GaussianBlur")) { hideFlags = HideFlags.HideAndDontSave });
-        var brushDoc = UnityBRun.Create<TextureCompositor>();
-        var document = UnityBRun.Create<TextureCompositor>();
+        var fresh = UnityBRun.Track(new Material(Shader.Find("Hidden/WhimTex/GaussianBlur")) { hideFlags = HideFlags.HideAndDontSave });
+        var brushDoc = UnityBRun.Create<WhimTexDocument>();
+        var document = UnityBRun.Create<WhimTexDocument>();
         var source = UnityBRun.Track(new Texture2D(64,64,TextureFormat.RGBAFloat,false,true));
         Texture2D rendered = null;
         RenderTexture preview = null;
@@ -29,7 +29,7 @@ public static class GaussianSharedKernelTests
             brushDoc.width = brushDoc.height = 64;
             var drawing = new DrawingLayerBehaviour();
             brushDoc.layers.Add(drawing);
-            typeof(TextureCompositor).GetMethod("NormalizeModel",F).Invoke(brushDoc,null);
+            typeof(WhimTexDocument).GetMethod("NormalizeModel",F).Invoke(brushDoc,null);
             typeof(DrawingLayerBehaviour).GetMethod("InitializeCanvas",F).Invoke(drawing,new object[]{64,64});
             typeof(DrawingLayerBehaviour).GetMethod("BlurSegment",F).Invoke(drawing,
                 new object[]{new Vector2(.5f,.5f),new Vector2(.5f,.5f),64,64,16f,1f,1f,null,false});
@@ -41,8 +41,8 @@ public static class GaussianSharedKernelTests
             var blur = new BlurLayerBehaviour {radius=24,colorRange=LayerColorRange.HDR};
             document.layers.Add(blur);
             document.layers.Add(new FileLayerBehaviour {sourceTexture=source,colorRange=LayerColorRange.HDR});
-            typeof(TextureCompositor).GetMethod("NormalizeModel",F).Invoke(document,null);
-            preview = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderLayerPreview",F)
+            typeof(WhimTexDocument).GetMethod("NormalizeModel",F).Invoke(document,null);
+            preview = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderLayerPreview",F)
                 .Invoke(document,new object[]{blur.Owner,64});
             rendered = UnityBRun.Track(new Texture2D(64,64,TextureFormat.RGBAFloat,false,true));
             RenderTexture.active=preview; rendered.ReadPixels(new Rect(0,0,64,64),0,0);

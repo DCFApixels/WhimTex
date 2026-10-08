@@ -1,11 +1,11 @@
 // Independent Node assertions; no Unity commands or Legacy runtime dependencies.
 import { TestContext, finish } from '../../Framework/test-api.mjs';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 const context = new TestContext("RemainingLegacyCleanup source/reference tests");
 const assert = context.assert;
 context.case("RemainingLegacyCleanup original assertion inputs and source contracts", async () => {
   const read = path => readFileSync(new URL('../../../' + path, import.meta.url), 'utf8');
-  const window = read('src/TextureCompositorWindow.DocumentFile.cs');
+  const window = read('src/WhimTexWindow.DocumentFile.cs');
   for (const name of ['documentFileOwner', 'documentFileGuid', 'documentFilePath']) assert.ok(!window.includes(name), name);
   assert.match(window, /path = WhimTexDocumentService.PathOf\(document\);\s*return !string.IsNullOrEmpty\(path\);/);
   const fx = read('src/ShaderFX.cs'), catalog = read('src/ShaderFX.Catalog.cs');
@@ -18,16 +18,15 @@ context.case("RemainingLegacyCleanup original assertion inputs and source contra
   assert.ok(!live.includes('ReadLiveFxParameters'));
   assert.match(live, /else Keys\(spec, "op", "index", "code"\);/);
   assert.match(read('src/Automation/WhimTexApi.FxOperations.cs'), /ReadFxParameterValue\(ShaderFXParameter target, JToken token/);
-  const bridge = read('src/WhimTexFileCompatibility0125.cs');
-  assert.match(bridge, /typeof\(ShaderFXParameter\).*declaredInCode/);
-  assert.match(bridge, /DeclareSavedParameters/);
+  assert.equal(existsSync(new URL('../../../src/WhimTexFileCompatibility0125.cs', import.meta.url)), false);
+  assert.doesNotMatch(fx, /DeclareSavedParameters|NormalizeFileParameters/);
   assert.ok(!read('src/ShaderFXMetadata.cs').includes('match.declaredInCode'));
   assert.ok(!read('src/ShaderFXPresetWriter.cs').includes('UsesCodeParameters'));
   const binary = read('src/WhimTexDocumentSerializer.cs');
   assert.ok(!binary.includes('IsExactFloat'));
-  assert.match(binary, /case TagVector2:[\s\S]*?if \(declared == typeof\(Vector3\)\) return new Vector3\(vector2.x, vector2.y, 0f\);/);
-  assert.match(binary, /if \(declared == typeof\(Vector4\)\) return new Vector4\(vector2.x, vector2.y, 0f, 0f\);/);
-  assert.match(binary, /case TagVector3:[\s\S]*?if \(declared == typeof\(Vector4\)\) return new Vector4\(vector3.x, vector3.y, vector3.z, 0f\);/);
+  assert.doesNotMatch(binary, /DiscardRetiredValue|WhimTexFileCompatibility0125|declared == typeof\(Vector[34]\)/);
+  assert.match(binary, /case TagVector2: return new Vector2\(_reader.ReadSingle\(\), _reader.ReadSingle\(\)\);/);
+  assert.match(binary, /case TagVector3: return new Vector3\(_reader.ReadSingle\(\), _reader.ReadSingle\(\), _reader.ReadSingle\(\)\);/);
   assert.doesNotMatch(binary, /if \(declared == typeof\(Vector[23]Int\)\)/);
   assert.match(binary, /case TagVector2Int: return new Vector2Int\(_reader.ReadInt32\(\), _reader.ReadInt32\(\)\);/);
   assert.match(binary, /case TagVector3Int: return new Vector3Int\(_reader.ReadInt32\(\), _reader.ReadInt32\(\), _reader.ReadInt32\(\)\);/);
@@ -40,8 +39,9 @@ context.case("RemainingLegacyCleanup original assertion inputs and source contra
   assert.ok(!read('src/Layers/ShapeLayerBehaviour.cs').includes('result[i] < 0'));
   const schema = JSON.parse(read('Documentation~/AI/document.schema.json'));
   assert.equal(schema.properties.kind, undefined);
-  assert.equal(schema.$defs.ShaderFXParameter.properties.declaredInCode.deprecated, true);
-  assert.equal(schema.$defs.ShapeLayerBehaviour.properties.roundness.deprecated, true);
+  assert.equal(schema.$defs.ShaderFXParameter.properties.declaredInCode, undefined);
+  assert.equal(schema.$defs.ShapeLayerBehaviour.properties.roundness, undefined);
+  assert.equal(schema.$defs.Layer.properties.modifiers, undefined);
   assert.match(read('src/WhimTexDocumentContainer.cs'), /!result.Contains\(IntegrityBlock\).*manifest is missing/g);
   for (const block of read('Documentation~/LiveAgentAPI.md').matchAll(/```json\s+([\s\S]*?)```/g)) {
       const request = JSON.parse(block[1]);

@@ -10,7 +10,7 @@ public static class HistogramArithmeticAuditTests
     const BindingFlags F=BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance|BindingFlags.Static;
     static string ExecuteMemory()
     {
-        var type=typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.SeamlessHistogramWorkspace");
+        var type=typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.SeamlessHistogramWorkspace");
         object Invoke(string name,params object[] args)=>type.GetMethod(name,F).Invoke(null,args);
         var spareField=type.GetField("spare",F);var idleField=type.GetField("idleSince",F);
         object borrowed=spareField.GetValue(null);object idle=idleField.GetValue(null);
@@ -20,7 +20,7 @@ public static class HistogramArithmeticAuditTests
         try {
         Invoke("Clear");a=Invoke("Rent");b=Invoke("Rent");
         UnityBRun.Check(!(ReferenceEquals(a,b)), "Nested rent aliases storage");
-        material=UnityBRun.Track(new Material(Shader.Find("Hidden/TextureCompositor/HistogramSeamless")));
+        material=UnityBRun.Track(new Material(Shader.Find("Hidden/WhimTex/HistogramSeamless")));
         rt=RenderTexture.GetTemporary(17,13,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear);
         
             GL.sRGBWrite=false;Graphics.Blit(Texture2D.whiteTexture,rt);
@@ -35,13 +35,13 @@ public static class HistogramArithmeticAuditTests
     }
     static string ExecuteMain()
     {
-        var type=typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.SeamlessHistogramWorkspace");
+        var type=typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.SeamlessHistogramWorkspace");
         IDisposable owner=null;Material material=null;Texture2D source=null;RenderTexture rt=null;
         var old=RenderTexture.active;bool srgb=GL.sRGBWrite;
         try
         {
             owner=(IDisposable)Activator.CreateInstance(type,true);
-            material=UnityBRun.Track(new Material(Shader.Find("Hidden/TextureCompositor/HistogramSeamless")));
+            material=UnityBRun.Track(new Material(Shader.Find("Hidden/WhimTex/HistogramSeamless")));
             source=UnityBRun.Track(new Texture2D(17,13,TextureFormat.RGBAFloat,false,true));
             var data=new Color[17*13];var rng=new System.Random(55);
             for(int i=0;i<data.Length;i++)data[i]=new Color((float)rng.NextDouble(),(float)rng.NextDouble(),(float)rng.NextDouble(),(float)rng.NextDouble());

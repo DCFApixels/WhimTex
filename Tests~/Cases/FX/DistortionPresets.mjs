@@ -219,10 +219,11 @@ context.case('displacement map supports a single map with an optional strength m
         assert.match(code, /texture2D _StrengthMask = none/);
         assert.match(code, /tex2D\(_StrengthMask, strengthMaskUV\)/);
         assert.match(code, /displacementPixels \* strengthMask \* _CanvasSize\.zw/);
-        assert.match(code, /@formerlyserializedas\(_InputEdge\)\s*\/\/ @param enum _Tiling = Clamp \{Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3\}/);
+        assert.match(code, /@param enum _Tiling = Clamp \{Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3\}/);
         assert.match(code, /float2 AddressMapUV\(/);
         assert.doesNotMatch(code, /float2 AddressInputUV\(/, 'Input addressing uses the shared sampler');
-        assert.match(code, /float4 distorted = SampleInput\(inputUV, _Tiling, _RepeatFiltering\)/);
+        assert.match(code, /float4 distorted = SampleInput\(inputUV, _Tiling\)/);
+        assert.doesNotMatch(code, /_RepeatFiltering/);
         assert.match(code, /@param enum _ParallaxSteps = Balanced \{Fast: 4, Balanced: 8, High: 16, Ultra: 32\}/);
         assert.match(code, /float2 TraceParallax\(float2 uv, float strengthMask, float2 mapDDX, float2 mapDDY, out float hitHeight\)/);
         assert.match(code, /tex2Dgrad\(_DisplacementMap, mapUV, mapDDX, mapDDY\)/);
@@ -282,24 +283,17 @@ context.case('transform and distortion presets share input tiling without changi
         assert.doesNotMatch(code, /float2 AddressInputUV\(/, 'No duplicate image-addressing implementation');
         assert.doesNotMatch(declaration, /Unbounded|Source/, 'Only real raster sampling modes');
         assert.ok(code.lastIndexOf('// @param transform2D') < code.indexOf(declaration), 'Tiling follows frame parameters');
-        if (name !== 'UVTransform') {
-            const previousName = name === 'DisplacementMap' ? '_InputEdge' : '_InputTiling';
-            assert.ok(code.includes(`// @formerlyserializedas(${previousName})\n${declaration}`) ||
-                code.includes(`// @formerlyserializedas(${previousName})\r\n${declaration}`), 'Rename metadata belongs to the tiling declaration');
-        }
+        assert.doesNotMatch(code, /@formerlyserializedas/, 'No previous-name migration metadata');
     }
     const builder = readFileSync(new URL('../../../src/ShaderFXSourceBuilder.cs', import.meta.url), 'utf8');
     assert.match(builder, /float4 SampleInput\(float2 uv\) \{ return tex2D\(_MainTex, uv\); \}/, 'Original sampling function stays intact');
     assert.match(builder, /float4 SampleInput\(float2 uv, float tiling\)/);
-    assert.match(builder, /float4 SampleInput\(float2 uv, float tiling, float filterRepeat\)/);
-    assert.match(builder, /_WhimTex_InputFilter < 0\.5 \|\| filterRepeat < 0\.5/);
+    assert.doesNotMatch(builder, /filterRepeat/);
+    assert.match(builder, /_WhimTex_InputFilter < 0\.5/);
     assert.match(builder, /float2 size = _MainTex_TexelSize.zw;/, 'Uses actual input texture dimensions');
     assert.equal((builder.match(/tex2Dlod\(_MainTex,/g) ?? []).length, 4, 'Repeat bilinear sampling wraps all four texels');
     const layer = readFileSync(new URL('../../../src/Layers/Layer.cs', import.meta.url), 'utf8');
     assert.match(layer, /SetFloat\("_WhimTex_InputFilter", current.filterMode == FilterMode.Point \? 0f : 1f\)/);
-    const compatibility = readFileSync(new URL('../../../src/WhimTexFileCompatibility0125.cs', import.meta.url), 'utf8');
-    assert.match(compatibility, /7d755646c7a839e478c67bb36a2189f8/);
-    assert.match(compatibility, /filtering.floatValue = 0f;/, 'Previous linked repeat filtering is retained');
     const negative = readFileSync(new URL('../../../src/FXPresets/Negative.hlsl', import.meta.url), 'utf8');
     assert.doesNotMatch(negative, /_InputTiling|_InputEdge|_Tiling/, 'Pointwise color FX do not gain unrelated controls');
 });

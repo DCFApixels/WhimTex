@@ -7,7 +7,7 @@ const assert = context.assert;
 
 context.case('GuideSnapping original assertions and branches', async () => {
     const read = name => readFileSync(new URL(`../../../src/${name}`, import.meta.url), 'utf8');
-    const src = read('TextureCompositorWindow.GuideSnapping.cs');
+    const src = read('WhimTexWindow.GuideSnapping.cs');
     class V {
         constructor(x, y) { this.x = x; this.y = y; }
         get 0() { return this.x; } get 1() { return this.y; }
@@ -91,7 +91,7 @@ context.case('GuideSnapping original assertions and branches', async () => {
         const fn = new Function('state', 'position', 'disableSnap', 'V', 'dot', 'add', 'mul', 'intersect', `let intersection; with (state) { ${code} }`);
         return (state, position, disableSnap = false) => fn(state, position, disableSnap, V, dot, add, mul,
             (state, point, direction, set) => {
-                const guides = state.canvasGuides.map(g => ({ n: new V(g.normal.x, -g.normal.y), d: g.position - g.normal.y * state.compositor.height }));
+                const guides = state.canvasGuides.map(g => ({ n: new V(g.normal.x, -g.normal.y), d: g.position - g.normal.y * state.activeDocument.height }));
                 const [found, result] = intersectionSnap([point, direction], guides, state.GuideSnapTolerance, state.CanSnapCanvasGuides);
                 set(result); return found;
             });
@@ -122,7 +122,7 @@ context.case('GuideSnapping original assertions and branches', async () => {
                 get CanLockPaintingGuide() { return canLock(this); },
                 ProjectPaintingGuide(p) { return projectGuide(this, p); },
                 SetPaintingShift() { constraints++; },
-                compositor: { width: 512, height: 256 }, paintingLockedAxis: 0, paintingAxisAnchor: new V(0, 0),
+                activeDocument: { width: 512, height: 256 }, paintingLockedAxis: 0, paintingAxisAnchor: new V(0, 0),
                 toolkitCanvas: { ImageRect: image, ToCanvas: toCanvas, ToView: toView },
                 canvasViewport: { ToCanvasDelta: inverse },
                 ConstrainPaintingPosition(p) { constraints++; return p; },
@@ -271,7 +271,7 @@ context.case('GuideSnapping original assertions and branches', async () => {
         
     }
     // The Shift guide lock still allows along-line attraction to an intersection.
-    const lockedState = { compositor: { height: 100, width: 100 }, GuideSnapTolerance: 8, CanSnapCanvasGuides: true,
+    const lockedState = { activeDocument: { height: 100, width: 100 }, GuideSnapTolerance: 8, CanSnapCanvasGuides: true,
         paintingGuideIndex: 0, canvasGuides: [{ normal: new V(0, 1), position: 40 }, { normal: new V(1, 0), position: 50 }],
         toolkitCanvas: { ImageRect: { x: 0, y: 0, width: 100, height: 100 }, ToCanvas: p => p, ToView: p => p } };
     closeV(projectGuide(lockedState, new V(54, 85)), new V(50, 40));
@@ -313,30 +313,30 @@ context.case('GuideSnapping original assertions and branches', async () => {
     close(rotationSnap([88, true], []), 90);
     closeV(moveSnap([new V(100, 100), axis(45), new V(0, 0), new V(0, 0), true, false],
         [{ n: axis(45), d: dot(new V(100, 100), axis(45)) + 2 }]), new V(0, 0));
-    assert.match(src, /position = guide.position - guide.normal.y \* compositor.height;/);
+    assert.match(src, /position = guide.position - guide.normal.y \* activeDocument.height;/);
     assert.match(src, /normal = new Vector2\(guide.normal.x, -guide.normal.y\)/);
     assert.match(src, /Mathf.Abs\(determinant\) <= .0001f/);
     assert.match(src, /if \(!GuideAxesParallel\(n, axisX\) && !GuideAxesParallel\(n, axisY\)\) continue;/);
     assert.match(src, /GuideSnapPixels \/ toolkitCanvas.PixelScale/);
     assert.match(src, /!canvasGuidesHidden && canvasGuidesSnap/);
-    const transform = read('TextureCompositorWindow.Transform.cs');
-    const ui = read('TextureCompositorWindow.UI.cs');
+    const transform = read('WhimTexWindow.Transform.cs');
+    const ui = read('WhimTexWindow.UI.cs');
     assert.equal((ui.match(/GetCanvasPaintPosition\(evt.localPosition, evt.shiftKey, evt.ctrlKey\)/g) ?? []).length, 3, 'Down, Move and Up share snapping');
     assert.match(ui, /GetCanvasPaintPosition\(localPosition, paintingShiftHeld, canvasPointerControl, updateConstraint: false\)/);
     assert.ok(!ui.includes('UpdateCanvasCursor(paintPosition'), 'Keep the raw cursor position to avoid double snapping and a sticky Ctrl bypass');
     assert.match(ui, /paintingAxisPointerAnchor = canvasPointerPosition/);
     assert.match(ui, /CapturePaintingGuide\(evt.localPosition, evt.ctrlKey\);\s*if \(!TryBeginCanvasStroke/);
     assert.equal((ui.match(/CapturePaintingGuide\(/g) ?? []).length, 1, 'Capture only at stroke start, never on Move or hover');
-    assert.match(read('TextureCompositorWindow.cs'), /paintingPointerMoved = false;\s*paintingGuideIndex = -1;/);
+    assert.match(read('WhimTexWindow.cs'), /paintingPointerMoved = false;\s*paintingGuideIndex = -1;/);
     for (const name of ['SnapCanvasGuidePoint', 'SnapCanvasGuideMove', 'SnapCanvasGuideResize', 'SnapCanvasGuideRotation'])
         assert.ok(transform.includes(`owner.${name}(`));
     assert.match(transform, /else if \(!disableSnap\)[\s\S]*?owner\.SnapCanvasGuideRotation\(next\.rotationF\)/);
-    const selection = read('TextureCompositorWindow.AreaSelectionView.cs');
+    const selection = read('WhimTexWindow.AreaSelectionView.cs');
     assert.equal((selection.match(/CanvasPoint\(evt.localPosition, evt.ctrlKey\)/g) ?? []).length, 1);
     assert.equal((selection.match(/UpdateCurrent\(evt.localPosition, evt.shiftKey, evt.ctrlKey\)/g) ?? []).length, 2);
     assert.match(selection, /Current = CanvasPoint\(position, control\)/);
     assert.match(selection, /disableSnap \? documentPoint : owner.SnapCanvasGuidePoint\(documentPoint, owner.canvasTool == CanvasTool.RectangleSelect\)/);
-    const commands = read('TextureCompositorWindow.GuideCommands.cs');
+    const commands = read('WhimTexWindow.GuideCommands.cs');
     function commandBody(name) {
         const start = commands.indexOf('{', commands.indexOf(` ${name}(`));
         let level = 1, end = start + 1;
@@ -375,7 +375,7 @@ context.case('GuideSnapping original assertions and branches', async () => {
     assert.match(commands, /canvasGuideRedo.Clear\(\)/);
     assert.match(commands, /owner.canvasGuidesRevision != revision/);
     assert.match(commands, /focusedElement != toolkitCanvas/);
-    assert.ok(!/\bUndo\.|RenderTexture|MarkChanged|SetDirty/.test(commands), 'Guide history does not snapshot or dirty the compositor');
+    assert.ok(!/\bUndo\.|RenderTexture|MarkChanged|SetDirty/.test(commands), 'Guide history does not snapshot or dirty the activeDocument');
 });
 
 await finish(context);

@@ -11,18 +11,18 @@ namespace DCFApixels.WhimTex
     {
         protected override Type EditedLayerType => typeof(OutlineLayerBehaviour);
 
-        public static void Open(OutlineLayerBehaviour layer, TextureCompositor compositor)
+        public static void Open(OutlineLayerBehaviour layer, WhimTexDocument activeDocument)
         {
-            OpenPropertiesWindow<OutlineLayerEditorWindow>(layer, compositor);
+            OpenPropertiesWindow<OutlineLayerEditorWindow>(layer, activeDocument);
         }
 
         protected override void BuildSettings(VisualElement root, Layer source)
         {
-            BuildFields(root, (OutlineLayerBehaviour)source, Compositor, ApplyLayerChange, SettingsBindings, AddEffectTarget);
+            BuildFields(root, (OutlineLayerBehaviour)source, Document, ApplyLayerChange, SettingsBindings, AddEffectTarget);
         }
 
         internal static void BuildFields(
-            VisualElement root, OutlineLayerBehaviour layer, TextureCompositor compositor,
+            VisualElement root, OutlineLayerBehaviour layer, WhimTexDocument activeDocument,
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings,
             Action<VisualElement, TargetedLayerBehaviour> addEffectTarget)
         {

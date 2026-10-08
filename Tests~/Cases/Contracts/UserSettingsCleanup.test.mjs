@@ -23,10 +23,10 @@ context.case("UserSettingsCleanup original assertion inputs and source contracts
   const settings = read('src/WhimTexUserSettings.cs');
   for (const suffix of ['CheckerLight', 'CheckerDark', 'InvalidPixels', 'CheckerSize', 'ShowManta', 'PostFxBackground', 'PostFxBackgroundMode'])
     assert(settings.includes('"DCFApixels.WhimTex.CanvasView.' + suffix + '"'), suffix);
-  const tools = read('src/TextureCompositorWindow.Tools.cs');
+  const tools = read('src/WhimTexWindow.Tools.cs');
   for (const suffix of ['Tool', 'TransformReturnTool', 'PaintToolSettings'])
     assert(tools.includes('"DCFApixels.WhimTex.Canvas.' + suffix + '"'), suffix);
-  assert(read('src/TextureCompositorWindow.cs').includes('"DCFApixels.WhimTex.Canvas.PaintingScale"'));
+  assert(read('src/WhimTexWindow.cs').includes('"DCFApixels.WhimTex.Canvas.PaintingScale"'));
   assert.doesNotMatch(tools, /blurOpacity/);
   assert.match(tools, /JsonUtility\.FromJsonOverwrite\(EditorPrefs\.GetString\(PaintToolSettingsPrefKey\), paintSettings\)/);
   const folder = settings.split('internal static string DefaultPresetsFolder')[1].split('internal static bool TrySetPresetsFolder')[0];

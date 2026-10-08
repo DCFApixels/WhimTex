@@ -10,14 +10,14 @@ public static class DocumentJsonContractTests
     static int checks;
     const BindingFlags F = BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public;
     static void Check(bool value, string message) { UnityBRun.Check(!(!value), message); checks++; }
-    static Layer Add(TextureCompositor document, LayerBehaviour behaviour)
+    static Layer Add(WhimTexDocument document, LayerBehaviour behaviour)
     {
         var layer = new Layer(behaviour);
         typeof(Layer).GetMethod("AssignNewId", F).Invoke(layer, null);
         document.layers.Add(layer);
         return layer;
     }
-    static string Full(TextureCompositor document) => WhimTexDocumentJson.Write(document,
+    static string Full(WhimTexDocument document) => WhimTexDocumentJson.Write(document,
         new WhimTexJsonWriteOptions { Mode = WhimTexJsonWriteMode.Full }).Json;
     static void Rejected(Action action, string message)
     { bool rejected = false; try { action(); } catch { rejected = true; } Check(rejected, message); }
@@ -25,7 +25,7 @@ public static class DocumentJsonContractTests
     static string ExecuteRun()
     {
         checks = 0;
-        var document = UnityBRun.Create<TextureCompositor>();
+        var document = UnityBRun.Create<WhimTexDocument>();
         string path = UnityBRun.AssetPath("WhimTexJsonContract_") + Guid.NewGuid().ToString("N") + ".whimtex.json";
         try
         {
@@ -41,9 +41,9 @@ public static class DocumentJsonContractTests
             using (var restored = WhimTexDocumentJson.Read(optimized.Json, false))
                 Check(((NoiseLayerBehaviour)restored.Document.layers[0].Behaviour).warpStrength == 1, "Inactive settings did not use version defaults.");
             Rejected(() => WhimTexDocumentJson.Read(Full(document).Replace("\"width\": 128", "\"unknownSetting\": 128"), false).Dispose(), "Unknown field silently lost.");
-            Rejected(() => WhimTexDocumentJson.Read(Full(document).Replace("\"version\": 1", "\"version\": 999"), false).Dispose(), "Unsupported version accepted.");
-            Rejected(() => WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":1,\"document\":{},\"layers\":[{}]}", false).Dispose(), "Incomplete layer silently accepted.");
-            const string fxJson = "{\"format\":\"whimtex.document\",\"version\":1,\"document\":{},\"layers\":[" +
+            Rejected(() => WhimTexDocumentJson.Read(Full(document).Replace("\"version\": 2", "\"version\": 999"), false).Dispose(), "Unsupported version accepted.");
+            Rejected(() => WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":2,\"document\":{},\"layers\":[{}]}", false).Dispose(), "Incomplete layer silently accepted.");
+            const string fxJson = "{\"format\":\"whimtex.document\",\"version\":2,\"document\":{},\"layers\":[" +
                 "{\"id\":\"first\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"$id\":\"shared\",\"code\":\"float4 ApplyFX(float2 uv,float4 color){return color;}\"}]}," +
                 "{\"id\":\"second\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$ref\":\"shared\"}]}]}";
             using (var shared = WhimTexDocumentJson.Read(fxJson, false))
@@ -92,7 +92,7 @@ public static class DocumentJsonContractTests
             Add(document, new NoiseLayerBehaviour());
             WhimTexDocumentFile.SaveJson(document, path);
             Check(WhimTexDocumentFile.IsDocument(path), "JSON not detected as document.");
-            var service = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentService");
+            var service = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentService");
             service.GetMethod("Attach", F).Invoke(null, new object[] { document, document });
             try
             {

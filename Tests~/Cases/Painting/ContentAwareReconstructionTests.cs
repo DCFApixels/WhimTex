@@ -14,7 +14,7 @@ static System.Threading.CancellationToken Cancellation;
 
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
     const int W = 33, H = 21, X = 16, Y = 10, A = 10 * W + 5, B = 10 * W + 26;
-    static readonly Type Algorithm = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.ContentAwareFill", true);
+    static readonly Type Algorithm = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.ContentAwareFill", true);
     static readonly Type Level = Algorithm.GetNestedType("Level", F);
     static Color Straight(Vector4 p) => new Color(p.x / p.w, p.y / p.w, p.z / p.w, p.w);
     static Vector4 Premult(Color c) => new Vector4(c.r * c.a, c.g * c.a, c.b * c.a, c.a);

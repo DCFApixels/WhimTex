@@ -76,7 +76,7 @@ namespace DCFApixels.WhimTex
             {
                 if (quiltingEdges == PoissonEdges.None && (!quiltingSeamCorrection || quiltingPoissonEdges == PoissonEdges.None))
                     return ApplyTransformAndFx(context.input, context);
-                var quilt = context.compositor.RenderQuilting(this, context,
+                var quilt = context.activeDocument.RenderQuilting(this, context,
                     Limit(quiltingWidth,.02f,.45f,.2f), Limit(quiltingFeather,0,100,50),
                     new Vector4(processRed?1:0,processGreen?1:0,processBlue?1:0,processAlpha?1:0));
                 try

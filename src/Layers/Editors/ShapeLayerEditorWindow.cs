@@ -9,12 +9,12 @@ namespace DCFApixels.WhimTex
     public sealed class ShapeLayerEditorWindow : LayerEditorWindowBase
     {
         protected override Type EditedLayerType => typeof(ShapeLayerBehaviour);
-        public static void Open(ShapeLayerBehaviour layer, TextureCompositor compositor) =>
-            OpenPropertiesWindow<ShapeLayerEditorWindow>(layer, compositor);
+        public static void Open(ShapeLayerBehaviour layer, WhimTexDocument activeDocument) =>
+            OpenPropertiesWindow<ShapeLayerEditorWindow>(layer, activeDocument);
         protected override void BuildSettings(VisualElement root, Layer source) =>
-            BuildFields(root, (ShapeLayerBehaviour)source.Behaviour, Compositor, ApplyLayerChange, SettingsBindings);
+            BuildFields(root, (ShapeLayerBehaviour)source.Behaviour, Document, ApplyLayerChange, SettingsBindings);
 
-        internal static void BuildFields(VisualElement root, ShapeLayerBehaviour layer, TextureCompositor compositor,
+        internal static void BuildFields(VisualElement root, ShapeLayerBehaviour layer, WhimTexDocument activeDocument,
             Action<string, Action> apply, WhimTexUI.ValueBindings bindings)
         {
             var kind = WhimTexUI.ConfigureField(new EnumField("Shape", layer.kind));

@@ -9,12 +9,12 @@ namespace DCFApixels.WhimTex
     {
         protected override Type EditedLayerType => typeof(BlurLayerBehaviour);
         protected override string LayerPreviewTitle => "Layer Preview (Blur)";
-        public static void Open(BlurLayerBehaviour layer, TextureCompositor compositor) =>
-            OpenPropertiesWindow<BlurLayerEditorWindow>(layer, compositor);
+        public static void Open(BlurLayerBehaviour layer, WhimTexDocument activeDocument) =>
+            OpenPropertiesWindow<BlurLayerEditorWindow>(layer, activeDocument);
         protected override void BuildSettings(VisualElement root, Layer source) =>
-            BuildFields(root, (BlurLayerBehaviour)source, Compositor, ApplyLayerChange, SettingsBindings, AddEffectTarget);
+            BuildFields(root, (BlurLayerBehaviour)source, Document, ApplyLayerChange, SettingsBindings, AddEffectTarget);
 
-        internal static void BuildFields(VisualElement root, BlurLayerBehaviour layer, TextureCompositor compositor,
+        internal static void BuildFields(VisualElement root, BlurLayerBehaviour layer, WhimTexDocument activeDocument,
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings,
             Action<VisualElement, TargetedLayerBehaviour> addEffectTarget)
         {

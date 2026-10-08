@@ -12,12 +12,12 @@ public static class DocumentJsonSafetyTests
     static int checks;
     static void Check(bool value, string message) { checks++; UnityBRun.Check(!(!value), message); }
     static object Call(object value, string name, params object[] args) => value.GetType().GetMethod(name, F).Invoke(value, args);
-    static string Revision(TextureCompositor doc)
+    static string Revision(WhimTexDocument doc)
     {
         try { return (string)typeof(WhimTexApi).GetMethod("Revision", F).Invoke(null, new object[] { doc }); }
         catch (TargetInvocationException error) { throw error.InnerException ?? error; }
     }
-    static void Bind(TextureCompositor doc, string path) => typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentService")
+    static void Bind(WhimTexDocument doc, string path) => typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentService")
         .GetMethod("Bind", F).Invoke(null, new object[] { doc, path });
     [Serializable] public class Reply { public bool success, saved; public State document; }
     [Serializable] public class State { public string revision; public int width; }
@@ -31,7 +31,7 @@ public static class DocumentJsonSafetyTests
     static string ExecuteRun()
     {
         checks = 0;
-        var doc = UnityBRun.Create<TextureCompositor>();
+        var doc = UnityBRun.Create<WhimTexDocument>();
         doc.hideFlags = HideFlags.HideAndDontSave;
         doc.width = doc.height = 8;
         string path = UnityBRun.AssetPath("__WhimTexJsonSafety_") + Guid.NewGuid().ToString("N") + ".whimtex.json";
@@ -92,14 +92,14 @@ public static class DocumentJsonSafetyTests
                 string fragment = WhimTexDocumentJson.WriteLayers(doc, doc.layers, new WhimTexJsonWriteOptions { Mode = mode }).Json;
                 using var clipboard = (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", F).Invoke(null, new object[] { fragment, 32, 32 });
                 Check(clipboard.GetType().GetField("CanvasFilter", F) == null, "Retired source-filter override is still exposed.");
-                var destination = UnityBRun.Create<TextureCompositor>();
+                var destination = UnityBRun.Create<WhimTexDocument>();
                 destination.width = destination.height = 32;
                 destination.outputFilter = FilterMode.Trilinear;
                 destination.outputSrgb = false;
-                var window = UnityBRun.Create<TextureCompositorWindow>();
+                var window = UnityBRun.Create<WhimTexWindow>();
                 try
                 {
-                    Call(window, "SetCompositor", destination);
+                    Call(window, "SetDocument", destination);
                     Call(window, "PasteProceduralClipboard", clipboard, resize);
                     Check(destination.outputFilter == FilterMode.Trilinear && !destination.outputSrgb, "Paste changed destination output settings.");
                     Check(destination.width == (resize ? 16 : 32) && destination.height == (resize ? 8 : 32), "Paste ignored canvas-size choice.");

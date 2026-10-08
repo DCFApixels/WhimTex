@@ -121,11 +121,11 @@ public static class NoiseSmallScaleTests
 {
     const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
     static string Output => WhimTex.Tests.UnityC.FixtureContext.Scope.Temp;
-    static Material Prepare(TextureCompositor doc)
+    static Material Prepare(WhimTexDocument doc)
     {
         var image = doc.ComposeCanvas();
         WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(image);
-        var type = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials");
+        var type = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials");
         var shared = (Material)type.GetProperty("Noise", Flags).GetValue(null);
         var material = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(shared) { hideFlags = HideFlags.HideAndDontSave });
         foreach(var key in new[]{"_NoiseOneD","_NoiseThreeD","_NoisePeriodic","_NoiseSeed","_NoiseType",
@@ -171,7 +171,7 @@ public static class NoiseSmallScaleTests
     static string ExecuteRun(int kind = 0)
     {
         Directory.CreateDirectory(Output);
-        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         doc.hideFlags = HideFlags.HideAndDontSave; doc.width=doc.height=32;
         var n = new NoiseLayerBehaviour {
             noiseType=(NoiseLayerBehaviour.NoiseType)kind, seed=-139361330,
@@ -180,7 +180,7 @@ public static class NoiseSmallScaleTests
             warp=NoiseLayerBehaviour.WarpType.BasicGrid,warpStrength=.5f,
             encoding=NoiseLayerBehaviour.OutputEncoding.ColorValues };
         doc.layers.Add(n);
-        typeof(TextureCompositor).GetMethod("NormalizeModel",Flags).Invoke(doc,null);
+        typeof(WhimTexDocument).GetMethod("NormalizeModel",Flags).Invoke(doc,null);
         var candidate = new PrototypeNoiseLatticeSettings();
         var log = new StringBuilder("scale,octave,oldX,oldY,newX,newY\n");
         Material material=null; Texture2D sheet=null;

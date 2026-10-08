@@ -92,7 +92,7 @@ public static class ScreenedSeamlessTests
     static string ExecuteMain()
     {
         checks=0;maxError=0;
-        var shader=Shader.Find("Hidden/TextureCompositor/ScreenedSeamless");Check(shader!=null&&shader.isSupported,"Shader unavailable");
+        var shader=Shader.Find("Hidden/WhimTex/ScreenedSeamless");Check(shader!=null&&shader.isSupported,"Shader unavailable");
         var rng=new System.Random(312);
         foreach(var size in new[]{new Vector2Int(1,1),new Vector2Int(1,7),new Vector2Int(8,1),new Vector2Int(2,3),
             new Vector2Int(4,8),new Vector2Int(6,10),new Vector2Int(17,13),new Vector2Int(32,32),new Vector2Int(64,48)})
@@ -130,7 +130,7 @@ public static class ScreenedSeamlessTests
         {
             t.LoadImage(input,false);
             var decoded=global::WhimTex.Tests.UnityC.FixtureContext.Scope.Temporary(RenderTexture.GetTemporary(t.width,t.height,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear));
-            var material=global::WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(Shader.Find("Hidden/TextureCompositor/ScreenedSeamless")));
+            var material=global::WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(Shader.Find("Hidden/WhimTex/ScreenedSeamless")));
             var previous=RenderTexture.active;bool srgb=GL.sRGBWrite;
             try
             {

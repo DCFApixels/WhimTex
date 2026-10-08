@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/HistogramSeamless"
+Shader "Hidden/WhimTex/HistogramSeamless"
 {
     Properties { _MainTex ("Source", 2D) = "white" {} }
     SubShader

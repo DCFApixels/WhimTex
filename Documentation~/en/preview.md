@@ -151,7 +151,7 @@ While editing it uses preview quality, then refines the result when you stop.
 If you resize the canvas, the live image fits the saved texture size until you save again.
 Live Update starts off when you open the window and turns off when you switch documents or reload scripts.
 
-### Use a compositor inside another document
+### Use a document inside another document
 
 Assign the saved document's output texture to a **File** layer in another document.
 Saving the source refreshes the receiving window automatically. To see changes while editing, enable

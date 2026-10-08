@@ -54,7 +54,7 @@ public static class ShaderFXVectorsTests
             try{Parse("// @param "+bad);}catch(TargetInvocationException e) when(e.InnerException is FormatException){rejected=true;}
             Check(rejected,"invalid "+bad);
         }
-        var project=typeof(TextureCompositorWindow).GetMethod("ProjectNormal",F);
+        var project=typeof(WhimTexWindow).GetMethod("ProjectNormal",F);
         foreach(bool back in new[]{false,true})
         foreach(var xy in new[]{Vector2.zero,new Vector2(.3f,.4f),Vector2.right,new Vector2(10,-20)})
         {
@@ -63,11 +63,11 @@ public static class ShaderFXVectorsTests
             var expected=Vector2.ClampMagnitude(xy,1);
             Check(Vector2.Distance(new Vector2(n.x,n.y),expected)<1e-5,"projection clamp");
         }
-        var doc=ScriptableObject.CreateInstance<TextureCompositor>(); doc.width=doc.height=16;
+        var doc=ScriptableObject.CreateInstance<WhimTexDocument>(); doc.width=doc.height=16;
         ShaderFX fx=null;
         try
         {
-            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
+            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
             typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(fx,null);
             Layer layer=new ColorFillLayerBehaviour(); layer.fx.Add(fx); doc.layers.Add(layer);
             var image=doc.ComposeCanvas();

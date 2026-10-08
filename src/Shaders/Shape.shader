@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/Shape"
+Shader "Hidden/WhimTex/Shape"
 {
     SubShader
     {

@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "colorHistory": [
       [
@@ -37,7 +37,6 @@
       }
     ],
     "nextCopyNumber": 1,
-    "spriteSlices": [],
     "width": 256,
     "height": 256,
     "outputFilter": "Bilinear",
@@ -57,7 +56,7 @@
       "blendMode": "Normal",
       "colorRange": "HDR",
       "blendRange": "HDR",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -76,22 +75,19 @@
                 1.0,
                 1.0
               ],
-              "id": "34645ef635634f3ca73636f6762436a0",
-              "declaredInCode": true
+              "id": "34645ef635634f3ca73636f6762436a0"
             },
             {
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "44e5ca2983584e3a8c0ab576e205ca42",
-              "declaredInCode": true
+              "id": "44e5ca2983584e3a8c0ab576e205ca42"
             },
             {
               "name": "_EdgeFade",
               "type": "Float",
               "floatValue": 1.5,
-              "id": "cd561384e00d48e2b2a6c4d7423ef71b",
-              "declaredInCode": true
+              "id": "cd561384e00d48e2b2a6c4d7423ef71b"
             }
           ],
           "shaderKey": "69c44dbf11b54381ae134d8c172ba626",
@@ -145,7 +141,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [],
@@ -202,7 +198,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [],
@@ -250,7 +246,7 @@
           "blendMode": "Normal",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [],
@@ -332,7 +328,7 @@
           "blendMode": "Normal",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [
@@ -351,8 +347,7 @@
                     0.0,
                     0.0
                   ],
-                  "id": "efaaebe7628546dc9d2330abc85a8871",
-                  "declaredInCode": true
+                  "id": "efaaebe7628546dc9d2330abc85a8871"
                 },
                 {
                   "name": "_Radius",
@@ -363,36 +358,31 @@
                     0.0,
                     0.0
                   ],
-                  "id": "d30e55d6bea64e13a62abda1c233115a",
-                  "declaredInCode": true
+                  "id": "d30e55d6bea64e13a62abda1c233115a"
                 },
                 {
                   "name": "_Density",
                   "type": "Float",
                   "floatValue": 0.94,
-                  "id": "3fc9fe2e511b4e3b9882e0cbc9fb49b7",
-                  "declaredInCode": true
+                  "id": "3fc9fe2e511b4e3b9882e0cbc9fb49b7"
                 },
                 {
                   "name": "_Breakup",
                   "type": "Float",
                   "floatValue": 0.3,
-                  "id": "ff8f61244e114f57b4da3ae7b9fc50b3",
-                  "declaredInCode": true
+                  "id": "ff8f61244e114f57b4da3ae7b9fc50b3"
                 },
                 {
                   "name": "_Contrast",
                   "type": "Float",
                   "floatValue": 1.05,
-                  "id": "129d8a43a908466985a6612bddf77ed2",
-                  "declaredInCode": true
+                  "id": "129d8a43a908466985a6612bddf77ed2"
                 },
                 {
                   "name": "_EdgeSoftness",
                   "type": "Float",
                   "floatValue": 0.8,
-                  "id": "45c83c5cae8e4f75a495e64187ace546",
-                  "declaredInCode": true
+                  "id": "45c83c5cae8e4f75a495e64187ace546"
                 }
               ],
               "shaderKey": "7bb7a78965cc483ba8fcc9257c6c5a8b",
@@ -450,7 +440,7 @@
             "warp": "OpenSimplex2Reduced",
             "warpStrength": 0.15,
             "warpScale": 1.0,
-            "warpScaleY": 0.0,
+            "warpScaleY": 1.0,
             "linkWarpScale": true,
             "encoding": "LinearData",
             "inverted": false,
@@ -470,7 +460,7 @@
           "blendMode": "Normal",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [
@@ -489,8 +479,7 @@
                     0.0,
                     0.0
                   ],
-                  "id": "adc3d71e35684b9caa5478b2fce47f11",
-                  "declaredInCode": true
+                  "id": "adc3d71e35684b9caa5478b2fce47f11"
                 },
                 {
                   "name": "_Radius",
@@ -501,36 +490,31 @@
                     0.0,
                     0.0
                   ],
-                  "id": "faa1a97139ef48648818676787c82051",
-                  "declaredInCode": true
+                  "id": "faa1a97139ef48648818676787c82051"
                 },
                 {
                   "name": "_Density",
                   "type": "Float",
                   "floatValue": 0.8,
-                  "id": "09e0bf8737004ce6b9f232125c4c8b3f",
-                  "declaredInCode": true
+                  "id": "09e0bf8737004ce6b9f232125c4c8b3f"
                 },
                 {
                   "name": "_Breakup",
                   "type": "Float",
                   "floatValue": 0.7,
-                  "id": "2d5bb7059e204ed4bcd87e3aa531bc38",
-                  "declaredInCode": true
+                  "id": "2d5bb7059e204ed4bcd87e3aa531bc38"
                 },
                 {
                   "name": "_Contrast",
                   "type": "Float",
                   "floatValue": 1.4,
-                  "id": "0ffb7843e3624cc286823f516c4df310",
-                  "declaredInCode": true
+                  "id": "0ffb7843e3624cc286823f516c4df310"
                 },
                 {
                   "name": "_EdgeSoftness",
                   "type": "Float",
                   "floatValue": 0.8,
-                  "id": "5d3f487570644f6bb112f4a624d3ce5b",
-                  "declaredInCode": true
+                  "id": "5d3f487570644f6bb112f4a624d3ce5b"
                 }
               ],
               "shaderKey": "4dbefcb3b939403ab6142b79e18dd915",
@@ -588,7 +572,7 @@
             "warp": "OpenSimplex2Reduced",
             "warpStrength": 0.15,
             "warpScale": 1.0,
-            "warpScaleY": 0.0,
+            "warpScaleY": 1.0,
             "linkWarpScale": true,
             "encoding": "LinearData",
             "inverted": false,

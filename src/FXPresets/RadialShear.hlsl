@@ -6,7 +6,6 @@
 // @param point _Center = (0.5, 0.5)
 // @endif
 // @param float2 _Offset = (0, 0)
-// @formerlyserializedas(_InputTiling)
 // @param enum _Tiling = Clamp {Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3} // Sampling outside the input image: extend its edge, repeat, mirror, or return transparency.
 // @endgroup
 

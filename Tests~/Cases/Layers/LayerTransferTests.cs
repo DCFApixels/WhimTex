@@ -14,27 +14,27 @@ public static class LayerTransferTests
     static string TargetName => "UnityC.Target." + WhimTex.Tests.UnityC.FixtureContext.Scope.Token;
     static object Call(object owner, string method, params object[] args) => owner.GetType().GetMethod(method, Flags).Invoke(owner, args);
     static object Get(object owner, string field) => owner.GetType().GetField(field, Flags).GetValue(owner);
-    static TextureCompositorWindow Window(string name) => Resources.FindObjectsOfTypeAll<TextureCompositorWindow>().Single(w => w.name == name);
-    static TextureCompositor Document(TextureCompositorWindow window) => (TextureCompositor)Get(window, "compositor");
+    static WhimTexWindow Window(string name) => Resources.FindObjectsOfTypeAll<WhimTexWindow>().Single(w => w.name == name);
+    static WhimTexDocument Document(WhimTexWindow window) => (WhimTexDocument)Get(window, "activeDocument");
     static void Check(bool ok, string message) { WhimTex.Tests.UnityC.FixtureContext.Context.True(ok, message); }
     static Layer Fill(string name) => new Layer(new ColorFillLayerBehaviour { color = Color.red }) { layerName = name };
     static Texture2D Pixels(Layer layer) => (Texture2D)layer.Behaviour.GetType().GetProperty("StoredTexture", Flags).GetValue(layer.Behaviour);
-    static void Payload(TextureCompositorWindow source, List<Layer> roots)
+    static void Payload(WhimTexWindow source, List<Layer> roots)
     {
         DragAndDrop.PrepareStartDrag();
         DragAndDrop.objectReferences = Array.Empty<UnityEngine.Object>();
         DragAndDrop.SetGenericData("DCFApixels.WhimTex.DraggedWindow", source);
-        DragAndDrop.SetGenericData("DCFApixels.WhimTex.DraggedCompositorId", Document(source));
+        DragAndDrop.SetGenericData("DCFApixels.WhimTex.DraggedDocumentId", Document(source));
         DragAndDrop.SetGenericData("DCFApixels.WhimTex.DraggedLayerId", roots[0].Id);
         DragAndDrop.SetGenericData("DCFApixels.WhimTex.DraggedLayers", roots);
     }
     static string ExecuteSetup()
     {
-        Check(!Resources.FindObjectsOfTypeAll<TextureCompositorWindow>().Any(w => w.name == SourceName || w.name == TargetName), "Clean up the previous owned transfer fixture first");
+        Check(!Resources.FindObjectsOfTypeAll<WhimTexWindow>().Any(w => w.name == SourceName || w.name == TargetName), "Clean up the previous owned transfer fixture first");
         SessionState.SetInt("WhimTex.Tests.UnityC.Transfer.Focus." + WhimTex.Tests.UnityC.FixtureContext.Scope.Token, EditorWindow.focusedWindow != null ? EditorWindow.focusedWindow.GetHashCode() : 0);
         Undo.IncrementCurrentGroup();SessionState.SetInt("WhimTex.Tests.UnityC.Transfer.Undo." + WhimTex.Tests.UnityC.FixtureContext.Scope.Token,Undo.GetCurrentGroup());
-        var source = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositorWindow>()); source.name = SourceName;
-        var target = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositorWindow>()); target.name = TargetName;
+        var source = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexWindow>()); source.name = SourceName;
+        var target = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexWindow>()); target.name = TargetName;
         var a = Document(source); var b = Document(target);
         a.width = a.height = b.width = b.height = 16;
         a.layers.Clear(); b.layers.Clear();
@@ -141,9 +141,9 @@ public static class LayerTransferTests
         var root = a.layers[0];
         Payload(source, new List<Layer> { root });
         Check(!(bool)Call(source, "IsCrossWindowLayerDrag"), "Source window keeps move semantics");
-        typeof(TextureCompositorWindow).GetField("compositor", Flags).SetValue(target, a);
+        typeof(WhimTexWindow).GetField("activeDocument", Flags).SetValue(target, a);
         try { Check((bool)Call(target, "IsCrossWindowLayerDrag"), "Another window of same document still copies"); }
-        finally { typeof(TextureCompositorWindow).GetField("compositor", Flags).SetValue(target, b); }
+        finally { typeof(WhimTexWindow).GetField("activeDocument", Flags).SetValue(target, b); }
         var scroll = (ScrollView)Get(target, "toolkitSettingsScroll");
         var autoScroll = Get(target, "layerDragAutoScroll");
         var viewport = scroll.contentViewport.worldBound;
@@ -173,7 +173,7 @@ public static class LayerTransferTests
     }
     static string ExecuteCleanup()
     {
-        foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>().Where(w => w.name == SourceName || w.name == TargetName))
+        foreach (var window in Resources.FindObjectsOfTypeAll<WhimTexWindow>().Where(w => w.name == SourceName || w.name == TargetName))
         {
             Undo.ClearUndo(Document(window));
             global::WhimTex.Tests.UnityC.FixtureContext.Scope.CloseWindow(window);
@@ -187,7 +187,7 @@ public static class LayerTransferTests
     public static string Start(string runId, string mode = "top")
     {
         var job = WhimTex.Tests.UnityC.AsyncFixture.Create(runId);
-        var keys = new[] { "DCFApixels.WhimTex.DraggedWindow", "DCFApixels.WhimTex.DraggedCompositorId", "DCFApixels.WhimTex.DraggedLayerId", "DCFApixels.WhimTex.DraggedLayers" };
+        var keys = new[] { "DCFApixels.WhimTex.DraggedWindow", "DCFApixels.WhimTex.DraggedDocumentId", "DCFApixels.WhimTex.DraggedLayerId", "DCFApixels.WhimTex.DraggedLayers" };
         var previous = keys.Select(DragAndDrop.GetGenericData).ToArray();
         var references = DragAndDrop.objectReferences;
         var paths = DragAndDrop.paths;

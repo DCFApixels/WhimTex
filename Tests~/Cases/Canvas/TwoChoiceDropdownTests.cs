@@ -43,7 +43,7 @@ public static class TwoChoiceDropdownTests
             window.rootVisualElement.Add(field);
             var input = field.Q<VisualElement>(className: DropdownField.inputUssClassName);
             Check(input != null, "Public input USS selector finds the dropdown input");
-            var assembly = typeof(TextureCompositorWindow).Assembly;
+            var assembly = typeof(WhimTexWindow).Assembly;
             var type = assembly.GetType("DCFApixels.WhimTex.TwoChoiceDropdownManipulator`1", true).MakeGenericType(typeof(string));
             var manipulator = (IManipulator)Activator.CreateInstance(type, BindingFlags.Instance | BindingFlags.NonPublic,
                 null, new object[] { input, (Func<IReadOnlyList<string>>)(() => field.choices),

@@ -49,7 +49,7 @@ namespace DCFApixels.WhimTex
             return path;
         }
 
-        private static void ReleaseTransientDocument(TextureCompositor document)
+        private static void ReleaseTransientDocument(WhimTexDocument document)
         {
             if (document != null && !AssetDatabase.Contains(document))
                 Object.DestroyImmediate(document);
@@ -99,7 +99,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static TextureCompositor Load(string path)
+        private static WhimTexDocument Load(string path)
         {
             Require(WhimTexDocumentFile.IsDocument(path), "No WhimTex document at " + path, "document_not_found");
             return WhimTexDocumentFile.Load(path);
@@ -161,11 +161,11 @@ namespace DCFApixels.WhimTex
             return Respond(() =>
             {
                 string path = DocumentPath(assetPath);
-                TextureCompositor document = Load(path);
+                WhimTexDocument document = Load(path);
                 Texture2D preview = null;
                 try
                 {
-                    Require(!TextureCompositorWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
+                    Require(!WhimTexWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
                     Require(maxSize >= 1 && maxSize <= 4096, "maxSize must be 1..4096.");
                     Require(!string.IsNullOrEmpty(outputPath), "outputPath is required.");
                     outputPath = outputPath.Replace('\\', '/');

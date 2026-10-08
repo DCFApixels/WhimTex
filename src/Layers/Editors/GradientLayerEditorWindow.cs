@@ -10,18 +10,18 @@ namespace DCFApixels.WhimTex
     {
         protected override Type EditedLayerType => typeof(GradientLayerBehaviour);
 
-        public static void Open(GradientLayerBehaviour layer, TextureCompositor compositor)
+        public static void Open(GradientLayerBehaviour layer, WhimTexDocument activeDocument)
         {
-            OpenPropertiesWindow<GradientLayerEditorWindow>(layer, compositor);
+            OpenPropertiesWindow<GradientLayerEditorWindow>(layer, activeDocument);
         }
 
         protected override void BuildSettings(VisualElement root, Layer source)
         {
-            BuildFields(root, (GradientLayerBehaviour)source, Compositor, ApplyLayerChange, SettingsBindings);
+            BuildFields(root, (GradientLayerBehaviour)source, Document, ApplyLayerChange, SettingsBindings);
         }
 
         internal static void BuildFields(
-            VisualElement root, GradientLayerBehaviour layer, TextureCompositor compositor,
+            VisualElement root, GradientLayerBehaviour layer, WhimTexDocument activeDocument,
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings)
         {
 

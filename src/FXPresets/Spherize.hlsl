@@ -4,7 +4,6 @@
 // @param hidden enum _Mode = 0 {Classic: 0, Sphere: 1} // Classic is the current unbounded radial distortion. Sphere wraps the image over a sphere and clips outside its circular edge.
 // @param float _Strength = 0.5 [~-1 .. ~1] // Positive values bulge; negative values pinch. Zero removes distortion but keeps the circular clip in Sphere mode.
 // @param transform2D _Area
-// @formerlyserializedas(_InputTiling)
 // @param enum _Tiling = Clamp {Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3} // Sampling outside the input image: extend its edge, repeat, mirror, or return transparency.
 // @endgroup
 

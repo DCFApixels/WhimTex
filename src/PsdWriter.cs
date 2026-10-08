@@ -5,7 +5,7 @@ using System.Text;
 
 namespace DCFApixels.WhimTex
 {
-    // The format writer has no dependency on Unity or on the compositor's layer model.
+    // The format writer has no dependency on Unity or on the document's layer model.
     internal static class PsdWriter
     {
         internal interface IPixels : IDisposable
@@ -154,7 +154,7 @@ namespace DCFApixels.WhimTex
                 w.U32(0);
             });
 
-            // Merged image uses the actual compositor result, including unsupported blend modes.
+            // Merged image uses the actual activeDocument result, including unsupported blend modes.
             w.U16(1);
             long table = w.Position;
             w.Zeros(checked(height * 4 * 2));

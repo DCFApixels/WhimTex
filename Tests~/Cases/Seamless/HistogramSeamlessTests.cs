@@ -10,7 +10,7 @@ using Object = UnityEngine.Object;
 public static class HistogramSeamlessTests
 {
     const BindingFlags Flags = BindingFlags.Static | BindingFlags.NonPublic;
-    static readonly MethodInfo Method = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.HistogramSeamless").GetMethod("Render",Flags);
+    static readonly MethodInfo Method = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.HistogramSeamless").GetMethod("Render",Flags);
     static RenderTexture Render(Texture t) => (RenderTexture)Method.Invoke(null,new object[]{t,t.width,t.height});
     static int checks;
     static void Check(bool b,string s) { UnityBRun.Check(!(!b), s);checks++; }
@@ -24,7 +24,7 @@ public static class HistogramSeamlessTests
     static string ExecuteMain()
     {
         checks=0;
-        var shader=Shader.Find("Hidden/TextureCompositor/HistogramSeamless");
+        var shader=Shader.Find("Hidden/WhimTex/HistogramSeamless");
         Check(shader!=null && shader.isSupported,"Shader support");
         foreach(var msg in ShaderUtil.GetShaderMessages(shader))Check(msg.severity.ToString()!="Error",msg.message);
         var rng=new System.Random(928);

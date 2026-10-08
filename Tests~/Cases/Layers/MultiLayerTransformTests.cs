@@ -10,15 +10,15 @@ public static class MultiLayerTransformTests
     const BindingFlags F=BindingFlags.Instance|BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic;
     static string ExecuteMain()
     {
-        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>()); doc.width=doc.height=128;
+        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>()); doc.width=doc.height=128;
         int checks=0;
         void Check(bool ok,string label) { WhimTex.Tests.UnityC.FixtureContext.Context.True(ok, label); checks++; }
-        var type=typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.MultiLayerTransform");
+        var type=typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.MultiLayerTransform");
         object New(params Layer[] layers) => Activator.CreateInstance(type,F,null,new object[]{doc,Ids(layers)},null);
         List<string> Ids(params Layer[] layers) { var ids=new List<string>(); foreach(var l in layers) { if(string.IsNullOrEmpty(l.Id)) typeof(Layer).GetMethod("EnsureId",F).Invoke(l,new object[]{new HashSet<string>()}); ids.Add(l.Id); } return ids; }
         object Call(object state,string name,params object[] args)=>type.GetMethod(name,F).Invoke(state,args);
         TextureTransform Frame(object state)=>(TextureTransform)type.GetProperty("Frame",F).GetValue(state);
-        ProjectiveMatrix World(Layer l)=>((TextureTransform)typeof(TextureCompositor).GetMethod("GetCanvasTransform",F).Invoke(doc,new object[]{l})).ToMatrix(128,128);
+        ProjectiveMatrix World(Layer l)=>((TextureTransform)typeof(WhimTexDocument).GetMethod("GetCanvasTransform",F).Invoke(doc,new object[]{l})).ToMatrix(128,128);
         void Same(ProjectiveMatrix a,ProjectiveMatrix b,string label)
         {
             foreach(var p in new[]{new Double2(0,0),new Double2(1,0),new Double2(1,1),new Double2(.3,.7)})

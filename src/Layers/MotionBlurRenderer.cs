@@ -30,7 +30,7 @@ namespace DCFApixels.WhimTex
             if (material == null) throw new InvalidOperationException("Motion Blur shader is unavailable.");
             var pivot = new Vector2(Limit(center.x, 0f, 1f, .5f), Limit(center.y, 0f, 1f, .5f));
             float orientation = Limit(angle, -180f, 180f) * Mathf.Deg2Rad;
-            bool interactive = context.compositor.InteractiveEffects;
+            bool interactive = context.activeDocument.InteractiveEffects;
             RenderTexture current = null, blurred = null, straight = null;
             RenderTexture previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;

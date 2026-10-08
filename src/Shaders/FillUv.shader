@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/FillUv"
+Shader "Hidden/WhimTex/FillUv"
 {
     SubShader
     {

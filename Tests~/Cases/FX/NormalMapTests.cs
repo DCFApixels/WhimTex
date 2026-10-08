@@ -16,7 +16,7 @@ public static class NormalMapTests
     {
         // Opt-in after manual compilation. Transient objects only; no asset saves/imports or Undo.
         var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
         document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
         document.width = document.height = 32;
         var texture = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new UnityEngine.Texture2D(32, 32, UnityEngine.TextureFormat.RGBAFloat, false, true));

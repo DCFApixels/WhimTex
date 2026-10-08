@@ -64,7 +64,7 @@ namespace DCFApixels.WhimTex
             if (spec["settings"] is JObject settings)
                 Require(settings["name"] == null && settings["enabled"] == null,
                     "The reservation owns name and enabled. Completion must not overwrite them.");
-            var builder = ScriptableObject.CreateInstance<TextureCompositor>();
+            var builder = ScriptableObject.CreateInstance<WhimTexDocument>();
             Layer candidate = null;
             try
             {
@@ -92,7 +92,7 @@ namespace DCFApixels.WhimTex
             finally { builder.layers.Clear(); Object.DestroyImmediate(builder); }
         }
 
-        private static TextureCompositor CloneLiveDocument(TextureCompositor source)
+        private static WhimTexDocument CloneLiveDocument(WhimTexDocument source)
         {
             var clone = Object.Instantiate(source);
             clone.hideFlags = HideFlags.HideAndDontSave;
@@ -111,7 +111,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static void PutLiveCandidate(TextureCompositor document, LiveJob job, Layer candidate)
+        private static void PutLiveCandidate(WhimTexDocument document, LiveJob job, Layer candidate)
         {
             var pending = document.FindLayer(job.layerId);
             Require(pending?.Behaviour is PendingLayerBehaviour && document.TryFindLayer(pending, out _, out _), "Reservation is missing.", "job_closed");
@@ -141,7 +141,7 @@ namespace DCFApixels.WhimTex
             int size = Int(request, "maxSize", 1024, 1, 4096);
             RequireGraphics();
             Texture2D owned = null, image = null;
-            TextureCompositor preview = null;
+            WhimTexDocument preview = null;
             Layer candidate = null;
             bool installed = false;
             RenderTexture rt = null;

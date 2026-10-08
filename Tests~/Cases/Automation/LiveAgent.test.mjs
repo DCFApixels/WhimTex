@@ -9,7 +9,7 @@ context.case("LiveAgent original assertion inputs and source contracts", async (
   const images = read('src/Automation/WhimTexApi.LiveImages.cs');
   const jobs = read('src/Automation/WhimTexApi.Live.cs');
   const complete = read('src/Automation/WhimTexApi.LiveCompletion.cs');
-  const model = read('src/TextureCompositor.cs');
+  const model = read('src/WhimTexDocument.cs');
   function body(source, signature) {
     const signatureStart = source.indexOf(signature);
     assert.ok(signatureStart >= 0, `Missing method: ${signature}`);
@@ -161,11 +161,11 @@ context.case("LiveAgent original assertion inputs and source contracts", async (
     }
   }
   // Execute the production window-selection control flow with stand-in windows; no Unity side effects.
-  code=body(jobs,'private static TextureCompositorWindow ResolveLiveBeginWindow(')
+  code=body(jobs,'private static WhimTexWindow ResolveLiveBeginWindow(')
     .replaceAll('var ', 'let ').replaceAll('windows.Length','windows.length')
     .replaceAll('long newest', 'let newest').replaceAll('bool tied', 'let tied')
     .replaceAll('foreach (let window in windows)', 'for (const window of windows)')
-    .replaceAll('Resources.FindObjectsOfTypeAll<TextureCompositorWindow>()','windowsSource()')
+    .replaceAll('Resources.FindObjectsOfTypeAll<WhimTexWindow>()','windowsSource()')
     .replaceAll('.Where(','.filter(').replaceAll('.ToArray()','')
     .replaceAll('.FirstOrDefault(','.find(');
   let windows=[], focused={focusedWindow:null};
@@ -194,9 +194,9 @@ context.case("LiveAgent original assertion inputs and source contracts", async (
   assert.equal(resolve(null),second); checks++; // Closed windows cannot win.
   windows=[first,second]; second.AgentFocusOrder=12;
   assert.throws(()=>resolve(null),/session_ambiguous/); checks++;
-  const windowApi=read('src/TextureCompositorWindow.Api.cs');
+  const windowApi=read('src/WhimTexWindow.Api.cs');
   code=body(windowApi,'private void RecordAgentFocus(')
-    .replaceAll('Resources.FindObjectsOfTypeAll<TextureCompositorWindow>()','windowsSource()')
+    .replaceAll('Resources.FindObjectsOfTypeAll<WhimTexWindow>()','windowsSource()')
     .replaceAll('foreach (var window in windowsSource())','for (const window of windowsSource())')
     .replaceAll('agentFocusSequence','state.sequence').replaceAll('Math.Max','Math.max')
     .replaceAll('agentFocusOrder =','this.agentFocusOrder =');

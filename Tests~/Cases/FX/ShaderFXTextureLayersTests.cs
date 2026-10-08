@@ -21,7 +21,7 @@ public static class ShaderFXTextureLayersTests
     private static void ExecuteMain()
     {
         const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
-        var doc = ScriptableObject.CreateInstance<TextureCompositor>();
+        var doc = ScriptableObject.CreateInstance<WhimTexDocument>();
         doc.width = doc.height = 32;
         ShaderFX fx = null;
         int checks = 0;
@@ -33,8 +33,8 @@ public static class ShaderFXTextureLayersTests
             Layer source = fill;
             source.enabled = false;
             doc.layers.Add(consumer); doc.layers.Add(source);
-            typeof(TextureCompositor).GetMethod("NormalizeModel", F).Invoke(doc, null);
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc,
+            typeof(WhimTexDocument).GetMethod("NormalizeModel", F).Invoke(doc, null);
+            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc,
                 "// @param texture2D _Map\nfloat4 ApplyFX(float2 uv,float4 color){return tex2D(_Map,uv);}", new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
             consumer.fx.Add(fx);
@@ -57,9 +57,9 @@ public static class ShaderFXTextureLayersTests
             p.textureLayerId = consumer.Id; CheckColor(Color.clear);
             Layer group = new GroupLayerBehaviour(); group.enabled = false;
             doc.layers.Remove(source); group.children.Add(source); source.enabled = true; doc.layers.Add(group);
-            typeof(TextureCompositor).GetMethod("NormalizeModel", F).Invoke(doc, null);
+            typeof(WhimTexDocument).GetMethod("NormalizeModel", F).Invoke(doc, null);
             p.textureLayerId = group.Id; CheckColor(fill.color);
-            var usable = typeof(TextureCompositor).GetMethod("IsUsableShaderTexture", F, null, new[] { typeof(Layer), typeof(string) }, null);
+            var usable = typeof(WhimTexDocument).GetMethod("IsUsableShaderTexture", F, null, new[] { typeof(Layer), typeof(string) }, null);
             context.True(!((bool)usable.Invoke(doc,new object[]{consumer,consumer.Id})), "Self reference allowed");
             context.True(true, "Expected exception was rejected"); return;
         }

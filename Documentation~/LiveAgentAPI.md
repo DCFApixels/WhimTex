@@ -83,7 +83,7 @@ WhimTexApi.LiveJson(requestJson);
 Use the `DCFApixels.WhimTex` namespace. Check the returned JSON `success` as well as transport
 success. Read-only discovery returns `sessions`, each with `sessionId`, name, assetPath, dimensions
 and focused status, plus `focusOrder` (0 means no recorded focus). `assetPath` identifies the bound TIFF
-or JSON document, not its temporary in-memory compositor. A blank path means no saved document
+or JSON document, not its temporary in-memory document. A blank path means no saved document
 binding; a source image opened for editing is not necessarily a saved layered document. If multiple documents are open, use
 the user's requested document; ask when ambiguous. Do not guess from a layer name.
 
@@ -189,7 +189,7 @@ unless replacing this wider area is part of the user's request. Preview before d
 orientation; do not manually flip them. Generate the entire context crop, not just its white mask area.
 Capture pixels are sRGB 8-bit PNG, excluding display channels, EV and Post FX. HDR is clamped for the
 generation input. The original HDR document is not changed by capture.
-Single-layer capture includes that layer's transform, Swizzle and FX before its outer opacity/blend,
+Single-layer capture includes that layer's transform, ChannelMapping and FX before its outer opacity/blend,
 even if it is hidden. Groups are isolated color sources; child visibility is respected.
 
 Selection, its interpretation, crop bounds and source pixels are frozen at begin. Later selection changes do not change the task.
@@ -223,7 +223,7 @@ For `replacePixels`, only the original Drawing's pixel content is updated. Its i
 blend, FX, name and visibility remain. The selection is mapped into Drawing coordinates; rotation
 and scale are supported. Repeating/mirrored transforms are rejected because one stored pixel can
 appear both inside and outside the selected region. Use a new layer for such edits. A transformed
-source can still be sampled for a new-layer result. Existing FX and swizzles still apply after
+source can still be sampled for a new-layer result. Existing FX and channel mappings still apply after
 replacement; prefer a new layer when editing their already-processed appearance.
 
 Pixel replacement checks the target's content/settings fingerprint. Independent edits to other layers,
@@ -280,9 +280,9 @@ Remove accepts only op/index. Add/replace accept `code`; define parameters with 
 - Code: 1..65,536 characters of HLSL with `float4 ApplyFX(float2 uv, float4 color)`.
 - `color` and `SampleInput(uv)` are straight RGBA in linear working space. Return straight RGBA;
   preserve `color.a` unless changing transparency is intentional. Layer opacity/blend run afterwards.
-- `_MainTex`, `_MainTex_TexelSize`, `_InputSize`, `_CanvasSize`, `_PreviewScale` are supplied by the
+- `_MainTex`, `_MainTex_TexelSize`, `_InputSize`, `_CanvasSize`, `_RenderScale` are supplied by the
   editor. `_InputSize`/`_CanvasSize` hold width, height, reciprocal width, reciprocal height.
-  `_PreviewScale` is full-size pixels per preview pixel. `UnityCG.cginc` is already included.
+  `_RenderScale` is full-size pixels per preview pixel. `UnityCG.cginc` is already included.
 - `#include` works with existing Assets/Packages paths and paths relative to the document (Assets
   before its first save). Prefer explicit project paths. An FX does not require its own shader file.
 - Parameters: at most 128, each with `name`, `type` and `value`. `Bool` takes JSON `true`/`false`
@@ -335,6 +335,9 @@ with compiler diagnostics; the live content stays unchanged, and the pending job
 Previews do not publish candidate effects or add Undo entries. Completion is one Undo action.
 Embedded code, parameters and compiled shader follow the document's usual save lifecycle.
 Inspection exposes each FX's code, parameters, diagnostics and pending-change state.
+Each Shader FX also exposes structured `diagnosticMessages`, `warnings` and `errors` with the same
+severity/message/location as normal Apply and Console. The `diagnostics` text remains available;
+Console deduplication never hides records from inspection.
 Parameters also expose stable `id`, nullable `minimum`/`maximum`, and structured Transform2D values.
 `catalogPath` identifies a linked HLSL source when present; inline replacement does not modify that source.
 Groups support FX directly. FX process the combined children before group opacity and blending and automatically isolate a Pass Through group using Normal blending.

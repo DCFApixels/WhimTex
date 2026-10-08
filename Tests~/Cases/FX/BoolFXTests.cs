@@ -29,7 +29,7 @@ static System.Threading.CancellationToken Cancellation;
             catch (TargetInvocationException error) when (error.InnerException is FormatException) { rejected = true; }
             T.True(!(!rejected), "Invalid bool accepted");
         }
-        var document = Scope.OwnObject(ScriptableObject.CreateInstance<TextureCompositor>());
+        var document = Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
         document.hideFlags = HideFlags.HideAndDontSave;
         ShaderFX fx = null;
         var previous = RenderTexture.active;
@@ -39,7 +39,7 @@ static System.Threading.CancellationToken Cancellation;
         try
         {
             string source = "// @param bool _Flag = false\nfloat4 ApplyFX(float2 uv, float4 color) { return float4(_Flag, 0, 0, 1); }";
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", hidden, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, source, new List<ShaderFXParameter>() });
+            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", hidden, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, source, new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", hidden).Invoke(fx, null);
             var list = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", hidden).GetValue(fx);
             var shaderField = typeof(ShaderFX).GetField("compiledShader", hidden);

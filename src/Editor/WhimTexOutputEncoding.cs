@@ -42,7 +42,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        internal static void Change(string path, bool srgb, TextureCompositor owner = null)
+        internal static void Change(string path, bool srgb, WhimTexDocument owner = null)
         {
             path = WhimTexDocumentService.NormalizeDestination(path);
             if (!WhimTexTiffCarrier.TryReadCarrierFlags(path, out bool stored, out bool document, out string error) || !document)

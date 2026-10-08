@@ -16,7 +16,7 @@ var report = new System.Text.StringBuilder();
 int checks = 0;
 void Check(bool ok, string message) { UnityBRun.Check(!(!ok), "FAIL: " + message); checks++; }
 object Call(object target, string method, params object[] args) => target.GetType().GetMethod(method, Hidden).Invoke(target, args);
-var sessionType = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSession", true);
+var sessionType = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSession", true);
 object CallStatic(string name, params object[] args)
 {
     foreach (var method in sessionType.GetMethods(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic))
@@ -28,7 +28,7 @@ bool IsLive() => (bool)sessionType.GetProperty("IsLive", System.Reflection.Bindi
 if (IsLive()) throw new UnityBSkipException("Borrowed Live Update active; not verified.");
 
 string dir = UnityBRun.AssetPath("WhimTexLive_") + Guid.NewGuid().ToString("N");
-DCFApixels.WhimTex.TextureCompositor doc = null;
+DCFApixels.WhimTex.WhimTexDocument doc = null;
 UnityBRun.EnsureFolder(dir);
 try
 {
@@ -58,7 +58,7 @@ UnityEngine.Color ReadGpu(UnityEngine.Texture2D texture, int x, int y)
 }
 
 // --- document with a drawing layer and a fill layer ---
-doc = UnityBRun.Create<DCFApixels.WhimTex.TextureCompositor>();
+doc = UnityBRun.Create<DCFApixels.WhimTex.WhimTexDocument>();
 doc.width = doc.height = 16;
 var drawing = new DCFApixels.WhimTex.DrawingLayerBehaviour { brushColor = UnityEngine.Color.red, brushSize = 16, brushHardness = 1f };
 Call(drawing, "PaintPoint", new UnityEngine.Vector2(.5f, .5f), 16, 16, Call(drawing, "GetStrokeParameters", false));

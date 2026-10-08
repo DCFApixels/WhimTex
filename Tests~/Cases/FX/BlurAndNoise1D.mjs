@@ -43,7 +43,7 @@ context.case('unified properties expose all settings and only hide inactive cont
         assert.match(ui, /direction.EnableInClassList\("whimtex-hidden", layer.mode == BlurType.Gaussian\)/);
         assert.match(ui, /linear.EnableInClassList\("whimtex-hidden", layer.mode != BlurType.Linear\)/);
         assert.match(ui, /circular.EnableInClassList\("whimtex-hidden", layer.mode != BlurType.Circular\)/);
-        const window = read('src/TextureCompositorWindow.cs');
+        const window = read('src/WhimTexWindow.cs');
         assert.match(window, /new GUIContent\(descriptor.MenuName\)/);
         assert.match(window, /new GUIContent\("Add Inside\/" \+ descriptor.InsideMenuName\)/);
         assert.doesNotMatch(window, /new GUIContent\("(?:Add Inside\/)?(?:Gaussian Blur|Motion Blur)/);

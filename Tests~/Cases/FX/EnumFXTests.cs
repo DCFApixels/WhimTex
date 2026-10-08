@@ -54,7 +54,7 @@ public static class EnumFXTests
             try { Parse(invalid); } catch (TargetInvocationException e) when (e.InnerException is FormatException) { rejected = true; }
             Check(rejected, "Accepted invalid declaration: " + invalid);
         }
-        var document = UnityBRun.Create<TextureCompositor>();
+        var document = UnityBRun.Create<WhimTexDocument>();
         document.hideFlags = HideFlags.HideAndDontSave;
         ShaderFX fx = null;
         try

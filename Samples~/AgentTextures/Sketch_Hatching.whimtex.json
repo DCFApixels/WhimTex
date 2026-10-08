@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -14,7 +14,6 @@
       }
     ],
     "nextCopyNumber": 1,
-    "spriteSlices": [],
     "width": 256,
     "height": 256,
     "outputFilter": "Bilinear",
@@ -34,7 +33,7 @@
       "blendMode": "Normal",
       "colorRange": "HDR",
       "blendRange": "HDR",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -48,8 +47,7 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "78e8ad23d64f4604aeb51d0b1660afc5",
-              "declaredInCode": true
+              "id": "78e8ad23d64f4604aeb51d0b1660afc5"
             },
             {
               "name": "_Tint",
@@ -60,15 +58,13 @@
                 1.0,
                 1.0
               ],
-              "id": "2feab333feff492191e7217109ac55b5",
-              "declaredInCode": true
+              "id": "2feab333feff492191e7217109ac55b5"
             },
             {
               "name": "_Brightness",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "a14182adf6e84ecfb47315d79d802b38",
-              "declaredInCode": true
+              "id": "a14182adf6e84ecfb47315d79d802b38"
             }
           ],
           "shaderKey": "fb66a565cf80429d983677188705f6c0",
@@ -122,7 +118,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -136,8 +132,7 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "868a4b5123594332b32224c5d0b0c475",
-              "declaredInCode": true
+              "id": "868a4b5123594332b32224c5d0b0c475"
             },
             {
               "name": "_Center",
@@ -148,8 +143,7 @@
                 0.0,
                 0.0
               ],
-              "id": "b75b3af3b46f4e259af1535088327f8b",
-              "declaredInCode": true
+              "id": "b75b3af3b46f4e259af1535088327f8b"
             },
             {
               "name": "_Scale",
@@ -160,57 +154,49 @@
                 0.0,
                 0.0
               ],
-              "id": "e075c707ee8643cfb54c0ded141602e9",
-              "declaredInCode": true
+              "id": "e075c707ee8643cfb54c0ded141602e9"
             },
             {
               "name": "_Angle",
               "type": "Float",
               "floatValue": 0.0,
-              "id": "b3ef662b709d4556bd91d5ab863289e0",
-              "declaredInCode": true
+              "id": "b3ef662b709d4556bd91d5ab863289e0"
             },
             {
               "name": "_Style",
               "type": "Float",
               "floatValue": 2.0,
-              "id": "0a0a31521fd047599943fb0b0827de70",
-              "declaredInCode": true
+              "id": "0a0a31521fd047599943fb0b0827de70"
             },
             {
               "name": "_Spacing",
               "type": "Float",
               "floatValue": 0.0248,
-              "id": "22ede3cf4b324177849c836875177dee",
-              "declaredInCode": true
+              "id": "22ede3cf4b324177849c836875177dee"
             },
             {
               "name": "_Width",
               "type": "Float",
               "floatValue": 0.153,
-              "id": "2e914f3fd87445ed95c6cc80c9e63bb3",
-              "declaredInCode": true
+              "id": "2e914f3fd87445ed95c6cc80c9e63bb3"
             },
             {
               "name": "_Roughness",
               "type": "Float",
               "floatValue": 0.357,
-              "id": "dc05b14b4b814c909893affe5ebcb4a6",
-              "declaredInCode": true
+              "id": "dc05b14b4b814c909893affe5ebcb4a6"
             },
             {
               "name": "_CellSize",
               "type": "Float",
               "floatValue": 0.183,
-              "id": "71423f9a58014a6c840a806d62bbec1a",
-              "declaredInCode": true
+              "id": "71423f9a58014a6c840a806d62bbec1a"
             },
             {
               "name": "_Seed",
               "type": "Float",
               "floatValue": 17.0,
-              "id": "840b5d1596cc4ad886fef55da0b18b38",
-              "declaredInCode": true
+              "id": "840b5d1596cc4ad886fef55da0b18b38"
             },
             {
               "name": "_Paper",
@@ -221,8 +207,7 @@
                 1.0,
                 1.0
               ],
-              "id": "b0eae7b56fe24619a45d9e9b68c864b9",
-              "declaredInCode": true
+              "id": "b0eae7b56fe24619a45d9e9b68c864b9"
             },
             {
               "name": "_Ink",
@@ -233,8 +218,7 @@
                 0.141176477,
                 1.0
               ],
-              "id": "6616e33f8fd44e0fae8172b3bc6aca96",
-              "declaredInCode": true
+              "id": "6616e33f8fd44e0fae8172b3bc6aca96"
             }
           ],
           "shaderKey": "fde94a823621418ea33e91f87597753d",

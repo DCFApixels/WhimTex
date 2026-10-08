@@ -87,14 +87,17 @@ float4 ApplyFX(float2 uv, float4 color)
 
 ## 重命名参数
 
-将 `// @formerlyserializedas(_OldName)` 放在新的 `// @param` 声明紧前面。
-Apply 会转移兼容的已保存数值及参数标识。多个旧名称可重复声明；HLSL 中使用新的 uniform 名称。
-预设导出保留这些别名。
+同时修改 `@param` 声明和所有 HLSL 引用。原位置的重命名可保留数值和标识；
+如果同时添加、删除或重排参数，请检查数值。
+不支持预设别名或按旧名称自动迁移。
 
 ## 坐标与时间
 
 `LayerToLocal(uv)` 让程序化形状跟随图层变换。详见[坐标约定](../ShaderFX.md)。
 
 输入和参数不变时，FX 与 Shader Processor 缓存结果。
-依赖时间的效果应使用显式参数。Unity 时间输入（`_Time`、`_SinTime`、`_CosTime`、`_TimeParameters`、`unity_DeltaTime`）不受支持：
-虽然允许声明，但 **Apply** 会警告并为该结果停用缓存。
+允许使用 Unity 时间输入（`_Time`、`_SinTime`、`_CosTime`、`_TimeParameters`、`unity_DeltaTime`），不会阻止 **Apply**。
+但 WhimTex 不控制其更新，因此 Canvas、缩略图与导出的结果可能不同。
+**Apply** 在 Diagnostics 和 Unity Console 中显示警告并停用结果缓存；代理也会收到警告。
+它使用与其他 FX 错误和警告相同的诊断机制。同一来源和消息的 Console 警告在脚本重新加载前只显示一次；Diagnostics 与代理响应中的警告始终保留。
+如需可预测的结果，请使用显式参数。

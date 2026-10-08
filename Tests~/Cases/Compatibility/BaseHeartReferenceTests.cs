@@ -33,7 +33,7 @@ static System.Threading.CancellationToken Cancellation;
         }
 
         Check(WhimTexDocumentFile.IsDocument(fullPath), "golden TIFF is recognised as a WhimTex document");
-        Check(WhimTexDocumentFile.TryLoad(fullPath, out TextureCompositor document, out string error),
+        Check(WhimTexDocumentFile.TryLoad(fullPath, out WhimTexDocument document, out string error),
             "golden TIFF opens: " + error);
         try
         {

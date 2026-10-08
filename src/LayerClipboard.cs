@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
     [InitializeOnLoad]
     internal static class LayerClipboard
     {
-        private static TextureCompositor snapshot;
+        private static WhimTexDocument snapshot;
         private static string marker;
         private static uint revision;
 
@@ -18,7 +18,7 @@ namespace DCFApixels.WhimTex
             EditorApplication.quitting += Clear;
         }
 
-        internal static TextureCompositor Current
+        internal static WhimTexDocument Current
         {
             get
             {
@@ -28,10 +28,10 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        internal static void Copy(TextureCompositor source, List<Layer> roots)
+        internal static void Copy(WhimTexDocument source, List<Layer> roots)
         {
             if (roots.Count == 0) throw new InvalidOperationException("Select a layer to copy.");
-            TextureCompositor next = source.CaptureLayerClipboard(roots);
+            WhimTexDocument next = source.CaptureLayerClipboard(roots);
             try
             {
                 string nextMarker = "WhimTex layers: " + Guid.NewGuid().ToString("N");

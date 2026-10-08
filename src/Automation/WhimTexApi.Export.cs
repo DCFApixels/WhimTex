@@ -27,11 +27,11 @@ namespace DCFApixels.WhimTex
                 RejectLinks(full);
                 Require(overwrite || !File.Exists(full), "Export exists; set overwrite=true or choose a new path.", "already_exists");
                 RequireGraphics();
-                TextureCompositor document = Load(path);
+                WhimTexDocument document = Load(path);
                 Texture2D image = null;
                 try
                 {
-                    Require(!TextureCompositorWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
+                    Require(!WhimTexWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
                     image = maxSize == 0 ? document.ComposeCanvas() : document.ComposeCanvas(maxSize);
                     Require(image != null, "The document produced no export image.", "render_failed");
                     RasterImageFormat format = extension == ".exr" ? RasterImageFormat.Exr :

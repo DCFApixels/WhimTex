@@ -47,7 +47,7 @@ Return **Output** to **Normal** when you are happy with the surface.
 
 ## Save for a material
 
-For a normal map on its own, keep **Normal** blending, full opacity and unchanged [Swizzle](color.md), without rearranging channels.
+For a normal map on its own, keep **Normal** blending, full opacity and unchanged [Mapping](color.md), without rearranging channels.
 Avoid color effects, which can distort the relief.
 
 Choose **Advanced → Encoding → Packed Color** for PNG/TGA/PSD. Import the exported PNG or TGA into Unity as

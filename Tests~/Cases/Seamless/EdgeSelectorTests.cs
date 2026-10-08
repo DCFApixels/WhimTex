@@ -13,7 +13,7 @@ public static class EdgeSelectorTests
         const BindingFlags flags=BindingFlags.Static|BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic;
         int checks=0,changes=0;
         void Check(bool ok,string message){UnityBRun.Check(!(!ok), message);checks++;}
-        var doc=UnityBRun.Create<TextureCompositor>();
+        var doc=UnityBRun.Create<WhimTexDocument>();
         var noise=new NoiseLayerBehaviour();var seamless=new MakeSeamlessLayerBehaviour();
         doc.layers.Add(noise);doc.layers.Add(seamless);
         var window=UnityBRun.Create<EditorWindow>();window.titleContent=new GUIContent("Edge controls check");
@@ -21,7 +21,7 @@ public static class EdgeSelectorTests
         window.rootVisualElement.Add(noiseRoot);window.rootVisualElement.Add(seamRoot);
         var style=AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.dcfapixels.whimtex/src/WhimTexSplitView.uss");
         window.rootVisualElement.styleSheets.Add(style);window.ShowUtility();
-        var ui=typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexUI");
+        var ui=typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexUI");
         var bindingsType=ui.GetNestedType("ValueBindings",BindingFlags.NonPublic);
         var bindings=Activator.CreateInstance(bindingsType,true);
         Action<string,Action> change=(label,action)=>{changes++;action();};

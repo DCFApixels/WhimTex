@@ -1,6 +1,6 @@
 # WhimTex AI authoring — start here
 
-Use **`whimtex.document`, version 1** for new document files, layer fragments and clipboard JSON.
+Use **`whimtex.document`, version 2** for new document files, layer fragments and clipboard JSON.
 Read the [authoring guide](Documentation~/AI/README.md), the
 [shared JSON contract](Documentation~/JSON_FORMAT.md), and the
 [document schema](Documentation~/AI/document.schema.json).
@@ -22,8 +22,8 @@ No Unity connection is needed to return JSON for the user to copy and paste with
 
 Drawing pixels are not stored in JSON. Exported nonempty Drawing layers become warned placeholders.
 Use verified `$asset` identities for existing project assets; do not invent GUIDs or paths.
-Old `whimtex.layers` payloads are unsupported. Before upgrading, paste them in 0.12.5
-and save as TIFF (for Drawing pixels) or export `whimtex.document` JSON.
+Old `whimtex.layers` payloads and version-1 documents are unsupported. A matching older
+checkout is needed to edit them; this checkout does not provide document migration.
 Plain image URL paste remains available separately; URLs are not document JSON fields.
 
 **Generating a brush?** Read the [brush contract](Documentation~/AI/BRUSHES.md),

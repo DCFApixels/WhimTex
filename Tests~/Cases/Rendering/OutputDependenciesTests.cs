@@ -15,20 +15,20 @@ public static class OutputDependenciesTests
     static void Body()
     {
         // Unity Pipeline eval_file. Transient documents/textures/window only; no asset files or user documents are changed.
-        var type = typeof(DCFApixels.WhimTex.TextureCompositor);
+        var type = typeof(DCFApixels.WhimTex.WhimTexDocument);
         var assembly = type.Assembly;
         var instance = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
         var statics = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
         var outputField = type.GetField("outputTexture", instance);
         var notify = type.GetMethod("NotifyOutputTextureChanged", instance);
-        var changeType = assembly.GetType("DCFApixels.WhimTex.CompositorOutputChange", true);
+        var changeType = assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentOutputChange", true);
         var changeCtor = changeType.GetConstructor(instance, null, new[] { type }, null);
         var shouldRefresh = changeType.GetMethod("ShouldRefresh", instance);
-        var docs = new System.Collections.Generic.List<DCFApixels.WhimTex.TextureCompositor>();
+        var docs = new System.Collections.Generic.List<DCFApixels.WhimTex.WhimTexDocument>();
         var textures = new System.Collections.Generic.List<UnityEngine.Texture2D>();
-        DCFApixels.WhimTex.TextureCompositor NewDocument()
+        DCFApixels.WhimTex.WhimTexDocument NewDocument()
         {
-            var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+            var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
             doc.hideFlags = UnityEngine.HideFlags.HideAndDontSave; doc.width = doc.height = 16;
             var texture = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new UnityEngine.Texture2D(16, 16, UnityEngine.TextureFormat.RGBAFloat, false, true));
             texture.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
@@ -37,15 +37,15 @@ public static class OutputDependenciesTests
             texture.SetPixels(pixels); texture.Apply();
             outputField.SetValue(doc, texture); docs.Add(doc); textures.Add(texture); return doc;
         }
-        DCFApixels.WhimTex.Layer File(DCFApixels.WhimTex.TextureCompositor source) =>
+        DCFApixels.WhimTex.Layer File(DCFApixels.WhimTex.WhimTexDocument source) =>
             new DCFApixels.WhimTex.Layer(new DCFApixels.WhimTex.FileLayerBehaviour { sourceTexture = source.OutputTexture });
-        bool Accept(DCFApixels.WhimTex.TextureCompositor source, DCFApixels.WhimTex.TextureCompositor consumer) =>
+        bool Accept(DCFApixels.WhimTex.WhimTexDocument source, DCFApixels.WhimTex.WhimTexDocument consumer) =>
             (bool)shouldRefresh.Invoke(changeCtor.Invoke(new object[] { source }), new object[] { consumer });
         int checks = 0;
         void Check(bool ok, string label) { WhimTex.Tests.UnityC.FixtureContext.Context.True(ok, label); checks++; }
         var a = NewDocument(); var b = NewDocument(); var c = NewDocument();
         var previousFocus = UnityEditor.EditorWindow.focusedWindow;
-        DCFApixels.WhimTex.TextureCompositorWindow window = null;
+        DCFApixels.WhimTex.WhimTexWindow window = null;
         UnityEngine.RenderTexture gpu = null;
         var previousTarget = UnityEngine.RenderTexture.active;
         var sample = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new UnityEngine.Texture2D(1, 1, UnityEngine.TextureFormat.RGBAFloat, false, true));
@@ -67,8 +67,8 @@ public static class OutputDependenciesTests
             Check(Accept(a, b), "nested hidden sources included for effects");
             b.layers.Clear(); b.layers.Add(new DCFApixels.WhimTex.Layer(new DCFApixels.WhimTex.BlurLayerBehaviour { radius = 2f }));
             b.layers.Add(File(a));
-            var windowType = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
-            window = (DCFApixels.WhimTex.TextureCompositorWindow)windowType.GetMethod("OpenReferencedDocument", statics).Invoke(null, new object[] { b });
+            var windowType = typeof(DCFApixels.WhimTex.WhimTexWindow);
+            window = (DCFApixels.WhimTex.WhimTexWindow)windowType.GetMethod("OpenReferencedDocument", statics).Invoke(null, new object[] { b });
             var dirty = windowType.GetField("outputDependencyDirty", instance);
             var requested = windowType.GetField("canvasRequested", instance);
             var render = windowType.GetMethod("UpdateCanvasRender", instance);

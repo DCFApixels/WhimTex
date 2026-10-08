@@ -21,12 +21,12 @@ permalink: /reference/hdr/
 
 ## Layer controls
 
-The compositor uses **linear floating-point working pixels** and straight alpha. Alpha stays in 0–1.
+The document uses **linear floating-point working pixels** and straight alpha. Alpha stays in 0–1.
 Each layer has two independent controls:
 
 | Control | Standard (default) | HDR |
 | :--- | :--- | :--- |
-| Color Range | Clamp the layer's own output after transform, all FX and Swizzle, before blending. | Preserve signed RGB outside 0–1. |
+| Color Range | Clamp the layer's own output after transform, all FX and ChannelMapping, before blending. | Preserve signed RGB outside 0–1. |
 | Blend Range | Bounded blend functions in the legacy sRGB blend space. | Extended blend functions and compositing in linear light. |
 
 Standard blending bounds the overlap function, **not the entire accumulated image**. A transparent
@@ -37,19 +37,19 @@ Old documents default to Standard, with pass-through groups at opacity 1.
 FX receive linear, straight RGBA. Their intermediate results are not saturated just because the
 owning layer is Standard. Existing custom code that assumes encoded RGB may need explicit color conversion.
 Color pickers and API color arrays retain the encoded RGB convention; source textures honor their
-imported sRGB setting. Source import settings are never changed by the compositor.
+imported sRGB setting. Source import settings are never changed by the document.
 
 ## Color compatibility
 
-Swizzle remaps straight linear RGBA after FX and before Color Range. The four selectors accept
+ChannelMapping remaps straight linear RGBA after FX and before Color Range. The four selectors accept
 `R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A`,
 `Luminance`, `Luminance * A`. Luminance is `dot(RGB, (0.2126, 0.7152, 0.0722))` in linear space;
 it preserves signed/HDR values until the layer's Color Range is applied. All mappings read the original RGBA;
 products use the original input alpha, and inversion means literal `1 - channel`
-in linear space. Alpha is clamped to 0–1 after remapping. Identity is serialized as zero, so old
-documents keep `R G B A`. A nonidentity group Swizzle forces isolation; a Pass Through group
-temporarily uses Normal blending and resumes Pass Through when Swizzle returns to identity and clipping is inactive.
-Source pixels are not rewritten. Conversion keeps a regular layer's Swizzle as an editable setting,
+in linear space. Alpha is clamped to 0–1 after remapping. Identity is serialized as zero and means
+`R G B A`. A nonidentity group ChannelMapping forces isolation; a Pass Through group
+temporarily uses Normal blending and resumes Pass Through when ChannelMapping returns to identity and clipping is inactive.
+Source pixels are not rewritten. Conversion keeps a regular layer's ChannelMapping as an editable setting,
 while group conversion and merging bake it once. PSD group baking retains original children in a hidden folder.
 
 Brush uniforms and newly applied Shader FX color uniforms use vector properties carrying linear RGBA.
@@ -58,10 +58,9 @@ FX with native Color properties remain supported without reapplying their code.
 
 Color Fill stores encoded RGB in `storedColor` and decodes it once for the linear render.
 The picker, API and PSD solid-color metadata use that encoded value. The C# `color` property
-accesses the same field. Files saved by 0.12.5 use this canonical representation; earlier
-Color Fill storage must be normalized in 0.12.5 before upgrading.
+accesses the same field. Earlier Color Fill storage is not normalized on read.
 
-These compatibility rules do not rewrite Drawing pixels or imported textures. Strokes already painted
+These color rules do not rewrite Drawing pixels or imported textures. Strokes already painted
 with incorrect color conversion have that color baked into their pixels; they cannot be automatically
 distinguished from intentional colors. Restoring those strokes requires Undo or an earlier document.
 
@@ -109,7 +108,7 @@ The gradient editor's document-local History is a shared swatch/drag implementat
 
 ### Channel-adapted display
 
-`WhimTexColorField.UseCanvasChannels` explicitly opts document-color inputs into channel display; service colors remain ordinary. `WhimTexColorInputs.Bind` opts in layer/brush/FX bindings. An ancestor channel provider identifies the originating compositor window; detached Properties/gradient inputs fall back only to a unique open window for that document. Ambiguous or unavailable ownership uses ordinary display, never the focused unrelated document. Gradient sessions carry the originating provider into their detached editor and key picker. Layer Preview masks are not sources.
+`WhimTexColorField.UseCanvasChannels` explicitly opts document-color inputs into channel display; service colors remain ordinary. `WhimTexColorInputs.Bind` opts in layer/brush/FX bindings. An ancestor channel provider identifies the originating document window; detached Properties/gradient inputs fall back only to a unique open window for that document. Ambiguous or unavailable ownership uses ordinary display, never the focused unrelated document. Gradient sessions carry the originating provider into their detached editor and key picker. Layer Preview masks are not sources.
 
 The persistent `Channels` preference changes rendering only. Two/three active RGB channels zero excluded components; one RGB component is grayscale; alpha-only is opaque grayscale alpha; no channels is black. Numeric RGB/HSV/HEX, HDR intensity, callbacks, History and serialization remain unmasked. Existing painting-channel semantics are unchanged. `Channels` is hidden for inputs without a channel source. Source changes refresh visible controls without changing their values.
 
@@ -184,13 +183,13 @@ The distance mask may be 8-bit; SDF gradients and Outline colors are generated i
 
 ## Groups
 
-**Pass Through** lets children see the external backdrop. At reduced group opacity, the compositor
+**Pass Through** lets children see the external backdrop. At reduced group opacity, the document
 interpolates the complete before/after result in premultiplied linear RGB and alpha. It does not multiply
 every child's opacity. Color Range and Blend Range are inactive in this mode.
 
 Choosing any other group blend mode isolates its children on a transparent buffer. The group then
 applies its own Color Range, blend mode, Blend Range and opacity to the parent stack.
-Nested groups follow the same rules. Group FX process the combined children before Swizzle, Color Range and outer opacity/blending. FX force isolation with Normal blending when the saved mode is Pass Through. Group transforms remain unsupported.
+Nested groups follow the same rules. Group FX process the combined children before ChannelMapping, Color Range and outer opacity/blending. FX force isolation with Normal blending when the saved mode is Pass Through. Group transforms remain unsupported.
 
 Outline/SDF group targets use only the group's own content against transparency, including nested
 opacity and alpha-replacing modes. They never include the external backdrop.
@@ -199,7 +198,7 @@ Clipping chains preserve their base's alpha; clipped members blend colors withou
 opacity into that alpha. The base's opacity and blend are applied to the complete chain once.
 Groups participating in clipping (as base or clipped member) are isolated even when configured
 as Pass Through, using Normal in that case. Their ranges become active while isolated.
-Swizzle and clipping are independent reasons for isolation: Pass Through resumes only after
+ChannelMapping and clipping are independent reasons for isolation: Pass Through resumes only after
 both restrictions are removed. Clipped Overwrite replaces source-covered RGB, not base alpha.
 
 ## Preview and numeric diagnostics
@@ -232,13 +231,13 @@ A group shows only its own colored content against transparency.
 
 ## Save and export
 
-Saved compositor output and standalone Texture2D assets use linear RGBAHalf. Owned Drawing formats,
+Saved document output and standalone Texture2D assets use linear RGBAHalf. Owned Drawing formats,
 range settings and group settings survive saving, reopening and duplication. EXR preserves HDR.
 PNG/JPEG/TGA and the current 8-bit PSD exporter receive a separate clamped, encoded copy. Converting
 that copy never changes the source document. PSD retains folder blend modes and opacity where supported;
 extended HDR blending can differ when another application recomposites its editable 8-bit stack.
 
-C# callers: `TextureCompositor.ComposeCanvas()` now returns an owned, readable **RGBAHalf** Texture2D.
+C# callers: `WhimTexDocument.ComposeCanvas()` now returns an owned, readable **RGBAHalf** Texture2D.
 Do not reinterpret its raw bytes as Color32. Use `GetPixelData<Unity.Mathematics.half4>(0)` for native
 access, or the format-independent pixel APIs. The caller must destroy the returned temporary texture.
 The JSON agent API retains its existing PNG render output and adds explicit range/group settings.

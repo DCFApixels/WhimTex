@@ -57,7 +57,7 @@ public static class MotionBlurApiTests
         string description = DCFApixels.WhimTex.WhimTexApi.Describe();
         Check(description.Contains("blurDefaults") && description.Contains("blurModes") &&
             description.Contains("blurDirections") && description.Contains("blurEdges"), "Discovery");
-        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
         document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
         try
         {
@@ -68,7 +68,7 @@ public static class MotionBlurApiTests
             Apply("{\"op\":\"set\",\"layer\":\"@blur\",\"settings\":{\"blur\":{\"mode\":\"Circular\",\"arc\":20}}}");
             Check(added.mode == DCFApixels.WhimTex.BlurType.Circular && added.arc == 20, "Set routing");
             string state = UnityEngine.JsonUtility.ToJson(document);
-            var reopened = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+            var reopened = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
             try
             {
                 UnityEngine.JsonUtility.FromJsonOverwrite(state, reopened);

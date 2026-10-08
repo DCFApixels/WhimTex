@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
     {
         public WhimTexGradient gradient = new WhimTexGradient();
         [NonSerialized] public Action<WhimTexGradient> changed;
-        [NonSerialized] internal TextureCompositor document;
+        [NonSerialized] internal WhimTexDocument document;
         [NonSerialized] internal Func<int> channelSource;
     }
 

@@ -23,7 +23,7 @@ namespace DCFApixels.WhimTex
         private readonly HashSet<Layer> colorSources = new HashSet<Layer>();
         private readonly HashSet<string> requiredEntries = new HashSet<string>();
         private readonly List<Entry> unused = new List<Entry>();
-        private TextureCompositor document;
+        private WhimTexDocument document;
         private DrawingLayerBehaviour liveDrawing;
         private readonly bool snapshotShaders;
         private long clock, frame;
@@ -36,7 +36,7 @@ namespace DCFApixels.WhimTex
         internal EffectRenderCache() : this(false) { }
         internal EffectRenderCache(bool snapshotShaders) => this.snapshotShaders = snapshotShaders;
 
-        internal void BeginFrame(TextureCompositor owner, DrawingLayerBehaviour painting = null)
+        internal void BeginFrame(WhimTexDocument owner, DrawingLayerBehaviour painting = null)
         {
             if (document != owner) { Dispose(); document = owner; }
             owner.RefreshTransformHierarchy();
@@ -124,7 +124,7 @@ namespace DCFApixels.WhimTex
             if (effect.inputMode == EffectInputMode.AllBelow) return null;
             if (effect.inputMode == EffectInputMode.Specific) return document.FindLayer(effect.TargetLayerId);
             if(!document.TryFindLayer(effect,out var list,out int index)) return null;
-            index=TextureCompositor.NextContentLayer(list,index);
+            index=WhimTexDocument.NextContentLayer(list,index);
             return index<list.Count ? list[index] : null;
         }
 
@@ -138,7 +138,7 @@ namespace DCFApixels.WhimTex
             {
                 if (!(fxEntry is ShaderFX fx) || !fx.Active) continue;
                 found = true;
-                if (fx.UsesUnsupportedTimeInputs) return false;
+                if (fx.UsesUnityTimeInputs) return false;
             }
             return found;
         }
@@ -160,7 +160,7 @@ namespace DCFApixels.WhimTex
 
         private static bool CanCacheFx(UnityEngine.Object fxEntry)
         {
-            return fxEntry is ShaderFX fx && (!fx.Active || !fx.UsesUnsupportedTimeInputs);
+            return fxEntry is ShaderFX fx && (!fx.Active || !fx.UsesUnityTimeInputs);
         }
 
         internal ulong Stamp(Layer layer)
@@ -170,8 +170,8 @@ namespace DCFApixels.WhimTex
             if (!visiting.Add(layer)) return 0;
             try
             {
-                // ShaderFX is deterministic by contract. Arbitrary Materials remain uncached
-                // unless this cache is explicitly being used for a thumbnail snapshot.
+                // Unity time inputs and arbitrary Materials bypass reusable caching.
+                // Thumbnail snapshots may explicitly capture their current result.
                 if (!snapshotShaders && layer.fx != null)
                     foreach (var fxEntry in layer.fx)
                         if (fxEntry != null && !CanCacheFx(fxEntry)) return stamps[layer] = 0;
@@ -258,8 +258,8 @@ namespace DCFApixels.WhimTex
         }
 
         // The raw quilting result does not depend on downstream Poisson, FX, transforms,
-        // opacity or swizzle. Input dependency stamps still cover all upstream changes.
-        internal ulong QuiltingStamp(MakeSeamlessLayerBehaviour layer, TextureCompositor owner)
+        // opacity or channelMapping. Input dependency stamps still cover all upstream changes.
+        internal ulong QuiltingStamp(MakeSeamlessLayerBehaviour layer, WhimTexDocument owner)
         {
             // Direct thumbnail/export callers may not have begun a cache frame.
             if(!ReferenceEquals(document,owner)) return 0;

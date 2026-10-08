@@ -133,7 +133,7 @@ namespace DCFApixels.WhimTex
                 result.blendMode = preserveGroupBlend ? ((Layer)source).EffectiveBlendMode : BlendMode.Normal;
                 if (((Layer)source).IsPassThrough)
                     result.colorRange = LayerColorRange.HDR;
-                result.swizzle = default;
+                result.channelMapping = default;
                 result.fx.Clear();
             }
             if ((applyTransform || source.IsGroup) && source.transformCache?.parent != null)
@@ -162,7 +162,7 @@ namespace DCFApixels.WhimTex
 
         internal override RenderTexture Render(in LayerRenderContext context)
         {
-            RenderTexture surface = EnsurePaintSurface(context.compositor.width, context.compositor.height);
+            RenderTexture surface = EnsurePaintSurface(context.activeDocument.width, context.activeDocument.height);
             if (surface == null)
                 return null;
 

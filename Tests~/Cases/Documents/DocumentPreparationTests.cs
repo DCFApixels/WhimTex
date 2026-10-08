@@ -15,7 +15,7 @@ using Object = UnityEngine.Object;
 public static class DocumentPreparationTests
 {
     const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-    static readonly Assembly Package = typeof(TextureCompositor).Assembly;
+    static readonly Assembly Package = typeof(WhimTexDocument).Assembly;
     static Type Type(string name) => Package.GetType("DCFApixels.WhimTex." + name);
     static object Call(Type type, object target, string name, params object[] args) => type.GetMethods(Any)
         .Single(m => m.Name == name && m.GetParameters().Length == args.Length).Invoke(target, args);
@@ -32,21 +32,21 @@ public static class DocumentPreparationTests
         }
         Check(false, message);
     }
-    static TextureCompositor Document()
+    static WhimTexDocument Document()
     {
-        var doc = UnityBRun.Create<TextureCompositor>(); Owned.Add(doc);
+        var doc = UnityBRun.Create<WhimTexDocument>(); Owned.Add(doc);
         doc.hideFlags = HideFlags.HideAndDontSave; doc.width = 64; doc.height = 32;
         doc.layers.Add(new Layer(new ColorFillLayerBehaviour { color = Color.red }));
         return doc;
     }
-    static TextureCompositor Load(string path)
+    static WhimTexDocument Load(string path)
     { var doc = WhimTexDocumentFile.Load(path); Owned.Add(doc); return doc; }
-    static ShaderFX Effect(TextureCompositor doc)
+    static ShaderFX Effect(WhimTexDocument doc)
     {
-        var fx = (ShaderFX)Call(typeof(TextureCompositor), doc, "AddEmbeddedShaderFX", doc.layers[0]);
+        var fx = (ShaderFX)Call(typeof(WhimTexDocument), doc, "AddEmbeddedShaderFX", doc.layers[0]);
         Call(typeof(ShaderFX), fx, "ApplyAgentDraft"); return fx;
     }
-    static void RejectSaveDestination(TextureCompositor doc, string path, string message)
+    static void RejectSaveDestination(WhimTexDocument doc, string path, string message)
     {
         string full = Path.GetFullPath(path);
         string name = Path.GetFileName(full);
@@ -81,7 +81,7 @@ public static class DocumentPreparationTests
         checks = 0;
         var session = Type("WhimTexDocumentSession");
         if ((bool)session.GetProperty("IsLive", Any).GetValue(null)) throw new UnityBSkipException("SKIP: user Live Update is active.");
-        int windows = Resources.FindObjectsOfTypeAll<TextureCompositorWindow>().Length;
+        int windows = Resources.FindObjectsOfTypeAll<WhimTexWindow>().Length;
         string folder = UnityBRun.AssetPath("WhimTexPreparation_") + Guid.NewGuid().ToString("N");
         UnityBRun.EnsureFolder(folder);
         var errors = new List<string>();
@@ -126,7 +126,7 @@ public static class DocumentPreparationTests
             using (var legacyBytes = new MemoryStream())
             {
                 using var writer = new BinaryWriter(legacyBytes, Encoding.UTF8, true);
-                writer.Write(Encoding.ASCII.GetBytes("WHIMTEXD")); writer.Write(1); writer.Write(1);
+                writer.Write(Encoding.ASCII.GetBytes("WHIMTEXD")); writer.Write(2); writer.Write(1);
                 writer.Write(8); writer.Write(Encoding.ASCII.GetBytes("document")); writer.Write(0); writer.Write(1L); writer.Write(1L); writer.Write((byte)77);
                 Reject(() => WhimTexDocumentContainer.Parse(legacyBytes.ToArray()), "pre-0.12.5 container without checksum rejected");
                 using var oldStream = new MemoryStream(legacyBytes.ToArray());
@@ -171,7 +171,7 @@ public static class DocumentPreparationTests
             var buildType = Type("WhimTexDocumentBuild");
             using (var build = (IDisposable)Call(buildType, null, "Open", path))
             {
-                var opened = (TextureCompositor)Get(build, "Document");
+                var opened = (WhimTexDocument)Get(build, "Document");
                 var restored = (ShaderFX)opened.layers[0].fx[0];
                 Check((bool)Get(restored, "HasAppliedShader"), "headless Open restores applied FX");
                 var preview = (Texture2D)Call(buildType, build, "Render"); Owned.Add(preview);
@@ -181,7 +181,7 @@ public static class DocumentPreparationTests
             int texturesBefore = Resources.FindObjectsOfTypeAll<Texture2D>().Length;
             Call(typeof(WhimTexDocumentFile), null, "InspectStorage", path);
             Check(Resources.FindObjectsOfTypeAll<Texture2D>().Length == texturesBefore, "storage inspection does not create textures");
-            Check(Resources.FindObjectsOfTypeAll<TextureCompositorWindow>().Length == windows, "headless path never creates an editor window");
+            Check(Resources.FindObjectsOfTypeAll<WhimTexWindow>().Length == windows, "headless path never creates an editor window");
 
             // External FX must retain their persistent shader, source, values and dirty state on open.
             var external = UnityBRun.Create<ShaderFX>();
@@ -200,7 +200,7 @@ public static class DocumentPreparationTests
             // Drawing is owned by the in-memory model and embedded into TIFF, never a sub-asset.
             var painted = Document(); painted.layers.Clear();
             var drawing = new DrawingLayerBehaviour(); painted.layers.Add(new Layer(drawing));
-            Call(typeof(TextureCompositor), painted, "NormalizeModel");
+            Call(typeof(WhimTexDocument), painted, "NormalizeModel");
             Call(typeof(DrawingLayerBehaviour), drawing, "PaintPoint", new Vector2(.5f, .5f), 64, 32,
                 Call(typeof(DrawingLayerBehaviour), drawing, "GetStrokeParameters", false));
             string paintedPath = WhimTexDocumentFile.Save(painted, folder + "/Painted.tiff");

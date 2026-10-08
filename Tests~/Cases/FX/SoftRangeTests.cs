@@ -40,10 +40,10 @@ public static class SoftRangeTests
             Check(rejected,"Accepted invalid soft range: "+bad);
         }
         ShaderFX fx=null; SoftRangeTestsWindow window=null;
-        var owner=ScriptableObject.CreateInstance<TextureCompositor>();owner.hideFlags=HideFlags.HideAndDontSave;
+        var owner=ScriptableObject.CreateInstance<WhimTexDocument>();owner.hideFlags=HideFlags.HideAndDontSave;
         try
         {
-            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{owner,code,new List<ShaderFXParameter>()});
+            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{owner,code,new List<ShaderFXParameter>()});
             typeof(ShaderFX).GetMethod("ApplyAgentDraft",flags).Invoke(fx,null);
             var values=(List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",flags).GetValue(fx);
             var view=(VisualElement)Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView"),flags,null,new object[]{fx},null);

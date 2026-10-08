@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
     public enum LayerBlendRange { Standard, HDR }
     internal readonly struct LayerRenderContext
     {
-        public readonly TextureCompositor compositor;
+        public readonly WhimTexDocument activeDocument;
         public readonly RenderTexture input;
         public readonly int width;
         public readonly int height;
@@ -18,7 +18,7 @@ namespace DCFApixels.WhimTex
         public readonly bool transformFxCoordinates;
 
         public LayerRenderContext(
-            TextureCompositor compositor,
+            WhimTexDocument activeDocument,
             RenderTexture input,
             int width,
             int height,
@@ -27,7 +27,7 @@ namespace DCFApixels.WhimTex
             bool applyFx = true,
             bool? transformFxCoordinates = null)
         {
-            this.compositor = compositor;
+            this.activeDocument = activeDocument;
             this.input = input;
             this.width = width;
             this.height = height;
@@ -49,7 +49,7 @@ namespace DCFApixels.WhimTex
         public BlendMode blendMode = BlendMode.Normal;
         public LayerColorRange colorRange;
         public LayerBlendRange blendRange;
-        public LayerSwizzle swizzle;
+        public LayerChannelMapping channelMapping;
         public List<UnityEngine.Object> fx = new List<UnityEngine.Object>();
         public TextureTransform transform = TextureTransform.Default;
         [NonSerialized] internal LayerTransformCache transformCache;
@@ -163,7 +163,7 @@ namespace DCFApixels.WhimTex
         internal bool IsGroup => group;
         internal Layer AsGroup() => group ? this : null;
         internal bool HasFx => fx != null && fx.Exists(value => value != null && (!(value is ShaderFX effect) || effect.Active && !effect.IsUnavailable));
-        internal bool IsPassThrough => compositing == GroupCompositing.PassThrough && swizzle.IsIdentity && !HasFx;
+        internal bool IsPassThrough => compositing == GroupCompositing.PassThrough && channelMapping.IsIdentity && !HasFx;
         internal BlendMode EffectiveBlendMode => compositing == GroupCompositing.PassThrough ? BlendMode.Normal : blendMode;
         internal BlendMode CompositeBlendMode => Behaviour is DrawingLayerBehaviour drawing && drawing.UsesPremultipliedOverwrite
             ? (BlendMode)101 : blendMode;
@@ -204,14 +204,14 @@ namespace DCFApixels.WhimTex
         {
             if (!context.applyTransform) { ProjectiveMatrix.Identity.SetShader(material, prefix); return; }
             var cache = transformCache;
-            if (cache != null && cache.document == context.compositor && cache.local.Equals(transform) &&
+            if (cache != null && cache.document == context.activeDocument && cache.local.Equals(transform) &&
                 !(Behaviour is DrawingLayerBehaviour drawing && drawing.HasBakedPixelFrame))
             {
                 if (RequiresInput || Behaviour is ShaderProcessorLayerBehaviour) cache.inputInverseGpu.Set(material, prefix);
                 else cache.inverseGpu.Set(material, prefix);
                 return;
             }
-            RenderTransform.ToMatrix(context.compositor.width, context.compositor.height).TryInverse(out var inverse);
+            RenderTransform.ToMatrix(context.activeDocument.width, context.activeDocument.height).TryInverse(out var inverse);
             inverse.SetShader(material, prefix);
         }
 
@@ -233,7 +233,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        internal bool TryGetOriginalAspectTransform(TextureCompositor owner, out TextureTransform fitted, bool originalSize = false)
+        internal bool TryGetOriginalAspectTransform(WhimTexDocument owner, out TextureTransform fitted, bool originalSize = false)
         {
             fitted = transform;
             if (owner == null || IsGroup)
@@ -261,7 +261,7 @@ namespace DCFApixels.WhimTex
             blendMode = source.blendMode;
             colorRange = source.colorRange;
             blendRange = source.blendRange;
-            swizzle = source.swizzle;
+            channelMapping = source.channelMapping;
             filterMode = source.filterMode;
             fx = source.fx == null ? new List<UnityEngine.Object>() : new List<UnityEngine.Object>(source.fx);
         }
@@ -333,7 +333,7 @@ namespace DCFApixels.WhimTex
                     Graphics.Blit(source, current, transformMaterial);
                 }
 
-                current = context.compositor.FinishStage(current);
+                current = context.activeDocument.FinishStage(current);
                 ApplyFx(ref current, context, resolvedFilter);
                 return current;
             }
@@ -344,14 +344,19 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        internal ShaderFX UnavailableEffect
+        internal ShaderFX DiagnosticEffect
         {
             get
             {
+                ShaderFX warning = null;
                 if (fx != null)
                     foreach (var fxEntry in fx)
-                        if (fxEntry is ShaderFX effect && effect.IsUnavailable) return effect;
-                return null;
+                        if (fxEntry is ShaderFX effect)
+                        {
+                            if (effect.IsUnavailable) return effect;
+                            if (warning == null && effect.DiagnosticNotice != null) warning = effect;
+                        }
+                return warning;
             }
         }
 
@@ -364,7 +369,7 @@ namespace DCFApixels.WhimTex
             {
                 if (fx[i] is ShaderFX inactive && (!inactive.Active || inactive.IsUnavailable)) continue;
                 using var textureInputs = fx[i] is ShaderFX textureFX
-                    ? context.compositor.BindShaderTextureLayers(textureFX, this, context, current) : null;
+                    ? context.activeDocument.BindShaderTextureLayers(textureFX, this, context, current) : null;
                 Material material = fx[i] is ShaderFX shaderFX
                     ? shaderFX.GetMaterial(context)
                     : fx[i] as Material;
@@ -377,12 +382,12 @@ namespace DCFApixels.WhimTex
                     if (!context.transformFxCoordinates)
                         ProjectiveMatrix.Identity.SetShader(material, "_WhimTex_LayerToLocalRow");
                     else if (Behaviour is DrawingLayerBehaviour drawing && drawing.HasBakedFxFrame)
-                        drawing.GetBakedFxInverse(context.compositor.width, context.compositor.height).SetShader(material, "_WhimTex_LayerToLocalRow");
+                        drawing.GetBakedFxInverse(context.activeDocument.width, context.activeDocument.height).SetShader(material, "_WhimTex_LayerToLocalRow");
                     else if (transformCache != null)
                         transformCache.inverseGpu.Set(material, "_WhimTex_LayerToLocalRow");
                     else
                     {
-                        CanvasTransform.ToMatrix(context.compositor.width, context.compositor.height).TryInverse(out var inverse);
+                        CanvasTransform.ToMatrix(context.activeDocument.width, context.activeDocument.height).TryInverse(out var inverse);
                         inverse.SetShader(material, "_WhimTex_LayerToLocalRow");
                     }
                 }
@@ -409,7 +414,7 @@ namespace DCFApixels.WhimTex
                 }
                 RenderTexture.ReleaseTemporary(current);
                 current = next;
-                current = context.compositor.FinishStage(current);
+                current = context.activeDocument.FinishStage(current);
             }
         }
     }
@@ -442,7 +447,7 @@ namespace DCFApixels.WhimTex
         public BlendMode blendMode { get => Owner.blendMode; set => Owner.blendMode = value; }
         public LayerColorRange colorRange { get => Owner.colorRange; set => Owner.colorRange = value; }
         public LayerBlendRange blendRange { get => Owner.blendRange; set => Owner.blendRange = value; }
-        public ref LayerSwizzle swizzle => ref Owner.swizzle;
+        public ref LayerChannelMapping channelMapping => ref Owner.channelMapping;
         public ref TextureTransform transform => ref Owner.transform;
         public LayerFilterMode filterMode { get => Owner.filterMode; set => Owner.filterMode = value; }
         public List<UnityEngine.Object> fx { get => Owner.fx; set => Owner.fx = value; }
@@ -454,7 +459,7 @@ namespace DCFApixels.WhimTex
         internal void CopyRasterizedIdentityFrom(Layer source) => Owner.CopyRasterizedIdentityFrom(source);
         internal Texture SamplingSource => Owner.SamplingSource;
         internal FilterMode ResolveFilterMode(Texture fallback = null) => Owner.ResolveFilterMode(fallback);
-        internal bool TryGetOriginalAspectTransform(TextureCompositor document, out TextureTransform fitted) => Owner.TryGetOriginalAspectTransform(document, out fitted);
+        internal bool TryGetOriginalAspectTransform(WhimTexDocument document, out TextureTransform fitted) => Owner.TryGetOriginalAspectTransform(document, out fitted);
         internal RenderTexture ApplyTransformAndFx(Texture source, in LayerRenderContext context) => Owner.ApplyTransformAndFx(source, context);
         internal abstract RenderTexture Render(in LayerRenderContext context);
         public virtual Texture2D GetPreviewTexture(int size) => null;

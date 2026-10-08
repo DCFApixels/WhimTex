@@ -7,8 +7,8 @@ const assert = context.assert;
 
 context.case('Eyedropper original assertions and branches', async () => {
     const read = path => readFileSync(new URL('../../../' + path, import.meta.url), 'utf8');
-    const eye = read('src/TextureCompositorWindow.Eyedropper.cs');
-    const window = read('src/TextureCompositorWindow.cs');
+    const eye = read('src/WhimTexWindow.Eyedropper.cs');
+    const window = read('src/WhimTexWindow.cs');
     const uss = read('src/WhimTexSplitView.uss');
     const lensStyle = uss.match(/\.whimtex-eyedropper-lens\s*\{([^}]+)\}/)[1];
     for (const edge of ['left', 'top', 'right', 'bottom']) assert.match(lensStyle, new RegExp(`\\b${edge}: 0;`));
@@ -138,7 +138,7 @@ context.case('Eyedropper original assertions and branches', async () => {
     assert.ok(queue.includes('pendingPickColor.a = pendingPickAlpha'));
     assert.ok(tick.includes('if (!finishAfterPick) MoveSample()'));
     assert.ok(tick.includes('if (finishAfterPick && !pendingPick) Finish(true)'));
-    const ui = read('src/TextureCompositorWindow.UI.cs');
+    const ui = read('src/WhimTexWindow.UI.cs');
     assert.match(ui, /name = "WhimTex Transparent Cursor",\s*hideFlags = HideFlags.HideAndDontSave,\s*alphaIsTransparency = true/);
     for (const side of [1, 3, 11]) {
         const pixels = Array.from({length: side * side}, (_, i) => i);

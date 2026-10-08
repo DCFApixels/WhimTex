@@ -10,8 +10,8 @@ using WhimTex.Tests;
 public static class IncompleteDocumentSaveTests
 {
     const BindingFlags Any = BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-    static readonly Assembly Product = typeof(TextureCompositor).Assembly;
-    static readonly FieldInfo Warning = typeof(TextureCompositor).GetField("documentLoadWarning", Any);
+    static readonly Assembly Product = typeof(WhimTexDocument).Assembly;
+    static readonly FieldInfo Warning = typeof(WhimTexDocument).GetField("documentLoadWarning", Any);
     static object Call(string type, string method, params object[] args)
         => Product.GetType("DCFApixels.WhimTex." + type, true).GetMethod(method, Any).Invoke(null, args);
     static void Reject(TestContext context, Action action, string label)
@@ -25,11 +25,11 @@ public static class IncompleteDocumentSaveTests
     {
         using var shared = new UnityBSharedState();
         using var owned = new UnityBOwned();
-        var source = owned.Track(ScriptableObject.CreateInstance<TextureCompositor>());
+        var source = owned.Track(ScriptableObject.CreateInstance<WhimTexDocument>());
         source.hideFlags = HideFlags.HideAndDontSave;
         source.width = source.height = 8;
         source.layers.Add(new ColorFillLayerBehaviour { color = new Color(.2f, .4f, .6f, 1f) });
-        typeof(TextureCompositor).GetMethod("NormalizeModel", Any).Invoke(source, null);
+        typeof(WhimTexDocument).GetMethod("NormalizeModel", Any).Invoke(source, null);
         using var container = new WhimTexDocumentContainer();
         byte[] model = (byte[])Call("WhimTexDocumentSerializer", "Serialize", source, container);
         using (var input = new BinaryReader(new MemoryStream(model)))
@@ -52,7 +52,7 @@ public static class IncompleteDocumentSaveTests
         File.WriteAllBytes(originalPath, original);
         AssetDatabase.ImportAsset(originalPath, ImportAssetOptions.ForceSynchronousImport);
         var document = owned.Track(WhimTexDocumentFile.Load(originalPath));
-        context.Equal("TextureCompositor.unreadTestField", (string)Warning.GetValue(document), "Load diagnostics retained");
+        context.Equal("WhimTexDocument.unreadTestField", (string)Warning.GetValue(document), "Load diagnostics retained");
         ((ColorFillLayerBehaviour)document.layers[0].Behaviour).color = new Color(.75f, .25f, .5f, 1f);
         Reject(context, () => WhimTexDocumentFile.Save(document, originalPath), "Default TIFF Save stays protected");
         context.True(original.AsSpan().SequenceEqual(File.ReadAllBytes(originalPath)), "Rejected save leaves original untouched");
@@ -64,13 +64,13 @@ public static class IncompleteDocumentSaveTests
         Reject(context, () => WhimTexDocumentFile.Save(document, string.Empty, allowDataLoss: true), "Override does not bypass destination validation");
         context.True(Warning.GetValue(document) != null, "Failed write retains warning");
 
-        var window = owned.Track(ScriptableObject.CreateInstance<TextureCompositorWindow>());
-        typeof(TextureCompositorWindow).GetMethod("SetCompositor", Any).Invoke(window, new object[] { document });
+        var window = owned.Track(ScriptableObject.CreateInstance<WhimTexWindow>());
+        typeof(WhimTexWindow).GetMethod("SetDocument", Any).Invoke(window, new object[] { document });
         window.CreateGUI();
         var banner = window.rootVisualElement.Q<HelpBox>("documentLoadWarning");
         context.True(banner != null && !banner.ClassListContains("whimtex-hidden"), "Warning visible before edits or Save");
         context.True(banner.text.Contains("unreadTestField") && banner.text.Contains("save a copy"), "Warning names unread data and safe recovery choice");
-        var saveButton = (Button)typeof(TextureCompositorWindow).GetField("toolkitSaveButton", Any).GetValue(window);
+        var saveButton = (Button)typeof(WhimTexWindow).GetField("toolkitSaveButton", Any).GetValue(window);
         context.True(saveButton.enabledSelf, "Incomplete document offers Save even without a dirty flag");
 
         string exportedPath = owned.AssetPath("Export.json");
@@ -84,7 +84,7 @@ public static class IncompleteDocumentSaveTests
         var restored = owned.Track(WhimTexDocumentFile.Load(copyPath));
         context.True(string.IsNullOrEmpty((string)Warning.GetValue(restored)), "Recovered TIFF reopens completely");
         context.Equal(new Color(.75f, .25f, .5f, 1f), ((ColorFillLayerBehaviour)restored.layers[0].Behaviour).color, "Recovery copy keeps edits");
-        typeof(TextureCompositorWindow).GetMethod("RefreshDocumentLoadWarning", Any).Invoke(window, null);
+        typeof(WhimTexWindow).GetMethod("RefreshDocumentLoadWarning", Any).Invoke(window, null);
         context.True(banner.ClassListContains("whimtex-hidden"), "Banner clears only after accepted save");
 
         var jsonSource = owned.Track(WhimTexDocumentFile.Load(originalPath));

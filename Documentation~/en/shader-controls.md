@@ -87,14 +87,18 @@ Declare a profile with, for example, `// @param curve _Profile = easeInOut`.
 
 ## Renaming a parameter
 
-Place `// @formerlyserializedas(_OldName)` directly before its new `// @param` declaration.
-Apply transfers compatible saved values and parameter identity. Repeat the directive for multiple former names and use the new uniform name in HLSL.
-Preset export keeps the aliases.
+Update the `@param` declaration and every HLSL reference together. An in-place edit can retain
+the value and identity; verify values when also adding, removing or reordering parameters.
+Preset aliases and automatic previous-name migration are not supported.
 
 ## Coordinates and time
 
 `LayerToLocal(uv)` makes procedural shapes follow the layer transform. See the [coordinate contract](../ShaderFX.md).
 
 FX and Shader Processor cache results when their inputs and parameters are unchanged.
-Use an explicit parameter for time-dependent effects. Unity time inputs (`_Time`, `_SinTime`, `_CosTime`, `_TimeParameters`, `unity_DeltaTime`) are unsupported:
-they are accepted, but **Apply** warns and disables caching for that result.
+Unity time inputs (`_Time`, `_SinTime`, `_CosTime`, `_TimeParameters`, `unity_DeltaTime`) are allowed and do not block **Apply**.
+However, Canvas, thumbnails and export may show different results because WhimTex does not control their updates.
+**Apply** warns in Diagnostics and Unity Console and disables result caching. The agent also receives the warning.
+This uses the same diagnostic mechanism as other FX errors and warnings. Console repeats are
+suppressed for the same source and message until scripts reload;
+Diagnostics and agent warnings remain visible. For predictable behavior, use an explicit parameter instead.

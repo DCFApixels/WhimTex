@@ -31,7 +31,7 @@ next_page: "zh/transform.md"
 你也可以将 Project 中的纹理拖到画布视图中，把它添加到顶部，
 或将它放到行与行之间来选择位置。新指定的图像会保持其原始比例。
 将 HDR 纹理指定给 File 图层会把 **Color Range** 和 **Blend Range** 设置为 **HDR**。
-之后你可以在 **Color & Blending** 中更改这两项。
+之后你可以在 **Rendering** 中更改这两项。
 
 引用其他 WhimTex 文档的 File 图层在行左侧显示细橙线。
 双击缩略图或行背景可打开或切换到该文档，不替换当前文档。
@@ -57,7 +57,7 @@ next_page: "zh/transform.md"
 所选图层的设置分为四个折叠区：
 
 - **Transform:** 位置、尺寸、旋转和平铺。
-- **Color & Blending:** Opacity、Blend Mode、颜色范围和 Swizzle。Opacity 和 Blend Mode 也可在 Layers 列表中使用。Standard/HDR 选择器仍保留在标题栏中。
+- **Rendering:** Opacity、Blend Mode、颜色范围和 Mapping。Opacity 和 Blend Mode 也可在 Layers 列表中使用。Standard/HDR 选择器仍保留在标题栏中。
 - **Properties (layer type):** 该图层特有的设置，例如其源纹理、效果目标或绘制对称。
 - **FX:** 添加和调整着色器效果。
 
@@ -71,7 +71,7 @@ next_page: "zh/transform.md"
 
 组默认处于 **Pass Through**，因此其图层可以与组外的图层混合。
 选择其他混合模式可将组作为一张图像进行混合。组不透明度会让整个组淡出。
-为组添加 **FX** 可处理其合成图像。FX 会自动将 Pass Through 组隔离，并使用 Normal 混合，不影响组外图像。移除全部 FX 后，若剪贴或 Swizzle 不再需要隔离，将恢复 Pass Through。**Properties → Compositing** 以只读方式显示实际模式。组也支持 **Transform**：移动、旋转、缩放、倾斜和透视会作用于所有子图层。子图层的变换相对于所属组；组的操作框表示自身变换，不自动包围子图层。移动图层到其他组或取消分组时，画布上的位置保持不变。
+为组添加 **FX** 可处理其合成图像。FX 会自动将 Pass Through 组隔离，并使用 Normal 混合，不影响组外图像。移除全部 FX 后，若剪贴或 Mapping 不再需要隔离，将恢复 Pass Through。**Properties → Compositing** 以只读方式显示实际模式。组也支持 **Transform**：移动、旋转、缩放、倾斜和透视会作用于所有子图层。子图层的变换相对于所属组；组的操作框表示自身变换，不自动包围子图层。移动图层到其他组或取消分组时，画布上的位置保持不变。
 
 ## 复制、合并或删除
 

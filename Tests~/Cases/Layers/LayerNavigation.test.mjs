@@ -5,7 +5,7 @@ const context = new TestContext("LayerNavigation source/reference tests");
 const assert = context.assert;
 context.case("LayerNavigation original assertion inputs and source contracts", async () => {
 
-  const source = readFileSync(new URL('../../../src/TextureCompositorWindow.Selection.cs', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../../../src/WhimTexWindow.Selection.cs', import.meta.url), 'utf8');
   const body = source.match(/private int FindAdjacentLayerIndex\(int direction\)\s*\{([\s\S]*?)\n        \}/)?.[1];
   assert.ok(body, 'Find the actual navigation implementation');
   const navigate = new Function('toolkitLayerTree', 'selectedLayerId', 'direction',

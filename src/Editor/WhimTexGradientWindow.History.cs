@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
         private VisualElement historyGrid;
         private ScrollView historyScroll;
         private Texture2D historyCursor;
-        private TextureCompositor historyDocument;
+        private WhimTexDocument historyDocument;
         private readonly List<Color> historySnapshot = new List<Color>();
         private int historyMask = -2;
         private bool historyHdr;

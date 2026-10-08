@@ -26,7 +26,7 @@ namespace DCFApixels.WhimTex
             if (context.input == null)
                 return null;
 
-            Texture2D inputTexture = TextureCompositor.CopyToTexture2D(context.input, uploadToGpu: false);
+            Texture2D inputTexture = WhimTexDocument.CopyToTexture2D(context.input, uploadToGpu: false);
             NativeArray<float> signedDistances = default;
             Texture2D resultTexture = null;
             try

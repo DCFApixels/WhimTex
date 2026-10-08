@@ -16,11 +16,11 @@ public static class LayerClipboardTests
     {
         // Run with Unity Pipeline eval_file. Only transient documents; no user assets are changed.
         const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static;
-        var docType = typeof(DCFApixels.WhimTex.TextureCompositor);
-        var source = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
-        var destination = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
-        DCFApixels.WhimTex.TextureCompositor snapshot = null;
-        DCFApixels.WhimTex.TextureCompositor orphanSnapshot = null;
+        var docType = typeof(DCFApixels.WhimTex.WhimTexDocument);
+        var source = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
+        var destination = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
+        DCFApixels.WhimTex.WhimTexDocument snapshot = null;
+        DCFApixels.WhimTex.WhimTexDocument orphanSnapshot = null;
         var clipboard = docType.Assembly.GetType("DCFApixels.WhimTex.LayerClipboard", true);
         string savedClipboard = GUIUtility.systemCopyBuffer;
         
@@ -71,7 +71,7 @@ public static class LayerClipboardTests
             string originalCode = (string)effect.GetType().GetField("code", Flags).GetValue(effect);
             string originalId = paint.Id;
             int copyUndoGroup = Undo.GetCurrentGroup();
-            snapshot = (DCFApixels.WhimTex.TextureCompositor)Call(source, "CaptureLayerClipboard", Layers(group, paint));
+            snapshot = (DCFApixels.WhimTex.WhimTexDocument)Call(source, "CaptureLayerClipboard", Layers(group, paint));
             Check(Undo.GetCurrentGroup() == copyUndoGroup, "Copy does not add Undo entries");
             Check(snapshot.layers.Count == 1 && snapshot.layers[0].children.Count == 2, "Group and selected child copied once");
             var snapshotPaint = snapshot.layers[0].children[1];
@@ -92,7 +92,7 @@ public static class LayerClipboardTests
             Check((string)effect.GetType().GetField("code", Flags).GetValue(snapshotPaint.fx[0]) == originalCode, "Later source FX edits do not change clipboard");
         
             // A Previous effect copied without its source must not bind to unrelated destination layers.
-            orphanSnapshot = (DCFApixels.WhimTex.TextureCompositor)Call(source, "CaptureLayerClipboard", Layers(blur));
+            orphanSnapshot = (DCFApixels.WhimTex.WhimTexDocument)Call(source, "CaptureLayerClipboard", Layers(blur));
             var orphanEffect = orphanSnapshot.layers[0].Behaviour;
             Check(orphanEffect.GetType().GetField("inputMode", Flags).GetValue(orphanEffect).ToString() == "Specific", "Uncopied Previous target becomes explicit missing target");
             Check(string.IsNullOrEmpty((string)orphanEffect.GetType().GetProperty("TargetLayerId", Flags).GetValue(orphanEffect)), "Uncopied target cleared");
@@ -103,7 +103,7 @@ public static class LayerClipboardTests
             var inputField = blur.Behaviour.GetType().GetField("inputMode", Flags);
             inputField.SetValue(blur.Behaviour, Enum.Parse(inputField.FieldType, "Specific"));
             WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(orphanSnapshot);
-            orphanSnapshot = (DCFApixels.WhimTex.TextureCompositor)Call(source, "CaptureLayerClipboard", Layers(group));
+            orphanSnapshot = (DCFApixels.WhimTex.WhimTexDocument)Call(source, "CaptureLayerClipboard", Layers(group));
             var remappedBlur = orphanSnapshot.layers[0].children[0].Behaviour;
             Check((string)targetProperty.GetValue(remappedBlur) == orphanSnapshot.layers[0].children[1].Id, "Internal Specific target remapped");
         
@@ -116,7 +116,7 @@ public static class LayerClipboardTests
             Check(Pixels(pasted) != Pixels(snapshotPaint) && Pixels(pasted).GetPixel(0, 0).r == 4, "Paste owns independent HDR pixels");
             Check(Pixels(pasted).width == 4 && Pixels(pasted).height == 2, "Different canvas does not resize stored pixels");
             Check(pasted.fx[0] != snapshotPaint.fx[0], "Paste owns its embedded FX");
-            Check((DCFApixels.WhimTex.TextureCompositor)pasted.fx[0].GetType().GetProperty("EmbeddedOwner", Flags).GetValue(pasted.fx[0]) == destination, "Pasted FX owned by destination");
+            Check((DCFApixels.WhimTex.WhimTexDocument)pasted.fx[0].GetType().GetProperty("EmbeddedOwner", Flags).GetValue(pasted.fx[0]) == destination, "Pasted FX owned by destination");
             string firstPasteId = destination.layers[0].Id;
             Undo.PerformUndo();
             Check(destination.layers.Count == 0, "One Undo removes entire paste");
@@ -131,7 +131,7 @@ public static class LayerClipboardTests
             Check(destination.layers[0].layerName != destination.layers[1].layerName, "Duplicate still allocates Copy name");
         
             clipboard.GetMethod("Copy", Flags).Invoke(null, new object[] { destination, Layers(destination.layers[0]) });
-            var current = (DCFApixels.WhimTex.TextureCompositor)clipboard.GetProperty("Current", Flags).GetValue(null);
+            var current = (DCFApixels.WhimTex.WhimTexDocument)clipboard.GetProperty("Current", Flags).GetValue(null);
             Check(current != null, "Layer clipboard becomes available across windows");
             var ownedPixels = Pixels(current.layers[0].children[1]);
             GUIUtility.systemCopyBuffer = "new external text";
@@ -147,7 +147,7 @@ public static class LayerClipboardTests
             clipboard.GetField("marker", Flags).SetValue(null, priorClipboardMarker);
             clipboard.GetField("revision", Flags).SetValue(null,
                 (string)priorClipboardMarker == savedClipboard
-                    ? typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.ImageClipboard", true).GetProperty("Revision", Flags).GetValue(null) : priorClipboardRevision);
+                    ? typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.ImageClipboard", true).GetProperty("Revision", Flags).GetValue(null) : priorClipboardRevision);
             Undo.RevertAllDownToGroup(testGroup);
             if (snapshot != null) WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(snapshot);
             if (orphanSnapshot != null) WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(orphanSnapshot);

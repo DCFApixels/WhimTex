@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/SmudgeTransport"
+Shader "Hidden/WhimTex/SmudgeTransport"
 {
     Properties { _MainTex ("Source", 2D) = "black" {} }
     SubShader

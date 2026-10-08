@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/SmudgeBrush"
+Shader "Hidden/WhimTex/SmudgeBrush"
 {
     Properties { _MainTex ("Source", 2D) = "black" {} }
     SubShader

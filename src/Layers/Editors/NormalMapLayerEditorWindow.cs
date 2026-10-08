@@ -13,12 +13,12 @@ namespace DCFApixels.WhimTex
         private static readonly NormalMapLayerBehaviour Defaults = new NormalMapLayerBehaviour();
         protected override Type EditedLayerType => typeof(NormalMapLayerBehaviour);
         protected override string LayerPreviewTitle => "Layer Preview (Normal Map)";
-        public static void Open(NormalMapLayerBehaviour layer, TextureCompositor compositor) =>
-            OpenPropertiesWindow<NormalMapLayerEditorWindow>(layer, compositor);
+        public static void Open(NormalMapLayerBehaviour layer, WhimTexDocument activeDocument) =>
+            OpenPropertiesWindow<NormalMapLayerEditorWindow>(layer, activeDocument);
         protected override void BuildSettings(VisualElement root, Layer source) =>
-            BuildFields(root, (NormalMapLayerBehaviour)source, Compositor, ApplyLayerChange, SettingsBindings, AddEffectTarget);
+            BuildFields(root, (NormalMapLayerBehaviour)source, Document, ApplyLayerChange, SettingsBindings, AddEffectTarget);
 
-        internal static void BuildFields(VisualElement root, NormalMapLayerBehaviour layer, TextureCompositor compositor,
+        internal static void BuildFields(VisualElement root, NormalMapLayerBehaviour layer, WhimTexDocument activeDocument,
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings,
             Action<VisualElement, TargetedLayerBehaviour> addEffectTarget)
         {

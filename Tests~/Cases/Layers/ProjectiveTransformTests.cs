@@ -52,7 +52,7 @@ public static class ProjectiveTransformTests
     static void Gestures()
     {
         const BindingFlags f=BindingFlags.Instance|BindingFlags.NonPublic;
-        var type=typeof(TextureCompositorWindow).GetNestedType("CanvasTransformManipulator",BindingFlags.NonPublic);
+        var type=typeof(WhimTexWindow).GetNestedType("CanvasTransformManipulator",BindingFlags.NonPublic);
         var manip=Activator.CreateInstance(type,BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic,null,new object[]{null},null);
         void Set(string name,object value)=>type.GetField(name,f).SetValue(manip,value);
         Set("original",TextureTransform.Default);Set("size",new Vector2(128,128));Set("pointerStart",Vector2.zero);
@@ -71,7 +71,7 @@ public static class ProjectiveTransformTests
     {
         const BindingFlags f=BindingFlags.Static|BindingFlags.NonPublic;
         var read=typeof(WhimTexApi).GetMethod("ReadProceduralClipboard",f);
-        string root="{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"transform\":";
+        string root="{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"transform\":";
         string[] bodies={"{\"storage\":\"Projective\",\"matrix\":{\"m00\":0.8,\"m01\":0.1,\"m02\":0.05,\"m10\":0,\"m11\":0.8,\"m12\":0.1,\"m20\":0,\"m21\":0.25,\"m22\":1}}","{\"position\":{\"x\":12.123456789123,\"y\":0}}","{\"storage\":\"Projective\",\"matrix\":{\"m00\":1,\"m01\":0,\"m02\":0,\"m10\":0,\"m11\":1,\"m12\":0,\"m20\":0,\"m21\":0,\"m22\":1},\"scale\":{\"x\":2,\"y\":3}}"};
         for(int i=0;i<bodies.Length;i++)
         {
@@ -79,7 +79,7 @@ public static class ProjectiveTransformTests
             try
             {
                 result=read.Invoke(null,new object[]{root+bodies[i]+"}]}",128,128});
-                var doc=(TextureCompositor)result.GetType().GetField("Document",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(result);
+                var doc=(WhimTexDocument)result.GetType().GetField("Document",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(result);
                 if(i==0)Check(doc.layers[0].transform.storage==TransformStorage.Projective,"Clipboard matrix");
                 if(i==1)Check(doc.layers[0].transform.position.x==12.123456789123,"Clipboard double precision");
                 if(i==2)Check(doc.layers[0].transform.storage==TransformStorage.Projective && doc.layers[0].transform.scale==new Double2(2,3),"Native JSON retains inactive TRS beside the active matrix");
@@ -90,7 +90,7 @@ public static class ProjectiveTransformTests
 
     static void Gradient(TextureTransform transform)
     {
-        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());doc.hideFlags=HideFlags.HideAndDontSave;doc.width=doc.height=64;
+        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());doc.hideFlags=HideFlags.HideAndDontSave;doc.width=doc.height=64;
         var g=new GradientLayerBehaviour {gradientType=GradientLayerBehaviour.GradientType.Horizontal};
         g.gradient.Mode=WhimTexGradientMode.Linear;g.gradient.Smoothness=0;
         g.gradient.SetKeys(new[]{new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,1)},
@@ -99,7 +99,7 @@ public static class ProjectiveTransformTests
         RenderTexture output=null;Texture2D read=null;var previous=RenderTexture.active;
         try
         {
-            output=(RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvas",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(doc,new object[]{64});
+            output=(RenderTexture)typeof(WhimTexDocument).GetMethod("RenderCanvas",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(doc,new object[]{64});
             RenderTexture.active=output;read=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(64,64,TextureFormat.RGBAFloat,false,true));
             read.ReadPixels(new Rect(0,0,64,64),0,0);read.Apply();
             transform.ToMatrix(64,64).TryInverse(out var inv);
@@ -119,7 +119,7 @@ public static class ProjectiveTransformTests
     static void Paint(TextureTransform transform)
     {
         const BindingFlags flags=BindingFlags.NonPublic|BindingFlags.Instance;
-        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());doc.hideFlags=HideFlags.HideAndDontSave;doc.width=doc.height=128;
+        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());doc.hideFlags=HideFlags.HideAndDontSave;doc.width=doc.height=128;
         var drawing=new DrawingLayerBehaviour { brushSize=24,brushHardness=1,brushColor=Color.white };
         Layer layer=drawing;doc.layers.Add(layer);layer.transform=transform;
         object Call(string name,params object[] args)=>typeof(DrawingLayerBehaviour).GetMethod(name,flags).Invoke(drawing,args);
@@ -130,7 +130,7 @@ public static class ProjectiveTransformTests
             var center=transform.Map(new Vector2(.5f,.5f),new Vector2(128,128));
             var source=transform.Unmap(center,new Vector2(128,128));
             Call("BeginStroke",source);Call("PaintPoint",source,128,128,Call("GetStrokeParameters",false));Call("EndStroke");
-            output=(RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvas",flags).Invoke(doc,new object[]{128});
+            output=(RenderTexture)typeof(WhimTexDocument).GetMethod("RenderCanvas",flags).Invoke(doc,new object[]{128});
             RenderTexture.active=output;read=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(128,128,TextureFormat.RGBAFloat,false,true));
             read.ReadPixels(new Rect(0,0,128,128),0,0);read.Apply();
             System.IO.Directory.CreateDirectory(WhimTex.Tests.UnityC.FixtureContext.Scope.Temp);
@@ -152,7 +152,7 @@ public static class ProjectiveTransformTests
 
     static void Render(TextureTransform transform,bool shape=false)
     {
-        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         doc.hideFlags=HideFlags.HideAndDontSave; doc.width=doc.height=128;
         var source=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(128,128,TextureFormat.RGBA32,false,true));
         var pixels=new Color32[128*128]; for(int i=0;i<pixels.Length;i++) pixels[i]=new Color32(255,255,255,255);
@@ -163,7 +163,7 @@ public static class ProjectiveTransformTests
             var drawing=(DrawingLayerBehaviour)typeof(DrawingLayerBehaviour).GetMethod("FromMergedTexture",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,new object[]{source});
             Layer layer=shape ? (Layer)new ShapeLayerBehaviour {kind=ShapeLayerBehaviour.ShapeKind.Rectangle,fill=true,stroke=false,roundness=0} : (Layer)drawing;
             layer.transform=transform; doc.layers.Add(layer);
-            output=(RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvas",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(doc,new object[]{128});
+            output=(RenderTexture)typeof(WhimTexDocument).GetMethod("RenderCanvas",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(doc,new object[]{128});
             Check(RenderTexture.active==previous,"Render state restored");
             RenderTexture.active=output;read=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(128,128,TextureFormat.RGBAFloat,false,true));
             read.ReadPixels(new Rect(0,0,128,128),0,0);read.Apply();

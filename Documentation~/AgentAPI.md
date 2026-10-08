@@ -49,7 +49,7 @@ unity command whimtex_describe --project-path 'D:/Projects/MyGame' --format json
 If commands are absent, check whether Pipeline is installed and the plugin is compiled. Follow the
 project's rules for compilation or installation; do not trigger them automatically when prohibited.
 No API command calls `AssetDatabase.Refresh`, requests script compilation, enters Play Mode or opens a scene.
-Import/save commands do import the specific image or compositor asset they write.
+Import/save commands do import the specific image or document asset they write.
 
 | Command | Parameters | Result |
 |---|---|---|
@@ -105,6 +105,11 @@ compiler warnings are returned in `warnings` and do not make `compiled` false; c
 validation failures return `compiled:false` with entries in `errors`. `diagnostics` contains all
 messages, with `file` and `line` when Unity provides a source location.
 
+Compiler messages, declaration/source/include errors, catalog reload failures and Unity time warnings
+use the same FX diagnostic records as the UI and Console. Console suppression never removes API records.
+Document `Validate` exposes these records per FX as `diagnosticMessages`, `warnings` and `errors`,
+alongside the human-readable `diagnostics` text, and includes FX warnings in the document warning list.
+
 ```powershell
 unity command whimtex_fx_compile --presetPath 'Packages/com.dcfapixels.whimtex/src/FXPresets/Halftone.hlsl' --project-path 'D:/Projects/MyGame' --format json
 
@@ -118,7 +123,7 @@ unity command whimtex_fx_compile --source $fx --project-path 'D:/Projects/MyGame
 ```
 
 `whimtex_describe` also returns `agentModes` and `storagePolicy`. New documents use TIFF or unified JSON:
-`whimtex_batch_execute` creates and saves `*.tiff` or `*.json`. Document paths ending in `.asset` return `invalid_path`, including read and dry-run requests. Convert old documents to TIFF in WhimTex 0.12.5 before upgrading.
+`whimtex_batch_execute` creates and saves `*.tiff` or `*.json`. Document paths ending in `.asset` return `invalid_path`, including read and dry-run requests. Old document formats require a matching older checkout; there is no migration here.
 
 Direct C# entry points, all on Unity's main thread, return a JSON string:
 
@@ -195,8 +200,8 @@ The existing `whimtex_assistant_live` remains the open-window API.
 `WhimTexApi.DocumentJsonFile(path)` and `WhimTexApi.DocumentJson(requestJson)`.
 Content uses the [shared document format](JSON_FORMAT.md); commands are only an operation envelope.
 There is no required `kind`: the same content can be opened, written, inserted or used for an explicit
-layer replacement. Root `kind` is rejected; 0.12.5 writers already omit it.
-The `document` object and its fields are optional. Open/write use version-1 defaults for missing
+layer replacement. Root `kind` is rejected; the caller chooses the operation.
+The `document` object and its fields are optional. Open/write use version-2 defaults for missing
 settings (512 × 512 canvas). Insert/replace use destination dimensions for each omitted source axis,
 without resizing or changing destination output settings. Standalone validate uses format defaults.
 Writers always include both canvas dimensions, including in Compact mode, to preserve placement context.
@@ -254,12 +259,11 @@ Output encoding is stored in each JSON document. The three packed-data previews 
 must be imported with sRGB disabled; generic diagnostic PNG renders instead use sRGB preview encoding.
 
 WhimTex is installed as `com.dcfapixels.whimtex`, its namespace is `DCFApixels.WhimTex` and its
-assemblies are `DCFApixels.WhimTex*`. File compatibility covers TIFF/JSON documents and presets
-saved by 0.12.5, using their canonical type and field names. There is no historical-name scan through
-Unity migration attributes. Convert older files with 0.12.5 before upgrading; compositor `.asset`
-documents must be saved as TIFF. Public C#/agent aliases and old window layouts are not retained.
+assemblies are `DCFApixels.WhimTex*`. Only current TIFF/JSON versions and current type/field names
+are accepted. There is no old-version converter or historical-name scan through migration attributes.
+Document `.asset` documents are unsupported. Public C#/agent aliases and old window layouts are not retained.
 Use `WhimTexApi` and the `whimtex_*` commands; the JSON command contract remains v1.
-User settings are outside file compatibility and may reset after upgrades, without migration.
+Backward compatibility is not guaranteed for documents, presets, API or user settings during the redesign.
 Canvas tool preferences use `DCFApixels.WhimTex.Canvas.*`; appearance preferences use
 `DCFApixels.WhimTex.CanvasView.*`. The default library is the user's local application-data
 `DCFApixels/WhimTex/Presets` folder; historical folders are not searched automatically.
@@ -271,7 +275,7 @@ The API edits the same model and uses the same renderer, brush and save path as 
 For reservations, generation and selected-region edits in an open (possibly unsaved) document,
 use the [live editing API](LiveAgentAPI.md). The path-based batch contract below remains unchanged.
 No WhimTex window or active selection is required. New agent documents may use a TIFF or JSON
-`assetPath`, such as `Assets/Art/Icon.tiff` or `Assets/Art/Icon.json`. Old `.asset` documents are unsupported; convert them in WhimTex 0.12.5 before upgrading.
+`assetPath`, such as `Assets/Art/Icon.tiff` or `Assets/Art/Icon.json`. Old `.asset` documents are unsupported; edit them with a matching older checkout.
 TIFF batches use a transient `WhimTexDocumentBuild` and the common TIFF writer; they do not create
 or select a WhimTex window.
 
@@ -286,7 +290,7 @@ or select a WhimTex window.
 `WhimTexDocumentFile.GetOutputSrgb(document)` reads the pending output encoding;
 `SetOutputSrgb(document, bool)` changes it on the Editor main thread and marks the document changed.
 It does **not** write the TIFF or importer: call `Save` to apply it together with other pending edits.
-`TextureCompositor.outputSrgb` defaults to true. TIFF opening initializes it from the importer/carrier;
+`WhimTexDocument.outputSrgb` defaults to true. TIFF opening initializes it from the importer/carrier;
 JSON restores `document.outputSrgb`, or the format default if omitted.
 The UI supplies Undo; C# callers manage their own Undo records.
 Inspector Apply instead queues a conversion of the **saved** model after import, without saving current
@@ -473,7 +477,7 @@ not a background job. All three tools limit total generated stroke stamps to 32,
 
 Choose exactly one source: TIFF `assetPath`, `assistantSessionId`, or `headlessSessionId`.
 Stages are `composite` (no layer/index), `layer` (all its FX), `beforeFx` and `afterFx` (layer + index).
-Layer/FX stages capture the canvas-sized input pipeline before outer opacity, blending, swizzle
+Layer/FX stages capture the canvas-sized input pipeline before outer opacity, blending, channelMapping
 and clipping; a Shader Processor uses its actual stack-position backdrop. They are not a solo
 view of the final composited layer. Disabled FX have identical before/after images.
 Channels: `rgba` (default), `r`, `g`, `b`, `a` (opaque grayscale). `maxSize` is 1..4096, default 1024.
@@ -484,7 +488,7 @@ independent document copy and never edits or saves the source.
 
 ## Layer identity and behaviour
 
-`TextureCompositor.layers` contains stable `Layer` objects. Common settings, GUIDs, FX references,
+`WhimTexDocument.layers` contains stable `Layer` objects. Common settings, GUIDs, FX references,
 group compositing and `children` belong to `Layer`; only the type-specific `LayerBehaviour` is
 polymorphic. Use `layer.Behaviour is DrawingLayerBehaviour drawing` to access owned pixels or
 other behaviour-specific methods. `layer.SetBehaviour(new NoiseLayerBehaviour())` replaces the
@@ -510,7 +514,7 @@ Earlier inheritance-based documents are intentionally incompatible. Keep their o
 the earlier package revision to render/export them. No automatic colour, naming or repeat-mode
 migrations are applied to the new document model.
 
-## Generated image → compositor
+## Generated image → document
 
 1. Generate a PNG/JPEG using the agent's image tool, or use a user-provided local image.
 2. Import it to a new asset path. Import never overwrites; for an existing imported texture, skip this step.
@@ -634,7 +638,7 @@ HDR texture data is distinct from physical HDR monitor output; rendered PNG prev
 
 | Applies to | Supported keys |
 |---|---|
-| All | `name` (string), `enabled` / `clippingMask` (boolean), `opacity` (0..1), `blend`, `colorRange` / `blendRange` (`Standard`, `HDR`), `swizzle` (four channel names in output RGBA order) |
+| All | `name` (string), `enabled` / `clippingMask` (boolean), `opacity` (0..1), `blend`, `colorRange` / `blendRange` (`Standard`, `HDR`), `channelMapping` (four channel names in output RGBA order) |
 | Non-group | `filter` (`Source`, `Point`, `Bilinear`, `Trilinear`) |
 | Group | `compositing` (`PassThrough`, `Isolated`); ranges are active only when isolated |
 | File | `source` (already imported Texture2D path in Assets or Packages) |
@@ -685,22 +689,22 @@ in linear light without gamut clipping. Alpha/opacity compositing is unchanged.
 The UI groups choices independently of their stable enum values; JSON names do not change.
 Groups default to PassThrough; set `compositing:"Isolated"` to apply their own blend mode and ranges.
 Group opacity applies to the complete result, not separately to every child. Groups support transforms and FX. Child transforms are parent-local; canvas matrices compose from parent to child. The group's frame is its own unit rectangle rather than the bounds of its children. The move operation preserves canvas placement when changing parents.
-`swizzle` accepts `R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A`,
+`channelMapping` accepts `R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A`,
 `Luminance`, `Luminance * A` as strings. Luminance is `0.2126 R + 0.7152 G + 0.0722 B` in linear space;
 the product uses the original alpha. `["1","1","1","Luminance"]` converts brightness to alpha with white RGB.
 Product names include spaces, matching `Describe`. All mappings read the original input RGBA:
 `["R * A","G * A","B * A","1"]` multiplies RGB by the input alpha and sets output alpha to 1.
-Selecting products does not change the compositor's blending convention or implicitly change output alpha.
-For example, `"swizzle":["B","G","R","A"]` exchanges red and blue;
+Selecting products does not change the document's blending convention or implicitly change output alpha.
+For example, `"channelMapping":["B","G","R","A"]` exchanges red and blue;
 `["A","A","A","1"]` displays alpha as opaque grayscale. The default is `["R","G","B","A"]`.
 It runs after FX in linear working space and before Color Range and layer blending. Output alpha
 remains bounded to 0..1. Source pixels and brush settings are unchanged.
-A nonidentity group swizzle forces isolated rendering. A saved Pass Through group uses Normal
-blending while swizzled, then resumes Pass Through when restored to identity, without FX and not participating in clipping. Explicitly isolated
-groups retain their chosen blend mode. `Describe` lists `swizzleChannels`; `Inspect` includes each
-layer's swizzle, including groups.
+A nonidentity group channelMapping forces isolated rendering. A saved Pass Through group uses Normal
+blending while channelMapped, then resumes Pass Through when restored to identity, without FX and not participating in clipping. Explicitly isolated
+groups retain their chosen blend mode. `Describe` lists `channelMappingSources`; `Inspect` includes each
+layer's channelMapping, including groups.
 
-Groups support FX on their combined children, before Swizzle and outer opacity/blending. A group with FX is automatically isolated; a saved Pass Through mode uses Normal blending until all FX are removed (unless Swizzle or clipping still requires isolation).
+Groups support FX on their combined children, before ChannelMapping and outer opacity/blending. A group with FX is automatically isolated; a saved Pass Through mode uses Normal blending until all FX are removed (unless ChannelMapping or clipping still requires isolation).
 
 `clippingMask` defaults to `false`. Set it to `true` on a non-Processor layer or group to clip it to the
 first non-clipping sibling below; consecutive clipped siblings share that base. The relationship
@@ -869,7 +873,7 @@ not an expensive runtime rebake. Each channel has a separately generated rank ta
 ignored settings, encoding and inversion match WhiteNoise. Legacy `whiteNoise*` field names are retained
 for both grain types. Offset Y in 1D selects a seeded variation of the sequence.
 The tables use 8-bit uniform ranks; use LinearData for raw dither thresholds.
-For masks/channel packing, prefer LinearData and apply the existing Swizzle/blend settings.
+For masks/channel packing, prefer LinearData and apply the existing ChannelMapping/blend settings.
 For a Normal Map or SDF source, add the effect above Noise and assign `Previous` or a specific target as usual.
 Domain Warp uses a single warp pass; noise fractal settings affect the subsequent noise evaluation.
 Warp Scale multiplies Noise Scale separately on X/Y. For example, Scale [0.5,2] and
@@ -954,7 +958,7 @@ Assign a stable source ID (or batch alias) with
 `{"op":"target","layer":"@blur","input":"Specific","target":"@source"}`.
 Radius is the finite kernel extent (three standard deviations) in original canvas pixels;
 0 bypasses filtering. Sources may be hidden. Groups are sampled against transparency without
-changing their Pass Through setting. Layer Transform, swizzle, clipping, opacity and blend settings
+changing their Pass Through setting. Layer Transform, channelMapping, clipping, opacity and blend settings
 apply normally to the effect. API rendering/saving uses the full-quality algorithm, never the main
 window's interactive approximation. Export to PSD rasterizes this effect.
 See [Gaussian Blur](GaussianBlur.md) for transparency, HDR and cache behavior.
@@ -980,7 +984,7 @@ Sharpen preserves alpha and does not clamp HDR RGB values.
 ```
 
 Assign a source with `{"op":"target","layer":"@crisp","input":"Specific","target":"@source"}`.
-The effect supports hidden sources, groups, transforms, ranges, swizzle, clipping and FX
+The effect supports hidden sources, groups, transforms, ranges, channelMapping, clipping and FX
 like other targeted effects.
 
 ### Motion Blur settings
@@ -1009,7 +1013,7 @@ All modes share strength, edges and target; changing mode preserves radius, dist
 Assign the source with `{"op":"target","layer":"@motion","input":"Specific","target":"@source"}`.
 Previous uses the sibling below. Hidden sources and isolated group color are supported, just as
 for Gaussian Blur. Zero Distance (Linear) or Arc (Circular) bypasses filtering. Inactive-mode
-settings are retained when switching modes. Transform, swizzle, clipping, opacity and blend
+settings are retained when switching modes. Transform, channelMapping, clipping, opacity and blend
 settings use the normal effect-layer paths. API rendering uses full quality; PSD rasterizes the effect.
 See [Motion Blur](MotionBlur.md) for sampling, alpha, quality and memory details.
 
@@ -1162,7 +1166,7 @@ selection in the second. Higher Search Quality costs more and does not guarantee
   bounded; HDR RGB remains available until normal layer/output range handling. No method guarantees
   invisible joins for arbitrary structured images. Inspect both the tile join and the interior.
 - Previous input uses the next sibling below; Specific can target a hidden source or isolated group
-  color. Normal transforms, ranges, Swizzle, FX, clipping and composition still apply and can break
+  color. Normal transforms, ranges, ChannelMapping, FX, clipping and composition still apply and can break
   the final join. These methods remain editable; raster export evaluates the effect.
 - Reduced-size Quilting previews can choose different donors/cuts. Ordinary window preview is capped
   at 512 px; Live Quality does not remove that limit. Use Pencil without painting plus Tiled for a
@@ -1177,7 +1181,7 @@ selection in the second. Higher Search Quality costs more and does not guarantee
 
 Use `type:"normalMap"` and put generator settings inside `settings.normalMap`. Both `add` and
 `set` accept partial updates. `describe` exposes `normalMapDefaults`; `inspect` returns every
-generator setting under `settings.normalMap`. Regular layer settings, targets, groups, swizzle,
+generator setting under `settings.normalMap`. Regular layer settings, targets, groups, channelMapping,
 clipping masks, duplication, conversion and raster export use the existing paths.
 
 ```json
@@ -1214,7 +1218,7 @@ Positive height gradients tilt the normal toward negative X/Y; flips reverse eac
 Texture mode uses differences between smoothed height bands, not geometry or material recognition.
 Its Light Removal attenuates the broad band and may remove real relief too.
 
-A group source is rendered against transparency with its own descendants, opacity, swizzle and
+A group source is rendered against transparency with its own descendants, opacity, channelMapping and
 clipping, without the external backdrop. Outline and Alpha-source SDF use group coverage;
 SDF with Red/Green/Blue/Luminance uses the group's color result.
 Like other effect layers, Normal Map processes hidden sources: `enabled:false` hides a layer's
@@ -1222,9 +1226,9 @@ own contribution, not its availability to Previous/Specific consumers. Hidden gr
 respect their children's visibility. This also applies to chains of hidden effect layers.
 Opacity and clipping semantics are unchanged; missing and cyclic targets remain invalid.
 
-Keep the resulting normal layer at full opacity with Normal blend, identity swizzle and no color
+Keep the resulting normal layer at full opacity with Normal blend, identity channelMapping and no color
 FX when exporting a normal texture. Color blending does not renormalize normals. Transform moves
-the output image without rotating its vectors. PackedColor compensates for the compositor's LDR
+the output image without rotating its vectors. PackedColor compensates for the document's LDR
 gamma encoding; LinearData is the appropriate choice for raw linear output, not ordinary PNG export.
 Import exported packed PNG/TGA as Normal Map with grayscale conversion disabled; see the
 [Unity normal-map import reference](https://docs.unity.cn/6000.1/Documentation/Manual/texture-type-normal-map.html).
@@ -1345,7 +1349,7 @@ creates repeatable scattered stamps with a 60% stroke-opacity cap.
 Mirror axis choices are retained but ignored in other modes. `center` affects Mirror and Radial;
 `elements` applies only to Horizontal, Vertical, Grid and Radial. `boundary` also applies to Mirror.
 For reflected radial sectors, use `repeat:"Radial", elements:"AlternateMirror"`.
-Legacy mirror-only settings migrate to Mirror; legacy Repeat+Mirror uses Repeat without extra mirrors.
+Old symmetry settings are not migrated; use the current mode and fields above.
 
 Clip anchors to the stroke's first cell/sector and terminates the polyline at its first exit.
 In Mirror mode it anchors to the starting side of each enabled, rotated axis; each

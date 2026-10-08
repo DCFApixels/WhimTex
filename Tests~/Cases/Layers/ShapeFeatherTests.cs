@@ -20,7 +20,7 @@ public static class ShapeFeatherTests
 
     private static void ExecuteRun()
     {
-        var doc = ScriptableObject.CreateInstance<TextureCompositor>();
+        var doc = ScriptableObject.CreateInstance<WhimTexDocument>();
         doc.width = doc.height = 128;
         var shape = new ShapeLayerBehaviour();
         var layer = new Layer(shape);
@@ -109,7 +109,7 @@ public static class ShapeFeatherTests
             var json = jsonType.GetMethod("Parse", new[] { typeof(string) }).Invoke(null, new object[] { "{\"feather\":12,\"featherPosition\":\"Outside\"}" });
             setter.Invoke(null, new object[] { shape, json });
             Check(shape.feather == 12 && shape.featherPosition == ShapeLayerBehaviour.FeatherPosition.Outside, "API update");
-            var copy = ScriptableObject.CreateInstance<TextureCompositor>();
+            var copy = ScriptableObject.CreateInstance<WhimTexDocument>();
             try
             {
                 UnityEditor.EditorJsonUtility.FromJsonOverwrite(UnityEditor.EditorJsonUtility.ToJson(doc), copy);
@@ -122,7 +122,7 @@ public static class ShapeFeatherTests
             var full = Render();
             try
             {
-                var preview = (Texture2D)typeof(TextureCompositor).GetMethod("ComposeCanvas", flags).Invoke(doc, new object[] { 64 });
+                var preview = (Texture2D)typeof(WhimTexDocument).GetMethod("ComposeCanvas", flags).Invoke(doc, new object[] { 64 });
                 try { for (int x = 32; x < 60; x++) Check(Mathf.Abs(preview.GetPixel(x,32).a - Coverage(2*x+1-96,16,shape.featherPosition)) < .002f, "preview canvas pixel width"); }
                 finally { UnityEngine.Object.DestroyImmediate(preview); }
                 var thumb = shape.GetPreviewTexture(128);
@@ -143,7 +143,7 @@ public static class ShapeFeatherTests
                 try { Check(Mathf.Abs(clipped.GetPixel(96,64).a-full.GetPixel(96,64).a) < .002f, "clipping preserves feather alpha"); }
                 finally { UnityEngine.Object.DestroyImmediate(clipped); }
                 doc.layers.Remove(upper);
-                var rt = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderLayerPreview", flags).Invoke(doc, new object[] { layer, 128 });
+                var rt = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderLayerPreview", flags).Invoke(doc, new object[] { layer, 128 });
                 var mini = new Texture2D(128,128,TextureFormat.RGBAFloat,false,true);
                 var previous = RenderTexture.active;
                 try
@@ -197,7 +197,7 @@ public static class ShapeFeatherTests
                 Check(new System.IO.FileInfo(comparison).Length > 0, "Comparison atlas was encoded");
             }
             finally { UnityEngine.Object.DestroyImmediate(atlas); }
-            Check(!UnityEditor.ShaderUtil.ShaderHasError(Shader.Find("Hidden/TextureCompositor/Shape")), "shader compiled");
+            Check(!UnityEditor.ShaderUtil.ShaderHasError(Shader.Find("Hidden/WhimTex/Shape")), "shader compiled");
             return;
         }
         finally { UnityEngine.Object.DestroyImmediate(doc); }

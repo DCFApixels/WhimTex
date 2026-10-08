@@ -18,7 +18,7 @@ context.case('CanvasTerminology original assertions and branches', async () => {
       ['Inspector', 'inspectorPreviewState', 'layerPreviewState'],
     ];
     for (const [part, oldName, newName] of aliases) {
-      const source = read(`src/TextureCompositorWindow.${part}.cs`);
+      const source = read(`src/WhimTexWindow.${part}.cs`);
       assert.doesNotMatch(source, /FormerlySerializedAs/);
       assert.match(source, new RegExp(`\\[SerializeField\\] private [^;\\n]+\\b${newName}\\b`), newName);
     }
@@ -26,15 +26,15 @@ context.case('CanvasTerminology original assertions and branches', async () => {
       ['Guides', 'PreviewGuide', 'CanvasGuide'],
       ['GuideCommands', 'PreviewGuideSettingsWindow', 'CanvasGuideSettingsWindow'],
     ]) {
-      const source = read(`src/TextureCompositorWindow.${part}.cs`);
+      const source = read(`src/WhimTexWindow.${part}.cs`);
       assert.doesNotMatch(source, /MovedFrom/);
       assert.match(source, new RegExp(`(?:class|struct) ${newName}\\b`));
     }
     const settings = read('src/WhimTexUserSettings.cs');
     for (const suffix of ['CheckerLight', 'CheckerDark', 'InvalidPixels', 'CheckerSize', 'ShowManta', 'PostFxBackground', 'PostFxBackgroundMode'])
       assert.ok(settings.includes(`"DCFApixels.WhimTex.CanvasView.${suffix}"`), suffix);
-    assert.ok(read('src/TextureCompositorWindow.cs').includes('"DCFApixels.WhimTex.Canvas.PaintingScale"'));
-    const tools = read('src/TextureCompositorWindow.Tools.cs');
+    assert.ok(read('src/WhimTexWindow.cs').includes('"DCFApixels.WhimTex.Canvas.PaintingScale"'));
+    const tools = read('src/WhimTexWindow.Tools.cs');
     for (const key of ['Canvas.Tool', 'Canvas.TransformReturnTool'])
       assert.ok(tools.includes(`"DCFApixels.WhimTex.${key}"`));
     
@@ -54,7 +54,7 @@ context.case('CanvasTerminology original assertions and branches', async () => {
       assert.ok(css.includes(`.whimtex-${name}`), name);
     assert.ok(read('src/Editor/LayerPreviewPanel.cs').includes('new Label("Layer Preview")'));
     assert.ok(read('src/CanvasViewport.cs.meta').includes('guid: 0a580ed6d33343cda32b9db8500ed359'));
-    assert.ok(read('src/TextureCompositor.LayerPreview.cs.meta').includes('guid: b1a6a95b73624f82923b9ef3c1eb82c5'));
+    assert.ok(read('src/WhimTexDocument.LayerPreview.cs.meta').includes('guid: b1a6a95b73624f82923b9ef3c1eb82c5'));
     for (const [file, guid] of [
       ['src/WhimTexCanvasViewBackdrop.png', 'a693463e898e46f089f96a27a27c7451'],
       ['src/Editor/ChannelDragManipulator.cs', '7dc74ce0e40e423391e045e73c172f56'],
@@ -62,8 +62,8 @@ context.case('CanvasTerminology original assertions and branches', async () => {
     ]) assert.ok(read(file + '.meta').includes('guid: ' + guid), file);
     assert.match(read('src/Editor/ChannelDragManipulator.cs'), /internal sealed class ChannelDragManipulator\b/);
     assert.ok(utils.includes('public static Material DisplayChannels'));
-    assert.ok(read('src/Shaders/DisplayChannels.shader').includes('Shader "Hidden/TextureCompositor/DisplayChannels"'));
-    for (const file of ['src/TextureCompositorWindow.Channels.cs', 'src/Editor/LayerPreviewPanel.cs'])
+    assert.ok(read('src/Shaders/DisplayChannels.shader').includes('Shader "Hidden/WhimTex/DisplayChannels"'));
+    for (const file of ['src/WhimTexWindow.Channels.cs', 'src/Editor/LayerPreviewPanel.cs'])
       assert.ok(read(file).includes('new ChannelDragManipulator('), file);
 });
 

@@ -83,10 +83,10 @@ static System.Threading.CancellationToken Cancellation;
             Check(!Parse(WhimTexApi.ExecuteJson(request + "}"))["success"].Bool, "Stale revision rejected");
             // Test only our own transient WhimTex window. No Unity internal API is accessed.
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
-            var window = Scope.OwnWindow(ScriptableObject.CreateInstance<TextureCompositorWindow>());
-            var field = typeof(TextureCompositorWindow).GetField("compositor", flags);
-            var document = Scope.OwnObject((TextureCompositor)field.GetValue(window));
-            string sid = (string)typeof(TextureCompositorWindow).GetProperty("AgentSessionId", flags).GetValue(window);
+            var window = Scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
+            var field = typeof(WhimTexWindow).GetField("activeDocument", flags);
+            var document = Scope.OwnObject((WhimTexDocument)field.GetValue(window));
+            string sid = (string)typeof(WhimTexWindow).GetProperty("AgentSessionId", flags).GetValue(window);
             Node InspectLive() => Read(WhimTexApi.LiveJson("{\"apiVersion\":1,\"op\":\"inspect\",\"sessionId\":\"" + sid + "\"}"));
             Node Edit(string ops, bool dry = false) => Read(WhimTexApi.AssistantExecuteJson("{\"apiVersion\":1,\"sessionId\":\"" + sid + "\",\"expectedRevision\":\"" + InspectLive()["document"]["revision"] + "\",\"dryRun\":" + (dry ? "true" : "false") + ",\"operations\":[" + ops + "]}"));
             Exception bodyFailure = null;

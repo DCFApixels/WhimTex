@@ -14,7 +14,7 @@ using Object = UnityEngine.Object;
 public static class RefactoringR01R04Tests
 {
     const BindingFlags Any = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
-    static Type T(string name) => typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex." + name, true);
+    static Type T(string name) => typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex." + name, true);
     static object Get(object value, string name) => value.GetType().GetProperty(name, Any).GetValue(value);
     static object Call(Type type, string name, params object[] args) => type.GetMethod(name, Any).Invoke(null, args);
     static int checks;
@@ -56,7 +56,7 @@ public static class RefactoringR01R04Tests
 
     static void Kernel()
     {
-        var material = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(Shader.Find("Hidden/TextureCompositor/GaussianBlur")));
+        var material = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(Shader.Find("Hidden/WhimTex/GaussianBlur")));
         try
         {
             var shortBuffer = new Vector4[5];
@@ -96,7 +96,7 @@ public static class RefactoringR01R04Tests
     static void Encoding()
     {
         Type format = T("RasterImageFormat");
-        Type windowFormat = typeof(TextureCompositorWindow).GetNestedType("TextureExportFormat", Any);
+        Type windowFormat = typeof(WhimTexWindow).GetNestedType("TextureExportFormat", Any);
         var texture = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(8, 4, TextureFormat.RGBAHalf, false, true));
         try
         {
@@ -111,7 +111,7 @@ public static class RefactoringR01R04Tests
                 byte[] encoded = (byte[])Call(T("WhimTexRasterEncoder"), "Encode", texture, Enum.Parse(format, name), quality, flags);
                 Check(Resources.FindObjectsOfTypeAll<Texture2D>().Length == ownedBefore, "Intermediate texture released");
                 Check(texture != null && texture.GetPixels().SequenceEqual(original), "Input remains borrowed and unchanged");
-                byte[] fromWindow = (byte[])Call(typeof(TextureCompositorWindow), "EncodeExportTextureWithOptions",
+                byte[] fromWindow = (byte[])Call(typeof(WhimTexWindow), "EncodeExportTextureWithOptions",
                     texture, Enum.Parse(windowFormat, name), quality, flags);
                 Check(encoded.SequenceEqual(fromWindow), "Window encoder parity " + name);
                 Texture2D ldr = null;
@@ -137,7 +137,7 @@ public static class RefactoringR01R04Tests
     {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
-        writer.Write(1); writer.Write((byte)29); writer.Write(typeof(TextureCompositor).FullName);
+        writer.Write(2); writer.Write((byte)29); writer.Write(typeof(WhimTexDocument).FullName);
         writer.Write(warnings ? 5 : 1);
         writer.Write("width"); writer.Write((byte)6); writer.Write(8);
         if (warnings)
@@ -179,12 +179,12 @@ public static class RefactoringR01R04Tests
     static void ReaderDiagnostics()
     {
         using var container = new WhimTexDocumentContainer();
-        object first = Read(Payload(true), container, typeof(TextureCompositor));
+        object first = Read(Payload(true), container, typeof(WhimTexDocument));
         object second = null;
         try
         {
-            second = Read(Payload(false), container, typeof(TextureCompositor));
-            Check(((TextureCompositor)Get(second, "Model")).width == 8, "Clean model");
+            second = Read(Payload(false), container, typeof(WhimTexDocument));
+            Check(((WhimTexDocument)Get(second, "Model")).width == 8, "Clean model");
             foreach (string name in new[] { "SkippedFields", "MissingTypes", "UnresolvedReferences" })
             {
                 Check(Diagnostics(second, name).Count == 0, "Clean diagnostics " + name);
@@ -199,14 +199,14 @@ public static class RefactoringR01R04Tests
             Check(Diagnostics(first, "MissingTypes").Count == 1, "Missing types deduplicated");
             Check(Diagnostics(first, "UnresolvedReferences")[0] == new string('f', 32)+":987", "Reference diagnostic preserved");
             bool failed = false;
-            try { Read(Payload(true).Take(20).ToArray(), container, typeof(TextureCompositor)); }
+            try { Read(Payload(true).Take(20).ToArray(), container, typeof(WhimTexDocument)); }
             catch (TargetInvocationException error) { failed = error.InnerException is WhimTexDocumentException; }
             Check(failed && Diagnostics(first, "MissingTypes").Count == 1, "Failed read cannot replace earlier diagnostics");
-            int modelsBefore = Resources.FindObjectsOfTypeAll<TextureCompositor>().Length;
+            int modelsBefore = Resources.FindObjectsOfTypeAll<WhimTexDocument>().Length;
             failed = false;
-            try { Read(Payload(true).Concat(new byte[] { 255 }).ToArray(), container, typeof(TextureCompositor)); }
+            try { Read(Payload(true).Concat(new byte[] { 255 }).ToArray(), container, typeof(WhimTexDocument)); }
             catch (TargetInvocationException error) { failed = error.InnerException is WhimTexDocumentException; }
-            Check(failed && Resources.FindObjectsOfTypeAll<TextureCompositor>().Length == modelsBefore, "Read failure releases constructed Unity objects");
+            Check(failed && Resources.FindObjectsOfTypeAll<WhimTexDocument>().Length == modelsBefore, "Read failure releases constructed Unity objects");
             Check(Diagnostics(first, "SkippedFields").Count == 2, "Failure after construction leaves earlier snapshots intact");
 
             var known = (Dictionary<string, Type>)T("WhimTexDocumentSerializer").GetField("KnownTypes", Any).GetValue(null);
@@ -216,7 +216,7 @@ public static class RefactoringR01R04Tests
             {
                 using var stream = new MemoryStream();
                 using var writer = new BinaryWriter(stream);
-                writer.Write(1); writer.Write((byte)29); writer.Write(typeof(NestedRead).FullName); writer.Write(2);
+                writer.Write(2); writer.Write((byte)29); writer.Write(typeof(NestedRead).FullName); writer.Write(2);
                 writer.Write("unknown"); writer.Write((byte)6); writer.Write(1);
                 writer.Write("tail"); writer.Write((byte)6); writer.Write(123);
                 writer.Flush();
@@ -233,27 +233,27 @@ public static class RefactoringR01R04Tests
         }
         finally
         {
-            WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy((TextureCompositor)Get(first, "Model"));
-            if (second != null) WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy((TextureCompositor)Get(second, "Model"));
+            WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy((WhimTexDocument)Get(first, "Model"));
+            if (second != null) WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy((WhimTexDocument)Get(second, "Model"));
         }
     }
 
     static string ExecuteEditableCopy()
     {
         checks = 0;
-        var source = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
-        TextureCompositor copy = null;
+        var source = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
+        WhimTexDocument copy = null;
         var pixels = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(8, 4, TextureFormat.RGBAHalf, false, true));
         try
         {
             source.width = 8; source.height = 4; source.name = "Independent copy";
             var drawing = new DrawingLayerBehaviour { brushSize = 17, colorRange = LayerColorRange.HDR };
             source.layers.Add(drawing);
-            typeof(TextureCompositor).GetMethod("NormalizeModel", Any).Invoke(source, null);
+            typeof(WhimTexDocument).GetMethod("NormalizeModel", Any).Invoke(source, null);
             Color[] values = Enumerable.Range(0, 32).Select(i => new Color(i/8f, .2f, -.3f, i/31f)).ToArray();
             pixels.SetPixels(values); pixels.Apply(); pixels.filterMode = FilterMode.Point; pixels.wrapModeU = TextureWrapMode.Repeat;
             typeof(DrawingLayerBehaviour).GetMethod("AdoptStoredTexture", Any).Invoke(drawing, new object[] { pixels });
-            copy = (TextureCompositor)Call(typeof(WhimTexDocumentFile), "CreateEditableCopy", source);
+            copy = (WhimTexDocument)Call(typeof(WhimTexDocumentFile), "CreateEditableCopy", source);
             Check(copy != null && copy != source && !AssetDatabase.Contains(copy), "Independent in-memory model");
             Check(copy.name == source.name && copy.width == 8 && copy.height == 4, "Copy name and dimensions");
             Check(copy.layers[0].Id == source.layers[0].Id && !ReferenceEquals(copy.layers[0], source.layers[0]), "Layer identity and independent wrapper");
@@ -263,7 +263,7 @@ public static class RefactoringR01R04Tests
             Check(copiedPixels.filterMode == FilterMode.Point && copiedPixels.wrapModeU == TextureWrapMode.Repeat && copiedDrawing.brushSize == 17, "Sampling and authoring values");
             copiedPixels.SetPixel(0, 0, Color.white); copiedPixels.Apply();
             Check(pixels.GetPixel(0, 0) != Color.white, "Editing copy cannot mutate source pixels");
-            var warnings = typeof(TextureCompositor).GetField("documentLoadWarning", Any);
+            var warnings = typeof(WhimTexDocument).GetField("documentLoadWarning", Any);
             Check(string.IsNullOrEmpty((string)warnings.GetValue(copy)), "Complete copy has no load warning");
             warnings.SetValue(source, "unknown");
             bool rejected = false;
@@ -286,10 +286,10 @@ public static class RefactoringR01R04Tests
         Type materials = T("WhimTexMaterials");
         FieldInfo cache = materials.GetField("gaussianBlurMaterial", Any);
         object originalMaterial = cache.GetValue(null);
-        var fresh = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(Shader.Find("Hidden/TextureCompositor/GaussianBlur")));
+        var fresh = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(Shader.Find("Hidden/WhimTex/GaussianBlur")));
         var afterBrush = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(fresh.shader));
-        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
-        var brushDoc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
+        var brushDoc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         var texture = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(33, 25, TextureFormat.RGBAFloat, false, true));
         RenderTexture active = RenderTexture.active;
         bool srgb = GL.sRGBWrite;
@@ -301,10 +301,10 @@ public static class RefactoringR01R04Tests
             var sharpen = new SharpenLayerBehaviour { radius = 24, colorRange = LayerColorRange.HDR };
             document.layers.Add(sharpen);
             document.layers.Add(new FileLayerBehaviour { sourceTexture = texture, colorRange = LayerColorRange.HDR });
-            typeof(TextureCompositor).GetMethod("NormalizeModel", Any).Invoke(document, null);
+            typeof(WhimTexDocument).GetMethod("NormalizeModel", Any).Invoke(document, null);
             Color[] Render()
             {
-                var rt = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderLayerPreview", Any).Invoke(document, new object[] { sharpen.Owner, 33 });
+                var rt = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderLayerPreview", Any).Invoke(document, new object[] { sharpen.Owner, 33 });
                 var cpu = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(33, 25, TextureFormat.RGBAFloat, false, true));
                 try { RenderTexture.active = rt; cpu.ReadPixels(new Rect(0, 0, 33, 25), 0, 0); return cpu.GetPixels(); }
                 finally { RenderTexture.active = active; WhimTex.Tests.UnityC.FixtureContext.Scope.Release(rt); WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(cpu); }
@@ -314,7 +314,7 @@ public static class RefactoringR01R04Tests
             cache.SetValue(null, afterBrush);
             brushDoc.width = brushDoc.height = 33;
             var drawing = new DrawingLayerBehaviour(); brushDoc.layers.Add(new Layer(drawing));
-            typeof(TextureCompositor).GetMethod("NormalizeModel", Any).Invoke(brushDoc, null);
+            typeof(WhimTexDocument).GetMethod("NormalizeModel", Any).Invoke(brushDoc, null);
             typeof(DrawingLayerBehaviour).GetMethod("InitializeCanvas", Any).Invoke(drawing, new object[] { 33, 33 });
             typeof(DrawingLayerBehaviour).GetMethod("BlurSegment", Any).Invoke(drawing,
                 new object[] { new Vector2(.5f,.5f), new Vector2(.5f,.5f), 33, 33, 16f, 1f, 1f, null, false });
@@ -345,7 +345,7 @@ public static class RefactoringR01R04Tests
         string path = WhimTex.Tests.UnityC.FixtureContext.Scope.AssetFolder() + "/RefactoringExport-" + token + ".tiff";
         string prefix = WhimTex.Tests.UnityC.FixtureContext.Scope.RelativeTemp + "/export-" + token;
         var outputs = new List<string>();
-        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         var jsonType = typeof(WhimTexApi).GetMethod("SetBrush", Any).GetParameters().Single(p => p.ParameterType.FullName == "Newtonsoft.Json.Linq.JObject").ParameterType;
         object Parse(string json) => jsonType.GetMethod("Parse", new[] { typeof(string) }).Invoke(null, new object[] { json });
         object At(object json, string key) => json.GetType().GetProperty("Item", new[] { typeof(string) }).GetValue(json, new object[] { key });
@@ -353,7 +353,7 @@ public static class RefactoringR01R04Tests
         {
             document.width = 8; document.height = 4;
             document.layers.Add(new ColorFillLayerBehaviour { color = new Color(2f, .3f, .7f, .4f), colorRange = LayerColorRange.HDR });
-            typeof(TextureCompositor).GetMethod("NormalizeModel", Any).Invoke(document, null);
+            typeof(WhimTexDocument).GetMethod("NormalizeModel", Any).Invoke(document, null);
             WhimTexDocumentFile.Save(document, path);
             Type format = T("RasterImageFormat");
             foreach (int maxSize in new[] { 0, 4 })
@@ -368,7 +368,7 @@ public static class RefactoringR01R04Tests
                 string name = extension == "png" ? "Png" : extension == "tga" ? "Tga" : extension == "exr" ? "Exr" : "Jpeg";
                 using var loaded = new ModelOwner(WhimTexDocumentFile.Load(path));
                 Texture2D image = maxSize == 0 ? loaded.Document.ComposeCanvas() :
-                    (Texture2D)typeof(TextureCompositor).GetMethod("ComposeCanvas", Any, null, new[] { typeof(int) }, null).Invoke(loaded.Document, new object[] { maxSize });
+                    (Texture2D)typeof(WhimTexDocument).GetMethod("ComposeCanvas", Any, null, new[] { typeof(int) }, null).Invoke(loaded.Document, new object[] { maxSize });
                 try
                 {
                     byte[] expected = (byte[])Call(T("WhimTexRasterEncoder"), "Encode", image, Enum.Parse(format, name), 95, Texture2D.EXRFlags.CompressZIP);
@@ -394,8 +394,8 @@ public static class RefactoringR01R04Tests
 
     sealed class ModelOwner : IDisposable
     {
-        internal TextureCompositor Document { get; }
-        internal ModelOwner(TextureCompositor document) { Document = document; }
+        internal WhimTexDocument Document { get; }
+        internal ModelOwner(WhimTexDocument document) { Document = document; }
         public void Dispose() => WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(Document);
     }
 

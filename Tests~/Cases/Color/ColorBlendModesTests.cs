@@ -74,7 +74,7 @@ static System.Threading.CancellationToken Cancellation;
     {
         int checks = 0;
         void Check(bool ok, string label) { T.True(ok, label); }
-        var assembly = typeof(TextureCompositor).Assembly;
+        var assembly = typeof(WhimTexDocument).Assembly;
         const BindingFlags flags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
         var menuType = assembly.GetType("DCFApixels.WhimTex.BlendModeMenu", true);
         var groups = (BlendMode[][])menuType.GetField("Groups", flags).GetValue(null);
@@ -99,9 +99,9 @@ static System.Threading.CancellationToken Cancellation;
             var args = new object[] { modes[i], false };
             Check((string)psd.Invoke(null, args) == keys[i] && !(bool)args[1], "PSD color key " + modes[i]);
         }
-        var shader = Shader.Find("Hidden/TextureCompositor/Blend");
+        var shader = Shader.Find("Hidden/WhimTex/Blend");
         Check(shader != null && shader.isSupported && !ShaderUtil.ShaderHasError(shader), "Blend shader supported");
-        var brushShader = Shader.Find("Hidden/TextureCompositor/PaintBrush");
+        var brushShader = Shader.Find("Hidden/WhimTex/PaintBrush");
         Check(brushShader != null && !ShaderUtil.ShaderHasError(brushShader), "Brush shader supported");
         var material = new Material(shader);
         var baseTex = new Texture2D(1, 1, TextureFormat.RGBAFloat, false, true);

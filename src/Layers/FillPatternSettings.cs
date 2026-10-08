@@ -76,7 +76,7 @@ namespace DCFApixels.WhimTex
 
         internal LayerRenderContext Prepare(Material material, Layer layer, in LayerRenderContext context)
         {
-            float width = context.compositor.width, height = context.compositor.height;
+            float width = context.activeDocument.width, height = context.activeDocument.height;
             Vector2 requested = Size;
             float angle = Limit(rotation, -360000, 360000, 0) * Mathf.Deg2Rad;
             float c = Mathf.Cos(angle), s = Mathf.Sin(angle);

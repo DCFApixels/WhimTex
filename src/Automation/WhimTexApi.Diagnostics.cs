@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -13,9 +12,6 @@ namespace DCFApixels.WhimTex
 {
     public static partial class WhimTexApi
     {
-        private static readonly Regex ShaderDiagnosticLocation = new Regex(
-            "^(Warning|Error|Info):\\s*(.*):(\\d+):\\s*(.*)$", RegexOptions.CultureInvariant);
-
         /// <summary>Compiles a marked HLSL Shader FX preset in a transient Unity shader and returns compiler diagnostics without changing a document.</summary>
         public static string CompileFXPreset(string presetPath) => Respond(() => CompileFXPresetResult(presetPath));
 
@@ -63,7 +59,7 @@ namespace DCFApixels.WhimTex
             var warnings = new JArray();
             var diagnostics = new JArray();
             ShaderFX effect = null;
-            string diagnosticText = null;
+            IReadOnlyList<ShaderFXDiagnostic> messages = Array.Empty<ShaderFXDiagnostic>();
             bool compiled = false;
             try
             {
@@ -82,27 +78,26 @@ namespace DCFApixels.WhimTex
                 }
                 catch (Exception error)
                 {
-                    diagnosticText = effect.Diagnostics;
-                    if (string.IsNullOrWhiteSpace(diagnosticText) || diagnosticText == "Not applied yet. Click Apply to compile this effect.")
-                        diagnosticText = error.Message;
+                    messages = effect.DiagnosticMessages;
+                    if (messages.Count == 0) messages = ShaderFXDiagnostics.Failure(error, sourcePath);
                 }
-                if (compiled) diagnosticText = effect.Diagnostics;
+                if (compiled) messages = effect.DiagnosticMessages;
             }
             catch (Exception error)
             {
-                diagnosticText = error.Message;
+                messages = ShaderFXDiagnostics.Failure(error, sourcePath);
+                ShaderFXDiagnostics.Report(messages, sourcePath);
             }
             finally
             {
                 if (effect != null) UnityEngine.Object.DestroyImmediate(effect);
             }
 
-            AppendShaderDiagnostics(diagnosticText, diagnostics, warnings, errors, compiled);
+            AppendShaderDiagnostics(messages, diagnostics, warnings, errors);
             if (!compiled && errors.Count == 0)
             {
-                var fallback = new JObject { ["severity"] = "Error", ["message"] = diagnosticText ?? "Shader compilation failed." };
-                diagnostics.Add(fallback.DeepClone());
-                errors.Add(fallback);
+                AppendShaderDiagnostics(ShaderFXDiagnostics.Failure(new InvalidOperationException("Shader compilation failed."), sourcePath),
+                    diagnostics, warnings, errors);
             }
             result["compiled"] = compiled;
             result["diagnostics"] = diagnostics;
@@ -205,37 +200,35 @@ namespace DCFApixels.WhimTex
                 ? Path.Combine(Application.dataPath, path.Substring("Assets/".Length))
             : PresetLibraryPaths.PhysicalPath(path);
 
-        private static void AppendShaderDiagnostics(string text, JArray all, JArray warnings, JArray errors, bool compiled)
+        private static void AppendShaderDiagnostics(IReadOnlyList<ShaderFXDiagnostic> messages, JArray all, JArray warnings, JArray errors)
         {
-            if (string.IsNullOrWhiteSpace(text) || text == "Applied successfully.") return;
-            using var reader = new StringReader(text);
-            string line;
-            while ((line = reader.ReadLine()) != null)
+            foreach (var message in messages)
             {
-                if (string.IsNullOrWhiteSpace(line) || line == "Applied successfully.") continue;
-                Match match = ShaderDiagnosticLocation.Match(line);
-                var item = new JObject();
-                if (match.Success)
+                var item = new JObject { ["severity"] = message.Severity.ToString(), ["message"] = message.Message };
+                if (message.Line > 0)
                 {
-                    item["severity"] = match.Groups[1].Value;
-                    item["file"] = match.Groups[2].Value;
-                    item["line"] = int.Parse(match.Groups[3].Value, System.Globalization.CultureInfo.InvariantCulture);
-                    item["message"] = match.Groups[4].Value;
-                }
-                else
-                {
-                    string severity = line.StartsWith("Warning:", StringComparison.Ordinal) ? "Warning" :
-                        line.StartsWith("Error:", StringComparison.Ordinal) ? "Error" : compiled ? "Info" : "Error";
-                    item["severity"] = severity;
-                    item["message"] = line;
+                    if (!string.IsNullOrEmpty(message.File)) item["file"] = message.File;
+                    item["line"] = message.Line;
                 }
                 all.Add(item);
-                if ((string)item["severity"] == "Warning") warnings.Add(item.DeepClone());
-                else if ((string)item["severity"] == "Error") errors.Add(item.DeepClone());
+                if (message.Severity == ShaderFXDiagnosticSeverity.Warning) warnings.Add(item.DeepClone());
+                else if (message.Severity == ShaderFXDiagnosticSeverity.Error) errors.Add(item.DeepClone());
             }
         }
 
-        /// <summary>Reads TIFF container metadata without creating a compositor or materializing Drawing pixels.</summary>
+        private static void WriteFxDiagnostics(JObject entry, ShaderFX effect)
+        {
+            var messages = new JArray();
+            var warnings = new JArray();
+            var errors = new JArray();
+            AppendShaderDiagnostics(effect.DiagnosticMessages, messages, warnings, errors);
+            entry["diagnostics"] = effect.Diagnostics;
+            entry["diagnosticMessages"] = messages;
+            entry["warnings"] = warnings;
+            entry["errors"] = errors;
+        }
+
+        /// <summary>Reads TIFF container metadata without creating a document or materializing Drawing pixels.</summary>
         public static string InspectStorage(string assetPath) => Respond(() =>
         {
             string path = TiffPath(assetPath);
@@ -268,7 +261,7 @@ namespace DCFApixels.WhimTex
             result["assetPath"] = path;
             result["format"] = IsTiffPath(path) ? "tiff" : WhimTexDocumentJson.IsJsonPath(path) ? WhimTexDocumentJson.Format : "asset";
             result["renderRequested"] = render;
-            TextureCompositor document = null;
+            WhimTexDocument document = null;
             Texture2D preview = null;
             try
             {
@@ -308,8 +301,15 @@ namespace DCFApixels.WhimTex
                     {
                         if (!(fxEntry is ShaderFX effect)) continue;
                         var fx = new JObject { ["name"] = effect.name, ["pendingChanges"] = effect.HasPendingChanges,
-                            ["lastApplyFailed"] = effect.LastApplyFailed, ["diagnostics"] = effect.Diagnostics ?? "" };
+                            ["lastApplyFailed"] = effect.LastApplyFailed };
+                        WriteFxDiagnostics(fx, effect);
                         shaderFx.Add(fx);
+                        foreach (var message in effect.DiagnosticMessages)
+                        {
+                            string text = effect.name + ": " + message;
+                            if (message.Severity == ShaderFXDiagnosticSeverity.Warning) warnings.Add(text);
+                            else if (message.Severity == ShaderFXDiagnosticSeverity.Error) errors.Add(text);
+                        }
                         if (effect.HasPendingChanges || effect.LastApplyFailed)
                             errors.Add("Shader FX '" + effect.name + "' is not ready: " + effect.Diagnostics);
                     }
@@ -366,7 +366,7 @@ namespace DCFApixels.WhimTex
             result["hasOutputTexture"] = AssetDatabase.LoadAssetAtPath<Texture2D>(path) != null;
             result["open"] = displayed != null;
             result["dirty"] = displayed != null && (EditorUtility.IsDirty(displayed) || displayed.documentBinding?.dirty == true);
-            result["busy"] = displayed != null && TextureCompositorWindow.IsDocumentBusyForApi(displayed);
+            result["busy"] = displayed != null && WhimTexWindow.IsDocumentBusyForApi(displayed);
             result["liveJobs"] = PendingLiveJobs(path, out int editLocks);
             result["editLocks"] = editLocks;
             result["sessionIds"] = SessionIds(path);
@@ -401,7 +401,7 @@ namespace DCFApixels.WhimTex
         private static JArray SessionIds(string path)
         {
             var result = new JArray();
-            foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
+            foreach (var window in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
                 if (window.AgentDocument != null && string.Equals(WhimTexDocumentService.PathOf(window.AgentDocument), path, StringComparison.OrdinalIgnoreCase))
                     result.Add(window.AgentSessionId);
             return result;

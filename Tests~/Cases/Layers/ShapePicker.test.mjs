@@ -5,7 +5,7 @@ const context = new TestContext("ShapePicker source/reference tests");
 const assert = context.assert;
 context.case("ShapePicker original assertion inputs and source contracts", async () => {
   const read = p => readFileSync(new URL('../../../src/' + p, import.meta.url), 'utf8');
-  const source = read('TextureCompositorWindow.ShapePicker.cs');
+  const source = read('WhimTexWindow.ShapePicker.cs');
   const itemBody = source.split('private int ItemAt(Vector2 local)')[1].split('private void UpdateHover')[0];
   const itemAt = new Function('local', 'Inset', 'ItemSize', 'Kinds', 'Mathf',
       itemBody.slice(itemBody.indexOf('{') + 1, itemBody.lastIndexOf('}')).replace(/-1;/g, '-1;'));
@@ -47,9 +47,9 @@ context.case("ShapePicker original assertion inputs and source contracts", async
       assert.ok(source.includes(`RegisterCallback<${event}Event>`));
       assert.ok(source.includes(`UnregisterCallback<${event}Event>`));
   }
-  assert.match(read('TextureCompositorWindow.Zoom.cs'),/shapePicker\?\.Cancel\(\)/);
-  assert.match(read('TextureCompositorWindow.Tools.cs'),/shapeToolIcon\?\.SetKind/);
-  assert.match(read('TextureCompositorWindow.Shapes.cs'),/shapeToolIcon\?\.SetKind/);
+  assert.match(read('WhimTexWindow.Zoom.cs'),/shapePicker\?\.Cancel\(\)/);
+  assert.match(read('WhimTexWindow.Tools.cs'),/shapeToolIcon\?\.SetKind/);
+  assert.match(read('WhimTexWindow.Shapes.cs'),/shapeToolIcon\?\.SetKind/);
   const styles = read('WhimTexSplitView.uss');
   assert.match(styles,/\.whimtex-shape-picker \{\s*position: absolute;\s*width: 36px;\s*padding: 2px;\s*border-width: 1px;/);
   assert.match(styles,/\.whimtex-shape-picker-item \{\s*width: 30px;\s*height: 30px;/);

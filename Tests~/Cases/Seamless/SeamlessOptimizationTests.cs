@@ -12,7 +12,7 @@ public static class SeamlessOptimizationTests
     const BindingFlags F=BindingFlags.Static|BindingFlags.NonPublic|BindingFlags.Public;
     static RenderTexture Render(Texture t,int mode,int edges=0,float strength=1)
     {
-        var a=typeof(TextureCompositor).Assembly;
+        var a=typeof(WhimTexDocument).Assembly;
         object Call(string type,string method,params object[] args)=>a.GetType("DCFApixels.WhimTex."+type).GetMethod(method,F).Invoke(null,args);
         var pair=(MakeSeamlessLayerBehaviour.PoissonEdges)edges;
         var mask=edges==0?Vector4.one:edges==1?new Vector4(0,0,1,1):new Vector4(1,1,0,0);
@@ -293,7 +293,7 @@ namespace DCFApixels.WhimTex
                 foreach (var rt in owned) global::WhimTex.Tests.UnityC.FixtureContext.Scope.Release(rt);
             }
         }
-        private static Material Material(string name)=>(Material)typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials").GetProperty(name,System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic).GetValue(null);
+        private static Material Material(string name)=>(Material)typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials").GetProperty(name,System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic).GetValue(null);
         private static void Swap(ref RenderTexture a, ref RenderTexture b) { var t=a; a=b; b=t; }
     }
 }

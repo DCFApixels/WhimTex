@@ -64,7 +64,7 @@ public static class ShaderFXProjectiveTests
         object invalid=area;
         Check(!(bool)Call(invalid,"TrySetMatrix",default(ProjectiveMatrix)) && ((ShaderFXTransform)invalid).matrix.Equals(matrix),"Reject singular matrix atomically");
         // The shared canvas gesture implementation must retain projective results for FX.
-        var manipType=typeof(TextureCompositorWindow).GetNestedType("CanvasTransformManipulator",F);
+        var manipType=typeof(WhimTexWindow).GetNestedType("CanvasTransformManipulator",F);
         var manip=Activator.CreateInstance(manipType,new object[]{null});
         void Set(string name,object value) => manipType.GetField(name,F).SetValue(manip,value);
         Set("original",TextureTransform.Default); Set("size",dimensions);
@@ -78,7 +78,7 @@ public static class ShaderFXProjectiveTests
             var fxResult=(ShaderFXTransform)typeof(ShaderFXTransform).GetMethod("FromLayerTransform",F).Invoke(null,new object[]{result,dimensions});
             Check(fxResult.matrix.Equals(result.matrix),"FX keeps gesture deformation");
         }
-        var doc=ScriptableObject.CreateInstance<TextureCompositor>(); doc.width=64;doc.height=32;
+        var doc=ScriptableObject.CreateInstance<WhimTexDocument>(); doc.width=64;doc.height=32;
         ShaderFX fx=null;
         var output=RenderTexture.GetTemporary(64,32,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear);
         var readback=new Texture2D(64,32,TextureFormat.RGBAFloat,false,true);
@@ -86,7 +86,7 @@ public static class ShaderFXProjectiveTests
         try
         {
             string code="// @param transform2D _Area\nfloat4 ApplyFX(float2 uv, float4 color) { float2 p=_Area_ToLocal(uv); float2 q=_Area_ToInput(p); return float4(p, length(q-uv),1); }";
-            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
+            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
             Call(fx,"ApplyAgentDraft");
             var parameters=(List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(fx);
             var field=typeof(ShaderFX).GetField("compiledShader",F);

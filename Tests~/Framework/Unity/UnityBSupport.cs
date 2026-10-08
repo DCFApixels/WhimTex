@@ -65,9 +65,9 @@ public static class UnityBRun
     public static T Create<T>() where T : UnityEngine.ScriptableObject
     {
         T value = Track(UnityEngine.ScriptableObject.CreateInstance<T>());
-        if (value is DCFApixels.WhimTex.TextureCompositorWindow)
+        if (value is DCFApixels.WhimTex.WhimTexWindow)
         {
-            var field = typeof(DCFApixels.WhimTex.TextureCompositorWindow).GetField("compositor", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var field = typeof(DCFApixels.WhimTex.WhimTexWindow).GetField("activeDocument", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
             Track(field.GetValue(value) as UnityEngine.Object);
         }
         return value;
@@ -299,10 +299,10 @@ public sealed class UnityBSharedState : System.IDisposable
             foreach (System.Collections.DictionaryEntry item in nodes) savedNodes.Add(item);
             for (var node = order.First; node != null; node = node.Next) savedOrder.Add(node);
         }
-        var serializer = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSerializer", true);
+        var serializer = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSerializer", true);
         known = (System.Collections.IDictionary)serializer.GetField("KnownTypes", F).GetValue(null);
         foreach (System.Collections.DictionaryEntry item in known) savedKnown.Add(item);
-        var histogram = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.SeamlessHistogramWorkspace", true);
+        var histogram = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.SeamlessHistogramWorkspace", true);
         spareField = histogram.GetField("spare", F); idleField = histogram.GetField("idleSince", F);
         spare = spareField.GetValue(null); idle = idleField.GetValue(null);
         // Resolve/snapshot every dependency before mutating borrowed state.
@@ -328,13 +328,13 @@ public sealed class UnityBSharedState : System.IDisposable
 public static class UnityBHealing
 {
     const System.Reflection.BindingFlags F = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
-    static readonly System.Type Type = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+    static readonly System.Type Type = typeof(DCFApixels.WhimTex.WhimTexWindow);
     public static void RequireIdle()
     {
         var worker = Type.GetField("healingWorker", F).GetValue(null) as System.Threading.Tasks.Task;
         if (worker != null && !worker.IsCompleted) throw new UnityBSkipException("A borrowed healing worker is active; not verified.");
     }
-    public static async System.Threading.Tasks.Task StopAndDrain(DCFApixels.WhimTex.TextureCompositorWindow window)
+    public static async System.Threading.Tasks.Task StopAndDrain(DCFApixels.WhimTex.WhimTexWindow window)
     {
         // This test checked idle before starting; only its own window can own this worker.
         var worker = Type.GetField("healingWorker", F).GetValue(null) as System.Threading.Tasks.Task;

@@ -15,9 +15,9 @@ static System.Threading.CancellationToken Cancellation;
 
     private static async Task<string> BodyRun()
     {
-        var window = Scope.OwnWindow(ScriptableObject.CreateInstance<TextureCompositorWindow>());
+        var window = Scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
-        var type = typeof(TextureCompositorWindow);
+        var type = typeof(WhimTexWindow);
         void Check(bool condition, string message) { T.True(condition, message); }
         try
         {
@@ -63,10 +63,10 @@ static System.Threading.CancellationToken Cancellation;
         finally { WhimTex.Tests.UnityA.UnityAScope.CloseOwned(window); }
     }
 
-    private static void CheckPreviousToolShortcut(TextureCompositorWindow window)
+    private static void CheckPreviousToolShortcut(WhimTexWindow window)
     {
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
-        var type = typeof(TextureCompositorWindow);
+        var type = typeof(WhimTexWindow);
         var toolType = type.GetNestedType("CanvasTool", BindingFlags.NonPublic);
         var current = type.GetField("canvasTool", flags);
         var previous = type.GetField("previousCanvasTool", flags);

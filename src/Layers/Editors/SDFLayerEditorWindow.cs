@@ -11,18 +11,18 @@ namespace DCFApixels.WhimTex
         protected override Type EditedLayerType => typeof(SDFLayerBehaviour);
         protected override string LayerPreviewTitle => "Layer Preview (SDF)";
 
-        public static void Open(SDFLayerBehaviour layer, TextureCompositor compositor)
+        public static void Open(SDFLayerBehaviour layer, WhimTexDocument activeDocument)
         {
-            OpenPropertiesWindow<SDFLayerEditorWindow>(layer, compositor);
+            OpenPropertiesWindow<SDFLayerEditorWindow>(layer, activeDocument);
         }
 
         protected override void BuildSettings(VisualElement root, Layer source)
         {
-            BuildFields(root, (SDFLayerBehaviour)source, Compositor, ApplyLayerChange, SettingsBindings, AddEffectTarget);
+            BuildFields(root, (SDFLayerBehaviour)source, Document, ApplyLayerChange, SettingsBindings, AddEffectTarget);
         }
 
         internal static void BuildFields(
-            VisualElement root, SDFLayerBehaviour layer, TextureCompositor compositor,
+            VisualElement root, SDFLayerBehaviour layer, WhimTexDocument activeDocument,
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings,
             Action<VisualElement, TargetedLayerBehaviour> addEffectTarget)
         {

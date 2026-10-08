@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/NormalMap"
+Shader "Hidden/WhimTex/NormalMap"
 {
     Properties { [HideInInspector] _MainTex ("Source", 2D) = "black" {} }
     SubShader

@@ -207,4 +207,4 @@ then choose **Tools → WhimTex → Recovery → Retry Live Update Recovery**. D
 
 ## Migrate an old document
 
-Legacy `.asset` documents are no longer supported. Before upgrading, open them in WhimTex 0.12.5 and use **Save As** to create TIFF files. Check layers, Drawing pixels and import settings, then assign the new TIFF to materials and File layers where needed. The current version reads TIFF/JSON, not old `.asset` documents.
+Old `.asset` documents are unsupported. Edit them in a matching older checkout. The current version reads current TIFF/JSON documents and provides no automatic conversion of old document formats. Keep the original files when recreating their contents in the new format.

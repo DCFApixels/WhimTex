@@ -93,7 +93,7 @@ context.case('AgentDocumentation original assertions and branches', async () => 
     assert.ok(authoring.includes('LEGACY_LAYERS.md'), 'Old clipboard upgrade route is documented separately');
     assert.ok(authoring.includes('compilation failure does not reject') && !authoring.includes('successful compilation before insertion'), 'Paste documents recoverable FX errors');
     assert.ok(!authoring.includes('"format": "whimtex.layers",'), 'No new recipe teaches legacy output');
-    const layerMenu = read('src/TextureCompositorWindow.cs');
+    const layerMenu = read('src/WhimTexWindow.cs');
     assert.ok(layerMenu.includes('new GUIContent("Copy as JSON")'), 'Layer copy menu uses the current name');
     assert.ok(layerMenu.includes('DisplayDialog("Copy as JSON",'), 'Copy failure dialog uses the current name');
     assert.ok(!layerMenu.includes('Copy as Portable') && !layerMenu.includes('Portable layer JSON copied.'), 'No obsolete copy UI messages');

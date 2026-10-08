@@ -13,7 +13,7 @@ public static class DocumentJsonOptionalSettingsTests
     const string Layers = "\"layers\":[{\"id\":\"incoming\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[1,0,0,1]}}]";
     static int checks;
     static void Check(bool value, string message) { checks++; UnityBRun.Check(!(!value), message); }
-    static string Json(string settings) => "{\"format\":\"whimtex.document\",\"version\":1," +
+    static string Json(string settings) => "{\"format\":\"whimtex.document\",\"version\":2," +
         (settings == null ? "" : "\"document\":" + settings + ",") + Layers + "}";
     static object Call(object target, string name, params object[] args) => target.GetType().GetMethod(name, F).Invoke(target, args);
     [Serializable] public class Reply { public bool success, saved; public State document; }
@@ -32,7 +32,7 @@ public static class DocumentJsonOptionalSettingsTests
         string path = UnityBRun.AssetPath("__WhimTexOptionalJson_") + Guid.NewGuid().ToString("N") + ".whimtex.json";
         using var defaults = WhimTexDocumentJson.Read(Json("{}"), false);
         int defaultWidth = defaults.Document.width, defaultHeight = defaults.Document.height;
-        var destination = UnityBRun.Create<TextureCompositor>();
+        var destination = UnityBRun.Create<WhimTexDocument>();
         destination.width = 32; destination.height = 16;
         destination.outputFilter = FilterMode.Trilinear; destination.outputSrgb = false;
         try
@@ -71,16 +71,16 @@ public static class DocumentJsonOptionalSettingsTests
                 {
                     using var clipboard = (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", F)
                         .Invoke(null, new object[] { json, 32, 16 });
-                    var tree = (TextureCompositor)clipboard.GetType().GetField("Document", F).GetValue(clipboard);
+                    var tree = (WhimTexDocument)clipboard.GetType().GetField("Document", F).GetValue(clipboard);
                     bool hasCanvas = (bool)clipboard.GetType().GetField("HasCanvas", F).GetValue(clipboard);
                     Check(hasCanvas == (i == 2 || i == 3), "Size prompt is requested without explicit dimensions.");
                     Check(tree.width == sourceWidth && tree.height == sourceHeight, "Clipboard did not inherit missing axis from destination.");
-                    var target = UnityBRun.Create<TextureCompositor>();
+                    var target = UnityBRun.Create<WhimTexDocument>();
                     target.width = 32; target.height = 16; target.outputSrgb = false; target.outputFilter = FilterMode.Trilinear;
-                    var window = UnityBRun.Create<TextureCompositorWindow>();
+                    var window = UnityBRun.Create<WhimTexWindow>();
                     try
                     {
-                        Call(window, "SetCompositor", target);
+                        Call(window, "SetDocument", target);
                         Call(window, "PasteProceduralClipboard", clipboard, resize && hasCanvas);
                         Check(target.width == (resize && hasCanvas ? sourceWidth : 32) && target.height == (resize && hasCanvas ? sourceHeight : 16), "Paste changed an unspecified axis.");
                         Check(!target.outputSrgb && target.outputFilter == FilterMode.Trilinear, "Paste changed output settings.");

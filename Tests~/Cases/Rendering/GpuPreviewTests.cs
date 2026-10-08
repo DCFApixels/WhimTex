@@ -13,7 +13,7 @@ public static class GpuPreviewTests
 
 int checks = 0;
 const System.Reflection.BindingFlags InstanceHidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var type = typeof(DCFApixels.WhimTex.TextureCompositor);
+var type = typeof(DCFApixels.WhimTex.WhimTexDocument);
 var renderPreview = type.GetMethod("RenderCanvas", InstanceHidden);
 var composePreview = type.GetMethod("ComposeCanvas", InstanceHidden);
 var copy = type.GetMethod("CopyToTexture2D", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
@@ -36,7 +36,7 @@ void EqualPixels(Texture2D a, Texture2D b)
     checks++;
 }
 
-var document = UnityBRun.Create<DCFApixels.WhimTex.TextureCompositor>();
+var document = UnityBRun.Create<DCFApixels.WhimTex.WhimTexDocument>();
 Texture2D source = null;
 RenderTexture sentinel = null;
 RenderTexture originalActive = RenderTexture.active;

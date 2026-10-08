@@ -21,7 +21,7 @@ public static class OffsetOptionsTests
     static string ExecuteMain()
     {
         checks=0;
-        var assembly=typeof(TextureCompositor).Assembly;
+        var assembly=typeof(WhimTexDocument).Assembly;
         var old=JsonUtility.FromJson<MakeSeamlessLayerBehaviour>("{\"mode\":3,\"histogramContrast\":0.37}");
         Check(old.mode==MakeSeamlessLayerBehaviour.SeamlessMode.OffsetBlend,"Stable serialized mode");
         Check(old.offsetContrastCompensation&&old.offsetSeamCorrection&&old.offsetAutoRadius&&old.histogramContrast==.37f,"Old parameters/default behavior");

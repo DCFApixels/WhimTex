@@ -66,7 +66,7 @@ Worker вызывает ядро напрямую, без дополнитель
 Дисковый second-level cache, async Save, тайлы Drawing и новое FX dependency tracking не
 являются частью уже сделанных ускорений. Старые предложения reuse/streaming не нужно реализовывать повторно.
 Диагноз post-save stall старых document `.asset` icons закрыт удалением того backend;
-`TextureCompositorProjectPreview` больше не является целью оптимизации.
+`WhimTexDocumentProjectPreview` больше не является целью оптимизации.
 
 ## Проверки и измерения
 

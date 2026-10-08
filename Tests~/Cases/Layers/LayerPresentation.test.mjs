@@ -5,13 +5,13 @@ const context = new TestContext("LayerPresentation source/reference tests");
 const assert = context.assert;
 context.case("LayerPresentation original assertion inputs and source contracts", async () => {
   const read = p => readFileSync(new URL('../../../src/' + p, import.meta.url), 'utf8');
-  const ghost = read('TextureCompositorWindow.LayerDragGhost.cs');
-  const ui = read('TextureCompositorWindow.UI.cs');
-  const window = read('TextureCompositorWindow.cs');
-  assert.match(read('WhimTexUI.cs'), /Properties \(\{TextureCompositor.LayerMenuName\(layer\)\}\)/);
-  assert.match(read('TextureCompositor.Naming.cs'), /LayerTypeRegistry.Find\(layer\?\.Behaviour\?\.GetType\(\)\)\?\.MenuName/);
+  const ghost = read('WhimTexWindow.LayerDragGhost.cs');
+  const ui = read('WhimTexWindow.UI.cs');
+  const window = read('WhimTexWindow.cs');
+  assert.match(read('WhimTexUI.cs'), /Properties \(\{WhimTexDocument.LayerMenuName\(layer\)\}\)/);
+  assert.match(read('WhimTexDocument.Naming.cs'), /LayerTypeRegistry.Find\(layer\?\.Behaviour\?\.GetType\(\)\)\?\.MenuName/);
   const menu = window.slice(window.indexOf('private void ShowAddMenu'),window.indexOf('private void AddLayer'));
-  const prefixes = read('TextureCompositor.Naming.cs');
+  const prefixes = read('WhimTexDocument.Naming.cs');
   assert.match(menu, /foreach \(var descriptor in LayerTypeRegistry.Entries\)/);
   assert.match(menu, /descriptor.MenuName/);
   assert.match(prefixes, /LayerTypeRegistry.Find\(layer\?\.Behaviour\?\.GetType\(\)\)\?\.NamePrefix/);
@@ -38,16 +38,16 @@ context.case("LayerPresentation original assertion inputs and source contracts",
   assert.match(target, /effectTargetLabels\[0\] = "None \(Layer\)"/);
   assert.match(target, /targetInput.Insert\(0, icon\)/);
   assert.match(target, /targetInput.Add\(selector\)/);
-  assert.match(target, /compositor\.GetLayerThumbnail\(source, 18\)/, 'Reuse document-aware layer-list thumbnails, including effects');
+  assert.match(target, /activeDocument\.GetLayerThumbnail\(source, 18\)/, 'Reuse document-aware layer-list thumbnails, including effects');
   assert.match(target, /if \(preview.image != thumbnail\) preview.image = thumbnail/);
   assert.match(target, /source\?\.IsGroup == true/);
   assert.match(target, /Refresh\(\);\s*bindings.Add\(Refresh\)/);
   assert.match(target, /bindings.Track\(target,/);
   assert.match(target, /target.AddManipulator\(new TargetDropManipulator\(this, effect\)\)/);
-  assert.match(target, /GetDraggedLayerForDocument\(owner.compositor\)/);
+  assert.match(target, /GetDraggedLayerForDocument\(owner.activeDocument\)/);
   assert.match(target, /IsUsableEffectTarget\(effect, source.Id\)/);
   assert.match(target, /DragAndDropVisualMode.Link : DragAndDropVisualMode.Rejected/);
-  assert.match(target, /TextureCompositorWindow.ClearDraggedLayerReference\(\)/);
+  assert.match(target, /WhimTexWindow.ClearDraggedLayerReference\(\)/);
   const styles = read('WhimTexSplitView.uss');
   assert.match(styles, /\.unity-base-popup-field__arrow\.whimtex-effect-target-arrow\s*\{\s*display: none/);
   assert.match(styles, /\.whimtex-effect-target\.whimtex-effect-target--drop > \.unity-base-field__input/);
@@ -59,7 +59,7 @@ context.case("LayerPresentation original assertion inputs and source contracts",
   assert.match(accent, /ReferenceEquals\(source, checkedSource\) && path == checkedPath\) return/);
   assert.match(accent, /WhimTexDocumentService\.IsDocumentAsset\(source\)/);
   assert.doesNotMatch(accent, /new (Label|Image|Button)|RegisterCallback/);
-  assert.match(styles, /\.whimtex-compositor-reference-accent \{\s*position: absolute;\s*left: 0;\s*top: 0;\s*bottom: 0;\s*width: 2px;\s*background-color: rgba\(224, 143, 70, 0.7\);/);
+  assert.match(styles, /\.whimtex-document-reference-accent \{\s*position: absolute;\s*left: 0;\s*top: 0;\s*bottom: 0;\s*width: 2px;\s*background-color: rgba\(224, 143, 70, 0.7\);/);
 
   const thumbnails = read('LayerThumbnailCache.cs');
   assert.match(ui, /thumbnail\.schedule\.Execute\(RefreshThumbnail\)\.Every\(200\)/, 'Deferred thumbnails finish after the last UI input');
@@ -67,8 +67,8 @@ context.case("LayerPresentation original assertion inputs and source contracts",
   assert.match(thumbnails, /if \(now < deferUntil\) return entry\?\.texture/);
   assert.match(thumbnails, /entry\.stamp == stamp/);
   assert.match(thumbnails, /BudgetBytes = 8L \* 1024 \* 1024/);
-  assert.match(window, /compositor\?\.ReleaseLayerThumbnails\(\)/);
-  assert.match(ui, /compositor\?\.RefreshThumbnailStructure\(\)/);
+  assert.match(window, /activeDocument\?\.ReleaseLayerThumbnails\(\)/);
+  assert.match(ui, /activeDocument\?\.RefreshThumbnailStructure\(\)/);
 
 });
 await finish(context);

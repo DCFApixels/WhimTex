@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/ScreenedSeamless"
+Shader "Hidden/WhimTex/ScreenedSeamless"
 {
     Properties { _MainTex ("Source", 2D) = "white" {} }
     SubShader

@@ -6,10 +6,10 @@ const assert = context.assert;
 context.case("UvIslands original assertion inputs and source contracts", async () => {
   const read = p => fs.readFileSync(new URL('../../../src/' + p, import.meta.url), 'utf8');
   const topology = read('UvIslandMap.cs');
-  const uv = read('TextureCompositorWindow.Uv.cs');
-  const area = read('TextureCompositorWindow.AreaSelectionView.cs');
-  const tools = read('TextureCompositorWindow.Tools.cs');
-  const picker = read('TextureCompositorWindow.ShapePicker.cs');
+  const uv = read('WhimTexWindow.Uv.cs');
+  const area = read('WhimTexWindow.AreaSelectionView.cs');
+  const tools = read('WhimTexWindow.Tools.cs');
+  const picker = read('WhimTexWindow.ShapePicker.cs');
   assert.match(topology, /MeshUtility\.AcquireReadOnlyMeshData/);
   assert.match(topology, /position\.Equals\(other\.position\) && uv\.Equals\(other\.uv\)/);
   assert.match(topology, /edge\.count != 2/);
@@ -30,10 +30,10 @@ context.case("UvIslands original assertion inputs and source contracts", async (
   assert.match(area, /if \(owner\.IsUvSelectionTool\)[\s\S]*?owner\.SelectUvIsland[\s\S]*?return;/);
   assert.match(uv, /canvasTool == CanvasTool\.UvIslandSelect/);
   assert.match(tools, /tool == CanvasTool\.UvIslandSelect/);
-  assert.match(read('TextureCompositorWindow.ContextTools.cs'), /"uvIslandSelectTool", CanvasTool\.UvIslandSelect/);
+  assert.match(read('WhimTexWindow.ContextTools.cs'), /"uvIslandSelectTool", CanvasTool\.UvIslandSelect/);
   assert.doesNotMatch(picker, /"UV Island"/);
-  assert.match(read('TextureCompositor.cs'), /\[SerializeField, HideInInspector\] internal Mesh uvReferenceMesh/);
-  assert.match(read('TextureCompositorWindow.cs'), /private void OnDisable\(\)[\s\S]*?uvMap = null/);
+  assert.match(read('WhimTexDocument.cs'), /\[SerializeField, HideInInspector\] internal Mesh uvReferenceMesh/);
+  assert.match(read('WhimTexWindow.cs'), /private void OnDisable\(\)[\s\S]*?uvMap = null/);
 
 });
 await finish(context);

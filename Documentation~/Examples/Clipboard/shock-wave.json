@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -22,7 +22,6 @@
       }
     ],
     "nextCopyNumber": 1,
-    "spriteSlices": [],
     "width": 512,
     "height": 512,
     "outputFilter": "Bilinear",
@@ -42,7 +41,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [],
@@ -90,7 +89,7 @@
           "blendMode": "Normal",
           "colorRange": "HDR",
           "blendRange": "HDR",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [
@@ -151,7 +150,7 @@
           "blendMode": "Screen",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [],
@@ -273,7 +272,7 @@
           "blendMode": "Multiply",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [],
@@ -380,7 +379,7 @@
           "blendMode": "Multiply",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [],
@@ -474,7 +473,7 @@
           "blendMode": "Normal",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [
@@ -488,22 +487,19 @@
                   "name": "_Mode",
                   "type": "Float",
                   "floatValue": 0.0,
-                  "id": "81fa723ea73d40589762909731d9276e",
-                  "declaredInCode": true
+                  "id": "81fa723ea73d40589762909731d9276e"
                 },
                 {
                   "name": "_AngleOffset",
                   "type": "Float",
                   "floatValue": 0.0,
-                  "id": "35366c888b5249c297cd5ad9f13898b3",
-                  "declaredInCode": true
+                  "id": "35366c888b5249c297cd5ad9f13898b3"
                 },
                 {
                   "name": "_RadialOffset",
                   "type": "Float",
                   "floatValue": 0.0,
-                  "id": "0ff1b0ed4225426d8f224d90e872d369",
-                  "declaredInCode": true
+                  "id": "0ff1b0ed4225426d8f224d90e872d369"
                 },
                 {
                   "name": "_Area",
@@ -531,8 +527,7 @@
                       "m22": 0.0
                     }
                   },
-                  "id": "eb9f224a015d4818bd585738f7f1a2f8",
-                  "declaredInCode": true
+                  "id": "eb9f224a015d4818bd585738f7f1a2f8"
                 }
               ],
               "shaderKey": "bb13b9328c6c4a4681a711d1c289d873",
@@ -577,7 +572,7 @@
             "direction": 0.0,
             "seed": 1337,
             "scale": 8.0,
-            "scaleY": 0.0,
+            "scaleY": 8.0,
             "linkScale": true,
             "offset": [
               0.0,

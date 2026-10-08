@@ -142,13 +142,13 @@ public static class WhimTexGradientReloadDiagnostic
         string key = Key(runId);
         if (SessionState.GetString(key, "").Length != 0)
             return TestContext.Result("failed", 0, "Existing reload fixture", "End/Cleanup the same GUID first").ToJson();
-        TextureCompositor host = null, previousDefault = null; TextureCompositorWindow window = null;
+        WhimTexDocument host = null, previousDefault = null; WhimTexWindow window = null;
         AssemblyReloadEvents.AssemblyReloadCallback beforeReload = null;
         try
         {
             var previousFocus = EditorWindow.focusedWindow;
             SessionState.SetString(key + ".focus", FocusIdentity(previousFocus));
-            host = ScriptableObject.CreateInstance<TextureCompositor>();
+            host = ScriptableObject.CreateInstance<WhimTexDocument>();
             var gradient = new WhimTexGradient();
             gradient.SetKeys(new[] { new GradientColorKey(new Color(4,2,1),0), new GradientColorKey(Color.white,1) },
                 new[] { new GradientAlphaKey(.3f,0), new GradientAlphaKey(1,1) });
@@ -156,11 +156,11 @@ public static class WhimTexGradientReloadDiagnostic
             host.layers.Add(new GradientLayerBehaviour { gradient = gradient });
             host.name = "WhimTex gradient reload " + runId;
             host.hideFlags = HideFlags.HideAndDontSave;
-            window = ScriptableObject.CreateInstance<TextureCompositorWindow>();
+            window = ScriptableObject.CreateInstance<WhimTexWindow>();
             // Only the default allocated by this fresh owned window, never a borrowed user model.
-            previousDefault = (TextureCompositor)typeof(TextureCompositorWindow).GetField("compositor", Flags).GetValue(window);
+            previousDefault = (WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument", Flags).GetValue(window);
             window.name = "WhimTex gradient reload window " + runId;
-            typeof(TextureCompositorWindow).GetMethod("SetCompositor", Flags).Invoke(window, new object[] { host });
+            typeof(WhimTexWindow).GetMethod("SetDocument", Flags).Invoke(window, new object[] { host });
             DestroyOwnedDefault(previousDefault, host);
             previousDefault = null;
             window.Show();
@@ -199,8 +199,8 @@ public static class WhimTexGradientReloadDiagnostic
         {
             context.True(SessionState.GetBool(key + ".reloaded", false), "A real Unity domain reload occurred after Begin");
             string title = SessionState.GetString(key, "");
-            TextureCompositor host = null;
-            foreach (var candidate in Resources.FindObjectsOfTypeAll<TextureCompositor>())
+            WhimTexDocument host = null;
+            foreach (var candidate in Resources.FindObjectsOfTypeAll<WhimTexDocument>())
                 if (candidate.name == title && title == "WhimTex gradient reload " + runId) host = candidate;
             context.True(host != null, "EditorWindow-owned document restored after reload");
             var gradient = ((GradientLayerBehaviour)host.layers[0].Behaviour).gradient;
@@ -227,10 +227,10 @@ public static class WhimTexGradientReloadDiagnostic
         Attempt(() => { if (trigger != null) EditorApplication.update -= trigger; });
         Attempt(() => AppDomain.CurrentDomain.SetData(key + ".trigger", null));
         Attempt(() => DetachCompilationErrors(key));
-        foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
+        foreach (var window in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
             if (window.name == "WhimTex gradient reload window " + runId)
                 Attempt(() => DestroyOwnedWindow(window));
-        foreach (var host in Resources.FindObjectsOfTypeAll<TextureCompositor>())
+        foreach (var host in Resources.FindObjectsOfTypeAll<WhimTexDocument>())
             if (host.name == title) Attempt(() => UnityEngine.Object.DestroyImmediate(host));
         Attempt(() => SessionState.EraseString(key));
         Attempt(() => SessionState.EraseBool(key + ".reloaded"));
@@ -276,7 +276,7 @@ public static class WhimTexGradientReloadDiagnostic
         finally { Attempt(() => { if (window != null) UnityEngine.Object.DestroyImmediate(window); }); }
         if (errors.Count > 0) throw new AggregateException("Owned reload window disposal failed", errors);
     }
-    static void DestroyOwnedDefault(TextureCompositor previousDefault, TextureCompositor host)
+    static void DestroyOwnedDefault(WhimTexDocument previousDefault, WhimTexDocument host)
     {
         if (previousDefault != null && previousDefault != host && !AssetDatabase.Contains(previousDefault))
             UnityEngine.Object.DestroyImmediate(previousDefault);

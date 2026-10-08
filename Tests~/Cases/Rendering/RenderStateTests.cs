@@ -16,10 +16,10 @@ public static class RenderStateTests
     {
         // Run with Unity Pipeline eval_file. Uses transient objects only; no scene/asset writes.
         var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-        var type = typeof(DCFApixels.WhimTex.TextureCompositor);
+        var type = typeof(DCFApixels.WhimTex.WhimTexDocument);
         var originalTarget = UnityEngine.RenderTexture.active;
         bool originalSrgb = UnityEngine.GL.sRGBWrite;
-        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
         document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
         document.width = document.height = 16;
         var source = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new UnityEngine.Texture2D(16, 16, UnityEngine.TextureFormat.RGBAHalf, false, true));

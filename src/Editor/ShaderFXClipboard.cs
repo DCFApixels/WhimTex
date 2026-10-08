@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
         internal static event Action Changed;
         private static UnityEngine.Object snapshot;
         private static ShaderFX ownedEffect;
-        private static WeakReference<TextureCompositor> sourceDocument;
+        private static WeakReference<WhimTexDocument> sourceDocument;
         private static string marker;
         private static uint imageRevision;
 
@@ -36,7 +36,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        internal static void Copy(TextureCompositor document, UnityEngine.Object value)
+        internal static void Copy(WhimTexDocument document, UnityEngine.Object value)
         {
             ShaderFX nextOwned = value is ShaderFX effect ? effect.CloneForClipboard() : null;
             UnityEngine.Object next = nextOwned != null ? nextOwned : value is Material ? value : null;
@@ -60,13 +60,13 @@ namespace DCFApixels.WhimTex
             Clear();
             snapshot = next;
             ownedEffect = nextOwned;
-            sourceDocument = document != null ? new WeakReference<TextureCompositor>(document) : null;
+            sourceDocument = document != null ? new WeakReference<WhimTexDocument>(document) : null;
             marker = nextMarker;
             imageRevision = ImageClipboard.Revision;
             Changed?.Invoke();
         }
 
-        internal static UnityEngine.Object CreatePasteValue(TextureCompositor destination)
+        internal static UnityEngine.Object CreatePasteValue(WhimTexDocument destination)
         {
             UnityEngine.Object value = Current;
             if (value is not ShaderFX source)
@@ -74,7 +74,7 @@ namespace DCFApixels.WhimTex
 
             ShaderFX copy = source.CloneForDocument(destination);
             copy.DetachCatalog();
-            bool sameDocument = sourceDocument != null && sourceDocument.TryGetTarget(out TextureCompositor sourceOwner) &&
+            bool sameDocument = sourceDocument != null && sourceDocument.TryGetTarget(out WhimTexDocument sourceOwner) &&
                 sourceOwner != null && sourceOwner == destination;
             if (!sameDocument)
                 copy.RemapTextureLayers(new Dictionary<string, string>(), clearExternal: true);

@@ -20,13 +20,13 @@ public static class TilingTests
 
     static int checks;
     static void Check(bool ok, string message) { context.True(ok, message); }
-    static Color[] Render(TextureCompositor doc)
+    static Color[] Render(WhimTexDocument doc)
     {
         var previous = RenderTexture.active;
         RenderTexture rt = null; Texture2D pixels = null;
         try
         {
-            rt = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvas", BindingFlags.NonPublic | BindingFlags.Instance)
+            rt = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderCanvas", BindingFlags.NonPublic | BindingFlags.Instance)
                 .Invoke(doc, new object[] { 64 });
             Check(RenderTexture.active == previous, "Leaked active render target");
             RenderTexture.active = rt;
@@ -48,7 +48,7 @@ public static class TilingTests
         foreach (LayerBehaviour behaviour in new LayerBehaviour[] { new NoiseLayerBehaviour(), new GradientLayerBehaviour(),
             new ShapeLayerBehaviour(), new ColorFillLayerBehaviour(), new DrawingLayerBehaviour() })
         {
-            var doc = ScriptableObject.CreateInstance<TextureCompositor>();
+            var doc = ScriptableObject.CreateInstance<WhimTexDocument>();
             try
             {
                 doc.width = doc.height = 64;

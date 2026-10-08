@@ -44,7 +44,7 @@ full canvas resolution; saves, exports and rasterization use the original output
 ## Group sources
 
 An effect sees the group's own isolated composition on transparency, including internal blends,
-opacity, swizzle and clipping. The group's role in the main composition is unchanged: Pass Through
+opacity, channelMapping and clipping. The group's role in the main composition is unchanged: Pass Through
 children can still interact with the external backdrop there. The effect does not sample that backdrop.
 Group FX are included in this source and force isolation in the main composition too. Group transforms remain unsupported.
 
@@ -58,7 +58,7 @@ The main window owns a 256 MiB LRU budget shared by effect outputs, group source
 masks. Entries are created on demand. Groups with only coverage consumers retain an RFloat source
 (ARGBHalf fallback); a reachable color consumer promotes the shared source to RGBAHalf. Coverage
 consumers extract alpha from that RGBA entry. Intermediate color buffers can still be required to
-compute coverage correctly, especially for color-to-alpha swizzle; the alpha cache saves retained
+compute coverage correctly, especially for color-to-alpha channelMapping; the alpha cache saves retained
 memory, not necessarily all temporary rendering memory.
 
 After the last color consumer disappears, RGBA may remain until replacement/eviction. Entries with
@@ -72,11 +72,11 @@ texture update/dirty counters and live painting frames. Fingerprints are memoize
 Resolution, scale and interactive quality must match. Undo invalidates the window cache; changing
 documents, closing the window or reloading scripts releases it. Source-less cycles cannot hit a
 cached image. Deterministic Shader FX and Shader Processor results participate in the same cache.
-Arbitrary Material FX, or FX that use unsupported time inputs, bypass caching because their
+Arbitrary Material FX, or FX that use Unity time inputs, bypass caching because their
 state is not represented safely by the layer model.
 
 Numeric-error masks are captured locally with each entry and accumulated again on cache hits.
-Neither the cache nor its masks are serialized, saved into compositor assets, or registered with
+Neither the cache nor its masks are serialized, saved into document assets, or registered with
 Undo. Gaussian changes record settings through the existing Undo path. Drawing pixel history is
 unchanged; no changed-tile Undo storage is introduced.
 

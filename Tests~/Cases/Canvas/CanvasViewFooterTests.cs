@@ -14,12 +14,12 @@ static System.Threading.CancellationToken Cancellation;
 
 private static string SetupFixture(){
 // Transient UI layout fixture; finish with CanvasViewFooterTests.cs. No saved assets.
-var type=typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+var type=typeof(DCFApixels.WhimTex.WhimTexWindow);
 var f=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Public;
-foreach(var existing in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositorWindow>())
+foreach(var existing in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.WhimTexWindow>())
     T.True(!(existing.name==(Scope.Tag + "-footer")), "Finish the previous footer fixture first.");
 var previous=UnityEditor.EditorWindow.focusedWindow;
-var window=Scope.OwnWindow(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>());
+var window=Scope.OwnWindow(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexWindow>());
 window.name=(Scope.Tag + "-footer");window.position=new UnityEngine.Rect(140,140,960,680);window.ShowUtility();window.CreateGUI();
 var root=window.rootVisualElement;root.Clear();root.userData=previous;
 foreach(int width in new[]{900,700,680,600,599,400,280,200})
@@ -35,8 +35,8 @@ return null;
 }
 private static string HintResize(){
 // Run three times after CanvasViewFooterSetup.cs; finish with CanvasViewFooterTests.cs.
-DCFApixels.WhimTex.TextureCompositorWindow window=null;
-foreach(var candidate in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositorWindow>())
+DCFApixels.WhimTex.WhimTexWindow window=null;
+foreach(var candidate in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.WhimTexWindow>())
     if(candidate.name==(Scope.Tag + "-footer"))window=candidate;
 T.True(!(window==null), "Run CanvasViewFooterSetup.cs first.");
 var footer=UnityEngine.UIElements.UQueryExtensions.Q(window.rootVisualElement,"footer900");
@@ -62,10 +62,10 @@ return null;
 
 }
 private static string FooterAssertions(){
-var type=typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+var type=typeof(DCFApixels.WhimTex.WhimTexWindow);
 var f=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Public;
-DCFApixels.WhimTex.TextureCompositorWindow window=null;
-foreach(var existing in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositorWindow>())
+DCFApixels.WhimTex.WhimTexWindow window=null;
+foreach(var existing in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.WhimTexWindow>())
     if(existing.name==(Scope.Tag + "-footer"))window=existing;
 T.True(!(window==null), "Run CanvasViewFooterSetup.cs first.");
 var root=window.rootVisualElement;var previous=root.userData as UnityEditor.EditorWindow;

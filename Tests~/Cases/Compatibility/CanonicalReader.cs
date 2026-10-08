@@ -27,7 +27,7 @@ public static class CanonicalReaderTests
     {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8, true);
-        writer.Write(1); writer.Write((byte)29); writer.Write(typeof(Layer).FullName); writer.Write(names.Length);
+        writer.Write(2); writer.Write((byte)29); writer.Write(typeof(Layer).FullName); writer.Write(names.Length);
         foreach (string name in names)
         {
             writer.Write(name); writer.Write((byte)30); writer.Write(3);
@@ -42,13 +42,12 @@ public static class CanonicalReaderTests
     {
         context.True(typeof(Layer).GetField("fx") != null && typeof(Layer).GetField("modifiers") == null, "Canonical C# layer FX field, no alias");
         context.True(typeof(LayerBehaviour).GetProperty("fx") != null && typeof(LayerBehaviour).GetProperty("modifiers") == null, "Canonical behaviour API, no alias");
-        context.True(typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.LayerFxEditorWindow") != null &&
-            typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.ModifierEditorWindow") == null, "Layer-scoped FX editor name");
-        const string json = "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[" +
+        context.True(typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.LayerFxEditorWindow") != null &&
+            typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.ModifierEditorWindow") == null, "Layer-scoped FX editor name");
+        const string json = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[" +
             "{\"id\":\"a\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"$id\":\"shared\",\"active\":false},null,{\"$ref\":\"shared\"}]}," +
             "{\"id\":\"b\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$ref\":\"shared\"}]}]}";
-        foreach (string input in new[] { json, json.Replace("\"fx\"", "\"modifiers\"") })
-        using (var read = WhimTexDocumentJson.Read(input, false))
+        using (var read = WhimTexDocumentJson.Read(json, false))
         {
             var fx = read.Document.layers[0].fx;
             context.Equal(0, read.Warnings.Count, "Complete FX JSON read");
@@ -65,15 +64,14 @@ public static class CanonicalReaderTests
             context.True(System.Text.RegularExpressions.Regex.IsMatch(snapshot, "\"fxCount\"\\s*:\\s*3") &&
                 !snapshot.Contains("modifierCount"), "Agent API exposes fxCount only");
         }
-        const string minimal = "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"a\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}FIELDS}]}";
-        foreach (string field in new[] { "", ",\"fx\":[]", ",\"modifiers\":[]" })
+        const string minimal = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"a\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}FIELDS}]}";
+        foreach (string field in new[] { "", ",\"fx\":[]" })
         using (var read = WhimTexDocumentJson.Read(minimal.Replace("FIELDS", field), false))
-            context.True(read.Document.layers[0].fx != null && read.Document.layers[0].fx.Count == 0, "Empty/omitted FX preserves frozen v1 default");
-        foreach (string fields in new[] { ",\"fx\":[],\"modifiers\":[]", ",\"modifiers\":null,\"fx\":[]", ",\"fx\":null,\"modifiers\":[]" })
-            Reject(context, () => WhimTexDocumentJson.Read(minimal.Replace("FIELDS", fields), false).Dispose(), "Ambiguous JSON list rejected");
-        Reject(context, () => WhimTexDocumentJson.Read(minimal.Replace("FIELDS", "").Replace("\"$type\":\"ColorFillLayerBehaviour\"", "\"$type\":\"ColorFillLayerBehaviour\",\"modifiers\":[]"), false).Dispose(), "Conversion is scoped to Layer, not behaviours");
+            context.True(read.Document.layers[0].fx != null && read.Document.layers[0].fx.Count == 0, "Empty/omitted FX preserves frozen v2 default");
+        foreach (string fields in new[] { ",\"modifiers\":[]", ",\"fx\":[],\"modifiers\":[]", ",\"modifiers\":null,\"fx\":[]", ",\"fx\":null,\"modifiers\":[]" })
+            Reject(context, () => WhimTexDocumentJson.Read(minimal.Replace("FIELDS", fields), false).Dispose(), "Old JSON FX field rejected");
         using var container = new WhimTexDocumentContainer();
-        foreach (string name in new[] { "fx", "modifiers" })
+        foreach (string name in new[] { "fx" })
         {
             object result = BinaryRead(LayerPayload(name), container, typeof(Layer));
             var layer = (Layer)Property(result, "Model");
@@ -93,11 +91,13 @@ public static class CanonicalReaderTests
                 if (layer.fx[0] != null) UnityEngine.Object.DestroyImmediate(layer.fx[0]);
             }
         }
-        Reject(context, () => BinaryRead(LayerPayload("fx", "modifiers"), container, typeof(Layer)), "Ambiguous binary FX fields rejected");
-        Reject(context, () => BinaryRead(LayerPayload("modifiers", "fx"), container, typeof(Layer)), "Reversed ambiguous binary FX fields rejected");
+        object obsolete = BinaryRead(LayerPayload("modifiers"), container, typeof(Layer));
+        context.True(((IReadOnlyList<string>)Property(obsolete, "SkippedFields")).Contains("Layer.modifiers"), "Old TIFF field produces a loss diagnostic, not an alias");
+        context.Equal(0, ((Layer)Property(obsolete, "Model")).fx.Count, "Old TIFF list is not transferred to FX");
+        Reject(context, () => BinaryRead(LayerPayload("fx", "fx"), container, typeof(Layer)), "Duplicate current binary FX fields rejected");
     }
 
-    public static string Run() => TestContext.Run("Canonical names, layer FX file conversion and unknown-field diagnostics", context =>
+    public static string Run() => TestContext.Run("Canonical names, current layer FX roundtrips and unknown-field diagnostics", context =>
     {
         var serializer = typeof(WhimTexDocumentFile).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSerializer");
         const BindingFlags flags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
@@ -107,13 +107,13 @@ public static class CanonicalReaderTests
             context.Equal(type, (Type)resolveType.Invoke(null, new object[] { type.FullName }), "Canonical type: " + type.Name);
         context.True(resolveType.Invoke(null, new object[] { "Unavailable.ExtensionBehaviour" }) == null, "Unknown type is not guessed");
         var controls = (System.Collections.IDictionary)fieldMap.Invoke(null, new object[] { typeof(ShaderFXParameterControl) });
-        context.True(controls.Contains("groupHeaderParameter"), "0.12.5 group header field remains readable");
+        context.True(controls.Contains("groupHeaderParameter"), "Current group header field remains readable");
         context.True(!controls.Contains("groupToggleParameter"), "Pre-baseline group alias removed");
         using (var stream = new System.IO.MemoryStream())
         using (var writer = new System.IO.BinaryWriter(stream))
         using (var container = new WhimTexDocumentContainer())
         {
-            writer.Write(1); writer.Write((byte)29); writer.Write(typeof(ShaderFXParameterControl).FullName);
+            writer.Write(2); writer.Write((byte)29); writer.Write(typeof(ShaderFXParameterControl).FullName);
             writer.Write(1); writer.Write("groupToggleParameter"); writer.Write((byte)0); writer.Flush();
             object read = serializer.GetMethod("Deserialize", flags).Invoke(null,
                 new object[] { stream.ToArray(), container, typeof(ShaderFXParameterControl), null, false });

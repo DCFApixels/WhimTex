@@ -35,11 +35,11 @@ context.case("PresetsFolder original assertion inputs and source contracts", asy
   assert.ok(ui.includes('new Toggle("Clean Canvas View Background")'));
   assert.ok(ui.includes('cleanBackground?.SetValueWithoutNotify(!WhimTexUserSettings.ShowManta)'));
   assert.ok(ui.includes('WhimTexUserSettings.ShowManta = !evt.newValue'));
-  assert.ok(ui.includes('TextureCompositorWindow.ConfirmResetEditorSettings(this)'));
-  const editor = read('src/TextureCompositorWindow.cs');
+  assert.ok(ui.includes('WhimTexWindow.ConfirmResetEditorSettings(this)'));
+  const editor = read('src/WhimTexWindow.cs');
   assert.ok(!editor.includes('menu.AddItem(new GUIContent("Reset WhimTex Settings…")'));
   assert.match(editor, /OnCanvasViewAppearanceChanged\(\)\s*\{\s*toolkitCanvas\?\.RefreshBackdropVisibility\(\)/);
-  const preview = read('src/TextureCompositorWindow.UI.cs');
+  const preview = read('src/WhimTexWindow.UI.cs');
   assert.match(preview, /toolbar.Add\(export\);\s*Button userSettings = WhimTexUI.CreateToolbarButton\(string.Empty, WhimTexUserSettingsWindow.Open, 26f\);/);
   assert.ok(preview.includes('userSettings.Add(new LayerActionIcon(LayerActionIcon.Kind.Settings));'));
   assert.ok(preview.includes('toolbar.Add(userSettings);'));

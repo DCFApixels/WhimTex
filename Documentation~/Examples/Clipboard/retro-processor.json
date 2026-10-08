@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -10,7 +10,6 @@
       }
     ],
     "nextCopyNumber": 1,
-    "spriteSlices": [],
     "width": 512,
     "height": 512,
     "outputFilter": "Bilinear",
@@ -30,7 +29,7 @@
       "blendMode": "Normal",
       "colorRange": "HDR",
       "blendRange": "HDR",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -44,8 +43,7 @@
               "name": "_Steps",
               "type": "Float",
               "floatValue": 6.0,
-              "id": "da3652a0d16e46f1bb7c746c49f1cc58",
-              "declaredInCode": true
+              "id": "da3652a0d16e46f1bb7c746c49f1cc58"
             }
           ],
           "shaderKey": "f980230bd42b41cf8d748018e07a2bac",

@@ -110,7 +110,7 @@ public static class MakeSeamlessContractTests
         Reject("offsetTransitionStart", .950001);
 
         var operations = typeof(WhimTexApi).GetMethod("ApplyOperation", Hidden);
-        var temporary = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var temporary = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         try
         {
             temporary.layers.Clear();
@@ -136,7 +136,7 @@ public static class MakeSeamlessContractTests
             File.ReadAllText(Root + "Documentation~/Examples/Clipboard/seamless-noise.json"), 64, 64 }))
         {
             const BindingFlags instance = BindingFlags.NonPublic | BindingFlags.Instance;
-            var doc = (TextureCompositor)data.GetType().GetField("Document", instance).GetValue(data);
+            var doc = (WhimTexDocument)data.GetType().GetField("Document", instance).GetValue(data);
             var layer = (MakeSeamlessLayerBehaviour)doc.layers[0].Behaviour;
             Check(layer.mode == MakeSeamlessLayerBehaviour.SeamlessMode.OffsetBlend, "Recipe mode");
             Check(doc.layers.Count == 2 && !doc.layers[1].enabled, "Hidden recipe source");
@@ -146,7 +146,7 @@ public static class MakeSeamlessContractTests
             RenderTexture rendered = null;
             try
             {
-                rendered = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvas", instance).Invoke(doc, new object[] { 64 });
+                rendered = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderCanvas", instance).Invoke(doc, new object[] { 64 });
                 Check(rendered != null && rendered.width == 64 && rendered.height == 64, "Recipe render");
                 Check(RenderTexture.active == previous && GL.sRGBWrite == srgb, "Render state restored");
             }

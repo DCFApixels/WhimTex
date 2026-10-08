@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -14,7 +14,6 @@
       }
     ],
     "nextCopyNumber": 1,
-    "spriteSlices": [],
     "width": 256,
     "height": 256,
     "outputFilter": "Bilinear",
@@ -34,7 +33,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -48,8 +47,7 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 0.8,
-              "id": "f85f16769d414760a5d1f819d8614315",
-              "declaredInCode": true
+              "id": "f85f16769d414760a5d1f819d8614315"
             },
             {
               "name": "_Tint",
@@ -60,8 +58,7 @@
                 0.7058824,
                 1.0
               ],
-              "id": "78f90b208b0441d4be95c956e7aee28b",
-              "declaredInCode": true
+              "id": "78f90b208b0441d4be95c956e7aee28b"
             }
           ],
           "shaderKey": "ae50816ac605483bbcf2855b8a9b9a48",
@@ -122,7 +119,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -136,15 +133,13 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 0.25,
-              "id": "d54d8e14312d457d8f873ef4d1808990",
-              "declaredInCode": true
+              "id": "d54d8e14312d457d8f873ef4d1808990"
             },
             {
               "name": "_Grid",
               "type": "Float",
               "floatValue": 8.0,
-              "id": "82fc6098768d467d9752b99c03b4ae33",
-              "declaredInCode": true
+              "id": "82fc6098768d467d9752b99c03b4ae33"
             }
           ],
           "shaderKey": "cebf5ea7305248c090722cac09509511",
@@ -205,7 +200,7 @@
       "blendMode": "SoftLight",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [],
@@ -244,7 +239,7 @@
         "dimensions": "TwoD",
         "seed": 31,
         "scale": 64.0,
-        "scaleY": 0.0,
+        "scaleY": 64.0,
         "linkScale": true,
         "offset": [
           0.0,
@@ -276,7 +271,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -290,22 +285,19 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "3b0289dcb3a24d3fbd91e3fa8a2b8d04",
-              "declaredInCode": true
+              "id": "3b0289dcb3a24d3fbd91e3fa8a2b8d04"
             },
             {
               "name": "_Brightness",
               "type": "Float",
               "floatValue": 2.0,
-              "id": "170ea65ec54e4ac785215f20d0f3fff3",
-              "declaredInCode": true
+              "id": "170ea65ec54e4ac785215f20d0f3fff3"
             },
             {
               "name": "_Contrast",
               "type": "Float",
               "floatValue": 18.0,
-              "id": "716f0f91d6aa42ec806d53d80d5be233",
-              "declaredInCode": true
+              "id": "716f0f91d6aa42ec806d53d80d5be233"
             }
           ],
           "shaderKey": "1cd2c5a3f92849e1b260877f5d9bcf5a",
@@ -321,22 +313,19 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 0.4,
-              "id": "4d1c86e89576477baefbc8bf2334c1f5",
-              "declaredInCode": true
+              "id": "4d1c86e89576477baefbc8bf2334c1f5"
             },
             {
               "name": "_Levels",
               "type": "Float",
               "floatValue": 14.0,
-              "id": "a284f3db4bfa49b6a17f8feb0d4333fb",
-              "declaredInCode": true
+              "id": "a284f3db4bfa49b6a17f8feb0d4333fb"
             },
             {
               "name": "_Width",
               "type": "Float",
               "floatValue": 0.025,
-              "id": "5885d34210bc47e689c10cea5b71c6c7",
-              "declaredInCode": true
+              "id": "5885d34210bc47e689c10cea5b71c6c7"
             },
             {
               "name": "_Ink",
@@ -347,8 +336,7 @@
                 0.7411765,
                 1.0
               ],
-              "id": "594bf8d18bf04b2b9ac7611b3260c1f9",
-              "declaredInCode": true
+              "id": "594bf8d18bf04b2b9ac7611b3260c1f9"
             }
           ],
           "shaderKey": "e09b3e762dec4ba7866dcd9a1144521a",
@@ -390,7 +378,7 @@
         "dimensions": "TwoD",
         "seed": 616,
         "scale": 2.5,
-        "scaleY": 0.0,
+        "scaleY": 2.5,
         "linkScale": true,
         "offset": [
           0.0,
@@ -406,7 +394,7 @@
         "warp": "OpenSimplex2",
         "warpStrength": 0.55,
         "warpScale": 1.0,
-        "warpScaleY": 0.0,
+        "warpScaleY": 1.0,
         "linkWarpScale": true,
         "encoding": "LinearData",
         "inverted": false,
@@ -426,7 +414,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -440,22 +428,19 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "2fda8955cd0648c98c5bef671a8c2209",
-              "declaredInCode": true
+              "id": "2fda8955cd0648c98c5bef671a8c2209"
             },
             {
               "name": "_Brightness",
               "type": "Float",
               "floatValue": 2.0,
-              "id": "c2f92a4ae9cd4d8b9d0a88d679296bbf",
-              "declaredInCode": true
+              "id": "c2f92a4ae9cd4d8b9d0a88d679296bbf"
             },
             {
               "name": "_Contrast",
               "type": "Float",
               "floatValue": 18.0,
-              "id": "39ea765490f04c849960336e8ee1c0e9",
-              "declaredInCode": true
+              "id": "39ea765490f04c849960336e8ee1c0e9"
             }
           ],
           "shaderKey": "fe8242681fda458fa773f8298eedf6d0",
@@ -471,8 +456,7 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "6efc032a299b4891b9043131ce0fcb65",
-              "declaredInCode": true
+              "id": "6efc032a299b4891b9043131ce0fcb65"
             },
             {
               "name": "_Gradient",
@@ -592,8 +576,7 @@
                 "colorSpace": "Gamma",
                 "smoothness": 1.0
               },
-              "id": "54192596c08c4e95b1517349c4a95c8a",
-              "declaredInCode": true
+              "id": "54192596c08c4e95b1517349c4a95c8a"
             },
             {
               "name": "_Mapping",
@@ -622,15 +605,13 @@
                   ]
                 ]
               },
-              "id": "f94d2d9017e94bad8f755b0c16dcdfea",
-              "declaredInCode": true
+              "id": "f94d2d9017e94bad8f755b0c16dcdfea"
             },
             {
               "name": "_Reverse",
               "type": "Bool",
               "floatValue": 0.0,
-              "id": "4b4c750cbef84f50b3e42879a673e822",
-              "declaredInCode": true
+              "id": "4b4c750cbef84f50b3e42879a673e822"
             }
           ],
           "shaderKey": "efdf1d90107c47248fe6bf01a87f1624",
@@ -672,7 +653,7 @@
         "dimensions": "TwoD",
         "seed": 616,
         "scale": 2.5,
-        "scaleY": 0.0,
+        "scaleY": 2.5,
         "linkScale": true,
         "offset": [
           0.0,
@@ -688,7 +669,7 @@
         "warp": "OpenSimplex2",
         "warpStrength": 0.55,
         "warpScale": 1.0,
-        "warpScaleY": 0.0,
+        "warpScaleY": 1.0,
         "linkWarpScale": true,
         "encoding": "LinearData",
         "inverted": false,

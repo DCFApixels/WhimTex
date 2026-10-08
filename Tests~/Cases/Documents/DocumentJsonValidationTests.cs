@@ -7,7 +7,7 @@ using UnityEditor;
 public static class DocumentJsonValidationTests
 {
     static int checks;
-    const string Header = "\"format\":\"whimtex.document\",\"version\":1,";
+    const string Header = "\"format\":\"whimtex.document\",\"version\":2,";
     static string Doc(string settings = "{}", string layers = "[]") => "{" + Header + "\"document\":" + settings + ",\"layers\":" + layers + "}";
     static string Layer(string behaviour, string extra = "") => "[{\"id\":\"fixture\",\"behaviour\":" + behaviour + extra + "}]";
     static string Noise(string fields) => Doc(layers: Layer("{\"$type\":\"NoiseLayerBehaviour\"," + fields + "}"));
@@ -43,7 +43,7 @@ public static class DocumentJsonValidationTests
             Reject(Doc("{\"width\":" + value + "}"), "document.width");
         Reject(Doc("{\"width\":8192,\"height\":8192}"), "document.width");
         Reject(Doc("{\"layers\":[]}"), "document.layers");
-        Reject(Doc().Replace("\"version\":1", "\"version\":\"1\""), "version");
+        Reject(Doc().Replace("\"version\":2", "\"version\":\"2\""), "version");
         Reject(Noise("\"offset\":[0,\"1\",0]"), "layers[0].behaviour.offset[1]");
         Reject(Noise("\"offset\":[0,1,1e40]"), "layers[0].behaviour.offset[2]");
         Reject(Noise("\"offset\":[0]"), "layers[0].behaviour.offset");

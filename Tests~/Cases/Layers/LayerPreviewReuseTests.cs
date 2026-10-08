@@ -41,8 +41,8 @@ public static class LayerPreviewReuseTests
         }
         var focus = EditorWindow.focusedWindow;
         var window = job.Scope.Own(ScriptableObject.CreateInstance<EditorWindow>());
-        var doc = job.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>()); doc.width = 512; doc.height = 384;
-        var asm = typeof(TextureCompositor).Assembly;
+        var doc = job.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>()); doc.width = 512; doc.height = 384;
+        var asm = typeof(WhimTexDocument).Assembly;
         var stateType = asm.GetType("DCFApixels.WhimTex.LayerPreviewPanel+ViewState");
         var panelType = asm.GetType("DCFApixels.WhimTex.LayerPreviewPanel");
         var cache = job.Scope.OwnDisposable((IDisposable)Activator.CreateInstance(asm.GetType("DCFApixels.WhimTex.EffectRenderCache"), true));

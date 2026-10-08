@@ -9,7 +9,7 @@
 содержимое слоя. Batch также читает/сохраняет JSON. Headless Live пока остаётся TIFF-пайплайном.
 Контракт: [JSON_FORMAT](../Documentation~/JSON_FORMAT.md).
 
-TIFF — основной формат документа с 0.11.0. Документы `.asset` не поддерживаются; до обновления преобразуйте их в TIFF через WhimTex 0.12.5.
+TIFF — основной формат документа. Документы `.asset` и прежние версии TIFF не поддерживаются; для них нужен соответствующий старый checkout.
 Это карта команд, а не отдельная версия протокола. Полный контракт и лимиты находятся в
 [AgentAPI](../Documentation~/AgentAPI.md) и [LiveAgentAPI](../Documentation~/LiveAgentAPI.md).
 

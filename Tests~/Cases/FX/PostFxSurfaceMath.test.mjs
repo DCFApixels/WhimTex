@@ -8,7 +8,7 @@ context.case("PostFxSurfaceMath original assertion inputs and source contracts",
   const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
   const shader = read('../../../src/PostFx/URP/URPPreviewSurface.shader');
   const backend = read('../../../src/PostFx/URP/UrpPostFxPreview.cs');
-  const window = read('../../../src/TextureCompositorWindow.PostFx.cs');
+  const window = read('../../../src/WhimTexWindow.PostFx.cs');
   assert.deepEqual([...shader.matchAll(/Name "([^"]+)"/g)].map(m => m[1]),
     ['Surface', 'DepthOnly', 'NormalizeOutput', 'DepthNormals']);
   for (const contract of ['"LightMode"="UniversalForwardOnly"', '"LightMode"="DepthNormalsOnly"',
@@ -29,7 +29,7 @@ context.case("PostFxSurfaceMath original assertion inputs and source contracts",
   assert.ok(window.includes('postFxBackend?.Dispose(); postFxBackend = null;'));
   assert.ok(shader.includes('lerp(BackgroundColor(input.uv),color.rgb,saturate(color.a))'));
   assert.ok(shader.indexOf('output.depth = SurfaceDepth(color.a);') < shader.indexOf('lerp(BackgroundColor(input.uv)'));
-  assert.ok(window.includes('new Vector2(compositor.width, compositor.height)'), 'Checker scale must not depend on Live Quality');
+  assert.ok(window.includes('new Vector2(activeDocument.width, activeDocument.height)'), 'Checker scale must not depend on Live Quality');
   const request = read('../../../src/PostFxPreview.cs');
   assert.ok(request.includes('checkerSize = WhimTexUserSettings.CheckerSize;'));
   assert.ok(request.includes('checkerLight = WhimTexUserSettings.CheckerLight;'));

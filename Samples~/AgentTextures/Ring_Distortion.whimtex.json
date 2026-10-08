@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -10,7 +10,6 @@
       }
     ],
     "nextCopyNumber": 1,
-    "spriteSlices": [],
     "width": 256,
     "height": 256,
     "outputFilter": "Bilinear",
@@ -30,7 +29,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -49,8 +48,7 @@
                 0.0,
                 0.0
               ],
-              "id": "dfc6d2b42aae44b3a262803e858edb5a",
-              "declaredInCode": true
+              "id": "dfc6d2b42aae44b3a262803e858edb5a"
             },
             {
               "name": "_Scale",
@@ -61,29 +59,25 @@
                 0.0,
                 0.0
               ],
-              "id": "3a03686975d0427bb368271a98185427",
-              "declaredInCode": true
+              "id": "3a03686975d0427bb368271a98185427"
             },
             {
               "name": "_Radius",
               "type": "Float",
               "floatValue": 0.2995,
-              "id": "3ffbeae3d8fa4999a23514d688d54672",
-              "declaredInCode": true
+              "id": "3ffbeae3d8fa4999a23514d688d54672"
             },
             {
               "name": "_Width",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "81f6592ae6714d6b82c2ebd29626e5e7",
-              "declaredInCode": true
+              "id": "81f6592ae6714d6b82c2ebd29626e5e7"
             },
             {
               "name": "_Strength",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "6989b35e190a4daf9eef4b8bba6a7ddb",
-              "declaredInCode": true
+              "id": "6989b35e190a4daf9eef4b8bba6a7ddb"
             },
             {
               "name": "_VectorProfile",
@@ -373,22 +367,19 @@
                   ]
                 ]
               },
-              "id": "f1fd2ecbd893424fb65e8cfdc7f22cf5",
-              "declaredInCode": true
+              "id": "f1fd2ecbd893424fb65e8cfdc7f22cf5"
             },
             {
               "name": "_FlipY",
               "type": "Bool",
               "floatValue": 0.0,
-              "id": "774bf626790f455683cd6872c01d4b44",
-              "declaredInCode": true
+              "id": "774bf626790f455683cd6872c01d4b44"
             },
             {
               "name": "_BlueStrength",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "7e082e8d38854de39482132ff4bca80c",
-              "declaredInCode": true
+              "id": "7e082e8d38854de39482132ff4bca80c"
             },
             {
               "name": "_BlueProfile",
@@ -678,15 +669,13 @@
                   ]
                 ]
               },
-              "id": "cb62235ab020483aa6d5e256be2a5765",
-              "declaredInCode": true
+              "id": "cb62235ab020483aa6d5e256be2a5765"
             },
             {
               "name": "_Neutral",
               "type": "Float",
               "floatValue": 0.501960754,
-              "id": "2d2a3e3bf08e41deab6cfb85ced9abbf",
-              "declaredInCode": true
+              "id": "2d2a3e3bf08e41deab6cfb85ced9abbf"
             }
           ],
           "shaderKey": "17b46451695b4d1a8e655cd1de2dbbae",

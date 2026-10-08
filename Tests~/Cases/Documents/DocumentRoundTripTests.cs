@@ -29,16 +29,16 @@ System.Collections.Generic.List<UnityEngine.Color> Sample(UnityEngine.Texture2D 
 }
 
 string dir = UnityBRun.AssetPath("WhimTexRoundTrip_") + System.Guid.NewGuid().ToString("N");
-DCFApixels.WhimTex.TextureCompositor doc = null;
-DCFApixels.WhimTex.TextureCompositor loaded = null;
-DCFApixels.WhimTex.TextureCompositor second = null;
+DCFApixels.WhimTex.WhimTexDocument doc = null;
+DCFApixels.WhimTex.WhimTexDocument loaded = null;
+DCFApixels.WhimTex.WhimTexDocument second = null;
 UnityEngine.Texture2D plain = null;
 UnityBRun.EnsureFolder(dir);
 try
 {
 
 // --- build a document with several behaviour types, a group, an effect target and a drawing layer ---
-doc = UnityBRun.Create<DCFApixels.WhimTex.TextureCompositor>();
+doc = UnityBRun.Create<DCFApixels.WhimTex.WhimTexDocument>();
 doc.width = doc.height = 8;
 var drawing = new DCFApixels.WhimTex.DrawingLayerBehaviour { brushColor = UnityEngine.Color.red, brushSize = 8, brushHardness = 1f };
 Call(drawing, "PaintPoint", new UnityEngine.Vector2(.5f, .5f), 8, 8, Call(drawing, "GetStrokeParameters", false));
@@ -77,7 +77,7 @@ Check(UnityEditor.AssetImporter.GetAtPath(path) is UnityEditor.TextureImporter, 
 var boundComposite = Field(doc, "outputTexture") as UnityEngine.Texture2D;
 Check(boundComposite != null && boundComposite == imported, "the saved document is bound to the file image");
 Check(UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path).Length == 1 || !System.Array.Exists(UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path),
-    asset => asset is DCFApixels.WhimTex.TextureCompositor), "the document is not stored as a sub-asset");
+    asset => asset is DCFApixels.WhimTex.WhimTexDocument), "the document is not stored as a sub-asset");
 
 // --- load it back ---
 phase = "load";

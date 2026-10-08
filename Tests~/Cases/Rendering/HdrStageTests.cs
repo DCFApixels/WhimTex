@@ -9,7 +9,7 @@ public static class HdrStageTests
     static string Execute()
     {
 // Opt-in live-Editor eval after manual shader import. No source import, compilation or saved assets.
-var shader = Shader.Find("Hidden/TextureCompositor/Hdr");
+var shader = Shader.Find("Hidden/WhimTex/Hdr");
 UnityBRun.Check(!(shader == null || !shader.isSupported), "HDR shader is unavailable.");
 var material = UnityBRun.Track(new Material(shader) { hideFlags = HideFlags.HideAndDontSave });
 var source = UnityBRun.Track(new Texture2D(3, 3, TextureFormat.RGBAFloat, false, true)

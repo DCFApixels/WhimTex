@@ -45,10 +45,10 @@ public static class SkillWorkflowTests
         void Check(bool ok, string message) { context.True(ok, message); }
         Node Success(string json) { var n = Parse(json); Check(n["success"].ToString() == "True", json); return n; }
         Node Failure(string json, string code) { var n = Parse(json); Check(n["success"].ToString() == "False" && n["errorCode"].ToString() == code, json); return n; }
-        var window = ScriptableObject.CreateInstance<TextureCompositorWindow>();
-        var doc = (TextureCompositor)typeof(TextureCompositorWindow).GetField("compositor", Any).GetValue(window);
+        var window = ScriptableObject.CreateInstance<WhimTexWindow>();
+        var doc = (WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument", Any).GetValue(window);
         doc.width = doc.height = 32;
-        string session = (string)typeof(TextureCompositorWindow).GetProperty("AgentSessionId", Any).GetValue(window);
+        string session = (string)typeof(WhimTexWindow).GetProperty("AgentSessionId", Any).GetValue(window);
         string scope = "\"sessionId\":" + Encode(session);
         Node Live(string fields) => Success(WhimTexApi.LiveJson("{\"apiVersion\":1," + fields + "}"));
         Node Inspect() => Live("\"op\":\"inspect\"," + scope);
@@ -107,7 +107,7 @@ public static class SkillWorkflowTests
             Check(baseNoise.Zip(Pixels(), (a,b) => Mathf.Abs(a.r-b.r)).Max() > .005f, "linked displacement changes rendered noise");
             report.AppendLine("Reservation + preset insertion is rejected. Procedural preview/complete, then fresh inspect + preset batch succeeds.");
 
-            var selection = typeof(TextureCompositorWindow).GetProperty("AgentSelection", Any).GetValue(window);
+            var selection = typeof(WhimTexWindow).GetProperty("AgentSelection", Any).GetValue(window);
             selection.GetType().GetMethod("All", Any).Invoke(selection, null);
             foreach (string mode in new[] {"strict", "guide"})
             {

@@ -10,13 +10,13 @@ public static class EffectCacheStampTests
     const BindingFlags Flags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public;
     static object Call(object owner, string name, params object[] args) => owner.GetType().GetMethod(name, Flags).Invoke(owner, args);
     static void Set(ShaderFX fx, string name, object value) => typeof(ShaderFX).GetField(name, Flags).SetValue(fx, value);
-    static Type CacheType => typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache", true);
+    static Type CacheType => typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache", true);
     static FixtureScope S => FixtureContext.Scope;
     static WhimTex.Tests.TestContext T => FixtureContext.Context;
 
     public static string Benchmark() => FixtureContext.Diagnostic("FX cache fingerprint timing", () =>
     {
-        var doc = S.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var doc = S.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         var cache = S.OwnDisposable((IDisposable)Activator.CreateInstance(CacheType, true));
         Layer processor = new ShaderProcessorLayerBehaviour();
         doc.layers.Add(processor);
@@ -39,7 +39,7 @@ public static class EffectCacheStampTests
 
     public static string Run() => FixtureContext.Run("FX fingerprints and cache dependency invalidation", () =>
     {
-        var doc = S.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var doc = S.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         var cache = S.OwnDisposable((IDisposable)Activator.CreateInstance(CacheType, true));
         var fx = S.Own(ScriptableObject.CreateInstance<ShaderFX>());
         Layer layer = new ColorFillLayerBehaviour(); layer.fx.Add(fx); doc.layers.Add(layer);
@@ -86,7 +86,7 @@ public static class EffectCacheStampTests
         Changed(() => Set(fx, "lastApplyFailed", true), "Apply failure state invalidates");
         Changed(() => fx.Active = false, "Active state invalidates");
         Changed(() => fx.Active = true, "Re-enabling invalidates");
-        Changed(() => Set(fx, "compiledShader", Shader.Find("Hidden/TextureCompositor/SmudgeBrush")), "Compiled shader change invalidates");
+        Changed(() => Set(fx, "compiledShader", Shader.Find("Hidden/WhimTex/SmudgeBrush")), "Compiled shader change invalidates");
 
         Layer processor = new ShaderProcessorLayerBehaviour();
         Layer hidden = new ColorFillLayerBehaviour { enabled = false };

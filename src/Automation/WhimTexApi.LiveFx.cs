@@ -22,7 +22,7 @@ namespace DCFApixels.WhimTex
             return Live(request);
         });
 
-        internal static bool IsLayerContentLocked(TextureCompositor document, Layer layer)
+        internal static bool IsLayerContentLocked(WhimTexDocument document, Layer layer)
         {
             if (layer == null) return false;
             foreach (var job in liveJobs.Values)
@@ -53,9 +53,9 @@ namespace DCFApixels.WhimTex
         private static bool IsLiveLockedLayer(Layer layer) => layer != null && liveJobs.Values.Any(j =>
             j.editing && j.state == "pending" && j.document != null && ReferenceEquals(j.document.FindLayer(j.layerId), layer));
 
-        private static void NotifyLiveLockChanged(TextureCompositor document)
+        private static void NotifyLiveLockChanged(WhimTexDocument document)
         {
-            foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
+            foreach (var window in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
                 if (window.AgentDocument == document) window.RefreshAgentLocks();
             LiveEditLocksChanged?.Invoke();
         }
@@ -67,7 +67,7 @@ namespace DCFApixels.WhimTex
                 { job.state = "cancelled"; NotifyLiveLockChanged(job.document); }
         }
 
-        internal static void CancelLayerEdit(TextureCompositor document, Layer layer)
+        internal static void CancelLayerEdit(WhimTexDocument document, Layer layer)
         {
             foreach (var job in liveJobs.Values)
                 if (job.editing && job.state == "pending" && job.document == document && job.layerId == layer?.Id)
@@ -107,7 +107,7 @@ namespace DCFApixels.WhimTex
             return LiveStatus(job);
         }
 
-        private static void ApplyLiveFx(Layer layer, JToken token, TextureCompositor owner, List<ShaderFX> created)
+        private static void ApplyLiveFx(Layer layer, JToken token, WhimTexDocument owner, List<ShaderFX> created)
         {
             if (token == null) return;
             Require(token is JArray array && array.Count <= 16, "fx must be an array of at most 16 operations.");
@@ -140,7 +140,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static JArray LiveFxSnapshot(Layer layer, TextureCompositor owner)
+        private static JArray LiveFxSnapshot(Layer layer, WhimTexDocument owner)
         {
             var result = new JArray();
             if (layer.fx == null) return result;
@@ -152,7 +152,8 @@ namespace DCFApixels.WhimTex
                 {
                     entry["type"] = "shaderFX"; entry["embedded"] = fx.EmbeddedOwner == owner;
                     entry["enabled"] = fx.Active;
-                    entry["code"] = fx.Code; entry["diagnostics"] = fx.Diagnostics;
+                    entry["code"] = fx.Code;
+                    WriteFxDiagnostics(entry, fx);
                     entry["pendingChanges"] = fx.HasPendingChanges;
                     entry["lastApplyFailed"] = fx.LastApplyFailed;
                     var parameters = new JArray();
@@ -188,7 +189,7 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
-        private static void ApplyLiveEditSettings(TextureCompositor document, Layer layer, JObject changes)
+        private static void ApplyLiveEditSettings(WhimTexDocument document, Layer layer, JObject changes)
         {
             Keys(changes, "settings", "transform", "fx");
             Require(changes.Count > 0, "changes must not be empty.");
@@ -210,7 +211,7 @@ namespace DCFApixels.WhimTex
             Require(LiveLayerRevision(target) == job.targetRevision, "Target changed. Unlock and inspect before starting another edit.", "revision_conflict");
             JObject changes = Obj(request["changes"], "changes");
             var created = new List<ShaderFX>();
-            TextureCompositor probe = null;
+            WhimTexDocument probe = null;
             Texture2D image = null;
             RenderTexture rt = null;
             bool committed = false;

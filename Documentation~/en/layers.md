@@ -31,7 +31,7 @@ Use **+** at the bottom of Layers to choose a type:
 You can also drag a Project texture onto Canvas View to add it at the top,
 or drop it between rows to choose its position. A newly assigned image keeps its original proportions.
 Assigning an HDR texture to a File layer sets **Color Range** and **Blend Range** to **HDR**.
-You can change both afterwards in **Color & Blending**.
+You can change both afterwards in **Rendering**.
 
 File layers linked to another WhimTex document have a thin orange line along the left edge of their row.
 Double-click its thumbnail or row background to open or focus that document without replacing the current one.
@@ -58,7 +58,7 @@ Select several layers in **Layers**, then use **Transform (T)** to edit them tog
 The selected layer's settings are divided into four foldouts:
 
 - **Transform:** position, size, rotation and tiling.
-- **Color & Blending:** Opacity, Blend Mode, color ranges and Swizzle. Opacity and Blend Mode are also available in the Layers list. The Standard/HDR selector remains available in the header.
+- **Rendering:** Opacity, Blend Mode, color ranges and Mapping. Opacity and Blend Mode are also available in the Layers list. The Standard/HDR selector remains available in the header.
 - **Properties (layer type):** settings specific to this layer, such as its source texture, effect target or drawing symmetry.
 - **FX:** add and adjust shader effects.
 
@@ -72,7 +72,7 @@ Use the group's arrow to expand or collapse it.
 
 Groups start in **Pass Through**, so their layers can blend with layers outside the group.
 Choose another blend mode to blend the group as one image. Group opacity fades the whole group.
-Add **FX** to a group to process its combined image. FX automatically isolate a Pass Through group using Normal blending, so they do not affect the image outside it. Removing all FX restores Pass Through unless clipping or Swizzle still requires isolation. **Properties → Compositing** shows the effective mode, read-only. Groups also have **Transform**: move, rotate, scale, skew or distort the group with perspective. Children keep local transforms relative to their group. The group frame represents its own transform, not the bounds of its children. Moving layers between groups or ungrouping preserves their canvas placement.
+Add **FX** to a group to process its combined image. FX automatically isolate a Pass Through group using Normal blending, so they do not affect the image outside it. Removing all FX restores Pass Through unless clipping or Mapping still requires isolation. **Properties → Compositing** shows the effective mode, read-only. Groups also have **Transform**: move, rotate, scale, skew or distort the group with perspective. Children keep local transforms relative to their group. The group frame represents its own transform, not the bounds of its children. Moving layers between groups or ungrouping preserves their canvas placement.
 
 ## Duplicate, merge or delete
 

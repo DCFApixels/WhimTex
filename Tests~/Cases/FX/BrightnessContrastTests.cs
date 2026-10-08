@@ -19,7 +19,7 @@ static System.Threading.CancellationToken Cancellation;
         const int w = 256, h = 4;
         string path = "Packages/com.dcfapixels.whimtex/src/FXPresets/BrightnessContrast.hlsl";
         // Preset source is read-only; do not reimport a production asset.
-        var doc = Scope.OwnObject(ScriptableObject.CreateInstance<TextureCompositor>()); doc.width = w; doc.height = h;
+        var doc = Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>()); doc.width = w; doc.height = h;
         var input = new Texture2D(w, h, TextureFormat.RGBAFloat, false, true) { filterMode = FilterMode.Point };
         var read = new Texture2D(w, h, TextureFormat.RGBAFloat, false, true);
         var output = RenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
@@ -28,7 +28,7 @@ static System.Threading.CancellationToken Cancellation;
         try
         {
             var draft = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(TextureCompositor), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
             fx = (ShaderFX)draft.Invoke(null, new object[] { doc, File.ReadAllText(path), new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
             var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
@@ -113,14 +113,14 @@ static System.Threading.CancellationToken Cancellation;
             var composite = doc.ComposeCanvas();
             try { Near(composite.GetPixel(w / 2, h / 2), expectedColor, "Group composite"); }
             finally { UnityEngine.Object.DestroyImmediate(composite); }
-            var thumbnail = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderAgentLayerPreview", F).Invoke(doc, new object[] { group, w });
+            var thumbnail = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderAgentLayerPreview", F).Invoke(doc, new object[] { group, w });
             try
             {
                 RenderTexture.active = thumbnail; read.ReadPixels(new Rect(0, 0, w, h), 0, 0); read.Apply();
                 Near(read.GetPixel(w / 2, h / 2), expectedColor, "Group preview");
             }
             finally { RenderTexture.active = previous; RenderTexture.ReleaseTemporary(thumbnail); }
-            var exported = (Texture2D)typeof(TextureCompositor).GetMethod("RenderPsdGroupContent", F).Invoke(doc, new object[] { group });
+            var exported = (Texture2D)typeof(WhimTexDocument).GetMethod("RenderPsdGroupContent", F).Invoke(doc, new object[] { group });
             try { Near(exported.GetPixel(w / 2, h / 2), expectedColor.gamma, "Layered export (display RGB)"); }
             finally { UnityEngine.Object.DestroyImmediate(exported); }
             group.clippingMask = true;

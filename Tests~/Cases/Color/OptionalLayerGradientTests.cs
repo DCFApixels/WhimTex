@@ -21,15 +21,15 @@ public static class OptionalLayerGradientTests
     static IDisposable Read(string layers)
     {
         try { return (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", F)
-            .Invoke(null, new object[] { "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":" + layers + "}", 48, 48 }); }
+            .Invoke(null, new object[] { "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":" + layers + "}", 48, 48 }); }
         catch (TargetInvocationException error) { throw error.GetBaseException(); }
     }
-    static TextureCompositor Document(IDisposable data) => (TextureCompositor)data.GetType().GetField("Document", F).GetValue(data);
-    static Color[] Render(TextureCompositor doc, Layer layer)
+    static WhimTexDocument Document(IDisposable data) => (WhimTexDocument)data.GetType().GetField("Document", F).GetValue(data);
+    static Color[] Render(WhimTexDocument doc, Layer layer)
     {
         var old = RenderTexture.active;
         bool srgb = GL.sRGBWrite;
-        var rt = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderLayerPreview", F).Invoke(doc, new object[] { layer, 48 });
+        var rt = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderLayerPreview", F).Invoke(doc, new object[] { layer, 48 });
         Check(RenderTexture.active == old && GL.sRGBWrite == srgb, "Preserves render state");
         var texture = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(rt.width, rt.height, TextureFormat.RGBAFloat, false, true));
         try
@@ -54,15 +54,15 @@ public static class OptionalLayerGradientTests
         }
         return color;
     }
-    static void Cache(TextureCompositor doc)
+    static void Cache(WhimTexDocument doc)
     {
         var layer = doc.layers[0];
-        var cacheType = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache");
+        var cacheType = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache");
         using var cache = (IDisposable)Activator.CreateInstance(cacheType, true);
         void Compare()
         {
             var old = RenderTexture.active;
-            var output = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvasWithCache", F)
+            var output = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderCanvasWithCache", F)
                 .Invoke(doc, new object[] { 48, cache, false, null });
             var read = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(48, 48, TextureFormat.RGBAFloat, false, true));
             var fresh = doc.ComposeCanvas();
@@ -92,10 +92,10 @@ public static class OptionalLayerGradientTests
         group.layers.Add(layer);
         group.layers.Add(new ColorFillLayerBehaviour { color = new Color(1, 1, 1, .4f) });
         layer.clippingMask = true;
-        typeof(TextureCompositor).GetMethod("NormalizeModel", F).Invoke(doc, null);
+        typeof(WhimTexDocument).GetMethod("NormalizeModel", F).Invoke(doc, null);
         Compare();
     }
-    static void UI(TextureCompositor doc, LayerBehaviour source, Type editor)
+    static void UI(WhimTexDocument doc, LayerBehaviour source, Type editor)
     {
         var window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<OptionalGradientTestWindow>());
         window.titleContent = new GUIContent("Gradient controls test");
@@ -153,7 +153,7 @@ public static class OptionalLayerGradientTests
         checks = 0;
         foreach (string name in new[] { "Noise", "SdfGradient" })
         {
-            var shader = Shader.Find("Hidden/TextureCompositor/" + name);
+            var shader = Shader.Find("Hidden/WhimTex/" + name);
             Check(shader != null && shader.isSupported, "Supported " + name);
             foreach (var message in UnityEditor.ShaderUtil.GetShaderMessages(shader))
                 Check(message.severity.ToString() != "Error", message.message);

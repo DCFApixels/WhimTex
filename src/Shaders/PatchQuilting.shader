@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/PatchQuilting"
+Shader "Hidden/WhimTex/PatchQuilting"
 {
     Properties { _MainTex ("Source", 2D) = "white" {} }
     SubShader

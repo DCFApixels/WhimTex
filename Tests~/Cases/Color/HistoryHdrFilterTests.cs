@@ -23,7 +23,7 @@ public static class HistoryHdrFilterTests
         if(Resources.FindObjectsOfTypeAll<WhimTexColorPicker>().Length!=0 || Resources.FindObjectsOfTypeAll<WhimTexGradientWindow>().Length!=0)
             throw new UnityBSkipException("BLOCKED: close active picker/gradient windows first.");
         checks=0; var focus=EditorWindow.focusedWindow;
-        var doc=UnityBRun.Create<TextureCompositor>();
+        var doc=UnityBRun.Create<WhimTexDocument>();
         WhimTexColorPicker picker=null; WhimTexGradientWindow window=null; ScriptableObject session=null;
         var list=new List<Color> {new Color(2,0,0),Color.red,new Color(0,-.1f,0),Color.green,new Color(0,0,1,.2f)};
         Set(doc,"colorHistory",list);

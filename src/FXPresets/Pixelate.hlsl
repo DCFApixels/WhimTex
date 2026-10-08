@@ -18,14 +18,14 @@
 // @if _Dither != 0
 // @param label(Dither Strength) float _Amount = 1 [0 .. 1] // Dither strength; zero rounds each channel to the nearest level.
 // @endif
-// @group(Color; _OneBit)
-// @param hidden enum _OneBit = Quantization {Quantization: 0, OneBit: 1}
-// @if _OneBit == 0
+// @group(Color; _ColorMode)
+// @param hidden enum _ColorMode = Quantization {Quantization: 0, OneBit: 1}
+// @if _ColorMode == 0
 // @header(Color Quantization)
 // @param float _Levels = 8 [2 .. ~64] // Output levels per channel, rounded to an integer.
 // @param float _Gamma = 1 [0.1 .. ~5] // Distribution of the tonal steps.
 // @endif
-// @if _OneBit == 1
+// @if _ColorMode == 1
 // @header(One-bit Colors)
 // @param color _LowColor = (0, 0, 0, 1) // Dark color in One-bit mode; color alpha is ignored.
 // @param color _HighColor = (1, 1, 1, 1) // Light color in One-bit mode; color alpha is ignored.
@@ -71,7 +71,7 @@ float4 QuantizeBlock(float2 block, float size, float2 canvas)
 
     float threshold = lerp(0.5, DitherThreshold(block, _Dither), saturate(_Amount));
     float gamma = max(_Gamma, 0.1);
-    if (_OneBit > 0.5)
+    if (_ColorMode > 0.5)
     {
         float luminance = saturate(dot(max(source.rgb, 0.0), float3(0.2126, 0.7152, 0.0722)));
         source.rgb = lerp(_LowColor.rgb, _HighColor.rgb, floor(saturate(luminance + threshold)));
@@ -151,7 +151,7 @@ float4 ApplyFX(float2 uv, float4 color)
 
     float threshold = lerp(0.5, DitherThreshold(block, _Dither), saturate(_Amount));
     float gamma = max(_Gamma, 0.1);
-    if (_OneBit > 0.5)
+    if (_ColorMode > 0.5)
     {
         float luminance = saturate(dot(max(source.rgb, 0.0), float3(0.2126, 0.7152, 0.0722)));
         source.rgb = lerp(_LowColor.rgb, _HighColor.rgb, floor(saturate(luminance + threshold)));

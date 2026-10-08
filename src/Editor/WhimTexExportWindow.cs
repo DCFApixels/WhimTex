@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Format = DCFApixels.WhimTex.TextureCompositorWindow.TextureExportFormat;
+using Format = DCFApixels.WhimTex.WhimTexWindow.TextureExportFormat;
 
 namespace DCFApixels.WhimTex
 {
@@ -37,15 +37,15 @@ namespace DCFApixels.WhimTex
             "Unity Texture2D (.asset)", "Layered PSD (.psd)", "WhimTex JSON (.json)" };
         private static readonly List<string> JsonModes = new() { "Full Optimized (Default)", "Full", "Compact" };
         private static readonly WhimTexJsonWriteMode[] JsonValues = { WhimTexJsonWriteMode.FullOptimized, WhimTexJsonWriteMode.Full, WhimTexJsonWriteMode.Compact };
-        [SerializeField] private TextureCompositorWindow owner;
-        [SerializeField] private TextureCompositor source;
+        [SerializeField] private WhimTexWindow owner;
+        [SerializeField] private WhimTexDocument source;
         [SerializeField] private WhimTexExportOptions options = new();
         private VisualElement settings;
         private HelpBox drawingWarning, sourceWarning, errorBox;
         private Button exportButton, cancelButton;
         private bool exporting;
 
-        internal static void Open(TextureCompositorWindow owner, TextureCompositor source)
+        internal static void Open(WhimTexWindow owner, WhimTexDocument source)
         {
             foreach (var existing in Resources.FindObjectsOfTypeAll<WhimTexExportWindow>())
                 if (existing.owner == owner && existing.source == source)

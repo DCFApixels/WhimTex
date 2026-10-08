@@ -14,7 +14,7 @@ static System.Threading.CancellationToken Cancellation;
 private static string BodyRun()
 {
 // Opt-in Pipeline eval body; transient objects only, no saves, prefs or Undo.
-var type = typeof(DCFApixels.WhimTex.TextureCompositor);
+var type = typeof(DCFApixels.WhimTex.WhimTexDocument);
 var hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 var all = hidden | System.Reflection.BindingFlags.Public;
 int checks = 0;
@@ -28,12 +28,12 @@ Check(type.GetMethod("ComposeCanvas", all, null, System.Type.EmptyTypes, null).I
 Check(cpu != null && cpu.IsAssembly && cpu.ReturnType == typeof(UnityEngine.Texture2D), "Limited ComposeCanvas remains internal");
 Check(gpu != null && gpu.IsAssembly && gpu.ReturnType == typeof(UnityEngine.RenderTexture), "RenderCanvas signature");
 foreach (string oldName in new[] { "Compose", "ComposePreview", "RenderPreview", "RenderCachedPreview", "GetPreviewDimensions", "ComposeAtSize", "RenderComposite", "RenderAllLayers", "RenderThumbnailLayer" })
-    Check(type.GetMethod(oldName, all) == null, "Unexpected old compositor alias: " + oldName);
+    Check(type.GetMethod(oldName, all) == null, "Unexpected old activeDocument alias: " + oldName);
 Check(type.GetMethod("RenderLayerPreview", hidden) != null, "Layer preview is not canvas rendering");
 Check(type.GetMethod("RenderAgentLayerPreview", hidden) != null, "Agent layer preview remains distinct");
 var cacheType = type.Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache");
 object cache = null;
-var document = Scope.OwnObject(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+var document = Scope.OwnObject(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = 64; document.height = 32;
 UnityEngine.Texture2D source = null;

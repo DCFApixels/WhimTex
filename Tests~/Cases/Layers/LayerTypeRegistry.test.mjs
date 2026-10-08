@@ -24,7 +24,7 @@ context.case("LayerTypeRegistry original assertion inputs and source contracts",
   assert.match(registry,/StringComparer.Ordinal/);
   assert.match(read('Automation/WhimTexApi.Layers.cs'),/descriptor.CreateLayer\(\)/);
   assert.match(read('Automation/WhimTexApi.Inspect.cs'),/foreach \(var descriptor in LayerTypeRegistry.Entries\)/);
-  assert.match(read('TextureCompositorWindow.MissingLayers.cs'),/types\[replacement.index\].CreateBehaviour\(\)/);
+  assert.match(read('WhimTexWindow.MissingLayers.cs'),/types\[replacement.index\].CreateBehaviour\(\)/);
 
 });
 await finish(context);

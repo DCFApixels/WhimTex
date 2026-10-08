@@ -12,7 +12,7 @@ public static class GroupTransformTests
     static string ExecuteMain()
     {
         checks=0;
-        var doc=UnityBRun.Create<TextureCompositor>();
+        var doc=UnityBRun.Create<WhimTexDocument>();
         doc.width=64; doc.height=48;
         Layer outer=new GroupLayerBehaviour(), inner=new GroupLayerBehaviour(), leaf=new ShapeLayerBehaviour();
         doc.layers.Add(outer); outer.children.Add(inner); inner.children.Add(leaf);
@@ -20,8 +20,8 @@ public static class GroupTransformTests
         inner.transform.scale=new Double2(.7,.8);
         leaf.transform.position=new Double2(2,1);
         var local=leaf.transform;
-        var refresh=typeof(TextureCompositor).GetMethod("RefreshTransformHierarchy",F);
-        var get=typeof(TextureCompositor).GetMethod("GetCanvasTransform",F);
+        var refresh=typeof(WhimTexDocument).GetMethod("RefreshTransformHierarchy",F);
+        var get=typeof(WhimTexDocument).GetMethod("GetCanvasTransform",F);
         TextureTransform World(Layer layer)=>(TextureTransform)get.Invoke(doc,new object[]{layer});
         var cacheField=typeof(Layer).GetField("transformCache",F);
         ulong Version(Layer l) { var c=cacheField.GetValue(l); return (ulong)c.GetType().GetField("version",F).GetValue(c); }
@@ -57,11 +57,11 @@ public static class GroupTransformTests
                     leaf.transform=local; doc.layers.Clear(); doc.layers.Add(outer);
                 }
             }
-            var nestedCopy=(TextureCompositor)typeof(TextureCompositor).GetMethod("CaptureLayerClipboard",F).Invoke(doc,new object[]{new List<Layer>{leaf}});
+            var nestedCopy=(WhimTexDocument)typeof(WhimTexDocument).GetMethod("CaptureLayerClipboard",F).Invoke(doc,new object[]{new List<Layer>{leaf}});
             try { Check(nestedCopy.layers[0].transform.ToMatrix(64,48).Equals(World(leaf).ToMatrix(64,48)),"nested clipboard canvas placement"); }
             finally { UnityEngine.Object.DestroyImmediate(nestedCopy); }
             var before=World(leaf).ToMatrix(64,48);
-            typeof(TextureCompositor).GetMethod("PreserveTransformForMove",F).Invoke(doc,new object[]{leaf,doc.layers});
+            typeof(WhimTexDocument).GetMethod("PreserveTransformForMove",F).Invoke(doc,new object[]{leaf,doc.layers});
             inner.children.Remove(leaf); doc.layers.Add(leaf);
             var after=World(leaf).ToMatrix(64,48);
             for(int i=0;i<10;i++)
@@ -70,7 +70,7 @@ public static class GroupTransformTests
                 var a=before.Point(p);var b=after.Point(p);
                 Check(Math.Abs(a.x-b.x)+Math.Abs(a.y-b.y)<1e-12,"reparent preserves placement");
             }
-            var snapshot=(TextureCompositor)typeof(TextureCompositor).GetMethod("CaptureLayerClipboard",F).Invoke(doc,new object[]{new List<Layer>{leaf}});
+            var snapshot=(WhimTexDocument)typeof(WhimTexDocument).GetMethod("CaptureLayerClipboard",F).Invoke(doc,new object[]{new List<Layer>{leaf}});
             try { Check(snapshot.layers[0].transform.ToMatrix(64,48).Equals(World(leaf).ToMatrix(64,48)),"clipboard placement"); }
             finally { UnityEngine.Object.DestroyImmediate(snapshot); }
             ulong oldVersion=Version(inner);

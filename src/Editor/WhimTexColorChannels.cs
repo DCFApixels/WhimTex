@@ -19,11 +19,11 @@ namespace DCFApixels.WhimTex
         }
         internal static void SetSource(VisualElement root, Func<int> read)
         { Contexts.Remove(root); Contexts.Add(root, new Context { read = read }); }
-        internal static Func<int> FindSource(VisualElement element, TextureCompositor document)
+        internal static Func<int> FindSource(VisualElement element, WhimTexDocument document)
         {
             for (var parent = element; parent != null; parent = parent.parent)
                 if (Contexts.TryGetValue(parent, out var context)) return context.read;
-            return TextureCompositorWindow.FindColorChannelSource(document);
+            return WhimTexWindow.FindColorChannelSource(document);
         }
         internal static Color Apply(Color color, int mask)
         {

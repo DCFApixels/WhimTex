@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
 {
     public sealed class LayerFxEditorWindow : EditorWindow
     {
-        [SerializeField] private TextureCompositor compositor;
+        [SerializeField] private WhimTexDocument activeDocument;
         [SerializeField] private string layerId;
 
         [NonSerialized] private Layer layer;
@@ -18,15 +18,15 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private bool applyingChange;
         [NonSerialized] private bool interfaceBuilt;
         [NonSerialized] private bool refreshRequested;
-        [NonSerialized] private TextureCompositor boundCompositor;
+        [NonSerialized] private WhimTexDocument boundDocument;
         [NonSerialized] private string boundLayerId;
         private readonly List<UnityEngine.Object> displayedFx = new List<UnityEngine.Object>();
 
-        public static void Open(Layer layer, TextureCompositor compositor)
+        public static void Open(Layer layer, WhimTexDocument activeDocument)
         {
             LayerFxEditorWindow window = CreateInstance<LayerFxEditorWindow>();
             window.titleContent = WhimTexBranding.WindowTitle("FX — " + layer?.layerName);
-            window.compositor = compositor;
+            window.activeDocument = activeDocument;
             window.layer = layer;
             window.layerId = layer?.Id;
             window.minSize = new Vector2(320f, 260f);
@@ -37,15 +37,15 @@ namespace DCFApixels.WhimTex
         private void OnEnable()
         {
             titleContent = WhimTexBranding.WindowTitle(titleContent.text);
-            TextureCompositor.Changed += OnCompositorChanged;
-            TextureCompositor.RenderResourcesChanged += OnCompositorChanged;
+            WhimTexDocument.Changed += OnDocumentChanged;
+            WhimTexDocument.RenderResourcesChanged += OnDocumentChanged;
             WhimTexApi.LiveEditLocksChanged += RefreshAgentLock;
         }
 
         private void OnDisable()
         {
-            TextureCompositor.Changed -= OnCompositorChanged;
-            TextureCompositor.RenderResourcesChanged -= OnCompositorChanged;
+            WhimTexDocument.Changed -= OnDocumentChanged;
+            WhimTexDocument.RenderResourcesChanged -= OnDocumentChanged;
             WhimTexApi.LiveEditLocksChanged -= RefreshAgentLock;
         }
 
@@ -56,7 +56,7 @@ namespace DCFApixels.WhimTex
             RefreshAgentLock();
         }
 
-        private void RefreshAgentLock() => rootVisualElement.SetEnabled(!WhimTexApi.IsLayerContentLocked(compositor, layer));
+        private void RefreshAgentLock() => rootVisualElement.SetEnabled(!WhimTexApi.IsLayerContentLocked(activeDocument, layer));
 
         private void Update()
         {
@@ -68,7 +68,7 @@ namespace DCFApixels.WhimTex
         {
             refreshRequested = false;
             bool valid = ResolveLayer();
-            if (interfaceBuilt && boundCompositor == compositor && boundLayerId == layerId &&
+            if (interfaceBuilt && boundDocument == activeDocument && boundLayerId == layerId &&
                 valid == (fxList != null))
             {
                 if (valid)
@@ -76,7 +76,7 @@ namespace DCFApixels.WhimTex
                 return;
             }
             interfaceBuilt = true;
-            boundCompositor = compositor;
+            boundDocument = activeDocument;
             boundLayerId = layerId;
             fxList = null;
             displayedFx.Clear();
@@ -92,7 +92,7 @@ namespace DCFApixels.WhimTex
             {
                 WhimTexUI.AddHelpBox(
                     root,
-                    "The edited layer no longer exists in this compositor.",
+                    "The edited layer no longer exists in this document.",
                     HelpBoxMessageType.Info);
                 root.Add(WhimTexUI.CreateButton("Close", Close));
                 return;
@@ -116,17 +116,17 @@ namespace DCFApixels.WhimTex
             fxList.style.minHeight = 120f;
             fxList.RegisterCallback<PointerDownEvent>(evt =>
             {
-                if (evt.button == 0 && compositor != null)
-                    Undo.RecordObject(compositor, "Reorder Layer FX");
+                if (evt.button == 0 && activeDocument != null)
+                    Undo.RecordObject(activeDocument, "Reorder Layer FX");
             }, TrickleDown.TrickleDown);
             fxList.itemIndexChanged += (_, _) =>
             {
-                if (compositor == null)
+                if (activeDocument == null)
                     return;
                 applyingChange = true;
                 try
                 {
-                    compositor.MarkChanged();
+                    activeDocument.MarkChanged();
                 }
                 finally
                 {
@@ -146,7 +146,7 @@ namespace DCFApixels.WhimTex
             buttons.Add(WhimTexUI.CreateButton("Preset ▾", () => ShaderFXCatalog.ShowMenu(entry =>
             {
                 if (!ResolveLayer()) return;
-                ApplyChange("Add Catalog FX", () => compositor.AddCatalogShaderFX(layer, entry));
+                ApplyChange("Add Catalog FX", () => activeDocument.AddCatalogShaderFX(layer, entry));
                 RefreshFxItems();
             })));
             buttons.Add(WhimTexUI.CreateButton("Edit", EditSelectedFx));
@@ -206,7 +206,7 @@ namespace DCFApixels.WhimTex
         {
             if (!ResolveLayer())
                 return;
-            ApplyChange("Add Shader FX", () => compositor.AddEmbeddedShaderFX(layer));
+            ApplyChange("Add Shader FX", () => activeDocument.AddEmbeddedShaderFX(layer));
             RefreshFxItems();
             fxList?.SetSelection(layer.fx.Count - 1);
         }
@@ -267,15 +267,15 @@ namespace DCFApixels.WhimTex
 
         private void ApplyChange(string undoName, Action change)
         {
-            if (compositor == null || change == null || WhimTexApi.IsLayerContentLocked(compositor, layer))
+            if (activeDocument == null || change == null || WhimTexApi.IsLayerContentLocked(activeDocument, layer))
                 return;
 
-            Undo.RecordObject(compositor, undoName);
+            Undo.RecordObject(activeDocument, undoName);
             applyingChange = true;
             try
             {
                 change();
-                compositor.MarkChanged();
+                activeDocument.MarkChanged();
             }
             finally
             {
@@ -285,10 +285,10 @@ namespace DCFApixels.WhimTex
 
         private bool ResolveLayer()
         {
-            if (compositor == null || string.IsNullOrEmpty(layerId))
+            if (activeDocument == null || string.IsNullOrEmpty(layerId))
                 return false;
 
-            Layer resolved = compositor.FindLayer(layerId);
+            Layer resolved = activeDocument.FindLayer(layerId);
             if (resolved == null)
             {
                 layer = null;
@@ -299,11 +299,11 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
-        private void OnCompositorChanged(TextureCompositor changedCompositor)
+        private void OnDocumentChanged(WhimTexDocument changedDocument)
         {
-            if (changedCompositor != compositor || applyingChange)
+            if (changedDocument != activeDocument || applyingChange)
                 return;
-            if (TextureCompositor.IsRefreshingUndo)
+            if (WhimTexDocument.IsRefreshingUndo)
             {
                 OnUndoRedo();
                 return;

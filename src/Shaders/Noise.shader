@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/Noise"
+Shader "Hidden/WhimTex/Noise"
 {
     SubShader
     {

@@ -16,8 +16,8 @@ public static class NoiseTests
     {
         // Run through the connected Unity Editor after compilation. Transient textures only; no saves or Undo.
         var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-        var type = typeof(DCFApixels.WhimTex.TextureCompositor);
-        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+        var type = typeof(DCFApixels.WhimTex.WhimTexDocument);
+        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
         document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
         document.width = 99; document.height = 63;
         var layer = new DCFApixels.WhimTex.NoiseLayerBehaviour { encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData };
@@ -46,7 +46,7 @@ public static class NoiseTests
         }
         try
         {
-            var shader = UnityEngine.Shader.Find("Hidden/TextureCompositor/Noise");
+            var shader = UnityEngine.Shader.Find("Hidden/WhimTex/Noise");
             Check(shader != null && shader.isSupported, "Noise shader supported");
             foreach (var message in UnityEditor.ShaderUtil.GetShaderMessages(shader))
                 Check(message.severity.ToString() != "Error", message.message);

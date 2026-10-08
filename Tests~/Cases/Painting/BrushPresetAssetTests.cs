@@ -26,7 +26,7 @@ static System.Threading.CancellationToken Cancellation;
     {
         Check(asset != null, "temporary brush preset imported");
         Check(AssetImporter.GetAtPath(path) is BrushPresetImporter, "correct scripted importer");
-        var resolver = typeof(TextureCompositorWindow).GetMethod("GetDraggedBrushPresetPath", Hidden);
+        var resolver = typeof(WhimTexWindow).GetMethod("GetDraggedBrushPresetPath", Hidden);
         var previousObjects = DragAndDrop.objectReferences;
         try
         {
@@ -74,7 +74,7 @@ static System.Threading.CancellationToken Cancellation;
         try
         {
             // Scope.Assets already created its owned GUID folder.
-            var assembly = typeof(TextureCompositorWindow).Assembly;
+            var assembly = typeof(WhimTexWindow).Assembly;
             Type settingsType = assembly.GetType("DCFApixels.WhimTex.PaintToolSettings", true);
             object settings = Activator.CreateInstance(settingsType);
             Set(settings, "brushSize", 57f);

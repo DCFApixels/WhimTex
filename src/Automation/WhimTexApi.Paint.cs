@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
 {
     public static partial class WhimTexApi
     {
-        private static void SetBrush(TextureCompositor document, DrawingLayerBehaviour layer, JObject brush)
+        private static void SetBrush(WhimTexDocument document, DrawingLayerBehaviour layer, JObject brush)
         {
             Keys(brush, "color", "size", "hardness", "spacing", "mirrorX", "mirrorY", "mirrorAngle", "center", "repeat", "repeatCount", "repeatSecondaryCount", "radialStartAngle", "elements", "boundary",
                 "opacity", "flow", "pressure", "scatter", "scatterBias", "sizeJitter", "angleJitter", "angleOffset", "flipX", "flipY", "rotationMode", "randomAlgorithm", "tintGradient", "tip", "tipChannel", "tipSdf", "proceduralMode", "tipGradient", "blend", "blendApplication", "seed");
@@ -68,7 +68,7 @@ namespace DCFApixels.WhimTex
             layer.repeatBoundaryMode = Enum(brush, "boundary", layer.repeatBoundaryMode);
         }
 
-        private static void Paint(TextureCompositor document, DrawingLayerBehaviour layer, JObject operation, bool execute)
+        private static void Paint(WhimTexDocument document, DrawingLayerBehaviour layer, JObject operation, bool execute)
         {
             if (operation["brush"] != null) SetBrush(document, layer, Obj(operation["brush"], "brush"));
             Require(operation["points"] is JArray points && points.Count >= 1 && points.Count <= 4096, "A stroke needs 1..4096 [x,y] points.");
@@ -127,7 +127,7 @@ namespace DCFApixels.WhimTex
             finally { layer.EndStroke(); }
         }
 
-        private static Vector2 CanvasToLayerUv(Vector2 point, TextureCompositor document, TextureTransform transform)
+        private static Vector2 CanvasToLayerUv(Vector2 point, WhimTexDocument document, TextureTransform transform)
         {
             Require(TiledCanvasUtility.IsInvertible(transform), "Cannot paint through a singular transform.");
             Vector2 result = transform.Unmap(new Vector2(point.x / document.width, 1f - point.y / document.height),

@@ -14,7 +14,7 @@ static System.Threading.CancellationToken Cancellation;
 private static string BodyRun()
 {
 // Connected Editor only. Transient document/textures; optional comparison PNG in project Temp.
-var type = typeof(DCFApixels.WhimTex.TextureCompositor);
+var type = typeof(DCFApixels.WhimTex.WhimTexDocument);
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 // Detach borrowed package tables before testing Release; only this run's tables are destroyed.
 var tableType = type.Assembly.GetType("DCFApixels.WhimTex.BlueNoiseTextures", true);
@@ -24,7 +24,7 @@ var oneD = tableType.GetField("oneD", tableFlags);
 object borrowedTwoD = twoD.GetValue(null), borrowedOneD = oneD.GetValue(null);
 Scope.Finally(() => { try { tableType.GetMethod("Release", tableFlags).Invoke(null, null); } finally { twoD.SetValue(null, borrowedTwoD); oneD.SetValue(null, borrowedOneD); } });
 twoD.SetValue(null, null); oneD.SetValue(null, null);
-var document = Scope.OwnObject(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+var document = Scope.OwnObject(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = document.height = 256;
 var layer = new DCFApixels.WhimTex.NoiseLayerBehaviour

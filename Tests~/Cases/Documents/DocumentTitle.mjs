@@ -7,10 +7,10 @@ const assert = context.assert;
 
 context.case('DocumentTitle original assertions and branches', async () => {
     const read = name => readFileSync(new URL(`../../../src/${name}`, import.meta.url), 'utf8');
-    const source = read('TextureCompositorWindow.DocumentTitle.cs');
-    const window = read('TextureCompositorWindow.cs');
+    const source = read('WhimTexWindow.DocumentTitle.cs');
+    const window = read('WhimTexWindow.cs');
     assert.match(source, /OnProjectChange\(\) => RefreshDocumentTitle\(true\)/);
-    assert.match(source, /titleDocument == compositor && titleDocumentName == documentName/);
+    assert.match(source, /titleDocument == activeDocument && titleDocumentName == documentName/);
     assert.match(source, /Path.GetFileNameWithoutExtension\(path\)/);
     assert.match(source, /if \(string.IsNullOrWhiteSpace\(title\)\) title = "Untitled"/);
     assert.match(source, /content.tooltip = .*"WhimTex — "/);

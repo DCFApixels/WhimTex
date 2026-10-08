@@ -23,7 +23,7 @@ public static class ShaderFXCurveTests
     private static void ExecuteMain()
     {
         const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-        var doc = ScriptableObject.CreateInstance<TextureCompositor>(); doc.width = doc.height = 16;
+        var doc = ScriptableObject.CreateInstance<WhimTexDocument>(); doc.width = doc.height = 16;
         var effects = new List<ShaderFX>();
         var utility = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.WhimTexCurveTexture");
         var lut = Activator.CreateInstance(utility, true);
@@ -31,7 +31,7 @@ public static class ShaderFXCurveTests
         void Check(bool ok, string message) { context.True(ok, message); }
         ShaderFX Create(string code)
         {
-            var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc, code, new List<ShaderFXParameter>() });
+            var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc, code, new List<ShaderFXParameter>() });
             effects.Add(fx); typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null); return fx;
         }
         List<ShaderFXParameter> Params(ShaderFX fx) => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);

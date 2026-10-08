@@ -13,13 +13,13 @@ public static class DocumentJsonBrokenFxTests
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
     const string Good = "float4 ApplyFX(float2 uv,float4 color){return color;}";
     const string Broken = "float4 ApplyFX(float2 uv,float4 color){return missingFunction(color);}";
-    const string Json = "{\"format\":\"whimtex.document\",\"version\":1,\"document\":{\"width\":16,\"height\":16},\"layers\":[{\"id\":\"fixture\",\"layerName\":\"Broken FX fixture\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[0.2,0.4,0.6,1]},\"fx\":[{\"$type\":\"ShaderFX\",\"$name\":\"Broken fixture\",\"code\":\"SOURCE\",\"parameters\":[{\"name\":\"_Amount\",\"type\":\"Float\",\"floatValue\":0.37}]}]}]}";
+    const string Json = "{\"format\":\"whimtex.document\",\"version\":2,\"document\":{\"width\":16,\"height\":16},\"layers\":[{\"id\":\"fixture\",\"layerName\":\"Broken FX fixture\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[0.2,0.4,0.6,1]},\"fx\":[{\"$type\":\"ShaderFX\",\"$name\":\"Broken fixture\",\"code\":\"SOURCE\",\"parameters\":[{\"name\":\"_Amount\",\"type\":\"Float\",\"floatValue\":0.37}]}]}]}";
     static int checks, warnings;
     static void Check(bool ok, string message) { checks++; UnityBRun.Check(!(!ok), message); }
     static object Call(object obj, string name, params object[] args) => obj.GetType().GetMethod(name, F).Invoke(obj, args);
     static bool Flag(ShaderFX fx, string name) => (bool)typeof(ShaderFX).GetProperty(name, F).GetValue(fx);
     static void Log(string text, string stack, LogType type) { if (type == LogType.Warning && text.StartsWith("WhimTex: Broken fixture:")) warnings++; }
-    static Color Pixel(TextureCompositor document)
+    static Color Pixel(WhimTexDocument document)
     {
         var texture = document.ComposeCanvas();
         try { return texture.GetPixel(8, 8); }
@@ -30,7 +30,7 @@ public static class DocumentJsonBrokenFxTests
         checks = warnings = 0;
         string path = UnityBRun.AssetPath("__WhimTexBrokenFx_") + Guid.NewGuid().ToString("N") + ".whimtex.json";
         string exportPath = path.Replace(".whimtex.json", "_export.whimtex.json");
-        TextureCompositorWindow window = null;
+        WhimTexWindow window = null;
         Application.logMessageReceived += Log;
         try
         {
@@ -53,8 +53,8 @@ public static class DocumentJsonBrokenFxTests
             layer.fx.Add(fx);
             Check((actual - expected).maxColorComponent < .0001f && (expected - actual).maxColorComponent < .0001f, "Broken FX changed pixels.");
 
-            window = UnityBRun.Create<TextureCompositorWindow>();
-            Call(window, "SetCompositor", doc);
+            window = UnityBRun.Create<WhimTexWindow>();
+            Call(window, "SetDocument", doc);
             var row = (VisualElement)Call(window, "BuildToolkitLeafRow", layer, doc.layers, 0, 0);
             Check(!row.Q("fxWarning").ClassListContains("whimtex-hidden"), "Layer warning missing.");
             var root = new VisualElement();
@@ -77,7 +77,7 @@ public static class DocumentJsonBrokenFxTests
                 using var again = WhimTexDocumentJson.Read(write.Json, false);
                 Check(again.Document.JsonWriteMode == mode, "Write mode not restored.");
             }
-            var service = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentService");
+            var service = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentService");
             service.GetMethod("Detach", F).Invoke(null, new object[] { window });
             WhimTexDocumentFile.SaveJson(doc, path, new WhimTexJsonWriteOptions { Mode = WhimTexJsonWriteMode.Compact });
             var loaded = WhimTexDocumentFile.Load(path);
@@ -97,7 +97,7 @@ public static class DocumentJsonBrokenFxTests
             var view = root.Q(className: "whimtex-layer-fx");
             Call(view, "Refresh");
             Check(entry.Q("fxWarning").ClassListContains("whimtex-hidden"), "Repair did not clear FX warning.");
-            var bindings = typeof(TextureCompositorWindow).GetField("toolkitInspectorBindings", F).GetValue(window);
+            var bindings = typeof(WhimTexWindow).GetField("toolkitInspectorBindings", F).GetValue(window);
             Call(bindings, "Refresh", true);
             Check(section.Q(className: "whimtex-fx-section-warning").ClassListContains("whimtex-hidden"), "Repair did not clear section warning.");
             Call(fx, "SetDraftCode", "// @param float _Amount\n" + Broken);
@@ -117,7 +117,7 @@ public static class DocumentJsonBrokenFxTests
         finally
         {
             Application.logMessageReceived -= Log;
-            if (window != null) { Call(window, "SetCompositor", new object[] { null }); Object.DestroyImmediate(window); }
+            if (window != null) { Call(window, "SetDocument", new object[] { null }); Object.DestroyImmediate(window); }
             if (File.Exists(path)) AssetDatabase.DeleteAsset(path);
             if (File.Exists(exportPath)) AssetDatabase.DeleteAsset(exportPath);
         }

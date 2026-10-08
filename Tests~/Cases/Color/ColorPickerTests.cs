@@ -20,16 +20,16 @@ static System.Threading.CancellationToken Cancellation;
     static object Get(object target, string name) => target.GetType().GetField(name,F).GetValue(target);
     static void Check(bool ok, string label) { T.True(ok, label); }
     static void Near(Color a, Color b, string label) => Check(Mathf.Abs(a.r-b.r)+Mathf.Abs(a.g-b.g)+Mathf.Abs(a.b-b.b)+Mathf.Abs(a.a-b.a)<.0002f,label);
-    static WhimTexColorPicker Open(Color initial, bool hdr, bool alpha, WhimTexColorRange range, TextureCompositor doc, Action<Color> changed, Action<bool> mode = null, Func<bool> valid = null)
+    static WhimTexColorPicker Open(Color initial, bool hdr, bool alpha, WhimTexColorRange range, WhimTexDocument doc, Action<Color> changed, Action<bool> mode = null, Func<bool> valid = null)
         => Scope.OwnWindow((WhimTexColorPicker)typeof(WhimTexColorPicker).GetMethod("Open",F).Invoke(null,new object[]{initial,hdr,alpha,range,doc,changed,mode,valid}));
-    static List<Color> History(TextureCompositor doc) => (List<Color>)Get(doc,"colorHistory");
+    static List<Color> History(WhimTexDocument doc) => (List<Color>)Get(doc,"colorHistory");
     private static string BodyRun()
     {
         T.True(!(Resources.FindObjectsOfTypeAll<WhimTexColorPicker>().Length != 0), "Close the borrowed active picker before this case");
         checks = 0; var focus=EditorWindow.focusedWindow;
-        var doc=Scope.OwnObject(ScriptableObject.CreateInstance<TextureCompositor>());
-        var other=Scope.OwnObject(ScriptableObject.CreateInstance<TextureCompositor>());
-        WhimTexColorPicker picker=null; TextureCompositor copy=null;
+        var doc=Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
+        var other=Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
+        WhimTexColorPicker picker=null; WhimTexDocument copy=null;
         try
         {
             Color initial=new Color(4,2,1,.35f), observed=initial; bool mode=false; int edits=0;
@@ -60,14 +60,14 @@ static System.Threading.CancellationToken Cancellation;
             Call(doc,"MoveHistoryColor",0,1); Near(History(doc)[1],first,"History reordered");
             Call(doc,"RemoveHistoryColor",0); Near(History(doc)[0],first,"History deletion");
             Call(doc,"RememberColor",new Color(float.NaN,0,0)); Check(History(doc).Count==1,"Nonfinite history rejected");
-            var assembly=typeof(TextureCompositor).Assembly;
+            var assembly=typeof(WhimTexDocument).Assembly;
             var containerType=assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentContainer");
             using(var container=(IDisposable)Activator.CreateInstance(containerType,true))
             {
                 var serializer=assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSerializer");
                 byte[] bytes=(byte[])serializer.GetMethod("Serialize",F).Invoke(null,new object[]{doc,container});
-                var readResult = serializer.GetMethod("Deserialize", F).Invoke(null, new object[]{bytes,container,typeof(TextureCompositor),null,false});
-                copy=(TextureCompositor)readResult.GetType().GetProperty("Model", F).GetValue(readResult);
+                var readResult = serializer.GetMethod("Deserialize", F).Invoke(null, new object[]{bytes,container,typeof(WhimTexDocument),null,false});
+                copy=(WhimTexDocument)readResult.GetType().GetProperty("Model", F).GetValue(readResult);
                 Check(History(copy).Count==1,"Document serializer retains history"); Near(History(copy)[0],first,"History preserves RGBA");
             }
             bool valid=true; observed=Color.red;
@@ -117,7 +117,7 @@ static System.Threading.CancellationToken Cancellation;
         T.True(!(Resources.FindObjectsOfTypeAll<WhimTexColorPicker>().Length!=0), "Close the borrowed active picker before this case");
         checks=0;
         var focus=EditorWindow.focusedWindow;
-        var doc=Scope.OwnObject(ScriptableObject.CreateInstance<TextureCompositor>());
+        var doc=Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
         var host=Scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexGradientWindow>());
         WhimTexColorPicker picker=null;
         try
@@ -126,7 +126,7 @@ static System.Threading.CancellationToken Cancellation;
             var field=new WhimTexColorField{hdr=true,showAlpha=true};host.rootVisualElement.Add(field);
             var owner=new object();var otherOwner=new object();
             typeof(WhimTexColorField).GetField("PickerContext",F).SetValue(field,owner);
-            typeof(WhimTexColorField).GetField("Document",F).SetValue(field,(Func<TextureCompositor>)(()=>doc));
+            typeof(WhimTexColorField).GetField("Document",F).SetValue(field,(Func<WhimTexDocument>)(()=>doc));
             Color original=new Color(2,.5f,.2f,.37f),observed=original;
             field.SetValueWithoutNotify(original);int edits=0;
             field.RegisterValueChangedCallback(e=>{observed=e.newValue;edits++;});
@@ -169,7 +169,7 @@ static System.Threading.CancellationToken Cancellation;
     private static string LayoutSetup()
     {
         T.True(!(Resources.FindObjectsOfTypeAll<WhimTexColorPicker>().Length!=0), "Close the borrowed active picker before this case");
-        var doc=Scope.OwnObject(ScriptableObject.CreateInstance<TextureCompositor>()); doc.name=(Scope.Tag + "-picker-layout"); doc.hideFlags=HideFlags.HideAndDontSave;
+        var doc=Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>()); doc.name=(Scope.Tag + "-picker-layout"); doc.hideFlags=HideFlags.HideAndDontSave;
         for(int i=0;i<20;i++)Call(doc,"RememberColor",Color.HSVToRGB(i/20f,.75f,.8f));
         var window=Open(new Color(.1f,.5f,.8f,1),true,true,WhimTexColorRange.Switchable,doc,_=>{});
         window.name=(Scope.Tag + "-picker-layout");
@@ -182,16 +182,16 @@ static System.Threading.CancellationToken Cancellation;
         checks=0;
         var focus=EditorWindow.focusedWindow;
         var host=Scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexGradientWindow>());
-        var first=Scope.OwnObject(ScriptableObject.CreateInstance<TextureCompositor>());
-        var second=Scope.OwnObject(ScriptableObject.CreateInstance<TextureCompositor>());
+        var first=Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
+        var second=Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
         WhimTexColorPicker picker=null;
         try
         {
             host.name=Scope.Tag + "-color-field-integration";host.ShowUtility();host.rootVisualElement.Clear();
             var field=new WhimTexColorField("Color"){hdr=false,showAlpha=true};
             host.rootVisualElement.Add(field);
-            TextureCompositor active=first;
-            typeof(WhimTexColorPicker).GetMethod("SetDocument",F).Invoke(null,new object[]{host.rootVisualElement,(Func<TextureCompositor>)(()=>active)});
+            WhimTexDocument active=first;
+            typeof(WhimTexColorPicker).GetMethod("SetDocument",F).Invoke(null,new object[]{host.rootVisualElement,(Func<WhimTexDocument>)(()=>active)});
             Color source=new Color(4,2,1,.5f),initial=source;
             typeof(WhimTexColorField).GetField("ReadPickerColor",F).SetValue(field,(Func<Color>)(()=>source));
             field.SetValueWithoutNotify(new Color(1,.5f,.25f,.5f));
@@ -200,7 +200,7 @@ static System.Threading.CancellationToken Cancellation;
             using(var e=PointerDownEvent.GetPooled(mouse)){e.target=field;field.SendEvent(e);}
             picker=Scope.OwnWindow(Resources.FindObjectsOfTypeAll<WhimTexColorPicker>().Single());
             Near((Color)Get(picker,"color"),initial,"Field opens with raw HDR, not bounded display");
-            Check((TextureCompositor)Get(picker,"document")==first,"Field picks ancestor document");
+            Check((WhimTexDocument)Get(picker,"document")==first,"Field picks ancestor document");
             Call(picker,"SetColor",new Color(1,.5f,.25f,.5f),true);
             Near(source,new Color(1,.5f,.25f,.5f),"Same display color replaces HDR source");
             Call(picker,"Finish",false);picker=null;
@@ -251,7 +251,7 @@ static System.Threading.CancellationToken Cancellation;
             else if(type==EventType.MouseDrag){using(var p=PointerMoveEvent.GetPooled(e)){p.target=target;target.SendEvent(p);}}
             else {using(var p=PointerUpEvent.GetPooled(e)){p.target=target;target.SendEvent(p);}}
         }
-        var doc=(TextureCompositor)Get(picker,"document");Color first=History(doc)[0];
+        var doc=(WhimTexDocument)Get(picker,"document");Color first=History(doc)[0];
         Pointer(from,EventType.MouseDown,from.worldBound.center);
         Pointer(from,EventType.MouseDrag,history[0].worldBound.center);
         Check(!history[0].ClassListContains("whimtex-picker-chip--target"),"Plus button is not a reorder target");
@@ -263,7 +263,7 @@ static System.Threading.CancellationToken Cancellation;
     {
         var picker=Resources.FindObjectsOfTypeAll<WhimTexColorPicker>().Single(x=>x.name==(Scope.Tag + "-picker-layout"));
         var history=(VisualElement)Get(picker,"history");
-        var doc=(TextureCompositor)Get(picker,"document");
+        var doc=(WhimTexDocument)Get(picker,"document");
         var before=History(doc).ToArray();
         var chip=history[5];
         var mouse=new Event{type=EventType.MouseDown,button=0,mousePosition=chip.worldBound.center};
@@ -292,7 +292,7 @@ static System.Threading.CancellationToken Cancellation;
         using(var e=PointerDownEvent.GetPooled(mouse)){e.target=add;add.SendEvent(e);}
         mouse.type=EventType.MouseUp;
         using(var e=PointerUpEvent.GetPooled(mouse)){e.target=add;add.SendEvent(e);}
-        var doc=(TextureCompositor)Get(picker,"document");
+        var doc=(WhimTexDocument)Get(picker,"document");
         Near(History(doc)[0],Color.gray,"Clicking gray plus swatch prepends current color");
         return null;
     }
@@ -325,7 +325,7 @@ static System.Threading.CancellationToken Cancellation;
         var picker=Resources.FindObjectsOfTypeAll<WhimTexColorPicker>().Single(x=>x.name==(Scope.Tag + "-picker-layout"));
         var history=(VisualElement)Get(picker,"history");
         var scroll=(ScrollView)Get(picker,"historyScroll");
-        var doc=(TextureCompositor)Get(picker,"document");
+        var doc=(WhimTexDocument)Get(picker,"document");
         var chip=history[1];var inside=chip.worldBound.center;var area=scroll.worldBound;
         var before=History(doc).ToArray();Color selected=(Color)Get(picker,"color");
         void Pointer(EventType type,Vector2 point)
@@ -369,7 +369,7 @@ static System.Threading.CancellationToken Cancellation;
     private static string LayoutCleanup()
     {
         foreach(var picker in Resources.FindObjectsOfTypeAll<WhimTexColorPicker>().Where(x=>x.name==(Scope.Tag + "-picker-layout")))Call(picker,"Finish",false);
-        foreach(var doc in Resources.FindObjectsOfTypeAll<TextureCompositor>().Where(x=>x.name==(Scope.Tag + "-picker-layout"))){Undo.ClearUndo(doc);UnityEngine.Object.DestroyImmediate(doc);}
+        foreach(var doc in Resources.FindObjectsOfTypeAll<WhimTexDocument>().Where(x=>x.name==(Scope.Tag + "-picker-layout"))){Undo.ClearUndo(doc);UnityEngine.Object.DestroyImmediate(doc);}
         return null;
     }
 

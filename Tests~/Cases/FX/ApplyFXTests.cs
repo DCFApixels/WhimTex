@@ -17,7 +17,7 @@ static System.Threading.CancellationToken Cancellation;
     {
         int checks = 0;
         var owned = new List<UnityEngine.Object>();
-        var documents = new List<TextureCompositor>();
+        var documents = new List<WhimTexDocument>();
         string folder = null;
         void Check(bool result, string message) { T.True(result, message); }
         object Call(object target, string method, params object[] args)
@@ -25,23 +25,23 @@ static System.Threading.CancellationToken Cancellation;
             try { return target.GetType().GetMethod(method, F).Invoke(target, args); }
             catch (TargetInvocationException e) { throw e.InnerException ?? e; }
         }
-        TextureCompositor Document()
+        WhimTexDocument Document()
         {
-            var doc = Scope.OwnObject(ScriptableObject.CreateInstance<TextureCompositor>());
+            var doc = Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
             doc.width = 64; doc.height = 48;
             documents.Add(doc); return doc;
         }
-        ShaderFX FX(TextureCompositor doc, string body)
+        ShaderFX FX(WhimTexDocument doc, string body)
         {
             var create = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(TextureCompositor), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
             var fx = (ShaderFX)create.Invoke(null, new object[] { doc,
                 "float4 ApplyFX(float2 uv, float4 color) { " + body + " }", new List<ShaderFXParameter>() });
             owned.Add(fx); Call(fx, "ApplyAgentDraft");
             Check(typeof(ShaderFX).GetField("compiledShader", F).GetValue(fx) != null, "FX compiled");
             return fx;
         }
-        Color[] Pixels(TextureCompositor doc)
+        Color[] Pixels(WhimTexDocument doc)
         {
             var tex = doc.ComposeCanvas();
             try { return tex.GetPixels(); }
@@ -100,7 +100,7 @@ static System.Threading.CancellationToken Cancellation;
             documents.Add(loaded);
             Check(loaded.layers[0].transform.Equals(originalTransform), "TIFF retains editable transform");
             Same(before, Pixels(loaded), "TIFF retains baked pixel frame and remaining FX");
-            var clipboard = (TextureCompositor)Call(doc, "CaptureLayerClipboard", new List<Layer> { layer });
+            var clipboard = (WhimTexDocument)Call(doc, "CaptureLayerClipboard", new List<Layer> { layer });
             documents.Add(clipboard);
             Same(before, Pixels(clipboard), "Native clipboard retains baked pixel frame");
 
@@ -263,7 +263,7 @@ static System.Threading.CancellationToken Cancellation;
                     var processorLoaded = WhimTexDocumentFile.Load(WhimTexDocumentFile.Save(processorDoc, folder + "/processor.tiff"));
                     documents.Add(processorLoaded);
                     Same(processorBefore, Pixels(processorLoaded), "TIFF retains Processor snapshot blending");
-                    var processorCopy = (TextureCompositor)Call(processorDoc, "CaptureLayerClipboard", new List<Layer>(processorDoc.layers));
+                    var processorCopy = (WhimTexDocument)Call(processorDoc, "CaptureLayerClipboard", new List<Layer>(processorDoc.layers));
                     documents.Add(processorCopy);
                     Same(processorBefore, Pixels(processorCopy), "Native clipboard retains Processor snapshot blending");
                     Undo.PerformUndo();

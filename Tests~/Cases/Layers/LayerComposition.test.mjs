@@ -12,7 +12,7 @@ context.case("LayerComposition original assertion inputs and source contracts", 
   assert.match(wrapper, /public sealed class Layer/);
   assert.match(wrapper, /\[SerializeReference\] private LayerBehaviour behaviour/);
   assert.match(wrapper, /\[SerializeReference\] public List<Layer> children/);
-  for (const field of ['layerName', 'enabled', 'opacity', 'blendMode', 'colorRange', 'blendRange', 'transform', 'swizzle', 'fx']) {
+  for (const field of ['layerName', 'enabled', 'opacity', 'blendMode', 'colorRange', 'blendRange', 'transform', 'channelMapping', 'fx']) {
     assert.match(wrapper, new RegExp('public [^\\n]+ ' + field + '[ ;=]'));
     assert.doesNotMatch(behaviour, new RegExp('public \\w+(?:<[^>]+>)? ' + field + '\\s*[;=]'), field + ' has one serialized owner');
   }
@@ -114,10 +114,10 @@ context.case("LayerComposition original assertion inputs and source contracts", 
   assert.equal(target.opacity, .4);
   assert.equal(target.transform.rotation, 45);
 
-  const ui = read('TextureCompositorWindow.MissingLayers.cs');
-  const inspector = read('TextureCompositorWindow.Inspector.cs');
+  const ui = read('WhimTexWindow.MissingLayers.cs');
+  const inspector = read('WhimTexWindow.Inspector.cs');
   const recovery = read('MissingLayerRecovery.cs');
-  assert.match(ui, /FindRecord\(compositor, layer.BehaviourId\)/);
+  assert.match(ui, /FindRecord\(activeDocument, layer.BehaviourId\)/);
   assert.match(ui, /layer.SetBehaviour\(draft\)/);
   assert.match(ui, /layer.children.Count > 0 && descriptor.BehaviourType != typeof\(GroupLayerBehaviour\)/);
   assert.match(inspector, /!ReferenceEquals\(toolkitInspectorBehaviour, selected\?\.Behaviour\)/);
@@ -129,7 +129,7 @@ context.case("LayerComposition original assertion inputs and source contracts", 
   assert.match(recovery, /float.MaxValue/);
   assert.match(recovery, /TryGradient/);
   assert.doesNotMatch(ui + recovery, /ClearAllManagedReferencesWithMissingTypes|FromJsonOverwrite|WriteAllText|SaveAssets|selectedMissingLayer/);
-  assert.match(read('TextureCompositorWindow.cs'), /layer.AdoptContent\(replacements\[i\]\)/);
+  assert.match(read('WhimTexWindow.cs'), /layer.AdoptContent\(replacements\[i\]\)/);
   assert.match(read('Automation/WhimTexApi.LiveCompletion.cs'), /pending.AdoptContent\(candidate\)/);
   assert.match(read('Automation/WhimTexApi.Inspect.cs'), /entry\["behaviourMissing"\] = layer.Behaviour == null/);
   assert.doesNotMatch(read('Layers/ColorFillLayerBehaviour.cs'), /FormerlySerializedAs|colorIsEncoded/);

@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/GpuFourierTransform"
+Shader "Hidden/WhimTex/GpuFourierTransform"
 {
     Properties { _MainTex ("Source", 2D) = "white" {} }
     SubShader

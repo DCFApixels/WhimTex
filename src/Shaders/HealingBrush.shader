@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/HealingBrush"
+Shader "Hidden/WhimTex/HealingBrush"
 {
     Properties { _MainTex ("Base", 2D) = "black" {} }
     SubShader

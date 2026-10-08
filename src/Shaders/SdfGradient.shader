@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/SdfGradient"
+Shader "Hidden/WhimTex/SdfGradient"
 {
     Properties
     {

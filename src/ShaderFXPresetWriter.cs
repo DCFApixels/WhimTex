@@ -55,13 +55,6 @@ namespace DCFApixels.WhimTex
                         metadata += "// @header(" + string.Join(")\n// @header(", control.headers) + ")\n";
                     if (control.helpBoxes != null && control.helpBoxes.Length > 0)
                         metadata += "// @helpbox(" + string.Join(")\n// @helpbox(", control.helpBoxes) + ")\n";
-                    if (control.formerlySerializedAs != null)
-                        foreach (string formerName in control.formerlySerializedAs)
-                        {
-                            if (!Regex.IsMatch(formerName ?? string.Empty, @"^[A-Za-z_][A-Za-z0-9_]*$"))
-                                throw new FormatException("Former parameter names must be HLSL identifiers.");
-                            metadata += "// @formerlyserializedas(" + formerName + ")\n";
-                        }
                     declaration = metadata + declaration;
                     rows.Add((control.order, declaration, control));
                 }
@@ -102,7 +95,7 @@ namespace DCFApixels.WhimTex
             while ((line = reader.ReadLine()) != null)
             {
                 lineNumber++;
-                bool metadata = !block && ((lineNumber == 1 && ShaderFXMetadata.TryHeader(line, out _)) || Regex.IsMatch(line.TrimStart('\uFEFF'), @"^\s*//\s*@(?:control\b|param\b|\s*(?:header|helpbox|group|endgroup|formerlyserializedas)\b|if\b|endif\b)"));
+                bool metadata = !block && ((lineNumber == 1 && ShaderFXMetadata.TryHeader(line, out _)) || Regex.IsMatch(line.TrimStart('\uFEFF'), @"^\s*//\s*@(?:control\b|param\b|\s*(?:header|helpbox|group|endgroup)\b|if\b|endif\b)"));
                 ShaderFXSourceBuilder.MaskComments(line, ref block);
                 if (!metadata) body.AppendLine(line);
             }

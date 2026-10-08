@@ -9,7 +9,7 @@ public static class ImageClipboardTests
     static string Execute()
     {
 // Unity Pipeline eval_file. Tests synthetic data only: never reads or changes the OS clipboard.
-var type = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.ImageClipboard", true);
+var type = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.ImageClipboard", true);
 var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
 int checks = 0;
 void Check(bool ok, string message) { UnityBRun.Check(!(!ok), message); checks++; }
@@ -73,7 +73,7 @@ var masks = Dib(32, false, true); Write(masks, 44, 0xFF0000); Reject("DecodeDib"
 Write(masks, 44, 0); Reject("DecodeDib", masks);
 var palette = Dib(24, false, false); Write(palette, 32, int.MaxValue); Reject("DecodeDib", palette);
 var source = Decode("DecodeDib", Dib(24, false, false));
-var document = UnityBRun.Create<DCFApixels.WhimTex.TextureCompositor>();
+var document = UnityBRun.Create<DCFApixels.WhimTex.WhimTexDocument>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 UnityEngine.Texture2D rendered = null;
 try

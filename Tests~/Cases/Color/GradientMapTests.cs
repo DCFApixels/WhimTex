@@ -18,7 +18,7 @@ public static class GradientMapTests
         var args = new object[] { code, true, null };
         assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata").GetMethod("Parse", flags).Invoke(null, args);
         UnityBRun.Check(!((string)args[2] != "Color/Gradient Map"), "Catalog header");
-        var owner = UnityBRun.Create<TextureCompositor>();
+        var owner = UnityBRun.Create<WhimTexDocument>();
         owner.hideFlags = HideFlags.HideAndDontSave;
         ShaderFX fx = null;
         Texture2D input = null, output = null;
@@ -28,7 +28,7 @@ public static class GradientMapTests
         try
         {
             fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null,
-                new[] { typeof(TextureCompositor), typeof(string), typeof(List<ShaderFXParameter>) }, null)
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
                 .Invoke(null, new object[] { owner, code, new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fx, null);
             var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);

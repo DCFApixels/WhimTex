@@ -43,10 +43,10 @@ static System.Threading.CancellationToken Cancellation;
         Node Read(string json) { var r = Parse(json); Check(r.success, json); return r; }
         string id = "agent-edit-" + Guid.NewGuid().ToString("N");
         string folder = Scope.Assets;
-        var window = Scope.OwnWindow(ScriptableObject.CreateInstance<TextureCompositorWindow>());
-        var document = Scope.OwnObject((TextureCompositor)typeof(TextureCompositorWindow).GetField("compositor", Flags).GetValue(window));
+        var window = Scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
+        var document = Scope.OwnObject((WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument", Flags).GetValue(window));
         document.width = document.height = 48;
-        string session = (string)typeof(TextureCompositorWindow).GetProperty("AgentSessionId", Flags).GetValue(window);
+        string session = (string)typeof(WhimTexWindow).GetProperty("AgentSessionId", Flags).GetValue(window);
         Node Inspect() => Read(WhimTexApi.LiveJson("{\"apiVersion\":1,\"op\":\"inspect\",\"sessionId\":" + Q(session) + "}"));
         string Batch(string operations, bool dry = false) => "{\"apiVersion\":1,\"sessionId\":" + Q(session) + ",\"expectedRevision\":" + Q((string)Inspect().document.revision) + ",\"dryRun\":" + (dry ? "true" : "false") + ",\"operations\":[" + operations + "]}";
         string FxEdit(string layer, string edits) => "{\"op\":\"fx\",\"layer\":" + Q(layer) + ",\"edits\":[" + edits + "]}";
@@ -155,10 +155,10 @@ static System.Threading.CancellationToken Cancellation;
             string pathBatch = "{\"apiVersion\":1,\"assetPath\":" + Q(savedPath) + ",\"expectedRevision\":" + Q(diskRevision);
             Read(WhimTexApi.ExecuteJson(pathBatch + ",\"save\":false,\"operations\":[" + add + "]}"));
             Check(Read(WhimTexApi.Inspect(savedPath)).document.revision == diskRevision, "save:false discards edits after returning");
-            int documentsBefore = Resources.FindObjectsOfTypeAll<TextureCompositor>().Length;
+            int documentsBefore = Resources.FindObjectsOfTypeAll<WhimTexDocument>().Length;
             for (int attempt = 0; attempt < 3; attempt++)
                 Check(!Parse(WhimTexApi.ExecuteJson(pathBatch.Replace(Q(diskRevision), Q("stale")) + ",\"operations\":[]}")).success, "Stale path revision rejected");
-            Check(Resources.FindObjectsOfTypeAll<TextureCompositor>().Length == documentsBefore, "Rejected revisions release transient documents");
+            Check(Resources.FindObjectsOfTypeAll<WhimTexDocument>().Length == documentsBefore, "Rejected revisions release transient documents");
 
             Read(WhimTexApi.AssistantExecuteJson(Batch("{\"op\":\"add\",\"type\":\"group\",\"as\":\"group\",\"transform\":{\"position\":[3,7],\"rotation\":12}}")));
             var group = Inspect().document.layers[0];
@@ -180,7 +180,7 @@ static System.Threading.CancellationToken Cancellation;
                 "Inspect distinguishes original and imported resolution");
 
             // Bind only our test window to our test file; do not touch the user's open windows.
-            typeof(TextureCompositorWindow).GetMethod("BindDocumentFile", Flags).Invoke(window, new object[] { savedPath });
+            typeof(WhimTexWindow).GetMethod("BindDocumentFile", Flags).Invoke(window, new object[] { savedPath });
             Check(Inspect().document["assetPath"].ToString() == savedPath, "Assistant inspect returns bound TIFF path");
             bool foundSession = false;
             var sessions = Read(WhimTexApi.LiveSessions())["sessions"];
@@ -210,7 +210,7 @@ static System.Threading.CancellationToken Cancellation;
         {
             WhimTex.Tests.UnityA.UnityAScope.RunCleanup(bodyFailure,
                 () => WhimTexApi.TiffLiveJson("{\"apiVersion\":1,\"op\":\"cancel\",\"sessionId\":" + Q(id) + "}"),
-                () => { if (window != null) typeof(TextureCompositorWindow).GetField("compositor", Flags).SetValue(window, null); },
+                () => { if (window != null) typeof(WhimTexWindow).GetField("activeDocument", Flags).SetValue(window, null); },
                 () => { if (document != null) Undo.ClearUndo(document); },
                 () => WhimTex.Tests.UnityA.UnityAScope.CloseOwned(window),
                 () => { if (document != null) UnityEngine.Object.DestroyImmediate(document); });

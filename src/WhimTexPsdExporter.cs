@@ -20,7 +20,7 @@ namespace DCFApixels.WhimTex
     {
         // Returns conversion notes; does not import the output or modify the source document.
         // progress may throw OperationCanceledException. The destination is replaced only on success.
-        public static PsdExportReport Export(TextureCompositor document, string path, bool overwrite = false,
+        public static PsdExportReport Export(WhimTexDocument document, string path, bool overwrite = false,
             Action<string, float> progress = null)
         {
             if (document == null) throw new ArgumentNullException(nameof(document));
@@ -100,7 +100,7 @@ namespace DCFApixels.WhimTex
             return null;
         }
 
-        private static void Collect(TextureCompositor document, List<Layer> layers, List<PsdWriter.LayerRecord> records,
+        private static void Collect(WhimTexDocument document, List<Layer> layers, List<PsdWriter.LayerRecord> records,
             PsdExportReport report, HashSet<Layer> visited, HashSet<uint> ids)
         {
             if (layers == null) return;
@@ -118,18 +118,18 @@ namespace DCFApixels.WhimTex
                 {
                     report.groupCount++;
                     records.Add(new PsdWriter.LayerRecord { name = "</Group>", id = LayerId(group, ids, ":end"), section = 3, visible = false });
-                    bool bakedSwizzle = !missingBehaviour && (!group.swizzle.IsIdentity || group.HasFx);
-                    if (bakedSwizzle)
+                    bool bakedChannelMapping = !missingBehaviour && (!group.channelMapping.IsIdentity || group.HasFx);
+                    if (bakedChannelMapping)
                         records.Add(new PsdWriter.LayerRecord { name = "</Group>", id = LayerId(group, ids, ":source-end"), section = 3, visible = false });
                     Collect(document, group.layers, records, report, visited, ids);
-                    if (bakedSwizzle)
+                    if (bakedChannelMapping)
                     {
                         records.Add(new PsdWriter.LayerRecord { name = "Source Layers", id = LayerId(group, ids, ":sources"),
                             section = 1, visible = false, opacity = 255, blend = "norm", sectionBlend = "norm" });
-                        records.Add(new PsdWriter.LayerRecord { name = group.HasFx ? "FX Result" : "Swizzle Result", id = LayerId(group, ids, ":swizzle"),
+                        records.Add(new PsdWriter.LayerRecord { name = group.HasFx ? "FX Result" : "Mapping Result", id = LayerId(group, ids, ":channelMapping"),
                             visible = true, opacity = 255, blend = "norm",
                             openPixels = () => new Pixels(document.RenderPsdGroupContent(group), document.width, document.height) });
-                        report.Note(group, "Group FX and Swizzle are baked into a child layer. Original children are preserved in the hidden Source Layers folder.");
+                        report.Note(group, "Group FX and Mapping are baked into a child layer. Original children are preserved in the hidden Source Layers folder.");
                     }
                     bool isolated = !group.IsPassThrough || document.IsGroupIsolatedByClipping(group);
                     string groupBlend = isolated ? BlendKey(group.EffectiveBlendMode, out _) : "pass";
@@ -156,8 +156,8 @@ namespace DCFApixels.WhimTex
                 if (approximate) report.Note(layer, layer.blendMode + " is approximated by " + record.blend + "; the merged image retains the original result.");
                 if (layer.blendMode == BlendMode.None) report.Note(layer, "No-op blend is represented by a hidden layer.");
 
-                bool requiresRasterization = HasFx(layer) || !layer.swizzle.IsIdentity;
-                if (!layer.swizzle.IsIdentity) report.Note(layer, "Swizzle is baked into the layer pixels.");
+                bool requiresRasterization = HasFx(layer) || !layer.channelMapping.IsIdentity;
+                if (!layer.channelMapping.IsIdentity) report.Note(layer, "Mapping is baked into the layer pixels.");
                 if (layer?.Behaviour is ColorFillLayerBehaviour fill && fill.mode == ColorFillLayerBehaviour.FillMode.Color && !requiresRasterization)
                 {
                     record.adjustment = true;
@@ -336,7 +336,7 @@ namespace DCFApixels.WhimTex
 
         private static byte ToByte(float value) => (byte)Mathf.RoundToInt(Mathf.Clamp01(value) * 255f);
 
-        private static Pixels GradientPixels(TextureCompositor document, GradientLayerBehaviour layer, bool mask)
+        private static Pixels GradientPixels(WhimTexDocument document, GradientLayerBehaviour layer, bool mask)
         {
             Texture2D texture = document.RenderPsdPixels(layer);
             try

@@ -12,7 +12,7 @@ public static class GradientCanvasTests
         var move=type.GetMethod("MoveEndpoint",flags);
         int checks=0;
         void Check(bool ok,string message){UnityBRun.Check(!(!ok), message);checks++;}
-        var manipulator=typeof(TextureCompositorWindow).GetNestedType("GradientCanvasManipulator",BindingFlags.NonPublic);
+        var manipulator=typeof(WhimTexWindow).GetNestedType("GradientCanvasManipulator",BindingFlags.NonPublic);
         var remove=manipulator.GetMethod("WithoutColorKey",flags);
         var source=new WhimTexGradient();
         source.SetKeys(new[]{new GradientColorKey(Color.red,0),new GradientColorKey(Color.green,.5f),new GradientColorKey(Color.blue,1)},
@@ -55,19 +55,19 @@ public static class GradientCanvasTests
             }
             Check(typeof(GradientLayerBehaviour).GetField("center")==null && typeof(GradientLayerBehaviour).GetField("radius")==null,"No redundant geometry fields");
         }
-        var window=UnityBRun.Create<TextureCompositorWindow>();
+        var window=UnityBRun.Create<WhimTexWindow>();
         var instanceFlags=BindingFlags.Instance|BindingFlags.NonPublic;
-        var document=(TextureCompositor)typeof(TextureCompositorWindow).GetField("compositor",instanceFlags).GetValue(window);
+        var document=(WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument",instanceFlags).GetValue(window);
         try
         {
             var g=new GradientLayerBehaviour();
             typeof(Layer).GetField("id",instanceFlags).SetValue(g.Owner,Guid.NewGuid().ToString("N"));
             document.layers.Add(g.Owner);
-            typeof(TextureCompositorWindow).GetField("compositor",instanceFlags).SetValue(window,document);
-            var selection=typeof(TextureCompositorWindow).GetField("selectedLayerId",instanceFlags);
-            var visible=typeof(TextureCompositorWindow).GetProperty("IsGradientCanvasEnabled",instanceFlags);
+            typeof(WhimTexWindow).GetField("activeDocument",instanceFlags).SetValue(window,document);
+            var selection=typeof(WhimTexWindow).GetField("selectedLayerId",instanceFlags);
+            var visible=typeof(WhimTexWindow).GetProperty("IsGradientCanvasEnabled",instanceFlags);
             selection.SetValue(window,g.Id);
-            var tool=typeof(TextureCompositorWindow).GetField("canvasTool",instanceFlags);
+            var tool=typeof(WhimTexWindow).GetField("canvasTool",instanceFlags);
             foreach(var value in Enum.GetValues(tool.FieldType))
             {
                 tool.SetValue(window,value);
@@ -81,7 +81,7 @@ public static class GradientCanvasTests
         }
         finally
         {
-            typeof(TextureCompositorWindow).GetField("compositor",instanceFlags).SetValue(window,null);
+            typeof(WhimTexWindow).GetField("activeDocument",instanceFlags).SetValue(window,null);
             UnityEngine.Object.DestroyImmediate(window);UnityEngine.Object.DestroyImmediate(document);
         }
         Check(new GradientLayerBehaviour().Owner.transform.tiling==TransformTilingMode.Unbounded,"New Gradient is Unbounded");

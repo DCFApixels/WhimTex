@@ -34,7 +34,7 @@ public static class HealingBrushTests
         UnityBHealing.RequireIdle();
         int checks = 0;
         void Check(bool good, string why) { UnityBRun.Check(!(!good), why); checks++; }
-        var assembly = typeof(TextureCompositorWindow).Assembly;
+        var assembly = typeof(WhimTexWindow).Assembly;
         var utility = assembly.GetType("DCFApixels.WhimTex.HealingBrushUtility", true);
         var mask = new byte[48 * 32];
         for (int y = 8; y < 17; y++) for (int x = 8; x < 40; x++) mask[y * 48 + x] = 255;
@@ -86,13 +86,13 @@ public static class HealingBrushTests
         var focused = EditorWindow.focusedWindow;
         const string pref = "DCFApixels.WhimTex.Canvas.Tool";
         bool hadPref = EditorPrefs.HasKey(pref); string oldPref = EditorPrefs.GetString(pref);
-        TextureCompositorWindow window = null;
-        TextureCompositor document = null;
+        WhimTexWindow window = null;
+        WhimTexDocument document = null;
         var ownedTextures = new List<Texture2D>();
         try
         {
-            window = UnityBRun.Create<TextureCompositorWindow>();
-            document = (TextureCompositor)Get(window, "compositor");
+            window = UnityBRun.Create<WhimTexWindow>();
+            document = (WhimTexDocument)Get(window, "activeDocument");
             document.width = 128; document.height = 96;
             var texture = UnityBRun.Track(new Texture2D(256, 192, TextureFormat.RGBAHalf, false, true) { hideFlags = HideFlags.HideAndDontSave });
             ownedTextures.Add(texture);
@@ -105,7 +105,7 @@ public static class HealingBrushTests
             document.layers.Add(drawing);
             Call(document, "NormalizeModel");
             Call(window, "SelectOnlyLayer", drawing.Id);
-            var toolType = typeof(TextureCompositorWindow).GetNestedType("CanvasTool", Flags);
+            var toolType = typeof(WhimTexWindow).GetNestedType("CanvasTool", Flags);
             Call(window, "ChangeCanvasTool", Enum.Parse(toolType, "HealingBrush"));
             window.ShowUtility(); window.position = new Rect(80, 80, 1050, 720); window.Focus();
             await UnityBRun.Delay(250);
@@ -154,12 +154,12 @@ public static class HealingBrushTests
             Check(ReadMask(Get(window, "healingStroke"))[48 * 128 + 71].a > .99f, "Full hardness fills the same edge pixel");
             Set(settings, "healingHardness", .8f);
             Arm(drawing);
-            var unrelated = UnityBRun.Create<TextureCompositor>();
+            var unrelated = UnityBRun.Create<WhimTexDocument>();
             try
             {
                 Set(window, "healingPointer", 0);
                 var pending = Get(window, "healingStroke");
-                Call(window, "OnCompositorChanged", unrelated);
+                Call(window, "OnDocumentChanged", unrelated);
                 Check(ReferenceEquals(pending, Get(window, "healingStroke")), "Unrelated document change preserves active mask");
                 Set(window, "healingPointer", -1);
             }
@@ -167,11 +167,11 @@ public static class HealingBrushTests
             var watch = System.Diagnostics.Stopwatch.StartNew();
             Call(window, "StartHealing");
             Check(Get(window, "healingJob") != null, "Job starts");
-            unrelated = UnityBRun.Create<TextureCompositor>();
+            unrelated = UnityBRun.Create<WhimTexDocument>();
             try
             {
                 var pending = Get(window, "healingJob");
-                Call(window, "OnCompositorChanged", unrelated);
+                Call(window, "OnDocumentChanged", unrelated);
                 Check(ReferenceEquals(pending, Get(window, "healingJob")), "Unrelated document change preserves pending computation");
             }
             finally { UnityEngine.Object.DestroyImmediate(unrelated); }

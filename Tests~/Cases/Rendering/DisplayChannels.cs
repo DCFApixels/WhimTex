@@ -6,7 +6,7 @@ public static class DisplayChannelsTests
 {
     public static string Run() => TestContext.Run("All 16 display-channel masks", context =>
     {
-        var shader = Shader.Find("Hidden/TextureCompositor/DisplayChannels");
+        var shader = Shader.Find("Hidden/WhimTex/DisplayChannels");
         if (shader == null || !shader.isSupported) throw new Exception("Display channel shader is unavailable.");
         var samples = new[] {
             new Color32(51, 128, 204, 64), new Color32(255, 0, 0, 255),

@@ -85,7 +85,7 @@ Even at 0%, fully transparent pixels are ignored.
 - Click a group to select it, then click again to pick a child under the cursor. Repeated clicks enter nested groups one level at a time; `Ctrl+click` picks a nested layer directly. Its parent groups open in Layers.
 - Click empty space to deselect. Picking does not move or paint anything.
 
-Picking respects transforms, layer FX, Swizzle, clipping masks and layer/group opacity. Hidden layers are skipped.
+Picking respects transforms, layer FX, Mapping, clipping masks and layer/group opacity. Hidden layers are skipped.
 It uses each layer's own alpha, not the final color produced by its blend mode or preview Post FX.
 
 ## Select a layer's shape
@@ -122,7 +122,7 @@ as an independent Drawing layer, keeping its original pixels and transparency. I
 centered with its proportions preserved, using the layer transform rather than resizing the image. The same size limits apply;
 downloads are limited to 64 MB. Links to web pages are not supported. Closing the window or switching documents
 cancels the download. For a local file, first drag it into Project, then into Canvas View.
-Old linked-image JSON is unsupported. [Convert it in 0.12.5 before upgrading](../AI/LEGACY_LAYERS.md).
+Old linked-image JSON is unsupported and is not migrated. [Edit it with a matching older checkout](../AI/LEGACY_LAYERS.md).
 Current `whimtex.document` JSON does not download images or store Drawing pixels. Paste an image link
 directly as described above, or use verified project asset references in [document JSON](ai-authoring.md).
 

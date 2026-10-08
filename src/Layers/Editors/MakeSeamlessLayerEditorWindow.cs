@@ -9,12 +9,12 @@ namespace DCFApixels.WhimTex
     {
         protected override Type EditedLayerType => typeof(MakeSeamlessLayerBehaviour);
         protected override string LayerPreviewTitle => "Layer Preview (Make Seamless)";
-        public static void Open(MakeSeamlessLayerBehaviour layer, TextureCompositor compositor) =>
-            OpenPropertiesWindow<MakeSeamlessLayerEditorWindow>(layer, compositor);
+        public static void Open(MakeSeamlessLayerBehaviour layer, WhimTexDocument activeDocument) =>
+            OpenPropertiesWindow<MakeSeamlessLayerEditorWindow>(layer, activeDocument);
         protected override void BuildSettings(VisualElement root, Layer source) =>
-            BuildFields(root, (MakeSeamlessLayerBehaviour)source, Compositor, ApplyLayerChange, SettingsBindings, AddEffectTarget);
+            BuildFields(root, (MakeSeamlessLayerBehaviour)source, Document, ApplyLayerChange, SettingsBindings, AddEffectTarget);
 
-        internal static void BuildFields(VisualElement root, MakeSeamlessLayerBehaviour layer, TextureCompositor compositor,
+        internal static void BuildFields(VisualElement root, MakeSeamlessLayerBehaviour layer, WhimTexDocument activeDocument,
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings,
             Action<VisualElement, TargetedLayerBehaviour> addEffectTarget)
         {
@@ -40,7 +40,7 @@ namespace DCFApixels.WhimTex
                 _ => value.ToString()
             };
             var channels = new VisualElement { name = "seamlessChannels",
-                tooltip = "Process selected RGBA channels only. Unchecked channels keep source values; all off bypasses seam processing. Applied before layer FX and swizzle." };
+                tooltip = "Process selected RGBA channels only. Unchecked channels keep source values; all off bypasses seam processing. Applied before layer FX and channelMapping." };
             channels.AddToClassList("unity-base-field");
             channels.AddToClassList("whimtex-seamless-channels");
             var channelLabel = new Label("Channels");

@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -10,7 +10,6 @@
       }
     ],
     "nextCopyNumber": 1,
-    "spriteSlices": [],
     "width": 512,
     "height": 512,
     "outputFilter": "Bilinear",
@@ -30,7 +29,7 @@
       "blendMode": "Normal",
       "colorRange": "HDR",
       "blendRange": "HDR",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -44,8 +43,7 @@
               "name": "_Angle",
               "type": "Float",
               "floatValue": 90.0,
-              "id": "c084e7e3c55f4caa87424eeeff706d82",
-              "declaredInCode": true
+              "id": "c084e7e3c55f4caa87424eeeff706d82"
             },
             {
               "name": "_Area",
@@ -73,8 +71,7 @@
                   "m22": 0.0
                 }
               },
-              "id": "4128e1b15cc145d49eec3cc073b63a45",
-              "declaredInCode": true
+              "id": "4128e1b15cc145d49eec3cc073b63a45"
             }
           ],
           "shaderKey": "c4a9b47fe8fd4717849e5458f53ff6d7",

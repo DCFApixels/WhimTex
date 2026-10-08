@@ -9,7 +9,7 @@ public static class GuideSettingsTests
     static string Execute()
     {
 // Unity Pipeline eval_file; read-only checks, no user preferences or windows are changed.
-var assembly = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly;
+var assembly = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly;
 var settings = assembly.GetType("DCFApixels.WhimTex.WhimTexUserSettings", true);
 var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
 var normalize = settings.GetMethod("NormalizeSnapRadius", flags);
@@ -25,7 +25,7 @@ Check(Normalize(100f) == 64f);
 Check(Normalize(12.5f) == 12.5f);
 float radius = (float)settings.GetProperty("SnapRadius", flags).GetValue(null);
 Check(radius >= 1f && radius <= 64f);
-var window = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+var window = typeof(DCFApixels.WhimTex.WhimTexWindow);
 Check((float)window.GetProperty("GuideSnapPixels", flags).GetValue(null) == radius);
 foreach (var nested in window.GetNestedTypes(System.Reflection.BindingFlags.NonPublic))
     foreach (var name in new[] { "PivotSnapDistance", "CanvasSnapDistance" })

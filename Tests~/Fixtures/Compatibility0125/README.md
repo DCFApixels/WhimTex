@@ -23,24 +23,25 @@
 
 ## Проверки
 
-Из корня Unity-проекта, только через его подключённый Editor:
+После перехода JSON, TIFF-контейнера и tagged model на версию 2 эти документы —
+архивные отрицательные входы. Их байты, хеши и исторические рендеры сохранены;
+они не перегенерируются и больше не доказывают поддержку прежнего формата.
+Пресеты кисти и градиента имеют отдельные форматы, не затронутые этим изменением.
 
-```powershell
-unity command run_script --file 'Packages/com.dcfapixels.whimtex/Tests~/Compatibility0125Smoke.cs' --entry Compatibility0125Smoke.Run --timeout_ms 50000 --format json --project-path 'D:\DCFA\Projects\Test6.6'
-unity command run_script --file 'Packages/com.dcfapixels.whimtex/Tests~/Compatibility0125ReaderSmoke.cs' --entry Compatibility0125ReaderSmoke.Run --timeout_ms 50000 --format json --project-path 'D:\DCFA\Projects\Test6.6'
-```
+Выбирать ID через [общий runner](../../RUNNING_TESTS.md), с явным project path для Unity:
 
-Первый тест копирует семь поддерживаемых TIFF/JSON файлов в свою временную Assets-папку, открывает, сравнивает
-модель/пиксели, сохраняет в TIFF и проверяет повторное открытие. Второй проверяет
-узкий пропуск снятых полей, ограничения и защиту неизвестных данных.
-Из корня пакета `node Tests~/Compatibility0125.test.mjs` проверяет целостность
-эталонов без Unity. JSON-схема проверяется `DocumentJsonSchema.test.mjs`.
+- `compatibility0125-v2`: хеши исходников, явный отказ от старых документов,
+  независимые проверки кисти и градиента; без импорта/перезаписи файлов.
+- `compatibility0125-reader-v2`: ограничения и диагностика полей на специально
+  собранных payload текущей версии, не чтение исторических TIFF.
+- `frozen-files-v2`: целостность базы без Unity.
+- `document-json-schema-v2`: текущие примеры принимаются, архивная версия 1 отклоняется.
+- `channel-mapping-v2`: текущие Mapping, JSON/binary round-trip и граница версий.
 
 ## Граница покрытия
 
 Это начальная база, не гарантия для всех файлов. В ней нет внешних File-ссылок,
 отдельных ShaderFX-ассетов/HLSL include, кисти с bitmap-tip, multiple-sprite slicing
-и эталонного рендера каждого типа слоя. Их нужно добавить перед удалением
-соответствующих reader/runtime-путей. Современный `DocumentPayloadCoverageSmoke`
+и эталонного рендера каждого типа слоя. Современный `DocumentPayloadCoverageTests`
 проверяет все типы behaviour, но не заменяет эталоны, записанные старой версией.
 Публичный C#/агентский API, EditorPrefs и layouts в эту базу не входят.

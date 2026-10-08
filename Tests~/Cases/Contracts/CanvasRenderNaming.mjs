@@ -7,9 +7,9 @@ const assert = context.assert;
 
 context.case('CanvasRenderNaming original assertions and branches', async () => {
     const read = path => readFileSync(new URL('../../../' + path, import.meta.url), 'utf8');
-    const core = read('src/TextureCompositor.cs');
-    const cache = read('src/TextureCompositor.EffectCache.cs');
-    const thumbs = read('src/TextureCompositor.Thumbnails.cs');
+    const core = read('src/WhimTexDocument.cs');
+    const cache = read('src/WhimTexDocument.EffectCache.cs');
+    const thumbs = read('src/WhimTexDocument.Thumbnails.cs');
     assert.match(core, /public Texture2D ComposeCanvas\(\)/);
     assert.match(core, /internal Texture2D ComposeCanvas\(int maxSize\)/);
     assert.match(core, /internal RenderTexture RenderCanvas\(int maxSize\)/);
@@ -32,8 +32,7 @@ context.case('CanvasRenderNaming original assertions and branches', async () => 
     assert.match(core, /internal RenderTexture RenderLayerPreview\(/);
     assert.match(core, /internal RenderTexture RenderAgentLayerPreview\(/);
     assert.match(read('src/Editor/BrushPresetAssetEditor.cs'), /\bRenderPreview\(/);
-    assert.ok(read('src/ShaderFX.cs').includes('"_PreviewScale"'));
+    assert.ok(read('src/ShaderFX.cs').includes('"_RenderScale"'));
 });
 
 await finish(context);
-

@@ -183,7 +183,7 @@ namespace WhimTex.Tests.UnityC
                 stateRestorations.Add(() => { if (exists) UnityEditor.EditorPrefs.SetFloat(key, value); else UnityEditor.EditorPrefs.DeleteKey(key); });
             }
             // Package-owned scratch: detach borrowed storage, then dispose only the new test workspace.
-            var core = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.PatchQuiltingSeamless", true);
+            var core = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.PatchQuiltingSeamless", true);
             const System.Reflection.BindingFlags hidden = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
             var spare = core.GetField("spare", hidden); var since = core.GetField("spareSince", hidden);
             object borrowed = spare.GetValue(null), borrowedSince = since.GetValue(null);

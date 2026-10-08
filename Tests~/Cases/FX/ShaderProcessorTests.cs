@@ -12,7 +12,7 @@ public static string Run() => TestContext.Run("ShaderProcessorTests", context =>
 private static void Execute(TestContext context, MigrationD fixture)
 {
 // Opt-in only after the user has compiled Unity. Transient objects; no imports or asset saves.
-var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = document.height = 8;
 var texture = new UnityEngine.Texture2D(8, 8, UnityEngine.TextureFormat.RGBAFloat, false, true) { hideFlags = UnityEngine.HideFlags.HideAndDontSave };
@@ -43,9 +43,9 @@ try
     processor.opacity = .5f;
     Near(Render(), new UnityEngine.Color(4, 0, 0, .25f), "Identity at partial opacity does not accumulate alpha");
     SetPixels(new UnityEngine.Color(1, 0, 0, .25f));
-    processor.swizzle[0] = DCFApixels.WhimTex.SwizzleChannel.Zero;
-    processor.swizzle[2] = DCFApixels.WhimTex.SwizzleChannel.R;
-    processor.swizzle[3] = DCFApixels.WhimTex.SwizzleChannel.One;
+    processor.channelMapping[0] = DCFApixels.WhimTex.ChannelMappingSource.Zero;
+    processor.channelMapping[2] = DCFApixels.WhimTex.ChannelMappingSource.R;
+    processor.channelMapping[3] = DCFApixels.WhimTex.ChannelMappingSource.One;
     Near(Render(), new UnityEngine.Color(.2f, 0, .8f, .625f), "Before/after opacity uses premultiplied interpolation");
     processor.opacity = 1;
     Near(Render(), UnityEngine.Color.blue, "Full opacity replaces RGB and alpha");
@@ -55,7 +55,7 @@ try
     processor.opacity = 0;
     Near(Render(), new UnityEngine.Color(1, 0, 0, .25f), "Zero opacity bypasses processing");
     processor.opacity = 1;
-    processor.swizzle[3] = DCFApixels.WhimTex.SwizzleChannel.A;
+    processor.channelMapping[3] = DCFApixels.WhimTex.ChannelMappingSource.A;
 
     SetPixels(UnityEngine.Color.red);
     var blur = new DCFApixels.WhimTex.BlurLayerBehaviour { radius = 0 };
@@ -65,7 +65,7 @@ try
     Near(Render(), UnityEngine.Color.red, "Effect cannot reactivate a hidden processor");
     blur.inputMode = DCFApixels.WhimTex.EffectInputMode.Specific;
     // Normalize IDs before assigning an explicit effect target.
-    typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("NormalizeModel", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(document, null);
+    typeof(DCFApixels.WhimTex.WhimTexDocument).GetMethod("NormalizeModel", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(document, null);
     blur.TargetLayerId = processor.Id;
     Near(Render(), UnityEngine.Color.red, "Explicit target also bypasses a hidden processor");
     processor.enabled = true;
@@ -83,11 +83,11 @@ try
 
     document.layers.Clear(); document.layers.Add(processor); document.layers.Add(source);
     var second = new DCFApixels.WhimTex.ShaderProcessorLayerBehaviour();
-    second.swizzle[0] = DCFApixels.WhimTex.SwizzleChannel.B; second.swizzle[2] = DCFApixels.WhimTex.SwizzleChannel.Zero;
+    second.channelMapping[0] = DCFApixels.WhimTex.ChannelMappingSource.B; second.channelMapping[2] = DCFApixels.WhimTex.ChannelMappingSource.Zero;
     document.layers.Insert(0, second);
     Near(Render(), new UnityEngine.Color(1, 0, 0, .25f), "Processor chain follows stack order");
     string serialized = UnityEngine.JsonUtility.ToJson(document);
-    var copy = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+    var copy = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>();
     try
     {
         UnityEngine.JsonUtility.FromJsonOverwrite(serialized, copy);

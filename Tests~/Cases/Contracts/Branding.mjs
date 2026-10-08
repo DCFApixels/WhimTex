@@ -19,11 +19,11 @@ context.case('Branding original assertions and branches', async () => {
     assert.match(read('Documentation~/_config.yml'), /^baseurl: \/WhimTex$/m);
     assert.match(read('Documentation~/_config.yml'), /^repository: DCFApixels\/WhimTex$/m);
     assert.equal(JSON.parse(read('src/DCFApixels.WhimTex.asmdef')).name, 'DCFApixels.WhimTex');
-    const window = read('src/TextureCompositorWindow.cs');
+    const window = read('src/WhimTexWindow.cs');
     assert.ok(window.includes('[MenuItem("Window/WhimTex")]'));
     assert.match(window, /void OnEnable\(\)\s*\{\s*RestoreSourceImage\(\);\s*RefreshDocumentTitle\(true\)/,
       'Restored windows recover their source image and persisted title without resetting their document');
-    assert.match(read('src/TextureCompositorWindow.DocumentTitle.cs'), /WhimTexBranding.WindowTitle\(title\)/);
+    assert.match(read('src/WhimTexWindow.DocumentTitle.cs'), /WhimTexBranding.WindowTitle\(title\)/);
     const commands = read('src/Automation/Pipeline/WhimTexCommands.cs');
     const canonicalCommands = [
       'whimtex_assistant_begin', 'whimtex_assistant_lock', 'whimtex_assistant_sessions', 'whimtex_assistant_live',
@@ -44,7 +44,7 @@ context.case('Branding original assertions and branches', async () => {
     for (const [file, key] of [
       ['src/WhimTexColorInputs.cs', 'DCFApixels.WhimTex.HdrColorInputs'],
       ['src/WhimTexUserSettings.cs', 'DCFApixels.WhimTex.PresetsFolder'],
-      ['src/TextureCompositorWindow.Tools.cs', 'DCFApixels.WhimTex.Canvas.PaintToolSettings']
+      ['src/WhimTexWindow.Tools.cs', 'DCFApixels.WhimTex.Canvas.PaintToolSettings']
     ]) assert.ok(read(file).includes(`"${key}"`), `Current preference: ${key}`);
     function scan(dir) {
       for (const entry of readdirSync(path.join(root, dir), { withFileTypes: true })) {
@@ -79,7 +79,7 @@ context.case('Branding original assertions and branches', async () => {
       assert.ok(read(file).includes('src="Documentation~/Images/whimtex-logo.svg"'));
     const iconGuid = read('src/WhimTexIcon.png.meta').match(/^guid: (\w+)$/m)[1];
     assert.ok(read('src/WhimTexBranding.cs').includes(`GUIDToAssetPath("${iconGuid}")`));
-    for (const file of ['src/TextureCompositorWindow.DocumentTitle.cs', 'src/WhimTexUserSettingsWindow.cs',
+    for (const file of ['src/WhimTexWindow.DocumentTitle.cs', 'src/WhimTexUserSettingsWindow.cs',
       'src/LayerFxEditorWindow.cs', 'src/Utils.cs'])
       assert.ok(read(file).includes('WhimTexBranding.WindowTitle('), `${file}: branded title`);
     for (const [file, size] of [
@@ -96,7 +96,7 @@ context.case('Branding original assertions and branches', async () => {
     assert.ok(read('Documentation~/_includes/favicon.html').includes('site.logo | relative_url'));
     const backdropGuid = read('src/WhimTexCanvasViewBackdrop.png.meta').match(/^guid: (\w+)$/m)[1];
     assert.ok(read('src/WhimTexBranding.cs').includes(`GUIDToAssetPath("${backdropGuid}")`));
-    const previewUI = read('src/TextureCompositorWindow.UI.cs').split('private sealed class CanvasElement')[1];
+    const previewUI = read('src/WhimTexWindow.UI.cs').split('private sealed class CanvasElement')[1];
     assert.ok(previewUI.indexOf('Add(backdrop);') < previewUI.indexOf('Add(checker);'), 'Backdrop stays behind the canvas/checker, not in document pixels');
     assert.match(previewUI, /backdrop = new Image\s*\{[^}]*pickingMode = PickingMode.Ignore,[^}]*focusable = false/s);
     assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-canvas-view-backdrop\s*\{\s*position: absolute;\s*opacity: 0\.035;/);
@@ -104,9 +104,9 @@ context.case('Branding original assertions and branches', async () => {
     const backdropLayout = previewUI.split('private void UpdateBackdropLayout()')[1].split('public void SetToolCursor')[0];
     assert.ok(!/viewport\.|ImageRect|documentWidth|documentHeight/.test(backdropLayout), 'Background placement is independent of document transforms and zoom');
     
-    const presentation = read('src/TextureCompositorWindow.UI.cs').split('private void UpdateToolkitCanvasPresentation()')[1].split('private void OnCanvasPointerEnter')[0];
-    const toolSource = read('src/TextureCompositorWindow.Tools.cs');
-    assert.match(toolSource, /foreach \(Layer layer in compositor.layers\)\s*if \(layer != null\) return true;/);
+    const presentation = read('src/WhimTexWindow.UI.cs').split('private void UpdateToolkitCanvasPresentation()')[1].split('private void OnCanvasPointerEnter')[0];
+    const toolSource = read('src/WhimTexWindow.Tools.cs');
+    assert.match(toolSource, /foreach \(Layer layer in activeDocument.layers\)\s*if \(layer != null\) return true;/);
     assert.match(presentation, /bool hasLayers = HasCanvasLayers;/);
     const toolbar = toolSource.split('private void RefreshCanvasToolToolbar()')[1].split('private sealed class CanvasToolIcon')[0];
     assert.match(toolbar, /CanvasTool displayedTool = canvasTool;/);
@@ -117,12 +117,12 @@ context.case('Branding original assertions and branches', async () => {
     for (const button of ['canvasRectangleSelectButton', 'canvasPolygonSelectButton', 'canvasZoomButton'])
       assert.ok(toolbar.includes(`${button}?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers)`));
     assert.match(toolSource, /HandlePaintConversionPrompt\(PointerDownEvent evt\)\s*\{\s*if \(!HasCanvasLayers\)\s*\{\s*WhimTexUI.ConsumeEvent\(evt\);\s*return true;/);
-    const zoom = read('src/TextureCompositorWindow.Zoom.cs');
+    const zoom = read('src/WhimTexWindow.Zoom.cs');
     assert.match(zoom, /ChangeCanvasZoom\(bool fit\)\s*\{\s*if \(!HasCanvasLayers\) return;/);
     assert.match(zoom, /if \(!owner.HasCanvasLayers \|\| \(evt.button != 2/);
     assert.match(zoom, /if \(!owner.HasCanvasLayers \|\| !target.contentRect.Contains\(point\)/);
-    assert.match(read('src/TextureCompositorWindow.AreaSelectionView.cs'), /!owner.IsAreaSelectionTool \|\| !owner.HasCanvasLayers/);
-    assert.match(read('src/TextureCompositorWindow.Eyedropper.cs'), /CanUseCanvasEyedropper => HasCanvasLayers &&/);
+    assert.match(read('src/WhimTexWindow.AreaSelectionView.cs'), /!owner.IsAreaSelectionTool \|\| !owner.HasCanvasLayers/);
+    assert.match(read('src/WhimTexWindow.Eyedropper.cs'), /CanUseCanvasEyedropper => HasCanvasLayers &&/);
     assert.ok(!/layer\.visible/.test(presentation), 'Hidden layers still count as document content');
     assert.match(presentation, /SetCanvasVisible\(hasLayers\)/);
     for (const element of ['checker', 'image', 'tiledImage'])

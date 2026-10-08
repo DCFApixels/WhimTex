@@ -58,7 +58,7 @@ Other Outline settings are rasterized.
 
 The separate effect layer preserves its name, folder, blend, opacity and order, even for a Specific target
 elsewhere in the tree or a group target. This is a **snapshot**, not a live link: changing the source layer
-in the PSD does not update this alpha automatically. Target resolution follows compositor rendering,
+in the PSD does not update this alpha automatically. Target resolution follows document rendering,
 including disabled or missing inputs. No source layer is removed or merged into another layer.
 
 ### Blending and compatibility
@@ -68,7 +68,7 @@ Linear Light Add/Sub uses Linear Light, Negation uses Difference, and Overwrite 
 None is exported hidden because it is a no-op. Each affected layer is listed in export notes.
 Background-dependent modes cannot always be baked independently while retaining an editable stack.
 
-The merged image retains a clamped copy of the compositor result, subject to 8-bit merged-alpha matte rounding.
+The merged image retains a clamped copy of the document result, subject to 8-bit merged-alpha matte rounding.
 HDR values and extended blending cannot be fully represented in this 8-bit format; export notes identify affected layers.
 Applications that recomposite the editable stack can produce a different result. Layer-aware Unity import
 does not necessarily reproduce every blend or layer effect; ordinary texture import uses the merged result.
@@ -76,7 +76,7 @@ Export does not install a layered importer or change the selected importer type.
 
 Limits: RGB, 8 bits per channel, dimensions 1–30000, at most 32767 records (a group uses two),
 and files/sections below 2 GB. An empty document receives one transparent Canvas layer so merged alpha
-remains explicit. The native WhimTex TIFF remains the authoritative, fully editable source. Convert old `.asset` documents to TIFF in WhimTex 0.12.5 before upgrading; the current version does not open that format.
+remains explicit. The native WhimTex TIFF remains the authoritative, fully editable source. Old `.asset` documents require a matching older checkout; the current version does not open or migrate that format.
 
 ## Editor-side API
 

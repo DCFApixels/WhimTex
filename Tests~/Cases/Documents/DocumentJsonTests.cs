@@ -8,20 +8,32 @@ public static class DocumentJsonTests
 {
     static string ExecuteRun(int start = 0, int count = 8)
     {
-        // Package-owned 0.12.5 fixtures; never depend on the user's sample assets.
-        var files = new[] {
-            "Packages/com.dcfapixels.whimtex/Tests~/Fixtures/Compatibility0125/procedural.tiff",
-            "Packages/com.dcfapixels.whimtex/Tests~/Fixtures/BASE_Gradient_128.tiff"
+        // Current inputs are generated only inside this run's owned test folder.
+        // Frozen old TIFFs remain negative inputs in the compatibility boundary tests.
+        var recipes = new[] {
+            "{\"format\":\"whimtex.document\",\"version\":2,\"document\":{\"width\":32,\"height\":24},\"layers\":[" +
+                "{\"id\":\"noise\",\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\",\"scale\":5,\"scaleY\":3}}," +
+                "{\"id\":\"shape\",\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\",\"cornerRoundness\":[0.1,0.2,0.3,0.4]},\"opacity\":0.3}]}",
+            "{\"format\":\"whimtex.document\",\"version\":2,\"document\":{\"width\":32,\"height\":16,\"outputSrgb\":false},\"layers\":[" +
+                "{\"id\":\"gradient\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\"," +
+                "\"code\":\"float4 ApplyFX(float2 uv,float4 color){return float4(uv.x,uv.y,uv.x*uv.y,0.7);}\"}]}]}"
         };
-        Array.Sort(files, StringComparer.Ordinal);
-        if (start < 0 || start >= files.Length || count <= 0) throw new ArgumentOutOfRangeException("start/count");
+        if (start < 0 || start >= recipes.Length || count <= 0) throw new ArgumentOutOfRangeException("start/count");
         int checkedCount = 0;
         long characters = 0;
-        for (int i = start; i < Math.Min(files.Length, start + count); i++)
+        for (int i = start; i < Math.Min(recipes.Length, start + count); i++)
         {
+            string input = UnityBRun.AssetPath("CurrentInput_" + i + ".tiff");
             string temporary = UnityBRun.AssetPath("__WhimTexJsonRoundtrip_") + Guid.NewGuid().ToString("N") + ".json";
-            string original = Convert.ToBase64String(File.ReadAllBytes(files[i]));
-            var source = WhimTexDocumentFile.Load(files[i]);
+            using (var fixture = WhimTexDocumentJson.Read(recipes[i], false))
+            {
+                foreach (var layer in fixture.Document.layers) foreach (var fx in layer.fx)
+                    if (fx is ShaderFX shaderFX) typeof(ShaderFX).GetMethod("ApplyAgentDraft",
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(shaderFX, null);
+                WhimTexDocumentFile.Save(fixture.Document, input);
+            }
+            string original = Convert.ToBase64String(File.ReadAllBytes(input));
+            var source = WhimTexDocumentFile.Load(input);
             Texture2D baseline = null;
             try
             {
@@ -42,8 +54,8 @@ public static class DocumentJsonTests
                     finally { UnityEngine.Object.DestroyImmediate(loaded); }
                     using var read = WhimTexDocumentJson.Read(File.ReadAllText(temporary));
                     UnityBRun.Check(!(read.Document.JsonWriteMode != mode), "Save lost write mode.");
-                    UnityBRun.Check(!(read.Warnings.Count != 0), files[i] + ": " + string.Join(",", read.Warnings));
-                    UnityBRun.Check(!(read.Document.outputSrgb != source.outputSrgb || read.Document.outputFilter != source.outputFilter || read.Document.outputPrecision != source.outputPrecision), "Output settings changed: " + files[i]);
+                    UnityBRun.Check(!(read.Warnings.Count != 0), input + ": " + string.Join(",", read.Warnings));
+                    UnityBRun.Check(!(read.Document.outputSrgb != source.outputSrgb || read.Document.outputFilter != source.outputFilter || read.Document.outputPrecision != source.outputPrecision), "Output settings changed: " + input);
                     Texture2D actual = read.Document.ComposeCanvas();
                     try
                     {
@@ -57,23 +69,23 @@ public static class DocumentJsonTests
                                 UnityBRun.Check(!(float.IsNaN(delta) || float.IsInfinity(delta)), "Nonfinite render.");
                                 worst = Mathf.Max(worst, delta);
                             }
-                        UnityBRun.Check(!(worst > .00001f), files[i] + " " + mode + ": max delta=" + worst);
+                        UnityBRun.Check(!(worst > .00001f), input + " " + mode + ": max delta=" + worst);
                     }
                     finally { UnityEngine.Object.DestroyImmediate(actual); }
                     UnityBRun.Check(!(read.Document.layers.Count > 0 && read.Document.layers[0].Id != source.layers[0].Id), "Layer identity changed.");
                     checkedCount++;
                 }
-                UnityBRun.Check(!(original != Convert.ToBase64String(File.ReadAllBytes(files[i]))), "Export modified source TIFF.");
+                UnityBRun.Check(!(original != Convert.ToBase64String(File.ReadAllBytes(input))), "Export modified source TIFF.");
             }
             finally
             {
                 if (baseline != null) UnityEngine.Object.DestroyImmediate(baseline);
                 UnityEngine.Object.DestroyImmediate(source);
                 if (File.Exists(temporary)) AssetDatabase.DeleteAsset(temporary);
+                if (File.Exists(input)) AssetDatabase.DeleteAsset(input);
             }
         }
         return "";
     }
     public static string Run(int start = 0, int count = 8) => UnityBRun.Run("DocumentJsonSmoke.Run", () => ExecuteRun(start, count));
 }
-

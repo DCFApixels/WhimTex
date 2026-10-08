@@ -18,7 +18,7 @@ using Object = UnityEngine.Object;
 public static class DocumentSaveTailTests
 {
     const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
-    static Type T(string name) => typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex." + name, true);
+    static Type T(string name) => typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex." + name, true);
     static object Call(Type type, object owner, string name, params object[] args)
     {
         try { return type.GetMethods(Any).Single(m => m.Name == name && m.GetParameters().Length == args.Length).Invoke(owner, args); }
@@ -108,8 +108,8 @@ public static class DocumentSaveTailTests
         var focus = EditorWindow.focusedWindow;
         bool profileEditor = ProfilerDriver.profileEditor, profileCpu = ProfilerDriver.IsAreaEnabled(ProfilerArea.CPU);
         var report = new Report { source = source, unity = Application.unityVersion, profiling = profiling, folder = UnityBRun.AssetPath("WhimTexSaveTailProbe_") + Guid.NewGuid().ToString("N") };
-        TextureCompositor doc = null;
-        TextureCompositorWindow window = null;
+        WhimTexDocument doc = null;
+        WhimTexWindow window = null;
         string path = report.folder + "/Probe.tiff";
         UnityBRun.EnsureFolder(report.folder);
         try
@@ -119,13 +119,13 @@ public static class DocumentSaveTailTests
             report.width = doc.width; report.height = doc.height; report.layers = doc.layers.Count;
             var fill = new ColorFillLayerBehaviour { color = new Color(1, 0, 0, .02f) };
             doc.layers.Insert(0, new Layer(fill));
-            window = UnityBRun.Create<TextureCompositorWindow>();
-            Call(typeof(TextureCompositorWindow), window, "SetCompositor", doc);
+            window = UnityBRun.Create<WhimTexWindow>();
+            Call(typeof(WhimTexWindow), window, "SetDocument", doc);
             window.ShowUtility();
             window.position = new Rect(100, 100, 850, 650);
             for (int i = 0; i < 8; i++) await NextUpdate();
             // Warm shader/render/import/preview paths outside the measured trials.
-            Call(typeof(TextureCompositorWindow), null, "SaveDocumentTo", doc, path);
+            Call(typeof(WhimTexWindow), null, "SaveDocumentTo", doc, path);
             for (int i = 0; i < 8; i++) await NextUpdate();
             if (profiling)
             {
@@ -141,14 +141,14 @@ public static class DocumentSaveTailTests
                 var trial = new Trial { mode = mode };
                 report.trials.Add(trial);
                 fill.color = new Color((++iteration % 7) / 7f, .5f, .2f, .02f);
-                Call(typeof(TextureCompositor), doc, "MarkChanged");
+                Call(typeof(WhimTexDocument), doc, "MarkChanged");
                 for (int i = 0; i < 3; i++) await NextUpdate();
                 int startFrame = ProfilerDriver.lastFrameIndex + 1;
                 var total = Stopwatch.StartNew();
                 if (mode.StartsWith("real-window"))
                 {
                     bool saved = false;
-                    Time(trial, "SaveDocumentTo", () => saved = (bool)Call(typeof(TextureCompositorWindow), null, "SaveDocumentTo", doc, path));
+                    Time(trial, "SaveDocumentTo", () => saved = (bool)Call(typeof(WhimTexWindow), null, "SaveDocumentTo", doc, path));
                     UnityBRun.Check(!(!saved), "Window save failed.");
                 }
                 else
@@ -157,11 +157,11 @@ public static class DocumentSaveTailTests
                         new object[] { "Save tail diagnostic", null }, null);
                     try
                     {
-                        Time(trial, "PrepareDocumentSave", () => Call(typeof(TextureCompositorWindow), window, "PrepareDocumentSave"));
+                        Time(trial, "PrepareDocumentSave", () => Call(typeof(WhimTexWindow), window, "PrepareDocumentSave"));
                         Time(trial, "File.Save", () => WhimTexDocumentFile.Save(doc, path, deferImport: true));
-                        Time(trial, "BindDocumentFile", () => Call(typeof(TextureCompositorWindow), window, "BindDocumentFile", path));
-                        typeof(TextureCompositorWindow).GetField("temporaryDocumentDirty", Any).SetValue(window, false);
-                        Time(trial, "UpdateUnsavedChangesState", () => Call(typeof(TextureCompositorWindow), window, "UpdateUnsavedChangesState"));
+                        Time(trial, "BindDocumentFile", () => Call(typeof(WhimTexWindow), window, "BindDocumentFile", path));
+                        typeof(WhimTexWindow).GetField("temporaryDocumentDirty", Any).SetValue(window, false);
+                        Time(trial, "UpdateUnsavedChangesState", () => Call(typeof(WhimTexWindow), window, "UpdateUnsavedChangesState"));
                         if (mode == "split-full-tail")
                         {
                             Texture2D image = null;

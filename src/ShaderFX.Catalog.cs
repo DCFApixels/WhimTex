@@ -63,7 +63,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        internal static ShaderFX FromCatalog(TextureCompositor owner, ShaderFXCatalog.Entry entry)
+        internal static ShaderFX FromCatalog(WhimTexDocument owner, ShaderFXCatalog.Entry entry)
         {
             if (entry.assetPreset)
             {
@@ -116,8 +116,6 @@ namespace DCFApixels.WhimTex
                 contentChanged = hash != catalogDependencyHash || path != catalogSourcePath;
                 if (!force && !contentChanged) return;
                 ShaderFXMetadata.Parse(source, true, out string menuPath);
-                var upgraded = WhimTexFileCompatibility0125.UpgradeLinkedPresetParameters(catalogGuid, code, source, parameters);
-                if (upgraded != null) parameters = upgraded;
                 code = source;
                 catalogSourcePath = path;
                 catalogDependencyHash = hash;
@@ -126,8 +124,7 @@ namespace DCFApixels.WhimTex
             }
             catch (Exception error)
             {
-                lastApplyFailed = true;
-                diagnostics = error.Message;
+                RecordApplyFailure(error);
                 if (contentChanged || CatalogHash(path) != catalogDependencyHash) NotifyValuesChanged();
                 else QueueNotification(false);
             }

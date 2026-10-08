@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/MotionBlur"
+Shader "Hidden/WhimTex/MotionBlur"
 {
     Properties
     {

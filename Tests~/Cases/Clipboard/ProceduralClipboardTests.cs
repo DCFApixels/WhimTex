@@ -16,12 +16,12 @@ public static class ProceduralClipboardTests
     static int checks;
     static void Check(bool value, string message) { WhimTex.Tests.UnityC.FixtureContext.Context.True(value, message); checks++; }
     static object Build(string text) => Read.Invoke(null, new object[] { text, 128, 128 });
-    static TextureCompositor Document(object value) => (TextureCompositor)value.GetType().GetField("Document", Hidden).GetValue(value);
+    static WhimTexDocument Document(object value) => (WhimTexDocument)value.GetType().GetField("Document", Hidden).GetValue(value);
     static void Compile(object value) => value.GetType().GetMethod("Compile", Hidden).Invoke(value, null);
-    static void Render(TextureCompositor document)
+    static void Render(WhimTexDocument document)
     {
         RenderTexture previous = RenderTexture.active;
-        var rendered = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvas", Hidden).Invoke(document, new object[] { 64 });
+        var rendered = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderCanvas", Hidden).Invoke(document, new object[] { 64 });
         try { Check(rendered != null && rendered.width > 0, "Preview render failed."); Check(RenderTexture.active == previous, "Render target leaked."); }
         finally { if (rendered != null) WhimTex.Tests.UnityC.FixtureContext.Scope.Release(rendered); }
     }
@@ -43,22 +43,22 @@ public static class ProceduralClipboardTests
             Check(Document(data).layers.Count > 0, file + " did not create layers.");
             Render(Document(data));
         }
-        const string plain = "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}";
+        const string plain = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}";
         Check((bool)typeof(WhimTexApi).GetMethod("IsProceduralClipboard", BindingFlags.NonPublic | BindingFlags.Static)
             .Invoke(null, new object[] { "{'format':'whimtex.layers','version':1,'layers':[{'type':'color'}]}" }),
             "Retired JSON must route to rejection, not fall back to a stale native layer copy.");
         Reject("{\"format\":\"whimtex.layers\",\"version\":1,\"layers\":[{\"type\":\"color\"}]}");
         Reject(plain.Replace("whimtex.document", "unknown.document"));
-        Reject(plain.Replace("\"version\":1", "\"version\":2"));
+        Reject(plain.Replace("\"version\":2", "\"version\":999"));
         Reject(plain.Replace("\"ColorFillLayerBehaviour\"", "\"UnknownLayerBehaviour\""));
         Reject(plain.Replace("\"id\":\"color\"", "\"id\":\"\""));
         Reject(plain.Replace("\"id\":\"color\"", "\"id\":\"color\",\"unexpected\":1"));
-        Reject(plain.Replace("\"version\":1", "\"version\":1,\"version\":1"));
-        Reject("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"missing\"}}]}");
-        Reject("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"blur\"}}]}");
-        Reject("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"a\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"b\"}},{\"id\":\"b\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"a\"}}]}");
-        Reject("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}},{\"id\":\"color\",\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\"}}]}");
-        Reject("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"drawing\",\"behaviour\":{\"$type\":\"DrawingLayerBehaviour\"},\"url\":\"https://example.com/a.png\"}]}");
+        Reject(plain.Replace("\"version\":2", "\"version\":2,\"version\":2"));
+        Reject("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"missing\"}}]}");
+        Reject("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"blur\"}}]}");
+        Reject("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"a\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"b\"}},{\"id\":\"b\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"a\"}}]}");
+        Reject("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}},{\"id\":\"color\",\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\"}}]}");
+        Reject("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"drawing\",\"behaviour\":{\"$type\":\"DrawingLayerBehaviour\"},\"url\":\"https://example.com/a.png\"}]}");
         using (var fenced = (IDisposable)Build("```json\n" + plain + "\n```"))
             Check(Document(fenced).layers.Count == 1, "Fenced JSON failed.");
         using (var bom = (IDisposable)Build("\uFEFF" + plain))
@@ -69,15 +69,15 @@ public static class ProceduralClipboardTests
             Check(!(bool)inherited.GetType().GetField("HasCanvas", Hidden).GetValue(inherited), "Omitted size must not prompt.");
         }
 
-        var destination = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var destination = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         destination.hideFlags = HideFlags.HideAndDontSave;
         destination.width = 128; destination.height = 128;
-        var paste = typeof(TextureCompositor).GetMethod("PasteLayers", Hidden);
+        var paste = typeof(WhimTexDocument).GetMethod("PasteLayers", Hidden);
         int undo = -1;
         try
         {
             using var data = (IDisposable)Build(File.ReadAllText(Path.Combine(folder, "mystic-fog.json")));
-            TextureCompositor source = Document(data);
+            WhimTexDocument source = Document(data);
             paste.Invoke(destination, new object[] { source });
             Layer group = destination.layers[0];
             Check(group.Id != source.layers[0].Id, "Pasted ID was reused.");
@@ -105,7 +105,7 @@ public static class ProceduralClipboardTests
         }
         finally { Undo.ClearUndo(destination); WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(destination); }
 
-        var shaderDestination = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var shaderDestination = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         shaderDestination.hideFlags = HideFlags.HideAndDontSave;
         try
         {
@@ -126,14 +126,14 @@ public static class ProceduralClipboardTests
         finally { Undo.ClearUndo(shaderDestination); WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(shaderDestination); }
 
         // Exercise the actual window paste helper, including its resize transaction.
-        var window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositorWindow>());
+        var window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexWindow>());
         try
         {
-            var document = (TextureCompositor)typeof(TextureCompositorWindow).GetField("compositor", Hidden).GetValue(window);
+            var document = (WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument", Hidden).GetValue(window);
             int oldWidth = document.width, oldHeight = document.height;
             FilterMode oldFilter = document.outputFilter;
-            using var data = (IDisposable)Build("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}],\"document\":{\"width\":64,\"height\":96,\"outputFilter\":\"Point\"}}");
-            var method = typeof(TextureCompositorWindow).GetMethod("PasteCopiedLayers", Hidden);
+            using var data = (IDisposable)Build("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}],\"document\":{\"width\":64,\"height\":96,\"outputFilter\":\"Point\"}}");
+            var method = typeof(WhimTexWindow).GetMethod("PasteCopiedLayers", Hidden);
             method.Invoke(window, new object[] { Document(data), true });
             Check(document.outputFilter == oldFilter, "JSON paste must preserve destination output filter.");
             Check(document.width == 64 && document.height == 96 && document.layers.Count == 1, "Window resize paste failed.");
@@ -157,12 +157,12 @@ public static class ProceduralClipboardTests
         var adopt = typeof(DrawingLayerBehaviour).GetMethod("AdoptStoredTexture", Hidden);
         var stored = typeof(DrawingLayerBehaviour).GetProperty("StoredTexture", Hidden);
         var fit = typeof(Layer).GetMethod("TryGetOriginalAspectTransform", Hidden);
-        var linkedDestination = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var linkedDestination = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         linkedDestination.hideFlags = HideFlags.HideAndDontSave;
         linkedDestination.width = 64; linkedDestination.height = 64;
         try
         {
-            using (var data = (IDisposable)Build("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"drawing\",\"behaviour\":{\"$type\":\"DrawingLayerBehaviour\"}}]}"))
+            using (var data = (IDisposable)Build("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"drawing\",\"behaviour\":{\"$type\":\"DrawingLayerBehaviour\"}}]}"))
             {
                 Layer linked = Document(data).layers[0];
                 var image = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(96, 48, TextureFormat.RGBA32, false, false) { hideFlags = HideFlags.HideAndDontSave });

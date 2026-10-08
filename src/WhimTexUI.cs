@@ -288,7 +288,7 @@ namespace DCFApixels.WhimTex
 
         internal static void RefreshFxWarning(VisualElement warning, ShaderFX effect)
         {
-            string reason = effect != null ? effect.UnavailableReason : null;
+            string reason = effect != null ? effect.DiagnosticNotice : null;
             warning.EnableInClassList("whimtex-hidden", reason == null);
             warning.tooltip = reason;
         }
@@ -314,8 +314,8 @@ namespace DCFApixels.WhimTex
         }
 
         internal static LayerShaderFXView BuildLayerInspectorSections(VisualElement root, Layer layer,
-            TextureCompositor owner, Action<string, Action> apply, ValueBindings bindings,
-            Action<VisualElement> buildProperties, bool colorExpanded, Action<bool> colorExpansionChanged,
+            WhimTexDocument owner, Action<string, Action> apply, ValueBindings bindings,
+            Action<VisualElement> buildProperties, bool renderingExpanded, Action<bool> renderingExpansionChanged,
             bool propertiesExpanded, Action<bool> propertiesExpansionChanged,
             bool fxExpanded, Action<bool> fxExpansionChanged,
             bool transformExpanded, Action<bool> transformExpansionChanged)
@@ -324,8 +324,8 @@ namespace DCFApixels.WhimTex
             WhimTexColorPicker.SetDocument(root, () => owner);
             AddTextureTransform(root, layer, owner, apply, bindings, transformExpanded, transformExpansionChanged);
 
-            LayerColorSettingsView.Build(root, layer, apply, bindings, colorExpanded, colorExpansionChanged, owner);
-            var properties = CreateInspectorSection($"Properties ({TextureCompositor.LayerMenuName(layer)})", "propertiesSection", LayerActionIcon.Kind.Properties,
+            LayerRenderingSettingsView.Build(root, layer, apply, bindings, renderingExpanded, renderingExpansionChanged, owner);
+            var properties = CreateInspectorSection($"Properties ({WhimTexDocument.LayerMenuName(layer)})", "propertiesSection", LayerActionIcon.Kind.Properties,
                 propertiesExpanded, propertiesExpansionChanged, !(layer?.Behaviour is ShaderProcessorLayerBehaviour));
             root.Add(properties);
             if (group)
@@ -349,9 +349,9 @@ namespace DCFApixels.WhimTex
             fxLabel.parent.Insert(fxLabel.parent.IndexOf(fxLabel), warning);
             void RefreshWarning()
             {
-                var unavailable = layer.UnavailableEffect;
-                RefreshFxWarning(warning, unavailable);
-                fx.EnableInClassList("whimtex-inspector-section--fx-warning", unavailable != null);
+                var diagnostic = layer.DiagnosticEffect;
+                RefreshFxWarning(warning, diagnostic);
+                fx.EnableInClassList("whimtex-inspector-section--fx-warning", diagnostic != null);
             }
             RefreshWarning();
             bindings.Add(RefreshWarning);
@@ -363,7 +363,7 @@ namespace DCFApixels.WhimTex
         public static void AddTextureTransform(
             VisualElement parent,
             Layer layer,
-            TextureCompositor compositor,
+            WhimTexDocument activeDocument,
             Action<string, Action> applyChange,
             ValueBindings bindings, bool expanded = false, Action<bool> expansionChanged = null)
         {
@@ -395,7 +395,7 @@ namespace DCFApixels.WhimTex
             bool displayReady=false;
             void RefreshDisplay()
             {
-                var value=read();var size=new Vector2(compositor.width,compositor.height);
+                var value=read();var size=new Vector2(activeDocument.width,activeDocument.height);
                 if(displayReady && value.Equals(displaySource) && size==displaySize)return;
                 displaySource=value;displaySize=size;displayReady=true;
                 value.GetDisplay(size,out displayPosition,out displayScale,out displayRotation);
@@ -419,7 +419,7 @@ namespace DCFApixels.WhimTex
             }, 54f);
             VisualElement actions = CreateRow();
             actions.Add(reset);
-            actions.Add(CreateOriginalAspectButton(() => layer, () => compositor, applyChange, bindings));
+            actions.Add(CreateOriginalAspectButton(() => layer, () => activeDocument, applyChange, bindings));
             card.Add(actions);
 
             pivot.RegisterValueChangedCallback(evt =>
@@ -436,7 +436,7 @@ namespace DCFApixels.WhimTex
                 applyChange("Change Layer Transform", () =>
                 {
                     TextureTransform value = read();
-                    value.EditPosition(evt.newValue, new Vector2(compositor.width,compositor.height));
+                    value.EditPosition(evt.newValue, new Vector2(activeDocument.width,activeDocument.height));
                     write(value);
                 });
             });
@@ -445,7 +445,7 @@ namespace DCFApixels.WhimTex
                 applyChange("Change Layer Transform", () =>
                 {
                     TextureTransform value = read();
-                    value.EditScale(evt.newValue, new Vector2(compositor.width,compositor.height));
+                    value.EditScale(evt.newValue, new Vector2(activeDocument.width,activeDocument.height));
                     write(value);
                 });
             });
@@ -455,7 +455,7 @@ namespace DCFApixels.WhimTex
                 {
                     TextureTransform value = read();
                     if (!ProjectiveMatrix.Finite(evt.newValue)) return;
-                    value.EditRotation(evt.newValue, new Vector2(compositor.width,compositor.height));
+                    value.EditRotation(evt.newValue, new Vector2(activeDocument.width,activeDocument.height));
                     write(value);
                 });
             });
@@ -482,7 +482,7 @@ namespace DCFApixels.WhimTex
 
         internal static Button CreateOriginalAspectButton(
             Func<Layer> readLayer,
-            Func<TextureCompositor> readCompositor,
+            Func<WhimTexDocument> readDocument,
             Action<string, Action> applyChange,
             ValueBindings bindings,
             bool originalSize = false)
@@ -490,7 +490,7 @@ namespace DCFApixels.WhimTex
             Button button = CreateButton(originalSize ? "Original Size" : "Original Aspect", () =>
             {
                 Layer layer = readLayer();
-                if (layer == null || !layer.TryGetOriginalAspectTransform(readCompositor(), out TextureTransform fitted, originalSize) ||
+                if (layer == null || !layer.TryGetOriginalAspectTransform(readDocument(), out TextureTransform fitted, originalSize) ||
                     fitted.Equals(layer.transform))
                     return;
                 applyChange(originalSize ? "Restore Original Size" : "Restore Original Aspect", () => layer.transform = fitted);
@@ -500,7 +500,7 @@ namespace DCFApixels.WhimTex
                 "Preserve image center, pivot, rotation, and flips. Generated layers use the canvas ratio. " +
                 "Requires a source image for File layers and nonzero scale.";
             bindings.Add(() => button.SetEnabled(
-                readLayer() is Layer layer && layer.TryGetOriginalAspectTransform(readCompositor(), out _, originalSize)));
+                readLayer() is Layer layer && layer.TryGetOriginalAspectTransform(readDocument(), out _, originalSize)));
             return button;
         }
     }

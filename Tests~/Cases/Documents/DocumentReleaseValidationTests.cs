@@ -17,7 +17,7 @@ public static class DocumentReleaseValidationTests
 {
     const string Key = "WhimTex.ReleaseValidation";
     const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-    static Type Session => typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSession");
+    static Type Session => typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSession");
     static object Call(Type type, object instance, string name, params object[] args) => type.GetMethods(Any)
         .Single(m => m.Name == name && m.GetParameters().Length == args.Length).Invoke(instance, args);
     static int checks;
@@ -37,9 +37,9 @@ public static class DocumentReleaseValidationTests
         throw new Exception("Expected failure: " + message);
     }
     static string Folder() { string folder=UnityBRun.AssetPath("Release");UnityBRun.EnsureFolder(folder);return folder; }
-    static TextureCompositor Document(Color color, int size = 256)
+    static WhimTexDocument Document(Color color, int size = 256)
     {
-        var doc = UnityBRun.Create<TextureCompositor>(); doc.hideFlags = HideFlags.HideAndDontSave;
+        var doc = UnityBRun.Create<WhimTexDocument>(); doc.hideFlags = HideFlags.HideAndDontSave;
         doc.width = size; doc.height = size; doc.layers.Add(new Layer(new ColorFillLayerBehaviour { color = color })); return doc;
     }
     static void Idle() => Check(!(bool)Session.GetProperty("IsLive", Any).GetValue(null), "user Live Update must be idle");
@@ -49,7 +49,7 @@ public static class DocumentReleaseValidationTests
         checks = 0; Idle(); string folder = Folder(), raw = folder + "/transaction.bin";
         string recovery = (string)Session.GetField("RecoveryKey", Any).GetValue(null);
         Check(!EditorPrefs.HasKey(recovery), "no user's pending recovery journal");
-        var doc = Document(Color.green, 32); TextureCompositor loaded = null;
+        var doc = Document(Color.green, 32); WhimTexDocument loaded = null;
         string path = folder + "/Fault.tiff";
         try
         {
@@ -194,7 +194,7 @@ public static class DocumentReleaseValidationTests
     static bool RestartPlayerLiveManual()
     {
         Idle(); string folder = Folder(), prefix = Path.GetFileName(folder);
-        var doc = Resources.FindObjectsOfTypeAll<TextureCompositor>().FirstOrDefault(d => d.name == prefix);
+        var doc = Resources.FindObjectsOfTypeAll<WhimTexDocument>().FirstOrDefault(d => d.name == prefix);
         string path = folder + "/Resources/" + prefix + "/Document.tiff";
         if (doc == null) { doc = WhimTexDocumentFile.Load(path); doc.name = prefix; }
         ((ColorFillLayerBehaviour)doc.layers[0].Behaviour).color = Color.red;
@@ -235,7 +235,7 @@ public static class DocumentReleaseValidationTests
         
         try
         {
-            var binding = typeof(TextureCompositor).GetField("documentBinding", Any).GetValue(doc);
+            var binding = typeof(WhimTexDocument).GetField("documentBinding", Any).GetValue(doc);
             Check((bool)binding.GetType().GetField("dirty", Any).GetValue(binding), "deferred failure marks document retryable");
             File.Delete(path + ".failimport"); WhimTexDocumentFile.Save(doc, path);
             Check(!(bool)Call(typeof(WhimTexDocumentFile), null, "ImportHasErrors", path), "retry repairs deferred failed import");

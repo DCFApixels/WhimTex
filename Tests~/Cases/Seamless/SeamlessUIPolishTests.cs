@@ -18,9 +18,9 @@ public static class SeamlessUIPolishTests
         void Check(bool condition, string message) { job.Context.True(condition, message); checks++; }
         var focus = EditorWindow.focusedWindow;
         var window = job.Scope.Own(ScriptableObject.CreateInstance<EditorWindow>());
-        var doc = job.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var doc = job.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         var model = MakeSeamlessLayerBehaviour.CreateDefault(); doc.layers.Add(model);
-        var assembly = typeof(TextureCompositor).Assembly;
+        var assembly = typeof(WhimTexDocument).Assembly;
         Undo.IncrementCurrentGroup(); int undo = Undo.GetCurrentGroup();
         void Cleanup() => job.DisposeOwned();
         job.OwnCleanup(() => { job.Scope.CloseWindow(window); Undo.ClearUndo(doc); job.Scope.Destroy(doc); if (focus != null) focus.Focus(); });
@@ -33,7 +33,7 @@ public static class SeamlessUIPolishTests
             var bindings = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.WhimTexUI+ValueBindings"), true);
             void Refresh() => bindings.GetType().GetMethod("Refresh", F).Invoke(bindings, new object[] { true });
             Action<string, Action> apply = (label, change) => { Undo.RegisterCompleteObjectUndo(doc, label); change(); Refresh(); };
-            typeof(TextureCompositor).GetMethod("NormalizeModel", F).Invoke(doc, null);
+            typeof(WhimTexDocument).GetMethod("NormalizeModel", F).Invoke(doc, null);
             var targetView = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.EffectTargetSettingsView"), F, null,
                 new object[] { doc, apply, bindings }, null);
             typeof(MakeSeamlessLayerEditorWindow).GetMethod("BuildFields", F).Invoke(null, new object[] { root, model, doc,

@@ -89,9 +89,9 @@ private static string VerifyPlusCenter()
 private static async Task<string> BodyRingScenario() {
 
 T.True(Resources.FindObjectsOfTypeAll<WhimTexColorPicker>().Length == 0, "Close the borrowed active picker first");
-var doc = Scope.OwnObject(ScriptableObject.CreateInstance<TextureCompositor>());
+var doc = Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
 const BindingFlags flags = BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-for(int i=0;i<20;i++) typeof(TextureCompositor).GetMethod("RememberColor",flags).Invoke(doc,new object[]{Color.HSVToRGB(i/20f,.75f,.8f)});
+for(int i=0;i<20;i++) typeof(WhimTexDocument).GetMethod("RememberColor",flags).Invoke(doc,new object[]{Color.HSVToRGB(i/20f,.75f,.8f)});
 var picker = Scope.OwnWindow((WhimTexColorPicker)typeof(WhimTexColorPicker).GetMethod("Open",flags).Invoke(null,new object[]{new Color(.1f,.5f,.8f,1),true,true,WhimTexColorRange.Switchable,doc,(Action<Color>)(_=>{}),null,null}));
 picker.name = Scope.Tag + "-picker-layout";
 try {

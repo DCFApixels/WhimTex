@@ -38,13 +38,13 @@ public static class ShaderFXControlTests
         Check(Read("/*\n// @control(_A)\n*/",out warning)==null && warning=="", "Ignore block comments");
         Check(Read("// @control(_A)\n// @control()",out warning)==null && warning.Contains("expected"), "Malformed last does not resurrect earlier binding");
         const string source="// @control(_Opacity)\n// @param label(Opacity) float _Opacity = 1 [0..1]\nfloat4 ApplyFX(float2 uv,float4 color){return color * _Opacity;}";
-        var doc=ScriptableObject.CreateInstance<TextureCompositor>();doc.width=16;doc.height=16;
+        var doc=ScriptableObject.CreateInstance<WhimTexDocument>();doc.width=16;doc.height=16;
         Layer layer=new ColorFillLayerBehaviour();doc.layers.Add(layer);
-        ShaderFX effect=null;ShaderFXControlTestsWindow window=null;TextureCompositor loaded=null;
+        ShaderFX effect=null;ShaderFXControlTestsWindow window=null;WhimTexDocument loaded=null;
         string folder=null;
         try
         {
-            var draft=typeof(ShaderFX).GetMethod("CreateAgentDraft",F,null,new[]{typeof(TextureCompositor),typeof(string),typeof(List<ShaderFXParameter>)},null);
+            var draft=typeof(ShaderFX).GetMethod("CreateAgentDraft",F,null,new[]{typeof(WhimTexDocument),typeof(string),typeof(List<ShaderFXParameter>)},null);
             effect=(ShaderFX)draft.Invoke(null,new object[]{doc,source,Parse(source)});layer.fx.Add(effect);
             typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(effect,null);
             var viewType=assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView");

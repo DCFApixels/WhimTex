@@ -59,13 +59,13 @@ public static class LiveAgentTests
             Check(error == null ? success : !success && Text(result, "errorCode") == error, result.ToString());
             return result;
         }
-        var windowType = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
-        var window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>());
-        var document = (DCFApixels.WhimTex.TextureCompositor)windowType.GetField("compositor", instance).GetValue(window);
+        var windowType = typeof(DCFApixels.WhimTex.WhimTexWindow);
+        var window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexWindow>());
+        var document = (DCFApixels.WhimTex.WhimTexDocument)windowType.GetField("activeDocument", instance).GetValue(window);
         document.width = 8; document.height = 8;
-        var mark = typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("MarkChanged", instance);
+        var mark = typeof(DCFApixels.WhimTex.WhimTexDocument).GetMethod("MarkChanged", instance);
         void Mark() => mark.Invoke(document, null);
-        DCFApixels.WhimTex.Layer Find(string id) => (DCFApixels.WhimTex.Layer)typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("FindLayer", instance).Invoke(document, new object[] { id });
+        DCFApixels.WhimTex.Layer Find(string id) => (DCFApixels.WhimTex.Layer)typeof(DCFApixels.WhimTex.WhimTexDocument).GetMethod("FindLayer", instance).Invoke(document, new object[] { id });
         void Edit(System.Action action)
         {
             UnityEditor.Undo.IncrementCurrentGroup();

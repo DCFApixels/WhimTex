@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -18,7 +18,6 @@
       }
     ],
     "nextCopyNumber": 1,
-    "spriteSlices": [],
     "width": 256,
     "height": 512,
     "outputFilter": "Bilinear",
@@ -38,7 +37,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [],
@@ -86,7 +85,7 @@
           "blendMode": "Normal",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [
@@ -100,29 +99,25 @@
                   "name": "_Seed",
                   "type": "Float",
                   "floatValue": 7.0,
-                  "id": "89af9cf1afd74278ab1337d745ad5d55",
-                  "declaredInCode": true
+                  "id": "89af9cf1afd74278ab1337d745ad5d55"
                 },
                 {
                   "name": "_Width",
                   "type": "Float",
                   "floatValue": 0.008,
-                  "id": "0835c21b6d394a27b4a3b23ae9a9e6b6",
-                  "declaredInCode": true
+                  "id": "0835c21b6d394a27b4a3b23ae9a9e6b6"
                 },
                 {
                   "name": "_Jaggedness",
                   "type": "Float",
                   "floatValue": 0.13,
-                  "id": "f4638a817e814146a6b803d4d52b99c7",
-                  "declaredInCode": true
+                  "id": "f4638a817e814146a6b803d4d52b99c7"
                 },
                 {
                   "name": "_ForkSpread",
                   "type": "Float",
                   "floatValue": 0.22,
-                  "id": "813433ba537c46408d0e45e7c296c40b",
-                  "declaredInCode": true
+                  "id": "813433ba537c46408d0e45e7c296c40b"
                 },
                 {
                   "name": "_Tint",
@@ -133,8 +128,7 @@
                     1.0,
                     1.0
                   ],
-                  "id": "a325dc5aca084dc28a7a7afbd8bd84db",
-                  "declaredInCode": true
+                  "id": "a325dc5aca084dc28a7a7afbd8bd84db"
                 }
               ],
               "shaderKey": "b2731528143943499b47dfff2392abb0",
@@ -195,7 +189,7 @@
           "blendMode": "Add",
           "colorRange": "Standard",
           "blendRange": "Standard",
-          "swizzle": {
+          "channelMapping": {
             "packed": 0
           },
           "fx": [],

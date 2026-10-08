@@ -32,7 +32,7 @@ namespace DCFApixels.WhimTex
                 var source = request["assistantSessionId"] != null
                     ? ResolveLiveBeginWindow(Text(request, "assistantSessionId")).AgentDocument
                     : GetTiffLiveSession(Text(request, "headlessSessionId")).working.Document;
-                Require(!TextureCompositorWindow.IsDocumentBusyForLiveApi(source), "Finish the current gesture first.", "document_busy");
+                Require(!WhimTexWindow.IsDocumentBusyForLiveApi(source), "Finish the current gesture first.", "document_busy");
                 build = WhimTexDocumentBuild.Copy(source);
             }
             using (build)

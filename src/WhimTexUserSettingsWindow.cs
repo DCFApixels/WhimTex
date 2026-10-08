@@ -208,7 +208,7 @@ namespace DCFApixels.WhimTex
             folderNote.AddToClassList("whimtex-user-settings-note");
             scroll.Add(folderNote);
             AddHeading(scroll, "Reset Settings");
-            var resetAll = new Button(() => TextureCompositorWindow.ConfirmResetEditorSettings(this))
+            var resetAll = new Button(() => WhimTexWindow.ConfirmResetEditorSettings(this))
             {
                 text = "Reset WhimTex Settings…",
                 tooltip = "Restore all WhimTex preferences and workspace settings. Asks for confirmation; documents and preset files are preserved."

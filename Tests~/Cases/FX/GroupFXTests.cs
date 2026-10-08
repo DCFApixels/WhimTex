@@ -10,7 +10,7 @@ public static class GroupFXTests
     static string ExecuteMain()
     {
         const BindingFlags flags = BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
-        var doc = UnityBRun.Create<TextureCompositor>();
+        var doc = UnityBRun.Create<WhimTexDocument>();
         doc.hideFlags = HideFlags.HideAndDontSave;
         doc.width = doc.height = 8;
         ShaderFX fx = null;
@@ -49,7 +49,7 @@ public static class GroupFXTests
         try
         {
             string code = "float4 ApplyFX(float2 uv, float4 color) { return float4(color.b, color.r, color.g, color.a); }";
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,
+            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,
                 new object[] { doc, code, new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fx, null);
             Layer group = new GroupLayerBehaviour();
@@ -58,7 +58,7 @@ public static class GroupFXTests
             Near(Pixel(), Color.red, "No FX");
             group.fx.Add(fx);
             var fxEditor = UnityBRun.Create<LayerFxEditorWindow>();
-            typeof(LayerFxEditorWindow).GetField("compositor", flags).SetValue(fxEditor, doc);
+            typeof(LayerFxEditorWindow).GetField("activeDocument", flags).SetValue(fxEditor, doc);
             typeof(LayerFxEditorWindow).GetField("layerId", flags).SetValue(fxEditor, group.Id);
             fxEditor.CreateGUI();
             var fxList = fxEditor.rootVisualElement.Q<ListView>();
@@ -88,14 +88,14 @@ public static class GroupFXTests
             group.clippingMask = true;
             Near(Pixel(), Color.green, "Clipped group FX");
             group.clippingMask = false;
-            Near(Read((RenderTexture)typeof(TextureCompositor).GetMethod("RenderAgentLayerPreview", flags).Invoke(doc, new object[] { group, 8 })), Color.green, "RGBA group preview");
-            var exported = (Texture2D)typeof(TextureCompositor).GetMethod("RenderPsdGroupContent", flags).Invoke(doc, new object[] { group });
+            Near(Read((RenderTexture)typeof(WhimTexDocument).GetMethod("RenderAgentLayerPreview", flags).Invoke(doc, new object[] { group, 8 })), Color.green, "RGBA group preview");
+            var exported = (Texture2D)typeof(WhimTexDocument).GetMethod("RenderPsdGroupContent", flags).Invoke(doc, new object[] { group });
             try { Near(exported.GetPixel(4, 4), Color.green, "Layered export"); }
             finally { UnityEngine.Object.DestroyImmediate(exported); }
             group.fx.Clear();
             UnityBRun.Check(!(!(bool)typeof(Layer).GetProperty("IsPassThrough", flags).GetValue(group)), "Pass Through not restored");
             Near(Pixel(), Color.red, "Removed FX");
-            var ui = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexUI");
+            var ui = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexUI");
             var bindingsType = ui.GetNestedType("ValueBindings", BindingFlags.NonPublic);
             var bindings = Activator.CreateInstance(bindingsType, true);
             var root = new VisualElement();
@@ -112,11 +112,11 @@ public static class GroupFXTests
             group.fx.Clear();
             bindingsType.GetMethod("Refresh").Invoke(bindings, new object[] { true });
             UnityBRun.Check(!(mode.value != "Pass Through"), "Group inspector restoration");
-            string json = "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"group\",\"group\":true,\"behaviour\":{\"$type\":\"GroupLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"" + code + "\"}],\"children\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[1,0,0,1]}}]}]}";
+            string json = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"group\",\"group\":true,\"behaviour\":{\"$type\":\"GroupLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"" + code + "\"}],\"children\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[1,0,0,1]}}]}]}";
             using (var data = (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", flags).Invoke(null, new object[] { json, 8, 8 }))
             {
                 data.GetType().GetMethod("Compile", flags).Invoke(data, null);
-                var pasted = (TextureCompositor)data.GetType().GetField("Document", flags).GetValue(data);
+                var pasted = (WhimTexDocument)data.GetType().GetField("Document", flags).GetValue(data);
                 var texture = pasted.ComposeCanvas();
                 try { Near(texture.GetPixel(4, 4), Color.green, "Clipboard group FX"); }
                 finally { UnityEngine.Object.DestroyImmediate(texture); }

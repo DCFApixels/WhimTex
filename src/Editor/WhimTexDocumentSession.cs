@@ -13,7 +13,7 @@ namespace DCFApixels.WhimTex
         public static bool IsLive => _live != null;
         public static string LivePath => _live?.Path;
         internal static event Action StateChanged;
-        public static bool IsLiveFor(TextureCompositor document) => document != null && _live?.Document == document;
+        public static bool IsLiveFor(WhimTexDocument document) => document != null && _live?.Document == document;
         private static Live _live;
         private static double _lastPublish;
         private static bool _dirty, _enablingReadable;
@@ -24,7 +24,7 @@ namespace DCFApixels.WhimTex
         private static string _pendingReadableEnableGuid;
         private static SavePause _saving;
 
-        internal static IDisposable SuspendForSave(TextureCompositor document)
+        internal static IDisposable SuspendForSave(WhimTexDocument document)
         {
             if (!IsLiveFor(document)) return null;
             var pause = new SavePause(document, _live.Path);
@@ -39,9 +39,9 @@ namespace DCFApixels.WhimTex
 
         private sealed class SavePause : IDisposable
         {
-            private readonly TextureCompositor document;
+            private readonly WhimTexDocument document;
             internal readonly string path;
-            internal SavePause(TextureCompositor document, string path) { this.document = document; this.path = path; }
+            internal SavePause(WhimTexDocument document, string path) { this.document = document; this.path = path; }
             public void Dispose()
             {
                 if (_saving != this) return;
@@ -73,13 +73,13 @@ namespace DCFApixels.WhimTex
             AssemblyReloadEvents.beforeAssemblyReload += () => Stop("domain reload");
             EditorApplication.quitting += () => Stop("editor quit");
             EditorApplication.playModeStateChanged += _ => Stop("play mode transition");
-            TextureCompositor.Changed += document => { if (IsLiveFor(document)) _dirty = true; };
+            WhimTexDocument.Changed += document => { if (IsLiveFor(document)) _dirty = true; };
             Undo.undoRedoPerformed += () => _dirty = true;
             EditorApplication.update += Tick;
             EditorApplication.delayCall += RecoverReadable;
         }
 
-        public static bool Save(TextureCompositor document, string path)
+        public static bool Save(WhimTexDocument document, string path)
         {
             try
             {
@@ -90,7 +90,7 @@ namespace DCFApixels.WhimTex
             catch (Exception error) { Status = "Save failed: " + error.Message; Debug.LogException(error); return false; }
         }
 
-        public static bool Start(TextureCompositor document, string path)
+        public static bool Start(WhimTexDocument document, string path)
         {
             if (document == null) { Status = "There is no document to edit live."; return false; }
             if (BuildPipeline.isBuildingPlayer) { Status = "Live Update is unavailable during a Player build."; return false; }
@@ -139,7 +139,7 @@ namespace DCFApixels.WhimTex
 
         public static void Publish() => Publish(null, null);
 
-        internal static void Publish(TextureCompositor document, RenderTexture source)
+        internal static void Publish(WhimTexDocument document, RenderTexture source)
         {
             if (_live == null || document != null && !IsLiveFor(document)) return;
             try
@@ -153,7 +153,7 @@ namespace DCFApixels.WhimTex
             catch (Exception error) { Stop("publish failed"); Debug.LogException(error); }
         }
 
-        public static void StopFor(TextureCompositor document, string reason)
+        public static void StopFor(WhimTexDocument document, string reason)
         { if (IsLiveFor(document)) Stop(reason); }
 
         public static void Stop(string reason)
@@ -316,7 +316,7 @@ namespace DCFApixels.WhimTex
 
         private sealed class Live : IDisposable
         {
-            public readonly TextureCompositor Document;
+            public readonly WhimTexDocument Document;
             private readonly Texture2D _target;
             private readonly byte[] _backup;
             private readonly GraphicsFormat _format;
@@ -331,7 +331,7 @@ namespace DCFApixels.WhimTex
             private readonly string _guid, _path;
             public string Path => string.IsNullOrEmpty(_guid) ? _path : AssetDatabase.GUIDToAssetPath(_guid);
 
-            public Live(TextureCompositor document, Texture2D target, string path)
+            public Live(WhimTexDocument document, Texture2D target, string path)
             {
                 if (target == null || !target.isReadable) throw new InvalidOperationException("Live Update needs a readable document image.");
                 Document = document;

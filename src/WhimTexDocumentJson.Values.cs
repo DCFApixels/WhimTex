@@ -143,11 +143,11 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
-        private static JObject defaultsV1;
+        private static JObject defaultsV2;
         private static JObject DefaultsFor(Type type)
         {
-            defaultsV1 ??= JObject.Parse(WhimTexJsonDefaultsV1.Data);
-            return defaultsV1[TypeName(type)] as JObject;
+            defaultsV2 ??= JObject.Parse(WhimTexJsonDefaultsV2.Data);
+            return defaultsV2[TypeName(type)] as JObject;
         }
 
         private static bool IsDefault(Type type, string field, JToken value)

@@ -76,7 +76,7 @@ public static class PaintStrokeParametersTests
         RenderTexture previousActive = RenderTexture.active;
         for (int mode = 0; mode < 4; mode++)
         {
-            var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+            var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
             var uiLayer = new DCFApixels.WhimTex.DrawingLayerBehaviour();
             var apiLayer = new DCFApixels.WhimTex.DrawingLayerBehaviour();
             Texture2D Pixels(object layer) => (Texture2D)drawingType.GetField("pixels", Hidden).GetValue(layer);

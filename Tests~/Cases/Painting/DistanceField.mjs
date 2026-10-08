@@ -166,7 +166,7 @@ context.case('DistanceField original assertions and branches', async () => {
     assert.ok(read('src/WhimTexPsdExporter.cs').includes('!layer.fillCenter && layer.outlineOffset == 0f'));
     assert.ok(sdf.includes('RequiresColorInput => sourceChannel != SourceChannel.Alpha'));
     assert.ok(read('src/EffectRenderCache.cs').includes('if (effect.RequiresColorInput) colorSources.Add(input)'));
-    assert.ok(read('src/TextureCompositor.cs').includes('effect.RequiresColorInput, includeDisabled: true'));
+    assert.ok(read('src/WhimTexDocument.cs').includes('effect.RequiresColorInput, includeDisabled: true'));
     const enums = read('src/Utils.cs');
     for (const [name, value] of [['EuclideanExact', 0], ['EuclideanApproximate', 1], ['Manhattan', 2], ['Chebyshev', 3], ['EuclideanAntialiased', 4]])
         assert.ok(enums.includes(`${name} = ${value}`));

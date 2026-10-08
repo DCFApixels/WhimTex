@@ -99,13 +99,13 @@ public static class ShaderFXGroupTests
             Check(rejected, "Accepted invalid group metadata: " + invalid);
         }
 
-        var document = ScriptableObject.CreateInstance<TextureCompositor>();
+        var document = ScriptableObject.CreateInstance<WhimTexDocument>();
         document.hideFlags = HideFlags.HideAndDontSave;
         ShaderFX fx = null;
         try
         {
             var create = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(TextureCompositor), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
             fx = (ShaderFX)create.Invoke(null, new object[]
             {
                 document,
@@ -193,7 +193,7 @@ public static class ShaderFXGroupTests
             {
                 "ChromaticAberration", "ColorBalance", "ColorFilter", "CRT", "DigitalGlitch", "DisplacementMap",
                 "Gain", "GradientMap", "Halftone", "HSV", "Levels", "Mask", "Negative", "Normalize",
-                "NormalLighting", "Pixelate", "Posterize", "RadialShear", "SdfBevel", "Spherize", "Step",
+                "NormalLighting", "Pixelate", "Posterize", "RadialShear", "BevelEmboss", "Spherize", "Step",
                 "Threshold", "PolarCoordinates", "Twirl", "UVTransform", "VHS"
             })
             {
@@ -302,7 +302,7 @@ public static class ShaderFXGroupTests
             CheckLabel("Posterize", "_Amount", "Dither Strength");
             CheckLabel("ChromaticAberration", "_Amount", "Channel Offset (px)");
             CheckLabel("Threshold", "_Smooth", "Transition Width");
-            CheckLabel("SdfBevel", "_Smoothing", "Normal Radius (px)");
+            CheckLabel("BevelEmboss", "_Smoothing", "Normal Radius (px)");
             Check(Control(maskParameters, "_Opacity").hidden, "Mask uses shared opacity instead of a duplicate Amount field");
             CheckLabel("Mask", "_Invert", "Invert");
             return;
@@ -315,4 +315,3 @@ public static class ShaderFXGroupTests
         }
     }
 }
-

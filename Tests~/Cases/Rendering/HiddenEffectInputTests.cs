@@ -10,8 +10,8 @@ public static class HiddenEffectInputTests
     {
 // Opt-in after manual compilation. Transient objects only; no saves, imports or Undo.
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var type = typeof(DCFApixels.WhimTex.TextureCompositor);
-var document = UnityBRun.Create<DCFApixels.WhimTex.TextureCompositor>();
+var type = typeof(DCFApixels.WhimTex.WhimTexDocument);
+var document = UnityBRun.Create<DCFApixels.WhimTex.WhimTexDocument>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = document.height = 16;
 var texture = UnityBRun.Track(new UnityEngine.Texture2D(16,16,UnityEngine.TextureFormat.RGBAFloat,false,true));

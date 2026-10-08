@@ -23,11 +23,11 @@ public static class MakeSeamlessIntegrationTests
         checks=0;
         const BindingFlags all = BindingFlags.Instance|BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic;
         object Call(object o,string name,params object[] args)=>o.GetType().GetMethod(name,all).Invoke(o,args);
-        var assembly=typeof(TextureCompositor).Assembly;
+        var assembly=typeof(WhimTexDocument).Assembly;
         var cache=Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.EffectRenderCache"),true);
         EditorWindow testWindow=null;
         var previousFocus=EditorWindow.focusedWindow;
-        var document=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var document=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         document.width=32;document.height=16;
         var input=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(32,16,TextureFormat.RGBAFloat,false,true));
         var pixels=new Color[512];
@@ -140,7 +140,7 @@ public static class MakeSeamlessIntegrationTests
             effect.clippingMask=true;
             Same(RenderCall("RenderLayerPreview",effect.Owner,32),expected,"Clipped effect on opaque group");
             effect.clippingMask=false;
-            var copy=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());
+            var copy=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
             try
             {
                 JsonUtility.FromJsonOverwrite(JsonUtility.ToJson(document),copy);

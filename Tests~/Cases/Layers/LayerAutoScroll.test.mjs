@@ -6,7 +6,7 @@ const assert = context.assert;
 context.case("LayerAutoScroll original assertion inputs and source contracts", async () => {
   // Scalar/source checks only. Does not compile or open Unity.
   const read = path => readFileSync(new URL('../../../' + path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
-  const source = read('src/TextureCompositorWindow.LayerAutoScroll.cs');
+  const source = read('src/WhimTexWindow.LayerAutoScroll.cs');
   const body = source.match(/static float EdgeSpeed\(Rect viewport, Vector2 point\)\s*\{([^}]+)\}/)[1]
     .replace(/float /g, 'let ').replace(/(\d)f\b/g, '$1').replace(/Mathf.Min/g, 'Math.min');
   const speed = new Function('viewport', 'point', body);
@@ -34,10 +34,10 @@ context.case("LayerAutoScroll original assertion inputs and source contracts", a
   }
   assert.equal(below(view,300,{x:150,y:450}),true,'Empty viewport space accepts bottom insertion');
   assert.equal(below(view,800,{x:150,y:599}),false,'A scrolled long list must not treat rows as background');
-  assert.match(source,/owner.PerformLayerDrop\(dragged, owner.compositor.layers, owner.compositor.layers.Count, null\)/);
+  assert.match(source,/owner.PerformLayerDrop\(dragged, owner.activeDocument.layers, owner.activeDocument.layers.Count, null\)/);
   assert.match(source,/finally \{ owner.ClearLayerDragData\(\); \}/);
   assert.match(source,/if \(owner.UpdateLayerListEndDrop\(pointer\)\) return/,'Auto-scroll preserves bottom insertion feedback');
-  assert.match(read('src/TextureCompositorWindow.UI.cs'),/contentViewport.AddManipulator\(new LayerListEndDropManipulator\(this\)\)/);
+  assert.match(read('src/WhimTexWindow.UI.cs'),/contentViewport.AddManipulator\(new LayerListEndDropManipulator\(this\)\)/);
   assert.equal(speed(view, {x:150,y:200}), -480);
   assert.equal(speed(view, {x:150,y:216}), -240);
   assert.equal(speed(view, {x:150,y:232}), 0);
@@ -63,8 +63,8 @@ context.case("LayerAutoScroll original assertion inputs and source contracts", a
   assert.ok(source.includes('target.panel.Pick(pointer)'));
   assert.ok(source.includes('owner.TryGetToolkitDrop('));
   assert.ok(source.includes('scroll.verticalScroller.lowValue, scroll.verticalScroller.highValue'));
-  assert.ok(read('src/TextureCompositorWindow.cs').includes('layerDragAutoScroll?.Stop();'));
-  assert.ok(read('src/TextureCompositorWindow.UI.cs').includes('new LayerDragAutoScrollManipulator(this, toolkitSettingsScroll)'));
+  assert.ok(read('src/WhimTexWindow.cs').includes('layerDragAutoScroll?.Stop();'));
+  assert.ok(read('src/WhimTexWindow.UI.cs').includes('new LayerDragAutoScrollManipulator(this, toolkitSettingsScroll)'));
 
 });
 await finish(context);

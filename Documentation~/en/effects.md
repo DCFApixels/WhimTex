@@ -176,7 +176,7 @@ All copy edges and both mirror axes start enabled. Switching methods retains eac
 
 **Channels → R / G / B / A** chooses which channels receive the result; all start enabled.
 Turn off A to retain source transparency. With all channels off, seam processing is bypassed.
-Later FX, Swizzle and layer blending can still change the image.
+Later FX, Mapping and layer blending can still change the image.
 
 The square selects edges of the current pass:
 

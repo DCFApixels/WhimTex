@@ -9,11 +9,12 @@ search_exclude: true
 
 # Convert legacy layer JSON before upgrading
 
-The old `whimtex.layers` clipboard format is no longer supported. Before upgrading,
-paste it in WhimTex **0.12.5**, then save the resulting document as TIFF or export
-`whimtex.document` JSON. Use TIFF when the layers contain Drawing pixels.
+The old `whimtex.layers` clipboard format is no longer supported. WhimTex **0.12.5**
+can paste that format and save TIFF or version-1 `whimtex.document` JSON, but those
+documents are also unsupported by the current checkout. Use a matching older checkout
+to edit old data; there is no automatic conversion to version 2 here.
 
 The current [authoring guide](README.md) and [document schema](document.schema.json)
-describe `whimtex.document`, version 1. Its JSON does not download images or store
+describe `whimtex.document`, version 2. Its JSON does not download images or store
 Drawing pixels. A plain HTTP(S) image URL can still be pasted as a Drawing layer;
 see [image paste](../en/selection.md). Brush and gradient preset formats are unchanged.

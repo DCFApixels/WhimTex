@@ -6,7 +6,7 @@ namespace DCFApixels.WhimTex
     // or Save As destination. It survives domain reload through the document's reference.
     internal sealed class WhimTexDocumentBinding : ScriptableObject
     {
-        public TextureCompositor owner;
+        public WhimTexDocument owner;
         public string guid, path;
         public long length, writeTicks;
         public bool dirty;

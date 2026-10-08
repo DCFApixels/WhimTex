@@ -68,14 +68,18 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     for (const file of clipboardFiles) validate(JSON.parse(fs.readFileSync(path.join(clipboardDirectory, file))), schema, file);
     const compatibilityDirectory = path.join(root, 'Tests~/Fixtures/Compatibility0125');
     const compatibilityFiles = ['procedural-Full.json', 'procedural-FullOptimized.json', 'procedural-Compact.json', 'fragment.json'];
-    for (const file of compatibilityFiles) validate(JSON.parse(fs.readFileSync(path.join(compatibilityDirectory, file))), schema, file);
-    assert.equal(schema.$defs.TextureCompositor.properties.spriteSlices.deprecated, true);
+    for (const file of compatibilityFiles) {
+      const archived = JSON.parse(fs.readFileSync(path.join(compatibilityDirectory, file)));
+      assert.equal(archived.version, 1, 'Historical inputs are unchanged');
+      assert.throws(() => validate(archived, schema, file), 'Version 1 is outside the current schema');
+    }
+    assert.equal(schema.$defs.WhimTexDocument.properties.spriteSlices, undefined);
     assert.ok(schema.$defs.Layer.properties.fx);
-    assert.equal(schema.$defs.Layer.properties.modifiers.deprecated, true);
-    const layerFx = fields => ({ format: 'whimtex.document', version: 1,
+    assert.equal(schema.$defs.Layer.properties.modifiers, undefined);
+    const layerFx = fields => ({ format: 'whimtex.document', version: 2,
       layers: [{ id: 'fx', behaviour: { $type: 'ColorFillLayerBehaviour' }, ...fields }] });
     validate(layerFx({ fx: [] }), schema);
-    validate(layerFx({ modifiers: [] }), schema);
+    assert.throws(() => validate(layerFx({ modifiers: [] }), schema));
     for (const fields of [{ fx: [], modifiers: [] }, { fx: null, modifiers: [] }, { modifiers: null, fx: [] }])
       assert.throws(() => validate(layerFx(fields), schema));
     for (const file of ['Documentation~/AI/README.md', 'Documentation~/JSON_FORMAT.md'])
@@ -84,9 +88,9 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
         if (value.format === 'whimtex.gradient') continue;
         validate(value, schema, file);
       }
-    const empty = { format: 'whimtex.document', version: 1, document: {}, layers: [] };
+    const empty = { format: 'whimtex.document', version: 2, document: {}, layers: [] };
     validate(empty, schema);
-    validate({ format: 'whimtex.document', version: 1, layers: [] }, schema);
+    validate({ format: 'whimtex.document', version: 2, layers: [] }, schema);
     for (const document of [{}, { width: 64 }, { height: 32 }, { outputSrgb: false }])
       validate({ ...empty, document }, schema);
     for (const document of [null, [], 'invalid', 1])

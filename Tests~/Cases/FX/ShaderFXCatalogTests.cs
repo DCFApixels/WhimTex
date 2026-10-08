@@ -45,7 +45,7 @@ foreach (string invalid in new[] { "float _A = 1;", "float _A = NaN", "float _A 
 var repeated = Parse(head + "// @param float _A = 1\n// @param float _A = 2");
 Check(repeated.Count == 1 && repeated[0].controls.Count == 2 && repeated[0].floatValue == 2f, "Last explicit default wins for repeated declarations");
 Check(Parse(head + "/*\n// @param float _Ignored = 1\n*/").Count == 0, "Ignore declarations inside block comments");
-var toolType = typeof(DCFApixels.WhimTex.TextureCompositorWindow).GetNestedType("CanvasTransformManipulator", Hidden);
+var toolType = typeof(DCFApixels.WhimTex.WhimTexWindow).GetNestedType("CanvasTransformManipulator", Hidden);
 var hitTest = toolType.GetMethod("HitTest", Hidden);
 var frame = DCFApixels.WhimTex.TextureTransform.Default;
 int pivot = (int)hitTest.Invoke(null, new object[] { new Vector2(50, 25), frame, new Rect(0, 0, 100, 50), new Vector2(100, 50), true });
@@ -68,7 +68,7 @@ for (int n = 0; n < 400; n++)
     Check((restored - uv).magnitude < .002f, "Rectangular transform round trip " + n);
 }
 
-var document = ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+var document = ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>();
 document.hideFlags = HideFlags.HideAndDontSave; document.width = 16; document.height = 8;
 DCFApixels.WhimTex.ShaderFX fx = null, clone = null;
 var output = RenderTexture.GetTemporary(16, 8, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
@@ -77,7 +77,7 @@ RenderTexture previous = RenderTexture.active;
 try
 {
     string source = head + "// @param float _Amount = 0.25 [0 .. 1]\n// @param transform2D _Area\nfloat4 ApplyFX(float2 uv, float4 color) { float2 p = _Area_ToLocal(uv); return float4(p, _Amount, 1); }";
-    fx = (DCFApixels.WhimTex.ShaderFX)typeof(DCFApixels.WhimTex.ShaderFX).GetMethod("CreateAgentDraft", Hidden, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, source, new List<DCFApixels.WhimTex.ShaderFXParameter>() });
+    fx = (DCFApixels.WhimTex.ShaderFX)typeof(DCFApixels.WhimTex.ShaderFX).GetMethod("CreateAgentDraft", Hidden, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, source, new List<DCFApixels.WhimTex.ShaderFXParameter>() });
     typeof(DCFApixels.WhimTex.ShaderFX).GetMethod("ApplyAgentDraft", Hidden).Invoke(fx, null);
     var list = (List<DCFApixels.WhimTex.ShaderFXParameter>)typeof(DCFApixels.WhimTex.ShaderFX).GetField("parameters", Hidden).GetValue(fx);
     Check(list.Count == 2, "Inline metadata parsed by actual Apply");

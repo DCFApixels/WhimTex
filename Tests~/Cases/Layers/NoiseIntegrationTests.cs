@@ -9,7 +9,7 @@ public static class NoiseIntegrationTests
     {
         int checks=0;
         void Check(bool ok,string message){ WhimTex.Tests.UnityC.FixtureContext.Context.True(ok, message); checks++; }
-        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>());doc.width=doc.height=32;
+        var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());doc.width=doc.height=32;
         var noise=new NoiseLayerBehaviour
         {
             noiseType=NoiseLayerBehaviour.NoiseType.Perlin,

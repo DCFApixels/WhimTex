@@ -207,7 +207,7 @@ namespace DCFApixels.WhimTex
             Session session = FindSession(effect);
             if (session == null)
             {
-                string documentPath = WhimTexDocumentService.PathOf(TextureCompositorWindow.FindFXTransformDocument(effect));
+                string documentPath = WhimTexDocumentService.PathOf(WhimTexWindow.FindFXTransformDocument(effect));
                 string identity = (documentPath ?? effect.SourcePath ?? string.Empty) + "|" + effect.ShaderKey;
                 string folder = CacheFolder;
                 string stem = Hash(identity);

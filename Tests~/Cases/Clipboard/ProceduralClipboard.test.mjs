@@ -44,20 +44,20 @@ context.case("ProceduralClipboard original assertion inputs and source contracts
     assert.ok(matches(schema.$defs.fillPattern, { size, cellColor: 'Random', colorBlend: 'ReplaceRGB', seed: -2147483648, variation: .7 }));
   for (const bad of [{ size: [0, 32] }, { variation: 2 }, { cellColor: 'Unknown' }, { seed: 1.5 }])
     assert.equal(matches(schema.$defs.fillPattern, bad), false);
-  const paste = read('src/TextureCompositorWindow.AreaSelection.cs');
-  assert.ok(paste.indexOf('IsProceduralClipboard(clipboardText)') < paste.indexOf('TextureCompositor copiedLayers = LayerClipboard.Current'));
+  const paste = read('src/WhimTexWindow.AreaSelection.cs');
+  assert.ok(paste.indexOf('IsProceduralClipboard(clipboardText)') < paste.indexOf('WhimTexDocument copiedLayers = LayerClipboard.Current'));
   assert.match(paste, /IsTextInputTarget\(target\)/);
   assert.match(paste, /resize && HasCanvasLayers/);
   assert.ok(paste.indexOf('generated.Compile()') < paste.indexOf('PasteProceduralClipboard(generated, resize)'),
     'Effects compile before the tree is handed to the paste');
   assert.match(paste, /finally \{ generated.Dispose\(\); \}/, 'Every parsed tree is disposed after paste/cancel');
-  const linked = read('src/TextureCompositorWindow.ImageUrl.cs');
+  const linked = read('src/WhimTexWindow.ImageUrl.cs');
   assert.match(linked, /TryGetOriginalAspectTransform\(/, 'A downloaded image is fitted, not resampled');
   assert.match(linked, /ImageUrlMaximumBytes = 64 \* 1024 \* 1024/);
-  assert.match(linked, /BeginImageUrlDownload\(compositor, uri.AbsoluteUri, InsertDownloadedImage\)/);
+  assert.match(linked, /BeginImageUrlDownload\(activeDocument, uri.AbsoluteUri, InsertDownloadedImage\)/);
   assert.match(linked, /EditorApplication.update -= PollImageUrl/);
   assert.match(linked, /imageUrlApply = null/);
-  assert.match(read('src/TextureCompositorWindow.BrushClipboard.cs'), /BeginImageUrlDownload\(compositor,url/);
+  assert.match(read('src/WhimTexWindow.BrushClipboard.cs'), /BeginImageUrlDownload\(activeDocument,url/);
   assert.doesNotMatch(linked, /clipboardPasteData|BeginImageUrlBatch|imageUrlJobs|DescribeImageHosts/);
   const parser = read('src/Automation/WhimTexApi.Clipboard.cs');
   assert.match(parser, /ReadForInsertion\(text, width, height, false\)/);
@@ -66,7 +66,7 @@ context.case("ProceduralClipboard original assertion inputs and source contracts
   assert.doesNotMatch(parser, /whimtex\.layers|SetClipboardGradient|FindPortableParameter|ReadPortableFileAsset|CanvasFilter|Images/);
   assert.ok(linked.indexOf('"Paste with warnings"') < linked.indexOf('PasteCopiedLayers(data.Document'), 'Warnings precede insertion');
   assert.match(linked, /"Paste", "Cancel"\)\) return;/);
-  assert.doesNotMatch(read('src/TextureCompositorWindow.Selection.cs'), /canvasFilter/);
+  assert.doesNotMatch(read('src/WhimTexWindow.Selection.cs'), /canvasFilter/);
   for (const name of ['ValidatePortableSource', 'ExportPortableIncludes', 'PortableMaximumBytes'])
     assert.ok(!read('src/ShaderFXSourceBuilder.cs').includes(name), name + ' retired');
   assert.ok(!read('src/ShaderFXPresetWriter.cs').includes('BuildPortableSource'));

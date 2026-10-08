@@ -12,7 +12,7 @@ public static class HealingStrokeColorTests
     static string ExecuteMain()
     {
         const BindingFlags F = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance;
-        var assembly = typeof(TextureCompositor).Assembly;
+        var assembly = typeof(WhimTexDocument).Assembly;
         var settings = assembly.GetType("DCFApixels.WhimTex.WhimTexUserSettings", true);
         var property = settings.GetProperty("HealingStrokeColor", F);
         var cached = settings.GetField("healingStrokeColor", F);

@@ -19,7 +19,7 @@ public static class UvMeshSourceTests
 
     private static void ExecuteMain()
     {
-        var resolve = typeof(TextureCompositorWindow).GetMethod("ResolveUvMesh", BindingFlags.Static | BindingFlags.NonPublic);
+        var resolve = typeof(WhimTexWindow).GetMethod("ResolveUvMesh", BindingFlags.Static | BindingFlags.NonPublic);
         Mesh Resolve(UnityEngine.Object value) => (Mesh)resolve.Invoke(null, new object[] { value });
         void Check(bool value) { context.True(value, "UV mesh resolution"); }
         var root = new GameObject("UV resolution test") { hideFlags = HideFlags.HideAndDontSave };

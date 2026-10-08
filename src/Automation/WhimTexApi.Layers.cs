@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
 {
     public static partial class WhimTexApi
     {
-        private static Layer ApplyOperation(TextureCompositor document, JObject operation, Dictionary<string, Layer> aliases, bool execute)
+        private static Layer ApplyOperation(WhimTexDocument document, JObject operation, Dictionary<string, Layer> aliases, bool execute)
         {
             string op = Text(operation, "op");
             if (op == "resize")
@@ -122,7 +122,7 @@ namespace DCFApixels.WhimTex
             return false;
         }
 
-        private static void ResizeCanvas(TextureCompositor document, JObject operation)
+        private static void ResizeCanvas(WhimTexDocument document, JObject operation)
         {
             Keys(operation, "op", "width", "height", "preserveLayout");
             Require(operation["width"] != null && operation["height"] != null, "resize requires width and height.");
@@ -153,7 +153,7 @@ namespace DCFApixels.WhimTex
             document.RefreshTransformHierarchy();
         }
 
-        private static Layer Resolve(TextureCompositor document, string reference, Dictionary<string, Layer> aliases)
+        private static Layer Resolve(WhimTexDocument document, string reference, Dictionary<string, Layer> aliases)
         {
             Require(!string.IsNullOrWhiteSpace(reference), "A layer ID or @alias is required.");
             Layer layer;
@@ -163,7 +163,7 @@ namespace DCFApixels.WhimTex
             return layer;
         }
 
-        private static List<Layer> Container(TextureCompositor document, string parent, Dictionary<string, Layer> aliases)
+        private static List<Layer> Container(WhimTexDocument document, string parent, Dictionary<string, Layer> aliases)
         {
             if (string.IsNullOrEmpty(parent)) return document.layers;
             Layer layer = Resolve(document, parent, aliases);
@@ -171,16 +171,16 @@ namespace DCFApixels.WhimTex
             return ((Layer)layer).layers;
         }
 
-        private static void SetLayer(TextureCompositor document, Layer layer, JObject settings)
+        private static void SetLayer(WhimTexDocument document, Layer layer, JObject settings)
         {
-            Keys(settings, "name", "enabled", "clippingMask", "opacity", "blend", "filter", "source", "colorRange", "blendRange", "swizzle", "compositing", "color", "brush",
+            Keys(settings, "name", "enabled", "clippingMask", "opacity", "blend", "filter", "source", "colorRange", "blendRange", "channelMapping", "compositing", "color", "brush",
                 "fillMode", "fillPattern", "metric", "outlineWidth", "outlineSoftness", "outlinePosition", "outlineOffset", "fillCenter", "fillColor", "sourceChannel", "threshold",
                 "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "encoding", "gradient", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape");
             foreach (var property in settings.Properties())
             {
                 string key = property.Name;
                 bool valid = key == "name" || key == "enabled" || key == "clippingMask" || key == "opacity" || key == "blend" ||
-                    key == "colorRange" || key == "blendRange" || key == "swizzle" || key == "compositing" && layer?.IsGroup == true || !layer.IsGroup &&
+                    key == "colorRange" || key == "blendRange" || key == "channelMapping" || key == "compositing" && layer?.IsGroup == true || !layer.IsGroup &&
                     (key == "opacity" || key == "blend" || key == "filter" ||
                     key == "source" && layer?.Behaviour is FileLayerBehaviour || key == "brush" && layer?.Behaviour is DrawingLayerBehaviour ||
                     key == "color" && (layer?.Behaviour is ColorFillLayerBehaviour || layer?.Behaviour is OutlineLayerBehaviour) ||
@@ -204,20 +204,20 @@ namespace DCFApixels.WhimTex
             Require(!(layer?.Behaviour is ShaderProcessorLayerBehaviour) || !layer.clippingMask, "Shader Processor is a stack operation and cannot be a clipping layer.");
             layer.opacity = Number(settings, "opacity", layer.opacity, 0f, 1f);
             layer.blendMode = Enum(settings, "blend", layer.blendMode);
-            if (settings["swizzle"] != null)
+            if (settings["channelMapping"] != null)
             {
-                Require(settings["swizzle"] is JArray array && array.Count == 4,
-                    "swizzle must contain four channel names in output RGBA order.");
-                var values = (JArray)settings["swizzle"];
-                var swizzle = new LayerSwizzle();
+                Require(settings["channelMapping"] is JArray array && array.Count == 4,
+                    "channelMapping must contain four channel names in output RGBA order.");
+                var values = (JArray)settings["channelMapping"];
+                var channelMapping = new LayerChannelMapping();
                 for (int channel = 0; channel < 4; channel++)
                 {
                     int source = values[channel].Type == JTokenType.String
-                        ? System.Array.IndexOf(LayerSwizzle.Labels, (string)values[channel]) : -1;
-                    Require(source >= 0, "Invalid swizzle channel. Use " + string.Join(", ", LayerSwizzle.Labels) + ".");
-                    swizzle[channel] = (SwizzleChannel)source;
+                        ? System.Array.IndexOf(LayerChannelMapping.Labels, (string)values[channel]) : -1;
+                    Require(source >= 0, "Invalid channelMapping channel. Use " + string.Join(", ", LayerChannelMapping.Labels) + ".");
+                    channelMapping[channel] = (ChannelMappingSource)source;
                 }
-                layer.swizzle = swizzle;
+                layer.channelMapping = channelMapping;
             }
             if (layer?.AsGroup() is Layer group)
                 group.compositing = Enum(settings, "compositing", group.compositing);
@@ -359,7 +359,7 @@ namespace DCFApixels.WhimTex
             return new Double2(TransformNumber(token[0]),TransformNumber(token[1]));
         }
 
-        private static void SetTransform(TextureCompositor document, Layer layer, JObject settings)
+        private static void SetTransform(WhimTexDocument document, Layer layer, JObject settings)
         {
             Keys(settings, "reset", "position", "scale", "pivot", "rotation", "tiling", "originalAspect", "matrix");
             TextureTransform transform = Bool(settings, "reset") ? TextureTransform.Default : layer.transform;

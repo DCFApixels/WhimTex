@@ -81,7 +81,7 @@ namespace DCFApixels.WhimTex
             Require(request["operations"] is JArray, "operations must be an array (use [] for save only).");
             JArray operations = (JArray)request["operations"];
             Require(operations.Count <= 256, "A batch supports at most 256 operations.");
-            TextureCompositor document = null;
+            WhimTexDocument document = null;
             WhimTexDocumentBuild tiffBuild = null;
             try
             {
@@ -95,7 +95,7 @@ namespace DCFApixels.WhimTex
                 {
                     tiffBuild = WhimTexDocumentBuild.Open(path);
                     document = tiffBuild.Document;
-                    Require(!TextureCompositorWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
+                    Require(!WhimTexWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
                     string expected = Text(request, "expectedRevision");
                     Require(!string.IsNullOrEmpty(expected), "Inspect first and supply expectedRevision when editing an existing document.", "revision_required");
                     Require(expected == Revision(document), "The document changed. Inspect it again before retrying.", "revision_conflict");
@@ -104,7 +104,7 @@ namespace DCFApixels.WhimTex
                     "Automation supports at most 16,777,216 canvas pixels per document.", "resource_limit");
 
                 WhimTexDocumentBuild probeBuild = null;
-                TextureCompositor probe;
+                WhimTexDocument probe;
                 if (document == null)
                 {
                     probeBuild = WhimTexDocumentBuild.Create(width, height);
@@ -252,12 +252,12 @@ namespace DCFApixels.WhimTex
                 "Rendering and painting require a graphics device; do not use -nographics.", "graphics_unavailable");
             foreach (string name in new[] { "Blend", "Transform", "PaintBrush", "AlphaConversion" })
             {
-                Shader shader = Shader.Find("Hidden/TextureCompositor/" + name);
+                Shader shader = Shader.Find("Hidden/WhimTex/" + name);
                 Require(shader != null && shader.isSupported, "Required WhimTex shader is unavailable: " + name, "graphics_unavailable");
             }
         }
 
-        private static void ValidateTargets(TextureCompositor document, string path)
+        private static void ValidateTargets(WhimTexDocument document, string path)
         {
             foreach (Layer layer in Enumerate(document.layers))
             {

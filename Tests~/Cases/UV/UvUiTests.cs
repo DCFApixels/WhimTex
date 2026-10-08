@@ -13,18 +13,18 @@ public static class UvUiTests
     public static Task<string> Cleanup(string runId) => AsyncD.Cleanup(runId);
     static async Task Execute(TestContext context, System.Threading.CancellationToken token)
     {
-        DCFApixels.WhimTex.TextureCompositorWindow window = null;
-        DCFApixels.WhimTex.TextureCompositor document = null;
+        DCFApixels.WhimTex.WhimTexWindow window = null;
+        DCFApixels.WhimTex.WhimTexDocument document = null;
         UnityEngine.Mesh mesh = null;
         var previousFocus = EditorWindow.focusedWindow;
         try
         {
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
-var type = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+var type = typeof(DCFApixels.WhimTex.WhimTexWindow);
 var previous = UnityEditor.EditorWindow.focusedWindow;
-window = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>();
+window = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexWindow>();
 window.name = "WhimTex UV " + Guid.NewGuid().ToString("N");
-document = (DCFApixels.WhimTex.TextureCompositor)type.GetField("compositor",flags).GetValue(window);
+document = (DCFApixels.WhimTex.WhimTexDocument)type.GetField("activeDocument",flags).GetValue(window);
 document.width=512; document.height=512;
 document.layers.Add(new DCFApixels.WhimTex.Layer(new DCFApixels.WhimTex.ColorFillLayerBehaviour { color = new UnityEngine.Color(.24f,.25f,.3f,1) }));
 mesh=new UnityEngine.Mesh {name="UV smoke mesh",hideFlags=UnityEngine.HideFlags.HideAndDontSave};
@@ -34,7 +34,7 @@ mesh.vertices=new[]{new UnityEngine.Vector3(.08f,.1f,0),new UnityEngine.Vector3(
 var uvs=new UnityEngine.Vector2[mesh.vertexCount];
 for(int i=0;i<uvs.Length;i++) uvs[i]=new UnityEngine.Vector2(mesh.vertices[i].x,mesh.vertices[i].y);
 mesh.uv=uvs; mesh.triangles=new[]{0,1,2,0,2,3,4,5,6,4,6,7,8,9,10};
-typeof(DCFApixels.WhimTex.TextureCompositor).GetField("uvReferenceMesh",flags).SetValue(document,mesh);
+typeof(DCFApixels.WhimTex.WhimTexDocument).GetField("uvReferenceMesh",flags).SetValue(document,mesh);
 type.GetField("uvEnabled",flags).SetValue(window,true);
 type.GetField("uvExpanded",flags).SetValue(window,true);
 type.GetField("postFxExpanded",flags).SetValue(window,false);

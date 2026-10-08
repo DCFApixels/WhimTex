@@ -149,7 +149,7 @@ Baking turns the current result into Drawing pixels. Choose the command by scope
 
 Disabled FX in the baked range are removed without contributing to the image.
 
-A non-Drawing layer asks for confirmation before becoming Drawing. Transform stays editable and keeps its values; opacity, blending, swizzle and clipping remain separate. Baking captures the current canvas at full canvas resolution into floating-point pixels, not an infinite procedural source or off-canvas content. Undo restores the original layer and FX stack. Groups flatten their visible children and warn about lost child targets and possible pass-through changes.
+A non-Drawing layer asks for confirmation before becoming Drawing. Transform stays editable and keeps its values; opacity, blending, channel mapping and clipping remain separate. Baking captures the current canvas at full canvas resolution into floating-point pixels, not an infinite procedural source or off-canvas content. Undo restores the original layer and FX stack. Groups flatten their visible children and warn about lost child targets and possible pass-through changes.
 
 Shader Processor also supports Apply. It captures its current input, including the external backdrop in Pass Through groups, without merging or deleting lower layers. **Normal** becomes **Overwrite** with the Processor's opacity blending retained, including partially transparent pixels; other blend modes stay unchanged. Later edits below no longer recalculate the baked effects. Remaining FX still operate on the snapshot, and Transform stays editable.
 
@@ -180,13 +180,15 @@ External working files are temporary, not backups. Inactive copies unused for mo
 ## Compilation warnings
 
 A yellow **!** beside the layer and warning triangles in the **FX** section and individual effect
-headers identify an uncompiled or failed FX, even with the panels collapsed. Hover for the reason;
-open **Code** for full diagnostics. The FX is skipped without disabling or deleting it. Fix the code
-and click **Apply** to resume it and clear the indicators. A failed Apply does not use an older compiled
-version. Successful compilation with warnings does not disable the effect.
+headers identify FX errors and warnings, even with the panels collapsed. Hover for the reason;
+open **Code** for full diagnostics. Errors skip the FX without disabling or deleting it; warnings keep
+it working. Fix the code and click **Apply** to resume it. Indicators clear when no issues remain.
+A failed Apply does not use an older compiled version.
 
 JSON documents can save and reopen broken FX without losing their source or parameter values.
-Repeated identical failures do not add repeated WhimTex warnings to Console during the same FX lifetime.
+UI, Console and agent inspection show the same FX messages and severity. Console reports errors as
+Error and warnings as Warning; repeats from the same source are suppressed until scripts reload.
+UI and agent diagnostics remain visible, including Unity time and parameter warnings.
 
 ## Preset guide
 

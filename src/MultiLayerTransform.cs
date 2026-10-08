@@ -5,7 +5,7 @@ namespace DCFApixels.WhimTex
 {
     internal sealed class MultiLayerTransform
     {
-        private readonly TextureCompositor document;
+        private readonly WhimTexDocument document;
         private readonly Layer[] selected;
         private readonly ulong[] versions;
         private readonly List<Layer> roots = new List<Layer>();
@@ -16,7 +16,7 @@ namespace DCFApixels.WhimTex
         private TextureTransform startFrame;
         internal TextureTransform Frame { get; private set; }
 
-        internal MultiLayerTransform(TextureCompositor document, IReadOnlyList<string> ids)
+        internal MultiLayerTransform(WhimTexDocument document, IReadOnlyList<string> ids)
         {
             this.document = document;
             width = document.width; height = document.height;
@@ -53,7 +53,7 @@ namespace DCFApixels.WhimTex
             CaptureVersions();
         }
 
-        internal bool Matches(TextureCompositor owner, IReadOnlyList<string> ids)
+        internal bool Matches(WhimTexDocument owner, IReadOnlyList<string> ids)
         {
             if (owner != document || owner.width!=width || owner.height!=height || ids.Count!=selected.Length) return false;
             document.RefreshTransformHierarchy();

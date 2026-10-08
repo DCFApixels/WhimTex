@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -14,7 +14,6 @@
       }
     ],
     "nextCopyNumber": 1,
-    "spriteSlices": [],
     "width": 256,
     "height": 256,
     "outputFilter": "Bilinear",
@@ -34,7 +33,7 @@
       "blendMode": "Normal",
       "colorRange": "HDR",
       "blendRange": "HDR",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -48,8 +47,7 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "f3131f4adac04894b041894c296aac57",
-              "declaredInCode": true
+              "id": "f3131f4adac04894b041894c296aac57"
             },
             {
               "name": "_Tint",
@@ -60,15 +58,13 @@
                 1.0,
                 1.0
               ],
-              "id": "ce8a1b4620a1458599b0285b41ec30b6",
-              "declaredInCode": true
+              "id": "ce8a1b4620a1458599b0285b41ec30b6"
             },
             {
               "name": "_Brightness",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "3c7861bfff7d4616bc72a6aff3ee4d52",
-              "declaredInCode": true
+              "id": "3c7861bfff7d4616bc72a6aff3ee4d52"
             }
           ],
           "shaderKey": "1e252924420446878766c175fc496092",
@@ -122,7 +118,7 @@
       "blendMode": "Normal",
       "colorRange": "Standard",
       "blendRange": "Standard",
-      "swizzle": {
+      "channelMapping": {
         "packed": 0
       },
       "fx": [
@@ -136,106 +132,91 @@
               "name": "_Opacity",
               "type": "Float",
               "floatValue": 1.0,
-              "id": "ac7fb9a185ae43b7b4c7ad1e52904b83",
-              "declaredInCode": true
+              "id": "ac7fb9a185ae43b7b4c7ad1e52904b83"
             },
             {
               "name": "_Columns",
               "type": "Float",
               "floatValue": 2.0,
-              "id": "e1d34f70b75f4b509e753783fad7af44",
-              "declaredInCode": true
+              "id": "e1d34f70b75f4b509e753783fad7af44"
             },
             {
               "name": "_Rows",
               "type": "Float",
               "floatValue": 2.0,
-              "id": "5ef80ac3b38f4062ab1587d6a89f87cf",
-              "declaredInCode": true
+              "id": "5ef80ac3b38f4062ab1587d6a89f87cf"
             },
             {
               "name": "_Seed",
               "type": "Float",
               "floatValue": 321.0,
-              "id": "0de4db865506451fb892901e2b9c168c",
-              "declaredInCode": true
+              "id": "0de4db865506451fb892901e2b9c168c"
             },
             {
               "name": "_Radius",
               "type": "Float",
               "floatValue": 0.34,
-              "id": "3c9209c6ca564eaab60cd42cbacb4387",
-              "declaredInCode": true
+              "id": "3c9209c6ca564eaab60cd42cbacb4387"
             },
             {
               "name": "_Lobes",
               "type": "Float",
               "floatValue": 9.0,
-              "id": "6d72b450b0fe40f19f70e6b2904635df",
-              "declaredInCode": true
+              "id": "6d72b450b0fe40f19f70e6b2904635df"
             },
             {
               "name": "_PuffSize",
               "type": "Float",
               "floatValue": 0.16,
-              "id": "b5e3b9c2c9d74b3592568d72e3720f68",
-              "declaredInCode": true
+              "id": "b5e3b9c2c9d74b3592568d72e3720f68"
             },
             {
               "name": "_Warp",
               "type": "Float",
               "floatValue": 0.035,
-              "id": "678ca25389e74c28bf197c56a2965d62",
-              "declaredInCode": true
+              "id": "678ca25389e74c28bf197c56a2965d62"
             },
             {
               "name": "_Detail",
               "type": "Float",
               "floatValue": 0.2,
-              "id": "c7775fc533274ec3a939720b00a8cd89",
-              "declaredInCode": true
+              "id": "c7775fc533274ec3a939720b00a8cd89"
             },
             {
               "name": "_DetailScale",
               "type": "Float",
               "floatValue": 4.0,
-              "id": "fbc98d91206343358aa4b26fea411bc0",
-              "declaredInCode": true
+              "id": "fbc98d91206343358aa4b26fea411bc0"
             },
             {
               "name": "_Contrast",
               "type": "Float",
               "floatValue": 0.75,
-              "id": "91618703db034d0da6436f12b423ccaf",
-              "declaredInCode": true
+              "id": "91618703db034d0da6436f12b423ccaf"
             },
             {
               "name": "_Softness",
               "type": "Float",
               "floatValue": 0.16,
-              "id": "cd70aab423524a449adeb6e3cdaa9df0",
-              "declaredInCode": true
+              "id": "cd70aab423524a449adeb6e3cdaa9df0"
             },
             {
               "name": "_SourceMix",
               "type": "Float",
               "floatValue": 0.05,
-              "id": "badf420b9dcd4bb69485a122a8963d66",
-              "declaredInCode": true
+              "id": "badf420b9dcd4bb69485a122a8963d66"
             },
             {
               "name": "_Relief",
               "type": "Float",
               "floatValue": 0.0,
-              "id": "a6bb6d4a922b4639ade0bcd06b505bd9",
-              "declaredInCode": true
+              "id": "a6bb6d4a922b4639ade0bcd06b505bd9"
             },
             {
               "name": "_Fold",
               "type": "Float",
               "floatValue": 0.0,
-              "id": "33a3b72f6e9747e084743a9f0e3b857e",
-              "declaredInCode": true
+              "id": "33a3b72f6e9747e084743a9f0e3b857e"
             }
           ],
           "shaderKey": "bf5816d44d2a41dc99199ca36da60451",
@@ -277,7 +258,7 @@
         "dimensions": "TwoD",
         "seed": 1337,
         "scale": 12.0,
-        "scaleY": 0.0,
+        "scaleY": 12.0,
         "linkScale": true,
         "offset": [
           0.0,
@@ -293,7 +274,7 @@
         "warp": "OpenSimplex2Reduced",
         "warpStrength": 0.5,
         "warpScale": 1.0,
-        "warpScaleY": 0.0,
+        "warpScaleY": 1.0,
         "linkWarpScale": true,
         "encoding": "LinearData",
         "inverted": false,

@@ -22,10 +22,10 @@ static System.Threading.CancellationToken Cancellation;
         string folder = Scope.Assets;
         // Scope.Assets already created its owned GUID folder.
         string path = folder + "/Deferred.tiff";
-        TextureCompositor source = Scope.OwnObject(ScriptableObject.CreateInstance<TextureCompositor>());
+        WhimTexDocument source = Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
         source.hideFlags = HideFlags.HideAndDontSave;
         Texture2D sourceTexture = null;
-        TextureCompositor loaded = null;
+        WhimTexDocument loaded = null;
         try
         {
             source.width = 64;

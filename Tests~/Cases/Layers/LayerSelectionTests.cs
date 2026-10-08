@@ -15,8 +15,8 @@ public static class LayerSelectionTests
     static void Body()
     {
         // Opt-in after manual compilation. Tests only temporary in-memory layer trees.
-        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
-        var operations = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType(
+        var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
+        var operations = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly.GetType(
             "DCFApixels.WhimTex.LayerSelectionOperations", true);
         var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
         int checks = 0;
@@ -110,7 +110,7 @@ public static class LayerSelectionTests
             document.layers = Layers(a,b,c,d,e);
             foreach (var item in document.layers)
             {
-                item.swizzle = default;
+                item.channelMapping = default;
                 item.blendMode = DCFApixels.WhimTex.BlendMode.Multiply;
                 item.opacity = .42f;
             }
@@ -119,11 +119,11 @@ public static class LayerSelectionTests
             for (int index = 0; index < 3; index++)
             {
                 for (int channel = 0; channel < 4; channel++)
-                    Check((int)rgb[index].swizzle[channel] == (channel == 3 ? 9 : channel == index ? 10 : 8), "RGB routes each source R times A in tree order");
+                    Check((int)rgb[index].channelMapping[channel] == (channel == 3 ? 9 : channel == index ? 10 : 8), "RGB routes each source R times A in tree order");
                 Check(rgb[index].blendMode == (index < 2 ? DCFApixels.WhimTex.BlendMode.Add : DCFApixels.WhimTex.BlendMode.Multiply), "Only upper selected layers change blending");
                 Check(rgb[index].opacity == .42f, "Preset preserves opacity");
             }
-            Check(b.swizzle.IsIdentity && d.swizzle.IsIdentity, "Unselected layers remain unchanged");
+            Check(b.channelMapping.IsIdentity && d.channelMapping.IsIdentity, "Unselected layers remain unchanged");
             string beforeInvalid = UnityEngine.JsonUtility.ToJson(document);
             Call("ApplyChannelPreset", document, Layers(a,b,c,d,e));
             Check(UnityEngine.JsonUtility.ToJson(document) == beforeInvalid, "Oversized selections cannot partially apply presets");
@@ -131,7 +131,7 @@ public static class LayerSelectionTests
             var rgba = Layers(a,b,c,d);
             for (int index = 0; index < 4; index++)
                 for (int channel = 0; channel < 4; channel++)
-                    Check((int)rgba[index].swizzle[channel] == (channel == index ? 10 : 8), "RGBA routes source R times A to every assigned channel, including alpha");
+                    Check((int)rgba[index].channelMapping[channel] == (channel == index ? 10 : 8), "RGBA routes source R times A to every assigned channel, including alpha");
             Check(a.blendMode == DCFApixels.WhimTex.BlendMode.Add && b.blendMode == DCFApixels.WhimTex.BlendMode.Multiply,
                 "RGBA does not rewrite blending");
             group.layers = Layers(a);
@@ -140,14 +140,14 @@ public static class LayerSelectionTests
             Call("ApplyChannelPreset", document, Layers(b,group));
             Check(group.compositing == DCFApixels.WhimTex.GroupCompositing.Isolated && group.blendMode == DCFApixels.WhimTex.BlendMode.Add,
                 "RGB makes group Add effective");
-            Check(group.swizzle[0] == DCFApixels.WhimTex.SwizzleChannel.RMultiplyA && b.swizzle[1] == DCFApixels.WhimTex.SwizzleChannel.RMultiplyA,
+            Check(group.channelMapping[0] == DCFApixels.WhimTex.ChannelMappingSource.RMultiplyA && b.channelMapping[1] == DCFApixels.WhimTex.ChannelMappingSource.RMultiplyA,
                 "A selected group counts once and unselected descendants do not consume channels");
             Call("ApplyChannelPreset", document, Layers(b,a,group));
-            Check(group.swizzle[0] == DCFApixels.WhimTex.SwizzleChannel.RMultiplyA && a.swizzle[1] == DCFApixels.WhimTex.SwizzleChannel.RMultiplyA &&
-                b.swizzle[2] == DCFApixels.WhimTex.SwizzleChannel.RMultiplyA, "Explicitly selected descendants count separately in tree order");
-            Check(group.swizzle[3] == DCFApixels.WhimTex.SwizzleChannel.One, "Three nested selections automatically use RGB");
+            Check(group.channelMapping[0] == DCFApixels.WhimTex.ChannelMappingSource.RMultiplyA && a.channelMapping[1] == DCFApixels.WhimTex.ChannelMappingSource.RMultiplyA &&
+                b.channelMapping[2] == DCFApixels.WhimTex.ChannelMappingSource.RMultiplyA, "Explicitly selected descendants count separately in tree order");
+            Check(group.channelMapping[3] == DCFApixels.WhimTex.ChannelMappingSource.One, "Three nested selections automatically use RGB");
             Call("ApplyChannelPreset", document, Layers(b));
-            Check(b.swizzle[0] == DCFApixels.WhimTex.SwizzleChannel.RMultiplyA && b.swizzle[3] == DCFApixels.WhimTex.SwizzleChannel.One,
+            Check(b.channelMapping[0] == DCFApixels.WhimTex.ChannelMappingSource.RMultiplyA && b.channelMapping[3] == DCFApixels.WhimTex.ChannelMappingSource.One,
                 "Single selection automatically uses the first RGB channel");
             return;
         }

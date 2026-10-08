@@ -136,7 +136,7 @@ namespace DCFApixels.WhimTex
         private void EnsureResources()
         {
             if (camera != null) return;
-            Shader shader = Shader.Find("Hidden/TextureCompositor/URPPreviewSurface");
+            Shader shader = Shader.Find("Hidden/WhimTex/URPPreviewSurface");
             if (shader == null || !shader.isSupported) throw new InvalidOperationException("URP preview surface shader is unavailable or unsupported.");
             scene = EditorSceneManager.NewPreviewScene();
             try

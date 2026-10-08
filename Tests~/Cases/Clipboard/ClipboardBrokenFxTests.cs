@@ -22,16 +22,16 @@ static System.Threading.CancellationToken Cancellation;
     static bool Unavailable(ShaderFX fx) => (bool)typeof(ShaderFX).GetProperty("IsUnavailable", F).GetValue(fx);
     static string Quote(string text) => "\"" + text.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n") + "\"";
     static IDisposable Read(string json) => (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", F).Invoke(null, new object[] { json, 16, 16 });
-    static TextureCompositor Doc(object data) => (TextureCompositor)Get(data, "Document");
+    static WhimTexDocument Doc(object data) => (WhimTexDocument)Get(data, "Document");
     static string Fixture(string code, bool active) =>
-        "{\"format\":\"whimtex.document\",\"version\":1,\"document\":{\"width\":16,\"height\":16},\"layers\":[" +
+        "{\"format\":\"whimtex.document\",\"version\":2,\"document\":{\"width\":16,\"height\":16},\"layers\":[" +
         "{\"id\":\"group\",\"group\":true,\"behaviour\":{\"$type\":\"GroupLayerBehaviour\"},\"children\":[" +
         "{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[0.2,0.4,0.6,1]},\"fx\":[" +
         "{\"$type\":\"ShaderFX\",\"$name\":\"Clipboard failure fixture\",\"active\":" + (active ? "true" : "false") + ",\"code\":" + Quote(code) +
         ",\"parameters\":[{\"name\":\"_Amount\",\"type\":\"Float\",\"floatValue\":0.37},{\"name\":\"_Map\",\"type\":\"Texture2D\",\"textureSource\":\"Layer\",\"textureLayerId\":\"source\"}]}," +
         "{\"$type\":\"ShaderFX\",\"code\":\"float4 ApplyFX(float2 uv,float4 color){return float4(color.rgb * 0.5,color.a);}\"}]}]}," +
         "{\"id\":\"source\",\"enabled\":false,\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}";
-    static Color Pixel(TextureCompositor doc)
+    static Color Pixel(WhimTexDocument doc)
     {
         Texture2D texture = doc.ComposeCanvas();
         try { return texture.GetPixel(8, 8); }
@@ -64,7 +64,7 @@ static System.Threading.CancellationToken Cancellation;
                 using var opened = WhimTexDocumentJson.Read(json);
                 Check(opened.Warnings.Count == 1, "Open/paste disagree about broken FX.");
                 Same(actual, Pixel(opened.Document));
-                var destination = Scope.OwnObject(ScriptableObject.CreateInstance<TextureCompositor>());
+                var destination = Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
                 destination.width = destination.height = 16;
                 try
                 {

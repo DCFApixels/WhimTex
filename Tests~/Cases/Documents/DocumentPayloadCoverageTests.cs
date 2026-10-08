@@ -41,8 +41,6 @@ System.Collections.Generic.List<System.Reflection.FieldInfo> Fields(Type type)
             if (field.Name == "id" || field.Name.EndsWith("Id", StringComparison.Ordinal) ||
                 field.Name.EndsWith("Guid", StringComparison.Ordinal)) continue;
             if (derived.Contains(field.Name)) continue;
-            if (type == typeof(DCFApixels.WhimTex.TextureCompositor) &&
-                (field.Name == "outputSettings" || field.Name == "savedOutputSettings" || field.Name == "spriteSlices")) continue;
             list.Add(field);
         }
     }
@@ -151,8 +149,8 @@ foreach (Type type in typeof(DCFApixels.WhimTex.LayerBehaviour).Assembly.GetType
         type.Namespace != null && type.Namespace.StartsWith("DCFApixels.WhimTex"))
         behaviourTypes.Add(type);
 behaviourTypes.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
-var doc = UnityBRun.Create<DCFApixels.WhimTex.TextureCompositor>();
-DCFApixels.WhimTex.TextureCompositor loaded = null;
+var doc = UnityBRun.Create<DCFApixels.WhimTex.WhimTexDocument>();
+DCFApixels.WhimTex.WhimTexDocument loaded = null;
 string folder = UnityBRun.AssetPath("WhimTexCoverage_") + System.Guid.NewGuid().ToString("N");
 UnityBRun.EnsureFolder(folder);
 try
@@ -169,8 +167,8 @@ foreach (Type type in behaviourTypes)
     Mutate(layer, typeof(DCFApixels.WhimTex.Layer), 0);
     doc.layers.Add(layer);
 }
-Mutate(doc, typeof(DCFApixels.WhimTex.TextureCompositor), 0);
-var method = typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("NormalizeModel", All | System.Reflection.BindingFlags.Static);
+Mutate(doc, typeof(DCFApixels.WhimTex.WhimTexDocument), 0);
+var method = typeof(DCFApixels.WhimTex.WhimTexDocument).GetMethod("NormalizeModel", All | System.Reflection.BindingFlags.Static);
 method.Invoke(doc, null);
 report.Append("behaviourTypes=").Append(behaviourTypes.Count).Append(" fieldsTouched=").Append(counter);
 
@@ -200,7 +198,7 @@ for (int i = 0; i < doc.layers.Count; i++)
     else { UnityBRun.Check(true, "Complete serialized field graph for layer " + i); checks++; }
 }
 Check(mismatches == 0, "field mismatches=" + mismatches + problems);
-string documentIssue = Compare(doc, loaded, typeof(DCFApixels.WhimTex.TextureCompositor), 0, new System.Collections.Generic.HashSet<object>());
+string documentIssue = Compare(doc, loaded, typeof(DCFApixels.WhimTex.WhimTexDocument), 0, new System.Collections.Generic.HashSet<object>());
 Check(documentIssue == null, "document level: " + documentIssue);
 return "";
 }
@@ -215,4 +213,3 @@ return "";
     }
     public static string Run() => UnityBRun.Run("DocumentPayloadCoverageSmoke", () => Execute());
 }
-

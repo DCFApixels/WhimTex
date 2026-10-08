@@ -7,10 +7,10 @@ using UnityEngine;
 public static class NoisePeriodic1DTests
 {
     const int Size = 17;
-    static Material Prepare(TextureCompositor doc)
+    static Material Prepare(WhimTexDocument doc)
     {
         var image = doc.ComposeCanvas(); WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(image);
-        var type = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials");
+        var type = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials");
         var shared = (Material)type.GetProperty("Noise", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).GetValue(null);
         var m = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(shared));
         foreach (var k in new[]{"_NoiseOneD","_NoiseThreeD","_NoisePeriodic","_NoiseSeed","_NoiseType",
@@ -40,7 +40,7 @@ public static class NoisePeriodic1DTests
     }
     static string ExecuteRun(int kind = 0)
     {
-        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<TextureCompositor>()); doc.width = 48; doc.height = 32;
+        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>()); doc.width = 48; doc.height = 32;
         var n = new NoiseLayerBehaviour { noiseType = (NoiseLayerBehaviour.NoiseType)kind,
             dimensions = NoiseLayerBehaviour.NoiseDimensions.OneD, periodic1D = true,
             periodic = NoiseLayerBehaviour.PeriodicAxes.Y, seed = -139361330,

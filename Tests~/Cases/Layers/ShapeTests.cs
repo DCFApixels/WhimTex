@@ -13,7 +13,7 @@ private static void Execute(TestContext context, MigrationD fixture)
 {
 // Run with Unity Pipeline eval_file after compilation. Requires a graphics device.
 // Only transient, unsaved objects; no existing document, scene, asset or Undo history is changed.
-var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = 128; document.height = 96;
 var shape = new DCFApixels.WhimTex.ShapeLayerBehaviour();
@@ -45,7 +45,7 @@ try
     shape.kind = DCFApixels.WhimTex.ShapeLayerBehaviour.ShapeKind.Rectangle;
     // Low-quality preview must keep the same document-space placement and stroke width.
     var instanceFlags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
-    var preview = (UnityEngine.Texture2D)typeof(DCFApixels.WhimTex.TextureCompositor)
+    var preview = (UnityEngine.Texture2D)typeof(DCFApixels.WhimTex.WhimTexDocument)
         .GetMethod("ComposeCanvas", instanceFlags).Invoke(document, new object[] { 64 });
     try
     {
@@ -104,7 +104,7 @@ try
     Check(UnityEngine.Vector4.Distance(Adjust(ratios, 0, 1f, true), ratios * 2.5f) < .0001f, "linked group limit");
     Check(UnityEngine.Vector4.Distance(Adjust(ratios, 0, .9f, false), new UnityEngine.Vector4(.9f,.2f,.3f,.4f)) < .0001f, "unlinked edit");
     Check(UnityEngine.Vector4.Distance(Adjust(UnityEngine.Vector4.zero, 0, .3f, true), UnityEngine.Vector4.one * .3f) < .0001f, "linked zero fallback");
-    var drag = typeof(DCFApixels.WhimTex.TextureCompositorWindow).GetMethod("ShapeDragTransform", flags);
+    var drag = typeof(DCFApixels.WhimTex.WhimTexWindow).GetMethod("ShapeDragTransform", flags);
     var canvas = new UnityEngine.Vector2(512, 256);
     foreach (float dx in new[] { -70f, 0f, 70f }) foreach (float dy in new[] { -30f, 0f, 30f })
     {
@@ -118,7 +118,7 @@ try
         t = (DCFApixels.WhimTex.TextureTransform)drag.Invoke(null, new object[] { start, end, canvas, DCFApixels.WhimTex.ShapeLayerBehaviour.ShapeKind.Line, true, 8f });
         Check(System.Math.Abs(t.rotation / 45d - System.Math.Round(t.rotation / 45d)) < .0001f, "Shift line angle");
     }
-    var shader = UnityEngine.Shader.Find("Hidden/TextureCompositor/Shape");
+    var shader = UnityEngine.Shader.Find("Hidden/WhimTex/Shape");
     Check(shader != null && shader.isSupported, "shader supported");
     Check(!UnityEditor.ShaderUtil.ShaderHasError(shader), "shader compiled");
     Check(DCFApixels.WhimTex.WhimTexApi.Describe().Contains("shapeDefaults"), "API describes shapes");
@@ -129,7 +129,7 @@ try
     setter.Invoke(null, new object[] { shape, json });
     Check(shape.kind == DCFApixels.WhimTex.ShapeLayerBehaviour.ShapeKind.Star && shape.sides == 7 && shape.innerRadius == .3f, "API partial update");
     Check(shape.fillColor.r == 2f, "API partial update retains unrelated fields");
-    var copy = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+    var copy = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>();
     try
     {
         UnityEditor.EditorJsonUtility.FromJsonOverwrite(UnityEditor.EditorJsonUtility.ToJson(document), copy);

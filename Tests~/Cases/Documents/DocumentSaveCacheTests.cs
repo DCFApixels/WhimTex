@@ -13,7 +13,7 @@ using Object = UnityEngine.Object;
 public static class DocumentSaveCacheTests
 {
     const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
-    static readonly Type Serializer = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSerializer");
+    static readonly Type Serializer = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSerializer");
     static int checks;
     static void Check(bool yes, string message) { UnityBRun.Check(!(!yes), message); checks++; }
     static object Call(object target, string name, params object[] args) => target.GetType().GetMethod(name, Any).Invoke(target, args);
@@ -122,7 +122,7 @@ public static class DocumentSaveCacheTests
 
     static void DrawingMutations()
     {
-        var doc = UnityBRun.Create<TextureCompositor>();
+        var doc = UnityBRun.Create<WhimTexDocument>();
         doc.hideFlags = HideFlags.HideAndDontSave; doc.width = doc.height = 32;
         var drawing = new DrawingLayerBehaviour { brushColor = Color.red, brushSize = 12, brushHardness = 1 };
         doc.layers.Add(new Layer(drawing));

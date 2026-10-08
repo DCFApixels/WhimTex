@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/Sharpen"
+Shader "Hidden/WhimTex/Sharpen"
 {
         Properties { [HideInInspector] _MainTex ("Source", 2D) = "black" {} }
     SubShader
@@ -178,7 +178,7 @@ Shader "Hidden/TextureCompositor/Sharpen"
                 float3 limitedColor = lerp(sharpenedColor, rangeLimited, saturate(_HaloSuppression));
                 limited = limitedColor * alpha;
             }
-            // Keep HDR values intact. The compositor applies the layer's color
+            // Keep HDR values intact. The document applies the layer's color
             // range and output policy later; sharpening must not clip here.
             float3 color = 0;
             if (alpha > 0) color = limited / alpha;

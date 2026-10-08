@@ -75,7 +75,7 @@ public static class TiffLiveTests
             string conflictBegin = WhimTexApi.TiffLiveJson("{\"apiVersion\":1,\"op\":\"begin\",\"sessionId\":\"" + conflictSessionId + "\",\"assetPath\":\"" + path + "\",\"expectedRevision\":\"" + conflictRevision + "\"}");
             Check(conflictBegin.Contains("\"success\":true"), "begin conflict-check session");
             conflictActive = true;
-            TextureCompositor externalDocument = WhimTexDocumentFile.Load(path);
+            WhimTexDocument externalDocument = WhimTexDocumentFile.Load(path);
             try
             {
                 externalDocument.layers.Add(new Layer(new ColorFillLayerBehaviour { color = Color.green }));

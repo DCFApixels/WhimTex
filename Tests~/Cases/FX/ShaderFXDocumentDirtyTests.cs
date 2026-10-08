@@ -26,10 +26,10 @@ public static class ShaderFXDocumentDirtyTests
     });
 
     const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-    static readonly Assembly Package = typeof(TextureCompositor).Assembly;
+    static readonly Assembly Package = typeof(WhimTexDocument).Assembly;
     static readonly List<Object> owned = new();
     static int checks, changes, refreshes;
-    static TextureCompositor observed;
+    static WhimTexDocument observed;
     static Type Type(string name) => Package.GetType("DCFApixels.WhimTex." + name, true);
     static object Invoke(Type type, object target, string name, params object[] args) => type.GetMethods(Any)
         .Single(m => m.Name == name && m.GetParameters().Length == args.Length).Invoke(target, args);
@@ -37,8 +37,8 @@ public static class ShaderFXDocumentDirtyTests
     static object Get(object target, string name) => target.GetType().GetField(name, Any).GetValue(target);
     static void Set(object target, string name, object value) => target.GetType().GetField(name, Any).SetValue(target, value);
     static void Check(bool condition, string message) { context.True(condition, message); }
-    static void Changed(TextureCompositor doc) { if (doc == observed) changes++; }
-    static void Refreshed(TextureCompositor doc) { if (doc == observed) refreshes++; }
+    static void Changed(WhimTexDocument doc) { if (doc == observed) changes++; }
+    static void Refreshed(WhimTexDocument doc) { if (doc == observed) refreshes++; }
 
     static object Entry(string file)
     {
@@ -48,9 +48,9 @@ public static class ShaderFXDocumentDirtyTests
         throw new Exception("Missing built-in preset: " + file);
     }
 
-    static TextureCompositor Source(string preset)
+    static WhimTexDocument Source(string preset)
     {
-        var doc = ScriptableObject.CreateInstance<TextureCompositor>(); owned.Add(doc);
+        var doc = ScriptableObject.CreateInstance<WhimTexDocument>(); owned.Add(doc);
         doc.hideFlags = HideFlags.HideAndDontSave; doc.width = doc.height = 16;
         doc.layers.Add(new Layer(new ColorFillLayerBehaviour { color = new Color(.2f, .4f, .6f, 1f) }));
         ShaderFX effect = null;
@@ -65,13 +65,13 @@ public static class ShaderFXDocumentDirtyTests
         return doc;
     }
 
-    static TextureCompositor RoundTrip(TextureCompositor source)
+    static WhimTexDocument RoundTrip(WhimTexDocument source)
     {
         using var container = new WhimTexDocumentContainer();
         byte[] model = (byte[])Invoke(Type("WhimTexDocumentSerializer"), null, "Serialize", source, container);
         var read = Invoke(Type("WhimTexDocumentSerializer"), null, "Deserialize", model, container,
-            typeof(TextureCompositor), null, false);
-        var doc = (TextureCompositor)read.GetType().GetProperty("Model", Any).GetValue(read);
+            typeof(WhimTexDocument), null, false);
+        var doc = (WhimTexDocument)read.GetType().GetProperty("Model", Any).GetValue(read);
         owned.Add(doc); doc.hideFlags = HideFlags.HideAndDontSave;
         // Only creates an in-memory binding; the path is never written or imported.
         Invoke(Type("WhimTexDocumentService"), null, "Bind", doc, "Temp/WhimTex/DirtySmoke-" + Guid.NewGuid().ToString("N") + ".tiff");
@@ -85,11 +85,11 @@ public static class ShaderFXDocumentDirtyTests
         return doc;
     }
 
-    static TextureCompositorWindow Window(TextureCompositor doc)
+    static WhimTexWindow Window(WhimTexDocument doc)
     {
-        var window = ScriptableObject.CreateInstance<TextureCompositorWindow>(); owned.Add(window);
+        var window = ScriptableObject.CreateInstance<WhimTexWindow>(); owned.Add(window);
         window.hideFlags = HideFlags.HideAndDontSave;
-        Call(window, "SetCompositor", doc);
+        Call(window, "SetDocument", doc);
         return window;
     }
 
@@ -102,7 +102,7 @@ public static class ShaderFXDocumentDirtyTests
         method.Invoke(effect, null);
     }
 
-    static void Clean(TextureCompositorWindow window, TextureCompositor doc)
+    static void Clean(WhimTexWindow window, WhimTexDocument doc)
     {
         Set(window, "temporaryDocumentDirty", false);
         Set(Get(doc, "documentBinding"), "dirty", false);
@@ -110,7 +110,7 @@ public static class ShaderFXDocumentDirtyTests
         changes = refreshes = 0;
     }
 
-    static void AssertDirty(TextureCompositorWindow window, TextureCompositor doc, bool expected, string label)
+    static void AssertDirty(WhimTexWindow window, WhimTexDocument doc, bool expected, string label)
     {
         Check(window.hasUnsavedChanges == expected, label + ": window dirty");
         Check((bool)Get(Get(doc, "documentBinding"), "dirty") == expected, label + ": document binding dirty");
@@ -119,11 +119,11 @@ public static class ShaderFXDocumentDirtyTests
     private static void ExecuteRun()
     {
         checks = changes = refreshes = 0; owned.Clear();
-        var originals = Resources.FindObjectsOfTypeAll<TextureCompositorWindow>()
-            .Select(w => (window: w, document: Get(w, "compositor"), dirty: w.hasUnsavedChanges)).ToArray();
-        var changedEvent = typeof(TextureCompositor).GetEvent("Changed", Any);
-        var refreshedEvent = typeof(TextureCompositor).GetEvent("RenderResourcesChanged", Any);
-        Action<TextureCompositor> onChanged = Changed, onRefreshed = Refreshed;
+        var originals = Resources.FindObjectsOfTypeAll<WhimTexWindow>()
+            .Select(w => (window: w, document: Get(w, "activeDocument"), dirty: w.hasUnsavedChanges)).ToArray();
+        var changedEvent = typeof(WhimTexDocument).GetEvent("Changed", Any);
+        var refreshedEvent = typeof(WhimTexDocument).GetEvent("RenderResourcesChanged", Any);
+        Action<WhimTexDocument> onChanged = Changed, onRefreshed = Refreshed;
         changedEvent.GetAddMethod(true).Invoke(null, new object[] { onChanged });
         refreshedEvent.GetAddMethod(true).Invoke(null, new object[] { onRefreshed });
         try
@@ -207,7 +207,7 @@ public static class ShaderFXDocumentDirtyTests
                     AssertDirty(window, doc, true, "catalog revision changed");
                 }
             }
-            // A changed catalog revision during OPEN (notification queued before SetCompositor).
+            // A changed catalog revision during OPEN (notification queued before SetDocument).
             var stale = Source("Levels.hlsl");
             Set(stale.layers[0].fx[0], "catalogDependencyHash", "old-saved-revision");
             var updated = RoundTrip(stale);
@@ -227,7 +227,7 @@ public static class ShaderFXDocumentDirtyTests
             Check((string)Get(fallback.layers[0].fx[0], "catalogGuid") == null, "fallback detached");
 
             foreach (var item in originals)
-                Check(item.window != null && ReferenceEquals(Get(item.window, "compositor"), item.document) &&
+                Check(item.window != null && ReferenceEquals(Get(item.window, "activeDocument"), item.document) &&
                     item.window.hasUnsavedChanges == item.dirty, "user window untouched");
             return;
         }
@@ -238,10 +238,10 @@ public static class ShaderFXDocumentDirtyTests
             for (int i = owned.Count - 1; i >= 0; i--)
             {
                 if (owned[i] == null) continue;
-                if (owned[i] is TextureCompositorWindow window)
+                if (owned[i] is WhimTexWindow window)
                 {
                     Set(window, "temporaryDocumentDirty", false);
-                    var doc = (TextureCompositor)Get(window, "compositor");
+                    var doc = (WhimTexDocument)Get(window, "activeDocument");
                     if (doc != null && Get(doc, "documentBinding") is object binding) Set(binding, "dirty", false);
                     Call(window, "UpdateUnsavedChangesState");
                 }

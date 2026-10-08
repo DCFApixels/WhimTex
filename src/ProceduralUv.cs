@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
         }
 
         internal static LayerRenderContext WithoutTransform(in LayerRenderContext context) =>
-            new LayerRenderContext(context.compositor, context.input, context.width, context.height,
+            new LayerRenderContext(context.activeDocument, context.input, context.width, context.height,
                 context.scaleMultiplier, applyTransform: false, applyFx: context.applyFx,
                 transformFxCoordinates: context.transformFxCoordinates);
     }

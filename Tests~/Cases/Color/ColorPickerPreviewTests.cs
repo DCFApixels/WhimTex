@@ -19,15 +19,15 @@ static System.Threading.CancellationToken Cancellation;
     static object Call(object o, string name, params object[] args) => o.GetType().GetMethod(name, F).Invoke(o, args);
     static void Check(bool ok, string message) { T.True(ok, message); }
     static void Near(Color a, Color b, string message) => Check(Mathf.Abs(a.r-b.r)+Mathf.Abs(a.g-b.g)+Mathf.Abs(a.b-b.b)+Mathf.Abs(a.a-b.a) < .0001f, message);
-    static WhimTexColorPicker Open(TextureCompositor doc, Action<Color> changed) => Scope.OwnWindow((WhimTexColorPicker)typeof(WhimTexColorPicker).GetMethod("Open", F).Invoke(null,
+    static WhimTexColorPicker Open(WhimTexDocument doc, Action<Color> changed) => Scope.OwnWindow((WhimTexColorPicker)typeof(WhimTexColorPicker).GetMethod("Open", F).Invoke(null,
         new object[] { new Color(2.5f,.6f,.2f,.7f), true, true, WhimTexColorRange.Switchable, doc, changed, null, null }));
-    static TextureCompositor Document()
+    static WhimTexDocument Document()
     {
-        var doc = Scope.OwnObject(ScriptableObject.CreateInstance<TextureCompositor>());
+        var doc = Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
         doc.name = "Color picker EV test document"; doc.hideFlags = HideFlags.HideAndDontSave;
         var history = new List<Color>();
         for (int i=0;i<48;i++) history.Add(Color.HSVToRGB(i/48f,.7f,.8f));
-        typeof(TextureCompositor).GetField("colorHistory", F).SetValue(doc, history);
+        typeof(WhimTexDocument).GetField("colorHistory", F).SetValue(doc, history);
         return doc;
     }
     private static string BodyRun()
@@ -120,7 +120,7 @@ static System.Threading.CancellationToken Cancellation;
     }
     private static string CleanupFixture()
     {
-        var picker = Find(); var doc = (TextureCompositor)Get(picker,"document");
+        var picker = Find(); var doc = (WhimTexDocument)Get(picker,"document");
         Call(picker,"Finish",false); Undo.ClearUndo(doc); UnityEngine.Object.DestroyImmediate(doc);
         return null;
     }

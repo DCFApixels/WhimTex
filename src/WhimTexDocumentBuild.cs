@@ -9,15 +9,15 @@ namespace DCFApixels.WhimTex
     // Unity objects/rendering stay on the Editor main thread.
     internal sealed class WhimTexDocumentBuild : IDisposable
     {
-        internal TextureCompositor Document { get; private set; }
+        internal WhimTexDocument Document { get; private set; }
 
-        private WhimTexDocumentBuild(TextureCompositor document) => Document = document;
+        private WhimTexDocumentBuild(WhimTexDocument document) => Document = document;
 
         internal static WhimTexDocumentBuild Create(int width, int height)
         {
             if (width < 1 || height < 1 || width > 16384 || height > 16384)
                 throw new WhimTexDocumentException("Canvas dimensions must be between 1 and 16384.");
-            var document = ScriptableObject.CreateInstance<TextureCompositor>();
+            var document = ScriptableObject.CreateInstance<WhimTexDocument>();
             document.hideFlags = HideFlags.HideAndDontSave;
             document.width = width; document.height = height;
             return new WhimTexDocumentBuild(document);
@@ -32,7 +32,7 @@ namespace DCFApixels.WhimTex
             return new WhimTexDocumentBuild(document);
         }
 
-        internal static WhimTexDocumentBuild Copy(TextureCompositor source) =>
+        internal static WhimTexDocumentBuild Copy(WhimTexDocument source) =>
             new(WhimTexDocumentFile.CreateEditableCopy(source));
 
         private void Prepare()

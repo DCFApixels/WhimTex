@@ -15,10 +15,10 @@ private static string BodyRun()
 {
 // Opt-in eval body after manual compilation. No saved assets or visible windows.
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var windowType = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+var windowType = typeof(DCFApixels.WhimTex.WhimTexWindow);
 var readout = windowType.GetMethod("RefreshCanvasZoomReadout", Hidden);
 T.True(!(readout == null), "Manually compile the preview header change before running this test.");
-var window = Scope.OwnWindow(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>());
+var window = Scope.OwnWindow(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexWindow>());
 int checks = 0, fullRefreshes = 0;
 void Check(bool value, string message)
 { T.True(value, message); }

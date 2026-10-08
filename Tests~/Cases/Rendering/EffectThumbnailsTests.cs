@@ -10,8 +10,8 @@ public static class EffectThumbnailsTests
     {
 // Unity Pipeline eval_file. Transient documents/textures only; no scene, asset or Undo edits.
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var type = typeof(DCFApixels.WhimTex.TextureCompositor);
-var document = UnityBRun.Create<DCFApixels.WhimTex.TextureCompositor>();
+var type = typeof(DCFApixels.WhimTex.WhimTexDocument);
+var document = UnityBRun.Create<DCFApixels.WhimTex.WhimTexDocument>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = document.height = 64;
 var texture = UnityBRun.Track(new UnityEngine.Texture2D(64, 64, UnityEngine.TextureFormat.RGBA32, false));

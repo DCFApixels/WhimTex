@@ -16,7 +16,7 @@ public static class PostFxPresentationTests
     {
         // Opt-in live eval_file test after the user's manual compilation/import.
         // Only temporary GPU resources. Does not render cameras, edit assets or change a window.
-        var shader = UnityEngine.Shader.Find("Hidden/TextureCompositor/URPPreviewSurface");
+        var shader = UnityEngine.Shader.Find("Hidden/WhimTex/URPPreviewSurface");
         WhimTex.Tests.UnityC.FixtureContext.Context.True(!(shader == null || !shader.isSupported), "Post FX surface shader is unavailable.");
         var material = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new UnityEngine.Material(shader) { hideFlags = UnityEngine.HideFlags.HideAndDontSave });
         var source = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new UnityEngine.Texture2D(8,8,UnityEngine.TextureFormat.RGBAFloat,false,true)

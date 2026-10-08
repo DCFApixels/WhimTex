@@ -8,25 +8,25 @@ permalink: /reference/json-format/
 
 # WhimTex JSON documents
 
-`whimtex.document`, version **1**, is the shared editable format for `.json` files,
+`whimtex.document`, version **2**, is the shared editable format for `.json` files,
 layer clipboard data and agent serialization. It stores settings, not rendered pixels.
-TIFF remains the image-backed format; its tagged binary encoding remains version 1.
+TIFF remains the image-backed format; its tagged binary encoding is version 2.
 New saves and exports use `.json`; existing `.whimtex.json` names remain readable without renaming.
-The old `whimtex.layers` clipboard envelope is unsupported. Paste it in 0.12.5 and save
-as TIFF or export `whimtex.document` JSON before upgrading.
+Previous JSON, layer clipboard and TIFF document versions are unsupported by this checkout.
+They are rejected explicitly, not silently interpreted as version 2. No migration or old
+`swizzle` alias is provided. Work with a matching older checkout if those files need editing.
 New exports and Copy as JSON use this format. Brush and gradient preset formats remain separate.
 
-Compatibility during legacy cleanup covers files written by package **0.12.5**, not
-its C# or agent APIs. Readers accept retired compositor output/slice metadata and
-Drawing source-URL/revision bookkeeping at their original owner types; current writers
-omit it. Unknown settings outside that explicit allowlist remain errors. The schema
-marks `document.spriteSlices` as deprecated input-only metadata. The version-1 default
-snapshot is unchanged, so omitted values in existing Compact files retain their meaning.
+Backward compatibility with package **0.12.5** or **0.13.0** is not a development requirement.
+Retired fields and previous-name aliases are not accepted. The version-2 default
+snapshot defines omitted values for current Compact files, independently of UI defaults.
 
-The layer FX list is `fx` in new JSON and TIFF writes. Readers also accept the old
-`Layer.modifiers` field from existing files and convert it to `fx`, preserving list order
-and shared references. Both names in one layer are rejected as ambiguous. This input
-conversion is not a C# or agent API alias; new content must use `fx`.
+The layer FX list is `fx` in UI, code and TIFF/JSON. JSON rejects `modifiers`;
+the TIFF reader diagnoses it as an unknown field and protects against unconfirmed loss.
+
+Channel routing is `Layer.channelMapping`, a `LayerChannelMapping` object with its existing
+packed representation. Live API patches use `settings.channelMapping`, an array of four
+source labels in output RGBA order; `describe` returns `channelMappingSources`.
 
 ## Write modes
 
@@ -34,7 +34,7 @@ conversion is not a C# or agent API alias; new content must use `fx`.
 | --- | --- |
 | `Full` | All persistent settings, including inactive values and defaults. |
 | `FullOptimized` (default) | Active settings, including their defaults; inactive branches are omitted. |
-| `Compact` | Same inactive-branch rules, additionally omitting version-1 default values, except source canvas dimensions. |
+| `Compact` | Same inactive-branch rules, additionally omitting version-2 default values, except source canvas dimensions. |
 
 The optional envelope field `writeMode` uses these exact names; absence means `FullOptimized`.
 Full and Compact exports include it; FullOptimized may omit it. Opening restores the mode for
@@ -48,7 +48,7 @@ Compiled shaders, rendering caches, catalog refresh state and code-derived contr
 are not document settings and are never saved. HLSL source and parameter values are separate;
 changing a value does not rewrite its declaration into the source code.
 
-Omitted values use the frozen defaults in `WhimTexJsonDefaultsV1`, not the current UI factory defaults.
+Omitted values use the frozen defaults in `WhimTexJsonDefaultsV2`, not the current UI factory defaults.
 For insertion/paste only, omitted canvas dimensions instead inherit the corresponding destination axes.
 Re-enabling an omitted feature restores those defaults, not the previously inactive user value.
 
@@ -57,7 +57,7 @@ Re-enabling an omitted feature restores those defaults, not the previously inact
 Only `format`, `version` and `layers` are required at the root. `document` and every setting inside
 it are optional. If present, `document` must be an object, not null; `{}` is valid.
 
-- Opening or writing a document fills missing settings from version-1 defaults (canvas **512 × 512**).
+- Opening or writing a document fills missing settings from version-2 defaults (canvas **512 × 512**).
 - Insertion/paste fills each missing source dimension from the current destination canvas. Without
   either dimension, no canvas-size prompt is requested; unrelated document settings do not request a resize.
 - With only `width` or only `height`, the other axis is independent: format default on open/write,
@@ -75,7 +75,7 @@ output settings during export.
 ```json
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "width": 256,
     "height": 256,
@@ -104,8 +104,8 @@ Fields match the persistent model: `behaviour` contains type-specific settings; 
 `fx` and `children` belong to the layer. Layer order is top to bottom. `$type` selects an
 allowlisted model type, not an arbitrary assembly-qualified runtime type. Unity vectors and colors
 are fixed-length numeric arrays; transform `Double2` values use objects with `x` and `y`.
-Writers use the field's current component count. TIFF and JSON readers accept lossless float-vector
-expansion: Vector2 to Vector3/Vector4 and Vector3 to Vector4, filling added components with zero.
+Writers use the field's current component count. JSON permits shorter float-vector arrays,
+filling added components with zero; tagged TIFF values must exactly match the current field type.
 Scalars, integer-vector conversions, narrowing and shortened colors/quaternions remain invalid.
 Shader FX have `$type: "ShaderFX"`, source `code`, `parameters`, `active` and optional
 `$name`. Shared FX use `$id`/`$ref`; these IDs are distinct from layer IDs.
@@ -119,7 +119,7 @@ only those layers, with source-canvas settings. The caller's operation determine
 - Insert/paste adds layers with remapped IDs; it does not replace existing layers or apply source output settings.
 - Replace changes only the explicitly selected layer through the API; content never requests replacement itself.
 
-Root `kind` is rejected; 0.12.5 writers already omit it. The caller chooses the operation.
+Root `kind` is rejected. The caller chooses the operation.
 The required `format` and `version` fields still identify the format and its version.
 This does not remove type-specific fields such as Shape's `behaviour.kind`.
 
@@ -152,10 +152,11 @@ Shader FX source is embedded with project includes expanded. Engine includes rem
 If includes cannot be expanded, the original source is preserved instead; those external dependencies
 must be restored before the FX can compile. Failed HLSL or parameter-declaration compilation does not
 abort JSON loading: keep source, parameter values, order and enabled state, return a warning and skip
-the FX during rendering. A failed Apply also skips an older compiled version. Successful Apply clears
-the warning and resumes rendering. Compiler warnings without errors do not mark an FX unavailable.
-Uncompiled/failed FX are marked beside their layer and in the FX section and effect headers, including
-collapsed headers. Console failures are deduplicated per effect instance and source/diagnostic pair;
+the FX during rendering. A failed Apply also skips an older compiled version. Successful Apply resumes
+rendering; indicators clear only when no diagnostic issues remain. Warnings without errors do not mark
+an FX unavailable, but are also returned when preparing JSON effects and remain visible in the headers.
+FX diagnostics are marked beside their layer and in the FX section and effect headers, including
+collapsed headers. All FX errors/warnings use the shared reporter, deduplicated by source path and diagnostic;
 rendering does not retry compilation. JSON saving preserves broken code; TIFF save validation is unchanged.
 Only open/compile shaders you trust: expensive GPU code can stall the editor.
 Clipboard insertion uses the same soft compilation path after trust confirmation. Failed FX are
@@ -172,12 +173,10 @@ representable by their stored type; integer fields reject fractions. Value types
 Errors identify the field or component path. Curve tangents alone also accept `"Infinity"` and
 `"-Infinity"` for stepped keys. Vector/color components follow their numeric types.
 These are storage checks, not the stricter agent-property patch/UI slider bounds: finite persisted values
-are retained, with the model's rendering clamps. The 0.12.5 reader normalizes zero Y axes and
-negative Shape corner values into explicit coordinates; those sentinels are no longer runtime modes.
-Saved manual FX parameters become `@param` declarations with their values and references preserved.
-The read-only `declaredInCode` metadata distinguishes them from intentionally removed code declarations.
-Manual scalar values outside their hard range become the effective clamped value used by 0.12.5.
-Current writers do not emit `declaredInCode` or Shape's former uniform `roundness` field.
+are retained, with the model's rendering clamps. Noise and Pattern axes and Shape corners
+use explicit current values; missing components use the version-2 defaults, not sentinel inheritance.
+FX declarations come only from `@param`; readers do not append declarations for saved values.
+`declaredInCode` and Shape's former uniform `roundness` field are unknown input.
 The generated schema describes per-field constraints; graph dependencies, total layer count and the
 combined canvas pixel budget additionally require the reader/API validator.
 The reader does not silently discard invalid data. JSON limits are 64 MiB characters, depth 128,

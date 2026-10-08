@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "WhimTex document v1",
+  "title": "WhimTex document v2",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -13,7 +13,7 @@
       "const": "whimtex.document"
     },
     "version": {
-      "const": 1
+      "const": 2
     },
     "writeMode": {
       "type": "string",
@@ -24,7 +24,7 @@
       ]
     },
     "document": {
-      "$ref": "#/$defs/TextureCompositor"
+      "$ref": "#/$defs/WhimTexDocument"
     },
     "layers": {
       "type": "array",
@@ -35,21 +35,12 @@
     }
   },
   "$defs": {
-    "TextureCompositor": {
+    "WhimTexDocument": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "$type": {
-          "const": "TextureCompositor"
-        },
-        "spriteSlices": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "deprecated": true,
-          "description": "Ignored 0.12.5 file metadata; never written by current writers.",
-          "items": {}
+          "const": "WhimTexDocument"
         },
         "colorHistory": {
           "type": [
@@ -75,7 +66,7 @@
           "items": {
             "anyOf": [
               {
-                "$ref": "#/$defs/TextureCompositor+LayerNameCounter"
+                "$ref": "#/$defs/WhimTexDocument+LayerNameCounter"
               },
               {
                 "type": "null"
@@ -169,12 +160,12 @@
         }
       }
     },
-    "TextureCompositor+LayerNameCounter": {
+    "WhimTexDocument+LayerNameCounter": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "$type": {
-          "const": "TextureCompositor+LayerNameCounter"
+          "const": "WhimTexDocument+LayerNameCounter"
         },
         "prefix": {
           "type": [
@@ -265,8 +256,8 @@
             "HDR"
           ]
         },
-        "swizzle": {
-          "$ref": "#/$defs/LayerSwizzle"
+        "channelMapping": {
+          "$ref": "#/$defs/LayerChannelMapping"
         },
         "fx": {
           "type": [
@@ -676,99 +667,19 @@
             "PassThrough",
             "Isolated"
           ]
-        },
-        "modifiers": {
-          "allOf": [
-            {
-              "type": [
-                "array",
-                "null"
-              ],
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "null"
-                  },
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "$asset"
-                    ],
-                    "properties": {
-                      "$asset": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "guid": {
-                            "type": "string"
-                          },
-                          "path": {
-                            "type": "string"
-                          },
-                          "localId": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "guid",
-                          "path",
-                          "localId",
-                          "type"
-                        ]
-                      }
-                    }
-                  },
-                  {
-                    "anyOf": [
-                      {
-                        "$ref": "#/$defs/ShaderFX"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "$ref"
-                    ],
-                    "properties": {
-                      "$ref": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          ],
-          "deprecated": true,
-          "description": "0.12.5 file input; converted to fx. Never written by current writers."
         }
       },
       "required": [
         "id",
         "behaviour"
-      ],
-      "not": {
-        "required": [
-          "fx",
-          "modifiers"
-        ]
-      }
+      ]
     },
-    "LayerSwizzle": {
+    "LayerChannelMapping": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "$type": {
-          "const": "LayerSwizzle"
+          "const": "LayerChannelMapping"
         },
         "packed": {
           "type": "integer",
@@ -829,11 +740,6 @@
       "properties": {
         "$type": {
           "const": "ShaderFXParameter"
-        },
-        "declaredInCode": {
-          "type": "boolean",
-          "deprecated": true,
-          "description": "0.12.5 input; distinguishes saved manual parameters from removed code declarations. Never written by current writers."
         },
         "name": {
           "type": [
@@ -1325,18 +1231,6 @@
           }
         },
         "helpBoxes": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        },
-        "formerlySerializedAs": {
           "type": [
             "array",
             "null"
@@ -3374,11 +3268,6 @@
       "properties": {
         "$type": {
           "const": "ShapeLayerBehaviour"
-        },
-        "roundness": {
-          "type": "number",
-          "deprecated": true,
-          "description": "0.12.5 input; normalized to explicit cornerRoundness."
         },
         "kind": {
           "type": "string",

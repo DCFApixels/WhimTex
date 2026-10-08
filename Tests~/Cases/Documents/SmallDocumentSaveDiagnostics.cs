@@ -191,7 +191,7 @@ public static class SmallDocumentSaveDiagnostics
         // AssetFolder already checked ownership and existence.
         // Fixture creates its owned GUID folder.
         var report = NewReport(size, layers, repeats);
-        var doc = ScriptableObject.CreateInstance<TextureCompositor>();
+        var doc = ScriptableObject.CreateInstance<WhimTexDocument>();
         doc.hideFlags = HideFlags.HideAndDontSave; doc.width = doc.height = size;
         var ownedPixels = new List<Texture2D>();
         var activeSelection = Selection.objects;

@@ -6,7 +6,7 @@ const context = new TestContext('EyedropperLifecycle: source/scalar contracts');
 const assert = context.assert;
 
 context.case('EyedropperLifecycle original assertions and branches', async () => {
-    const source = readFileSync(new URL('../../../src/TextureCompositorWindow.Eyedropper.cs', import.meta.url), 'utf8');
+    const source = readFileSync(new URL('../../../src/WhimTexWindow.Eyedropper.cs', import.meta.url), 'utf8');
     function body(signature) {
         const signatureStart = source.indexOf(signature);
         assert.ok(signatureStart >= 0, signature);

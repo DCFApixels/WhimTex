@@ -58,7 +58,7 @@ public static class ShaderFXDragTests
             header.Add(button);
             window.rootVisualElement.Add(header);
 
-            var viewType = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.LayerShaderFXView", true);
+            var viewType = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.LayerShaderFXView", true);
             var type = viewType.GetNestedType("ReorderManipulator", BindingFlags.NonPublic);
             var ctor = type.GetConstructors(Private)[0];
             var hitTestType = ctor.GetParameters()[4].ParameterType;

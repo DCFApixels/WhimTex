@@ -14,7 +14,7 @@ using Object = UnityEngine.Object;
 public static class DocumentReliabilityTests
 {
     const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-    static readonly Assembly Package = typeof(TextureCompositor).Assembly;
+    static readonly Assembly Package = typeof(WhimTexDocument).Assembly;
     static readonly Type Serializer = Package.GetType("DCFApixels.WhimTex.WhimTexDocumentSerializer");
     static readonly Type Session = Package.GetType("DCFApixels.WhimTex.WhimTexDocumentSession");
     static readonly Type Carrier = Package.GetType("DCFApixels.WhimTex.WhimTexTiffCarrier");
@@ -23,9 +23,9 @@ public static class DocumentReliabilityTests
     static void Check(bool ok, string message) { UnityBRun.Check(!(!ok), "FAIL: " + message); checks++; }
     static object Call(Type type, object instance, string name, params object[] args) => type.GetMethods(Any)
         .Single(m => m.Name == name && m.GetParameters().Length == args.Length).Invoke(instance, args);
-    static TextureCompositor Document(Color color)
+    static WhimTexDocument Document(Color color)
     {
-        var doc = UnityBRun.Create<TextureCompositor>();
+        var doc = UnityBRun.Create<WhimTexDocument>();
         doc.hideFlags = HideFlags.HideAndDontSave;
         doc.width = 64; doc.height = 32;
         doc.layers.Add(new Layer(new ColorFillLayerBehaviour { color = color }));
@@ -38,7 +38,7 @@ public static class DocumentReliabilityTests
         Call(Serializer, null, "Deserialize", bytes, container, type, null, false);
     static object Property(object result, string name) => result.GetType().GetProperty(name, Any).GetValue(result);
     static object Decode(byte[] bytes, WhimTexDocumentContainer container, Type type) => Property(ReadResult(bytes, container, type), "Model");
-    static bool Live(TextureCompositor doc) => (bool)Call(Session, null, "IsLiveFor", doc);
+    static bool Live(WhimTexDocument doc) => (bool)Call(Session, null, "IsLiveFor", doc);
     static Color ReadGpu(Texture texture)
     {
         var rt = RenderTexture.GetTemporary(texture.width, texture.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
@@ -148,7 +148,7 @@ public static class DocumentReliabilityTests
             using (var container = new WhimTexDocumentContainer())
             {
                 using (var writer = new BinaryWriter(referenceStream, Encoding.UTF8, true))
-                { writer.Write(1); writer.Write((byte)27); writer.Write(guid); writer.Write(long.MaxValue); }
+                { writer.Write(2); writer.Write((byte)27); writer.Write(guid); writer.Write(long.MaxValue); }
                 var read = ReadResult(referenceStream.ToArray(), container, typeof(Texture2D));
                 Check(Property(read, "Model") == null, "missing subasset never falls back to the main texture");
                 Check(((System.Collections.ICollection)Property(read, "UnresolvedReferences")).Count == 1, "missing subasset is reported");
@@ -158,7 +158,7 @@ public static class DocumentReliabilityTests
             paintDoc.layers.Clear();
             var drawing = new DrawingLayerBehaviour { brushColor = Color.red, brushSize = 24, brushHardness = 1 };
             paintDoc.layers.Add(drawing);
-            Call(typeof(TextureCompositor), paintDoc, "NormalizeModel");
+            Call(typeof(WhimTexDocument), paintDoc, "NormalizeModel");
             Call(typeof(DrawingLayerBehaviour), drawing, "PaintPoint", new Vector2(.5f, .5f), 64, 32,
                 Call(typeof(DrawingLayerBehaviour), drawing, "GetStrokeParameters", false));
             // Deliberately do NOT finish the stroke or synchronize the CPU texture here.
@@ -173,14 +173,14 @@ public static class DocumentReliabilityTests
                 var restored = (Texture2D)Decode(Encode(pixels, container), container, typeof(Texture2D)); Owned.Add(restored);
                 Check(restored.filterMode == FilterMode.Point && restored.wrapModeU == TextureWrapMode.Mirror && restored.wrapModeV == TextureWrapMode.Clamp, "embedded texture sampling restored");
             }
-            var effect = (ShaderFX)Call(typeof(TextureCompositor), paintDoc, "AddEmbeddedShaderFX", paintDoc.layers[0]);
+            var effect = (ShaderFX)Call(typeof(WhimTexDocument), paintDoc, "AddEmbeddedShaderFX", paintDoc.layers[0]);
             Call(typeof(ShaderFX), effect, "ApplyAgentDraft");
             paintPath = WhimTexDocumentFile.Save(paintDoc, paintPath);
             var fxLoaded = WhimTexDocumentFile.Load(paintPath); Owned.Add(fxLoaded);
             var restoredFx = (ShaderFX)fxLoaded.layers[0].fx[0];
-            Check((TextureCompositor)typeof(ShaderFX).GetProperty("EmbeddedOwner", Any).GetValue(restoredFx) == fxLoaded, "embedded FX ownership restored");
+            Check((WhimTexDocument)typeof(ShaderFX).GetProperty("EmbeddedOwner", Any).GetValue(restoredFx) == fxLoaded, "embedded FX ownership restored");
             Check((string)typeof(ShaderFX).GetProperty("SourcePath", Any).GetValue(restoredFx) == paintPath, "embedded FX relative includes use the TIFF path");
-            var embedded = (List<ShaderFX>)typeof(TextureCompositor).GetField("embeddedShaderFX", Any).GetValue(fxLoaded);
+            var embedded = (List<ShaderFX>)typeof(WhimTexDocument).GetField("embeddedShaderFX", Any).GetValue(fxLoaded);
             Check(ReferenceEquals(restoredFx, embedded[0]), "FX object identity preserved");
 
             // Read an unknown field in a real carrier and prove a save cannot erase it.
@@ -214,25 +214,25 @@ public static class DocumentReliabilityTests
             }
 
             // Window bindings are owned by a document and follow GUIDs through moves.
-            var window = UnityBRun.Create<TextureCompositorWindow>(); Owned.Add(window);
+            var window = UnityBRun.Create<WhimTexWindow>(); Owned.Add(window);
             var windowDoc = Document(Color.blue);
             string windowPath = WhimTexDocumentFile.Save(windowDoc, folder + "/Window.tiff");
-            Call(typeof(TextureCompositorWindow), window, "SetCompositor", windowDoc);
-            Call(typeof(TextureCompositorWindow), window, "BindDocumentFile", windowPath);
+            Call(typeof(WhimTexWindow), window, "SetDocument", windowDoc);
+            Call(typeof(WhimTexWindow), window, "BindDocumentFile", windowPath);
             string moved = folder + "/Renamed.tiff";
             Check(string.IsNullOrEmpty(AssetDatabase.MoveAsset(windowPath, moved)), "test asset move");
             object[] binding = { windowDoc, null };
-            Check((bool)typeof(TextureCompositorWindow).GetMethod("TryGetDocumentFile", Any).Invoke(null, binding) && (string)binding[1] == moved, "binding follows GUID after move");
-            int windows = Resources.FindObjectsOfTypeAll<TextureCompositorWindow>().Length;
+            Check((bool)typeof(WhimTexWindow).GetMethod("TryGetDocumentFile", Any).Invoke(null, binding) && (string)binding[1] == moved, "binding follows GUID after move");
+            int windows = Resources.FindObjectsOfTypeAll<WhimTexWindow>().Length;
             var target = AssetDatabase.LoadAssetAtPath<Texture2D>(moved);
-            Check((bool)Call(typeof(TextureCompositorWindow), null, "OpenWhimTexDocument", target.GetEntityId(), 0), "double-click handles existing document");
-            Check(Resources.FindObjectsOfTypeAll<TextureCompositorWindow>().Length == windows, "double-click reuses the existing window");
-            Call(typeof(TextureCompositorWindow), window, "RefreshDocumentTitle", true);
+            Check((bool)Call(typeof(WhimTexWindow), null, "OpenWhimTexDocument", target.GetEntityId(), 0), "double-click handles existing document");
+            Check(Resources.FindObjectsOfTypeAll<WhimTexWindow>().Length == windows, "double-click reuses the existing window");
+            Call(typeof(WhimTexWindow), window, "RefreshDocumentTitle", true);
             Check(window.titleContent.text == "Renamed", "native document tab follows the file name");
             var replacement = Document(Color.red);
-            Call(typeof(TextureCompositorWindow), window, "SetCompositor", replacement);
+            Call(typeof(WhimTexWindow), window, "SetDocument", replacement);
             binding = new object[] { replacement, null };
-            Check(!(bool)typeof(TextureCompositorWindow).GetMethod("TryGetDocumentFile", Any).Invoke(null, binding), "replacement document never inherits old file");
+            Check(!(bool)typeof(WhimTexWindow).GetMethod("TryGetDocumentFile", Any).Invoke(null, binding), "replacement document never inherits old file");
             return "";
         }
         finally
@@ -245,4 +245,3 @@ public static class DocumentReliabilityTests
     }
     public static string Run() => UnityBRun.Run("DocumentReliabilitySmoke.Run", () => ExecuteRun());
 }
-

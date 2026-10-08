@@ -2,7 +2,7 @@
 
 - Назначение: сохранить устройство общего worker и причины решений о качестве реконструкции.
 - Статус: реализовано; известные ограничения и отклонённые эксперименты указаны отдельно.
-- Источники истины: [ContentAwareFill](../src/ContentAwareFill.cs), [Healing tool](../src/TextureCompositorWindow.Healing.cs), [договорённости инструмента](DECISIONS.md#восстанавливающая-кисть).
+- Источники истины: [ContentAwareFill](../src/ContentAwareFill.cs), [Healing tool](../src/WhimTexWindow.Healing.cs), [договорённости инструмента](DECISIONS.md#восстанавливающая-кисть).
 
 ## Основа алгоритма
 

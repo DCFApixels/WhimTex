@@ -14,7 +14,7 @@ public static class PaintToolSettingsTests
     public static string Run() => WhimTex.Tests.UnityC.FixtureContext.Run("PaintToolSettingsTests", Body);
     static void Body()
     {
-        var windowType = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+        var windowType = typeof(DCFApixels.WhimTex.WhimTexWindow);
         var type = windowType.Assembly.GetType("DCFApixels.WhimTex.PaintToolSettings", true);
         var settings = System.Activator.CreateInstance(type, true);
         int checks = 0;

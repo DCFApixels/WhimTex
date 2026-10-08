@@ -6,7 +6,7 @@ namespace DCFApixels.WhimTex
     {
         internal static bool CanApplyChannelPreset(int count) => count > 0 && count <= 4;
 
-        internal static void ApplyChannelPreset(TextureCompositor document, List<Layer> selected)
+        internal static void ApplyChannelPreset(WhimTexDocument document, List<Layer> selected)
         {
             var ordered = Collect(document.layers, new HashSet<Layer>(selected), false);
             if (!CanApplyChannelPreset(ordered.Count)) return;
@@ -14,11 +14,11 @@ namespace DCFApixels.WhimTex
             for (int index = 0; index < ordered.Count; index++)
             {
                 Layer layer = ordered[index];
-                var swizzle = new LayerSwizzle();
-                for (int channel = 0; channel < 4; channel++) swizzle[channel] = SwizzleChannel.Zero;
-                swizzle[index] = SwizzleChannel.RMultiplyA;
-                if (rgb) swizzle[3] = SwizzleChannel.One;
-                layer.swizzle = swizzle;
+                var channelMapping = new LayerChannelMapping();
+                for (int channel = 0; channel < 4; channel++) channelMapping[channel] = ChannelMappingSource.Zero;
+                channelMapping[index] = ChannelMappingSource.RMultiplyA;
+                if (rgb) channelMapping[3] = ChannelMappingSource.One;
+                layer.channelMapping = channelMapping;
                 if (rgb && index < ordered.Count - 1)
                 {
                     layer.blendMode = BlendMode.Add;
@@ -44,7 +44,7 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
-        internal static bool Move(TextureCompositor document, List<Layer> roots, int direction, bool execute)
+        internal static bool Move(WhimTexDocument document, List<Layer> roots, int direction, bool execute)
         {
             var selected = new HashSet<Layer>(roots);
             var containers = new HashSet<List<Layer>>();
@@ -75,7 +75,7 @@ namespace DCFApixels.WhimTex
             { this.layer = layer; this.group = group; this.source = source; this.destination = destination; }
         }
 
-        internal static List<GroupMove> PlanGroupMoves(TextureCompositor document, List<Layer> roots, bool into)
+        internal static List<GroupMove> PlanGroupMoves(WhimTexDocument document, List<Layer> roots, bool into)
         {
             var moves = new List<GroupMove>();
             var selected = new HashSet<Layer>(roots);
@@ -95,7 +95,7 @@ namespace DCFApixels.WhimTex
             return moves;
         }
 
-        internal static void ApplyGroupMoves(List<GroupMove> moves, bool into, TextureCompositor document)
+        internal static void ApplyGroupMoves(List<GroupMove> moves, bool into, WhimTexDocument document)
         {
             foreach (var move in moves) document.PreserveTransformForMove(move.layer, move.destination);
             for (int step = 0; step < moves.Count; step++)
@@ -107,7 +107,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        internal static List<Layer> Ungroup(TextureCompositor document, List<Layer> selected)
+        internal static List<Layer> Ungroup(WhimTexDocument document, List<Layer> selected)
         {
             var result = new List<Layer>(selected);
             for (int i = selected.Count - 1; i >= 0; i--)

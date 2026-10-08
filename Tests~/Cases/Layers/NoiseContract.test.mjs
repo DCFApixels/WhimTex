@@ -65,7 +65,7 @@ context.case("NoiseContract original assertion inputs and source contracts", asy
   assert.match(ui, /ImmediateLayerPreviewUpdates => true/);
   assert.match(read('src/Utils.cs'), /protected virtual bool ImmediateLayerPreviewUpdates => false/);
   assert.doesNotMatch(read('src/Utils.cs'), /protected virtual bool ImmediatePreviewUpdates/);
-  assert.match(read('src/TextureCompositorWindow.cs'), /immediate \|= GetSelectedLayer\(\)\?\.Behaviour is NoiseLayerBehaviour/);
+  assert.match(read('src/WhimTexWindow.cs'), /immediate \|= GetSelectedLayer\(\)\?\.Behaviour is NoiseLayerBehaviour/);
   assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-hidden,\s*\.whimtex-brush-setting--hidden\s*\{\s*display: none;/);
   assert.match(read('src/LayerTypeRegistry.cs'), /new Entry\("noise", "Noise", "Noise", "Noise Layer", typeof\(NoiseLayerBehaviour\)/);
   assert.match(read('src/Automation/WhimTexApi.Layers.cs'), /LayerTypeRegistry.Find\(type\)/);

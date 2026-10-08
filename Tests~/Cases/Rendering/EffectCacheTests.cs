@@ -10,11 +10,11 @@ public static class EffectCacheTests
     {
 // Opt-in after manual compilation. Transient documents/textures only; no asset writes or Undo.
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var compositorType = typeof(DCFApixels.WhimTex.TextureCompositor);
-var cacheType = compositorType.Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache");
+var documentType = typeof(DCFApixels.WhimTex.WhimTexDocument);
+var cacheType = documentType.Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache");
 var cache = System.Activator.CreateInstance(cacheType,true);
 using var cacheLifetime = (System.IDisposable)cache;
-var document = UnityBRun.Create<DCFApixels.WhimTex.TextureCompositor>();
+var document = UnityBRun.Create<DCFApixels.WhimTex.WhimTexDocument>();
 document.hideFlags=UnityEngine.HideFlags.HideAndDontSave;
 document.width=document.height=64;
 var texture=UnityBRun.Track(new UnityEngine.Texture2D(64,64,UnityEngine.TextureFormat.RGBAFloat,false,true));
@@ -28,7 +28,7 @@ group.layers.Add(file);
 var outline=new DCFApixels.WhimTex.OutlineLayerBehaviour();
 var gaussian=new DCFApixels.WhimTex.BlurLayerBehaviour { radius=40,colorRange=DCFApixels.WhimTex.LayerColorRange.HDR };
 document.layers.Add(outline);document.layers.Add(group);
-void Normalize()=>compositorType.GetMethod("NormalizeModel",flags).Invoke(document,null);
+void Normalize()=>documentType.GetMethod("NormalizeModel",flags).Invoke(document,null);
 Normalize();
 outline.inputMode=DCFApixels.WhimTex.EffectInputMode.Specific; outline.TargetLayerId=group.Id;
 gaussian.inputMode=DCFApixels.WhimTex.EffectInputMode.Specific;gaussian.TargetLayerId=group.Id;
@@ -43,7 +43,7 @@ UnityEngine.Color[] Read(UnityEngine.RenderTexture rt)
     try{UnityEngine.RenderTexture.active=rt;read.ReadPixels(new UnityEngine.Rect(0,0,rt.width,rt.height),0,0,false);return read.GetPixels();}
     finally{UnityEngine.RenderTexture.active=previous;UnityEngine.Object.DestroyImmediate(read);UnityEngine.RenderTexture.ReleaseTemporary(rt);}
 }
-UnityEngine.Color[] Render(bool fast=false)=>Read((UnityEngine.RenderTexture)compositorType.GetMethod("RenderCanvasWithCache",flags).Invoke(document,new object[]{64,cache,fast,null}));
+UnityEngine.Color[] Render(bool fast=false)=>Read((UnityEngine.RenderTexture)documentType.GetMethod("RenderCanvasWithCache",flags).Invoke(document,new object[]{64,cache,fast,null}));
 UnityEngine.Color[] Fresh()
 {
     var result=document.ComposeCanvas();try{return result.GetPixels();}finally{UnityEngine.Object.DestroyImmediate(result);}
@@ -93,11 +93,11 @@ try
     gaussian.TargetLayerId=gaussian.Id;Same(Fresh(),Render(),.003f,"Cycles are not masked by cache");gaussian.TargetLayerId=group.Id;
     // Cached sources must also reproduce accumulated diagnostics.
     input[32*64+32]=new UnityEngine.Color(float.NaN,float.PositiveInfinity,0,1);texture.SetPixels(input);texture.Apply(false,false);
-    Render();var errorTexture=(UnityEngine.Texture)compositorType.GetProperty("NumericErrorMask",flags).GetValue(document);
+    Render();var errorTexture=(UnityEngine.Texture)documentType.GetProperty("NumericErrorMask",flags).GetValue(document);
     UnityEngine.Color[] ReadMask(UnityEngine.Texture source)
     {var copy=UnityEngine.RenderTexture.GetTemporary(64,64,0,UnityEngine.RenderTextureFormat.ARGBFloat,UnityEngine.RenderTextureReadWrite.Linear);UnityEngine.Graphics.Blit(source,copy);return Read(copy);}
     var beforeErrors=ReadMask(errorTexture);hits=Hits();Render();
-    Same(beforeErrors,ReadMask((UnityEngine.Texture)compositorType.GetProperty("NumericErrorMask",flags).GetValue(document)),.001f,"Error-mask cache parity");
+    Same(beforeErrors,ReadMask((UnityEngine.Texture)documentType.GetProperty("NumericErrorMask",flags).GetValue(document)),.001f,"Error-mask cache parity");
     Check(Hits()>hits,"Diagnostics retained on cache hit");
     bool marked=false;foreach(var p in beforeErrors)marked|=p.r>.5f;Check(marked,"Invalid source is marked");
     cacheType.GetProperty("BudgetBytes",flags).SetValue(cache,1024L);

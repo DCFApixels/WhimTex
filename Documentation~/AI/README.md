@@ -8,7 +8,7 @@ description: "Generate editable WhimTex documents and layers using unified JSON 
 
 # WhimTex AI authoring: JSON documents and HLSL effects
 
-Use **`whimtex.document`, version 1** for new documents, selected layers and clipboard recipes.
+Use **`whimtex.document`, version 2** for new documents, selected layers and clipboard recipes.
 Files use **`.json`**. The operation (open, paste or API insert/replace), not a `kind` field,
 decides what to do with the content. Brush and standalone gradient presets remain separate formats.
 
@@ -37,7 +37,7 @@ Brush JSON replaces the brush rather than creating layers.
 - Layer arrays are **top to bottom**; `fx` execute **first to last**.
   Give every layer a unique nonempty `id`. IDs may be descriptive local strings;
   paste remaps them and internal references to fresh document IDs.
-- Omit values only when the version-1 default is intended. Do not infer storage defaults from
+- Omit values only when the version-2 default is intended. Do not infer storage defaults from
   a current UI factory or a slider range. Use FullOptimized by default; Full or Compact on request.
 - Do not invent asset GUIDs or paths. For an existing project asset, use its verified `$asset`
   identity. Drawing pixels, Base64 images and remote image URLs are not stored in this format.
@@ -51,7 +51,7 @@ Brush JSON replaces the brush rather than creating layers.
 ```json
 {
   "format": "whimtex.document",
-  "version": 1,
+  "version": 2,
   "document": {
     "width": 256,
     "height": 256,
@@ -123,7 +123,7 @@ Numbers and booleans are not quoted strings. Enum names are case-sensitive.
 ### Noise, gradients and SDF
 
 Noise settings are directly in `behaviour`, not `properties.noise`.
-`scale` and `scaleY` store the X/Y scale; `scaleY: 0` inherits X.
+`scale`, `scaleY` and `scaleZ` store explicit axis scales; omitted fields use fixed schema defaults, not another axis.
 `warpScale` and `warpScaleY` are per-axis multipliers of the main scale.
 `offset` is `[x,y,z]`; Z is used by `ThreeD` slices.
 Seamless uses `periodic: "None" | "X" | "Y" | "XY"` for TwoD/ThreeD, and `periodic1D`
@@ -199,8 +199,8 @@ Command envelopes are separate from content; see the [JSON agent API](../AgentAP
 
 ## Upgrading old clipboard data
 
-The `whimtex.layers` reader is removed. Before upgrading, paste old payloads in **0.12.5**
-and save as TIFF or export `whimtex.document` JSON. Choose TIFF for Drawing pixels.
+The `whimtex.layers` reader is removed, and version-1 documents are unsupported.
+Use a matching older checkout for old data; this checkout has no automatic migration.
 Plain image URL paste, brush-tip URL downloads and standalone gradient presets remain available.
 See the [upgrade note](LEGACY_LAYERS.md).
 
@@ -241,8 +241,8 @@ or `Linear`. `smoothness`: 0..1, default 1. `midpoint`: 0.01..0.99, default 0.5;
 the last key's midpoint has no following segment. Rounded is the built-in algorithm, not a serialized setting.
 Modes use string names and colors use RGBA arrays. The old `WhimTex.Gradient/1` prefix,
 color objects, numeric enums and retired `transition` field are not accepted.
-Unknown fields are rejected. Files saved by 0.12.5 already use the current gradient
-model; convert older files through 0.12.5 before upgrading. The standalone clipboard
+Unknown fields are rejected. Use the current gradient format; there is no historical-name
+or retired-field migration. The standalone clipboard
 format is not the internal gradient representation in `whimtex.document` files.
 Rounded partitions the curve at complete equal-color intervals and uses monotone cubic
 interpolation with adjacent-secant boundary slopes on each nonconstant block. In Perceptual,
@@ -324,10 +324,9 @@ Polar Coordinates has independent `transform2D` frames: `_Input` selects the sou
 To Polar maps Output's circle to Input's strip; From Polar maps Output's strip to Input's circle.
 Sampling is `_Input_ToInput(P_or_Q(_Output_ToLocal(uv)))`; reverse Mode and swap frames
 for the inverse coordinate map. Both use standard Edit on Canvas/reset controls.
-See the shader reference for linked 0.12.5 preset conversion.
+Old one-frame layouts and previous parameter names are not converted.
 Distortion presets expose **Tiling** (`_Tiling`); UV Transform uses **Input Tiling** (`_InputTiling`):
-`Clamp: 0`, `Repeat: 1`, `Mirror: 2`, `Clip: 3`. Rename metadata preserves saved `_InputTiling`
-values in distortions and `_InputEdge` in Displacement Map; map wrapping is independent. UV Transform
+`Clamp: 0`, `Repeat: 1`, `Mirror: 2`, `Clip: 3`. Map wrapping is independent. UV Transform
 defaults to Clip, distortions to Clamp. These modes read the existing input image, not
 unbounded procedural noise outside its raster.
 
@@ -371,17 +370,20 @@ To generate an image from scratch, use a Color layer with FX replacing its color
 Clip (3; transparent outside UV 0–1). Repeat filters across opposite edges and respects
 the current input's Point/Bilinear filtering without changing texture import settings.
 Expose tiling through a normal enum `@param`. The one-argument function is unchanged.
-`SampleInput(uv, tiling, filterRepeat)` with zero in the last argument retains unfiltered
-repeat seams; converted linked Displacement Map files use it to preserve their rendered result.
 
 `LayerToLocal(uv)` converts canvas UV to the owning layer's local UV, including parent group transforms and perspective. Use it for procedural shapes that must follow the layer transform. `ApplyFX` UV and `SampleInput` remain canvas-space; do not pass local UV to `SampleInput`. The helper does not wrap or clamp coordinates.
 
 Available inputs include `_MainTex`, `_MainTex_TexelSize`, `_InputSize`, `_CanvasSize`
-(width, height, reciprocal width, reciprocal height), `_PreviewScale`; `UnityCG.cginc` is already included.
-Do not redeclare these or generated parameters/helpers. FX and Shader Processor code must be deterministic:
-do not use Unity time inputs such as `_Time`, `_SinTime`, `_CosTime`, `_TimeParameters` or
-`unity_DeltaTime`. They are not updated by the preview cache; their use only produces a warning and
-disables caching for that result. Use an explicit parameter instead.
+(width, height, reciprocal width, reciprocal height), `_RenderScale`; `UnityCG.cginc` is already included.
+Do not redeclare these or generated parameters/helpers. Prefer explicit parameters for predictable
+time-dependent FX. Unity time inputs such as `_Time`, `_SinTime`, `_CosTime`, `_TimeParameters` or
+`unity_DeltaTime` are allowed and do not block compilation, but WhimTex does not control their updates:
+Canvas, thumbnails and export may differ. Their use disables reusable result caching and produces
+a warning in Diagnostics and agent compilation `diagnostics`/`warnings`, not `errors`.
+Unity time warnings use the shared FX diagnostic list and Console reporter, just like compiler
+and declaration messages. Console deduplicates each source path + severity/location/message until
+scripts reload; repeated Apply, agent preflight and rendering do not repeat it. UI/API diagnostics
+are never suppressed. Errors and warnings retain their respective severity even when both occur.
 
 ```hlsl
 // @param float _Strength = 0.02 [0 .. 0.1]

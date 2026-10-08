@@ -15,30 +15,30 @@ public static class MergeLayersTests
     static void Body()
     {
         // Opt-in live-Editor eval after manual compilation. Transient documents only; no asset saves/imports.
-        var type = typeof(DCFApixels.WhimTex.TextureCompositor);
+        var type = typeof(DCFApixels.WhimTex.WhimTexDocument);
         var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
         var method = type.GetMethod("MergeLayers", flags);
         WhimTex.Tests.UnityC.FixtureContext.Context.True(!(method == null), "Manually compile the merge implementation first.");
-        var documents = new List<DCFApixels.WhimTex.TextureCompositor>();
+        var documents = new List<DCFApixels.WhimTex.WhimTexDocument>();
         var owned = new List<UnityEngine.Object>();
         int checks = 0;
         void Check(bool condition, string message) { WhimTex.Tests.UnityC.FixtureContext.Context.True(condition, message); checks++; }
-        DCFApixels.WhimTex.TextureCompositor Doc(params DCFApixels.WhimTex.Layer[] layers)
+        DCFApixels.WhimTex.WhimTexDocument Doc(params DCFApixels.WhimTex.Layer[] layers)
         {
-            var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+            var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
             doc.hideFlags = HideFlags.HideAndDontSave; doc.width = doc.height = 8;
             doc.layers.AddRange(layers); type.GetMethod("NormalizeModel", flags).Invoke(doc, null);
             documents.Add(doc); return doc;
         }
         DCFApixels.WhimTex.ColorFillLayerBehaviour Fill(Color color) => new DCFApixels.WhimTex.ColorFillLayerBehaviour { color = color };
-        DCFApixels.WhimTex.DrawingLayerBehaviour Merge(DCFApixels.WhimTex.TextureCompositor doc, bool copy,
+        DCFApixels.WhimTex.DrawingLayerBehaviour Merge(DCFApixels.WhimTex.WhimTexDocument doc, bool copy,
             params DCFApixels.WhimTex.Layer[] layers)
         {
             var result = (DCFApixels.WhimTex.DrawingLayerBehaviour)method.Invoke(doc,
                 new object[] { new List<DCFApixels.WhimTex.Layer>(layers), copy });
             owned.Add(result.GetPreviewTexture(8)); return result;
         }
-        Color Pixel(DCFApixels.WhimTex.TextureCompositor doc)
+        Color Pixel(DCFApixels.WhimTex.WhimTexDocument doc)
         {
             var pixels = doc.ComposeCanvas();
             try { return pixels.GetPixel(4, 4); }

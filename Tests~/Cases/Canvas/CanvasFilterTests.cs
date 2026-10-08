@@ -15,14 +15,14 @@ private static string BodyRun()
 {
 // Unity Pipeline eval_file; transient objects only, no saved assets or user documents.
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
-var type = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
-var window = Scope.OwnWindow(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>());
+var type = typeof(DCFApixels.WhimTex.WhimTexWindow);
+var window = Scope.OwnWindow(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexWindow>());
 window.name = Scope.Tag + "-canvas-filter";
-var document = (DCFApixels.WhimTex.TextureCompositor)type.GetField("compositor", Hidden).GetValue(window);
+var document = (DCFApixels.WhimTex.WhimTexDocument)type.GetField("activeDocument", Hidden).GetValue(window);
 var source = new Texture2D(4, 2, TextureFormat.RGBA32, false, true) { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Point };
 var previous = RenderTexture.active;
 bool previousSrgb = GL.sRGBWrite;
-var render = typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("RenderCanvas", Hidden);
+var render = typeof(DCFApixels.WhimTex.WhimTexDocument).GetMethod("RenderCanvas", Hidden);
 int checks = 0;
 void Check(bool condition, string message) { T.True(condition, message); }
 float SampleUpscaled(Texture texture)
@@ -98,7 +98,7 @@ try
         RenderTexture.ReleaseTemporary(canvasTexture); UnityEngine.Object.DestroyImmediate(channel); UnityEngine.Object.DestroyImmediate(post);
     }
     document.outputFilter = (FilterMode)123;
-    typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("NormalizeModel", Hidden).Invoke(document, null);
+    typeof(DCFApixels.WhimTex.WhimTexDocument).GetMethod("NormalizeModel", Hidden).Invoke(document, null);
     Check(document.outputFilter == FilterMode.Bilinear, "Invalid filter normalized");
     return null;
 }

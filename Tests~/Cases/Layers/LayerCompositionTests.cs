@@ -16,7 +16,7 @@ public static class LayerCompositionTests
     {
         // Pipeline eval_file. Transient objects only: no project assets, scenes, imports or Undo changes.
         const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>());
+        var doc = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
         doc.hideFlags = HideFlags.HideAndDontSave;
         doc.width = doc.height = 8;
         var temporary = new List<UnityEngine.Object> { doc };
@@ -25,7 +25,7 @@ public static class LayerCompositionTests
         var layerType = typeof(DCFApixels.WhimTex.Layer);
         var behaviourType = typeof(DCFApixels.WhimTex.LayerBehaviour);
         object Value(object instance, Type type, string name) => type.GetField(name, Hidden).GetValue(instance);
-        DCFApixels.WhimTex.Layer Find(DCFApixels.WhimTex.TextureCompositor document, string id) =>
+        DCFApixels.WhimTex.Layer Find(DCFApixels.WhimTex.WhimTexDocument document, string id) =>
             (DCFApixels.WhimTex.Layer)document.GetType().GetMethod("FindLayer", Hidden).Invoke(document, new object[] { id });
         try
         {
@@ -33,12 +33,12 @@ public static class LayerCompositionTests
             var group = new DCFApixels.WhimTex.Layer(new DCFApixels.WhimTex.GroupLayerBehaviour()) { layerName = "Keep group", opacity = .7f };
             group.children.Add(child);
             doc.layers.Add(group);
-            typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("NormalizeModel", Hidden).Invoke(doc, null);
+            typeof(DCFApixels.WhimTex.WhimTexDocument).GetMethod("NormalizeModel", Hidden).Invoke(doc, null);
             string id = child.Id;
             child.layerName = "Keep name";
             child.opacity = .35f;
             child.transform.rotation = 25;
-            child.swizzle[0] = DCFApixels.WhimTex.SwizzleChannel.B;
+            child.channelMapping[0] = DCFApixels.WhimTex.ChannelMappingSource.B;
             var previous = child.Behaviour;
             var next = new DCFApixels.WhimTex.NoiseLayerBehaviour { seed = 913 };
             child.SetBehaviour(next);

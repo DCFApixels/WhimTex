@@ -12,14 +12,14 @@ public static string Run() => TestContext.Run("ShapeNamingTests", context => { u
 private static void Execute(TestContext context, MigrationD fixture)
 {
 // Unity Pipeline eval_file. Transient documents only; no scene/asset or Undo changes.
-var type = typeof(DCFApixels.WhimTex.TextureCompositor);
+var type = typeof(DCFApixels.WhimTex.WhimTexDocument);
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 var allocate = type.GetMethod("AllocateLayerName", flags);
-var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
-DCFApixels.WhimTex.TextureCompositor restored = null;
+DCFApixels.WhimTex.WhimTexDocument restored = null;
 int checks = 0;
-string Add(DCFApixels.WhimTex.TextureCompositor doc, string kind, bool tool = true)
+string Add(DCFApixels.WhimTex.WhimTexDocument doc, string kind, bool tool = true)
 {
     var shape = new DCFApixels.WhimTex.ShapeLayerBehaviour
     { kind = (DCFApixels.WhimTex.ShapeLayerBehaviour.ShapeKind)System.Enum.Parse(typeof(DCFApixels.WhimTex.ShapeLayerBehaviour.ShapeKind), kind) };
@@ -47,7 +47,7 @@ try
     Check(Add(document, "Line"), "Line 41");
     group.layers.Add(new DCFApixels.WhimTex.Layer(new DCFApixels.WhimTex.ShapeLayerBehaviour()) { layerName = "Shape 45" });
     Check(Add(document, "Ellipse"), "Ellipse 46");
-    restored = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+    restored = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>();
     UnityEditor.EditorJsonUtility.FromJsonOverwrite(UnityEditor.EditorJsonUtility.ToJson(document), restored);
     Check(Add(restored, "Polygon"), "Polygon 47");
     type.GetField("layerNameCounters", flags).SetValue(restored, null);

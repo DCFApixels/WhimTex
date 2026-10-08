@@ -86,7 +86,7 @@ public static class FaultFixture
     }
     static void Owned(State s, Result r) => Check(r, !string.IsNullOrEmpty(s.folderGuid) && AssetDatabase.IsValidFolder(s.folder) &&
         AssetDatabase.AssetPathToGUID(s.folder) == s.folderGuid, "Recorded folder GUID owns the fixture.");
-    static Type Session => typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSession", true);
+    static Type Session => typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSession", true);
     static object Call(Type type, object instance, string name, params object[] args)
     {
         var method = type.GetMethods(Members).Single(m => m.Name == name && m.GetParameters().Length == args.Length);
@@ -188,13 +188,13 @@ public static class FaultFixture
         }
         r.nativeCompilationComplete = true;
     });
-    static TextureCompositor Document(State s)
+    static WhimTexDocument Document(State s)
     {
-        var doc = ScriptableObject.CreateInstance<TextureCompositor>(); doc.hideFlags = HideFlags.HideAndDontSave; doc.name = DocName(s.runId);
+        var doc = ScriptableObject.CreateInstance<WhimTexDocument>(); doc.hideFlags = HideFlags.HideAndDontSave; doc.name = DocName(s.runId);
         doc.width = doc.height = 32; doc.layers.Add(new Layer(new ColorFillLayerBehaviour { color = Color.green })); return doc;
     }
-    static TextureCompositor FindDoc(State s) => Resources.FindObjectsOfTypeAll<TextureCompositor>().SingleOrDefault(d => d.name == DocName(s.runId) && !AssetDatabase.Contains(d));
-    static void StopOwned(TextureCompositor doc)
+    static WhimTexDocument FindDoc(State s) => Resources.FindObjectsOfTypeAll<WhimTexDocument>().SingleOrDefault(d => d.name == DocName(s.runId) && !AssetDatabase.Contains(d));
+    static void StopOwned(WhimTexDocument doc)
     { if (doc != null) Call(Session, null, "StopFor", doc, "owned fault fixture cleanup"); }
     static void Reject(Result r, Action action, string message)
     {
@@ -209,7 +209,7 @@ public static class FaultFixture
     }
     public static string Faults(string id) => Entry(id, "Independent write/import/build-guard/recovery fault assertions", (s, r) => {
         Owned(s, r); LiveIdle(); Check(r, s.phase == "installed", "Faults is one-shot after native installation.");
-        s.phase = "faults-running"; Save(s); var doc = Document(s); TextureCompositor loaded = null;
+        s.phase = "faults-running"; Save(s); var doc = Document(s); WhimTexDocument loaded = null;
         string raw = s.folder + "/transaction.bin", path = s.folder + "/Fault.tiff", orphan = raw + ".00000000000000000000000000000000.whimtex-tmp";
         try
         {
@@ -261,7 +261,7 @@ public static class FaultFixture
             Reject(r, () => Call(Session, null, "PrepareForBuild"), "failed recovery blocks guard");
             File.Delete(path + ".failimport"); AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
             Call(Session, null, "RecoverReadable"); Check(r, !EditorPrefs.HasKey(Recovery), "Recovery retry succeeds.");
-            var external = ScriptableObject.CreateInstance<TextureCompositor>(); external.hideFlags = HideFlags.HideAndDontSave; external.width = external.height = 32;
+            var external = ScriptableObject.CreateInstance<WhimTexDocument>(); external.hideFlags = HideFlags.HideAndDontSave; external.width = external.height = 32;
             external.layers.Add(new Layer(new ColorFillLayerBehaviour { color = Color.blue }));
             try { WhimTexDocumentFile.Save(external, s.folder + "/External.tiff"); } finally { Object.DestroyImmediate(external); }
             File.Copy(s.folder + "/External.tiff", path, true); File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddSeconds(3));
@@ -294,7 +294,7 @@ public static class FaultFixture
         try
         {
             Check(r, doc != null, "Exact GUID deferred document remains owned.");
-            var binding = typeof(TextureCompositor).GetField("documentBinding", Members).GetValue(doc);
+            var binding = typeof(WhimTexDocument).GetField("documentBinding", Members).GetValue(doc);
             Check(r, binding != null && (bool)binding.GetType().GetField("dirty", Members).GetValue(binding), "Deferred failure marks document retryable.");
             File.Delete(path + ".failimport"); WhimTexDocumentFile.Save(doc, path);
             Check(r, !(bool)Call(typeof(WhimTexDocumentFile), null, "ImportHasErrors", path), "Retry repairs deferred failed import."); r.status = "passed";

@@ -12,7 +12,7 @@ namespace DCFApixels.WhimTex
         {
             var root = new Foldout { text = property.displayName, value = true };
             var effect = property.serializedObject.targetObject as ShaderFX;
-            var document = effect != null ? TextureCompositorWindow.FindFXTransformDocument(effect) : null;
+            var document = effect != null ? WhimTexWindow.FindFXTransformDocument(effect) : null;
             UnityEngine.Vector2 Dimensions() => document != null ? new UnityEngine.Vector2(document.width, document.height) : UnityEngine.Vector2.one;
             var position = new Vector2Field("Position");
             var size = new Vector2Field("Size");
@@ -172,7 +172,7 @@ namespace DCFApixels.WhimTex
                 "SampleInput(uv), _MainTex and _MainTex_TexelSize: incoming texture.\n" +
                 "_InputSize: render width, height, 1/width, 1/height.\n" +
                 "_CanvasSize: full-resolution canvas size in the same format.\n" +
-                "_PreviewScale: full-size pixels per preview pixel (1 for export).\n" +
+                "_RenderScale: full-size pixels per preview pixel (1 for export).\n" +
                 "Texture parameters: sampler2D with <name>_TexelSize; sample with tex2D(name, uv).\n" +
                 "Return straight RGBA. The layer's blend mode and opacity are applied afterwards.");
             inputHelp.AddToClassList("whimtex-fx-reference");
@@ -190,11 +190,13 @@ namespace DCFApixels.WhimTex
                 declaredParameters.EnableInClassList("whimtex-shader-fx-hidden", false);
                 declaredParameters.Refresh();
                 bool pendingChanges = effect.HasPendingChanges;
-                status.messageType = effect.LastApplyFailed ? HelpBoxMessageType.Error : HelpBoxMessageType.Info;
-                status.EnableInClassList("whimtex-shader-fx-hidden", !effect.LastApplyFailed && !pendingChanges);
+                status.messageType = effect.DiagnosticSeverity == ShaderFXDiagnosticSeverity.Error ? HelpBoxMessageType.Error :
+                    effect.DiagnosticSeverity == ShaderFXDiagnosticSeverity.Warning ? HelpBoxMessageType.Warning : HelpBoxMessageType.Info;
+                status.EnableInClassList("whimtex-shader-fx-hidden", !effect.LastApplyFailed && !pendingChanges && effect.DiagnosticNotice == null);
                 status.text = effect.LastApplyFailed
                     ? "Apply failed. This FX is skipped until it compiles successfully."
                     : pendingChanges ? "Unapplied code or parameter declarations. Click Apply when ready."
+                    : effect.DiagnosticNotice != null ? "Applied with warnings. This FX remains active."
                     : "Applied. Values update without recompiling. Click Apply again after editing an included library.";
                 diagnostics.SetValueWithoutNotify(effect.Diagnostics);
                 diagnostics.EnableInClassList("whimtex-shader-fx-hidden",

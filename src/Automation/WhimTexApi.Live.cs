@@ -18,7 +18,7 @@ namespace DCFApixels.WhimTex
             internal string targetId, targetRevision, completion;
             internal string selectionMode = "strict";
             internal bool editing;
-            internal TextureCompositor document;
+            internal WhimTexDocument document;
             internal int width, height;
             internal byte[] mask;
             internal RectInt region;
@@ -32,7 +32,7 @@ namespace DCFApixels.WhimTex
         {
             Undo.undoRedoPerformed += RefreshLiveJobs;
             Undo.undoRedoPerformed += CancelLiveEditLocks;
-            TextureCompositor.Changed += _ => RefreshLiveJobs();
+            WhimTexDocument.Changed += _ => RefreshLiveJobs();
         }
 
         private static void RefreshLiveJobs()
@@ -54,7 +54,7 @@ namespace DCFApixels.WhimTex
             LiveEditLocksChanged?.Invoke();
         }
 
-        internal static void TransferLiveDocument(string session, TextureCompositor previous, TextureCompositor next)
+        internal static void TransferLiveDocument(string session, WhimTexDocument previous, WhimTexDocument next)
         {
             foreach (var job in liveJobs.Values)
             {
@@ -69,7 +69,7 @@ namespace DCFApixels.WhimTex
         public static string LiveSessions() => Respond(() =>
         {
             var sessions = new JArray();
-            foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
+            foreach (var window in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
             {
                 var document = window.AgentDocument;
                 if (document == null) continue;
@@ -98,10 +98,10 @@ namespace DCFApixels.WhimTex
             return Live(request);
         });
 
-        private static TextureCompositorWindow ResolveLiveBeginWindow(string session)
+        private static WhimTexWindow ResolveLiveBeginWindow(string session)
         {
             if (session != null) return LiveWindow(session);
-            var windows = Resources.FindObjectsOfTypeAll<TextureCompositorWindow>()
+            var windows = Resources.FindObjectsOfTypeAll<WhimTexWindow>()
                 .Where(w => w.AgentDocument != null).ToArray();
             Require(windows.Length > 0, "Open a WhimTex document first.", "session_required");
             if (windows.Length == 1) return windows[0];
@@ -123,18 +123,18 @@ namespace DCFApixels.WhimTex
             return focused;
         }
 
-        private static TextureCompositorWindow LiveWindow(string session)
+        private static WhimTexWindow LiveWindow(string session)
         {
             Require(!string.IsNullOrEmpty(session), "Discover sessions first and specify sessionId.");
-            foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
+            foreach (var window in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
                 if (window.AgentDocument != null && window.AgentSessionId == session) return window;
             throw new WhimTexApiException("session_closed", "The document session closed or scripts reloaded. Discover sessions again; do not deliver to a different document.");
         }
 
-        private static void LiveReady(TextureCompositor document)
+        private static void LiveReady(WhimTexDocument document)
         {
             Require(document != null, "Document no longer exists.", "session_closed");
-            Require(!TextureCompositorWindow.IsDocumentBusyForLiveApi(document), "Wait for the current gesture or uncommitted text edit to finish.", "document_busy");
+            Require(!WhimTexWindow.IsDocumentBusyForLiveApi(document), "Wait for the current gesture or uncommitted text edit to finish.", "document_busy");
             Require((long)document.width * document.height <= MaxCanvasPixels, "Live editing supports at most 16,777,216 canvas pixels.", "resource_limit");
         }
 
@@ -318,7 +318,7 @@ namespace DCFApixels.WhimTex
         private static void RefreshLiveJob(LiveJob job)
         {
             if (job.state != "pending") return;
-            bool open = Resources.FindObjectsOfTypeAll<TextureCompositorWindow>().Any(w =>
+            bool open = Resources.FindObjectsOfTypeAll<WhimTexWindow>().Any(w =>
                 w.AgentDocument == job.document && w.AgentSessionId == job.session);
             var pending = job.document == null ? null : job.document.FindLayer(job.layerId)?.Behaviour as PendingLayerBehaviour;
             if (!open || (job.editing ? job.document.FindLayer(job.layerId) == null : pending == null || pending.jobId != job.id))
@@ -355,7 +355,7 @@ namespace DCFApixels.WhimTex
         internal static bool ContainsReservation(Layer layer) => layer?.Behaviour is PendingLayerBehaviour || IsLiveLockedLayer(layer) ||
             layer?.AsGroup() is Layer group && group.layers.Any(ContainsReservation);
 
-        internal static void CancelLiveReservation(TextureCompositor document, PendingLayerBehaviour pending)
+        internal static void CancelLiveReservation(WhimTexDocument document, PendingLayerBehaviour pending)
         {
             if (!document.TryFindLayer(pending, out var container, out _)) return;
             LiveChange(document, "Cancel Agent Layer", () => container.Remove(pending));
@@ -363,7 +363,7 @@ namespace DCFApixels.WhimTex
             { job.state = "cancelled"; job.mask = null; }
         }
 
-        private static void LiveChange(TextureCompositor document, string name, Action action)
+        private static void LiveChange(WhimTexDocument document, string name, Action action)
         {
             Undo.IncrementCurrentGroup();
             int group = Undo.GetCurrentGroup();

@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
     internal sealed class LayerShaderFXView : VisualElement
     {
         private readonly Layer layer;
-        private readonly TextureCompositor owner;
+        private readonly WhimTexDocument owner;
         private readonly Action<string, Action> applyChange;
         private readonly VisualElement entries = new VisualElement();
         private readonly List<UnityEngine.Object> displayed = new List<UnityEngine.Object>();
@@ -20,7 +20,7 @@ namespace DCFApixels.WhimTex
         private VisualElement activeStackDropMarker;
         private bool stackDropAfter;
 
-        internal LayerShaderFXView(Layer layer, TextureCompositor owner, Action<string, Action> applyChange)
+        internal LayerShaderFXView(Layer layer, WhimTexDocument owner, Action<string, Action> applyChange)
         {
             this.layer = layer;
             this.owner = owner;

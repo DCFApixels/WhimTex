@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
     // Shared retained target selector for the embedded inspector and standalone Edit windows.
     internal sealed class EffectTargetSettingsView
     {
-        private readonly TextureCompositor compositor;
+        private readonly WhimTexDocument activeDocument;
         private readonly Action<string, Action> applyChange;
         private readonly WhimTexUI.ValueBindings bindings;
         private string[] effectTargetIds;
@@ -17,10 +17,10 @@ namespace DCFApixels.WhimTex
         private string effectTargetOptionsForLayerId;
         private string effectTargetOptionsForTargetId;
 
-        internal EffectTargetSettingsView(TextureCompositor compositor,
+        internal EffectTargetSettingsView(WhimTexDocument activeDocument,
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings)
         {
-            this.compositor = compositor;
+            this.activeDocument = activeDocument;
             this.applyChange = applyChange;
             this.bindings = bindings;
         }
@@ -85,10 +85,10 @@ namespace DCFApixels.WhimTex
             HelpBox status = WhimTexUI.AddHelpBox(root, string.Empty, HelpBoxMessageType.Info);
             Layer RefreshThumbnail()
             {
-                if (compositor == null) return null;
+                if (activeDocument == null) return null;
                 if (effect.inputMode == EffectInputMode.AllBelow) { preview.image = null; return null; }
-                Layer source = string.IsNullOrEmpty(effect.TargetLayerId) ? null : compositor.FindLayer(effect.TargetLayerId);
-                Texture2D thumbnail = compositor.GetLayerThumbnail(source, 18);
+                Layer source = string.IsNullOrEmpty(effect.TargetLayerId) ? null : activeDocument.FindLayer(effect.TargetLayerId);
+                Texture2D thumbnail = activeDocument.GetLayerThumbnail(source, 18);
                 if (preview.image != thumbnail) preview.image = thumbnail;
                 preview.EnableInClassList("whimtex-hidden", thumbnail == null);
                 fallback.EnableInClassList("whimtex-hidden", source == null || thumbnail != null || source?.IsGroup == true);
@@ -113,7 +113,7 @@ namespace DCFApixels.WhimTex
                 else if (effect.inputMode == EffectInputMode.AllBelow)
                 {
                     message = "Uses the combined visible layers below in this group, including their opacity, blending and effects. An empty stack is transparent.";
-                    if (compositor.TryFindLayer(effect, out var siblings, out int index) && !compositor.HasUsableEffectInput(effect, siblings, index))
+                    if (activeDocument.TryFindLayer(effect, out var siblings, out int index) && !activeDocument.HasUsableEffectInput(effect, siblings, index))
                     {
                         message = "The lower stack creates a cyclic effect dependency.";
                         messageType = HelpBoxMessageType.Error;
@@ -124,7 +124,7 @@ namespace DCFApixels.WhimTex
                     message = "Select a source layer or group for this effect.";
                     messageType = HelpBoxMessageType.Warning;
                 }
-                else if (!compositor.IsUsableEffectTarget(effect, effect.TargetLayerId))
+                else if (!activeDocument.IsUsableEffectTarget(effect, effect.TargetLayerId))
                 {
                     message = "The selected target is missing or would create a cyclic effect dependency.";
                     messageType = HelpBoxMessageType.Error;
@@ -156,7 +156,7 @@ namespace DCFApixels.WhimTex
 
             List<string> candidateIds = new List<string>();
             List<string> candidateLabels = new List<string>();
-            compositor.GetEffectTargetOptions(effect, candidateIds, candidateLabels);
+            activeDocument.GetEffectTargetOptions(effect, candidateIds, candidateLabels);
 
             bool hasCurrentTarget = false;
             for (int i = 0; i < candidateIds.Count; i++)
@@ -178,7 +178,7 @@ namespace DCFApixels.WhimTex
             if (includeUnavailableTarget)
             {
                 effectTargetIds[1] = effect.TargetLayerId;
-                effectTargetLabels[1] = compositor.FindLayer(effect.TargetLayerId) == null
+                effectTargetLabels[1] = activeDocument.FindLayer(effect.TargetLayerId) == null
                     ? "<Missing target>"
                     : "<Unavailable target: cyclic dependency>";
             }
@@ -243,10 +243,10 @@ namespace DCFApixels.WhimTex
 
             private Layer GetSource()
             {
-                Layer source = TextureCompositorWindow.GetDraggedLayerForDocument(owner.compositor);
+                Layer source = WhimTexWindow.GetDraggedLayerForDocument(owner.activeDocument);
                 return target.enabledInHierarchy && source != null &&
-                    owner.compositor.TryFindLayer(effect, out _, out _) &&
-                    owner.compositor.IsUsableEffectTarget(effect, source.Id) ? source : null;
+                    owner.activeDocument.TryFindLayer(effect, out _, out _) &&
+                    owner.activeDocument.IsUsableEffectTarget(effect, source.Id) ? source : null;
             }
 
             private void OnUpdated(DragUpdatedEvent evt)
@@ -276,7 +276,7 @@ namespace DCFApixels.WhimTex
                 }
                 finally
                 {
-                    TextureCompositorWindow.ClearDraggedLayerReference();
+                    WhimTexWindow.ClearDraggedLayerReference();
                 }
             }
 

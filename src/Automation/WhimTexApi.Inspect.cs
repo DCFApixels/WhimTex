@@ -14,10 +14,10 @@ namespace DCFApixels.WhimTex
         public static string Inspect(string assetPath) => Respond(() =>
         {
             string path = DocumentPath(assetPath);
-            TextureCompositor document = Load(path);
+            WhimTexDocument document = Load(path);
             try
             {
-                Require(!TextureCompositorWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
+                Require(!WhimTexWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
                 JObject result = Success();
                 result["document"] = Snapshot(document, path);
                 return result;
@@ -52,7 +52,7 @@ namespace DCFApixels.WhimTex
             };
             result["colorRanges"] = new JArray(System.Enum.GetNames(typeof(LayerColorRange)));
             result["blendRanges"] = new JArray(System.Enum.GetNames(typeof(LayerBlendRange)));
-            result["swizzleChannels"] = new JArray(LayerSwizzle.Labels);
+            result["channelMappingSources"] = new JArray(LayerChannelMapping.Labels);
             result["clippingMask"] = "Boolean setting on every layer type. Clips to the first non-clipping sibling below; missing/hidden bases hide the chain. Participating groups are isolated; base alpha and opacity are preserved.";
             result["groupCompositing"] = new JArray(System.Enum.GetNames(typeof(GroupCompositing)));
             var layerTypes = new JArray();
@@ -145,7 +145,7 @@ namespace DCFApixels.WhimTex
             return result;
         });
 
-        private static string Revision(TextureCompositor document)
+        private static string Revision(WhimTexDocument document)
         {
             using var hash = SHA256.Create();
             foreach (Layer layer in Enumerate(document.layers))
@@ -190,10 +190,10 @@ namespace DCFApixels.WhimTex
             return model.ToString(Newtonsoft.Json.Formatting.None);
         }
 
-        private static string DocumentAssetPath(TextureCompositor document) =>
+        private static string DocumentAssetPath(WhimTexDocument document) =>
             WhimTexDocumentService.PathOf(document);
 
-        private static JObject Snapshot(TextureCompositor document, string path)
+        private static JObject Snapshot(WhimTexDocument document, string path)
         {
             var layers = new JArray();
             Collect(document.layers, null);
@@ -231,9 +231,9 @@ namespace DCFApixels.WhimTex
                     settings["blend"] = layer.blendMode.ToString();
                     settings["colorRange"] = layer.colorRange.ToString();
                     settings["blendRange"] = layer.blendRange.ToString();
-                    settings["swizzle"] = new JArray(LayerSwizzle.Labels[(int)layer.swizzle[0]],
-                        LayerSwizzle.Labels[(int)layer.swizzle[1]], LayerSwizzle.Labels[(int)layer.swizzle[2]],
-                        LayerSwizzle.Labels[(int)layer.swizzle[3]]);
+                    settings["channelMapping"] = new JArray(LayerChannelMapping.Labels[(int)layer.channelMapping[0]],
+                        LayerChannelMapping.Labels[(int)layer.channelMapping[1]], LayerChannelMapping.Labels[(int)layer.channelMapping[2]],
+                        LayerChannelMapping.Labels[(int)layer.channelMapping[3]]);
                     if (layer?.AsGroup() is Layer folder) settings["compositing"] = folder.compositing.ToString();
                     if (layer?.Behaviour is DrawingLayerBehaviour stored) entry["storageFormat"] = stored.StoredTexture != null ? stored.StoredTexture.format.ToString() : "Unallocated";
                     if (!layer.IsGroup)

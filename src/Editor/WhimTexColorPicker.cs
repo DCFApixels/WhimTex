@@ -10,14 +10,14 @@ namespace DCFApixels.WhimTex
     public sealed partial class WhimTexColorPicker : EditorWindow
     {
         private const string ColorModePreference = "WhimTex.ColorPicker.ColorMode";
-        private sealed class DocumentContext { internal Func<TextureCompositor> read; }
+        private sealed class DocumentContext { internal Func<WhimTexDocument> read; }
         private static readonly ConditionalWeakTable<VisualElement, DocumentContext> Contexts = new ConditionalWeakTable<VisualElement, DocumentContext>();
         private static WhimTexColorPicker current;
         internal object SourceContext;
         private Color original, color;
         private bool hdr, initialHdr, alphaVisible, finished, edited, syncing;
         private WhimTexColorRange range;
-        private TextureCompositor document;
+        private WhimTexDocument document;
         private Action<Color> changed;
         private Action<bool> modeChanged;
         private Func<bool> valid;
@@ -36,17 +36,17 @@ namespace DCFApixels.WhimTex
         private UnityEditor.UIElements.ColorField eyedropper;
         private Texture2D historyCursor;
 
-        internal static void SetDocument(VisualElement element, Func<TextureCompositor> read)
+        internal static void SetDocument(VisualElement element, Func<WhimTexDocument> read)
         { Contexts.Remove(element); Contexts.Add(element, new DocumentContext { read = read }); }
-        internal static TextureCompositor FindDocument(VisualElement element)
+        internal static WhimTexDocument FindDocument(VisualElement element)
         {
             for (; element != null; element = element.parent)
                 if (Contexts.TryGetValue(element, out var context)) return context.read();
             return null;
         }
-        internal static TextureCompositor DocumentFor(UnityEngine.Object owner) => owner is TextureCompositor doc ? doc :
+        internal static WhimTexDocument DocumentFor(UnityEngine.Object owner) => owner is WhimTexDocument doc ? doc :
             owner is WhimTexGradientSession session ? session.document :
-            owner is ShaderFX fx ? TextureCompositorWindow.FindFXTransformDocument(fx) : null;
+            owner is ShaderFX fx ? WhimTexWindow.FindFXTransformDocument(fx) : null;
         internal static bool IsOpen => current != null;
         internal static bool TryApplySample(object context, Color sample)
         {
@@ -67,7 +67,7 @@ namespace DCFApixels.WhimTex
         }
 
         internal static WhimTexColorPicker Open(Color value, bool hdr, bool alpha, WhimTexColorRange range,
-            TextureCompositor document, Action<Color> changed, Action<bool> modeChanged = null, Func<bool> valid = null)
+            WhimTexDocument document, Action<Color> changed, Action<bool> modeChanged = null, Func<bool> valid = null)
         {
             if (current != null) current.Finish(true);
             var window = CreateInstance<WhimTexColorPicker>();
@@ -319,14 +319,14 @@ namespace DCFApixels.WhimTex
                     ref historyCursor, RefreshHistory, SelectHistoryColor, PreviewColor);
             }
         }
-        internal static void AddHistoryChip(TextureCompositor document, int index, Color value,
+        internal static void AddHistoryChip(WhimTexDocument document, int index, Color value,
             VisualElement grid, ScrollView scroll, Func<int> mask, ref Texture2D cursor,
             Action refresh, Action<int, Color> select, Func<Color, Color> preview = null)
         {
             var chip = new ColorSurface(() => value, channels: mask, preview: preview) { tooltip = value.ToString("F3"), userData = index, focusable = true };
             chip.AddToClassList("whimtex-picker-chip"); grid.Add(chip);
-            if (cursor == null) cursor = TextureCompositorWindow.CreateEyedropperCursor();
-            if (cursor != null) chip.style.cursor = new UnityEngine.UIElements.Cursor { texture = cursor, hotspot = TextureCompositorWindow.EyedropperCursorHotspot(cursor) };
+            if (cursor == null) cursor = WhimTexWindow.CreateEyedropperCursor();
+            if (cursor != null) chip.style.cursor = new UnityEngine.UIElements.Cursor { texture = cursor, hotspot = WhimTexWindow.EyedropperCursorHotspot(cursor) };
             chip.AddManipulator(new HistoryDrag(document, grid, scroll, refresh, select, index, value));
             chip.AddManipulator(new ContextualMenuManipulator(e => e.menu.AppendAction("Remove", _ => { document.RemoveHistoryColor(index); refresh(); })));
             chip.RegisterCallback<KeyDownEvent>(e =>
@@ -377,14 +377,14 @@ namespace DCFApixels.WhimTex
         }
         private sealed class HistoryDrag : PointerManipulator
         {
-            private readonly TextureCompositor document;
+            private readonly WhimTexDocument document;
             private readonly VisualElement history;
             private readonly ScrollView historyScroll;
             private readonly Action refresh;
             private readonly Action<int, Color> select;
             private readonly int index; private readonly Color value;
             private int pointer = -1, destination = -1; private Vector2 start; private bool dragging, pendingRemoval;
-            internal HistoryDrag(TextureCompositor document, VisualElement history, ScrollView historyScroll,
+            internal HistoryDrag(WhimTexDocument document, VisualElement history, ScrollView historyScroll,
                 Action refresh, Action<int, Color> select, int index, Color value)
             { this.document = document; this.history = history; this.historyScroll = historyScroll; this.refresh = refresh; this.select = select; this.index = index; this.value = value; }
             protected override void RegisterCallbacksOnTarget()

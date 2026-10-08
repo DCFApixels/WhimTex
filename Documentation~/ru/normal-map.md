@@ -48,7 +48,7 @@ translations: "en/normal-map.md,ru/normal-map.md,zh/normal-map.md"
 ## Сохранить для материала
 
 Для отдельной карты нормалей оставь наложение **Normal**, полную непрозрачность
-и исходный [Swizzle](color.md#переставить-каналы-через-swizzle), без перестановки каналов.
+и исходный [Mapping](color.md#переставить-каналы-через-swizzle), без перестановки каналов.
 Избегай цветовых эффектов: они могут исказить рельеф.
 
 Для PNG/TGA/PSD выбери **Advanced → Encoding → Packed Color**.

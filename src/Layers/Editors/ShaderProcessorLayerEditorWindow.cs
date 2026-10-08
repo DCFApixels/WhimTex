@@ -7,8 +7,8 @@ namespace DCFApixels.WhimTex
     {
         protected override Type EditedLayerType => typeof(ShaderProcessorLayerBehaviour);
         protected override string LayerPreviewTitle => "Layer Preview (processed lower layers)";
-        public static void Open(ShaderProcessorLayerBehaviour layer, TextureCompositor compositor) =>
-            OpenPropertiesWindow<ShaderProcessorLayerEditorWindow>(layer, compositor);
+        public static void Open(ShaderProcessorLayerBehaviour layer, WhimTexDocument activeDocument) =>
+            OpenPropertiesWindow<ShaderProcessorLayerEditorWindow>(layer, activeDocument);
         protected override void BuildSettings(VisualElement root, Layer layer)
         {
             WhimTexUI.AddHelpBox(root, "Processes the composited layers below. Add or edit its effects in FX.", HelpBoxMessageType.Info);

@@ -21,7 +21,7 @@ public static class WhimTexGradientPipelineTests
     private static void ExecuteMain()
     {
         const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public;
-        var doc=ScriptableObject.CreateInstance<TextureCompositor>();
+        var doc=ScriptableObject.CreateInstance<WhimTexDocument>();
         doc.hideFlags=HideFlags.HideAndDontSave;doc.width=doc.height=64;
         var behavior=new GradientLayerBehaviour {gradientType=GradientLayerBehaviour.GradientType.Radial};
         behavior.gradient.Mode=WhimTexGradientMode.Perceptual;
@@ -46,7 +46,7 @@ public static class WhimTexGradientPipelineTests
                 context.True(!(float.IsNaN(b[i][c])||Mathf.Abs(expected[c]-b[i][c])>.003f), label+" mismatch "+i+"/"+c+": "+a[i]+" / "+b[i]);
             }
         }
-        Texture2D Export(Layer layer,bool input) => (Texture2D)typeof(TextureCompositor).GetMethod("RenderPsdPixels",flags).Invoke(doc,new object[]{layer,input});
+        Texture2D Export(Layer layer,bool input) => (Texture2D)typeof(WhimTexDocument).GetMethod("RenderPsdPixels",flags).Invoke(doc,new object[]{layer,input});
         try
         {
             doc.layers.Add(source);
@@ -55,13 +55,13 @@ public static class WhimTexGradientPipelineTests
             group.children.Add(source);doc.layers.Clear();doc.layers.Add(group);
             group.compositing=GroupCompositing.Isolated;
             Same(baseline,Pixels(doc.ComposeCanvas()),"Isolated group composite");
-            Same(baseline,Pixels((Texture2D)typeof(TextureCompositor).GetMethod("RenderPsdGroupContent",flags).Invoke(doc,new object[]{group})),"Layered group export",true);
+            Same(baseline,Pixels((Texture2D)typeof(WhimTexDocument).GetMethod("RenderPsdGroupContent",flags).Invoke(doc,new object[]{group})),"Layered group export",true);
             group.compositing=GroupCompositing.PassThrough;
             Same(baseline,Pixels(doc.ComposeCanvas()),"Pass-through group composite");
             foreach(var target in new[] {source,group})
             {
                 doc.layers.Clear();doc.layers.Add(effect);doc.layers.Add(target);
-                typeof(TextureCompositor).GetMethod("NormalizeModel",flags).Invoke(doc,null);
+                typeof(WhimTexDocument).GetMethod("NormalizeModel",flags).Invoke(doc,null);
                 effect.inputMode=EffectInputMode.Specific;effect.TargetLayerId=target.Id;
                 Same(baseline,Pixels(Export(effect,true)),"Specific Target input",true);
             }

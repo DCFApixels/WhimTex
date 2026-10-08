@@ -27,7 +27,7 @@ public static class EdgeOutlineTests
         bool srgb = GL.sRGBWrite;
         var output = RenderTexture.GetTemporary(W, H, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
         T Own<T>(T value) where T : UnityEngine.Object { owned.Add(value); return value; }
-        var doc = Own(ScriptableObject.CreateInstance<TextureCompositor>());
+        var doc = Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         doc.width = W; doc.height = H;
         var input = Own(new Texture2D(W, H, TextureFormat.RGBAFloat, false, true)
             { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Repeat });
@@ -334,7 +334,7 @@ public static class EdgeOutlineTests
             // Ordinary layer, group, clipping, Target input, thumbnail and layered-export paths.
             Settings(detection: 2, thickness: 4, mode: 0, method: 1, strength: 3);
             var draft = typeof(ShaderFX).GetMethod("CreateAgentDraft", Hidden, null,
-                new[] { typeof(TextureCompositor), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
             var source = Own((ShaderFX)draft.Invoke(null, new object[] { doc,
                 "float4 ApplyFX(float2 uv, float4 color) { return uv.x < .5 ? float4(0,0,1,1) : float4(1,0,0,1); }",
                 new List<ShaderFXParameter>() }));
@@ -357,14 +357,14 @@ public static class EdgeOutlineTests
             Layer group = new GroupLayerBehaviour(); group.children.Add(child); group.fx.Add(fx);
             doc.layers.Clear(); doc.layers.Add(group);
             Same(baseline, Composite(), "Group input equals ordinary layer input", .005f);
-            var thumbnail = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderAgentLayerPreview", Hidden).Invoke(doc, new object[] { group, W });
+            var thumbnail = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderAgentLayerPreview", Hidden).Invoke(doc, new object[] { group, W });
             try
             {
                 RenderTexture.active = thumbnail; read.ReadPixels(new Rect(0, 0, W, H), 0, 0); read.Apply();
                 Same(baseline, read.GetPixels(), "Group thumbnail (linear input)", .008f);
             }
             finally { RenderTexture.active = previous; RenderTexture.ReleaseTemporary(thumbnail); }
-            thumbnail = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderAgentLayerPreview", Hidden).Invoke(doc, new object[] { group, W / 2 });
+            thumbnail = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderAgentLayerPreview", Hidden).Invoke(doc, new object[] { group, W / 2 });
             try
             {
                 var reduced = Own(new Texture2D(W / 2, H / 2, TextureFormat.RGBAFloat, false, true));
@@ -375,7 +375,7 @@ public static class EdgeOutlineTests
                     "Reduced thumbnail does not widen the contour in document units");
             }
             finally { RenderTexture.active = previous; RenderTexture.ReleaseTemporary(thumbnail); }
-            var exported = (Texture2D)typeof(TextureCompositor).GetMethod("RenderPsdGroupContent", Hidden).Invoke(doc, new object[] { group });
+            var exported = (Texture2D)typeof(WhimTexDocument).GetMethod("RenderPsdGroupContent", Hidden).Invoke(doc, new object[] { group });
             try
             {
                 var display = (Color[])baseline.Clone();

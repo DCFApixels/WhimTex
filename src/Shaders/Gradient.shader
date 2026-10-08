@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/Gradient"
+Shader "Hidden/WhimTex/Gradient"
 {
     SubShader
     {

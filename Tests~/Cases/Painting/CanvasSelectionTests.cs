@@ -14,7 +14,7 @@ static System.Threading.CancellationToken Cancellation;
 private static string BodyRun()
 {
 // Opt-in after manual compilation. Pure selection data; no assets, windows or Undo changes.
-var assembly = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly;
+var assembly = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly;
 var type = assembly.GetType("DCFApixels.WhimTex.CanvasSelection", true);
 var combine = assembly.GetType("DCFApixels.WhimTex.SelectionCombine", true);
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;

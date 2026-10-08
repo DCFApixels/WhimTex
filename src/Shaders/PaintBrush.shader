@@ -1,4 +1,4 @@
-Shader "Hidden/TextureCompositor/PaintBrush"
+Shader "Hidden/WhimTex/PaintBrush"
 {
     Properties
     {

@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
         public string identity;
     }
 
-    public sealed partial class TextureCompositor
+    public sealed partial class WhimTexDocument
     {
         [SerializeField, HideInInspector] internal List<WhimTexJsonMissingAsset> jsonMissingAssets = new();
         [SerializeField, HideInInspector] internal WhimTexJsonWriteMode jsonWriteMode = WhimTexJsonWriteMode.FullOptimized;
@@ -23,7 +23,7 @@ namespace DCFApixels.WhimTex
 
     public static partial class WhimTexDocumentJson
     {
-        internal static void CopyMissingAssets(TextureCompositor source, TextureCompositor destination,
+        internal static void CopyMissingAssets(WhimTexDocument source, WhimTexDocument destination,
             Dictionary<string, string> ids, Dictionary<ShaderFX, ShaderFX> effects)
         {
             if (source.jsonMissingAssets == null) return;
@@ -45,7 +45,7 @@ namespace DCFApixels.WhimTex
             RestoreMissingAssets(destination);
         }
 
-        private static void VisitReferenceOwners(TextureCompositor document, Action<object, string> visit)
+        private static void VisitReferenceOwners(WhimTexDocument document, Action<object, string> visit)
         {
             var seen = new HashSet<object>();
             void Walk(object value, string path)
@@ -53,7 +53,7 @@ namespace DCFApixels.WhimTex
                 if (IsNull(value) || value is string || value.GetType().IsValueType || !seen.Add(value)) return;
                 if (value is Layer layer) path = "layer/" + layer.Id;
                 if (value is ShaderFX fx) path = "fx/" + fx.ShaderKey;
-                if (value is UnityEngine.Object && !(value is TextureCompositor) && !(value is ShaderFX)) return;
+                if (value is UnityEngine.Object && !(value is WhimTexDocument) && !(value is ShaderFX)) return;
                 visit(value, path);
                 if (value is IList list)
                 {
@@ -64,7 +64,7 @@ namespace DCFApixels.WhimTex
             Walk(document, "document");
         }
 
-        internal static void CaptureMissingAssets(TextureCompositor document)
+        internal static void CaptureMissingAssets(WhimTexDocument document)
         {
             document.jsonMissingAssets = new List<WhimTexJsonMissingAsset>();
             VisitReferenceOwners(document, (owner, path) =>
@@ -75,7 +75,7 @@ namespace DCFApixels.WhimTex
             });
         }
 
-        private static void RestoreMissingAssets(TextureCompositor document)
+        private static void RestoreMissingAssets(WhimTexDocument document)
         {
             if (document.jsonMissingAssets == null || document.jsonMissingAssets.Count == 0) return;
             var owners = new Dictionary<string, object>(StringComparer.Ordinal);
