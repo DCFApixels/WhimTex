@@ -652,6 +652,24 @@
         }
       }
     },
+    "shapeCorner": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "style": {
+          "type": "string",
+          "enum": [
+            "Round",
+            "Bevel"
+          ]
+        },
+        "amount": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
     "shape": {
       "type": "object",
       "additionalProperties": false,
@@ -663,7 +681,9 @@
             "Ellipse",
             "Polygon",
             "Star",
-            "Line"
+            "Line",
+            "Arc",
+            "Sector"
           ]
         },
         "fill": {
@@ -733,6 +753,36 @@
           "minimum": 0,
           "maximum": 8192
         },
+        "arcThickness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8192,
+          "default": 8,
+          "description": "Arc body thickness in canvas pixels, independent of strokeWidth. Transform controls the centerline ellipse."
+        },
+        "strokePosition": {
+          "type": "string",
+          "enum": [
+            "Inside",
+            "Center",
+            "Outside"
+          ]
+        },
+        "lineCap": {
+          "type": "string",
+          "enum": [
+            "Butt",
+            "Round",
+            "Square"
+          ]
+        },
+        "edgeMode": {
+          "type": "string",
+          "enum": [
+            "Antialiased",
+            "Step"
+          ]
+        },
         "feather": {
           "type": "number",
           "minimum": 0,
@@ -748,20 +798,27 @@
           ],
           "default": "Centered"
         },
-        "roundness": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "cornerRoundness": {
+        "rectangleCorners": {
           "type": "array",
-          "items": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
-          },
           "minItems": 4,
-          "maxItems": 4
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/shapeCorner"
+          }
+        },
+        "polygonCorners": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/shapeCorner"
+          }
+        },
+        "outerCorner": {
+          "$ref": "#/$defs/shapeCorner"
+        },
+        "innerCorner": {
+          "$ref": "#/$defs/shapeCorner"
         },
         "linkCorners": {
           "type": "boolean"
@@ -775,6 +832,16 @@
           "type": "number",
           "minimum": 0.01,
           "maximum": 1
+        },
+        "startAngle": {
+          "type": "number",
+          "minimum": -360000,
+          "maximum": 360000
+        },
+        "sweepAngle": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360
         }
       }
     },

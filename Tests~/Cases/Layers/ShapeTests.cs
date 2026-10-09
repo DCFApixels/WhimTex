@@ -38,7 +38,8 @@ try
     {
         shape.kind = kind;
         Render(p => {
-            Check(p.GetPixel(64, 48).a > .99f, kind + " center filled");
+            if (kind != DCFApixels.WhimTex.ShapeLayerBehaviour.ShapeKind.Arc)
+                Check(p.GetPixel(64, 48).a > .99f, kind + " center filled");
             Check(p.GetPixel(0, 0).a == 0f, kind + " outside transparent");
         });
     }
@@ -61,16 +62,17 @@ try
     });
     shape.fill = false;
     Render(p => { Check(p.GetPixel(64, 48).a == 0f, "hollow center"); Check(p.GetPixel(33, 48).a > .99f, "hollow stroke"); });
-    shape.fill = true; shape.stroke = false; shape.roundness = 1f;
+    shape.fill = true; shape.stroke = false;
+    shape.rectangleCorners = new[] { new DCFApixels.WhimTex.ShapeLayerBehaviour.Corner(1), new DCFApixels.WhimTex.ShapeLayerBehaviour.Corner(1), new DCFApixels.WhimTex.ShapeLayerBehaviour.Corner(1), new DCFApixels.WhimTex.ShapeLayerBehaviour.Corner(1) };
     Render(p => Check(p.GetPixel(32, 24).a < .01f, "rounded rectangle corner"));
-    shape.roundness = 0f;
+    shape.rectangleCorners = new DCFApixels.WhimTex.ShapeLayerBehaviour.Corner[4];
     // Sample inside sharp corners, not the outer antialiased boundary pixels.
     var cornerPixels = new[] { new UnityEngine.Vector2Int(34, 69), new UnityEngine.Vector2Int(93, 69),
         new UnityEngine.Vector2Int(93, 26), new UnityEngine.Vector2Int(34, 26) };
     for (int corner = 0; corner < 4; corner++)
     {
-        shape.cornerRoundness = UnityEngine.Vector4.zero;
-        shape.cornerRoundness[corner] = 1f;
+        shape.rectangleCorners = new DCFApixels.WhimTex.ShapeLayerBehaviour.Corner[4];
+        shape.rectangleCorners[corner].amount = 1f;
         Render(p => {
             for (int i = 0; i < 4; i++)
             {
@@ -79,7 +81,7 @@ try
             }
         });
     }
-    shape.cornerRoundness = UnityEngine.Vector4.zero;
+    shape.rectangleCorners = new DCFApixels.WhimTex.ShapeLayerBehaviour.Corner[4];
     layer.transform.position = new UnityEngine.Vector2(20, 10);
     layer.transform.scale = new UnityEngine.Vector2(.25f, .125f);
     layer.transform.rotation = 90f;
@@ -96,13 +98,17 @@ try
     shape.fillColor = new UnityEngine.Color(2, 0, 0, 1);
     Render(p => Check(p.GetPixel(84, 58).r > 1f, "HDR preserved"));
     var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
-    var adjust = typeof(DCFApixels.WhimTex.ShapeLayerBehaviour).GetMethod("AdjustCorner", flags);
-    UnityEngine.Vector4 Adjust(UnityEngine.Vector4 v, int corner, float value, bool linked) =>
-        (UnityEngine.Vector4)adjust.Invoke(null, new object[] { v, corner, value, linked });
+    UnityEngine.Vector4 Adjust(UnityEngine.Vector4 v, int corner, float value, bool linked)
+    {
+        var editable = new DCFApixels.WhimTex.ShapeLayerBehaviour { linkCorners = linked };
+        for (int i = 0; i < 4; i++) editable.rectangleCorners[i].amount = v[i];
+        editable.SetCorner(corner, new DCFApixels.WhimTex.ShapeLayerBehaviour.Corner(value), UnityEngine.Vector2.one);
+        return new UnityEngine.Vector4(editable.rectangleCorners[0].amount, editable.rectangleCorners[1].amount, editable.rectangleCorners[2].amount, editable.rectangleCorners[3].amount);
+    }
     var ratios = new UnityEngine.Vector4(.1f, .2f, .3f, .4f);
-    Check(UnityEngine.Vector4.Distance(Adjust(ratios, 0, .2f, true), ratios * 2f) < .0001f, "linked ratios");
-    Check(UnityEngine.Vector4.Distance(Adjust(ratios, 0, 1f, true), ratios * 2.5f) < .0001f, "linked group limit");
-    Check(UnityEngine.Vector4.Distance(Adjust(ratios, 0, .9f, false), new UnityEngine.Vector4(.9f,.2f,.3f,.4f)) < .0001f, "unlinked edit");
+    Check(UnityEngine.Vector4.Distance(Adjust(ratios, 0, .2f, true), ratios / .7f) < .0001f, "linked ratios with edge limit");
+    Check(UnityEngine.Vector4.Distance(Adjust(ratios, 0, 1f, true), ratios / .7f) < .0001f, "linked group limit");
+    Check(UnityEngine.Vector4.Distance(Adjust(ratios, 0, .9f, false), new UnityEngine.Vector4(.9f,.1f,.3f,.1f)) < .0001f, "unlinked edit reduces conflicting corners");
     Check(UnityEngine.Vector4.Distance(Adjust(UnityEngine.Vector4.zero, 0, .3f, true), UnityEngine.Vector4.one * .3f) < .0001f, "linked zero fallback");
     var drag = typeof(DCFApixels.WhimTex.WhimTexWindow).GetMethod("ShapeDragTransform", flags);
     var canvas = new UnityEngine.Vector2(512, 256);
@@ -129,12 +135,17 @@ try
     setter.Invoke(null, new object[] { shape, json });
     Check(shape.kind == DCFApixels.WhimTex.ShapeLayerBehaviour.ShapeKind.Star && shape.sides == 7 && shape.innerRadius == .3f, "API partial update");
     Check(shape.fillColor.r == 2f, "API partial update retains unrelated fields");
+    json = jsonType.GetMethod("Parse", new[] { typeof(string) }).Invoke(null, new object[] { "{\"arcThickness\":24,\"strokeWidth\":3}" });
+    setter.Invoke(null, new object[] { shape, json });
+    Check(shape.arcThickness == 24 && shape.strokeWidth == 3, "API updates independent arc body and outline widths");
+    Check(DCFApixels.WhimTex.WhimTexApi.Describe().Contains("arcThickness"), "API describes arc body thickness");
     var copy = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>();
     try
     {
         UnityEditor.EditorJsonUtility.FromJsonOverwrite(UnityEditor.EditorJsonUtility.ToJson(document), copy);
         var restored = copy.layers[0].Behaviour as DCFApixels.WhimTex.ShapeLayerBehaviour;
-        Check(restored != null && restored.sides == 7 && restored.fillColor.r == 2f, "serialized behaviour survives round trip");
+    Check(restored != null && restored.sides == 7 && restored.fillColor.r == 2f, "serialized behaviour survives round trip");
+    Check(restored.arcThickness == 24 && restored.strokeWidth == 3, "Serialized arc body and outline widths stay independent");
     }
     finally { UnityEngine.Object.DestroyImmediate(copy); }
     return;
@@ -143,4 +154,3 @@ finally { UnityEngine.Object.DestroyImmediate(document); }
 
 }
 }
-

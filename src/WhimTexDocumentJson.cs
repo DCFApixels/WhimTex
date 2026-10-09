@@ -549,6 +549,15 @@ namespace DCFApixels.WhimTex
                     else if (defaults != null && field.Name != "id" && field.Name != "recoveryId" && field.Name != "shaderKey")
                         field.SetValue(result, field.FieldType.IsValueType ? Activator.CreateInstance(field.FieldType) : null);
                 }
+                if (result is ShapeLayerBehaviour shape)
+                {
+                    if (node["rectangleCorners"] != null && (!(node["rectangleCorners"] is JArray rectangle) || rectangle.Count != 4))
+                        throw JsonError(node["rectangleCorners"], "Expected four rectangle corner objects.");
+                    if (node["polygonCorners"] != null && (!(node["polygonCorners"] is JArray polygon) || polygon.Count != Mathf.Clamp(shape.sides, 3, 32)))
+                        throw JsonError(node["polygonCorners"], "Polygon corner count must match Sides.");
+                }
+                if (result is ShapeLayerBehaviour.Corner corner && (corner.amount < 0 || corner.amount > 1))
+                    throw JsonError(node["amount"] ?? node, "Corner amount must be between 0 and 1.");
                 return result;
             }
         }

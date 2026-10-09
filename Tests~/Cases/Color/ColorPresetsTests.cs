@@ -96,7 +96,7 @@ static System.Threading.CancellationToken Cancellation;
                     // Every dither mode must stay finite and within 0..1, including Halftone, whose threshold reaches exactly 1.0.
                     if (name == "Posterize" || name == "Pixelate")
                     {
-                        Set("_PixelSize", 3); Set("_Levels", 4); Set("_Gamma", 1); Set("_Amount", 1); Set("_OneBit", 0);
+                        Set("_PixelSize", 3); Set("_Levels", 4); Set("_Gamma", 1); Set("_Amount", 1); Set("_ColorMode", 0);
                         for (int mode = 0; mode <= 7; mode++)
                         {
                             Set("_Dither", mode);
@@ -121,7 +121,9 @@ static System.Threading.CancellationToken Cancellation;
                     // One-bit mode must land on exactly the two colors for every pattern, including the pattern whose threshold reaches 1.0.
                     if (name == "Pixelate")
                     {
-                        Set("_OneBit", 1); Set("_Amount", 1);
+                        var colorMode = parameters.Find(p => p.name == "_ColorMode");
+                        T.True(colorMode != null, "Pixelate must declare its Color Mode selector");
+                        colorMode.floatValue = 1; Set("_Amount", 1);
                         for (int mode = 0; mode <= 7; mode++)
                         {
                             Set("_Dither", mode);
@@ -140,7 +142,7 @@ static System.Threading.CancellationToken Cancellation;
                                 }
                             }
                         }
-                        Set("_OneBit", 0);
+                        colorMode.floatValue = 0;
                     }
                 }
                 finally { if (fx != null) UnityEngine.Object.DestroyImmediate(fx); }
@@ -156,4 +158,3 @@ static System.Threading.CancellationToken Cancellation;
     }
 public static string Run() => WhimTex.Tests.TestContext.Run("Run", context => WhimTex.Tests.UnityA.UnityAScope.RunOwned(scope => { T = context; Scope = scope; try { BodyRun(); } finally { T = null; Scope = null; } }));
 }
-

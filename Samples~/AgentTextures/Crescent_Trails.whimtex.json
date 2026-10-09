@@ -1253,11 +1253,11 @@
                     "stroke": false,
                     "feather": 96.8,
                     "featherPosition": "Inside",
-                    "cornerRoundness": [
-                      0.0,
-                      1.0,
-                      1.0,
-                      0.0
+                    "rectangleCorners": [
+                      { "style": "Round", "amount": 0.0 },
+                      { "style": "Round", "amount": 1.0 },
+                      { "style": "Round", "amount": 1.0 },
+                      { "style": "Round", "amount": 0.0 }
                     ],
                     "linkCorners": false,
                     "recoveryId": "9d28353536a941f28c65036658176c4c"
@@ -1730,11 +1730,11 @@
             "stroke": false,
             "feather": 17.0,
             "featherPosition": "Inside",
-            "cornerRoundness": [
-              1.0,
-              0.0,
-              0.0,
-              1.0
+            "rectangleCorners": [
+              { "style": "Round", "amount": 1.0 },
+              { "style": "Round", "amount": 0.0 },
+              { "style": "Round", "amount": 0.0 },
+              { "style": "Round", "amount": 1.0 }
             ],
             "linkCorners": false,
             "recoveryId": "179b73efbb13407b93d50cec5f26841a"

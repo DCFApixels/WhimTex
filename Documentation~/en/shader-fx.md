@@ -210,7 +210,9 @@ diagnostics remain available in the UI and to the agent. See [the technical diag
 
 ### Levels, contrast and color balance
 
-**Color → Levels** offers a **Curve** after input black/white and Gamma, before output black/white. It starts linear. With **Preserve Color**, the curve remaps luminance; otherwise it remaps each RGB channel separately. Alpha is unchanged.
+**Color → Levels** has five curves. Choose **RGB**, **R**, **G**, **B** or **Alpha** in the **Curves** header to edit one; all configured curves remain active. They start linear.
+
+The shared **RGB** curve runs after input black/white and Gamma, before output black/white. With **Preserve Color**, it remaps luminance; otherwise it remaps each RGB channel separately. The **R/G/B** curves then correct individual channels. Neutral curves keep HDR output; beyond 0–1, the correction at the nearest endpoint is added without clipping the excess. **Alpha** adjusts transparency independently of input/output levels and Gamma, with a 0–1 result. **Opacity** blends the entire correction, including alpha, with the original.
 
 **Color → Brightness Contrast** adjusts midtone brightness and tonal separation. Both controls start at **0** (unchanged). Positive Contrast separates dark and light tones; negative Contrast brings them toward middle gray. The slider tracks cover −100…100, but numeric input and label dragging can go beyond either end. The effect uses smooth tone curves, not a uniform RGB offset: black and white remain fixed, alpha is unchanged, and RGB values outside 0–1 pass through. It operates in the incoming RGB space; it is not exposure control or a pixel-exact match to another application. Extreme settings can collapse details through floating-point precision.
 
@@ -279,7 +281,7 @@ outline an alpha-only silhouette or fill transparent areas. Wider lines take mor
 especially with Scharr.
 
 ### Other stylization effects
-- **Step** thresholds the enabled color channels separately. Red, Green and Blue start enabled; Alpha starts disabled. Choose **Hard** for a two-value result or **Smoothstep** to soften the transition with **Hardness**. **Apply To → Color** uses RGBA as per-channel effect strengths: 0 preserves the original channel, 1 applies the full step. It does not replace the image with that color. **Threshold** instead tests luminance (or alpha) and maps the result between two colors, optionally with a soft boundary; it preserves source alpha.
+- **Step** thresholds the enabled color channels separately. Red, Green and Blue start enabled; Alpha starts disabled. Choose **Hard** for a two-value result or **Smoothstep** to soften the transition with **Hardness**. **Apply To → Color** uses RGBA as per-channel effect strengths: 0 preserves the original channel, 1 applies the full step. It does not replace the image with that color. **Threshold** instead compares **Source Channel → Luminance/R/G/B/Alpha** with a threshold and maps RGB between **Low Color** and **High Color**. **Transition Width** softens the boundary; zero gives a hard threshold. Source alpha is preserved, even when Alpha is selected; output color alpha is ignored.
 - **Halftone** turns the image into monochrome, CMYK or RGB dot screens. Set dot size and shape; CMYK/RGB modes also expose screen angles and manual or automatic plate registration.
 - **Chromatic Aberration** shifts red and blue in opposite directions, radially from a point or along an angle. **Amount** is in canvas pixels; green and alpha stay unchanged.
 - **CRT** combines curved edges, scanlines, RGB phosphor stripes, vignette, color fringing, grain and flicker. **VHS** adds line wobble, chroma bleed, noise and a moving tracking band. **Seed** changes the deterministic pattern; **Effect Time** selects another frame.

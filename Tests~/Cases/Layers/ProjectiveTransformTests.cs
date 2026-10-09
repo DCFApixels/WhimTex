@@ -161,7 +161,7 @@ public static class ProjectiveTransformTests
         try
         {
             var drawing=(DrawingLayerBehaviour)typeof(DrawingLayerBehaviour).GetMethod("FromMergedTexture",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,new object[]{source});
-            Layer layer=shape ? (Layer)new ShapeLayerBehaviour {kind=ShapeLayerBehaviour.ShapeKind.Rectangle,fill=true,stroke=false,roundness=0} : (Layer)drawing;
+            Layer layer=shape ? (Layer)new ShapeLayerBehaviour {kind=ShapeLayerBehaviour.ShapeKind.Rectangle,fill=true,stroke=false} : (Layer)drawing;
             layer.transform=transform; doc.layers.Add(layer);
             output=(RenderTexture)typeof(WhimTexDocument).GetMethod("RenderCanvas",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(doc,new object[]{128});
             Check(RenderTexture.active==previous,"Render state restored");

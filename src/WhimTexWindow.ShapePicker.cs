@@ -67,6 +67,11 @@ namespace DCFApixels.WhimTex
                     p.MoveTo(center + new Vector2(-radius, radius));
                     p.LineTo(center + new Vector2(radius, -radius));
                 }
+                else if (kind == ShapeLayerBehaviour.ShapeKind.Arc || kind == ShapeLayerBehaviour.ShapeKind.Sector)
+                {
+                    p.Arc(center, radius, -60f, 200f);
+                    if (kind == ShapeLayerBehaviour.ShapeKind.Sector) { p.LineTo(center); p.ClosePath(); }
+                }
                 else if (kind == ShapeLayerBehaviour.ShapeKind.Ellipse)
                 {
                     p.Arc(center, radius, 0f, 360f);

@@ -6,31 +6,51 @@ namespace DCFApixels.WhimTex
     [Serializable]
     public sealed class ShapeLayerBehaviour : LayerBehaviour
     {
-        public enum ShapeKind { Rectangle, Ellipse, Polygon, Star, Line }
+        public enum ShapeKind { Rectangle, Ellipse, Polygon, Star, Line, Arc, Sector }
         public enum FeatherPosition { Inside, Outside, Centered }
+        public enum StrokePosition { Inside, Center, Outside }
+        public enum LineCap { Butt, Round, Square }
+        public enum EdgeMode { Antialiased, Step }
+        public enum CornerStyle { Round, Bevel }
+        [Serializable]
+        public struct Corner
+        {
+            public CornerStyle style;
+            public float amount;
+            public Corner(float amount, CornerStyle style = CornerStyle.Round) { this.amount = amount; this.style = style; }
+        }
         public ShapeKind kind;
         public Color fillColor = Color.white;
         public bool fill = true;
         public bool stroke;
         public Color strokeColor = Color.black;
         public float strokeWidth = 2f;
+        public float arcThickness = 8f;
+        public StrokePosition strokePosition;
+        public LineCap lineCap = LineCap.Round;
+        public EdgeMode edgeMode;
         public float feather;
         public FeatherPosition featherPosition = FeatherPosition.Centered;
-        public float roundness { get => cornerRoundness.x; set => cornerRoundness = Vector4.one * value; }
-        public Vector4 cornerRoundness;
+        public Corner[] rectangleCorners = new Corner[4];
+        public Corner[] polygonCorners = new Corner[5];
+        public Corner outerCorner, innerCorner;
         public bool linkCorners = true;
         public int sides = 5;
         public float innerRadius = .5f;
-        [NonSerialized] private Vector4[] polygonVertices;
-        [NonSerialized] private int cachedVertexCount;
-        [NonSerialized] private float cachedInnerRadius;
+        public float startAngle;
+        public float sweepAngle = 90f;
+        [NonSerialized] private ShapeContour contour;
         [NonSerialized] private ProceduralLayerThumbnail thumbnail;
+        internal ShapeContour Contour => contour ??= new ShapeContour();
 
         public override Texture2D GetPreviewTexture(int size)
         {
+            EnsureCorners();
             var hash = new HashCode();
             hash.Add(kind); hash.Add(fillColor); hash.Add(fill); hash.Add(stroke); hash.Add(strokeColor);
-            hash.Add(strokeWidth); hash.Add(GetCornerRoundness()); hash.Add(sides); hash.Add(innerRadius); hash.Add(filterMode);
+            hash.Add(strokeWidth); hash.Add(arcThickness); hash.Add(strokePosition); hash.Add(lineCap); hash.Add(edgeMode);
+            hash.Add(sides); hash.Add(innerRadius); hash.Add(filterMode); hash.Add(startAngle); hash.Add(sweepAngle);
+            AddCornerHash(ref hash);
             hash.Add(feather); hash.Add(featherPosition);
             thumbnail ??= new ProceduralLayerThumbnail();
             return thumbnail.Get(this, size, hash.ToHashCode());
@@ -40,57 +60,44 @@ namespace DCFApixels.WhimTex
         {
             thumbnail?.Dispose();
             thumbnail = null;
+            contour = null;
         }
 
-        private void SetPolygon(Material material)
+        internal void AddCornerHash(ref HashCode hash)
         {
-            bool star = kind == ShapeKind.Star;
-            int count = Mathf.Clamp(sides, 3, 32) * (star ? 2 : 1);
-            float inner = star ? Limit(innerRadius, .01f, 1f, .5f) : 1f;
-            if (polygonVertices == null || cachedVertexCount != count || cachedInnerRadius != inner)
-            {
-                polygonVertices ??= new Vector4[64];
-                for (int i = 0; i < count; i++)
-                {
-                    float angle = Mathf.PI * .5f + i * (Mathf.PI * 2f / count);
-                    float radius = (i & 1) != 0 ? inner : 1f;
-                    polygonVertices[i] = new Vector4(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius, 0f, 0f);
-                }
-                cachedVertexCount = count;
-                cachedInnerRadius = inner;
-            }
-            material.SetInt("_ShapeVertexCount", count);
-            material.SetVectorArray("_ShapeVertices", polygonVertices);
+            if (rectangleCorners != null) foreach (var value in rectangleCorners) hash.Add(value);
+            if (polygonCorners != null) foreach (var value in polygonCorners) hash.Add(value);
+            hash.Add(outerCorner); hash.Add(innerCorner);
         }
 
         internal override void InitializeLayer(Layer layer) => layer.transform.scaleF = Vector2.one * .5f;
         internal static float Limit(float value, float min, float max, float fallback) =>
             float.IsNaN(value) || float.IsInfinity(value) ? fallback : Mathf.Clamp(value, min, max);
 
-        // Clockwise from top-left, in the shape's local (unrotated) orientation.
-        internal Vector4 GetCornerRoundness()
+        internal void EnsureCorners()
         {
-            Vector4 result = cornerRoundness;
-            for (int i = 0; i < 4; i++)
-                result[i] = Limit(result[i], 0f, 1f, 0f);
-            return result;
+            sides = Mathf.Clamp(sides, 3, 32);
+            if (rectangleCorners == null || rectangleCorners.Length != 4) Array.Resize(ref rectangleCorners, 4);
+            if (polygonCorners == null || polygonCorners.Length != sides) Array.Resize(ref polygonCorners, sides);
+            for (int i = 0; i < rectangleCorners.Length; i++) rectangleCorners[i] = Clean(rectangleCorners[i]);
+            for (int i = 0; i < polygonCorners.Length; i++) polygonCorners[i] = Clean(polygonCorners[i]);
+            outerCorner = Clean(outerCorner); innerCorner = Clean(innerCorner);
         }
-
-        internal static Vector4 AdjustCorner(Vector4 values, int corner, float value, bool linked)
+        private static Corner Clean(Corner value) => new Corner(Limit(value.amount, 0f, 1f, 0f),
+            value.style == CornerStyle.Bevel ? CornerStyle.Bevel : CornerStyle.Round);
+        internal Vector2 GeometryHalfSize(WhimTexDocument document)
         {
-            for (int i = 0; i < 4; i++) values[i] = Limit(values[i], 0f, 1f, 0f);
-            value = Limit(value, 0f, 1f, values[corner]);
-            if (!linked) { values[corner] = value; return values; }
-            float previous = values[corner];
-            float largest = Mathf.Max(Mathf.Max(values.x, values.y), Mathf.Max(values.z, values.w));
-            if (previous > 0f)
-            {
-                double factor = Math.Min((double)value / previous, 1.0 / largest);
-                for (int i = 0; i < 4; i++) values[i] = (float)(values[i] * factor);
-            }
-            else
-                values += Vector4.one * Mathf.Min(value, 1f - largest);
-            return values;
+            if (document == null) return Vector2.one;
+            Owner.RenderTransform.GetDisplay(new Vector2(document.width, document.height), out _, out var scale, out _);
+            return new Vector2(Mathf.Max(1e-5f, Mathf.Abs((float)scale.x) * document.width * .5f),
+                Mathf.Max(1e-5f, Mathf.Abs((float)scale.y) * document.height * .5f));
+        }
+        private static Vector2 SafeHalfSize(Vector2 size) => new Vector2(Limit(Mathf.Abs(size.x), 1e-5f, 1e9f, 1f), Limit(Mathf.Abs(size.y), 1e-5f, 1e9f, 1f));
+        public void NormalizeCorners(Vector2 halfSize) { EnsureCorners(); ShapeContour.Restrict(this, SafeHalfSize(halfSize)); }
+        public void SetCorner(int index, Corner value, Vector2 halfSize)
+        {
+            EnsureCorners();
+            ShapeContour.Edit(this, index, Clean(value), SafeHalfSize(halfSize));
         }
 
         internal override RenderTexture Render(in LayerRenderContext context)
@@ -105,18 +112,26 @@ namespace DCFApixels.WhimTex
             applied.GetDisplay(new Vector2(width,height),out _,out var displayScale,out _);
             material.SetVector("_ShapeScale",(Vector2)displayScale);
             material.SetInt("_ShapeTiling", (int)applied.tiling);
-            material.SetInt("_ShapeKind", Mathf.Clamp((int)kind, 0, 4));
+            material.SetInt("_ShapeKind", Mathf.Clamp((int)kind, 0, 6));
+            material.SetInt("_ShapeEdgeMode", (int)edgeMode);
+            material.SetInt("_ShapeLineCap", (int)lineCap);
+            material.SetFloat("_ShapeArcThickness", Limit(arcThickness, 0f, 8192f, 8f));
             material.SetVector("_ShapeFill", HdrUtility.Decode(fillColor));
             material.SetVector("_ShapeStroke", HdrUtility.Decode(strokeColor));
             material.SetVector("_ShapeStyle", new Vector4(fill ? 1f : 0f, stroke ? 1f : 0f,
-                Limit(strokeWidth, 0f, 8192f, 2f), 0f));
-            material.SetVector("_ShapeFeather", new Vector4(Limit(feather, 0f, 8192f, 0f),
+                Limit(strokeWidth, 0f, 8192f, 2f), (int)strokePosition));
+            material.SetVector("_ShapeFeather", new Vector4(edgeMode == EdgeMode.Step ? 0f : Limit(feather, 0f, 8192f, 0f),
                 featherPosition == FeatherPosition.Inside ? 0f : featherPosition == FeatherPosition.Outside ? 1f : .5f, 0f, 0f));
-            material.SetVector("_ShapeCorners", GetCornerRoundness());
-            if (kind == ShapeKind.Polygon || kind == ShapeKind.Star) SetPolygon(material);
+            material.SetVector("_ShapeAngles", new Vector4(Limit(startAngle, -360000f, 360000f, 0f) * Mathf.Deg2Rad,
+                Limit(sweepAngle, 0f, 360f, 90f) * Mathf.Deg2Rad, 0, 0));
+            if (kind == ShapeKind.Rectangle || kind == ShapeKind.Polygon || kind == ShapeKind.Star || kind == ShapeKind.Sector)
+            {
+                contour ??= new ShapeContour();
+                contour.SetMaterial(material, this, new Vector2(Mathf.Abs((float)displayScale.x) * width * .5f, Mathf.Abs((float)displayScale.y) * height * .5f));
+            }
             var source = RenderTexture.GetTemporary(context.width, context.height, 0,
                 RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
-            source.filterMode = FilterMode.Bilinear;
+            source.filterMode = edgeMode == EdgeMode.Step ? FilterMode.Point : FilterMode.Bilinear;
             source.wrapMode = TextureWrapMode.Clamp;
             RenderTexture previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;

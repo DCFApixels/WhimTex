@@ -10,7 +10,7 @@ context.case("ShapePicker original assertion inputs and source contracts", async
   const itemAt = new Function('local', 'Inset', 'ItemSize', 'Kinds', 'Mathf',
       itemBody.slice(itemBody.indexOf('{') + 1, itemBody.lastIndexOf('}')).replace(/-1;/g, '-1;'));
   let checks = 0;
-  for (const count of [2, 5]) for (let x = -5; x <= 40; x += .5) for (let y = -5; y <= 165; y += .5) {
+  for (const count of [2, 7]) for (let x = -5; x <= 40; x += .5) for (let y = -5; y <= 230; y += .5) {
       const result = itemAt({x,y}, 3, 30, {Length:count}, {FloorToInt:Math.floor});
       const expected = x >= 3 && x < 33 && y >= 3 && y < 3 + count * 30 ? Math.floor((y - 3) / 30) : -1;
       assert.equal(result, expected);
@@ -58,4 +58,3 @@ context.case("ShapePicker original assertion inputs and source contracts", async
 
 });
 await finish(context);
-

@@ -1,10 +1,10 @@
 # Векторные шумы и карты искажения
 
 - Назначение: сохранить дизайн расширения Noise и способы использования шумов для distortion-карт.
-- Статус: отложено пользователем; предварительный дизайн, не поручение на реализацию. Новые поля представлены только отдельным UI-прототипом.
-- Источники истины: текущие [NoiseLayerBehaviour](../src/Layers/NoiseLayerBehaviour.cs), [Noise shader](../src/Shaders/Noise.shader), [Displacement Map](../src/FXPresets/DisplacementMap.hlsl), [HDR-контракт](../Documentation~/HDR.md). Предложения ниже не описывают уже реализованные алгоритмы.
+- Статус: F03, отложено пользователем; предварительный дизайн, не поручение на реализацию. Новые поля представлены только отдельным UI-прототипом.
+- Источники истины: текущие [NoiseLayerBehaviour](../../src/Layers/NoiseLayerBehaviour.cs), [Noise shader](../../src/Shaders/Noise.shader), [Displacement Map](../../src/FXPresets/DisplacementMap.hlsl), [HDR-контракт](../../Documentation~/HDR.md). Предложения ниже не описывают уже реализованные алгоритмы.
 
-Обсуждение отложено 2026-10-08. Цель — получать осмысленные направления для
+Обсуждение отложено 2026-10-08. Цель: получать осмысленные направления для
 искажения текстур и других vector-data задач, сохраняя понятный общий набор настроек.
 
 ## Направление дизайна
@@ -64,14 +64,14 @@ White/Blue Noise остаются отдельной группой со сво�
   палитра относится к скалярному выводу, не к кодированию вектора.
 
 `Reverse` и `Inverted` обсуждались как один флаг с разным смыслом по типу данных:
-скаляр 0–1 превращается в `1 - value`, signed-вектор — в `-vector`.
+скаляр 0–1 превращается в `1 - value`, signed-вектор меняет знак через `-vector`.
 Для packed-вектора это тоже `1 - RGB`. Предложено единое название `Inverted`
 с контекстной подсказкой, но переименование не выполнено: прототип ещё показывает
 `Reverse` у векторов.
 
 ## Требования к расчёту
 
-Curl строить из производных потенциала, а Gradient Vector — из производных
+Curl строить из производных потенциала, Gradient Vector из производных
 скалярного поля. Scale, Fractal и Domain Warp должны участвовать в функции,
 производные которой вычисляются. Простое искажение уже готовой RGB-карты векторов
 не эквивалентно этому расчёту.
@@ -96,8 +96,8 @@ Color Range; Pass Through не добавляет эту границу. Alpha �
 Shader Processor получает композицию нижележащих слоёв, а не экранное отображение;
 новые процессоры уже создаются с обоими диапазонами HDR. Отдельные FX могут сами
 применять `saturate`, `abs` или другие преобразования, поэтому signed-данные не
-гарантированы через произвольный эффект. См. [вход процессора](../src/WhimTexDocument.Processor.cs)
-и [его defaults](../src/Layers/ShaderProcessorLayerBehaviour.cs).
+гарантированы через произвольный эффект. См. [вход процессора](../../src/WhimTexDocument.Processor.cs)
+и [его defaults](../../src/Layers/ShaderProcessorLayerBehaviour.cs).
 
 Текущий скалярный Noise переводит результат в 0–1 через `saturate(raw * 0.5 + 0.5)`.
 `Linear Data` отменяет цветовое преобразование, но не означает signed-вывод.
@@ -106,7 +106,7 @@ HDR сохраняет отрицательные значения, а не со
 ## Старые шумы для distortion-карт
 
 1. Два независимых Noise с разными Seed записать в R и G. R задаёт X-смещение,
-   G — Y-смещение. Perlin/OpenSimplex подходят для плавных случайных искажений;
+   G задаёт Y-смещение. Perlin/OpenSimplex подходят для плавных случайных искажений;
    Value/ValueCubic дают другой характер областей. Это не Curl, но полноценный
    художественный инструмент.
 2. Один скалярный шум использовать как силу смещения в выбранном направлении.
@@ -137,7 +137,7 @@ Domain Warp как `warpedPosition - originalPosition`. Он уже вычисл
 
 ## UI прототип и возвращение к задаче
 
-В проекте, вне пакета, сохранён [NoiseFieldUiWindow](../../../Assets/NoiseFieldUiPrototype/Editor/NoiseFieldUiWindow.cs)
+В проекте, вне пакета, сохранён [NoiseFieldUiWindow](../../../../Assets/NoiseFieldUiPrototype/Editor/NoiseFieldUiWindow.cs)
 с UXML/USS рядом. Открывается через `Window → Experiments → Noise Field UI`.
 Это только настройки и условная видимость, без генерации изображения и без интеграции
 в WhimTex. Состояние открытого окна не является сохранённой спецификацией алгоритмов.
@@ -151,5 +151,5 @@ Gradient Vector, Cell Direction и зерно. Проверить нулевые
 
 ## Материалы для продолжения
 
-- [FastNoiseLite Documentation](https://github.com/Auburn/FastNoiseLite/wiki/Documentation) — существующие основы, Fractal и Domain Warp.
-- [Curl Noise for Procedural Fluid Flow](https://www.cs.ubc.ca/~rbridson/docs/bridson-siggraph2007-curlnoise.pdf) — построение потока через Curl потенциала.
+- [FastNoiseLite Documentation](https://github.com/Auburn/FastNoiseLite/wiki/Documentation): существующие основы, Fractal и Domain Warp.
+- [Curl Noise for Procedural Fluid Flow](https://www.cs.ubc.ca/~rbridson/docs/bridson-siggraph2007-curlnoise.pdf): построение потока через Curl потенциала.

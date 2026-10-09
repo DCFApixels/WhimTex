@@ -110,8 +110,15 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
       assert.throws(() => validate(noise(settings), schema));
     validate(noise({ offset: [0, 1] }), schema);
     const shape = (settings) => ({ ...empty, layers: [{ id: 'shape', behaviour: { $type: 'ShapeLayerBehaviour', ...settings } }] });
-    for (const cornerRoundness of [[1, 2], [1, 2, 3], [1, 2, 3, 4]]) validate(shape({ cornerRoundness }), schema);
-    for (const cornerRoundness of [[1], [1, 2, 3, 4, 5]]) assert.throws(() => validate(shape({ cornerRoundness }), schema));
+    const vector = (vectorValue) => ({ ...empty, layers: [{ id: 'vector', behaviour: { $type: 'ColorFillLayerBehaviour' },
+      fx: [{ $type: 'ShaderFX', parameters: [{ type: 'Vector', vectorValue }] }] }] });
+    for (const value of [[1, 2], [1, 2, 3], [1, 2, 3, 4]]) validate(vector(value), schema);
+    for (const value of [[1], [1, 2, 3, 4, 5]]) assert.throws(() => validate(vector(value), schema));
+    validate(shape({ rectangleCorners: [{ amount: .1 }, { style: 'Bevel', amount: .4 }, {}, {}], edgeMode: 'Step' }), schema);
+    validate(shape({ kind: 'Arc', arcThickness: 24, fill: true, fillColor: [1, 0, 0, 1],
+      stroke: true, strokeColor: [0, 0, 1, 1], strokeWidth: 3, strokePosition: 'Outside' }), schema);
+    for (const arcThickness of ['24', null, [24]]) assert.throws(() => validate(shape({ kind: 'Arc', arcThickness }), schema));
+    assert.throws(() => validate(shape({ cornerRoundness: [0, 0, 0, 0] }), schema));
     const color = (value) => ({ ...empty, layers: [{ id: 'color', behaviour: { $type: 'ColorFillLayerBehaviour', storedColor: value } }] });
     validate(color([1, 2, 3, 4]), schema);
     assert.throws(() => validate(color([1, 2, 3]), schema));

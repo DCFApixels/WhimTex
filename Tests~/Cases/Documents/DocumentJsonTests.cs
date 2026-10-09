@@ -13,7 +13,7 @@ public static class DocumentJsonTests
         var recipes = new[] {
             "{\"format\":\"whimtex.document\",\"version\":2,\"document\":{\"width\":32,\"height\":24},\"layers\":[" +
                 "{\"id\":\"noise\",\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\",\"scale\":5,\"scaleY\":3}}," +
-                "{\"id\":\"shape\",\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\",\"cornerRoundness\":[0.1,0.2,0.3,0.4]},\"opacity\":0.3}]}",
+                "{\"id\":\"shape\",\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\",\"rectangleCorners\":[{\"amount\":0.1},{\"amount\":0.2},{\"amount\":0.3},{\"amount\":0.4}]},\"opacity\":0.3}]}",
             "{\"format\":\"whimtex.document\",\"version\":2,\"document\":{\"width\":32,\"height\":16,\"outputSrgb\":false},\"layers\":[" +
                 "{\"id\":\"gradient\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\"," +
                 "\"code\":\"float4 ApplyFX(float2 uv,float4 color){return float4(uv.x,uv.y,uv.x*uv.y,0.7);}\"}]}]}"

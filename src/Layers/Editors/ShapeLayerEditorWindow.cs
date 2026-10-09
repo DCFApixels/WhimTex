@@ -19,20 +19,23 @@ namespace DCFApixels.WhimTex
         {
             var kind = WhimTexUI.ConfigureField(new EnumField("Shape", layer.kind));
             bindings.Track(kind, () => (Enum)layer.kind);
-            kind.RegisterValueChangedCallback(evt => apply("Change Shape", () => layer.kind = (ShapeLayerBehaviour.ShapeKind)evt.newValue));
+            kind.RegisterValueChangedCallback(evt => apply("Change Shape", () =>
+            { layer.kind = (ShapeLayerBehaviour.ShapeKind)evt.newValue; layer.NormalizeCorners(layer.GeometryHalfSize(activeDocument)); }));
             root.Add(kind);
-            void Toggle(string label, Func<bool> get, Action<bool> set)
+            Toggle Toggle(string label, Func<bool> get, Action<bool> set)
             {
                 var field = WhimTexUI.ConfigureField(new Toggle(label));
                 bindings.Track(field, get);
                 field.RegisterValueChangedCallback(evt => apply("Change Shape " + label, () => set(evt.newValue)));
                 root.Add(field);
+                return field;
             }
-            void Color(string label, Func<Color> get, Action<Color> set)
+            ColorField Color(string label, Func<Color> get, Action<Color> set)
             {
                 var field = WhimTexUI.ConfigureField(WhimTexColorInputs.Bind(new ColorField(label), bindings, get));
                 field.RegisterValueChangedCallback(evt => apply("Change Shape " + label, () => set(evt.newValue)));
                 root.Add(field);
+                return field;
             }
             Slider Number(string label, Func<float> get, Action<float> set, float min, float max)
             {
@@ -43,20 +46,39 @@ namespace DCFApixels.WhimTex
                 root.Add(field);
                 return field;
             }
+            FloatField Pixels(string label, Func<float> get, Action<float> set, string tooltip)
+            {
+                var field = WhimTexUI.ConfigureField(new FloatField(label) { tooltip = tooltip });
+                bindings.Track(field, get);
+                field.RegisterValueChangedCallback(evt =>
+                {
+                    float value = ShapeLayerBehaviour.Limit(evt.newValue, 0f, 8192f, get());
+                    apply("Change Shape " + label, () => set(value));
+                    field.SetValueWithoutNotify(value);
+                });
+                root.Add(field);
+                return field;
+            }
+            var thickness = Pixels("Thickness (px)", () => layer.arcThickness, value => layer.arcThickness = value,
+                "Arc body thickness in canvas pixels, independent of the outline. Transform controls the centerline ellipse.");
             Toggle("Fill", () => layer.fill, value => layer.fill = value);
             Color("Fill Color", () => layer.fillColor, value => layer.fillColor = value);
             Toggle("Stroke", () => layer.stroke, value => layer.stroke = value);
             Color("Stroke Color", () => layer.strokeColor, value => layer.strokeColor = value);
-            var width = WhimTexUI.ConfigureField(new FloatField("Stroke Width (px)"));
-            bindings.Track(width, () => layer.strokeWidth);
-            width.RegisterValueChangedCallback(evt =>
-            {
-                float value = ShapeLayerBehaviour.Limit(evt.newValue, 0f, 8192f, layer.strokeWidth);
-                apply("Change Shape Stroke Width", () => layer.strokeWidth = value);
-                width.SetValueWithoutNotify(value);
-            });
-            width.tooltip = "Inside outline in canvas pixels. Type a value or drag the label to adjust. Resizing the shape keeps this width.";
-            root.Add(width);
+            var width = Pixels("Stroke Width (px)", () => layer.strokeWidth, value => layer.strokeWidth = value,
+                "Outline width in canvas pixels. Resizing the shape keeps this width.");
+            var strokePosition = WhimTexUI.ConfigureField(new EnumField("Stroke Position", layer.strokePosition));
+            bindings.Track(strokePosition, () => (Enum)layer.strokePosition);
+            strokePosition.RegisterValueChangedCallback(evt => apply("Change Shape Stroke Position", () => layer.strokePosition = (ShapeLayerBehaviour.StrokePosition)evt.newValue));
+            root.Add(strokePosition);
+            var caps = WhimTexUI.ConfigureField(new EnumField("Line Caps", layer.lineCap));
+            bindings.Track(caps, () => (Enum)layer.lineCap);
+            caps.RegisterValueChangedCallback(evt => apply("Change Shape Line Caps", () => layer.lineCap = (ShapeLayerBehaviour.LineCap)evt.newValue));
+            root.Add(caps);
+            var edgeMode = WhimTexUI.ConfigureField(new EnumField("Edge Mode", layer.edgeMode));
+            bindings.Track(edgeMode, () => (Enum)layer.edgeMode);
+            edgeMode.RegisterValueChangedCallback(evt => apply("Change Shape Edge Mode", () => layer.edgeMode = (ShapeLayerBehaviour.EdgeMode)evt.newValue));
+            root.Add(edgeMode);
             var feather = WhimTexUI.ConfigureField(new FloatField("Feather (px)"));
             bindings.Track(feather, () => layer.feather);
             feather.RegisterValueChangedCallback(evt =>
@@ -73,18 +95,32 @@ namespace DCFApixels.WhimTex
                 () => layer.featherPosition = (ShapeLayerBehaviour.FeatherPosition)evt.newValue));
             featherPosition.tooltip = "Fade inside, outside, or across the contour. Also applies to both edges of a hollow stroke.";
             root.Add(featherPosition);
-            var roundness = ShapeCornerSettingsView.Build(layer, apply, bindings);
-            root.Add(roundness);
+            var corners = ShapeCornerSettingsView.Build(layer, activeDocument, apply, bindings);
+            root.Add(corners);
             var sides = WhimTexUI.ConfigureField(new SliderInt("Sides / Points", 3, 32) { showInputField = true });
             bindings.Track(sides, () => layer.sides);
-            sides.RegisterValueChangedCallback(evt => apply("Change Shape Points", () => layer.sides = Mathf.Clamp(evt.newValue, 3, 32)));
+            sides.RegisterValueChangedCallback(evt => apply("Change Shape Points", () =>
+            { layer.sides = Mathf.Clamp(evt.newValue, 3, 32); layer.NormalizeCorners(layer.GeometryHalfSize(activeDocument)); }));
             root.Add(sides);
-            var inner = Number("Inner Radius", () => layer.innerRadius, value => layer.innerRadius = value, .01f, 1f);
+            var inner = Number("Inner Radius", () => layer.innerRadius, value =>
+            { layer.innerRadius = value; layer.NormalizeCorners(layer.GeometryHalfSize(activeDocument)); }, .01f, 1f);
+            var start = WhimTexUI.ConfigureField(new FloatField("Start Angle"));
+            var sweep = WhimTexUI.ConfigureField(new FloatField("Sweep Angle"));
+            bindings.Track(start, () => layer.startAngle); bindings.Track(sweep, () => layer.sweepAngle);
+            start.RegisterValueChangedCallback(evt => apply("Change Shape Start Angle", () => layer.startAngle = ShapeLayerBehaviour.Limit(evt.newValue, -360000, 360000, 0)));
+            sweep.RegisterValueChangedCallback(evt => apply("Change Shape Sweep Angle", () =>
+            { layer.sweepAngle = ShapeLayerBehaviour.Limit(evt.newValue, 0, 360, 90); layer.NormalizeCorners(layer.GeometryHalfSize(activeDocument)); }));
+            root.Add(start); root.Add(sweep);
             bindings.Add(() =>
             {
+                bool arc = layer.kind == ShapeLayerBehaviour.ShapeKind.Arc, sector = layer.kind == ShapeLayerBehaviour.ShapeKind.Sector;
+                thickness.EnableInClassList("whimtex-hidden", !arc);
                 width.SetEnabled(layer.stroke);
-                featherPosition.SetEnabled(layer.feather > 0f);
-                roundness.EnableInClassList("whimtex-hidden", layer.kind != ShapeLayerBehaviour.ShapeKind.Rectangle);
+                strokePosition.EnableInClassList("whimtex-hidden", !layer.stroke);
+                caps.EnableInClassList("whimtex-hidden", !arc && layer.kind != ShapeLayerBehaviour.ShapeKind.Line);
+                feather.SetEnabled(layer.edgeMode != ShapeLayerBehaviour.EdgeMode.Step);
+                featherPosition.SetEnabled(layer.feather > 0f && layer.edgeMode != ShapeLayerBehaviour.EdgeMode.Step);
+                start.EnableInClassList("whimtex-hidden", !arc && !sector); sweep.EnableInClassList("whimtex-hidden", !arc && !sector);
                 sides.EnableInClassList("whimtex-hidden", layer.kind != ShapeLayerBehaviour.ShapeKind.Polygon && layer.kind != ShapeLayerBehaviour.ShapeKind.Star);
                 inner.EnableInClassList("whimtex-hidden", layer.kind != ShapeLayerBehaviour.ShapeKind.Star);
             });

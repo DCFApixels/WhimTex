@@ -38,16 +38,21 @@ context.case("Shape original assertion inputs and source contracts", async () =>
   assert.match(behaviour, /SetVector\("_ShapeFill", HdrUtility.Decode\(fillColor\)\)/);
   assert.match(behaviour, /applyTransform: false, applyFx: context.applyFx/);
   assert.match(behaviour, /finally[\s\S]*GL.sRGBWrite = srgb;[\s\S]*RenderTexture.active = previous;[\s\S]*ReleaseTemporary\(source\)/);
-  assert.match(behaviour, /\[NonSerialized\] private Vector4\[\] polygonVertices/);
-  assert.match(shader, /float4 _ShapeVertices\[64\]/);
-  assert.doesNotMatch(shader.split('float PolygonDistance')[1].split('float4 frag')[0], /\b(?:sin|cos)\(/,
-      'Polygon trigonometry runs once on CPU when shape parameters change, not per pixel');
+  assert.match(behaviour, /\[NonSerialized\] private ShapeContour contour/);
+  assert.match(shader, /float4 _ShapeSegments\[128\], _ShapeCurves\[128\]/);
+  assert.match(read('Layers/ShapeContour.cs'), /cachedHash != next/, 'Contour is rebuilt only when geometry changes');
   assert.match(shader, /fwidth\(distance\)/);
-  assert.match(shader, /float fillCoverage = \(outer - strokeCoverage\) \* _ShapeStyle.x/);
+  assert.match(shader, /float fillCoverage = fill \* _ShapeStyle.x/);
   assert.match(inspector, /width.SetEnabled\(layer.stroke\)/);
-  assert.match(inspector, /new FloatField\("Stroke Width \(px\)"\)/);
+  assert.match(inspector, /Pixels\("Stroke Width \(px\)"/);
+  assert.match(inspector, /Pixels\("Thickness \(px\)"/);
+  assert.match(inspector, /thickness.EnableInClassList\("whimtex-hidden", !arc\)/);
+  assert.match(down, /arcThickness = settings.arcThickness/, 'Creation copies body thickness independently');
+  assert.match(behaviour, /hash.Add\(arcThickness\)/, 'Thickness invalidates the thumbnail');
+  assert.match(shader, /float radius = _ShapeArcThickness \* .5/);
+  assert.doesNotMatch(shader, /_ShapeKind == 5\) return float4/, 'Arc shares the fill and outline compositor');
   assert.doesNotMatch(inspector, /Number\("Stroke Width/);
-  for (const key of ['kind', 'fill', 'fillColor', 'stroke', 'strokeColor', 'strokeWidth', 'roundness', 'sides', 'innerRadius']) {
+  for (const key of ['kind', 'fill', 'fillColor', 'stroke', 'strokeColor', 'strokeWidth', 'arcThickness', 'rectangleCorners', 'polygonCorners', 'outerCorner', 'innerCorner', 'strokePosition', 'lineCap', 'edgeMode', 'startAngle', 'sweepAngle', 'sides', 'innerRadius']) {
       assert.ok(read('Automation/WhimTexApi.Shape.cs').includes(`["${key}"]`), key + ' snapshot');
   }
   assert.match(read('Automation/WhimTexApi.Layers.cs'), /key == "shape" && layer\?\.Behaviour is ShapeLayerBehaviour/);
@@ -55,4 +60,3 @@ context.case("Shape original assertion inputs and source contracts", async () =>
 
 });
 await finish(context);
-

@@ -1,7 +1,7 @@
 # Производительность сохранения TIFF
 
 - Назначение: устройство Save/Open, границы оптимизаций и методика измерений.
-- Статус: реализованное поведение отделено от кандидатов; численные замеры — исторические.
+- Статус: действующее поведение и методика измерений; открытые кандидаты вынесены в беклог, численные замеры исторические.
 - Источники истины: [DocumentFile](../src/WhimTexDocumentFile.cs), [DocumentContainer](../src/WhimTexDocumentContainer.cs), [TiffImage](../src/WhimTexTiffImage.cs), [DocumentOperation](../src/WhimTexDocumentOperation.cs), [Sha256](../src/WhimTexSha256.cs).
 
 ## Действующее поведение
@@ -52,21 +52,9 @@ Worker вызывает ядро напрямую, без дополнитель
 
 ## Кандидаты, не реализовывать автоматически
 
-Перед работой повторно проверить код и измерить полный Save, а не считать исходный приоритет вечным:
-
-1. Не входить в worker dispatch при пустом `PrepareStoredBlocks`; для малого непустого задания
-   подобрать порог по измерению, сохранив проверки отмены длинной работы.
-2. Ускорить Auto precision scan через portable reduction или проверенную half-bit классификацию.
-   Сохранить точные thresholds/NaN semantics; нельзя выводить LDR только из настроек слоёв.
-3. Переиспользовать conversion LUT и избежать ненужного GPU upload временного CPU-readback
-   исключительно в save-пути. Обычный preview-контракт не менять.
-4. Разделить storage-only edits и изменения картинки только при надёжном render/dependency stamp.
-   Внешние текстуры, время, FX и необходимость native reimport делают это отдельной задачей.
-
-Дисковый second-level cache, async Save, тайлы Drawing и новое FX dependency tracking не
-являются частью уже сделанных ускорений. Старые предложения reuse/streaming не нужно реализовывать повторно.
-Диагноз post-save stall старых document `.asset` icons закрыт удалением того backend;
-`WhimTexDocumentProjectPreview` больше не является целью оптимизации.
+Четыре оставшихся направления и их границы сохранены в
+[T01: оптимизации TIFF Save](Backlog/TIFF_SAVE_OPTIMIZATION.md).
+Перед выбором повторно проверить код и измерить полный Save по методике ниже.
 
 ## Проверки и измерения
 

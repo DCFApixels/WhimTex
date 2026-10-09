@@ -3,6 +3,7 @@
 ## Start here
 
 - Code task: read [context overview](Context~/HANDOFF.md); consult only relevant sections of [feature decisions](Context~/DECISIONS.md). These files supplement these rules; they are not a task queue.
+- Backlog: [one index and proposal folder](Context~/Backlog/README.md). Read relevant cards only when the current request concerns that direction; listed ideas do not authorize implementation.
 - Browser AI / clipboard JSON / standalone HLSL: [AI_AUTHORING.md](AI_AUTHORING.md) → [contract](Documentation~/AI/README.md) → [examples](Documentation~/Examples/Clipboard/README.md).
 - Edit an open document: read [whimtex-live skill](Skills~/whimtex-live/SKILL.md) first, then [LiveAgentAPI](Documentation~/LiveAgentAPI.md) as needed.
 - Edit a document by path: [AgentAPI](Documentation~/AgentAPI.md).

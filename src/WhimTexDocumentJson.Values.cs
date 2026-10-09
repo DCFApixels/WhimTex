@@ -184,12 +184,20 @@ namespace DCFApixels.WhimTex
             if (value is OutlineLayerBehaviour outline && field == "fillColor") return outline.fillCenter;
             if (value is ShapeLayerBehaviour shape)
             {
+                bool arc = shape.kind == ShapeLayerBehaviour.ShapeKind.Arc;
                 if (field == "fillColor") return shape.fill;
-                if (field == "strokeWidth" || field == "strokeColor") return shape.stroke;
-                if (field == "featherPosition") return shape.feather != 0;
+                if (field == "strokeWidth" || field == "strokeColor" || field == "strokePosition") return shape.stroke;
+                if (field == "arcThickness") return arc;
+                if (field == "lineCap") return arc || shape.kind == ShapeLayerBehaviour.ShapeKind.Line;
+                if (field == "feather" || field == "featherPosition") return shape.edgeMode != ShapeLayerBehaviour.EdgeMode.Step && (field == "feather" || shape.feather != 0);
+                if (field == "startAngle" || field == "sweepAngle") return arc || shape.kind == ShapeLayerBehaviour.ShapeKind.Sector;
                 if (field == "innerRadius") return shape.kind == ShapeLayerBehaviour.ShapeKind.Star;
                 if (field == "sides") return shape.kind == ShapeLayerBehaviour.ShapeKind.Polygon || shape.kind == ShapeLayerBehaviour.ShapeKind.Star;
-                if (field == "cornerRoundness" || field == "linkCorners") return shape.kind == ShapeLayerBehaviour.ShapeKind.Rectangle;
+                if (field == "rectangleCorners") return shape.kind == ShapeLayerBehaviour.ShapeKind.Rectangle;
+                if (field == "polygonCorners") return shape.kind == ShapeLayerBehaviour.ShapeKind.Polygon;
+                if (field == "outerCorner" || field == "innerCorner") return shape.kind == ShapeLayerBehaviour.ShapeKind.Star ||
+                    (shape.kind == ShapeLayerBehaviour.ShapeKind.Sector && shape.sweepAngle < 360);
+                if (field == "linkCorners") return shape.kind == ShapeLayerBehaviour.ShapeKind.Rectangle || shape.kind == ShapeLayerBehaviour.ShapeKind.Polygon;
             }
             if (value is ColorFillLayerBehaviour fill && field == "pattern") return fill.mode != ColorFillLayerBehaviour.FillMode.Color;
             if (value is MakeSeamlessLayerBehaviour seam)

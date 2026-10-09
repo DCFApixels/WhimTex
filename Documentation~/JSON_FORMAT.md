@@ -176,7 +176,10 @@ These are storage checks, not the stricter agent-property patch/UI slider bounds
 are retained, with the model's rendering clamps. Noise and Pattern axes and Shape corners
 use explicit current values; missing components use the version-2 defaults, not sentinel inheritance.
 FX declarations come only from `@param`; readers do not append declarations for saved values.
-`declaredInCode` and Shape's former uniform `roundness` field are unknown input.
+`declaredInCode` and Shape's former `roundness`/`cornerRoundness` fields are unknown input.
+Shape corners use `{style:"Round"|"Bevel",amount:0..1}` objects: four `rectangleCorners`,
+`polygonCorners` matching `sides`, or Star/Sector `outerCorner`/`innerCorner` groups.
+See [Shape settings](AgentAPI.md#shape-settings) for edge, cap and angle controls.
 The generated schema describes per-field constraints; graph dependencies, total layer count and the
 combined canvas pixel budget additionally require the reader/API validator.
 The reader does not silently discard invalid data. JSON limits are 64 MiB characters, depth 128,

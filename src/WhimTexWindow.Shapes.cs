@@ -38,13 +38,30 @@ namespace DCFApixels.WhimTex
                 shapeToolIcon?.SetKind(shapeToolSettings.kind);
             });
             row.Add(kind);
-            void Color(string label, Func<Color> get, Action<Color> set)
+            ColorField Color(string label, Func<Color> get, Action<Color> set)
             {
                 var field = WhimTexColorInputs.Bind(new ColorField(label), toolkitHeaderBindings, get);
                 field.AddToClassList("whimtex-shape-color");
                 field.RegisterValueChangedCallback(evt => { shapeManipulator?.Cancel(); set(evt.newValue); });
                 row.Add(field);
+                return field;
             }
+            FloatField Pixels(string label, Func<float> get, Action<float> set, string tooltip)
+            {
+                var field = new FloatField(label) { tooltip = tooltip };
+                field.AddToClassList("whimtex-view-field");
+                toolkitHeaderBindings.Track(field, get);
+                field.RegisterValueChangedCallback(evt =>
+                {
+                    shapeManipulator?.Cancel();
+                    set(ShapeLayerBehaviour.Limit(evt.newValue, 0f, 8192f, get()));
+                    field.SetValueWithoutNotify(get());
+                });
+                row.Add(field);
+                return field;
+            }
+            var thickness = Pixels("Thickness", () => shapeToolSettings.arcThickness, value => shapeToolSettings.arcThickness = value,
+                "Arc body thickness in canvas pixels, independent of the outline.");
             var fill = new Toggle("Fill");
             toolkitHeaderBindings.Track(fill, () => shapeToolSettings.fill);
             fill.RegisterValueChangedCallback(evt => { shapeManipulator?.Cancel(); shapeToolSettings.fill = evt.newValue; });
@@ -55,16 +72,14 @@ namespace DCFApixels.WhimTex
             stroke.RegisterValueChangedCallback(evt => { shapeManipulator?.Cancel(); shapeToolSettings.stroke = evt.newValue; });
             row.Add(stroke);
             Color("", () => shapeToolSettings.strokeColor, value => shapeToolSettings.strokeColor = value);
-            var width = new FloatField("Width") { tooltip = "Inside stroke width in canvas pixels." };
-            width.AddToClassList("whimtex-view-field");
-            toolkitHeaderBindings.Track(width, () => shapeToolSettings.strokeWidth);
-            width.RegisterValueChangedCallback(evt =>
+            var width = Pixels("Width", () => shapeToolSettings.strokeWidth, value => shapeToolSettings.strokeWidth = value,
+                "Stroke width in canvas pixels.");
+            toolkitHeaderBindings.Add(() =>
             {
-                shapeManipulator?.Cancel();
-                shapeToolSettings.strokeWidth = ShapeLayerBehaviour.Limit(evt.newValue, 0f, 8192f, 2f);
-                width.SetValueWithoutNotify(shapeToolSettings.strokeWidth);
+                bool arc = shapeToolSettings.kind == ShapeLayerBehaviour.ShapeKind.Arc;
+                thickness.EnableInClassList("whimtex-hidden", !arc);
+                width.SetEnabled(shapeToolSettings.stroke);
             });
-            row.Add(width);
             toolkitCanvasViewHeader.Add(row);
         }
 
@@ -161,11 +176,18 @@ namespace DCFApixels.WhimTex
                 dimensions = new Vector2(document.width, document.height);
                 insertionAnchor = owner.GetSelectedLayer();
                 var settings = owner.shapeToolSettings;
+                settings.EnsureCorners();
                 shape = new ShapeLayerBehaviour { kind = settings.kind, fill = settings.fill, stroke = settings.stroke,
                     fillColor = WhimTexColorInputs.DisplayColor(settings.fillColor),
                     strokeColor = WhimTexColorInputs.DisplayColor(settings.strokeColor),
-                    strokeWidth = settings.strokeWidth, roundness = settings.roundness,
-                    cornerRoundness = settings.cornerRoundness, linkCorners = settings.linkCorners, sides = Mathf.Clamp(settings.sides, 3, 32),
+                    strokeWidth = settings.strokeWidth, arcThickness = settings.arcThickness, strokePosition = settings.strokePosition,
+                    lineCap = settings.lineCap, edgeMode = settings.edgeMode,
+                    rectangleCorners = (ShapeLayerBehaviour.Corner[])settings.rectangleCorners.Clone(),
+                    polygonCorners = (ShapeLayerBehaviour.Corner[])settings.polygonCorners.Clone(),
+                    outerCorner = settings.outerCorner, innerCorner = settings.innerCorner,
+                    linkCorners = settings.linkCorners, sides = Mathf.Clamp(settings.sides, 3, 32),
+                    feather = settings.feather, featherPosition = settings.featherPosition,
+                    startAngle = settings.startAngle, sweepAngle = settings.sweepAngle,
                     innerRadius = ShapeLayerBehaviour.Limit(settings.innerRadius, .01f, 1f, .5f) };
                 startView = evt.localPosition;
                 start = CanvasPoint(evt.localPosition, evt.ctrlKey);
@@ -243,6 +265,13 @@ namespace DCFApixels.WhimTex
                     shape.kind == ShapeLayerBehaviour.ShapeKind.Polygon ? shape.sides :
                     shape.kind == ShapeLayerBehaviour.ShapeKind.Star ? shape.sides * 2 : 64;
                 painter.BeginPath();
+                bool arc = shape.kind == ShapeLayerBehaviour.ShapeKind.Arc, sector = shape.kind == ShapeLayerBehaviour.ShapeKind.Sector;
+                if (sector)
+                {
+                    Rect image = owner.toolkitCanvas.ImageRect;
+                    painter.MoveTo(owner.toolkitCanvas.ToView(new Vector2(image.x + center.x / dimensions.x * image.width,
+                        image.yMax - center.y / dimensions.y * image.height)));
+                }
                 for (int i = 0; i < count; i++)
                 {
                     Vector2 local;
@@ -250,7 +279,7 @@ namespace DCFApixels.WhimTex
                         local = new Vector2(i == 0 || i == 3 ? -half.x : half.x, i < 2 ? -half.y : half.y);
                     else
                     {
-                        float a = Mathf.PI * .5f + i * Mathf.PI * 2f / count;
+                        float a = arc || sector ? (shape.startAngle + i * shape.sweepAngle / (count - 1)) * Mathf.Deg2Rad : Mathf.PI * .5f + i * Mathf.PI * 2f / count;
                         float radius = shape.kind == ShapeLayerBehaviour.ShapeKind.Star && i % 2 == 1 ? shape.innerRadius : 1f;
                         local = new Vector2(Mathf.Cos(a) * half.x, Mathf.Sin(a) * half.y) * radius;
                         if (shape.kind == ShapeLayerBehaviour.ShapeKind.Line)
@@ -265,9 +294,10 @@ namespace DCFApixels.WhimTex
                     Rect image = owner.toolkitCanvas.ImageRect;
                     p = owner.toolkitCanvas.ToView(new Vector2(image.x + p.x / dimensions.x * image.width,
                         image.yMax - p.y / dimensions.y * image.height));
-                    if (i == 0) painter.MoveTo(p); else painter.LineTo(p);
+                    if (i == 0 && !sector) painter.MoveTo(p); else painter.LineTo(p);
                 }
-                painter.ClosePath(); painter.Fill(); painter.Stroke();
+                if (!arc) { painter.ClosePath(); painter.Fill(); }
+                painter.Stroke();
             }
         }
     }

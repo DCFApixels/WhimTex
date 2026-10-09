@@ -204,7 +204,9 @@ UI 与代理仍可读取诊断。详见[诊断规则](../ShaderFX.md#shader-fx-a
 
 ### Levels、对比度与色彩平衡
 
-**Color → Levels** 的 **Curve** 在输入黑白点和 Gamma 之后、输出黑白点之前应用，默认为线性。启用 **Preserve Color** 时调整亮度，否则分别调整 RGB 通道。透明度保持不变。
+**Color → Levels** 提供五条曲线。在 **Curves** 标题栏选择 **RGB**、**R**、**G**、**B** 或 **Alpha** 进行编辑；所有已设置的曲线始终生效，默认均为线性。
+
+公共 **RGB** 曲线在输入黑白点和 Gamma 之后、输出黑白点之前应用。启用 **Preserve Color** 时调整亮度，否则分别调整 RGB 通道。随后 **R/G/B** 曲线分别校正各通道。中性曲线保留 HDR：超出 0–1 时加上最近端点的校正量，不截断超出的亮度。**Alpha** 独立调整透明度，不受输入/输出色阶和 Gamma 影响，结果限制在 0–1。**Opacity** 将包括 Alpha 在内的整个校正结果与原图混合。
 
 **Color → Brightness Contrast** 调整中间调亮度与色调对比。两个控件默认均为 **0**，表示不变。正 Contrast 拉开明暗色调，负值使其趋向中灰。滑块轨道覆盖 −100…100，但可通过数字输入或拖动标签超出两端。效果采用平滑色调曲线，而非统一 RGB 偏移：黑白端点和透明度保持不变，0–1 之外的 RGB 原样通过。计算在输入 RGB 空间中进行；它不是曝光控制，也不与其他应用逐像素一致。极端设置可能因浮点精度而丢失细节。
 
@@ -267,7 +269,7 @@ Thickness 为零时不绘制轮廓。
 较宽的轮廓需要更多渲染时间，尤其是 Scharr。
 
 ### 其他风格化效果
-- **Step** 分别对已启用的颜色通道进行阈值处理。Red、Green、Blue 默认启用，Alpha 默认关闭。选择 **Hard** 得到两级结果，或选择 **Smoothstep** 并用 **Hardness** 调整过渡柔和度。 **Apply To → Color** 使用 RGBA 分量控制各通道的效果强度，而非替换颜色：0 保留原通道，1 完整应用阈值效果。**Threshold** 则比较亮度（或 Alpha）与阈值，在两种颜色之间映射；可平滑边缘，并保留源 Alpha。
+- **Step** 分别对已启用的颜色通道进行阈值处理。Red、Green、Blue 默认启用，Alpha 默认关闭。选择 **Hard** 得到两级结果，或选择 **Smoothstep** 并用 **Hardness** 调整过渡柔和度。 **Apply To → Color** 使用 RGBA 分量控制各通道的效果强度，而非替换颜色：0 保留原通道，1 完整应用阈值效果。**Threshold** 将 **Source Channel → Luminance/R/G/B/Alpha** 与阈值比较，在 **Low Color** 和 **High Color** 之间映射 RGB。**Transition Width** 平滑边界，零表示硬阈值。即使选择 Alpha，也保留源 Alpha；输出颜色的 Alpha 不参与计算。
 - **Halftone** 将图像转换为单色、CMYK 或 RGB 网点屏幕。可设置网点大小与形状；CMYK/RGB 模式还提供屏幕角度以及手动或自动色版套准。
 - **Chromatic Aberration** 将红、蓝通道向相反方向偏移，可从某个点径向扩散或沿指定角度偏移。**Amount** 的单位是画布像素；绿色通道和 Alpha 保持不变。
 - **CRT** 组合边缘弯曲、扫描线、RGB 荧光条纹、暗角、色差、颗粒和闪烁。**VHS** 加入逐行抖动、色彩拖影、噪声和移动的跟踪带。**Seed** 改变确定性图案，**Effect Time** 选择其他帧。

@@ -1,10 +1,10 @@
 # Кандидаты на рефакторинг
 
 - Назначение: сохранить только предложения, уменьшающие обязательный контекст работы агента.
-- Статус: R05/R09 — предложения, не поручение; актуальность сверена по коду 2026-10-05.
-- Источники истины: файлы по ссылкам ниже; ограничения из [AGENTS.md](../AGENTS.md).
+- Статус: R05/R09, предложения, не поручение; актуальность сверена по коду 2026-10-05.
+- Источники истины: файлы по ссылкам ниже; ограничения из [AGENTS.md](../../AGENTS.md).
 
-## R05. Общие batch-правила → один исполнитель
+## R05. Общий batch-исполнитель
 
 Проблема: aliases, порядок операций, ответы и итоговые проверки повторяются между API-входами.
 Решение: расширить существующий `RunCommonOperations`, сохранив отдельные транзакции.
@@ -13,14 +13,14 @@ Dispatch `ApplyOperation` уже общий: новая операция не т
 
 ### Где и что изменить
 
-- [WhimTexApi.cs](../src/Automation/WhimTexApi.cs): probe/apply и разные бюджетные проверки.
-- [WhimTexApi.AssistantBatch.cs](../src/Automation/WhimTexApi.AssistantBatch.cs): `RunCommonOperations`.
-- [WhimTexApi.TiffLive.cs](../src/Automation/WhimTexApi.TiffLive.cs): `ReplayTiffLiveRequest`.
-- [WhimTexApi.Layers.cs](../src/Automation/WhimTexApi.Layers.cs): общий `ApplyOperation`.
+- [WhimTexApi.cs](../../src/Automation/WhimTexApi.cs): probe/apply и разные бюджетные проверки.
+- [WhimTexApi.AssistantBatch.cs](../../src/Automation/WhimTexApi.AssistantBatch.cs): `RunCommonOperations`.
+- [WhimTexApi.TiffLive.cs](../../src/Automation/WhimTexApi.TiffLive.cs): `ReplayTiffLiveRequest`.
+- [WhimTexApi.Layers.cs](../../src/Automation/WhimTexApi.Layers.cs): общий `ApplyOperation`.
 
 Один исполнитель может владеть aliases, порядком, индексом операции, сбором ответа и общими
 target/budget-проверками с явным document path. Сохранить сведения о фазе ошибки и частичный результат.
-Probe остаётся `execute:false`; копирование, Undo/rollback, Save и save failure — у конкретного workflow.
+Probe остаётся `execute:false`; копирование, Undo/rollback, Save и save failure остаются у конкретного workflow.
 Assistant обновляет transform hierarchy после каждой операции: это отличие сначала проверить на
 зависимых операциях, не убрать механически. TIFF replay сохраняет baseline и requestId/retry;
 working model заменяется только после успешной подготовки. Повтор запроса не повторяет adds/strokes.
@@ -34,7 +34,7 @@ working model заменяется только после успешной по
 aliases, зависимые операции, ошибка в середине, dry-run, rollback, requestId и save failure.
 Различия жизненных циклов должны остаться явными в тестах.
 
-## R09. Временное render state → небольшой scope
+## R09. Scope временного render state
 
 Проблема: несколько путей вручную сохраняют и восстанавливают поля композиции/GPU state в `finally`.
 Решение: маленький scope для повторяющегося контракта восстановления, без allocations на горячем пути.
@@ -43,12 +43,12 @@ aliases, зависимые операции, ошибка в середине, 
 
 ### Где и что изменить
 
-- [RenderCanvasWithCache](../src/WhimTexDocument.EffectCache.cs): cache, quality, `publishingLayerPreview`.
-- [RenderLayerThumbnail](../src/WhimTexDocument.Thumbnails.cs), [PickLayerAtPixel](../src/WhimTexDocument.LayerPicking.cs): cache, quality, diagnostics, `RenderTexture.active`.
-- [RasterizeFXPrefix](../src/WhimTexDocument.ApplyFX.cs): свой save/restore cache и quality.
-- [RenderCanvasCore](../src/WhimTexDocument.cs): отдельное владение созданным cache и temporary output.
+- [RenderCanvasWithCache](../../src/WhimTexDocument.EffectCache.cs): cache, quality, `publishingLayerPreview`.
+- [RenderLayerThumbnail](../../src/WhimTexDocument.Thumbnails.cs), [PickLayerAtPixel](../../src/WhimTexDocument.LayerPicking.cs): cache, quality, diagnostics, `RenderTexture.active`.
+- [RasterizeFXPrefix](../../src/WhimTexDocument.ApplyFX.cs): свой save/restore cache и quality.
+- [RenderCanvasCore](../../src/WhimTexDocument.cs): отдельное владение созданным cache и temporary output.
 
-Подключать только подходящие entry points, не унифицировать их настройки. `lastLayerPreview*` —
+Подключать только подходящие entry points, не унифицировать их настройки. `lastLayerPreview*` хранит
 опубликованный результат успешного рендера, не временные поля вроде `publishingLayerPreview`.
 Scope восстанавливает state, но не уничтожает borrowed cache или возвращённую текстуру.
 Владение temporary/persistent ресурсами остаётся у caller. Nested calls и исключения проверяются отдельно.
@@ -64,9 +64,9 @@ Scope восстанавливает state, но не уничтожает borro
 
 ## Общие ограничения
 
-Запуск — через [RUNNING_TESTS.md](../Tests~/RUNNING_TESTS.md), после чтения выбранных исходников
+Запускать через [RUNNING_TESTS.md](../../Tests~/RUNNING_TESTS.md), после чтения выбранных исходников
 и проверки разрешений. Файловая/API-совместимость с прежними версиями, включая 0.13.0,
-не обязательна; правило — в [AGENTS.md](../AGENTS.md#identity-and-compatibility). Сохранить корректность
+не обязательна; правило описано в [AGENTS.md](../../AGENTS.md#identity-and-compatibility). Сохранить корректность
 текущего Save/reopen, Undo, source resolution, группы, Target, clipping, appearance и texture ownership,
 если их изменение не входит в запрос. Версионные тесты обновлять или удалять вместе со снятым контрактом,
 не подменяя старые эталоны ради PASS.
@@ -75,7 +75,7 @@ Scope восстанавливает state, но не уничтожает borro
 
 R01–R04 завершены; R14 завершён переносом тестов на общий API/каталог и удалением Legacy.
 Это не основания повторять работы или считать старый PASS проверкой будущего изменения.
-Предпочтительный порядок при новом запросе — R05, затем ограниченный R09.
+Предложенный порядок при новом запросе: R05, затем ограниченный R09.
 
 ## История
 

@@ -771,32 +771,54 @@ and `shapeKinds`; `inspect` includes all parameters. One layer contains one edit
 
 | Setting | Values |
 | :--- | :--- |
-| `kind` | Rectangle (default), Ellipse, Polygon, Star, Line |
+| `kind` | Rectangle (default), Ellipse, Polygon, Star, Line, Arc, Sector |
 | `fill`, `fillColor` | Boolean (default true), RGBA color (default white) |
 | `stroke`, `strokeColor` | Boolean (default false), RGBA color (default black) |
-| `strokeWidth` | 0–8192 canvas pixels, inside the edge; default 2 |
+| `strokeWidth` | 0–8192 canvas pixels; default 2; outline width, independent of body thickness |
+| `arcThickness` | 0–8192 canvas pixels; default 8; Arc body thickness; Transform sets the centerline ellipse |
+| `strokePosition` | Inside (default), Center, Outside; relative to the body contour, including Arc |
+| `lineCap` | Butt, Round (default), Square; Line and Arc |
+| `edgeMode` | Antialiased (default), Step; Step ignores Feather and evaluates binary geometric coverage after Transform on the canvas pixel grid |
 | `feather` | 0–8192 canvas pixels; total soft transition width; default 0 keeps the original antialiasing |
 | `featherPosition` | Inside, Outside, Centered (default); fades inward, outward or equally across the contour, including both boundaries of a hollow stroke |
-| `roundness` | 0–1 uniform rectangle rounding shortcut; setting it assigns all four corners |
-| `cornerRoundness` | Four 0–1 values, clockwise from top-left: TL, TR, BR, BL. Radius relative to the shorter half-extent |
-| `linkCorners` | Boolean, default true; enables proportional corner edits in Properties |
+| `rectangleCorners` | Four `{style:"Round"\|"Bevel",amount:0..1}` objects: TL, TR, BR, BL in local orientation |
+| `polygonCorners` | One corner object per vertex; count must equal `sides`; first vertex points up, subsequent vertices follow counterclockwise |
+| `outerCorner`, `innerCorner` | Independent Star/Sector groups, each with its own style and amount. Sector's Inner is the center corner; Outer covers both arc joins. Unused for Sector at Sweep 360 |
+| `linkCorners` | Boolean, default true; links rectangle/polygon amounts, never styles |
 | `sides` | 3–32 polygon sides / star points; default 5 |
 | `innerRadius` | 0.01–1 star inner/outer radius ratio; default 0.5 |
+| `startAngle`, `sweepAngle` | Arc/Sector degrees: start -360000..360000 (default 0), sweep 0..360 (default 90); zero points right, positive turns counterclockwise |
 
-API corner assignments are exact, regardless of `linkCorners`; when both rounding keys are present,
-`cornerRoundness` overrides `roundness`. Inspect reports the resolved corners and the top-left value
-as the scalar shortcut. UI displays rounding as 0–100%; API uses 0–1.
+UI displays corner amounts as 0–100%; data/API uses 0–1. Zero keeps a sharp corner.
+For Rectangle, amount scales the shorter full side: an independent corner can exceed 50%, up to the
+whole side if its neighbours leave enough room. Polygon/Star use the shorter transformed half-extent.
+Round uses a circular fillet radius and Bevel uses the distance trimmed along each adjacent edge. Sector uses this fraction
+of its normalized half-radius; its round joins follow the ellipse transform.
+Limits use actual consumed edge lengths. A direct C# `SetCorner(index, value, halfSize)` or independent UI
+edit gives that corner/group priority, reduces stored neighbours and then clamps the active amount.
+For Star/Sector, index 0 is Outer and index 1 is Inner. Sector groups have separate styles and share the radial edge budget;
+at Sweep 180 there is no center corner to round, and at Sweep 360 neither group changes the full ellipse.
+Reducing it does not restore neighbours. Linked edits preserve ratios (editing a zero corner adds
+the same amount to all), while style changes remain independent. Geometry changes and API assignments
+restrict the whole affected set proportionally. Inspect reports the resulting stored values.
+The former `roundness`/`cornerRoundness` keys are not accepted.
 
 New shapes are centered with transform scale `[0.5,0.5]`. The untransformed bounds cover
 the canvas: a 100×40 figure in a 512×256 document uses scale `[0.1953125,0.15625]`.
-Set position/rotation with the existing `transform` operation. Line is a capsule whose
-length and thickness are its transformed width and height. Stroke width stays in canvas pixels.
+Set position/rotation with the existing `transform` operation. Line's endpoints span its transformed
+width; transformed height sets its body thickness. Round/Square caps extend by half the thickness.
+Arc has a body controlled by `arcThickness`, with the same independent Fill and Stroke controls
+as Line. Its outline follows both sides and its caps; `strokeWidth` does not change body thickness.
+Zero arc thickness or Sweep 0 is empty; Sweep 360 closes the arc into a ring without end caps,
+or makes Sector a full ellipse. Arc thickness and stroke width stay in canvas pixels when resizing.
 Colors follow the existing encoded-color contract; set layer color/blend ranges to HDR when needed.
 Inactive type-specific settings are retained when `kind` changes. SVG import/export is not implied.
 
 Feather uses the procedural contour distance, not a blur pass. At large widths, thin strokes and
 small shapes can become faint or disappear with Inside/Centered. Outside can expand into nearby
 gaps. Feather is applied before layer FX, opacity and compositing; colors retain their RGB/HDR values.
+Step only makes geometric coverage binary: color alpha, opacity, FX and later sampling retain their
+normal behavior. With opaque colors and no subsequent softening, full-resolution source alpha is 0/1.
 
 ```json
 {"op":"add","type":"shape","as":"badge","settings":{"shape":{

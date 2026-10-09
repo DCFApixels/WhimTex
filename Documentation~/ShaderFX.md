@@ -375,6 +375,16 @@ A cached linear RFloat 512×2 LUT is rebuilt only when curve data changes, witho
 the shader. GPU sampling is bilinear: very narrow details and step transitions are approximate
 at this resolution. Copies own independent curves; documents preserve keys and tangents.
 
+Built-in Levels declares `_Curve` (shared RGB) and `_RedCurve`, `_GreenCurve`, `_BlueCurve`,
+`_AlphaCurve`. `_CurveChannel` only selects the editor field; every curve remains active and
+serialized. The shared curve runs after input normalization/Gamma, before output levels;
+`_PreserveColor` chooses luminance versus independent RGB. Individual RGB curves then apply
+`value + curve(saturate(value)) - saturate(value)`, preserving HDR excess beyond 0–1.
+Alpha uses its own curve, clamped to 0–1, without the shared levels/Gamma. `_Opacity` blends RGBA.
+Built-in Threshold uses `_SourceChannel`: Luminance=0, R=1, G=2, B=3, Alpha=4.
+The source value is not clamped; `_Smooth` is the half-width of the smoothstep interval around
+`_Threshold`, or a hard step when zero. Low/high colors affect RGB only; source alpha is preserved.
+
 **Save Preset…** writes the current curve as an optional default:
 
 ```hlsl

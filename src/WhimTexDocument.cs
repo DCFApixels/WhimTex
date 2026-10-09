@@ -544,7 +544,18 @@ namespace DCFApixels.WhimTex
             layers ??= new List<Layer>();
             HashSet<string> usedIds = new HashSet<string>();
             NormalizeLayers(layers, usedIds);
+            RefreshTransformHierarchy();
+            NormalizeShapeCorners(layers);
             SynchronizeNextAutomaticNumbers();
+        }
+
+        private void NormalizeShapeCorners(List<Layer> list)
+        {
+            foreach (var layer in list)
+            {
+                if (layer?.Behaviour is ShapeLayerBehaviour shape) shape.NormalizeCorners(shape.GeometryHalfSize(this));
+                if (layer?.IsGroup == true) NormalizeShapeCorners(layer.children);
+            }
         }
 
         internal void MarkChanged()

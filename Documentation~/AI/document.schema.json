@@ -3276,7 +3276,9 @@
             "Ellipse",
             "Polygon",
             "Star",
-            "Line"
+            "Line",
+            "Arc",
+            "Sector"
           ]
         },
         "fillColor": {
@@ -3310,6 +3312,34 @@
           "minimum": -3.40282347E+38,
           "maximum": 3.40282347E+38
         },
+        "arcThickness": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "strokePosition": {
+          "type": "string",
+          "enum": [
+            "Inside",
+            "Center",
+            "Outside"
+          ]
+        },
+        "lineCap": {
+          "type": "string",
+          "enum": [
+            "Butt",
+            "Round",
+            "Square"
+          ]
+        },
+        "edgeMode": {
+          "type": "string",
+          "enum": [
+            "Antialiased",
+            "Step"
+          ]
+        },
         "feather": {
           "type": "number",
           "minimum": -3.40282347E+38,
@@ -3323,15 +3353,27 @@
             "Centered"
           ]
         },
-        "cornerRoundness": {
+        "rectangleCorners": {
           "type": "array",
-          "minItems": 2,
+          "minItems": 4,
           "maxItems": 4,
           "items": {
-            "type": "number",
-            "minimum": -3.40282347E+38,
-            "maximum": 3.40282347E+38
+            "$ref": "#/$defs/ShapeLayerBehaviour+Corner"
           }
+        },
+        "polygonCorners": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/ShapeLayerBehaviour+Corner"
+          }
+        },
+        "outerCorner": {
+          "$ref": "#/$defs/ShapeLayerBehaviour+Corner"
+        },
+        "innerCorner": {
+          "$ref": "#/$defs/ShapeLayerBehaviour+Corner"
         },
         "linkCorners": {
           "type": "boolean"
@@ -3346,11 +3388,42 @@
           "minimum": -3.40282347E+38,
           "maximum": 3.40282347E+38
         },
+        "startAngle": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "sweepAngle": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
         "recoveryId": {
           "type": [
             "string",
             "null"
           ]
+        }
+      }
+    },
+    "ShapeLayerBehaviour+Corner": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShapeLayerBehaviour+Corner"
+        },
+        "style": {
+          "type": "string",
+          "enum": [
+            "Round",
+            "Bevel"
+          ]
+        },
+        "amount": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     },

@@ -36,7 +36,7 @@ public static class RemainingLegacyCleanupTests
         const string explicitAxes = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[" +
             "{\"id\":\"noise\",\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\",\"scale\":23,\"scaleY\":23,\"warpScale\":3,\"warpScaleY\":3}}," +
             "{\"id\":\"pattern\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"pattern\":{\"size\":37,\"sizeY\":37}}}," +
-            "{\"id\":\"shape\",\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\",\"cornerRoundness\":[0.4,0.2,0.4,0]}}]}";
+            "{\"id\":\"shape\",\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\",\"rectangleCorners\":[{\"amount\":0.4},{\"amount\":0.2},{\"amount\":0.4},{}]}}]}";
         using (var read = WhimTexDocumentJson.Read(explicitAxes, false))
         {
             var noise = (NoiseLayerBehaviour)read.Document.layers[0].Behaviour;
@@ -44,17 +44,19 @@ public static class RemainingLegacyCleanupTests
             var shape = (ShapeLayerBehaviour)read.Document.layers[2].Behaviour;
             Check(noise.scaleY == 23 && noise.warpScaleY == 3, "Explicit Noise axes retained");
             Check(pattern.sizeY == 37, "Explicit Pattern axis retained");
-            Check(shape.cornerRoundness == new Vector4(.4f, .2f, .4f, 0), "Explicit corners retained");
+            Check(shape.rectangleCorners[0].amount == .4f && shape.rectangleCorners[1].amount == .2f &&
+                shape.rectangleCorners[2].amount == .4f && shape.rectangleCorners[3].amount == 0, "Explicit corners retained");
             foreach (WhimTexJsonWriteMode mode in Enum.GetValues(typeof(WhimTexJsonWriteMode)))
             {
                 var written = WhimTexDocumentJson.Write(read.Document, new WhimTexJsonWriteOptions { Mode = mode });
                 using var again = WhimTexDocumentJson.Read(written.Json, false);
                 Check(((NoiseLayerBehaviour)again.Document.layers[0].Behaviour).Scale == noise.Scale, "Explicit axes roundtrip " + mode);
-                Check(((ShapeLayerBehaviour)again.Document.layers[2].Behaviour).cornerRoundness == shape.cornerRoundness, "Explicit corners roundtrip " + mode);
+                var corners = ((ShapeLayerBehaviour)again.Document.layers[2].Behaviour).rectangleCorners;
+                for (int i = 0; i < 4; i++) Check(corners[i].Equals(shape.rectangleCorners[i]), "Explicit corners roundtrip " + mode);
             }
         }
         Check(new NoiseLayerBehaviour().scaleY == 8 && new NoiseLayerBehaviour().warpScaleY == 1, "New Noise explicit defaults");
-        Check(new FillPatternSettings().sizeY == 64 && new ShapeLayerBehaviour().cornerRoundness == Vector4.zero, "New Pattern/Shape explicit defaults");
+        Check(new FillPatternSettings().sizeY == 64 && new ShapeLayerBehaviour().rectangleCorners[0].amount == 0, "New Pattern/Shape explicit defaults");
 
         using (var omitted = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[" +
             "{\"id\":\"n\",\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\",\"scale\":23,\"warpScale\":3}}," +

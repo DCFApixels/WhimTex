@@ -26,7 +26,7 @@ Use **+** at the bottom of Layers to choose a type:
 | Color Fill | A solid color, UV coordinates or a geometric distance-field pattern. |
 | Gradient | A smooth color transition. |
 | Noise | A generated pattern. See [Noise](noise.md). |
-| Shape | An editable rectangle, ellipse, polygon, star or line. |
+| Shape | An editable rectangle, ellipse, polygon, star, line, arc or sector. |
 
 You can also drag a Project texture onto Canvas View to add it at the top,
 or drop it between rows to choose its position. A newly assigned image keeps its original proportions.
@@ -142,17 +142,32 @@ Hold `Shift` for equal proportions or a line angle in 45° steps; `Ctrl` bypasse
 Press `Escape` before releasing to cancel.
 
 Use **Transform** to move, resize or rotate an existing figure. In **Properties (Shape)**,
-change its type, fill and stroke colors, rectangle roundness, polygon sides or star points and inner radius.
-For a rectangle, **Roundness (%)** has four fields around a square, one per corner.
-The chain links proportional changes; the crossed-out chain lets you edit each corner independently.
-Linking keeps existing values. Linked changes stop when a corner reaches 100%; editing a zero corner
-adds the same amount to all four. The diagram shows the shape before its Transform rotation.
-The stroke sits inside the edge, and its width is measured in canvas pixels.
+change its type, colors, polygon sides or star points and inner radius.
+
+- **Corners (%)** shows a shape diagram with amount fields at the corners. Zero keeps a sharp corner.
+  The icon beside each field selects **Round** or **Bevel**. For polygons with more than eight vertices, click a vertex on the diagram to edit it.
+  Rectangle has four independent corners, each up to 100% of the shorter side when its neighbours leave enough room.
+  Polygon has one setting per vertex; Star and Sector have separate Outer and Inner groups.
+  For Sector, Inner controls the center corner and Outer controls both joins to the arc.
+  The chain button scales rectangle/polygon amounts proportionally, without linking styles.
+  Growing an independent corner reduces adjacent sizes when they no longer fit. Reducing it later does not restore them.
+  Linked edits and geometry changes reduce sizes proportionally to fit the available edges.
+- **Stroke Position** chooses Inside, Center or Outside. Stroke width is in canvas pixels and stays fixed when resizing.
+- **Line Caps** chooses Butt, Round or Square for Line and Arc. Transform controls Line's length and thickness.
+  Round/Square caps extend beyond the endpoints.
+- **Thickness (px)** sets Arc's body thickness; Transform controls its centerline ellipse.
+  **Fill** colors the body, and **Stroke** adds an independent outline, including around the ends.
+  **Stroke Width** and **Stroke Position** control that outline, not the body's thickness.
+- **Start Angle** and **Sweep Angle** set Arc/Sector's range: zero degrees points right, increasing angles turn counterclockwise.
+  Sweep 0 is empty; 360 produces a full ring or ellipse.
+
 **Feather (px)** softens the contour without blurring the whole image. **Feather Position**
 selects Inside, Outside or Centered; it also affects both edges of a hollow stroke.
 The value is the total transition width in canvas pixels. Zero keeps the original edge.
 Wide Inside/Centered feather can fade away thin strokes or small details; Outside expands into gaps.
-For a line, adjust its length and thickness with Transform.
+**Edge Mode → Step** disables antialiasing and Feather for a hard pixel-art silhouette on the canvas grid,
+even after moving or rotating the figure. Use opaque Fill/Stroke colors for binary source alpha;
+color alpha, layer opacity, FX and later filtering can still soften the final image.
 You can also create a centered shape through **+ → Shape**.
 
 A Shape stays editable: it works with clipping masks, blending and FX, just like other layers.

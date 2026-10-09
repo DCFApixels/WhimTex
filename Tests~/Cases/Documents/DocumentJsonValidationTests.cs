@@ -59,8 +59,11 @@ public static class DocumentJsonValidationTests
         }
         foreach (string components in new[] { "[0.1,0.2]", "[0.1,0.2,0.3]" })
         {
-            using var read = WhimTexDocumentJson.Read(Doc(layers: Layer("{\"$type\":\"ShapeLayerBehaviour\",\"cornerRoundness\":" + components + "}")), false);
-            var vector = ((ShapeLayerBehaviour)read.Document.layers[0].Behaviour).cornerRoundness;
+            using var read = WhimTexDocumentJson.Read(Doc(layers: Layer("{\"$type\":\"ColorFillLayerBehaviour\"}",
+                ",\"fx\":[{\"$type\":\"ShaderFX\",\"parameters\":[{\"type\":\"Vector\",\"vectorValue\":" + components + "}]}]")), false);
+            var parameters = (System.Collections.Generic.List<ShaderFXParameter>)typeof(ShaderFX)
+                .GetField("parameters", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(read.Document.layers[0].fx[0]);
+            var vector = parameters[0].vectorValue;
             Check(vector == new UnityEngine.Vector4(.1f, .2f, components.Contains("0.3") ? .3f : 0f, 0f), "Vector2/3 expands to Vector4.");
         }
         Reject(Doc(layers: Layer("{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[1,0,0]}")), "storedColor");
