@@ -126,6 +126,7 @@
       "reference-fixtures"
     ],
     "verify": [
+      "halftone",
       "text-layer",
       "text-layer-ui",
       "text-tool",
@@ -624,6 +625,7 @@
       "reference-fixtures"
     ],
     "regressions": [
+      "halftone",
       "text-layer",
       "text-layer-ui",
       "text-tool",
@@ -1325,6 +1327,7 @@
       "scoped-undo-v2"
     ],
     "fx": [
+      "halftone",
       "gaussian-kernel-math-v2",
       "blur-and-noise1-d-v2",
       "branchless-fx-v2",
@@ -1826,6 +1829,23 @@
     ]
   },
   "scenarios": [
+    {
+      "id": "halftone",
+      "file": "Tests~/Cases/FX/HalftoneTests.cs",
+      "runner": "run_script",
+      "entry": "HalftoneTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["regression", "shader-fx", "fx"],
+      "prerequisites": "Idle matching graphical Unity Editor with current WhimTex and an available graphics device.",
+      "setup": "Owned in-memory document, FX, float input/readback textures and temporary render target; no asset imports or open-document changes.",
+      "teardown": "Finally restores RenderTexture.active and GL.sRGBWrite and destroys only owned objects and the temporary render target.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
     {
       "id": "text-layer",
       "file": "Tests~/Cases/Layers/TextLayerTests.cs",

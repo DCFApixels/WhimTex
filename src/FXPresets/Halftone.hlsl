@@ -3,6 +3,7 @@
 // @param hidden enum _Mode = 1 {Monochrome: 0, CMYKTriangle: 2, CMYKSquare: 3, CMYKManual: 1, RGBTriangle: 4, RGBManual: 5}
 // @param float _DotSize = 8 [1 .. ~64] // Screen-cell size in canvas pixels.
 // @param enum _DotShape = 0 {Round: 0, Square: 1, Line: 2} // Round and square dots, or a line screen.
+// @param bool _FixedShape = false // Sample one color per screen cell to keep dots and lines undeformed; screen angles and plate registration are respected.
 // @param float _InkDensity = 1 [0 .. ~2] // Overall ink amount; values above 1 deepen the darkest tones.
 // @if _Mode == 0
 // @header(Monochrome Screen)
@@ -75,13 +76,26 @@ float HalftoneCircleCoverage(float radius)
     return radiusSq * (3.14159265 - 4.0 * cornerAngle) + 2.0 * cornerReach;
 }
 
-float HalftonePatternThreshold(float2 pixel, float angleDegrees)
+float2 HalftoneRotate(float2 pixel, float angleDegrees)
 {
     float angle = radians(angleDegrees);
     float sine, cosine;
     sincos(angle, sine, cosine);
-    float2 screen = float2(cosine * pixel.x - sine * pixel.y,
-                           sine * pixel.x + cosine * pixel.y) / max(_DotSize, 1.0);
+    return float2(cosine * pixel.x - sine * pixel.y,
+                  sine * pixel.x + cosine * pixel.y);
+}
+
+float2 HalftoneCellCenter(float2 pixel, float angleDegrees)
+{
+    float size = max(_DotSize, 1.0);
+    float2 screen = HalftoneRotate(pixel, angleDegrees) / size;
+    float2 center = (floor(screen) + 0.5) * size;
+    return HalftoneRotate(center, -angleDegrees);
+}
+
+float HalftonePatternThreshold(float2 pixel, float angleDegrees)
+{
+    float2 screen = HalftoneRotate(pixel, angleDegrees) / max(_DotSize, 1.0);
     float2 cell = frac(screen) - 0.5;
 
     if (_DotShape < 0.5)
@@ -105,13 +119,20 @@ float HalftoneScreen(float2 pixel, float angleDegrees, float inkAmount)
     return 1.0 - smoothstep(inkAmount - edge, inkAmount + edge, threshold);
 }
 
-float3 SampleRegisteredPlate(float2 uv, float2 offsetPixels, float4 fallbackColor)
+float3 SampleRegisteredPlate(float2 uv, float2 offsetPixels, float angleDegrees, float4 fallbackColor, out float2 patternPixel)
 {
+    patternPixel = uv * _CanvasSize.xy;
     float3 sampledColor = fallbackColor.rgb;
-    if (any(abs(offsetPixels) > 1e-5))
+    if (_FixedShape > 0.5 || any(abs(offsetPixels) > 1e-5))
     {
         float2 halfTexel = 0.5 * _CanvasSize.zw;
         float2 sampleUV = uv - offsetPixels * _CanvasSize.zw;
+        if (_FixedShape > 0.5)
+        {
+            // Register the whole plate, then quantize in its rotated screen space.
+            patternPixel -= offsetPixels;
+            sampleUV = HalftoneCellCenter(patternPixel, angleDegrees) * _CanvasSize.zw;
+        }
         sampleUV = clamp(sampleUV, halfTexel, 1.0 - halfTexel);
         sampledColor = SampleInput(sampleUV).rgb;
     }
@@ -135,11 +156,12 @@ float4 ApplyFX(float2 uv, float4 color)
 {
     float4 result = color;
     float density = max(_InkDensity, 0.0);
-    float2 pixel = uv * _CanvasSize.xy;
 
     if (_Mode < 0.5)
     {
-        float luminance = saturate(dot(max(color.rgb, 0.0), float3(0.2126, 0.7152, 0.0722)));
+        float2 pixel;
+        float3 source = SampleRegisteredPlate(uv, 0.0, _Angle, color, pixel);
+        float luminance = saturate(dot(max(source, 0.0), float3(0.2126, 0.7152, 0.0722)));
         float invertPattern = step(0.5001, _InvertPattern);
         float inkAmount = lerp(1.0 - luminance, luminance, invertPattern);
         float dots = HalftoneScreen(pixel, _Angle, inkAmount * density);
@@ -175,13 +197,14 @@ float4 ApplyFX(float2 uv, float4 color)
             blueOffset = _BlueOffset;
         }
 
-        float red = SampleRegisteredPlate(uv, redOffset, color).r;
-        float green = SampleRegisteredPlate(uv, greenOffset, color).g;
-        float blue = SampleRegisteredPlate(uv, blueOffset, color).b;
+        float2 redPixel, greenPixel, bluePixel;
+        float red = SampleRegisteredPlate(uv, redOffset, _RedAngle, color, redPixel).r;
+        float green = SampleRegisteredPlate(uv, greenOffset, _GreenAngle, color, greenPixel).g;
+        float blue = SampleRegisteredPlate(uv, blueOffset, _BlueAngle, color, bluePixel).b;
         result.rgb = float3(
-            HalftoneScreen(pixel, _RedAngle, red * density),
-            HalftoneScreen(pixel, _GreenAngle, green * density),
-            HalftoneScreen(pixel, _BlueAngle, blue * density));
+            HalftoneScreen(redPixel, _RedAngle, red * density),
+            HalftoneScreen(greenPixel, _GreenAngle, green * density),
+            HalftoneScreen(bluePixel, _BlueAngle, blue * density));
     }
     else
     {
@@ -228,16 +251,17 @@ float4 ApplyFX(float2 uv, float4 color)
                                  sine * blackOffset.x + cosine * blackOffset.y);
         }
 
-        float3 cyanSource = RGBToCMY(SampleRegisteredPlate(uv, cyanOffset, color));
-        float3 magentaSource = RGBToCMY(SampleRegisteredPlate(uv, magentaOffset, color));
-        float3 yellowSource = RGBToCMY(SampleRegisteredPlate(uv, yellowOffset, color));
-        float3 blackRGB = saturate(SampleRegisteredPlate(uv, blackOffset, color));
+        float2 cyanPixel, magentaPixel, yellowPixel, blackPixel;
+        float3 cyanSource = RGBToCMY(SampleRegisteredPlate(uv, cyanOffset, _CyanAngle, color, cyanPixel));
+        float3 magentaSource = RGBToCMY(SampleRegisteredPlate(uv, magentaOffset, _MagentaAngle, color, magentaPixel));
+        float3 yellowSource = RGBToCMY(SampleRegisteredPlate(uv, yellowOffset, _YellowAngle, color, yellowPixel));
+        float3 blackRGB = saturate(SampleRegisteredPlate(uv, blackOffset, _BlackAngle, color, blackPixel));
         float sourceBlack = RGBToBlack(blackRGB);
 
-        float cyanDots = HalftoneScreen(pixel, _CyanAngle, cyanSource.x * density);
-        float magentaDots = HalftoneScreen(pixel, _MagentaAngle, magentaSource.y * density);
-        float yellowDots = HalftoneScreen(pixel, _YellowAngle, yellowSource.z * density);
-        float blackDots = HalftoneScreen(pixel, _BlackAngle, sourceBlack * density);
+        float cyanDots = HalftoneScreen(cyanPixel, _CyanAngle, cyanSource.x * density);
+        float magentaDots = HalftoneScreen(magentaPixel, _MagentaAngle, magentaSource.y * density);
+        float yellowDots = HalftoneScreen(yellowPixel, _YellowAngle, yellowSource.z * density);
+        float blackDots = HalftoneScreen(blackPixel, _BlackAngle, sourceBlack * density);
 
         result.rgb = _PaperColor.rgb * float3(
             (1.0 - cyanDots) * (1.0 - blackDots),

@@ -270,7 +270,7 @@ Thickness 为零时不绘制轮廓。
 
 ### 其他风格化效果
 - **Step** 分别对已启用的颜色通道进行阈值处理。Red、Green、Blue 默认启用，Alpha 默认关闭。选择 **Hard** 得到两级结果，或选择 **Smoothstep** 并用 **Hardness** 调整过渡柔和度。 **Apply To → Color** 使用 RGBA 分量控制各通道的效果强度，而非替换颜色：0 保留原通道，1 完整应用阈值效果。**Threshold** 将 **Source Channel → Luminance/R/G/B/Alpha** 与阈值比较，在 **Low Color** 和 **High Color** 之间映射 RGB。**Transition Width** 平滑边界，零表示硬阈值。即使选择 Alpha，也保留源 Alpha；输出颜色的 Alpha 不参与计算。
-- **Halftone** 将图像转换为单色、CMYK 或 RGB 网点屏幕。可设置网点大小与形状；CMYK/RGB 模式还提供屏幕角度以及手动或自动色版套准。
+- **Halftone** 将图像转换为单色、CMYK 或 RGB 网点屏幕。可设置网点大小与形状；CMYK/RGB 模式还提供屏幕角度以及手动或自动色版套准。启用 **Fixed Shape** 后，每个旋转网格单元只采样其中心的颜色，避免网点在颜色过渡处变形。此模式下，色版偏移会同时移动图像和网格；不同单元的网点大小仍可不同。
 - **Chromatic Aberration** 将红、蓝通道向相反方向偏移，可从某个点径向扩散或沿指定角度偏移。**Amount** 的单位是画布像素；绿色通道和 Alpha 保持不变。
 - **CRT** 组合边缘弯曲、扫描线、RGB 荧光条纹、暗角、色差、颗粒和闪烁。**VHS** 加入逐行抖动、色彩拖影、噪声和移动的跟踪带。**Seed** 改变确定性图案，**Effect Time** 选择其他帧。
 - **Digital Glitch** 组合行撕裂、按行或列独立分段的破损块、通道偏移、颜色/噪声/Alpha 瑕疵以及渐变着色。**Seed**、**Effect Time** 和 **Frame Rate** 控制可重复的动画变化；**Block Order** 选择先按行或先按列独立排布区块。
