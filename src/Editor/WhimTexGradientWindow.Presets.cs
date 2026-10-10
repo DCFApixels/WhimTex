@@ -30,9 +30,27 @@ namespace DCFApixels.WhimTex
         private void BuildPresets()
         {
             var section = BuildLibrarySection("Presets", "gradientPresets", PresetsExpandedKey);
+            var actions = new VisualElement();
+            actions.AddToClassList("whimtex-gradient-presets-actions");
+            var import = new Button(() => PresetAction(() =>
+            {
+                string path = EditorUtility.OpenFilePanel("Import Gradient Presets", "", "grd");
+                if (string.IsNullOrEmpty(path)) return;
+                var result = WhimTexGradientPresets.Import(path);
+                RefreshPresets();
+                if (result.warnings.Count > 0)
+                {
+                    presetWarning.text = string.Join("\n", result.warnings);
+                    presetWarning.EnableInClassList("whimtex-gradient-hidden", false);
+                    Debug.LogWarning("[WhimTex] GRD import: " + presetWarning.text, this);
+                }
+                ShowNotification(new GUIContent($"Imported {result.presets.Count} gradient presets."));
+            })) { text = "Import…", name = "gradientPresetsImport", tooltip = "Import a GRD gradient library" };
+            actions.Add(import);
             var refresh = new Button(RefreshPresets) { text = "↻", name = "gradientPresetsRefresh", tooltip = "Refresh gradient presets" };
             refresh.AddToClassList("whimtex-gradient-presets-refresh");
-            section.hierarchy.Add(refresh);
+            actions.Add(refresh);
+            section.hierarchy.Add(actions);
             var scroll = new ScrollView(ScrollViewMode.Vertical)
             {
                 verticalScrollerVisibility = ScrollerVisibility.Auto,

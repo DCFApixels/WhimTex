@@ -66,6 +66,11 @@ namespace DCFApixels.WhimTex
                 throw new ArgumentException("PSD output must be a writable, seekable stream.");
             if (width < 1 || height < 1 || width > 30000 || height > 30000)
                 throw new ArgumentOutOfRangeException(nameof(width), "PSD supports canvas dimensions from 1 to 30000 pixels.");
+            if (layers == null) throw new ArgumentNullException(nameof(layers));
+            if (merged == null) throw new ArgumentNullException(nameof(merged));
+            foreach (LayerRecord layer in layers)
+                if (layer == null || layer.section == 0 && layer.openPixels == null)
+                    throw new ArgumentException("Each pixel layer needs a pixel source.", nameof(layers));
             if (layers.Count > 32767)
                 throw new ArgumentException("PSD supports at most 32767 layer records, including folder dividers.");
 
@@ -154,7 +159,7 @@ namespace DCFApixels.WhimTex
                 w.U32(0);
             });
 
-            // Merged image uses the actual activeDocument result, including unsupported blend modes.
+            // Merged image uses the actual composition, including unsupported blend modes.
             w.U16(1);
             long table = w.Position;
             w.Zeros(checked(height * 4 * 2));

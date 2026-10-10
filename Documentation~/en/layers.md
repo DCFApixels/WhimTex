@@ -79,8 +79,10 @@ The Text tool header sets defaults for new text. It does not change existing lay
 Edit a layer's formatting in **Properties (Text)**; these changes do not affect the tool defaults.
 
 You can also choose **+ → Text** and edit **Properties (Text)** in Layer Settings.
-Use **Font** in the tool header or **…** in Layer Settings to search installed fonts and
-preview a sample. No font asset needs to be imported into Project. **Refresh** rescans fonts.
+Use **Font** in the tool header or Layer Settings to search installed fonts and preview a sample.
+The selected name and visible list entries preview their own fonts; unavailable fonts or names
+with unsupported characters use the normal UI font. The tool selector has a fixed width.
+No font asset needs to be imported into Project. **Refresh** rescans fonts.
 
 The creation gesture determines the layout; the tool header has no Layout selector.
 Frame Size, Wrapping, Overflow and Auto Size belong to the layer Properties, not the tool settings.

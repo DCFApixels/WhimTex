@@ -147,11 +147,11 @@ namespace DCFApixels.WhimTex
         {
             textToolSettings ??= new TextToolSettings();
             var row = CreateCanvasSettingsRow(); BindCanvasSettingsRow(row, CanvasTool.Text);
-            var font = new Button { name = "textToolFont", tooltip = "Choose a system font" };
+            var font = new SystemFontField("Font") { name = "textToolFont" };
             font.AddToClassList("whimtex-text-tool-font"); row.Add(font);
-            font.clicked += () => TextLayerEditorWindow.ChooseFont(font.worldBound, textToolSettings.ResolvedFont,
-                value => ChangeTextToolSettings(settings => settings.fontFamily = value));
-            toolkitHeaderBindings.Add(() => font.text = textToolSettings.ResolvedFont ?? "Font");
+            toolkitHeaderBindings.Track(font, () => textToolSettings.ResolvedFont ?? "");
+            toolkitHeaderBindings.Add(font.RefreshPreview);
+            font.RegisterValueChangedCallback(e => ChangeTextToolSettings(settings => settings.fontFamily = e.newValue));
             var size = new FloatField("Size") { name = "textToolSize" }; size.AddToClassList("whimtex-view-field"); row.Add(size);
             toolkitHeaderBindings.Track(size, () => textToolSettings.fontSize);
             size.RegisterValueChangedCallback(e => ChangeTextToolSettings(settings => settings.SetFontSize(e.newValue)));

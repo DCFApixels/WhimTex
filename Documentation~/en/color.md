@@ -166,6 +166,12 @@ listed newest first, immediately after **New**. The folder is
 chosen in User Settings; gradients use its **Gradients** subfolder. **↻** reloads the list.
 Deleted presets can be recovered from **Gradients/.trash**. Built-in Unity gradient preset libraries are not imported.
 
+Use **Import…** in Presets to read a `.grd` library. Imported gradients become independent user presets.
+Classic, Linear and Perceptual retain their corresponding mode, stops, midpoints and Smoothness.
+Missing or unrecognized interpolation uses **Perceptual**; missing or unrecognized Smoothness uses **100%**.
+Foreground/background stops become black/white. Noise gradients, unsupported color models and tracks
+over 64 stops are skipped with a warning; they are not silently replaced with a different gradient.
+
 **Paste** also accepts gradient JSON from an AI or another application. Copy a complete
 [gradient JSON value](../AI/README.md#standalone-gradient-json), then right-click the gradient field
 or the gradient strip in its editor and choose **Paste**.
@@ -175,6 +181,12 @@ retired fields and previous names are not migrated.
 
 ### Shape the gradient on canvas
 
+Choose **Gradient** beside **Fill**, pick a type and edit the gradient in the Canvas View header, then drag.
+Linear uses the drag's start and end; Radial, Angular, Diamond and Square use the start as their center.
+**Shift** constrains the angle to 45° increments, **Ctrl** disables snapping and **Escape** cancels.
+Each drag creates a separate editable Gradient layer; a click without dragging creates nothing.
+The creation settings do not change existing layers. Choose **Gradient Handles** to edit a created layer.
+
 Select a Gradient layer to activate **Gradient Handles**, the contextual hand tool. Square handles change its geometry;
 colored points move color keys. Click the line to add a key, or double-click a point to open WhimTex's
 Color Picker. Alpha keys remain in the gradient editor.
@@ -183,7 +195,7 @@ Delete a selected color key with Delete while the preview has focus, or drag it 
 At least one color key remains.
 Position, size and rotation are controlled by the layer transform; there are no separate Center or Radius settings.
 Radial, diamond and square gradients share position, scale and rotation controls. Angular (Circular) gradients have no
-canvas controls yet. Select a basic tool to hide the handles, or press Escape when not dragging to return to your last basic tool. The contextual hand button restores the handles. Selecting another Gradient layer activates them automatically.
+canvas controls yet. Select a basic tool to hide the handles, or press Escape when not dragging to return to your last basic tool. The contextual hand button restores the handles. Selecting another Gradient layer activates them automatically, except while the Gradient creation tool is active.
 
 New Color Fill, Gradient and Noise layers use **Unbounded** tiling by default.
 

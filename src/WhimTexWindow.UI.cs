@@ -290,6 +290,7 @@ namespace DCFApixels.WhimTex
             BuildAreaSelectionTools();
             BuildShapeTool();
             BuildTextTool();
+            BuildGradientCreationTool();
             BuildHealingOverlay();
             toolkitCanvas.RegisterCallback<PointerDownEvent>(OnCanvasPointerDown);
             toolkitCanvas.RegisterCallback<PointerMoveEvent>(OnCanvasPointerMove);
@@ -1554,6 +1555,7 @@ namespace DCFApixels.WhimTex
             AddCanvasZoomSettings();
             AddShapeSettings();
             AddTextSettings();
+            AddGradientCreationSettings();
             AddAreaSelectionSettings(CanvasTool.RectangleSelect);
             AddAreaSelectionSettings(CanvasTool.PolygonSelect);
 
@@ -1797,6 +1799,10 @@ namespace DCFApixels.WhimTex
                 else if (canvasTool == CanvasTool.Text)
                 {
                     toolkitCanvasViewFooter.text = "Click point text • Drag frame • Click text to edit • Ctrl+Enter finish • Esc cancel • Drag corners to reflow • Ctrl new text / no snapping";
+                }
+                else if (canvasTool == CanvasTool.Gradient)
+                {
+                    toolkitCanvasViewFooter.text = "Drag new gradient • Shift 45° • Ctrl no snapping • Esc cancel • Gradient Handles edits stops and endpoints";
                 }
                 else if (IsAreaSelectionTool)
                 {

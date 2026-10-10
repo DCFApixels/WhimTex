@@ -164,6 +164,12 @@ SDF 和 Noise 渐变默认使用 **Perceptual**。
 不导入 Unity 渐变预设库。
 新预设出现在列表开头，紧随 **New** 之后。
 
+点击 Presets 中的 **Import…** 可导入 `.grd` 库，生成独立的用户预设。
+Classic、Linear 和 Perceptual 保留对应模式、关键点、中点以及 Smoothness。
+缺失或无法识别的插值模式使用 **Perceptual**；缺失或无法识别的 Smoothness 使用 **100%**。
+foreground/background 关键点会变为黑色/白色。噪声渐变、不支持的颜色模型及超过 64 个关键点的轨道
+会跳过并给出警告，不会被静默替换为其他渐变。
+
 **Paste** 也接受 AI 或其他应用提供的渐变 JSON。复制完整的
 [渐变 JSON](../AI/README.md#standalone-gradient-json)，然后右键点击渐变字段或编辑器中的渐变色带，选择 **Paste**。
 
@@ -172,12 +178,18 @@ SDF 和 Noise 渐变默认使用 **Perceptual**。
 
 ### 在画布上调整渐变形状
 
+选择 **Fill** 旁的 **Gradient**，在 Canvas View 顶部选择类型并编辑渐变，然后拖动。
+Linear 以拖动位置为起点和终点；Radial、Angular、Diamond 和 Square 以起点为中心。
+**Shift** 将角度约束为 45° 步长，**Ctrl** 禁用吸附，**Escape** 取消创建。
+每次拖动创建一个独立可编辑的 Gradient 图层；单击不创建图层。
+工具设置不改变现有图层。选择 **Gradient Handles** 可编辑已创建的图层。
+
 选中 Gradient 图层后，会自动启用手形图标的上下文工具 **Gradient Handles**。方形控制柄调整几何形状，彩色点移动颜色关键点。
 点击连线可添加关键点；双击彩色点可直接打开 WhimTex Color Picker。透明度关键点仍在渐变编辑器中调整。
 拖动小菱形可移动颜色过渡的中点（Fixed 模式除外）。
 预览获得焦点时按 Delete 可删除所选颜色关键点，也可将其拖离连线后松开。至少保留一个颜色关键点。
 位置、大小和旋转均由图层变换控制，不再提供单独的 Center 和 Radius 设置。径向、菱形和方形渐变均支持移动、缩放和旋转。
-Circular 暂不提供画布控制柄。选择基本工具可隐藏控制柄；没有拖动时按 Escape 可返回上次的基本工具。点击上下文手形按钮可恢复控制柄；选中其他 Gradient 图层时会自动启用它们。
+Circular 暂不提供画布控制柄。选择基本工具可隐藏控制柄；没有拖动时按 Escape 可返回上次的基本工具。点击上下文手形按钮可恢复控制柄；选中其他 Gradient 图层时会自动启用它们，但 Gradient 创建工具保持当前工具。
 
 新建 Color Fill、Gradient 和 Noise 图层默认使用 **Unbounded** 平铺模式。
 

@@ -102,7 +102,8 @@ See the [JSON format reference](../JSON_FORMAT.md) for field rules and limits.
 
 PSD keeps the layer names, order, groups, visibility, opacity and supported blends.
 Compatible color fills, gradients and outlines remain editable.
-Other effects become pixels, and some blend modes can look different.
+Other effects become pixels. Unsupported active blending or stack processing produces a visible
+**Processed Result** with the original layers in a hidden **Source Layers** folder, preserving the result.
 
 Read the export notes in the Console if the result differs. Keep the original WhimTex document
 so you can still change all effects and their sources later.

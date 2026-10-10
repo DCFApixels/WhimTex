@@ -22,7 +22,9 @@
 .whimtex-gradient-hidden { display: none; }
 .whimtex-gradient-history .whimtex-picker-history-scroll { max-height: 56px; }
 
-.whimtex-gradient-presets-refresh { position: absolute; top: 2px; right: 2px; width: 24px; height: 18px; padding: 0; margin: 0; }
+.whimtex-gradient-presets-actions { position: absolute; top: 2px; right: 2px; flex-direction: row; }
+.whimtex-gradient-presets-actions > Button { height: 18px; margin: 0; margin-left: 4px; }
+.whimtex-gradient-presets-refresh { width: 24px; padding: 0; }
 .whimtex-gradient-presets-scroll { min-height: 52px; max-height: 132px; flex-grow: 1; }
 .whimtex-gradient-presets-grid { flex-direction: row; flex-wrap: wrap; }
 .whimtex-gradient-preset { width: 64px; height: 24px; margin: 3px; padding: 0; flex-shrink: 0; }

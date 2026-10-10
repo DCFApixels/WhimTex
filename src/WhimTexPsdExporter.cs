@@ -11,6 +11,8 @@ namespace DCFApixels.WhimTex
         public int groupCount { get; internal set; }
         public int editableFillCount { get; internal set; }
         public int editableOutlineCount { get; internal set; }
+        public int rasterizedLayerCount { get; internal set; }
+        public bool usesBakedComposite { get; internal set; }
         private readonly List<string> messages = new List<string>();
         public IReadOnlyList<string> notes => messages;
         internal void Note(Layer layer, string message) => messages.Add((layer.layerName ?? "Unnamed") + ": " + message);
@@ -36,10 +38,9 @@ namespace DCFApixels.WhimTex
             var report = new PsdExportReport();
             var records = new List<PsdWriter.LayerRecord>();
             Collect(document, document.layers, records, report, new HashSet<Layer>(), new HashSet<uint>());
-            Layer processor = FindProcessor(document.layers);
-            if (processor != null)
+            Layer fallback = FindCompositeFallback(document.layers, out string fallbackReason);
+            if (fallback != null)
             {
-                // A stack processor is not an independent source-over layer in this format.
                 // Retain editable sources in a hidden folder and show one faithful composite.
                 records.Insert(0, new PsdWriter.LayerRecord { name = "</Group>", section = 3, visible = false });
                 records.Add(new PsdWriter.LayerRecord { name = "Source Layers", section = 1, visible = false,
@@ -48,7 +49,8 @@ namespace DCFApixels.WhimTex
                     blend = "norm", openPixels = () => new Pixels(document.RenderPsdPixels(null), document.width, document.height) });
                 report.groupCount++;
                 report.layerCount++;
-                report.Note(processor, "Stack processing is baked into Processed Result. Original layers and folders are preserved in the hidden Source Layers folder.");
+                report.usesBakedComposite = true;
+                report.Note(fallback, fallbackReason + " The visible Processed Result preserves the composition; original layers and folders remain in the hidden Source Layers folder.");
             }
             if (records.Count > 32767) throw new InvalidOperationException("There are too many layers and folder dividers for PSD.");
             // A transparency-bearing layer record also identifies the merged alpha in an empty document.
@@ -85,15 +87,29 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static Layer FindProcessor(List<Layer> layers)
+        private static Layer FindCompositeFallback(List<Layer> layers, out string reason)
         {
+            reason = null;
             if (layers == null) return null;
             foreach (Layer layer in layers)
             {
-                if (layer?.Behaviour is ShaderProcessorLayerBehaviour) return layer;
+                if (layer == null || !layer.enabled || layer.Behaviour == null ||
+                    (layer.IsGroup ? layer.EffectiveBlendMode : layer.blendMode) == BlendMode.None) continue;
+                if (layer.Behaviour is ShaderProcessorLayerBehaviour)
+                {
+                    reason = "Stack processing cannot be represented as an independent PSD layer.";
+                    return layer;
+                }
+                BlendKey(layer.IsGroup ? layer.EffectiveBlendMode : layer.blendMode, out bool approximate);
+                if (approximate || layer.blendRange == LayerBlendRange.HDR)
+                {
+                    reason = "The layer's blending has no faithful 8-bit PSD equivalent.";
+                    return layer;
+                }
                 if (layer?.AsGroup() is Layer group)
                 {
-                    Layer found = FindProcessor(group.layers);
+                    if (group.HasFx || !group.channelMapping.IsIdentity) continue;
+                    Layer found = FindCompositeFallback(group.layers, out reason);
                     if (found != null) return found;
                 }
             }
@@ -156,7 +172,7 @@ namespace DCFApixels.WhimTex
                 if (approximate) report.Note(layer, layer.blendMode + " is approximated by " + record.blend + "; the merged image retains the original result.");
                 if (layer.blendMode == BlendMode.None) report.Note(layer, "No-op blend is represented by a hidden layer.");
 
-                bool requiresRasterization = HasFx(layer) || !layer.channelMapping.IsIdentity;
+                bool requiresRasterization = layer.HasFx || !layer.channelMapping.IsIdentity;
                 if (!layer.channelMapping.IsIdentity) report.Note(layer, "Mapping is baked into the layer pixels.");
                 if (layer?.Behaviour is ColorFillLayerBehaviour fill && fill.mode == ColorFillLayerBehaviour.FillMode.Color && !requiresRasterization)
                 {
@@ -166,10 +182,10 @@ namespace DCFApixels.WhimTex
                     record.openPixels = () => new Pixels(document.RenderPsdPixels(layer), document.width, document.height, alphaAsMask: true);
                     report.editableFillCount++;
                 }
-                else if (layer?.Behaviour is GradientLayerBehaviour gradient && CanExportGradient(gradient, requiresRasterization))
+                else if (layer?.Behaviour is GradientLayerBehaviour gradient && CanExportGradient(gradient, requiresRasterization, document.width, document.height))
                 {
                     record.adjustment = true;
-                    record.mask = gradient.transform.tiling == TransformTilingMode.Clip;
+                    record.mask = gradient.Owner.CanvasTransform.tiling == TransformTilingMode.Clip;
                     Add(record, "GdFl", Gradient(gradient, document.width, document.height));
                     record.openPixels = () => GradientPixels(document, gradient, record.mask);
                     report.editableFillCount++;
@@ -185,19 +201,16 @@ namespace DCFApixels.WhimTex
                     report.editableOutlineCount++;
                     report.Note(layer, "Editable stroke on a snapshot of the target alpha, with Fill 0%. Target linkage, distance metric and softness are not retained.");
                 }
-                else if (!(layer?.Behaviour is DrawingLayerBehaviour) && !(layer?.Behaviour is FileLayerBehaviour))
-                    report.Note(layer, "Rasterized with its transform and FX; no compatible editable representation for these settings.");
-                else if (HasFx(layer))
-                    report.Note(layer, "Shader/Material FX are baked into the layer pixels.");
+                else
+                {
+                    report.rasterizedLayerCount++;
+                    if (!(layer.Behaviour is DrawingLayerBehaviour) && !(layer.Behaviour is FileLayerBehaviour))
+                        report.Note(layer, "Rasterized with its transform and FX; no compatible editable representation for these settings.");
+                    else if (layer.HasFx)
+                        report.Note(layer, "Shader/Material FX are baked into the layer pixels.");
+                }
                 records.Add(record);
             }
-        }
-
-        private static bool HasFx(Layer layer)
-        {
-            if (layer.fx == null) return false;
-            foreach (UnityEngine.Object fxEntry in layer.fx) if (fxEntry != null) return true;
-            return false;
         }
 
         private static uint LayerId(Layer layer, HashSet<uint> used, string suffix = "")
@@ -212,19 +225,26 @@ namespace DCFApixels.WhimTex
 
         private static bool CanExportOutline(OutlineLayerBehaviour layer, bool requiresRasterization) =>
             !requiresRasterization && !layer.fillCenter && layer.outlineOffset == 0f &&
+            layer.sourceChannel == OutlineLayerBehaviour.SourceChannel.Alpha && layer.outlineSoftness <= 1f &&
             layer.Owner.CanvasTransform.IsIdentity() && layer.outlineWidth > 0f && layer.outlineWidth <= 250f &&
             (layer.metric == DistanceMetric.EuclideanExact || layer.metric == DistanceMetric.EuclideanApproximate);
 
-        private static bool CanExportGradient(GradientLayerBehaviour layer, bool requiresRasterization)
+        private static bool CanExportGradient(GradientLayerBehaviour layer, bool requiresRasterization, int width, int height)
         {
-            if (requiresRasterization || layer.Owner.CanvasTransform.storage == TransformStorage.Projective || layer.gradient == null || layer.gradient.Mode != WhimTexGradientMode.Classic ||
-                layer.gradient.ColorSpace != ColorSpace.Gamma || layer.gradient.Smoothness != 0f ||
-                (layer.Owner.CanvasTransform.tiling != TransformTilingMode.Clip && layer.Owner.CanvasTransform.tiling != TransformTilingMode.Source)) return false;
+            if (requiresRasterization || layer.Owner.CanvasTransform.storage == TransformStorage.Projective || layer.gradient == null || layer.gradient.Mode == WhimTexGradientMode.Fixed ||
+                layer.gradient.WrapMode != WhimTexGradientWrapMode.Clamp ||
+                (layer.Owner.CanvasTransform.tiling != TransformTilingMode.Clip && layer.Owner.CanvasTransform.tiling != TransformTilingMode.Source &&
+                 layer.Owner.CanvasTransform.tiling != TransformTilingMode.Unbounded)) return false;
+            foreach (var key in layer.gradient.ColorKeys)
+                if (key.color.r < 0 || key.color.g < 0 || key.color.b < 0 ||
+                    key.color.r > 1 || key.color.g > 1 || key.color.b > 1) return false;
             bool linear = layer.gradientType == GradientLayerBehaviour.GradientType.Horizontal || layer.gradientType == GradientLayerBehaviour.GradientType.Vertical;
             Vector2 scale = layer.Owner.CanvasTransform.scaleF;
             if (Mathf.Abs(scale.x) < 0.00001f || Mathf.Abs(scale.y) < 0.00001f) return false;
-            if (!linear && (scale.x <= 0 || !Mathf.Approximately(scale.x, scale.y))) return false;
-            return layer.gradientType != GradientLayerBehaviour.GradientType.Circular || Mathf.Approximately(layer.circularRepetitions, 1f);
+            if (!linear && (width != height || scale.x <= 0 || !Mathf.Approximately(scale.x, scale.y))) return false;
+            return layer.gradientType != GradientLayerBehaviour.GradientType.Circular ||
+                (Mathf.Approximately(layer.circularRepetitions, 1f) && layer.circularWrapMode == GradientLayerBehaviour.WrapMode.Repeat &&
+                 layer.Owner.CanvasTransform.tiling != TransformTilingMode.Source);
         }
 
         private static void Add(PsdWriter.LayerRecord layer, string key, PsdWriter.Descriptor value) =>
@@ -251,7 +271,7 @@ namespace DCFApixels.WhimTex
             var colors = new List<PsdWriter.Descriptor>();
             int index = 0;
             foreach (GradientColorKey key in layer.gradient.ColorKeys)
-                colors.Add(new PsdWriter.Descriptor("Clrt").Object("Clr ", Rgb(key.color)).Enum("Type", "Clry", "UsrS")
+                colors.Add(new PsdWriter.Descriptor("Clrt").Object("Clr ", Rgb(layer.gradient.ColorSpace == ColorSpace.Linear ? key.color.gamma : key.color)).Enum("Type", "Clry", "UsrS")
                     .Int("Lctn", Mathf.RoundToInt(key.time * 4096f)).Int("Mdpn", Mathf.RoundToInt(layer.gradient.GetMidpoint(false, index++) * 100f)));
             var alpha = new List<PsdWriter.Descriptor>();
             index = 0;
@@ -259,7 +279,7 @@ namespace DCFApixels.WhimTex
                 alpha.Add(new PsdWriter.Descriptor("TrnS").Unit("Opct", "#Prc", key.alpha * 100d)
                     .Int("Lctn", Mathf.RoundToInt(key.time * 4096f)).Int("Mdpn", Mathf.RoundToInt(layer.gradient.GetMidpoint(true, index++) * 100f)));
             var gradient = new PsdWriter.Descriptor("Grdn").Text("Nm  ", layer.layerName).Enum("GrdF", "GrdF", "CstS")
-                .Int("Intr", 0).Objects("Clrs", colors).Objects("Trns", alpha);
+                .Number("Intr", layer.gradient.Smoothness * 4096d).Objects("Clrs", colors).Objects("Trns", alpha);
             string type;
             double angle = 0, scale = 100;
             switch (layer.gradientType)
@@ -294,10 +314,14 @@ namespace DCFApixels.WhimTex
                 if (layer.gradientType == GradientLayerBehaviour.GradientType.Square) scale *= Math.Sqrt(2);
             }
             return new PsdWriter.Descriptor().Unit("Angl", "#Ang", angle).Enum("Type", "GrdT", type)
+                .Enum("gradientsInterpolationMethod", "gradientInterpolationMethodType", GradientMethod(layer.gradient.Mode))
                 .Unit("Scl ", "#Prc", scale).Bool("Rvrs", false).Bool("Dthr", false).Bool("Algn", true)
                 .Object("Ofst", new PsdWriter.Descriptor("Pnt ").Unit("Hrzn", "#Prc", x).Unit("Vrtc", "#Prc", y))
                 .Object("Grad", gradient);
         }
+
+        private static string GradientMethod(WhimTexGradientMode mode) => mode == WhimTexGradientMode.Classic ? "Gcls" :
+            mode == WhimTexGradientMode.Linear ? "Lnr " : "Perc";
 
         internal static string BlendKey(BlendMode mode, out bool approximate)
         {

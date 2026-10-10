@@ -60,11 +60,39 @@ public static class TextToolTests
             Call(window,"SetCanvasTool",Enum.Parse(toolType,"Text"));
             await AsyncD.Tick(root,token);
             t.True(root.Q<Button>("textTool") != null, "Text tool is in the common toolbar");
+            var toolFont = root.Q<BaseField<string>>("textToolFont");
+            t.True(toolFont != null && toolFont.ClassListContains("whimtex-system-font-field"), "Text tool uses the common system font selector");
+            t.Near(160, toolFont.Q<VisualElement>(className: BaseField<string>.inputUssClassName).worldBound.width, .1,
+                "Tool font selector has fixed input width");
+            var toolFontPreview = toolFont.Q<Label>("fontName");
+            t.True(toolFontPreview.text == toolFont.value && toolFontPreview.style.unityFontDefinition.value.font != null,
+                "Tool font name previews its own font");
             var p = canvas.contentRect.center + new Vector2(-120,-40);
             Pointer(canvas,EventType.MouseDown,p); Pointer(canvas,EventType.MouseUp,p);
             t.Equal(1,document.layers.Count,"Single click creates exactly one text layer");
             var point = (TextLayerBehaviour)document.layers[0].Behaviour;
             var toolSettings = Read(window, "textToolSettings");
+            var layerFont = root.Q<BaseField<string>>("textFont");
+            t.Equal(toolFont.GetType(), layerFont.GetType(), "Tool and layer reuse exactly the same selector type");
+            string originalFont = toolFont.value;
+            string otherFont = Array.Find(Font.GetOSInstalledFontNames(), name => name != originalFont);
+            if (otherFont != null)
+            {
+                toolFont.value = otherFont;
+                t.True(Read<string>(toolSettings, "fontFamily") == otherFont && point.fontFamily == originalFont,
+                    "Tool font changes defaults without changing the existing layer font");
+                t.Near(160, toolFont.Q<VisualElement>(className: BaseField<string>.inputUssClassName).worldBound.width, .1,
+                    "Font name length does not resize the tool selector");
+                toolFont.value = originalFont;
+                Undo.FlushUndoRecordObjects(); Undo.IncrementCurrentGroup();
+                layerFont.value = otherFont;
+                t.True(point.fontFamily == otherFont && toolFont.value == originalFont,
+                    "Layer font changes leave tool defaults independent");
+                Undo.FlushUndoRecordObjects(); Undo.PerformUndo(); await AsyncD.Tick(root, token);
+                point = (TextLayerBehaviour)document.layers[0].Behaviour;
+                t.True(point.fontFamily == originalFont && layerFont.value == originalFont,
+                    "Undo restores the layer font selector and its preview");
+            }
             t.True(!ReferenceEquals(point, toolSettings), "Created text owns a separate settings copy");
             t.True(!(toolSettings is TextLayerBehaviour) && Array.TrueForAll(
                 new[] { "layoutMode", "frameSize", "wrapping", "overflow", "autoSize", "maxFontSize", "spacing", "characterHorizontalScale" },

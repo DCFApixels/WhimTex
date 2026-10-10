@@ -56,11 +56,16 @@ public static class TextLayerUiTests
             var root = window.rootVisualElement;
             for (int i = 0; i < 3; i++) await AsyncD.Tick(root, token);
             t.True(root.Q<TextField>("textContent") != null, "Text settings are built in the common layer inspector");
-            var font = root.Q<TextField>("textFont");
+            var font = root.Q<BaseField<string>>("textFont");
             var choose = font.Q<Button>();
-            t.True(font.isReadOnly && choose != null, "Font identity is read-only and has a picker");
-            t.True(choose.worldBound.width >= 20 && choose.worldBound.xMin >= font.Q("unity-text-input").worldBound.xMax - 1,
-                "Font picker button is visible and does not overlap the name field");
+            var fontName = font.Q<Label>("fontName");
+            t.True(font.ClassListContains("whimtex-system-font-field") && choose != null && font.Q<TextField>() == null,
+                "Font uses the common read-only dropdown field");
+            t.True(fontName.text == font.value && fontName.style.unityFontDefinition.value.font != null,
+                "Selected font name previews its own installed font");
+            t.True(choose.worldBound.width >= 80 && fontName.worldBound.xMin >= choose.worldBound.xMin &&
+                fontName.worldBound.xMax <= choose.worldBound.xMax,
+                "Font name fits inside the selector without overlapping other fields");
             var size = root.Q<FloatField>("textSize");
             var sizeRange = root.Q<Vector2Field>("textSizeRange");
             size.value = 48;
@@ -242,17 +247,19 @@ public static class TextLayerUiTests
             t.True(text.alignment == TextAnchor.LowerLeft && !text.justify && alignment.Q<Button>("textAlignJustify").enabledInHierarchy,
                 "Changing a justified Frame to Point resets justification and keeps its button available");
             string selected = text.fontFamily;
-            Type pickerType = typeof(TextLayerEditorWindow).GetNestedType("FontPicker", BindingFlags.NonPublic);
+            Type pickerType = font.GetType().GetNestedType("FontPicker", BindingFlags.NonPublic);
             string chosen = null;
             picker = (PopupWindowContent)Activator.CreateInstance(pickerType, Flags, null,
                 new object[] { selected, (Action<string>)(name => chosen = name) }, null);
             window.Focus(); await AsyncD.Tick(root, token);
-            UnityEditor.PopupWindow.Show(root.Q<TextField>("textFont").Q<Button>().worldBound, picker);
+            UnityEditor.PopupWindow.Show(choose.worldBound, picker);
             t.True(picker.editorWindow != null, "Font picker opens an owned popup window");
             var pickerRoot = picker.editorWindow.rootVisualElement;
             var search = pickerRoot.Q<TextField>("fontSearch");
             var list = pickerRoot.Q<ListView>();
             t.True(list.itemsSource.Count > 0, "Font picker displays the installed font catalog");
+            t.True(list.virtualizationMethod == CollectionVirtualizationMethod.FixedHeight && list.unbindItem != null && list.destroyItem != null,
+                "Font catalog uses virtualized rows with explicit resource cleanup");
             search.value = selected;
             t.True(list.itemsSource.Count > 0 && list.itemsSource.Cast<string>().All(name => name.IndexOf(selected, StringComparison.OrdinalIgnoreCase) >= 0),
                 "Font search filters names");
@@ -269,12 +276,28 @@ public static class TextLayerUiTests
             }
             t.True(!string.IsNullOrEmpty(chosen), "Picker Select button applies selected font");
             if (picker.editorWindow != null) picker.editorWindow.Close(); picker = null;
+            var nameRow = (Label)list.makeItem();
+            list.bindItem(nameRow, 0); root.Add(nameRow);
+            await AsyncD.Tick(root, token);
+            t.True(nameRow.text == (string)list.itemsSource[0] && nameRow.style.unityFontDefinition.value.font != null,
+                "The dropdown's actual row factory renders its bound name using its own font in a live panel");
+            Font rowFont = nameRow.style.unityFontDefinition.value.font;
+            list.unbindItem(nameRow, 0);
+            t.True(rowFont == null && nameRow.style.unityFontDefinition.value.font == null,
+                "Recycling a dropdown row releases its owned preview font");
+            list.bindItem(nameRow, 0);
+            rowFont = nameRow.style.unityFontDefinition.value.font;
+            t.True(rowFont != null, "A recycled row can acquire its next preview font");
+            nameRow.RemoveFromHierarchy();
+            t.True(rowFont == null, "Detaching a dropdown row releases its last preview font");
             text.fontFamily = "WhimTexMissingFont_" + Guid.NewGuid().ToString("N");
             var bindings = typeof(LayerEditorWindowBase).GetField("SettingsBindings", Flags).GetValue(window);
             bindings.GetType().GetMethod("Refresh").Invoke(bindings, new object[] { true });
             t.True(!root.Q<TextField>("textContent").enabledInHierarchy, "Missing font disables source layout editing");
-            t.True(root.Q<TextField>("textFont").enabledInHierarchy && root.Q<VisualElement>("textColor").enabledInHierarchy,
+            t.True(root.Q<BaseField<string>>("textFont").enabledInHierarchy && root.Q<VisualElement>("textColor").enabledInHierarchy,
                 "Missing font keeps replacement and tint controls enabled");
+            t.True(fontName.text == text.fontFamily && fontName.style.unityFontDefinition.value.font == null,
+                "Missing font keeps its readable identity using the normal UI font");
             var notice = root.Q<HelpBox>("textFontNotice");
             t.True(!notice.ClassListContains("whimtex-hidden") && notice.text.Contains("unavailable"), "Missing font has a visible inspector warning");
             text.fontFamily = selected;

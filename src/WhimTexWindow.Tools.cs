@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
         private enum CanvasTool
         {
             None, Brush, BlurBrush, Transform, Fill, Zoom, Pencil, RectangleSelect, PolygonSelect, Shape,
-            GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush, SmudgeBrush, Text
+            GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush, SmudgeBrush, Text, Gradient
         }
 
         [NonSerialized] private CanvasTool canvasTool = CanvasTool.None;
@@ -32,6 +32,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private Button canvasPencilButton;
         [NonSerialized] private Button canvasTransformButton;
         [NonSerialized] private Button canvasFillButton;
+        [NonSerialized] private Button canvasGradientButton;
         [NonSerialized] private Button canvasZoomButton;
         [NonSerialized] private Button canvasRectangleSelectButton;
         [NonSerialized] private Button canvasPolygonSelectButton;
@@ -218,6 +219,7 @@ namespace DCFApixels.WhimTex
                 case CanvasTool.Zoom:
                 case CanvasTool.Shape:
                 case CanvasTool.Text:
+                case CanvasTool.Gradient:
                 case CanvasTool.RectangleSelect:
                 case CanvasTool.PolygonSelect: return activeDocument != null;
                 default: return false;
@@ -290,6 +292,9 @@ namespace DCFApixels.WhimTex
                 "Healing Brush. Paint over a defect, then release to reconstruct it from nearby pixels. Esc cancels. Writes only the selected Drawing layer.");
             toolbar.Add(canvasHealingButton);
             toolbar.Add(canvasFillButton);
+            canvasGradientButton = CreateCanvasToolButton("gradientTool", CanvasTool.Gradient,
+                "Gradient. Drag to create an editable Gradient layer. Shift constrains the angle; Ctrl disables snapping; Escape cancels. Gradient Handles edits an existing gradient.");
+            toolbar.Add(canvasGradientButton);
             canvasZoomButton = CreateCanvasToolButton("zoomTool", CanvasTool.Zoom,
                 "Zoom (Z). Click to zoom in, drag a rectangle to frame an area, or Alt-click to zoom out. MMB-drag pans the canvas.");
             toolbar.Add(canvasZoomButton);
@@ -352,6 +357,8 @@ namespace DCFApixels.WhimTex
             canvasShapeButton?.EnableInClassList("whimtex-tool-button--unavailable", activeDocument == null);
             canvasTextButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.Text);
             canvasTextButton?.EnableInClassList("whimtex-tool-button--unavailable", activeDocument == null);
+            canvasGradientButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.Gradient);
+            canvasGradientButton?.EnableInClassList("whimtex-tool-button--unavailable", activeDocument == null);
             canvasRectangleSelectButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.RectangleSelect);
             canvasPolygonSelectButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.PolygonSelect);
             canvasRectangleSelectButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
@@ -437,6 +444,8 @@ namespace DCFApixels.WhimTex
                     DrawUvSelect(painter);
                 else if (tool == CanvasTool.Fill)
                     DrawBucket(painter);
+                else if (tool == CanvasTool.Gradient)
+                    DrawGradient(painter);
                 else if (tool == CanvasTool.Zoom)
                     DrawMagnifier(painter);
                 else if (tool == CanvasTool.Pencil)
@@ -461,6 +470,42 @@ namespace DCFApixels.WhimTex
             private Vector2 P(float x, float y) => new Vector2(
                 contentRect.x + x * contentRect.width / 24f,
                 contentRect.y + y * contentRect.height / 24f);
+
+            private void DrawGradient(Painter2D painter)
+            {
+                Color tint = resolvedStyle.color;
+                float pixelsPerPoint = EditorGUIUtility.pixelsPerPoint;
+                Vector2 halfStroke = Vector2.one * (painter.lineWidth * .5f);
+                Vector2 pixelMin = this.LocalToWorld(P(4, 6) - halfStroke) * pixelsPerPoint;
+                Vector2 pixelMax = this.LocalToWorld(P(20, 19) + halfStroke) * pixelsPerPoint;
+                pixelMin = new Vector2(Mathf.Round(pixelMin.x), Mathf.Round(pixelMin.y));
+                pixelMax = new Vector2(Mathf.Round(pixelMax.x), Mathf.Round(pixelMax.y));
+                Vector2 outerMin = this.WorldToLocal(pixelMin / pixelsPerPoint);
+                Vector2 outerMax = this.WorldToLocal(pixelMax / pixelsPerPoint);
+                Vector2 innerMin = this.WorldToLocal((pixelMin + Vector2.one) / pixelsPerPoint);
+                Vector2 innerMax = this.WorldToLocal((pixelMax - Vector2.one) / pixelsPerPoint);
+
+                painter.fillColor = tint;
+                painter.BeginPath();
+                TraceRectangle(painter, outerMin, outerMax);
+                TraceRectangle(painter, innerMin, innerMax);
+                painter.Fill(FillRule.OddEven);
+
+                painter.fillColor = Color.white;
+                painter.fillGradient = FillGradient.MakeLinearGradient(
+                    new Color(.95f, .95f, .95f, tint.a), new Color(.1f, .1f, .1f, tint.a),
+                    innerMin, new Vector2(innerMax.x, innerMin.y), AddressMode.Clamp);
+                painter.BeginPath();
+                TraceRectangle(painter, innerMin, innerMax);
+                painter.Fill();
+            }
+
+            private static void TraceRectangle(Painter2D painter, Vector2 min, Vector2 max)
+            {
+                painter.MoveTo(min); painter.LineTo(new Vector2(max.x, min.y));
+                painter.LineTo(max); painter.LineTo(new Vector2(min.x, max.y));
+                painter.ClosePath();
+            }
 
             private void DrawUvSelect(Painter2D painter)
             {

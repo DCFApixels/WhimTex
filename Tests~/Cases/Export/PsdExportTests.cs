@@ -1,14 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UIElements;
 using DCFApixels.WhimTex;
 using Object = UnityEngine.Object;
 
-// Independent port: complete original body, assertion inputs and finally cleanup retained.
 public static class PsdExportTests
 {
     public static string Run() => WhimTex.Tests.UnityC.FixtureContext.Run("PsdExportTests", Body);
@@ -29,7 +25,6 @@ public static class PsdExportTests
             fill.transform.rotation = 20;
             var gradient = new DCFApixels.WhimTex.GradientLayerBehaviour { layerName = "Gradient", gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Horizontal };
             gradient.transform.rotation = 15;
-            // Native PSD gradient metadata represents Classic interpolation, not Perceptual.
             gradient.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic;
             gradient.gradient.ColorSpace = ColorSpace.Gamma;
             gradient.gradient.Smoothness = 0;
@@ -59,6 +54,7 @@ public static class PsdExportTests
             string before = EditorJsonUtility.ToJson(document);
             bool dirty = EditorUtility.IsDirty(document);
             RenderTexture active = RenderTexture.active;
+            bool srgb = GL.sRGBWrite;
             string path = System.IO.Path.Combine(folder, "composition.psd");
             var report = DCFApixels.WhimTex.WhimTexPsdExporter.Export(document, path);
             Check(report.layerCount == 5 && report.groupCount == 2, "Layer/group counts");
@@ -66,6 +62,7 @@ public static class PsdExportTests
             Check(before == EditorJsonUtility.ToJson(document), "Source serialization unchanged");
             Check(dirty == EditorUtility.IsDirty(document), "Source dirty state unchanged");
             Check(active == RenderTexture.active, "Active render target restored");
+            Check(srgb == GL.sRGBWrite, "Output color-space state restored");
             byte[] bytes = System.IO.File.ReadAllBytes(path);
             Check(bytes.Length > 100 && System.Text.Encoding.ASCII.GetString(bytes, 0, 4) == "8BPS", "Real rendered export");
             bool refused = false;
@@ -85,6 +82,31 @@ public static class PsdExportTests
             Check(before == EditorJsonUtility.ToJson(document), "Canceled export preserves source");
             DCFApixels.WhimTex.WhimTexPsdExporter.Export(document, path, true);
             Check(System.IO.File.ReadAllBytes(path).Length == bytes.Length, "Successful replacement");
+            document.layers = new List<Layer> { gradientLayer };
+            gradient.transform.tiling = TransformTilingMode.Unbounded;
+            foreach (var mode in new[] { WhimTexGradientMode.Classic, WhimTexGradientMode.Linear, WhimTexGradientMode.Perceptual })
+            {
+                gradient.gradient.Mode = mode; gradient.gradient.Smoothness = .8f;
+                var native = WhimTexPsdExporter.Export(document, System.IO.Path.Combine(folder, mode + ".psd"));
+                Check(native.editableFillCount == 1 && !native.usesBakedComposite, mode + " with Smoothness remains editable");
+                string data = System.Text.Encoding.ASCII.GetString(System.IO.File.ReadAllBytes(System.IO.Path.Combine(folder, mode + ".psd")));
+                Check(data.Contains("gradientsInterpolationMethod") && data.Contains(mode == WhimTexGradientMode.Classic ? "Gcls" : mode == WhimTexGradientMode.Linear ? "Lnr " : "Perc"), "Gradient method descriptor " + mode);
+            }
+            gradient.gradient.Mode = WhimTexGradientMode.Fixed;
+            Check(WhimTexPsdExporter.Export(document, System.IO.Path.Combine(folder, "fixed.psd")).editableFillCount == 0, "Fixed has no native equivalent");
+            gradient.gradient.Mode = WhimTexGradientMode.Perceptual;
+            var ordinary = gradient.gradient.Clone();
+            gradient.gradient.SetKeys(new[] { new GradientColorKey(new Color(2, 0, 0), 0), new GradientColorKey(Color.black, 1) }, ordinary.AlphaKeys);
+            Check(WhimTexPsdExporter.Export(document, System.IO.Path.Combine(folder, "hdr-gradient.psd")).editableFillCount == 0, "HDR stops are clamped after rendering, not before interpolation");
+            gradient.gradient = ordinary;
+            gradientLayer.blendMode = DCFApixels.WhimTex.BlendMode.Negation;
+            Check(WhimTexPsdExporter.Export(document, System.IO.Path.Combine(folder, "negation.psd")).usesBakedComposite, "Unsupported active blending preserves a faithful visible result");
+            gradientLayer.enabled = false;
+            Check(!WhimTexPsdExporter.Export(document, System.IO.Path.Combine(folder, "disabled.psd")).usesBakedComposite, "Disabled unsupported blending does not bake the visible stack");
+            gradientLayer.enabled = true; gradientLayer.blendMode = DCFApixels.WhimTex.BlendMode.Normal;
+            var outline = new OutlineLayerBehaviour { outlineWidth = 3, outlineSoftness = 8 };
+            document.layers.Insert(0, outline);
+            Check(WhimTexPsdExporter.Export(document, System.IO.Path.Combine(folder, "soft-outline.psd")).editableOutlineCount == 0, "Soft outline stays raster rather than becoming a sharp stroke");
             Debug.Log($"PSD Editor smoke: {checks} checks passed. Output: {path}");
         }
         finally { WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(document); }

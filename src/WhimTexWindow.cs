@@ -224,6 +224,7 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            gradientCreationManipulator?.Cancel();
             textManipulator?.Cancel();
             EndTextEditing(false);
             WhimTexDocument.LayerPreviewRequested -= OnLayerPreviewRequested;

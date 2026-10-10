@@ -60,6 +60,22 @@ namespace DCFApixels.WhimTex
             return path;
         }
 
+        internal static GradientPresetReadResult Import(string path)
+        {
+            var result = WhimTexGradientPresetReader.Read(path);
+            var created = new List<string>();
+            try
+            {
+                foreach (var preset in result.presets) created.Add(Save(preset.gradient));
+                return result;
+            }
+            catch
+            {
+                foreach (string file in created) if (File.Exists(file)) File.Delete(file);
+                throw;
+            }
+        }
+
         internal static void Remove(string path)
         {
             string full = System.IO.Path.GetFullPath(path);

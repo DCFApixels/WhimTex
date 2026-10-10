@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -17,12 +16,11 @@ namespace DCFApixels.WhimTex
         internal static void BuildFields(VisualElement root, TextLayerBehaviour layer,
             Action<string, Action> apply, WhimTexUI.ValueBindings bindings)
         {
-            var font = WhimTexUI.ConfigureField(new TextField("Font") { name = "textFont", isReadOnly = true });
-            bindings.Track(font, () => layer.ResolvedFont ?? "No system fonts");
-            var choose = new Button(() => UnityEditor.PopupWindow.Show(font.worldBound, new FontPicker(layer.ResolvedFont,
-                name => apply("Change Text Font", () => layer.fontFamily = name)))) { text = "…", tooltip = "Choose an installed system font" };
-            choose.AddToClassList("whimtex-text-font-button");
-            font.Add(choose); root.Add(font);
+            var font = WhimTexUI.ConfigureField(new SystemFontField("Font") { name = "textFont" });
+            bindings.Track(font, () => layer.ResolvedFont ?? "");
+            bindings.Add(font.RefreshPreview);
+            font.RegisterValueChangedCallback(e => apply("Change Text Font", () => layer.fontFamily = e.newValue));
+            root.Add(font);
             var notice = new HelpBox("", HelpBoxMessageType.Warning) { name = "textFontNotice" };
             root.Add(notice);
             var layout = new VisualElement(); root.Add(layout);
@@ -114,51 +112,5 @@ namespace DCFApixels.WhimTex
             row.Add(separator); row.Add(second); root.Add(row);
         }
 
-        internal static void ChooseFont(Rect rect, string selected, Action<string> apply) =>
-            UnityEditor.PopupWindow.Show(rect, new FontPicker(selected, apply));
-
-        private sealed class FontPicker : PopupWindowContent
-        {
-            private readonly string selected;
-            private readonly Action<string> apply;
-            private readonly List<string> filtered = new List<string>();
-            private ListView list;
-            private TextField search;
-            private Font previewFont;
-            private Label preview;
-            internal FontPicker(string selected, Action<string> apply) { this.selected = selected; this.apply = apply; }
-            public override Vector2 GetWindowSize() => new Vector2(340, 360);
-            public override void OnGUI(Rect rect) { }
-            public override void OnOpen()
-            {
-                var root = editorWindow.rootVisualElement; WhimTexUI.ApplyWindowStyles(root);
-                search = WhimTexUI.ConfigureField(new TextField("Search") { name = "fontSearch" }); root.Add(search);
-                search.RegisterValueChangedCallback(e => Filter(e.newValue));
-                list = new ListView(filtered, 22, () => new Label { enableRichText = false }, (element, index) => ((Label)element).text = filtered[index]);
-                list.AddToClassList("whimtex-text-font-list"); root.Add(list);
-                list.selectionChanged += values => { foreach (string name in values) { Preview(name); break; } };
-                list.itemsChosen += values => { foreach (string name in values) { apply(name); editorWindow.Close(); break; } };
-                preview = new Label("Aa Бб 0123") { enableRichText = false }; preview.AddToClassList("whimtex-text-font-preview"); root.Add(preview);
-                var actions = new VisualElement(); actions.AddToClassList("whimtex-text-font-actions"); root.Add(actions);
-                actions.Add(new Button(() => { SystemFontCatalog.Refresh(); Filter(search.value); }) { text = "Refresh", tooltip = "Rescan installed fonts" });
-                actions.Add(new Button(() => { if (list.selectedItem is string name) { apply(name); editorWindow.Close(); } }) { text = "Select" });
-                Filter(""); Preview(selected); search.Focus();
-            }
-            private void Filter(string query)
-            {
-                filtered.Clear();
-                foreach (string name in SystemFontCatalog.Names)
-                    if (name.IndexOf(query ?? "", StringComparison.OrdinalIgnoreCase) >= 0) filtered.Add(name);
-                list.Rebuild(); int index = filtered.IndexOf(selected); if (index >= 0) list.SetSelection(index);
-            }
-            private void Preview(string name)
-            {
-                if (preview == null || !SystemFontCatalog.Contains(name)) return;
-                if (previewFont != null) UnityEngine.Object.DestroyImmediate(previewFont);
-                previewFont = Font.CreateDynamicFontFromOSFont(name, 24); previewFont.hideFlags = HideFlags.HideAndDontSave;
-                preview.style.unityFontDefinition = FontDefinition.FromFont(previewFont);
-            }
-            public override void OnClose() { if (previewFont != null) UnityEngine.Object.DestroyImmediate(previewFont); }
-        }
     }
 }

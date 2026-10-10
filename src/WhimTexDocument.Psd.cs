@@ -7,11 +7,13 @@ namespace DCFApixels.WhimTex
     {
         internal Texture2D RenderPsdGroupContent(Layer group)
         {
-            RenderTexture rendered = GetClearRenderTexture(width, height);
-            RefreshTransformHierarchy();
             RenderTexture previous = RenderTexture.active;
+            bool srgb = GL.sRGBWrite;
+            RenderTexture rendered = null;
             try
             {
+                rendered = GetClearRenderTexture(width, height);
+                RefreshTransformHierarchy();
                 CompositeLayers(group.layers, ref rendered, width, height, 1f, new HashSet<Layer>());
                 group.ApplyFx(ref rendered, new LayerRenderContext(this, null, width, height, 1f, false, true));
                 rendered = FinishStage(rendered, group.colorRange == LayerColorRange.Standard, group.channelMapping);
@@ -20,6 +22,7 @@ namespace DCFApixels.WhimTex
             finally
             {
                 RenderTexture.active = previous;
+                GL.sRGBWrite = srgb;
                 if (rendered != null) RenderTexture.ReleaseTemporary(rendered);
             }
         }
@@ -29,6 +32,7 @@ namespace DCFApixels.WhimTex
             RenderTexture rendered = null;
             RefreshTransformHierarchy();
             RenderTexture previous = RenderTexture.active;
+            bool srgb = GL.sRGBWrite;
             try
             {
                 var fill = new ColorFillLayerBehaviour { color = Color.white, transform = GetCanvasTransform(layer), filterMode = layer.filterMode };
@@ -38,6 +42,7 @@ namespace DCFApixels.WhimTex
             finally
             {
                 RenderTexture.active = previous;
+                GL.sRGBWrite = srgb;
                 if (rendered != null) RenderTexture.ReleaseTemporary(rendered);
             }
         }
@@ -47,6 +52,7 @@ namespace DCFApixels.WhimTex
             RenderTexture rendered = null;
             RefreshTransformHierarchy();
             RenderTexture previous = RenderTexture.active;
+            bool srgb = GL.sRGBWrite;
             try
             {
                 if (layer == null)
@@ -68,6 +74,7 @@ namespace DCFApixels.WhimTex
             finally
             {
                 RenderTexture.active = previous;
+                GL.sRGBWrite = srgb;
                 if (rendered != null) RenderTexture.ReleaseTemporary(rendered);
             }
         }
