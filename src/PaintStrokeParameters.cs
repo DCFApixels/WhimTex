@@ -18,6 +18,8 @@ namespace DCFApixels.WhimTex
         internal readonly BrushDynamics Dynamics;
         internal readonly bool StandardColorInputs;
         internal readonly float Pressure;
+        internal readonly int WriteChannels;
+        internal readonly bool LockAlpha;
 
         internal static Vector2 SnapPencilCenter(Vector2 uv, int width, int height, float size)
         {
@@ -52,6 +54,8 @@ namespace DCFApixels.WhimTex
             Dynamics = source.Dynamics;
             StandardColorInputs = source.StandardColorInputs;
             Pressure = source.Pressure;
+            WriteChannels = source.WriteChannels;
+            LockAlpha = source.LockAlpha;
         }
 
         private PaintStrokeParameters(PaintStrokeParameters source, float pressure)
@@ -68,9 +72,24 @@ namespace DCFApixels.WhimTex
             Dynamics = source.Dynamics;
             StandardColorInputs = source.StandardColorInputs;
             Pressure = Mathf.Clamp01(float.IsNaN(pressure) || float.IsInfinity(pressure) ? 1f : pressure);
+            WriteChannels = source.WriteChannels;
+            LockAlpha = source.LockAlpha;
         }
 
         internal PaintStrokeParameters WithPressure(float pressure) => new PaintStrokeParameters(this, pressure);
+
+        private PaintStrokeParameters(PaintStrokeParameters source, int channels, bool lockAlpha)
+        {
+            Color = source.Color; Size = source.Size; Hardness = source.Hardness;
+            SpacingPixels = source.SpacingPixels; Erase = source.Erase;
+            WrapCanvas = source.WrapCanvas; PixelPerfect = source.PixelPerfect; Shape = source.Shape;
+            SelectionMask = source.SelectionMask; Dynamics = source.Dynamics;
+            StandardColorInputs = source.StandardColorInputs; Pressure = source.Pressure;
+            WriteChannels = channels & 15; LockAlpha = lockAlpha;
+        }
+
+        internal PaintStrokeParameters WithWriteProtection(int channels, bool lockAlpha)
+            => new PaintStrokeParameters(this, channels, lockAlpha);
 
         internal PaintStrokeParameters(Color color, float size, float hardness, float spacing, bool erase,
             bool pixelPerfect = false, PencilShape shape = PencilShape.Circle, BrushDynamics dynamics = null, bool standardColorInputs = false)
@@ -88,6 +107,8 @@ namespace DCFApixels.WhimTex
             Dynamics = pixelPerfect ? null : dynamics;
             StandardColorInputs = standardColorInputs;
             Pressure = 1f;
+            WriteChannels = dynamics?.writeChannels ?? 15;
+            LockAlpha = dynamics?.lockAlpha ?? false;
         }
     }
 }

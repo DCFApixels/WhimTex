@@ -146,6 +146,7 @@ namespace DCFApixels.WhimTex
         public static explicit operator FileLayerBehaviour(Layer value) => (FileLayerBehaviour)value?.Behaviour;
         public static explicit operator ColorFillLayerBehaviour(Layer value) => (ColorFillLayerBehaviour)value?.Behaviour;
         public static explicit operator GradientLayerBehaviour(Layer value) => (GradientLayerBehaviour)value?.Behaviour;
+        public static explicit operator TextLayerBehaviour(Layer value) => (TextLayerBehaviour)value?.Behaviour;
         public static explicit operator NoiseLayerBehaviour(Layer value) => (NoiseLayerBehaviour)value?.Behaviour;
         public static explicit operator OutlineLayerBehaviour(Layer value) => (OutlineLayerBehaviour)value?.Behaviour;
         public static explicit operator SDFLayerBehaviour(Layer value) => (SDFLayerBehaviour)value?.Behaviour;
@@ -276,7 +277,7 @@ namespace DCFApixels.WhimTex
             Behaviour?.ReleaseTransientResources();
         }
 
-        internal RenderTexture ApplyTransformAndFx(Texture source, in LayerRenderContext context)
+        internal RenderTexture ApplyTransformAndFx(Texture source, in LayerRenderContext context, ProjectiveMatrix? sourceToLocal = null)
         {
             if (source == null)
                 return null;
@@ -323,7 +324,13 @@ namespace DCFApixels.WhimTex
                             wrapU = wrapV = TextureWrapMode.Mirror;
                             break;
                     }
-                    SetRenderInverse(transformMaterial, "_TransformRow", context);
+                    if (sourceToLocal.HasValue)
+                    {
+                        var localToCanvas = context.applyTransform ? RenderTransform.ToMatrix(context.activeDocument.width, context.activeDocument.height) : ProjectiveMatrix.Identity;
+                        (localToCanvas * sourceToLocal.Value).TryInverse(out var sourceInverse);
+                        sourceInverse.SetShader(transformMaterial, "_TransformRow");
+                    }
+                    else SetRenderInverse(transformMaterial, "_TransformRow", context);
                     transformMaterial.SetInt("_ClipOutside", applied.tiling == TransformTilingMode.Clip || applied.tiling == TransformTilingMode.Unbounded ? 1 : 0);
                     transformMaterial.SetInt("_WrapModeU", (int)wrapU);
                     transformMaterial.SetInt("_WrapModeV", (int)wrapV);

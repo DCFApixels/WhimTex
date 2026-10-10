@@ -108,6 +108,7 @@ namespace DCFApixels.WhimTex
         internal void ApplyHealingPatch(Texture2D patch, Texture2D coverage, RectInt region,
             int canvasWidth, int canvasHeight, ProjectiveMatrix sourceToCanvas, bool tiled = false)
         {
+            if (StrokeWritesNothing) return;
             Material material = WhimTexMaterials.HealingBrush;
             if (material == null || !material.shader.isSupported)
                 throw new InvalidOperationException("Healing Brush shader is unavailable.");
@@ -124,6 +125,7 @@ namespace DCFApixels.WhimTex
                 sourceToCanvas.SetShader(material, "_SourceToCanvas");
                 Graphics.Blit(surface, result, material);
                 Graphics.Blit(result, surface);
+                ApplyPaintWriteProtection();
                 paintSurfaceDirty = true;
                 unchecked { paintSurfaceRevision++; }
                 SyncSurfaceToTexture();

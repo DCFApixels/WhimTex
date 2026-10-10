@@ -73,6 +73,7 @@ namespace DCFApixels.WhimTex
             row.Add(healingStatus);
             healingCancel = new Button(CancelHealing) { text = "Cancel", tooltip = "Cancel the stroke or pending calculation without changing pixels." };
             row.Add(healingCancel);
+            AddPaintInputSettings(row, path: false, usesPressure: false);
             toolkitCanvasViewHeader.Add(row);
             RefreshHealingStatus();
         }
@@ -285,7 +286,12 @@ namespace DCFApixels.WhimTex
                 bool hadPixels = layer.StoredTexture != null;
                 layer.PrepareStroke(activeDocument.width, activeDocument.height, "Healing Brush");
                 if (!hadPixels) Undo.RegisterCreatedObjectUndo(layer.StoredTexture, "Healing Brush");
-                layer.ApplyHealingPatch(patch, mask, bounds, activeDocument.width, activeDocument.height, transform, tiled);
+                try
+                {
+                    layer.ConfigureStrokeWriteProtection(paintSettings.dynamics.writeChannels, paintSettings.dynamics.lockAlpha);
+                    layer.ApplyHealingPatch(patch, mask, bounds, activeDocument.width, activeDocument.height, transform, tiled);
+                }
+                finally { layer.EndStroke(); }
                 activeDocument.MarkChanged();
                 temporaryDocumentDirty = true;
                 effectInteractiveUntil = 0;

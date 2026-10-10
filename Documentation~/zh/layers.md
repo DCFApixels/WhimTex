@@ -27,6 +27,7 @@ next_page: "zh/transform.md"
 | Gradient | 平滑的颜色过渡。 |
 | Noise | 生成的图案。参见 [Noise](noise.md)。 |
 | Shape | 可编辑的矩形、椭圆、多边形、星形、直线、圆弧或扇形。 |
+| Text | 使用操作系统已安装字体的可编辑文字。 |
 
 你也可以将 Project 中的纹理拖到画布视图中，把它添加到顶部，
 或将它放到行与行之间来选择位置。新指定的图像会保持其原始比例。
@@ -63,6 +64,58 @@ next_page: "zh/transform.md"
 
 通过 **图层菜单 ⋮ → Properties** 可在独立窗口中打开相同的设置。
 不适用于所选图层的部分会变灰。
+
+## 添加文字
+
+选择带 **T** 图标的 **Text** 工具。单击创建无框文字；拖出矩形创建框内文字。
+直接在 Canvas View 中输入，`Enter` 开始新段落。点击输入框外、按 `Ctrl+Enter` 或
+选择 **Done** 可结束编辑。这次点击只结束输入，不会创建另一图层。
+**Cancel** 或 `Esc` 恢复编辑开始前的文字。点击已有文字或工具栏的 **Edit Text** 可重新编辑。
+按住 `Ctrl` 可创建新文字，而不是选择已有文字。
+
+Text 工具栏的参数用于新建文字，不会修改已有图层。
+在 **Properties (Text)** 中修改图层的格式；这些修改不会影响工具的默认设置。
+
+也可选择 **+ → Text**，在 Layer Settings 的 **Properties (Text)** 中输入。
+工具栏的 **Font** 或图层设置中的 **…** 提供已安装字体的搜索和字符预览。
+无需将字体导入 Project。点击 **Refresh** 可刷新字体列表。
+
+创建手势决定布局，工具栏不再提供 Layout 选择。
+Frame Size、Wrapping、Overflow 和 Auto Size 仅属于图层 Properties，不属于工具设置。
+在 Properties 中，**Layout → Point** 不使用文本框，只按显式换行分行。
+**Layout → Frame** 按 **Frame Size (px)** 排版。**Wrapping** 可选
+**Manual**（仅显式换行）、**Words**（按词换行）或 **Characters**（按字符换行）。
+长于文本框的词仍会拆分。**Justify** 始终可用，扩大词间距以填满换行后的行，每段最后一行保持左对齐。
+Point 文本或 Manual 换行会将其重置为左对齐，不改变垂直对齐。
+用 Text 工具拖动文本框角点可调整换行。启用 **Auto Size** 后，Properties 中的 **Size**
+将 **Min** 和 **Max** 并排显示，单位为画布像素。在此范围内选择能容纳文字的最大整数像素字号；
+**Overflow** 控制超出文本框的内容：**None**（默认）保留框外文字，**Clip** 裁剪，
+**Ellipsis** 缩短显示内容并在末尾添加「…」。Ellipsis 同时考虑宽度和高度，不修改原文。
+如果一行或省略号本身也无法放入，则不显示该部分。Auto Size 达到 Min 后仍按 Overflow
+处理。结束画布内输入后可查看最终效果。
+
+**Style**、**Size**、**Alignment** 和 **Spacing Options (em)** 作用于整个文字块。
+**Style** 行中的 **B** 和 **I** 按钮分别切换粗体和斜体；
+**aa**、**AA** 和小型大写字母按钮分别选择 Lowercase、Uppercase 或 Small Caps。
+**Alignment** 行将左对齐、居中、右对齐、Justify 与顶部、居中、底部对齐组合在一起。
+再次点击已选按钮恢复原始大小写，不改变源文字。Small Caps 将原本的小写字母显示为
+75% 大小的大写字形，并保持共同基线。
+**Character**、**Word**、**Line** 和 **Paragraph** 分别增加字间距、词间距、行距和段间距。
+零保留字体默认间距，正值增大间距，负值缩小间距。1 em 等于当前字体大小。
+Paragraph 只作用于显式换行，不作用于自动换行；四个值均参与换行与 Auto Size 计算。
+
+**Horizontal Scale** 只改变字符宽度，不改变高度：`1` 保持原宽度，`0.5` 缩窄一半，
+`2` 加宽一倍。换行、Auto Size 和 Ellipsis 使用调整后的宽度；附加的 em 间距保持不变。
+
+**Color** 包含透明度。使用 **Transform**、**Rendering** 和 **FX**
+放置和处理文字。输入时显示普通文字；结束编辑后恢复带指定换行、两端对齐和效果的渲染结果。
+
+TIFF 和 JSON 保存可编辑文字、字体名称和外观的栅格备份，不嵌入字体本身。
+字体缺失时，WhimTex 显示警告并保留已保存的外观。选择已安装的替代字体后才能编辑
+文字排版；Color、Transform 和 FX 仍可使用。没有匹配的备份时，文字保持透明，直到选择字体。
+备份最长边不超过 2048 像素，必要时会进一步缩小以满足存储限制。
+
+当前每层使用一种字体和样式，最多 8192 个字符。不提供逐字符格式和高级复杂文字排版。
 
 ## 将相关部分放在一个组中
 

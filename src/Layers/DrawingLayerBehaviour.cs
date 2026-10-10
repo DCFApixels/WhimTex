@@ -237,6 +237,7 @@ namespace DCFApixels.WhimTex
 
         internal void BeginStroke(Vector2 sourceUv)
         {
+            ReleasePaintWriteProtection();
             ReleaseAdvancedStroke();
             ReleaseSmudgeStroke();
             brushSpacingState = default;
@@ -263,6 +264,7 @@ namespace DCFApixels.WhimTex
 
         internal void EndStroke()
         {
+            ReleasePaintWriteProtection();
             ReleaseAdvancedStroke();
             ReleaseSmudgeStroke();
             clipStrokeToInitialShape = false;
@@ -361,6 +363,9 @@ namespace DCFApixels.WhimTex
             PaintStrokeParameters parameters)
         {
             Color color = parameters.Color;
+            if (parameters.WriteChannels != 15 || parameters.LockAlpha)
+                ConfigureStrokeWriteProtection(parameters.WriteChannels, parameters.LockAlpha);
+            if (StrokeWritesNothing) return;
             if (color.a <= 0f || parameters.Dynamics != null && (parameters.Dynamics.opacity <= 0f || parameters.Dynamics.flow <= 0f))
                 return;
             color.a *= parameters.Pressure;
@@ -374,6 +379,8 @@ namespace DCFApixels.WhimTex
             RenderTexture surface = EnsurePaintSurface(outputWidth, outputHeight);
             if (surface == null)
                 return;
+            if (parameters.WriteChannels != 15 || parameters.LockAlpha)
+                ConfigureStrokeWriteProtection(parameters.WriteChannels, parameters.LockAlpha);
 
             NormalizeSettings();
             outputWidth = Mathf.Max(1, outputWidth);
@@ -432,6 +439,7 @@ namespace DCFApixels.WhimTex
                 !isolatedStroke && HdrUtility.IsHdr(pixels), parameters.SelectionMask, dynamics, parameters.StandardColorInputs,
                 stampBlend, blendRange == LayerBlendRange.HDR);
             if (isolatedStroke && segmentStamps.Count > 0) CompositeAdvancedStroke(surface, parameters);
+            if (segmentStamps.Count > 0) ApplyPaintWriteProtection();
         }
 
         private void BuildPencilSegment(Vector2 from, Vector2 to, int width, int height,
@@ -558,7 +566,7 @@ namespace DCFApixels.WhimTex
             Material conversion = WhimTexMaterials.AlphaConversion;
             if (conversion == null) { Graphics.Blit(paintSurface, target); return; }
             conversion.SetFloat("_Mode", mode);
-            conversion.SetFloat("_StraightFallback", hasBakedPixelFrame && pixels != null ? HdrUtility.IsHdr(pixels) ? 1f : 2f : 0f);
+            conversion.SetFloat("_StraightFallback", (hasBakedPixelFrame || preserveStraightPaintRgb) && pixels != null ? HdrUtility.IsHdr(pixels) ? 1f : 2f : 0f);
             conversion.SetTexture("_OriginalStraight", pixels);
             try { Graphics.Blit(paintSurface, target, conversion); }
             finally
@@ -1028,6 +1036,8 @@ namespace DCFApixels.WhimTex
 
         private void ReleasePaintSurface()
         {
+            preserveStraightPaintRgb = false;
+            ReleasePaintWriteProtection();
             ReleaseAdvancedStroke();
             ReleaseSmudgeStroke();
             paintSurfaceDirty = false;

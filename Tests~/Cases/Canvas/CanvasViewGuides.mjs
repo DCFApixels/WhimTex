@@ -99,7 +99,7 @@ context.case('CanvasViewGuides original assertions and branches', async () => {
     assert.equal(clipLine(new V(NaN, 0), new V(0, 1)), false);
     assert.equal(clipLine(new V(0, Infinity), new V(1, 0)), false);
     assert.equal(clipLine(new V(0, 0), new V(0, 0)), false);
-    assert.match(src, /ToCanvasDelta\(rail == 0 \? Vector2.right : Vector2.up\).normalized/);
+    assert.match(src, /ToCanvasDelta\(rail == 0 \|\| creatingPair \? Vector2.right : Vector2.up\).normalized/);
     assert.match(src, /Vector2.Dot\(\(point - canvas.ImageRect.position\) \/ canvas.PixelScale, normal\)/);
     assert.match(src, /pending.position = PositionAt\(point, pending.normal\) \+ grabOffset/);
     const cancel = src.split('internal void Cancel()')[1].split('private void Leave')[0];
@@ -108,7 +108,17 @@ context.case('CanvasViewGuides original assertions and branches', async () => {
     const update = src.split('private void Update(Vector2 point)')[1].split('private void Move')[0];
     assert.ok(!update.includes('canvasGuides['), 'Drag preview must not change committed guides');
     assert.match(src, /if \(discard\)\s*\{\s*owner.RememberCanvasGuides\(\);\s*owner.canvasGuides.RemoveAt\(movingIndex\)/);
-    assert.match(src, /else if \(!discard && owner.canvasGuides.Count < MaxCanvasGuides\)\s*\{\s*owner.RememberCanvasGuides\(\);\s*owner.canvasGuides.Add\(pending\)/);
+    assert.match(src, /else if \(!discard && owner.canvasGuides.Count \+ \(creatingPair \? 2 : 1\) <= MaxCanvasGuides\)\s*\{\s*owner.RememberCanvasGuides\(\);\s*owner.canvasGuides.Add\(pending\)/);
+    assert.match(src, /if \(creatingPair\) owner.canvasGuides.Add\(pairedPending\)/);
+    assert.match(src, /canvasGuides.Count \+ \(rail == 2 \? 2 : 1\) > MaxCanvasGuides/);
+    assert.match(src, /pairedPending.position = PositionAt\(point, pairedPending.normal\)/);
+    assert.match(src, /creatingPair && !float.IsFinite\(pairedPending.position\)/);
+    assert.match(src, /DrawGuide\(painter, pairedPending, bounds, true, discard\)/);
+    const wantsToolPointer = src.match(/private bool CanvasToolWantsPointer\(Vector2 point\) =>\s*([\s\S]*?);/)[1];
+    assert.ok(!wantsToolPointer.includes('CanvasTool.None') && !wantsToolPointer.includes('IsCanvasZoomEnabled'),
+        'Layer Select and Zoom do not reserve every click ahead of guides');
+    assert.match(read('WhimTexWindow.LayerPicking.cs'), /canvasGuideManipulator\?\.WantsPointer\(evt.localPosition, evt.ctrlKey, evt.altKey\) == true\) return false;/);
+    assert.match(read('WhimTexWindow.Zoom.cs'), /evt.button == 0 && owner.canvasGuideManipulator\?\.WantsPointer\(evt.localPosition, evt.ctrlKey, evt.altKey\) == true\) return;/);
     assert.match(src, /!control && !alt/);
     const guideToolPolicy = src.match(/private bool CanMoveCanvasGuides => ([\s\S]*?);/)[1];
     const contextTools = read('WhimTexWindow.ContextTools.cs');
@@ -213,6 +223,9 @@ context.case('CanvasViewGuides original assertions and branches', async () => {
     assert.match(styles, /\.whimtex-canvas-ruler--vertical,[\s\S]*?\.whimtex-canvas-scrollbar--vertical\s*\{[^}]*width: var\(--whimtex-canvas-navigation-size\)/);
     assert.match(ui, /BuildCanvasNavigation\(BuildCanvasViewWorkspace\(toolkitCanvas\)\)/);
     const navigation = read('WhimTexWindow.CanvasNavigation.cs');
+    assert.match(navigation, /canvasGuideCorner.pickingMode = PickingMode.Position/);
+    assert.match(navigation, /canvasGuideCorner.RegisterCallback<PointerDownEvent>\(canvasGuideManipulator.RulerDown\)/);
+    assert.match(src, /canvasGuideCorner\?\.worldBound.Contains\(worldPoint\) == true\) return 2;/);
     assert.match(navigation, /new RepeatButton\([\s\S]*?Pan\(-direction \* ScrollStep\);[\s\S]*?\}, 350, 50\)/,
         'End arrows use a shared small step with native press-and-hold repetition');
     assert.match(navigation, /track\.RegisterCallback<PointerDownEvent>\(Down\)/,

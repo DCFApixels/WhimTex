@@ -73,6 +73,7 @@ namespace DCFApixels.WhimTex
         internal void SmudgeSegment(Vector2 fromSourceUv, Vector2 toSourceUv, int width, int height,
             float hardness, float strength, float flow, Texture selection = null)
         {
+            if (StrokeWritesNothing) return;
             if (smudgeCarry == null && smudgeTransport == null) return;
             Vector2 from = smudgeToCanvas.Point(fromSourceUv), to = smudgeToCanvas.Point(toSourceUv);
             Vector2 dimensions = new Vector2(width, height);
@@ -125,6 +126,7 @@ namespace DCFApixels.WhimTex
                     smudgeStrokeChanged = true;
                     unchecked { paintSurfaceRevision++; }
                 }
+                ApplyPaintWriteProtection();
             }
             finally { RenderTexture.active = previous; GL.sRGBWrite = previousSrgb; }
         }

@@ -70,6 +70,13 @@ namespace DCFApixels.WhimTex
             result["fillPatternDefaults"] = FillPatternSnapshot(new FillPatternSettings());
             result["shapeDefaults"] = ShapeSnapshot(new ShapeLayerBehaviour());
             result["shapeKinds"] = new JArray(System.Enum.GetNames(typeof(ShapeLayerBehaviour.ShapeKind)));
+            result["textDefaults"] = TextSnapshot(new TextLayerBehaviour());
+            result["systemFonts"] = new JArray(SystemFontCatalog.Names);
+            result["textFontStyles"] = new JArray(System.Enum.GetNames(typeof(FontStyle)));
+            result["textCasingModes"] = new JArray(System.Enum.GetNames(typeof(TextCasing)));
+            result["textAlignments"] = new JArray(System.Enum.GetNames(typeof(TextAnchor)));
+            result["textLayoutModes"] = new JArray(System.Enum.GetNames(typeof(TextLayoutMode)));
+            result["textWrappingRules"] = new JArray(System.Enum.GetNames(typeof(TextWrapping)));
             result["noiseTypes"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.NoiseType)));
             result["noiseWhiteColors"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.WhiteNoiseColor)));
             result["noiseFractals"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.FractalType)));
@@ -314,6 +321,13 @@ namespace DCFApixels.WhimTex
                     if (layer?.Behaviour is MakeSeamlessLayerBehaviour seamless) settings["makeSeamless"] = MakeSeamlessSnapshot(seamless);
                     if (layer?.Behaviour is NoiseLayerBehaviour noise) settings["noise"] = NoiseSnapshot(noise);
                     if (layer?.Behaviour is ShapeLayerBehaviour shape) settings["shape"] = ShapeSnapshot(shape);
+                    if (layer?.Behaviour is TextLayerBehaviour text)
+                    {
+                        settings["text"] = TextSnapshot(text);
+                        entry["fontAvailable"] = text.FontAvailable;
+                        entry["resolvedFont"] = text.ResolvedFont;
+                        if (text.Notice != null) entry["warnings"] = new JArray(text.Notice);
+                    }
                     if (layer?.Behaviour is GradientLayerBehaviour gradient) entry["gradientKeys"] = GradientSnapshot(gradient.gradient);
                     layers.Add(entry);
                     if (layer?.AsGroup() is Layer group) Collect(group.layers, layer.Id);
@@ -345,6 +359,7 @@ namespace DCFApixels.WhimTex
             return new JObject
             {
                 ["opacity"] = dynamics.opacity, ["flow"] = dynamics.flow, ["pressure"] = dynamics.pressure, ["scatter"] = dynamics.scatter,
+                ["writeChannels"] = dynamics.writeChannels, ["lockAlpha"] = dynamics.lockAlpha,
                 ["scatterBias"] = dynamics.scatterBias,
                 ["sizeJitter"] = dynamics.sizeJitter,
                 ["angleJitter"] = dynamics.angleJitter,

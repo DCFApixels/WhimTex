@@ -6,6 +6,8 @@ namespace DCFApixels.WhimTex
     {
         internal void RenderBrushPreview(RenderTexture target, PaintStrokeParameters parameters, Material display, float marginScale = 1f)
         {
+            // Preview the tip itself; write locks depend on existing document pixels.
+            parameters = parameters.WithWriteProtection(15, false);
             int width = target.width, height = target.height;
             RenderTexture previous = RenderTexture.active;
             RenderTexture straight = null;

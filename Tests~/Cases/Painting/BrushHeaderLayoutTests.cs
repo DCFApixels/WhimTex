@@ -157,6 +157,7 @@ static System.Threading.CancellationToken Cancellation;
 
     static async Task BodyAllHeaders(int first, int count, bool dynamic)
     {
+        const float wideWidth = 2000f;
         const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
         var type = typeof(WhimTexWindow);
         var window = Scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
@@ -164,7 +165,11 @@ static System.Threading.CancellationToken Cancellation;
         document.width = document.height = 32;
         Layer layer = new DrawingLayerBehaviour(); document.layers.Add(layer);
         type.GetField("selectedLayerId", flags).SetValue(window, layer.Id);
-        window.ShowUtility(); window.position = new Rect(60, 60, 1800, 800); window.CreateGUI();
+        var paintField = type.GetField("paintSettings", flags);
+        var previousPaint = paintField.GetValue(window);
+        previousPaint.GetType().GetMethod("ReleasePresetTip", flags).Invoke(previousPaint, null);
+        paintField.SetValue(window, Activator.CreateInstance(previousPaint.GetType(), true));
+        window.ShowUtility(); window.position = new Rect(60, 60, 2400, 800); window.CreateGUI();
         var root = window.rootVisualElement;
         var toolbar = root.Q(className: "whimtex-canvas-toolbar");
         var settings = root.Q("canvasToolSettings");
@@ -175,7 +180,7 @@ static System.Threading.CancellationToken Cancellation;
         {
             string tool = tools[index];
             setTool.Invoke(window, new object[] { Enum.Parse(toolType, tool) });
-            foreach (float width in new[] { 1200f, 600f, 280f, 1200f })
+            foreach (float width in new[] { wideWidth, 600f, 280f, wideWidth })
             {
                 toolbar.style.width = width;
                 settings.style.width = width;
@@ -187,9 +192,19 @@ static System.Threading.CancellationToken Cancellation;
                 {
                     if (!Visible(row, settings)) continue;
                     visible++;
-                    await WaitForLayout(window, row, width == 1200 ? false : (bool?)null);
+                    await WaitForLayout(window, row, width == wideWidth ? false : (bool?)null);
                     CheckRow(row, tool + " settings " + width);
-                    if (width == 1200) T.True(!row.ClassListContains("whimtex-canvas-header-row--compact"), tool + ": tracks restore when width returns");
+                    if (width == wideWidth)
+                    {
+                        T.True(!row.ClassListContains("whimtex-canvas-header-row--compact"), tool + ": tracks restore when width returns");
+                        float? center = null;
+                        foreach (var child in row.Children())
+                        {
+                            if (!Visible(child, row)) continue;
+                            if (center == null) center = child.worldBound.center.y;
+                            else T.Near(center.Value, child.worldBound.center.y, .6, tool + ": settings share one horizontal line");
+                        }
+                    }
                 }
                 T.Equal(1, visible, tool + ": exactly one settings row");
                 CheckDropdownWidths(toolbar, settings, tool);
@@ -201,7 +216,7 @@ static System.Threading.CancellationToken Cancellation;
         var future = new Slider("Long future parameter label", 0, 100) { value = 40 };
         smudge.Add(future);
         type.GetMethod("RefreshToolkitInterface", flags).Invoke(window, new object[] { true });
-        settings.style.width = 1200;
+        settings.style.width = wideWidth;
         window.Repaint();
         await WhimTex.Tests.UnityA.UnityAAsync.Delay(200, Cancellation);
         await WaitForLayout(window, smudge, false);
@@ -239,7 +254,7 @@ static System.Threading.CancellationToken Cancellation;
         DragLabel(size.labelElement);
         T.True(size.value != beforeDrag, "Numeric fields retain native label dragging");
         await WhimTex.Tests.UnityA.UnityACapture.Capture(window, Path.Combine(Scope.Temp, "canvas-header-compact.png"), Cancellation);
-        settings.style.width = toolbar.style.width = 1200;
+        settings.style.width = toolbar.style.width = wideWidth;
         window.Repaint();
         await WhimTex.Tests.UnityA.UnityAAsync.Delay(250, Cancellation);
         await WaitForLayout(window, smudge, false);
@@ -263,7 +278,7 @@ static System.Threading.CancellationToken Cancellation;
         await WhimTex.Tests.UnityA.UnityAAsync.Delay(250, Cancellation);
         await WaitForLayout(window, smudge, false);
         T.True(!smudge.ClassListContains("whimtex-canvas-header-row--compact"), "Tracks restore beyond measured width and hysteresis");
-        settings.style.width = 1200;
+        settings.style.width = wideWidth;
         window.Repaint();
         await WhimTex.Tests.UnityA.UnityAAsync.Delay(150, Cancellation);
         await WhimTex.Tests.UnityA.UnityACapture.Capture(window, Path.Combine(Scope.Temp, "canvas-header-wide.png"), Cancellation);
@@ -281,6 +296,25 @@ static System.Threading.CancellationToken Cancellation;
         var outside = new FloatField("Outside header"); root.Add(outside);
         await WhimTex.Tests.UnityA.UnityAAsync.Delay(150, Cancellation);
         T.True(outside.labelElement.resolvedStyle.minWidth.value > 0, "Ordinary fields outside header retain the Editor label style");
+        var shared = smudge;
+        T.True(shared.Q("strokeSmoothing") != null, "Shared paint settings are inline with Smudge settings");
+        var smoothing = shared.Q<EnumField>("strokeSmoothing");
+        foreach (string name in new[] { "None", "Smooth", "Stabilizer" })
+        {
+            smoothing.value = (Enum)Enum.Parse(smoothing.value.GetType(), name);
+            await WaitForLayout(window, shared);
+            CheckRow(shared, "Shared options " + name);
+            T.Equal(name != "None", Visible(shared.Q("strokeSmoothingDistance"), shared), "Distance follows smoothing mode");
+            T.Equal(name != "None", Visible(shared.Q("strokeFinish"), shared), "Finish follows smoothing mode");
+        }
+        var distanceField = shared.Q<FloatField>("strokeSmoothingDistance");
+        float distanceBefore = distanceField.value; DragLabel(distanceField.labelElement);
+        T.True(distanceField.value != distanceBefore, "Smoothing distance retains native label dragging");
+        shared.Q<Toggle>("paintLockAlpha").value = true;
+        var paint = type.GetField("paintSettings", flags).GetValue(window);
+        var dynamics = paint.GetType().GetField("dynamics").GetValue(paint);
+        T.True((bool)dynamics.GetType().GetField("lockAlpha").GetValue(dynamics), "Lock Alpha UI updates shared policy");
+        await WhimTex.Tests.UnityA.UnityACapture.Capture(window, Path.Combine(Scope.Temp, "canvas-paint-input-options.png"), Cancellation);
         window.DiscardChanges();
     }
 

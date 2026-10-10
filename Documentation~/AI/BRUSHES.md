@@ -65,6 +65,8 @@ Source-specific root fields:
 | spacing | 0.01..4 brush diameters; 0.16 |
 | opacity, flow | 0..1; 1 |
 | pressure | boolean; true. Multiplies brush opacity by tablet pressure when painting interactively. |
+| writeChannels | integer 0..15; 15. Add enabled bits R=1, G=2, B=4, A=8. Disabled channels retain previous values; 0 writes nothing. |
+| lockAlpha | boolean; false. Preserve alpha and fully transparent pixels; overrides the A write bit. |
 | scatter | 0..4; 0 |
 | scatterBias | −1..1; 0 |
 | sizeJitter | 0..1; 0 |

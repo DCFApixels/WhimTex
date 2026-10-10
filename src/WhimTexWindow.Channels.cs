@@ -95,11 +95,10 @@ namespace DCFApixels.WhimTex
                 int bit = 1 << i;
                 Button button = new Button(() => ToggleCanvasChannel(bit)) { text = labels[i] };
                 button.tooltip = i == 3
-                    ? "Alpha: off ignores transparency in Canvas View and gives the brush A=0 (no paint). " +
-                      "Enable only A to view alpha in grayscale. Eraser is unaffected."
-                    : labels[i] + " channel: show in Canvas View and use the brush value; off paints this component as 0. " +
+                    ? "Alpha: off ignores transparency in Canvas View. Enable only A to view alpha in grayscale. Painting is unaffected; use Write channels in the header to protect pixels."
+                    : labels[i] + " channel: show in Canvas View. " +
                       "A single RGB channel is shown in grayscale; A controls its transparency. " +
-                      "Existing pixels are not changed by toggling. Eraser is unaffected.";
+                      "Painting is unaffected; use Write channels in the header to protect pixels.";
                 button.AddToClassList("whimtex-channel-button");
                 if (i < 3)
                     button.AddToClassList("whimtex-channel-button--" + labels[i].ToLowerInvariant());
@@ -229,11 +228,7 @@ namespace DCFApixels.WhimTex
 
         private Color GetPaintingColor()
         {
-            Color color = WhimTexColorInputs.DisplayColor(paintSettings.brushColor);
-            if (paintingErase)
-                return color;
-            Vector4 mask = CanvasChannelMask;
-            return HdrUtility.ApplyChannelMask(color, mask);
+            return WhimTexColorInputs.DisplayColor(paintSettings.brushColor);
         }
 
         private void UpdateChannelCanvas()

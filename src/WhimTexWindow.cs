@@ -224,6 +224,8 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            textManipulator?.Cancel();
+            EndTextEditing(false);
             WhimTexDocument.LayerPreviewRequested -= OnLayerPreviewRequested;
             toolkitLayerPreview?.Dispose();
             toolkitLayerPreview = null;
@@ -611,6 +613,7 @@ namespace DCFApixels.WhimTex
             paintingShiftHeld = false;
             paintingLockedAxis = 0;
             paintingPointerMoved = false;
+            paintingSmootherActive = false;
             paintingGuideIndex = -1;
             if (capturedPointer >= 0 && toolkitCanvas != null && toolkitCanvas.HasPointerCapture(capturedPointer))
                 toolkitCanvas.ReleasePointer(capturedPointer);
@@ -1012,6 +1015,9 @@ namespace DCFApixels.WhimTex
                 case GradientLayerBehaviour gradientLayer:
                     GradientLayerEditorWindow.Open(gradientLayer, activeDocument);
                     break;
+                case TextLayerBehaviour textLayer:
+                    TextLayerEditorWindow.Open(textLayer, activeDocument);
+                    break;
                 case NoiseLayerBehaviour noiseLayer:
                     NoiseLayerEditorWindow.Open(noiseLayer, activeDocument);
                     break;
@@ -1279,6 +1285,7 @@ namespace DCFApixels.WhimTex
         {
             if (changedDocument != activeDocument)
                 return;
+            RefreshTextEditing();
             if (healingJob != null || healingPointer >= 0) CancelHealing();
 
             if (paintingLayer != null && (!ReferenceEquals(paintingLayer.Owner.Behaviour, paintingLayer) ||

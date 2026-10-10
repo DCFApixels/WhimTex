@@ -65,7 +65,12 @@ namespace DCFApixels.WhimTex
             canvasNavigation.AddToClassList("whimtex-canvas-navigation");
             canvasNavigation.EnableInClassList("whimtex-canvas-navigation--light", !EditorGUIUtility.isProSkin);
             var top = NavigationRow();
-            top.Add(NavigationCorner());
+            canvasGuideCorner = NavigationCorner();
+            canvasGuideCorner.name = "canvasGuideCorner";
+            canvasGuideCorner.pickingMode = PickingMode.Position;
+            canvasGuideCorner.tooltip = "Drag out a vertical and horizontal guide together. Right-click for guide settings.";
+            canvasGuideCorner.RegisterCallback<PointerDownEvent>(canvasGuideManipulator.RulerDown);
+            top.Add(canvasGuideCorner);
             top.Add(canvasGuideTopRail);
             top.Add(NavigationCorner());
             canvasNavigation.Add(top);

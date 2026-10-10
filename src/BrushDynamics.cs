@@ -16,6 +16,8 @@ namespace DCFApixels.WhimTex
         public float opacity = 1f;
         public float flow = 1f;
         public bool pressure = true;
+        public int writeChannels = 15;
+        public bool lockAlpha;
         public float scatter;
         public float scatterBias;
         public float sizeJitter;
@@ -55,6 +57,7 @@ namespace DCFApixels.WhimTex
             hlslParameters ??= new System.Collections.Generic.List<ShaderFXParameter>();
             opacity = Unit(opacity, 1f);
             flow = Unit(flow, 1f);
+            writeChannels &= 15;
             scatter = Mathf.Clamp(Finite(scatter, 0f), 0f, 4f);
             scatterBias = Mathf.Clamp(Finite(scatterBias, 0f), -1f, 1f);
             sizeJitter = Unit(sizeJitter, 0f);

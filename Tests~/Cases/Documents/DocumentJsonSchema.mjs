@@ -76,6 +76,11 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     assert.equal(schema.$defs.WhimTexDocument.properties.spriteSlices, undefined);
     assert.ok(schema.$defs.Layer.properties.fx);
     assert.equal(schema.$defs.Layer.properties.modifiers, undefined);
+    assert.deepEqual(schema.$defs.TextLayerBehaviour.properties.overflow.enum, ['None', 'Clip', 'Ellipsis']);
+    for (const overflow of ['None', 'Clip', 'Ellipsis']) validate({ format: 'whimtex.document', version: 2,
+      layers: [{ id: 'text', behaviour: { $type: 'TextLayerBehaviour', overflow } }] }, schema);
+    assert.throws(() => validate({ format: 'whimtex.document', version: 2,
+      layers: [{ id: 'text', behaviour: { $type: 'TextLayerBehaviour', overflow: 'unknown' } }] }, schema));
     const layerFx = fields => ({ format: 'whimtex.document', version: 2,
       layers: [{ id: 'fx', behaviour: { $type: 'ColorFillLayerBehaviour' }, ...fields }] });
     validate(layerFx({ fx: [] }), schema);

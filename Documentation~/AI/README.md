@@ -30,7 +30,7 @@ Brush JSON replaces the brush rather than creating layers.
 ## Instructions for an AI assistant
 
 - Return one complete JSON object in a `json` code block, without comments or trailing commas.
-- Use editable layers for distinct parts. Prefer Shape, Gradient, Noise and targeted effects;
+- Use editable layers for distinct parts. Prefer Shape, Text, Gradient, Noise and targeted effects;
   use HLSL only where a custom algorithm is useful. Name layers and groups meaningfully.
 - Use exact model fields and case-sensitive enum names from the schema. Do not put live API
   `settings`/operations or legacy `type`/`properties` objects into document JSON.
@@ -40,7 +40,9 @@ Brush JSON replaces the brush rather than creating layers.
 - Omit values only when the version-2 default is intended. Do not infer storage defaults from
   a current UI factory or a slider range. Use FullOptimized by default; Full or Compact on request.
 - Do not invent asset GUIDs or paths. For an existing project asset, use its verified `$asset`
-  identity. Drawing pixels, Base64 images and remote image URLs are not stored in this format.
+  identity. Drawing pixels and remote image URLs are not stored in this format. Text layers use
+  `fontFamily` for an installed system font, not a project Font asset. Save manages their bounded
+  appearance backup; do not invent `fallbackPng`/`fallbackKey` values or promise portability of font files.
 - Keep shaders self-contained and deterministic; avoid unnecessary layers, huge blur radii and
   expensive loops. Preserve alpha unless the requested effect intentionally changes coverage.
 - If an error is reported, return a corrected complete object using its field path/message.

@@ -640,6 +640,26 @@
                   ]
                 }
               ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/TextLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -1952,6 +1972,14 @@
           "maximum": 3.40282347E+38
         },
         "pressure": {
+          "type": "boolean"
+        },
+        "writeChannels": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "lockAlpha": {
           "type": "boolean"
         },
         "scatter": {
@@ -3501,6 +3529,199 @@
             "string",
             "null"
           ]
+        }
+      }
+    },
+    "TextLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "TextLayerBehaviour"
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fontFamily": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fontStyle": {
+          "type": "string",
+          "enum": [
+            "Normal",
+            "Bold",
+            "Italic",
+            "BoldAndItalic"
+          ]
+        },
+        "casing": {
+          "type": "string",
+          "enum": [
+            "Normal",
+            "Lowercase",
+            "Uppercase",
+            "SmallCaps"
+          ]
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 2048
+        },
+        "maxFontSize": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 2048
+        },
+        "spacing": {
+          "$ref": "#/$defs/TextSpacing"
+        },
+        "characterHorizontalScale": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 10
+        },
+        "alignment": {
+          "type": "string",
+          "enum": [
+            "UpperLeft",
+            "UpperCenter",
+            "UpperRight",
+            "MiddleLeft",
+            "MiddleCenter",
+            "MiddleRight",
+            "LowerLeft",
+            "LowerCenter",
+            "LowerRight"
+          ]
+        },
+        "layoutMode": {
+          "type": "string",
+          "enum": [
+            "Point",
+            "Frame"
+          ]
+        },
+        "frameSize": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 32768
+          }
+        },
+        "wrapping": {
+          "type": "string",
+          "enum": [
+            "Manual",
+            "Words",
+            "Characters"
+          ]
+        },
+        "overflow": {
+          "type": "string",
+          "enum": [
+            "None",
+            "Clip",
+            "Ellipsis"
+          ]
+        },
+        "justify": {
+          "type": "boolean"
+        },
+        "autoSize": {
+          "type": "boolean"
+        },
+        "color": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "fallbackPng": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fallbackKey": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fallbackFont": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fallbackWidth": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "fallbackHeight": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "fallbackRect": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "TextSpacing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "TextSpacing"
+        },
+        "character": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 10
+        },
+        "word": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 10
+        },
+        "line": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 10
+        },
+        "paragraph": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 10
         }
       }
     }

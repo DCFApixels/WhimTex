@@ -178,6 +178,11 @@ namespace DCFApixels.WhimTex
                 ulong hash = Mix(14695981039346656037UL, layer.transformCache?.version ?? 0);
                 string settings = JsonUtility.ToJson(layer);
                 foreach (char c in settings) hash = Mix(hash, c);
+                if (layer.Behaviour is TextLayerBehaviour text)
+                {
+                    hash = Mix(hash, unchecked((uint)SystemFontCatalog.Revision));
+                    hash = Mix(hash, text.FontAvailable ? 1UL : 0UL);
+                }
                 if (layer.fx != null)
                     foreach (var fxEntry in layer.fx)
                     {

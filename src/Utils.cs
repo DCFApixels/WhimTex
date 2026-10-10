@@ -160,6 +160,8 @@ namespace DCFApixels.WhimTex
                 !Finite(canvasSize) || !Finite(sourceSize) || canvasSize.x<=0 || canvasSize.y<=0 || sourceSize.x<=0 || sourceSize.y<=0) return false;
             double fit=originalSize ? 1d : Math.Min(Math.Abs(scale.x)*canvasSize.x/sourceSize.x,Math.Abs(scale.y)*canvasSize.y/sourceSize.y);
             var nextScale=new Double2(sourceSize.x*fit/canvasSize.x*Math.Sign(scale.x),sourceSize.y*fit/canvasSize.y*Math.Sign(scale.y));
+            if (Math.Abs(nextScale.x-scale.x) <= 1e-12*Math.Max(1d,Math.Abs(scale.x))) nextScale.x=scale.x;
+            if (Math.Abs(nextScale.y-scale.y) <= 1e-12*Math.Max(1d,Math.Abs(scale.y))) nextScale.y=scale.y;
             var offset=new Double2((.5-pivot.x)*canvasSize.x,(.5-pivot.y)*canvasSize.y);
             var delta=new Double2(offset.x*(scale.x-nextScale.x),offset.y*(scale.y-nextScale.y));
             fitted.scale=nextScale;
@@ -268,6 +270,7 @@ namespace DCFApixels.WhimTex
         private static Material transformMaterial;
         private static Material paintBrushMaterial;
         private static Material alphaConversionMaterial;
+        private static Material paintWriteProtectionMaterial;
         private static Material displayChannelsMaterial;
         private static Material hdrMaterial;
         private static Material normalMapMaterial;
@@ -288,6 +291,7 @@ namespace DCFApixels.WhimTex
         private static Material fillUvMaterial;
         private static Material fillPatternMaterial;
         private static Material shapeMaterial;
+        private static Material textMaterial;
         private static Material effectCacheMaterial;
 
         static WhimTexMaterials()
@@ -316,9 +320,11 @@ namespace DCFApixels.WhimTex
         public static Material FillUv => GetOrCreate(ref fillUvMaterial, "Hidden/WhimTex/FillUv");
         public static Material FillPattern => GetOrCreate(ref fillPatternMaterial, "Hidden/WhimTex/FillPattern");
         public static Material Shape => GetOrCreate(ref shapeMaterial, "Hidden/WhimTex/Shape");
+        public static Material Text => GetOrCreate(ref textMaterial, "Hidden/WhimTex/Text");
         public static Material EffectCache => GetOrCreate(ref effectCacheMaterial, "Hidden/WhimTex/EffectCache");
         public static Material Transform => GetOrCreate(ref transformMaterial, "Hidden/WhimTex/Transform");
         public static Material PaintBrush => GetOrCreate(ref paintBrushMaterial, "Hidden/WhimTex/PaintBrush");
+        public static Material PaintWriteProtection => GetOrCreate(ref paintWriteProtectionMaterial, "Hidden/WhimTex/PaintWriteProtection");
         public static Material DisplayChannels => GetOrCreate(ref displayChannelsMaterial, "Hidden/WhimTex/DisplayChannels");
         public static Material AlphaConversion => GetOrCreate(
             ref alphaConversionMaterial,
@@ -345,6 +351,8 @@ namespace DCFApixels.WhimTex
 
         private static void Dispose()
         {
+            if (paintWriteProtectionMaterial != null) UnityEngine.Object.DestroyImmediate(paintWriteProtectionMaterial);
+            paintWriteProtectionMaterial = null;
             if (smudgeTransportMaterial != null) UnityEngine.Object.DestroyImmediate(smudgeTransportMaterial);
             smudgeTransportMaterial = null;
             if (smudgeBrushMaterial != null) UnityEngine.Object.DestroyImmediate(smudgeBrushMaterial);
@@ -359,6 +367,8 @@ namespace DCFApixels.WhimTex
             gradientMaterial = null;
             if (shapeMaterial != null) UnityEngine.Object.DestroyImmediate(shapeMaterial);
             shapeMaterial = null;
+            if (textMaterial != null) UnityEngine.Object.DestroyImmediate(textMaterial);
+            textMaterial = null;
             if (noiseMaterial != null) UnityEngine.Object.DestroyImmediate(noiseMaterial);
             noiseMaterial = null;
             if (gaussianBlurMaterial != null) UnityEngine.Object.DestroyImmediate(gaussianBlurMaterial);

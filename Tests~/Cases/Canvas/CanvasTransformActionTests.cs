@@ -10,7 +10,10 @@ public static class CanvasTransformActionTests
         var window = typeof(WhimTexWindow);
         var actionType = window.Assembly.GetType("DCFApixels.WhimTex.CanvasTransformAction", true);
         var apply = window.GetMethod("TryCanvasTransformAction", BindingFlags.Static | BindingFlags.NonPublic);
+        var canApply = window.GetMethod("CanApplyCanvasTransformAction", BindingFlags.Static | BindingFlags.NonPublic);
         Vector2 size = new Vector2(320, 160);
+        bool Available(TextureTransform value, string name) =>
+            (bool)canApply.Invoke(null, new object[] { value, size, Enum.Parse(actionType, name) });
         TextureTransform Action(TextureTransform value, string name)
         {
             object[] args = { value, size, Enum.Parse(actionType, name), default(TextureTransform) };
@@ -72,8 +75,13 @@ public static class CanvasTransformActionTests
             var reset = Action(original, "CenterPivot");
             context.Equal(new Double2(.5, .5), reset.pivot, "Pivot returns to frame center");
             Same(original, reset, "Reset pivot does not move any image point");
+            context.True(Available(original, "CenterPivot"), "An offset pivot enables Center Pivot");
+            context.True(!Available(reset, "CenterPivot"), "A centered pivot disables Center Pivot");
             var centered = Action(original, "CenterOnCanvas");
             Point(new Double2(.5, .5), centered.ToMatrix(size.x, size.y).Point(centered.pivot), "Centering places pivot at canvas center");
+            context.True(Available(original, "CenterOnCanvas"), "An offset transform enables Center on Canvas");
+            context.True(!Available(centered, "CenterOnCanvas"), "A centered transform disables Center on Canvas");
+            context.Equal(centered, Action(centered, "CenterOnCanvas"), "Repeated centering is an exact no-op");
             foreach (var name in new[] { "CenterOnCanvas", "FlipHorizontal", "FlipVertical", "RotateLeft", "RotateRight" })
             {
                 var next = Action(original, name);
@@ -112,5 +120,21 @@ public static class CanvasTransformActionTests
         context.True(!(bool)apply.Invoke(null, bad), "Singular transform is rejected without mutation");
         var alreadyCentered = regular; alreadyCentered.pivot = new Double2(.5, .5);
         context.Equal(alreadyCentered, Action(alreadyCentered, "CenterPivot"), "Repeated pivot reset is an exact no-op");
+        context.True(!Available(TextureTransform.Default, "CenterPivot"), "Default pivot needs no reset");
+        context.True(!Available(TextureTransform.Default, "CenterOnCanvas"), "Default position needs no centering");
+        context.True(Available(TextureTransform.Default, "RotateLeft"), "Rotation remains enabled at the default transform");
+        context.True(Available(TextureTransform.Default, "FlipHorizontal"), "Reflection remains enabled at the default transform");
+        var fit = typeof(TextureTransform).GetMethod("TryFitOriginalAspect", BindingFlags.Instance | BindingFlags.NonPublic);
+        foreach (bool originalSize in new[] { false, true })
+            foreach (var sourceSize in new[] { size, new Vector2(317, 113), new Vector2(63, 197) })
+            {
+                object[] first = { size, sourceSize, default(TextureTransform), originalSize };
+                context.True((bool)fit.Invoke(regular, first), "Source dimensions can be fitted");
+                var fitted = (TextureTransform)first[2];
+                context.True(!fitted.Equals(regular), "A changed aspect or size needs restoration");
+                object[] repeated = { size, sourceSize, default(TextureTransform), originalSize };
+                context.True((bool)fit.Invoke(fitted, repeated), "Fitted dimensions remain valid");
+                context.Equal(fitted, (TextureTransform)repeated[2], "Repeated aspect or size restoration is an exact no-op");
+            }
     });
 }

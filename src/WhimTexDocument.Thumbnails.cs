@@ -12,7 +12,7 @@ namespace DCFApixels.WhimTex
         {
             if (layer?.Behaviour is FileLayerBehaviour file && file.sourceTexture != null)
                 return ResolveOriginalFileTexture(file.sourceTexture);
-            if (layer?.Behaviour is TargetedLayerBehaviour || layer?.Behaviour is ShaderProcessorLayerBehaviour)
+            if (LayerThumbnailCache.Supports(layer))
             {
                 layerThumbnails ??= new LayerThumbnailCache(this);
                 return layerThumbnails.Get(layer, size, deferUpdates);

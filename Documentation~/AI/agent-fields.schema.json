@@ -3,6 +3,172 @@
   "title": "WhimTex live API field definitions",
   "description": "Reusable field shapes for live API patches and brush authoring. Not a document or clipboard envelope; use document.schema.json for stored layers.",
   "$defs": {
+    "text": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "maxLength": 8192
+        },
+        "fontFamily": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "fontStyle": {
+          "type": "string",
+          "enum": [
+            "Normal",
+            "Bold",
+            "Italic",
+            "BoldAndItalic"
+          ]
+        },
+        "casing": {
+          "type": "string",
+          "enum": [
+            "Normal",
+            "Lowercase",
+            "Uppercase",
+            "SmallCaps"
+          ],
+          "default": "Normal",
+          "description": "Display-only casing. SmallCaps draws lowercase as smaller capitals; stored text is unchanged."
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 2048,
+          "description": "Fixed size, or minimum size with Frame Auto Size enabled."
+        },
+        "maxFontSize": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 2048,
+          "default": 256,
+          "description": "Maximum size with Frame Auto Size enabled. Range must contain a whole-pixel size."
+        },
+        "characterHorizontalScale": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 10,
+          "default": 1,
+          "description": "Glyph-width and advance multiplier. Height and additive em spacing are unchanged. Used by wrapping, Auto Size and Ellipsis."
+        },
+        "spacing": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "character": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 10
+            },
+            "word": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 10
+            },
+            "line": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 10
+            },
+            "paragraph": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 10
+            }
+          },
+          "description": "Extra spacing in em of the effective font size. All default to zero. Paragraph applies only after explicit breaks. Partial patches preserve omitted values."
+        },
+        "alignment": {
+          "type": "string",
+          "enum": [
+            "UpperLeft",
+            "UpperCenter",
+            "UpperRight",
+            "MiddleLeft",
+            "MiddleCenter",
+            "MiddleRight",
+            "LowerLeft",
+            "LowerCenter",
+            "LowerRight"
+          ]
+        },
+        "layoutMode": {
+          "type": "string",
+          "enum": [
+            "Point",
+            "Frame"
+          ]
+        },
+        "frameSize": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 32768
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "wrapping": {
+          "type": "string",
+          "enum": [
+            "Manual",
+            "Words",
+            "Characters"
+          ]
+        },
+        "overflow": {
+          "type": "string",
+          "enum": [
+            "None",
+            "Clip",
+            "Ellipsis"
+          ],
+          "default": "None",
+          "description": "Frame overflow: None keeps text outside the frame, Clip cuts it, Ellipsis shortens visible text with an ellipsis. Ignored for Point text."
+        },
+        "justify": {
+          "type": "boolean"
+        },
+        "autoSize": {
+          "type": "boolean",
+          "default": false,
+          "description": "Fit text into Frame between fontSize and maxFontSize. Ignored for Point text."
+        },
+        "color": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number",
+              "minimum": -107,
+              "maximum": 107
+            },
+            {
+              "type": "number",
+              "minimum": -107,
+              "maximum": 107
+            },
+            {
+              "type": "number",
+              "minimum": -107,
+              "maximum": 107
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          ],
+          "items": false,
+          "minItems": 4,
+          "maxItems": 4
+        }
+      }
+    },
     "fillPattern": {
       "type": "object",
       "additionalProperties": false,
@@ -1561,6 +1727,18 @@
         "tiled": {
           "type": "boolean",
           "default": false
+        },
+        "writeChannels": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15,
+          "default": 15,
+          "description": "Write mask: R=1, G=2, B=4, A=8. Disabled channels retain their previous straight values."
+        },
+        "lockAlpha": {
+          "type": "boolean",
+          "default": false,
+          "description": "Preserve alpha and fully transparent pixels; overrides the A write bit."
         }
       },
       "required": [

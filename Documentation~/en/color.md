@@ -96,8 +96,8 @@ The footer channel buttons let you see parts of the image separately:
 - **Several color channels:** keep their colors and hide the others.
 - **A off:** view colors without transparency.
 
-These buttons also mask **new painting**. Disabled RGB channels receive zero;
-if A is off, Brush, Pencil and Fill leave no mark. They do not change existing pixels.
+These buttons change only the view. For protected painting, use **Write R/G/B/A** and
+**Lock Alpha** in the Canvas View header; see [painting](painting.md#steady-the-path-and-protect-channels).
 
 ### Color picker channel view
 

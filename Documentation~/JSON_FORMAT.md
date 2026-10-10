@@ -140,6 +140,36 @@ The low-level `SaveJson` API does not erase live pixels: when omission is explic
 it leaves the source marked dirty. Prefer `ExportJson` to retain a pixel-bearing source unchanged.
 Empty placeholders can subsequently be saved normally. No URL download substitutes for saved pixels.
 
+### Text and system fonts
+
+`TextLayerBehaviour` stores editable `text`, `fontFamily`, `fontStyle`, `fontSize`, `maxFontSize`, `spacing`, `characterHorizontalScale`,
+`alignment`, `casing`, `layoutMode`, `frameSize`, `wrapping`, `overflow`, `justify`, `autoSize` and `color`. `layoutMode` is
+`Point` or `Frame`; `wrapping` is `Manual`, `Words` or `Characters`. Frame dimensions are
+1..32768 canvas pixels per axis. Point text ignores the retained frame settings.
+`overflow` is `None` (default, unclipped), `Clip`, or `Ellipsis`. It participates in the layout
+key and saved appearance. Ellipsis shortens displayed text at text-element boundaries to fit both
+frame axes, after Auto Size, without changing the editable `text`.
+`autoSize` fits Frame text using the largest whole-pixel size within `fontSize` (minimum) and
+`maxFontSize` (maximum, default 256), without overwriting either bound. Both are 1..2048 px;
+the range must contain a whole-pixel size. With Auto Size off, `fontSize` is the fixed size.
+The fitted size is derived, not a separate serialized field.
+`casing` is `Normal`, `Lowercase`, `Uppercase` or `SmallCaps`; it affects the saved appearance,
+not the editable `text`. SmallCaps synthesizes smaller uppercase glyphs for lowercase letters.
+`spacing` is a `TextSpacing` object with `character`, `word`, `line` and `paragraph`, each -1..10 em,
+defaulting to zero. One em is the effective font size. The former `lineSpacing` multiplier is a removed
+field, not an alternative spelling or unit for `spacing.line`; old data must receive an unresolved-field diagnostic.
+No font asset or machine-specific font path is embedded.
+`characterHorizontalScale` is a 0.01..10 width/advance multiplier, default 1. It preserves glyph
+height and added em spacing, participates in wrapping/Auto Size/Ellipsis and the layout key,
+and applies equally to Point and Frame text.
+Saving prepares `fallbackPng` (base64 coverage PNG), `fallbackKey`, `fallbackFont`, `fallbackWidth`
+and `fallbackHeight`, plus `fallbackRect` (local-pixel source bounds as `[x,y,width,height]`).
+The layout key excludes tint, Transform and FX, so the saved mask can still
+be recolored and processed when the font is missing. A source layout change invalidates that mask.
+The PNG is limited to 768 KiB and 2048 pixels per axis; dimension checks precede image decoding.
+Missing fonts are warnings, not automatic substitutions. A matching backup renders normally;
+without one, the Text layer is transparent until a font is selected.
+
 ### Asset references
 
 An external Texture, Material or mesh reference is an object containing `$asset` with `guid`, `path`,

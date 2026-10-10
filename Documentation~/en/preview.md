@@ -85,10 +85,11 @@ See [seamless painting](symmetry.md).
 ### Create and edit guides
 
 Drag from the left ruler of Canvas View to create a vertical guide, or from the top ruler for a horizontal one.
+Drag from the ruler intersection to create both lines together. Cancelling or releasing outside Canvas View discards both; Undo/Redo also treats the pair as one action.
 The new line is parallel to the ruler even on a rotated canvas; afterwards it moves, zooms and rotates with the canvas.
 
 Drag an existing line to reposition it. Drop it back on either ruler or outside Canvas View to remove it; `Esc` cancels the drag.
-You can create guides from the rulers with any tool. Existing guides have the lowest input priority: they can be dragged only where the active tool does not use the click. Transform handles and the inside of its frame take priority, including for multiple layers and temporary FX transforms; Point and Normal handles also take priority. To move a guide, use Transform outside its frame or an FX Edit on Canvas tool away from its handles. Painting, filling and area-selection tools ignore existing guides; the lines stay visible and draw below all tool handles.
+You can create guides from the rulers with any tool. Move existing guides with Layer Select, Zoom, or Transform outside its frame; temporary FX Edit on Canvas tools also support guides away from their handles. Transform handles and the inside of its frame take priority, including for multiple layers and temporary FX transforms; Point and Normal handles also take priority. Hold `Ctrl` to bypass the guide and use the active tool. Brushes, Pencil, Fill, Shape and area-selection tools ignore existing guides. The lines stay visible and draw below all tool handles.
 Click a guide to select it: arrow keys nudge it, `Shift` increases the step tenfold, and `Delete` removes it. Click elsewhere or press `Esc` to deselect. Double-click a guide to enter an exact **Position (px)** and **Angle (°)**. Angles are relative to the canvas: 0° is horizontal, 90° is vertical. For those two orientations, Position is the distance from the top or left edge; at other angles it is the signed perpendicular distance from the top-left corner.
 
 Right-click a guide to **Edit**, **Duplicate** or **Delete** it. Right-click either ruler for the shared controls:

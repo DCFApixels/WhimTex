@@ -27,6 +27,7 @@ Use **+** at the bottom of Layers to choose a type:
 | Gradient | A smooth color transition. |
 | Noise | A generated pattern. See [Noise](noise.md). |
 | Shape | An editable rectangle, ellipse, polygon, star, line, arc or sector. |
+| Text | Editable text using fonts installed in the operating system. |
 
 You can also drag a Project texture onto Canvas View to add it at the top,
 or drop it between rows to choose its position. A newly assigned image keeps its original proportions.
@@ -64,6 +65,67 @@ The selected layer's settings are divided into four foldouts:
 
 Open the same settings in a separate window through **layer ⋮ → Properties**.
 Sections that do not apply to the selected layer are greyed out.
+
+## Add text
+
+Choose the **Text** tool (the **T** icon). Click to create point text, or drag a rectangle
+to create framed text. Type directly in Canvas View; `Enter` starts a new paragraph.
+Click outside the editor, press `Ctrl+Enter`, or choose **Done** to finish. That click only
+finishes editing: it does not create another layer. **Cancel** or `Esc` restores the text
+from the start of the edit. Click existing text to edit it again, or use **Edit Text** in
+the tool header. Hold `Ctrl` to start a new text layer rather than select existing text.
+
+The Text tool header sets defaults for new text. It does not change existing layers.
+Edit a layer's formatting in **Properties (Text)**; these changes do not affect the tool defaults.
+
+You can also choose **+ → Text** and edit **Properties (Text)** in Layer Settings.
+Use **Font** in the tool header or **…** in Layer Settings to search installed fonts and
+preview a sample. No font asset needs to be imported into Project. **Refresh** rescans fonts.
+
+The creation gesture determines the layout; the tool header has no Layout selector.
+Frame Size, Wrapping, Overflow and Auto Size belong to the layer Properties, not the tool settings.
+In Properties, **Layout → Point** has no frame and wraps only at explicit line breaks.
+**Layout → Frame** lays out text within **Frame Size (px)**. **Wrapping** can be **Manual** (line
+breaks only), **Words**, or **Characters**; words longer than the frame still break to fit.
+**Justify** is always available. It expands spacing between words on wrapped lines,
+leaving each paragraph's last line left-aligned. Point text and Manual wrapping reset it
+to left alignment without changing vertical alignment. Drag a frame's corner with the Text tool to reflow.
+Enable **Auto Size** to fit the text into the frame. In Properties, **Size** shows **Min**
+and **Max** side by side, in canvas pixels. The largest fitting whole-pixel size is used
+within that range. **Overflow** controls text that does not fit: **None** (default) leaves it
+visible outside the frame, **Clip** cuts it at the frame, and **Ellipsis** shortens the visible
+text with «…». Ellipsis respects both width and height, without changing the source text.
+If even one line or the ellipsis cannot fit, that part is not shown. Overflow also applies
+when Auto Size reaches Min. Finish inline editing to see the final result.
+
+**Style**, **Size**, **Alignment** and **Spacing Options (em)** apply to the whole block.
+In the **Style** row, **B** and **I** toggle bold and italic independently;
+**aa**, **AA** and small-capital buttons display Lowercase, Uppercase or Small Caps.
+The **Alignment** row groups left, center, right and Justify with top, middle and bottom alignment.
+Click the active button again to show the original casing. Source text is unchanged;
+Small Caps uses uppercase glyphs at 75% size for originally lowercase letters, on the same baseline.
+Spacing adds distance between **Character**s, **Word**s, **Line**s and **Paragraph**s.
+Zero keeps the font's standard spacing; positive values increase it, negative values reduce it.
+One em equals the current font size. Paragraph spacing applies only at explicit line breaks,
+not automatic wrapping. All four values participate in wrapping and Auto Size.
+
+**Horizontal Scale** changes character width without changing height: `1` keeps the original
+width, `0.5` halves it, and `2` doubles it. Wrapping, Auto Size and Ellipsis use the new widths;
+added em spacing remains unchanged.
+
+**Color** includes alpha. Use **Transform**, **Rendering**
+and **FX** to place and process the result. The inline editor shows plain text; finishing
+returns to the rendered result with its wrapping, justification and effects.
+
+TIFF and JSON retain the editable text, font name and a raster backup of its appearance,
+not the font itself. If the font is missing, WhimTex shows a warning and keeps the saved
+appearance. Choose an installed replacement to edit the text layout; Color, Transform
+and FX remain available. Without a matching backup, the text is transparent until a font
+is chosen. The backup is limited to 2048 pixels on its longest side and may be reduced
+further to fit its storage budget.
+
+This version uses one font and style per layer, up to 8192 characters. Per-character
+formatting and advanced text shaping are not provided.
 
 ## Keep related parts in a group
 

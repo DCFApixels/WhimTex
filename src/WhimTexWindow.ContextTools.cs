@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
         private VisualElement contextToolSeparator;
         private Button gradientToolButton, uvIslandToolButton, temporaryToolButton;
 
-        private static bool IsBaseCanvasTool(CanvasTool tool) => tool <= CanvasTool.Shape || tool == CanvasTool.HealingBrush || tool == CanvasTool.SmudgeBrush;
+        private static bool IsBaseCanvasTool(CanvasTool tool) => tool <= CanvasTool.Shape || tool == CanvasTool.HealingBrush || tool == CanvasTool.SmudgeBrush || tool == CanvasTool.Text;
         private static bool IsTemporaryCanvasTool(CanvasTool tool) =>
             tool == CanvasTool.FXTransform || tool == CanvasTool.FXPoint || tool == CanvasTool.FXNormal;
         private bool IsUvToolAvailable => activeDocument != null && uvEnabled;
@@ -156,6 +156,8 @@ namespace DCFApixels.WhimTex
             StopKeyboardNudge();
             areaSelectionManipulator?.Cancel();
             shapeManipulator?.Cancel();
+            textManipulator?.Cancel();
+            EndTextEditing(false);
             CancelCanvasEyedropper();
             CancelCanvasZoomGesture();
             FinishCanvasTransform();
@@ -199,7 +201,7 @@ namespace DCFApixels.WhimTex
                 canvasTransformManipulator?.IsDragging == true || canvasZoomManipulator?.IsDragging == true ||
                 canvasGuideManipulator?.IsDragging == true || gradientCanvasManipulator?.IsDragging == true ||
                 pointManipulator?.IsDragging == true || normalManipulator?.IsDragging == true ||
-                shapeManipulator?.IsDragging == true || areaSelectionManipulator?.HasGesture == true)
+                shapeManipulator?.IsDragging == true || textManipulator?.IsDragging == true || areaSelectionManipulator?.HasGesture == true)
                 return true;
             ReconcileCanvasToolContext();
             if (IsTemporaryCanvasTool(canvasTool))

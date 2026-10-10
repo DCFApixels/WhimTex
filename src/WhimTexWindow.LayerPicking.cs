@@ -29,6 +29,7 @@ namespace DCFApixels.WhimTex
                 evt.pressedButtons != 1 || evt.target != toolkitCanvas ||
                 !toolkitCanvas.contentRect.Contains(evt.localPosition) ||
                 (canvasZoomManipulator?.IsDragging ?? false) || (canvasGuideManipulator?.IsDragging ?? false)) return false;
+            if (canvasGuideManipulator?.WantsPointer(evt.localPosition, evt.ctrlKey, evt.altKey) == true) return false;
             WhimTexUI.ConsumeEvent(evt);
             Focus();
             toolkitCanvas.Focus();

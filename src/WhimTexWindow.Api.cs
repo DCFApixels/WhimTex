@@ -71,6 +71,8 @@ namespace DCFApixels.WhimTex
             foreach (WhimTexWindow window in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
                 if (window.activeDocument == document && (window.paintingLayer != null || window.healingLayer != null ||
                     window.shapeManipulator != null && window.shapeManipulator.IsDragging ||
+                    window.textManipulator?.IsDragging == true ||
+                    window.textEditingLayer != null ||
                     window.gradientCanvasManipulator?.IsDragging == true ||
                     window.pointManipulator?.IsDragging == true ||
                     window.normalManipulator?.IsDragging == true ||

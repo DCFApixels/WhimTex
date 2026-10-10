@@ -314,7 +314,8 @@
     display: none;
 }
 
-.whimtex-canvas-header-row .unity-button {
+.whimtex-canvas-header-row .unity-button,
+.whimtex-canvas-header-row .unity-button.whimtex-channel-button {
     width: auto;
     min-width: 0;
     flex-grow: 0;
@@ -827,7 +828,8 @@
     align-items: center;
 }
 
-.whimtex-canvas-header-row .unity-button.whimtex-transform-action {
+.unity-button.whimtex-icon-action,
+.whimtex-canvas-header-row .unity-button.whimtex-icon-action {
     width: 24px;
     padding: 0;
     border-width: 0;
@@ -838,15 +840,15 @@
     justify-content: center;
 }
 
-.whimtex-canvas-header-row .unity-button.whimtex-transform-action:hover {
+.unity-button.whimtex-icon-action:hover {
     background-color: var(--whimtex-hover-overlay);
 }
 
-.whimtex-canvas-header-row .unity-button.whimtex-transform-action:disabled {
+.unity-button.whimtex-icon-action:disabled {
     background-color: transparent;
 }
 
-.whimtex-transform-action > .whimtex-layer-action-icon {
+.whimtex-icon-action > .whimtex-layer-action-icon {
     scale: 1.25 1.25;
 }
 
@@ -860,7 +862,7 @@
     -unity-text-align: middle-center;
 }
 
-.whimtex-transform-action:disabled > .whimtex-layer-action-icon {
+.whimtex-icon-action:disabled > .whimtex-layer-action-icon {
     opacity: 0.35;
 }
 
@@ -2807,3 +2809,80 @@
 .whimtex-export-description { white-space: normal; margin: 3px 3px 9px 3px; }
 .whimtex-export-actions { flex-direction: row; justify-content: flex-end; margin-top: 8px; flex-shrink: 0; }
 .whimtex-export-actions > Button { min-width: 84px; height: 24px; margin-left: 6px; }
+
+.whimtex-text-content > .unity-base-text-field__input { min-height: 54px; white-space: normal; }
+.whimtex-text-format-row { flex-direction: row; align-items: center; flex-shrink: 0; margin-top: 1px; margin-bottom: 1px; }
+.whimtex-text-format-row > .unity-base-field__label { min-width: 0; flex-shrink: 1; text-overflow: ellipsis; overflow: hidden; }
+.whimtex-text-format-row > .unity-base-field { flex-grow: 0; flex-shrink: 0; margin: 0; }
+/* Native inputs rely on flex-grow to expand from zero width; these groups fit their buttons instead. */
+.whimtex-text-format-row > .unity-base-field > .unity-base-field__input { width: auto; flex-grow: 0; flex-basis: auto; }
+.whimtex-text-format-separator { width: 1px; height: 14px; margin: 0 5px; flex-shrink: 0; background-color: var(--whimtex-hover-overlay); }
+.whimtex-text-size .unity-composite-field__field > .unity-base-field__label { width: auto; min-width: 0; flex-basis: auto; margin-right: 3px; }
+.whimtex-text-spacing > .unity-base-field__input { flex-direction: column; background-color: transparent; }
+.whimtex-text-spacing-row { flex-direction: row; flex-wrap: wrap; }
+.whimtex-text-spacing-row > .unity-base-field { flex-grow: 1; flex-basis: 110px; min-width: 0; margin: 0 2px; }
+.whimtex-text-spacing-row .unity-base-field__label { width: 64px; min-width: 64px; padding-right: 2px; }
+.whimtex-text-spacing-row .unity-base-field__input { min-width: 32px; }
+.whimtex-text-font-list { flex-grow: 1; }
+.whimtex-text-font-button { width: 22px; min-width: 22px; flex-shrink: 0; margin: 0 0 0 2px; padding: 0; }
+.whimtex-text-font-preview { height: 44px; font-size: 24px; -unity-text-align: middle-center; }
+.whimtex-text-font-actions { flex-direction: row; justify-content: flex-end; }
+.whimtex-text-tool-font { width: 140px; overflow: hidden; }
+.whimtex-text-alignment > .unity-base-field__input,
+.whimtex-text-casing > .unity-base-field__input,
+.whimtex-text-style > .unity-base-field__input {
+    flex-direction: row;
+    align-items: center;
+    background-color: transparent;
+}
+.whimtex-canvas-header-row .whimtex-text-alignment > .unity-base-field__input,
+.whimtex-canvas-header-row .whimtex-text-casing > .unity-base-field__input,
+.whimtex-canvas-header-row .whimtex-text-style > .unity-base-field__input {
+    width: auto;
+    min-width: 0;
+    height: 22px;
+}
+.whimtex-text-alignment .unity-button.whimtex-icon-action,
+.whimtex-text-casing .unity-button.whimtex-icon-action,
+.whimtex-text-style .unity-button.whimtex-icon-action {
+    flex-shrink: 0;
+    margin: 0 2px;
+    border-width: 1px;
+    border-color: transparent;
+}
+.whimtex-text-alignment .unity-button.whimtex-text-format-button--selected,
+.whimtex-text-casing .unity-button.whimtex-text-format-button--selected,
+.whimtex-text-style .unity-button.whimtex-text-format-button--selected {
+    border-color: #8d8d8d;
+}
+.whimtex-text-style-icon,
+.whimtex-canvas-header-row .whimtex-text-style-icon {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+    -unity-text-align: middle-center;
+}
+.whimtex-text-style-icon--bold,
+.whimtex-canvas-header-row .whimtex-text-style-icon--bold { -unity-font-style: bold; }
+.whimtex-text-style-icon--italic,
+.whimtex-canvas-header-row .whimtex-text-style-icon--italic { -unity-font-style: italic; }
+.whimtex-text-casing-icon { width: 20px; height: 16px; flex-direction: row; justify-content: center; align-items: flex-end; }
+.whimtex-text-casing-icon > Label,
+.whimtex-canvas-header-row .whimtex-text-casing-icon > Label {
+    margin: 0; padding: 0; height: 16px; font-size: 12px;
+    -unity-text-align: lower-center; -unity-font-style: normal;
+}
+.whimtex-text-casing-icon > .whimtex-text-casing-icon--small,
+.whimtex-canvas-header-row .whimtex-text-casing-icon > .whimtex-text-casing-icon--small { font-size: 9px; }
+.whimtex-canvas-text-input { position: absolute; margin: 0; padding: 0; }
+.whimtex-canvas-text-input > .unity-base-text-field__input {
+    margin: 0; padding: 0;
+    border-width: 1px;
+    border-color: rgb(80, 190, 235);
+    background-color: rgb(35, 35, 35);
+    color: rgb(238, 238, 238);
+    white-space: normal;
+}
+.whimtex-canvas-text-input--manual > .unity-base-text-field__input { white-space: nowrap; }

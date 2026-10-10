@@ -9,6 +9,7 @@ const object=(properties,required=[])=>({type:'object',additionalProperties:fals
 const fields=JSON.parse(fs.readFileSync(path.join(docs,'AI/agent-fields.schema.json'),'utf8'));
 const settings=object({
   size:number(1,4096),hardness:number(0,1),spacing:number(.01,4),opacity:number(0,1),flow:number(0,1),pressure:{type:'boolean'},
+  writeChannels:integer(0,15),lockAlpha:{type:'boolean'},
   scatter:number(0,4),scatterBias:number(-1,1),sizeJitter:number(0,1),angleJitter:number(0,180),
   angleOffset:number(-180,180),flipX:number(0,1),flipY:number(0,1),
   rotationMode:choice('Fixed StrokeDirection'),randomAlgorithm:choice('Random Sobol'),

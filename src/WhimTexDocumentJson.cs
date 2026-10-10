@@ -98,7 +98,7 @@ namespace DCFApixels.WhimTex
                 throw new ArgumentOutOfRangeException(nameof(options.Mode));
             RestoreMissingAssets(document);
             if (selection != null) selection = FragmentRoots(document, selection);
-            var context = new Writer(options);
+            var context = new Writer(options, document);
             var settings = context.ObjectFields(document);
             settings.Remove("layers");
             // Even Compact retains the source canvas: omission means the destination axis
@@ -288,6 +288,7 @@ namespace DCFApixels.WhimTex
             {
                 foreach (var layer in layers)
                 {
+                    if (layer?.Behaviour is TextLayerBehaviour text) text.Validate();
                     if (layer?.Behaviour is TargetedLayerBehaviour target &&
                         (target.inputMode == EffectInputMode.Specific && !document.IsUsableEffectTarget(target, target.TargetLayerId) ||
                          target.inputMode == EffectInputMode.AllBelow && document.TryFindLayer(layer, out var siblings, out int index) && !document.HasUsableEffectInput(target, siblings, index)))
@@ -343,12 +344,18 @@ namespace DCFApixels.WhimTex
         {
             internal readonly List<string> Warnings = new();
             private readonly WhimTexJsonWriteOptions options;
+            private readonly WhimTexDocument document;
             private readonly Dictionary<ShaderFX, string> effects = new();
             private int depth, count;
-            internal Writer(WhimTexJsonWriteOptions options) { this.options = options; }
+            internal Writer(WhimTexJsonWriteOptions options, WhimTexDocument document) { this.options = options; this.document = document; }
 
             internal JObject ObjectFields(object value)
             {
+                if (value is TextLayerBehaviour textLayer)
+                {
+                    textLayer.PrepareSavedAppearance(document.width, document.height);
+                    if (textLayer.Notice != null) Warnings.Add(textLayer.Notice);
+                }
                 var node = new JObject();
                 foreach (var field in Fields(value.GetType()))
                 {
@@ -558,6 +565,7 @@ namespace DCFApixels.WhimTex
                 }
                 if (result is ShapeLayerBehaviour.Corner corner && (corner.amount < 0 || corner.amount > 1))
                     throw JsonError(node["amount"] ?? node, "Corner amount must be between 0 and 1.");
+                if (result is TextLayerBehaviour text && text.Notice != null) Warnings.Add(text.Notice);
                 return result;
             }
         }

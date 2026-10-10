@@ -192,7 +192,8 @@ namespace DCFApixels.WhimTex
             });
             SetCanvasTransformActionIcon(reset, "Reset", LayerActionIcon.Kind.Reset);
             reset.tooltip = "Reset\nReset position, scale, rotation and pivot; restore Tiling to Clip. Keep Filter unchanged.";
-            toolkitHeaderBindings.Add(() => reset.SetEnabled(SingleAvailable() && GetSelectedLayer()?.IsGroup == false));
+            toolkitHeaderBindings.Add(() => reset.SetEnabled(SingleAvailable() && GetSelectedLayer() is Layer selected &&
+                !selected.IsGroup && !selected.transform.Equals(TextureTransform.Default)));
             resetGroup.Add(reset);
             row.Add(actions);
             toolkitCanvasViewHeader.Add(row);
@@ -212,7 +213,8 @@ namespace DCFApixels.WhimTex
             Button button = WhimTexUI.CreateButton(string.Empty, () => ApplyCanvasTransformAction(action, undoName));
             SetCanvasTransformActionIcon(button, action.ToString(), icon);
             button.tooltip = undoName + "\n" + tooltip;
-            toolkitHeaderBindings.Add(() => button.SetEnabled(IsCanvasTransformEnabled && canvasTool == CanvasTool.Transform));
+            toolkitHeaderBindings.Add(() => button.SetEnabled(IsCanvasTransformEnabled && canvasTool == CanvasTool.Transform &&
+                CanApplyCanvasTransformAction(CurrentCanvasTransform, new Vector2(activeDocument.width, activeDocument.height), action)));
             row.Add(button);
         }
 
@@ -221,6 +223,7 @@ namespace DCFApixels.WhimTex
             button.name = "canvasTransform" + name;
             button.text = string.Empty;
             button.AddToClassList("whimtex-transform-action");
+            button.AddToClassList("whimtex-icon-action");
             button.Add(new LayerActionIcon(icon));
         }
 
@@ -255,6 +258,9 @@ namespace DCFApixels.WhimTex
             toolkitCanvas?.Focus();
         }
 
+        internal static bool CanApplyCanvasTransformAction(TextureTransform current, Vector2 size, CanvasTransformAction action)
+            => TryCanvasTransformAction(current, size, action, out var next) && !next.Equals(current);
+
         internal static bool TryCanvasTransformAction(TextureTransform current, Vector2 size,
             CanvasTransformAction action, out TextureTransform next)
         {
@@ -276,6 +282,7 @@ namespace DCFApixels.WhimTex
             if (action == CanvasTransformAction.CenterOnCanvas)
             {
                 Double2 delta = new Double2(.5 - pivot.x, .5 - pivot.y);
+                if (Math.Abs(delta.x * size.x) <= 1e-9 && Math.Abs(delta.y * size.y) <= 1e-9) return true;
                 if (current.storage == TransformStorage.Projective)
                     return next.TrySetMatrix(ProjectiveMatrix.Translate(delta.x, delta.y) * matrix);
                 next.position += new Double2(delta.x * size.x, delta.y * size.y);

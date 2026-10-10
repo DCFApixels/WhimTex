@@ -49,6 +49,7 @@ namespace DCFApixels.WhimTex
             ApplyPaintToolChange(() =>
             {
                 settings.brushColor=paintSettings.brushColor;settings.secondaryBrushColor=paintSettings.secondaryBrushColor;
+                settings.smoothing=paintSettings.smoothing;
                 paintSettings.ReleasePresetTip();paintSettings=settings;
                 selectedBrushPreset=selectedBrushPresetSnapshot=null;
             });

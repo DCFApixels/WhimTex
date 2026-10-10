@@ -23,6 +23,18 @@ function enumeration(file, name) {
 const noiseEnum = name => enumeration('Layers/NoiseLayerBehaviour.cs', name);
 const normalEnum = name => enumeration('Layers/NormalMapLayerBehaviour.cs', name);
 const defs = {
+  text: object({ text: str(8192), fontFamily: str(512), fontStyle: choice('Normal Bold Italic BoldAndItalic'),
+    casing: { ...enumeration('Layers/TextLayerBehaviour.cs', 'TextCasing'), default: 'Normal', description: 'Display-only casing. SmallCaps draws lowercase as smaller capitals; stored text is unchanged.' },
+    fontSize: { ...number(1,2048), description: 'Fixed size, or minimum size with Frame Auto Size enabled.' },
+    maxFontSize: { ...number(1,2048), default: 256, description: 'Maximum size with Frame Auto Size enabled. Range must contain a whole-pixel size.' },
+    characterHorizontalScale: { ...number(.01,10), default: 1, description: 'Glyph-width and advance multiplier. Height and additive em spacing are unchanged. Used by wrapping, Auto Size and Ellipsis.' },
+    spacing: { ...object({ character: number(-1,10), word: number(-1,10), line: number(-1,10), paragraph: number(-1,10) }),
+      description: 'Extra spacing in em of the effective font size. All default to zero. Paragraph applies only after explicit breaks. Partial patches preserve omitted values.' },
+    alignment: choice('UpperLeft UpperCenter UpperRight MiddleLeft MiddleCenter MiddleRight LowerLeft LowerCenter LowerRight'),
+    layoutMode: enumeration('Layers/TextLayerBehaviour.cs', 'TextLayoutMode'), frameSize: tuple(number(1,32768),2),
+    wrapping: enumeration('Layers/TextLayerBehaviour.cs', 'TextWrapping'),
+    overflow: { ...enumeration('Layers/TextLayerBehaviour.cs', 'TextOverflowMode'), default: 'None', description: 'Frame overflow: None keeps text outside the frame, Clip cuts it, Ellipsis shortens visible text with an ellipsis. Ignored for Point text.' }, justify: bool,
+    autoSize: { ...bool, default: false, description: 'Fit text into Frame between fontSize and maxFontSize. Ignored for Point text.' }, color: rgba }),
   fillPattern: object({ shape: choice('Triangles Squares Hexagons Circles'), circleLayout: choice('Square Dense'),
     size: { oneOf: [number(1,16384), { type: 'array', items: number(1,16384), minItems: 2, maxItems: 2 }] }, linkSize: bool,
     rotation: number(-360000,360000), offset: vec, seamless: bool,
@@ -126,7 +138,9 @@ defs.smudgeStroke = object({
   size: { ...number(1,512), default: 32 }, hardness: { ...number(0,1), default: .8 },
   strength: { ...number(0,1), default: .8 }, flow: { ...number(0,1), default: 1 },
   mixing: { ...number(0,1), default: .25, description: '0: coordinate deformation without cumulative RGB feedback; 1: carried-color mixing. Partial values couple both on every dab.' },
-  source: { ...choice('CurrentLayer CurrentAndBelow AllLayers'), default: 'CurrentLayer' }, tiled: { ...bool, default: false }
+  source: { ...choice('CurrentLayer CurrentAndBelow AllLayers'), default: 'CurrentLayer' }, tiled: { ...bool, default: false },
+  writeChannels: { ...integer(0,15), default: 15, description: 'Write mask: R=1, G=2, B=4, A=8. Disabled channels retain their previous straight values.' },
+  lockAlpha: { ...bool, default: false, description: 'Preserve alpha and fully transparent pixels; overrides the A write bit.' }
 }, ['op', 'layer', 'points']);
 const schema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',

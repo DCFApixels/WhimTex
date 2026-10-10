@@ -529,6 +529,8 @@ namespace DCFApixels.WhimTex
                 _objects.Add(value);
                 _writer.Write(TagObject);
                 _writer.Write(type.FullName);
+                if (value is TextLayerBehaviour textLayer && _owner != null)
+                    textLayer.PrepareSavedAppearance(_owner.width, _owner.height);
                 if (value is ISerializationCallbackReceiver receiver) receiver.OnBeforeSerialize();
                 if (value is IWhimTexDocumentSerializable manual)
                 {

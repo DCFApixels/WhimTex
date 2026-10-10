@@ -9,9 +9,9 @@ context.case("LayerTypeRegistry original assertion inputs and source contracts",
   const registry = read('LayerTypeRegistry.cs');
   const entries = [...registry.matchAll(/new Entry\("([^"]+)", "([^"]+)", "([^"]+)", "([^"]+)", typeof\((\w+)\), (\d), (?:\(\) => new (\w+)\(\)|(\w+)\.CreateDefault)\)/g)]
       .map(([,id,menu,prefix,inside,type,section,constructor,defaults]) => ({id,menu,prefix,inside,type,section:+section,factory:constructor ?? defaults,defaults:!!defaults}));
-  assert.deepEqual(entries.map(e=>e.id), ['drawing','file','color','gradient','noise','shape','outline','sdf','normalMap','blur','sharpen','makeSeamless','shaderProcessor','group']);
-  assert.equal(new Set(entries.map(e=>e.type)).size, 14);
-  assert.deepEqual(entries.map(e=>e.section), [0,0,0,0,0,0,1,1,1,1,1,1,1,2]);
+  assert.deepEqual(entries.map(e=>e.id), ['drawing','file','color','gradient','noise','shape','text','outline','sdf','normalMap','blur','sharpen','makeSeamless','shaderProcessor','group']);
+  assert.equal(new Set(entries.map(e=>e.type)).size, 15);
+  assert.deepEqual(entries.map(e=>e.section), [0,0,0,0,0,0,0,1,1,1,1,1,1,1,2]);
   for(const entry of entries) {
       assert.equal(entry.type,entry.factory);
       assert.equal(entry.defaults, entry.id === 'makeSeamless', 'Only Make Seamless uses its configured default factory');
@@ -28,4 +28,3 @@ context.case("LayerTypeRegistry original assertion inputs and source contracts",
 
 });
 await finish(context);
-

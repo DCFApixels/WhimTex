@@ -175,7 +175,7 @@ namespace DCFApixels.WhimTex
         {
             Keys(settings, "name", "enabled", "clippingMask", "opacity", "blend", "filter", "source", "colorRange", "blendRange", "channelMapping", "compositing", "color", "brush",
                 "fillMode", "fillPattern", "metric", "outlineWidth", "outlineSoftness", "outlinePosition", "outlineOffset", "fillCenter", "fillColor", "sourceChannel", "threshold",
-                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "encoding", "gradient", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape");
+                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "encoding", "gradient", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape", "text");
             foreach (var property in settings.Properties())
             {
                 string key = property.Name;
@@ -192,6 +192,7 @@ namespace DCFApixels.WhimTex
                     key == "makeSeamless" && layer?.Behaviour is MakeSeamlessLayerBehaviour ||
                     key == "noise" && layer?.Behaviour is NoiseLayerBehaviour ||
                     key == "shape" && layer?.Behaviour is ShapeLayerBehaviour ||
+                    key == "text" && layer?.Behaviour is TextLayerBehaviour ||
                     (key == "sourceChannel" || key == "outlineWidth" || key == "outlineSoftness" || key == "outlinePosition" ||
                      key == "outlineOffset" || key == "fillCenter" || key == "fillColor") && layer?.Behaviour is OutlineLayerBehaviour ||
                     (key == "sourceChannel" || key == "threshold" || key == "distancePosition" || key == "inverted" || key == "maxDistance" || key == "sourceOffset" || key == "sourceEdges" || key == "contourOffset" || key == "insideDistance" || key == "outsideDistance" || key == "profile" || key == "encoding") && layer?.Behaviour is SDFLayerBehaviour ||
@@ -251,6 +252,8 @@ namespace DCFApixels.WhimTex
                 SetNoise(noise, Obj(settings["noise"], "noise"));
             if (layer?.Behaviour is ShapeLayerBehaviour shape && settings["shape"] != null)
                 SetShape(shape, Obj(settings["shape"], "shape"));
+            if (layer?.Behaviour is TextLayerBehaviour text && settings["text"] != null)
+                SetText(text, Obj(settings["text"], "text"));
             if (layer?.Behaviour is DrawingLayerBehaviour drawing && settings["brush"] != null) SetBrush(document, drawing, Obj(settings["brush"], "brush"));
             if (layer?.Behaviour is OutlineLayerBehaviour outline)
             {

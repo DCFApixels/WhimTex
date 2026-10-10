@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
         private enum CanvasTool
         {
             None, Brush, BlurBrush, Transform, Fill, Zoom, Pencil, RectangleSelect, PolygonSelect, Shape,
-            GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush, SmudgeBrush
+            GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush, SmudgeBrush, Text
         }
 
         [NonSerialized] private CanvasTool canvasTool = CanvasTool.None;
@@ -100,6 +100,8 @@ namespace DCFApixels.WhimTex
             }
             paintSettings.dynamics ??= new BrushDynamics();
             paintSettings.dynamics.Normalize();
+            paintSettings.smoothing ??= new StrokeSmoothingSettings();
+            paintSettings.smoothing.Normalize();
             paintSettings.dynamics.tip = null;
             paintSettings.TryRestoreBrushTip();
         }
@@ -123,6 +125,7 @@ namespace DCFApixels.WhimTex
             FinishPaintingStroke();
             change();
             paintSettings.dynamics.Normalize();
+            paintSettings.smoothing.Normalize();
             SavePaintToolSettings();
             toolkitHeaderBindings.Refresh();
             brushSettingsBindings?.Refresh();
@@ -214,6 +217,7 @@ namespace DCFApixels.WhimTex
                 case CanvasTool.Transform: return layer?.Behaviour != null;
                 case CanvasTool.Zoom:
                 case CanvasTool.Shape:
+                case CanvasTool.Text:
                 case CanvasTool.RectangleSelect:
                 case CanvasTool.PolygonSelect: return activeDocument != null;
                 default: return false;
@@ -244,7 +248,7 @@ namespace DCFApixels.WhimTex
             toolbar.AddToClassList("whimtex-tools");
             toolbar.EnableInClassList("whimtex-tools--light", !EditorGUIUtility.isProSkin);
             canvasNoneButton = CreateCanvasToolButton("noTool", CanvasTool.None,
-                "Layer Select (V). Click visible pixels to select a layer. Click a selected group again to select inside it. Shift toggles selection; Ctrl selects nested layers directly. Click empty space to deselect.");
+                "Layer Select (V). Click visible pixels to select a layer, or drag a guide to move it. Click a selected group again to select inside it. Shift toggles selection; Ctrl bypasses guides and selects nested layers directly. Click empty space to deselect.");
             canvasBrushButton = CreateCanvasToolButton("brushTool", CanvasTool.Brush,
                 "Brush (B). Paint on the selected Drawing layer. Choose Brush/Eraser in the header; RMB temporarily erases.");
             canvasBlurBrushButton = CreateCanvasToolButton("blurBrushTool", CanvasTool.BlurBrush,
@@ -275,6 +279,9 @@ namespace DCFApixels.WhimTex
             shapePicker = new ShapePickerManipulator(this);
             canvasShapeButton.AddManipulator(shapePicker);
             toolbar.Add(canvasShapeButton);
+            canvasTextButton = CreateCanvasToolButton("textTool", CanvasTool.Text,
+                "Text. Click for point text; drag for framed text. Click existing text to edit; drag frame corners to reflow. Ctrl creates new text and disables guide snapping.");
+            toolbar.Add(canvasTextButton);
             toolbar.Add(canvasBrushButton);
             toolbar.Add(canvasPencilButton);
             toolbar.Add(canvasBlurBrushButton);
@@ -343,6 +350,8 @@ namespace DCFApixels.WhimTex
             }
             canvasShapeButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.Shape);
             canvasShapeButton?.EnableInClassList("whimtex-tool-button--unavailable", activeDocument == null);
+            canvasTextButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.Text);
+            canvasTextButton?.EnableInClassList("whimtex-tool-button--unavailable", activeDocument == null);
             canvasRectangleSelectButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.RectangleSelect);
             canvasPolygonSelectButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.PolygonSelect);
             canvasRectangleSelectButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
@@ -416,6 +425,12 @@ namespace DCFApixels.WhimTex
                     DrawPointer(painter);
                 else if (tool == CanvasTool.Transform)
                     DrawHand(painter);
+                else if (tool == CanvasTool.Text)
+                {
+                    painter.lineWidth = 2;
+                    painter.BeginPath(); painter.MoveTo(P(5, 6)); painter.LineTo(P(19, 6));
+                    painter.MoveTo(P(12, 6)); painter.LineTo(P(12, 20)); painter.MoveTo(P(8, 20)); painter.LineTo(P(16, 20)); painter.Stroke();
+                }
                 else if (tool == CanvasTool.GradientHandles || IsTemporaryCanvasTool(tool))
                     DrawHand(painter, withHandle: true);
                 else if (tool == CanvasTool.UvIslandSelect)

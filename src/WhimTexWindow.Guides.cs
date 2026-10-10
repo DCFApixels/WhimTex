@@ -20,11 +20,12 @@ namespace DCFApixels.WhimTex
         private VisualElement canvasGuideOverlay;
         private VisualElement canvasGuideTopRail;
         private VisualElement canvasGuideLeftRail;
+        private VisualElement canvasGuideCorner;
 
         private bool CanMoveCanvasGuides => canvasTool == CanvasTool.None ||
             canvasTool == CanvasTool.Transform || canvasTool == CanvasTool.Zoom || IsTemporaryCanvasTool(canvasTool);
 
-        private bool CanvasToolWantsPointer(Vector2 point) => IsCanvasZoomEnabled || canvasTool == CanvasTool.None ||
+        private bool CanvasToolWantsPointer(Vector2 point) =>
             canvasTransformManipulator?.WantsPointer(point) == true || pointManipulator?.WantsPointer(point) == true ||
             normalManipulator?.WantsPointer(point) == true;
 
@@ -75,6 +76,8 @@ namespace DCFApixels.WhimTex
             private readonly WhimTexWindow owner;
             private int pointer = -1, movingIndex = -1, hovered = -1;
             private CanvasGuide pending;
+            private CanvasGuide pairedPending;
+            private bool creatingPair;
             private float grabOffset;
             private bool discard;
             private bool controlHeld;
@@ -127,6 +130,7 @@ namespace DCFApixels.WhimTex
             private int RailAt(Vector2 point)
             {
                 Vector2 worldPoint = target.LocalToWorld(point);
+                if (owner.canvasGuideCorner?.worldBound.Contains(worldPoint) == true) return 2;
                 if (owner.canvasGuideTopRail.worldBound.Contains(worldPoint)) return 1;
                 if (owner.canvasGuideLeftRail.worldBound.Contains(worldPoint)) return 0;
                 return -1;
@@ -166,6 +170,8 @@ namespace DCFApixels.WhimTex
             internal bool WantsCursor(Vector2 point, bool alt) => IsDragging ||
                 (CanGrab(controlHeld, alt) && (RailAt(point) >= 0 || Hit(point) >= 0));
 
+            internal bool WantsPointer(Vector2 point, bool control, bool alt) => CanGrab(control, alt) && Hit(point) >= 0;
+
             internal void RailDown(PointerDownEvent evt)
             {
                 if (RailAt(evt.localPosition) >= 0) Down(evt);
@@ -204,7 +210,7 @@ namespace DCFApixels.WhimTex
                     WhimTexUI.ConsumeEvent(evt);
                     return;
                 }
-                if (rail >= 0 && owner.canvasGuides.Count >= MaxCanvasGuides)
+                if (rail >= 0 && owner.canvasGuides.Count + (rail == 2 ? 2 : 1) > MaxCanvasGuides)
                 {
                     owner.ShowNotification(new GUIContent("Guide limit reached (256)."));
                     WhimTexUI.ConsumeEvent(evt);
@@ -212,9 +218,14 @@ namespace DCFApixels.WhimTex
                 }
                 owner.SetCanvasGuidesHidden(false);
                 movingIndex = hit;
+                creatingPair = rail == 2;
                 pending = hit >= 0 ? owner.canvasGuides[hit] : new CanvasGuide
                 {
-                    normal = owner.canvasViewport.ToCanvasDelta(rail == 0 ? Vector2.right : Vector2.up).normalized
+                    normal = owner.canvasViewport.ToCanvasDelta(rail == 0 || creatingPair ? Vector2.right : Vector2.up).normalized
+                };
+                if (creatingPair) pairedPending = new CanvasGuide
+                {
+                    normal = owner.canvasViewport.ToCanvasDelta(Vector2.up).normalized
                 };
                 grabOffset = hit >= 0 ? pending.position - PositionAt(point, pending.normal) : 0f;
                 pointer = evt.pointerId;
@@ -234,8 +245,13 @@ namespace DCFApixels.WhimTex
                 if (movingIndex >= 0 && !moved) return;
                 pending.position = PositionAt(point, pending.normal) + grabOffset;
                 if (!controlHeld) pending.position = owner.SnapCanvasGuidePosition(pending, movingIndex);
+                if (creatingPair)
+                {
+                    pairedPending.position = PositionAt(point, pairedPending.normal);
+                    if (!controlHeld) pairedPending.position = owner.SnapCanvasGuidePosition(pairedPending, -1);
+                }
                 discard = !target.contentRect.Contains(point) || RailAt(point) >= 0 ||
-                    float.IsNaN(pending.position) || float.IsInfinity(pending.position);
+                    !float.IsFinite(pending.position) || creatingPair && !float.IsFinite(pairedPending.position);
                 owner.canvasGuideOverlay.MarkDirtyRepaint();
             }
 
@@ -276,10 +292,11 @@ namespace DCFApixels.WhimTex
                             owner.canvasGuides[movingIndex] = pending;
                         }
                     }
-                    else if (!discard && owner.canvasGuides.Count < MaxCanvasGuides)
+                    else if (!discard && owner.canvasGuides.Count + (creatingPair ? 2 : 1) <= MaxCanvasGuides)
                     {
                         owner.RememberCanvasGuides();
                         owner.canvasGuides.Add(pending);
+                        if (creatingPair) owner.canvasGuides.Add(pairedPending);
                         owner.selectedCanvasGuide = owner.canvasGuides.Count - 1;
                     }
                 }
@@ -293,6 +310,7 @@ namespace DCFApixels.WhimTex
                 int captured = pointer;
                 pointer = -1;
                 movingIndex = hovered = -1;
+                creatingPair = false;
                 discard = false;
                 if (captured >= 0 && target != null && target.HasPointerCapture(captured)) target.ReleasePointer(captured);
                 owner.canvasGuideOverlay?.MarkDirtyRepaint();
@@ -332,7 +350,11 @@ namespace DCFApixels.WhimTex
                     if (!IsDragging || i != movingIndex)
                         DrawGuide(painter, owner.canvasGuides[i], bounds, owner.CanMoveCanvasGuides && !owner.canvasGuidesLocked &&
                             (i == hovered || i == owner.selectedCanvasGuide), false);
-                if (IsDragging) DrawGuide(painter, pending, bounds, true, discard);
+                if (IsDragging)
+                {
+                    DrawGuide(painter, pending, bounds, true, discard);
+                    if (creatingPair) DrawGuide(painter, pairedPending, bounds, true, discard);
+                }
             }
 
             private void DrawGuide(Painter2D painter, CanvasGuide guide, Rect bounds, bool highlight, bool deleting)

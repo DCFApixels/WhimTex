@@ -406,7 +406,12 @@ Unbounded are accepted). Size is 1..512 px, hardness 0..1, up to 4096 points.
 ```
 
 Blur source is `CurrentLayer` (default), `CurrentAndBelow` (includes current), or `AllLayers`.
-It is frozen at stroke start. Strength and flow are each 0..1, default 1. Work is limited to
+It is frozen at stroke start. Repair operations (`blurStroke`, `smudgeStroke`, `healStroke`)
+also accept `writeChannels` (0..15, default 15; R=1, G=2, B=4, A=8) and `lockAlpha`
+(default false), independent of source sampling. Disabled channels retain previous straight values.
+Lock Alpha preserves transparency and empty pixels, overriding the A write bit.
+UI path/pressure smoothing is an input preference; API point lists are used exactly as supplied.
+Strength and flow are each 0..1, default 1. Work is limited to
 67,108,864 canvas-pixel × input-point passes; simplify a path rather than repeating thousands of points.
 
 ```json
@@ -649,6 +654,7 @@ HDR texture data is distinct from physical HDR monitor output; rendered PNG prev
 | Normal Map | `normalMap`: partial settings object described below |
 | Noise | `noise`: partial procedural settings object described below |
 | Shape | `shape`: partial settings object described below |
+| Text | `text`: partial settings object described below |
 | Blur | `blur`: partial settings object; `mode`: Gaussian (default), Linear or Circular; [Gaussian](#gaussian-blur-settings), [motion](#motion-blur-settings) |
 | Sharpen | `sharpen`: algorithm (`Gaussian`/`Adaptive`), strength 0..4, radius 0..32 px, threshold/noiseReduction/haloSuppression 0..1, channelMode (`RGB`/`Luminance`), edges |
 | Make Seamless | `makeSeamless`: `{ "mode": "OffsetBlend", "edgeWidth": 0.2, "offsetTransitionStart": -0.25 }`; [all four methods and parameters](#make-seamless-settings) |
@@ -763,6 +769,57 @@ in open documents, including unsaved ones. No separate shader asset or special l
 All WhimTex HLSL effects and brushes automatically include [FastNoiseLite](AI/README.md#built-in-noise-library);
 its noise and domain-warp functions need no explicit include.
 Post FX is window-local presentation state and never changes API rendering, sampling or export.
+
+### Text settings
+
+Create a layer with type `text`; patch `settings.text` with any of: `text` (up to 8192 characters),
+`fontFamily` (installed OS font name), `fontStyle` (`Normal`, `Bold`, `Italic`, `BoldAndItalic`),
+`casing` (`Normal`, `Lowercase`, `Uppercase`, `SmallCaps`),
+`fontSize` and `maxFontSize` (1..2048 canvas pixels), `spacing` (object), `characterHorizontalScale`
+(0.01..10 multiplier), `alignment` (Unity TextAnchor
+name), `layoutMode` (`Point` or `Frame`), `frameSize` (two canvas-pixel components, each
+1..32768), `wrapping` (`Manual`, `Words` or `Characters`), `overflow` (`None`, `Clip`, `Ellipsis`), `justify` or `autoSize` (booleans), or `color`
+(the common encoded RGBA input). Point text uses explicit newlines only and ignores the
+stored frame settings. `overflow` defaults to `None` (visible outside the frame); `Clip` clips,
+and `Ellipsis` shortens displayed text to fit both axes and adds «…», without rewriting `text`.
+Ellipsis truncates at text-element boundaries and leaves no partial line/suffix when the frame is too small.
+Words splits overlong words, Characters
+breaks at text-element boundaries. Justification expands interword spaces on wrapped lines,
+not paragraph-ending lines. Enabling Justify normalizes horizontal alignment to left while
+preserving vertical alignment; Point or Manual wrapping resets `justify` to false.
+With `autoSize:true`, Frame text uses the largest integer font size that fits its width and
+height, between `fontSize` (Min Size) and `maxFontSize` (Max Size, default 256). Neither bound is
+overwritten by fitting. The range must contain at least one whole-pixel size: minimum rounds up,
+maximum rounds down. Invalid API ranges are rejected; editing either bound in the UI adjusts the
+other when necessary. With Auto Size off, `fontSize` is the fixed size and `maxFontSize` is ignored. Wrapping and
+all spacing fields participate in fitting; `overflow` is applied after fitting reaches its minimum. Point text ignores Auto Size.
+`spacing` contains `character`, `word`, `line` and `paragraph`, each -1..10 em, default 0.
+One em is the effective font size, including Auto Size. These are additive adjustments, not multipliers;
+partial spacing patches retain omitted fields. Character gaps occur between text elements, not after the
+last element of a line; Word adjusts ordinary and nonbreaking spaces. Line adjusts the font's natural
+baseline step; Paragraph adds an extra step only after explicit breaks. Negative adjustments do not
+move the text cursor backwards; baseline steps stay at least 1 px. The retired `lineSpacing` multiplier is not accepted.
+Example: `"spacing":{"character":0.1,"word":0.2,"line":0.25,"paragraph":0.5}`.
+`characterHorizontalScale` is a 0.01..10 multiplier, default 1 (UI: Horizontal Scale).
+It scales glyph width and natural horizontal advance, including natural space widths, but not
+height or added em spacing. Wrapping, Auto Size, Ellipsis, inline editing and saved appearance
+use the same multiplier. This is a layer setting, not a Text tool creation default.
+`casing` changes display without rewriting `text`; case conversion is culture-invariant.
+SmallCaps uses smaller uppercase glyphs (75%, rounded to whole pixels) for lowercase letters,
+with their baseline aligned to full-size capitals. It does not select a font's OpenType small-cap feature.
+Capabilities expose `systemFonts`, `textDefaults`, `textFontStyles`, `textAlignments`,
+`textLayoutModes`, `textWrappingRules` and `textCasingModes`.
+Layer inspection exposes `settings.text`, `fontAvailable`, `resolvedFont` and missing-font `warnings`.
+Missing fonts do not silently substitute another family: rendering uses a matching saved mask or
+transparent output. Restoring/selecting a font enables source editing. Ordinary Transform, FX,
+Mapping, blending and grouping apply to Text layers. Text is rasterized before those stages.
+
+TIFF and unified JSON retain editable settings and a bounded appearance backup, not font files or
+project font assets. The agent settings snapshot excludes this encoded mask; it is managed by save.
+Current limitations: uniform style per layer and no advanced complex-script shaping.
+Native coverage is rasterized independently of the canvas bounds, capped at 8192 pixels per
+axis and 16 megapixels, before Transform and FX. Live Canvas View text editing reserves the
+document from agent writes until editing ends; it uses the ordinary document transaction and Undo.
 
 ### Shape settings
 
@@ -1323,6 +1380,8 @@ Color alpha zero leaves no mark, including for the eraser; eraser strength other
 | `opacity` | 0..1, default 1; caps the complete stroke, not individual stamps |
 | `flow` | 0..1, default 1; multiplies each stamp's alpha before accumulation |
 | `pressure` | Boolean, default true; interactive painting multiplies brush opacity by tablet pressure. API strokes use full pressure |
+| `writeChannels` | Integer 0..15, default 15. Add enabled bits R=1, G=2, B=4, A=8. Disabled straight channels retain previous values; 0 writes nothing. Also applies to Pencil strokes |
+| `lockAlpha` | Boolean, default false. Preserve alpha and fully transparent pixels; overrides the A write bit, including erasing |
 | `scatter` | 0..4, default 0; random disk radius in brush diameters |
 | `scatterBias` | −1..1, default 0 (UI −100..100). Negative concentrates centers near the stroke; positive near the scatter disk edge. With uniform sample `u`, normalized radius is `u^(0.5 * 2^(-4 * scatterBias))`; zero preserves `sqrt(u)`, uniform by area. Applies to Random and Sobol without consuming extra random values; ignored when scatter is zero |
 | `sizeJitter` | 0..1, default 0; size multiplier sampled from 1−jitter to 1+jitter, minimum one pixel |

@@ -149,6 +149,9 @@ namespace DCFApixels.WhimTex
                 case GradientLayerBehaviour gradient:
                     GradientLayerEditorWindow.BuildFields(root, gradient, activeDocument, apply, toolkitInspectorBindings);
                     break;
+                case TextLayerBehaviour text:
+                    TextLayerEditorWindow.BuildFields(root, text, apply, toolkitInspectorBindings);
+                    break;
                 case NoiseLayerBehaviour noise:
                     NoiseLayerEditorWindow.BuildFields(root, noise, activeDocument, apply, toolkitInspectorBindings);
                     break;

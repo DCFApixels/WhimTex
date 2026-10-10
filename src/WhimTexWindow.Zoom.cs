@@ -211,6 +211,7 @@ namespace DCFApixels.WhimTex
                 }
                 if (!owner.HasCanvasLayers || (evt.button != 2 && !(evt.button == 0 && owner.IsCanvasZoomEnabled)) ||
                     !target.contentRect.Contains(evt.localPosition)) return;
+                if (evt.button == 0 && owner.canvasGuideManipulator?.WantsPointer(evt.localPosition, evt.ctrlKey, evt.altKey) == true) return;
                 owner.CancelCanvasEyedropper();
                 owner.canvasGuideManipulator?.Cancel();
                 owner.shapeManipulator?.Cancel();

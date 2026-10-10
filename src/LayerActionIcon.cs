@@ -6,7 +6,8 @@ namespace DCFApixels.WhimTex
     internal sealed class LayerActionIcon : VisualElement
     {
         internal enum Kind { Add, Group, Delete, Bug, Eye, EyeOff, Alpha, AddDrawing, Transform, Properties, Effects, Settings, Warning,
-            CenterPivot, CenterOnCanvas, FlipHorizontal, FlipVertical, RotateLeft, RotateRight, OriginalAspect, OriginalSize, Reset }
+            CenterPivot, CenterOnCanvas, FlipHorizontal, FlipVertical, RotateLeft, RotateRight, OriginalAspect, OriginalSize, Reset,
+            TextAlignLeft, TextAlignCenter, TextAlignRight, TextJustify, TextAlignTop, TextAlignMiddle, TextAlignBottom }
 
         private readonly Kind kind;
 
@@ -37,9 +38,22 @@ namespace DCFApixels.WhimTex
             painter.BeginPath();
             switch (kind)
             {
+                case Kind.TextAlignLeft:
+                case Kind.TextAlignCenter:
+                case Kind.TextAlignRight:
+                case Kind.TextJustify:
+                    DrawTextAlignment(painter, (int)kind - (int)Kind.TextAlignLeft, false);
+                    return;
+                case Kind.TextAlignTop:
+                case Kind.TextAlignMiddle:
+                case Kind.TextAlignBottom:
+                    DrawTextAlignment(painter, (int)kind - (int)Kind.TextAlignTop, true);
+                    return;
                 case Kind.CenterPivot:
+                    DrawCenterPivot(painter);
+                    return;
                 case Kind.CenterOnCanvas:
-                    DrawCenter(painter, kind == Kind.CenterPivot);
+                    DrawCenter(painter);
                     return;
                 case Kind.FlipHorizontal:
                 case Kind.FlipVertical:
@@ -160,6 +174,27 @@ namespace DCFApixels.WhimTex
             painter.Stroke();
         }
 
+        private static void DrawTextAlignment(Painter2D painter, int alignment, bool vertical)
+        {
+            painter.lineWidth = 1f; painter.lineCap = LineCap.Butt;
+            painter.BeginPath();
+            if (vertical)
+            {
+                float y = 2.5f + alignment * 4;
+                painter.MoveTo(new Vector2(2, y)); painter.LineTo(new Vector2(14, y));
+                painter.MoveTo(new Vector2(4, y + 3)); painter.LineTo(new Vector2(12, y + 3));
+                painter.Stroke(); return;
+            }
+            for (int i = 0; i < 4; i++)
+            {
+                float width = alignment == 3 ? 12 : i == 1 ? 7 : i == 3 ? 6 : 12;
+                float x = alignment == 1 ? 8 - width * .5f : alignment == 2 ? 14 - width : 2;
+                float y = 3.5f + i * 3;
+                painter.MoveTo(new Vector2(x, y)); painter.LineTo(new Vector2(x + width, y));
+            }
+            painter.Stroke();
+        }
+
         private static void DrawSettings(Painter2D painter)
         {
             painter.fillColor = painter.strokeColor;
@@ -179,7 +214,82 @@ namespace DCFApixels.WhimTex
             painter.Fill(FillRule.OddEven);
         }
 
-        private static void DrawCenter(Painter2D painter, bool pivot)
+        private void DrawCenterPivot(Painter2D painter)
+        {
+            float iconSize = Mathf.Min(contentRect.width, contentRect.height);
+            Rect bounds = contentRect;
+            bounds.xMin += iconSize / 16f;
+            bounds.xMax -= iconSize / 16f;
+            bounds.yMin += iconSize / 16f;
+            bounds.yMax -= iconSize / 16f;
+            float markerSize = iconSize * 3f / 16f;
+            float stepX = (bounds.width - markerSize) * .5f;
+            float stepY = (bounds.height - markerSize) * .5f;
+            float pixelsPerPoint = UnityEditor.EditorGUIUtility.pixelsPerPoint;
+            float borderX = 1f / Mathf.Max(.001f, worldTransform.MultiplyVector(Vector3.right).magnitude * pixelsPerPoint);
+            float borderY = 1f / Mathf.Max(.001f, worldTransform.MultiplyVector(Vector3.up).magnitude * pixelsPerPoint);
+            Vector2 center = bounds.center;
+            float centerHalfSize = iconSize * 2f / 16f;
+            Vector2 centerPixelSize = new Vector2(
+                Mathf.Max(1f, Mathf.Round(centerHalfSize * 2f / borderX)),
+                Mathf.Max(1f, Mathf.Round(centerHalfSize * 2f / borderY)));
+            Vector2 centerPixelMin = this.LocalToWorld(center) * pixelsPerPoint - centerPixelSize * .5f;
+            centerPixelMin.x = Mathf.Round(centerPixelMin.x);
+            centerPixelMin.y = Mathf.Round(centerPixelMin.y);
+            Rect centerBounds = new Rect(this.WorldToLocal(centerPixelMin / pixelsPerPoint),
+                new Vector2(centerPixelSize.x * borderX, centerPixelSize.y * borderY));
+            centerBounds.xMin += borderX;
+            centerBounds.yMax -= borderY;
+            painter.lineWidth = 1f;
+            painter.lineCap = LineCap.Butt;
+            painter.lineJoin = LineJoin.Miter;
+            painter.fillColor = painter.strokeColor;
+            painter.BeginPath();
+            for (int row = 0; row < 3; row++)
+                for (int column = 0; column < 3; column++)
+                {
+                    if (row == 1 && column == 1) continue;
+                    float x = bounds.xMin + column * stepX, y = bounds.yMin + row * stepY;
+                    painter.MoveTo(new Vector2(x, y));
+                    painter.LineTo(new Vector2(x + markerSize, y));
+                    painter.LineTo(new Vector2(x + markerSize, y + markerSize));
+                    painter.LineTo(new Vector2(x, y + markerSize));
+                    painter.ClosePath();
+                }
+            painter.Fill();
+            painter.BeginPath();
+            for (int edge = 0; edge < 2; edge++)
+                for (int segment = 0; segment < 2; segment++)
+                {
+                    float sideX = bounds.xMin + markerSize * .5f + edge * (bounds.width - markerSize);
+                    float sideY = bounds.yMin + markerSize * .5f + edge * (bounds.height - markerSize);
+                    float startX = bounds.xMin + markerSize + segment * stepX;
+                    float startY = bounds.yMin + markerSize + segment * stepY;
+                    painter.MoveTo(new Vector2(startX, sideY));
+                    painter.LineTo(new Vector2(startX + stepX - markerSize, sideY));
+                    painter.MoveTo(new Vector2(sideX, startY));
+                    painter.LineTo(new Vector2(sideX, startY + stepY - markerSize));
+                }
+            painter.Stroke();
+            painter.fillColor = Color.white;
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(centerBounds.xMin - borderX, centerBounds.yMin - borderY));
+            painter.LineTo(new Vector2(centerBounds.xMax + borderX, centerBounds.yMin - borderY));
+            painter.LineTo(new Vector2(centerBounds.xMax + borderX, centerBounds.yMax + borderY));
+            painter.LineTo(new Vector2(centerBounds.xMin - borderX, centerBounds.yMax + borderY));
+            painter.ClosePath();
+            painter.Fill();
+            painter.fillColor = new Color(1f, .6f, .2f);
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(centerBounds.xMin, centerBounds.yMin));
+            painter.LineTo(new Vector2(centerBounds.xMax, centerBounds.yMin));
+            painter.LineTo(new Vector2(centerBounds.xMax, centerBounds.yMax));
+            painter.LineTo(new Vector2(centerBounds.xMin, centerBounds.yMax));
+            painter.ClosePath();
+            painter.Fill();
+        }
+
+        private static void DrawCenter(Painter2D painter)
         {
             painter.lineWidth = 1.25f;
             painter.BeginPath();
@@ -190,16 +300,11 @@ namespace DCFApixels.WhimTex
                 painter.LineTo(new Vector2(corner.x < 8 ? 5 : 11, corner.y));
             }
             painter.Stroke();
-            if (pivot) painter.strokeColor = new Color(1f, .78f, .2f);
             painter.BeginPath();
             painter.MoveTo(new Vector2(4, 8)); painter.LineTo(new Vector2(12, 8));
             painter.MoveTo(new Vector2(8, 4)); painter.LineTo(new Vector2(8, 12));
-            if (pivot) painter.Arc(new Vector2(8, 8), 2.5f, 0f, 360f);
-            else
-            {
-                painter.MoveTo(new Vector2(6, 6)); painter.LineTo(new Vector2(8, 8)); painter.LineTo(new Vector2(10, 6));
-                painter.MoveTo(new Vector2(6, 10)); painter.LineTo(new Vector2(8, 8)); painter.LineTo(new Vector2(10, 10));
-            }
+            painter.MoveTo(new Vector2(6, 6)); painter.LineTo(new Vector2(8, 8)); painter.LineTo(new Vector2(10, 6));
+            painter.MoveTo(new Vector2(6, 10)); painter.LineTo(new Vector2(8, 8)); painter.LineTo(new Vector2(10, 10));
             painter.Stroke();
         }
 

@@ -22,6 +22,8 @@ namespace DCFApixels.WhimTex
         private readonly WhimTexDocument document;
         private double nextCheck, deferUntil;
         internal int RenderCount { get; private set; }
+        internal static bool Supports(Layer layer) => layer?.Behaviour is TargetedLayerBehaviour ||
+            layer?.Behaviour is ShaderProcessorLayerBehaviour || layer?.Behaviour is TextLayerBehaviour;
 
         internal LayerThumbnailCache(WhimTexDocument document) => this.document = document;
 
@@ -36,8 +38,7 @@ namespace DCFApixels.WhimTex
             Visit(document.layers);
             removed.Clear();
             foreach (var pair in entries)
-                if (!alive.Contains(pair.Key) || !(pair.Key.Behaviour is TargetedLayerBehaviour ||
-                    pair.Key.Behaviour is ShaderProcessorLayerBehaviour)) removed.Add(pair.Key);
+                if (!alive.Contains(pair.Key) || !Supports(pair.Key)) removed.Add(pair.Key);
             foreach (Layer layer in removed)
             {
                 Destroy(entries[layer]);

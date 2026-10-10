@@ -39,6 +39,26 @@ The same controls are also available in **Brushes → Tip** as **Mode**, **Hardn
 Pencil has no hardness or spacing controls. Choose **Circle**, **Square** or **Diamond**
 for its tip. Zoom in to see its exact pixel outline.
 
+## Steady the path and protect channels
+
+The shared controls in each tool's Canvas View header row apply to **Brush, Pencil, Blur Brush and Smudge Brush**.
+**Smoothing → None** follows the pointer directly (default). **Smooth** reduces small deviations;
+**Stabilizer** lets the brush follow behind a rope. **Distance (px)** sets the filter distance or rope
+length in canvas pixels: larger values steady the path more but add delay. Zoom does not change it.
+The image itself is not blurred. Shift lines and snapped points stay exact.
+
+**Finish Stroke** completes the delayed path at the pointer when you release; disable it to leave
+the endpoint at the filtered position. **Smooth Pressure** filters pressure separately, even with
+Smoothing set to None. Enable the tool's **Pressure** option to use it; Pencil has no pressure dynamics.
+
+**Lock Alpha** preserves transparency and empty pixels while you recolor a shape. **Write R/G/B/A**
+allows changes only in enabled channels; disabled channels keep their previous values. Turn off
+G, B and A to edit a packed texture's red channel. Lock Alpha takes priority over Write A, so erasing
+cannot change transparency while it is enabled. Protection also applies to **Fill and Healing Brush**.
+The footer R/G/B/A buttons only change what you see, not what you paint.
+
+Smoothing is remembered as an input preference. Write channels and Lock Alpha are included in brush presets.
+
 ## Customize the brush
 
 With **Brush** selected, open the upper arrow on the right edge of Canvas View to show
@@ -46,8 +66,8 @@ With **Brush** selected, open the upper arrow on the right edge of Canvas View t
 
 <a href="{{ '/Images/brush-settings.png' | relative_url }}"><img src="{{ '/Images/brush-settings.png' | relative_url }}" alt="WhimTex Brushes drawer with a neon red stroke, stamp controls, tint, blend mode and live brush preview" width="720"></a>
 
-All brush preset controls are available here: **Size** is in **Tip**, and **Opacity / Flow**
-are in **Color**. The Canvas View header provides shortcuts to the same settings.
+Tip and stamp settings are available here: **Size** is in **Tip**, and **Opacity / Flow**
+are in **Color**. The Canvas View header provides shortcuts and the shared write-protection controls.
 
 The brush sample previews the current tip without layer FX or symmetry; Eraser previews on gray paint.
 Use **Preview Scale (%)** to fit a large tip or wide scatter. It changes only the sample, not the painted brush size.

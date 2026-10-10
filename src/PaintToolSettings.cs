@@ -16,6 +16,7 @@ namespace DCFApixels.WhimTex
         public float brushHardness = 0.8f;
         public float brushSpacing = 0.16f;
         public BrushDynamics dynamics = new BrushDynamics();
+        public StrokeSmoothingSettings smoothing = new StrokeSmoothingSettings();
         public string brushTipGuid;
         public long brushTipLocalId;
         public string brushTipPresetPath;
@@ -262,12 +263,14 @@ namespace DCFApixels.WhimTex
         internal PaintStrokeParameters GetStrokeParameters(bool erase, Color? colorOverride = null)
         {
             return new PaintStrokeParameters(colorOverride ?? brushColor, brushSize, brushHardness, brushSpacing, erase,
-                dynamics: dynamics, standardColorInputs: !WhimTexColorInputs.Hdr);
+                dynamics: dynamics, standardColorInputs: !WhimTexColorInputs.Hdr)
+                .WithWriteProtection(dynamics.writeChannels, dynamics.lockAlpha);
         }
 
         internal PaintStrokeParameters GetPencilParameters(bool erase, Color? colorOverride = null)
         {
-            return new PaintStrokeParameters(colorOverride ?? brushColor, pencilSize, 1f, 0f, erase, true, pencilShape);
+            return new PaintStrokeParameters(colorOverride ?? brushColor, pencilSize, 1f, 0f, erase, true, pencilShape)
+                .WithWriteProtection(dynamics.writeChannels, dynamics.lockAlpha);
         }
 
         internal void SwapBrushColors()

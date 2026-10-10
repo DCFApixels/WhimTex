@@ -69,6 +69,7 @@ namespace DCFApixels.WhimTex
             expand.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.fillExpand = Mathf.Clamp(evt.newValue, 0, 32)));
             row.Add(expand);
+            AddPaintInputSettings(row, path: false, usesPressure: false);
             toolkitCanvasViewHeader.Add(row);
         }
 
@@ -96,10 +97,9 @@ namespace DCFApixels.WhimTex
                     return true;
                 }
             }
-            Vector4 channels = CanvasChannelMask;
             Color foreground = WhimTexColorInputs.DisplayColor(paintSettings.brushColor);
-            Color color = HdrUtility.DecodePaintColor(HdrUtility.ApplyChannelMask(foreground, channels));
-            if (color.a == 0) return true;
+            Color color = HdrUtility.DecodePaintColor(foreground);
+            if (color.a == 0 || paintSettings.dynamics.writeChannels == 0) return true;
             FinishPaintingStroke();
             FinishCanvasTransform();
             lineAnchorLayer = null;
@@ -142,6 +142,12 @@ namespace DCFApixels.WhimTex
                 if (!HdrFloodFillUtility.Fill(source, reference, valid, output, width, height, seed, color,
                     paintSettings.fillTolerance, paintSettings.fillExpand, paintSettings.fillAntialias, paintSettings.fillContiguous, layer.colorRange == LayerColorRange.Standard)) return true;
                 MaskFillToArea(layer, source, output, width, height);
+                if (paintSettings.dynamics.writeChannels != 15 || paintSettings.dynamics.lockAlpha)
+                {
+                    var protectedOutput = output;
+                    for (int i = 0; i < length; i++)
+                        protectedOutput[i] = DrawingLayerBehaviour.ProtectPaintColor(source[i], output[i], paintSettings.dynamics.writeChannels, paintSettings.dynamics.lockAlpha);
+                }
                 Undo.IncrementCurrentGroup();
                 undoGroup = Undo.GetCurrentGroup();
                 Undo.SetCurrentGroupName("Fill Drawing Layer");

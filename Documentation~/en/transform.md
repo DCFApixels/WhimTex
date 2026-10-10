@@ -23,6 +23,8 @@ It preserves the image center, rotation, pivot and flips. Generated layers use t
 
 In the Transform toolbar, action icons follow Tiling and Filter in three groups: reset and centering, flips, then rotations. Thin dividers separate the groups. Original Aspect uses a frame with an inset rectangle, Original Size uses **1:1**, and Reset uses a circular arrow. Hover over an icon to see its name and description.
 
+Reset and centering buttons are disabled when their values are already restored. They become available again when those values change.
+
 ## Position and pivot
 
 The gold pivot is the point around which the layer rotates and scales.

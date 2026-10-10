@@ -289,6 +289,7 @@ namespace DCFApixels.WhimTex
             BuildUvOverlay();
             BuildAreaSelectionTools();
             BuildShapeTool();
+            BuildTextTool();
             BuildHealingOverlay();
             toolkitCanvas.RegisterCallback<PointerDownEvent>(OnCanvasPointerDown);
             toolkitCanvas.RegisterCallback<PointerMoveEvent>(OnCanvasPointerMove);
@@ -1552,6 +1553,7 @@ namespace DCFApixels.WhimTex
             AddCanvasTransformSettings();
             AddCanvasZoomSettings();
             AddShapeSettings();
+            AddTextSettings();
             AddAreaSelectionSettings(CanvasTool.RectangleSelect);
             AddAreaSelectionSettings(CanvasTool.PolygonSelect);
 
@@ -1595,6 +1597,7 @@ namespace DCFApixels.WhimTex
             brushPressure.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.dynamics.pressure = evt.newValue));
             brushRow.Add(brushPressure);
+            AddPaintInputSettings(brushRow);
             toolkitCanvasViewHeader.Add(brushRow);
             AddBlurBrushSettings();
             AddSmudgeBrushSettings();
@@ -1635,6 +1638,7 @@ namespace DCFApixels.WhimTex
             toolkitHeaderBindings.Track(mode, () => (Enum)paintSettings.blurSampleMode);
             mode.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.blurSampleMode = (BlurBrushSampleMode)evt.newValue));
             row.Add(mode);
+            AddPaintInputSettings(row);
             toolkitCanvasViewHeader.Add(row);
         }
 
@@ -1677,6 +1681,7 @@ namespace DCFApixels.WhimTex
             toolkitHeaderBindings.Track(mode, () => (Enum)paintSettings.smudgeSampleMode);
             mode.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.smudgeSampleMode = (BlurBrushSampleMode)evt.newValue));
             row.Add(mode);
+            AddPaintInputSettings(row);
             toolkitCanvasViewHeader.Add(row);
         }
 
@@ -1701,6 +1706,7 @@ namespace DCFApixels.WhimTex
             shape.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.pencilShape = (PencilShape)evt.newValue));
             row.Add(shape);
+            AddPaintInputSettings(row, usesPressure: false);
             toolkitCanvasViewHeader.Add(row);
         }
 
@@ -1788,6 +1794,10 @@ namespace DCFApixels.WhimTex
                 {
                     toolkitCanvasViewFooter.text = "Drag new shape • Shift equal proportions / 45° line • Ctrl no snapping • Esc cancel • T transform";
                 }
+                else if (canvasTool == CanvasTool.Text)
+                {
+                    toolkitCanvasViewFooter.text = "Click point text • Drag frame • Click text to edit • Ctrl+Enter finish • Esc cancel • Drag corners to reflow • Ctrl new text / no snapping";
+                }
                 else if (IsAreaSelectionTool)
                 {
                     toolkitCanvasViewFooter.text = IsUvSelectionTool
@@ -1863,11 +1873,6 @@ namespace DCFApixels.WhimTex
             toolkitCanvas.Focus();
             if (canvasTool == CanvasTool.SmudgeBrush && evt.button != 0) return;
             bool erase = canvasTool != CanvasTool.SmudgeBrush && (evt.button == 1 || paintSettings.tool == PaintToolMode.Eraser);
-            if (!erase && (canvasChannels & 8) == 0)
-            {
-                WhimTexUI.ConsumeEvent(evt);
-                return;
-            }
             paintingMouseButton = evt.button;
             paintingPointerId = evt.pointerId;
             paintingErase = erase;
@@ -1899,6 +1904,8 @@ namespace DCFApixels.WhimTex
                 layer.BeginTiledStroke(originUv, activeDocument.width, activeDocument.height);
             else
                 layer.BeginStroke(originUv);
+            layer.ConfigureStrokeWriteProtection(paintSettings.dynamics.writeChannels, paintSettings.dynamics.lockAlpha);
+            BeginPaintingInput(startUv);
             if (canvasTool == CanvasTool.BlurBrush)
                 blurSampleTexture = paintSettings.blurSampleMode switch
                 {
@@ -1946,11 +1953,12 @@ namespace DCFApixels.WhimTex
                     paintingLayer,
                     out Vector2 dragUv, allowOutside: true))
             {
-                PaintTowardsLayerPoint(dragUv);
+                PaintFilteredLayerPoint(dragUv, evt.shiftKey || paintPosition != (Vector2)evt.localPosition);
             }
             else
             {
                 hasLastPaintingUv = false;
+                paintingSmootherActive = false;
             }
 
             WhimTexUI.ConsumeEvent(evt);
@@ -2086,7 +2094,10 @@ namespace DCFApixels.WhimTex
             Vector2 paintPosition = GetCanvasPaintPosition(evt.localPosition, evt.shiftKey, evt.ctrlKey);
             if (paintingPointerMoved && toolkitCanvas.contentRect.Contains(evt.localPosition) &&
                 TryMapCanvasToLayerUv(paintPosition, toolkitCanvas.ImageRect, paintingLayer, out Vector2 endUv, allowOutside: true))
-                PaintTowardsLayerPoint(endUv);
+            {
+                paintingPressure = GetPointerPressure(evt.pressure);
+                PaintFilteredLayerPoint(endUv, evt.shiftKey || paintPosition != (Vector2)evt.localPosition, finish: true);
+            }
 
             paintingPointerId = -1;
             if (toolkitCanvas.HasPointerCapture(evt.pointerId))

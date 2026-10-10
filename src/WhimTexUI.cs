@@ -500,7 +500,8 @@ namespace DCFApixels.WhimTex
                 "Preserve image center, pivot, rotation, and flips. Generated layers use the canvas ratio. " +
                 "Requires a source image for File layers and nonzero scale.";
             bindings.Add(() => button.SetEnabled(
-                readLayer() is Layer layer && layer.TryGetOriginalAspectTransform(readDocument(), out _, originalSize)));
+                readLayer() is Layer layer && layer.TryGetOriginalAspectTransform(readDocument(), out TextureTransform fitted, originalSize) &&
+                !fitted.Equals(layer.transform)));
             return button;
         }
     }

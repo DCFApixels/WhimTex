@@ -39,6 +39,23 @@ next_page: "zh/selection.md"
 Pencil 没有硬度或间距控件。可为它的笔尖选择 **Circle**、**Square** 或 **Diamond**。
 放大即可看到它精确的像素轮廓。
 
+## 稳定笔触并保护通道
+
+画布视图顶部的共用设置适用于 **Brush、Pencil、Blur Brush 和 Smudge Brush**。
+**Smoothing → None** 直接跟随指针（默认）。**Smooth** 减少细小抖动；**Stabilizer**
+让画笔沿一条虚拟绳索跟随指针。**Distance (px)** 以画布像素设置滤波距离或绳索长度：
+值越大，笔触越稳定，但延迟也越大。缩放不改变此距离。它不会模糊图像像素；Shift 直线和吸附点保持准确。
+
+**Finish Stroke** 在松开时将延迟的笔触补到指针位置；关闭则停在滤波后的位置。
+**Smooth Pressure** 独立平滑压力，即使 Smoothing 为 None 也可使用。工具还需开启 **Pressure**；Pencil 没有压力动态。
+
+**Lock Alpha** 在重新着色时保持透明度和空像素。**Write R/G/B/A** 只允许修改开启的通道，
+关闭的通道保留原值。例如，关闭 G、B 和 A 可单独编辑打包纹理的红色通道。Lock Alpha 优先于 Write A，
+启用时擦除不会改变透明度。保护也适用于 **Fill 和 Healing Brush**。
+底部 R/G/B/A 按钮只改变显示，不改变绘制结果。
+
+平滑设置作为输入偏好保存；写入通道和 Lock Alpha 包含在画笔预设中。
+
 ## 自定义画笔
 
 在选中 **Brush** 的情况下，打开画布视图右边缘上方的箭头以显示
@@ -46,8 +63,8 @@ Pencil 没有硬度或间距控件。可为它的笔尖选择 **Circle**、**Squ
 
 <a href="{{ '/Images/brush-settings.png' | relative_url }}"><img src="{{ '/Images/brush-settings.png' | relative_url }}" alt="WhimTex Brushes drawer with a neon red stroke, stamp controls, tint, blend mode and live brush preview" width="720"></a>
 
-所有画笔预设控件都在这里：**Size** 在 **Tip** 中，**Opacity / Flow**
-在 **Color** 中。画布视图顶部工具设置提供了指向相同设置的快捷入口。
+笔尖和图章设置都在这里：**Size** 在 **Tip** 中，**Opacity / Flow**
+在 **Color** 中。画布视图顶部提供相同设置的快捷入口，以及共用的写入保护控件。
 
 笔触示例预览当前笔尖，不包含图层 FX 或对称；Eraser 在灰色颜料上预览擦除。
 用 **Preview Scale (%)** 容纳大笔尖或宽散布；它仅改变示例，不改变实际绘制大小。

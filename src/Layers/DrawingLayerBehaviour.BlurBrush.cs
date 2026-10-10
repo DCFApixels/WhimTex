@@ -10,6 +10,7 @@ namespace DCFApixels.WhimTex
         internal void BlurSegment(Vector2 fromSourceUv, Vector2 toSourceUv, int outputWidth, int outputHeight,
             float size, float hardness, float strength, RenderTexture sample, bool tiled = false)
         {
+            if (StrokeWritesNothing) return;
             if (!TiledCanvasUtility.IsInvertible(Owner.PixelCanvasTransform)) return;
             RenderTexture surface = EnsurePaintSurface(outputWidth, outputHeight);
             if (surface == null) return;
@@ -71,6 +72,7 @@ namespace DCFApixels.WhimTex
                 composite.SetFloat("_Strength", strength);
                 Graphics.Blit(surface, output, composite);
                 Graphics.Blit(output, surface);
+                ApplyPaintWriteProtection();
                 paintSurfaceDirty = true;
                 unchecked { paintSurfaceRevision++; }
             }

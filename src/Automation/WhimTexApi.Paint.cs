@@ -10,13 +10,15 @@ namespace DCFApixels.WhimTex
         private static void SetBrush(WhimTexDocument document, DrawingLayerBehaviour layer, JObject brush)
         {
             Keys(brush, "color", "size", "hardness", "spacing", "mirrorX", "mirrorY", "mirrorAngle", "center", "repeat", "repeatCount", "repeatSecondaryCount", "radialStartAngle", "elements", "boundary",
-                "opacity", "flow", "pressure", "scatter", "scatterBias", "sizeJitter", "angleJitter", "angleOffset", "flipX", "flipY", "rotationMode", "randomAlgorithm", "tintGradient", "tip", "tipChannel", "tipSdf", "proceduralMode", "tipGradient", "blend", "blendApplication", "seed");
+                "opacity", "flow", "pressure", "writeChannels", "lockAlpha", "scatter", "scatterBias", "sizeJitter", "angleJitter", "angleOffset", "flipX", "flipY", "rotationMode", "randomAlgorithm", "tintGradient", "tip", "tipChannel", "tipSdf", "proceduralMode", "tipGradient", "blend", "blendApplication", "seed");
             layer.NormalizeSettings();
             BrushDynamics dynamics = layer.brushDynamics ??= new BrushDynamics();
             dynamics.Normalize();
             dynamics.opacity = Number(brush, "opacity", dynamics.opacity, 0f, 1f);
             dynamics.flow = Number(brush, "flow", dynamics.flow, 0f, 1f);
             dynamics.pressure = Bool(brush, "pressure", dynamics.pressure);
+            dynamics.writeChannels = Int(brush, "writeChannels", dynamics.writeChannels, 0, 15);
+            dynamics.lockAlpha = Bool(brush, "lockAlpha", dynamics.lockAlpha);
             dynamics.scatter = Number(brush, "scatter", dynamics.scatter, 0f, 4f);
             dynamics.scatterBias = Number(brush, "scatterBias", dynamics.scatterBias, -1f, 1f);
             dynamics.sizeJitter = Number(brush, "sizeJitter", dynamics.sizeJitter, 0f, 1f);
@@ -81,7 +83,7 @@ namespace DCFApixels.WhimTex
             PaintStrokeParameters parameters = layer.GetStrokeParameters(erase);
             if (operation["pencil"] != null)
                 parameters = new PaintStrokeParameters(parameters.Color, parameters.Size, 1f, 0f, erase,
-                    true, Enum(operation, "pencil", PencilShape.Circle));
+                    true, Enum(operation, "pencil", PencilShape.Circle)).WithWriteProtection(parameters.WriteChannels, parameters.LockAlpha);
             var uv = new Vector2[values.Count];
             double stamps = 1d;
             float spacing = parameters.SpacingPixels;
