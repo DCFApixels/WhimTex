@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.TextCore.Text;
 using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
@@ -31,7 +32,7 @@ namespace DCFApixels.WhimTex
         private Layer textEditingLayer;
         private TextLayerBehaviour textEditingBehaviour;
         private string textBeforeEditing, editorFontFamily;
-        private Font editorFont;
+        private FontAsset editorFont;
         private int editorFontRevision = -1;
         private int textUndoGroup = -1;
 
@@ -75,13 +76,13 @@ namespace DCFApixels.WhimTex
             if (textEditingLayer == null || canvasTextInput == null) return;
             if (!TextEditingValid) { EndTextEditing(false); return; }
             var text = textEditingBehaviour;
-            if (editorFont == null || editorFontFamily != text.ResolvedFont || editorFontRevision != SystemFontCatalog.Revision)
+            if (editorFontFamily != text.ResolvedFont || editorFontRevision != SystemFontCatalog.Revision)
             {
-                if (editorFont != null) DestroyImmediate(editorFont);
-                editorFontFamily = text.ResolvedFont; editorFont = Font.CreateDynamicFontFromOSFont(editorFontFamily, 64);
+                canvasTextInput.style.unityFontDefinition = StyleKeyword.Null;
+                SystemFontPreview.Destroy(editorFont);
+                editorFontFamily = text.ResolvedFont; editorFont = SystemFontPreview.Create(editorFontFamily, 64);
                 editorFontRevision = SystemFontCatalog.Revision;
-                editorFont.hideFlags = HideFlags.HideAndDontSave;
-                canvasTextInput.style.unityFontDefinition = FontDefinition.FromFont(editorFont);
+                if (editorFont != null) canvasTextInput.style.unityFontDefinition = FontDefinition.FromSDFFont(editorFont);
             }
             Rect bounds = text.GetLayoutBounds(activeDocument.width, activeDocument.height);
             if (text.layoutMode == TextLayoutMode.Point) bounds.width = Mathf.Max(bounds.width + text.fontSize, text.fontSize * 3);
@@ -133,7 +134,8 @@ namespace DCFApixels.WhimTex
             if (textUndoGroup >= 0) { Undo.FlushUndoRecordObjects(); Undo.CollapseUndoOperations(textUndoGroup); Undo.IncrementCurrentGroup(); }
             textUndoGroup = -1;
             canvasTextInput?.EnableInClassList("whimtex-hidden", true);
-            if (editorFont != null) DestroyImmediate(editorFont); editorFont = null; editorFontFamily = null; editorFontRevision = -1;
+            if (canvasTextInput != null) canvasTextInput.style.unityFontDefinition = StyleKeyword.Null;
+            SystemFontPreview.Destroy(editorFont); editorFont = null; editorFontFamily = null; editorFontRevision = -1;
         }
 
         private void ChangeTextToolSettings(Action<TextToolSettings> change)

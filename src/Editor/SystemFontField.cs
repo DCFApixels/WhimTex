@@ -2,10 +2,74 @@ using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.TextCore.LowLevel;
+using UnityEngine.TextCore.Text;
 using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
 {
+    internal static class SystemFontPreview
+    {
+        private static readonly Dictionary<string, (string family, string style)> faces =
+            new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase);
+        private static int facesRevision = -1;
+
+        internal static FontAsset Create(string name, int pointSize)
+        {
+            if (!SystemFontCatalog.Contains(name)) return null;
+            try
+            {
+                if (!TryGetFace(name, out var face) ||
+                    FontEngine.LoadFontFace(face.family, face.style, pointSize) != FontEngineError.Success) return null;
+                // UI Toolkit's conversion from legacy Font assumes a Regular face of font.name.
+                // Use the OS catalog's actual family and style instead of treating a face name as a family.
+                var font = FontAsset.CreateFontAsset(face.family, face.style, pointSize, 4, GlyphRenderMode.SDFAA);
+                if (font != null)
+                {
+                    font.hideFlags = HideFlags.HideAndDontSave;
+                    foreach (var atlas in font.atlasTextures)
+                        if (atlas != null) atlas.hideFlags = HideFlags.HideAndDontSave;
+                    if (font.material != null) font.material.hideFlags = HideFlags.HideAndDontSave;
+                }
+                return font;
+            }
+            catch (Exception exception) when (exception is ArgumentException || exception is UnityException) { return null; }
+        }
+
+        private static bool TryGetFace(string name, out (string family, string style) face)
+        {
+            if (facesRevision != SystemFontCatalog.Revision)
+            {
+                faces.Clear();
+                foreach (string entry in FontEngine.GetSystemFontNames() ?? Array.Empty<string>())
+                {
+                    int separator = entry.LastIndexOf(" - ", StringComparison.Ordinal);
+                    if (separator < 1) continue;
+                    string family = entry.Substring(0, separator), style = entry.Substring(separator + 3);
+                    if (style.Length == 0) continue;
+                    faces[family + " " + style] = (family, style);
+                }
+                // Preserve family names which themselves contain words such as Bold or Italic.
+                foreach (var faceName in new List<string>(faces.Keys))
+                {
+                    var regular = faces[faceName];
+                    if (regular.style.Equals("Regular", StringComparison.OrdinalIgnoreCase)) faces[regular.family] = regular;
+                }
+                facesRevision = SystemFontCatalog.Revision;
+            }
+            return faces.TryGetValue(name, out face);
+        }
+
+        internal static void Destroy(FontAsset font)
+        {
+            if (font == null) return;
+            foreach (var atlas in font.atlasTextures)
+                if (atlas != null) UnityEngine.Object.DestroyImmediate(atlas);
+            if (font.material != null) UnityEngine.Object.DestroyImmediate(font.material);
+            UnityEngine.Object.DestroyImmediate(font);
+        }
+    }
+
     internal sealed class SystemFontField : BaseField<string>
     {
         private readonly PreviewLabel fontName;
@@ -42,10 +106,12 @@ namespace DCFApixels.WhimTex
             private string family;
             private int revision = -1;
             private bool attempted;
-            private Font font;
+            private FontAsset font;
+            private readonly bool allowFallback;
 
-            internal PreviewLabel()
+            internal PreviewLabel(bool allowFallback = false)
             {
+                this.allowFallback = allowFallback;
                 enableRichText = false;
                 RegisterCallback<AttachToPanelEvent>(_ => RefreshFont());
                 RegisterCallback<DetachFromPanelEvent>(_ => ReleaseFont());
@@ -73,16 +139,15 @@ namespace DCFApixels.WhimTex
                 if (!SystemFontCatalog.Contains(family)) return;
                 try
                 {
-                    font = Font.CreateDynamicFontFromOSFont(family, 16);
+                    font = SystemFontPreview.Create(family, 32);
                     if (font == null) return;
                     font.hideFlags = HideFlags.HideAndDontSave;
-                    foreach (char character in text)
-                        if (!char.IsWhiteSpace(character) && !font.HasCharacter(character))
-                        {
-                            ReleaseFont(); attempted = true;
-                            return;
-                        }
-                    style.unityFontDefinition = FontDefinition.FromFont(font);
+                    bool complete = font.TryAddCharacters(text);
+                    foreach (var atlas in font.atlasTextures)
+                        if (atlas != null) atlas.hideFlags = HideFlags.HideAndDontSave;
+                    if (font.material != null) font.material.hideFlags = HideFlags.HideAndDontSave;
+                    if (!complete && !allowFallback) { ReleaseFont(); attempted = true; return; }
+                    style.unityFontDefinition = FontDefinition.FromSDFFont(font);
                 }
                 catch (Exception exception) when (exception is ArgumentException || exception is UnityException)
                 {
@@ -93,7 +158,7 @@ namespace DCFApixels.WhimTex
             private void ReleaseFont()
             {
                 style.unityFontDefinition = StyleKeyword.Null;
-                if (font != null) UnityEngine.Object.DestroyImmediate(font);
+                SystemFontPreview.Destroy(font);
                 font = null; attempted = false;
             }
         }
@@ -105,8 +170,7 @@ namespace DCFApixels.WhimTex
             private readonly List<string> filtered = new List<string>();
             private ListView list;
             private TextField search;
-            private Font previewFont;
-            private Label preview;
+            private PreviewLabel preview;
 
             internal FontPicker(string selected, Action<string> apply) { this.selected = selected; this.apply = apply; }
             public override Vector2 GetWindowSize() => new Vector2(340, 360);
@@ -126,7 +190,7 @@ namespace DCFApixels.WhimTex
                 list.AddToClassList("whimtex-text-font-list"); root.Add(list);
                 list.selectionChanged += values => { foreach (string name in values) { Preview(name); break; } };
                 list.itemsChosen += values => { foreach (string name in values) { apply(name); editorWindow.Close(); break; } };
-                preview = new Label("Aa Бб 0123") { enableRichText = false };
+                preview = new PreviewLabel(allowFallback: true) { name = "fontPreview" };
                 preview.AddToClassList("whimtex-text-font-preview"); root.Add(preview);
                 var actions = new VisualElement(); actions.AddToClassList("whimtex-text-font-actions"); root.Add(actions);
                 actions.Add(new Button(() => { SystemFontCatalog.Refresh(); Filter(search.value); })
@@ -137,29 +201,25 @@ namespace DCFApixels.WhimTex
 
             private void Filter(string query)
             {
+                string highlighted = list.selectedItem as string ?? selected;
+                list.ClearSelection(); Preview(null);
                 filtered.Clear();
                 foreach (string name in SystemFontCatalog.Names)
                     if (name.IndexOf(query ?? "", StringComparison.OrdinalIgnoreCase) >= 0) filtered.Add(name);
                 list.Rebuild();
-                int index = filtered.IndexOf(selected); if (index >= 0) list.SetSelection(index);
+                int index = filtered.IndexOf(highlighted);
+                if (index < 0) index = filtered.IndexOf(selected);
+                if (index >= 0) list.SetSelection(index);
             }
 
             private void Preview(string name)
             {
-                if (preview == null || !SystemFontCatalog.Contains(name)) return;
-                preview.style.unityFontDefinition = StyleKeyword.Null;
-                if (previewFont != null) UnityEngine.Object.DestroyImmediate(previewFont);
-                previewFont = Font.CreateDynamicFontFromOSFont(name, 24);
-                if (previewFont == null) return;
-                previewFont.hideFlags = HideFlags.HideAndDontSave;
-                preview.style.unityFontDefinition = FontDefinition.FromFont(previewFont);
+                preview?.SetPreview(name, "Aa Бб 0123");
             }
 
             public override void OnClose()
             {
-                if (preview != null) preview.style.unityFontDefinition = StyleKeyword.Null;
-                if (previewFont != null) UnityEngine.Object.DestroyImmediate(previewFont);
-                previewFont = null;
+                preview?.ClearPreview();
                 if (list != null)
                     foreach (var row in list.Query<PreviewLabel>().ToList()) row.ClearPreview();
             }

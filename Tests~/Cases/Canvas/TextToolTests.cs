@@ -6,6 +6,7 @@ using DCFApixels.WhimTex;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEngine.TextCore.Text;
 using WhimTex.Tests;
 using WhimTex.Tests.UnityD;
 
@@ -65,7 +66,7 @@ public static class TextToolTests
             t.Near(160, toolFont.Q<VisualElement>(className: BaseField<string>.inputUssClassName).worldBound.width, .1,
                 "Tool font selector has fixed input width");
             var toolFontPreview = toolFont.Q<Label>("fontName");
-            t.True(toolFontPreview.text == toolFont.value && toolFontPreview.style.unityFontDefinition.value.font != null,
+            t.True(toolFontPreview.text == toolFont.value && toolFontPreview.style.unityFontDefinition.value.fontAsset != null,
                 "Tool font name previews its own font");
             var p = canvas.contentRect.center + new Vector2(-120,-40);
             Pointer(canvas,EventType.MouseDown,p); Pointer(canvas,EventType.MouseUp,p);
@@ -128,16 +129,49 @@ public static class TextToolTests
             var input = canvas.Q<TextField>("canvasTextInput");
             await AsyncD.Tick(root,token);
             t.True(input != null && !input.ClassListContains("whimtex-hidden") && input.enabledInHierarchy,"Click enters a live Canvas View text field");
+            string styledFont = Array.Find(Font.GetOSInstalledFontNames(), name => name == "Arial Bold Italic" || name == "Agency FB Bold");
+            if (styledFont != null)
+            {
+                string sourceFont = point.fontFamily;
+                var messages = new System.Collections.Generic.List<string>();
+                Application.LogCallback capture = (message, stack, type) =>
+                {
+                    if ((type == LogType.Warning || type == LogType.Error || type == LogType.Exception) &&
+                        (message.IndexOf("font face", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                         message.IndexOf("font file", StringComparison.OrdinalIgnoreCase) >= 0 || message.Contains("Include Font Data")))
+                        messages.Add(message);
+                };
+                Application.logMessageReceived += capture;
+                try
+                {
+                    point.fontFamily = styledFont; Call(window, "RefreshTextEditing");
+                    for (int i = 0; i < 3; i++) await AsyncD.Tick(root, token);
+                    var styledAsset = input.style.unityFontDefinition.value.fontAsset;
+                    t.True(styledAsset != null && styledAsset.faceInfo.styleName.Contains("Bold"),
+                        "Canvas input loads the actual non-Regular OS face without legacy Font conversion");
+                    var atlases = styledAsset.atlasTextures; var material = styledAsset.material;
+                    point.fontFamily = sourceFont; Call(window, "RefreshTextEditing");
+                    await AsyncD.Tick(root, token);
+                    t.True(styledAsset == null && material == null && Array.TrueForAll(atlases, atlas => atlas == null),
+                        "Changing the inline font releases its owned font asset, material and atlases");
+                    t.Equal(0, messages.Count, "Canvas text input and repaint emit no font-load warnings: " + string.Join("; ", messages));
+                }
+                finally
+                {
+                    Application.logMessageReceived -= capture;
+                    point.fontFamily = sourceFont; Call(window, "RefreshTextEditing");
+                }
+            }
             var pointTransform = point.Owner.transform;
             var collapsed = pointTransform; collapsed.scale = new Vector2(0, 1); point.Owner.transform = collapsed;
             Call(window, "RefreshTextEditing");
             t.True(input.ClassListContains("whimtex-hidden"), "A singular transform hides inline input instead of leaving an overlay at its old position");
             point.Owner.transform = pointTransform; Call(window, "RefreshTextEditing");
             t.True(!input.ClassListContains("whimtex-hidden"), "Inline input returns after the transform becomes usable");
-            var oldFont = Read<Font>(window, "editorFont");
+            var oldFont = Read<FontAsset>(window, "editorFont");
             typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.SystemFontCatalog").GetMethod("Refresh", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
             Call(window, "RefreshTextEditing");
-            t.True(oldFont == null && Read<Font>(window, "editorFont") != null, "Font catalog refresh replaces the owned inline font as well as render fonts");
+            t.True(oldFont == null && Read<FontAsset>(window, "editorFont") != null, "Font catalog refresh replaces the owned inline font as well as render fonts");
             root.Q<FloatField>("textSpacingCharacter").value = .15f;
             root.Q<FloatField>("textSpacingWord").value = .3f;
             root.Q<FloatField>("textSpacingParagraph").value = .2f;
@@ -160,7 +194,7 @@ public static class TextToolTests
             Call(window,"FocusTextInput",true);
             t.True(Read(window, "textFocusRequest") != null, "Inline focus has one owned scheduled request");
             Call(window,"EndTextEditing",false);
-            t.True(Read(window, "textFocusRequest") == null && Read<Font>(window, "editorFont") == null,
+            t.True(Read(window, "textFocusRequest") == null && Read<FontAsset>(window, "editorFont") == null,
                 "Ending an edit cancels its delayed focus and destroys its font");
             Call(window,"FocusTextInput",false); input.value="Committed"; Key(input,KeyCode.Return,true);
             t.Equal("Committed",point.text,"Ctrl+Enter commits the edited text");
@@ -273,7 +307,7 @@ public static class TextToolTests
             var detachedInput = input;
             detachedInput.RemoveFromHierarchy();
             t.True(detachedInput.ClassListContains("whimtex-hidden") && Read(window, "textEditingLayer") == null &&
-                Read(window, "textFocusRequest") == null && Read<Font>(window, "editorFont") == null,
+                Read(window, "textFocusRequest") == null && Read<FontAsset>(window, "editorFont") == null,
                 "Detaching the editor finishes its session and releases focus/font resources");
             window.DiscardChanges();
         }

@@ -433,11 +433,7 @@ namespace DCFApixels.WhimTex
                 else if (tool == CanvasTool.Transform)
                     DrawHand(painter);
                 else if (tool == CanvasTool.Text)
-                {
-                    painter.lineWidth = 2;
-                    painter.BeginPath(); painter.MoveTo(P(5, 6)); painter.LineTo(P(19, 6));
-                    painter.MoveTo(P(12, 6)); painter.LineTo(P(12, 20)); painter.MoveTo(P(8, 20)); painter.LineTo(P(16, 20)); painter.Stroke();
-                }
+                    DrawTextTool(painter);
                 else if (tool == CanvasTool.GradientHandles || IsTemporaryCanvasTool(tool))
                     DrawHand(painter, withHandle: true);
                 else if (tool == CanvasTool.UvIslandSelect)
@@ -470,6 +466,29 @@ namespace DCFApixels.WhimTex
             private Vector2 P(float x, float y) => new Vector2(
                 contentRect.x + x * contentRect.width / 24f,
                 contentRect.y + y * contentRect.height / 24f);
+
+            private void DrawTextTool(Painter2D painter)
+            {
+                float pixelsPerPoint = EditorGUIUtility.pixelsPerPoint;
+                Vector2 Pixel(float x, float y)
+                {
+                    Vector2 point = this.LocalToWorld(P(x, y)) * pixelsPerPoint;
+                    return this.WorldToLocal(new Vector2(Mathf.Round(point.x), Mathf.Round(point.y)) / pixelsPerPoint);
+                }
+                painter.BeginPath();
+                painter.MoveTo(Pixel(4, 3)); painter.LineTo(Pixel(20, 3));
+                painter.LineTo(Pixel(20, 7)); painter.LineTo(Pixel(18.5f, 7));
+                painter.BezierCurveTo(Pixel(18.4f, 5.6f), Pixel(17.8f, 5), Pixel(16, 5));
+                painter.LineTo(Pixel(13.5f, 5)); painter.LineTo(Pixel(13.5f, 18));
+                painter.BezierCurveTo(Pixel(13.5f, 19.1f), Pixel(14.2f, 19.6f), Pixel(16, 19.6f));
+                painter.LineTo(Pixel(16, 21)); painter.LineTo(Pixel(8, 21));
+                painter.LineTo(Pixel(8, 19.6f));
+                painter.BezierCurveTo(Pixel(9.8f, 19.6f), Pixel(10.5f, 19.1f), Pixel(10.5f, 18));
+                painter.LineTo(Pixel(10.5f, 5)); painter.LineTo(Pixel(8, 5));
+                painter.BezierCurveTo(Pixel(6.2f, 5), Pixel(5.6f, 5.6f), Pixel(5.5f, 7));
+                painter.LineTo(Pixel(4, 7)); painter.ClosePath();
+                painter.Fill();
+            }
 
             private void DrawGradient(Painter2D painter)
             {

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -7,6 +8,7 @@ using DCFApixels.WhimTex;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEngine.TextCore.Text;
 using WhimTex.Tests;
 using WhimTex.Tests.UnityD;
 
@@ -20,6 +22,66 @@ public static class TextLayerUiTests
     static void Click(Button button)
     {
         using var submit = NavigationSubmitEvent.GetPooled(); submit.target = button; button.SendEvent(submit);
+    }
+    static async Task AssertFontFaces(TestContext t, BaseField<string> field, ListView list,
+        Label sample, TextField search, VisualElement root, CancellationToken token)
+    {
+        var messages = new List<string>();
+        Application.LogCallback capture = (message, stack, type) =>
+        {
+            if ((type == LogType.Warning || type == LogType.Error || type == LogType.Exception) &&
+                (message.IndexOf("font face", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 message.IndexOf("font file", StringComparison.OrdinalIgnoreCase) >= 0 || message.Contains("Include Font Data")))
+                messages.Add(message);
+        };
+        string selected = field.value;
+        Application.logMessageReceived += capture;
+        try
+        {
+            var installed = new HashSet<string>(Font.GetOSInstalledFontNames(), StringComparer.OrdinalIgnoreCase);
+            foreach (var face in new[] {
+                (name: "Arial Bold", family: "Arial", style: "Bold"),
+                (name: "Arial Italic", family: "Arial", style: "Italic"),
+                (name: "Arial Bold Italic", family: "Arial", style: "Bold Italic"),
+                (name: "Agency FB Bold", family: "Agency FB", style: "Bold"),
+                (name: "Bell MT Bold", family: "Bell MT", style: "Bold"),
+                (name: "Arial Rounded MT Bold", family: "Arial Rounded MT Bold", style: "Regular") })
+            {
+                if (!installed.Contains(face.name)) continue;
+                field.SetValueWithoutNotify(face.name);
+                search.value = face.name;
+                int index = list.itemsSource.Cast<string>().ToList().IndexOf(face.name);
+                t.True(index >= 0, face.name + " remains selectable by its original OS name");
+                list.SetSelection(index);
+                for (int i = 0; i < 3; i++) await AsyncD.Tick(root, token);
+                var label = field.Q<Label>("fontName");
+                foreach (var preview in new[] { label, sample })
+                {
+                    var asset = preview.style.unityFontDefinition.value.fontAsset;
+                    t.True(asset != null && asset.faceInfo.familyName == face.family && asset.faceInfo.styleName == face.style,
+                        face.name + " previews the actual family/face in " + preview.name + ": " +
+                        (asset == null ? "no asset" : asset.faceInfo.familyName + " / " + asset.faceInfo.styleName));
+                    t.True(asset.atlasTextures.Any(atlas => atlas != null && atlas.width > 1 && atlas.height > 1),
+                        face.name + " has a generated glyph atlas, not an empty preview");
+                }
+                var row = (Label)list.makeItem();
+                try
+                {
+                    list.bindItem(row, index); root.Add(row); await AsyncD.Tick(root, token);
+                    var asset = row.style.unityFontDefinition.value.fontAsset;
+                    t.True(asset != null && asset.faceInfo.familyName == face.family && asset.faceInfo.styleName == face.style,
+                        face.name + " uses the same correct face in a virtualized list row");
+                }
+                finally { list.unbindItem(row, index); row.RemoveFromHierarchy(); }
+            }
+            await AsyncD.Tick(root, token);
+            t.Equal(0, messages.Count, "Font selection, popup samples, list binding and repaint emit no font-load warnings: " + string.Join("; ", messages));
+        }
+        finally
+        {
+            Application.logMessageReceived -= capture;
+            field.SetValueWithoutNotify(selected); search.value = selected;
+        }
     }
     static void AssertFormatIcons(TestContext t, VisualElement row)
     {
@@ -61,7 +123,7 @@ public static class TextLayerUiTests
             var fontName = font.Q<Label>("fontName");
             t.True(font.ClassListContains("whimtex-system-font-field") && choose != null && font.Q<TextField>() == null,
                 "Font uses the common read-only dropdown field");
-            t.True(fontName.text == font.value && fontName.style.unityFontDefinition.value.font != null,
+            t.True(fontName.text == font.value && fontName.style.unityFontDefinition.value.fontAsset != null,
                 "Selected font name previews its own installed font");
             t.True(choose.worldBound.width >= 80 && fontName.worldBound.xMin >= choose.worldBound.xMin &&
                 fontName.worldBound.xMax <= choose.worldBound.xMax,
@@ -260,11 +322,12 @@ public static class TextLayerUiTests
             t.True(list.itemsSource.Count > 0, "Font picker displays the installed font catalog");
             t.True(list.virtualizationMethod == CollectionVirtualizationMethod.FixedHeight && list.unbindItem != null && list.destroyItem != null,
                 "Font catalog uses virtualized rows with explicit resource cleanup");
+            await AssertFontFaces(t, font, list, pickerRoot.Q<Label>("fontPreview"), search, root, token);
             search.value = selected;
             t.True(list.itemsSource.Count > 0 && list.itemsSource.Cast<string>().All(name => name.IndexOf(selected, StringComparison.OrdinalIgnoreCase) >= 0),
                 "Font search filters names");
             list.SetSelection(0);
-            t.True((Font)pickerType.GetField("previewFont", Flags).GetValue(picker) != null, "Selected font creates an owned sample font");
+            t.True(pickerRoot.Q<Label>("fontPreview").style.unityFontDefinition.value.fontAsset != null, "Selected font creates an owned sample font");
             var select = pickerRoot.Query<Button>().ToList().Single(button => button.text == "Select");
             t.True(list.selectedItem is string, "Picker has a selected font before confirmation");
             select.Focus();
@@ -279,14 +342,16 @@ public static class TextLayerUiTests
             var nameRow = (Label)list.makeItem();
             list.bindItem(nameRow, 0); root.Add(nameRow);
             await AsyncD.Tick(root, token);
-            t.True(nameRow.text == (string)list.itemsSource[0] && nameRow.style.unityFontDefinition.value.font != null,
+            t.True(nameRow.text == (string)list.itemsSource[0] && nameRow.style.unityFontDefinition.value.fontAsset != null,
                 "The dropdown's actual row factory renders its bound name using its own font in a live panel");
-            Font rowFont = nameRow.style.unityFontDefinition.value.font;
+            FontAsset rowFont = nameRow.style.unityFontDefinition.value.fontAsset;
+            var rowAtlases = rowFont.atlasTextures.ToArray(); var rowMaterial = rowFont.material;
             list.unbindItem(nameRow, 0);
-            t.True(rowFont == null && nameRow.style.unityFontDefinition.value.font == null,
+            t.True(rowFont == null && nameRow.style.unityFontDefinition.value.fontAsset == null &&
+                rowMaterial == null && rowAtlases.All(atlas => atlas == null),
                 "Recycling a dropdown row releases its owned preview font");
             list.bindItem(nameRow, 0);
-            rowFont = nameRow.style.unityFontDefinition.value.font;
+            rowFont = nameRow.style.unityFontDefinition.value.fontAsset;
             t.True(rowFont != null, "A recycled row can acquire its next preview font");
             nameRow.RemoveFromHierarchy();
             t.True(rowFont == null, "Detaching a dropdown row releases its last preview font");
@@ -296,7 +361,7 @@ public static class TextLayerUiTests
             t.True(!root.Q<TextField>("textContent").enabledInHierarchy, "Missing font disables source layout editing");
             t.True(root.Q<BaseField<string>>("textFont").enabledInHierarchy && root.Q<VisualElement>("textColor").enabledInHierarchy,
                 "Missing font keeps replacement and tint controls enabled");
-            t.True(fontName.text == text.fontFamily && fontName.style.unityFontDefinition.value.font == null,
+            t.True(fontName.text == text.fontFamily && fontName.style.unityFontDefinition.value.fontAsset == null,
                 "Missing font keeps its readable identity using the normal UI font");
             var notice = root.Q<HelpBox>("textFontNotice");
             t.True(!notice.ClassListContains("whimtex-hidden") && notice.text.Contains("unavailable"), "Missing font has a visible inspector warning");

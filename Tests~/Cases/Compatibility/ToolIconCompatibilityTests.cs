@@ -52,15 +52,16 @@ public static class ToolIconCompatibilityTests
         {
             window.titleContent = new GUIContent("WhimTex icon check");
             window.rootVisualElement.style.flexDirection = FlexDirection.Row;
-            foreach (int size in new[] { 24, 48, 96 })
+            foreach (string tool in new[] { "BlurBrush", "Text" })
+            foreach (int size in new[] { 22, 24, 48, 96 })
             {
                 var icon = (VisualElement)Activator.CreateInstance(iconType, flags, null,
-                    new object[] { Enum.Parse(toolType, "BlurBrush"), false }, null);
+                    new object[] { Enum.Parse(toolType, tool), false }, null);
                 icon.style.width = size; icon.style.height = size; icon.style.color = Color.white;
                 window.rootVisualElement.Add(icon);
             }
             window.ShowUtility();
-            window.position = new Rect(150, 150, 240, 140);
+            window.position = new Rect(150, 150, 440, 140);
             window.Repaint();
             await Task.Delay(750, token);
             Check(window.rootVisualElement.panel != null, "Icon panel is attached");
