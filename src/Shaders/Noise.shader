@@ -11,6 +11,7 @@ Shader "Hidden/WhimTex/Noise"
             #pragma fragment frag
             #pragma multi_compile_local __ WT_NOISE_3D
             #pragma multi_compile_local __ WT_NOISE_PERIODIC
+            #pragma multi_compile_local __ WT_NOISE_VECTOR
             #pragma multi_compile_local WT_NOISE_0 WT_NOISE_1 WT_NOISE_2 WT_NOISE_3 WT_NOISE_4 WT_NOISE_5
             #include "UnityCG.cginc"
             #include "HdrColor.cginc"
@@ -36,17 +37,29 @@ Shader "Hidden/WhimTex/Noise"
             float4 _NoiseDomain, _NoiseFractalSettings;
             float4 _NoiseAxis;
             float3 _NoiseWarpScale;
-            int _NoiseOneD, _NoiseThreeD, _NoisePeriodic;
-            float2 _NoiseScale;
+            int _NoiseOneD, _NoisePeriodic;
+            float3 _NoiseScale;
             float _NoiseZ, _NoiseCellularJitter, _NoiseWarpStrength;
             int _NoiseSeed, _NoiseType, _NoiseFractal, _NoiseOctaves;
             int _NoiseCellularDistance, _NoiseCellularReturn, _NoiseWarp, _NoiseEncoding, _NoiseInverted;
-            float4 _WhiteNoiseGrid;
-            int _WhiteNoiseColor;
+            int _NoiseField, _NoiseVectorOutput, _NoiseNormalize, _NoiseWarpSeed;
+            float _NoiseStrength;
+            float4 _GrainGrid;
+            int _GrainColor;
             Texture2D<float4> _BlueNoise2D, _BlueNoise1D;
             sampler2D _GradientLut;
             float4 _GradientLut_TexelSize;
             int _UseGradient, _GradientWrapMode;
+
+            #if WHIMTEX_NOISE_TYPE < 2
+                #if defined(WT_NOISE_3D)
+                    #define WT_NOISE_LATTICE_LAYOUT 3
+                #else
+                    #define WT_NOISE_LATTICE_LAYOUT 2
+                #endif
+            #else
+                #define WT_NOISE_LATTICE_LAYOUT 1
+            #endif
 
             float4 MapGradient(float t)
             {
@@ -74,10 +87,10 @@ Shader "Hidden/WhimTex/Noise"
 
             int2 GrainCell(float2 uv)
             {
-                float2 pixel = uv * _WhiteNoiseGrid.xy;
+                float2 pixel = uv * _GrainGrid.xy;
                 if (_NoiseOneD != 0)
-                    pixel = float2(dot(pixel - .5 * _WhiteNoiseGrid.xy, _NoiseAxis.xy), 0.0);
-                return (int2)floor((pixel + _NoiseDomain.zw) / _WhiteNoiseGrid.z);
+                    pixel = float2(dot(pixel - .5 * _GrainGrid.xy, _NoiseAxis.xy), 0.0);
+                return (int2)floor((pixel + _NoiseDomain.zw) / _GrainGrid.z);
             }
 
             float3 WhiteNoise(float2 uv)
@@ -86,35 +99,40 @@ Shader "Hidden/WhimTex/Noise"
                 uint key = WhiteHash(asuint(cell.x)) ^ WhiteHash(asuint(cell.y) ^ 0x9e3779b9u)
                     ^ WhiteHash(asuint(_NoiseSeed) ^ 0x68bc21ebu);
                 float r = WhiteValue(key);
-                return _WhiteNoiseColor != 0
+                return _GrainColor != 0
                     ? float3(r, WhiteValue(key ^ 0xa511e9b3u), WhiteValue(key ^ 0x63d83595u)) : r.xxx;
             }
 
             float BlueValue(int2 cell, uint channel)
             {
                 uint key = WhiteHash(asuint(_NoiseSeed) ^ (0x68bc21ebu + channel * 0x9e3779b9u));
+                float4 ranks;
                 if (_NoiseOneD != 0)
                 {
                     key = WhiteHash(key ^ asuint(cell.y));
                     int x = (key & 256u) != 0u ? -cell.x : cell.x;
-                    return _BlueNoise1D.Load(int3((x + (int)(key & 255u)) & 255, 0, 0))[channel];
+                    ranks = _BlueNoise1D.Load(int3((x + (int)(key & 255u)) & 255, 0, 0));
                 }
-                if ((key & 16384u) != 0u) cell = cell.yx;
-                if ((key & 32768u) != 0u) cell.x = -cell.x;
-                if ((key & 65536u) != 0u) cell.y = -cell.y;
-                cell = (cell + int2(key & 127u, (key >> 7) & 127u)) & 127;
-                return _BlueNoise2D.Load(int3(cell, 0))[channel];
+                else
+                {
+                    if ((key & 16384u) != 0u) cell = cell.yx;
+                    if ((key & 32768u) != 0u) cell.x = -cell.x;
+                    if ((key & 65536u) != 0u) cell.y = -cell.y;
+                    cell = (cell + int2(key & 127u, (key >> 7) & 127u)) & 127;
+                    ranks = _BlueNoise2D.Load(int3(cell, 0));
+                }
+                return channel == 0 ? ranks.r : channel == 1 ? ranks.g : ranks.b;
             }
 
             float3 BlueNoise(float2 uv)
             {
                 int2 cell = GrainCell(uv);
                 float r = BlueValue(cell, 0u);
-                return _WhiteNoiseColor != 0 ? float3(r, BlueValue(cell, 1u), BlueValue(cell, 2u)) : r.xxx;
+                return _GrainColor != 0 ? float3(r, BlueValue(cell, 1u), BlueValue(cell, 2u)) : r.xxx;
             }
 
             #if defined(WT_NOISE_PERIODIC)
-            float PeriodicNoise(fnl_state state, float2 uv)
+            float3 PeriodicWarp(float2 uv, float zDelta)
             {
                 if (_NoiseOneD != 0)
                     uv = float2(dot(uv - .5, _NoiseAxis.zw) + .5, .5);
@@ -125,29 +143,39 @@ Shader "Hidden/WhimTex/Noise"
                 float3 displacement = 0;
                 if (_NoiseWarp > 0 && _NoiseWarpStrength > 0)
                 {
-                    fnl_state warp = fnlCreateState(_NoiseSeed);
+                    fnl_state warp = fnlCreateState(_NoiseWarpSeed);
                     warp.domain_warp_type = _NoiseWarp - 1;
-                    float3 p = WtPosition(8, uv, 0);
+                    float3 p = WtPosition(8, uv, float3(0, 0, zDelta), (int)_NoiseWarpInverse.w);
                     float amp = _NoiseWarpStrength * _fnlCalculateFractalBounding(warp);
                     #if defined(WT_NOISE_3D)
-                        _fnlDoSingleDomainWarp3D(warp, _NoiseSeed, amp, 1, p.x, p.y, p.z, displacement.x, displacement.y, displacement.z);
+                        _fnlDoSingleDomainWarp3D(warp, _NoiseWarpSeed, amp, 1, p.x, p.y, p.z, displacement.x, displacement.y, displacement.z);
                     #else
-                        _fnlDoSingleDomainWarp2D(warp, _NoiseSeed, amp, 1, p.x, p.y, displacement.x, displacement.y);
+                        _fnlDoSingleDomainWarp2D(warp, _NoiseWarpSeed, amp, 1, p.x, p.y, displacement.x, displacement.y);
                     #endif
                     if ((int)_NoiseWarpInverse.w == 2)
                         displacement.xy = float2(displacement.x + displacement.y, displacement.y - displacement.x) * .7071067811865475;
                     displacement *= _NoiseWarpInverse.xyz;
                 }
+                return displacement;
+            }
+
+            float PeriodicNoise(fnl_state state, float2 uv, float zDelta)
+            {
+                float3 displacement = PeriodicWarp(uv, zDelta) + float3(0, 0, zDelta);
+                if (_NoiseOneD != 0)
+                    uv = float2(dot(uv - .5, _NoiseAxis.zw) + .5, .5);
+                if ((_NoisePeriodic & 1) != 0) uv.x = frac(uv.x);
+                if ((_NoisePeriodic & 2) != 0) uv.y = frac(uv.y);
                 int count = _NoiseFractal == 0 ? 1 : _NoiseOctaves;
                 float amp = _NoiseFractal == 0 ? 1 : _fnlCalculateFractalBounding(state);
                 float sum = 0;
                 [loop] for (int octave = 0; octave < count; octave++)
                 {
-                    float3 p = WtPosition(octave, uv, displacement);
+                    float3 p = WtPosition(octave, uv, displacement, WT_NOISE_LATTICE_LAYOUT);
                     #if defined(WT_NOISE_3D)
-                    float n = _fnlGenNoiseSingle3D(state, _NoiseSeed + octave, p.x, p.y, p.z);
+                    float n = _fnlGenNoiseSingle3D(state, state.seed + octave, p.x, p.y, p.z);
                     #else
-                    float n = _fnlGenNoiseSingle2D(state, _NoiseSeed + octave, p.x, p.y);
+                    float n = _fnlGenNoiseSingle2D(state, state.seed + octave, p.x, p.y);
                     #endif
                     if (_NoiseFractal == 2)
                     {
@@ -170,6 +198,92 @@ Shader "Hidden/WhimTex/Noise"
                 }
                 return sum;
             }
+            #endif
+
+            float3 NoisePosition(float2 uv, float zDelta)
+            {
+                float2 centered = (uv - .5) * _NoiseDomain.xy * _NoiseScale.xy;
+                if (_NoiseOneD != 0) centered = float2(dot(centered, _NoiseAxis.xy), 0);
+                return float3(centered + _NoiseDomain.zw, _NoiseZ + zDelta);
+            }
+
+            float3 WarpPosition(float3 p)
+            {
+                if (_NoiseWarp == 0 || _NoiseWarpStrength <= 0) return p;
+                fnl_state warp = fnlCreateState(_NoiseWarpSeed);
+                warp.frequency = 1;
+                warp.domain_warp_type = _NoiseWarp - 1;
+                warp.domain_warp_amp = _NoiseWarpStrength;
+                float3 warpPosition = p * _NoiseWarpScale;
+                float3 warpedPosition = warpPosition;
+                #if defined(WT_NOISE_3D)
+                    fnlDomainWarp3D(warp, warpedPosition.x, warpedPosition.y, warpedPosition.z);
+                #else
+                    fnlDomainWarp2D(warp, warpedPosition.x, warpedPosition.y);
+                #endif
+                return p + warpedPosition - warpPosition;
+            }
+
+            #if !defined(WT_NOISE_PERIODIC)
+            float FractalNoise(fnl_state state, float3 p)
+            {
+                #if defined(WT_NOISE_3D)
+                    _fnlTransformNoiseCoordinate3D(state, p.x, p.y, p.z);
+                #else
+                    _fnlTransformNoiseCoordinate2D(state, p.x, p.y);
+                #endif
+                bool fractal = state.fractal_type != FNL_FRACTAL_NONE;
+                int count = fractal ? state.octaves : 1;
+                float amp = fractal ? _fnlCalculateFractalBounding(state) : 1;
+                float sum = 0;
+                // One kernel call site for every fractal mode, including None.
+                [loop] for (int octave = 0; octave < count; octave++)
+                {
+                    #if defined(WT_NOISE_3D)
+                        float n = _fnlGenNoiseSingle3D(state, state.seed + octave, p.x, p.y, p.z);
+                    #else
+                        float n = _fnlGenNoiseSingle2D(state, state.seed + octave, p.x, p.y);
+                    #endif
+                    if (state.fractal_type == FNL_FRACTAL_RIDGED)
+                    {
+                        n = abs(n);
+                        sum += (n * -2 + 1) * amp;
+                        amp *= _fnlLerp(1, 1 - n, state.weighted_strength);
+                    }
+                    else if (state.fractal_type == FNL_FRACTAL_PINGPONG)
+                    {
+                        n = _fnlPingPong((n + 1) * state.ping_pong_strength);
+                        sum += (n - .5) * 2 * amp;
+                        amp *= _fnlLerp(1, n, state.weighted_strength);
+                    }
+                    else
+                    {
+                        sum += n * amp;
+                        #if defined(WT_NOISE_3D)
+                            amp *= _fnlLerp(1, (n + 1) * .5, state.weighted_strength);
+                        #else
+                            amp *= _fnlLerp(1, min(n + 1, 2) * .5, state.weighted_strength);
+                        #endif
+                    }
+                    p *= state.lacunarity;
+                    amp *= state.gain;
+                }
+                return sum;
+            }
+            #endif
+
+            float Potential(fnl_state state, float2 uv, float zDelta)
+            {
+                #if defined(WT_NOISE_PERIODIC)
+                    return PeriodicNoise(state, uv, zDelta);
+                #else
+                    float3 p = WarpPosition(NoisePosition(uv, zDelta));
+                    return FractalNoise(state, p);
+                #endif
+            }
+
+            #if defined(WT_NOISE_VECTOR)
+            #include "NoiseVector.cginc"
             #endif
 
             float4 frag(v2f_img i) : SV_Target
@@ -195,37 +309,19 @@ Shader "Hidden/WhimTex/Noise"
                 state.cellular_distance_func = _NoiseCellularDistance;
                 state.cellular_return_type = _NoiseCellularReturn;
                 state.cellular_jitter_mod = _NoiseCellularJitter;
-                float3 p = float3((i.uv - .5) * _NoiseDomain.xy * _NoiseScale + _NoiseDomain.zw, _NoiseZ);
-                if (_NoiseOneD != 0)
-                {
-                    float2 centered = (i.uv - .5) * _NoiseDomain.xy * _NoiseScale;
-                    p.xy = float2(dot(centered, _NoiseAxis.xy), 0.0) + _NoiseDomain.zw;
-                }
-                #if !defined(WT_NOISE_PERIODIC)
-                if (_NoiseWarp > 0 && _NoiseWarpStrength > 0.0)
-                {
-                    fnl_state warp = fnlCreateState(_NoiseSeed);
-                    warp.frequency = 1.0;
-                    warp.domain_warp_type = _NoiseWarp - 1;
-                    warp.domain_warp_amp = _NoiseWarpStrength;
-                    float3 warpPosition = p * _NoiseWarpScale;
-                    float3 warpedPosition = warpPosition;
-                    #if defined(WT_NOISE_3D)
-                    fnlDomainWarp3D(warp, warpedPosition.x, warpedPosition.y, warpedPosition.z);
-                    #else
-                    fnlDomainWarp2D(warp, warpedPosition.x, warpedPosition.y);
-                    #endif
-                    p += warpedPosition - warpPosition;
-                }
+                #if defined(WT_NOISE_VECTOR)
+                    float3 fieldValue = VectorField(state, i.uv);
+                    if (_NoiseNormalize != 0)
+                    {
+                        float magnitude = length(fieldValue);
+                        fieldValue = magnitude > 1e-7 ? fieldValue / magnitude : 0;
+                    }
+                    fieldValue *= _NoiseStrength;
+                    if (_NoiseInverted != 0) fieldValue = -fieldValue;
+                    if (_NoiseVectorOutput == 0) fieldValue = fieldValue * .5 + .5;
+                    return float4(fieldValue, 1);
                 #endif
-                float raw;
-                #if defined(WT_NOISE_PERIODIC)
-                raw = PeriodicNoise(state, i.uv);
-                #elif defined(WT_NOISE_3D)
-                raw = fnlGetNoise3D(state, p.x, p.y, p.z);
-                #else
-                raw = fnlGetNoise2D(state, p.x, p.y);
-                #endif
+                float raw = Potential(state, i.uv, 0);
                 float value = saturate(raw * .5 + .5);
                 if (_NoiseInverted != 0) value = 1.0 - value;
                 if (_UseGradient != 0) return MapGradient(value);

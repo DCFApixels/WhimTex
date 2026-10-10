@@ -16,7 +16,7 @@ namespace DCFApixels.WhimTex
         {
             double frequency = 1;
             bool three = noise.EffectiveDimensions == NoiseLayerBehaviour.NoiseDimensions.ThreeD;
-            Vector2 warpScale = noise.WarpScale;
+            Vector3 warpScale = noise.WarpScale3D;
             for (int octave = 0; octave < 9; octave++)
             {
                 bool warp = octave == 8;
@@ -24,9 +24,9 @@ namespace DCFApixels.WhimTex
                 double fx = warp ? warpScale.x : f;
                 double fy = warp ? warpScale.y : f;
                 frequency *= NoiseLayerBehaviour.Limit(noise.lacunarity, 1, 4, 2);
-                int count = noise.fractal == NoiseLayerBehaviour.FractalType.None ? 1 : Mathf.Clamp(noise.octaves, 1, 8);
+                int count = noise.EffectiveFractal == NoiseLayerBehaviour.FractalType.None ? 1 : Mathf.Clamp(noise.octaves, 1, 8);
                 if (!warp && octave >= count) continue;
-                bool simplex = warp ? noise.warp != NoiseLayerBehaviour.WarpType.BasicGrid : (int)noise.noiseType < 2;
+                bool simplex = warp ? noise.warp != NoiseLayerBehaviour.WarpType.BasicGrid : (int)noise.EffectiveNoiseType < 2;
                 int layout = simplex ? (three ? 3 : 2) : 1;
                 double unitX = simplex ? (three ? 3 : Math.Sqrt(2.0 / 3.0)) : 1;
                 double unitY = simplex ? (three ? 3 : Math.Sqrt(2)) : 1;
@@ -48,7 +48,7 @@ namespace DCFApixels.WhimTex
                 int start = octave * Stride;
                 void Basis(double x, double y, double z, int slot)
                 {
-                    Transform(ref x, ref y, ref z, layout, sx, sy, f);
+                    Transform(ref x, ref y, ref z, layout, sx, sy, warp ? warpScale.z : f);
                     if (slot == 5)
                     {
                         var integers = new Vector4();

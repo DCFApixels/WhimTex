@@ -83,7 +83,7 @@ void WtProduct(inout int3 whole, inout float3 fraction, float value, int index)
     fraction += part - (float3)carry;
 }
 
-precise float3 WtPosition(int octave, float2 uv, float3 displacement)
+precise float3 WtPosition(int octave, float2 uv, float3 displacement, int layout)
 {
     int start = octave * 16;
     int3 whole = (int3)_NoiseLattice[start + 13].xyz * 4096 + (int3)_NoiseLattice[start + 14].xyz;
@@ -98,7 +98,9 @@ precise float3 WtPosition(int octave, float2 uv, float3 displacement)
     float4 metadata = _NoiseLattice[start + 12];
     int packed = (int)metadata.w;
     wtPeriod = (int2)metadata.xy * 4096 + int2(packed & 4095, (packed >> 12) & 4095);
-    wtLayout = (int)_NoiseLattice[start + 12].z;
+    // The noise kernel supplies a constant layout; only Warp selects it at runtime.
+    // This lets the compiler remove the other lattice reductions from each hash.
+    wtLayout = layout;
     precise float3 local = fraction - (float3)carry;
     return local;
 }

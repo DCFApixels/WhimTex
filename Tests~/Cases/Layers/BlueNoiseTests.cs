@@ -62,7 +62,7 @@ try
     layer.seed++;
     Check(Difference(blue, Render()) > .1f, "Seed changes blue pattern");
     layer.seed = 1337;
-    layer.whiteNoiseColor = DCFApixels.WhimTex.NoiseLayerBehaviour.WhiteNoiseColor.Color;
+    layer.grainColor = DCFApixels.WhimTex.NoiseLayerBehaviour.GrainColor.Color;
     var rgb = Render();
     double rg = 0, rb = 0, gb = 0;
     for (int i = 0; i < rgb.Length; i++)
@@ -81,7 +81,7 @@ try
     layer.offset = new UnityEngine.Vector2(-128, 128);
     Check(Difference(rgb, Render()) == 0, "Periodic table and negative coordinates");
     layer.offset = UnityEngine.Vector2.zero;
-    layer.whiteNoiseSize = 4;
+    layer.grainSize = 4;
     var grain = Render();
     var small = Render(64);
     for (int y = 0; y < 256; y++) for (int x = 0; x < 256; x++)
@@ -91,7 +91,7 @@ try
     layer.scale = 1000;
     Check(Difference(grain, Render()) == 0, "Blue ignores fractal/warp/Scale");
     layer.dimensions = DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseDimensions.OneD;
-    layer.whiteNoiseSize = 1;
+    layer.grainSize = 1;
     foreach (float angle in new[] { 0f, 90f, -180f })
     {
         layer.direction = angle;

@@ -104,7 +104,7 @@ public static class NoiseTests
             layer.seed++;
             Check(Difference(extremeSeed, Render(99)) > .1f, "White Noise adjacent extreme seeds");
             layer.seed = 1337;
-            layer.whiteNoiseColor = DCFApixels.WhimTex.NoiseLayerBehaviour.WhiteNoiseColor.Color;
+            layer.grainColor = DCFApixels.WhimTex.NoiseLayerBehaviour.GrainColor.Color;
             var rgbNoise = Render(99);
             double meanR = 0, meanG = 0, meanB = 0, crossRG = 0, crossRB = 0, crossGB = 0, spatial = 0;
             for (int i = 0; i < rgbNoise.Length; i++)
@@ -139,7 +139,7 @@ public static class NoiseTests
             for (int y = 0; y < 63; y++) for (int x = 0; x < 98; x++)
                 Check(shifted[y * 99 + x] == rgbNoise[y * 99 + x + 1], "White offset uses canvas pixels");
             layer.offset = UnityEngine.Vector2.zero;
-            layer.whiteNoiseSize = 4;
+            layer.grainSize = 4;
             var coarse = Render(99);
             for (int y = 0; y < 63; y++) for (int x = 0; x < 99; x++)
                 Check(coarse[y * 99 + x] == coarse[(y / 4 * 4) * 99 + x / 4 * 4], "Four-pixel grain cells");

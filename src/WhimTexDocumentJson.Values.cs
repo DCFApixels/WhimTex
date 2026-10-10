@@ -170,15 +170,19 @@ namespace DCFApixels.WhimTex
             }
             if (value is NoiseLayerBehaviour noise)
             {
-                if (field == "gradient") return noise.EffectiveOutput == NoiseLayerBehaviour.OutputEncoding.Gradient;
-                if (field == "whiteNoiseColor" || field == "whiteNoiseSize") return noise.IsGrain;
-                if (field == "direction" || field == "periodic1D") return noise.dimensions == NoiseLayerBehaviour.NoiseDimensions.OneD;
-                if (field == "periodic") return !noise.IsGrain && noise.dimensions != NoiseLayerBehaviour.NoiseDimensions.OneD;
-                if (field == "cellularDistance" || field == "cellularReturn" || field == "cellularJitter") return noise.noiseType == NoiseLayerBehaviour.NoiseType.Cellular;
-                if (field == "warpStrength" || field == "warpScale" || field == "warpScaleY" || field == "linkWarpScale") return !noise.IsGrain && noise.warp != NoiseLayerBehaviour.WarpType.None;
-                if (field == "fractal" || field == "warp") return !noise.IsGrain;
-                if (field == "octaves" || field == "gain" || field == "lacunarity" || field == "weightedStrength") return !noise.IsGrain && noise.fractal != NoiseLayerBehaviour.FractalType.None;
-                if (field == "pingPongStrength") return !noise.IsGrain && noise.fractal == NoiseLayerBehaviour.FractalType.PingPong;
+                if (field == "vectorOutput" || field == "normalize" || field == "strength") return noise.IsVectorField;
+                if (field == "encoding") return !noise.IsVectorField;
+                if (field == "gradient") return !noise.IsVectorField && noise.EffectiveOutput == NoiseLayerBehaviour.OutputEncoding.Gradient;
+                if (field == "grainColor" || field == "grainSize") return noise.IsGrain;
+                if (field == "direction" || field == "periodic1D") return !noise.IsGrain && noise.EffectiveDimensions == NoiseLayerBehaviour.NoiseDimensions.OneD;
+                if (field == "periodic") return !noise.IsGrain && noise.EffectiveDimensions != NoiseLayerBehaviour.NoiseDimensions.OneD;
+                if (field == "cellularReturn") return !noise.IsVectorField && noise.EffectiveNoiseType == NoiseLayerBehaviour.NoiseType.Cellular;
+                if (field == "cellularDistance" || field == "cellularJitter") return noise.EffectiveNoiseType == NoiseLayerBehaviour.NoiseType.Cellular;
+                if (field == "warpStrength" || field == "warpSeed" || field == "warpScale" || field == "warpScaleY" || field == "warpScaleZ" || field == "linkWarpScale") return !noise.IsGrain && noise.warp != NoiseLayerBehaviour.WarpType.None;
+                if (field == "fractal") return !noise.IsGrain && noise.field != NoiseLayerBehaviour.Field.CellDirection;
+                if (field == "warp") return !noise.IsGrain;
+                if (field == "octaves" || field == "gain" || field == "lacunarity" || field == "weightedStrength") return !noise.IsGrain && noise.EffectiveFractal != NoiseLayerBehaviour.FractalType.None;
+                if (field == "pingPongStrength") return !noise.IsGrain && noise.EffectiveFractal == NoiseLayerBehaviour.FractalType.PingPong;
             }
             if (value is SDFLayerBehaviour sdf && field == "gradient") return sdf.encoding == SDFLayerBehaviour.OutputEncoding.Gradient;
             if (value is OutlineLayerBehaviour outline && field == "fillColor") return outline.fillCenter;

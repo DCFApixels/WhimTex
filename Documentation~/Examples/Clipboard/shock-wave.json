@@ -566,8 +566,8 @@
           "behaviour": {
             "$type": "NoiseLayerBehaviour",
             "noiseType": "BlueNoise",
-            "whiteNoiseColor": "Monochrome",
-            "whiteNoiseSize": 1.0,
+            "grainColor": "Monochrome",
+            "grainSize": 1.0,
             "dimensions": "OneD",
             "direction": 0.0,
             "seed": 1337,

@@ -28,7 +28,7 @@ T обозначает технического кандидата, Q вопро
 | --- | --- | --- | --- |
 | F01 | [Мультиредактирование Layer Settings и FX](MULTI_EDITING.md) | Обсуждено | Выбрать модель данных и общий механизм mixed values/видимости. |
 | F02 | [Входные параметры документа](DOCUMENT_PARAMETERS.md) | Обсуждено | Согласовать подробный дизайн и UI-прототип: поля, порты и shader inputs поверх одного контекста расчёта. |
-| F03 | [Векторные шумы и distortion-карты](NOISE_FIELDS_DESIGN.md) | Отложено | Сверить внешний UI-прототип, уточнить Fractal, Warp и signed/packed вывод. |
+| F03 | [Векторные шумы и distortion-карты](NOISE_FIELDS_DESIGN.md) | Реализовано | Value/Curl/Gradient Vector/Cell Direction, signed/packed, общий Fractal/Warp, Warp Seed и Z; профиль `noise-fields`. Прямой вывод Domain Warp остаётся идеей. |
 | F04 | [Automatic / On Refresh для слоёв](LAYER_UPDATE_DESIGN.md) | Отложено | Определить границу расчёта, зависимости и хранение последнего результата. |
 | F05 | [Height Map из Normal Map](NORMAL_TO_HEIGHT.md) | Обсуждено | Выбрать форму функции и алгоритм; отдельный слой связан с F04. |
 | F06 | [Управляемое время, Animation Sheet и частицы](ANIMATION_DESIGN.md) | Обсуждено | Связать время с F02, определить таймлайн и Bake кадров; частицы остаются отдельным отложенным этапом. |

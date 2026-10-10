@@ -910,8 +910,8 @@ normal behavior. With opaque colors and no subsequent softening, full-resolution
 ### Noise settings
 
 Use `type:"noise"` with partial `settings.noise` updates. `describe` exposes `noiseDefaults`,
-`noiseTypes`, `noiseFractals`, `noiseCellularDistances`, `noiseCellularReturns`, `noiseWarps`
-and `noiseEncodings`, `noiseDimensions`, `noisePeriodicAxes`, `noiseWhiteColors`. `inspect` returns all generator parameters. No new operation or protocol version is required.
+`noiseFields`, `noiseFieldTypes`, `noiseTypes`, `noiseFractals`, `noiseCellularDistances`, `noiseCellularReturns`, `noiseWarps`,
+`noiseEncodings`, `noiseVectorOutputs`, `noiseDimensions`, `noisePeriodicAxes`, `noiseGrainColors`. `inspect` returns stored generator parameters, including inactive settings.
 
 ```json
 {"op":"add","type":"noise","as":"height","settings":{"noise":{
@@ -922,9 +922,10 @@ and `noiseEncodings`, `noiseDimensions`, `noisePeriodicAxes`, `noiseWhiteColors`
 
 | Setting | Values / limits |
 | :--- | :--- |
+| `field` | Value (default), Curl, GradientVector, CellDirection |
 | `noiseType` | OpenSimplex2, OpenSimplex2S, Cellular, Perlin, ValueCubic, Value, WhiteNoise, BlueNoise |
-| `whiteNoiseColor` | Monochrome (default), Color (independent RGB); shared by WhiteNoise and BlueNoise |
-| `whiteNoiseSize` | 1–1024 canvas pixels per grain, default 1; shared by WhiteNoise and BlueNoise |
+| `grainColor` | Monochrome (default), Color (independent RGB); shared by WhiteNoise and BlueNoise |
+| `grainSize` | 1–1024 canvas pixels per grain, default 1; shared by WhiteNoise and BlueNoise |
 | `dimensions` | TwoD (default), OneD (straight stripes), ThreeD (2D slice at Offset Z; not White/Blue) |
 | `periodic` | UI **Seamless**: None (default), X (left/right), Y (top/bottom), XY (both pairs); six non-grain noise types in TwoD/ThreeD only |
 | `periodic1D` | Boolean, default false; UI **Seamless** checkbox in OneD, repeats along the noise axis; ignored outside OneD and for White/Blue |
@@ -940,20 +941,42 @@ and `noiseEncodings`, `noiseDimensions`, `noisePeriodicAxes`, `noiseWhiteColors`
 | `cellularReturn` | CellValue, Distance, Distance2, Distance2Add, Distance2Sub, Distance2Mul, Distance2Div |
 | `cellularJitter` | 0–1 |
 | `warp`, `warpStrength` | None, OpenSimplex2, OpenSimplex2Reduced, BasicGrid; 0–100 noise-space units |
-| `warpScale` | number or [x,y], each 0.01–1000, default [1,1]; X/Y multipliers of Noise Scale; Random All samples 0.25–4 and preserves linked proportions |
+| `warpSeed` | Signed 32-bit integer, default 1337; independent of the noise `seed` |
+| `warpScale` | Scalar sets XY, or XYZ in active ThreeD; `[x,y]` preserves Z, `[x,y,z]` sets all axes. Each 0.01–1000; default `[1,1,1]`. Multipliers of Noise Scale; inspection returns XYZ |
 | `linkWarpScale` | boolean, default true; UI/Random All chain, explicit API values apply literally |
-| `encoding` | LinearData (default; raw normalized values), ColorValues (display colors), Gradient (monochrome noise mapped through a palette) |
-| `inverted` | Boolean; reverses noise values in every output mode, before palette sampling in Gradient |
+| `encoding` | Value only: LinearData (default; raw normalized values), ColorValues (display colors), Gradient (monochrome noise mapped through a palette) |
+| `vectorOutput` | Vector fields only: PackedVector (default; `XYZ * 0.5 + 0.5`), SignedVector (raw XYZ). Linear data, alpha 1, no implicit clamping |
+| `normalize`, `strength` | Vector fields only: boolean (default false), 0–100 (default 1). Normalize first, then multiply by Strength; zero stays zero |
+| `inverted` | Boolean; Value reverses 0–1 before palette sampling; vector fields negate the vector before encoding |
 | `gradient` | Shared stops/object, default black-to-white, Perceptual interpolation when mode is omitted; RGBA/HDR palette, retained while disabled |
 
-Without gradient mapping, RGB repeats the normalized scalar, except WhiteNoise/BlueNoise with Color which generates independent RGB; alpha is 1. Gradient output supplies RGB and alpha through the same encoded LUT and linear decode as SDF. Inverted remains available and reverses values before palette sampling. Color WhiteNoise/BlueNoise supports only ColorValues/LinearData: a retained Gradient setting temporarily renders/displays ColorValues, then returns to Gradient on switching to monochrome. Changing Output preserves the palette. Random All preserves `gradient` and keeps `encoding:Gradient`; otherwise it randomizes encoding only between ColorValues and LinearData. It can vary `inverted`; for grain noise with stored Gradient output it also preserves the Color setting so effective Output cannot change. Noise operations put the palette inside `settings.noise`; unified document/clipboard JSON uses `behaviour.gradient` on `NoiseLayerBehaviour`. Noise has no `useGradient` field.
-UI **Output** maps to `encoding`, **Seamless** to `periodic` (TwoD/ThreeD) or `periodic1D` (OneD), and the Scale chain to `linkScale`.
+With Field Value and without gradient mapping, RGB repeats the normalized scalar, except WhiteNoise/BlueNoise with Color which generates independent RGB; alpha is 1. Gradient output supplies RGB and alpha through the same encoded LUT and linear decode as SDF. Inverted remains available and reverses values before palette sampling. Color WhiteNoise/BlueNoise supports only ColorValues/LinearData: a retained Gradient setting temporarily renders/displays ColorValues, then returns to Gradient on switching to monochrome. Changing Output preserves the palette. Random All preserves `gradient` and keeps `encoding:Gradient`; otherwise it randomizes encoding only between ColorValues and LinearData. It can vary `inverted`; for grain noise with stored Gradient output it also preserves the Color setting so effective Output cannot change. Noise operations put the palette inside `settings.noise`; unified document/clipboard JSON uses `behaviour.gradient` on `NoiseLayerBehaviour`. Noise has no `useGradient` field.
+UI **Output** maps to `encoding` for Value or `vectorOutput` for vectors, **Seamless** to `periodic` (TwoD/ThreeD) or `periodic1D` (OneD), and the Scale chain to `linkScale`.
 There is no Noise `seamless` boolean, `scaleY`, `scaleZ` or `offsetZ` API field: use `periodic`/`periodic1D`, `scale:[x,y,z]`
 and `offset:[x,y,z]`. Supplying `gradient` alone does not enable it: also set `encoding:"Gradient"`.
 Gradient updates replace the whole palette, not individual keys. Omitted fields in settings retain
 their existing values. Inspection reports stored settings, even when a type/dimension temporarily
 ignores them. Unified JSON export uses its selected write mode and frozen version defaults,
 not the live editing-operation shapes or current new-layer factory defaults.
+
+Curl supports OpenSimplex2, OpenSimplex2S and Perlin. GradientVector also supports
+ValueCubic and Value. An incompatible stored `noiseType` temporarily evaluates OpenSimplex2;
+switching back to Value restores the stored choice. CellDirection always evaluates Cellular.
+Vector fields use TwoD or ThreeD; a stored OneD temporarily evaluates TwoD.
+Value, Curl and GradientVector share all Fractal settings, including Weighted Strength.
+CellDirection ignores Fractal and Cellular Return, retaining Distance, Jitter and Domain Warp.
+
+GradientVector differentiates the complete scalar potential, including Scale ratios,
+Fractal and Domain Warp. Curl uses its rotated gradient in 2D or the curl of three seeded
+potentials in 3D. Finite differences use one common scale unit; this is not three unrelated
+RGB noises. Normalize changes the mathematical properties of the field. CellDirection
+points to the nearest center in the warped lattice, without solving an inverse warp.
+
+Signed output and packed values outside 0–1 require `colorRange:"HDR"`. Use
+`blendRange:"HDR"` for data blending, including on isolated parent groups. An 8-bit color
+export cannot retain negative values. For Displacement Map's VectorRG use PackedVector
+and Neutral 0.5; with SignedVector, Neutral 0 requires half the consumer Strength because
+that FX decodes `(RG - Neutral) * 2`.
 
 For example, this partial update combines a 3D seamless source with an explicit palette:
 
@@ -965,35 +988,35 @@ For example, this partial update combines a 3D seamless source with an explicit 
 }}}
 ```
 
-FastNoiseLite output is remapped from signed noise to 0–1 and clamped.
+With Field Value, FastNoiseLite output is remapped from signed noise to 0–1 and clamped.
 WhiteNoise hashes discrete canvas-space cells with the signed integer seed. It ignores `scale`, fractal,
-cellular and warp settings without resetting them; `whiteNoiseSize` controls its grain size instead.
+cellular and warp settings without resetting them; `grainSize` controls its grain size instead.
 It supports inversion, encoding and OneD direction, and keeps its grid independent of preview resolution.
 BlueNoise uses WhimTex-generated periodic void-and-cluster rank tables: 128×128 RGB in 2D and
 a separate 256-sample RGB sequence in 1D. Seed hashes select translations/reflections (plus axis swaps in 2D),
 not an expensive runtime rebake. Each channel has a separately generated rank table. Grain coordinates,
-ignored settings, encoding and inversion match WhiteNoise. Legacy `whiteNoise*` field names are retained
-for both grain types. Offset Y in 1D selects a seeded variation of the sequence.
+ignored settings, encoding and inversion match WhiteNoise. Both grain types use
+`grainColor` and `grainSize`; old `whiteNoise*` aliases are not accepted. Offset Y in 1D selects a seeded variation of the sequence.
 The tables use 8-bit uniform ranks; use LinearData for raw dither thresholds.
 For masks/channel packing, prefer LinearData and apply the existing ChannelMapping/blend settings.
 For a Normal Map or SDF source, add the effect above Noise and assign `Previous` or a specific target as usual.
 Domain Warp uses a single warp pass; noise fractal settings affect the subsequent noise evaluation.
-Warp Scale multiplies Noise Scale separately on X/Y. For example, Scale [0.5,2] and
-Warp Scale [6,0.5] request final warp scales [3,1]. A scalar API value sets both multipliers.
+Warp Seed is independent of Seed. Warp Scale multiplies Noise Scale separately on
+X/Y and, in ThreeD, Z. For example, Scale [0.5,2,3] and Warp Scale [6,0.5,2] request final
+warp scales [3,1,6]. A scalar API value sets active-axis multipliers.
 The chain only affects UI editing and Random All; enabling it retains the current ratio.
-Random All chooses X logarithmically from 0.25–4 and scales linked Y proportionally within
-the legal range, or samples both independently when unlinked. It retains the chain state.
+Random All chooses X logarithmically from 0.25–4 and scales linked active axes proportionally
+within the legal range, or samples them independently when unlinked. It retains the chain state and inactive Z.
 Seamless fits the resulting warp lattice periods and compensates displacement only for
-period fitting. Warp Scale adds no separate Z multiplier; Z remains non-periodic.
-Missing multipliers default to 1; no migration is performed. A serialized scalar warpScale
-is the X multiplier; absent warpScaleY follows X. The earlier unshipped absolute-scale
-prototype is superseded: its stored values now act as multipliers.
+period fitting. Z remains non-periodic. Missing multipliers default independently to 1;
+no migration or legacy alias lookup is performed. Unified document JSON stores
+`warpScale`, `warpScaleY` and `warpScaleZ`; the editing API uses the `warpScale` vector.
 One-cell XY BasicGrid can still give uniform displacement; increase Warp Scale to obtain
 a varying warp field at small Noise Scale. White/Blue Noise ignore these controls.
 OneD projects aspect-correct centered coordinates onto the direction axis before offset and warp.
 Offset X moves along the slice and Y selects the slice. Thus warp and fractals preserve stripe invariance.
 ThreeD exposes Z in Scale and Offset and evaluates the native 3D kernel, including 3D Fractal and Domain Warp.
-The sampled slice coordinate is `Offset Z × Scale Z`. Missing Scale Z defaults to 1, preserving old files;
+The sampled slice coordinate is `Offset Z × Scale Z`. Missing Scale Z defaults to 1;
 1D/2D editing retains inactive Z. With Offset Z = 0, changing Scale Z alone does not move the slice.
 Z is never periodic and never advances automatically. Cellular 3D slices differ visibly from 2D cells.
 White/Blue retain their 1D/2D behavior: a stored ThreeD temporarily uses TwoD; Periodic is ignored.
@@ -1019,7 +1042,7 @@ in visible steps. Source-rectangle periodicity does not guarantee canvas tiling 
 layer/group transforms or FX. Extreme aspect/scale/octave combinations exceeding 100 million lattice
 units, or base coordinates beyond 500 million lattice units, report an error instead of overflowing
 integer indices. High-frequency detail can still alias.
-Random All preserves Dimensions, Direction, both Seamless settings (`periodic`, `periodic1D`), the linked scale ratio and all Offset components (X/Y/Z).
+Random All preserves Field, vector Output, Normalize, Strength, Dimensions, Direction, both Seamless settings (`periodic`, `periodic1D`), the linked scale ratio and all Offset components (X/Y/Z). It randomizes Seed and Warp Seed independently and chooses only compatible Noise Types.
 
 Linked main Scale samples the arithmetic mean M logarithmically from 1–64, then derives the active axes (XY, or XYZ in ThreeD)
 from the retained ratio; swapping axes does not change the distribution of M. Intersect this

@@ -49,7 +49,7 @@ public static class LayerPreviewReuseTests
         var state = Activator.CreateInstance(stateType, true); Set(state, "height", 256f);
         var mini = (VisualElement)Activator.CreateInstance(panelType, F, null, new[] { state }, null);
         job.Scope.OwnDisposable((IDisposable)mini);
-        var noise = new NoiseLayerBehaviour { noiseType = NoiseLayerBehaviour.NoiseType.WhiteNoise, whiteNoiseColor = NoiseLayerBehaviour.WhiteNoiseColor.Color, seed = 7189 };
+        var noise = new NoiseLayerBehaviour { noiseType = NoiseLayerBehaviour.NoiseType.WhiteNoise, grainColor = NoiseLayerBehaviour.GrainColor.Color, seed = 7189 };
         Layer n = noise; doc.layers.Add(n); Call(doc, "NormalizeModel");
         RenderTexture sentinel = job.Scope.Temporary(RenderTexture.GetTemporary(2, 2));
         var original = RenderTexture.active; bool originalSrgb = GL.sRGBWrite;

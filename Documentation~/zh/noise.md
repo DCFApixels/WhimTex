@@ -14,6 +14,28 @@ translations: "en/noise.md,ru/noise.md,zh/noise.md"
 使用噪声来制作云层、颗粒、类似石头的图案，或作为高度贴图的起点。
 通过 Layers 底部的 **+ → Noise** 添加噪声图层，边观察图像边调整设置。
 
+## 选择场
+
+**Field → Value** 生成普通噪声、高度图和颗粒。其他场将方向写入 RGB，用于流向和扭曲贴图：
+
+| Field | 结果 | Noise Type |
+| :--- | :--- | :--- |
+| Curl | 旋涡状方向。 | OpenSimplex2、OpenSimplex2S、Perlin。 |
+| Gradient Vector | 噪声变化的方向和速率。 | OpenSimplex2、OpenSimplex2S、Perlin、ValueCubic、Value。 |
+| Cell Direction | 指向最近单元格中心；Inverted 反向。 | Cellular。 |
+
+向量场支持 **2D**（Z = 0）和 **3D** 切片。切换时保留隐藏设置。
+Value、Curl 和 Gradient Vector 共用 Fractal（包括 **Weighted Strength**）与 Domain Warp。
+Ridged 和 PingPong 的方向变化更尖锐。Cell Direction 保留 **Distance**、**Jitter** 和 Domain Warp，
+隐藏 Fractal 与 Return。方向在扭曲后的单元格网格中测量，不是画布扭曲的逆变换。
+
+向量 **Output → Packed Vector** 存储 `XYZ × 0.5 + 0.5`，零向量为中灰；
+**Signed Vector** 直接存储 XYZ，包括负数。两者均为线性数据，Alpha 为 1。
+**Normalize** 保留方向，然后 **Strength** 控制长度；零向量保持为零。**Inverted** 反转方向。
+
+Signed Vector 或超出 0–1 的打包值需要 **Rendering → Color Range → HDR**。
+混合数据时也要设置 **Blend Range → HDR**，隔离父组同样如此。普通 8 位颜色导出无法保存负数。
+
 ## 从图案开始
 
 | 设置 | 可以尝试什么 |
@@ -25,10 +47,11 @@ translations: "en/noise.md,ru/noise.md,zh/noise.md"
 | Fractal | FBm 添加细节；Ridged 强调脊线；PingPong 创建重复条带；None 关闭分形。 |
 | Octaves | 添加更多细节层次。 |
 | Domain Warp | 弯曲并扭曲图案；**Warp Strength** 控制程度，None 关闭扭曲。 |
-| Warp Scale | Noise Scale 的 X/Y 倍率：每轴最终扭曲尺度为 `Scale × Warp Scale`。默认 [1,1]，每轴范围 0.01–1000。链条保持比例；断开后分别编辑。Random All 在 0.25–4 中选择并保持链接比例。 |
+| Warp Seed | 独立于 Seed 改变扭曲图案。旁边的 Random 只改变 Warp Seed。 |
+| Warp Scale | Noise Scale 的 X/Y 倍率，3D 时增加 Z；每轴最终尺度为 `Scale × Warp Scale`。默认每轴 1，范围 0.01–1000。链条保持比例，断开后分别编辑。 |
 
 如需更精细的控制，**Lacunarity** 会改变细节层次之间的间距，**Gain**
-会改变较小细节的显著程度。
+会改变较小细节的显著程度。**Weighted Strength** 让细节强度随粗尺度噪声图案变化，而不是均匀分布。
 使用 Cellular 时，可以尝试 **Distance**、**Return** 和 **Jitter** 来改变细胞的形状和规律性。
 
 
@@ -64,7 +87,7 @@ Direction 为 0 时连接左右边缘，为 90 时连接上下边缘。任意角
 **Fractal → None** 时，最小为一个单元。
 
 
-Warp Scale 适用于 1D、2D 和 3D；它不提供单独的 Z 倍率。启用 Seamless 时，根据相乘后的最终尺度
+Warp Scale 适用于 1D、2D 和 3D，3D 提供 Z 倍率。启用 Seamless 时，根据相乘后的最终尺度
 为所选轴匹配完整晶格单元。当 BasicGrid 两个轴都只有一个单元时，扭曲变成均匀平移：
 增大 Warp Scale 倍率即可获得变化的扭曲，而无需增大噪声 Scale。
 例如 Scale 0.5 × Warp Scale 6 得到扭曲尺度 3。White/Blue Noise 忽略 Warp Scale。
@@ -90,7 +113,7 @@ White Noise 还支持 **Dimensions → 1D** 随机条带，详见[条纹噪声](
 
 ## 条纹噪声
 
-选择 **Dimensions → 1D** 可创建直线噪声条纹，而不是二维图案。
+在 **Field → Value** 中选择 **Dimensions → 1D** 可创建直线噪声条纹，而不是二维图案。
 **Direction (deg)** 旋转变化的方向：0 给出垂直条纹，90 给出水平条纹。
 所有噪声类型都支持方向调整。**Scale** 控制条纹宽度，White Noise 和 Blue Noise 则使用 **Grain Size (px)**。
 **Offset X** 沿变化方向移动图案，**Offset Y** 选择噪声场的另一个切片。
@@ -99,7 +122,7 @@ White Noise 还支持 **Dimensions → 1D** 随机条带，详见[条纹噪声](
 
 ## 彩色纹理还是高度贴图？
 
-**Output** 决定如何将噪声值转换为像素：
+在 **Field → Value** 中，**Output** 决定如何将噪声值转换为像素：
 
 | Output | 用途 |
 | :--- | :--- |
@@ -130,7 +153,9 @@ Random All 会改变哪些设置，参见[随机变化](#随机变化)。
 噪声设置顶部的 **Random All** 会随机组合生成器参数，包括当前未启用的选项、
 以及 **Inverted**。Output 仅在 Color Values 和 Linear Data 之间随机切换；选定的 Gradient 保持不变。渐变配色、**Dimensions**、**Direction**、**Seamless**、链接的 Scale 和 Warp Scale 比例、**Offset X/Y/Z**、图层变换、混合和 FX 保持不变。
 一次撤销即可恢复上一个组合。**Seed** 旁的 **Random** 只改变种子。
-Noise Type 只会在当前组内切换：**White Noise / Blue Noise** 为一组，其余噪声类型为另一组。
+Noise Type 只在当前组内切换：White Noise / Blue Noise，或当前 Field 支持的类型。
+Random All 保留 Field、Normalize、Strength 和向量 Output，并随机化 Seed 与 Warp Seed。
+Warp Scale 从 0.25–4 中采样，在 3D 中保留链接的 XYZ 比例。
 
 ### Random All 的 Scale 分布
 

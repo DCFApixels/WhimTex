@@ -61,12 +61,13 @@ context.case('1D noise projects before warp and keeps the original 2D path', asy
     const api = read('src/Automation/WhimTexApi.Blur.cs');
     {
         const shader = read('src/Shaders/Noise.shader');
-        assert.match(shader, /float3 p = float3\(\(i.uv - .5\) \* _NoiseDomain.xy \* _NoiseScale \+ _NoiseDomain.zw, _NoiseZ\)/);
+        assert.match(shader, /float2 centered = \(uv - .5\) \* _NoiseDomain.xy \* _NoiseScale.xy/);
         assert.match(shader, /if \(_NoiseOneD != 0\)/);
-        assert.match(shader, /p.xy = float2\(dot\(centered, _NoiseAxis.xy\), 0.0\) \+ _NoiseDomain.zw/);
+        assert.match(shader, /centered = float2\(dot\(centered, _NoiseAxis.xy\), 0\)/);
+        assert.match(shader, /return float3\(centered \+ _NoiseDomain.zw, _NoiseZ \+ zDelta\)/);
         assert.ok(shader.indexOf('dot(centered, _NoiseAxis.xy)') < shader.indexOf('fnlDomainWarp2D'));
         assert.match(read('src/Layers/NoiseLayerBehaviour.cs'), /enum NoiseDimensions \{ TwoD, OneD, ThreeD \}/);
-        assert.match(read('src/Layers/Editors/NoiseLayerEditorWindow.cs'), /axis.EnableInClassList\("whimtex-hidden", layer.dimensions != NoiseLayerBehaviour.NoiseDimensions.OneD\)/);
+        assert.match(read('src/Layers/Editors/NoiseLayerEditorWindow.cs'), /axis.EnableInClassList\("whimtex-hidden", layer.EffectiveDimensions != NoiseLayerBehaviour.NoiseDimensions.OneD\)/);
     }
 });
 

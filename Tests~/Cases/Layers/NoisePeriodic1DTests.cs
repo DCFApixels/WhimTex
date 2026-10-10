@@ -13,12 +13,12 @@ public static class NoisePeriodic1DTests
         var type = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials");
         var shared = (Material)type.GetProperty("Noise", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).GetValue(null);
         var m = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(shared));
-        foreach (var k in new[]{"_NoiseOneD","_NoiseThreeD","_NoisePeriodic","_NoiseSeed","_NoiseType",
+        foreach (var k in new[]{"_NoiseOneD","_NoisePeriodic","_NoiseSeed","_NoiseType",
             "_NoiseFractal","_NoiseOctaves","_NoiseCellularDistance","_NoiseCellularReturn","_NoiseWarp",
-            "_NoiseEncoding","_NoiseInverted","_UseGradient"}) m.SetInteger(k, shared.GetInteger(k));
+            "_NoiseEncoding","_NoiseInverted","_NoiseField","_NoiseVectorOutput","_NoiseNormalize","_NoiseWarpSeed","_UseGradient"}) m.SetInteger(k, shared.GetInteger(k));
         foreach (var k in new[]{"_NoiseDomain","_NoiseScale","_NoiseAxis","_NoiseFractalSettings","_NoiseWarpInverse","_NoiseWarpScale"})
             m.SetVector(k, shared.GetVector(k));
-        foreach (var k in new[]{"_NoiseZ","_NoiseCellularJitter","_NoiseWarpStrength"}) m.SetFloat(k, shared.GetFloat(k));
+        foreach (var k in new[]{"_NoiseZ","_NoiseCellularJitter","_NoiseWarpStrength","_NoiseStrength"}) m.SetFloat(k, shared.GetFloat(k));
         m.SetVectorArray("_NoiseLattice", shared.GetVectorArray("_NoiseLattice")); m.SetInteger("_UnboundedUv", 1);
         return m;
     }

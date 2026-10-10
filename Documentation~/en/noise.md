@@ -14,6 +14,32 @@ translations: "en/noise.md,ru/noise.md,zh/noise.md"
 Use Noise for clouds, grain, stone-like patterns or a starting point for a height map.
 Add **Noise** through **+ → Noise** at the bottom of Layers and adjust the settings while watching the image.
 
+## Choose the field
+
+**Field → Value** keeps ordinary noise, height maps and grain. The other fields produce
+directions in RGB for flow and distortion maps:
+
+| Field | Result | Noise Type |
+| :--- | :--- | :--- |
+| Curl | Swirling directions. | OpenSimplex2, OpenSimplex2S, Perlin. |
+| Gradient Vector | Direction and rate of change of the noise. | OpenSimplex2, OpenSimplex2S, Perlin, ValueCubic, Value. |
+| Cell Direction | Direction toward the closest cell center. Inverted points away. | Cellular. |
+
+Vector fields offer **2D** (Z = 0) and **3D** slices. Hidden settings are retained when
+switching fields. Fractal, including **Weighted Strength**, and Domain Warp are shared
+by Value, Curl and Gradient Vector. Ridged and PingPong produce sharper direction changes.
+Cell Direction keeps **Distance**, **Jitter** and Domain Warp, but hides Fractal and Return.
+Its directions are measured in the warped cell grid, not an inverse deformation of the canvas.
+
+For vectors, **Output → Packed Vector** stores XYZ as `XYZ × 0.5 + 0.5`; zero is mid-gray.
+**Signed Vector** stores XYZ directly, including negatives. Both outputs are linear data,
+with alpha 1. **Normalize** keeps only direction, then **Strength** sets the magnitude;
+zero remains zero. **Inverted** reverses direction.
+
+Use **Rendering → Color Range → HDR** for Signed Vector or packed values outside 0–1.
+When blending data, also use **Blend Range → HDR**, including on isolated parent groups.
+An ordinary 8-bit color export cannot preserve negative values.
+
 ## Start with the pattern
 
 | Setting | What to try |
@@ -25,10 +51,12 @@ Add **Noise** through **+ → Noise** at the bottom of Layers and adjust the set
 | Fractal | FBm adds detail; Ridged emphasizes ridges; PingPong creates repeated bands; None disables fractals. |
 | Octaves | Add more levels of detail. |
 | Domain Warp | Bend and distort the pattern; **Warp Strength** controls the amount. None disables distortion. |
-| Warp Scale | X/Y multipliers of Noise Scale: final warp scale is `Scale × Warp Scale` per axis. Default [1,1], range 0.01–1000 per multiplier. The chain preserves proportions; unlink to edit axes separately. Random All chooses 0.25–4, preserving linked proportions. |
+| Warp Seed | Change the distortion pattern independently of Seed. Its Random button changes only Warp Seed. |
+| Warp Scale | X/Y multipliers of Noise Scale, plus Z in 3D: final warp scale is `Scale × Warp Scale` per axis. Default 1 per axis, range 0.01–1000. The chain preserves proportions; unlink to edit axes separately. |
 
 For finer control, **Lacunarity** changes the spacing between detail scales and **Gain**
-changes how strongly the smaller details show.
+changes how strongly the smaller details show. **Weighted Strength** makes fine detail depend
+on the larger noise pattern instead of distributing it evenly.
 With Cellular, try **Distance**, **Return** and **Jitter** to change the shape and regularity of the cells.
 
 
@@ -67,7 +95,7 @@ Each octave fits its own period, with at least one cell per octave, so Scale sti
 With **Fractal → None**, the minimum is one cell.
 
 
-Warp Scale applies in 1D, 2D and 3D; it adds no separate Z multiplier. With Seamless, each selected
+Warp Scale applies in 1D, 2D and 3D, with a Z multiplier in 3D. With Seamless, each selected
 warp axis fits complete cells from its final scale. BasicGrid with only one cell on both axes
 becomes a uniform shift: increase the Warp Scale multipliers to get distortion without
 increasing Noise Scale. For example, Scale 0.5 × Warp Scale 6 requests a warp scale of 3.
@@ -94,7 +122,7 @@ Fractal and Domain Warp do not apply to Blue Noise.
 
 ## Striped noise
 
-Choose **Dimensions → 1D** to create straight noise stripes instead of a two-dimensional pattern.
+With **Field → Value**, choose **Dimensions → 1D** to create straight noise stripes instead of a two-dimensional pattern.
 **Direction (deg)** rotates the direction of variation: 0 gives vertical stripes, 90 gives horizontal stripes.
 Direction is available for every noise type. **Scale** controls stripe width;
 White Noise and Blue Noise use **Grain Size (px)** instead.
@@ -105,7 +133,7 @@ Switch back to **2D** for the usual pattern without losing the direction setting
 
 ## Color texture or height map?
 
-**Output** determines how noise values become pixels:
+For **Field → Value**, **Output** determines how noise values become pixels:
 
 | Output | Use |
 | :--- | :--- |
@@ -136,7 +164,9 @@ For the next step, see [Normal Map](normal-map.md).
 **Random All** at the top of the noise settings explores a new combination of generator parameters,
 including inactive generator options and **Inverted**. Output varies between Color Values and Linear Data, but stays Gradient if selected. The gradient palette, **Dimensions**, **Direction**, **Seamless**, linked Scale and Warp Scale ratios, **Offset X/Y/Z**, layer transforms, blending and FX
 stay unchanged. One Undo restores the previous combination. **Random** beside **Seed** changes only the seed.
-Noise Type stays within the selected group: **White Noise / Blue Noise**, or all other noise types.
+Noise Type stays within the selected group: **White Noise / Blue Noise**, or types supported by
+the current Field. Random All retains Field, Normalize, Strength and vector Output; it randomizes
+both Seed and Warp Seed. Warp Scale samples 0.25–4 and preserves linked XYZ proportions in 3D.
 
 ### How Random All distributes Scale
 

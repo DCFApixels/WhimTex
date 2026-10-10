@@ -9,7 +9,7 @@ public static class NoiseLatticePrecisionTests
     static string ExecuteRun()
     {
         string include=Path.GetFullPath("Packages/com.dcfapixels.whimtex/src/Shaders/NoiseLattice.cginc").Replace('\\','/');
-        var shader=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ShaderUtil.CreateShaderAsset("Shader \"Hidden/WhimTex/TestLatticePrecision\" {SubShader {Pass {ZTest Always ZWrite Off Cull Off HLSLPROGRAM\n#pragma target 4.5\n#pragma vertex vert_img\n#pragma fragment frag\n#include \"UnityCG.cginc\"\n#include \""+include+"\"\nint _Octave; float4 frag(v2f_img i):SV_Target {return float4(WtPosition(_Octave,i.uv,0),1);}\nENDHLSL}}}",true));
+        var shader=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ShaderUtil.CreateShaderAsset("Shader \"Hidden/WhimTex/TestLatticePrecision\" {SubShader {Pass {ZTest Always ZWrite Off Cull Off HLSLPROGRAM\n#pragma target 4.5\n#pragma vertex vert_img\n#pragma fragment frag\n#include \"UnityCG.cginc\"\n#include \""+include+"\"\nint _Octave; float4 frag(v2f_img i):SV_Target {return float4(WtPosition(_Octave,i.uv,0,1),1);}\nENDHLSL}}}",true));
         var material=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(shader));
         var rt=WhimTex.Tests.UnityC.FixtureContext.Scope.Temporary(RenderTexture.GetTemporary(16,16,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear));
         var read=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(16,16,TextureFormat.RGBAFloat,false,true));

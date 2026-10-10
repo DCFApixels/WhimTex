@@ -21,6 +21,8 @@ public static class NoisePeriodicGpuTests
             octaves=4,lacunarity=1.73f,gain=.7f,weightedStrength=.65f,warpStrength=1.4f,pingPongStrength=2.3f,
             WarpScale=new Vector2(2.3f,.7f) };
         doc.layers.Add(noise);
+        // The independent reference uses the same explicit seed for its noise and warp.
+        noise.warpSeed = noise.seed;
         var flags=BindingFlags.NonPublic|BindingFlags.Public|BindingFlags.Instance|BindingFlags.Static;
         typeof(WhimTexDocument).GetMethod("NormalizeModel",flags).Invoke(doc,null);
         Texture2D image=null;
@@ -64,12 +66,12 @@ public static class NoisePeriodicGpuTests
             var shared=(Material)mt.GetProperty("Noise",flags).GetValue(null);
             var material=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(shared){hideFlags=HideFlags.HideAndDontSave});
             // Copy dynamic integer uniforms explicitly; these are not ShaderLab properties.
-            foreach(var key in new[]{"_NoiseOneD","_NoiseThreeD","_NoisePeriodic","_NoiseSeed","_NoiseType",
+            foreach(var key in new[]{"_NoiseOneD","_NoisePeriodic","_NoiseSeed","_NoiseType",
                 "_NoiseFractal","_NoiseOctaves","_NoiseCellularDistance","_NoiseCellularReturn","_NoiseWarp",
-                "_NoiseEncoding","_NoiseInverted","_UseGradient"}) material.SetInteger(key,shared.GetInteger(key));
+                "_NoiseEncoding","_NoiseInverted","_NoiseField","_NoiseVectorOutput","_NoiseNormalize","_NoiseWarpSeed","_UseGradient"}) material.SetInteger(key,shared.GetInteger(key));
             foreach(var key in new[]{"_NoiseDomain","_NoiseScale","_NoiseFractalSettings","_NoiseWarpInverse"})
                 material.SetVector(key,shared.GetVector(key));
-            foreach(var key in new[]{"_NoiseZ","_NoiseCellularJitter","_NoiseWarpStrength"})
+            foreach(var key in new[]{"_NoiseZ","_NoiseCellularJitter","_NoiseWarpStrength","_NoiseStrength"})
                 material.SetFloat(key,shared.GetFloat(key));
             material.SetVectorArray("_NoiseLattice",shared.GetVectorArray("_NoiseLattice"));
             var rt=WhimTex.Tests.UnityC.FixtureContext.Scope.Temporary(RenderTexture.GetTemporary(17,17,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear));

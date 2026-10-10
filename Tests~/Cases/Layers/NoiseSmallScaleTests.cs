@@ -128,13 +128,13 @@ public static class NoiseSmallScaleTests
         var type = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials");
         var shared = (Material)type.GetProperty("Noise", Flags).GetValue(null);
         var material = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Material(shared) { hideFlags = HideFlags.HideAndDontSave });
-        foreach(var key in new[]{"_NoiseOneD","_NoiseThreeD","_NoisePeriodic","_NoiseSeed","_NoiseType",
+        foreach(var key in new[]{"_NoiseOneD","_NoisePeriodic","_NoiseSeed","_NoiseType",
             "_NoiseFractal","_NoiseOctaves","_NoiseCellularDistance","_NoiseCellularReturn","_NoiseWarp",
-            "_NoiseEncoding","_NoiseInverted","_WhiteNoiseColor","_UseGradient","_GradientWrapMode"})
+            "_NoiseEncoding","_NoiseInverted","_NoiseField","_NoiseVectorOutput","_NoiseNormalize","_NoiseWarpSeed","_GrainColor","_UseGradient","_GradientWrapMode"})
             material.SetInteger(key,shared.GetInteger(key));
-        foreach(var key in new[]{"_NoiseDomain","_NoiseFractalSettings","_NoiseAxis","_NoiseScale","_WhiteNoiseGrid","_NoiseWarpInverse","_NoiseWarpScale"})
+        foreach(var key in new[]{"_NoiseDomain","_NoiseFractalSettings","_NoiseAxis","_NoiseScale","_GrainGrid","_NoiseWarpInverse","_NoiseWarpScale"})
             material.SetVector(key,shared.GetVector(key));
-        foreach(var key in new[]{"_NoiseZ","_NoiseCellularJitter","_NoiseWarpStrength"})
+        foreach(var key in new[]{"_NoiseZ","_NoiseCellularJitter","_NoiseWarpStrength","_NoiseStrength"})
             material.SetFloat(key,shared.GetFloat(key));
         // The ordinary-noise path does not upload the periodic lattice anymore.
         var lattice = shared.GetVectorArray("_NoiseLattice");

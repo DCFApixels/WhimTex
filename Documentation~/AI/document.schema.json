@@ -2587,14 +2587,38 @@
             "BlueNoise"
           ]
         },
-        "whiteNoiseColor": {
+        "field": {
+          "type": "string",
+          "enum": [
+            "Value",
+            "Curl",
+            "GradientVector",
+            "CellDirection"
+          ]
+        },
+        "vectorOutput": {
+          "type": "string",
+          "enum": [
+            "PackedVector",
+            "SignedVector"
+          ]
+        },
+        "normalize": {
+          "type": "boolean"
+        },
+        "strength": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "grainColor": {
           "type": "string",
           "enum": [
             "Monochrome",
             "Color"
           ]
         },
-        "whiteNoiseSize": {
+        "grainSize": {
           "type": "number",
           "minimum": -3.40282347E+38,
           "maximum": 3.40282347E+38
@@ -2726,6 +2750,11 @@
             "BasicGrid"
           ]
         },
+        "warpSeed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
         "warpStrength": {
           "type": "number",
           "minimum": -3.40282347E+38,
@@ -2737,6 +2766,11 @@
           "maximum": 3.40282347E+38
         },
         "warpScaleY": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "warpScaleZ": {
           "type": "number",
           "minimum": -3.40282347E+38,
           "maximum": 3.40282347E+38

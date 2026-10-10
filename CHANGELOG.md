@@ -4,8 +4,14 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Noise adds Curl, Gradient Vector and Cell Direction fields with packed/signed vector output, Normalize and Strength. Applicable fields share Fractal and Domain Warp controls; Warp has an independent Seed and a Z scale multiplier in 3D. Layer controls, JSON and agent APIs expose the same settings.
+
 ### Changed
 
+- White/Blue Noise settings use the shared grainColor/grainSize names in code, JSON and agent APIs; the old whiteNoiseColor/whiteNoiseSize names are removed.
+- Noise shaders use less compiled code through specialized periodic lattice reductions and a shared fractal loop. Existing noise output and controls are unchanged.
 - Layer Settings renames Color & Blending to Rendering and Swizzle to Mapping, including related code, shader uniforms, hints, presets and export messages. Channel routing is now LayerChannelMapping / ChannelMappingSource / channelMapping in C#, JSON/TIFF and agent API; the settings view is LayerRenderingSettingsView. Document JSON, TIFF container and tagged model versions advance from 1 to 2; old document versions and the swizzle key are unsupported. Rendering behavior is unchanged.
 
 ## [0.13.0] - 2026-10-08

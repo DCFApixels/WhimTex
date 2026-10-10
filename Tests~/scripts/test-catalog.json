@@ -2,6 +2,20 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "noise-fields": [
+      "noise-contract-v2",
+      "noise-field-api-v3",
+      "noise-field-ui-v3",
+      "noise-vector-storage-v3",
+      "noise-vector-render-v3",
+      "noise-vector-math-v3",
+      "noise-vector-warp-v3",
+      "noise-vector-integration-v3",
+      "noise-vector-coverage2d-v3",
+      "noise-vector-coverage3d-v3",
+      "noise-vector-seam-v3",
+      "noise-grain-v3"
+    ],
     "ci-docs": [
       "agent-documentation-v2",
       "document-json-schema-v2",
@@ -18281,6 +18295,281 @@
         "Tests~/Fixtures/Oracles/images/copy-blend-source.png",
         "Tests~/Fixtures/Oracles/images/screened-poisson-original.png"
       ]
+    },
+    {
+      "id": "noise-vector-render-v3",
+      "file": "Tests~/Cases/Layers/NoiseVectorTests.cs",
+      "runner": "run_script",
+      "entry": "NoiseVectorTests.Run",
+      "args": [
+        "render"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "noise",
+        "layers"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor; current WhimTex and graphics support. Review source and TestApi support. No asset changes.",
+      "setup": "Create one unsaved transient document and owned textures. Exercise only the selected vector Noise suite.",
+      "teardown": "Destroy only owned document/textures; restore render target and sRGB write state. No persistent assets or user document edits.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "noise-vector-math-v3",
+      "file": "Tests~/Cases/Layers/NoiseVectorTests.cs",
+      "runner": "run_script",
+      "entry": "NoiseVectorTests.Run",
+      "args": [
+        "math"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "noise",
+        "layers"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor; current WhimTex and graphics support. Review source and TestApi support. No asset changes.",
+      "setup": "Create one unsaved transient document and owned textures. Exercise only the selected vector Noise suite.",
+      "teardown": "Destroy only owned document/textures; restore render target and sRGB write state. No persistent assets or user document edits.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "noise-vector-warp-v3",
+      "file": "Tests~/Cases/Layers/NoiseVectorTests.cs",
+      "runner": "run_script",
+      "entry": "NoiseVectorTests.Run",
+      "args": [
+        "warp"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "noise",
+        "layers"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor; current WhimTex and graphics support. Review source and TestApi support. No asset changes.",
+      "setup": "Create one unsaved transient document and owned textures. Exercise only the selected vector Noise suite.",
+      "teardown": "Destroy only owned document/textures; restore render target and sRGB write state. No persistent assets or user document edits.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "noise-vector-storage-v3",
+      "file": "Tests~/Cases/Layers/NoiseVectorTests.cs",
+      "runner": "run_script",
+      "entry": "NoiseVectorTests.Run",
+      "args": [
+        "storage"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "noise",
+        "layers"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor; current WhimTex and graphics support. Review source and TestApi support. No asset changes.",
+      "setup": "Create one unsaved transient document and owned textures. Exercise only the selected vector Noise suite.",
+      "teardown": "Destroy only owned document/textures; restore render target and sRGB write state. No persistent assets or user document edits.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "noise-field-api-v3",
+      "file": "Tests~/Cases/Layers/NoiseFieldControlsTests.cs",
+      "runner": "run_script",
+      "entry": "NoiseFieldControlsTests.Run",
+      "args": ["api"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files"],
+      "groups": ["noise", "layers"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor with current WhimTex. Review the case and TestApi support.",
+      "setup": "Create only a data-only Noise model. Use reflection on WhimTex methods, not Unity internals.",
+      "teardown": "No windows, assets or user state are changed.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "noise-field-ui-v3",
+      "file": "Tests~/Cases/Layers/NoiseFieldControlsTests.cs",
+      "runner": "run_script",
+      "entry": "NoiseFieldControlsTests.Run",
+      "args": ["ui"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "windows"],
+      "groups": ["noise", "layers"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor with current WhimTex. Review the case and TestApi support.",
+      "setup": "Build UI Toolkit Noise fields in one owned temporary utility window and data-only models. No user window or asset edits.",
+      "teardown": "Clear owned field bindings and close only the created test window; no persistent settings or global random state changes.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "noise-vector-integration-v3",
+      "file": "Tests~/Cases/Layers/NoiseVectorTests.cs",
+      "runner": "run_script",
+      "entry": "NoiseVectorTests.Run",
+      "args": ["integration"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files"],
+      "groups": ["noise", "layers"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor; current WhimTex and graphics support. Review source and TestApi support.",
+      "setup": "Create one transient unsaved document and owned textures. Exercise signed groups/processor, clipping, Target, thumbnail and export.",
+      "teardown": "Destroy only owned document/textures; restore render target and sRGB write state. No asset or user document edits.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "noise-vector-coverage2d-v3",
+      "file": "Tests~/Cases/Layers/NoiseVectorTests.cs",
+      "runner": "run_script",
+      "entry": "NoiseVectorTests.Run",
+      "args": [
+        "coverage2d"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "noise",
+        "layers"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor with current WhimTex and graphics support. Review the case and TestApi support.",
+      "setup": "Create only transient owned document/textures/materials. Exercise vector bases, shared fractals or periodic copies in the selected suite.",
+      "teardown": "Destroy only owned objects and release temporary surfaces; restore render target and sRGB write state. No asset edits.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "noise-vector-coverage3d-v3",
+      "file": "Tests~/Cases/Layers/NoiseVectorTests.cs",
+      "runner": "run_script",
+      "entry": "NoiseVectorTests.Run",
+      "args": [
+        "coverage3d"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "noise",
+        "layers"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor with current WhimTex and graphics support. Review the case and TestApi support.",
+      "setup": "Create only transient owned document/textures/materials. Exercise vector bases, shared fractals or periodic copies in the selected suite.",
+      "teardown": "Destroy only owned objects and release temporary surfaces; restore render target and sRGB write state. No asset edits.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "noise-vector-seam-v3",
+      "file": "Tests~/Cases/Layers/NoiseVectorTests.cs",
+      "runner": "run_script",
+      "entry": "NoiseVectorTests.Run",
+      "args": [
+        "seam"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "noise",
+        "layers"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor with current WhimTex and graphics support. Review the case and TestApi support.",
+      "setup": "Create only transient owned document/textures/materials. Exercise vector bases, shared fractals or periodic copies in the selected suite.",
+      "teardown": "Destroy only owned objects and release temporary surfaces; restore render target and sRGB write state. No asset edits.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "noise-grain-v3",
+      "file": "Tests~/Cases/Layers/NoiseVectorTests.cs",
+      "runner": "run_script",
+      "entry": "NoiseVectorTests.Run",
+      "args": ["grain"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files"],
+      "groups": ["noise", "layers"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor with current WhimTex and graphics support. Review the case and TestApi support.",
+      "setup": "Create only transient owned document/textures. Exercise White/Blue Grain Color/Size in 1D and 2D.",
+      "teardown": "Destroy only owned objects; restore render target and sRGB write state. No user window or asset edits.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
     }
   ]
 }

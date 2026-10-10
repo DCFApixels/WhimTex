@@ -33,7 +33,7 @@ public static class NoiseRandomizeTests
         var seen = fields.ToDictionary(f => f.Name, f => new HashSet<object>());
         var bounds = new Dictionary<string, (float lo, float hi)>
         {
-            ["whiteNoiseSize"]=(1,1024), ["direction"]=(-180,180), ["scale"]=(.01f,1000),
+            ["grainSize"]=(1,1024), ["direction"]=(-180,180), ["scale"]=(.01f,1000),
             ["octaves"]=(1,8), ["lacunarity"]=(1,4), ["gain"]=(0,1), ["weightedStrength"]=(0,1),
             ["pingPongStrength"]=(.01f,8), ["cellularJitter"]=(0,1), ["warpStrength"]=(0,100), ["warpScale"]=(.25f,4), ["warpScaleY"]=(.25f,4)
         };

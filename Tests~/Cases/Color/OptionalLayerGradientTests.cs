@@ -125,11 +125,11 @@ public static class OptionalLayerGradientTests
             output.value = NoiseLayerBehaviour.OutputEncoding.Gradient;
             Check(!Hidden(field) && !Hidden(inverted), "Gradient shows palette and Inverted");
             noise.noiseType = NoiseLayerBehaviour.NoiseType.WhiteNoise;
-            noise.whiteNoiseColor = NoiseLayerBehaviour.WhiteNoiseColor.Color;
+            noise.grainColor = NoiseLayerBehaviour.GrainColor.Color;
             Refresh();
             Check(output.value == NoiseLayerBehaviour.OutputEncoding.ColorValues && output.choices.Count == 2 && Hidden(field) && !Hidden(inverted), "Color noise exposes supported outputs");
             Check(noise.encoding == NoiseLayerBehaviour.OutputEncoding.Gradient, "Color noise retains requested output");
-            noise.whiteNoiseColor = NoiseLayerBehaviour.WhiteNoiseColor.Monochrome;
+            noise.grainColor = NoiseLayerBehaviour.GrainColor.Monochrome;
             Refresh();
             Check(output.value == NoiseLayerBehaviour.OutputEncoding.Gradient && output.choices.Count == 3 && !Hidden(field), "Monochrome restores controls");
         }
@@ -188,7 +188,7 @@ public static class OptionalLayerGradientTests
         }
         foreach (var type in new[] { NoiseLayerBehaviour.NoiseType.WhiteNoise, NoiseLayerBehaviour.NoiseType.BlueNoise })
         {
-            noise.noiseType = type; noise.whiteNoiseColor = NoiseLayerBehaviour.WhiteNoiseColor.Color;
+            noise.noiseType = type; noise.grainColor = NoiseLayerBehaviour.GrainColor.Color;
             noise.encoding = NoiseLayerBehaviour.OutputEncoding.ColorValues; var raw = Render(noiseDoc, noise.Owner);
             noise.encoding = NoiseLayerBehaviour.OutputEncoding.Gradient; var bypass = Render(noiseDoc, noise.Owner);
             for (int i = 0; i < raw.Length; i++) Near(bypass[i], raw[i], "RGB noise bypass");
@@ -212,7 +212,7 @@ public static class OptionalLayerGradientTests
         {
             var source = doc.layers[0].Behaviour;
             // Colored grain bypasses gradient mapping; use monochrome grain for the active-palette clipboard case.
-            if (source is NoiseLayerBehaviour grain) grain.whiteNoiseColor = NoiseLayerBehaviour.WhiteNoiseColor.Monochrome;
+            if (source is NoiseLayerBehaviour grain) grain.grainColor = NoiseLayerBehaviour.GrainColor.Monochrome;
             Enable(source, false);
             foreach (WhimTexGradientMode mode in Enum.GetValues(typeof(WhimTexGradientMode)))
             {
@@ -232,7 +232,7 @@ public static class OptionalLayerGradientTests
                 Check(!Enabled((LayerBehaviour)restored), "Unity serialization preserves output");
             }
         }
-        noise.whiteNoiseColor = NoiseLayerBehaviour.WhiteNoiseColor.Monochrome;
+        noise.grainColor = NoiseLayerBehaviour.GrainColor.Monochrome;
         Enable(noise, true); noise.gradient = palette.Clone();
         var thumbA = noise.GetPreviewTexture(32).GetPixels();
         Enable(noise, false);

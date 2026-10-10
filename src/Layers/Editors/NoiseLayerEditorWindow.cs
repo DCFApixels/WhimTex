@@ -92,15 +92,15 @@ namespace DCFApixels.WhimTex
             }
 
             layer.seed = seed;
-            bool grain = IsGrainNoise(layer.noiseType);
+            bool grain = layer.IsGrain;
             var noiseTypes = (NoiseLayerBehaviour.NoiseType[])Enum.GetValues(typeof(NoiseLayerBehaviour.NoiseType));
             int count = 0;
             foreach (var type in noiseTypes)
-                if (IsGrainNoise(type) == grain) noiseTypes[count++] = type;
+                if (IsGrainNoise(type) == grain && NoiseLayerBehaviour.SupportsNoiseType(layer.field, type)) noiseTypes[count++] = type;
             layer.noiseType = noiseTypes[random.Next(count)];
             if (!grain || layer.encoding != NoiseLayerBehaviour.OutputEncoding.Gradient)
-                layer.whiteNoiseColor = Pick<NoiseLayerBehaviour.WhiteNoiseColor>();
-            layer.whiteNoiseSize = LogRange(1f, 32f);
+                layer.grainColor = Pick<NoiseLayerBehaviour.GrainColor>();
+            layer.grainSize = LogRange(1f, 32f);
             layer.Scale3D = RandomizeScale3D(layer, random);
             layer.fractal = Pick<NoiseLayerBehaviour.FractalType>();
             layer.octaves = random.Next(1, 9);
@@ -112,10 +112,16 @@ namespace DCFApixels.WhimTex
             layer.cellularReturn = Pick<NoiseLayerBehaviour.CellularReturn>();
             layer.cellularJitter = Range(0f, 1f);
             layer.warp = Pick<NoiseLayerBehaviour.WarpType>();
+            layer.warpSeed = NewSeed(layer.warpSeed);
             layer.warpStrength = LogRange(.05f, 8f);
             float randomWarpScale = LogRange(.25f, 4f);
-            layer.WarpScale = layer.linkWarpScale ? layer.AdjustWarpScale(new Vector2(randomWarpScale, layer.WarpScale.y))
-                : new Vector2(randomWarpScale, LogRange(.25f, 4f));
+            if (layer.EffectiveDimensions == NoiseLayerBehaviour.NoiseDimensions.ThreeD)
+                layer.WarpScale3D = layer.linkWarpScale
+                    ? layer.AdjustWarpScale3D(new Vector3(randomWarpScale, layer.WarpScale.y, layer.WarpScale3D.z))
+                    : new Vector3(randomWarpScale, LogRange(.25f, 4f), LogRange(.25f, 4f));
+            else
+                layer.WarpScale = layer.linkWarpScale ? layer.AdjustWarpScale(new Vector2(randomWarpScale, layer.WarpScale.y))
+                    : new Vector2(randomWarpScale, LogRange(.25f, 4f));
             if (layer.encoding != NoiseLayerBehaviour.OutputEncoding.Gradient)
                 layer.encoding = random.Next(2) == 0
                     ? NoiseLayerBehaviour.OutputEncoding.ColorValues : NoiseLayerBehaviour.OutputEncoding.LinearData;
@@ -156,17 +162,41 @@ namespace DCFApixels.WhimTex
                 parent.Add(field);
             }
 
-            Choice(root, "Noise Type", () => layer.noiseType, value => layer.noiseType = value);
-            var white = new VisualElement();
-            Choice(white, "Color", () => layer.whiteNoiseColor, value => layer.whiteNoiseColor = value);
-            Number(white, "Grain Size (px)", () => layer.whiteNoiseSize, value => layer.whiteNoiseSize = value, 1f, 1024f);
-            root.Add(white);
+            Choice(root, "Field", () => layer.field, value => layer.field = value);
+            var allNoise = new System.Collections.Generic.List<NoiseLayerBehaviour.NoiseType>();
+            var curlNoise = new System.Collections.Generic.List<NoiseLayerBehaviour.NoiseType>();
+            var gradientNoise = new System.Collections.Generic.List<NoiseLayerBehaviour.NoiseType>();
+            var cellNoise = new System.Collections.Generic.List<NoiseLayerBehaviour.NoiseType> { NoiseLayerBehaviour.NoiseType.Cellular };
+            foreach (NoiseLayerBehaviour.NoiseType type in Enum.GetValues(typeof(NoiseLayerBehaviour.NoiseType)))
+            {
+                allNoise.Add(type);
+                if (NoiseLayerBehaviour.SupportsNoiseType(NoiseLayerBehaviour.Field.Curl, type)) curlNoise.Add(type);
+                if (NoiseLayerBehaviour.SupportsNoiseType(NoiseLayerBehaviour.Field.GradientVector, type)) gradientNoise.Add(type);
+            }
+            System.Collections.Generic.List<NoiseLayerBehaviour.NoiseType> NoiseChoices() => layer.field switch
+            {
+                NoiseLayerBehaviour.Field.Curl => curlNoise,
+                NoiseLayerBehaviour.Field.GradientVector => gradientNoise,
+                NoiseLayerBehaviour.Field.CellDirection => cellNoise,
+                _ => allNoise
+            };
+            string NoiseLabel(NoiseLayerBehaviour.NoiseType value) => UnityEditor.ObjectNames.NicifyVariableName(value.ToString());
+            var noiseType = WhimTexUI.ConfigureField(new PopupField<NoiseLayerBehaviour.NoiseType>("Noise Type",
+                NoiseChoices(), layer.EffectiveNoiseType, NoiseLabel, NoiseLabel));
+            bindings.Track(noiseType, () => layer.EffectiveNoiseType);
+            noiseType.RegisterValueChangedCallback(evt => applyChange("Change Noise Type", () => layer.noiseType = evt.newValue));
+            root.Add(noiseType);
+            var grain = new VisualElement();
+            Choice(grain, "Color", () => layer.grainColor, value => layer.grainColor = value);
+            Number(grain, "Grain Size (px)", () => layer.grainSize, value => layer.grainSize = value, 1f, 1024f);
+            root.Add(grain);
             var allDimensions = new System.Collections.Generic.List<string> { "1D", "2D", "3D" };
             var grainDimensions = new System.Collections.Generic.List<string> { "1D", "2D" };
+            var vectorDimensions = new System.Collections.Generic.List<string> { "2D", "3D" };
             string DimensionLabel() => layer.EffectiveDimensions == NoiseLayerBehaviour.NoiseDimensions.OneD ? "1D"
                 : layer.EffectiveDimensions == NoiseLayerBehaviour.NoiseDimensions.ThreeD ? "3D" : "2D";
             var dimensions = WhimTexUI.ConfigureField(new PopupField<string>("Dimensions",
-                layer.IsGrain ? grainDimensions : allDimensions, DimensionLabel()));
+                layer.IsVectorField ? vectorDimensions : layer.IsGrain ? grainDimensions : allDimensions, DimensionLabel()));
             bindings.Track(dimensions, DimensionLabel);
             dimensions.RegisterValueChangedCallback(evt => applyChange("Change Noise Dimensions",
                 () => layer.dimensions = evt.newValue == "1D" ? NoiseLayerBehaviour.NoiseDimensions.OneD
@@ -210,19 +240,20 @@ namespace DCFApixels.WhimTex
             axis.tooltip = "Direction of variation. 0: vertical stripes; 90: horizontal stripes. Positive angles turn counterclockwise.";
             Slider(axis, "Direction (deg)", () => layer.direction, value => layer.direction = value, -180f, 180f);
             root.Add(axis);
-            var seed = WhimTexUI.ConfigureField(new IntegerField("Seed"));
-            bindings.Track(seed, () => layer.seed);
-            seed.RegisterValueChangedCallback(evt => applyChange("Change Noise Seed", () => layer.seed = evt.newValue));
-            var seedRow = WhimTexUI.CreateRow();
-            seed.style.flexGrow = 1f;
-            seed.style.flexShrink = 1f;
-            seedRow.Add(seed);
-            seedRow.Add(WhimTexUI.CreateToolbarButton("Random", () =>
+            void Seed(VisualElement parent, string label, Func<int> get, Action<int> set)
             {
-                int randomSeed = NewSeed(layer.seed);
-                applyChange("Randomize Noise Seed", () => layer.seed = randomSeed);
-            }, 64f));
-            root.Add(seedRow);
+                var seed = WhimTexUI.ConfigureField(new IntegerField(label));
+                bindings.Track(seed, get);
+                seed.RegisterValueChangedCallback(evt => applyChange("Change Noise " + label, () => set(evt.newValue)));
+                var seedRow = WhimTexUI.CreateRow();
+                seed.style.flexGrow = 1f;
+                seed.style.flexShrink = 1f;
+                seedRow.Add(seed);
+                seedRow.Add(WhimTexUI.CreateToolbarButton("Random", () =>
+                    applyChange("Randomize Noise " + label, () => set(NewSeed(get()))), 64f));
+                parent.Add(seedRow);
+            }
+            Seed(root, "Seed", () => layer.seed, value => layer.seed = value);
             var scale = new VisualElement();
             var scaleXY = LinkedScale(scale, "Scale", "linkScale", () => layer.Scale, value => layer.Scale = value,
                 layer.AdjustScale, () => layer.linkScale, () => layer.linkScale = !layer.linkScale);
@@ -286,7 +317,7 @@ namespace DCFApixels.WhimTex
 
             var cellular = new VisualElement();
             Choice(cellular, "Distance", () => layer.cellularDistance, value => layer.cellularDistance = value);
-            Choice(cellular, "Return", () => layer.cellularReturn, value => layer.cellularReturn = value);
+            var cellularReturn = Choice(cellular, "Return", () => layer.cellularReturn, value => layer.cellularReturn = value);
             Slider(cellular, "Jitter", () => layer.cellularJitter, value => layer.cellularJitter = value, 0f, 1f);
             root.Add(cellular);
 
@@ -306,9 +337,22 @@ namespace DCFApixels.WhimTex
 
             var warpChoice = Choice(root, "Domain Warp", () => layer.warp, value => layer.warp = value);
             var warp = new VisualElement();
+            Seed(warp, "Warp Seed", () => layer.warpSeed, value => layer.warpSeed = value);
             Number(warp, "Warp Strength", () => layer.warpStrength, value => layer.warpStrength = value, 0f, 100f);
-            LinkedScale(warp, "Warp Scale", "linkWarpScale", () => layer.WarpScale, value => layer.WarpScale = value,
+            var warpScaleXY = LinkedScale(warp, "Warp Scale", "linkWarpScale", () => layer.WarpScale, value => layer.WarpScale = value,
                 layer.AdjustWarpScale, () => layer.linkWarpScale, () => layer.linkWarpScale = !layer.linkWarpScale);
+            var warpScale3D = WhimTexUI.ConfigureField(new Vector3Field("Warp Scale") { name = "noiseWarpScale3D" });
+            warpScale3D.AddToClassList("whimtex-linked-vector");
+            bindings.Track(warpScale3D, () => layer.WarpScale3D);
+            warpScale3D.RegisterValueChangedCallback(evt =>
+            {
+                var next = layer.AdjustWarpScale3D(evt.newValue);
+                applyChange("Change Noise Warp Scale", () => layer.WarpScale3D = next);
+                warpScale3D.SetValueWithoutNotify(layer.WarpScale3D);
+            });
+            ScaleLink(warpScale3D, "Warp Scale", "linkWarpScale3D", () => layer.linkWarpScale,
+                () => layer.linkWarpScale = !layer.linkWarpScale, "X, Y and Z");
+            warp.Add(warpScale3D);
             root.Add(warp);
             var scalarOutputs = new System.Collections.Generic.List<NoiseLayerBehaviour.OutputEncoding>
                 { NoiseLayerBehaviour.OutputEncoding.ColorValues, NoiseLayerBehaviour.OutputEncoding.LinearData, NoiseLayerBehaviour.OutputEncoding.Gradient };
@@ -321,6 +365,17 @@ namespace DCFApixels.WhimTex
             encoding.RegisterValueChangedCallback(evt => applyChange("Change Noise Output", () => layer.encoding = evt.newValue));
             encoding.tooltip = "Color Values displays encoded colors; Linear Data keeps raw 0–1 values; Gradient maps monochrome noise through a color palette. Color White/Blue Noise supports Color Values and Linear Data only.";
             root.Add(encoding);
+            var vectorSettings = new VisualElement();
+            Choice(vectorSettings, "Output", () => layer.vectorOutput, value => layer.vectorOutput = value);
+            var normalize = WhimTexUI.ConfigureField(new Toggle("Normalize"));
+            normalize.tooltip = "Keep direction but set nonzero vectors to unit length, before Strength. Zero remains zero.";
+            bindings.Track(normalize, () => layer.normalize);
+            normalize.RegisterValueChangedCallback(evt => applyChange("Normalize Noise Vectors", () => layer.normalize = evt.newValue));
+            vectorSettings.Add(normalize);
+            Number(vectorSettings, "Strength", () => layer.strength, value => layer.strength = value, 0f, 100f);
+            var vectorHint = new HelpBox("Signed Vector and values outside 0–1 require Color Range = HDR. Use Blend Range = HDR when combining data layers; an isolated group also needs HDR.", HelpBoxMessageType.Info);
+            vectorSettings.Add(vectorHint);
+            root.Add(vectorSettings);
             var inverted = WhimTexUI.ConfigureField(new Toggle("Inverted"));
             bindings.Track(inverted, () => layer.inverted);
             inverted.RegisterValueChangedCallback(evt => applyChange("Invert Noise", () => layer.inverted = evt.newValue));
@@ -335,7 +390,7 @@ namespace DCFApixels.WhimTex
                 var choices = layer.SupportsGradient ? scalarOutputs : colorOutputs;
                 if (!ReferenceEquals(encoding.choices, choices)) encoding.choices = choices;
                 encoding.SetValueWithoutNotify(layer.EffectiveOutput);
-                bool showGradient = layer.EffectiveOutput == NoiseLayerBehaviour.OutputEncoding.Gradient;
+                bool showGradient = !layer.IsVectorField && layer.EffectiveOutput == NoiseLayerBehaviour.OutputEncoding.Gradient;
                 gradient.EnableInClassList("whimtex-hidden", !showGradient);
             }
             bindings.Add(RefreshGradient);
@@ -343,29 +398,39 @@ namespace DCFApixels.WhimTex
 
             bindings.Add(() =>
             {
-                bool isWhite = layer.noiseType == NoiseLayerBehaviour.NoiseType.WhiteNoise
-                    || layer.noiseType == NoiseLayerBehaviour.NoiseType.BlueNoise;
-                white.EnableInClassList("whimtex-hidden", !isWhite);
-                var dimensionChoices = isWhite ? grainDimensions : allDimensions;
+                bool isGrain = layer.IsGrain;
+                bool isCellDirection = layer.field == NoiseLayerBehaviour.Field.CellDirection;
+                var noiseChoices = NoiseChoices();
+                if (!ReferenceEquals(noiseType.choices, noiseChoices)) noiseType.choices = noiseChoices;
+                noiseType.SetValueWithoutNotify(layer.EffectiveNoiseType);
+                noiseType.SetEnabled(!isCellDirection);
+                encoding.EnableInClassList("whimtex-hidden", layer.IsVectorField);
+                vectorSettings.EnableInClassList("whimtex-hidden", !layer.IsVectorField);
+                inverted.tooltip = layer.IsVectorField ? "Reverse the vector direction." : "Invert the value before color or gradient output.";
+                grain.EnableInClassList("whimtex-hidden", !isGrain);
+                var dimensionChoices = layer.IsVectorField ? vectorDimensions : isGrain ? grainDimensions : allDimensions;
                 if (!ReferenceEquals(dimensions.choices, dimensionChoices)) dimensions.choices = dimensionChoices;
                 dimensions.SetValueWithoutNotify(DimensionLabel());
                 bool three = layer.EffectiveDimensions == NoiseLayerBehaviour.NoiseDimensions.ThreeD;
                 scaleXY.EnableInClassList("whimtex-hidden", three);
                 scale3D.EnableInClassList("whimtex-hidden", !three);
+                warpScaleXY.EnableInClassList("whimtex-hidden", three);
+                warpScale3D.EnableInClassList("whimtex-hidden", !three);
                 offset.EnableInClassList("whimtex-hidden", three);
                 offset3D.EnableInClassList("whimtex-hidden", !three);
-                periodic.EnableInClassList("whimtex-hidden", isWhite || layer.dimensions == NoiseLayerBehaviour.NoiseDimensions.OneD);
-                periodic1D.EnableInClassList("whimtex-hidden", isWhite || layer.dimensions != NoiseLayerBehaviour.NoiseDimensions.OneD);
-                scale.EnableInClassList("whimtex-hidden", isWhite);
-                fractalChoice.EnableInClassList("whimtex-hidden", isWhite);
-                warpChoice.EnableInClassList("whimtex-hidden", isWhite);
-                offset.tooltip = isWhite ? "Move the grain in canvas pixels."
+                periodic.EnableInClassList("whimtex-hidden", isGrain || layer.EffectiveDimensions == NoiseLayerBehaviour.NoiseDimensions.OneD);
+                periodic1D.EnableInClassList("whimtex-hidden", isGrain || layer.EffectiveDimensions != NoiseLayerBehaviour.NoiseDimensions.OneD);
+                scale.EnableInClassList("whimtex-hidden", isGrain);
+                fractalChoice.EnableInClassList("whimtex-hidden", isGrain || isCellDirection);
+                warpChoice.EnableInClassList("whimtex-hidden", isGrain);
+                offset.tooltip = isGrain ? "Move the grain in canvas pixels."
                     : "Move the noise in noise-space units.";
-                axis.EnableInClassList("whimtex-hidden", layer.dimensions != NoiseLayerBehaviour.NoiseDimensions.OneD);
-                cellular.EnableInClassList("whimtex-hidden", layer.noiseType != NoiseLayerBehaviour.NoiseType.Cellular);
-                fractal.EnableInClassList("whimtex-hidden", isWhite || layer.fractal == NoiseLayerBehaviour.FractalType.None);
+                axis.EnableInClassList("whimtex-hidden", layer.EffectiveDimensions != NoiseLayerBehaviour.NoiseDimensions.OneD);
+                cellular.EnableInClassList("whimtex-hidden", layer.EffectiveNoiseType != NoiseLayerBehaviour.NoiseType.Cellular);
+                cellularReturn.EnableInClassList("whimtex-hidden", isCellDirection);
+                fractal.EnableInClassList("whimtex-hidden", isGrain || layer.EffectiveFractal == NoiseLayerBehaviour.FractalType.None);
                 pingPong.EnableInClassList("whimtex-hidden", layer.fractal != NoiseLayerBehaviour.FractalType.PingPong);
-                warp.EnableInClassList("whimtex-hidden", isWhite || layer.warp == NoiseLayerBehaviour.WarpType.None);
+                warp.EnableInClassList("whimtex-hidden", isGrain || layer.warp == NoiseLayerBehaviour.WarpType.None);
             });
         }
     }

@@ -79,7 +79,17 @@ namespace DCFApixels.WhimTex
             result["textWrappingRules"] = new JArray(System.Enum.GetNames(typeof(TextWrapping)));
             result["textOverflowModes"] = new JArray(System.Enum.GetNames(typeof(TextOverflowMode)));
             result["noiseTypes"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.NoiseType)));
-            result["noiseWhiteColors"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.WhiteNoiseColor)));
+            result["noiseFields"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.Field)));
+            result["noiseVectorOutputs"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.VectorOutput)));
+            result["noiseFieldTypes"] = new JObject();
+            foreach (NoiseLayerBehaviour.Field field in System.Enum.GetValues(typeof(NoiseLayerBehaviour.Field)))
+            {
+                var types = new JArray();
+                foreach (NoiseLayerBehaviour.NoiseType type in System.Enum.GetValues(typeof(NoiseLayerBehaviour.NoiseType)))
+                    if (NoiseLayerBehaviour.SupportsNoiseType(field, type)) types.Add(type.ToString());
+                result["noiseFieldTypes"][field.ToString()] = types;
+            }
+            result["noiseGrainColors"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.GrainColor)));
             result["noiseFractals"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.FractalType)));
             result["noiseCellularDistances"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.CellularDistance)));
             result["noiseCellularReturns"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.CellularReturn)));

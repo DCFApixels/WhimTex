@@ -510,6 +510,38 @@
           ],
           "description": "Scalar sets XY, or XYZ in active ThreeD. [x,y] preserves Z; [x,y,z] sets all axes literally. Inspect returns XYZ, including inactive Z. XY units span the shorter canvas side; Z multiplies Offset Z to select a ThreeD slice and defaults to 1 in older files. Ignored by White/Blue. Seamless fits complete lattice cells per octave/warp, so small Scale changes can quantize."
         },
+        "field": {
+          "type": "string",
+          "enum": [
+            "Value",
+            "Curl",
+            "GradientVector",
+            "CellDirection"
+          ],
+          "default": "Value",
+          "description": "Value: scalar/grain; Curl: swirling flow; GradientVector: derivative; CellDirection: nearest cellular center. Unsupported stored Noise Type temporarily uses OpenSimplex2 (CellDirection uses Cellular). Hidden settings are retained."
+        },
+        "vectorOutput": {
+          "type": "string",
+          "enum": [
+            "PackedVector",
+            "SignedVector"
+          ],
+          "default": "PackedVector",
+          "description": "Linear RGB = XYZ * 0.5 + 0.5 or signed XYZ. No gamma or implicit clipping. Alpha 1. Color Range and combining layers/groups require HDR for signed or out-of-range values."
+        },
+        "normalize": {
+          "type": "boolean",
+          "default": false,
+          "description": "Vector fields only. Normalize nonzero vectors before Strength; zero remains zero."
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 1,
+          "description": "Vector magnitude multiplier after optional normalization."
+        },
         "linkScale": {
           "type": "boolean",
           "default": true,
@@ -616,6 +648,13 @@
             "BasicGrid"
           ]
         },
+        "warpSeed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647,
+          "default": 1337,
+          "description": "Independent seed for Domain Warp. Ignored when Warp is disabled or its Strength is zero."
+        },
         "warpStrength": {
           "type": "number",
           "minimum": 0,
@@ -636,14 +675,15 @@
                 "maximum": 1000
               },
               "minItems": 2,
-              "maxItems": 2
+              "maxItems": 3
             }
           ],
           "default": [
             1,
+            1,
             1
           ],
-          "description": "X/Y multipliers of Noise Scale. Z frequency unchanged. Seamless fits the resulting warp periods."
+          "description": "XYZ multipliers of Noise Scale. Number sets active axes; [x,y] preserves Z; [x,y,z] sets all axes. Inspect returns XYZ. Seamless fits resulting warp periods; Z never repeats."
         },
         "linkWarpScale": {
           "type": "boolean",
@@ -658,12 +698,12 @@
             "Gradient"
           ],
           "default": "LinearData",
-          "description": "UI Output. Gradient maps monochrome noise through its RGBA/HDR palette. Color White/Blue temporarily renders stored Gradient as ColorValues."
+          "description": "UI Output for Field Value only. Gradient maps monochrome noise through its RGBA/HDR palette. Color White/Blue temporarily renders stored Gradient as ColorValues. Vector fields use vectorOutput instead."
         },
         "inverted": {
           "type": "boolean",
           "default": false,
-          "description": "Reverses noise values in all outputs, before gradient sampling."
+          "description": "Scalar: 1-value before palette. Vector: reverse direction before packing. Applies to every output."
         },
         "gradient": {
           "$ref": "#/$defs/gradient",
@@ -677,21 +717,21 @@
             "ThreeD"
           ],
           "default": "TwoD",
-          "description": "OneD stripes, TwoD field or ThreeD slice at Offset Z. White/Blue temporarily renders stored ThreeD as TwoD."
+          "description": "OneD stripes, TwoD field or ThreeD slice at Offset Z. White/Blue temporarily renders stored ThreeD as TwoD; vector fields render stored OneD as TwoD. Inactive values are retained."
         },
         "direction": {
           "type": "number",
           "minimum": -180,
           "maximum": 180
         },
-        "whiteNoiseColor": {
+        "grainColor": {
           "type": "string",
           "enum": [
             "Monochrome",
             "Color"
           ]
         },
-        "whiteNoiseSize": {
+        "grainSize": {
           "type": "number",
           "minimum": 1,
           "maximum": 1024

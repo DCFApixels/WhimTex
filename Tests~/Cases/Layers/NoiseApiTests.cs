@@ -60,18 +60,18 @@ public static class NoiseApiTests
         Check(snapshot.Invoke(null, new object[] { layer }).ToString() == snapshot.Invoke(null, new object[] { copy }).ToString(), "Settings round trip");
         Set("{\"seed\":-2147483648}");
         Check(layer.seed == int.MinValue && layer.scale == 12.5f, "Partial update and full seed range");
-        Set("{\"noiseType\":\"WhiteNoise\",\"whiteNoiseColor\":\"Color\",\"whiteNoiseSize\":4}");
+        Set("{\"noiseType\":\"WhiteNoise\",\"grainColor\":\"Color\",\"grainSize\":4}");
         Check(layer.noiseType == DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseType.WhiteNoise &&
-            layer.whiteNoiseColor == DCFApixels.WhimTex.NoiseLayerBehaviour.WhiteNoiseColor.Color && layer.whiteNoiseSize == 4,
+            layer.grainColor == DCFApixels.WhimTex.NoiseLayerBehaviour.GrainColor.Color && layer.grainSize == 4,
             "White Noise settings");
         setter.Invoke(null, new object[] { copy, snapshot.Invoke(null, new object[] { layer }) });
         Check(snapshot.Invoke(null, new object[] { layer }).ToString() == snapshot.Invoke(null, new object[] { copy }).ToString(), "White Noise settings round trip");
-        Reject("{\"whiteNoiseColor\":\"Unknown\"}");
-        Reject("{\"whiteNoiseSize\":0}");
-        Reject("{\"whiteNoiseSize\":1025}");
-        Check(DCFApixels.WhimTex.WhimTexApi.Describe().Contains("noiseWhiteColors"), "White color discovery");
+        Reject("{\"grainColor\":\"Unknown\"}");
+        Reject("{\"grainSize\":0}");
+        Reject("{\"grainSize\":1025}");
+        Check(DCFApixels.WhimTex.WhimTexApi.Describe().Contains("noiseGrainColors"), "White color discovery");
         Set("{\"noiseType\":\"BlueNoise\"}");
-        Check(layer.noiseType == DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseType.BlueNoise && layer.whiteNoiseSize == 4,
+        Check(layer.noiseType == DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseType.BlueNoise && layer.grainSize == 4,
             "Blue Noise shares grain settings");
         setter.Invoke(null, new object[] { copy, snapshot.Invoke(null, new object[] { layer }) });
         Check(snapshot.Invoke(null, new object[] { layer }).ToString() == snapshot.Invoke(null, new object[] { copy }).ToString(), "Blue Noise settings round trip");
