@@ -21,10 +21,17 @@ For exact values, expand **Transform** in Layer Settings.
 It preserves the image center, rotation, pivot and flips. Generated layers use the canvas size.
 **Reset** returns the transform to its starting state.
 
+In the Transform toolbar, action icons follow Tiling and Filter in three groups: reset and centering, flips, then rotations. Thin dividers separate the groups. Original Aspect uses a frame with an inset rectangle, Original Size uses **1:1**, and Reset uses a circular arrow. Hover over an icon to see its name and description.
+
 ## Position and pivot
 
 The gold pivot is the point around which the layer rotates and scales.
 Drag it to a new position without moving the image.
+
+The icon buttons in the Transform toolbar center the pivot in the frame,
+move the pivot and image to the canvas center, flip horizontally, flip vertically, rotate left 90°,
+and rotate right 90°. Centering the pivot leaves the image in place; flips and turns keep the pivot fixed
+and follow Canvas axes, regardless of view rotation. With several layers selected, these actions use their shared pivot.
 
 The pivot and transform snap to nearby guide points. Hold `Ctrl` to move freely.
 Hold `Shift` to move along one axis, resize proportionally or rotate in 15° steps.

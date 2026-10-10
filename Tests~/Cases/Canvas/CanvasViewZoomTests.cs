@@ -122,6 +122,79 @@ Call("SetRotation", float.PositiveInfinity, false);
 Check(Rotation() == 85f, "Non-finite rotations are ignored");
 Call("Reset");
 Check(Rotation() == 0f && Image(bounds) == fitted, "Fit resets rotation and framing together");
+var navigation = type.Assembly.GetType("DCFApixels.WhimTex.CanvasNavigationMetrics", true);
+object Metric(string method, params object[] args) => navigation.GetMethod(method,
+    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).Invoke(null, args);
+float previousStep = float.PositiveInfinity;
+foreach (float pixelScale in new[] { 1f / 1024f, .01f, .1f, .25f, 1f, 4f, 16f, 64f })
+{
+    float step = (float)Metric("MajorStep", pixelScale);
+    Check(step * pixelScale >= 71.99f, "Ruler labels keep readable spacing at every supported zoom");
+    Check(step <= previousStep && step >= 1f, "Ruler density increases with zoom without fractional pixel ticks");
+    previousStep = step;
+}
+Check((float)Metric("MajorStep", 0f) == 1f && (float)Metric("MajorStep", float.NaN) == 1f,
+    "Unresolved ruler scale has a finite fallback");
+var fitRange = (Vector3)Metric("ScrollRange", 0f, 800f, 80f, 640f);
+Check(fitRange == new Vector3(0f, 0f, 800f), "Fitted centered canvas fills the scrollbar track");
+Vector2 Thumb(Vector3 range, float length) => (Vector2)Metric("ScrollThumb", range, length);
+float DragScale(Vector3 range, float length) => (float)Metric("ScrollDragScale", range, length);
+Check(Thumb(fitRange, 800f) == new Vector2(0f, 800f), "Fitted canvas has a full-width thumb");
+Check(DragScale(fitRange, 800f) == 1f, "Full-width thumb still has a positive drag scale");
+Check(Mathf.Approximately(DragScale(fitRange, 764f), 800f / 764f),
+    "Arrow buttons reduce track length without disabling full-thumb dragging");
+float previousSize = 800f;
+foreach (float offset in new[] { 1f, 50f, 400f, 1600f, 8000f })
+{
+    var forward = (Vector3)Metric("ScrollRange", 0f, 800f, 80f - offset, 640f);
+    var backward = (Vector3)Metric("ScrollRange", 0f, 800f, 80f + offset, 640f);
+    Check(forward.x == offset && forward.y == offset && backward.x == offset && backward.y == 0f,
+        "Workspace expands immediately in both directions even when canvas fits");
+    Vector2 forwardThumb = Thumb(forward, 800f), backwardThumb = Thumb(backward, 800f);
+    Check(forwardThumb.y < previousSize && Mathf.Approximately(forwardThumb.y, backwardThumb.y),
+        "Thumb shrinks progressively and symmetrically outside the fitted workspace");
+    Check(Mathf.Approximately(forwardThumb.x + forwardThumb.y, 800f) && backwardThumb.x == 0f,
+        "Overscroll thumb remains attached to the corresponding end of the track");
+    Check(DragScale(forward, 800f) > 0f && !float.IsInfinity(DragScale(forward, 800f)),
+        "Overscroll keeps a finite positive drag scale");
+    previousSize = forwardThumb.y;
+}
+Check(Thumb(fitRange, 800f).y == 800f, "Returning to the fitted workspace restores thumb size");
+var farRange = (Vector3)Metric("ScrollRange", 0f, 800f, -100000f, 640f);
+Check(Thumb(farRange, 800f).y == 24f, "Distant pan preserves a usable minimum thumb size");
+Check(Thumb(farRange, 12f).y == 12f, "Minimum thumb size never exceeds a short track");
+Check(DragScale(farRange, 12f) > 0f, "Short tracks with no thumb travel still allow panning");
+Check(Thumb(fitRange, 0f) == Vector2.zero && DragScale(fitRange, 0f) == 0f,
+    "Unresolved track geometry remains finite");
+var largeRange = (Vector3)Metric("ScrollRange", 0f, 800f, -600f, 2000f);
+Check(largeRange == new Vector3(1600f, 800f, 800f), "Large canvas has proportional range and working margins");
+var movedRange = (Vector3)Metric("ScrollRange", 0f, 800f, -650f, 2000f);
+Check(movedRange.y == largeRange.y + 50f, "Dragging scrollbar forward pans image backward");
+Check(Thumb(largeRange, 800f).y == 800f / 3f &&
+    Mathf.Approximately(DragScale(largeRange, 800f), 3f), "Normal scrolling retains proportional thumb size and speed");
+var largeOutside = (Vector3)Metric("ScrollRange", 0f, 800f, -2600f, 2000f);
+Check(Thumb(largeOutside, 800f).y < Thumb(largeRange, 800f).y,
+    "Scrolling past a large canvas shrinks its thumb too");
+var outsideRange = (Vector3)Metric("ScrollRange", 0f, 800f, 1600f, 100f);
+Check(outsideRange.x > 0f && outsideRange.y == 0f, "Canvas panned outside view remains reachable through scrollbar");
+foreach (float angle in new[] { 0f, 17f, 45f, 90f, -90f, 179f })
+{
+    Call("Reset");
+    Call("SetRotation", angle, false);
+    Rect projected = (Rect)Metric("PresentedBounds", viewport, bounds, Image(bounds));
+    foreach (Vector2 corner in new[] { fitted.min, fitted.max,
+        new Vector2(fitted.xMax, fitted.yMin), new Vector2(fitted.xMin, fitted.yMax) })
+    {
+        Vector2 point = Map("ToView", corner);
+        Check(point.x >= projected.xMin - .001f && point.x <= projected.xMax + .001f &&
+            point.y >= projected.yMin - .001f && point.y <= projected.yMax + .001f,
+            "Scrollbar content bounds cover every rotated canvas corner");
+    }
+    Vector2 delta = new Vector2(37f, -21f);
+    Call("Pan", bounds, dimensions, Image(bounds), delta);
+    Rect pannedBounds = (Rect)Metric("PresentedBounds", viewport, bounds, Image(bounds));
+    Check(Close(pannedBounds.position, projected.position + delta), "Scrollbar pan remains in view axes at every rotation");
+}
 return null;
 
 

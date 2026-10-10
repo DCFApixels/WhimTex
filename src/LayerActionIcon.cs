@@ -5,7 +5,8 @@ namespace DCFApixels.WhimTex
 {
     internal sealed class LayerActionIcon : VisualElement
     {
-        internal enum Kind { Add, Group, Delete, Bug, Eye, EyeOff, Alpha, AddDrawing, Transform, Properties, Effects, Settings, Warning }
+        internal enum Kind { Add, Group, Delete, Bug, Eye, EyeOff, Alpha, AddDrawing, Transform, Properties, Effects, Settings, Warning,
+            CenterPivot, CenterOnCanvas, FlipHorizontal, FlipVertical, RotateLeft, RotateRight, OriginalAspect, OriginalSize, Reset }
 
         private readonly Kind kind;
 
@@ -14,7 +15,13 @@ namespace DCFApixels.WhimTex
             this.kind = kind;
             pickingMode = PickingMode.Ignore;
             AddToClassList("whimtex-layer-action-icon");
-            generateVisualContent += Draw;
+            if (kind == Kind.OriginalSize)
+            {
+                Label ratio = new Label("1:1") { pickingMode = PickingMode.Ignore };
+                ratio.AddToClassList("whimtex-transform-action-ratio");
+                Add(ratio);
+            }
+            else generateVisualContent += Draw;
         }
 
         private void Draw(MeshGenerationContext context)
@@ -30,6 +37,24 @@ namespace DCFApixels.WhimTex
             painter.BeginPath();
             switch (kind)
             {
+                case Kind.CenterPivot:
+                case Kind.CenterOnCanvas:
+                    DrawCenter(painter, kind == Kind.CenterPivot);
+                    return;
+                case Kind.FlipHorizontal:
+                case Kind.FlipVertical:
+                    DrawFlip(painter, kind == Kind.FlipVertical);
+                    return;
+                case Kind.RotateLeft:
+                case Kind.RotateRight:
+                    DrawQuarterTurn(painter, kind == Kind.RotateLeft);
+                    return;
+                case Kind.OriginalAspect:
+                    DrawOriginalAspect(painter);
+                    return;
+                case Kind.Reset:
+                    DrawReset(painter);
+                    return;
                 case Kind.Warning:
                     painter.fillColor = new Color(1f, 0.73f, 0.2f);
                     painter.MoveTo(new Vector2(8f, 1f));
@@ -152,6 +177,137 @@ namespace DCFApixels.WhimTex
             painter.Arc(new Vector2(8f, 8f), 2.6f, 0f, 360f);
             painter.ClosePath();
             painter.Fill(FillRule.OddEven);
+        }
+
+        private static void DrawCenter(Painter2D painter, bool pivot)
+        {
+            painter.lineWidth = 1.25f;
+            painter.BeginPath();
+            foreach (var corner in new[] { new Vector2(2, 2), new Vector2(14, 2), new Vector2(14, 14), new Vector2(2, 14) })
+            {
+                painter.MoveTo(new Vector2(corner.x, corner.y < 8 ? 5 : 11));
+                painter.LineTo(corner);
+                painter.LineTo(new Vector2(corner.x < 8 ? 5 : 11, corner.y));
+            }
+            painter.Stroke();
+            if (pivot) painter.strokeColor = new Color(1f, .78f, .2f);
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(4, 8)); painter.LineTo(new Vector2(12, 8));
+            painter.MoveTo(new Vector2(8, 4)); painter.LineTo(new Vector2(8, 12));
+            if (pivot) painter.Arc(new Vector2(8, 8), 2.5f, 0f, 360f);
+            else
+            {
+                painter.MoveTo(new Vector2(6, 6)); painter.LineTo(new Vector2(8, 8)); painter.LineTo(new Vector2(10, 6));
+                painter.MoveTo(new Vector2(6, 10)); painter.LineTo(new Vector2(8, 8)); painter.LineTo(new Vector2(10, 10));
+            }
+            painter.Stroke();
+        }
+
+        private static void DrawFlip(Painter2D painter, bool vertical)
+        {
+            Vector2 Point(float x, float y) => vertical ? new Vector2(y, x) : new Vector2(x, y);
+            painter.lineWidth = 1f;
+            painter.lineCap = LineCap.Butt;
+            painter.lineJoin = LineJoin.Miter;
+            painter.BeginPath();
+            for (int i = 0; i < 4; i++)
+            {
+                float y = 1.25f + i * 4f;
+                painter.MoveTo(Point(8, y));
+                painter.LineTo(Point(8, y + 1.5f));
+            }
+            painter.MoveTo(Point(14.5f, 3));
+            painter.LineTo(Point(10.5f, 5.5f));
+            painter.LineTo(Point(10.5f, 10.5f));
+            painter.LineTo(Point(14.5f, 13));
+            painter.ClosePath();
+            painter.Stroke();
+            painter.fillColor = painter.strokeColor;
+            painter.BeginPath();
+            painter.MoveTo(Point(1, 2.5f));
+            painter.LineTo(Point(6, 5.5f));
+            painter.LineTo(Point(6, 10.5f));
+            painter.LineTo(Point(1, 13.5f));
+            painter.ClosePath();
+            painter.Fill();
+        }
+
+        private static void DrawQuarterTurn(Painter2D painter, bool left)
+        {
+            const float longSide = 9f;
+            const float shortSide = 4f;
+            const float outlineWidth = 1f;
+            Vector2 Point(float x, float y) => new Vector2(left ? x : 16f - x, y);
+            void Rectangle(float x, float y, bool filled)
+            {
+                float width = filled ? longSide : shortSide;
+                float height = filled ? shortSide : longSide;
+                float inset = filled ? 0f : outlineWidth * .5f;
+                painter.BeginPath();
+                painter.MoveTo(Point(x + inset, y + inset));
+                painter.LineTo(Point(x + width - inset, y + inset));
+                painter.LineTo(Point(x + width - inset, y + height - inset));
+                painter.LineTo(Point(x + inset, y + height - inset));
+                painter.ClosePath();
+                if (filled) painter.Fill();
+                else painter.Stroke();
+            }
+
+            painter.lineWidth = outlineWidth;
+            painter.lineCap = LineCap.Butt;
+            painter.lineJoin = LineJoin.Miter;
+            Rectangle(11, 1, false);
+
+            painter.lineWidth = 1.5f;
+            painter.BeginPath();
+            painter.MoveTo(Point(8.5f, 2.5f));
+            painter.LineTo(Point(6.5f, 2.5f));
+            painter.QuadraticCurveTo(Point(3.5f, 2.5f), Point(3.5f, 5.5f));
+            painter.LineTo(Point(3.5f, 8));
+            painter.Stroke();
+
+            painter.fillColor = painter.strokeColor;
+            painter.BeginPath();
+            painter.MoveTo(Point(1, 7));
+            painter.LineTo(Point(6, 7));
+            painter.LineTo(Point(3.5f, 10));
+            painter.ClosePath();
+            painter.Fill();
+            Rectangle(1, 11, true);
+        }
+
+        private static void DrawOriginalAspect(Painter2D painter)
+        {
+            painter.lineWidth = 1f;
+            painter.lineJoin = LineJoin.Miter;
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(1.5f, 1.5f));
+            painter.LineTo(new Vector2(14.5f, 1.5f));
+            painter.LineTo(new Vector2(14.5f, 14.5f));
+            painter.LineTo(new Vector2(1.5f, 14.5f));
+            painter.ClosePath();
+            painter.Stroke();
+            painter.fillColor = painter.strokeColor;
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(3, 5));
+            painter.LineTo(new Vector2(13, 5));
+            painter.LineTo(new Vector2(13, 11));
+            painter.LineTo(new Vector2(3, 11));
+            painter.ClosePath();
+            painter.Fill();
+        }
+
+        private static void DrawReset(Painter2D painter)
+        {
+            painter.lineWidth = 1.5f;
+            painter.BeginPath();
+            painter.Arc(new Vector2(8, 8), 5.5f, -135f, 135f);
+            painter.MoveTo(new Vector2(4.1f, 4.1f));
+            painter.LineTo(new Vector2(2.5f, 5.7f));
+            painter.MoveTo(new Vector2(2.5f, 2));
+            painter.LineTo(new Vector2(2.5f, 5.7f));
+            painter.LineTo(new Vector2(6.2f, 5.7f));
+            painter.Stroke();
         }
 
         private static void DrawTransform(Painter2D painter)

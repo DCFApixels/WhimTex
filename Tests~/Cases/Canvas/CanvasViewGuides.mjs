@@ -204,8 +204,32 @@ context.case('CanvasViewGuides original assertions and branches', async () => {
         assert.deepEqual(guideColor(aligned, true, true, Color), new Color(1, .35, .25, .9), 'Deletion color takes priority');
     }
     const styles = read('WhimTexSplitView.uss');
-    assert.match(styles, /\.whimtex-guide-rail--left\s*\{[^}]*width: 8px;/);
-    assert.match(styles, /\.whimtex-guide-rail--top\s*\{[^}]*height: 8px;/);
+    assert.match(src, /new CanvasRuler\(toolkitCanvas, vertical\)/);
+    assert.match(src, /RegisterCallback<PointerDownEvent>\(canvasGuideManipulator.RulerDown\)/);
+    assert.match(src, /Vector2 point = target.WorldToLocal\(evt.position\)/,
+        'Sibling ruler input is converted into canvas-local coordinates before guide capture');
+    assert.match(styles, /--whimtex-canvas-navigation-size: 16px;/);
+    assert.match(styles, /\.whimtex-canvas-ruler--horizontal,[\s\S]*?\.whimtex-canvas-scrollbar--horizontal\s*\{[^}]*height: var\(--whimtex-canvas-navigation-size\)/);
+    assert.match(styles, /\.whimtex-canvas-ruler--vertical,[\s\S]*?\.whimtex-canvas-scrollbar--vertical\s*\{[^}]*width: var\(--whimtex-canvas-navigation-size\)/);
+    assert.match(ui, /BuildCanvasNavigation\(BuildCanvasViewWorkspace\(toolkitCanvas\)\)/);
+    const navigation = read('WhimTexWindow.CanvasNavigation.cs');
+    assert.match(navigation, /new RepeatButton\([\s\S]*?Pan\(-direction \* ScrollStep\);[\s\S]*?\}, 350, 50\)/,
+        'End arrows use a shared small step with native press-and-hold repetition');
+    assert.match(navigation, /track\.RegisterCallback<PointerDownEvent>\(Down\)/,
+        'Scrollbar dragging is scoped to the track, not arrow buttons');
+    const labelHeight = Number(styles.match(/--whimtex-canvas-ruler-label-height: ([\d.]+)px;/)[1]);
+    const thickness = Number(styles.match(/--whimtex-canvas-navigation-size: ([\d.]+)px;/)[1]);
+    const tickSizes = navigation.match(/float size = primary \? thickness \* [\d.]+f : half \? ([\d.]+)f : ([\d.]+)f;/);
+    assert.ok(thickness - Math.max(Number(tickSizes[1]), Number(tickSizes[2])) - labelHeight >= 1,
+        'Short ticks leave a clear lane for ruler numbers at the shared navigation thickness');
+    assert.match(styles, /\.whimtex-canvas-ruler-label--vertical\s*\{[^}]*left: var\(--whimtex-canvas-ruler-label-height\);[^}]*transform-origin: 0 0;/,
+        'Vertical labels rotate from their corner and occupy the same text lane as horizontal labels');
+    assert.match(navigation, /text\.style\.width = Mathf\.Max\(1f, major \* scale - 6f\)/,
+        'Label width follows tick spacing and leaves room before the next major tick');
+    assert.match(navigation, /text\.style\.top = vertical \? position \+ 3f : 0f;/,
+        'Both ruler orientations place numbers after their corresponding tick');
+    assert.match(styles, /\.whimtex-canvas-ruler-label\s*\{[^}]*overflow: hidden;/,
+        'Long coordinates cannot spill onto the next ruler tick');
 });
 
 await finish(context);

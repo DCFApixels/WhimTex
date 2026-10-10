@@ -297,7 +297,7 @@ namespace DCFApixels.WhimTex
             toolkitCanvas.RegisterCallback<PointerLeaveEvent>(OnCanvasPointerLeave);
             toolkitCanvas.RegisterCallback<PointerCaptureOutEvent>(OnCanvasPointerCaptureOut);
             toolkitCanvas.AddManipulator(canvasGuideManipulator);
-            canvasBody.Add(BuildCanvasViewWorkspace(toolkitCanvas));
+            canvasBody.Add(BuildCanvasNavigation(BuildCanvasViewWorkspace(toolkitCanvas)));
 
             canvasBody.Add(BuildCanvasViewFooter());
             // Reserve one row in the layout; wrapped settings draw above the canvas.
@@ -2370,6 +2370,7 @@ namespace DCFApixels.WhimTex
             private float presentedRotation;
 
             public Rect ImageRect { get; private set; }
+            public bool IsCanvasVisible => canvasVisible;
             public float PixelScale => ImageRect.width / Mathf.Max(1, documentWidth);
             public Vector2 ToCanvas(Vector2 point) => viewport.ToCanvas(contentRect, point);
             public Vector2 ToView(Vector2 point) => viewport.ToView(contentRect, point);

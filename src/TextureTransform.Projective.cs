@@ -69,10 +69,10 @@ namespace DCFApixels.WhimTex
             GetDisplay(size,out _,out var old,out var angle);
             AroundPivot(ProjectiveMatrix.Rotate(angle)*ProjectiveMatrix.Scale(value.x/old.x,value.y/old.y)*ProjectiveMatrix.Rotate(-angle),size);
         }
-        internal void AroundPivot(ProjectiveMatrix pixels, Vector2 size)
+        internal bool AroundPivot(ProjectiveMatrix pixels, Vector2 size)
         {
             var p=ToMatrix(size.x,size.y).Point(pivot);
-            TrySetMatrix(ProjectiveMatrix.Translate(p.x,p.y)*ProjectiveMatrix.Scale(1d/size.x,1d/size.y)*pixels*
+            return TrySetMatrix(ProjectiveMatrix.Translate(p.x,p.y)*ProjectiveMatrix.Scale(1d/size.x,1d/size.y)*pixels*
                 ProjectiveMatrix.Scale(size.x,size.y)*ProjectiveMatrix.Translate(-p.x,-p.y)*ToMatrix(size.x,size.y));
         }
     }

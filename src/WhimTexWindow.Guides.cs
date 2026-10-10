@@ -41,32 +41,18 @@ namespace DCFApixels.WhimTex
             toolkitCanvas.AddBelowToolOverlays(canvasGuideOverlay);
             AddGuideRail(true);
             AddGuideRail(false);
-            toolkitCanvasViewHeader.RegisterCallback<GeometryChangedEvent>(UpdateCanvasGuideRails);
-            toolkitCanvas.RegisterCallback<GeometryChangedEvent>(UpdateCanvasGuideRails);
             toolkitCanvas.ViewChanged += canvasGuideOverlay.MarkDirtyRepaint;
-        }
-
-        private void UpdateCanvasGuideRails(GeometryChangedEvent evt)
-        {
-            float top = Mathf.Max(0f, toolkitCanvasViewHeader.worldBound.yMax - toolkitCanvas.worldBound.yMin);
-            if (float.IsNaN(top) || float.IsInfinity(top)) return;
-            canvasGuideTopRail.style.top = top;
-            canvasGuideLeftRail.style.top = top + canvasGuideTopRail.resolvedStyle.height;
         }
 
         private void AddGuideRail(bool vertical)
         {
-            var rail = new VisualElement
+            var rail = new CanvasRuler(toolkitCanvas, vertical)
             {
+                name = vertical ? "canvasVerticalRuler" : "canvasHorizontalRuler",
                 tooltip = vertical ? "Drag out a vertical guide. Right-click for guide settings."
                     : "Drag out a horizontal guide. Right-click for guide settings."
             };
-            rail.AddToClassList("whimtex-guide-rail");
-            rail.AddToClassList(vertical ? "whimtex-guide-rail--left" : "whimtex-guide-rail--top");
-            var grip = new VisualElement { pickingMode = PickingMode.Ignore };
-            grip.AddToClassList("whimtex-guide-grip");
-            rail.Add(grip);
-            canvasGuideOverlay.Add(rail);
+            rail.RegisterCallback<PointerDownEvent>(canvasGuideManipulator.RulerDown);
             if (vertical) canvasGuideLeftRail = rail;
             else canvasGuideTopRail = rail;
         }
@@ -140,8 +126,6 @@ namespace DCFApixels.WhimTex
 
             private int RailAt(Vector2 point)
             {
-                Rect rect = target.contentRect;
-                if (!rect.Contains(point)) return -1;
                 Vector2 worldPoint = target.LocalToWorld(point);
                 if (owner.canvasGuideTopRail.worldBound.Contains(worldPoint)) return 1;
                 if (owner.canvasGuideLeftRail.worldBound.Contains(worldPoint)) return 0;
@@ -192,13 +176,15 @@ namespace DCFApixels.WhimTex
                 }
             }
 
+            internal void RulerDown(PointerDownEvent evt) => Down(evt);
+
             private void Down(PointerDownEvent evt)
             {
                 controlHeld = evt.ctrlKey;
                 if (IsDragging) { WhimTexUI.ConsumeEvent(evt); return; }
                 if (evt.button != 0 && evt.button != 1) return;
                 if (!CanGrab(evt.ctrlKey, evt.altKey)) { owner.selectedCanvasGuide = -1; return; }
-                Vector2 point = evt.localPosition;
+                Vector2 point = target.WorldToLocal(evt.position);
                 int rail = RailAt(point);
                 int hit = rail < 0 ? Hit(point, evt.button == 0) : -1;
                 owner.selectedCanvasGuide = hit;

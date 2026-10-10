@@ -319,6 +319,7 @@
       "canvas-view-footer-v2",
       "canvas-view-header-refresh-v2",
       "canvas-view-zoom-v2",
+      "canvas-transform-actions-v2",
       "clipboard-broken-fx-v2",
       "clipboard-examples-v2",
       "clipping-mask-v2",
@@ -747,6 +748,7 @@
       "canvas-view-footer-v2",
       "canvas-view-header-refresh-v2",
       "canvas-view-zoom-v2",
+      "canvas-transform-actions-v2",
       "clipboard-broken-fx-v2",
       "clipboard-examples-v2",
       "clipping-mask-v2",
@@ -1639,6 +1641,7 @@
       "canvas-view-footer-v2",
       "canvas-view-header-refresh-v2",
       "canvas-view-zoom-v2",
+      "canvas-transform-actions-v2",
       "context-tools-start-v2",
       "eyedropper-cursor-smoke-v2",
       "eyedropper-smoke-v2",
@@ -7113,6 +7116,23 @@
         "Tests~/Framework/TestApi.cs",
         "Tests~/Framework/Unity/UnityAScope.cs"
       ],
+      "reviewFiles": []
+    },
+    {
+      "id": "canvas-transform-actions-v2",
+      "file": "Tests~/Cases/Canvas/CanvasTransformActionTests.cs",
+      "runner": "run_script",
+      "entry": "CanvasTransformActionTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["canvas"],
+      "prerequisites": "Idle matching Unity Editor with current WhimTex assembly.",
+      "setup": "Owned in-memory transform structs only; no assets or user documents.",
+      "teardown": "No Unity objects or persistent state are created.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
       "reviewFiles": []
     },
     {

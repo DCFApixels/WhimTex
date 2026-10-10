@@ -63,6 +63,8 @@ PNG/JPEG/EXR files do not store a sampling mode for other applications.
 
 ## Move around
 
+- The top and left rulers show pixels, with divisions that adapt to zoom and a marker for the pointer. Zero follows the canvas's top-left corner; on a rotated view, distances follow the current view axes.
+- Drag the thin scrollbars on the right or bottom to pan. Click an end arrow for a small step; hold it to keep moving. Click the track to move by a page, or use the wheel over a scrollbar to pan along its axis. You can scroll beyond the edges even when the whole canvas fits in the view: the thumb shrinks as you move farther away and grows again on your return.
 - Hold the mouse wheel and drag to pan.
 - Hold `Shift` and drag with the mouse wheel pressed to rotate the view with any tool. Rotation lightly snaps to 90° steps and to angles that make a guide horizontal or vertical on screen. The closest angle wins; hold `Ctrl` to bypass snapping. Hidden guides and guides with **Snap to Guides** turned off do not add magnetic angles.
 - Scroll to zoom around the pointer with any tool.
@@ -82,14 +84,14 @@ See [seamless painting](symmetry.md).
 
 ### Create and edit guides
 
-Drag from the thin strip on the left of Canvas View to create a vertical guide, or from the top strip for a horizontal one.
-The new line is parallel to the strip even on a rotated canvas; afterwards it moves, zooms and rotates with the canvas.
+Drag from the left ruler of Canvas View to create a vertical guide, or from the top ruler for a horizontal one.
+The new line is parallel to the ruler even on a rotated canvas; afterwards it moves, zooms and rotates with the canvas.
 
-Drag an existing line to reposition it. Drop it back on either strip or outside Canvas View to remove it; `Esc` cancels the drag.
-You can create guides from the edge strips with any tool. Existing guides have the lowest input priority: they can be dragged only where the active tool does not use the click. Transform handles and the inside of its frame take priority, including for multiple layers and temporary FX transforms; Point and Normal handles also take priority. To move a guide, use Transform outside its frame or an FX Edit on Canvas tool away from its handles. Painting, filling and area-selection tools ignore existing guides; the lines stay visible and draw below all tool handles.
+Drag an existing line to reposition it. Drop it back on either ruler or outside Canvas View to remove it; `Esc` cancels the drag.
+You can create guides from the rulers with any tool. Existing guides have the lowest input priority: they can be dragged only where the active tool does not use the click. Transform handles and the inside of its frame take priority, including for multiple layers and temporary FX transforms; Point and Normal handles also take priority. To move a guide, use Transform outside its frame or an FX Edit on Canvas tool away from its handles. Painting, filling and area-selection tools ignore existing guides; the lines stay visible and draw below all tool handles.
 Click a guide to select it: arrow keys nudge it, `Shift` increases the step tenfold, and `Delete` removes it. Click elsewhere or press `Esc` to deselect. Double-click a guide to enter an exact **Position (px)** and **Angle (°)**. Angles are relative to the canvas: 0° is horizontal, 90° is vertical. For those two orientations, Position is the distance from the top or left edge; at other angles it is the signed perpendicular distance from the top-left corner.
 
-Right-click a guide to **Edit**, **Duplicate** or **Delete** it. Right-click either edge strip for the shared controls:
+Right-click a guide to **Edit**, **Duplicate** or **Delete** it. Right-click either ruler for the shared controls:
 
 - **Show Guides** — hide or show the lines. The **Guides** button next to **UV** in the Canvas View footer does the same. Hidden guides do not attract tools; creating a new guide shows them again.
 - **Lock Guides** — protect existing lines from editing. You can still create new guides and snap tools to locked ones.

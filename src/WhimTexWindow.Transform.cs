@@ -5,6 +5,8 @@ using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
 {
+    internal enum CanvasTransformAction { CenterPivot, CenterOnCanvas, FlipHorizontal, FlipVertical, RotateLeft, RotateRight }
+
     public sealed partial class WhimTexWindow
     {
         [NonSerialized] private double nextTransformCanvasAt;
@@ -102,13 +104,33 @@ namespace DCFApixels.WhimTex
         {
             VisualElement row = CreateCanvasSettingsRow();
             row.AddToClassList("whimtex-transform-settings");
-            toolkitHeaderBindings.Add(() => row.SetEnabled(CanvasFXParameter == null && !HasMultipleTransformSelection));
+            VisualElement actions = new VisualElement { name = "canvasTransformActions" };
+            actions.AddToClassList("whimtex-transform-actions");
+            VisualElement resetGroup = CreateCanvasTransformActionGroup("canvasTransformResetGroup", separated: true);
+            VisualElement reflectionGroup = CreateCanvasTransformActionGroup("canvasTransformReflectionGroup", separated: true);
+            VisualElement rotationGroup = CreateCanvasTransformActionGroup("canvasTransformRotationGroup", separated: true);
+            actions.Add(resetGroup);
+            actions.Add(reflectionGroup);
+            actions.Add(rotationGroup);
+            bool SingleAvailable() => IsCanvasTransformEnabled && !HasMultipleTransformSelection;
+            AddCanvasTransformAction(resetGroup, CanvasTransformAction.CenterPivot, LayerActionIcon.Kind.CenterPivot,
+                "Center Pivot", "Move the pivot to the center of the transform without moving the image.");
+            AddCanvasTransformAction(resetGroup, CanvasTransformAction.CenterOnCanvas, LayerActionIcon.Kind.CenterOnCanvas,
+                "Center on Canvas", "Move the transform so its pivot is at the center of Canvas.");
+            AddCanvasTransformAction(reflectionGroup, CanvasTransformAction.FlipHorizontal, LayerActionIcon.Kind.FlipHorizontal,
+                "Flip Horizontal", "Reflect horizontally around the pivot, along the Canvas X axis.");
+            AddCanvasTransformAction(reflectionGroup, CanvasTransformAction.FlipVertical, LayerActionIcon.Kind.FlipVertical,
+                "Flip Vertical", "Reflect vertically around the pivot, along the Canvas Y axis.");
+            AddCanvasTransformAction(rotationGroup, CanvasTransformAction.RotateLeft, LayerActionIcon.Kind.RotateLeft,
+                "Rotate Left 90°", "Rotate 90° counterclockwise around the pivot in Canvas coordinates.");
+            AddCanvasTransformAction(rotationGroup, CanvasTransformAction.RotateRight, LayerActionIcon.Kind.RotateRight,
+                "Rotate Right 90°", "Rotate 90° clockwise around the pivot in Canvas coordinates.");
             EnumField tiling = CompactField(new EnumField("Tiling", TransformTilingMode.Clip), 100f);
             tiling.tooltip = "Clip: transparent outside the frame. Repeat: tile. Mirror: reflected tiles. " +
                 "Source: inherit texture wrap modes. Clamp: extend edge pixels. " +
                 "Unbounded: continue procedural UVs; raster layers use Clip.";
             toolkitHeaderBindings.Track(tiling, () => (Enum)(GetSelectedLayer()?.transform.tiling ?? TransformTilingMode.Clip));
-            toolkitHeaderBindings.Add(() => tiling.SetEnabled(IsCanvasToolAvailable(CanvasTool.Transform)));
+            toolkitHeaderBindings.Add(() => tiling.SetEnabled(SingleAvailable()));
             BindCanvasSettingsRow(row, CanvasTool.Transform);
             tiling.RegisterValueChangedCallback(evt =>
             {
@@ -123,7 +145,7 @@ namespace DCFApixels.WhimTex
             filter.tooltip = "Source: inherit the texture's Filter Mode. Point: sharp pixels. Bilinear: smooth. " +
                 "Trilinear: smooth mip transitions (requires source mipmaps). Independent of Tiling.";
             toolkitHeaderBindings.Track(filter, () => (Enum)(GetSelectedLayer()?.filterMode ?? LayerFilterMode.Source));
-            toolkitHeaderBindings.Add(() => filter.SetEnabled(IsCanvasToolAvailable(CanvasTool.Transform)));
+            toolkitHeaderBindings.Add(() => filter.SetEnabled(SingleAvailable()));
             filter.RegisterValueChangedCallback(evt =>
             {
                 Layer selected = GetSelectedLayer();
@@ -134,23 +156,29 @@ namespace DCFApixels.WhimTex
                 ApplyToolkitChange("Change Layer Filter", () => selected.filterMode = (LayerFilterMode)evt.newValue);
             });
             row.Add(filter);
-            row.Add(WhimTexUI.CreateOriginalAspectButton(
-                GetSelectedLayer, () => activeDocument,
+            Button originalAspect = WhimTexUI.CreateOriginalAspectButton(
+                () => SingleAvailable() ? GetSelectedLayer() : null, () => activeDocument,
                 (undoName, change) =>
                 {
                     FinishCanvasTransform();
                     FinishPaintingStroke();
                     ApplyToolkitChange(undoName, change);
-                }, toolkitHeaderBindings));
-            row.Add(WhimTexUI.CreateOriginalAspectButton(
-                GetSelectedLayer, () => activeDocument,
+                }, toolkitHeaderBindings);
+            SetCanvasTransformActionIcon(originalAspect, "OriginalAspect", LayerActionIcon.Kind.OriginalAspect);
+            originalAspect.tooltip = "Original Aspect\n" + originalAspect.tooltip;
+            resetGroup.Add(originalAspect);
+            Button originalSize = WhimTexUI.CreateOriginalAspectButton(
+                () => SingleAvailable() ? GetSelectedLayer() : null, () => activeDocument,
                 (undoName, change) =>
                 {
                     FinishCanvasTransform();
                     FinishPaintingStroke();
                     ApplyToolkitChange(undoName, change);
-                }, toolkitHeaderBindings, originalSize: true));
-            Button reset = WhimTexUI.CreateButton("Reset", () =>
+                }, toolkitHeaderBindings, originalSize: true);
+            SetCanvasTransformActionIcon(originalSize, "OriginalSize", LayerActionIcon.Kind.OriginalSize);
+            originalSize.tooltip = "Original Size\n" + originalSize.tooltip;
+            resetGroup.Add(originalSize);
+            Button reset = WhimTexUI.CreateButton(string.Empty, () =>
             {
                 Layer selected = GetSelectedLayer();
                 if (selected == null || selected.IsGroup)
@@ -162,10 +190,119 @@ namespace DCFApixels.WhimTex
                 if (!value.Equals(selected.transform))
                     ApplyToolkitChange("Reset Layer Transform", () => selected.transform = value);
             });
-            reset.tooltip = "Reset position, scale, rotation and pivot; restore Tiling to Clip. Keep Filter unchanged.";
-            toolkitHeaderBindings.Add(() => reset.SetEnabled(IsCanvasTransformEnabled));
-            row.Add(reset);
+            SetCanvasTransformActionIcon(reset, "Reset", LayerActionIcon.Kind.Reset);
+            reset.tooltip = "Reset\nReset position, scale, rotation and pivot; restore Tiling to Clip. Keep Filter unchanged.";
+            toolkitHeaderBindings.Add(() => reset.SetEnabled(SingleAvailable() && GetSelectedLayer()?.IsGroup == false));
+            resetGroup.Add(reset);
+            row.Add(actions);
             toolkitCanvasViewHeader.Add(row);
+        }
+
+        private static VisualElement CreateCanvasTransformActionGroup(string name, bool separated = false)
+        {
+            VisualElement group = new VisualElement { name = name };
+            group.AddToClassList("whimtex-transform-action-group");
+            if (separated) group.AddToClassList("whimtex-transform-action-group--separated");
+            return group;
+        }
+
+        private void AddCanvasTransformAction(VisualElement row, CanvasTransformAction action,
+            LayerActionIcon.Kind icon, string undoName, string tooltip)
+        {
+            Button button = WhimTexUI.CreateButton(string.Empty, () => ApplyCanvasTransformAction(action, undoName));
+            SetCanvasTransformActionIcon(button, action.ToString(), icon);
+            button.tooltip = undoName + "\n" + tooltip;
+            toolkitHeaderBindings.Add(() => button.SetEnabled(IsCanvasTransformEnabled && canvasTool == CanvasTool.Transform));
+            row.Add(button);
+        }
+
+        private static void SetCanvasTransformActionIcon(Button button, string name, LayerActionIcon.Kind icon)
+        {
+            button.name = "canvasTransform" + name;
+            button.text = string.Empty;
+            button.AddToClassList("whimtex-transform-action");
+            button.Add(new LayerActionIcon(icon));
+        }
+
+        private void ApplyCanvasTransformAction(CanvasTransformAction action, string undoName)
+        {
+            if (canvasTool != CanvasTool.Transform || !IsCanvasTransformEnabled) return;
+            FinishCanvasTransform();
+            FinishPaintingStroke();
+            Vector2 size = new Vector2(activeDocument.width, activeDocument.height);
+            TextureTransform current = CurrentCanvasTransform;
+            if (!TryCanvasTransformAction(current, size, action, out var next) || next.Equals(current)) return;
+            bool pivotOnly = action == CanvasTransformAction.CenterPivot;
+            MultiLayerTransform multi = HasMultipleTransformSelection ? CurrentMultiTransform : null;
+            multi?.Begin();
+            if (multi != null && pivotOnly)
+            {
+                multi.Apply(next, true);
+                RefreshCanvasTransformTool();
+                RefreshToolkitInterface();
+                toolkitCanvas?.Focus();
+                return;
+            }
+            Undo.IncrementCurrentGroup();
+            ApplyToolkitChange(undoName, () =>
+            {
+                bool applied = multi != null ? multi.Apply(next) : activeDocument.SetCanvasTransform(GetSelectedLayer(), next);
+                if (!applied) throw new InvalidOperationException("Cannot apply this action to an invalid transform.");
+            });
+            Undo.FlushUndoRecordObjects();
+            lineAnchorLayer = null;
+            RefreshCanvasTransformTool();
+            toolkitCanvas?.Focus();
+        }
+
+        internal static bool TryCanvasTransformAction(TextureTransform current, Vector2 size,
+            CanvasTransformAction action, out TextureTransform next)
+        {
+            next = current;
+            if (!(size.x > 0f) || !(size.y > 0f) || !ProjectiveMatrix.Finite(size.x) || !ProjectiveMatrix.Finite(size.y)) return false;
+            ProjectiveMatrix matrix = current.ToMatrix(size.x, size.y);
+            if (!matrix.ValidUnitQuad() || !matrix.TryPoint(current.pivot, out var pivot)) return false;
+            if (action == CanvasTransformAction.CenterPivot)
+            {
+                if (current.pivot == new Double2(.5, .5)) return true;
+                if (!next.TrySetPivot(new Double2(.5, .5))) return false;
+                if (current.storage == TransformStorage.TRS)
+                {
+                    Double2 center = matrix.Point(next.pivot);
+                    next.position = new Double2((center.x - .5) * size.x, (center.y - .5) * size.y);
+                }
+                return true;
+            }
+            if (action == CanvasTransformAction.CenterOnCanvas)
+            {
+                Double2 delta = new Double2(.5 - pivot.x, .5 - pivot.y);
+                if (current.storage == TransformStorage.Projective)
+                    return next.TrySetMatrix(ProjectiveMatrix.Translate(delta.x, delta.y) * matrix);
+                next.position += new Double2(delta.x * size.x, delta.y * size.y);
+                return true;
+            }
+            if (current.storage == TransformStorage.TRS)
+            {
+                switch (action)
+                {
+                    case CanvasTransformAction.FlipHorizontal: next.scale.x = -next.scale.x; next.rotation = -next.rotation; break;
+                    case CanvasTransformAction.FlipVertical: next.scale.y = -next.scale.y; next.rotation = -next.rotation; break;
+                    case CanvasTransformAction.RotateLeft: next.rotation += 90; break;
+                    case CanvasTransformAction.RotateRight: next.rotation -= 90; break;
+                    default: return false;
+                }
+                return true;
+            }
+            ProjectiveMatrix pixels;
+            switch (action)
+            {
+                case CanvasTransformAction.FlipHorizontal: pixels = ProjectiveMatrix.Scale(-1, 1); break;
+                case CanvasTransformAction.FlipVertical: pixels = ProjectiveMatrix.Scale(1, -1); break;
+                case CanvasTransformAction.RotateLeft: pixels = ProjectiveMatrix.Rotate(90); break;
+                case CanvasTransformAction.RotateRight: pixels = ProjectiveMatrix.Rotate(-90); break;
+                default: return false;
+            }
+            return next.AroundPivot(pixels, size);
         }
 
         private void ToggleCanvasTransform()
