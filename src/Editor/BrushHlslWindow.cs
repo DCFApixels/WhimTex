@@ -27,7 +27,7 @@ namespace DCFApixels.WhimTex
             code.verticalScrollerVisibility=ScrollerVisibility.Auto;
             code.RegisterValueChangedCallback(e=>draft=e.newValue);
             rootVisualElement.Add(code);
-            var status=new HelpBox("BrushTip(float2 uv) returns an RGBA tip. Apply rebuilds the cached texture.",HelpBoxMessageType.Info);
+            var status=new HelpBox("Static: BrushTip(float2 uv). Dynamic: BrushTip(float2 uv, DynamicBrushContext brush). Both return RGBA; the signature determines how the tip is evaluated.",HelpBoxMessageType.Info);
             rootVisualElement.Add(status);
             void Apply()
             {

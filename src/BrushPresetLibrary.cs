@@ -21,6 +21,7 @@ namespace DCFApixels.WhimTex
         {
             public float size = 32f, hardness = .8f, spacing = .16f;
             public BrushDynamics dynamics = new BrushDynamics();
+            public List<BrushParameterTextureReference> parameterTextures = new List<BrushParameterTextureReference>();
             public int width, height;
             public bool srgb;
             public FilterMode filter;
@@ -33,7 +34,8 @@ namespace DCFApixels.WhimTex
             dynamics.tip = null;
             dynamics.Normalize();
             return new Preset { size = settings.brushSize, hardness = settings.brushHardness,
-                spacing = settings.brushSpacing, dynamics = dynamics };
+                spacing = settings.brushSpacing, dynamics = dynamics,
+                parameterTextures = BrushParameterTextureReference.Capture(settings.dynamics.hlslParameters) };
         }
 
         internal static string[] List()
@@ -117,6 +119,7 @@ namespace DCFApixels.WhimTex
                 if (preset == null || preset.dynamics == null) throw new IOException("Missing brush settings.");
                 preset.dynamics.tip = null;
                 preset.dynamics.Normalize();
+                BrushParameterTextureReference.Restore(preset.dynamics.hlslParameters, preset.parameterTextures);
                 preset.size = FiniteRange(preset.size, 1f, 4096f);
                 preset.hardness = FiniteRange(preset.hardness, 0f, 1f);
                 preset.spacing = FiniteRange(preset.spacing, DrawingLayerBehaviour.MinimumBrushSpacing, DrawingLayerBehaviour.MaximumBrushSpacing);

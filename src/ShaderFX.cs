@@ -162,23 +162,10 @@ namespace DCFApixels.WhimTex
         [SerializeField, HideInInspector] private bool shaderCreationRecorded;
         [NonSerialized] private Material material;
         [NonSerialized] private Shader materialSourceShader;
-        [NonSerialized] private Dictionary<ShaderFXParameter, GradientBinding> gradientBindings;
+        [NonSerialized] private ShaderParameterBindings parameterBindings;
         [NonSerialized] private string determinismWarningSource;
         [NonSerialized] private bool determinismWarningCached, determinismWarningFound;
 
-        [NonSerialized] private Dictionary<ShaderFXParameter, WhimTexCurveTexture> curveBindings;
-
-        private sealed class GradientBinding : IDisposable
-        {
-            internal readonly WhimTexGradientTexture lut = new WhimTexGradientTexture();
-            internal readonly int propertyId, wrapModePropertyId;
-            internal GradientBinding(ShaderFXParameter declaration)
-            {
-                propertyId = Shader.PropertyToID(declaration.InternalPrefix + "Gradient");
-                wrapModePropertyId = Shader.PropertyToID(declaration.InternalPrefix + "GradientWrap");
-            }
-            public void Dispose() => lut.Dispose();
-        }
         [NonSerialized] private bool notificationQueued;
         [NonSerialized] private bool notificationContainsChanges;
         [NonSerialized] private volatile bool undoDeserialized;
@@ -523,24 +510,8 @@ namespace DCFApixels.WhimTex
                         value = draft;
                         break;
                     }
-                if (applied.type == ShaderFXParameterType.Gradient)
-                {
-                    gradientBindings ??= new Dictionary<ShaderFXParameter, GradientBinding>();
-                    if (!gradientBindings.TryGetValue(applied, out var binding))
-                        gradientBindings.Add(applied, binding = new GradientBinding(applied));
-                    value.gradientValue ??= new WhimTexGradient();
-                    material.SetTexture(binding.propertyId, binding.lut.GetTexture(value.gradientValue));
-                    material.SetFloat(binding.wrapModePropertyId, (float)value.gradientValue.WrapMode);
-                }
-                else if (applied.type == ShaderFXParameterType.Curve)
-                {
-                    curveBindings ??= new Dictionary<ShaderFXParameter, WhimTexCurveTexture>();
-                    if (!curveBindings.TryGetValue(applied, out var lut))
-                        curveBindings.Add(applied, lut = new WhimTexCurveTexture());
-                    value.curveValue ??= WhimTexCurveTexture.Default();
-                    material.SetTexture(applied.InternalPrefix + "Curve", lut.GetTexture(value.curveValue));
-                }
-                else value.SetValue(material, applied, new Vector2(context.activeDocument.width, context.activeDocument.height));
+                parameterBindings ??= new ShaderParameterBindings();
+                parameterBindings.Apply(material, value, applied, new Vector2(context.activeDocument.width, context.activeDocument.height));
             }
             material.SetVector("_InputSize", new Vector4(context.width, context.height, 1f / context.width, 1f / context.height));
             material.SetVector("_CanvasSize", new Vector4(context.activeDocument.width, context.activeDocument.height,
@@ -648,16 +619,8 @@ namespace DCFApixels.WhimTex
 
         private void ReleaseMaterial()
         {
-            if (curveBindings != null)
-            {
-                foreach (var lut in curveBindings.Values) lut.Dispose();
-                curveBindings.Clear();
-            }
-            if (gradientBindings != null)
-            {
-                foreach (var binding in gradientBindings.Values) binding.Dispose();
-                gradientBindings.Clear();
-            }
+            parameterBindings?.Dispose();
+            parameterBindings = null;
             if (material != null)
                 DestroyImmediate(material);
             material = null;

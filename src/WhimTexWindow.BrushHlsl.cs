@@ -43,81 +43,38 @@ namespace DCFApixels.WhimTex
             });
             brushSettingsBindings.Track(resolution,()=>paintSettings.dynamics.hlslResolution);
             panel.Add(resolution);
-            var parameters=new VisualElement();panel.Add(parameters);parent.Add(panel);
-            string layout=null;
-            var refresh=new List<Action>();
+            var evaluation = new Label();
+            panel.Add(evaluation);
+            var sequence = new VisualElement();
+            var seed = WhimTexUI.ConfigureField(new IntegerField("Seed") { value = paintSettings.dynamics.seed, isDelayed = true,
+                tooltip = "Stable sequence seed. Changing it restarts stroke indices and total distance." });
+            seed.RegisterValueChangedCallback(e => ApplyPaintToolChange(() =>
+            {
+                paintSettings.dynamics.seed = Mathf.Max(1, e.newValue);
+                paintSettings.dynamics.ResetSequence();
+            }));
+            brushSettingsBindings.Track(seed, () => paintSettings.dynamics.seed);
+            sequence.Add(seed);
+            sequence.Add(new Button(() => ApplyPaintToolChange(() => paintSettings.dynamics.ResetSequence())) { text = "Reset Sequence" });
+            panel.Add(sequence);
+            var parameterSource = new BrushParameterViewSource(
+                () => paintSettings, ApplyPaintToolChange, message => ShowNotification(new GUIContent(message)));
+            var mainControl = new ShaderFXParameterView(parameterSource, true);
+            panel.Add(mainControl);
+            var parameters = new ShaderFXParameterView(parameterSource);
+            panel.Add(parameters); parent.Add(panel);
+            var diagnostics = new HelpBox(string.Empty, HelpBoxMessageType.Warning);
+            panel.Add(diagnostics);
             brushSettingsBindings.Add(() =>
             {
-                panel.EnableInClassList("whimtex-brush-setting--hidden",paintSettings.dynamics.source!=BrushTipSource.HLSL);
-                string key=paintSettings.dynamics.hlslCode+"\n"+paintSettings.dynamics.hlslParameters?.Count;
-                if(layout==key){foreach(var update in refresh)update();return;}
-                layout=key;parameters.Clear();refresh.Clear();
-                var definitions=paintSettings.dynamics.hlslParameters;
-                if(definitions==null)return;
-                foreach(var definition in definitions)
-                {
-                    string name=definition.name;
-                    if(definition.controls.Count>0 && definition.controls[0].helpBoxes != null)
-                        foreach(string message in definition.controls[0].helpBoxes)
-                            parameters.Add(new HelpBox(message,HelpBoxMessageType.Info));
-                    if(definition.controls.Count>0 && definition.controls[0].headers != null)
-                        foreach(string title in definition.controls[0].headers)
-                        {
-                            var heading=new Label(title);
-                            heading.AddToClassList("whimtex-fx-parameter-header");
-                            parameters.Add(heading);
-                        }
-                    int firstField=parameters.childCount;
-                    string label=ObjectNames.NicifyVariableName(name.TrimStart('_'));
-                    ShaderFXParameter Current()=>paintSettings.dynamics.hlslParameters.Find(p=>p.name==name)??definition;
-                    void Change(Action<ShaderFXParameter> write)
-                    {
-                        try
-                        {
-                            var values=new List<ShaderFXParameter>();
-                            foreach(var p in paintSettings.dynamics.hlslParameters)values.Add(p.Copy());
-                            var value=values.Find(p=>p.name==name);if(value==null)return;write(value);
-                            ApplyPaintToolChange(()=>paintSettings.ApplyHlsl(paintSettings.dynamics.hlslCode,values,paintSettings.dynamics.hlslResolution));
-                        }
-                        catch(Exception error){ShowNotification(new GUIContent(error.Message));foreach(var update in refresh)update();}
-                    }
-                    if(definition.type==ShaderFXParameterType.Float)
-                    {
-                        if(definition.HasSoftRange)
-                        {
-                            var field=new WhimTexSoftRangeField(label,definition.minimum,definition.maximum,definition.softMinimum,definition.softMaximum);
-                            field.SetValueWithoutNotify(definition.floatValue);
-                            field.RegisterValueChangedCallback(e=>Change(p=>p.floatValue=e.newValue));parameters.Add(field);
-                            refresh.Add(()=>field.SetValueWithoutNotify(Current().floatValue));
-                        }
-                        else if(definition.hasMinimum && definition.hasMaximum && definition.minimum<definition.maximum)
-                        {
-                            var field=new Slider(label,definition.minimum,definition.maximum){value=definition.floatValue,showInputField=true};
-                            field.RegisterValueChangedCallback(e=>Change(p=>p.floatValue=p.Clamp(e.newValue)));parameters.Add(field);
-                            refresh.Add(()=>field.SetValueWithoutNotify(Current().floatValue));
-                        }
-                        else
-                        {
-                            var field=new FloatField(label){value=definition.floatValue};
-                            field.RegisterValueChangedCallback(e=>Change(p=>p.floatValue=p.Clamp(e.newValue)));parameters.Add(field);
-                            refresh.Add(()=>field.SetValueWithoutNotify(Current().floatValue));
-                        }
-                    }
-                    else if(definition.type==ShaderFXParameterType.Color)
-                    {
-                        var field=new ColorField(label){value=definition.colorValue,hdr=true,Range=WhimTexColorRange.HdrOnly,UseCanvasChannels=true};
-                        field.RegisterValueChangedCallback(e=>Change(p=>p.colorValue=e.newValue));parameters.Add(field);
-                        refresh.Add(()=>field.SetValueWithoutNotify(Current().colorValue));
-                    }
-                    else
-                    {
-                        var field=new Vector4Field(label){value=definition.vectorValue};
-                        field.RegisterValueChangedCallback(e=>Change(p=>p.vectorValue=e.newValue));parameters.Add(field);
-                        refresh.Add(()=>field.SetValueWithoutNotify(Current().vectorValue));
-                    }
-                    if(definition.controls.Count>0 && !string.IsNullOrEmpty(definition.controls[0].tooltip))
-                        for(int i=firstField;i<parameters.childCount;i++)parameters[i].tooltip=definition.controls[0].tooltip;
-                }
+                panel.EnableInClassList("whimtex-brush-setting--hidden", paintSettings.dynamics.source != BrushTipSource.HLSL);
+                bool dynamic = paintSettings.dynamics.DynamicTip;
+                evaluation.text = dynamic ? "Dynamic — evaluated while painting" : "Static — baked on Apply";
+                resolution.EnableInClassList("whimtex-brush-setting--hidden", dynamic);
+                sequence.EnableInClassList("whimtex-brush-setting--hidden", !dynamic);
+                mainControl.Refresh(); parameters.Refresh();
+                diagnostics.text = paintSettings.dynamics.hlslProgram?.Diagnostics ?? string.Empty;
+                diagnostics.EnableInClassList("whimtex-shader-fx-hidden", string.IsNullOrEmpty(diagnostics.text));
             });
         }
         private void ShowBrushHlslCatalog()
@@ -136,7 +93,11 @@ namespace DCFApixels.WhimTex
                         try
                         {
                             string code=File.ReadAllText(physical);
-                            ApplyPaintToolChange(()=>paintSettings.ApplyHlsl(code,new List<ShaderFXParameter>(),paintSettings.dynamics.hlslResolution));
+                            ApplyPaintToolChange(() =>
+                            {
+                                paintSettings.ApplyHlsl(code,new List<ShaderFXParameter>(),paintSettings.dynamics.hlslResolution);
+                                paintSettings.dynamics.ResetSequence();
+                            });
                         }
                         catch(Exception error){ShowNotification(new GUIContent(error.Message));}
                     });count++;

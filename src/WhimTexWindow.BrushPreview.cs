@@ -98,6 +98,7 @@ namespace DCFApixels.WhimTex
                 brushStrokePreviewLayer ??= new DrawingLayerBehaviour();
                 var dynamics = JsonUtility.FromJson<BrushDynamics>(JsonUtility.ToJson(paintSettings.dynamics));
                 dynamics.tip = paintSettings.dynamics.tip;
+                dynamics.BorrowHlsl(paintSettings.dynamics);
                 dynamics.Normalize();
                 float size = Mathf.Max(1f, Mathf.Clamp(paintSettings.brushSize * 2f, 2f, 56f) * brushStrokePreviewScale);
                 bool erase = paintSettings.tool == PaintToolMode.Eraser;

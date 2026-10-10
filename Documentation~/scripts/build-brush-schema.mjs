@@ -25,7 +25,7 @@ const schema={
   description:'1 MiB UTF-8 JSON maximum. Replaces the current brush, not document layers. HLSL is compiled on the GPU: trust the source. Texture URL downloads require confirmation. Runtime validates shader syntax and gradient ordering.',
   oneOf:[
     object({...common,source:{const:'Standard'},url:{type:'string',maxLength:4096,pattern:'^https?://[^\\s]+$'}},['format','version','source']),
-    object({...common,source:{const:'HLSL'},code:{type:'string',minLength:1,maxLength:65536,description:'At most 65,536 UTF-8 bytes, checked at runtime. Line 1 must be // @whimtex-brush Category/Name.'},resolution:{...integer(32,2048),default:512}},['format','version','source','code'])
+    object({...common,source:{const:'HLSL'},code:{type:'string',minLength:1,maxLength:65536,description:'At most 65,536 UTF-8 bytes, checked at runtime. Line 1 must be // @whimtex-brush Category/Name. Define exactly one float4 BrushTip(float2 uv) (Static) or float4 BrushTip(float2 uv, DynamicBrushContext brush) (Dynamic). Parameters use shared FX @param types, groups, linked/conditional controls and @control on line 2; brush textures support Texture/None only.'},resolution:{...integer(32,2048),default:512,description:'Static tip bake resolution. Ignored by Dynamic tips.'}},['format','version','source','code'])
   ],
   $defs:{settings,gradient:fields.$defs.gradient,gradientStops:fields.$defs.gradientStops}
 };

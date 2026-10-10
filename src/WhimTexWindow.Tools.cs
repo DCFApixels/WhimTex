@@ -50,7 +50,7 @@ namespace DCFApixels.WhimTex
             }
         }
         private bool IsCanvasBrushEnabled => (canvasTool == CanvasTool.Brush || canvasTool == CanvasTool.Pencil) &&
-            (canvasTool != CanvasTool.Brush || paintSettings.dynamics.source != BrushTipSource.HLSL || paintSettings.dynamics.tip != null) &&
+            (canvasTool != CanvasTool.Brush || paintSettings.dynamics.source != BrushTipSource.HLSL || paintSettings.dynamics.HasTip) &&
             GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(activeDocument, layer);
         private bool IsCanvasBlurBrushEnabled => canvasTool == CanvasTool.BlurBrush &&
             GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(activeDocument, layer);

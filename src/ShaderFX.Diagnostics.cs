@@ -64,6 +64,10 @@ namespace DCFApixels.WhimTex
 
         internal static List<ShaderFXDiagnostic> Collect(Shader shader, string source, string code,
             IReadOnlyList<ShaderFXParameter> parameters, string sourcePath, bool usable)
+            => CollectShader(shader, source, code, parameters, sourcePath, usable, true);
+
+        internal static List<ShaderFXDiagnostic> CollectShader(Shader shader, string source, string code,
+            IReadOnlyList<ShaderFXParameter> parameters, string sourcePath, bool usable, bool includeDeterminism)
         {
             var result = new List<ShaderFXDiagnostic>();
             foreach (ShaderMessage message in ShaderUtil.GetShaderMessages(shader))
@@ -71,7 +75,8 @@ namespace DCFApixels.WhimTex
                 Enum.TryParse(message.severity.ToString(), out ShaderFXDiagnosticSeverity severity);
                 result.Add(new ShaderFXDiagnostic(severity, message.message, message.file, message.line));
             }
-            result.AddRange(Parse(ShaderFXSourceBuilder.GetDeterminismWarning(source), ShaderFXDiagnosticSeverity.Warning));
+            if (includeDeterminism)
+                result.AddRange(Parse(ShaderFXSourceBuilder.GetDeterminismWarning(source), ShaderFXDiagnosticSeverity.Warning));
             result.AddRange(Parse(ShaderFXMetadata.ControlWarnings(code, parameters), ShaderFXDiagnosticSeverity.Warning, sourcePath));
             if (!usable && !HasErrors(result))
                 result.Add(new ShaderFXDiagnostic(ShaderFXDiagnosticSeverity.Error, "The shader is not supported on this graphics device."));

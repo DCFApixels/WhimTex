@@ -24,6 +24,12 @@ namespace DCFApixels.WhimTex
             if (gradient == null) throw new ArgumentNullException(nameof(gradient));
             if (space != ColorSpace.Linear && space != ColorSpace.Gamma) throw new ArgumentOutOfRangeException(nameof(space));
             if (texture != null && ReferenceEquals(source, gradient) && colorRevision == gradient.ColorRevision && outputSpace == space) return texture;
+            if (texture != null && source != null && !ReferenceEquals(source, gradient) &&
+                colorRevision == source.ColorRevision && outputSpace == space && source.EqualsRamp(gradient))
+            {
+                source = gradient; colorRevision = gradient.ColorRevision;
+                return texture;
+            }
             gradient.Bake(ramp);
             for (int i = 0; i < width; i++)
             {

@@ -117,10 +117,15 @@ In **Brushes → Tip → Source**, choose **Standard** or **HLSL**.
 Standard is a round procedural brush when **Texture** is empty; assign an image to use a textured tip.
 HLSL generates its tip with a script and uses the same Tip Channel, SDF/Gradient, rotation and flip controls as a textured Standard brush.
 Choose **HLSL Presets** or open **Edit Code…**, edit the script and press **Apply**.
-**Tip Resolution** controls the detail of the generated tip; **Size** controls its stamp size.
+Declared settings use the same fields, groups and conditional visibility as FX, including gradients and curves.
+The entry point selects **Static** (baked on Apply) or **Dynamic** (evaluated while painting).
+**Tip Resolution** controls Static tip detail; **Size** controls the stamp size in both modes.
+Dynamic tips can vary by stroke, stamp, accumulated path length or movement direction. **Seed** sets a stable
+sequence, and **Reset Sequence** restarts it; the sample preview does not advance your strokes.
 The code window can save an HLSL preset to the project or the user preset folder.
 Files in the project and in the user folder's **Brushes/HLSL** subfolder appear in the menu.
-The regular brush **Save As…** also keeps the HLSL code and settings.
+The regular brush **Save As…** also keeps the HLSL code and settings. See the
+[HLSL contract](../AI/BRUSHES.md#full-hlsl-specification) for signatures and context fields.
 
 A browser AI can provide brush JSON: paste it with **Ctrl+V** outside a text field to
 replace the current brush without changing layers. See the [brush contract and examples](../AI/BRUSHES.md).
@@ -145,9 +150,9 @@ for your user account. **↺** restores the default location without deleting fi
 If presets are missing after an update, select their existing folder here; the files are not
 moved or deleted. Tool and Canvas View preferences may reset after updates.
 
-Brushes are stored in its **Brushes** subfolder. Each `.sebrush` file includes its texture
-tip, so you can copy it to another computer's Brushes folder without importing the original
-texture. Overwriting keeps the previous file as `.sebrush.bak`; to restore it, rename that
+Brushes are stored in its **Brushes** subfolder. A `.sebrush` contains settings and any
+image/Static tip; a Dynamic tip keeps its code instead. Copy the preset to another computer's
+Brushes folder without importing the original texture. Overwriting keeps the previous file as `.sebrush.bak`; to restore it, rename that
 backup to a different name ending in `.sebrush`.
 
 The selector also finds `.sebrush` files anywhere in the project's **Assets** or installed

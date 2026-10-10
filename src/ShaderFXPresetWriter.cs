@@ -12,12 +12,18 @@ namespace DCFApixels.WhimTex
         internal static string BuildSource(ShaderFX effect, string menuPath)
         {
             if (effect == null) throw new ArgumentNullException(nameof(effect));
+            return BuildParameterSource(effect.Code, effect.Parameters, menuPath, "whimtex-effect", effect.SourcePath);
+        }
+
+        internal static string BuildParameterSource(string code, System.Collections.Generic.IReadOnlyList<ShaderFXParameter> parameters,
+            string menuPath, string marker, string sourcePath = null)
+        {
             if (string.IsNullOrWhiteSpace(menuPath) || menuPath.IndexOfAny(new[] { '\r', '\n' }) >= 0)
                 throw new FormatException("Choose a non-empty effect name.");
-            var values = ShaderFXMetadata.Parse(effect.Code, false, out _);
-            ShaderFXMetadata.PreserveValues(values, effect.Parameters);
-            var result = new StringBuilder("// @whimtex-effect " + menuPath + "\n");
-            string mainControl = ShaderFXMetadata.ReadControl(effect.Code, out _);
+            var values = ShaderFXMetadata.Parse(code, false, out _);
+            ShaderFXMetadata.PreserveValues(values, parameters);
+            var result = new StringBuilder("// @" + marker + " " + menuPath + "\n");
+            string mainControl = ShaderFXMetadata.ReadControl(code, out _);
             if (mainControl != null) result.AppendLine("// @control(" + mainControl + ")");
             var rows = new System.Collections.Generic.List<(int order, string text, ShaderFXParameterControl control)>();
             foreach (var p in values)
@@ -87,7 +93,7 @@ namespace DCFApixels.WhimTex
             }
             if (activeGroupId >= 0) result.AppendLine("// @endgroup");
             result.AppendLine();
-            using var reader = new StringReader(effect.Code ?? "");
+            using var reader = new StringReader(code ?? "");
             bool block = false;
             string line;
             int lineNumber = 0;
@@ -95,15 +101,15 @@ namespace DCFApixels.WhimTex
             while ((line = reader.ReadLine()) != null)
             {
                 lineNumber++;
-                bool metadata = !block && ((lineNumber == 1 && ShaderFXMetadata.TryHeader(line, out _)) || Regex.IsMatch(line.TrimStart('\uFEFF'), @"^\s*//\s*@(?:control\b|param\b|\s*(?:header|helpbox|group|endgroup)\b|if\b|endif\b)"));
+                bool metadata = !block && ((lineNumber == 1 && Regex.IsMatch(line.TrimStart('\uFEFF'), @"^//\s*@" + Regex.Escape(marker) + @"\s+")) || Regex.IsMatch(line.TrimStart('\uFEFF'), @"^\s*//\s*@(?:control\b|param\b|\s*(?:header|helpbox|group|endgroup)\b|if\b|endif\b)"));
                 ShaderFXSourceBuilder.MaskComments(line, ref block);
                 if (!metadata) body.AppendLine(line);
             }
-            result.Append(ShaderFXSourceBuilder.ExportIncludes(body.ToString(), effect.SourcePath));
+            result.Append(marker == "whimtex-effect" ? ShaderFXSourceBuilder.ExportIncludes(body.ToString(), sourcePath) : body.ToString());
             string source = result.ToString();
             if (Encoding.UTF8.GetByteCount(source) > 2 * 1024 * 1024)
                 throw new IOException("Exported HLSL exceeds 2 MiB.");
-            ShaderFXMetadata.Parse(source, true, out _);
+            ShaderFXMetadata.Parse(source, marker == "whimtex-effect", out _);
             return source;
         }
 

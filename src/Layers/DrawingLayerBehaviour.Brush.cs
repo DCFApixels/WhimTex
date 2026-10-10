@@ -10,6 +10,12 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private uint brushStampIndex;
         [NonSerialized] private float brushDirection;
         [NonSerialized] private bool brushTintPrepared;
+        [NonSerialized] private DynamicBrushContext dynamicStroke;
+        [NonSerialized] private bool dynamicStrokeStarted;
+        [NonSerialized] private double brushDistance;
+        [NonSerialized] private double dynamicStrokeStartDistance;
+        [NonSerialized] private Vector2 dynamicPreviousStampPoint;
+        [NonSerialized] private bool dynamicHasPreviousStamp;
         [NonSerialized] private RenderTexture advancedStroke, advancedStrokeBase;
 
         private void BuildBrushSegment(Vector2 from, Vector2 to, int width, int height, bool includeStart,
@@ -18,6 +24,13 @@ namespace DCFApixels.WhimTex
             int count = brushSpacingState.Sample(distance, parameters.SpacingPixels, includeStart, out double first);
             int stride = Mathf.Max(1, Mathf.CeilToInt(count / (float)Mathf.Max(1, budget)));
             BrushDynamics dynamics = parameters.Dynamics;
+            bool dynamic = dynamics?.DynamicTip == true;
+            if (dynamic && !dynamicStrokeStarted)
+            {
+                dynamicStroke = dynamics.Sequence.Begin(dynamics.seed);
+                dynamicStrokeStartDistance = dynamics.Sequence.TotalDistance;
+                dynamicStrokeStarted = true;
+            }
             if (!brushTintPrepared)
             {
                 dynamics?.PrepareTint();
@@ -25,12 +38,12 @@ namespace DCFApixels.WhimTex
             }
             bool variation = dynamics != null && dynamics.PerStamp;
             float baseRotation = 0f;
-            if (dynamics?.tip != null && dynamics.rotationMode == BrushRotationMode.StrokeDirection)
+            if (dynamics?.HasTip == true && dynamics.rotationMode == BrushRotationMode.StrokeDirection)
             {
                 brushDirection = BrushDynamics.MovementAngle((to.x - from.x) * width, (to.y - from.y) * height, brushDirection);
                 baseRotation = brushDirection;
             }
-            if (dynamics?.tip != null) baseRotation += dynamics.angleOffset * Mathf.Deg2Rad;
+            if (dynamics?.HasTip == true) baseRotation += dynamics.angleOffset * Mathf.Deg2Rad;
             float scatterExponent = dynamics != null && dynamics.scatter > 0f ? dynamics.GetScatterExponent() : .5f;
             if (brushRandomState == 0) brushRandomState = unchecked((uint)(dynamics?.seed ?? 1));
             uint firstStamp = brushStampIndex;
@@ -41,10 +54,21 @@ namespace DCFApixels.WhimTex
                 uint stampIndex = unchecked(firstStamp + (uint)i);
                 float t = distance <= 0f ? 0f : (float)((first + i * (double)parameters.SpacingPixels) / distance);
                 Vector2 point = Vector2.LerpUnclamped(from, to, t);
+                Vector2 deltaPixels = Vector2.zero;
+                if (dynamic && (i > 0 || dynamicHasPreviousStamp))
+                {
+                    // Use the previous logical stamp, even when the render budget skips it.
+                    Vector2 previous = i > 0
+                        ? Vector2.LerpUnclamped(from, to, distance <= 0f ? 0f :
+                            (float)((first + (i - 1) * (double)parameters.SpacingPixels) / distance))
+                        : dynamicPreviousStampPoint;
+                    deltaPixels = Vector2.Scale(point - previous, new Vector2(width, height));
+                }
                 float size = parameters.Size;
                 float rotation = baseRotation;
                 int flip = 0;
                 Color tint = parameters.Color;
+                tint.a *= parameters.Pressure;
                 if (variation)
                 {
                     if (dynamics.scatter > 0f)
@@ -55,11 +79,11 @@ namespace DCFApixels.WhimTex
                     }
                     if (dynamics.sizeJitter > 0f)
                         size = Mathf.Max(1f, size * (1f + dynamics.sizeJitter * (2f * dynamics.SampleRandom(ref brushRandomState, stampIndex, 2) - 1f)));
-                    if (dynamics.tip != null && dynamics.angleJitter > 0f)
+                    if (dynamics.HasTip && dynamics.angleJitter > 0f)
                         rotation += dynamics.angleJitter * Mathf.Deg2Rad * (2f * dynamics.SampleRandom(ref brushRandomState, stampIndex, 3) - 1f);
                     if (dynamics.HasTint)
                         tint *= dynamics.SampleTint(ref brushRandomState, stampIndex);
-                    if (dynamics.tip != null)
+                    if (dynamics.HasTip)
                     {
                         if (dynamics.SampleFlip(ref brushRandomState, stampIndex, 5, dynamics.flipX)) flip |= 1;
                         if (dynamics.SampleFlip(ref brushRandomState, stampIndex, 6, dynamics.flipY)) flip |= 2;
@@ -78,9 +102,24 @@ namespace DCFApixels.WhimTex
                     stamp.rotation = rotation;
                     stamp.flip = flip;
                     stamp.color = tint;
+                    if (dynamic)
+                    {
+                        double at = brushDistance + Math.Min(distance, Math.Max(0d, first + i * (double)parameters.SpacingPixels));
+                        stamp.dynamicContext = new DynamicBrushContext(dynamicStroke.seed, dynamicStroke.strokeIndex, stampIndex,
+                            at, dynamicStrokeStartDistance + at, deltaPixels);
+                    }
                     segmentStamps.Add(stamp);
                 }
             }
+            if (dynamic && count > 0)
+            {
+                // Keep the unscattered, unwrapped position across input events and clipping.
+                float lastT = distance <= 0f ? 0f : (float)((first + (count - 1) * (double)parameters.SpacingPixels) / distance);
+                dynamicPreviousStampPoint = Vector2.LerpUnclamped(from, to, lastT);
+                dynamicHasPreviousStamp = true;
+            }
+            brushDistance += distance;
+            if (dynamic) dynamics.Sequence.Advance(distance);
         }
 
         private void EnsureAdvancedStroke(RenderTexture surface, bool withBackdrop = false)

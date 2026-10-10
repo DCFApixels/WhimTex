@@ -113,10 +113,32 @@ float4 SampleInput(float2 uv, float tiling)
                 "_MainTex", "_MainTex_TexelSize", "_InputSize", "_CanvasSize", "_RenderScale",
                 "ApplyFX", "SampleInput", "LayerToLocal", "SpriteFXFragment", "vert_img", "v2f_img"
             };
-            foreach (ShaderFXParameter parameter in effect.Parameters)
+            BuildParameterDeclarations(effect.Parameters, properties, uniforms, names);
+            string expanded = builder.ResolveIncludes(effect.Code ?? string.Empty, assetPath);
+            if (Regex.IsMatch(expanded, @"\b_WhimTex_[A-Za-z0-9_]*"))
+                throw new InvalidOperationException("The _WhimTex_ prefix is reserved for generated shader data.");
+            return "Shader \"Hidden/WhimTex/ShaderFX/" + effect.ShaderKey + "\"\n{\n" +
+                "Properties {\n_MainTex (\"Input\", 2D) = \"white\" {}\n" +
+                "[HideInInspector] _WhimTex_InputFilter (\"Input Filter\", Float) = 1\n" + properties + "}\n" +
+                "SubShader { Cull Off ZWrite Off ZTest Always Blend Off\nPass {\nCGPROGRAM\n" +
+                "#pragma vertex vert_img\n#pragma fragment SpriteFXFragment\n#pragma target 3.5\n" +
+                "#include \"UnityCG.cginc\"\n" + NoiseLibraryInclude + "sampler2D _MainTex;\nfloat4 _MainTex_TexelSize;\n" +
+                "float4 _InputSize;\nfloat4 _CanvasSize;\nfloat _RenderScale;\n" + uniforms +
+                "float4 _WhimTex_LayerToLocalRow0, _WhimTex_LayerToLocalRow1, _WhimTex_LayerToLocalRow2;\n" +
+                "float2 LayerToLocal(float2 uv) { float3 p = float3(uv, 1); float w = dot(_WhimTex_LayerToLocalRow2.xyz, p); w = abs(w) < 1e-8 ? (w < 0 ? -1e-8 : 1e-8) : w; return float2(dot(_WhimTex_LayerToLocalRow0.xyz, p), dot(_WhimTex_LayerToLocalRow1.xyz, p)) / w; }\n" +
+                InputSamplingSource +
+                LineDirective(1, assetPath) + expanded + "\n#line 1 \"SpriteFXWrapper\"\n" +
+                "float4 SpriteFXFragment(v2f_img input) : SV_Target { return ApplyFX(input.uv, SampleInput(input.uv)); }\n" +
+                "ENDCG\n}\n}\nFallback Off\n}\n";
+        }
+
+        internal static void BuildParameterDeclarations(IReadOnlyList<ShaderFXParameter> parameters,
+            StringBuilder properties, StringBuilder uniforms, HashSet<string> names, bool generatedNames = false)
+        {
+            foreach (ShaderFXParameter parameter in parameters)
             {
                 if (parameter == null || string.IsNullOrEmpty(parameter.name) || !Identifier.IsMatch(parameter.name) ||
-                    parameter.name.StartsWith("_WhimTex_", StringComparison.Ordinal) || !names.Add(parameter.name))
+                    !generatedNames && parameter.name.StartsWith("_WhimTex_", StringComparison.Ordinal) || !names.Add(parameter.name))
                     throw new InvalidOperationException($"Invalid, duplicate or reserved parameter name: '{parameter?.name}'. Use an HLSL identifier such as _Amount.");
                 string name = parameter.name;
                 switch (parameter.type)
@@ -180,22 +202,6 @@ float4 SampleInput(float2 uv, float tiling)
                     default: throw new InvalidOperationException($"Unsupported parameter type: {parameter.type}.");
                 }
             }
-            string expanded = builder.ResolveIncludes(effect.Code ?? string.Empty, assetPath);
-            if (Regex.IsMatch(expanded, @"\b_WhimTex_[A-Za-z0-9_]*"))
-                throw new InvalidOperationException("The _WhimTex_ prefix is reserved for generated shader data.");
-            return "Shader \"Hidden/WhimTex/ShaderFX/" + effect.ShaderKey + "\"\n{\n" +
-                "Properties {\n_MainTex (\"Input\", 2D) = \"white\" {}\n" +
-                "[HideInInspector] _WhimTex_InputFilter (\"Input Filter\", Float) = 1\n" + properties + "}\n" +
-                "SubShader { Cull Off ZWrite Off ZTest Always Blend Off\nPass {\nCGPROGRAM\n" +
-                "#pragma vertex vert_img\n#pragma fragment SpriteFXFragment\n#pragma target 3.5\n" +
-                "#include \"UnityCG.cginc\"\n" + NoiseLibraryInclude + "sampler2D _MainTex;\nfloat4 _MainTex_TexelSize;\n" +
-                "float4 _InputSize;\nfloat4 _CanvasSize;\nfloat _RenderScale;\n" + uniforms +
-                "float4 _WhimTex_LayerToLocalRow0, _WhimTex_LayerToLocalRow1, _WhimTex_LayerToLocalRow2;\n" +
-                "float2 LayerToLocal(float2 uv) { float3 p = float3(uv, 1); float w = dot(_WhimTex_LayerToLocalRow2.xyz, p); w = abs(w) < 1e-8 ? (w < 0 ? -1e-8 : 1e-8) : w; return float2(dot(_WhimTex_LayerToLocalRow0.xyz, p), dot(_WhimTex_LayerToLocalRow1.xyz, p)) / w; }\n" +
-                InputSamplingSource +
-                LineDirective(1, assetPath) + expanded + "\n#line 1 \"SpriteFXWrapper\"\n" +
-                "float4 SpriteFXFragment(v2f_img input) : SV_Target { return ApplyFX(input.uv, SampleInput(input.uv)); }\n" +
-                "ENDCG\n}\n}\nFallback Off\n}\n";
         }
 
         // Preserve dependencies across Save As without expanding their methods or

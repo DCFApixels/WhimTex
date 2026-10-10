@@ -245,6 +245,10 @@ namespace DCFApixels.WhimTex
             brushStampIndex = 0;
             brushDirection = 0f;
             brushTintPrepared = false;
+            dynamicStrokeStarted = false;
+            dynamicHasPreviousStamp = false;
+            dynamicPreviousStampPoint = Vector2.zero;
+            brushDistance = 0d;
             strokeWrapCanvas = false;
             strokeRepeatShapeAnchor = sourceUv;
             clipStrokeToInitialShape =
@@ -370,6 +374,7 @@ namespace DCFApixels.WhimTex
                 return;
             color.a *= parameters.Pressure;
             if (color.a <= 0f) return;
+            parameters.Dynamics?.EnsureHlsl();
             if (!TiledCanvasUtility.IsInvertible(Owner.PixelCanvasTransform)) return;
             var canvasSize = new Vector2(outputWidth, outputHeight);
             fromSourceUv = Owner.PixelCanvasTransform.Map(fromSourceUv, canvasSize);
@@ -622,6 +627,7 @@ namespace DCFApixels.WhimTex
 
         internal override void ReleaseTransientResources()
         {
+            brushDynamics?.ReleaseHlsl();
             ReleasePaintSurface();
             if (pixels != null && !AssetDatabase.Contains(pixels) &&
                 (pixels.hideFlags & HideFlags.DontSave) != 0)
@@ -638,6 +644,7 @@ namespace DCFApixels.WhimTex
         {
             if (paintSurfaceDirty)
                 SyncSurfaceToTexture();
+            brushDynamics?.ReleaseHlsl();
             ReleasePaintSurface();
         }
 
@@ -1055,6 +1062,7 @@ namespace DCFApixels.WhimTex
 
         internal struct PaintStamp : IEquatable<PaintStamp>
         {
+            public DynamicBrushContext dynamicContext;
             public float size;
             public float rotation;
             public int flip;
@@ -1122,7 +1130,8 @@ namespace DCFApixels.WhimTex
                 if (target == null || stamps == null || stamps.Count == 0)
                     return;
 
-                Material material = WhimTexMaterials.PaintBrush;
+                bool dynamic = dynamics?.DynamicTip == true;
+                Material material = dynamic ? dynamics.hlslProgram.DynamicMaterial : WhimTexMaterials.PaintBrush;
                 if (material == null)
                     return;
 
@@ -1132,11 +1141,16 @@ namespace DCFApixels.WhimTex
                     ? (float)UnityEngine.Rendering.BlendOp.Max : (float)UnityEngine.Rendering.BlendOp.Add);
                 if (maskCanvasToSource.HasValue) maskCanvasToSource.Value.SetShader(material, "_MaskRow");
                 Texture2D tip = dynamics?.tip;
-                bool textured = tip != null;
-                if (variation && !textured) material.EnableKeyword("BRUSH_DYNAMICS");
-                else material.DisableKeyword("BRUSH_DYNAMICS");
-                if (textured) material.EnableKeyword("BRUSH_TEXTURE");
-                else material.DisableKeyword("BRUSH_TEXTURE");
+                bool textured = tip != null || dynamic;
+                meshDynamic = dynamic;
+                if (dynamic) material.SetVector("_WhimTex_StrokeSequence", stamps[0].dynamicContext.StrokeUniform);
+                if (!dynamic)
+                {
+                    if (variation && !textured) material.EnableKeyword("BRUSH_DYNAMICS");
+                    else material.DisableKeyword("BRUSH_DYNAMICS");
+                    if (textured) material.EnableKeyword("BRUSH_TEXTURE");
+                    else material.DisableKeyword("BRUSH_TEXTURE");
+                }
                 material.SetTexture("_BrushTip", textured ? tip : Texture2D.whiteTexture);
                 material.SetFloat("_TipChannel", dynamics != null ? (int)dynamics.tipChannel : 0f);
                 bool sdfGradient = !pixelPerfect && dynamics != null && dynamics.UsesSdfGradient;
@@ -1147,10 +1161,10 @@ namespace DCFApixels.WhimTex
                 material.SetFloat("_StampBlendEnabled", stampBlend ? 1f : 0f);
                 material.SetFloat("_StampBlendMode", dynamics != null ? (int)dynamics.blend : 0f);
                 material.SetFloat("_HdrBlend", hdrBlend ? 1f : 0f);
-                float tipExtent = textured ? Mathf.Max(tip.width, tip.height) : 1f;
-                material.SetVector("_TipAspect", textured ? new Vector4(tip.width / tipExtent, tip.height / tipExtent, 0f, 0f) : Vector4.one);
-                material.SetFloat("_TipDecode", textured && tip.isDataSRGB && QualitySettings.activeColorSpace == ColorSpace.Gamma ? 1f : 0f);
-                material.SetFloat("_TipEncodeMask", textured && tip.isDataSRGB && QualitySettings.activeColorSpace == ColorSpace.Linear ? 1f : 0f);
+                float tipExtent = tip != null ? Mathf.Max(tip.width, tip.height) : 1f;
+                material.SetVector("_TipAspect", tip != null ? new Vector4(tip.width / tipExtent, tip.height / tipExtent, 0f, 0f) : Vector4.one);
+                material.SetFloat("_TipDecode", tip != null && tip.isDataSRGB && QualitySettings.activeColorSpace == ColorSpace.Gamma ? 1f : 0f);
+                material.SetFloat("_TipEncodeMask", tip != null && tip.isDataSRGB && QualitySettings.activeColorSpace == ColorSpace.Linear ? 1f : 0f);
 
                 float radiusX = sizePixels / Mathf.Max(1f, outputWidth) * 0.5f;
                 float radiusY = sizePixels / Mathf.Max(1f, outputHeight) * 0.5f;

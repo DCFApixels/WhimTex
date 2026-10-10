@@ -19,10 +19,10 @@ namespace DCFApixels.WhimTex
         public StrokeSmoothingSettings smoothing = new StrokeSmoothingSettings();
         public string brushTipGuid;
         public long brushTipLocalId;
+        public System.Collections.Generic.List<BrushParameterTextureReference> hlslTextureReferences = new System.Collections.Generic.List<BrushParameterTextureReference>();
         public string brushTipPresetPath;
         [NonSerialized] private Texture2D ownedPresetTip;
         public string clipboardTipId;
-        [NonSerialized] private BrushTipProgram tipProgram;
         [NonSerialized] private bool tipRestoreFailed;
 
         internal void SetTipSource(BrushTipSource source)
@@ -40,12 +40,11 @@ namespace DCFApixels.WhimTex
         {
             var parameters=BrushTipProgram.Parse(code,out _);
             ShaderFXMetadata.PreserveValues(parameters,values);
-            tipProgram??=new BrushTipProgram();
-            Texture2D texture=tipProgram.Bake(code,parameters,resolution);
+            if (dynamics.hlslProgram == null) BrushParameterTextureReference.Restore(parameters, hlslTextureReferences);
+            var textureReferences = BrushParameterTextureReference.Capture(parameters);
+            dynamics.ApplyHlsl(code,parameters,resolution);
+            hlslTextureReferences = textureReferences;
             ReleaseOwnedTip();
-            dynamics.tip=ownedPresetTip=texture;
-            dynamics.source=BrushTipSource.HLSL;
-            dynamics.hlslCode=code; dynamics.hlslParameters=parameters; dynamics.hlslResolution=resolution;
             brushTipGuid=brushTipPresetPath=clipboardTipId=string.Empty; brushTipLocalId=0;
             tipRestoreFailed=false;
         }
@@ -110,6 +109,7 @@ namespace DCFApixels.WhimTex
             dynamics.source = BrushTipSource.Standard;
             dynamics.hlslCode = BrushTipProgram.DefaultSource;
             dynamics.hlslParameters = new System.Collections.Generic.List<ShaderFXParameter>();
+            hlslTextureReferences = new System.Collections.Generic.List<BrushParameterTextureReference>();
             dynamics.hlslResolution = 512;
             clipboardTipId = string.Empty;
             dynamics.tipChannel = defaults.dynamics.tipChannel;
@@ -136,13 +136,16 @@ namespace DCFApixels.WhimTex
 
         internal void ApplyPreset(BrushPresetLibrary.Preset preset, Texture2D tip, string path)
         {
+            if (preset.dynamics.source == BrushTipSource.HLSL && BrushTipProgram.ReadDynamic(preset.dynamics.hlslCode))
+                preset.dynamics.EnsureHlsl();
             ReleasePresetTip();
             brushSize = preset.size;
             brushHardness = preset.hardness;
             brushSpacing = preset.spacing;
             dynamics = preset.dynamics;
+            hlslTextureReferences = preset.parameterTextures;
             clipboardTipId=string.Empty;
-            dynamics.tip = tip;
+            if (!dynamics.DynamicTip) dynamics.tip = tip;
             ownedPresetTip = tip;
             brushTipGuid = string.Empty;
             brushTipLocalId = 0;
@@ -151,7 +154,7 @@ namespace DCFApixels.WhimTex
 
         internal void ReleasePresetTip()
         {
-            tipProgram?.Dispose(); tipProgram=null;
+            dynamics?.ReleaseHlsl();
             tipRestoreFailed=false;
             ReleaseOwnedTip();
         }
@@ -193,7 +196,7 @@ namespace DCFApixels.WhimTex
 
         internal bool TryRestoreBrushTip()
         {
-            if (dynamics == null || dynamics.tip != null ||
+            if (dynamics == null || dynamics.HasTip ||
                 EditorApplication.isCompiling || EditorApplication.isUpdating) return false;
             if(tipRestoreFailed)return false;
             if(dynamics.source==BrushTipSource.HLSL)

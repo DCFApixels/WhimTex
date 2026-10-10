@@ -55,7 +55,8 @@ namespace DCFApixels.WhimTex
             while ((line = reader.ReadLine()) != null)
             {
                 lineNumber++;
-                if (lineNumber == 1 && TryHeader(line, out _)) expectedLine = 2;
+                if (lineNumber == 1 && (TryHeader(line, out _) ||
+                    Regex.IsMatch(line.TrimStart('\uFEFF'), @"^//\s*@whimtex-brush\s+"))) expectedLine = 2;
                 bool directive = !block && Regex.IsMatch(line.TrimStart('\uFEFF'), @"^\s*//\s*@control\b");
                 ShaderFXSourceBuilder.MaskComments(line, ref block);
                 if (!directive) continue;

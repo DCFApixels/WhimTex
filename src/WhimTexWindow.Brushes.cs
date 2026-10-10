@@ -74,12 +74,12 @@ namespace DCFApixels.WhimTex
             proceduralMode.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() =>
                 paintSettings.dynamics.proceduralMode = evt.newValue == "Gradient" ? BrushProceduralMode.SdfGradient : BrushProceduralMode.Hardness));
             brushSettingsBindings.Track(proceduralMode, () => paintSettings.dynamics.proceduralMode == BrushProceduralMode.SdfGradient ? "Gradient" : "Hardness");
-            brushSettingsBindings.Add(() => proceduralMode.EnableInClassList("whimtex-brush-setting--hidden", paintSettings.dynamics.tip != null));
+            brushSettingsBindings.Add(() => proceduralMode.EnableInClassList("whimtex-brush-setting--hidden", paintSettings.dynamics.HasTip));
             scroll.Add(proceduralMode);
             var channel = WhimTexUI.ConfigureField(new EnumField("Tip Channel", paintSettings.dynamics.tipChannel));
             channel.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.dynamics.tipChannel = (BrushTipChannel)evt.newValue));
             brushSettingsBindings.Track(channel, () => (Enum)paintSettings.dynamics.tipChannel);
-            brushSettingsBindings.Add(() => channel.SetEnabled(paintSettings.dynamics.tip != null));
+            brushSettingsBindings.Add(() => channel.SetEnabled(paintSettings.dynamics.HasTip));
             scroll.Add(channel);
             var sdf = WhimTexUI.ConfigureField(new Toggle("SDF")
             {
@@ -88,12 +88,12 @@ namespace DCFApixels.WhimTex
             });
             sdf.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.dynamics.tipSdf = evt.newValue));
             brushSettingsBindings.Track(sdf, () => paintSettings.dynamics.tipSdf);
-            brushSettingsBindings.Add(() => sdf.SetEnabled(paintSettings.dynamics.tip != null));
-            brushSettingsBindings.Add(() => sdf.EnableInClassList("whimtex-brush-setting--hidden", paintSettings.dynamics.tip == null));
+            brushSettingsBindings.Add(() => sdf.SetEnabled(paintSettings.dynamics.HasTip));
+            brushSettingsBindings.Add(() => sdf.EnableInClassList("whimtex-brush-setting--hidden", !paintSettings.dynamics.HasTip));
             scroll.Add(sdf);
             var hardness = AddBrushPercent(scroll, "Hardness", () => paintSettings.brushHardness, v => paintSettings.brushHardness = v,
                 "Edge hardness of the procedural brush. Textured brushes use their own coverage or Gradient.");
-            brushSettingsBindings.Add(() => hardness.SetEnabled(paintSettings.dynamics.tip == null));
+            brushSettingsBindings.Add(() => hardness.SetEnabled(!paintSettings.dynamics.HasTip));
             brushSettingsBindings.Add(() => hardness.EnableInClassList("whimtex-brush-setting--hidden", paintSettings.dynamics.UsesSdfGradient));
             var sdfGradient = WhimTexUI.ConfigureField(WhimTexColorInputs.Bind(new WhimTexGradientValueField("Gradient")
             {
@@ -141,7 +141,7 @@ namespace DCFApixels.WhimTex
             });
             rotation.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.dynamics.rotationMode = (BrushRotationMode)evt.newValue));
             brushSettingsBindings.Track(rotation, () => (Enum)paintSettings.dynamics.rotationMode);
-            brushSettingsBindings.Add(() => rotation.SetEnabled(paintSettings.dynamics.tip != null));
+            brushSettingsBindings.Add(() => rotation.SetEnabled(paintSettings.dynamics.HasTip));
             scroll.Add(rotation);
             var offset = WhimTexUI.ConfigureField(new Slider("Angle Offset (°)", -180f, 180f)
             {
@@ -150,7 +150,7 @@ namespace DCFApixels.WhimTex
             });
             offset.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.dynamics.angleOffset = evt.newValue));
             brushSettingsBindings.Track(offset, () => paintSettings.dynamics.angleOffset);
-            brushSettingsBindings.Add(() => offset.SetEnabled(paintSettings.dynamics.tip != null));
+            brushSettingsBindings.Add(() => offset.SetEnabled(paintSettings.dynamics.HasTip));
             scroll.Add(offset);
             var angle = WhimTexUI.ConfigureField(new Slider("Angle Jitter (°)", 0f, 180f)
             {
@@ -159,7 +159,7 @@ namespace DCFApixels.WhimTex
             });
             angle.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.dynamics.angleJitter = evt.newValue));
             brushSettingsBindings.Track(angle, () => paintSettings.dynamics.angleJitter);
-            brushSettingsBindings.Add(() => angle.SetEnabled(paintSettings.dynamics.tip != null));
+            brushSettingsBindings.Add(() => angle.SetEnabled(paintSettings.dynamics.HasTip));
             scroll.Add(angle);
 
             var flipX = WhimTexUI.ConfigureField(new Slider("Flip X", 0f, 1f)
@@ -169,7 +169,7 @@ namespace DCFApixels.WhimTex
             });
             flipX.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.dynamics.flipX = evt.newValue));
             brushSettingsBindings.Track(flipX, () => paintSettings.dynamics.flipX);
-            brushSettingsBindings.Add(() => flipX.SetEnabled(paintSettings.dynamics.tip != null));
+            brushSettingsBindings.Add(() => flipX.SetEnabled(paintSettings.dynamics.HasTip));
             scroll.Add(flipX);
             var flipY = WhimTexUI.ConfigureField(new Slider("Flip Y", 0f, 1f)
             {
@@ -178,7 +178,7 @@ namespace DCFApixels.WhimTex
             });
             flipY.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.dynamics.flipY = evt.newValue));
             brushSettingsBindings.Track(flipY, () => paintSettings.dynamics.flipY);
-            brushSettingsBindings.Add(() => flipY.SetEnabled(paintSettings.dynamics.tip != null));
+            brushSettingsBindings.Add(() => flipY.SetEnabled(paintSettings.dynamics.HasTip));
             scroll.Add(flipY);
 
             scroll.Add(CreateBrushSectionHeader("Color", () => paintSettings.ResetBrushColor(),
@@ -285,7 +285,7 @@ namespace DCFApixels.WhimTex
 
             var mode = new Button(() =>
             {
-                if (paintSettings.dynamics.tip != null) return;
+                if (paintSettings.dynamics.HasTip) return;
                 var menu = new GenericMenu();
                 menu.AddItem(new GUIContent("Hardness"), paintSettings.dynamics.proceduralMode == BrushProceduralMode.Hardness,
                     () => ApplyPaintToolChange(() => paintSettings.dynamics.proceduralMode = BrushProceduralMode.Hardness));
@@ -300,8 +300,8 @@ namespace DCFApixels.WhimTex
                 bool sdf = paintSettings.dynamics.UsesSdfGradient;
                 hardness.EnableInClassList("whimtex-brush-setting--hidden", sdf);
                 gradient.EnableInClassList("whimtex-brush-setting--hidden", !sdf);
-                hardness.SetEnabled(paintSettings.dynamics.tip == null);
-                mode.SetEnabled(paintSettings.dynamics.tip == null);
+                hardness.SetEnabled(!paintSettings.dynamics.HasTip);
+                mode.SetEnabled(!paintSettings.dynamics.HasTip);
             });
             row.Add(edge);
         }

@@ -17,7 +17,7 @@ namespace DCFApixels.WhimTex
             internal VisualElement content;
         }
 
-        private readonly ShaderFX effect;
+        private readonly ShaderParameterViewSource source;
         private readonly List<ShaderFXParameter> parameterLayout = new List<ShaderFXParameter>();
         private readonly Dictionary<string, ShaderFXParameter> parametersById = new Dictionary<string, ShaderFXParameter>(StringComparer.Ordinal);
         private readonly Dictionary<string, ShaderFXParameter> parametersByName = new Dictionary<string, ShaderFXParameter>(StringComparer.Ordinal);
@@ -29,24 +29,27 @@ namespace DCFApixels.WhimTex
 
         internal ShaderFXParameterView(ShaderFX effect) : this(effect, false) { }
         internal ShaderFXParameterView(ShaderFX effect, bool effectControl)
-        { this.effect = effect; this.effectControl = effectControl; Refresh(); }
+            : this(new ShaderFXParameterViewSource(effect), effectControl) { }
+
+        internal ShaderFXParameterView(ShaderParameterViewSource source, bool effectControl = false)
+        { this.source = source; this.effectControl = effectControl; Refresh(); }
 
         internal void Refresh()
         {
-            if (effect == null) return;
+            if (source == null) return;
             parametersById.Clear();
             parametersByName.Clear();
-            bool changed = !layoutBuilt || parameterLayout.Count != effect.Parameters.Count;
-            if (effectControl && controlSource != effect.Code)
+            bool changed = !layoutBuilt || parameterLayout.Count != source.Parameters.Count;
+            if (effectControl && controlSource != source.Code)
             {
-                controlSource = effect.Code;
+                controlSource = source.Code;
                 string next = ShaderFXMetadata.ReadControl(controlSource, out _);
                 changed |= next != controlName;
                 controlName = next;
             }
-            for (int i = 0; i < effect.Parameters.Count; i++)
+            for (int i = 0; i < source.Parameters.Count; i++)
             {
-                var p = effect.Parameters[i];
+                var p = source.Parameters[i];
                 if (p != null)
                 {
                     if (p.id != null && !parametersById.ContainsKey(p.id)) parametersById.Add(p.id, p);
@@ -58,7 +61,7 @@ namespace DCFApixels.WhimTex
             {
                 layoutBuilt = true;
                 parameterLayout.Clear();
-                foreach (var p in effect.Parameters) parameterLayout.Add(CopyLayout(p));
+                foreach (var p in source.Parameters) parameterLayout.Add(CopyLayout(p));
                 Clear(); refresh.Clear(); postRefresh.Clear();
                 if (effectControl)
                 {
@@ -86,7 +89,7 @@ namespace DCFApixels.WhimTex
                 else
                 {
                     var rows = new List<(ShaderFXParameter parameter, ShaderFXParameterControl control)>();
-                    foreach (var p in effect.Parameters)
+                    foreach (var p in source.Parameters)
                         if (p != null)
                         {
                             foreach (var control in p.controls) rows.Add((p, control));
@@ -112,8 +115,8 @@ namespace DCFApixels.WhimTex
             if (effectControl)
             {
                 EnableInClassList("whimtex-hidden", childCount == 0);
-                SetEnabled(!WhimTexApi.IsShaderFXContentLocked(effect));
             }
+            SetEnabled(!source.IsReadOnly);
             foreach (var update in refresh) update();
             foreach (var update in postRefresh) update();
         }
@@ -190,15 +193,8 @@ namespace DCFApixels.WhimTex
 
         private void Change(string id, Action<ShaderFXParameter> update)
         {
-            if (effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
-            // Resolve against the current model: Undo can replace parameter objects before the view refreshes.
-            ShaderFXParameter value = null;
-            foreach (var p in effect.Parameters) if (p != null && p.id == id) { value = p; break; }
-            if (value == null) return;
-            Undo.RecordObject(effect, "Change FX Parameter");
-            update(value);
-            EditorUtility.SetDirty(effect);
-            effect.NotifyValuesChanged();
+            if (source.IsReadOnly) return;
+            source.Change(id, update);
             Refresh();
         }
 
@@ -282,7 +278,6 @@ namespace DCFApixels.WhimTex
             bool dragging = false;
             bool changed = false;
             int activePointer = -1;
-            int undoGroup = -1;
             float startX = 0f;
             float startValue = 0f;
             float unitsPerPixel = 0.01f;
@@ -291,7 +286,7 @@ namespace DCFApixels.WhimTex
             {
                 if (!dragging) return;
                 dragging = false;
-                if (changed && undoGroup >= 0) Undo.CollapseUndoOperations(undoGroup);
+                source.EndDrag(changed);
                 if (title.HasPointerCapture(pointerId)) title.ReleasePointer(pointerId);
                 activePointer = -1;
                 changed = false;
@@ -299,7 +294,7 @@ namespace DCFApixels.WhimTex
 
             title.RegisterCallback<PointerDownEvent>(evt =>
             {
-                if (evt.button != 0 || dragging || effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
+                if (evt.button != 0 || dragging || source.IsReadOnly) return;
                 ShaderFXParameter parameter = Find(id);
                 if (parameter == null) return;
 
@@ -312,10 +307,7 @@ namespace DCFApixels.WhimTex
                     ? control.maximum - control.minimum
                     : Mathf.Max(1f, Mathf.Abs(startValue));
                 unitsPerPixel = Mathf.Max(range / 200f, 0.0001f);
-                Undo.IncrementCurrentGroup();
-                undoGroup = Undo.GetCurrentGroup();
-                Undo.SetCurrentGroupName("Change FX Parameter");
-                Undo.RecordObject(effect, "Change FX Parameter");
+                source.BeginDrag();
                 title.CapturePointer(evt.pointerId);
                 evt.StopPropagation();
             });
@@ -329,10 +321,8 @@ namespace DCFApixels.WhimTex
                 float value = parameter.Clamp(startValue + (evt.position.x - startX) * unitsPerPixel * sensitivity);
                 if (!Mathf.Approximately(value, parameter.floatValue))
                 {
-                    parameter.floatValue = value;
+                    source.Change(id, p => p.floatValue = value, false);
                     changed = true;
-                    EditorUtility.SetDirty(effect);
-                    effect.NotifyValuesChanged();
                     Refresh();
                 }
                 evt.StopPropagation();
@@ -393,13 +383,7 @@ namespace DCFApixels.WhimTex
                     field = number;
                     break;
                 case ShaderFXParameterType.Color:
-                    var serialized = new SerializedObject(effect);
-                    int index = 0;
-                    for (; index < effect.Parameters.Count; index++) if (effect.Parameters[index].id == id) break;
-                    var property = serialized.FindProperty("parameters").GetArrayElementAtIndex(index).FindPropertyRelative("colorValue");
-                    var color = WhimTexColorInputs.Bind(new ColorField(string.Empty), property, effect.NotifyValuesChanged);
-                    color.RegisterCallback<DetachFromPanelEvent>(_ => serialized.Dispose());
-                    field = color;
+                    field = source.CreateColorField(string.Empty, id, refresh);
                     break;
                 case ShaderFXParameterType.Vector2:
                     var vector2 = new Vector2Field(string.Empty);
@@ -569,11 +553,13 @@ namespace DCFApixels.WhimTex
                 case ShaderFXParameterType.Point:
                     var vector2 = new Vector2Field(label);
                     if (declaration.type == ShaderFXParameterType.Point)
-                        vector2.tooltip = "Canvas UV: bottom-left (0, 0), top-right (1, 1). Values outside the canvas are allowed.";
+                        vector2.tooltip = source.CanEditOnCanvas
+                            ? "Canvas UV: bottom-left (0, 0), top-right (1, 1). Values outside the canvas are allowed."
+                            : "Tip UV: bottom-left (0, 0), top-right (1, 1). Values outside the tip are allowed.";
                     vector2.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = e.newValue));
                     refresh.Add(() => vector2.SetValueWithoutNotify(Find(id).vectorValue));
-                    if (declaration.type == ShaderFXParameterType.Point)
-                        AddCanvasField(rowRoot, vector2, CreateCanvasEditButton("editFXPoint", () => WhimTexWindow.EditFXPoint(effect, id),
+                    if (declaration.type == ShaderFXParameterType.Point && source.CanEditOnCanvas)
+                        AddCanvasField(rowRoot, vector2, CreateCanvasEditButton("editFXPoint", () => source.EditOnCanvas(ShaderFXParameterType.Point, id),
                             "Drag the point handle, including outside the canvas."));
                     else rowRoot.Add(vector2);
                     break;
@@ -583,8 +569,8 @@ namespace DCFApixels.WhimTex
                     bool normal = declaration.type == ShaderFXParameterType.Normal;
                     vector3.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = normal ? ShaderFXParameter.NormalizeNormal(e.newValue) : e.newValue));
                     refresh.Add(() => vector3.SetValueWithoutNotify(Find(id).vectorValue));
-                    if (normal)
-                        AddCanvasField(rowRoot, vector3, CreateCanvasEditButton("editFXNormal", () => WhimTexWindow.EditFXNormal(effect, id),
+                    if (normal && source.CanEditOnCanvas)
+                        AddCanvasField(rowRoot, vector3, CreateCanvasEditButton("editFXNormal", () => source.EditOnCanvas(ShaderFXParameterType.Normal, id),
                             "Drag the direction handle. Click its endpoint to switch hemisphere."));
                     else rowRoot.Add(vector3);
                     break;
@@ -594,18 +580,10 @@ namespace DCFApixels.WhimTex
                     rowRoot.Add(vector); refresh.Add(() => vector.SetValueWithoutNotify(Find(id).vectorValue));
                     break;
                 case ShaderFXParameterType.Color:
-                    // Use the shared picker binding for HDR/Standard display semantics.
-                    var data = new SerializedObject(effect);
-                    int index = 0;
-                    for (; index < effect.Parameters.Count; index++) if (effect.Parameters[index].id == id) break;
-                    var property = data.FindProperty("parameters").GetArrayElementAtIndex(index).FindPropertyRelative("colorValue");
-                    var color = WhimTexColorInputs.Bind(new ColorField(label), property, effect.NotifyValuesChanged);
-                    rowRoot.Add(color);
-                    color.RegisterCallback<DetachFromPanelEvent>(_ => data.Dispose());
+                    rowRoot.Add(source.CreateColorField(label, id, refresh));
                     break;
                 case ShaderFXParameterType.Texture2D:
-                    var texture = new ShaderFXTextureField(effect, id, label);
-                    rowRoot.Add(texture); refresh.Add(texture.Refresh);
+                    rowRoot.Add(source.CreateTextureField(label, id, refresh));
                     break;
                 case ShaderFXParameterType.Transform2D:
                     var foldout = new Foldout { text = label, value = false };
@@ -615,21 +593,20 @@ namespace DCFApixels.WhimTex
                     var transformToggle = foldout.Q<Toggle>();
                     foldout.hierarchy.Insert(0, transformHeader);
                     transformHeader.Add(transformToggle);
-                    var editTransform = CreateCanvasEditButton("editFXTransform", () => WhimTexWindow.EditFXTransform(effect, id),
+                    var editTransform = CreateCanvasEditButton("editFXTransform", () => source.EditOnCanvas(ShaderFXParameterType.Transform2D, id),
                         "Toggle the green FX frame on the selected layer.");
                     var resetTransform = new Button(() => Change(id, p => p.transformValue = ShaderFXTransform.Default))
                     {
                         name = "resetFXTransform", text = "↺", tooltip = "Reset Transform"
                     };
                     resetTransform.AddToClassList("whimtex-fx-parameter-action");
-                    transformHeader.Add(editTransform);
+                    if (source.CanEditOnCanvas) transformHeader.Add(editTransform);
                     transformHeader.Add(resetTransform);
                     rowRoot.Add(foldout);
                     var position = new Vector2Field("Position");
                     var size = new Vector2Field("Size");
                     var rotation = new DoubleField("Rotation");
-                    var document = WhimTexWindow.FindFXTransformDocument(effect);
-                    Vector2 Dimensions() => document != null ? new Vector2(document.width, document.height) : Vector2.one;
+                    Vector2 Dimensions() => source.Dimensions;
                     position.tooltip = "Normalized input coordinates. (0.5, 0.5) is the image center.";
                     size.tooltip = "Relative to the input image. (1, 1) covers the whole image.";
                     position.RegisterValueChangedCallback(e => Change(id, p => p.transformValue.EditPosition(e.newValue, Dimensions())));

@@ -241,7 +241,8 @@ public static class ShaderFXGroupTests
                 foreach (var parameterName in presetName == "ColorFilter" ? new[] {"_FilterColor", "_PreserveLuminosity"} : new[] {"_Hue", "_Saturation", "_Value"})
                     Check(string.IsNullOrEmpty(Control(presetControls, parameterName).visibleIfParameter), presetName + " keeps " + parameterName + " editable at zero opacity");
             }
-            CheckCondition("Twirl", "_Area", "_Angle");
+            Check(string.IsNullOrEmpty(Control(PresetParameters("Twirl"), "_Area").visibleIfParameter),
+                "Twirl keeps its area editable at zero angle");
             CheckCondition("RadialShear", "_Center", "_Strength");
             Check(Control(PresetParameters("Halftone"), "_PaperColor").inGroup &&
                 PresetParameters("Halftone").TrueForAll(parameter => parameter.controls.TrueForAll(control => control.inGroup)),

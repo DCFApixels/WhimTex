@@ -30,6 +30,16 @@ namespace DCFApixels.WhimTex
 
         internal PaintStrokeParameters WithCanvasWrap() => new PaintStrokeParameters(this, true, SelectionMask);
         internal PaintStrokeParameters WithSelectionMask(Texture mask) => new PaintStrokeParameters(this, WrapCanvas, mask);
+        internal PaintStrokeParameters WithDynamics(BrushDynamics dynamics) => new PaintStrokeParameters(this, dynamics);
+
+        private PaintStrokeParameters(PaintStrokeParameters source, BrushDynamics dynamics)
+        {
+            Color = source.Color; Size = source.Size; Hardness = source.Hardness; SpacingPixels = source.SpacingPixels;
+            Erase = source.Erase; WrapCanvas = source.WrapCanvas; PixelPerfect = source.PixelPerfect; Shape = source.Shape;
+            SelectionMask = source.SelectionMask; Dynamics = source.PixelPerfect ? null : dynamics;
+            StandardColorInputs = source.StandardColorInputs; Pressure = source.Pressure;
+            WriteChannels = source.WriteChannels; LockAlpha = source.LockAlpha;
+        }
 
         internal bool OverlapsCanvas(Vector2 center, int width, int height)
         {

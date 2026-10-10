@@ -60,6 +60,20 @@ namespace DCFApixels.WhimTex
             return field;
         }
 
+        internal static ColorField Bind(ColorField field, Func<Color> read, Action<Color> write)
+        {
+            field.UseCanvasChannels = true;
+            field.ReadPickerColor = read;
+            field.HdrChanged = value => Hdr = value;
+            Observe(field, () =>
+            {
+                field.hdr = Hdr;
+                field.SetValueWithoutNotify(DisplayColor(read()));
+            });
+            field.RegisterValueChangedCallback(evt => write(evt.newValue));
+            return field;
+        }
+
         internal static ColorField Bind(ColorField field, SerializedProperty property, Action edited)
         {
             field.UseCanvasChannels = true;

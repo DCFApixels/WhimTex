@@ -41,12 +41,70 @@ namespace DCFApixels.WhimTex
         public BrushBlendApplication blendApplication;
         public int seed = 1;
 
+        [NonSerialized] internal BrushTipProgram hlslProgram;
+        [NonSerialized] private bool ownsHlslProgram;
+        [NonSerialized] private Texture2D ownedHlslTip;
+        [NonSerialized] private DynamicBrushSequence sequence;
+        internal bool DynamicTip => source == BrushTipSource.HLSL && hlslProgram?.IsDynamic == true;
+        internal bool HasTip => tip != null || DynamicTip;
+        internal DynamicBrushSequence Sequence => sequence ??= new DynamicBrushSequence();
+
+        internal void ResetSequence() => sequence?.Reset();
+
+        internal void EnsureHlsl()
+        {
+            if (source != BrushTipSource.HLSL || hlslProgram?.Matches(hlslCode) == true && (DynamicTip || tip != null)) return;
+            if (hlslProgram == null && tip != null && !BrushTipProgram.ReadDynamic(hlslCode)) return;
+            ApplyHlsl(hlslCode, hlslParameters, hlslResolution);
+        }
+
+        internal void ApplyHlsl(string code, System.Collections.Generic.List<ShaderFXParameter> parameters, int resolution)
+        {
+            bool dynamic = BrushTipProgram.ReadDynamic(code);
+            bool changed = hlslCode != code || source != BrushTipSource.HLSL;
+            var program = ownsHlslProgram ? hlslProgram : new BrushTipProgram();
+            Texture2D baked = null;
+            try
+            {
+                if (dynamic) program.PrepareDynamic(code, parameters);
+                else baked = program.Bake(code, parameters, resolution);
+            }
+            catch { if (!ownsHlslProgram) program.Dispose(); throw; }
+            ReleaseHlslTip();
+            hlslProgram = program; ownsHlslProgram = true;
+            tip = ownedHlslTip = baked;
+            source = BrushTipSource.HLSL; hlslCode = code; hlslParameters = parameters; hlslResolution = resolution;
+            if (changed) ResetSequence();
+        }
+
+        internal void BorrowHlsl(BrushDynamics other)
+        {
+            if (ownsHlslProgram) throw new InvalidOperationException("A preview must borrow into fresh brush settings.");
+            hlslProgram = other.hlslProgram;
+        }
+
+        internal void ReleaseHlsl()
+        {
+            if (ownsHlslProgram) hlslProgram?.Dispose();
+            hlslProgram = null; ownsHlslProgram = false;
+            ReleaseHlslTip();
+            ResetSequence();
+        }
+
+        private void ReleaseHlslTip()
+        {
+            if (ownedHlslTip == null) return;
+            if (tip == ownedHlslTip) tip = null;
+            UnityEngine.Object.DestroyImmediate(ownedHlslTip);
+            ownedHlslTip = null;
+        }
+
         [NonSerialized] private bool tintVaries;
         [NonSerialized] private Color constantTint = Color.white;
         internal bool HasTint => tintVaries || !constantTint.Equals(Color.white);
-        internal bool UsesSdfGradient => tip != null ? tipSdf : proceduralMode == BrushProceduralMode.SdfGradient;
-        internal bool CanRotateTip => tip != null && (angleOffset != 0f || angleJitter > 0f || rotationMode == BrushRotationMode.StrokeDirection);
-        internal bool PerStamp => scatter > 0f || sizeJitter > 0f || HasTint || CanRotateTip || tip != null && (flipX > 0f || flipY > 0f);
+        internal bool UsesSdfGradient => HasTip ? tipSdf : proceduralMode == BrushProceduralMode.SdfGradient;
+        internal bool CanRotateTip => HasTip && (angleOffset != 0f || angleJitter > 0f || rotationMode == BrushRotationMode.StrokeDirection);
+        internal bool PerStamp => DynamicTip || scatter > 0f || sizeJitter > 0f || HasTint || CanRotateTip || HasTip && (flipX > 0f || flipY > 0f);
         internal bool NeedsStrokeBuffer(bool erase) => opacity < 1f || !erase && blend != BlendMode.Normal;
         internal bool BlendsEachStamp(bool erase) => !erase && blend != BlendMode.Normal && blendApplication == BrushBlendApplication.Stamp;
 
@@ -213,6 +271,39 @@ namespace DCFApixels.WhimTex
             state ^= state << 5;
             return (state >> 8) * (1f / 16777216f);
         }
+    }
+
+    internal readonly struct DynamicBrushContext
+    {
+        internal readonly uint seed, strokeIndex, stampIndex;
+        internal readonly float distance, totalDistance;
+        internal readonly Vector2 deltaPixels;
+        internal DynamicBrushContext(uint seed, uint strokeIndex, uint stampIndex, double distance, double totalDistance, Vector2 deltaPixels)
+        {
+            this.seed = seed; this.strokeIndex = strokeIndex; this.stampIndex = stampIndex;
+            this.distance = (float)distance; this.totalDistance = (float)totalDistance;
+            this.deltaPixels = deltaPixels;
+        }
+        internal Vector4 StrokeUniform => new Vector4(seed & 65535u, seed >> 16, strokeIndex & 65535u, strokeIndex >> 16);
+        internal Vector4 StampVertex => new Vector4(stampIndex & 65535u, stampIndex >> 16, distance, totalDistance);
+    }
+
+    internal sealed class DynamicBrushSequence
+    {
+        private bool initialized;
+        private uint seed, nextStroke;
+        internal double TotalDistance { get; private set; }
+        internal DynamicBrushContext Begin(int rootSeed)
+        {
+            uint value = unchecked((uint)rootSeed);
+            if (!initialized || seed != value) { Reset(); seed = value; initialized = true; }
+            return new DynamicBrushContext(seed, nextStroke++, 0, 0, TotalDistance, Vector2.zero);
+        }
+        internal void Advance(double distance)
+        {
+            if (distance > 0 && !double.IsNaN(distance) && !double.IsInfinity(distance)) TotalDistance += distance;
+        }
+        internal void Reset() { initialized = false; nextStroke = 0; TotalDistance = 0; }
     }
 
     internal struct BrushSpacingState

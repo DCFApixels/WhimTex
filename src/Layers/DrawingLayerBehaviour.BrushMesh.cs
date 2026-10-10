@@ -12,9 +12,11 @@ namespace DCFApixels.WhimTex
             private static Mesh brushMesh;
             private static CommandBuffer brushCommands;
             private static List<Vector3> meshPositions;
-            private static List<Vector2> meshUv, meshClipMin, meshClipMax;
-            private static List<Vector3> meshClips, meshTiles, meshColors;
+            private static List<Vector2> meshUv;
+            private static List<Vector3> meshClipMin, meshClipMax, meshClips, meshTiles, meshColors;
             private static List<Vector4> meshStamps;
+            private static List<Vector4> meshContexts;
+            private static bool meshDynamic;
             private static List<int> meshIndices;
             private static Vector3 meshColor;
             private static Vector4 meshStamp;
@@ -34,16 +36,18 @@ namespace DCFApixels.WhimTex
                     brushCommands = new CommandBuffer { name = "Brush Stamp Batch" };
                     meshPositions = new List<Vector3>(1024);
                     meshUv = new List<Vector2>(1024);
-                    meshClipMin = new List<Vector2>(1024);
-                    meshClipMax = new List<Vector2>(1024);
+                    meshClipMin = new List<Vector3>(1024);
+                    meshClipMax = new List<Vector3>(1024);
                     meshClips = new List<Vector3>(1024);
                     meshTiles = new List<Vector3>(1024);
                     meshColors = new List<Vector3>(1024);
                     meshStamps = new List<Vector4>(1024);
+                    meshContexts = new List<Vector4>(1024);
                     meshIndices = new List<int>(1024);
                 }
                 meshPositions.Clear(); meshUv.Clear(); meshClipMin.Clear(); meshClipMax.Clear();
                 meshClips.Clear(); meshTiles.Clear(); meshColors.Clear(); meshStamps.Clear(); meshIndices.Clear();
+                meshContexts.Clear();
             }
 
             private static void AddBrushMeshVertex(float x, float y, float u, float v, PaintStamp stamp, int tileMode)
@@ -51,12 +55,14 @@ namespace DCFApixels.WhimTex
                 meshIndices.Add(meshPositions.Count);
                 meshPositions.Add(new Vector3(x, y, 0f));
                 meshUv.Add(new Vector2(u, v));
-                meshClipMin.Add(new Vector2(stamp.clipRect.x, stamp.clipRect.y));
-                meshClipMax.Add(new Vector2(stamp.clipRect.z, stamp.clipRect.w));
+                // Reuse spare clip components; dynamic stamps need no extra UV channel/pass.
+                meshClipMin.Add(new Vector3(stamp.clipRect.x, stamp.clipRect.y, meshDynamic ? stamp.dynamicContext.deltaPixels.x : 0f));
+                meshClipMax.Add(new Vector3(stamp.clipRect.z, stamp.clipRect.w, meshDynamic ? stamp.dynamicContext.deltaPixels.y : 0f));
                 meshClips.Add(new Vector3(stamp.clipMode, stamp.clipAngleCenter, stamp.clipAngleHalfWidth));
                 meshTiles.Add(new Vector3(stamp.center.x, stamp.center.y, tileMode));
                 meshColors.Add(meshColor);
                 meshStamps.Add(meshStamp);
+                if (meshDynamic) meshContexts.Add(stamp.dynamicContext.StampVertex);
             }
 
             private static void EndBrushMesh(RenderTexture target, Material material, RenderTexture backdrop = null)
@@ -72,6 +78,7 @@ namespace DCFApixels.WhimTex
                 brushMesh.SetUVs(4, meshTiles);
                 brushMesh.SetUVs(5, meshColors);
                 brushMesh.SetUVs(6, meshStamps);
+                if (meshDynamic) brushMesh.SetUVs(7, meshContexts);
                 brushMesh.SetIndices(meshIndices, MeshTopology.Quads, 0, false);
                 brushMesh.bounds = new Bounds(new Vector3(.5f, .5f, 0f), new Vector3(2f, 2f, 2f));
                 brushCommands.Clear();
@@ -109,9 +116,10 @@ namespace DCFApixels.WhimTex
                 brushMesh = null;
                 brushCommands?.Release();
                 brushCommands = null;
-                meshPositions = meshClips = meshTiles = meshColors = null;
+                meshPositions = meshClipMin = meshClipMax = meshClips = meshTiles = meshColors = null;
                 meshStamps = null;
-                meshUv = meshClipMin = meshClipMax = null;
+                meshContexts = null;
+                meshUv = null;
                 meshIndices = null;
             }
         }

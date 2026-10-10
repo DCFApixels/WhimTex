@@ -453,9 +453,9 @@ For example: `// @param float _Strength = 5 [0 .. ~2]` or `// @param float _Stre
 Ranges with a soft boundary require both values and `min < max`; one-sided or equal soft bounds are errors.
 The old `~[0 .. 2]` syntax is rejected. Boundary flags survive FX and HLSL brush preset export.
 Bounds written inside HLSL still apply independently.
-For FX, `bool` displays a toggle and generates a `float` uniform with value `0` or `1`, not a shader keyword. An optional default is `true`/`false` or `1`/`0`; ranges are not allowed. Use `if (_IncludeAlpha > 0.5)` or use it directly in arithmetic. This type is not supported by HLSL brush parameters yet.
+For FX and HLSL brush tips, `bool` displays a toggle and generates a `float` uniform with value `0` or `1`, not a shader keyword. An optional default is `true`/`false` or `1`/`0`; ranges are not allowed. Use `if (_IncludeAlpha > 0.5)` or use it directly in arithmetic.
 
-FX also supports dropdown controls and repeated declarations of one variable:
+FX and HLSL brush tips also support dropdown controls and repeated declarations of one variable:
 ```hlsl
 // @param float _Strength = 0.63 [0 .. 1]
 // @param enum _Strength { Low: 0.2, Medium: 0.5, High: 1 }
@@ -471,7 +471,7 @@ are errors. Defaults may be option names or numbers. Unknown numeric values disp
 All parameter types allow omitting `= value`. The last explicit default for a variable wins; if none
 exists, scalar/vector/color defaults are zero. Repeated `float`/`bool`/`enum` controls share one float
 uniform. Other repeated types must match exactly. Control ranges do not clamp values set through
-another control. Preset export saves the current value once. These dropdown/linked controls are FX-only.
+another control. Preset export saves the current value once.
 `float2`, `float3` and `float4` are raw vectors with two, three and four components. `point` is a `float2` position in normalized canvas UV: bottom-left `(0, 0)`, top-right `(1, 1)`. Coordinates and tuple defaults may lie outside these bounds. Its hand button (**Edit on Canvas**) activates a handle that can also be dragged outside the canvas. Its default is `(0.5, 0.5)`; an explicit tuple is optional and ranges are not accepted. `normal` generates a normalized `float3`; its default and zero-vector fallback are `(0, 0, 1)`. It also offers an on-canvas direction handle; no range is accepted. Defaults are optional. Unknown parameter types are rejected.
 
 FX use ordinary input images and explicit parameters, not hidden layer-specific data. Lighting/Bevel Emboss reads a height texture (Self by default) and shares lighting with Normal Map/Lighting. Base Color alpha blends transparent lighting (0) into the shaded surface (1); Output selects Both/Highlight Only/Shadow Only for the transparent part. SDF inputs use their visible gradient, not raw distances. See [shader reference](../ShaderFX.md) for the complete contract.
@@ -482,7 +482,7 @@ Names generate labels: `_NoiseScale` → Noise Scale. No need for a second unifo
 Use `// @param curve _Profile = one` for a constant 1 curve with keys (0,1) and (1,1).
 Curve defaults also accept `easeIn` (`t²`) and `easeOut` (`1-(1-t)²`), for example `// @param curve _Profile = easeIn`. Both span (0,0) to (1,1).
 
-FX-only `curve` declares a scalar mapping: `// @param curve _Profile`, sampled with
+`curve` declares a scalar mapping for FX or HLSL tips: `// @param curve _Profile`, sampled with
 `_Profile_Sample(t)`. Default: linear (0,0) to (1,1). Input clamps to 0..1; output is unrestricted.
 Named defaults: `// @param curve _Profile = linear` or `// @param curve _Profile = easeInOut`.
 The latter smoothly eases between the same endpoints with horizontal endpoint tangents.
@@ -492,19 +492,20 @@ Each tuple is `(time, value, inTangent, outTangent, inWeight, outWeight, weighte
 Use strictly increasing finite times, finite values, weights 0..1 and mode 0/1/2/3
 (none/in/out/both). Tangents additionally allow `inf` or `-inf` for steps. Maximum 256 keys;
 `keys()` evaluates to zero. No range. See [curve reference](../ShaderFX.md#curve-parameters)
-for sampling precision and preset persistence. This is not a layer property or a brush parameter.
+for sampling precision and preset persistence. This is not a layer property.
 
-FX-only `gradient` is declared as `// @param gradient _Ramp`, optionally with two endpoint colors:
+`gradient` for FX or HLSL tips is declared as `// @param gradient _Ramp`, optionally with two endpoint colors:
 `// @param gradient _Ramp = #FF0000FF -> #0000FF`. Each endpoint may be `#RRGGBB` (opaque),
 `#RRGGBBAA` (RGBA), or a numeric `(r, g, b, a)` tuple. Without an initializer it starts opaque
 black-to-white (Perceptual). Explicit two-endpoint defaults use Classic/Gamma/Clamp,
 Smoothness 1 and midpoint .5 to preserve the endpoint-only HLSL export contract.
 The user can edit colors, HDR, alpha and interpolation in the gradient field.
 The same hex forms are accepted for `color` defaults; color defaults also accept numeric RGBA tuples.
-Call `_Ramp_Sample(t)` for straight linear RGBA; `t` is clamped to 0..1.
+Call `_Ramp_Sample(t)` for straight linear RGBA; the gradient's Wrap setting controls `t` (Clamp by default).
 For example, `return _Ramp_Sample(uv.x);`. Do not declare a sampler yourself. A cached 512×2
-LUT supplies the samples; editing keys does not recompile the shader. HLSL brush parameters do not
-support this type. Edited values persist in the document and two-endpoint defaults are exported with HLSL presets.
+LUT supplies the samples; editing keys does not recompile the shader. Edited values persist in the
+owning effect/brush; two-endpoint defaults are exported with HLSL presets. Brush-specific texture
+sources and tip coordinates are described in the [brush contract](BRUSHES.md#declared-parameters).
 
 Transform2D uses `(centerX, centerY, width, height, angleDegrees)` in normalized input units.
 Omitted default means the full image. For skew/perspective, use `// @param transform2D _Area = matrix(1, 0.2, 0, 0, 1, 0, 0.15, 0, 1)`: nine row-major values mapping local UV to input UV. The matrix must be invertible with no horizon crossing the unit rectangle. Do not combine matrix and TRS defaults.

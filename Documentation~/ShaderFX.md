@@ -400,7 +400,7 @@ There are at most 256 keys, with strictly increasing finite times. Values are fi
 also accept `inf` and `-inf` for steps. Weights are 0..1; weightedMode is 0 (none), 1 (in),
 2 (out), or 3 (both). Only the sampled 0..1 interval is visible to the shader.
 No range follows a curve declaration. Repeated declarations share one curve and the last explicit
-default wins. Curve parameters are FX-only, not HLSL brush parameters.
+default wins. Curve parameters also work in HLSL brush tips.
 
 ### Gradient parameters
 
@@ -423,7 +423,7 @@ in the effect/document. The code default initializes new instances; applying cod
 **Save Preset…** writes a two-endpoint Classic/Gamma/Clamp gradient with Smoothness 1 and
 midpoint .5 as a default. Other gradients must be simplified before this endpoint-only export;
 the exporter rejects them rather than silently changing their settings.
-Gradient parameters are FX-only, not HLSL brush parameters.
+Gradient parameters also work in HLSL brush tips, with the same sampling and export rules.
 
 ```hlsl
 // @param gradient _Ramp // Map input brightness to colors.
@@ -450,7 +450,7 @@ control. Each repeated declaration can have its own tooltip. The text is trimmed
 // @param enum _Mode = SoftLight { SoftLight: 0, HardLight: 1, CustomBlend: 0.5 }
 ```
 
-For FX, `enum` is a float displayed as a dropdown. Every option needs an unquoted identifier and
+`enum` is a float displayed as a dropdown. Every option needs an unquoted identifier and
 an explicit finite numeric value; fractional values are allowed. Names and values must be unique.
 Option names are editor-only labels (for example, `SoftLight` displays as **Soft Light**), not HLSL
 constants. A default may be an option name or a number. An unmatched value displays **Custom**
@@ -461,7 +461,9 @@ and one uniform. `float`, `bool` and `enum` share scalar storage; other types mu
 The last declaration **with an initializer** supplies the default. Defaultless declarations do not
 overwrite it. Ranges constrain edits through that control, not the shared value or its default.
 Saving a preset writes the current value into one declaration and omits other initializers.
-Enum and linked controls are FX features; HLSL brushes currently use their existing parameter UI.
+HLSL brush tips share these declarations, metadata and fields. Their texture sources are limited
+to Texture/None, point coordinates use tip UV, and Edit on Canvas is unavailable. See the
+[brush parameter contract](AI/BRUSHES.md#declared-parameters) for context-specific rules.
 
 `float2` and `float3` expose two and three raw components. `point` is a `float2` in normalized canvas UV (bottom-left `(0, 0)`, top-right `(1, 1)`) and defaults to `(0.5, 0.5)`. Coordinates and tuple defaults may lie outside the canvas. The hand button (**Edit on Canvas**) beside the numeric field activates a draggable point handle. Point dragging uses the shared screen-space snapping radius for canvas edges and enabled, visible guides (including their intersections). Ctrl, or Command on macOS, bypasses snapping without restricting coordinates. `normal` generates a normalized `float3`, defaults to `(0, 0, 1)`, and uses that direction when given a zero vector. These types accept optional tuple defaults without ranges. Live API values are arrays with the corresponding component count.
 

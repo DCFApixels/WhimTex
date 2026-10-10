@@ -1,0 +1,8 @@
+{
+  "format": "whimtex.brush",
+  "version": 1,
+  "name": "Dynamic trail",
+  "source": "HLSL",
+  "settings": { "size": 32, "spacing": 0.25, "tipChannel": "Color", "seed": 123 },
+  "code": "// @whimtex-brush Trails/Dynamic\n// @param float _Period = 160 [1 .. 512]\n\nfloat4 BrushTip(float2 uv, DynamicBrushContext brush)\n{\n    float radius = length(uv * 2.0 - 1.0);\n    float coverage = 1.0 - smoothstep(0.75, 1.0, radius);\n    float phase = brush.totalDistance / _Period;\n    float perStroke = BrushRandom(brush.seed, brush.strokeIndex);\n    float perStamp = BrushRandom(brush.seed, brush.strokeIndex, brush.stampIndex);\n    float3 color = 0.5 + 0.5 * cos(6.2831853 * (phase + perStroke + float3(0, 0.33, 0.67)));\n    return float4(color * lerp(0.8, 1.0, perStamp), coverage);\n}\n"
+}

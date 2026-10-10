@@ -114,10 +114,15 @@ Pencil 没有硬度或间距控件。可为它的笔尖选择 **Circle**、**Squ
 Standard 在 **Texture** 为空时使用程序化圆形笔尖；指定图像后使用纹理笔尖。
 HLSL 用脚本生成笔尖，与带纹理的 Standard 使用相同的 Tip Channel、SDF/Gradient、旋转和翻转设置。
 选择 **HLSL Presets**，或打开 **Edit Code…** 编辑脚本并点击 **Apply**。
-**Tip Resolution** 控制笔尖细节，**Size** 控制笔触大小。
+脚本参数与 FX 使用相同的字段、分组和条件显示，也支持渐变和曲线。
+函数签名决定 **Static**（点击 Apply 时烘焙）或 **Dynamic**（绘制时计算）。
+**Tip Resolution** 仅控制 Static 笔尖的细节；**Size** 在两种模式下都控制印章大小。
+Dynamic 可按笔触、印章、累计路径长度或移动方向变化。**Seed** 设置稳定的序列，
+**Reset Sequence** 重新开始；预览不会推进实际绘画的序列。
 代码窗口可将 HLSL 预设保存到项目或用户预设文件夹。
 项目中的文件与用户预设 **Brushes/HLSL** 子文件夹中的文件会出现在菜单中。
-普通画笔的 **Save As…** 也会保留 HLSL 代码和设置。
+普通画笔的 **Save As…** 也会保留 HLSL 代码和设置。签名与上下文字段见
+[HLSL 规范](../AI/BRUSHES.md#full-hlsl-specification)。
 
 浏览器 AI 可以生成画笔 JSON。在文本输入框外按 **Ctrl+V** 粘贴，
 即可替换当前画笔，不改变图层。参见[画笔格式与示例](../AI/BRUSHES.md)。
@@ -142,9 +147,9 @@ HLSL 用脚本生成笔尖，与带纹理的 Standard 使用相同的 Tip Channe
 如果更新后看不到预设，请在这里选择其现有文件夹；文件不会被移动或删除。
 工具和 Canvas View 设置可能在更新后重置。
 
-画笔存储在其 **Brushes** 子文件夹中。每个 `.sebrush` 文件都包含其纹理
-笔尖，因此你可以将它复制到另一台计算机的 Brushes 文件夹，而无需导入原始
-纹理。覆盖会保留之前的文件为 `.sebrush.bak`；要恢复它，请将该
+画笔存储在其 **Brushes** 子文件夹中。`.sebrush` 包含设置和使用的图像/Static
+笔尖；Dynamic 保存代码而不是冻结的纹理。可将预设复制到另一台计算机的 Brushes 文件夹，
+无需导入原始图像。覆盖会保留之前的文件为 `.sebrush.bak`；要恢复它，请将该
 备份重命名为以 `.sebrush` 结尾的其他名称。
 
 该选择器还会在项目的 **Assets** 或已安装

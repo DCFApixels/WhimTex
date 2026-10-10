@@ -8,6 +8,14 @@ namespace DCFApixels.WhimTex
         {
             // Preview the tip itself; write locks depend on existing document pixels.
             parameters = parameters.WithWriteProtection(15, false);
+            if (parameters.Dynamics != null)
+            {
+                var preview = JsonUtility.FromJson<BrushDynamics>(JsonUtility.ToJson(parameters.Dynamics));
+                preview.tip = parameters.Dynamics.tip;
+                preview.BorrowHlsl(parameters.Dynamics);
+                preview.Normalize();
+                parameters = parameters.WithDynamics(preview);
+            }
             int width = target.width, height = target.height;
             RenderTexture previous = RenderTexture.active;
             RenderTexture straight = null;
@@ -35,6 +43,7 @@ namespace DCFApixels.WhimTex
             finally
             {
                 EndStroke();
+                parameters.Dynamics?.ReleaseHlsl();
                 RenderTexture.active = previous;
                 if (straight != null) RenderTexture.ReleaseTemporary(straight);
             }

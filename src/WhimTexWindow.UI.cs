@@ -1898,7 +1898,7 @@ namespace DCFApixels.WhimTex
             if (layer == null ||
                 !TryMapCanvasToLayerUv(position, toolkitCanvas.ImageRect, layer, out Vector2 startUv, allowOutside: true)) return false;
             paintingLayer = layer;
-            if (canvasTool == CanvasTool.Brush) paintSettings.dynamics.seed = Environment.TickCount;
+            if (canvasTool == CanvasTool.Brush && !paintSettings.dynamics.DynamicTip) paintSettings.dynamics.seed = Environment.TickCount;
             bool connect = shift && ReferenceEquals(lineAnchorLayer, layer) &&
                            lineAnchorCanvasSize == new Vector2Int(activeDocument.width, activeDocument.height);
             Vector2 originUv = connect ? lineAnchorUv : startUv;
