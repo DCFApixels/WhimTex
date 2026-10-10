@@ -57,7 +57,7 @@ namespace DCFApixels.WhimTex
         public static JObject Inspect([CliArg("assetPath", "Project-relative WhimTex TIFF or JSON path", Required = true)] string assetPath)
             => JObject.Parse(WhimTexApi.Inspect(assetPath));
 
-        [CliCommand("whimtex_batch_execute", "Apply a JSON batch to an independent TIFF model. save=true writes TIFF; save=false discards edits after returning. Does not edit an open window.", MainThreadRequired = true)]
+        [CliCommand("whimtex_batch_execute", "Apply an operation batch to an independent TIFF or JSON document. save=true writes its format; save=false discards edits after returning. Does not edit an open window.", MainThreadRequired = true)]
         public static JObject Execute([CliArg("requestPath", "Absolute path to a JSON request file", Required = true)] string requestPath)
             => JObject.Parse(WhimTexApi.ExecuteFile(requestPath));
 

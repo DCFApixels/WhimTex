@@ -8,7 +8,11 @@ namespace DCFApixels.WhimTex
         private static void SetText(TextLayerBehaviour layer, JObject value)
         {
             Keys(value, "text", "fontFamily", "fontStyle", "casing", "fontSize", "maxFontSize", "spacing", "characterHorizontalScale", "alignment", "layoutMode", "frameSize", "wrapping", "overflow", "justify", "autoSize", "color");
-            layer.text = Text(value, "text", layer.text);
+            if (value["text"] != null)
+            {
+                Require(value["text"].Type == JTokenType.String, "text must be a string.");
+                layer.text = (string)value["text"];
+            }
             Require((layer.text?.Length ?? 0) <= TextLayerBehaviour.MaxCharacters, "Text exceeds the 8192-character limit.");
             layer.fontFamily = Text(value, "fontFamily", layer.fontFamily);
             layer.fontStyle = Enum(value, "fontStyle", layer.fontStyle);

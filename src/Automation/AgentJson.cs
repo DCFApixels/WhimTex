@@ -65,9 +65,12 @@ namespace DCFApixels.WhimTex
         {
             Require(token != null && (token.Type == JTokenType.Float || token.Type == JTokenType.Integer), name + " must be a number.");
             double value = (double)token;
-            Require(!double.IsNaN(value) && !double.IsInfinity(value) && value >= min && value <= max,
+            float stored = (float)value;
+            // Validate at the precision actually stored: decimal endpoints must not fail
+            // merely because their float bound rounds above/below the JSON double.
+            Require(double.IsFinite(value) && float.IsFinite(stored) && stored >= min && stored <= max,
                 name + " must be between " + min + " and " + max + ".");
-            return (float)value;
+            return stored;
         }
 
         public static float Number(JObject obj, string key, float fallback, float min, float max) =>

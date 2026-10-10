@@ -12,6 +12,14 @@ namespace DCFApixels.WhimTex
                 if (value.textureSource == ShaderFXTextureSource.Layer) yield return value;
         }
 
+        // Persistence/preflight must also validate drafts before a shader has been applied.
+        internal IEnumerable<ShaderFXParameter> StoredTextureLayerParameters()
+        {
+            foreach (var value in parameters)
+                if (value != null && value.type == ShaderFXParameterType.Texture2D &&
+                    value.textureSource == ShaderFXTextureSource.Layer) yield return value;
+        }
+
         internal IEnumerable<ShaderFXParameter> TextureParameters()
         {
             foreach (var applied in appliedParameters)
@@ -46,6 +54,13 @@ namespace DCFApixels.WhimTex
 
     public sealed partial class WhimTexDocument
     {
+        internal bool IsUsableStoredShaderTexture(Layer consumer, string sourceId)
+        {
+            var source = FindLayer(sourceId);
+            return consumer != null && source?.Behaviour != null && !(source.Behaviour is PendingLayerBehaviour) &&
+                !LayerDependsOn(source, consumer, new HashSet<Layer>(), storedFx: true);
+        }
+
         internal bool IsUsableShaderTexture(Layer consumer, string sourceId)
         {
             var source = FindLayer(sourceId);

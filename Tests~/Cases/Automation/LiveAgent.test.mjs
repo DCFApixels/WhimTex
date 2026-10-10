@@ -210,6 +210,20 @@ context.case("LiveAgent original assertion inputs and source contracts", async (
   onFocus.call(focusWindows[0]); assert.equal(focusWindows[0].agentFocusOrder,78); checks++;
   const beginBody=body(jobs,'private static JObject BeginLiveJob(');
   assert.ok(beginBody.indexOf('existing.request == canonical')<beginBody.indexOf('ResolveLiveBeginWindow('));
+  const retryCode = beginBody.slice(beginBody.indexOf('foreach (var existing'), beginBody.indexOf('var window ='))
+    .replace('foreach (var existing in liveJobs.Values)', 'for (const existing of liveJobs.Values)');
+  const retryJob = {requestId:'reserved-id', session:'original-session', request:'original-json'};
+  const retryBegin = new Function('Require', 'RefreshLiveJob', 'LiveStatus',
+    `return (liveJobs, request, requestId, canonical)=>{${retryCode}}`)
+    ((ok, message, code)=>{if(!ok) throw Error(code);}, ()=>{}, job=>job);
+  const receipts = {Values:[retryJob]};
+  assert.equal(retryBegin(receipts, {sessionId:'original-session'}, 'reserved-id', 'original-json'), retryJob);
+  assert.throws(()=>retryBegin(receipts, {sessionId:'different-session'}, 'reserved-id', 'different-json'), /request_conflict/);
+  assert.throws(()=>retryBegin(receipts, {}, 'reserved-id', 'different-json'), /request_conflict/);
+  assert.equal(retryBegin(receipts, {sessionId:'different-session'}, 'new-id', 'different-json'), undefined);
+  const dispatch = body(jobs, 'private static JObject Live(');
+  assert.ok(dispatch.indexOf('"Unknown live operation: " + op') < dispatch.indexOf('string id ='),
+    'An unknown operation must report invalid_request before looking for a job');
   const forkBody=body(jobs,'private static JObject ForkLiveJob(');
   assert.ok(!forkBody.includes('CaptureLiveInput(') && forkBody.includes('mask = source.mask'));
   assert.ok(forkBody.includes('selectionMode = source.selectionMode'));
@@ -220,4 +234,3 @@ context.case("LiveAgent original assertion inputs and source contracts", async (
 
 });
 await finish(context);
-

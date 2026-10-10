@@ -35,7 +35,7 @@ namespace DCFApixels.WhimTex
             WhimTexDocumentService.Bind(document, path);
             document.jsonWriteMode = options.Mode;
             // Exporting without pixels does not make the live, pixel-bearing model match the file.
-            if (result.Warnings.Count > 0) document.documentBinding.dirty = true;
+            if (result.DrawingPixelsOmitted) document.documentBinding.dirty = true;
             foreach (string warning in result.Warnings) Debug.LogWarning("WhimTex: " + warning);
             if (options.AllowDataLoss) document.documentLoadWarning = null;
             return path;

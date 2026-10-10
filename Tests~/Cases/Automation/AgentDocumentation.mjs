@@ -21,9 +21,11 @@ context.case('AgentDocumentation original assertions and branches', async () => 
       assert.ok(context.includes('`' + command + '`'), `Command map must document ${command}`);
     }
     const limit = read('src/Automation/WhimTexApi.cs').match(/MaxFxParameters\s*=\s*(\d+)/)[1];
-    assert.ok(live.includes(`Parameters: at most ${limit},`), 'Live parameter limit must match the parser');
+    assert.ok(live.includes(`at most ${limit} parameters`) && live.includes('`@param`'), 'Live declaration limit must match the parser');
+    assert.ok(api.includes(`${limit} parameters per effect`), 'Shared FX parameter limit must match the parser');
     for (const type of ['Bool', 'Float', 'Enum', 'Color', 'Vector2', 'Vector3', 'Vector', 'Normal', 'Point', 'Texture2D', 'Curve', 'Gradient', 'Transform2D'])
-      assert.ok(live.includes('`' + type + '`'), `Live parameter type ${type} must be documented`);
+      assert.ok(api.includes('`' + type + '`'), `Shared FX parameter type ${type} must be documented`);
+    assert.ok(live.includes('AgentAPI.md#fx-edits-and-presets'), 'Live jobs link to the shared FX value contract');
     
     let examples = 0;
     function parseExamples(text) {
@@ -80,7 +82,9 @@ context.case('AgentDocumentation original assertions and branches', async () => 
     assert.ok(!shaders.includes('Clipboard JSON does not expose these bindings'), 'No obsolete FX binding restriction');
     assert.ok(!shaders.includes('retains the last working shader'), 'Failed Apply must not promise rendering a stale shader');
     for (const lang of ['en', 'ru', 'zh']) {
-      assert.ok(read(`Documentation~/${lang}/selection.md`).includes('AI/LEGACY_LAYERS.md'), `${lang}: old clipboard upgrade route is documented`);
+      const selection = read(`Documentation~/${lang}/selection.md`);
+      assert.ok(!selection.includes('AI/LEGACY_LAYERS.md'), `${lang}: no removed clipboard migration reference`);
+      assert.ok(selection.includes('whimtex.document'), `${lang}: current clipboard format is documented`);
       assert.ok(read(`Documentation~/${lang}/tiff-format.md`).includes('JSON'), `${lang}: editable documents are not TIFF-only`);
     }
     assert.ok(!read('Documentation~/TIFF_FORMAT.md').includes('documents are TIFF-only'), 'Technical TIFF reference must acknowledge JSON');
@@ -90,7 +94,10 @@ context.case('AgentDocumentation original assertions and branches', async () => 
       assert.ok(text.includes('whimtex.document') && text.includes('document.schema.json'), `${file}: current authoring contract`);
       assert.ok(!text.includes('Copy as Portable'), `${file}: obsolete menu name`);
     }
-    assert.ok(authoring.includes('LEGACY_LAYERS.md'), 'Old clipboard upgrade route is documented separately');
+    assert.ok(!authoring.includes('LEGACY_LAYERS.md'), 'No removed clipboard migration reference');
+    const format = read('Documentation~/JSON_FORMAT.md');
+    assert.ok(format.includes('unsupported by this checkout') && format.includes('No migration') &&
+      format.includes('matching older checkout'), 'Current format boundary rejects previous versions without migration');
     assert.ok(authoring.includes('compilation failure does not reject') && !authoring.includes('successful compilation before insertion'), 'Paste documents recoverable FX errors');
     assert.ok(!authoring.includes('"format": "whimtex.layers",'), 'No new recipe teaches legacy output');
     const layerMenu = read('src/WhimTexWindow.cs');
@@ -103,5 +110,31 @@ context.case('AgentDocumentation original assertions and branches', async () => 
     }
 });
 
-await finish(context);
+context.case('Layer-setting parser, snapshot and field-schema contracts', async () => {
+    const root = new URL('../../../', import.meta.url);
+    const read = file => readFileSync(new URL(file, root), 'utf8');
+    const fields = JSON.parse(read('Documentation~/AI/agent-fields.schema.json')).$defs;
+    for (const [definition, suffix] of Object.entries({
+      noise: 'Noise', shape: 'Shape', text: 'Text', normalMap: 'NormalMap', blur: 'Blur',
+      sharpen: 'Sharpen', makeSeamless: 'MakeSeamless', fillPattern: 'FillPattern'
+    })) {
+      const source = read(`src/Automation/WhimTexApi.${suffix}.cs`);
+      const keys = [...source.match(/Keys\(value,([\s\S]*?)\);/)[1].matchAll(/"([^"]+)"/g)].map(match => match[1]);
+      assert.deepEqual(Object.keys(fields[definition].properties).sort(), keys.sort(), `${definition}: schema covers accepted patch fields`);
+      const snapshot = source.slice(source.indexOf(`private static JObject ${suffix}Snapshot`));
+      const reported = [...snapshot.matchAll(/\["([^"]+)"\]\s*=/g)].map(match => match[1]);
+      assert.ok(keys.every(key => reported.includes(key)), `${definition}: inspect retains all accepted settings, including inactive branches`);
+    }
+    const transform = fields.transform;
+    assert.equal(transform.properties.position.items.maximum, 1e15, 'Transform coordinates retain double-precision range');
+    assert.ok(transform.properties.reset && transform.properties.originalAspect, 'Transform schema supports existing control flags');
+    assert.ok(transform.allOf[0].then.not.anyOf.some(rule => rule.properties?.originalAspect?.const === true), 'Matrix excludes Original Aspect only when true');
+    assert.equal(fields.text.properties.text.maxLength, 8192, 'Text body has its own character budget');
+    assert.equal(fields.text.properties.fontFamily.maxLength, 4096, 'Font name uses the agent string budget');
+    for (const definition of ['sdf', 'fillPattern'])
+      assert.equal(fields[definition].properties.profile.maxLength, 4096, `${definition}: curve patch uses the agent string budget`);
+    const describe = read('src/Automation/WhimTexApi.Inspect.cs');
+    assert.ok(describe.includes('result["textOverflowModes"]'), 'Text overflow choices are discoverable');
+});
 
+await finish(context);

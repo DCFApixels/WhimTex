@@ -121,6 +121,7 @@ Helper functions and ordinary HLSL math, including `fwidth`, are allowed.
 [FastNoiseLite noise functions](README.md#built-in-noise-library) are built in:
 use `fnlCreateState`, `fnlGetNoise2D/3D` and Domain Warp directly without an include.
 Otherwise code must be self-contained: no preprocessor directives, includes, texture2D or transform2D parameters.
+Bool, enum, linked controls, hidden parameters and `@group` blocks are also rejected.
 Names beginning `_WhimTex_` are reserved. There are no input-image sampling helpers.
 Unity shader syntax is not a security sandbox: only use trusted code. Excessively expensive
 or non-terminating shader code can stall the GPU.

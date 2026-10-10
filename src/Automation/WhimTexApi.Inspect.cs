@@ -77,6 +77,7 @@ namespace DCFApixels.WhimTex
             result["textAlignments"] = new JArray(System.Enum.GetNames(typeof(TextAnchor)));
             result["textLayoutModes"] = new JArray(System.Enum.GetNames(typeof(TextLayoutMode)));
             result["textWrappingRules"] = new JArray(System.Enum.GetNames(typeof(TextWrapping)));
+            result["textOverflowModes"] = new JArray(System.Enum.GetNames(typeof(TextOverflowMode)));
             result["noiseTypes"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.NoiseType)));
             result["noiseWhiteColors"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.WhiteNoiseColor)));
             result["noiseFractals"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.FractalType)));

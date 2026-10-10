@@ -261,7 +261,7 @@ just that layer. Reserve with `begin` first, then preview or complete with code 
 {
   "apiVersion":1,"op":"complete","jobId":"RESERVATION",
   "layer":{"type":"shaderProcessor","fx":[{
-    "code":"// @param float _Gain = 1.25\\nfloat4 ApplyFX(float2 uv, float4 color) { color.rgb *= _Gain; return color; }"
+    "code":"// @param float _Gain = 1.25\nfloat4 ApplyFX(float2 uv, float4 color) { color.rgb *= _Gain; return color; }"
   }]}
 }
 ```
@@ -285,46 +285,15 @@ Remove accepts only op/index. Add/replace accept `code`; define parameters with 
   `_RenderScale` is full-size pixels per preview pixel. `UnityCG.cginc` is already included.
 - `#include` works with existing Assets/Packages paths and paths relative to the document (Assets
   before its first save). Prefer explicit project paths. An FX does not require its own shader file.
-- Parameters: at most 128, each with `name`, `type` and `value`. `Bool` takes JSON `true`/`false`
-  (sent to HLSL as float 0/1); `Float` and `Enum` take finite numbers in -1,000,000..1,000,000
-  (Enum uses the declared numeric option value, not its label). `Color` takes four components,
-  encoded RGB in -107..107 and alpha in 0..1, converted to linear RGB for the shader.
-  `Vector2`, `Vector3` and `Vector` take two, three and four raw components respectively,
-  each in -1,000,000..1,000,000. `Normal` takes three components and normalizes them.
-  The remaining types are documented below.
-  Use valid unique HLSL identifiers; do not redeclare the generated uniforms in code.
-- `Texture2D` accepts an existing Assets/Packages texture path, `"self"` for the image before this
-  FX, `"none"` for no source, or `{"layer":"EXISTING-LAYER-ID"}`. Layer references use stable IDs,
-  not names or `@aliases`. Sampling the document's own saved output is rejected; use `self` instead.
-  Texture uniforms include `<name>_TexelSize`.
-- `Point` accepts two finite numbers in `[-1000000,1000000]`, normalized bottom-left-origin UV coordinates.
-  `(0,0)` and `(1,1)` are canvas corners, not value limits. Code declares it as
-  `// @param point _Center = (0.5, 0.5)`; its editor handle can also be dragged outside the canvas.
-  Snapshot and update values use the two-number array form, the same JSON shape as `Vector2`.
-- `Transform2D` accepts `value: {"position":[0.5,0.5],"size":[1,1],"rotation":0}`; omitted fields use these defaults, not the previous parameter value. Alternatively use `value: {"matrix":[1,0.2,0,0,1,0,0.15,0,1]}` for skew/perspective: nine row-major doubles mapping local UV to input UV. Matrix and TRS fields cannot be combined. The matrix must be invertible with no horizon crossing the unit rectangle. Inspection returns either TRS fields or `matrix`.
-  Position/size are normalized to the input image, rotation is in degrees. Size components must have
-  magnitude at least `0.00001`. Generates `<name>_ToLocal(uv)` and `<name>_ToInput(uv)` helpers.
-- `Curve` accepts a string containing `keys((time, value, inTangent, outTangent, inWeight, outWeight, weightedMode), ...)`.
-
-  `"one"` is also accepted: two keys (0,1), (1,1), constant output 1.
-  The strings `"linear"`, `"easeIn"` (quadratic slow start), `"easeOut"` (quadratic slow finish)
-  and `"easeInOut"` are also accepted as normalized 0→1 curve factories.
-  For example `{"name":"_Profile","type":"Curve","value":"keys((0,0,1,1,0,0,0),(1,1,1,1,0,0,0))"}`.
-  Snapshots return the same string. Code uses `// @param curve _Profile` and `_Profile_Sample(t)`;
-  see the [curve contract](ShaderFX.md#curve-parameters). Values update without recompilation.
-- `Gradient` accepts the same gradient value (color-stop array or object with `colors`, `alphas`,
-  `mode`, `wrapMode`, `smoothness`, `colorSpace`) as layer gradients. The built-in Rounded algorithm rounds held boundaries at full smoothness and may approximate their interior stop values; see the [gradient contract](AI/README.md). Generates `<name>_Sample(t)`;
-  values outside 0..1 use the gradient's `Clamp`, `Repeat`, or `Mirror` wrap mode. Code declarations
-  may use `// @param gradient _Ramp` (opaque black-to-white default) or a two-color initializer,
-  for example `// @param gradient _Ramp = #7EF3FF -> #B270FF`; RGBA tuples are also supported.
-  Omitted API overrides retain the code-declared defaults; see the [gradient syntax](ShaderFX.md#gradient-parameters).
-  A supplied gradient without `mode` uses Perceptual; explicit modes are retained. JSON RGB is
-  limited to -107..107 and alpha to 0..1, not the wider standalone gradient clipboard range.
-  Picker Preview EV, Channels and RGB/HSV preferences do not transform API values or populate History;
-  see the [API color contract](AgentAPI.md#color-and-gradient-input) and [HDR behavior](HDR.md).
-- Inline code may instead declare parameters using [HLSL metadata](ShaderFX.md#parameter-declarations).
-  If JSON values are supplied as well, every entry must match a code declaration by name and type;
-  those values override defaults. The first-line catalog marker is required only for catalog files.
+- Declare at most 128 parameters in code using [HLSL metadata](ShaderFX.md#parameter-declarations),
+  including their initial values. Do not redeclare the generated uniforms. The first-line catalog
+  marker is required only for catalog files. This reservation/lock workflow does not accept a
+  `parameters` array, value overrides, `presetId` or an FX `set` operation.
+- To change values after completion, inspect the finished layer and use the shared
+  [FX editing operations](AgentAPI.md#fx-edits-and-presets) through `whimtex_assistant_execute`.
+  There, `parameters` is a name/value object. The shared contract defines supported value types,
+  ranges, gradients and texture/layer references. Do not submit inspection's parameter records
+  directly as an operation. Finish pending jobs/locks before starting this immediate batch.
 - At most 16 FX operations per request and 32 resulting FX entries. Keep GPU work bounded:
   no unbounded loops or enormous per-pixel sampling loops. Successful compilation does not prove
   that a shader is fast or numerically stable; inspect a small preview and use HDR Debug as needed.

@@ -17,7 +17,7 @@ namespace DCFApixels.WhimTex
                 var written = WhimTexDocumentJson.Write(activeDocument, options);
                 if (!ConfirmJsonDrawingOmission(written, false)) return false;
                 using var operation = new WhimTexDocumentOperation("Save WhimTex JSON");
-                if (written.Warnings.Count == 0)
+                if (!written.DrawingPixelsOmitted)
                 {
                     WhimTexDocumentFile.SaveJson(activeDocument, path, options);
                     BindDocumentFile(path);
@@ -50,7 +50,7 @@ namespace DCFApixels.WhimTex
         }
 
         private static bool ConfirmJsonDrawingOmission(WhimTexJsonWriteResult written, bool export)
-            => written.Warnings.Count == 0 || EditorUtility.DisplayDialog("Save without Drawing pixels?",
+            => !written.DrawingPixelsOmitted || EditorUtility.DisplayDialog("Save without Drawing pixels?",
                 string.Join("\n", written.Warnings) + (export
                     ? "\n\nThe open document is not changed."
                     : "\n\nEmpty Drawing nodes and their settings will be retained. The open document will switch to the saved version without Drawing pixels. Save as TIFF instead to keep them."),

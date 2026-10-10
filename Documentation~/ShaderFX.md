@@ -315,7 +315,7 @@ Use `label(...)` inline to override a parameter's generated UI label without cha
 ```hlsl
 // @param float _Strength = 0.02 [0 .. 0.1]
 // @param float _Scale = 1 [0 ..]
-// @param float _Offset = 0 [.. 10]
+// @param float _Bias = 0 [.. 10]
 // @param float _Amount = 10
 // @param float2 _Offset = (0, 0)
 // @param float3 _Direction = (1, 0, 0)

@@ -25,7 +25,8 @@ Ask for **whimtex.document** JSON. Existing project images can be referenced whe
 identity is known. Drawing pixels are not stored in JSON; add images through ordinary paste,
 drag and drop, or an [agent connected to Unity](automation.md).
 
-Old linked-image JSON is unsupported and is not migrated. [Edit it with a matching older checkout](../AI/LEGACY_LAYERS.md).
+Old linked-image JSON is unsupported and is not migrated. Edit it with a matching older checkout;
+new recipes use the [current JSON contract](../JSON_FORMAT.md).
 
 The layers appear above the existing composition. A canvas selection does not crop them; see [Area selection](selection.md).
 If JSON supplies a size, an empty document adopts it. For an existing composition, choose **Apply Size**

@@ -74,6 +74,15 @@ public static class DocumentJsonContractTests
                 try { Check(Full(clone).Contains(unknownGuid) && Full(clone).Contains("Assets/MissingJsonFixture.png"), "Unresolved asset lost after Unity serialization."); }
                 finally { UnityEngine.Object.DestroyImmediate(clone); }
             }
+            const string missingFx = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"fx-texture\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"// @param texture2D _Map\\nfloat4 ApplyFX(float2 uv,float4 color){return color;}\",\"parameters\":[{\"name\":\"_Map\",\"type\":\"Texture2D\",\"textureValue\":{\"$asset\":{\"guid\":\"00000000000000000000000000000001\",\"path\":\"Assets/MissingJsonFxTexture.png\",\"localId\":\"2800000\",\"type\":\"UnityEngine.Texture2D\"}}}]}]}]}";
+            using (var missing = WhimTexDocumentJson.Read(missingFx, false))
+                foreach (WhimTexJsonWriteMode mode in Enum.GetValues(typeof(WhimTexJsonWriteMode)))
+                {
+                    var exported = WhimTexDocumentJson.Write(missing.Document, new WhimTexJsonWriteOptions { Mode = mode });
+                    Check(exported.Json.Contains("Assets/MissingJsonFxTexture.png") && exported.Json.Contains(unknownGuid), "Reparsed FX parameters lost unresolved texture identity: " + mode);
+                    using var restored = WhimTexDocumentJson.Read(exported.Json, false);
+                    Check(restored.Warnings.Count == 1, "Missing FX texture warning was lost: " + mode);
+                }
             Check(originalTexture.AsSpan().SequenceEqual(File.ReadAllBytes(texturePath)), "Reference read/write preserves source PNG bytes.");
             Check(originalMeta == null ? !File.Exists(texturePath + ".meta") : originalMeta.AsSpan().SequenceEqual(File.ReadAllBytes(texturePath + ".meta")), "Reference read/write preserves source PNG import settings.");
 
@@ -84,11 +93,26 @@ public static class DocumentJsonContractTests
             typeof(DrawingLayerBehaviour).GetMethod("AdoptStoredTexture", F).Invoke(drawing, new object[] { pixels });
             Rejected(() => Full(document), "Drawing omission was not opt-in.");
             var omitted = WhimTexDocumentJson.Write(document, new WhimTexJsonWriteOptions { AllowDrawingOmission = true });
-            Check(omitted.Warnings.Count == 1 && omitted.Json.Contains("contentOmitted"), "Drawing warning/placeholder absent.");
+            Check(omitted.DrawingPixelsOmitted && omitted.Warnings.Count == 1 && omitted.Json.Contains("contentOmitted"), "Drawing warning/placeholder absent.");
             using (var read = WhimTexDocumentJson.Read(omitted.Json, false))
-                Check(WhimTexDocumentJson.Write(read.Document).Warnings.Count == 0, "Empty Drawing placeholder cannot be saved.");
+            {
+                var placeholder = WhimTexDocumentJson.Write(read.Document);
+                Check(!placeholder.DrawingPixelsOmitted && placeholder.Warnings.Count == 0, "Empty Drawing placeholder cannot be saved.");
+            }
             Check(pixels != null, "Export destroyed source Drawing pixels.");
             document.layers.Clear(); UnityEngine.Object.DestroyImmediate(pixels);
+            Add(document, new TextLayerBehaviour { fontFamily = "__WhimTexAbsentJsonFont__" });
+            var textWarning = WhimTexDocumentJson.Write(document);
+            Check(textWarning.Warnings.Count == 1 && !textWarning.DrawingPixelsOmitted, "Font warning was treated as omitted Drawing pixels.");
+            Check((bool)typeof(WhimTexWindow).GetMethod("ConfirmJsonDrawingOmission", F).Invoke(null, new object[] { textWarning, false }), "Font warning must not request Drawing omission confirmation.");
+            document.layers.Clear();
+            var blur = Add(document, new BlurLayerBehaviour());
+            var pending = Add(document, new PendingLayerBehaviour());
+            var input = Add(document, new ColorFillLayerBehaviour());
+            using (var previous = WhimTexDocumentJson.Read(WhimTexDocumentJson.WriteLayers(document, new[] { blur, input }).Json, false))
+                Check(previous.Document.layers.Count == 2, "Previous selection incorrectly requires a skipped Pending layer.");
+            Rejected(() => WhimTexDocumentJson.WriteLayers(document, new[] { blur, pending }), "Previous fragment omitted the actual content input.");
+            document.layers.Clear();
             Add(document, new NoiseLayerBehaviour());
             WhimTexDocumentFile.SaveJson(document, path);
             Check(WhimTexDocumentFile.IsDocument(path), "JSON not detected as document.");

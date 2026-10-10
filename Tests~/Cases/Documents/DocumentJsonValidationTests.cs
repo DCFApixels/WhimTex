@@ -81,6 +81,34 @@ public static class DocumentJsonValidationTests
         Accept(Noise("\"seed\":8.0,\"scale\":2000,\"warpStrength\":-25")); // finite persisted settings need not equal slider limits
         Accept(Noise("\"seed\":-2147483648"));
         Accept(Noise("\"seed\":2147483647"));
+        string TextureInput(string id, string source) => "{\"id\":\"" + id + "\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}," +
+            "\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"// @param texture2D _Map\\nfloat4 ApplyFX(float2 uv,float4 color){return color;}\",\"parameters\":[{\"name\":\"_Map\",\"type\":\"Texture2D\",\"textureSource\":\"Layer\",\"textureLayerId\":\"" + source + "\"}]}]}";
+        Reject(Doc(layers: "[" + TextureInput("self", "self") + "]"), "Invalid or cyclic FX input");
+        Reject(Doc(layers: "[" + TextureInput("a", "b") + "," + TextureInput("b", "a") + "]"), "Invalid or cyclic FX input");
+        string target = "{\"id\":\"target\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"source\"}}";
+        Reject(Doc(layers: "[" + target + "," + TextureInput("source", "target") + "]"), "Invalid or cyclic layer input");
+        target = "{\"id\":\"target\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"AllBelow\"}}";
+        Reject(Doc(layers: "[" + target + "," + TextureInput("source", "target") + "]"), "Invalid or cyclic layer input");
+        string inactiveTexture = Doc(layers: Layer("{\"$type\":\"ColorFillLayerBehaviour\"}",
+            ",\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"// @param float _Unused = 1\\nfloat4 ApplyFX(float2 uv,float4 color){return color;}\",\"parameters\":[{\"name\":\"_Unused\",\"type\":\"Float\",\"textureSource\":\"Layer\",\"textureLayerId\":\"unused-source\"}]}]"));
+        using (var read = WhimTexDocumentJson.Read(inactiveTexture, false))
+        {
+            var stored = WhimTexDocumentJson.Write(read.Document, new WhimTexJsonWriteOptions { Mode = WhimTexJsonWriteMode.Full });
+            Check(stored.Json.Contains("unused-source"), "Full must retain inactive texture slots.");
+            Accept(stored.Json);
+        }
+        using (var read = WhimTexDocumentJson.Read(Doc(layers: Layer("{\"$type\":\"TextLayerBehaviour\",\"fontFamily\":\"__WhimTexAbsentJsonFont__\"}")), false))
+        {
+            var text = (TextLayerBehaviour)read.Document.layers[0].Behaviour;
+            Check(text.text == "Text" && text.fontSize == 64 && text.maxFontSize == 256 && text.characterHorizontalScale == 1 &&
+                text.alignment == UnityEngine.TextAnchor.MiddleCenter && text.frameSize == new UnityEngine.Vector2(256, 128) &&
+                text.wrapping == TextWrapping.Words && text.overflow == TextOverflowMode.None && text.spacing.Equals(default(TextSpacing)), "Missing Text fields must use frozen defaults.");
+            var compact = WhimTexDocumentJson.Write(read.Document, new WhimTexJsonWriteOptions { Mode = WhimTexJsonWriteMode.Compact });
+            Check(!compact.Json.Contains("\"wrapping\"") && !compact.Json.Contains("\"overflow\""), "Compact retained default Text enum settings.");
+            using var restored = WhimTexDocumentJson.Read(compact.Json, false);
+            var copy = (TextLayerBehaviour)restored.Document.layers[0].Behaviour;
+            Check(copy.fontSize == text.fontSize && copy.frameSize == text.frameSize && copy.wrapping == text.wrapping, "Compact Text defaults changed on read.");
+        }
 
         string path = UnityBRun.AssetPath("__WhimTexValidation_") + Guid.NewGuid().ToString("N") + ".whimtex.json";
         string asset = "{\"$asset\":{\"guid\":\"00000000000000000000000000000000\",\"path\":\"Assets/__AbsentJsonValidation.png\",\"localId\":\"2800000\",\"type\":\"UnityEngine.Texture2D\"}}";

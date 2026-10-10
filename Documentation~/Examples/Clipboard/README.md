@@ -34,4 +34,4 @@ The example image below can be used for this workflow.
 
 ![Example source image](stone-wall.png)
 
-Old `whimtex.layers` payloads require [a matching older checkout](../../AI/LEGACY_LAYERS.md); there is no migration to the current document format.
+Old `whimtex.layers` payloads require a matching older checkout; there is no migration to the [current document format](../../JSON_FORMAT.md).

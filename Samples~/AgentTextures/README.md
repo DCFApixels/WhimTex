@@ -19,7 +19,7 @@ The version-2 manifest records each example's ID, title, recipe/preview paths, d
 There are no bundled TIFF duplicates or overview PNG.
 
 Documents use **Full Optimized**: active settings are explicit, inactive branches are omitted.
-Their defaults are tied to format version 1. All samples are procedural; no external images,
+Their defaults are tied to format version 2. All samples are procedural; no external images,
 downloads or project-specific asset references are required. Embedded HLSL and its parameter values
 are separate data. Preserve both when adapting a sample.
 
@@ -67,12 +67,13 @@ packed fields and surfaces. For example:
 From the package root:
 
 ```sh
-node Tests~/AgentSamples.test.mjs
-node Tests~/ProceduralClipboard.test.mjs
+node Tests~/Cases/Automation/AgentSamples.mjs
+node Tests~/Cases/Clipboard/ProceduralClipboard.test.mjs
 ```
 
-Run `Tests~/AgentSamplesSmoke.cs` through connected Unity Pipeline `run_script`, entry
-`AgentSamplesSmoke.Run`, explicitly targeting the intended project. It compiles detached recipes,
+Select the bounded `agent-samples-0-4-v2` through `agent-samples-35-37-v2` scenarios in the
+[reviewed test runner](../../Tests~/RUNNING_TESTS.md), explicitly targeting the intended project.
+Their `AgentSamplesTests.Run` entry compiles detached recipes,
 checks layer counts, dimensions, finite output and FX diagnostics, and compares SDR renders against
 decoded preview pixels. Optional `start`/`count` arguments allow short batches. It does not write project
 assets or change open documents.

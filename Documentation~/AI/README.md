@@ -125,7 +125,7 @@ Numbers and booleans are not quoted strings. Enum names are case-sensitive.
 ### Noise, gradients and SDF
 
 Noise settings are directly in `behaviour`, not `properties.noise`.
-`scale`, `scaleY` and `scaleZ` store explicit axis scales; omitted fields use fixed schema defaults, not another axis.
+`scale`, `scaleY` and `scaleZ` store explicit axis scales; omitted fields use frozen version-2 defaults (`8`, `8`, `1`), not another axis.
 `warpScale` and `warpScaleY` are per-axis multipliers of the main scale.
 `offset` is `[x,y,z]`; Z is used by `ThreeD` slices.
 Seamless uses `periodic: "None" | "X" | "Y" | "XY"` for TwoD/ThreeD, and `periodic1D`
@@ -141,6 +141,45 @@ the standalone clipboard format below is a separate value contract.
 For algorithm behavior see [Noise](../AgentAPI.md#noise-settings) and
 [Make Seamless](../AgentAPI.md#make-seamless-settings), but use document-schema field shapes,
 not the live API patch wrappers from those pages.
+
+### Editable text
+
+Text uses `TextLayerBehaviour`, with editable `text` and an installed `fontFamily`.
+An omitted or empty family uses the machine's default font. Use a verified installed family for
+a particular appearance; font files are not included. Save prepares the appearance backup.
+For a fitted label, use Frame layout with `autoSize`, its minimum `fontSize` and maximum
+`maxFontSize`. Spacing fields are in em; `characterHorizontalScale` changes width and advance.
+
+```json
+{
+  "format": "whimtex.document",
+  "version": 2,
+  "document": { "width": 256, "height": 128 },
+  "layers": [
+    {
+      "id": "label",
+      "layerName": "Label",
+      "behaviour": {
+        "$type": "TextLayerBehaviour",
+        "text": "ENERGY",
+        "fontStyle": "Bold",
+        "layoutMode": "Frame",
+        "frameSize": [192, 80],
+        "fontSize": 24,
+        "maxFontSize": 64,
+        "autoSize": true,
+        "wrapping": "Words",
+        "overflow": "Ellipsis",
+        "spacing": { "character": 0.03 },
+        "color": [0.2, 0.8, 1, 1]
+      }
+    }
+  ]
+}
+```
+
+Point layout uses fixed `fontSize`; Frame settings are retained for later edits.
+For defaults, limits and missing-font behavior see [Text and system fonts](../JSON_FORMAT.md#text-and-system-fonts).
 
 ## Paste, copy and export
 
@@ -204,7 +243,7 @@ Command envelopes are separate from content; see the [JSON agent API](../AgentAP
 The `whimtex.layers` reader is removed, and version-1 documents are unsupported.
 Use a matching older checkout for old data; this checkout has no automatic migration.
 Plain image URL paste, brush-tip URL downloads and standalone gradient presets remain available.
-See the [upgrade note](LEGACY_LAYERS.md).
+See the [current format and unsupported-input boundary](../JSON_FORMAT.md).
 
 ## Standalone gradient JSON
 
@@ -390,7 +429,7 @@ are never suppressed. Errors and warnings retain their respective severity even 
 ```hlsl
 // @param float _Strength = 0.02 [0 .. 0.1]
 // @param float _Scale = 1 [0 ..]
-// @param float _Offset = 0 [.. 10]
+// @param float _Bias = 0 [.. 10]
 // @param float _Amount = 10
 // @param bool _IncludeAlpha = false
 // @param float2 _Offset = (0, 0)

@@ -26,7 +26,7 @@ namespace DCFApixels.WhimTex
             RequireGraphics();
             WhimTexDocumentBuild build;
             if (request["assetPath"] != null)
-                build = WhimTexDocumentBuild.Open(TiffPath(Text(request, "assetPath")));
+                build = WhimTexDocumentBuild.Open(DocumentPath(Text(request, "assetPath")));
             else
             {
                 var source = request["assistantSessionId"] != null

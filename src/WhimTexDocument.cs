@@ -511,21 +511,27 @@ namespace DCFApixels.WhimTex
             TargetedLayerBehaviour effect,
             List<Layer> container,
             int index)
+            => HasUsableEffectInputCore(effect, container, index, false);
+
+        internal bool HasUsableStoredEffectInput(TargetedLayerBehaviour effect, List<Layer> container, int index)
+            => HasUsableEffectInputCore(effect, container, index, true);
+
+        private bool HasUsableEffectInputCore(TargetedLayerBehaviour effect, List<Layer> container, int index, bool storedFx)
         {
             if (effect == null)
                 return false;
             if (effect.inputMode == EffectInputMode.Specific)
-                return IsUsableEffectTarget(effect, effect.TargetLayerId);
+                return storedFx ? IsUsableStoredShaderTexture(effect, effect.TargetLayerId) : IsUsableEffectTarget(effect, effect.TargetLayerId);
             if (effect.inputMode == EffectInputMode.AllBelow)
-                return container != null && !HasCyclicAllBelowInput(effect, container, index);
+                return container != null && !HasCyclicAllBelowInput(effect, container, index, storedFx);
             return container != null && NextContentLayer(container, index) < container.Count;
         }
 
-        private bool HasCyclicAllBelowInput(TargetedLayerBehaviour effect, List<Layer> container, int index)
+        private bool HasCyclicAllBelowInput(TargetedLayerBehaviour effect, List<Layer> container, int index, bool storedFx = false)
         {
             var visited = new HashSet<Layer>();
             for (int i = index + 1; i < container.Count; i++)
-                if (container[i]?.enabled == true && LayerDependsOn(container[i], effect, visited)) return true;
+                if (container[i]?.enabled == true && LayerDependsOn(container[i], effect, visited, storedFx)) return true;
             return false;
         }
 
@@ -1149,7 +1155,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private bool LayerDependsOn(Layer candidate, Layer soughtLayer, HashSet<Layer> visited)
+        private bool LayerDependsOn(Layer candidate, Layer soughtLayer, HashSet<Layer> visited, bool storedFx = false)
         {
             if (candidate == null)
                 return false;
@@ -1161,10 +1167,10 @@ namespace DCFApixels.WhimTex
             if (candidate.fx != null)
                 foreach (var fxEntry in candidate.fx)
                     if (fxEntry is ShaderFX fx)
-                        foreach (var parameter in fx.TextureLayerParameters())
-                            if (LayerDependsOn(FindLayer(parameter.textureLayerId), soughtLayer, visited)) return true;
+                        foreach (var parameter in storedFx ? fx.StoredTextureLayerParameters() : fx.TextureLayerParameters())
+                            if (LayerDependsOn(FindLayer(parameter.textureLayerId), soughtLayer, visited, storedFx)) return true;
 
-            if (candidate.clippingMask && LayerDependsOn(GetClippingBase(candidate), soughtLayer, visited))
+            if (candidate.clippingMask && LayerDependsOn(GetClippingBase(candidate), soughtLayer, visited, storedFx))
                 return true;
 
             if (candidate?.AsGroup() is Layer group)
@@ -1173,7 +1179,7 @@ namespace DCFApixels.WhimTex
                     return false;
                 for (int i = 0; i < group.layers.Count; i++)
                 {
-                    if (LayerDependsOn(group.layers[i], soughtLayer, visited))
+                    if (LayerDependsOn(group.layers[i], soughtLayer, visited, storedFx))
                         return true;
                 }
                 return false;
@@ -1183,7 +1189,7 @@ namespace DCFApixels.WhimTex
             {
                 if (TryFindLayer(candidate, out var siblings, out int processorIndex))
                     for (int i = processorIndex + 1; i < siblings.Count; i++)
-                        if (LayerDependsOn(siblings[i], soughtLayer, visited)) return true;
+                        if (LayerDependsOn(siblings[i], soughtLayer, visited, storedFx)) return true;
                 return false;
             }
 
@@ -1194,7 +1200,7 @@ namespace DCFApixels.WhimTex
             {
                 if (TryFindLayer(candidate, out var siblings, out int effectIndex))
                     for (int i = effectIndex + 1; i < siblings.Count; i++)
-                        if (siblings[i]?.enabled == true && LayerDependsOn(siblings[i], soughtLayer, visited)) return true;
+                        if (siblings[i]?.enabled == true && LayerDependsOn(siblings[i], soughtLayer, visited, storedFx)) return true;
                 return false;
             }
 
@@ -1209,7 +1215,7 @@ namespace DCFApixels.WhimTex
                 input = container[NextContentLayer(container, index)];
             }
 
-            return LayerDependsOn(input, soughtLayer, visited);
+            return LayerDependsOn(input, soughtLayer, visited, storedFx);
         }
 
         private static void NormalizeLayers(List<Layer> sourceLayers, HashSet<string> usedIds)

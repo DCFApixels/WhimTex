@@ -174,6 +174,8 @@ namespace DCFApixels.WhimTex
                 CancelLiveReservation(window.AgentDocument, pending);
                 return Success();
             }
+            Require(op == "status" || op == "unlock" || op == "preview" || op == "complete" || op == "fail",
+                "Unknown live operation: " + op);
             string id = Text(request, "jobId");
             Require(id != null && liveJobs.ContainsKey(id), "Job not found; it may have been interrupted by a script reload. Inspect the reservation before starting again.", "job_not_found");
             LiveJob job = liveJobs[id];
@@ -222,8 +224,7 @@ namespace DCFApixels.WhimTex
             Require(!string.IsNullOrWhiteSpace(requestId) && requestId.Length <= 128, "requestId must be a unique caller-generated string (1..128 characters). Reuse it only to retry this same begin request.");
             string canonical = request.ToString(Formatting.None);
             foreach (var existing in liveJobs.Values)
-                if (existing.requestId == requestId &&
-                    (request["sessionId"] == null || existing.session == Text(request, "sessionId")))
+                if (existing.requestId == requestId)
                 {
                     Require(existing.request == canonical, "requestId was already used for a different request.", "request_conflict");
                     RefreshLiveJob(existing); return LiveStatus(existing);

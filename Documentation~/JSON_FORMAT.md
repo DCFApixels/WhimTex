@@ -159,6 +159,12 @@ not the editable `text`. SmallCaps synthesizes smaller uppercase glyphs for lowe
 defaulting to zero. One em is the effective font size. The former `lineSpacing` multiplier is a removed
 field, not an alternative spelling or unit for `spacing.line`; old data must receive an unresolved-field diagnostic.
 No font asset or machine-specific font path is embedded.
+Omitted Text settings use frozen version-2 defaults: `text: "Text"`, empty `fontFamily`,
+`fontStyle: "Normal"`, `fontSize: 64`, `maxFontSize: 256`, `alignment: "MiddleCenter"`,
+`layoutMode: "Point"`, `frameSize: [256,128]`, `wrapping: "Words"`, `overflow: "None"`,
+`casing: "Normal"`, zero spacing, `characterHorizontalScale: 1`, white `color`,
+and `justify: false` / `autoSize: false`. An empty font family resolves to the installed default;
+specify a known installed family when a particular font is required.
 `characterHorizontalScale` is a 0.01..10 width/advance multiplier, default 1. It preserves glyph
 height and added em spacing, participates in wrapping/Auto Size/Ellipsis and the layout key,
 and applies equally to Point and Frame text.
@@ -228,7 +234,9 @@ For the artist workflow, see [Save and export](en/saving.md).
 ## C# and agents
 
 `WhimTexDocumentJson.Write(document, options)` and `WriteLayers(document, layers, options)` return
-JSON and Drawing-omission warnings. Options use `Mode`, `AllowDrawingOmission` and `AllowDataLoss`
+JSON, warnings and `DrawingPixelsOmitted`. Warnings can also describe unavailable system fonts;
+only `DrawingPixelsOmitted` signals that live Drawing pixels were excluded and requires omission
+confirmation or leaves the source dirty after `SaveJson`. Options use `Mode`, `AllowDrawingOmission` and `AllowDataLoss`
 (both false by default). `AllowDataLoss` explicitly permits writing the loaded part of an incomplete
 document; it does not recover unread data. Writing or exporting JSON keeps the source load warning.
 An accepted `SaveJson` clears it only after successful saving. Interactive Save asks for confirmation,

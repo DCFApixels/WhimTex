@@ -264,14 +264,19 @@ namespace DCFApixels.WhimTex
                 if (layer?.Behaviour is FileLayerBehaviour file && file.sourceTexture != null)
                     Require(!string.Equals(AssetDatabase.GetAssetPath(file.sourceTexture), path, StringComparison.OrdinalIgnoreCase),
                         "A document cannot sample its own saved output texture.", "invalid_target");
-                if (!string.IsNullOrEmpty(path) && layer.fx != null)
+                if (layer.fx != null)
                     foreach (var fxEntry in layer.fx)
                         if (fxEntry is ShaderFX fx)
+                        {
                             foreach (var parameter in fx.Parameters)
-                                if (parameter != null && parameter.type == ShaderFXParameterType.Texture2D &&
+                                if (!string.IsNullOrEmpty(path) && parameter != null && parameter.type == ShaderFXParameterType.Texture2D &&
                                     parameter.textureSource == ShaderFXTextureSource.Texture && parameter.textureValue != null)
                                     Require(!string.Equals(AssetDatabase.GetAssetPath(parameter.textureValue), path, StringComparison.OrdinalIgnoreCase),
                                         "An FX cannot sample its own document output.", "invalid_target");
+                            foreach (var parameter in fx.StoredTextureLayerParameters())
+                                Require(document.IsUsableStoredShaderTexture(layer, parameter.textureLayerId),
+                                    "Invalid or cyclic FX texture source for " + layer.layerName + ": " + parameter.name, "invalid_target");
+                        }
                 if (layer?.Behaviour is TargetedLayerBehaviour effect && effect.inputMode == EffectInputMode.Specific)
                     Require(document.IsUsableEffectTarget(effect, effect.TargetLayerId),
                         "Invalid or cyclic effect target for " + effect.layerName, "invalid_target");

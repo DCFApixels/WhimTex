@@ -27,12 +27,18 @@ namespace DCFApixels.WhimTex
             JObject result = Success();
             if (action == "serialize" || action == "export")
             {
+                Require(request["layerIds"] == null || request["layerIds"] is JArray,
+                    "layerIds must be an array of layer IDs.");
+                Require(action != "export" || request["layerIds"] == null,
+                    "Export writes a whole document; use serialize with layerIds for a fragment.");
                 var document = Load(DocumentPath(Text(request, "assetPath")));
                 try
                 {
                     WhimTexJsonWriteResult write;
                     if (request["layerIds"] is JArray selected)
                     {
+                        Require(selected.All(id => id.Type == JTokenType.String && !string.IsNullOrWhiteSpace((string)id)),
+                            "layerIds must contain nonempty string layer IDs.");
                         var layers = Enumerate(document.layers).ToDictionary(layer => layer.Id);
                         var roots = selected.Select(id => layers.TryGetValue((string)id, out var layer) ? layer :
                             throw new WhimTexDocumentException("Layer not found: " + id)).ToList();

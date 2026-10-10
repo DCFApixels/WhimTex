@@ -94,8 +94,19 @@ context.case("LiveShaderFx original assertion inputs and source contracts", asyn
   assert.ok(edit.includes('LiveLayerRevision(target) == job.targetRevision'));
   assert.ok(edit.includes('if (!committed)'));
   const docs=read('Documentation~/LiveAgentAPI.md');
-  for(const match of docs.matchAll(/```json\s+([\s\S]*?)```/g)) assert.doesNotThrow(() => JSON.parse(match[1]));
+  for(const match of docs.matchAll(/```json\s+([\s\S]*?)```/g)) {
+    const request = JSON.parse(match[1]);
+    for (const operation of request.layer?.fx ?? request.changes?.fx ?? request.fx ?? []) {
+      Keys(operation, 'op', 'index', 'code');
+      if (operation.code?.includes('// @param')) {
+        assert.ok(operation.code.includes('\nfloat4 ApplyFX'), 'A metadata comment must end before the HLSL entry point');
+        assert.ok(!operation.code.includes('\\n'), 'JSON examples must decode real newlines, not literal backslash-n');
+      }
+    }
+  }
+  assert.ok(docs.includes('does not accept a') && docs.includes('`parameters` array'));
+  const skill = read('Skills~/whimtex-live/SKILL.md');
+  assert.ok(!skill.includes("reservation workflow's array"));
 
 });
 await finish(context);
-

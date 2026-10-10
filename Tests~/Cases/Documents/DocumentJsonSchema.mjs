@@ -54,6 +54,21 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
         });
       }
     }
+    const defaultsSource = fs.readFileSync(path.join(root, 'src/WhimTexJsonDefaultsV2.cs'), 'utf8');
+    const defaultsLiteral = defaultsSource.match(/internal const string Data = @"((?:[^"]|"")*)";/);
+    assert(defaultsLiteral, 'Frozen JSON defaults must be available independently of Unity');
+    const defaults = JSON.parse(defaultsLiteral[1].replaceAll('""', '"'));
+    const identities = new Set(['$type', '$id', '$name', 'contentOmitted', 'id', 'recoveryId', 'shaderKey']);
+    for (const [type, definition] of Object.entries(schema.$defs)) {
+      assert(type in defaults, `${type}: missing frozen default object`);
+      for (const [field, rule] of Object.entries(definition.properties)) {
+        if (identities.has(field)) continue;
+        assert(field in defaults[type], `${type}.${field}: omitted input would use an unfrozen initializer or zero/null`);
+        // A layer must explicitly supply its behaviour, despite the unused null baseline.
+        if (type === 'Layer' && field === 'behaviour') continue;
+        validate(defaults[type][field], rule, `defaults.${type}.${field}`);
+      }
+    }
     const directory = path.join(root, 'Samples~/AgentTextures');
     const files = fs.readdirSync(directory).filter(f => f.endsWith('.whimtex.json'));
     assert.equal(files.length, 38);

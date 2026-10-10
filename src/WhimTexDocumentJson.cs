@@ -26,6 +26,7 @@ namespace DCFApixels.WhimTex
     {
         public string Json { get; internal set; }
         public IReadOnlyList<string> Warnings { get; internal set; }
+        public bool DrawingPixelsOmitted { get; internal set; }
     }
 
     /// <summary>Owns a detached document until TakeDocument transfers it to its caller.</summary>
@@ -115,7 +116,7 @@ namespace DCFApixels.WhimTex
             ValidateLayerReferences(root);
             string json = root.ToString(Formatting.Indented);
             if (json.Length > MaxCharacters) throw new WhimTexDocumentException("JSON exceeds the 64 MiB character budget.");
-            return new WhimTexJsonWriteResult { Json = json, Warnings = context.Warnings.ToArray() };
+            return new WhimTexJsonWriteResult { Json = json, Warnings = context.Warnings.ToArray(), DrawingPixelsOmitted = context.DrawingPixelsOmitted };
         }
 
         public static WhimTexJsonReadResult Read(string json, bool prepareEffects = true)
@@ -271,7 +272,8 @@ namespace DCFApixels.WhimTex
                     }
                     if (node["inputMode"]?.Type == JTokenType.String && (string)node["inputMode"] == "Specific" && node["targetLayerId"]?.Type == JTokenType.String)
                         targets.Add((string)node["targetLayerId"]);
-                    if (node["textureSource"]?.Type == JTokenType.String && (string)node["textureSource"] == "Layer" && node["textureLayerId"]?.Type == JTokenType.String)
+                    if (node["type"]?.Type == JTokenType.String && (string)node["type"] == "Texture2D" &&
+                        node["textureSource"]?.Type == JTokenType.String && (string)node["textureSource"] == "Layer" && node["textureLayerId"]?.Type == JTokenType.String)
                         targets.Add((string)node["textureLayerId"]);
                     foreach (var field in node.Properties()) Walk(field.Value);
                 }
@@ -290,14 +292,14 @@ namespace DCFApixels.WhimTex
                 {
                     if (layer?.Behaviour is TextLayerBehaviour text) text.Validate();
                     if (layer?.Behaviour is TargetedLayerBehaviour target &&
-                        (target.inputMode == EffectInputMode.Specific && !document.IsUsableEffectTarget(target, target.TargetLayerId) ||
-                         target.inputMode == EffectInputMode.AllBelow && document.TryFindLayer(layer, out var siblings, out int index) && !document.HasUsableEffectInput(target, siblings, index)))
+                        (target.inputMode == EffectInputMode.Specific && !document.IsUsableStoredShaderTexture(layer, target.TargetLayerId) ||
+                         target.inputMode == EffectInputMode.AllBelow && document.TryFindLayer(layer, out var siblings, out int index) && !document.HasUsableStoredEffectInput(target, siblings, index)))
                         throw new WhimTexDocumentException("Invalid or cyclic layer input: " + layer.Id);
                     if (layer?.fx != null)
                         foreach (var fxEntry in layer.fx)
                             if (fxEntry is ShaderFX fx)
-                                foreach (var parameter in fx.TextureLayerParameters())
-                                    if (!document.IsUsableShaderTexture(layer, parameter.textureLayerId))
+                                foreach (var parameter in fx.StoredTextureLayerParameters())
+                                    if (!document.IsUsableStoredShaderTexture(layer, parameter.textureLayerId))
                                         throw new WhimTexDocumentException("Invalid or cyclic FX input: " + parameter.name);
                     if (layer?.children != null) Visit(layer.children);
                 }
@@ -330,8 +332,9 @@ namespace DCFApixels.WhimTex
                     throw new WhimTexDocumentException("Include the clipping base: " + clip.Id);
                 if (layer.Behaviour is TargetedLayerBehaviour targeted && document.TryFindLayer(layer, out var siblings, out int index))
                 {
-                    if (targeted.inputMode == EffectInputMode.Previous && index + 1 < siblings.Count && !included.Contains(siblings[index + 1]))
-                        throw new WhimTexDocumentException("Include the Previous input: " + siblings[index + 1].Id);
+                    int previous = WhimTexDocument.NextContentLayer(siblings, index);
+                    if (targeted.inputMode == EffectInputMode.Previous && previous < siblings.Count && !included.Contains(siblings[previous]))
+                        throw new WhimTexDocumentException("Include the Previous input: " + siblings[previous].Id);
                     if (targeted.inputMode == EffectInputMode.AllBelow)
                         for (int i = index + 1; i < siblings.Count; i++) if (!included.Contains(siblings[i]))
                             throw new WhimTexDocumentException("Include every All Below input: " + siblings[i].Id);
@@ -343,6 +346,7 @@ namespace DCFApixels.WhimTex
         private sealed class Writer
         {
             internal readonly List<string> Warnings = new();
+            internal bool DrawingPixelsOmitted;
             private readonly WhimTexJsonWriteOptions options;
             private readonly WhimTexDocument document;
             private readonly Dictionary<ShaderFX, string> effects = new();
@@ -359,7 +363,7 @@ namespace DCFApixels.WhimTex
                 var node = new JObject();
                 foreach (var field in Fields(value.GetType()))
                 {
-                    if (value is ShaderFXParameter parameter && parameter.controls.Count > 0 &&
+                    if (value is ShaderFXParameter parameter && parameter.controls?.Count > 0 &&
                         (field.Name == "controls" || field.Name == "hasMinimum" || field.Name == "hasMaximum" ||
                          field.Name == "softMinimum" || field.Name == "softMaximum" || field.Name == "minimum" || field.Name == "maximum")) continue;
                     if (value is WhimTexDocument && field.Name == "layers") continue;
@@ -369,7 +373,10 @@ namespace DCFApixels.WhimTex
                             throw new WhimTexDocumentException("JSON cannot store Drawing pixels. Set AllowDrawingOmission explicitly to retain empty Drawing nodes.");
                         node["contentOmitted"] = true;
                         if (((DrawingLayerBehaviour)value).HasJsonOmittedPixels)
+                        {
+                            DrawingPixelsOmitted = true;
                             Warnings.Add(((DrawingLayerBehaviour)value).Owner?.layerName + ": Drawing pixels omitted.");
+                        }
                         continue;
                     }
                     if (options.Mode != WhimTexJsonWriteMode.Full && !IsActive(value, field.Name)) continue;
@@ -381,6 +388,10 @@ namespace DCFApixels.WhimTex
                         {
                             var declared = ShaderFXMetadata.Parse(effect.Code, false, out _);
                             ShaderFXMetadata.PreserveValues(declared, effect.Parameters);
+                            foreach (var declaredParameter in declared)
+                                foreach (var stored in effect.Parameters)
+                                    if (stored != null && stored.id == declaredParameter.id && MissingAssets.TryGetValue(stored, out var missingParameterAssets))
+                                        foreach (var asset in missingParameterAssets) MissingAssets.GetOrCreateValue(declaredParameter)[asset.Key] = asset.Value.DeepClone();
                             item = declared;
                         }
                         catch (FormatException) { /* Broken drafts keep their stored values. */ }

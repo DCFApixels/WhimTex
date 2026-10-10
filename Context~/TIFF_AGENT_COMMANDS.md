@@ -4,7 +4,7 @@
 - Статус: действующая памятка, не отдельная версия протокола.
 - Источники истины: [AgentAPI](../Documentation~/AgentAPI.md), [LiveAgentAPI](../Documentation~/LiveAgentAPI.md), [WhimTexCommands](../src/Automation/Pipeline/WhimTexCommands.cs).
 
-Дополнительно поддержан `whimtex.document` (`.json`; прежние имена `.whimtex.json` также читаются). Команда `whimtex_document_json`
+Дополнительно поддержан `whimtex.document` (`.json`). Команда `whimtex_document_json`
 сериализует, проверяет, экспортирует, открывает и записывает документ, вставляет фрагмент или заменяет
 содержимое слоя. Batch также читает/сохраняет JSON. Headless Live пока остаётся TIFF-пайплайном.
 Контракт: [JSON_FORMAT](../Documentation~/JSON_FORMAT.md).
@@ -21,10 +21,13 @@ TIFF — основной формат документа. Документы `.
 | Headless Live | `whimtex_headless_live` | Модель между запросами без окна. `begin`, `list`, `status`, `preview`, `render`, `complete`, `cancel`. Сохраняет только `complete`; активная сессия теряется при domain reload. |
 | Assistant | `whimtex_assistant_sessions`, `whimtex_assistant_begin`, `whimtex_assistant_lock`, `whimtex_assistant_live`, `whimtex_assistant_execute` | Открытый документ, Undo, резервирование/блокировки для длительных задач или немедленный batch без pending jobs. Автосохранения нет; сохранение через окно. |
 
-Общие операции: `add`, `set`, `transform`, `target`, `move`, `stroke`, `compact`, `fx`,
-`delete`, `duplicate`, `merge`, `convertToDrawing`, `blurStroke`, `healStroke`.
+Общие операции: `add`, `set`, `transform`, `target`, `move`, `resize`, `stroke`, `compact`, `fx`,
+`delete`, `duplicate`, `merge`, `convertToDrawing`, `blurStroke`, `smudgeStroke`, `healStroke`.
 Они доступны в Batch, Headless `operations` и Assistant Execute. Формат `fx.edits`
 общего batch отличается от `changes.fx` оконной резервации; примеры нельзя смешивать.
+В резервации и lock-job новые FX принимают только `code` с `@param` и его defaults,
+без `parameters`/`presetId`/`set`. Изменение значений и добавление связанного пресета —
+общие операции после завершения pending jobs.
 
 ## Batch
 
@@ -75,7 +78,7 @@ Assistant или восстановить потерянный кандидат 
 Активные модели не переживают reload; последние 32 успешных ответа `complete`/`cancel` хранятся
 для повторного получения результата, но не восстановления активной сессии.
 
-## Каталог, диагностика и миграция
+## Каталог, диагностика и восстановление
 
 Все перечисленные команды реализованы:
 

@@ -229,6 +229,12 @@ namespace DCFApixels.WhimTex
                 Require(File.Exists(FullPath(session.path)) && DiskRevision(FullPath(session.path)) == session.diskRevision,
                     "The TIFF changed outside this live session. Inspect it and start a new session.", "revision_conflict");
             }
+            else
+            {
+                Require(!File.Exists(FullPath(session.path)) && !File.Exists(FullPath(session.path) + ".meta") &&
+                    AssetDatabase.LoadMainAssetAtPath(session.path) == null,
+                    "The destination was created outside this live session. Cancel and choose a new path.", "already_exists");
+            }
             try
             {
                 session.working.Save(session.path);

@@ -6,7 +6,7 @@ description: Create generated images or procedural layers, add linked FX presets
 # Live WhimTex editing
 
 The API namespace is `DCFApixels.WhimTex`. WhimTex retains the `whimtex_*` command names.
-The skill ID remains `whimtex-live` so existing installations keep working.
+The skill ID `whimtex-live` is the product's portable editing entry point.
 
 Use the installed `Packages/com.dcfapixels.whimtex` package. This skill contains the complete
 fast-start contract below. Read `Documentation~/LiveAgentAPI.md` for completion, previews, advanced
@@ -154,7 +154,8 @@ operations with an explicit sessionId and freshly inspected document expectedRev
 one Undo step, no save, and refuses pending jobs/locks. Use this for parameter-only edits,
 catalog presets, reorder/copy/apply FX, duplicate/delete/merge/convert, blur and healing strokes.
 Read `Documentation~/AgentAPI.md#shared-editing-operations` first; its FX `parameters` is a
-name/value object, unlike the reservation workflow's array. `whimtex_fx_catalog` discovers
+name/value object. Reservation/lock FX entries accept code with `@param` defaults, not a
+`parameters` array or separate overrides. `whimtex_fx_catalog` discovers
 installed presets; `whimtex_render_probe` inspects FX input/output and channels. Do not cancel
 another job to run a batch, bypass revision conflicts or replay a timed-out edit blindly.
 

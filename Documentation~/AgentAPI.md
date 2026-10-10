@@ -192,6 +192,8 @@ The existing `whimtex_assistant_live` remains the open-window API.
   `cancel` discards it without saving. On failed completion inspect disk/status and the still-active
   session before retrying: a post-commit import error is not proof that the TIFF was unchanged.
   Headless sessions do not publish the window's GPU Live Update output.
+  A create session also rechecks that its destination and `.meta` are absent before saving;
+  if another writer created them after `begin`, completion returns `already_exists` and keeps the session.
 
 
 ## Unified JSON documents
@@ -354,10 +356,29 @@ presets remain visible with an error. This command does not insert anything into
 
 `parameters` is a **name/value object**, not a replacement list. Types are inferred from existing
 declarations; unknown names, invalid enum values and hard-range violations fail. Use numbers for
-enums, booleans for bools, RGBA arrays for colors, component arrays for vectors and the existing
-live FX value formats for textures, gradients, curves and Transform2D. Unmentioned values remain.
+enums, booleans for bools and the value formats below. Unmentioned values remain.
 Indices refer to the latest inspected stack and change after each edit. Limits: 32 edits per
 operation, 32 FX per layer, 128 parameters per effect, 65,536 characters of raw HLSL.
+
+| Parameter type | Shared `fx.edits[].parameters` value |
+| --- | --- |
+| `Bool` | JSON boolean |
+| `Float` | Finite number within -1000000..1000000 and the declaration's hard bounds; soft bounds may be exceeded |
+| `Enum` | Number matching an explicitly declared option value; fractional option values are supported |
+| `Color` | `[r,g,b,a]`: RGB -107..107, alpha 0..1 |
+| `Vector2`, `Point` | Two numeric components, each -1000000..1000000 |
+| `Vector3`, `Normal` | Three numeric components, each -1000000..1000000; Normal is normalized by the API |
+| `Vector` | Four numeric components, each -1000000..1000000; this is HLSL `float4` |
+| `Texture2D` | Imported `Assets/...` or `Packages/...` Texture2D path, `"self"`, `"none"`, or `{"layer":"STABLE-LAYER-ID"}`. Layer bindings require actual IDs, not `@aliases`; missing sources, cycles and the document's own output are rejected |
+| `Curve` | `"linear"`, `"easeIn"`, `"easeOut"`, `"easeInOut"`, `"one"` or a `"keys(...)"` string; [curve syntax](ShaderFX.md#curve-parameters) |
+| `Gradient` | The shared ordered stop array or gradient object from [Color and gradient input](#color-and-gradient-input), with Perceptual as the omitted mode |
+| `Transform2D` | Partial object with `position:[x,y]`, `size:[x,y]`, `rotation`, or nine row-major `matrix` values. Matrix excludes the other three fields. Components are finite, within ±1e15; size components must have absolute value at least 0.00001. Position and size use normalized input units (center `[0.5,0.5]`, full size `[1,1]`); rotation uses counterclockwise degrees |
+
+The reservation/lock `fx` format in [LiveAgentAPI](LiveAgentAPI.md#inline-shader-fx)
+accepts inline code with `@param` defaults. It does not accept this name/value object or
+inspection's parameter records. Finish pending jobs before using `whimtex_assistant_execute`
+for shared FX value edits. See [HLSL declarations](ShaderFX.md#parameter-declarations)
+for the corresponding source syntax.
 
 Set/copy use independent document-owned values rather than modifying a shared external asset.
 Project/package HLSL presets retain their source link; user-library files are embedded. Shader FX
@@ -480,16 +501,18 @@ not a background job. All three tools limit total generated stroke stamps to 32,
  "stage":"afterFx","index":0,"channel":"a","maxSize":1024}
 ```
 
-Choose exactly one source: TIFF `assetPath`, `assistantSessionId`, or `headlessSessionId`.
+Choose exactly one source: TIFF/JSON `assetPath`, `assistantSessionId`, or `headlessSessionId`.
 Stages are `composite` (no layer/index), `layer` (all its FX), `beforeFx` and `afterFx` (layer + index).
 Layer/FX stages capture the canvas-sized input pipeline before outer opacity, blending, channelMapping
 and clipping; a Shader Processor uses its actual stack-position backdrop. They are not a solo
 view of the final composited layer. Disabled FX have identical before/after images.
 Channels: `rgba` (default), `r`, `g`, `b`, `a` (opaque grayscale). `maxSize` is 1..4096, default 1024.
 Optional `outputPath` must be a new `Temp/WhimTex/*.png`; otherwise a unique path is generated.
-The response includes the PNG path, dimensions, full-resolution linear per-channel minima/maxima
-and nonfinite-component count. PNG is a display preview, not lossless HDR data. Rendering uses an
-independent document copy and never edits or saves the source.
+The API response exposes the absolute PNG path as top-level `outputPath`, with `width`/`height`,
+`sourceWidth`/`sourceHeight`, full-resolution `linearMinimum`/`linearMaximum` RGBA arrays and
+`nonFiniteComponents`. PNG is a display preview, not lossless HDR data. Rendering uses an
+independent document copy and never edits or saves the source. Read these fields from the inner
+WhimTex API result, not the CLI transport wrapper.
 
 ## Layer identity and behaviour
 
@@ -629,7 +652,7 @@ HDR texture data is distinct from physical HDR monitor output; rendered PNG prev
 {"op":"target", "layer":"@outline", "input":"Previous"}
 ```
 
-- `add`: types `file`, `drawing`, `group`, `color`, `gradient`, `noise`, `shape`, `outline`, `sdf`, `normalMap`, `blur`, `sharpen`, `makeSeamless`, `shaderProcessor`.
+- `add`: types `file`, `drawing`, `group`, `color`, `gradient`, `noise`, `shape`, `text`, `outline`, `sdf`, `normalMap`, `blur`, `sharpen`, `makeSeamless`, `shaderProcessor`.
   Optional `parent` defaults to root, `index` to 0. `settings` and `transform` are optional patches.
 - `set`: requires `layer` and `settings`.
 - `transform`: requires `layer` and `transform`.
@@ -650,7 +673,7 @@ HDR texture data is distinct from physical HDR monitor output; rendered PNG prev
 | Color | `color` (`[r,g,b,a]`, encoded RGB -107..107, alpha 0..1), `fillMode` (`Color`, `UV`, `Pattern`), `fillPattern` (partial settings below) |
 | Drawing | `brush` (partial brush settings below) |
 | Outline | `color`, `metric`, `sourceChannel` (`Alpha` default, `Red`, `Green`, `Blue`, `Luminance`), `outlineWidth`, `outlineSoftness` (0..16384), `outlinePosition` (`Outside`, `Inside`, `Center`), `outlineOffset` (-16384..16384), `fillCenter` (bool), `fillColor` (`[r,g,b,a]`) |
-| SDF | `metric`, `sourceChannel` (`Alpha`, `Red`, `Green`, `Blue`, `Luminance`), `threshold` (integer 0..255), `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`), `encoding` (`Gradient` default or `LinearData`), `inverted` (bool, both output modes), `maxDistance` (0..16384; zero = automatic), `sourceOffset` ([x,y], each -16384..16384 px), `sourceEdges` (`Transparent`, `Clamp`, `Repeat`, `Mirror`), `contourOffset` (-16384..16384 px; positive expands), `insideDistance`/`outsideDistance` (Signed only, 0..16384; 0 inherits maxDistance/auto), `profile` (FX curve string syntax, default `linear`) |
+| SDF | `metric`, `sourceChannel` (`Alpha`, `Red`, `Green`, `Blue`, `Luminance`), `threshold` (integer 0..255), `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`), `encoding` (`Gradient` default or `LinearData`), `inverted` (bool, both output modes), `maxDistance` (0..16384; zero = automatic), `sourceOffset` ([x,y], each -16384..16384 px), `sourceEdges` (`Transparent`, `Clamp`, `Repeat`, `Mirror`), `contourOffset` (-16384..16384 px; positive expands), `insideDistance`/`outsideDistance` (Signed only, 0..16384; 0 inherits maxDistance/auto), `profile` (FX curve string syntax, at most 4096 characters; default `linear`) |
 | Normal Map | `normalMap`: partial settings object described below |
 | Noise | `noise`: partial procedural settings object described below |
 | Shape | `shape`: partial settings object described below |
@@ -808,7 +831,7 @@ use the same multiplier. This is a layer setting, not a Text tool creation defau
 SmallCaps uses smaller uppercase glyphs (75%, rounded to whole pixels) for lowercase letters,
 with their baseline aligned to full-size capitals. It does not select a font's OpenType small-cap feature.
 Capabilities expose `systemFonts`, `textDefaults`, `textFontStyles`, `textAlignments`,
-`textLayoutModes`, `textWrappingRules` and `textCasingModes`.
+`textLayoutModes`, `textWrappingRules`, `textOverflowModes` and `textCasingModes`.
 Layer inspection exposes `settings.text`, `fontAvailable`, `resolvedFont` and missing-font `warnings`.
 Missing fonts do not silently substitute another family: rendering uses a matching saved mask or
 transparent output. Restoring/selecting a font enables source editing. Ordinary Transform, FX,
@@ -1326,8 +1349,9 @@ Transform patches support `position:[x,y]`, `scale:[x,y]`, `pivot:[u,v]`, `rotat
 - `reset` is applied before the other fields, Original Aspect after them.
 - Changing pivot through this API uses raw TRS semantics; it does not compensate position. In matrix mode it changes only the pivot.
 - `matrix:[m00,m01,m02,m10,m11,m12,m20,m21,m22]` sets a double-precision projective transform from source UV to canvas UV; divide the first two output coordinates by the third. It must be invertible with no horizon crossing the unit source rectangle.
-- Do not combine `matrix` with `position`, `scale`, `rotation` or `originalAspect` in the same patch. Pivot and tiling are independent.
+- Do not combine `matrix` with `position`, `scale`, `rotation` or `originalAspect:true` in the same patch. `originalAspect:false` is a no-op; pivot and tiling are independent.
 - Scalar edits on an existing matrix preserve its distortion. Rotation/Scale describe the local axes at the pivot; Reset returns TRS. Original Aspect requires TRS.
+- Position, scale, pivot and matrix components are finite and within ±1e15; scale components must have absolute value at least 0.00001. Rotation is within ±360000 degrees.
 - Brush footprints are defined in canvas pixels and inverse-compensated when written to a transformed Drawing source.
 
 ### Drawing strokes
@@ -1460,7 +1484,7 @@ on `ColorFillLayerBehaviour`; use the document schema for their native field sha
 | `distanceRange` | .001..16 in figure inradii, default 1 |
 | `position` | Outside, Inside, Center, Signed (default) |
 | `inverted` | Boolean, default false |
-| `profile` | FX curve string syntax, default linear |
+| `profile` | FX curve string syntax, at most 4096 characters; default linear |
 | `gradient` | Standard gradient stops/object; default white to black |
 | `cellColor` | Uniform (default), Random, Pattern |
 | `colorBlend` | Multiply (default), ReplaceRGB; both preserve SDF alpha |

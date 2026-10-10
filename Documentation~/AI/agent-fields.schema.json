@@ -13,7 +13,7 @@
         },
         "fontFamily": {
           "type": "string",
-          "maxLength": 512
+          "maxLength": 4096
         },
         "fontStyle": {
           "type": "string",
@@ -263,7 +263,7 @@
         },
         "profile": {
           "type": "string",
-          "maxLength": 65536
+          "maxLength": 4096
         },
         "gradient": {
           "$ref": "#/$defs/gradient"
@@ -1436,12 +1436,18 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "reset": {
+          "type": "boolean"
+        },
+        "originalAspect": {
+          "type": "boolean"
+        },
         "position": {
           "type": "array",
           "items": {
             "type": "number",
-            "minimum": -1000000,
-            "maximum": 1000000
+            "minimum": -1000000000000000,
+            "maximum": 1000000000000000
           },
           "minItems": 2,
           "maxItems": 2,
@@ -1451,8 +1457,8 @@
           "type": "array",
           "items": {
             "type": "number",
-            "minimum": -1000000,
-            "maximum": 1000000
+            "minimum": -1000000000000000,
+            "maximum": 1000000000000000
           },
           "minItems": 2,
           "maxItems": 2,
@@ -1462,8 +1468,8 @@
           "type": "array",
           "items": {
             "type": "number",
-            "minimum": -1000000,
-            "maximum": 1000000
+            "minimum": -1000000000000000,
+            "maximum": 1000000000000000
           },
           "minItems": 2,
           "maxItems": 2
@@ -1486,10 +1492,10 @@
         "tiling": {
           "type": "string",
           "enum": [
+            "Source",
             "Clip",
             "Repeat",
             "Mirror",
-            "Source",
             "Clamp",
             "Unbounded"
           ]
@@ -1519,6 +1525,16 @@
                   "required": [
                     "rotation"
                   ]
+                },
+                {
+                  "required": [
+                    "originalAspect"
+                  ],
+                  "properties": {
+                    "originalAspect": {
+                      "const": true
+                    }
+                  }
                 }
               ]
             }
@@ -1608,7 +1624,7 @@
         },
         "profile": {
           "type": "string",
-          "maxLength": 65536
+          "maxLength": 4096
         },
         "encoding": {
           "type": "string",

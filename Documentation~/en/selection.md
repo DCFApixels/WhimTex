@@ -121,7 +121,8 @@ as an independent Drawing layer, keeping its original pixels and transparency. I
 centered with its proportions preserved, using the layer transform rather than resizing the image. The same size limits apply;
 downloads are limited to 64 MB. Links to web pages are not supported. Closing the window or switching documents
 cancels the download. For a local file, first drag it into Project, then into Canvas View.
-Old linked-image JSON is unsupported and is not migrated. [Edit it with a matching older checkout](../AI/LEGACY_LAYERS.md).
+Old linked-image JSON is unsupported and is not migrated. Edit it with a matching older checkout;
+new recipes use the [current JSON contract](../JSON_FORMAT.md).
 Current `whimtex.document` JSON does not download images or store Drawing pixels. Paste an image link
 directly as described above, or use verified project asset references in [document JSON](ai-authoring.md).
 

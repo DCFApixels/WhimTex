@@ -80,6 +80,7 @@ public static class LiveAgentTests
         string png = null;
         try
         {
+            Call("\"op\":\"unknown\"", "invalid_request");
             var inspection = Call("\"op\":\"inspect\"," + scope);
             Check(Text(inspection, "document", "assetPath") == "", "Unsaved document is accessible");
             string quickId=System.Guid.NewGuid().ToString("N");
@@ -87,6 +88,20 @@ public static class LiveAgentTests
             Check(bool.Parse(Text(quick,"success")) && Text(quick,"capture","source")=="none","Direct fast begin reserves without an image capture");
             var quickRetry=Json(DCFApixels.WhimTex.WhimTexApi.LiveBegin(quickId,"Quick",sessionId:session));
             Check(Text(quick,"jobId")==Text(quickRetry,"jobId"),"Direct fast begin is idempotent");
+            var otherWindow = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexWindow>());
+            try
+            {
+                var otherDocument = (DCFApixels.WhimTex.WhimTexDocument)windowType.GetField("activeDocument", instance).GetValue(otherWindow);
+                otherDocument.width = 8; otherDocument.height = 8;
+                string otherSession = (string)windowType.GetProperty("AgentSessionId", instance).GetValue(otherWindow);
+                WhimTex.Tests.UnityC.FixtureContext.Scope.OwnLiveSession(otherSession);
+                int otherLayers = otherDocument.layers.Count;
+                var redirectedRetry = Json(DCFApixels.WhimTex.WhimTexApi.LiveBegin(quickId, "Quick", sessionId:otherSession));
+                Check(!bool.Parse(Text(redirectedRetry, "success")) && Text(redirectedRetry, "errorCode") == "request_conflict",
+                    "Reusing a requestId for a different document cannot create another reservation");
+                Check(otherDocument.layers.Count == otherLayers, "Rejected retry leaves the other document untouched");
+            }
+            finally { otherWindow.DiscardChanges(); WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(otherWindow); }
             Check(Text(quick,"context","selectionActive").ToLowerInvariant()=="false","Fast begin returns frozen compact context");
             Call("\"op\":\"cancel\","+scope+",\"layerId\":\""+Text(quick,"layerId")+"\"");
             var baseLayer = new DCFApixels.WhimTex.ColorFillLayerBehaviour { layerName = "Unrelated", color = UnityEngine.Color.blue };

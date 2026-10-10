@@ -13,6 +13,7 @@ const choice = values => ({ type: 'string', enum: values.split(' ') });
 const object = (properties, required = []) => ({ type: 'object', additionalProperties: false, properties, ...(required.length ? { required } : {}) });
 const tuple = (items, count) => ({ type: 'array', items, minItems: count, maxItems: count });
 const vec = tuple(number(-1e6, 1e6), 2);
+const transformVec = tuple(number(-1e15, 1e15), 2);
 const rgba = { type: 'array', prefixItems: [number(-107, 107), number(-107, 107), number(-107, 107), number(0, 1)], items: false, minItems: 4, maxItems: 4 };
 function enumeration(file, name) {
   const body = read(file).match(new RegExp('enum\\s+' + name + '\\s*\\{([^}]+)\\}'))?.[1];
@@ -23,7 +24,7 @@ function enumeration(file, name) {
 const noiseEnum = name => enumeration('Layers/NoiseLayerBehaviour.cs', name);
 const normalEnum = name => enumeration('Layers/NormalMapLayerBehaviour.cs', name);
 const defs = {
-  text: object({ text: str(8192), fontFamily: str(512), fontStyle: choice('Normal Bold Italic BoldAndItalic'),
+  text: object({ text: str(8192), fontFamily: str(4096), fontStyle: choice('Normal Bold Italic BoldAndItalic'),
     casing: { ...enumeration('Layers/TextLayerBehaviour.cs', 'TextCasing'), default: 'Normal', description: 'Display-only casing. SmallCaps draws lowercase as smaller capitals; stored text is unchanged.' },
     fontSize: { ...number(1,2048), description: 'Fixed size, or minimum size with Frame Auto Size enabled.' },
     maxFontSize: { ...number(1,2048), default: 256, description: 'Maximum size with Frame Auto Size enabled. Range must contain a whole-pixel size.' },
@@ -39,7 +40,7 @@ const defs = {
     size: { oneOf: [number(1,16384), { type: 'array', items: number(1,16384), minItems: 2, maxItems: 2 }] }, linkSize: bool,
     rotation: number(-360000,360000), offset: vec, seamless: bool,
     gap: number(0,.99), roundness: number(0,1), bulge: number(0,1), distanceRange: number(.001,16),
-    position: choice('Outside Inside Center Signed'), inverted: bool, profile: str(65536), gradient: { $ref: '#/$defs/gradient' },
+    position: choice('Outside Inside Center Signed'), inverted: bool, profile: str(4096), gradient: { $ref: '#/$defs/gradient' },
     cellColor: choice('Uniform Random Pattern'), colorBlend: choice('Multiply ReplaceRGB'), seed: integer(-2147483648,2147483647),
     variation: number(0,1), palette: { $ref: '#/$defs/gradient' } }),
   color: rgba,
@@ -73,7 +74,7 @@ const defs = {
     derivative: normalEnum('DerivativeFilter'), alphaMode: normalEnum('AlphaMode'), output: normalEnum('OutputMode'), encoding: normalEnum('OutputEncoding'),
     strength: number(0, 128), blackLevel: number(0, 1), whiteLevel: number(.0001, 16), gamma: number(.05, 8), smoothing: number(0, 64), mediumRadius: number(.5, 128), largeRadius: number(.5, 512),
     fineDetail: number(0, 8), mediumDetail: number(0, 8), largeDetail: number(0, 8), lightRemoval: number(0, 1), inverted: bool, flipX: bool, flipY: bool, ignoreTransparent: bool }),
-  transform: object({ position: { ...vec, description: 'Parent-local offset in canvas-pixel units; default [0,0], X right, Y up.' }, scale: { ...vec, description: 'Each absolute component must be at least 0.00001.' }, pivot: vec, rotation: number(-360000, 360000), matrix: tuple(number(-1e15,1e15),9), tiling: choice('Clip Repeat Mirror Source Clamp Unbounded') }),
+  transform: object({ reset: bool, originalAspect: bool, position: { ...transformVec, description: 'Parent-local offset in canvas-pixel units; default [0,0], X right, Y up.' }, scale: { ...transformVec, description: 'Each absolute component must be at least 0.00001.' }, pivot: transformVec, rotation: number(-360000, 360000), matrix: tuple(number(-1e15,1e15),9), tiling: enumeration('Utils.cs', 'TransformTilingMode') }),
 
 };
 const seamless = defs.makeSeamless.properties;
@@ -121,13 +122,16 @@ for (const field of ['screeningRadius', 'mirrorCorrectionRadius', 'offsetCorrect
 for (const field of ['processRed', 'processGreen', 'processBlue', 'processAlpha'])
   seamlessDescriptions[field] = 'Channels: false restores this input channel after seam processing, before normal layer FX/compositing. All false bypasses seam processing.';
 for (const [field, description] of Object.entries(seamlessDescriptions)) seamless[field].description = description;
-defs.transform.allOf = [{ if: { required: ['matrix'] }, then: { not: { anyOf: ['position','scale','rotation'].map(key => ({required:[key]})) } } }];
+defs.transform.allOf = [{ if: { required: ['matrix'] }, then: { not: { anyOf: [
+  ...['position','scale','rotation'].map(key => ({required:[key]})),
+  { required: ['originalAspect'], properties: { originalAspect: { const: true } } }
+] } } }];
 defs.sdf = object({
   metric: enumeration('Utils.cs', 'DistanceMetric'), sourceChannel: enumeration('Layers/SDFLayerBehaviour.cs', 'SourceChannel'),
   threshold: integer(0, 255), distancePosition: enumeration('Layers/SDFLayerBehaviour.cs', 'DistancePosition'),
   inverted: bool, maxDistance: number(0, 16384), sourceOffset: tuple(number(-16384,16384),2),
   sourceEdges: choice('Transparent Clamp Repeat Mirror'), contourOffset: number(-16384,16384),
-  insideDistance: number(0,16384), outsideDistance: number(0,16384), profile: str(65536),
+  insideDistance: number(0,16384), outsideDistance: number(0,16384), profile: str(4096),
   encoding: { ...enumeration('Layers/SDFLayerBehaviour.cs', 'OutputEncoding'), default: 'Gradient' },
   gradient: { $ref: '#/$defs/gradient' }
 });

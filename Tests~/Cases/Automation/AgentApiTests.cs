@@ -140,6 +140,84 @@ Reject(cyclic, "invalid_request");
 var effectCycle = Batch("[{\"op\":\"add\",\"type\":\"sdf\",\"as\":\"a\"},{\"op\":\"add\",\"type\":\"sdf\",\"as\":\"b\"},{\"op\":\"target\",\"layer\":\"@a\",\"target\":\"@b\"},{\"op\":\"target\",\"layer\":\"@b\",\"target\":\"@a\"}]");
 Reject(effectCycle, "invalid_target");
 
+var textLimits = Batch("[{\"op\":\"add\",\"type\":\"text\",\"settings\":{\"text\":{}}}]");
+Set(textLimits, "dryRun", true);
+Set(At(textLimits, "operations", 0, "settings", "text"), "text", new string('A', 8192));
+Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(textLimits.ToString()));
+Set(At(textLimits, "operations", 0, "settings", "text"), "text", new string('A', 8193));
+Reject(textLimits, "invalid_request");
+Set(At(textLimits, "operations", 0, "settings", "text"), "text", true);
+Reject(textLimits, "invalid_request");
+Check(Text(Ok(DCFApixels.WhimTex.WhimTexApi.Describe()), "textOverflowModes").Contains("Ellipsis"), "Text overflow choices are discoverable");
+
+var endpoints = Batch("[{\"op\":\"add\",\"type\":\"normalMap\",\"settings\":{\"normalMap\":{\"gamma\":0.05}}}]");
+Set(endpoints, "dryRun", true);
+Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(endpoints.ToString()));
+Set(At(endpoints, "operations", 0, "settings", "normalMap"), "gamma", 8);
+Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(endpoints.ToString()));
+Set(At(endpoints, "operations", 0, "settings", "normalMap"), "gamma", .049);
+Reject(endpoints, "invalid_request");
+Set(At(endpoints, "operations", 0, "settings", "normalMap"), "gamma", 8.001);
+Reject(endpoints, "invalid_request");
+
+var fxDependency = Batch("[{\"op\":\"fx\",\"layer\":\"" + imageId + "\",\"edits\":[{\"op\":\"add\",\"parameters\":{\"_Source\":{\"layer\":\"" + inkId + "\"}}}]},{\"op\":\"delete\",\"layer\":\"" + inkId + "\"}]");
+Set(At(fxDependency, "operations", 0, "edits", 0), "code", "// @param texture2D _Source = none\nfloat4 ApplyFX(float2 uv, float4 color) { return color; }");
+Set(fxDependency, "dryRun", true);
+Reject(fxDependency, "invalid_target");
+
+var jsonSelection = Json("{\"apiVersion\":1,\"action\":\"serialize\",\"allowDrawingOmission\":true,\"layerIds\":{}}");
+Set(jsonSelection, "assetPath", fixture + "/Icon.tiff");
+var invalidSelection = Json(DCFApixels.WhimTex.WhimTexApi.DocumentJson(jsonSelection.ToString()));
+Check(!Flag(invalidSelection, "success") && Text(invalidSelection, "errorCode") == "invalid_request", "JSON selection must be an array, not an ignored object");
+Set(jsonSelection, "layerIds", new[] { 1 });
+invalidSelection = Json(DCFApixels.WhimTex.WhimTexApi.DocumentJson(jsonSelection.ToString()));
+Check(!Flag(invalidSelection, "success") && Text(invalidSelection, "errorCode") == "invalid_request", "JSON selection IDs must be strings");
+
+var jsonExport = Json("{\"apiVersion\":1,\"action\":\"export\",\"allowDrawingOmission\":true}");
+Set(jsonExport, "assetPath", fixture + "/Icon.tiff");
+Set(jsonExport, "destinationPath", fixture + "/Probe.json");
+Ok(DCFApixels.WhimTex.WhimTexApi.DocumentJson(jsonExport.ToString()));
+var probe = Json("{\"apiVersion\":1,\"stage\":\"composite\",\"maxSize\":64}");
+Set(probe, "assetPath", fixture + "/Probe.json");
+Set(probe, "outputPath", System.IO.Path.GetRelativePath(projectRoot, System.IO.Path.Combine(Scope.Temp, "json-probe.png")).Replace('\\', '/'));
+var jsonProbe = Ok(DCFApixels.WhimTex.WhimTexApi.RenderProbeJson(probe.ToString()));
+previews.Add(Text(jsonProbe, "outputPath"));
+Check(Number(jsonProbe, "width") == 64 && Number(jsonProbe, "height") == 64, "Render probe accepts a JSON-backed document");
+
+string collisionId = System.Guid.NewGuid().ToString("N"), collisionPath = fixture + "/Collision.tiff";
+string receiptsPath = System.IO.Path.Combine(projectRoot, "Library", "WhimTex", "tiff-live-receipts.json");
+byte[] receiptsBefore = System.IO.File.Exists(receiptsPath) ? System.IO.File.ReadAllBytes(receiptsPath) : null;
+bool collisionSession = false;
+try
+{
+    var begin = Json("{\"apiVersion\":1,\"op\":\"begin\",\"create\":true,\"width\":8,\"height\":8}");
+    Set(begin, "sessionId", collisionId); Set(begin, "assetPath", collisionPath);
+    Ok(DCFApixels.WhimTex.WhimTexApi.TiffLiveJson(begin.ToString())); collisionSession = true;
+    System.IO.File.WriteAllText(collisionPath, "external destination");
+    var complete = Json("{\"apiVersion\":1,\"op\":\"complete\"}"); Set(complete, "sessionId", collisionId);
+    var blocked = Json(DCFApixels.WhimTex.WhimTexApi.TiffLiveJson(complete.ToString()));
+    Check(!Flag(blocked, "success") && Text(blocked, "errorCode") == "already_exists", "Live create rechecks a raced destination");
+    Check(System.IO.File.ReadAllText(collisionPath) == "external destination", "Rejected completion preserves destination bytes");
+    var statusRequest = Json("{\"apiVersion\":1,\"op\":\"status\"}"); Set(statusRequest, "sessionId", collisionId);
+    Ok(DCFApixels.WhimTex.WhimTexApi.TiffLiveJson(statusRequest.ToString()));
+}
+finally
+{
+    try
+    {
+        // Dispose only this fixture's session without adding a terminal receipt that
+        // could evict a user's remembered request from the bounded shared store.
+        if (collisionSession)
+            typeof(DCFApixels.WhimTex.WhimTexApi).GetMethod("RemoveTiffLiveSession", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+                .Invoke(null, new object[] { collisionId });
+    }
+    finally
+    {
+        if (receiptsBefore != null) System.IO.File.WriteAllBytes(receiptsPath, receiptsBefore);
+        else if (System.IO.File.Exists(receiptsPath)) System.IO.File.Delete(receiptsPath);
+    }
+}
+
 var revisionBeforeTransient = Text(Inspect(), "document", "revision");
 var edit = Batch("[{\"op\":\"set\",\"layer\":\"" + inkId + "\",\"settings\":{\"opacity\":0.5}}]");
 Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(edit.ToString()));
