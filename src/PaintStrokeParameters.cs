@@ -10,6 +10,7 @@ namespace DCFApixels.WhimTex
         internal readonly float Size;
         internal readonly float Hardness;
         internal readonly float SpacingPixels;
+        private readonly float spacingFraction;
         internal readonly bool Erase;
         internal readonly bool WrapCanvas;
         internal readonly bool PixelPerfect;
@@ -34,6 +35,7 @@ namespace DCFApixels.WhimTex
         private PaintStrokeParameters(PaintStrokeParameters source, BrushDynamics dynamics)
         {
             Color = source.Color; Size = source.Size; Hardness = source.Hardness; SpacingPixels = source.SpacingPixels;
+            spacingFraction = source.spacingFraction;
             Erase = source.Erase; WrapCanvas = source.WrapCanvas; PixelPerfect = source.PixelPerfect; Shape = source.Shape;
             SelectionMask = source.SelectionMask; Dynamics = source.PixelPerfect ? null : dynamics;
             StandardColorInputs = source.StandardColorInputs; Pressure = source.Pressure;
@@ -55,6 +57,7 @@ namespace DCFApixels.WhimTex
             Size = source.Size;
             Hardness = source.Hardness;
             SpacingPixels = source.SpacingPixels;
+            spacingFraction = source.spacingFraction;
             Erase = source.Erase;
             WrapCanvas = wrap;
             SelectionMask = mask;
@@ -72,6 +75,7 @@ namespace DCFApixels.WhimTex
             Size = source.Size;
             Hardness = source.Hardness;
             SpacingPixels = source.SpacingPixels;
+            spacingFraction = source.spacingFraction;
             Erase = source.Erase;
             WrapCanvas = source.WrapCanvas;
             SelectionMask = source.SelectionMask;
@@ -89,6 +93,7 @@ namespace DCFApixels.WhimTex
         {
             Color = source.Color; Size = source.Size; Hardness = source.Hardness;
             SpacingPixels = source.SpacingPixels; Erase = source.Erase;
+            spacingFraction = source.spacingFraction;
             WrapCanvas = source.WrapCanvas; PixelPerfect = source.PixelPerfect; Shape = source.Shape;
             SelectionMask = source.SelectionMask; Dynamics = source.Dynamics;
             StandardColorInputs = source.StandardColorInputs; Pressure = source.Pressure;
@@ -98,14 +103,17 @@ namespace DCFApixels.WhimTex
         internal PaintStrokeParameters WithWriteProtection(int channels)
             => new PaintStrokeParameters(this, channels);
 
+        internal float SpacingAtPressure(float pressure) => PixelPerfect ? SpacingPixels
+            : Mathf.Max(.5f, Size * spacingFraction * (Dynamics?.SizePressure(pressure) ?? 1f));
+
         internal PaintStrokeParameters(Color color, float size, float hardness, float spacing, bool erase,
             bool pixelPerfect = false, PencilShape shape = PencilShape.Circle, BrushDynamics dynamics = null, bool standardColorInputs = false)
         {
             Color = color;
             Size = pixelPerfect ? Mathf.Clamp(Mathf.Round(size), 1f, 4096f) : Mathf.Max(1f, size);
             Hardness = pixelPerfect ? 1f : Mathf.Clamp01(hardness);
-            SpacingPixels = pixelPerfect ? Mathf.Max(1f, Mathf.Floor(Size * 0.16f)) : Mathf.Max(1f, Size * Mathf.Clamp(spacing,
-                DrawingLayerBehaviour.MinimumBrushSpacing, DrawingLayerBehaviour.MaximumBrushSpacing));
+            spacingFraction = Mathf.Clamp(spacing, DrawingLayerBehaviour.MinimumBrushSpacing, DrawingLayerBehaviour.MaximumBrushSpacing);
+            SpacingPixels = pixelPerfect ? Mathf.Max(1f, Mathf.Floor(Size * 0.16f)) : Mathf.Max(.5f, Size * spacingFraction);
             Erase = erase;
             WrapCanvas = false;
             SelectionMask = null;

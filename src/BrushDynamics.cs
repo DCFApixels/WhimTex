@@ -413,13 +413,19 @@ namespace DCFApixels.WhimTex
     {
         private double remaining;
 
+        internal double BeginSegment(double spacing, bool includeStart)
+            => includeStart ? 0d : remaining > 0d ? remaining : Math.Max(.5d, spacing);
+
+        internal void EndSegment(double distance, double nextOffset)
+            => remaining = Math.Max(0d, nextOffset - distance);
+
         internal int Sample(double distance, double spacing, bool includeStart, out double first)
         {
-            spacing = Math.Max(1d, spacing);
-            first = includeStart ? 0d : remaining > 0d ? remaining : spacing;
+            spacing = Math.Max(.5d, spacing);
+            first = BeginSegment(spacing, includeStart);
             int count = distance + 0.000001d < first ? 0 : (int)Math.Min(int.MaxValue,
                 Math.Floor((distance - first + 0.000001d) / spacing) + 1d);
-            remaining = Math.Max(0d, first + count * spacing - distance);
+            EndSegment(distance, first + count * spacing);
             return count;
         }
     }

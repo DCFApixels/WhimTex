@@ -9,7 +9,6 @@ public static class BrushDynamicsTests
 {
 static WhimTex.Tests.TestContext T;
 static WhimTex.Tests.UnityA.UnityAScope Scope;
-static System.Threading.CancellationToken Cancellation;
 
 private static string BodyRun()
 {
@@ -53,7 +52,6 @@ void Stroke(DCFApixels.WhimTex.DrawingLayerBehaviour layer, object settings, int
 }
 UnityEngine.Color Pixel(DCFApixels.WhimTex.DrawingLayerBehaviour layer, int x = 16, int y = 16) =>
     ((UnityEngine.Texture2D)typeof(DCFApixels.WhimTex.DrawingLayerBehaviour).GetProperty("StoredTexture", flags).GetValue(layer)).GetPixel(x, y);
-int checks = 0;
 void Check(bool value, string message) { T.True(value, message); }
 void Near(float actual, float expected, string message) =>
     Check(UnityEngine.Mathf.Abs(actual - expected) < .016f, message + ": " + actual + " != " + expected);
@@ -512,7 +510,7 @@ foreach (string application in new[] { "Stroke", "Stamp" })
             previous = size; count++;
         }
         Check(count >= 4, "Pressure interpolation produced intermediate stamps");
-        Near(previous, 16f, "Final stamp reaches final pressure");
+        Check(previous <= 16f && previous > 14f, "Last logical stamp is within one spacing step of the endpoint");
         Set(Get(dynamics, "pressureSize"), "curve", AnimationCurve.Linear(0, .3f, 1, .7f));
         Near((float)Call(dynamics, "SizePressure", 1f), .7f, "Mouse/full input still passes through the parameter curve");
         Set(dynamics, "pressure", false);
@@ -536,6 +534,148 @@ int Samples(double[] lengths)
 }
 Check(Samples(new[] { 20d }) == 6, "Uniform stamp spacing");
 Check(Samples(new[] { 0d, 1d, 2d, 3d, 5d, 9d }) == 6, "Spacing survives pointer segmentation");
+
+// Spacing follows the pressure-sized logical dab, not pointer event density or Size Jitter.
+{
+    object settings = Settings(), dynamics = Get(settings, "dynamics");
+    Set(Get(dynamics, "pressureFlow"), "enabled", false);
+    Set(Get(dynamics, "pressureSize"), "enabled", true);
+    var layers = new List<DrawingLayerBehaviour>();
+    List<Vector2> SamplePath(int divisions, bool falling = false, bool curved = false)
+    {
+        Set(Get(dynamics, "pressureSize"), "curve", curved ? AnimationCurve.EaseInOut(0, 0, 1, 1) : AnimationCurve.Linear(0, 0, 1, 1));
+        object parameters = Call(settings, "GetStrokeParameters", false, (Color?)Color.white);
+        var layer = new DrawingLayerBehaviour(); layers.Add(layer);
+        var start = new Vector2(.125f, .5f);
+        float PressureAt(float t) => falling ? 1f - .75f * t : .25f + .75f * t;
+        Call(layer, "BeginStroke", start);
+        var samples = new List<Vector2>();
+        void Collect()
+        {
+            foreach (object stamp in (System.Collections.IEnumerable)Get(layer, "segmentStamps"))
+            {
+                Vector2 center = (Vector2)Get(stamp, "center");
+                samples.Add(new Vector2(center.x * 32, (float)Get(stamp, "size")));
+            }
+        }
+        try
+        {
+            Call(layer, "PaintPoint", start, 32, 32, Call(parameters, "WithPressure", PressureAt(0)));
+            Collect();
+            for (int i = 1; i <= divisions; i++)
+            {
+                var from = new Vector2(.125f + .75f * (i - 1) / divisions, .5f);
+                var to = new Vector2(.125f + .75f * i / divisions, .5f);
+                Call(layer, "PaintSegment", from, to, 32, 32, false, Call(parameters, "WithPressure", PressureAt(i / (float)divisions)));
+                Collect();
+            }
+        }
+        finally { Call(layer, "EndStroke"); }
+        return samples;
+    }
+    try
+    {
+        foreach (bool falling in new[] { false, true })
+        foreach (bool curved in new[] { false, true })
+        {
+            var sparse = SamplePath(1, falling, curved);
+            foreach (int divisions in new[] { 2, 12, 96 })
+            {
+                var dense = SamplePath(divisions, falling, curved);
+                Check(dense.Count == sparse.Count, "Pressure spacing count survives segment subdivision");
+                for (int i = 0; i < dense.Count; i++)
+                {
+                    T.Near(sparse[i].x, dense[i].x, .0001, "Pressure spacing positions survive subdivision");
+                    T.Near(sparse[i].y, dense[i].y, .0001, "Size curve survives subdivision");
+                }
+            }
+            for (int i = 1; i < sparse.Count; i++)
+                T.Near(Mathf.Max(.5f, sparse[i - 1].y * .25f), sparse[i].x - sparse[i - 1].x, .0001,
+                    "Next spacing is a fraction of the preceding pressure-sized dab");
+        }
+        Set(Get(dynamics, "pressureSize"), "curve", AnimationCurve.Linear(0, 0, 1, 1));
+        object parameters = Call(settings, "GetStrokeParameters", false, (Color?)Color.white);
+        Near((float)Call(parameters, "SpacingAtPressure", .25f), 1f, "Quarter Size gives quarter spacing");
+        Near((float)Call(parameters, "SpacingAtPressure", 0f), .5f, "Zero Size has a finite half-pixel sampling step");
+        var path = SamplePath(1);
+        Set(dynamics, "sizeJitter", .75f);
+        var jittered = SamplePath(1);
+        Check(path.Count == jittered.Count, "Size Jitter does not change logical spacing count");
+        for (int i = 0; i < path.Count; i++) T.Near(path[i].x, jittered[i].x, .0001, "Size Jitter does not change logical positions");
+        Set(dynamics, "sizeJitter", 0f);
+        Set(settings, "brushSize", 1f); Set(settings, "brushSpacing", .01f);
+        parameters = Call(settings, "GetStrokeParameters", false, (Color?)Color.white);
+        Near((float)Get(parameters, "SpacingPixels"), .5f, "Small brush uses half-pixel base spacing");
+        var tiny = SamplePath(1);
+        Check(tiny.Count == 49, "Tiny pressure-sized brush places 49 logical dabs over 24 pixels");
+    }
+    finally { foreach (var layer in layers) Release(layer); }
+}
+
+// Real GPU edge coverage; hard circles retain a one-pixel fringe while Pencil remains binary.
+{
+    object settings = Settings();
+    var layers = new List<DrawingLayerBehaviour>();
+    DrawingLayerBehaviour Dab(float hardness, Vector2 center, float scale = 1f)
+    {
+        Set(settings, "brushHardness", hardness);
+        var layer = new DrawingLayerBehaviour(); layers.Add(layer);
+        var transform = TextureTransform.Default;
+        transform.scale = new Double2(scale, scale);
+        layer.Owner.transform = transform;
+        object parameters = Call(settings, "GetStrokeParameters", false, (Color?)Color.white);
+        Call(layer, "BeginStroke", center);
+        try { Call(layer, "PaintPoint", center, 32, 32, parameters); Call(layer, "SyncSurfaceToTexture"); }
+        finally { Call(layer, "EndStroke"); }
+        return layer;
+    }
+    try
+    {
+        var hard = Dab(1f, new Vector2(.5f, .5f));
+        Near(Pixel(hard).a, 1f, "Hard dab has an opaque center");
+        float rim = Pixel(hard, 23, 18).a;
+        Check(rim > .05f && rim < .95f, "100% Hardness has subpixel edge coverage");
+        Near(Pixel(hard, 8, 18).a, rim, "Hard edge coverage is symmetric");
+        Near(Pixel(hard, 24, 16).a, 0f, "Hard edge fringe does not become a blur halo");
+        var shifted = Dab(1f, new Vector2(16.25f / 32, .5f));
+        float outer = Pixel(shifted, 24, 16).a;
+        Check(outer > .01f && outer < .5f, "Geometry includes the outer half-pixel AA fringe");
+        var scaled = Dab(1f, new Vector2(16.25f / 32, .5f), 2f);
+        float scaledOuter = Pixel(scaled, 20, 16).a;
+        Check(scaledOuter > .01f && scaledOuter < .5f, "Transformed drawing keeps its pixel-sized outer AA fringe");
+        var wrapped = new DrawingLayerBehaviour(); layers.Add(wrapped);
+        Set(settings, "brushHardness", 1f);
+        object wrappedParameters = Call(Call(settings, "GetStrokeParameters", false, (Color?)Color.white), "WithCanvasWrap");
+        Call(wrapped, "BeginStroke", new Vector2(.25f / 32, .5f));
+        try { Call(wrapped, "PaintPoint", new Vector2(.25f / 32, .5f), 32, 32, wrappedParameters); Call(wrapped, "SyncSurfaceToTexture"); }
+        finally { Call(wrapped, "EndStroke"); }
+        Near(Pixel(wrapped, 8, 16).a, outer, "Wrapped edge includes the same AA fringe");
+        Check(Pixel(wrapped, 31, 16).a > .95f, "Wrapped circle remains connected across the seam");
+        var soft = Dab(.5f, new Vector2(.5f, .5f));
+        float radius = new Vector2(4.5f, 4.5f).magnitude / 8;
+        Near(Pixel(soft, 20, 20).a, 1f - Mathf.SmoothStep(0, 1, (radius - .5f) / .5f), "Soft brush retains its existing smoothstep profile");
+        Set(settings, "pencilSize", 16);
+        var pencil = new DrawingLayerBehaviour(); layers.Add(pencil);
+        object pencilParameters = Call(settings, "GetPencilParameters", false, (Color?)Color.white);
+        Call(pencil, "BeginStroke", new Vector2(.5f, .5f));
+        try { Call(pencil, "PaintPoint", new Vector2(.5f, .5f), 32, 32, pencilParameters); Call(pencil, "SyncSurfaceToTexture"); }
+        finally { Call(pencil, "EndStroke"); }
+        foreach (Color color in ((Texture2D)Get(pencil, "StoredTexture")).GetPixels())
+            Check(color.a == 0f || color.a == 1f, "Pencil edge remains binary");
+        var small = new DrawingLayerBehaviour(); layers.Add(small);
+        object smallDynamics = Get(settings, "dynamics");
+        Set(Get(smallDynamics, "pressureSize"), "enabled", true);
+        Set(Get(smallDynamics, "pressureFlow"), "enabled", false);
+        Set(settings, "brushHardness", 1f);
+        object smallParameters = Call(Call(settings, "GetStrokeParameters", false, (Color?)Color.white), "WithPressure", .01f);
+        var smallCenter = new Vector2(16.5f / 32, 16.5f / 32);
+        Call(small, "BeginStroke", smallCenter);
+        try { Call(small, "PaintPoint", smallCenter, 32, 32, smallParameters); Call(small, "SyncSurfaceToTexture"); }
+        finally { Call(small, "EndStroke"); }
+        Check(Pixel(small).a > 0f && Pixel(small).a < .03f, "Subpixel Size pressure fades by area instead of creating an opaque AA dot");
+    }
+    finally { foreach (var layer in layers) Release(layer); }
+}
 return null;
 
 

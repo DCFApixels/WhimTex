@@ -1426,7 +1426,7 @@ Color alpha zero leaves no mark, including for the eraser; eraser strength other
 | `color` | RGBA array: encoded RGB -107..107, alpha 0..1; Standard clamps the painting color |
 | `size` | 1..4096 |
 | `hardness` | 0..1 |
-| `spacing` | 0.01..4, fraction of brush size (0.16 = 16%) |
+| `spacing` | 0.01..4, fraction of current diameter after Pressure Size (0.16 = 16%); minimum 0.5 canvas pixels. Size Jitter does not change spacing |
 | `opacity` | 0..1, default 1; caps the complete stroke, not individual stamps |
 | `flow` | 0..1, default 1; multiplies each stamp's alpha before accumulation |
 | `pressure` | Boolean, default true; master switch for Size/Opacity/Flow pressure bindings. Off bypasses their curves. Mouse input is 1; API uses 1 or explicit `pressures` |
@@ -1462,8 +1462,12 @@ For simple symmetry, set `repeat:"Mirror"` and at least one of `mirrorX`/`mirror
 
 Stamp spacing carries across pointer segments; adding more points on the same straight path
 does not add more stamps. Random variations are shared by symmetry copies of each stamp.
+Each logical stamp sets the next interval from its pressure-sized diameter. The remaining
+distance carries across input events, including events that emit no stamp. The endpoint
+does not force an extra stamp. Pressure Size off and constant pressure use uniform spacing.
 Opacity applies once per API stroke; separate strokes can build past that limit.
 Texture tips preserve their aspect ratio; size is the longest side. Hardness controls procedural brushes in Hardness mode only;
+100% Hardness retains a pixel-sized antialiased edge, while wider soft falloff keeps its smoothstep profile.
 SDF uses its gradient. SDF fields use the normalized 0–1 range. Luminance is measured
 in source-encoded RGB for sRGB textures, preserving the threshold between Gamma and Linear projects.
 Pencil ignores all advanced dynamics and texture-tip settings.

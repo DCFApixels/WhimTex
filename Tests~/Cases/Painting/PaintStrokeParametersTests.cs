@@ -53,8 +53,8 @@ public static class PaintStrokeParametersTests
         Check(Read<Color>(masked, "Color") == Color.clear && Read<bool>(masked, "Erase"), "Explicit color masks and erase survive parameter creation");
         Check((Color)settingsType.GetField("brushColor").GetValue(preferences) == Color.red, "Color overrides do not modify preferences");
         var clamped = Call(Preferences(0, 2, 0, Color.white), "GetStrokeParameters", false, null);
-        Check(Read<float>(clamped, "Size") == 1 && Read<float>(clamped, "Hardness") == 1 && Read<float>(clamped, "SpacingPixels") == 1,
-            "Shared limits preserve the minimum one-pixel stamp spacing");
+        Check(Read<float>(clamped, "Size") == 1 && Read<float>(clamped, "Hardness") == 1 && Read<float>(clamped, "SpacingPixels") == .5f,
+            "Shared limits preserve the minimum half-pixel brush spacing");
         legacy.brushSpacing = 0;
         Check(Mathf.Abs(Read<float>(Call(legacy, "GetStrokeParameters", false), "SpacingPixels") - 77 * 0.16f) < 0.0001f,
             "Legacy zero spacing retains its default migration");

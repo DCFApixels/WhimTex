@@ -152,6 +152,10 @@ Shader "Hidden/WhimTex/PaintBrush"
                 }
                 float2 clipUv = input.tileData.xy + delta;
                 float2 brushDelta = delta * _CanvasSize * (2.0 / brushSize);
+                #if !defined(BRUSH_TEXTURE)
+                // Evaluate derivatives before pattern clipping; width is in normalized tip coordinates.
+                float pixelWidth = max(length(ddx(brushDelta)), length(ddy(brushDelta)));
+                #endif
                 if (input.clipData.x > 0.5 && input.clipData.x < 1.5)
                 {
                     if (((!tiled || input.clipMin.x > 0.0) && clipUv.x < input.clipMin.x) ||
@@ -243,9 +247,9 @@ Shader "Hidden/WhimTex/PaintBrush"
                 }
                 else
                 {
-                    if (radius > 1.0) discard;
                     if (_TipSdf > .5)
                     {
+                        if (radius > 1.0) discard;
                         float4 gradient = SdfTipGradient(radius);
                         coverage = gradient.a;
                         color.rgb *= gradient.rgb / max(gradient.a, .00001);
@@ -253,8 +257,14 @@ Shader "Hidden/WhimTex/PaintBrush"
                     }
                     else
                     {
-                        float inner = min(saturate(_Hardness), 0.9999);
-                        coverage = 1.0 - smoothstep(inner, 1.0, radius);
+                        float halfPixel = max(pixelWidth * .5, .00001);
+                        float hardness = saturate(_Hardness);
+                        // Preserve the soft profile; only subpixel falloff widens to a pixel-sized edge.
+                        float inner = min(hardness, 1.0 - halfPixel);
+                        float outer = max(1.0, hardness + halfPixel);
+                        coverage = 1.0 - smoothstep(inner, outer, radius);
+                        // Subpixel dabs must fade with their area instead of becoming an opaque AA pixel.
+                        coverage *= saturate(4.0 / max(pixelWidth * pixelWidth, .00001));
                     }
                 }
                 #endif

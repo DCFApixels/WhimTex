@@ -51,10 +51,27 @@ namespace DCFApixels.WhimTex
         private void BuildBrushSegment(Vector2 from, Vector2 to, int width, int height, bool includeStart,
             PaintStrokeParameters parameters, float distance, int budget)
         {
-            int count = brushSpacingState.Sample(distance, parameters.SpacingPixels, includeStart, out double first);
-            int stride = Mathf.Max(1, Mathf.CeilToInt(count / (float)Mathf.Max(1, budget)));
             BrushDynamics dynamics = parameters.Dynamics;
             float fromPressure = hasBrushPressure && !includeStart ? previousBrushPressure : parameters.Pressure;
+            float spacing = parameters.SpacingAtPressure(fromPressure);
+            bool pressureSpacing = dynamics?.pressure == true && dynamics.pressureSize?.enabled == true && fromPressure != parameters.Pressure;
+            double first;
+            int count;
+            if (pressureSpacing)
+            {
+                first = brushSpacingState.BeginSegment(spacing, includeStart);
+                // Count without allocating per-stamp storage. The second pass emits only the render budget.
+                double next = first;
+                count = 0;
+                while (next <= distance + .000001d && count < int.MaxValue)
+                {
+                    count++;
+                    next += PressureSpacingAt(next, distance, fromPressure, parameters);
+                }
+                brushSpacingState.EndSegment(distance, next);
+            }
+            else count = brushSpacingState.Sample(distance, spacing, includeStart, out first);
+            int stride = Mathf.Max(1, Mathf.CeilToInt(count / (float)Mathf.Max(1, budget)));
             previousBrushPressure = parameters.Pressure;
             hasBrushPressure = true;
             bool dynamic = dynamics?.DynamicTip == true;
@@ -84,23 +101,32 @@ namespace DCFApixels.WhimTex
             uint firstStamp = brushStampIndex;
             // Advance even for clipped or budget-skipped stamps, not for symmetry copies.
             brushStampIndex = unchecked(brushStampIndex + (uint)count);
-            for (long i = 0; i < count; i += stride)
+            double offset = first, previousOffset = first;
+            for (long i = 0; i < count; i += pressureSpacing ? 1 : stride)
             {
+                double atOffset = pressureSpacing ? offset : first + i * (double)spacing;
+                double priorOffset = pressureSpacing ? previousOffset : first + (i - 1) * (double)spacing;
+                if (pressureSpacing)
+                {
+                    previousOffset = atOffset;
+                    offset += PressureSpacingAt(atOffset, distance, fromPressure, parameters);
+                    if (i % stride != 0) continue;
+                }
                 uint stampIndex = unchecked(firstStamp + (uint)i);
-                float t = distance <= 0f ? 0f : (float)((first + i * (double)parameters.SpacingPixels) / distance);
+                float t = distance <= 0f ? 0f : (float)(atOffset / distance);
+                float pressure = Mathf.Lerp(fromPressure, parameters.Pressure, Mathf.Clamp01(t));
                 Vector2 point = Vector2.LerpUnclamped(from, to, t);
                 Vector2 deltaPixels = initialBrushDeltaPixels.sqrMagnitude > .000001f
-                    ? initialBrushDeltaPixels.normalized * parameters.SpacingPixels : Vector2.zero;
+                    ? initialBrushDeltaPixels.normalized * parameters.SpacingAtPressure(pressure) : Vector2.zero;
                 if (dynamic && (i > 0 || dynamicHasPreviousStamp))
                 {
                     // Use the previous logical stamp, even when the render budget skips it.
                     Vector2 previous = i > 0
                         ? Vector2.LerpUnclamped(from, to, distance <= 0f ? 0f :
-                            (float)((first + (i - 1) * (double)parameters.SpacingPixels) / distance))
+                            (float)(priorOffset / distance))
                         : dynamicPreviousStampPoint;
                     deltaPixels = Vector2.Scale(point - previous, new Vector2(width, height));
                 }
-                float pressure = Mathf.Lerp(fromPressure, parameters.Pressure, Mathf.Clamp01(t));
                 float size = parameters.Size * (dynamics?.SizePressure(pressure) ?? 1f);
                 float rotation = baseRotation;
                 int flip = 0;
@@ -132,8 +158,9 @@ namespace DCFApixels.WhimTex
                 if (stampIndex == 0 && includeStart && distance == 0f && !initialDirectionKnown && dynamics?.NeedsDirection == true)
                     extent = Mathf.Sqrt(2f);
                 if (size <= .0001f || tint.a <= 0f || opacityPressure <= 0f) continue;
-                if (!parameters.WrapCanvas && (point.x + size * extent * .5f / width <= 0f || point.x - size * extent * .5f / width >= 1f ||
-                    point.y + size * extent * .5f / height <= 0f || point.y - size * extent * .5f / height >= 1f)) continue;
+                float padding = dynamics?.HasTip != true && dynamics?.UsesSdfGradient != true ? 1f : 0f;
+                if (!parameters.WrapCanvas && (point.x + (size * extent * .5f + padding) / width <= 0f || point.x - (size * extent * .5f + padding) / width >= 1f ||
+                    point.y + (size * extent * .5f + padding) / height <= 0f || point.y - (size * extent * .5f + padding) / height >= 1f)) continue;
                 if (parameters.WrapCanvas) point = TiledCanvasUtility.Wrap(point);
                 BuildPatternStamps(point, width, height);
                 if (!variation) segmentStamps.AddRange(patternStamps);
@@ -147,7 +174,7 @@ namespace DCFApixels.WhimTex
                     stamp.opacityPressure = opacityPressure;
                     if (dynamic)
                     {
-                        double at = brushDistance + Math.Min(distance, Math.Max(0d, first + i * (double)parameters.SpacingPixels));
+                        double at = brushDistance + Math.Min(distance, Math.Max(0d, atOffset));
                         stamp.dynamicContext = new BrushStampContext(dynamicStroke.seed, dynamicStroke.strokeIndex, stampIndex,
                             at, dynamicStrokeStartDistance + at, deltaPixels);
                     }
@@ -157,12 +184,19 @@ namespace DCFApixels.WhimTex
             if (dynamic && count > 0)
             {
                 // Keep the unscattered, unwrapped position across input events and clipping.
-                float lastT = distance <= 0f ? 0f : (float)((first + (count - 1) * (double)parameters.SpacingPixels) / distance);
+                double lastOffset = pressureSpacing ? previousOffset : first + (count - 1) * (double)spacing;
+                float lastT = distance <= 0f ? 0f : (float)(lastOffset / distance);
                 dynamicPreviousStampPoint = Vector2.LerpUnclamped(from, to, lastT);
                 dynamicHasPreviousStamp = true;
             }
             brushDistance += distance;
             if (dynamic) dynamics.Sequence.Advance(distance);
+        }
+
+        private static float PressureSpacingAt(double offset, float distance, float fromPressure, PaintStrokeParameters parameters)
+        {
+            float t = distance <= 0f ? 0f : Mathf.Clamp01((float)(offset / distance));
+            return parameters.SpacingAtPressure(Mathf.Lerp(fromPressure, parameters.Pressure, t));
         }
 
         private void RememberFirstBrush(Vector2 position, int width, int height, PaintStrokeParameters parameters)
@@ -172,7 +206,7 @@ namespace DCFApixels.WhimTex
             firstBrushStamps.AddRange(segmentStamps);
             firstBrushPosition = position;
             firstBrushWidth = width; firstBrushHeight = height;
-            firstBrushSpacing = parameters.SpacingPixels;
+            firstBrushSpacing = parameters.SpacingAtPressure(parameters.Pressure);
             firstBrushAngle = brushDirection;
             firstBrushParameters = parameters.WithDynamics(parameters.Dynamics.SnapshotForStroke());
             firstBrushPending = true;
@@ -189,7 +223,7 @@ namespace DCFApixels.WhimTex
         {
             if (!firstBrushPending || advancedStrokeBase == null) return;
             Vector2 delta = Vector2.Scale(point - firstBrushPosition, new Vector2(firstBrushWidth, firstBrushHeight));
-            // Below the minimum logical spacing (one pixel), so no continuation dab is lost to jitter.
+            // Below the minimum logical spacing (half a pixel), so no continuation dab is lost to jitter.
             if (delta.sqrMagnitude < .0625f) return;
             float actual = Mathf.Atan2(delta.y, delta.x);
             float refined = initialBrushDeltaPixels.sqrMagnitude > .000001f

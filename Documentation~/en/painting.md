@@ -32,6 +32,9 @@ For example, **Opacity 40%** keeps one stroke at no more than 40%, even when you
 over it repeatedly. **Flow 10%** builds up gently as you draw, up to the Opacity limit.
 These controls also work when erasing with Brush.
 
+Hardness keeps the center opaque and controls the soft edge of a procedural round tip.
+At 100%, a pixel-sized antialiased edge keeps the circle smooth; Pencil remains pixel-sharp.
+
 In **Brushes**, enable **Pressure → Size**, **Opacity** or **Flow** independently and edit
 each response curve. Size changes the diameter; Flow changes stamp strength and accumulates;
 Opacity limits coverage locally within the stroke, without fading paint already applied.
@@ -93,7 +96,7 @@ Palette colors are not reset.
 
 | Setting | What it changes |
 | :--- | :--- |
-| Spacing (%) | Distance between stamps, measured against Size. 100% is one diameter; lower values make a continuous stroke, higher values leave separate marks. |
+| Spacing (%) | Distance between stamps relative to the current diameter after Pressure Size, at least 0.5 canvas pixels. 100% is one diameter; lower values make a continuous stroke, higher values leave separate marks. Size Jitter does not change the step. |
 | Scatter | Random displacement around the stroke. 100% spreads centers by up to one brush diameter. |
 | Scatter Bias | Negative values concentrate stamps near the stroke; positive values move them toward the outer edge of the scatter disk. **0** keeps the distribution uniform across its area. Available when Scatter is above zero; works with Random and Sobol. |
 | Randomization | **Random** (default) gives ordinary random variation. **Sobol** distributes variation more evenly across stamps. Applies to Scatter, Size Jitter, Angle Jitter, Flip X/Y and Tint. |

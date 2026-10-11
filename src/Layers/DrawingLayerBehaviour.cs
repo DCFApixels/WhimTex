@@ -403,6 +403,7 @@ namespace DCFApixels.WhimTex
             int steps = distance > 0f ? Mathf.Max(1, Mathf.CeilToInt(distance / parameters.SpacingPixels)) : 0;
             bool rememberFirst = brushStampIndex == 0 && includeStart && distance == 0f &&
                 !parameters.PixelPerfect && !initialDirectionKnown && parameters.Dynamics?.NeedsDirection == true;
+            int brushBudget = 8192;
             if (parameters.WrapCanvas && steps > 0)
             {
                 int copies = UsesRepeatedPattern ? repeatCount : 1;
@@ -414,6 +415,7 @@ namespace DCFApixels.WhimTex
                 double coverage = Math.Max(1d, copies * (double)Mathf.Min(maxStampSize, outputWidth) * Mathf.Min(maxStampSize, outputHeight));
                 int sampleBudget = Mathf.Clamp((int)Math.Min(8192d, 64000000d / coverage), 1, 8192);
                 steps = Mathf.Min(steps, sampleBudget);
+                brushBudget = sampleBudget + 1;
             }
 
             segmentStamps ??= new List<PaintStamp>(256);
@@ -421,7 +423,7 @@ namespace DCFApixels.WhimTex
             if (parameters.PixelPerfect)
                 BuildPencilSegment(fromSourceUv, toSourceUv, outputWidth, outputHeight, includeStart, parameters, steps);
             else BuildBrushSegment(fromSourceUv, toSourceUv, outputWidth, outputHeight, includeStart, parameters,
-                distance, parameters.WrapCanvas ? Mathf.Max(1, steps + 1) : 8192);
+                distance, brushBudget);
 
             BrushDynamics dynamics = parameters.Dynamics;
             bool isolatedStroke = dynamics != null && dynamics.NeedsStrokeBuffer(parameters.Erase);
@@ -1276,6 +1278,19 @@ namespace DCFApixels.WhimTex
                                         float extent = Mathf.Abs(Mathf.Cos(stamp.rotation)) + Mathf.Abs(Mathf.Sin(stamp.rotation));
                                         dabRadiusX *= extent;
                                         dabRadiusY *= extent;
+                                    }
+                                    if (!pixelPerfect && !textured && !sdfGradient)
+                                    {
+                                        // Reserve the outer half-pixel AA fringe, also after a layer transform.
+                                        float canvasPadding = 1f;
+                                        if (canvasToSource.TryPoint(new Double2(stamp.center.x, stamp.center.y), out var sourceCenter) &&
+                                            sourceToCanvas.TryPoint(new Double2(sourceCenter.x + 1d / target.width, sourceCenter.y), out var canvasX) &&
+                                            sourceToCanvas.TryPoint(new Double2(sourceCenter.x, sourceCenter.y + 1d / target.height), out var canvasY))
+                                            canvasPadding = Mathf.Max(canvasPadding,
+                                                Vector2.Scale((Vector2)canvasX - stamp.center, new Vector2(outputWidth, outputHeight)).magnitude +
+                                                Vector2.Scale((Vector2)canvasY - stamp.center, new Vector2(outputWidth, outputHeight)).magnitude);
+                                        dabRadiusX += canvasPadding / outputWidth;
+                                        dabRadiusY += canvasPadding / outputHeight;
                                     }
                                     if (sequential) BeginBrushMesh();
                                     try

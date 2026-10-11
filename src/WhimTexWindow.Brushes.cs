@@ -106,14 +106,15 @@ namespace DCFApixels.WhimTex
             scroll.Add(CreateBrushSectionHeader("Stamps", () => paintSettings.ResetBrushStamps(),
                 "Reset Stamps: Random, Fixed rotation, zero Angle Offset, no flips, scatter or size/angle variation. Spacing is unchanged."));
             var spacing = WhimTexUI.ConfigureField(new FloatField("Spacing (%)") { value = paintSettings.brushSpacing * 100f,
-                tooltip = "Distance between stamp centers as a percentage of brush diameter. 100% is one diameter. The minimum distance is one pixel." });
+                tooltip = "Distance between stamp centers as a percentage of the current brush diameter, after Pressure Size. 100% is one diameter. Minimum: 0.5 canvas pixels. Size Jitter does not change spacing." });
             spacing.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() =>
                 paintSettings.brushSpacing = Mathf.Clamp(float.IsNaN(evt.newValue) ? 16f : evt.newValue, 1f, 400f) * .01f));
             brushSettingsBindings.Track(spacing, () => paintSettings.brushSpacing * 100f);
             scroll.Add(spacing);
             var distance = new Label();
             distance.AddToClassList("whimtex-brush-spacing-info");
-            brushSettingsBindings.Add(() => distance.text = $"Stamp every {Mathf.Max(1f, paintSettings.brushSize * paintSettings.brushSpacing):0.##} px");
+            distance.tooltip = "Spacing at full input pressure. The actual step follows Pressure Size during the stroke.";
+            brushSettingsBindings.Add(() => distance.text = $"Full pressure step: {paintSettings.GetStrokeParameters(false).SpacingAtPressure(1f):0.##} px");
             scroll.Add(distance);
             var algorithm = WhimTexUI.ConfigureField(new EnumField("Randomization", paintSettings.dynamics.randomAlgorithm)
             {

@@ -363,6 +363,41 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
                 ContextDelta(Stamps(a)[0],4,0,"Next event retains the last logical, budget-skipped position");
             }
             finally { Call(a,"EndStroke"); }
+
+            // Pressure Size controls both logical spacing and the Motion context, including budget skips.
+            Set(settings, "brushSize", 8f); Set(settings, "brushSpacing", .5f);
+            Set(Get(dynamics, "pressureSize"), "enabled", true);
+            Set(Get(dynamics, "pressureFlow"), "enabled", false);
+            var pressurePath = Layer();
+            Call(pressurePath, "BeginStroke", At(16,32));
+            Call(pressurePath, "SetKnownBrushDirection", Vector2.right);
+            try
+            {
+                Call(pressurePath, "PaintPoint", At(16,32), width, height, Call(Parameters(), "WithPressure", .25f));
+                PixelDelta(pressurePath,16,32,1,0,"Pressure-sized phantom step reaches GPU Motion");
+                Segment(pressurePath,16,32,24,32,Call(Parameters(), "WithPressure", 1f));
+                var logical = Stamps(pressurePath);
+                T.Equal(4, logical.Count, "Growing Size updates the next logical step");
+                float previousX = 16f;
+                foreach (object stamp in logical)
+                {
+                    float x = ((Vector2)Get(stamp,"center")).x * width;
+                    ContextDelta(stamp,x-previousX,0,"Motion follows pressure-sized logical positions");
+                    previousX = x;
+                }
+                Call(pressurePath,"BeginStroke",At(16,32));
+                Call(pressurePath,"SetKnownBrushDirection",Vector2.right);
+                Call(pressurePath,"PaintPoint",At(16,32),width,height,Call(Parameters(),"WithPressure",.25f));
+                Stamps(pressurePath).Clear();
+                Call(pressurePath,"BuildBrushSegment",At(16,32),At(24,32),width,height,false,Parameters(),8f,2);
+                T.Equal(5u,(uint)Get(pressurePath,"brushStampIndex"),"Variable-spacing budget advances every logical index");
+                T.Equal(2,Stamps(pressurePath).Count,"Variable-spacing budget limits emitted dabs");
+                ContextDelta(Stamps(pressurePath)[1],1.890625f,0,"Skipped pressure-sized stamp still defines Motion delta");
+                T.Equal(3u,(uint)Get(Get(Stamps(pressurePath)[1],"dynamicContext"),"stampIndex"),"Rendered context retains its logical index");
+            }
+            finally { Call(pressurePath,"EndStroke"); }
+            Set(Get(dynamics,"pressureSize"),"enabled",false);
+            Set(Get(dynamics,"pressureFlow"),"enabled",true);
         }
         finally
         {

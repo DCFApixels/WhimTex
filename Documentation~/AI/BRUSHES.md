@@ -62,8 +62,8 @@ Source-specific root fields:
 | Field | Values / default |
 | :--- | :--- |
 | size | 1..4096 canvas pixels; 32 |
-| hardness | 0..1; 0.8; Standard without a texture only |
-| spacing | 0.01..4 brush diameters; 0.16 |
+| hardness | 0..1; 0.8; Standard without a texture only. Round tips retain a pixel-sized antialiased edge at 1; subpixel dabs fade with their area. |
+| spacing | 0.01..4 current brush diameters after Pressure Size; 0.16; minimum 0.5 canvas pixels. Size Jitter does not change spacing. |
 | opacity, flow | 0..1; 1 |
 | pressure | boolean; true. Master switch for the three pressure bindings. Off bypasses their curves. Mouse input is 1; API strokes default to 1 or use explicit `pressures`. |
 | pressureSize, pressureOpacity, pressureFlow | Objects with optional `enabled` and `curve`. Defaults: Size/Opacity disabled, Flow enabled; all curves linear. Size multiplies diameter; Flow multiplies stamp alpha and accumulates; Opacity caps local stroke coverage without reducing previously painted coverage. |

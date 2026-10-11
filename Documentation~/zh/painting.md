@@ -32,6 +32,9 @@ next_page: "zh/selection.md"
 涂过它。**Flow 10%** 会随着绘制逐渐叠加，直到 Opacity 上限。
 这些控件在用 Brush 擦除时同样有效。
 
+Hardness 保持程序化圆形笔尖的中心不透明，并控制边缘的柔和程度。
+在 100% 时，约一个像素宽的抗锯齿边缘使圆形保持平滑；Pencil 仍使用精确的像素边缘。
+
 在 **Brushes** 中，可分别启用 **Pressure → Size**、**Opacity** 或 **Flow** 并编辑各自的响应曲线。
 Size 改变直径；Flow 改变图章强度并逐渐累积；Opacity 限制笔触内的局部覆盖，
 但不会降低已经涂上的颜料。默认只有 Flow 受压力控制。曲线输入和输出均为 0–1，
@@ -87,7 +90,7 @@ Pencil 没有硬度或间距控件。可为它的笔尖选择 **Circle**、**Squ
 
 | 设置 | 它改变什么 |
 | :--- | :--- |
-| Spacing (%) | 图章之间的距离，以 Size 为基准。100% 是一个直径的距离；较低的值形成连续的笔触，较高的值留下彼此分开的痕迹。 |
+| Spacing (%) | 图章之间的距离，以 Pressure Size 调整后的当前直径为基准，最小为 0.5 画布像素。100% 是一个直径；较低的值形成连续笔触，较高的值留下独立痕迹。Size Jitter 不改变间距。 |
 | Scatter | 围绕笔触的随机位移。100% 会让中心最多偏移一个画笔直径。 |
 | Scatter Bias | 负值让图章集中在笔触附近；正值将它们移向散布圆盘的外缘。**0** 让分布在其整个区域内保持均匀。在 Scatter 大于零时可用；适用于 Random 和 Sobol。 |
 | Randomization | **Random**（默认）给出普通的随机变化。**Sobol** 让变化在图章之间分布得更均匀。适用于 Scatter、Size Jitter、Angle Jitter、Flip X/Y 和 Tint。 |
