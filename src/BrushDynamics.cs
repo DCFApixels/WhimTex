@@ -11,13 +11,39 @@ namespace DCFApixels.WhimTex
     internal enum BrushBlendApplication { Stroke, Stamp }
 
     [Serializable]
+    internal sealed class BrushPressureBinding
+    {
+        public bool enabled;
+        public AnimationCurve curve = AnimationCurve.Linear(0, 0, 1, 1);
+
+        internal BrushPressureBinding() { }
+        internal BrushPressureBinding(bool enabled) => this.enabled = enabled;
+        internal float Evaluate(float pressure) => enabled ? EvaluateCurve(curve, pressure) : 1f;
+        internal static float EvaluateCurve(AnimationCurve curve, float pressure)
+        {
+            pressure = float.IsFinite(pressure) ? Mathf.Clamp01(pressure) : 1f;
+            float value = curve == null || curve.length == 0 ? pressure : curve.Evaluate(pressure);
+            return float.IsFinite(value) ? Mathf.Clamp01(value) : pressure;
+        }
+        internal BrushPressureBinding Copy() => new BrushPressureBinding(enabled) { curve = WhimTexCurveTexture.Copy(curve) };
+    }
+
+    internal static class BrushPressureInput
+    {
+        internal static float Read(string pointerType, float pressure) => pointerType == UnityEngine.UIElements.PointerType.pen
+            ? (float.IsFinite(pressure) ? Mathf.Clamp01(pressure) : 0f) : 1f;
+    }
+
+    [Serializable]
     internal sealed class BrushDynamics
     {
         public float opacity = 1f;
         public float flow = 1f;
         public bool pressure = true;
+        public BrushPressureBinding pressureSize = new BrushPressureBinding();
+        public BrushPressureBinding pressureOpacity = new BrushPressureBinding();
+        public BrushPressureBinding pressureFlow = new BrushPressureBinding(true);
         public int writeChannels = 15;
-        public bool lockAlpha;
         public float scatter;
         public float scatterBias;
         public float sizeJitter;
@@ -105,8 +131,13 @@ namespace DCFApixels.WhimTex
         internal bool HasTint => tintVaries || !constantTint.Equals(Color.white);
         internal bool UsesSdfGradient => HasTip ? tipSdf : proceduralMode == BrushProceduralMode.SdfGradient;
         internal bool CanRotateTip => HasTip && (angleOffset != 0f || angleJitter > 0f || rotationMode == BrushRotationMode.StrokeDirection);
-        internal bool PerStamp => DynamicTip || scatter > 0f || sizeJitter > 0f || HasTint || CanRotateTip || HasTip && (flipX > 0f || flipY > 0f);
-        internal bool NeedsStrokeBuffer(bool erase) => opacity < 1f || !erase && blend != BlendMode.Normal || NeedsDirection;
+        internal bool HasPressureBindings => pressure && (pressureSize?.enabled == true || pressureOpacity?.enabled == true || pressureFlow?.enabled == true);
+        internal bool PressureOpacity => pressure && pressureOpacity?.enabled == true;
+        internal bool PerStamp => HasPressureBindings || DynamicTip || scatter > 0f || sizeJitter > 0f || HasTint || CanRotateTip || HasTip && (flipX > 0f || flipY > 0f);
+        internal bool NeedsStrokeBuffer(bool erase) => opacity < 1f || PressureOpacity || !erase && blend != BlendMode.Normal || NeedsDirection;
+        internal float SizePressure(float value) => pressure ? pressureSize?.Evaluate(value) ?? 1f : 1f;
+        internal float OpacityPressure(float value) => pressure ? pressureOpacity?.Evaluate(value) ?? 1f : 1f;
+        internal float FlowPressure(float value) => pressure ? pressureFlow?.Evaluate(value) ?? 1f : 1f;
         internal bool BlendsEachStamp(bool erase) => !erase && blend != BlendMode.Normal && blendApplication == BrushBlendApplication.Stamp;
 
         // Geometry/random colors are already sampled. Retain only the draw settings, borrowing the compiled tip.
@@ -114,6 +145,9 @@ namespace DCFApixels.WhimTex
         {
             var snapshot = (BrushDynamics)MemberwiseClone();
             snapshot.tipGradient = tipGradient?.Clone();
+            snapshot.pressureSize = pressureSize?.Copy();
+            snapshot.pressureOpacity = pressureOpacity?.Copy();
+            snapshot.pressureFlow = pressureFlow?.Copy();
             snapshot.ownsHlslProgram = false;
             snapshot.ownedHlslTip = null;
             snapshot.sequence = null;
@@ -122,6 +156,9 @@ namespace DCFApixels.WhimTex
 
         internal void Normalize()
         {
+            pressureSize ??= new BrushPressureBinding();
+            pressureOpacity ??= new BrushPressureBinding();
+            pressureFlow ??= new BrushPressureBinding(true);
             if (!Enum.IsDefined(typeof(BrushTipSource), source)) source = BrushTipSource.Standard;
             hlslResolution = Mathf.Clamp(hlslResolution, 32, 2048);
             hlslParameters ??= new System.Collections.Generic.List<ShaderFXParameter>();

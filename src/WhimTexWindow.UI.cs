@@ -1592,14 +1592,14 @@ namespace DCFApixels.WhimTex
             Toggle brushPressure = CompactField(new Toggle("Pressure")
             {
                 value = paintSettings.dynamics.pressure,
-                tooltip = "Use tablet pressure to scale the opacity of the brush stroke."
+                tooltip = BrushPressureTooltip
             }, 86f);
             brushPressure.AddToClassList("whimtex-brush-pressure");
             toolkitHeaderBindings.Track(brushPressure, () => paintSettings.dynamics.pressure);
             brushPressure.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.dynamics.pressure = evt.newValue));
             brushRow.Add(brushPressure);
-            AddPaintInputSettings(brushRow);
+            AddPaintInputSettings(brushRow, pressureEnabled: () => paintSettings.dynamics.pressure);
             toolkitCanvasViewHeader.Add(brushRow);
             AddBlurBrushSettings();
             AddSmudgeBrushSettings();
@@ -1640,7 +1640,7 @@ namespace DCFApixels.WhimTex
             toolkitHeaderBindings.Track(mode, () => (Enum)paintSettings.blurSampleMode);
             mode.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.blurSampleMode = (BlurBrushSampleMode)evt.newValue));
             row.Add(mode);
-            AddPaintInputSettings(row);
+            AddPaintInputSettings(row, pressureEnabled: () => paintSettings.blurPressure);
             toolkitCanvasViewHeader.Add(row);
         }
 
@@ -1683,7 +1683,7 @@ namespace DCFApixels.WhimTex
             toolkitHeaderBindings.Track(mode, () => (Enum)paintSettings.smudgeSampleMode);
             mode.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.smudgeSampleMode = (BlurBrushSampleMode)evt.newValue));
             row.Add(mode);
-            AddPaintInputSettings(row);
+            AddPaintInputSettings(row, pressureEnabled: () => paintSettings.smudgePressure);
             toolkitCanvasViewHeader.Add(row);
         }
 
@@ -1708,7 +1708,7 @@ namespace DCFApixels.WhimTex
             shape.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.pencilShape = (PencilShape)evt.newValue));
             row.Add(shape);
-            AddPaintInputSettings(row, usesPressure: false);
+            AddPaintInputSettings(row);
             toolkitCanvasViewHeader.Add(row);
         }
 
@@ -1884,7 +1884,7 @@ namespace DCFApixels.WhimTex
             paintingMouseButton = evt.button;
             paintingPointerId = evt.pointerId;
             paintingErase = erase;
-            paintingPressure = GetPointerPressure(evt.pressure);
+            paintingPressure = GetPointerPressure(evt.pointerType, evt.pressure);
             paintingPointerMoved = false;
             canvasPointerPosition = evt.localPosition;
             toolkitCanvas.CapturePointer(evt.pointerId);
@@ -1918,7 +1918,7 @@ namespace DCFApixels.WhimTex
                     new Vector2(activeDocument.width, activeDocument.height));
             if (connect && originUv != startUv) layer.SetKnownBrushDirection(initialDelta);
             else layer.SetInitialBrushDelta(initialDelta);
-            layer.ConfigureStrokeWriteProtection(paintSettings.dynamics.writeChannels, paintSettings.dynamics.lockAlpha);
+            layer.ConfigureStrokeWriteProtection(paintSettings.dynamics.writeChannels);
             BeginPaintingInput(startUv);
             if (canvasTool == CanvasTool.BlurBrush)
                 blurSampleTexture = paintSettings.blurSampleMode switch
@@ -1958,7 +1958,7 @@ namespace DCFApixels.WhimTex
             }
 
             Vector2 paintPosition = GetCanvasPaintPosition(evt.localPosition, evt.shiftKey, evt.ctrlKey);
-            paintingPressure = GetPointerPressure(evt.pressure);
+            paintingPressure = GetPointerPressure(evt.pointerType, evt.pressure);
             paintingPointerMoved |= evt.deltaPosition.sqrMagnitude > 0f;
             UpdateCanvasCursor(evt.localPosition, evt.altKey);
 
@@ -2004,7 +2004,10 @@ namespace DCFApixels.WhimTex
             if (hasLastPaintingUv)
             {
                 if (lastPaintingUv == pointUv)
+                {
+                    paintingLayer.SetBrushPressure(GetPaintingParameters().Pressure);
                     return;
+                }
                 if (canvasTool == CanvasTool.SmudgeBrush)
                     SmudgeTowardsLayerPoint(lastPaintingUv, pointUv);
                 else if (canvasTool == CanvasTool.BlurBrush)
@@ -2063,7 +2066,8 @@ namespace DCFApixels.WhimTex
             return Mathf.Clamp01(paintSettings.blurStrength * paintSettings.blurFlow * pressure);
         }
 
-        private static float GetPointerPressure(float value) => value > 0.001f ? Mathf.Clamp01(value) : 1f;
+        private static float GetPointerPressure(string pointerType, float value) => BrushPressureBinding.EvaluateCurve(
+            WhimTexUserSettings.TabletPressureCurve, BrushPressureInput.Read(pointerType, value));
 
         private void SetPaintingShift(bool held)
         {
@@ -2111,7 +2115,7 @@ namespace DCFApixels.WhimTex
             if (paintingPointerMoved && toolkitCanvas.contentRect.Contains(evt.localPosition) &&
                 TryMapCanvasToLayerUv(paintPosition, toolkitCanvas.ImageRect, paintingLayer, out Vector2 endUv, allowOutside: true))
             {
-                paintingPressure = GetPointerPressure(evt.pressure);
+                paintingPressure = GetPointerPressure(evt.pointerType, evt.pressure);
                 PaintFilteredLayerPoint(endUv, evt.shiftKey || paintPosition != (Vector2)evt.localPosition, finish: true);
             }
 

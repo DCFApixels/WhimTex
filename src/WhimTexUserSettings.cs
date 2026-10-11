@@ -10,6 +10,24 @@ namespace DCFApixels.WhimTex
 
     internal static class WhimTexUserSettings
     {
+        private const string PressureCurveKey = "DCFApixels.WhimTex.TabletPressureCurve";
+        private static AnimationCurve tabletPressureCurve;
+        internal static AnimationCurve TabletPressureCurve
+        {
+            get
+            {
+                if (tabletPressureCurve != null) return tabletPressureCurve;
+                try { tabletPressureCurve = WhimTexCurveTexture.Parse(EditorPrefs.GetString(PressureCurveKey, "linear")); }
+                catch (FormatException) { tabletPressureCurve = WhimTexCurveTexture.Default(); }
+                return tabletPressureCurve;
+            }
+            set
+            {
+                tabletPressureCurve = WhimTexCurveTexture.Copy(value);
+                EditorPrefs.SetString(PressureCurveKey, WhimTexCurveTexture.Format(tabletPressureCurve));
+                Changed?.Invoke();
+            }
+        }
         private const string ImageOpenModeKey = "DCFApixels.WhimTex.ImageOpenMode";
         private const string ImageOpenLayerKey = "DCFApixels.WhimTex.ImageOpenLayer";
         private const string VsCodeExecutableKey = "DCFApixels.WhimTex.VSCodeExecutable";
@@ -285,6 +303,8 @@ namespace DCFApixels.WhimTex
 
         internal static void Reset()
         {
+            EditorPrefs.DeleteKey(PressureCurveKey);
+            tabletPressureCurve = null;
             EditorPrefs.DeleteKey(ImageOpenModeKey);
             EditorPrefs.DeleteKey(ImageOpenLayerKey);
             EditorPrefs.DeleteKey(VsCodeExecutableKey);

@@ -29,7 +29,8 @@ Shader "Hidden/WhimTex/PaintBrush"
             #include "HdrColor.cginc"
             float _HdrBlend;
             #include "ColorBlend.cginc"
-            float _StampBlendEnabled, _StampBlendMode;
+            float _StampBlendEnabled, _StampBlendMode, _PressureOpacity;
+            sampler2D _StrokeBase;
             // WHIMTEX_BRUSH_PROGRAM
             // WHIMTEX_BRUSH_CAPABILITIES
             #if defined(BRUSH_SEQUENCE)
@@ -46,7 +47,7 @@ Shader "Hidden/WhimTex/PaintBrush"
                 float3 clipMin : TEXCOORD1;
                 float3 clipMax : TEXCOORD2;
                 float3 clipData : TEXCOORD3;
-                float3 tileData : TEXCOORD4;
+                float4 tileData : TEXCOORD4;
                 #if defined(BRUSH_DYNAMICS) || defined(BRUSH_TEXTURE)
                 float3 color : TEXCOORD5;
                 float4 size : TEXCOORD6;
@@ -108,7 +109,7 @@ Shader "Hidden/WhimTex/PaintBrush"
                 output.clipMin = input.clipMin;
                 output.clipMax = input.clipMax;
                 output.clipData = float4(input.clipData, 0);
-                output.tileData = float4(input.tileData, 0);
+                output.tileData = input.tileData;
                 #if defined(BRUSH_SEQUENCE)
                 // Context is constant over each quad. Reuse spare components, staying within eight interpolators.
                 output.brushUv = input.context.zw;
@@ -273,6 +274,24 @@ Shader "Hidden/WhimTex/PaintBrush"
                     return float4(clamp(before.rgb, 0.0, before.a), before.a);
                 }
                 float4 stamp = float4(color.rgb * alpha, alpha);
+                if (_PressureOpacity > .5)
+                {
+                    float4 before = tex2D(_Backdrop, input.canvasUv);
+                    float limit = saturate(input.tileData.w);
+                    float newAlpha = before.a + max(limit - before.a, 0.0) * alpha;
+                    if (_StampBlendEnabled > .5)
+                    {
+                        float baseAlpha = tex2D(_StrokeBase, input.canvasUv).a;
+                        float oldAlpha = baseAlpha + before.a * (1.0 - baseAlpha);
+                        float added = max(newAlpha - before.a, 0.0) / max(1.0 - before.a, .00001);
+                        float4 result = CompositeBrushPixel(float4(before.rgb, oldAlpha),
+                            float4(color.rgb * added, added), 1.0, _StampBlendMode, 0.0, _TipStandard);
+                        return float4(result.rgb, newAlpha);
+                    }
+                    float3 oldColor = before.a > .00001 ? before.rgb / before.a : color.rgb;
+                    float3 mixed = lerp(oldColor, color.rgb, alpha * limit);
+                    return float4(mixed * newAlpha, newAlpha);
+                }
                 if (_StampBlendEnabled > .5)
                     return CompositeBrushPixel(tex2D(_Backdrop, input.canvasUv), stamp, 1.0, _StampBlendMode, 0.0, _TipStandard);
                 return stamp;

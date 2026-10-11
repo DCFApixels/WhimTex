@@ -209,6 +209,11 @@ static System.Threading.CancellationToken Cancellation;
                 T.Equal(1, visible, tool + ": exactly one settings row");
                 CheckDropdownWidths(toolbar, settings, tool);
             }
+            string pressureClass = tool == "Brush" ? "whimtex-brush-pressure" :
+                tool == "BlurBrush" ? "whimtex-blur-pressure" :
+                tool == "SmudgeBrush" ? "whimtex-smudge-pressure" : null;
+            if (pressureClass != null)
+                await CheckPressureSettings(window, settings.Q<Toggle>(className: pressureClass), tool);
         }
         if (!dynamic) { window.DiscardChanges(); return; }
         setTool.Invoke(window, new object[] { Enum.Parse(toolType, "SmudgeBrush") });
@@ -310,12 +315,60 @@ static System.Threading.CancellationToken Cancellation;
         var distanceField = shared.Q<FloatField>("strokeSmoothingDistance");
         float distanceBefore = distanceField.value; DragLabel(distanceField.labelElement);
         T.True(distanceField.value != distanceBefore, "Smoothing distance retains native label dragging");
-        shared.Q<Toggle>("paintLockAlpha").value = true;
         var paint = type.GetField("paintSettings", flags).GetValue(window);
         var dynamics = paint.GetType().GetField("dynamics").GetValue(paint);
-        T.True((bool)dynamics.GetType().GetField("lockAlpha").GetValue(dynamics), "Lock Alpha UI updates shared policy");
+        var writeChannels = dynamics.GetType().GetField("writeChannels");
+        int beforeWrite = (int)writeChannels.GetValue(dynamics);
+        var writeAlpha = shared.Q<Button>("paintWriteA");
+        T.True(writeAlpha != null && writeAlpha.tooltip.Contains("fully transparent pixels"), "Write A exposes alpha protection");
+        Vector2 click = writeAlpha.worldBound.center;
+        using (var down = PointerDownEvent.GetPooled(new Event { type = EventType.MouseDown, button = 0, mousePosition = click }))
+        { down.target = writeAlpha; writeAlpha.SendEvent(down); }
+        using (var up = PointerUpEvent.GetPooled(new Event { type = EventType.MouseUp, button = 0, mousePosition = click }))
+        { up.target = writeAlpha; writeAlpha.SendEvent(up); }
+        T.Equal(beforeWrite ^ 8, (int)writeChannels.GetValue(dynamics), "Write A UI updates shared policy");
         await WhimTex.Tests.UnityA.UnityACapture.Capture(window, Path.Combine(Scope.Temp, "canvas-paint-input-options.png"), Cancellation);
         window.DiscardChanges();
+    }
+
+    static async Task CheckPressureSettings(EditorWindow window, Toggle pressure, string tool)
+    {
+        var row = pressure.parent;
+        var smoothing = row.Q<EnumField>("strokeSmoothing");
+        var smoothPressure = row.Q<Toggle>("strokeSmoothPressure");
+        var distance = row.Q("strokeSmoothingDistance");
+        var modeType = smoothing.value.GetType();
+        smoothing.value = (Enum)Enum.Parse(modeType, "None");
+        pressure.value = true;
+        smoothPressure.value = true;
+        await WaitForLayout(window, row);
+        T.True(smoothPressure.enabledInHierarchy, tool + ": pressure smoothing is available with Pressure on");
+        T.True(Visible(distance, row), tool + ": pressure smoothing alone shows Distance");
+        T.True(!Visible(row.Q("strokeFinish"), row), tool + ": pressure smoothing does not show path completion");
+
+        pressure.value = false;
+        await WaitForLayout(window, row);
+        T.True(Visible(smoothPressure, row) && !smoothPressure.enabledInHierarchy, tool + ": Pressure off disables its smoothing control");
+        T.True(smoothPressure.value, tool + ": disabling Pressure retains the smoothing preference");
+        T.True(!Visible(distance, row), tool + ": unused pressure smoothing does not show Distance");
+
+        smoothing.value = (Enum)Enum.Parse(modeType, "Smooth");
+        await WaitForLayout(window, row);
+        T.True(Visible(distance, row), tool + ": path smoothing still shows Distance with Pressure off");
+        T.True(!smoothPressure.enabledInHierarchy, tool + ": path smoothing does not enable pressure smoothing");
+        smoothing.value = (Enum)Enum.Parse(modeType, "None");
+        pressure.value = true;
+        await WaitForLayout(window, row);
+        T.True(smoothPressure.enabledInHierarchy && smoothPressure.value, tool + ": Pressure on restores the retained smoothing preference");
+        T.True(Visible(distance, row), tool + ": restored pressure smoothing shows Distance");
+
+        smoothPressure.value = false;
+        await WaitForLayout(window, row);
+        T.True(!Visible(distance, row), tool + ": disabling both smoothing modes hides Distance");
+        if (tool == "Brush")
+            T.True(pressure.tooltip.Contains("Size, Opacity and Flow") && pressure.tooltip.Contains("Mouse") ||
+                pressure.tooltip.Contains("Size, Opacity and Flow") && pressure.tooltip.Contains("mouse"),
+                "Brush Pressure explains independent bindings and mouse input");
     }
 
     static string TestName => Scope.Tag + "-brush-header";

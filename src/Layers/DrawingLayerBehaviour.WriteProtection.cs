@@ -7,19 +7,17 @@ namespace DCFApixels.WhimTex
     {
         [NonSerialized] private RenderTexture paintWriteBefore, paintWriteScratch;
         [NonSerialized] private int strokeWriteChannels = 15;
-        [NonSerialized] private bool strokeLockAlpha;
         [NonSerialized] private bool preserveStraightPaintRgb;
-        private bool StrokeWritesNothing => strokeWriteChannels == 0 || strokeLockAlpha && strokeWriteChannels == 8;
+        private bool StrokeWritesNothing => strokeWriteChannels == 0;
 
-        internal void ConfigureStrokeWriteProtection(int channels, bool lockAlpha)
+        internal void ConfigureStrokeWriteProtection(int channels)
         {
             channels &= 15;
-            if (strokeWriteChannels == channels && strokeLockAlpha == lockAlpha &&
-                (paintWriteBefore != null || channels == 15 && !lockAlpha || StrokeWritesNothing)) return;
+            if (strokeWriteChannels == channels &&
+                (paintWriteBefore != null || channels == 15 || StrokeWritesNothing)) return;
             ReleasePaintWriteProtection();
             strokeWriteChannels = channels;
-            strokeLockAlpha = lockAlpha;
-            if (channels == 15 && !lockAlpha || StrokeWritesNothing || paintSurface == null) return;
+            if (channels == 15 || StrokeWritesNothing || paintSurface == null) return;
             preserveStraightPaintRgb = pixels != null;
             RenderTexture previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;
@@ -51,7 +49,7 @@ namespace DCFApixels.WhimTex
                 material.SetFloat("_StraightFallback", pixels != null ? (HdrUtility.IsHdr(pixels) ? 1f : 2f) : 0f);
                 material.SetVector("_WriteChannels", new Vector4((strokeWriteChannels & 1) != 0 ? 1 : 0,
                     (strokeWriteChannels & 2) != 0 ? 1 : 0, (strokeWriteChannels & 4) != 0 ? 1 : 0,
-                    !strokeLockAlpha && (strokeWriteChannels & 8) != 0 ? 1 : 0));
+                    (strokeWriteChannels & 8) != 0 ? 1 : 0));
                 Graphics.Blit(paintSurface, paintWriteScratch, material, 0);
                 Graphics.Blit(paintWriteScratch, paintSurface);
             }
@@ -69,16 +67,16 @@ namespace DCFApixels.WhimTex
             if (paintWriteBefore != null) RenderTexture.ReleaseTemporary(paintWriteBefore);
             if (paintWriteScratch != null) RenderTexture.ReleaseTemporary(paintWriteScratch);
             paintWriteBefore = paintWriteScratch = null;
-            strokeWriteChannels = 15; strokeLockAlpha = false;
+            strokeWriteChannels = 15;
         }
 
-        internal static Color ProtectPaintColor(Color before, Color after, int channels, bool lockAlpha)
+        internal static Color ProtectPaintColor(Color before, Color after, int channels)
         {
-            if ((lockAlpha || (channels & 8) == 0) && before.a <= 0f) return before;
+            if ((channels & 8) == 0 && before.a <= 0f) return before;
             if ((channels & 1) == 0) after.r = before.r;
             if ((channels & 2) == 0) after.g = before.g;
             if ((channels & 4) == 0) after.b = before.b;
-            if (lockAlpha || (channels & 8) == 0) after.a = before.a;
+            if ((channels & 8) == 0) after.a = before.a;
             return after;
         }
     }

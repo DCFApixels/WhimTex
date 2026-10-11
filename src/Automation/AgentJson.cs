@@ -16,6 +16,25 @@ namespace DCFApixels.WhimTex
 
     internal static class AgentJson
     {
+        internal static BrushPressureBinding ReadPressureBinding(JObject parent, string key, BrushPressureBinding fallback)
+        {
+            if (parent[key] == null) return fallback;
+            JObject data = Obj(parent[key], key);
+            Keys(data, "enabled", "curve");
+            var binding = fallback?.Copy() ?? new BrushPressureBinding();
+            binding.enabled = Bool(data, "enabled", binding.enabled);
+            if (data["curve"] != null)
+            {
+                try { binding.curve = WhimTexCurveTexture.Parse(Text(data, "curve")); }
+                catch (FormatException e) { throw new WhimTexApiException("invalid_request", key + ".curve: " + e.Message); }
+                Require(binding.curve.length >= 2, key + ".curve requires at least two keys.");
+                foreach (var frame in binding.curve.keys)
+                    Require(frame.time >= 0f && frame.time <= 1f && frame.value >= 0f && frame.value <= 1f,
+                        key + ".curve key times and values must be within 0..1.");
+            }
+            return binding;
+        }
+
         public static void Require(bool condition, string message, string code = "invalid_request")
         {
             if (!condition) throw new WhimTexApiException(code, message);

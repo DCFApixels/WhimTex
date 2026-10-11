@@ -428,9 +428,9 @@ Unbounded are accepted). Size is 1..512 px, hardness 0..1, up to 4096 points.
 
 Blur source is `CurrentLayer` (default), `CurrentAndBelow` (includes current), or `AllLayers`.
 It is frozen at stroke start. Repair operations (`blurStroke`, `smudgeStroke`, `healStroke`)
-also accept `writeChannels` (0..15, default 15; R=1, G=2, B=4, A=8) and `lockAlpha`
-(default false), independent of source sampling. Disabled channels retain previous straight values.
-Lock Alpha preserves transparency and empty pixels, overriding the A write bit.
+also accept `writeChannels` (0..15, default 15; R=1, G=2, B=4, A=8), independent of source sampling.
+Disabled channels retain previous straight values. Disabling A preserves transparency and fully
+transparent pixels, including when erasing.
 UI path/pressure smoothing is an input preference; API point lists are used exactly as supplied.
 Strength and flow are each 0..1, default 1. Work is limited to
 67,108,864 canvas-pixel × input-point passes; simplify a path rather than repeating thousands of points.
@@ -1417,6 +1417,9 @@ Color alpha zero leaves no mark, including for the eraser; eraser strength other
 - API brush parameters remain independent of the window's shared interactive brush/color/fill
   preferences. API strokes do not read or change those preferences. Symmetry/repeat and transforms
   are layer-local and are shared by API and interactive painting.
+- Optional `pressures` supplies one 0..1 number per point, with the same length as `points`.
+  Omitted values mean full pressure. Stamp pressure is linearly interpolated along segments;
+  the global tablet curve and interactive smoothing do not apply. Not supported by Pencil.
 
 | Brush field | Values |
 |---|---|
@@ -1426,12 +1429,12 @@ Color alpha zero leaves no mark, including for the eraser; eraser strength other
 | `spacing` | 0.01..4, fraction of brush size (0.16 = 16%) |
 | `opacity` | 0..1, default 1; caps the complete stroke, not individual stamps |
 | `flow` | 0..1, default 1; multiplies each stamp's alpha before accumulation |
-| `pressure` | Boolean, default true; interactive painting multiplies brush opacity by tablet pressure. API strokes use full pressure |
-| `writeChannels` | Integer 0..15, default 15. Add enabled bits R=1, G=2, B=4, A=8. Disabled straight channels retain previous values; 0 writes nothing. Also applies to Pencil strokes |
-| `lockAlpha` | Boolean, default false. Preserve alpha and fully transparent pixels; overrides the A write bit, including erasing |
+| `pressure` | Boolean, default true; master switch for Size/Opacity/Flow pressure bindings. Off bypasses their curves. Mouse input is 1; API uses 1 or explicit `pressures` |
+| `pressureSize`, `pressureOpacity`, `pressureFlow` | Objects with optional `enabled` and `curve`; defaults: Size/Opacity off, Flow on, linear curves. Size scales diameter; Flow scales stamp alpha with accumulation; Opacity caps local coverage without fading earlier paint. Curve string syntax: `linear`, `easeIn`, `easeOut`, `easeInOut`, `one`, or shared `keys(...)`; at least two keys, times/values in 0..1, clamped output |
+| `writeChannels` | Integer 0..15, default 15. Add enabled bits R=1, G=2, B=4, A=8. Disabled straight channels retain previous values; 0 writes nothing. Disabling A preserves alpha and fully transparent pixels, including when erasing. Also applies to Pencil strokes |
 | `scatter` | 0..4, default 0; random disk radius in brush diameters |
 | `scatterBias` | −1..1, default 0 (UI −100..100). Negative concentrates centers near the stroke; positive near the scatter disk edge. With uniform sample `u`, normalized radius is `u^(0.5 * 2^(-4 * scatterBias))`; zero preserves `sqrt(u)`, uniform by area. Applies to Random and Sobol without consuming extra random values; ignored when scatter is zero |
-| `sizeJitter` | 0..1, default 0; size multiplier sampled from 1−jitter to 1+jitter, minimum one pixel |
+| `sizeJitter` | 0..1, default 0; size multiplier sampled from 1−jitter to 1+jitter after pressure scaling. Zero-size stamps do not paint |
 | `rotationMode` | `Fixed` (default) or `StrokeDirection`. For texture tips, adds the source-pixel-space segment angle before jitter; +X is zero, +Y is +90°. Stationary points retain the last direction; a new stroke starts at zero. Scatter does not affect direction. Ignored without a tip texture |
 | `angleOffset` | −180..180 counterclockwise degrees, default 0; constant offset added to `rotationMode` before `angleJitter`. Ignored without a tip texture |
 | `angleJitter` | 0..180 degrees, default 0; offset sampled from −jitter to +jitter per stamp, added after `rotationMode` and `angleOffset`. Ignored without a tip texture |

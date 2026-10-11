@@ -10,15 +10,17 @@ namespace DCFApixels.WhimTex
         private static void SetBrush(WhimTexDocument document, DrawingLayerBehaviour layer, JObject brush)
         {
             Keys(brush, "color", "size", "hardness", "spacing", "mirrorX", "mirrorY", "mirrorAngle", "center", "repeat", "repeatCount", "repeatSecondaryCount", "radialStartAngle", "elements", "boundary",
-                "opacity", "flow", "pressure", "writeChannels", "lockAlpha", "scatter", "scatterBias", "sizeJitter", "angleJitter", "angleOffset", "flipX", "flipY", "rotationMode", "randomAlgorithm", "tintGradient", "tip", "tipChannel", "tipSdf", "proceduralMode", "tipGradient", "blend", "blendApplication", "seed");
+                "opacity", "flow", "pressure", "pressureSize", "pressureOpacity", "pressureFlow", "writeChannels", "scatter", "scatterBias", "sizeJitter", "angleJitter", "angleOffset", "flipX", "flipY", "rotationMode", "randomAlgorithm", "tintGradient", "tip", "tipChannel", "tipSdf", "proceduralMode", "tipGradient", "blend", "blendApplication", "seed");
             layer.NormalizeSettings();
             BrushDynamics dynamics = layer.brushDynamics ??= new BrushDynamics();
             dynamics.Normalize();
             dynamics.opacity = Number(brush, "opacity", dynamics.opacity, 0f, 1f);
             dynamics.flow = Number(brush, "flow", dynamics.flow, 0f, 1f);
             dynamics.pressure = Bool(brush, "pressure", dynamics.pressure);
+            dynamics.pressureSize = ReadPressureBinding(brush, "pressureSize", dynamics.pressureSize);
+            dynamics.pressureOpacity = ReadPressureBinding(brush, "pressureOpacity", dynamics.pressureOpacity);
+            dynamics.pressureFlow = ReadPressureBinding(brush, "pressureFlow", dynamics.pressureFlow);
             dynamics.writeChannels = Int(brush, "writeChannels", dynamics.writeChannels, 0, 15);
-            dynamics.lockAlpha = Bool(brush, "lockAlpha", dynamics.lockAlpha);
             dynamics.scatter = Number(brush, "scatter", dynamics.scatter, 0f, 4f);
             dynamics.scatterBias = Number(brush, "scatterBias", dynamics.scatterBias, -1f, 1f);
             dynamics.sizeJitter = Number(brush, "sizeJitter", dynamics.sizeJitter, 0f, 1f);
@@ -75,15 +77,26 @@ namespace DCFApixels.WhimTex
             if (operation["brush"] != null) SetBrush(document, layer, Obj(operation["brush"], "brush"));
             Require(operation["points"] is JArray points && points.Count >= 1 && points.Count <= 4096, "A stroke needs 1..4096 [x,y] points.");
             JArray values = (JArray)operation["points"];
+            float[] pressures = null;
+            if (operation["pressures"] != null)
+            {
+                Require(operation["pressures"] is JArray pressureValues && pressureValues.Count == values.Count,
+                    "pressures must contain one 0..1 value for each stroke point.");
+                Require(operation["pencil"] == null, "Pressure bindings apply to brushes, not Pencil.");
+                var samples = (JArray)operation["pressures"];
+                pressures = new float[samples.Count];
+                for (int i = 0; i < pressures.Length; i++) pressures[i] = Number(samples[i], "pressure", 0f, 1f);
+            }
             string space = Text(operation, "space", "canvasPixels");
             Require(space == "canvasPixels" || space == "layerUv", "space must be canvasPixels or layerUv.");
             Require(space != "canvasPixels" || document.GetPaintTransform(layer).tiling == TransformTilingMode.Clip,
                 "canvasPixels painting requires Clip tiling. For repeating transforms, use layerUv to edit the source tile explicitly.");
             bool erase = Bool(operation, "erase");
+            if (pressures != null) layer.brushDynamics ??= new BrushDynamics();
             PaintStrokeParameters parameters = layer.GetStrokeParameters(erase);
             if (operation["pencil"] != null)
                 parameters = new PaintStrokeParameters(parameters.Color, parameters.Size, 1f, 0f, erase,
-                    true, Enum(operation, "pencil", PencilShape.Circle)).WithWriteProtection(parameters.WriteChannels, parameters.LockAlpha);
+                    true, Enum(operation, "pencil", PencilShape.Circle)).WithWriteProtection(parameters.WriteChannels);
             var uv = new Vector2[values.Count];
             double stamps = 1d;
             float spacing = parameters.SpacingPixels;
@@ -124,13 +137,20 @@ namespace DCFApixels.WhimTex
                     layer.SetKnownBrushDirection(direction);
                     break;
                 }
-                layer.PaintPoint(uv[0], document.width, document.height, parameters);
+                layer.PaintPoint(uv[0], document.width, document.height, parameters.WithPressure(pressures?[0] ?? 1f));
                 for (int i = 1; i < uv.Length; i++)
                 {
                     Vector2 end = uv[i];
                     bool inside = layer.IsStrokePointInsideRepeatShape(end, document.width, document.height);
                     if (!inside && !layer.TryClipStrokeSegmentToRepeatShape(uv[i - 1], end, document.width, document.height, out end)) break;
-                    layer.PaintSegment(uv[i - 1], end, document.width, document.height, false, parameters);
+                    float pressure = pressures?[i] ?? 1f;
+                    if (!inside && pressures != null)
+                    {
+                        float length = Vector2.Distance(uv[i - 1], uv[i]);
+                        float fraction = length > 0f ? Vector2.Distance(uv[i - 1], end) / length : 1f;
+                        pressure = Mathf.Lerp(pressures[i - 1], pressure, fraction);
+                    }
+                    layer.PaintSegment(uv[i - 1], end, document.width, document.height, false, parameters.WithPressure(pressure));
                     if (!inside) break;
                 }
                 layer.SyncSurfaceToTexture();

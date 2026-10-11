@@ -370,7 +370,10 @@ namespace DCFApixels.WhimTex
             return new JObject
             {
                 ["opacity"] = dynamics.opacity, ["flow"] = dynamics.flow, ["pressure"] = dynamics.pressure, ["scatter"] = dynamics.scatter,
-                ["writeChannels"] = dynamics.writeChannels, ["lockAlpha"] = dynamics.lockAlpha,
+                ["pressureSize"] = PressureSnapshot(dynamics.pressureSize),
+                ["pressureOpacity"] = PressureSnapshot(dynamics.pressureOpacity),
+                ["pressureFlow"] = PressureSnapshot(dynamics.pressureFlow),
+                ["writeChannels"] = dynamics.writeChannels,
                 ["scatterBias"] = dynamics.scatterBias,
                 ["sizeJitter"] = dynamics.sizeJitter,
                 ["angleJitter"] = dynamics.angleJitter,
@@ -392,6 +395,9 @@ namespace DCFApixels.WhimTex
                 ["repeatSecondaryCount"] = layer.repeatSecondaryCount, ["elements"] = layer.repeatElementMode.ToString(), ["boundary"] = layer.repeatBoundaryMode.ToString()
             };
         }
+
+        private static JObject PressureSnapshot(BrushPressureBinding binding) => new JObject
+            { ["enabled"] = binding?.enabled ?? false, ["curve"] = WhimTexCurveTexture.Format(binding?.curve) };
 
         private static string TypeName(Layer layer) =>
             layer?.Behaviour is PendingLayerBehaviour ? "pending" :

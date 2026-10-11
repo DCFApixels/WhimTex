@@ -65,9 +65,9 @@ Source-specific root fields:
 | hardness | 0..1; 0.8; Standard without a texture only |
 | spacing | 0.01..4 brush diameters; 0.16 |
 | opacity, flow | 0..1; 1 |
-| pressure | boolean; true. Multiplies brush opacity by tablet pressure when painting interactively. |
-| writeChannels | integer 0..15; 15. Add enabled bits R=1, G=2, B=4, A=8. Disabled channels retain previous values; 0 writes nothing. |
-| lockAlpha | boolean; false. Preserve alpha and fully transparent pixels; overrides the A write bit. |
+| pressure | boolean; true. Master switch for the three pressure bindings. Off bypasses their curves. Mouse input is 1; API strokes default to 1 or use explicit `pressures`. |
+| pressureSize, pressureOpacity, pressureFlow | Objects with optional `enabled` and `curve`. Defaults: Size/Opacity disabled, Flow enabled; all curves linear. Size multiplies diameter; Flow multiplies stamp alpha and accumulates; Opacity caps local stroke coverage without reducing previously painted coverage. |
+| writeChannels | integer 0..15; 15. Add enabled bits R=1, G=2, B=4, A=8. Disabled channels retain previous values; 0 writes nothing. Disabling A preserves alpha and fully transparent pixels, including when erasing. |
 | scatter | 0..4; 0 |
 | scatterBias | −1..1; 0 |
 | sizeJitter | 0..1; 0 |
@@ -89,6 +89,13 @@ Both gradient fields accept a stop array or an object with `colors`, optional `a
 `tintGradient` use **Perceptual**, also the default for new brushes; explicit modes are retained. Color-picker RGB/HSV, HDR input,
 Channels and Preview EV preferences do not transform pasted values, and pasting does not populate
 document History. RGB limits remain -107..107 and alpha 0..1, not the wider standalone gradient range.
+
+Pressure `curve` uses the shared string syntax: `linear`, `easeIn`, `easeOut`, `easeInOut`,
+`one`, or `keys((time,value,inTangent,outTangent,inWeight,outWeight,weightedMode), ...)`.
+Provide at least two keys with times and values within 0–1; weightedMode is 0..3.
+Curve output is clamped to 0–1; a mouse still uses the value at the right endpoint.
+Bindings and curves are included in presets and layer brush settings. The global tablet curve
+and pressure-smoothing preference are user input settings, not preset data or API filters.
 
 Standard texture tips and HLSL tips share all channel, SDF/Gradient, rotation, flip and painting behavior.
 HLSL changes how the tip is obtained. Changing its parameters does not reset
@@ -170,8 +177,8 @@ change the painted path's Smoothing setting or delay the first stamp. Preview an
 strokes use the first known nonzero path direction upfront, without hover interpolation;
 a one-point API stroke without direction starts with `(0,0)`.
 
-Sequence-only Dynamic tips need no stroke-buffer pair unless brush Opacity is below 1 or non-erase
-Blend is not Normal. Motion tips and Stroke Direction also use the existing pair; correction adds
+Sequence-only Dynamic tips need no stroke-buffer pair unless brush Opacity is below 1, Pressure → Opacity
+is enabled, or non-erase Blend is not Normal. Motion tips and Stroke Direction also use the existing pair; correction adds
 no third full-size texture or CPU readback. Storage sync commits any pending start. Normal settings,
 preset/seed/tool changes finish the stroke before applying new values.
 

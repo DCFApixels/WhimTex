@@ -69,7 +69,7 @@ namespace DCFApixels.WhimTex
             expand.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.fillExpand = Mathf.Clamp(evt.newValue, 0, 32)));
             row.Add(expand);
-            AddPaintInputSettings(row, path: false, usesPressure: false);
+            AddPaintInputSettings(row, path: false);
             toolkitCanvasViewHeader.Add(row);
         }
 
@@ -142,11 +142,11 @@ namespace DCFApixels.WhimTex
                 if (!HdrFloodFillUtility.Fill(source, reference, valid, output, width, height, seed, color,
                     paintSettings.fillTolerance, paintSettings.fillExpand, paintSettings.fillAntialias, paintSettings.fillContiguous, layer.colorRange == LayerColorRange.Standard)) return true;
                 MaskFillToArea(layer, source, output, width, height);
-                if (paintSettings.dynamics.writeChannels != 15 || paintSettings.dynamics.lockAlpha)
+                if (paintSettings.dynamics.writeChannels != 15)
                 {
                     var protectedOutput = output;
                     for (int i = 0; i < length; i++)
-                        protectedOutput[i] = DrawingLayerBehaviour.ProtectPaintColor(source[i], output[i], paintSettings.dynamics.writeChannels, paintSettings.dynamics.lockAlpha);
+                        protectedOutput[i] = DrawingLayerBehaviour.ProtectPaintColor(source[i], output[i], paintSettings.dynamics.writeChannels);
                 }
                 Undo.IncrementCurrentGroup();
                 undoGroup = Undo.GetCurrentGroup();

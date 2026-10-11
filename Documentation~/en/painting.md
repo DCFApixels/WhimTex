@@ -26,10 +26,18 @@ A small cross marks the brush center when its outline becomes large relative to 
 | Hardness / Gradient | Next to Size in the Canvas View header. Drag Hardness or type a percentage; click the gradient strip to edit it. The arrow switches procedural brushes between Hardness and Gradient without losing either setting. |
 | Opacity | Maximum strength of a whole stroke. Release and paint again to build another coat. |
 | Flow | Strength of each brush stamp. Lower values let overlapping stamps build color gradually. |
+| Pressure | Enables the Size, Opacity and Flow pressure bindings configured in Brushes. A mouse supplies full input pressure. |
 
 For example, **Opacity 40%** keeps one stroke at no more than 40%, even when you go
 over it repeatedly. **Flow 10%** builds up gently as you draw, up to the Opacity limit.
 These controls also work when erasing with Brush.
+
+In **Brushes**, enable **Pressure → Size**, **Opacity** or **Flow** independently and edit
+each response curve. Size changes the diameter; Flow changes stamp strength and accumulates;
+Opacity limits coverage locally within the stroke, without fading paint already applied.
+Only Flow is pressure-controlled by default. Curve input and output are 0–1; for a mouse,
+the right endpoint applies. **WhimTex Settings → Tablet Input → Pressure Curve** adjusts
+the global input response before these brush curves; it is not saved in brush presets.
 
 For a textured brush, enable **SDF** in **Brushes → Tip** to use the Gradient control.
 Without SDF, the texture defines its own edge and this header block is inactive.
@@ -49,15 +57,20 @@ The image itself is not blurred. Shift lines and snapped points stay exact.
 
 **Finish Stroke** completes the delayed path at the pointer when you release; disable it to leave
 the endpoint at the filtered position. **Smooth Pressure** filters pressure separately, even with
-Smoothing set to None. Enable the tool's **Pressure** option to use it; Pencil has no pressure dynamics.
+Smoothing set to None. It is disabled while the tool's **Pressure** option is off, retaining your
+preference for when you turn Pressure back on. **Distance** appears only when path smoothing or
+enabled pressure smoothing uses it. Pencil has no pressure dynamics.
+Pressure is interpolated between pointer events at each stamp. Smooth Pressure uses recent
+samples: distance-weighted smoothing, or a moving average with Stabilizer. A new stroke
+starts a new history; completing its tail uses the final input pressure, including zero.
 
-**Lock Alpha** preserves transparency and empty pixels while you recolor a shape. **Write R/G/B/A**
-allows changes only in enabled channels; disabled channels keep their previous values. Turn off
-G, B and A to edit a packed texture's red channel. Lock Alpha takes priority over Write A, so erasing
-cannot change transparency while it is enabled. Protection also applies to **Fill and Healing Brush**.
+**Write R/G/B/A** allows changes only in enabled channels; disabled channels keep their previous values.
+Turn off A to preserve transparency and fully transparent pixels while recoloring a shape;
+erasing then cannot change transparency. Turn off G, B and A to edit a packed texture's red channel.
+Protection also applies to **Fill and Healing Brush**.
 The footer R/G/B/A buttons only change what you see, not what you paint.
 
-Smoothing is remembered as an input preference. Write channels and Lock Alpha are included in brush presets.
+Smoothing is remembered as an input preference. Write channels are included in brush presets.
 
 ## Customize the brush
 
@@ -70,6 +83,8 @@ Tip and stamp settings are available here: **Size** is in **Tip**, and **Opacity
 are in **Color**. The Canvas View header provides shortcuts and the shared write-protection controls.
 
 The brush sample previews the current tip without layer FX or symmetry; Eraser previews on gray paint.
+Its simulated pressure rises gently from zero, stays full in the middle and falls to zero at the end,
+using the enabled brush bindings and their curves. With Pressure disabled the sample is uniform.
 Use **Preview Scale (%)** to fit a large tip or wide scatter. It changes only the sample, not the painted brush size.
 
 Use **↺** in the **Tip**, **Stamps** or **Color** header to reset that section,

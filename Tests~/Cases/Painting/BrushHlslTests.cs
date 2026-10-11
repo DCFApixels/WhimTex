@@ -767,7 +767,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
                 Set(dynamics,"rotationMode",Enum.Parse(Get(dynamics,"rotationMode").GetType(),rotation));
                 Set(dynamics,"blend",Enum.Parse(Get(dynamics,"blend").GetType(),blend));
                 Set(dynamics,"blendApplication",Enum.Parse(Get(dynamics,"blendApplication").GetType(),application));
-                Set(dynamics,"opacity",.5f); Set(dynamics,"flow",.7f); Set(dynamics,"writeChannels",5); Set(dynamics,"lockAlpha",true);
+                Set(dynamics,"opacity",.5f); Set(dynamics,"flow",.7f); Set(dynamics,"writeChannels",5);
                 var actual = Layer(); var expected = Layer();
                 foreach (var layer in new[] {actual,expected}) { Set(layer,"repeatMode",PaintRepeatMode.Mirror); Set(layer,"mirrorAcrossVerticalAxis",true); }
                 Call(dynamics,"ResetSequence"); Call(actual,"BeginStroke",origin); Call(actual,"SetInitialBrushDelta",Vector2.right);
@@ -791,7 +791,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
                 Same(corrected,Image(actual),"Further sub-spacing movement does not correct twice");
                 Call(actual,"EndStroke"); Call(expected,"EndStroke");
             }
-            Set(dynamics,"writeChannels",15); Set(dynamics,"lockAlpha",false); Set(dynamics,"scatter",0f);
+            Set(dynamics,"writeChannels",15); Set(dynamics,"scatter",0f);
             Set(dynamics,"opacity",1f); Set(dynamics,"blend",Enum.Parse(Get(dynamics,"blend").GetType(),"Normal"));
             Call(settings,"ApplyHlsl",header+"float4 BrushTip(BrushMotion m, float2 uv) { return float4(1,1,1,m.strokeDirection); }",new List<ShaderFXParameter>(),64);
             Set(dynamics,"angleOffset",0f); Set(dynamics,"angleJitter",0f); Set(dynamics,"sizeJitter",0f);

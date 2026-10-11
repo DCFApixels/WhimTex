@@ -25,6 +25,7 @@ namespace DCFApixels.WhimTex
         private ColorField guideActiveColor;
         private ColorField healingStrokeColor;
         private TextField vsCodeExecutable;
+        private CurveField tabletPressureCurve;
 
         internal static void Open()
         {
@@ -50,6 +51,15 @@ namespace DCFApixels.WhimTex
             root.AddToClassList("whimtex-user-settings");
             var scroll = new ScrollView();
             root.Add(scroll);
+            AddHeading(scroll, "Tablet Input");
+            tabletPressureCurve = WhimTexUI.ConfigureField(new CurveField("Pressure Curve")
+            { ranges = new Rect(0, 0, 1, 1), tooltip = "Global pressure response before brush curves. Mouse input is 1. This setting is not stored in brush presets." });
+            tabletPressureCurve.RegisterValueChangedCallback(e => WhimTexUserSettings.TabletPressureCurve = e.newValue);
+            scroll.Add(tabletPressureCurve);
+            var resetPressure = new Button(() => WhimTexUserSettings.TabletPressureCurve = WhimTexCurveTexture.Default())
+                { text = "Reset Pressure Curve" };
+            resetPressure.AddToClassList("whimtex-user-settings-reset");
+            scroll.Add(resetPressure);
             AddHeading(scroll, "Open Images");
             imageOpening = new EnumField("Double Click", WhimTexUserSettings.ImageOpening)
             {
@@ -250,6 +260,7 @@ namespace DCFApixels.WhimTex
 
         private void RefreshValues()
         {
+            tabletPressureCurve?.SetValueWithoutNotify(WhimTexUserSettings.TabletPressureCurve);
             imageOpening?.SetValueWithoutNotify(WhimTexUserSettings.ImageOpening);
             imageLayer?.SetValueWithoutNotify(WhimTexUserSettings.ImageLayer);
             imageLayer?.SetEnabled(WhimTexUserSettings.ImageOpening == ImageOpenMode.AllSupportedImages);

@@ -190,11 +190,14 @@ namespace DCFApixels.WhimTex
             var pressure = WhimTexUI.ConfigureField(new Toggle("Pressure")
             {
                 value = paintSettings.dynamics.pressure,
-                tooltip = "Use tablet pressure to scale the opacity of the brush stroke."
+                tooltip = BrushPressureTooltip
             });
             pressure.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.dynamics.pressure = evt.newValue));
             brushSettingsBindings.Track(pressure, () => paintSettings.dynamics.pressure);
             scroll.Add(pressure);
+            AddBrushPressureBinding(scroll, "Size", () => paintSettings.dynamics.pressureSize);
+            AddBrushPressureBinding(scroll, "Opacity", () => paintSettings.dynamics.pressureOpacity);
+            AddBrushPressureBinding(scroll, "Flow", () => paintSettings.dynamics.pressureFlow);
             var tintRow = new VisualElement();
             tintRow.AddToClassList("whimtex-brush-tint-row");
             var gradient = WhimTexUI.ConfigureField(new WhimTexGradientValueField("Tint") { value = paintSettings.dynamics.tintGradient,
@@ -259,6 +262,25 @@ namespace DCFApixels.WhimTex
             brushSettingsBindings.Track(field, () => read() * 100f);
             root.Add(field);
             return field;
+        }
+
+        private void AddBrushPressureBinding(VisualElement root, string label, Func<BrushPressureBinding> read)
+        {
+            var enabled = WhimTexUI.ConfigureField(new Toggle("Pressure → " + label));
+            enabled.name = "brushPressure" + label;
+            enabled.tooltip = label == "Opacity" ? "Pressure limits local stroke coverage. Reducing pressure does not erase earlier paint."
+                : "Multiply " + label + " by this pressure response. Input and output are within 0–1.";
+            enabled.RegisterValueChangedCallback(e => ApplyPaintToolChange(() => read().enabled = e.newValue));
+            brushSettingsBindings.Track(enabled, () => read().enabled);
+            brushSettingsBindings.Add(() => enabled.SetEnabled(paintSettings.dynamics.pressure));
+            root.Add(enabled);
+            var curve = WhimTexUI.ConfigureField(new CurveField(label + " Curve")
+            { ranges = new Rect(0, 0, 1, 1), tooltip = "Horizontal: pressure. Vertical: multiplier. Mouse input is 1, so the right endpoint applies." });
+            curve.RegisterValueChangedCallback(e => ApplyPaintToolChange(() => read().curve = WhimTexCurveTexture.Copy(e.newValue)));
+            brushSettingsBindings.Track(curve, () => read().curve);
+            brushSettingsBindings.Add(() => curve.EnableInClassList("whimtex-brush-setting--hidden", !read().enabled));
+            brushSettingsBindings.Add(() => curve.SetEnabled(paintSettings.dynamics.pressure));
+            root.Add(curve);
         }
 
         private void AddBrushEdgeHeader(VisualElement row)

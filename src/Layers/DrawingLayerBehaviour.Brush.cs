@@ -11,6 +11,8 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private float brushDirection;
         [NonSerialized] private Vector2 initialBrushDeltaPixels;
         [NonSerialized] private bool brushTintPrepared;
+        [NonSerialized] private float previousBrushPressure;
+        [NonSerialized] private bool hasBrushPressure;
         [NonSerialized] private BrushStampContext dynamicStroke;
         [NonSerialized] private bool dynamicStrokeStarted;
         [NonSerialized] private double brushDistance;
@@ -40,12 +42,21 @@ namespace DCFApixels.WhimTex
             brushDirection = BrushDynamics.MovementAngle(initialBrushDeltaPixels.x, initialBrushDeltaPixels.y, 0f);
         }
 
+        internal void SetBrushPressure(float pressure)
+        {
+            previousBrushPressure = Mathf.Clamp01(pressure);
+            hasBrushPressure = true;
+        }
+
         private void BuildBrushSegment(Vector2 from, Vector2 to, int width, int height, bool includeStart,
             PaintStrokeParameters parameters, float distance, int budget)
         {
             int count = brushSpacingState.Sample(distance, parameters.SpacingPixels, includeStart, out double first);
             int stride = Mathf.Max(1, Mathf.CeilToInt(count / (float)Mathf.Max(1, budget)));
             BrushDynamics dynamics = parameters.Dynamics;
+            float fromPressure = hasBrushPressure && !includeStart ? previousBrushPressure : parameters.Pressure;
+            previousBrushPressure = parameters.Pressure;
+            hasBrushPressure = true;
             bool dynamic = dynamics?.DynamicTip == true;
             if (brushStampIndex == 0 && initialBrushDeltaPixels.sqrMagnitude <= .000001f && distance > .001f)
                 SetKnownBrushDirection(Vector2.Scale(to - from, new Vector2(width, height)));
@@ -89,11 +100,13 @@ namespace DCFApixels.WhimTex
                         : dynamicPreviousStampPoint;
                     deltaPixels = Vector2.Scale(point - previous, new Vector2(width, height));
                 }
-                float size = parameters.Size;
+                float pressure = Mathf.Lerp(fromPressure, parameters.Pressure, Mathf.Clamp01(t));
+                float size = parameters.Size * (dynamics?.SizePressure(pressure) ?? 1f);
                 float rotation = baseRotation;
                 int flip = 0;
                 Color tint = parameters.Color;
-                tint.a *= parameters.Pressure;
+                float opacityPressure = dynamics?.OpacityPressure(pressure) ?? 1f;
+                tint.a *= (dynamics?.flow ?? 1f) * (dynamics?.FlowPressure(pressure) ?? 1f);
                 if (variation)
                 {
                     if (dynamics.scatter > 0f)
@@ -103,7 +116,7 @@ namespace DCFApixels.WhimTex
                         point += new Vector2(Mathf.Cos(angle) * radius / width, Mathf.Sin(angle) * radius / height);
                     }
                     if (dynamics.sizeJitter > 0f)
-                        size = Mathf.Max(1f, size * (1f + dynamics.sizeJitter * (2f * dynamics.SampleRandom(ref brushRandomState, stampIndex, 2) - 1f)));
+                        size *= 1f + dynamics.sizeJitter * (2f * dynamics.SampleRandom(ref brushRandomState, stampIndex, 2) - 1f);
                     if (dynamics.HasTip && dynamics.angleJitter > 0f)
                         rotation += dynamics.angleJitter * Mathf.Deg2Rad * (2f * dynamics.SampleRandom(ref brushRandomState, stampIndex, 3) - 1f);
                     if (dynamics.HasTint)
@@ -118,6 +131,7 @@ namespace DCFApixels.WhimTex
                 // Keep a provisional dab whose corrected rotation can reach the canvas edge.
                 if (stampIndex == 0 && includeStart && distance == 0f && !initialDirectionKnown && dynamics?.NeedsDirection == true)
                     extent = Mathf.Sqrt(2f);
+                if (size <= .0001f || tint.a <= 0f || opacityPressure <= 0f) continue;
                 if (!parameters.WrapCanvas && (point.x + size * extent * .5f / width <= 0f || point.x - size * extent * .5f / width >= 1f ||
                     point.y + size * extent * .5f / height <= 0f || point.y - size * extent * .5f / height >= 1f)) continue;
                 if (parameters.WrapCanvas) point = TiledCanvasUtility.Wrap(point);
@@ -130,6 +144,7 @@ namespace DCFApixels.WhimTex
                     stamp.rotation = rotation;
                     stamp.flip = flip;
                     stamp.color = tint;
+                    stamp.opacityPressure = opacityPressure;
                     if (dynamic)
                     {
                         double at = brushDistance + Math.Min(distance, Math.Max(0d, first + i * (double)parameters.SpacingPixels));
@@ -191,7 +206,7 @@ namespace DCFApixels.WhimTex
                     context.distance, context.totalDistance, phantomDelta);
                 firstBrushStamps[i] = stamp;
             }
-            ResetAdvancedStroke(firstBrushParameters.Dynamics.BlendsEachStamp(firstBrushParameters.Erase));
+            ResetAdvancedStroke(firstBrushParameters.Dynamics.BlendsEachStamp(firstBrushParameters.Erase), firstBrushParameters.Dynamics.PressureOpacity);
             DrawBrushStamps(paintSurface, firstBrushStamps, firstBrushWidth, firstBrushHeight, firstBrushParameters);
             ClearFirstBrush();
         }
@@ -208,18 +223,19 @@ namespace DCFApixels.WhimTex
             EndStroke();
         }
 
-        private void ResetAdvancedStroke(bool withBackdrop)
+        private void ResetAdvancedStroke(bool withBackdrop, bool pressureOpacity = false)
         {
             var previous = RenderTexture.active;
             try
             {
-                if (withBackdrop) Graphics.Blit(advancedStrokeBase, advancedStroke);
+                if (withBackdrop && pressureOpacity) Graphics.Blit(advancedStrokeBase, advancedStroke, WhimTexMaterials.Blend, 2);
+                else if (withBackdrop) Graphics.Blit(advancedStrokeBase, advancedStroke);
                 else { RenderTexture.active = advancedStroke; GL.Clear(false, true, Color.clear); }
             }
             finally { RenderTexture.active = previous; }
         }
 
-        private void EnsureAdvancedStroke(RenderTexture surface, bool withBackdrop = false)
+        private void EnsureAdvancedStroke(RenderTexture surface, bool withBackdrop = false, bool pressureOpacity = false)
         {
             if (advancedStroke != null) return;
             var previous = RenderTexture.active;
@@ -228,7 +244,7 @@ namespace DCFApixels.WhimTex
                 advancedStrokeBase = HdrUtility.Temporary(surface.width, surface.height);
                 advancedStroke = HdrUtility.Temporary(surface.width, surface.height);
                 Graphics.Blit(surface, advancedStrokeBase);
-                ResetAdvancedStroke(withBackdrop);
+                ResetAdvancedStroke(withBackdrop, pressureOpacity);
             }
             catch { ReleaseAdvancedStroke(); throw; }
             finally { RenderTexture.active = previous; }
@@ -248,12 +264,14 @@ namespace DCFApixels.WhimTex
                 material.SetFloat("_BrushErase", parameters.Erase ? 1f : 0f);
                 material.SetFloat("_BrushStandard", colorRange == LayerColorRange.Standard ? 1f : 0f);
                 material.SetFloat("_BrushStampAccumulation", parameters.Dynamics.BlendsEachStamp(parameters.Erase) ? 1f : 0f);
+                material.SetFloat("_BrushPressureOpacity", parameters.Dynamics.PressureOpacity ? 1f : 0f);
                 Graphics.Blit(advancedStrokeBase, target, material, 1);
             }
             finally
             {
                 material.SetTexture("_Blend", null);
                 material.SetFloat("_BrushStampAccumulation", 0f);
+                material.SetFloat("_BrushPressureOpacity", 0f);
                 RenderTexture.active = previous;
             }
         }

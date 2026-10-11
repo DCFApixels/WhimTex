@@ -29,14 +29,17 @@ namespace DCFApixels.WhimTex
             d.source=Enum(root,"source",BrushTipSource.Standard);
             url=null;
             var settings=root["settings"]==null?new JObject():Obj(root["settings"],"settings");
-            Keys(settings,"size","hardness","spacing","opacity","flow","pressure","scatter","scatterBias","sizeJitter","angleJitter",
+            Keys(settings,"size","hardness","spacing","opacity","flow","pressure","pressureSize","pressureOpacity","pressureFlow","scatter","scatterBias","sizeJitter","angleJitter",
                 "angleOffset","flipX","flipY","rotationMode","randomAlgorithm","tintGradient","tipChannel","tipSdf",
-                "mode","tipGradient","blend","blendApplication","seed","writeChannels","lockAlpha");
+                "mode","tipGradient","blend","blendApplication","seed","writeChannels");
             result.brushSize=Number(settings,"size",32,1,4096);
             result.brushHardness=Number(settings,"hardness",.8f,0,1);
             result.brushSpacing=Number(settings,"spacing",.16f,DrawingLayerBehaviour.MinimumBrushSpacing,DrawingLayerBehaviour.MaximumBrushSpacing);
             d.opacity=Number(settings,"opacity",1,0,1);d.flow=Number(settings,"flow",1,0,1);d.pressure=Bool(settings,"pressure",d.pressure);
-            d.writeChannels=Int(settings,"writeChannels",15,0,15);d.lockAlpha=Bool(settings,"lockAlpha");
+            d.pressureSize=ReadPressureBinding(settings,"pressureSize",d.pressureSize);
+            d.pressureOpacity=ReadPressureBinding(settings,"pressureOpacity",d.pressureOpacity);
+            d.pressureFlow=ReadPressureBinding(settings,"pressureFlow",d.pressureFlow);
+            d.writeChannels=Int(settings,"writeChannels",15,0,15);
             d.scatter=Number(settings,"scatter",0,0,4);d.scatterBias=Number(settings,"scatterBias",0,-1,1);
             d.sizeJitter=Number(settings,"sizeJitter",0,0,1);d.angleJitter=Number(settings,"angleJitter",0,0,180);
             d.angleOffset=Number(settings,"angleOffset",0,-180,180);

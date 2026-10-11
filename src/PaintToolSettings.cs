@@ -267,13 +267,13 @@ namespace DCFApixels.WhimTex
         {
             return new PaintStrokeParameters(colorOverride ?? brushColor, brushSize, brushHardness, brushSpacing, erase,
                 dynamics: dynamics, standardColorInputs: !WhimTexColorInputs.Hdr)
-                .WithWriteProtection(dynamics.writeChannels, dynamics.lockAlpha);
+                .WithWriteProtection(dynamics.writeChannels);
         }
 
         internal PaintStrokeParameters GetPencilParameters(bool erase, Color? colorOverride = null)
         {
             return new PaintStrokeParameters(colorOverride ?? brushColor, pencilSize, 1f, 0f, erase, true, pencilShape)
-                .WithWriteProtection(dynamics.writeChannels, dynamics.lockAlpha);
+                .WithWriteProtection(dynamics.writeChannels);
         }
 
         internal void SwapBrushColors()

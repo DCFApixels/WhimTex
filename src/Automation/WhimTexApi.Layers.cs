@@ -93,7 +93,7 @@ namespace DCFApixels.WhimTex
                         ? Resolve(document, Text(operation, "target"), aliases).Id : null;
                     break;
                 case "stroke":
-                    Keys(operation, "op", "layer", "points", "space", "erase", "brush", "pencil");
+                    Keys(operation, "op", "layer", "points", "pressures", "space", "erase", "brush", "pencil");
                     Require(layer?.Behaviour is DrawingLayerBehaviour, "stroke requires a Drawing layer.");
                     Paint(document, (DrawingLayerBehaviour)layer, operation, execute);
                     break;

@@ -140,6 +140,12 @@ defs.sdf = object({
   gradient: { $ref: '#/$defs/gradient' }
 });
 defs.blend = enumeration('Utils.cs', 'BlendMode');
+defs.pressureBinding = object({
+  enabled: bool,
+  curve: { ...str(4096), description: 'Pressure response on 0..1. linear, easeIn, easeOut, easeInOut, one, or keys((time,value,inTangent,outTangent,inWeight,outWeight,weightedMode),...). At least two keys; times and values within 0..1. Evaluated output is clamped.' }
+});
+defs.strokePressures = { type: 'array', minItems: 1, maxItems: 4096, items: number(0,1),
+  description: 'Optional one normalized pressure per stroke point; length must match points. Omitted: full pressure. Interpolated at stamp positions; no interactive global curve or smoothing. Not supported by Pencil.' };
 defs.smudgeStroke = object({
   op: { const: 'smudgeStroke' }, layer: str(256),
   points: { type: 'array', minItems: 1, maxItems: 4096, items: tuple(number(-1e6, 1e6), 2), description: 'Canvas pixels, top-left origin. One point does not paint.' },
@@ -147,8 +153,7 @@ defs.smudgeStroke = object({
   strength: { ...number(0,1), default: .8 }, flow: { ...number(0,1), default: 1 },
   mixing: { ...number(0,1), default: .25, description: '0: coordinate deformation without cumulative RGB feedback; 1: carried-color mixing. Partial values couple both on every dab.' },
   source: { ...choice('CurrentLayer CurrentAndBelow AllLayers'), default: 'CurrentLayer' }, tiled: { ...bool, default: false },
-  writeChannels: { ...integer(0,15), default: 15, description: 'Write mask: R=1, G=2, B=4, A=8. Disabled channels retain their previous straight values.' },
-  lockAlpha: { ...bool, default: false, description: 'Preserve alpha and fully transparent pixels; overrides the A write bit.' }
+  writeChannels: { ...integer(0,15), default: 15, description: 'Write mask: R=1, G=2, B=4, A=8. Disabled channels retain their previous straight values. Disabling A also preserves fully transparent pixels.' }
 }, ['op', 'layer', 'points']);
 const schema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',

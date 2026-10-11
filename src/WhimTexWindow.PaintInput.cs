@@ -6,6 +6,7 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexWindow
     {
+        private const string BrushPressureTooltip = "Use pressure bindings for Size, Opacity and Flow configured in Brushes. A mouse supplies 100% input pressure; curves still apply.";
         [NonSerialized] private StrokeSmoother paintingSmoother;
         [NonSerialized] private bool paintingSmootherActive;
         [NonSerialized] private BrushPointerMotion brushPointerMotion;
@@ -55,11 +56,12 @@ namespace DCFApixels.WhimTex
             if (float.IsFinite(point.x) && float.IsFinite(point.y)) PaintTowardsLayerPoint(point);
             if (!finish || !paintSettings.smoothing.finishStroke || exact || !hasLastPaintingUv) return;
             paintingSmoother.Finish(true);
+            paintingPressure = paintingSmoother.Pressure;
             point = FilteredUv();
             if (float.IsFinite(point.x) && float.IsFinite(point.y)) PaintTowardsLayerPoint(point);
         }
 
-        private void AddPaintInputSettings(VisualElement row, bool path = true, bool usesPressure = true)
+        private void AddPaintInputSettings(VisualElement row, bool path = true, Func<bool> pressureEnabled = null)
         {
             var mode = CompactField(new EnumField("Smoothing", paintSettings.smoothing.mode), 100f);
             mode.name = "strokeSmoothing";
@@ -85,28 +87,26 @@ namespace DCFApixels.WhimTex
             toolkitHeaderBindings.Track(finish, () => paintSettings.smoothing.finishStroke);
             finish.RegisterValueChangedCallback(e => ApplyPaintToolChange(() => paintSettings.smoothing.finishStroke = e.newValue));
             row.Add(finish);
-            var lockAlpha = CompactField(new Toggle("Lock Alpha"), 90f);
-            lockAlpha.name = "paintLockAlpha";
-            lockAlpha.tooltip = "Preserve the layer's alpha and fully transparent pixels. Recolor existing pixels without changing their silhouette; erasing cannot change alpha.";
-            toolkitHeaderBindings.Track(lockAlpha, () => paintSettings.dynamics.lockAlpha);
-            lockAlpha.RegisterValueChangedCallback(e => ApplyPaintToolChange(() => paintSettings.dynamics.lockAlpha = e.newValue));
-            row.Add(lockAlpha);
             row.Add(new Label("Write") { tooltip = "Enabled channels may change. Disabled channels retain their previous values. This is separate from channel visibility in the footer." });
             string[] names = { "R", "G", "B", "A" };
             for (int i = 0; i < 4; i++)
             {
                 int bit = 1 << i;
                 var button = new Button(() => ApplyPaintToolChange(() => paintSettings.dynamics.writeChannels ^= bit))
-                { name = "paintWrite" + names[i], text = names[i], tooltip = "Allow writing " + names[i] + ". Off preserves this channel; Lock Alpha takes priority over A." };
+                { name = "paintWrite" + names[i], text = names[i], tooltip = bit == 8
+                    ? "Allow writing alpha. Off preserves the layer's alpha and fully transparent pixels, including when erasing."
+                    : "Allow writing " + names[i] + ". Off preserves this channel." };
                 button.AddToClassList("whimtex-channel-button");
                 toolkitHeaderBindings.Add(() => button.EnableInClassList("whimtex-channel-button--enabled", (paintSettings.dynamics.writeChannels & bit) != 0));
                 row.Add(button);
             }
             toolkitHeaderBindings.Add(() =>
             {
+                bool usePressure = pressureEnabled != null && pressureEnabled();
                 mode.style.display = path ? DisplayStyle.Flex : DisplayStyle.None;
-                pressure.style.display = path && usesPressure ? DisplayStyle.Flex : DisplayStyle.None;
-                distance.style.display = path && (paintSettings.smoothing.mode != StrokeSmoothingMode.None || paintSettings.smoothing.smoothPressure && usesPressure) ? DisplayStyle.Flex : DisplayStyle.None;
+                pressure.style.display = path && pressureEnabled != null ? DisplayStyle.Flex : DisplayStyle.None;
+                pressure.SetEnabled(usePressure);
+                distance.style.display = path && (paintSettings.smoothing.mode != StrokeSmoothingMode.None || paintSettings.smoothing.smoothPressure && usePressure) ? DisplayStyle.Flex : DisplayStyle.None;
                 finish.style.display = path && paintSettings.smoothing.mode != StrokeSmoothingMode.None ? DisplayStyle.Flex : DisplayStyle.None;
             });
         }

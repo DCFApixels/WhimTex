@@ -243,6 +243,7 @@ namespace DCFApixels.WhimTex
             brushSpacingState = default;
             brushRandomState = 0;
             brushStampIndex = 0;
+            hasBrushPressure = false;
             SetInitialBrushDelta(Vector2.zero);
             initialDirectionKnown = false;
             brushTintPrepared = false;
@@ -374,13 +375,11 @@ namespace DCFApixels.WhimTex
                 if (float.IsFinite(point.x) && float.IsFinite(point.y)) RefineFirstBrush(point);
                 if (includeStart) ClearFirstBrush();
             }
-            if (parameters.WriteChannels != 15 || parameters.LockAlpha)
-                ConfigureStrokeWriteProtection(parameters.WriteChannels, parameters.LockAlpha);
+            if (parameters.WriteChannels != 15)
+                ConfigureStrokeWriteProtection(parameters.WriteChannels);
             if (StrokeWritesNothing) return;
             if (color.a <= 0f || parameters.Dynamics != null && (parameters.Dynamics.opacity <= 0f || parameters.Dynamics.flow <= 0f))
                 return;
-            color.a *= parameters.Pressure;
-            if (color.a <= 0f) return;
             parameters.Dynamics?.EnsureHlsl();
             if (!TiledCanvasUtility.IsInvertible(Owner.PixelCanvasTransform)) return;
             var canvasSize = new Vector2(outputWidth, outputHeight);
@@ -391,8 +390,8 @@ namespace DCFApixels.WhimTex
             RenderTexture surface = EnsurePaintSurface(outputWidth, outputHeight);
             if (surface == null)
                 return;
-            if (parameters.WriteChannels != 15 || parameters.LockAlpha)
-                ConfigureStrokeWriteProtection(parameters.WriteChannels, parameters.LockAlpha);
+            if (parameters.WriteChannels != 15)
+                ConfigureStrokeWriteProtection(parameters.WriteChannels);
 
             NormalizeSettings();
             outputWidth = Mathf.Max(1, outputWidth);
@@ -427,7 +426,7 @@ namespace DCFApixels.WhimTex
             BrushDynamics dynamics = parameters.Dynamics;
             bool isolatedStroke = dynamics != null && dynamics.NeedsStrokeBuffer(parameters.Erase);
             bool stampBlend = dynamics != null && dynamics.BlendsEachStamp(parameters.Erase);
-            if (isolatedStroke && segmentStamps.Count > 0) EnsureAdvancedStroke(surface, stampBlend);
+            if (isolatedStroke && segmentStamps.Count > 0) EnsureAdvancedStroke(surface, stampBlend, dynamics.PressureOpacity);
             if (rememberFirst && segmentStamps.Count > 0) RememberFirstBrush(fromSourceUv, outputWidth, outputHeight, parameters);
             else if (firstBrushPending && segmentStamps.Count > 0) ClearFirstBrush();
 
@@ -441,7 +440,6 @@ namespace DCFApixels.WhimTex
             bool isolatedStroke = dynamics != null && dynamics.NeedsStrokeBuffer(parameters.Erase);
             bool stampBlend = dynamics != null && dynamics.BlendsEachStamp(parameters.Erase);
             Color color = parameters.Color;
-            color.a *= parameters.Pressure;
             color.a *= dynamics != null ? dynamics.flow : 1f;
 
             paintSurfaceDirty = true;
@@ -465,7 +463,7 @@ namespace DCFApixels.WhimTex
                 Owner.PixelCanvasTransform,
                 colorRange == LayerColorRange.Standard,
                 !isolatedStroke && HdrUtility.IsHdr(pixels), parameters.SelectionMask, dynamics, parameters.StandardColorInputs,
-                stampBlend, blendRange == LayerBlendRange.HDR);
+                stampBlend, blendRange == LayerBlendRange.HDR, strokeBase: isolatedStroke ? advancedStrokeBase : null);
             if (isolatedStroke) CompositeAdvancedStroke(surface, parameters);
             ApplyPaintWriteProtection();
         }
@@ -1091,6 +1089,7 @@ namespace DCFApixels.WhimTex
             public float rotation;
             public int flip;
             public Color color;
+            public float opacityPressure;
             public Vector2 center;
             public int clipMode;
             public Vector4 clipRect;
@@ -1149,7 +1148,7 @@ namespace DCFApixels.WhimTex
                 bool wrapCanvas,
                 TextureTransform transform, bool standard, bool hdrStorage, Texture selectionMask = null, BrushDynamics dynamics = null,
                 bool standardColorInputs = false, bool stampBlend = false, bool hdrBlend = false,
-                ProjectiveMatrix? maskCanvasToSource = null)
+                ProjectiveMatrix? maskCanvasToSource = null, Texture strokeBase = null)
             {
                 if (target == null || stamps == null || stamps.Count == 0)
                     return;
@@ -1160,6 +1159,8 @@ namespace DCFApixels.WhimTex
                     return;
 
                 bool variation = dynamics != null && dynamics.PerStamp;
+                bool pressureOpacity = dynamics?.PressureOpacity == true && !maskCanvasToSource.HasValue;
+                bool sequential = stampBlend || pressureOpacity;
                 material.SetFloat("_CoverageMask", maskCanvasToSource.HasValue ? 1f : 0f);
                 material.SetFloat("_BlendOperation", maskCanvasToSource.HasValue
                     ? (float)UnityEngine.Rendering.BlendOp.Max : (float)UnityEngine.Rendering.BlendOp.Add);
@@ -1185,6 +1186,8 @@ namespace DCFApixels.WhimTex
                     ? GetBrushSdfGradient(dynamics, standardColorInputs) : Texture2D.whiteTexture);
                 material.SetFloat("_TipStandard", standard ? 1f : 0f);
                 material.SetFloat("_StampBlendEnabled", stampBlend ? 1f : 0f);
+                material.SetFloat("_PressureOpacity", pressureOpacity ? 1f : 0f);
+                material.SetTexture("_StrokeBase", strokeBase);
                 material.SetFloat("_StampBlendMode", dynamics != null ? (int)dynamics.blend : 0f);
                 material.SetFloat("_HdrBlend", hdrBlend ? 1f : 0f);
                 float tipExtent = tip != null ? Mathf.Max(tip.width, tip.height) : 1f;
@@ -1222,7 +1225,7 @@ namespace DCFApixels.WhimTex
                 RenderTexture snapshot = null;
                 try
                 {
-                    if (stampBlend)
+                    if (sequential)
                     {
                         snapshot = RenderTexture.GetTemporary(target.descriptor);
                         snapshot.filterMode = FilterMode.Point;
@@ -1240,15 +1243,15 @@ namespace DCFApixels.WhimTex
                     try
                     {
                         GL.LoadOrtho();
-                        for (int pass = snapshot != null && !stampBlend ? 0 : 1; pass < 2; pass++)
+                        for (int pass = snapshot != null && !sequential ? 0 : 1; pass < 2; pass++)
                         {
                             material.SetFloat("_PrepareStandard", pass == 0 ? 1f : 0f);
                             material.SetFloat(SourceBlendId, pass == 0 || !erase ? 1f : 0f);
-                            material.SetFloat(DestinationBlendId, pass == 0 || stampBlend ? 0f : (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                            material.SetFloat(DestinationBlendId, pass == 0 || sequential ? 0f : (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
                             if (!material.SetPass(0))
                                 return;
 
-                            if (!stampBlend) BeginBrushMesh();
+                            if (!sequential) BeginBrushMesh();
                             try
                             {
                                 for (int i = 0; i < stamps.Count; i++)
@@ -1260,7 +1263,6 @@ namespace DCFApixels.WhimTex
                                         if (variation)
                                         {
                                             Color encoded = stamp.color;
-                                            encoded.a *= dynamics.flow;
                                             dabColor = HdrUtility.DecodePaintColor(encoded);
                                             if (standard) dabColor = HdrUtility.Saturate(dabColor);
                                         }
@@ -1275,20 +1277,20 @@ namespace DCFApixels.WhimTex
                                         dabRadiusX *= extent;
                                         dabRadiusY *= extent;
                                     }
-                                    if (stampBlend) BeginBrushMesh();
+                                    if (sequential) BeginBrushMesh();
                                     try
                                     {
                                         DrawCanvasStamp(stamp, dabRadiusX, dabRadiusY, canvasToSource, wrapCanvas);
                                     }
                                     finally
                                     {
-                                        if (stampBlend) EndBrushMesh(target, material, snapshot);
+                                        if (sequential) EndBrushMesh(target, material, snapshot);
                                     }
                                 }
                             }
                             finally
                             {
-                                if (!stampBlend) EndBrushMesh(target, material);
+                                if (!sequential) EndBrushMesh(target, material);
                             }
                         }
                     }
@@ -1304,6 +1306,8 @@ namespace DCFApixels.WhimTex
                     material.SetFloat("_CoverageMask", 0f);
                     material.SetFloat("_BlendOperation", (float)UnityEngine.Rendering.BlendOp.Add);
                     material.SetFloat("_StampBlendEnabled", 0f);
+                    material.SetFloat("_PressureOpacity", 0f);
+                    material.SetTexture("_StrokeBase", null);
                     material.SetTexture("_Backdrop", null);
                     if (snapshot != null) RenderTexture.ReleaseTemporary(snapshot);
                 }

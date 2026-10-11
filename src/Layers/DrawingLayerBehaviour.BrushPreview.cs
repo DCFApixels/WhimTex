@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
         internal void RenderBrushPreview(RenderTexture target, PaintStrokeParameters parameters, Material display, float marginScale = 1f)
         {
             // Preview the tip itself; write locks depend on existing document pixels.
-            parameters = parameters.WithWriteProtection(15, false);
+            parameters = parameters.WithWriteProtection(15);
             if (parameters.Dynamics != null)
             {
                 var preview = JsonUtility.FromJson<BrushDynamics>(JsonUtility.ToJson(parameters.Dynamics));
@@ -27,10 +27,14 @@ namespace DCFApixels.WhimTex
                 Vector2 from = BrushPreviewPoint(0f, width, height, marginScale);
                 BeginStroke(from);
                 const int segments = 96;
+                SetKnownBrushDirection(Vector2.Scale(BrushPreviewPoint(1f / segments, width, height, marginScale) - from,
+                    new Vector2(width, height)));
+                PaintPoint(from, width, height, parameters.WithPressure(BrushPreviewPressure(0f)));
                 for (int i = 1; i <= segments; i++)
                 {
-                    Vector2 to = BrushPreviewPoint(i / (float)segments, width, height, marginScale);
-                    PaintSegment(from, to, width, height, i == 1, parameters);
+                    float t = i / (float)segments;
+                    Vector2 to = BrushPreviewPoint(t, width, height, marginScale);
+                    PaintSegment(from, to, width, height, false, parameters.WithPressure(BrushPreviewPressure(t)));
                     from = to;
                 }
                 straight = HdrUtility.Temporary(width, height);
@@ -52,7 +56,15 @@ namespace DCFApixels.WhimTex
         internal static Vector2 BrushPreviewPoint(float t, int width, int height, float marginScale = 1f)
         {
             float margin = Mathf.Min(height * .45f, width * .2f) / width * marginScale;
-            return new Vector2(Mathf.Lerp(margin, 1f - margin, t), .5f + .18f * Mathf.Sin(t * Mathf.PI * 2f));
+            // Short straight tails follow the curve's endpoint tangents, within the same preview margins.
+            const float tail = .12f;
+            float phase = t * (1f + 2f * tail) - tail;
+            float curvePhase = Mathf.Clamp01(phase);
+            float wave = Mathf.Sin(curvePhase * Mathf.PI * 2f) + (phase - curvePhase) * Mathf.PI * 2f;
+            return new Vector2(Mathf.Lerp(margin, 1f - margin, t), .5f + .18f * wave);
         }
+
+        internal static float BrushPreviewPressure(float t) => Mathf.SmoothStep(0f, 1f,
+            Mathf.Clamp01(Mathf.Min(t, 1f - t) / .3f));
     }
 }

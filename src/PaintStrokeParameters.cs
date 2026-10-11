@@ -19,7 +19,6 @@ namespace DCFApixels.WhimTex
         internal readonly bool StandardColorInputs;
         internal readonly float Pressure;
         internal readonly int WriteChannels;
-        internal readonly bool LockAlpha;
 
         internal static Vector2 SnapPencilCenter(Vector2 uv, int width, int height, float size)
         {
@@ -38,7 +37,7 @@ namespace DCFApixels.WhimTex
             Erase = source.Erase; WrapCanvas = source.WrapCanvas; PixelPerfect = source.PixelPerfect; Shape = source.Shape;
             SelectionMask = source.SelectionMask; Dynamics = source.PixelPerfect ? null : dynamics;
             StandardColorInputs = source.StandardColorInputs; Pressure = source.Pressure;
-            WriteChannels = source.WriteChannels; LockAlpha = source.LockAlpha;
+            WriteChannels = source.WriteChannels;
         }
 
         internal bool OverlapsCanvas(Vector2 center, int width, int height)
@@ -65,7 +64,6 @@ namespace DCFApixels.WhimTex
             StandardColorInputs = source.StandardColorInputs;
             Pressure = source.Pressure;
             WriteChannels = source.WriteChannels;
-            LockAlpha = source.LockAlpha;
         }
 
         private PaintStrokeParameters(PaintStrokeParameters source, float pressure)
@@ -83,23 +81,22 @@ namespace DCFApixels.WhimTex
             StandardColorInputs = source.StandardColorInputs;
             Pressure = Mathf.Clamp01(float.IsNaN(pressure) || float.IsInfinity(pressure) ? 1f : pressure);
             WriteChannels = source.WriteChannels;
-            LockAlpha = source.LockAlpha;
         }
 
         internal PaintStrokeParameters WithPressure(float pressure) => new PaintStrokeParameters(this, pressure);
 
-        private PaintStrokeParameters(PaintStrokeParameters source, int channels, bool lockAlpha)
+        private PaintStrokeParameters(PaintStrokeParameters source, int channels)
         {
             Color = source.Color; Size = source.Size; Hardness = source.Hardness;
             SpacingPixels = source.SpacingPixels; Erase = source.Erase;
             WrapCanvas = source.WrapCanvas; PixelPerfect = source.PixelPerfect; Shape = source.Shape;
             SelectionMask = source.SelectionMask; Dynamics = source.Dynamics;
             StandardColorInputs = source.StandardColorInputs; Pressure = source.Pressure;
-            WriteChannels = channels & 15; LockAlpha = lockAlpha;
+            WriteChannels = channels & 15;
         }
 
-        internal PaintStrokeParameters WithWriteProtection(int channels, bool lockAlpha)
-            => new PaintStrokeParameters(this, channels, lockAlpha);
+        internal PaintStrokeParameters WithWriteProtection(int channels)
+            => new PaintStrokeParameters(this, channels);
 
         internal PaintStrokeParameters(Color color, float size, float hardness, float spacing, bool erase,
             bool pixelPerfect = false, PencilShape shape = PencilShape.Circle, BrushDynamics dynamics = null, bool standardColorInputs = false)
@@ -118,7 +115,6 @@ namespace DCFApixels.WhimTex
             StandardColorInputs = standardColorInputs;
             Pressure = 1f;
             WriteChannels = dynamics?.writeChannels ?? 15;
-            LockAlpha = dynamics?.lockAlpha ?? false;
         }
     }
 }

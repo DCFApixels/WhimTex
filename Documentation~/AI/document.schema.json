@@ -1974,13 +1974,40 @@
         "pressure": {
           "type": "boolean"
         },
+        "pressureSize": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BrushPressureBinding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pressureOpacity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BrushPressureBinding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pressureFlow": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BrushPressureBinding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "writeChannels": {
           "type": "integer",
           "minimum": -2147483648,
           "maximum": 2147483647
-        },
-        "lockAlpha": {
-          "type": "boolean"
         },
         "scatter": {
           "type": "number",
@@ -2189,6 +2216,124 @@
           "type": "integer",
           "minimum": -2147483648,
           "maximum": 2147483647
+        }
+      }
+    },
+    "BrushPressureBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "BrushPressureBinding"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "curve": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "preWrap",
+            "postWrap",
+            "keys"
+          ],
+          "properties": {
+            "preWrap": {
+              "type": "string",
+              "enum": [
+                "Default",
+                "Once",
+                "Clamp",
+                "Loop",
+                "PingPong",
+                "ClampForever"
+              ]
+            },
+            "postWrap": {
+              "type": "string",
+              "enum": [
+                "Default",
+                "Once",
+                "Clamp",
+                "Loop",
+                "PingPong",
+                "ClampForever"
+              ]
+            },
+            "keys": {
+              "type": "array",
+              "maxItems": 65536,
+              "items": {
+                "type": "array",
+                "minItems": 7,
+                "maxItems": 7,
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -3.40282347E+38,
+                    "maximum": 3.40282347E+38
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3.40282347E+38,
+                    "maximum": 3.40282347E+38
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": -3.40282347E+38,
+                        "maximum": 3.40282347E+38
+                      },
+                      {
+                        "enum": [
+                          "Infinity",
+                          "-Infinity"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": -3.40282347E+38,
+                        "maximum": 3.40282347E+38
+                      },
+                      {
+                        "enum": [
+                          "Infinity",
+                          "-Infinity"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3.40282347E+38,
+                    "maximum": 3.40282347E+38
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3.40282347E+38,
+                    "maximum": 3.40282347E+38
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "None",
+                      "In",
+                      "Out",
+                      "Both"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
         }
       }
     },

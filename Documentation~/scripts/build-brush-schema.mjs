@@ -9,7 +9,8 @@ const object=(properties,required=[])=>({type:'object',additionalProperties:fals
 const fields=JSON.parse(fs.readFileSync(path.join(docs,'AI/agent-fields.schema.json'),'utf8'));
 const settings=object({
   size:number(1,4096),hardness:number(0,1),spacing:number(.01,4),opacity:number(0,1),flow:number(0,1),pressure:{type:'boolean'},
-  writeChannels:integer(0,15),lockAlpha:{type:'boolean'},
+  pressureSize:{$ref:'#/$defs/pressureBinding'},pressureOpacity:{$ref:'#/$defs/pressureBinding'},pressureFlow:{$ref:'#/$defs/pressureBinding'},
+  writeChannels:{...integer(0,15),description:'Write mask: R=1, G=2, B=4, A=8. Disabled channels retain their previous straight values. Disabling A also preserves fully transparent pixels.'},
   scatter:number(0,4),scatterBias:number(-1,1),sizeJitter:number(0,1),angleJitter:number(0,180),
   angleOffset:number(-180,180),flipX:number(0,1),flipY:number(0,1),
   rotationMode:choice('Fixed StrokeDirection'),randomAlgorithm:choice('Random Sobol'),
@@ -27,7 +28,7 @@ const schema={
     object({...common,source:{const:'Standard'},url:{type:'string',maxLength:4096,pattern:'^https?://[^\\s]+$'}},['format','version','source']),
     object({...common,source:{const:'HLSL'},code:{type:'string',minLength:1,maxLength:65536,description:'At most 65,536 UTF-8 bytes, checked at runtime. Line 1 must be // @whimtex-brush Category/Name. Define exactly one float4 BrushTip with one float2 and optional BrushSequence/BrushMotion, each at most once, in any order; contexts make it Dynamic, otherwise Static. Only input arguments are supported. Parameters use shared FX @param types, groups, linked/conditional controls and @control on line 2; brush textures support Texture/None only.'},resolution:{...integer(32,2048),default:512,description:'Static tip bake resolution. Ignored by Dynamic tips.'}},['format','version','source','code'])
   ],
-  $defs:{settings,gradient:fields.$defs.gradient,gradientStops:fields.$defs.gradientStops}
+  $defs:{settings,pressureBinding:fields.$defs.pressureBinding,gradient:fields.$defs.gradient,gradientStops:fields.$defs.gradientStops}
 };
 const output=path.join(docs,'AI/brush.schema.json');
 const serialized=JSON.stringify(schema,null,2)+'\n';

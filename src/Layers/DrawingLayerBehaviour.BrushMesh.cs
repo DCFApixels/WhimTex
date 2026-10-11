@@ -13,7 +13,8 @@ namespace DCFApixels.WhimTex
             private static CommandBuffer brushCommands;
             private static List<Vector3> meshPositions;
             private static List<Vector2> meshUv;
-            private static List<Vector3> meshClipMin, meshClipMax, meshClips, meshTiles, meshColors;
+            private static List<Vector3> meshClipMin, meshClipMax, meshClips, meshColors;
+            private static List<Vector4> meshTiles;
             private static List<Vector4> meshStamps;
             private static List<Vector4> meshContexts;
             private static bool meshSequence, meshMotion, meshHadSequence;
@@ -39,7 +40,7 @@ namespace DCFApixels.WhimTex
                     meshClipMin = new List<Vector3>(1024);
                     meshClipMax = new List<Vector3>(1024);
                     meshClips = new List<Vector3>(1024);
-                    meshTiles = new List<Vector3>(1024);
+                    meshTiles = new List<Vector4>(1024);
                     meshColors = new List<Vector3>(1024);
                     meshStamps = new List<Vector4>(1024);
                     meshContexts = new List<Vector4>(1024);
@@ -59,7 +60,7 @@ namespace DCFApixels.WhimTex
                 meshClipMin.Add(new Vector3(stamp.clipRect.x, stamp.clipRect.y, meshMotion ? stamp.dynamicContext.deltaPixels.x : 0f));
                 meshClipMax.Add(new Vector3(stamp.clipRect.z, stamp.clipRect.w, meshMotion ? stamp.dynamicContext.deltaPixels.y : 0f));
                 meshClips.Add(new Vector3(stamp.clipMode, stamp.clipAngleCenter, stamp.clipAngleHalfWidth));
-                meshTiles.Add(new Vector3(stamp.center.x, stamp.center.y, tileMode));
+                meshTiles.Add(new Vector4(stamp.center.x, stamp.center.y, tileMode, stamp.opacityPressure));
                 meshColors.Add(meshColor);
                 meshStamps.Add(meshStamp);
                 if (meshSequence) meshContexts.Add(stamp.dynamicContext.StampVertex);
@@ -118,7 +119,8 @@ namespace DCFApixels.WhimTex
                 meshHadSequence = false;
                 brushCommands?.Release();
                 brushCommands = null;
-                meshPositions = meshClipMin = meshClipMax = meshClips = meshTiles = meshColors = null;
+                meshPositions = meshClipMin = meshClipMax = meshClips = meshColors = null;
+                meshTiles = null;
                 meshStamps = null;
                 meshContexts = null;
                 meshUv = null;

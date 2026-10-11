@@ -14,16 +14,15 @@ namespace DCFApixels.WhimTex
         {
             bool healing = Text(operation, "op") == "healStroke";
             bool smudge = Text(operation, "op") == "smudgeStroke";
-            if (healing) Keys(operation, "op", "layer", "points", "size", "hardness", "source", "tiled", "search", "quality", "seed", "transparentOnly", "maskPath", "writeChannels", "lockAlpha");
-            else if (smudge) Keys(operation, "op", "layer", "points", "size", "hardness", "source", "tiled", "strength", "flow", "mixing", "writeChannels", "lockAlpha");
-            else Keys(operation, "op", "layer", "points", "size", "hardness", "source", "tiled", "strength", "flow", "writeChannels", "lockAlpha");
+            if (healing) Keys(operation, "op", "layer", "points", "size", "hardness", "source", "tiled", "search", "quality", "seed", "transparentOnly", "maskPath", "writeChannels");
+            else if (smudge) Keys(operation, "op", "layer", "points", "size", "hardness", "source", "tiled", "strength", "flow", "mixing", "writeChannels");
+            else Keys(operation, "op", "layer", "points", "size", "hardness", "source", "tiled", "strength", "flow", "writeChannels");
             Require(target.Behaviour is DrawingLayerBehaviour, "Repair requires Drawing. Convert explicitly first.");
             var drawing = (DrawingLayerBehaviour)target.Behaviour;
             int width = document.width, height = document.height;
             float size = Number(operation, "size", 32, 1, 512), hardness = Number(operation, "hardness", .8f, 0, 1);
             bool tiled = Bool(operation, "tiled");
             int writeChannels = Int(operation, "writeChannels", 15, 0, 15);
-            bool lockAlpha = Bool(operation, "lockAlpha");
             string source = Text(operation, "source", "CurrentLayer");
             Require(source == "CurrentLayer" || source == "CurrentAndBelow" || !healing && source == "AllLayers", "Invalid repair source.");
             int search = healing ? Int(operation, "search", 64, 8, 512) : 0;
@@ -104,7 +103,7 @@ namespace DCFApixels.WhimTex
                     healing ? target.Render(new LayerRenderContext(document, null, width, height, 1, applyFx: false)) :
                     smudge ? null : drawing.CaptureBlurSource(width, height);
                 Require(smudge && source == "CurrentLayer" || sample != null, "No repair source available.");
-                if (!smudge) drawing.ConfigureStrokeWriteProtection(writeChannels, lockAlpha);
+                if (!smudge) drawing.ConfigureStrokeWriteProtection(writeChannels);
                 if (healing) HealPixels(document, drawing, sample, points, suppliedMask, size, hardness, search, tiled, quality, seed, transparentOnly, inverse);
                 else
                 {
@@ -113,7 +112,7 @@ namespace DCFApixels.WhimTex
                     if (smudge)
                     {
                         drawing.BeginStroke(last);
-                        drawing.ConfigureStrokeWriteProtection(writeChannels, lockAlpha);
+                        drawing.ConfigureStrokeWriteProtection(writeChannels);
                         drawing.BeginSmudgeStroke(last, width, height, size, sample, tiled, mixing);
                     }
                     else drawing.BlurSegment(last, last, width, height, size, hardness, strength, sample, tiled);
