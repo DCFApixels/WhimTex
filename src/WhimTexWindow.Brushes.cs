@@ -137,7 +137,7 @@ namespace DCFApixels.WhimTex
                 "Random size around the chosen diameter. 50% produces sizes from 50% to 150%.");
             var rotation = WhimTexUI.ConfigureField(new EnumField("Rotation", paintSettings.dynamics.rotationMode)
             {
-                tooltip = "Fixed keeps the texture's original orientation. Stroke Direction aligns its right-facing axis with the stroke. The first click uses the original orientation. Angle Offset and then Angle Jitter are added afterwards."
+                tooltip = "Fixed keeps the tip's original orientation. Stroke Direction aligns its right-facing axis with the stroke, using the last pointer movement before the first click when available. Angle Offset and then Angle Jitter are added afterwards."
             });
             rotation.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.dynamics.rotationMode = (BrushRotationMode)evt.newValue));
             brushSettingsBindings.Track(rotation, () => (Enum)paintSettings.dynamics.rotationMode);

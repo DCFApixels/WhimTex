@@ -1,11 +1,16 @@
-struct DynamicBrushContext
+struct BrushSequence
 {
     uint seed;
     uint strokeIndex;
     uint stampIndex;
     float distance;
     float totalDistance;
+};
+
+struct BrushMotion
+{
     float2 deltaPixels;
+    float strokeDirection;
 };
 
 uint _WhimTex_BrushHash(uint value)

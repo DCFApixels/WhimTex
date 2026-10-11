@@ -31,8 +31,12 @@ Shader "Hidden/WhimTex/PaintBrush"
             #include "ColorBlend.cginc"
             float _StampBlendEnabled, _StampBlendMode;
             // WHIMTEX_BRUSH_PROGRAM
-            #if defined(BRUSH_HLSL)
+            // WHIMTEX_BRUSH_CAPABILITIES
+            #if defined(BRUSH_SEQUENCE)
             float4 _WhimTex_StrokeSequence;
+            #endif
+            #if defined(BRUSH_MOTION)
+            float _WhimTex_BrushStrokeDirection;
             #endif
 
             struct appdata
@@ -47,7 +51,7 @@ Shader "Hidden/WhimTex/PaintBrush"
                 float3 color : TEXCOORD5;
                 float4 size : TEXCOORD6;
                 #endif
-                #if defined(BRUSH_HLSL)
+                #if defined(BRUSH_SEQUENCE)
                 float4 context : TEXCOORD7;
                 #endif
             };
@@ -105,7 +109,7 @@ Shader "Hidden/WhimTex/PaintBrush"
                 output.clipMax = input.clipMax;
                 output.clipData = float4(input.clipData, 0);
                 output.tileData = float4(input.tileData, 0);
-                #if defined(BRUSH_HLSL)
+                #if defined(BRUSH_SEQUENCE)
                 // Context is constant over each quad. Reuse spare components, staying within eight interpolators.
                 output.brushUv = input.context.zw;
                 output.clipData.w = input.context.x;
@@ -188,14 +192,20 @@ Shader "Hidden/WhimTex/PaintBrush"
                 float2 tipUv = brushDelta / _TipAspect * 0.5 + 0.5;
                 if (any(tipUv < 0.0) || any(tipUv > 1.0)) discard;
                 #if defined(BRUSH_HLSL)
-                DynamicBrushContext brush;
-                brush.seed = (uint)round(_WhimTex_StrokeSequence.x) | ((uint)round(_WhimTex_StrokeSequence.y) << 16);
-                brush.strokeIndex = (uint)round(_WhimTex_StrokeSequence.z) | ((uint)round(_WhimTex_StrokeSequence.w) << 16);
-                brush.stampIndex = (uint)round(input.clipData.w) | ((uint)round(input.tileData.z) << 16);
-                brush.distance = input.brushUv.x;
-                brush.totalDistance = input.brushUv.y;
-                brush.deltaPixels = float2(input.clipMin.z, input.clipMax.z);
-                float4 tip = BrushTip(tipUv, brush);
+                #if defined(BRUSH_SEQUENCE)
+                BrushSequence sequence;
+                sequence.seed = (uint)round(_WhimTex_StrokeSequence.x) | ((uint)round(_WhimTex_StrokeSequence.y) << 16);
+                sequence.strokeIndex = (uint)round(_WhimTex_StrokeSequence.z) | ((uint)round(_WhimTex_StrokeSequence.w) << 16);
+                sequence.stampIndex = (uint)round(input.clipData.w) | ((uint)round(input.tileData.z) << 16);
+                sequence.distance = input.brushUv.x;
+                sequence.totalDistance = input.brushUv.y;
+                #endif
+                #if defined(BRUSH_MOTION)
+                BrushMotion motion;
+                motion.deltaPixels = float2(input.clipMin.z, input.clipMax.z);
+                motion.strokeDirection = _WhimTex_BrushStrokeDirection;
+                #endif
+                float4 tip = WHIMTEX_BRUSH_CALL;
                 tip = float4(clamp(tip.rgb, -65504.0, 65504.0), saturate(tip.a));
                 #else
                 tipUv = clamp(tipUv, _BrushTip_TexelSize.xy * .5, 1.0 - _BrushTip_TexelSize.xy * .5);

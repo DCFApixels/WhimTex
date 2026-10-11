@@ -27,7 +27,7 @@ namespace DCFApixels.WhimTex
             code.verticalScrollerVisibility=ScrollerVisibility.Auto;
             code.RegisterValueChangedCallback(e=>draft=e.newValue);
             rootVisualElement.Add(code);
-            var status=new HelpBox("Static: BrushTip(float2 uv). Dynamic: BrushTip(float2 uv, DynamicBrushContext brush). Both return RGBA; the signature determines how the tip is evaluated.",HelpBoxMessageType.Info);
+            var status=new HelpBox("BrushTip requires float2 UV. Add BrushSequence for progression/randomness, BrushMotion for movement, or both, in any order. Without contexts the RGBA tip is Static; with either it is Dynamic.",HelpBoxMessageType.Info);
             rootVisualElement.Add(status);
             void Apply()
             {

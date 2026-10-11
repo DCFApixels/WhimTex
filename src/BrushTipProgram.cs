@@ -59,10 +59,23 @@ namespace DCFApixels.WhimTex
         private ShaderParameterBindings parameterBindings;
         internal string Diagnostics { get; private set; }
         internal bool IsDynamic { get; private set; }
+        internal bool UsesMotion { get; private set; }
+        internal bool UsesSequence { get; private set; }
         internal Material DynamicMaterial => IsDynamic ? material : null;
         internal bool Matches(string source) => material != null && compiledSource == source;
 
-        internal static bool ReadDynamic(string source)
+        internal readonly struct Signature
+        {
+            internal readonly bool Sequence, Motion;
+            internal readonly string Call;
+            internal bool Dynamic => Sequence || Motion;
+            internal Signature(bool sequence, bool motion, string call)
+            { Sequence = sequence; Motion = motion; Call = call; }
+        }
+
+        internal static bool ReadDynamic(string source) => ReadSignature(source).Dynamic;
+
+        internal static Signature ReadSignature(string source)
         {
             var masked = new StringBuilder();
             bool block = false;
@@ -72,20 +85,31 @@ namespace DCFApixels.WhimTex
                 masked.AppendLine(ShaderFXSourceBuilder.MaskComments(line, ref block));
             string text = masked.ToString();
             int definitions = 0, depth = 0, cursor = 0;
-            bool dynamic = false;
+            Signature signature = default;
             foreach (Match match in Regex.Matches(text, @"\bfloat4\s+BrushTip\s*\(([^()]*)\)\s*\{"))
             {
                 for (; cursor < match.Index; cursor++)
                     if (text[cursor] == '{') depth++; else if (text[cursor] == '}') depth--;
                 if (depth != 0) continue;
-                string args = match.Groups[1].Value;
-                bool stat = Regex.IsMatch(args, @"^\s*(?:in\s+)?float2\s+\w+\s*$");
-                bool dyn = Regex.IsMatch(args, @"^\s*(?:in\s+)?float2\s+\w+\s*,\s*(?:in\s+)?DynamicBrushContext\s+\w+\s*$");
-                if (!stat && !dyn) throw new FormatException("Use float4 BrushTip(float2 uv) or float4 BrushTip(float2 uv, DynamicBrushContext brush).");
-                definitions++; dynamic = dyn;
+                bool uv = false, sequence = false, motion = false;
+                var call = new List<string>(3);
+                foreach (string arg in match.Groups[1].Value.Split(','))
+                {
+                    var parameter = Regex.Match(arg, @"^\s*(?:in\s+)?(float2|BrushSequence|BrushMotion)\s+[A-Za-z_]\w*\s*$");
+                    if (!parameter.Success) throw new FormatException("BrushTip requires one float2 and optional BrushSequence/BrushMotion, in any order. Only input parameters are supported.");
+                    string type = parameter.Groups[1].Value;
+                    bool duplicate = type == "float2" ? uv : type == "BrushSequence" ? sequence : motion;
+                    if (duplicate) throw new FormatException("BrushTip parameter type appears more than once: " + type + ".");
+                    if (type == "float2") { uv = true; call.Add("tipUv"); }
+                    else if (type == "BrushSequence") { sequence = true; call.Add("sequence"); }
+                    else { motion = true; call.Add("motion"); }
+                }
+                if (!uv) throw new FormatException("BrushTip requires exactly one float2 UV parameter.");
+                definitions++;
+                signature = new Signature(sequence, motion, "BrushTip(" + string.Join(", ", call) + ")");
             }
             if (definitions != 1) throw new FormatException("Define exactly one BrushTip entry point: Static or Dynamic, not both.");
-            return dynamic;
+            return signature;
         }
 
         internal static string ReadName(string first)
@@ -120,7 +144,7 @@ namespace DCFApixels.WhimTex
                 if (p.type == ShaderFXParameterType.Texture2D &&
                     (p.textureSource == ShaderFXTextureSource.Layer || p.textureSource == ShaderFXTextureSource.Self))
                     throw new FormatException("Brush texture parameters support Texture and None, not Layer or Self.");
-                if(p.name=="BrushTip" || p.name=="BrushRandom" || p.name=="DynamicBrushContext" || p.name.StartsWith("_WhimTex_",StringComparison.Ordinal))
+                if(p.name=="BrushTip" || p.name=="BrushRandom" || p.name=="BrushSequence" || p.name=="BrushMotion" || p.name.StartsWith("_WhimTex_",StringComparison.Ordinal))
                     throw new FormatException("Reserved brush parameter name: "+p.name);
             }
             ShaderFXSourceBuilder.BuildParameterDeclarations(parameters, new StringBuilder(), new StringBuilder(), new HashSet<string>(StringComparer.Ordinal));
@@ -170,7 +194,8 @@ namespace DCFApixels.WhimTex
         internal void PrepareDynamic(string source, List<ShaderFXParameter> values)
         {
             var declarations = Parse(source, out _);
-            if (!ReadDynamic(source)) throw new FormatException("PrepareDynamic requires DynamicBrushContext in the BrushTip signature.");
+            Signature signature = ReadSignature(source);
+            if (!signature.Dynamic) throw new FormatException("PrepareDynamic requires BrushSequence or BrushMotion in the BrushTip signature.");
             ShaderFXMetadata.PreserveValues(declarations, values);
             if (!Matches(source))
             {
@@ -187,9 +212,14 @@ namespace DCFApixels.WhimTex
                     .Replace("#include \"HdrColor.cginc\"", "#include \"" + root + "HdrColor.cginc\"")
                     .Replace("#include \"ColorBlend.cginc\"", "#include \"" + root + "ColorBlend.cginc\"")
                     .Replace("// WHIMTEX_BRUSH_PROGRAM", "#define BRUSH_HLSL 1\n" + ShaderFXSourceBuilder.NoiseLibraryInclude +
-                        File.ReadAllText(PresetLibraryPaths.PhysicalPath(root + "DynamicBrushContext.cginc")) + uniforms + body);
+                        File.ReadAllText(PresetLibraryPaths.PhysicalPath(root + "BrushContexts.cginc")) + uniforms + body +
+                        "\n#define WHIMTEX_BRUSH_CALL " + signature.Call + "\n")
+                    .Replace("// WHIMTEX_BRUSH_CAPABILITIES", (signature.Sequence ? "#define BRUSH_SEQUENCE 1\n" : "") +
+                        (signature.Motion ? "#define BRUSH_MOTION 1\n" : ""));
                 wrapped = Regex.Replace(wrapped, @"\bProperties\s*\{", m => m.Value + "\n" + properties, RegexOptions.None);
                 Compile(wrapped, source, true, declarations);
+                UsesMotion = signature.Motion;
+                UsesSequence = signature.Sequence;
                 compiledParameters = aliases;
             }
             ApplyValues(declarations, Vector2.one);
@@ -269,7 +299,7 @@ namespace DCFApixels.WhimTex
             parameterBindings?.Dispose(); parameterBindings = null; compiledParameters = null;
             if(material!=null)UnityEngine.Object.DestroyImmediate(material);
             if(shader!=null)UnityEngine.Object.DestroyImmediate(shader);
-            material=null;shader=null;compiledSource=null;IsDynamic=false;Diagnostics=null;
+            material=null;shader=null;compiledSource=null;IsDynamic=false;UsesMotion=false;UsesSequence=false;Diagnostics=null;
         }
         internal static string Export(string source,List<ShaderFXParameter> values)
         {

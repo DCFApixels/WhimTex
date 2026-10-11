@@ -104,6 +104,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             DynamicChecks();
             DeltaChecks();
             SharedParameterChecks();
+            FirstStampChecks();
             return null;
         }
         finally
@@ -156,12 +157,80 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             T.Near(dy, delta.y, .001, message + ": Y");
         }
         System.Collections.IList Stamps(DrawingLayerBehaviour layer) => (System.Collections.IList)Get(layer, "segmentStamps");
+        var motionType = typeof(WhimTexApi).Assembly.GetType("DCFApixels.WhimTex.BrushPointerMotion", true);
+        object motion = Activator.CreateInstance(motionType);
+        Vector2 MotionDelta() => (Vector2)motionType.GetProperty("Delta", flags).GetValue(motion);
+        void Observe(float x, float y, int pointer = 0) => Call(motion, "Observe", new Vector2(x,y), pointer, 50f);
+        void Direction(Vector2 expected, string message)
+        {
+            T.Near(expected.x, MotionDelta().x, .0001, message + ": X");
+            T.Near(expected.y, MotionDelta().y, .0001, message + ": Y");
+        }
+        Observe(10,20);
+        T.Equal(Vector2.zero, MotionDelta(), "First hover event anchors without inventing travel");
+        Observe(13,16);
+        Direction(new Vector2(.6f,-.8f), "First movement accepts its direction immediately");
+        Observe(13,16);
+        Direction(new Vector2(.6f,-.8f), "Stationary mouse-down preserves the filtered direction");
+        Observe(100,100,5);
+        T.Equal(Vector2.zero, MotionDelta(), "Switching input devices never connects their positions");
+        Observe(100,96,5);
+        Direction(Vector2.down, "New device records its own movement");
+        Observe(float.NaN,96,5);
+        T.Equal(Vector2.zero, MotionDelta(), "Invalid pointer data clears history");
+        Observe(200,200,5);
+        T.Equal(Vector2.zero, MotionDelta(), "Re-entry after reset anchors without a jump");
+        float FilterDistance(float size) => (float)motionType.GetMethod("SmoothingDistance", BindingFlags.Static | BindingFlags.NonPublic)
+            .Invoke(null, new object[] { size });
+        T.Near(3, FilterDistance(10), .0001, "Small visible brush uses minimum hover smoothing distance");
+        T.Near(4, FilterDistance(50), .0001, "Hover smoothing scales mildly with visible brush size");
+        T.Near(6, FilterDistance(100), .0001, "Large visible brush caps hover smoothing distance");
+        foreach (float size in new[] { -10f, float.NaN, float.PositiveInfinity })
+            T.Near(3, FilterDistance(size), .0001, "Invalid visible brush size has a finite short fallback");
+        motion = Activator.CreateInstance(motionType);
+        Observe(0,20); Observe(0,0); Observe(1,0);
+        float decay = Mathf.Exp(-.25f);
+        Direction(new Vector2(1-decay,-decay).normalized, "One-pixel sideways jitter is distance-weighted");
+        T.True(MotionDelta().y < -.95f, "One-pixel jitter does not replace a downward approach with a sideways direction");
+        Observe(20,0);
+        T.True(MotionDelta().x > .999f, "Sustained motion promptly replaces the old hover direction");
+        Vector2 SamplePath(int subdivisions)
+        {
+            motion = Activator.CreateInstance(motionType);
+            Observe(0,20); Observe(0,0);
+            for (int i=1; i<=subdivisions; i++) Observe(8f*i/subdivisions,0);
+            for (int i=1; i<=subdivisions; i++) Observe(8,6f*i/subdivisions);
+            return MotionDelta();
+        }
+        Vector2 sparse = SamplePath(1);
+        foreach (int subdivisions in new[] { 2, 10, 100 })
+        {
+            Vector2 dense = SamplePath(subdivisions);
+            T.Near(sparse.x, dense.x, .0001, "Hover X is independent of event subdivision");
+            T.Near(sparse.y, dense.y, .0001, "Hover Y is independent of event subdivision");
+        }
+        motion = Activator.CreateInstance(motionType);
+        Observe(0,20); Observe(0,0);
+        float reversal = 4f*Mathf.Log(2f);
+        Observe(0,reversal);
+        Direction(Vector2.down, "Exactly opposed directions retain a valid direction at cancellation");
+        Observe(0,reversal+4f);
+        Direction(Vector2.up, "Continued reversal resolves cancellation without inventing a sideways direction");
+        Observe(float.PositiveInfinity,0);
+        T.Equal(Vector2.zero, MotionDelta(), "Infinite pointer data clears history");
+        Observe(-float.MaxValue,0); Observe(float.MaxValue,0);
+        T.Equal(Vector2.zero, MotionDelta(), "Overflowing pointer travel cannot poison direction history");
+        object viewport = Activator.CreateInstance(typeof(WhimTexApi).Assembly.GetType("DCFApixels.WhimTex.CanvasViewport", true), true);
+        Call(viewport, "SetRotation", 90f, false);
+        Vector2 mapped = (Vector2)Call(viewport, "ToCanvasDelta", new Vector2(3,-4));
+        T.Near(-4, mapped.x, .0001, "Hover direction follows rotated Canvas View X");
+        T.Near(-3, mapped.y, .0001, "Hover direction follows rotated Canvas View Y before Y-up conversion");
         try
         {
             Set(settings, "brushSize", 4f); Set(settings, "brushSpacing", 1f);
             object dynamics = Get(settings, "dynamics");
             Set(dynamics, "tipChannel", Enum.Parse(Get(dynamics, "tipChannel").GetType(), "Color"));
-            string code = "// @whimtex-brush Tests/Delta\nfloat4 BrushTip(float2 uv, DynamicBrushContext brush) { return float4(0.5+brush.deltaPixels/32.0,brush.stampIndex/32.0,1); }";
+            string code = "// @whimtex-brush Tests/Delta\nfloat4 BrushTip(float2 uv, BrushSequence brush, BrushMotion motion) { return float4(0.5+motion.deltaPixels/32.0,brush.stampIndex/32.0,1); }";
             Call(settings, "ApplyHlsl", code, new List<ShaderFXParameter>(), 64);
             readback = new Texture2D(width,height,TextureFormat.RGBAFloat,false,true);
             var a = Layer();
@@ -195,6 +264,46 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
                 PixelDelta(b,18,18,0,4,"Next stamp follows current segment");
             }
             finally { Call(b,"EndStroke"); }
+            Set(dynamics,"rotationMode",Enum.Parse(Get(dynamics,"rotationMode").GetType(),"StrokeDirection"));
+            Set(dynamics,"angleOffset",30f);
+            var sequence = dynamics.GetType().GetProperty("Sequence",flags).GetValue(dynamics);
+            double HoverDistance() => (double)sequence.GetType().GetProperty("TotalDistance",flags).GetValue(sequence);
+            foreach (Vector2 delta in new[] { new Vector2(3,4), new Vector2(-3,4), new Vector2(-3,-4), new Vector2(3,-4) })
+            {
+                var seeded = Layer();
+                double before = HoverDistance();
+                Call(seeded,"BeginStroke",At(64,32));
+                Call(seeded,"SetInitialBrushDelta",delta);
+                try
+                {
+                    Point(seeded,64,32);
+                    PixelDelta(seeded,64,32,delta.x * .8f,delta.y * .8f,"First stamp receives a spacing-length phantom delta on GPU");
+                    object stamp = Stamps(seeded)[0];
+                    T.Near(Mathf.Atan2(delta.y,delta.x) + 30*Mathf.Deg2Rad, (float)Get(stamp,"rotation"), .0001,
+                        "First direction rotation uses the same delta, then Angle Offset");
+                    object context = Get(stamp,"dynamicContext");
+                    T.Near(0,(float)Get(context,"distance"),.0001,"Hover does not extend stroke distance");
+                    T.Equal(0u,(uint)Get(context,"stampIndex"),"Hover consumes no stamp indices");
+                    T.Near(before,HoverDistance(),.0001,"Hover does not advance sequence distance");
+                    Segment(seeded,64,32,72,32);
+                    PixelDelta(seeded,72,32,4,0,"Later stamps use actual stroke movement instead of hover");
+                    T.Near(30*Mathf.Deg2Rad,(float)Get(Stamps(seeded)[0],"rotation"),.0001,"Actual movement replaces the initial direction");
+                }
+                finally { Call(seeded,"EndStroke"); }
+            }
+            Set(dynamics,"rotationMode",Enum.Parse(Get(dynamics,"rotationMode").GetType(),"Fixed"));
+            var fixedTip = Layer();
+            Call(fixedTip,"BeginStroke",At(64,32)); Call(fixedTip,"SetInitialBrushDelta",new Vector2(0,5));
+            try
+            {
+                Point(fixedTip,64,32);
+                PixelDelta(fixedTip,64,32,0,4,"Fixed tip still exposes hover direction to its HLSL");
+                T.Near(30*Mathf.Deg2Rad,(float)Get(Stamps(fixedTip)[0],"rotation"),.0001,"Hover does not rotate a Fixed tip");
+                Point(fixedTip,64,32);
+                ContextDelta(Stamps(fixedTip)[0],0,0,"Initial delta is used only once, not on stationary stamps");
+            }
+            finally { Call(fixedTip,"EndStroke"); }
+            Set(dynamics,"angleOffset",0f);
             var pattern = Layer();
             Set(pattern,"repeatMode",PaintRepeatMode.Mirror); Set(pattern,"mirrorAcrossVerticalAxis",true);
             Call(pattern,"BeginStroke",At(16,20));
@@ -218,6 +327,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             Set(dynamics,"scatter",0f); Set(dynamics,"angleOffset",0f);
             var clipped = Layer();
             Call(clipped,"BeginStroke",At(-16,32));
+            Call(clipped,"SetInitialBrushDelta",new Vector2(0,5));
             try
             {
                 Point(clipped,-16,32);
@@ -239,12 +349,13 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             }
             finally { Call(wrapped,"EndStroke"); }
             Call(a,"BeginStroke",At(16,56)); Stamps(a).Clear();
+            Call(a,"SetInitialBrushDelta",new Vector2(3,-4));
             try
             {
                 Call(a,"BuildBrushSegment",At(16,56),At(112,56),width,height,true,Parameters(),96f,2);
                 T.Equal(25u,(uint)Get(a,"brushStampIndex"),"Budget advances all logical stamps");
                 T.Equal(2,Stamps(a).Count,"Budget emits only two stamps");
-                ContextDelta(Stamps(a)[0],0,0,"Budget first stamp");
+                ContextDelta(Stamps(a)[0],2.4f,-3.2f,"Budget first stamp uses spacing-length phantom delta");
                 ContextDelta(Stamps(a)[1],4,0,"Budget delta uses previous logical stamp, not previous emitted stamp");
                 Stamps(a).Clear();
                 Call(a,"BuildBrushSegment",At(112,56),At(116,56),width,height,false,Parameters(),4f,2);
@@ -344,7 +455,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             var restoredValues = (List<ShaderFXParameter>)Get(restoredDynamics, "hlslParameters");
             T.True(restoredValues.Find(p => p.name == "_Ramp").gradientValue != null &&
                 restoredValues.Find(p => p.name == "_Profile").curveValue.length == 2, "Rich values survive serialization");
-            string dynamicCode = declarations + "float4 BrushTip(float2 uv, DynamicBrushContext brush) " + body;
+            string dynamicCode = declarations + "float4 BrushTip(float2 uv, BrushSequence brush) " + body;
             Call(settings, "ApplyHlsl", dynamicCode, changed, 64);
             settingsType.GetField("brushSize", flags).SetValue(settings, 32f);
             object channel = Get(dynamics, "tipChannel");
@@ -405,13 +516,16 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
         void Set(object target, string name, object value) => target.GetType().GetField(name, flags).SetValue(target, value);
         var readMode = programType.GetMethod("ReadDynamic", BindingFlags.Static | BindingFlags.NonPublic);
         bool Mode(string text) => (bool)readMode.Invoke(null, new object[] { text });
-        string body = "float4 BrushTip(float2 uv, DynamicBrushContext brush) { return float4(_Color*brush.distance/128,brush.totalDistance/128,(brush.strokeIndex*16u+brush.stampIndex)/128.0,brush.seed==2147483647u?1:0); }";
+        string body = "float4 BrushTip(float2 uv, BrushSequence brush) { return float4(_Color*brush.distance/128,brush.totalDistance/128,(brush.strokeIndex*16u+brush.stampIndex)/128.0,brush.seed==2147483647u?1:0); }";
         string code = "// @whimtex-brush Tests/Context\n// @param float _CheckIndex = 0 [0 .. 2]\n// @param float _Color = 1 [0 .. 1]\n" + body.Replace("return float4", "if (_CheckIndex>1.5) return float4(BrushRandom(brush.seed,brush.strokeIndex,brush.stampIndex),BrushRandom(brush.seed,brush.stampIndex),0,1); if (_CheckIndex>0.5) return float4(1,1,1,brush.stampIndex==16777217u?1:0); return float4");
         T.True(Mode(code), "Actual Dynamic entry point determines mode");
-        T.True(!Mode("float4 BrushTip(float2 uv) { return 1; } // DynamicBrushContext\nvoid Helper(DynamicBrushContext brush) {}"), "Helper context and comments do not change Static mode");
+        T.True(!Mode("float4 BrushTip(float2 uv) { return 1; } // BrushSequence\nvoid Helper(BrushSequence brush) {}"), "Helper context and comments do not change Static mode");
         T.True(Mode("float4 BrushTip(float2 uv);\n" + code), "Prototypes do not select a second entry point");
         T.True(!Mode("/*" + body + "*/\nfloat4 BrushTip(float2 uv) { return 1; }"), "Commented Dynamic entry point ignored");
-        foreach (string invalid in new[] { code + "\nfloat4 BrushTip(float2 uv) { return 1; }", "float4 BrushTip(float2 uv);", "float4 BrushTip(float2 uv, float x) { return 1; }" })
+        foreach (string invalid in new[] { code + "\nfloat4 BrushTip(float2 uv) { return 1; }", "float4 BrushTip(float2 uv);", "float4 BrushTip(float2 uv, float x) { return 1; }",
+            "float4 BrushTip(BrushSequence sequence) { return 1; }", "float4 BrushTip(float2 a, float2 b) { return 1; }",
+            "float4 BrushTip(float2 uv, BrushMotion a, BrushMotion b) { return 1; }",
+            "float4 BrushTip(out float2 uv) { return 1; }", "float4 BrushTip(float2 uv, inout BrushSequence s) { return 1; }" })
         {
             bool rejected = false;
             try { Mode(invalid); } catch (TargetInvocationException) { rejected = true; }
@@ -485,7 +599,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             T.Near(48, (double)Get(sequence, "TotalDistance"), .001, "Preview does not advance real sequence");
             T.True(ReferenceEquals(shader, Get(Get(dynamics, "hlslProgram"), "shader")), "Preview does not dispose the active shader");
             string json = JsonUtility.ToJson(settings);
-            T.True(json.Contains("DynamicBrushContext") && !json.Contains("hlslProgram") && !json.Contains("nextStroke"), "Serialization keeps code/settings, not runtime program or progression");
+            T.True(json.Contains("BrushSequence") && !json.Contains("hlslProgram") && !json.Contains("nextStroke"), "Serialization keeps code/settings, not runtime program or progression");
             object restored = JsonUtility.FromJson(json, settingsType);
             try
             {
@@ -569,6 +683,248 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             if (readback != null) UnityEngine.Object.DestroyImmediate(readback);
             if (display != null) UnityEngine.Object.DestroyImmediate(display);
             if (preview != null) RenderTexture.ReleaseTemporary(preview);
+        }
+    }
+    private static void FirstStampChecks()
+    {
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+        var assembly = typeof(WhimTexApi).Assembly;
+        var settingsType = assembly.GetType("DCFApixels.WhimTex.PaintToolSettings", true);
+        object Call(object value, string name, params object[] args) => value.GetType().GetMethod(name, flags).Invoke(value, args);
+        object Get(object value, string name) => value.GetType().GetField(name, flags)?.GetValue(value)
+            ?? value.GetType().GetProperty(name, flags)?.GetValue(value);
+        void Set(object value, string name, object data)
+        {
+            var field = value.GetType().GetField(name,flags);
+            if (field != null) field.SetValue(value,data);
+            else value.GetType().GetProperty(name,flags).SetValue(value,data);
+        }
+        var settings = Activator.CreateInstance(settingsType, true);
+        var layers = new List<DrawingLayerBehaviour>();
+        const int width = 64, height = 48;
+        Vector2 origin = new Vector2(.5f,.5f);
+        Vector2 At(Vector2 delta) => origin + delta / new Vector2(width,height);
+        object Parameters(float pressure = .6f) => Call(Call(settings,"GetStrokeParameters",false,(Color?)Color.white),"WithPressure",pressure);
+        var readback = Scope.OwnObject(new Texture2D(width,height,TextureFormat.RGBAFloat,false,true));
+        var colors = new Color[width*height];
+        for (int i = 0; i < colors.Length; i++) colors[i] = new Color(.1f + .3f*(i%width)/width,.25f,.4f, i%5==0 ? .2f : .8f);
+        DrawingLayerBehaviour Layer()
+        {
+            var layer = new DrawingLayerBehaviour(); layers.Add(layer);
+            var pixels = Scope.OwnObject(new Texture2D(width,height,TextureFormat.RGBAHalf,false,true));
+            pixels.SetPixels(colors); pixels.Apply(); Set(layer,"pixels",pixels);
+            return layer;
+        }
+        Color[] Image(DrawingLayerBehaviour layer)
+        {
+            var previous = RenderTexture.active;
+            try { RenderTexture.active = (RenderTexture)Get(layer,"paintSurface"); readback.ReadPixels(new Rect(0,0,width,height),0,0); return readback.GetPixels(); }
+            finally { RenderTexture.active = previous; }
+        }
+        void Same(Color[] expected, Color[] actual, string message)
+        {
+            float error = 0;
+            for (int i=0;i<expected.Length;i++)
+                for (int c=0;c<4;c++) error = Mathf.Max(error,Mathf.Abs(expected[i][c]-actual[i][c]));
+            T.Near(0,error,.002,message);
+        }
+        string header = "// @whimtex-brush Tests/First Stamp\n";
+        try
+        {
+            Set(settings,"brushSize",16f); Set(settings,"brushSpacing",.5f);
+            object dynamics = Get(settings,"dynamics");
+            Set(dynamics,"tipChannel",Enum.Parse(Get(dynamics,"tipChannel").GetType(),"Color"));
+            foreach (string args in new[] { "float2 uv, BrushSequence s, BrushMotion m", "float2 uv, BrushMotion m, BrushSequence s",
+                "BrushSequence s, float2 uv, BrushMotion m", "BrushSequence s, BrushMotion m, float2 uv",
+                "BrushMotion m, float2 uv, BrushSequence s", "in BrushMotion m, in BrushSequence s, in float2 uv" })
+            {
+                Call(settings,"ApplyHlsl",header+"float4 BrushTip("+args+") { return float4(.5+m.deltaPixels/32,s.seed==1u?1:0,uv.x>.5?1:0); }",new List<ShaderFXParameter>(),64);
+                T.True((bool)Get(Get(dynamics,"hlslProgram"),"UsesMotion"),"Signature order declares motion: "+args);
+                var layer = Layer(); Call(layer,"BeginStroke",origin); Call(layer,"SetKnownBrushDirection",Vector2.up);
+                Call(layer,"PaintPoint",origin,width,height,Parameters());
+                T.True(Get(layer,"advancedStrokeBase")!=null,"Motion allocates the stroke pair");
+                T.True(!(bool)Get(layer,"firstBrushPending"),"Known direction needs no provisional correction");
+                Call(layer,"EndStroke");
+                T.True(Get(layer,"advancedStroke")==null && Get(layer,"advancedStrokeBase")==null,"End releases the pair");
+            }
+            foreach (string args in new[] { "BrushSequence s, float2 uv", "float2 uv, BrushSequence s", "BrushMotion m, float2 uv", "float2 uv, BrushMotion m", "float2 uv" })
+            {
+                Call(settings,"ApplyHlsl",header+"float4 BrushTip("+args+") { return 1; }",new List<ShaderFXParameter>(),64);
+                var layer = Layer(); Call(layer,"BeginStroke",origin); Call(layer,"PaintPoint",origin,width,height,Parameters());
+                T.Equal(args.Contains("BrushMotion"),Get(layer,"advancedStrokeBase")!=null,"Only the motion capability requires a pair: "+args);
+                Call(layer,"EndStroke");
+            }
+            string code = header+"float4 BrushTip(BrushMotion m, float2 uv, BrushSequence s) { " +
+                "return float4(.2+.6*BrushRandom(s.seed,s.strokeIndex,s.stampIndex),.5+m.deltaPixels.x/64,.5+m.deltaPixels.y/64," +
+                "uv.x>.2 && uv.x<.8 && uv.y>.42 && uv.y<.58 ? .7 : 0); }";
+            Call(settings,"ApplyHlsl",code,new List<ShaderFXParameter>(),64);
+            Set(dynamics,"angleOffset",35f); Set(dynamics,"angleJitter",18f); Set(dynamics,"sizeJitter",.2f);
+            Set(dynamics,"scatter",.3f); Set(dynamics,"flipX",.5f); Set(dynamics,"flipY",.5f);
+            foreach (string rotation in new[] { "Fixed", "StrokeDirection" })
+            foreach (string blend in new[] { "Normal", "Multiply" })
+            foreach (string application in new[] { "Stroke", "Stamp" })
+            {
+                Set(dynamics,"rotationMode",Enum.Parse(Get(dynamics,"rotationMode").GetType(),rotation));
+                Set(dynamics,"blend",Enum.Parse(Get(dynamics,"blend").GetType(),blend));
+                Set(dynamics,"blendApplication",Enum.Parse(Get(dynamics,"blendApplication").GetType(),application));
+                Set(dynamics,"opacity",.5f); Set(dynamics,"flow",.7f); Set(dynamics,"writeChannels",5); Set(dynamics,"lockAlpha",true);
+                var actual = Layer(); var expected = Layer();
+                foreach (var layer in new[] {actual,expected}) { Set(layer,"repeatMode",PaintRepeatMode.Mirror); Set(layer,"mirrorAcrossVerticalAxis",true); }
+                Call(dynamics,"ResetSequence"); Call(actual,"BeginStroke",origin); Call(actual,"SetInitialBrushDelta",Vector2.right);
+                Call(actual,"PaintPoint",origin,width,height,Parameters());
+                T.True((bool)Get(actual,"firstBrushPending"),"First dab is immediate and pending");
+                T.True(Get(actual,"paintSurfaceDirty") is bool changed && changed,"Immediate stamp has a real layer source, not an overlay");
+                uint rng=(uint)Get(actual,"brushRandomState"), index=(uint)Get(actual,"brushStampIndex");
+                Call(actual,"PaintSegment",origin,At(new Vector2(0,.5f)),width,height,false,Parameters(0));
+                T.True(!(bool)Get(actual,"firstBrushPending"),"Zero-pressure motion corrects with captured first-dab pressure");
+                Call(actual,"PaintSegment",origin,At(new Vector2(0,.5f)),width,height,false,Parameters(.1f));
+                T.True(!(bool)Get(actual,"firstBrushPending"),"Sub-spacing movement corrects once before the next stamp");
+                T.Equal(rng,(uint)Get(actual,"brushRandomState"),"Correction consumes no random draws");
+                T.Equal(index,(uint)Get(actual,"brushStampIndex"),"Correction consumes no logical stamps or mirror indices");
+                Color[] corrected = Image(actual);
+                Call(dynamics,"ResetSequence"); Call(expected,"BeginStroke",origin);
+                float angle = (90f * (90f / (90f + 45f/19f)))*Mathf.Deg2Rad;
+                Call(expected,"SetKnownBrushDirection",new Vector2(Mathf.Cos(angle),Mathf.Sin(angle)));
+                Call(expected,"PaintPoint",origin,width,height,Parameters());
+                Same(Image(expected),corrected,"Replay equals one known-direction dab, including protection/blend/randomness: "+rotation+blend+application);
+                Call(actual,"PaintSegment",At(new Vector2(0,.5f)),At(new Vector2(0,1)),width,height,false,Parameters());
+                Same(corrected,Image(actual),"Further sub-spacing movement does not correct twice");
+                Call(actual,"EndStroke"); Call(expected,"EndStroke");
+            }
+            Set(dynamics,"writeChannels",15); Set(dynamics,"lockAlpha",false); Set(dynamics,"scatter",0f);
+            Set(dynamics,"opacity",1f); Set(dynamics,"blend",Enum.Parse(Get(dynamics,"blend").GetType(),"Normal"));
+            Call(settings,"ApplyHlsl",header+"float4 BrushTip(BrushMotion m, float2 uv) { return float4(1,1,1,m.strokeDirection); }",new List<ShaderFXParameter>(),64);
+            Set(dynamics,"angleOffset",0f); Set(dynamics,"angleJitter",0f); Set(dynamics,"sizeJitter",0f);
+            Set(dynamics,"flipX",0f); Set(dynamics,"flipY",0f); Set(dynamics,"flow",1f);
+            var fixedFlag=Layer(); var directionFlag=Layer();
+            Set(dynamics,"rotationMode",Enum.Parse(Get(dynamics,"rotationMode").GetType(),"Fixed"));
+            Call(fixedFlag,"BeginStroke",origin); Call(fixedFlag,"EnsurePaintSurface",width,height);
+            Color[] flagBase=Image(fixedFlag); Call(fixedFlag,"PaintPoint",origin,width,height,Parameters());
+            Same(flagBase,Image(fixedFlag),"Motion-only GPU strokeDirection is zero for Fixed"); Call(fixedFlag,"EndStroke");
+            Set(dynamics,"rotationMode",Enum.Parse(Get(dynamics,"rotationMode").GetType(),"StrokeDirection"));
+            Call(directionFlag,"BeginStroke",origin); Call(directionFlag,"PaintPoint",origin,width,height,Parameters());
+            T.True(Image(directionFlag)[24*width+32].r > flagBase[24*width+32].r+.1f,"Motion-only GPU strokeDirection is one for Stroke Direction");
+            Call(directionFlag,"EndStroke");
+            var refine = assembly.GetType("DCFApixels.WhimTex.BrushDynamics",true).GetMethod("RefineStartAngle",BindingFlags.Static|BindingFlags.NonPublic);
+            float previousWeight = 0f;
+            foreach (float degrees in new[] { 1f, 5f, 15f, 22.5f, 30f, 44f, 45f, 90f, 179f })
+            {
+                float angle = (float)refine.Invoke(null,new object[] { 0f, degrees*Mathf.Deg2Rad })*Mathf.Rad2Deg;
+                float weight = angle/degrees;
+                T.True(weight >= previousWeight-.00001f && weight < 1f,"Start correction weight grows but never reaches one: "+degrees);
+                T.Near(degrees/(degrees+45d/19d),weight,.00001,"Start correction follows the positive SoftSign curve");
+                T.True(degrees-angle < 45f/19f,"Angular residual stays bounded: "+degrees);
+                if (degrees == 45) T.Near(.95,weight,.00001,"At 45 degrees the refined weight is 0.95");
+                previousWeight = weight;
+            }
+            T.Near(179+2*(2/(2+45d/19d)),(float)refine.Invoke(null,new object[]{179f*Mathf.Deg2Rad,-179f*Mathf.Deg2Rad})*Mathf.Rad2Deg,.0001,"Curve crosses the angle seam by the shortest arc");
+            Call(settings,"ApplyHlsl",code,new List<ShaderFXParameter>(),64);
+            var selection = Scope.OwnObject(new Texture2D(width,height,TextureFormat.RGBA32,false,true));
+            var mask = new Color[width*height];
+            for (int i=0;i<mask.Length;i++) mask[i] = i%width < width/2 ? Color.white : Color.clear;
+            selection.SetPixels(mask); selection.Apply();
+            foreach (bool erase in new[]{false,true})
+            foreach (bool hdr in new[]{false,true})
+            {
+                var actual=Layer(); var expected=Layer();
+                foreach(var layer in new[]{actual,expected})
+                {
+                    Set(layer,"colorRange",hdr ? LayerColorRange.HDR : LayerColorRange.Standard);
+                    Set(layer,"blendRange",hdr ? LayerBlendRange.HDR : LayerBlendRange.Standard);
+                }
+                object selected = Call(Call(settings,"GetStrokeParameters",erase,(Color?)new Color(2f,.5f,-.3f,.8f)),"WithSelectionMask",selection);
+                selected=Call(selected,"WithPressure",.6f);
+                Call(dynamics,"ResetSequence"); Call(actual,"BeginStroke",origin);
+                Call(actual,"PaintPoint",origin,width,height,selected);
+                Call(actual,"PaintSegment",origin,At(new Vector2(.5f,0)),width,height,false,selected);
+                Call(dynamics,"ResetSequence"); Call(expected,"BeginStroke",origin); Call(expected,"SetKnownBrushDirection",Vector2.right);
+                Call(expected,"PaintPoint",origin,width,height,selected);
+                Same(Image(expected),Image(actual),"Correction preserves selection and color precision: erase="+erase+", HDR="+hdr);
+                Call(actual,"EndStroke"); Call(expected,"EndStroke");
+            }
+            // Adding an unused Motion argument must not change ordinary painting mathematics.
+            var direct=Layer(); var buffered=Layer();
+            Set(dynamics,"rotationMode",Enum.Parse(Get(dynamics,"rotationMode").GetType(),"Fixed"));
+            Call(settings,"ApplyHlsl",header+"float4 BrushTip(float2 uv, BrushSequence s) { return 1; }",new List<ShaderFXParameter>(),64);
+            Call(direct,"BeginStroke",origin); Call(direct,"PaintPoint",origin,width,height,Parameters());
+            T.True(Get(direct,"advancedStrokeBase")==null,"Sequence-only comparison uses the direct path");
+            Call(settings,"ApplyHlsl",header+"float4 BrushTip(float2 uv, BrushMotion m) { return 1; }",new List<ShaderFXParameter>(),64);
+            Call(buffered,"BeginStroke",origin); Call(buffered,"SetKnownBrushDirection",Vector2.right);
+            Call(buffered,"PaintPoint",origin,width,height,Parameters());
+            Same(Image(direct),Image(buffered),"Direct and buffered paths preserve the same stamp on a translucent base");
+            Call(direct,"EndStroke"); Call(buffered,"EndStroke");
+            Set(dynamics,"rotationMode",Enum.Parse(Get(dynamics,"rotationMode").GetType(),"StrokeDirection"));
+            Call(settings,"ApplyHlsl",code,new List<ShaderFXParameter>(),64);
+            var noHover=Layer(); Call(noHover,"BeginStroke",origin); Call(noHover,"PaintPoint",origin,width,height,Parameters());
+            Call(noHover,"PaintSegment",origin,At(new Vector2(-.5f,0)),width,height,false,Parameters());
+            T.True(!(bool)Get(noHover,"firstBrushPending"),"No hover uses the actual movement without a delayed image");
+            var click=Layer(); Call(click,"BeginStroke",origin); Call(click,"PaintPoint",origin,width,height,Parameters());
+            Color[] before=Image(click); Call(click,"EndStroke"); Same(before,Image(click),"A click commits exactly the provisional stamp");
+            var saved=Layer(); Call(saved,"BeginStroke",origin); Call(saved,"PaintPoint",origin,width,height,Parameters());
+            Call(saved,"SyncSurfaceToTexture"); T.True(!(bool)Get(saved,"firstBrushPending"),"Storage sync commits pending state before export/save");
+            Call(saved,"EndStroke");
+            var cancelled=Layer(); Call(cancelled,"BeginStroke",origin); Call(cancelled,"EnsurePaintSurface",width,height);
+            Color[] source=Image(cancelled); Call(cancelled,"PaintPoint",origin,width,height,Parameters()); Call(cancelled,"CancelStroke");
+            Same(source,Image(cancelled),"Cancellation restores the exact GPU base");
+            T.True(Get(cancelled,"advancedStrokeBase")==null,"Cancellation releases its pair");
+            var live=Layer(); var reference=Layer();
+            WhimTexDocument Document(DrawingLayerBehaviour drawing)
+            {
+                var document=Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
+                document.width=width; document.height=height;
+                drawing.Owner.opacity=.6f; drawing.Owner.blendMode=BlendMode.Multiply;
+                var group=new Layer(new GroupLayerBehaviour()){opacity=.7f,compositing=GroupCompositing.Isolated};
+                group.children.Add(new Layer(new ColorFillLayerBehaviour{color=new Color(.8f,.4f,.3f,.4f)}){clippingMask=true});
+                group.children.Add(drawing.Owner);
+                var target=new BlurLayerBehaviour{inputMode=EffectInputMode.Specific,radius=1f};
+                document.layers.Add(new Layer(target)); document.layers.Add(group);
+                document.layers.Add(new Layer(new ColorFillLayerBehaviour{color=new Color(.3f,.7f,.9f,1)}));
+                Call(document,"NormalizeModel"); target.TargetLayerId=group.Id;
+                return document;
+            }
+            var liveDocument=Document(live); var referenceDocument=Document(reference);
+            Call(dynamics,"ResetSequence"); Call(live,"BeginStroke",origin); Call(live,"SetInitialBrushDelta",Vector2.right);
+            Call(live,"PaintPoint",origin,width,height,Parameters());
+            Texture2D Thumbnail(WhimTexDocument document) => (Texture2D)Call(document,"GetLayerThumbnail",document.layers[0],width,false);
+            T.True(Thumbnail(liveDocument)!=null,"Target thumbnail renders the immediate provisional source");
+            T.True((bool)Get(live,"firstBrushPending"),"Thumbnail rendering keeps the provisional source correctable");
+            Call(dynamics,"ResetSequence"); Call(reference,"BeginStroke",origin);
+            float correctedAngle=(90f*(90f/(90f+45f/19f)))*Mathf.Deg2Rad;
+            Call(reference,"SetKnownBrushDirection",new Vector2(Mathf.Cos(correctedAngle),Mathf.Sin(correctedAngle)));
+            Call(reference,"PaintPoint",origin,width,height,Parameters());
+            Call(live,"PaintSegment",origin,At(new Vector2(0,.5f)),width,height,false,Parameters());
+            Same(Image(reference),Image(live),"Rendering consumers do not change the underlying corrected paint surface");
+            foreach(string method in new[]{"RenderCanvas","RenderLayerPreview"})
+            {
+                object[] Args(WhimTexDocument document) => method=="RenderCanvas" ? new object[]{width} : new object[]{document.layers[1],width};
+                RenderTexture liveRender=null,referenceRender=null;
+                var previous=RenderTexture.active;
+                try
+                {
+                    referenceRender=(RenderTexture)Call(referenceDocument,method,Args(referenceDocument));
+                    liveRender=(RenderTexture)Call(liveDocument,method,Args(liveDocument));
+                    RenderTexture.active=referenceRender; readback.ReadPixels(new Rect(0,0,width,height),0,0); var expectedPixels=readback.GetPixels();
+                    RenderTexture.active=liveRender; readback.ReadPixels(new Rect(0,0,width,height),0,0);
+                    Same(expectedPixels,readback.GetPixels(),method+" preserves correction with layer/group opacity, blending and clipping");
+                }
+                finally
+                {
+                    RenderTexture.active=previous;
+                    if(liveRender!=null) RenderTexture.ReleaseTemporary(liveRender);
+                    if(referenceRender!=null) RenderTexture.ReleaseTemporary(referenceRender);
+                }
+            }
+            Call(live,"EndStroke"); Call(reference,"EndStroke"); Call(live,"SyncSurfaceToTexture"); Call(reference,"SyncSurfaceToTexture");
+            // Thumbnails use the ordinary post-stroke storage refresh, not the window's live-paint cache.
+            Call(liveDocument,"RefreshThumbnailStructure"); Call(referenceDocument,"RefreshThumbnailStructure");
+            Same(Thumbnail(referenceDocument).GetPixels(),Thumbnail(liveDocument).GetPixels(),"Target thumbnail uses the corrected grouped/clipped source after commit");
+            var exported=Scope.OwnObject(liveDocument.ComposeCanvas()); var referenceExport=Scope.OwnObject(referenceDocument.ComposeCanvas());
+            Same(referenceExport.GetPixels(),exported.GetPixels(),"Full-size export composition retains corrected storage after commit");
+        }
+        finally
+        {
+            foreach(var layer in layers) Call(layer,"ReleaseTransientResources");
+            Call(settings,"ReleasePresetTip");
         }
     }
 public static string Run() => WhimTex.Tests.TestContext.Run("Run", context => WhimTex.Tests.UnityA.UnityAScope.RunOwned(scope => { T = context; Scope = scope; try { BodyRun(); } finally { T = null; Scope = null; } }));

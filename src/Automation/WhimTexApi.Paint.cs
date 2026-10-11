@@ -115,6 +115,15 @@ namespace DCFApixels.WhimTex
             layer.BeginStroke(uv[0]);
             try
             {
+                var dimensions = new Vector2(document.width, document.height);
+                Vector2 origin = document.GetPaintTransform(layer).Map(uv[0], dimensions);
+                for (int i = 1; i < uv.Length; i++)
+                {
+                    Vector2 direction = Vector2.Scale(document.GetPaintTransform(layer).Map(uv[i], dimensions) - origin, dimensions);
+                    if (direction.sqrMagnitude <= .000001f) continue;
+                    layer.SetKnownBrushDirection(direction);
+                    break;
+                }
                 layer.PaintPoint(uv[0], document.width, document.height, parameters);
                 for (int i = 1; i < uv.Length; i++)
                 {

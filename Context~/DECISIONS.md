@@ -283,9 +283,11 @@ TIFF-контейнер, precision/sRGB, атомарная запись, identi
   жёсткие/мягкие границы остальных контролов и порядок сохраняются. Если подходящего контрола нет — явный отказ.
 - Базовая HLSL noise-библиотека доступна эффектам/кистям; белый и синий шум не включались в этот контракт.
 - HLSL-brush: `BrushTip(float2 uv)` — Static, кешируемый отпечаток; вариант с
-  `DynamicBrushContext` — Dynamic, расчёт на GPU прямо в пакетном рендере отпечатков.
+  `BrushSequence` и/или `BrushMotion` — Dynamic, расчёт на GPU прямо в пакетном рендере отпечатков.
   Режим определяется определением функции, не metadata. Контекст содержит seed,
-  strokeIndex, stampIndex, distance, totalDistance и deltaPixels; правила последовательности и
+  strokeIndex, stampIndex, distance, totalDistance в BrushSequence, deltaPixels и float strokeDirection
+  в BrushMotion; порядок аргументов свободный. Движение требует пары буферов для однократной
+  коррекции первого штампа, последовательность сама по себе — нет. Правила старта, последовательности и
   stateless BrushRandom — в [BRUSHES.md](../Documentation~/AI/BRUSHES.md#dynamic-context-and-randomization).
   Standard объединяет обычную кисть и кисть с текстурой; HLSL — отдельный источник отпечатка.
 - FX и HLSL-наконечники используют общий парсер/экспорт metadata, UI-поля и передачу параметров/LUT в материал.

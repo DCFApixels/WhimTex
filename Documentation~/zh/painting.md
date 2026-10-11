@@ -80,7 +80,7 @@ Pencil 没有硬度或间距控件。可为它的笔尖选择 **Circle**、**Squ
 | Scatter Bias | 负值让图章集中在笔触附近；正值将它们移向散布圆盘的外缘。**0** 让分布在其整个区域内保持均匀。在 Scatter 大于零时可用；适用于 Random 和 Sobol。 |
 | Randomization | **Random**（默认）给出普通的随机变化。**Sobol** 让变化在图章之间分布得更均匀。适用于 Scatter、Size Jitter、Angle Jitter、Flip X/Y 和 Tint。 |
 | Size Jitter | 围绕 Size 的随机变化。50% 会给出所选尺寸的一半到一倍半之间的图章。 |
-| Rotation | **Fixed** 保留纹理笔尖的原始方向。**Stroke Direction** 让它沿笔触转向，笔尖朝右的轴跟随移动方向。第一次点击使用原始方向，直到你移动为止。 |
+| Rotation | **Fixed** 保留笔尖的原始方向。**Stroke Direction** 让它沿笔触转向，朝右的轴跟随移动方向。第一次点击采用 Canvas View 中最近的移动方向，并轻微平滑以减弱指针抖动，开始绘制后再修正一次。仅点击而不移动时保留初始方向。 |
 | Angle Offset (°) | 在 Rotation 之后附加的固定旋转，从 −180° 到 180°。例如，在 Stroke Direction 下设置 90° 会让笔尖横跨笔触。需要纹理笔尖。 |
 | Angle Jitter (°) | 在 Rotation 和 Angle Offset 之后附加的随机旋转。0° 不添加变化，180° 覆盖所有方向。需要纹理笔尖；程序化画笔不会因旋转而改变。 |
 | Flip X / Flip Y | 每个纹理图章水平或垂直镜像的几率：**0** 从不，**0.5** 大约一半，**1** 总是。轴跟随笔尖的旋转。需要纹理笔尖；每个轴单独采样。 |

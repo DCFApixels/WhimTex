@@ -8,6 +8,33 @@ namespace DCFApixels.WhimTex
     {
         [NonSerialized] private StrokeSmoother paintingSmoother;
         [NonSerialized] private bool paintingSmootherActive;
+        [NonSerialized] private BrushPointerMotion brushPointerMotion;
+        [NonSerialized] private WhimTexDocument brushPointerDocument;
+
+        private void ObserveBrushPointer(Vector2 position, int pointerId, bool alt)
+        {
+            if (canvasTool != CanvasTool.Brush || alt || toolkitCanvas == null || activeDocument == null ||
+                !toolkitCanvas.contentRect.Contains(position) || canvasZoomManipulator?.IsNavigating == true)
+            {
+                brushPointerMotion = default;
+                brushPointerDocument = null;
+                return;
+            }
+            if (paintingLayer != null && paintingPointerId != pointerId) return;
+            if (!ReferenceEquals(brushPointerDocument, activeDocument)) brushPointerMotion = default;
+            brushPointerDocument = activeDocument;
+            float visibleBrushSize = paintSettings.brushSize * toolkitCanvas.ImageRect.width / activeDocument.width;
+            brushPointerMotion.Observe(position, pointerId, visibleBrushSize);
+        }
+
+        private Vector2 InitialBrushDeltaPixels()
+        {
+            if (canvasTool != CanvasTool.Brush || !ReferenceEquals(brushPointerDocument, activeDocument)) return Vector2.zero;
+            Rect image = toolkitCanvas.ImageRect;
+            if (image.width <= 0f || image.height <= 0f) return Vector2.zero;
+            Vector2 delta = canvasViewport.ToCanvasDelta(brushPointerMotion.Delta);
+            return new Vector2(delta.x * activeDocument.width / image.width, -delta.y * activeDocument.height / image.height);
+        }
 
         private void BeginPaintingInput(Vector2 sourceUv)
         {

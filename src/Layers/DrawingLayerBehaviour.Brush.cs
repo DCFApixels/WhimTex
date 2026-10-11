@@ -9,14 +9,36 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private uint brushRandomState;
         [NonSerialized] private uint brushStampIndex;
         [NonSerialized] private float brushDirection;
+        [NonSerialized] private Vector2 initialBrushDeltaPixels;
         [NonSerialized] private bool brushTintPrepared;
-        [NonSerialized] private DynamicBrushContext dynamicStroke;
+        [NonSerialized] private BrushStampContext dynamicStroke;
         [NonSerialized] private bool dynamicStrokeStarted;
         [NonSerialized] private double brushDistance;
         [NonSerialized] private double dynamicStrokeStartDistance;
         [NonSerialized] private Vector2 dynamicPreviousStampPoint;
         [NonSerialized] private bool dynamicHasPreviousStamp;
         [NonSerialized] private RenderTexture advancedStroke, advancedStrokeBase;
+        [NonSerialized] private bool initialDirectionKnown;
+        [NonSerialized] private bool firstBrushPending;
+        [NonSerialized] private Vector2 firstBrushPosition;
+        [NonSerialized] private float firstBrushSpacing, firstBrushAngle;
+        [NonSerialized] private int firstBrushWidth, firstBrushHeight;
+        [NonSerialized] private PaintStrokeParameters firstBrushParameters;
+        [NonSerialized] private System.Collections.Generic.List<PaintStamp> firstBrushStamps;
+
+        // Known paths (API/preview/Shift lines) do not borrow pointer history or need a provisional dab.
+        internal void SetKnownBrushDirection(Vector2 deltaPixels)
+        {
+            SetInitialBrushDelta(deltaPixels);
+            initialDirectionKnown = initialBrushDeltaPixels.sqrMagnitude > .000001f;
+        }
+
+        internal void SetInitialBrushDelta(Vector2 deltaPixels)
+        {
+            initialBrushDeltaPixels = float.IsFinite(deltaPixels.x) && float.IsFinite(deltaPixels.y)
+                ? deltaPixels : Vector2.zero;
+            brushDirection = BrushDynamics.MovementAngle(initialBrushDeltaPixels.x, initialBrushDeltaPixels.y, 0f);
+        }
 
         private void BuildBrushSegment(Vector2 from, Vector2 to, int width, int height, bool includeStart,
             PaintStrokeParameters parameters, float distance, int budget)
@@ -25,6 +47,8 @@ namespace DCFApixels.WhimTex
             int stride = Mathf.Max(1, Mathf.CeilToInt(count / (float)Mathf.Max(1, budget)));
             BrushDynamics dynamics = parameters.Dynamics;
             bool dynamic = dynamics?.DynamicTip == true;
+            if (brushStampIndex == 0 && initialBrushDeltaPixels.sqrMagnitude <= .000001f && distance > .001f)
+                SetKnownBrushDirection(Vector2.Scale(to - from, new Vector2(width, height)));
             if (dynamic && !dynamicStrokeStarted)
             {
                 dynamicStroke = dynamics.Sequence.Begin(dynamics.seed);
@@ -54,7 +78,8 @@ namespace DCFApixels.WhimTex
                 uint stampIndex = unchecked(firstStamp + (uint)i);
                 float t = distance <= 0f ? 0f : (float)((first + i * (double)parameters.SpacingPixels) / distance);
                 Vector2 point = Vector2.LerpUnclamped(from, to, t);
-                Vector2 deltaPixels = Vector2.zero;
+                Vector2 deltaPixels = initialBrushDeltaPixels.sqrMagnitude > .000001f
+                    ? initialBrushDeltaPixels.normalized * parameters.SpacingPixels : Vector2.zero;
                 if (dynamic && (i > 0 || dynamicHasPreviousStamp))
                 {
                     // Use the previous logical stamp, even when the render budget skips it.
@@ -90,6 +115,9 @@ namespace DCFApixels.WhimTex
                     }
                 }
                 float extent = rotation != 0f ? Mathf.Abs(Mathf.Cos(rotation)) + Mathf.Abs(Mathf.Sin(rotation)) : 1f;
+                // Keep a provisional dab whose corrected rotation can reach the canvas edge.
+                if (stampIndex == 0 && includeStart && distance == 0f && !initialDirectionKnown && dynamics?.NeedsDirection == true)
+                    extent = Mathf.Sqrt(2f);
                 if (!parameters.WrapCanvas && (point.x + size * extent * .5f / width <= 0f || point.x - size * extent * .5f / width >= 1f ||
                     point.y + size * extent * .5f / height <= 0f || point.y - size * extent * .5f / height >= 1f)) continue;
                 if (parameters.WrapCanvas) point = TiledCanvasUtility.Wrap(point);
@@ -105,7 +133,7 @@ namespace DCFApixels.WhimTex
                     if (dynamic)
                     {
                         double at = brushDistance + Math.Min(distance, Math.Max(0d, first + i * (double)parameters.SpacingPixels));
-                        stamp.dynamicContext = new DynamicBrushContext(dynamicStroke.seed, dynamicStroke.strokeIndex, stampIndex,
+                        stamp.dynamicContext = new BrushStampContext(dynamicStroke.seed, dynamicStroke.strokeIndex, stampIndex,
                             at, dynamicStrokeStartDistance + at, deltaPixels);
                     }
                     segmentStamps.Add(stamp);
@@ -122,6 +150,75 @@ namespace DCFApixels.WhimTex
             if (dynamic) dynamics.Sequence.Advance(distance);
         }
 
+        private void RememberFirstBrush(Vector2 position, int width, int height, PaintStrokeParameters parameters)
+        {
+            firstBrushStamps ??= new System.Collections.Generic.List<PaintStamp>();
+            firstBrushStamps.Clear();
+            firstBrushStamps.AddRange(segmentStamps);
+            firstBrushPosition = position;
+            firstBrushWidth = width; firstBrushHeight = height;
+            firstBrushSpacing = parameters.SpacingPixels;
+            firstBrushAngle = brushDirection;
+            firstBrushParameters = parameters.WithDynamics(parameters.Dynamics.SnapshotForStroke());
+            firstBrushPending = true;
+        }
+
+        private void ClearFirstBrush()
+        {
+            firstBrushPending = false;
+            firstBrushStamps?.Clear();
+            firstBrushParameters = default;
+        }
+
+        private void RefineFirstBrush(Vector2 point)
+        {
+            if (!firstBrushPending || advancedStrokeBase == null) return;
+            Vector2 delta = Vector2.Scale(point - firstBrushPosition, new Vector2(firstBrushWidth, firstBrushHeight));
+            // Below the minimum logical spacing (one pixel), so no continuation dab is lost to jitter.
+            if (delta.sqrMagnitude < .0625f) return;
+            float actual = Mathf.Atan2(delta.y, delta.x);
+            float refined = initialBrushDeltaPixels.sqrMagnitude > .000001f
+                ? BrushDynamics.RefineStartAngle(firstBrushAngle, actual)
+                : actual;
+            Vector2 phantomDelta = new Vector2(Mathf.Cos(refined), Mathf.Sin(refined)) * firstBrushSpacing;
+            bool rotate = firstBrushParameters.Dynamics.rotationMode == BrushRotationMode.StrokeDirection;
+            for (int i = 0; i < firstBrushStamps.Count; i++)
+            {
+                PaintStamp stamp = firstBrushStamps[i];
+                if (rotate) stamp.rotation += refined - firstBrushAngle;
+                var context = stamp.dynamicContext;
+                stamp.dynamicContext = new BrushStampContext(context.seed, context.strokeIndex, context.stampIndex,
+                    context.distance, context.totalDistance, phantomDelta);
+                firstBrushStamps[i] = stamp;
+            }
+            ResetAdvancedStroke(firstBrushParameters.Dynamics.BlendsEachStamp(firstBrushParameters.Erase));
+            DrawBrushStamps(paintSurface, firstBrushStamps, firstBrushWidth, firstBrushHeight, firstBrushParameters);
+            ClearFirstBrush();
+        }
+
+        // Explicit cancellation restores the GPU source, never the quantized storage texture.
+        internal void CancelStroke()
+        {
+            if (advancedStrokeBase != null && paintSurface != null)
+            {
+                var previous = RenderTexture.active;
+                try { Graphics.Blit(advancedStrokeBase, paintSurface); unchecked { paintSurfaceRevision++; } }
+                finally { RenderTexture.active = previous; }
+            }
+            EndStroke();
+        }
+
+        private void ResetAdvancedStroke(bool withBackdrop)
+        {
+            var previous = RenderTexture.active;
+            try
+            {
+                if (withBackdrop) Graphics.Blit(advancedStrokeBase, advancedStroke);
+                else { RenderTexture.active = advancedStroke; GL.Clear(false, true, Color.clear); }
+            }
+            finally { RenderTexture.active = previous; }
+        }
+
         private void EnsureAdvancedStroke(RenderTexture surface, bool withBackdrop = false)
         {
             if (advancedStroke != null) return;
@@ -131,12 +228,7 @@ namespace DCFApixels.WhimTex
                 advancedStrokeBase = HdrUtility.Temporary(surface.width, surface.height);
                 advancedStroke = HdrUtility.Temporary(surface.width, surface.height);
                 Graphics.Blit(surface, advancedStrokeBase);
-                if (withBackdrop) Graphics.Blit(advancedStrokeBase, advancedStroke);
-                else
-                {
-                    RenderTexture.active = advancedStroke;
-                    GL.Clear(false, true, Color.clear);
-                }
+                ResetAdvancedStroke(withBackdrop);
             }
             catch { ReleaseAdvancedStroke(); throw; }
             finally { RenderTexture.active = previous; }
@@ -168,6 +260,7 @@ namespace DCFApixels.WhimTex
 
         private void ReleaseAdvancedStroke()
         {
+            ClearFirstBrush();
             if (advancedStroke != null) RenderTexture.ReleaseTemporary(advancedStroke);
             if (advancedStrokeBase != null) RenderTexture.ReleaseTemporary(advancedStrokeBase);
             advancedStroke = advancedStrokeBase = null;

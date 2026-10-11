@@ -106,18 +106,26 @@ Define exactly one entry point:
 float4 BrushTip(float2 uv)
 
 // Dynamic: evaluated for covered pixels of each stamp while painting.
-float4 BrushTip(float2 uv, DynamicBrushContext brush)
+float4 BrushTip(float2 uv, BrushSequence sequence)
+float4 BrushTip(BrushMotion motion, float2 uv)
+float4 BrushTip(float2 uv, BrushMotion motion, BrushSequence sequence)
 ```
 
 The actual function definition selects the mode; no metadata flag is needed.
 Comments, helper arguments and forward declarations do not select it. Defining both
-entry points is an error. UV is 0..1 across the square tip, with Y increasing upward.
+entry points is an error. Require exactly one `float2`, with each optional context at most once,
+in any order and with any parameter names. `in` is accepted; `out`/`inout`, unknown types and duplicates
+are rejected. Adding either context makes the tip Dynamic; only `BrushMotion` declares a movement
+dependency. The argument order is resolved on Apply, not while painting.
+UV is 0..1 across the square tip, with Y increasing upward.
 Return straight (not premultiplied) RGBA. Alpha is clamped to 0..1.
 RGB can carry HDR values and is treated as linear data. Color mode multiplies this RGB
 by the painting color and randomized Tint; channel and SDF settings can reinterpret it.
 Use a white palette to see unmodified RGB.
 
 ### Dynamic context and randomization
+
+`BrushSequence` supplies progression and stateless randomization:
 
 | Field | Type | Meaning |
 | :--- | :--- | :--- |
@@ -126,9 +134,48 @@ Use a white palette to see unmodified RGB.
 | stampIndex | uint | Zero-based logical stamp index; resets each stroke. Symmetry/repetition copies share it. Clipped and budget-skipped logical stamps still advance it. |
 | distance | float | Path length in canvas pixels within this stroke, before Scatter or canvas wrapping. Interactive input smoothing has already been applied. |
 | totalDistance | float | Path length accumulated across this brush's strokes, including strokes on different Drawing layers. Pointer travel between strokes is excluded. |
-| deltaPixels | float2 | Displacement from the previous logical stamp to this one in canvas pixels: X right, Y up. The first logical stamp of each stroke gets `(0,0)`. |
 
-`deltaPixels` is measured after input smoothing, before Scatter and canvas wrapping.
+`BrushMotion` supplies movement independently of the sequence:
+
+| Field | Type | Meaning |
+| :--- | :--- | :--- |
+| deltaPixels | float2 | Displacement from the previous logical stamp in canvas pixels: X right, Y up. The first stamp uses a phantom predecessor, one initial Spacing step behind its direction, or `(0,0)` without any known direction. |
+| strokeDirection | float | `0` for Fixed Rotation, `1` for Stroke Direction. Tip UV already includes Rotation/Offset/Jitter/Flip; this flag lets the shader suppress a second direction-based turn. It does not describe or undo Offset/Jitter/Flip. |
+
+Before an interactive Brush stroke, Canvas View filters pointer direction even without
+painting. The first nonzero movement initializes it immediately. Later movement uses a
+distance-weighted exponential filter, with decay `exp(-travel / L)` and
+`L = clamp(visibleBrushSize * 0.08, 3, 6)` in Canvas View pixels. The unnormalized filter
+state is retained between events; subdividing the same straight segment does not change
+the result. Opposing directions near cancellation retain the last valid direction.
+A stationary press preserves the filtered direction. This initializes both
+**Stroke Direction** rotation and the first stamp's spacing-length `deltaPixels`; **Fixed** does not
+rotate the footprint, but HLSL still receives the delta. It is converted with the current
+view zoom/rotation into canvas pixels, without the layer transform, Scatter or tip rotation.
+The first image appears immediately. For a tip with `BrushMotion` or Stroke Direction,
+the first filtered movement of at least 0.25 canvas pixels corrects the first stamp once,
+before any continuation stamp is added. With hover history the actual-direction weight grows
+with the shortest angular difference: `w = abs(deltaDegrees) / (abs(deltaDegrees) + 45/19)`.
+This positive SoftSign curve gives 0.95 at 45 degrees and approaches, but never reaches, 1.
+Without history the corrected direction is entirely actual.
+The corrected delta retains the initial Spacing length. Original pressure, random variation,
+indices and copied stamps are preserved: correction replaces the provisional stamp, not an extra dab.
+Small jitter that emits a continuation stamp before establishing direction commits the provisional
+start instead of keeping an unbounded replay prefix. A click without movement keeps its first stamp.
+Leaving Canvas View, panning, another tool, Alt picking, a different document or pointer
+device clears the history. A Shift-connected line uses its known line displacement instead.
+Hover never paints or advances `distance`, `totalDistance`, indices or randomization.
+This is a short history of observed movement, not a prediction of the next one. It does not
+change the painted path's Smoothing setting or delay the first stamp. Preview and API
+strokes use the first known nonzero path direction upfront, without hover interpolation;
+a one-point API stroke without direction starts with `(0,0)`.
+
+Sequence-only Dynamic tips need no stroke-buffer pair unless brush Opacity is below 1 or non-erase
+Blend is not Normal. Motion tips and Stroke Direction also use the existing pair; correction adds
+no third full-size texture or CPU readback. Storage sync commits any pending start. Normal settings,
+preset/seed/tool changes finish the stroke before applying new values.
+
+After the first stamp, `deltaPixels` is measured after input smoothing, before Scatter and canvas wrapping.
 It carries across input events, including events too short to emit a stamp. Clipped
 and budget-skipped stamps still define the previous logical position. Symmetry and
 repetition copies share the original stroke's delta; tip rotation and flips do not
@@ -139,11 +186,12 @@ travelled path length. It is not velocity: no time interval is supplied.
 return deterministic values in `[0,1)`. They do not advance a mutable random generator.
 
 ```hlsl
-float perStroke = BrushRandom(brush.seed, brush.strokeIndex);
-float perStamp = BrushRandom(brush.seed, brush.strokeIndex, brush.stampIndex);
-float alongPath = brush.totalDistance;
-float stepLength = length(brush.deltaPixels);
-float2 direction = stepLength > 1e-6 ? brush.deltaPixels / stepLength : float2(0, 0);
+float perStroke = BrushRandom(sequence.seed, sequence.strokeIndex);
+float perStamp = BrushRandom(sequence.seed, sequence.strokeIndex, sequence.stampIndex);
+float alongPath = sequence.totalDistance;
+float stepLength = length(motion.deltaPixels);
+float2 direction = stepLength > 1e-6 ? motion.deltaPixels / stepLength : float2(1, 0);
+float hairAngle = atan2(direction.y, direction.x) * (1 - motion.strokeDirection);
 ```
 
 Seed changes, a different preset/source code, or **Reset Sequence** restart indices and

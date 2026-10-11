@@ -16,7 +16,7 @@ namespace DCFApixels.WhimTex
             private static List<Vector3> meshClipMin, meshClipMax, meshClips, meshTiles, meshColors;
             private static List<Vector4> meshStamps;
             private static List<Vector4> meshContexts;
-            private static bool meshDynamic;
+            private static bool meshSequence, meshMotion, meshHadSequence;
             private static List<int> meshIndices;
             private static Vector3 meshColor;
             private static Vector4 meshStamp;
@@ -56,20 +56,21 @@ namespace DCFApixels.WhimTex
                 meshPositions.Add(new Vector3(x, y, 0f));
                 meshUv.Add(new Vector2(u, v));
                 // Reuse spare clip components; dynamic stamps need no extra UV channel/pass.
-                meshClipMin.Add(new Vector3(stamp.clipRect.x, stamp.clipRect.y, meshDynamic ? stamp.dynamicContext.deltaPixels.x : 0f));
-                meshClipMax.Add(new Vector3(stamp.clipRect.z, stamp.clipRect.w, meshDynamic ? stamp.dynamicContext.deltaPixels.y : 0f));
+                meshClipMin.Add(new Vector3(stamp.clipRect.x, stamp.clipRect.y, meshMotion ? stamp.dynamicContext.deltaPixels.x : 0f));
+                meshClipMax.Add(new Vector3(stamp.clipRect.z, stamp.clipRect.w, meshMotion ? stamp.dynamicContext.deltaPixels.y : 0f));
                 meshClips.Add(new Vector3(stamp.clipMode, stamp.clipAngleCenter, stamp.clipAngleHalfWidth));
                 meshTiles.Add(new Vector3(stamp.center.x, stamp.center.y, tileMode));
                 meshColors.Add(meshColor);
                 meshStamps.Add(meshStamp);
-                if (meshDynamic) meshContexts.Add(stamp.dynamicContext.StampVertex);
+                if (meshSequence) meshContexts.Add(stamp.dynamicContext.StampVertex);
             }
 
             private static void EndBrushMesh(RenderTexture target, Material material, RenderTexture backdrop = null)
             {
                 if (meshPositions.Count == 0) return;
                 if (backdrop != null) CopyStampBackdrop(target, backdrop);
-                brushMesh.Clear();
+                brushMesh.Clear(meshSequence == meshHadSequence);
+                meshHadSequence = meshSequence;
                 brushMesh.SetVertices(meshPositions);
                 brushMesh.SetUVs(0, meshUv);
                 brushMesh.SetUVs(1, meshClipMin);
@@ -78,7 +79,7 @@ namespace DCFApixels.WhimTex
                 brushMesh.SetUVs(4, meshTiles);
                 brushMesh.SetUVs(5, meshColors);
                 brushMesh.SetUVs(6, meshStamps);
-                if (meshDynamic) brushMesh.SetUVs(7, meshContexts);
+                if (meshSequence) brushMesh.SetUVs(7, meshContexts);
                 brushMesh.SetIndices(meshIndices, MeshTopology.Quads, 0, false);
                 brushMesh.bounds = new Bounds(new Vector3(.5f, .5f, 0f), new Vector3(2f, 2f, 2f));
                 brushCommands.Clear();
@@ -114,6 +115,7 @@ namespace DCFApixels.WhimTex
                 ReleaseBrushSdfGradient();
                 if (brushMesh != null) Object.DestroyImmediate(brushMesh);
                 brushMesh = null;
+                meshHadSequence = false;
                 brushCommands?.Release();
                 brushCommands = null;
                 meshPositions = meshClipMin = meshClipMax = meshClips = meshTiles = meshColors = null;

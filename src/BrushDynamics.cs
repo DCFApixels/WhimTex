@@ -44,10 +44,11 @@ namespace DCFApixels.WhimTex
         [NonSerialized] internal BrushTipProgram hlslProgram;
         [NonSerialized] private bool ownsHlslProgram;
         [NonSerialized] private Texture2D ownedHlslTip;
-        [NonSerialized] private DynamicBrushSequence sequence;
+        [NonSerialized] private BrushSequenceState sequence;
         internal bool DynamicTip => source == BrushTipSource.HLSL && hlslProgram?.IsDynamic == true;
         internal bool HasTip => tip != null || DynamicTip;
-        internal DynamicBrushSequence Sequence => sequence ??= new DynamicBrushSequence();
+        internal BrushSequenceState Sequence => sequence ??= new BrushSequenceState();
+        internal bool NeedsDirection => DynamicTip && hlslProgram.UsesMotion || HasTip && rotationMode == BrushRotationMode.StrokeDirection;
 
         internal void ResetSequence() => sequence?.Reset();
 
@@ -105,8 +106,19 @@ namespace DCFApixels.WhimTex
         internal bool UsesSdfGradient => HasTip ? tipSdf : proceduralMode == BrushProceduralMode.SdfGradient;
         internal bool CanRotateTip => HasTip && (angleOffset != 0f || angleJitter > 0f || rotationMode == BrushRotationMode.StrokeDirection);
         internal bool PerStamp => DynamicTip || scatter > 0f || sizeJitter > 0f || HasTint || CanRotateTip || HasTip && (flipX > 0f || flipY > 0f);
-        internal bool NeedsStrokeBuffer(bool erase) => opacity < 1f || !erase && blend != BlendMode.Normal;
+        internal bool NeedsStrokeBuffer(bool erase) => opacity < 1f || !erase && blend != BlendMode.Normal || NeedsDirection;
         internal bool BlendsEachStamp(bool erase) => !erase && blend != BlendMode.Normal && blendApplication == BrushBlendApplication.Stamp;
+
+        // Geometry/random colors are already sampled. Retain only the draw settings, borrowing the compiled tip.
+        internal BrushDynamics SnapshotForStroke()
+        {
+            var snapshot = (BrushDynamics)MemberwiseClone();
+            snapshot.tipGradient = tipGradient?.Clone();
+            snapshot.ownsHlslProgram = false;
+            snapshot.ownedHlslTip = null;
+            snapshot.sequence = null;
+            return snapshot;
+        }
 
         internal void Normalize()
         {
@@ -186,6 +198,15 @@ namespace DCFApixels.WhimTex
         internal static float ScatterRadius(float sample, float exponent)
         {
             return exponent == .5f ? Mathf.Sqrt(sample) : Mathf.Pow(sample, exponent);
+        }
+
+        internal static float RefineStartAngle(float provisional, float actual)
+        {
+            float delta = Mathf.DeltaAngle(provisional * Mathf.Rad2Deg, actual * Mathf.Rad2Deg);
+            // Positive SoftSign: 45 degrees gives 0.95, larger discrepancies approach (but never reach) one.
+            float magnitude = Mathf.Abs(delta);
+            float weight = magnitude / (magnitude + 45f / 19f);
+            return provisional + delta * weight * Mathf.Deg2Rad;
         }
 
         internal static float MovementAngle(float dx, float dy, float previous)
@@ -273,12 +294,57 @@ namespace DCFApixels.WhimTex
         }
     }
 
-    internal readonly struct DynamicBrushContext
+    // View-space history excludes camera motion; only its direction seeds the spacing-length phantom delta.
+    internal struct BrushPointerMotion
+    {
+        private bool initialized;
+        private int pointerId;
+        private Vector2 position;
+        private Vector2 filteredDirection;
+        internal Vector2 Delta { get; private set; }
+
+        internal static float SmoothingDistance(float visibleBrushSize)
+            => float.IsFinite(visibleBrushSize) ? Mathf.Clamp(visibleBrushSize * .08f, 3f, 6f) : 3f;
+
+        internal void Observe(Vector2 point, int pointer, float visibleBrushSize)
+        {
+            if (!float.IsFinite(point.x) || !float.IsFinite(point.y)) { this = default; return; }
+            if (!initialized || pointerId != pointer)
+            {
+                this = default;
+                initialized = true;
+                pointerId = pointer;
+            }
+            else
+            {
+                Vector2 delta = point - position;
+                float length = delta.magnitude;
+                if (!float.IsFinite(length)) { this = default; return; }
+                if (length > .001f)
+                {
+                    Vector2 direction = delta / length;
+                    if (Delta == Vector2.zero) filteredDirection = direction;
+                    else
+                    {
+                        float decay = Mathf.Exp(-length / SmoothingDistance(visibleBrushSize));
+                        // Keep the unnormalized state: normalizing each event would depend on event density.
+                        filteredDirection = filteredDirection * decay + direction * (1f - decay);
+                    }
+                    float magnitude = filteredDirection.magnitude;
+                    // Opposing directions can cancel; retain the last valid direction until movement resolves it.
+                    if (magnitude > .0001f) Delta = filteredDirection / magnitude;
+                }
+            }
+            position = point;
+        }
+    }
+
+    internal readonly struct BrushStampContext
     {
         internal readonly uint seed, strokeIndex, stampIndex;
         internal readonly float distance, totalDistance;
         internal readonly Vector2 deltaPixels;
-        internal DynamicBrushContext(uint seed, uint strokeIndex, uint stampIndex, double distance, double totalDistance, Vector2 deltaPixels)
+        internal BrushStampContext(uint seed, uint strokeIndex, uint stampIndex, double distance, double totalDistance, Vector2 deltaPixels)
         {
             this.seed = seed; this.strokeIndex = strokeIndex; this.stampIndex = stampIndex;
             this.distance = (float)distance; this.totalDistance = (float)totalDistance;
@@ -288,16 +354,16 @@ namespace DCFApixels.WhimTex
         internal Vector4 StampVertex => new Vector4(stampIndex & 65535u, stampIndex >> 16, distance, totalDistance);
     }
 
-    internal sealed class DynamicBrushSequence
+    internal sealed class BrushSequenceState
     {
         private bool initialized;
         private uint seed, nextStroke;
         internal double TotalDistance { get; private set; }
-        internal DynamicBrushContext Begin(int rootSeed)
+        internal BrushStampContext Begin(int rootSeed)
         {
             uint value = unchecked((uint)rootSeed);
             if (!initialized || seed != value) { Reset(); seed = value; initialized = true; }
-            return new DynamicBrushContext(seed, nextStroke++, 0, 0, TotalDistance, Vector2.zero);
+            return new BrushStampContext(seed, nextStroke++, 0, 0, TotalDistance, Vector2.zero);
         }
         internal void Advance(double distance)
         {

@@ -243,7 +243,8 @@ namespace DCFApixels.WhimTex
             brushSpacingState = default;
             brushRandomState = 0;
             brushStampIndex = 0;
-            brushDirection = 0f;
+            SetInitialBrushDelta(Vector2.zero);
+            initialDirectionKnown = false;
             brushTintPrepared = false;
             dynamicStrokeStarted = false;
             dynamicHasPreviousStamp = false;
@@ -367,6 +368,12 @@ namespace DCFApixels.WhimTex
             PaintStrokeParameters parameters)
         {
             Color color = parameters.Color;
+            if (firstBrushPending && TiledCanvasUtility.IsInvertible(Owner.PixelCanvasTransform))
+            {
+                Vector2 point = Owner.PixelCanvasTransform.Map(toSourceUv, new Vector2(outputWidth, outputHeight));
+                if (float.IsFinite(point.x) && float.IsFinite(point.y)) RefineFirstBrush(point);
+                if (includeStart) ClearFirstBrush();
+            }
             if (parameters.WriteChannels != 15 || parameters.LockAlpha)
                 ConfigureStrokeWriteProtection(parameters.WriteChannels, parameters.LockAlpha);
             if (StrokeWritesNothing) return;
@@ -395,6 +402,8 @@ namespace DCFApixels.WhimTex
                 (toSourceUv.y - fromSourceUv.y) * outputHeight);
             float distance = pixelDelta.magnitude;
             int steps = distance > 0f ? Mathf.Max(1, Mathf.CeilToInt(distance / parameters.SpacingPixels)) : 0;
+            bool rememberFirst = brushStampIndex == 0 && includeStart && distance == 0f &&
+                !parameters.PixelPerfect && !initialDirectionKnown && parameters.Dynamics?.NeedsDirection == true;
             if (parameters.WrapCanvas && steps > 0)
             {
                 int copies = UsesRepeatedPattern ? repeatCount : 1;
@@ -419,16 +428,30 @@ namespace DCFApixels.WhimTex
             bool isolatedStroke = dynamics != null && dynamics.NeedsStrokeBuffer(parameters.Erase);
             bool stampBlend = dynamics != null && dynamics.BlendsEachStamp(parameters.Erase);
             if (isolatedStroke && segmentStamps.Count > 0) EnsureAdvancedStroke(surface, stampBlend);
+            if (rememberFirst && segmentStamps.Count > 0) RememberFirstBrush(fromSourceUv, outputWidth, outputHeight, parameters);
+            else if (firstBrushPending && segmentStamps.Count > 0) ClearFirstBrush();
+
+            DrawBrushStamps(surface, segmentStamps, outputWidth, outputHeight, parameters);
+        }
+
+        private void DrawBrushStamps(RenderTexture surface, List<PaintStamp> stamps, int outputWidth, int outputHeight, PaintStrokeParameters parameters)
+        {
+            if (stamps.Count == 0) return;
+            BrushDynamics dynamics = parameters.Dynamics;
+            bool isolatedStroke = dynamics != null && dynamics.NeedsStrokeBuffer(parameters.Erase);
+            bool stampBlend = dynamics != null && dynamics.BlendsEachStamp(parameters.Erase);
+            Color color = parameters.Color;
+            color.a *= parameters.Pressure;
             color.a *= dynamics != null ? dynamics.flow : 1f;
 
-            paintSurfaceDirty |= segmentStamps.Count > 0;
-            if (segmentStamps.Count > 0)
+            paintSurfaceDirty = true;
+            if (stamps.Count > 0)
             {
                 unchecked { paintSurfaceRevision++; }
             }
             PaintBrushRenderer.Draw(
                 isolatedStroke ? advancedStroke : surface,
-                segmentStamps,
+                stamps,
                 parameters.Size,
                 parameters.Hardness,
                 parameters.PixelPerfect,
@@ -443,8 +466,8 @@ namespace DCFApixels.WhimTex
                 colorRange == LayerColorRange.Standard,
                 !isolatedStroke && HdrUtility.IsHdr(pixels), parameters.SelectionMask, dynamics, parameters.StandardColorInputs,
                 stampBlend, blendRange == LayerBlendRange.HDR);
-            if (isolatedStroke && segmentStamps.Count > 0) CompositeAdvancedStroke(surface, parameters);
-            if (segmentStamps.Count > 0) ApplyPaintWriteProtection();
+            if (isolatedStroke) CompositeAdvancedStroke(surface, parameters);
+            ApplyPaintWriteProtection();
         }
 
         private void BuildPencilSegment(Vector2 from, Vector2 to, int width, int height,
@@ -523,6 +546,7 @@ namespace DCFApixels.WhimTex
 
         internal void SyncSurfaceToTexture()
         {
+            ClearFirstBrush();
             EnsureDeferredTexture();
             if (paintSurface == null)
                 return;
@@ -1062,7 +1086,7 @@ namespace DCFApixels.WhimTex
 
         internal struct PaintStamp : IEquatable<PaintStamp>
         {
-            public DynamicBrushContext dynamicContext;
+            public BrushStampContext dynamicContext;
             public float size;
             public float rotation;
             public int flip;
@@ -1142,8 +1166,10 @@ namespace DCFApixels.WhimTex
                 if (maskCanvasToSource.HasValue) maskCanvasToSource.Value.SetShader(material, "_MaskRow");
                 Texture2D tip = dynamics?.tip;
                 bool textured = tip != null || dynamic;
-                meshDynamic = dynamic;
-                if (dynamic) material.SetVector("_WhimTex_StrokeSequence", stamps[0].dynamicContext.StrokeUniform);
+                meshSequence = dynamic && dynamics.hlslProgram.UsesSequence;
+                meshMotion = dynamic && dynamics.hlslProgram.UsesMotion;
+                if (meshSequence) material.SetVector("_WhimTex_StrokeSequence", stamps[0].dynamicContext.StrokeUniform);
+                if (meshMotion) material.SetFloat("_WhimTex_BrushStrokeDirection", dynamics.rotationMode == BrushRotationMode.StrokeDirection ? 1f : 0f);
                 if (!dynamic)
                 {
                     if (variation && !textured) material.EnableKeyword("BRUSH_DYNAMICS");

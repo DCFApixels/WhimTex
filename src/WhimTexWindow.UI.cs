@@ -1853,6 +1853,7 @@ namespace DCFApixels.WhimTex
 
         private void OnCanvasPointerEnter(PointerEnterEvent evt)
         {
+            ObserveBrushPointer(evt.localPosition, evt.pointerId, evt.altKey);
             canvasPointerControl = evt.ctrlKey;
             UpdateCanvasCursor(evt.localPosition, evt.altKey);
         }
@@ -1864,6 +1865,7 @@ namespace DCFApixels.WhimTex
 
         private void OnCanvasPointerDown(PointerDownEvent evt)
         {
+            ObserveBrushPointer(evt.localPosition, evt.pointerId, evt.altKey);
             canvasPointerControl = evt.ctrlKey;
             if (HandleLayerPickPointerDown(evt)) return;
             if (HandlePaintConversionPrompt(evt)) return;
@@ -1910,6 +1912,12 @@ namespace DCFApixels.WhimTex
                 layer.BeginTiledStroke(originUv, activeDocument.width, activeDocument.height);
             else
                 layer.BeginStroke(originUv);
+            Vector2 initialDelta = InitialBrushDeltaPixels();
+            if (connect && originUv != startUv && canvasTool == CanvasTool.Brush)
+                initialDelta = Vector2.Scale(MapLayerToDocumentUv(startUv, layer) - MapLayerToDocumentUv(originUv, layer),
+                    new Vector2(activeDocument.width, activeDocument.height));
+            if (connect && originUv != startUv) layer.SetKnownBrushDirection(initialDelta);
+            else layer.SetInitialBrushDelta(initialDelta);
             layer.ConfigureStrokeWriteProtection(paintSettings.dynamics.writeChannels, paintSettings.dynamics.lockAlpha);
             BeginPaintingInput(startUv);
             if (canvasTool == CanvasTool.BlurBrush)
@@ -1940,6 +1948,7 @@ namespace DCFApixels.WhimTex
 
         private void OnCanvasPointerMove(PointerMoveEvent evt)
         {
+            ObserveBrushPointer(evt.localPosition, evt.pointerId, evt.altKey);
             if (HandleHealingMove(evt)) return;
             canvasPointerControl = evt.ctrlKey;
             if (paintingLayer == null || paintingPointerId != evt.pointerId)
@@ -2088,6 +2097,7 @@ namespace DCFApixels.WhimTex
 
         private void OnCanvasPointerUp(PointerUpEvent evt)
         {
+            ObserveBrushPointer(evt.localPosition, evt.pointerId, evt.altKey);
             if (HandleHealingUp(evt)) return;
             canvasPointerControl = evt.ctrlKey;
             if (paintingLayer == null ||
@@ -2129,6 +2139,11 @@ namespace DCFApixels.WhimTex
             canvasPointerInside = toolkitCanvas != null && toolkitCanvas.contentRect.Contains(localPosition);
             canvasEyedropper?.UpdateCursor(localPosition, alt);
             bool panning = canvasZoomManipulator?.IsNavigating ?? false;
+            if (panning || canvasTool != CanvasTool.Brush)
+            {
+                brushPointerMotion = default;
+                brushPointerDocument = null;
+            }
             if (!panning && canvasGuideManipulator != null && canvasGuideManipulator.WantsCursor(localPosition, alt))
             {
                 toolkitCanvas.SetCursor(false, localPosition, false);
@@ -2159,6 +2174,8 @@ namespace DCFApixels.WhimTex
 
         private void ClearCanvasPointerCursor()
         {
+            brushPointerMotion = default;
+            brushPointerDocument = null;
             canvasPointerInside = false;
             canvasPointerAlt = false;
             canvasPointerControl = false;
