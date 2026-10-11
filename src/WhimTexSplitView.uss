@@ -1847,6 +1847,11 @@
     flex-shrink: 0;
 }
 
+.whimtex-brush-hlsl-scroll {
+    flex-grow: 1;
+    min-height: 0;
+}
+
 .whimtex-brush-hlsl-code {
     flex-grow: 1;
     min-height: 80px;

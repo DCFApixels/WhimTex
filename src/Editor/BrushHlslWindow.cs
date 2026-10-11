@@ -22,13 +22,20 @@ namespace DCFApixels.WhimTex
         private void CreateGUI()
         {
             WhimTexUI.ApplyWindowStyles(rootVisualElement);
+            var scroll=new ScrollView(ScrollViewMode.Vertical)
+            {
+                verticalScrollerVisibility=ScrollerVisibility.Auto,
+                horizontalScrollerVisibility=ScrollerVisibility.Hidden
+            };
+            scroll.AddToClassList("whimtex-brush-hlsl-scroll");
+            rootVisualElement.Add(scroll);
             var code=new TextField{multiline=true,value=draft,selectAllOnFocus=false,selectAllOnMouseUp=false};
             code.AddToClassList("whimtex-brush-hlsl-code");
             code.verticalScrollerVisibility=ScrollerVisibility.Auto;
             code.RegisterValueChangedCallback(e=>draft=e.newValue);
-            rootVisualElement.Add(code);
+            scroll.Add(code);
             var status=new HelpBox("BrushTip requires float2 UV. Add BrushSequence for progression/randomness, BrushMotion for movement, or both, in any order. Without contexts the RGBA tip is Static; with either it is Dynamic.",HelpBoxMessageType.Info);
-            rootVisualElement.Add(status);
+            scroll.Add(status);
             void Apply()
             {
                 try
@@ -38,7 +45,7 @@ namespace DCFApixels.WhimTex
                 }
                 catch(Exception error){status.text=error.Message;status.messageType=HelpBoxMessageType.Error;}
             }
-            rootVisualElement.Add(new Button(Apply){text="Apply"});
+            scroll.Add(new Button(Apply){text="Apply"});
             void Save(bool project)
             {
                 try
@@ -64,8 +71,8 @@ namespace DCFApixels.WhimTex
                 }
                 catch(Exception error){status.text=error.Message;status.messageType=HelpBoxMessageType.Error;}
             }
-            rootVisualElement.Add(new Button(()=>Save(false)){text="Save HLSL Preset…"});
-            rootVisualElement.Add(new Button(()=>Save(true)){text="Save to Project…"});
+            scroll.Add(new Button(()=>Save(false)){text="Save HLSL Preset…"});
+            scroll.Add(new Button(()=>Save(true)){text="Save to Project…"});
         }
     }
 }
