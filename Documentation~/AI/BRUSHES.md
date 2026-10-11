@@ -33,6 +33,8 @@ These are **not** `whimtex.document` layer recipes or Unity serialized settings.
 - Standard optionally accepts a plain HTTP(S) URL returning PNG/JPEG, not a Markdown link or a webpage.
   No local asset paths, base64 or image-generation API requests in JSON.
 - HLSL uses `BrushTip`, not `ApplyFX`, `SampleInput` or ShaderLab. Its signature selects Static or Dynamic evaluation.
+- [FastNoiseLite](README.md#built-in-noise-library) is already available in both modes without an include.
+  Prefer it for spatial noise when suitable; custom algorithms remain valid. Use `BrushRandom` for indexed stroke/stamp randomness.
 - Begin code with `// @whimtex-brush Category/Name` on **line 1**.
 - Parameter declarations include a type: `// @param float _Width = 0.1 [0 .. 1]`.
   No semicolon; one-sided bounds use `[0 ..]` or `[.. 1]`.

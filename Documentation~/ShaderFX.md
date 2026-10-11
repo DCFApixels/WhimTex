@@ -16,6 +16,10 @@ Use **+ Shader FX** in a layer's settings, write `ApplyFX`, and click **Apply**.
 Code and parameters can live inside the document. For an effect on the already-composited
 stack below a position, add a **Shader Processor** layer instead.
 
+[FastNoiseLite](AI/README.md#built-in-noise-library) is automatically included in FX and
+HLSL brush tips. Prefer its spatial-noise functions when suitable; custom algorithms remain valid.
+No explicit include or copied library source is needed.
+
 ## Shader FX: a first snippet, parameters and reusable code
 
 Parameters are authored only with `// @param` in HLSL. Saved manual uniforms are not

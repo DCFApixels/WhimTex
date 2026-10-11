@@ -35,6 +35,7 @@
 - Explicitly target the intended Unity project. Missing tools do not authorize installing packages, starting another Editor or changing unrelated projects/assets.
 - For document authoring use `WhimTexApi`, not generated YAML or simulated clicks. Source-code work does not require the authoring API.
 - Prefer linked built-in/project FX: discover them with `whimtex_fx_catalog`, add through `presetId`, and adjust parameters with `set`. Do not copy unchanged preset HLSL into `code`; reserve inline code for custom algorithms or intentionally independent variants. User-library embedding remains the API's normal behavior.
+- For spatial noise in HLSL FX or brush tips, consider the automatically included FastNoiseLite first. Prefer it when its algorithms fit the requested result; this is a recommendation, not a restriction on custom noise or point distributions. No explicit include is needed. See the [built-in noise reference](Documentation~/AI/README.md#built-in-noise-library), including the distinction from indexed `BrushRandom` values.
 - Inspect existing documents before path-based edits; use IDs and `@aliases`, not display names. Validate unfamiliar batches with `dryRun:true`; check inner API success, not just CLI transport success.
 - After ambiguous timeouts/save failures, inspect before retrying. Adds and strokes are not idempotent.
 - Scope assets to the requested output. Do not overwrite unrelated files, change source import settings or delete work to recover from a failed command.

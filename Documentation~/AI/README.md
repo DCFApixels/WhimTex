@@ -45,6 +45,9 @@ Brush JSON replaces the brush rather than creating layers.
   appearance backup; do not invent `fallbackPng`/`fallbackKey` values or promise portability of font files.
 - Keep shaders self-contained and deterministic; avoid unnecessary layers, huge blur radii and
   expensive loops. Preserve alpha unless the requested effect intentionally changes coverage.
+- For spatial noise in FX or brush tips, consider [built-in FastNoiseLite](#built-in-noise-library)
+  before writing a noise implementation. Prefer it when suitable; custom algorithms remain valid.
+  Built-in helpers are available in self-contained code without an include.
 - If an error is reported, return a corrected complete object using its field path/message.
   Re-pasting inserts another copy; it does not update the previous paste.
 
@@ -320,8 +323,13 @@ Use a GUID without hyphens as the filename; files are limited to 64 KiB. No disp
 ### Built-in noise library
 
 FastNoiseLite v1.1.1, the same library used by Noise layers, is included automatically
-in every WhimTex HLSL effect and brush. Do not paste the library or add an include.
+in every WhimTex HLSL effect and both Static and Dynamic brush tips. No library source or
+explicit include is needed.
 Use the `fnl_` types, `fnl*` functions and `FNL_*` constants; avoid redefining those names.
+
+For spatial noise, prefer this library when its algorithms fit the requested result rather
+than reimplementing Perlin, Simplex-family, Value or Cellular noise from scratch. This is a
+recommendation, not a requirement: custom noise or point distributions may suit the task better.
 
 ```hlsl
 // @param float _Scale = 8 [0.1 .. 64]
@@ -348,8 +356,12 @@ configure `domain_warp_type` and `domain_warp_amp` on the state.
 See the [bundled HLSL source](https://github.com/DCFApixels/WhimTex/blob/main/src/Shaders/ThirdParty/FastNoiseLite.hlsl) for the full state and constants.
 White Noise and Blue Noise are separate Noise-layer implementations, not functions of this library.
 
-The same noise calls work inside `float4 BrushTip(float2 uv)` for a brush;
-its script still starts with `// @whimtex-brush Category/Name`.
+The same noise calls work inside Static or Dynamic `BrushTip` signatures;
+the script still starts with `// @whimtex-brush Category/Name`.
+For independent random values per stroke or stamp, use the brush's
+[indexed `BrushRandom` helper](BRUSHES.md#dynamic-context-and-randomization).
+It is not spatial noise; the FastNoiseLite recommendation does not replace it or rule out
+custom hashes and specialized algorithms that the library does not provide.
 
 ### Built-in distortion controls
 

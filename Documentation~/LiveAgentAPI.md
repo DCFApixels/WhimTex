@@ -283,6 +283,8 @@ Remove accepts only op/index. Add/replace accept `code`; define parameters with 
 - `_MainTex`, `_MainTex_TexelSize`, `_InputSize`, `_CanvasSize`, `_RenderScale` are supplied by the
   editor. `_InputSize`/`_CanvasSize` hold width, height, reciprocal width, reciprocal height.
   `_RenderScale` is full-size pixels per preview pixel. `UnityCG.cginc` is already included.
+- [FastNoiseLite](AI/README.md#built-in-noise-library) is also included automatically, with no explicit
+  include needed. Prefer it for spatial noise when suitable; custom algorithms remain valid.
 - `#include` works with existing Assets/Packages paths and paths relative to the document (Assets
   before its first save). Prefer explicit project paths. An FX does not require its own shader file.
 - Declare at most 128 parameters in code using [HLSL metadata](ShaderFX.md#parameter-declarations),

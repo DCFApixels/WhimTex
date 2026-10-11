@@ -180,7 +180,10 @@ Complete this job with `changes.fx` (add/replace/remove by FX index), optionally
 transform. Read the existing code before replacing an FX and preserve unrelated entries and uniforms.
 Replacing an external reference creates a local embedded FX, leaving the shared asset untouched.
 Implement `float4 ApplyFX(float2 uv, float4 color)` in linear straight RGBA; use SampleInput for neighbours.
-Keep GPU loops/samples bounded. Use #include for existing libraries if needed; do not create files unless
+For spatial noise, consider the automatically included FastNoiseLite first; no explicit include is needed.
+Prefer it when suitable, but custom algorithms remain valid. Read
+[the built-in noise reference](../../Documentation~/AI/README.md#built-in-noise-library) for exact names and an example.
+Keep GPU loops/samples bounded. Use #include only for other libraries that need it; do not create files unless
 requested. A preview trial compiles and renders without publishing the candidate. Inspect it before
 completion; shader_compile_failed leaves working content untouched and supplies diagnostics for correction.
 
