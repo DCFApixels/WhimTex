@@ -32,6 +32,7 @@ namespace DCFApixels.WhimTex
                 "fx", "delete", "duplicate", "merge", "convertToDrawing", "blurStroke", "smudgeStroke", "healStroke", "resize");
             result["resize"] = "Document operation: width/height (1..16384, at most 16,777,216 pixels), preserveLayout=true. Preserves normalized layer transforms, not pixel-valued effects or source raster dimensions. Result layerId/name are null.";
             result["fxOperations"] = new JArray("add", "replace", "set", "remove", "move", "copy", "apply", "applyAll");
+            result["fxSeedRandomization"] = "FX add/replace/set/copy accepts randomizeSeeds:[uniformName]. Uses the first seed declaration's inclusive integer bounds. Validation does not randomize; execution changes saved values once with ordinary FX Undo/invalidation.";
             result["fxCatalog"] = "whimtex_fx_catalog: query installed presets; pass presetId for parameter details. Use returned id in FX add/replace.";
             result["assistantBatch"] = "whimtex_assistant_execute: sessionId + expectedRevision + operations, same operations as batch/headless; one Undo step, no save. Finish active jobs first.";
             result["renderProbe"] = "whimtex_render_probe: exactly one assetPath/assistantSessionId/headlessSessionId; stage composite/layer/beforeFx/afterFx; channel rgba/r/g/b/a.";

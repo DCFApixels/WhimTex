@@ -1,5 +1,60 @@
 [
   {
+    "name": "seed fractional bounds and modifiers",
+    "source": "// @param label(Seed) seed hidden float _Seed = 2.5 [~2.1 .. ~3.8]",
+    "valid": true
+  },
+  {
+    "name": "seed exact float integer maximum",
+    "source": "// @param seed float _Seed = 16777216 [16777216 .. 16777216]",
+    "valid": true
+  },
+  {
+    "name": "seed does not require the Seed uniform name",
+    "source": "// @param seed float _Pattern = 0 [-2 .. 2]",
+    "valid": true
+  },
+  {
+    "name": "invalid seed declaration 0",
+    "source": "// @param seed bool _Seed",
+    "valid": false
+  },
+  {
+    "name": "invalid seed declaration 1",
+    "source": "// @param seed enum _Seed {A:0}",
+    "valid": false
+  },
+  {
+    "name": "invalid seed declaration 2",
+    "source": "// @param seed float _Seed",
+    "valid": false
+  },
+  {
+    "name": "invalid seed declaration 3",
+    "source": "// @param seed float _Seed [0 ..]",
+    "valid": false
+  },
+  {
+    "name": "invalid seed declaration 4",
+    "source": "// @param seed float _Seed [0.1 .. 0.9]",
+    "valid": false
+  },
+  {
+    "name": "invalid seed declaration 5",
+    "source": "// @param seed seed float _Seed [0 .. 10]",
+    "valid": false
+  },
+  {
+    "name": "invalid seed declaration 6",
+    "source": "// @param seed float _Seed [-16777218 .. 0]",
+    "valid": false
+  },
+  {
+    "name": "invalid seed declaration 7",
+    "source": "// @param seed float _Seed [0 .. 16777218]",
+    "valid": false
+  },
+  {
     "name": "defaultless float",
     "source": "// @param float _Value // A hint with punctuation; [0 .. 1] and // more text.",
     "valid": true
@@ -340,9 +395,9 @@
     "valid": false
   },
   {
-    "name": "point bounds",
+    "name": "point outside canvas is allowed",
     "source": "// @param point _Value = (-1,2)",
-    "valid": false
+    "valid": true
   },
   {
     "name": "float4 hex",
@@ -555,29 +610,29 @@
     "valid": false
   },
   {
-    "name": "alias current",
+    "name": "removed alias current is ignored",
     "source": "// @formerlyserializedas(_Value)\n// @param float _Value",
-    "valid": false
+    "valid": true
   },
   {
-    "name": "alias duplicate",
+    "name": "removed alias duplicate is ignored",
     "source": "// @formerlyserializedas(_Old)\n// @formerlyserializedas(_Old)\n// @param float _Value",
-    "valid": false
+    "valid": true
   },
   {
-    "name": "alias claimed",
+    "name": "removed alias claimed is ignored",
     "source": "// @formerlyserializedas(_Old)\n// @param float _A\n// @formerlyserializedas(_Old)\n// @param float _B",
-    "valid": false
+    "valid": true
   },
   {
-    "name": "alias active",
+    "name": "removed alias active is ignored",
     "source": "// @param float _Old\n// @formerlyserializedas(_Old)\n// @param float _New",
-    "valid": false
+    "valid": true
   },
   {
-    "name": "alias orphan",
+    "name": "removed alias orphan is ignored",
     "source": "// @formerlyserializedas(_Old)",
-    "valid": false
+    "valid": true
   },
   {
     "name": "empty help",

@@ -110,7 +110,8 @@ namespace DCFApixels.WhimTex
                     var label = new Label(layerName ?? "");
                     label.AddToClassList("whimtex-layer-drag-ghost-name");
                     // Copy the text element's geometry when available, without cloning the input.
-                    VisualElement text = name.Q(className: "unity-text-element") ?? name;
+                    VisualElement text = name.Q<Label>(className: "whimtex-layer-name__display") ??
+                        name.Q(className: "unity-text-element") ?? name;
                     label.style.color = text.resolvedStyle.color;
                     label.style.fontSize = text.resolvedStyle.fontSize;
                     AddCopy(label, text, row);

@@ -12,7 +12,8 @@ namespace DCFApixels.WhimTex
 
         private bool IsLayerListEndDropArea(Vector2 point) =>
             toolkitLayerEndDropZone?.panel != null &&
-            IsBelowLayerList(toolkitSettingsScroll.contentViewport.worldBound, toolkitLayerEndDropZone.worldBound.yMin, point);
+            IsBelowLayerList(toolkitSettingsScroll.contentViewport.worldBound,
+                activeDocument.layers.Count == 0 ? toolkitLayerHierarchyRoot.worldBound.yMin : toolkitLayerEndDropZone.worldBound.yMin, point);
 
         private static bool IsBelowLayerList(Rect viewport, float endY, Vector2 point) =>
             viewport.Contains(point) && point.y >= endY;
@@ -112,7 +113,7 @@ namespace DCFApixels.WhimTex
             internal void UpdatePointer(Vector2 position)
             {
                 pointer = position;
-                if ((owner.GetDraggedLayer() == null && !owner.IsCrossWindowLayerDrag()) || EdgeSpeed(scroll.contentViewport.worldBound, pointer) == 0f)
+                if (!HasScrollableDrag() || EdgeSpeed(scroll.contentViewport.worldBound, pointer) == 0f)
                 {
                     Stop();
                     return;
@@ -129,6 +130,9 @@ namespace DCFApixels.WhimTex
                 running = false;
                 timer?.Pause();
             }
+
+            private bool HasScrollableDrag() => owner.GetDraggedLayer() != null ||
+                owner.IsCrossWindowLayerDrag() || owner.HasProjectTextureDrag();
 
             private void OnDragPerform(DragPerformEvent evt) => Stop();
             private void OnDragExited(DragExitedEvent evt) => Stop();
@@ -155,7 +159,7 @@ namespace DCFApixels.WhimTex
 
             private void Tick()
             {
-                if (!running || target.panel == null || (owner.GetDraggedLayer() == null && !owner.IsCrossWindowLayerDrag()))
+                if (!running || target.panel == null || !HasScrollableDrag())
                 {
                     Stop();
                     return;
@@ -175,44 +179,26 @@ namespace DCFApixels.WhimTex
             private void RefreshDropIndicator()
             {
                 if (owner.IsCrossWindowLayerDrag()) { owner.UpdateCrossWindowLayerDrop(pointer); return; }
-                if (owner.UpdateLayerListEndDrop(pointer)) return;
-                VisualElement picked = target.panel.Pick(pointer);
-                if (picked == null || !scroll.contentViewport.Contains(picked)) return;
-                for (VisualElement element = picked; element != null && element != target; element = element.parent)
+                if (owner.HasProjectTextureDrag())
                 {
-                    if (element.ClassListContains("whimtex-layer-row") && element.userData is string id)
-                    {
-                        Layer layer = owner.activeDocument.FindLayer(id);
-                        if (layer != null && owner.activeDocument.TryFindLayer(layer, out List<Layer> container, out int index) &&
-                            owner.TryGetToolkitDrop(element, pointer, layer, container, index,
-                                out _, out _, out _, out Layer group, out bool before))
-                        {
-                            owner.SetToolkitDropIndicator(element, group != null, before, 0);
-                            DragAndDrop.visualMode = DragAndDropVisualMode.Move;
-                        }
-                        else
-                        {
-                            owner.ClearToolkitDropIndicator();
-                            DragAndDrop.visualMode = DragAndDropVisualMode.Rejected;
-                        }
-                        return;
-                    }
-                    if (element.userData is List<Layer> destination)
-                    {
-                        if (owner.CanDropLayer(owner.GetDraggedLayer(), destination, destination.Count))
-                        {
-                            owner.SetToolkitDropIndicator(element, false, true, 0);
-                            DragAndDrop.visualMode = DragAndDropVisualMode.Move;
-                        }
-                        else
-                        {
-                            owner.ClearToolkitDropIndicator();
-                            DragAndDrop.visualMode = DragAndDropVisualMode.Rejected;
-                        }
-                        return;
-                    }
+                    if (owner.TryResolveLayerDropTarget(pointer, out var textureDrop))
+                    { owner.ShowLayerDropTarget(textureDrop); DragAndDrop.visualMode = DragAndDropVisualMode.Copy; }
+                    else { owner.ClearToolkitDropIndicator(); DragAndDrop.visualMode = DragAndDropVisualMode.Rejected; }
+                    return;
                 }
-                owner.ClearToolkitDropIndicator();
+                if (owner.UpdateLayerListEndDrop(pointer)) return;
+                Layer dragged = owner.GetDraggedLayer();
+                if (dragged != null && owner.TryResolveLayerDropTarget(pointer, out var drop) &&
+                    owner.CanDropLayer(dragged, drop.Container, drop.Index))
+                {
+                    owner.ShowLayerDropTarget(drop);
+                    DragAndDrop.visualMode = DragAndDropVisualMode.Move;
+                }
+                else
+                {
+                    owner.ClearToolkitDropIndicator();
+                    DragAndDrop.visualMode = DragAndDropVisualMode.Rejected;
+                }
             }
         }
     }

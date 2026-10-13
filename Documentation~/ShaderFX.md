@@ -37,6 +37,7 @@ float4 ApplyFX(float2 uv, float4 color)
 ```
 
 Parameter declarations generate uniforms and editor controls automatically; the supported types are described below.
+The FX block's **Reset** menu action copies defaults from its current `@param` declarations into existing values, including hidden controls, textures, gradients, curves and transforms. Parameter IDs, controls, code, catalog linkage and enabled state are retained; no shader compilation is needed. It records one FX Undo and uses the normal value-change notification. Reset is disabled for locked FX, missing declarations or a draft whose declaration schema no longer matches the current parameters. Material references have no `@param` defaults and cannot use this action. Shared Shader FX assets retain their existing shared-edit behavior.
 Code and declarations stay drafts until **Apply**, including an Apply request from saving the working file in the bundled VS Code integration. A failed Apply skips the FX, including any previously compiled version, until successful recompilation. Code, values and enabled state remain editable. Yellow indicators in Layers, the FX section and the effect header expose errors and warnings even when collapsed. Warnings do not disable a successfully compiled FX. JSON loading/saving retains broken effects and reports diagnostics without aborting the document; TIFF save validation is unchanged.
 
 FX compilation, declaration validation, source/include failures and catalog reloads share one
@@ -173,6 +174,35 @@ Zero Thickness or zero tint alpha removes the contour. Sampling stops at the can
 it does not add a frame or wrap to the opposite edge. Earlier FX, group input and Shader
 Processor input follow the ordinary effect input contract.
 
+## Selective HSV preset
+
+`Color/Selective HSV` is a separate Shader FX, not an HSV mode or Effect Layer. Master exposes
+`_MasterHue`, `_MasterSaturation` and `_MasterValue` for the whole image, including gray pixels.
+Four ranges each expose Enabled, Center/Width/Feather in degrees, signed Hue shift and
+Saturation/Value multipliers. All ranges start disabled. Disabled ranges hide their controls
+but retain values. Center wraps at 360°;
+Width is the full-strength span, and Feather adds a smooth transition on each side, limited
+at the opposite hue. Width 360 selects all hues; Width and Feather both zero select nothing.
+
+Every range measures the original display-encoded hue, before Master or any range correction.
+Range settings describe corrections relative to the source, not additional changes after Master.
+For each Hue/Saturation/Value correction offset, let `wi` be source hue weights, `g` the shared
+Min Saturation/Saturation Feather gate, `Z = max(1, sum(wi))`, and `q = g * saturate(sum(wi))`.
+The effective offset is `(1 - q) * masterOffset + g * sum(wi * rangeOffset_i) / Z`;
+Hue offsets are degrees, and multiplier offsets are `multiplier - 1`. Master never participates
+in the overlap average. A neutral full-weight range therefore preserves original colors even
+when Master desaturates everything. Feather/gating blend back toward Master. Two enabled ranges
+still average signed offsets; a neutral overlapping range can weaken the other range.
+Gray, black and near-undefined hues never select a range, but still receive Master correction.
+Transparent Result pixels retain their hidden RGB exactly. An effectively neutral Result returns
+the exact incoming RGBA; active correction supports HDR and preserves alpha.
+
+Output offers Result, All Ranges Mask and one mask per range. Mask RGB is coverage times source
+alpha; Master never changes these source selection masks. At full Opacity mask alpha is 1.
+The hidden `_Opacity` header control blends the selected
+output with the original RGBA; zero preserves the input even in mask modes. Settings use
+ordinary uniforms and never trigger compilation variants.
+
 ## Texture inputs and lighting
 
 ### Height-based lighting
@@ -203,7 +233,7 @@ when pasting into another document; they are not the JSON export path.
 
 For document-owned code, **Open Code** opens a working `.hlsl` file through Unity's selected external script editor. Saving synchronizes the draft; **Apply** in WhimTex compiles it. **Open in VS Code** uses a project-local isolated profile and installs the bundled extension automatically. Detection checks Unity's registered editors, then PATH, then **User Settings → External Code Editor → VS Code Command**.
 
-The extension augments the existing **HLSL** language mode with highlighting for directives, types, modifiers, parameter names, values, enum options and ranges. Validation checks declaration defaults, finite numbers, hard/soft bounds, tuples, hex colors, two-color gradients, curve keys, transform matrices, texture-reference syntax, compatible repeated controls, conditions, groups and former-name aliases; trailing tooltips and block-commented examples are handled separately. It supports Restricted Mode without disabling Workspace Trust. It does not resolve Unity assets/includes or compile HLSL; Unity remains the authority for generated shader identifiers and compilation.
+The extension augments the existing **HLSL** language mode with highlighting for directives, types, modifiers, parameter names, values, enum options and ranges. Validation checks declaration defaults, finite numbers, hard/soft bounds, tuples, hex colors, two-color gradients, curve keys, transform matrices, texture-reference syntax, compatible repeated controls, conditions, groups and seed modifiers; trailing tooltips and block-commented examples are handled separately. It supports Restricted Mode without disabling Workspace Trust. It does not resolve Unity assets/includes or compile HLSL; Unity remains the authority for generated shader identifiers and compilation.
 
 WhimTex checks the bundled VSIX content when opening code, so a changed bundle can be installed without changing the package version. After reinstalling into an already-running VS Code window, use **Developer: Reload Window** to activate the update.
 
@@ -223,7 +253,8 @@ Add a `.hlsl` file anywhere in Assets or an installed package. Its **first physi
 `// @whimtex-effect Category/Name`. UTF-8 BOM is allowed, but no preceding blank line, indentation,
 license comment or other text. Unmarked HLSL files are not catalog effects. Discovery reads headers only,
 without parsing parameters, loading ShaderFX assets or hashing shader dependencies. Project headers
-are cached across script reloads within the Editor session and updated by import notifications.
+are updated by import notifications and reconciled once against AssetDatabase after a script reload,
+on the next catalog request.
 Full validation and loading happen when a preset is selected; invalid source reports an error without adding an FX.
 
 ```hlsl
@@ -314,6 +345,8 @@ Use `@group` and `@endgroup` to visually contain several controls in a bordered 
 
 For example, `// @group(Quality; _Quality)` with `// @param hidden enum _Quality = 1 {Low: 0, High: 1}` puts the dropdown next to the group title without a duplicate row. Use `// @group(Advanced)` for a titled group without a linked field, or plain `// @group` for a box without a header.
 
+Right-click a named group header for **Copy**, **Paste**, a separator and **Reset**. The group body and unnamed groups have no group menu. Actions include the linked header value and hidden/conditional parameters; repeated controls for one uniform are handled once. Copy stores a session-local snapshot of values, not code or metadata. Paste requires the same number of parameters, matching names (or unique UI labels), compatible types and identical enum options. Destination float hard bounds still apply; layer texture references can only be pasted within their source document. Reset restores only this group's defaults from the current HLSL declarations. Paste and Reset each form one Undo operation and retain destination parameter identities, code and the compiled shader. These actions use the shared FX/brush parameter view.
+
 Use `label(...)` inline to override a parameter's generated UI label without changing its shader identifier: `// @param label(Tint Strength) float _Strength = 1`. The `hidden` and `label(...)` modifiers can appear in either order. Quote labels that contain parentheses; labels are preserved on preset export.
 
 ```hlsl
@@ -360,6 +393,28 @@ and `[0 .. ~0]` are errors. The old prefix syntax `~[0 .. 2]` is not accepted.
 Initializers remain optional. Repeated controls keep their own range behavior.
 Preset export preserves both boundary flags and the current value.
 This is editor metadata only: explicit `clamp`, `saturate` or other bounds in HLSL still apply.
+
+### Seed parameters
+
+```hlsl
+// @param seed label(Seed) float _Seed = 0 [0 .. ~10000]
+```
+
+`seed` adds a Random button beside a numeric field; it does not change the HLSL `float`
+or infer anything from the uniform name. A click chooses an integer from `ceil(min)` through
+`floor(max)`, inclusive. Both bounds must be finite and within −16777216…16777216, with
+at least one integer between them. Equal hard bounds are valid. Soft bounds constrain random
+generation too, but manual entry/label dragging retains normal hard/soft rules and accepts fractions.
+Invalid declarations use the shared FX diagnostics.
+
+The modifier works in FX and HLSL brush tips, with labels, conditions, groups, repeated declarations
+and `hidden`. A hidden body row has no button; an explicitly linked group/header control still does.
+Repeated seed controls use their own ranges. Preset export and copy/paste retain the modifier,
+range and chosen value. Random uses normal value editing, Undo and render invalidation; it does
+not recompile HLSL. Preview, save, load and bake never choose a new seed.
+Agent FX edits accept [`randomizeSeeds`](AgentAPI.md#fx-edits-and-presets); the first seed declaration
+of each named uniform supplies its range. Validation does not randomize. Multi-editing and bound
+document parameters remain separate deferred features.
 
 ### Curve parameters
 
@@ -482,7 +537,7 @@ values and IDs survive Apply; removed declarations disappear. Renaming in place 
 the type or layout retains identity. When simultaneously restructuring and renaming declarations,
 unmatched parameters are treated as new rather than guessing their correspondence.
 Do not separately declare generated uniforms/helpers. `_WhimTex_` is reserved for generated data.
-The limit is 128 declarations per effect; the live API limits authoring to 32 parameters.
+The limit is 128 declarations per effect; the live API supports up to 128 parameters per FX.
 
 ### Transform 2D
 

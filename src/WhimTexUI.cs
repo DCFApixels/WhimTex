@@ -137,6 +137,9 @@ namespace DCFApixels.WhimTex
 
         internal static bool IsInteracting(VisualElement element)
         {
+            if (element is WhimTexSliderField slider && !slider.isEditing && !slider.isDragging)
+                return HasPointerCaptureWithin(element);
+
             VisualElement focused = element.focusController?.focusedElement as VisualElement;
             if (focused != null && (focused == element || element.Contains(focused)))
                 return true;

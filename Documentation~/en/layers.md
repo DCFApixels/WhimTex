@@ -46,11 +46,29 @@ Effect layers also show thumbnails of their results. Animated Shader FX use stil
 Click a row to select it. Hold `Ctrl` to select several layers or `Shift` to select a range.
 The **last selected layer is active**: this is the layer you paint on and edit in Layer Settings.
 
-Drag a row to move the selected layers; hold near the list's top or bottom edge to scroll.
-Finish editing a text field before dragging from it. Dragging from a field cancels unconfirmed input.
-Confirm name and opacity edits with `Enter` or by leaving the field.
-Edit the name directly in the row. **Opacity** controls how much the layer shows;
+Drag a row or its name to move the selected layers; hold near the list's top or bottom edge to scroll.
+Finish editing a name before dragging it.
+
+During a drag, an outlined, tinted group header means the layer will go inside that group.
+A thin line with a small dot at its start marks insertion before or after a row.
+
+For an expanded group with children, use the middle or lower part of its header to drop inside; use the boundary after its last child to insert after the whole group.
+For a collapsed or empty group, its centre accepts the layer inside and its bottom edge inserts after the group.
+At the bottom of nested groups, move horizontally until the line's indent matches the parent level you want.
+Drop into blank space below the list to append at the root level, including in an empty document.
+The same indicators place textures from Project and layers copied from another WhimTex window.
+
+Layer and group names appear as plain text. Double-click a name to edit it with the keyboard.
+Press `Enter` or `Tab`, or leave the field, to confirm the name; `Escape` discards the edit.
+**Opacity** controls how much the layer shows;
 **Blend** controls how it combines with the image below. Changing either updates all selected layers.
+As the list narrows, **Blend** hides first, then **Opacity**; each change applies to all rows and the column header, and widening restores them in reverse order.
+A column hides if showing it would leave less than 96 pixels for the **Name** header or a name in any listed row, including rows inside expanded groups.
+This depends on available space, not name length.
+
+Drag horizontally across **Opacity** in a layer or group row to adjust it, or double-click to type an exact value.
+The filled area is brighter than the empty area, and subtle inner outlines mark their edges. The field's overall brightness changes gently as you adjust it.
+Press `Enter` or `Tab`, or leave the field, to confirm the typed value; `Escape` cancels the edit.
 
 Use the eye to hide a layer. The eye in the column header reveals all layers.
 
@@ -115,7 +133,8 @@ not automatic wrapping. All four values participate in wrapping and Auto Size.
 
 **Horizontal Scale** changes character width without changing height: `1` keeps the original
 width, `0.5` halves it, and `2` doubles it. Wrapping, Auto Size and Ellipsis use the new widths;
-added em spacing remains unchanged.
+added em spacing remains unchanged. Expanded glyphs are rasterized at higher density so their
+edges are not just enlarged from the original font bitmap; output texture limits still apply.
 
 **Color** includes alpha. Use **Transform**, **Rendering**
 and **FX** to place and process the result. The inline editor shows plain text; finishing

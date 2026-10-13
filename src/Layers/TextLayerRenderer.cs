@@ -145,7 +145,8 @@ namespace DCFApixels.WhimTex
                 Mathf.Sqrt(16 * 1024 * 1024f / (SourceRect.width * SourceRect.height)));
             int outputWidth = Mathf.Max(1, Mathf.CeilToInt(SourceRect.width * renderScale));
             int outputHeight = Mathf.Max(1, Mathf.CeilToInt(SourceRect.height * renderScale));
-            int renderSize = Mathf.Clamp(Mathf.RoundToInt(size * renderScale), 1, 2048);
+            // Rasterize expanded glyphs at their widest axis; mesh coordinates still use logical font units.
+            int renderSize = Mathf.Clamp(Mathf.RoundToInt(size * renderScale * Mathf.Max(1, horizontalScale)), 1, 2048);
             float actualScale = renderSize / (float)size;
             int renderSmallSize = Mathf.Clamp(Mathf.RoundToInt(smallSize * actualScale), 1, 2048);
             Request(renderSize, renderSmallSize);

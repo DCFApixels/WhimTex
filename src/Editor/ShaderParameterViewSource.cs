@@ -12,9 +12,12 @@ namespace DCFApixels.WhimTex
         internal abstract IReadOnlyList<ShaderFXParameter> Parameters { get; }
         internal abstract string Code { get; }
         internal abstract bool IsReadOnly { get; }
+        internal virtual WhimTexDocument Document => null;
+        internal virtual bool SupportsLayerTextures => false;
         internal virtual bool CanEditOnCanvas => false;
         internal virtual Vector2 Dimensions => Vector2.one;
         internal abstract void Change(string id, Action<ShaderFXParameter> edit, bool recordUndo = true);
+        internal abstract void ChangeParameters(string undoName, IReadOnlyList<ShaderFXParameter> values);
         internal virtual void BeginDrag() { }
         internal virtual void EndDrag(bool changed) { }
         internal virtual void EditOnCanvas(ShaderFXParameterType type, string id) { }
@@ -23,6 +26,14 @@ namespace DCFApixels.WhimTex
         {
             foreach (var parameter in Parameters) if (parameter != null && parameter.id == id) return parameter;
             return null;
+        }
+
+        protected bool CopyParameterValues(List<ShaderFXParameter> targets, IReadOnlyList<ShaderFXParameter> values)
+        {
+            foreach (var value in values)
+                if (value == null || !targets.Exists(p => p.id == value.id && p.type == value.type)) return false;
+            foreach (var value in values) ShaderFXMetadata.CopyValue(value, targets.Find(p => p.id == value.id));
+            return true;
         }
 
         internal virtual WhimTexColorField CreateColorField(string label, string id, List<Action> refresh)
@@ -61,6 +72,9 @@ namespace DCFApixels.WhimTex
         internal override IReadOnlyList<ShaderFXParameter> Parameters => effect != null ? effect.Parameters : Array.Empty<ShaderFXParameter>();
         internal override string Code => effect != null ? effect.Code : string.Empty;
         internal override bool IsReadOnly => effect == null || WhimTexApi.IsShaderFXContentLocked(effect);
+        internal override WhimTexDocument Document => effect != null
+            ? effect.EmbeddedOwner ?? WhimTexWindow.FindFXTransformDocument(effect) : null;
+        internal override bool SupportsLayerTextures => true;
         internal override bool CanEditOnCanvas => true;
         internal override Vector2 Dimensions
         {
@@ -82,6 +96,15 @@ namespace DCFApixels.WhimTex
             Undo.SetCurrentGroupName("Change FX Parameter"); Undo.RecordObject(effect, "Change FX Parameter");
         }
         internal override void EndDrag(bool changed) { if (changed) Undo.CollapseUndoOperations(undoGroup); }
+        internal override void ChangeParameters(string undoName, IReadOnlyList<ShaderFXParameter> values)
+        {
+            if (IsReadOnly || values.Count == 0) return;
+            foreach (var value in values)
+                if (Find(value.id) is not ShaderFXParameter parameter || parameter.type != value.type) return;
+            Undo.RecordObject(effect, undoName);
+            foreach (var value in values) ShaderFXMetadata.CopyValue(value, Find(value.id));
+            EditorUtility.SetDirty(effect); effect.NotifyValuesChanged();
+        }
         internal override void EditOnCanvas(ShaderFXParameterType type, string id)
         {
             if (type == ShaderFXParameterType.Point) WhimTexWindow.EditFXPoint(effect, id);
@@ -127,6 +150,19 @@ namespace DCFApixels.WhimTex
                 var value = values.Find(p => p.id == id);
                 if (value == null) return;
                 edit(value);
+                apply(() => settings.ApplyHlsl(settings.dynamics.hlslCode, values, settings.dynamics.hlslResolution));
+            }
+            catch (Exception exception) { error(exception.Message); }
+        }
+        internal override void ChangeParameters(string undoName, IReadOnlyList<ShaderFXParameter> replacements)
+        {
+            if (IsReadOnly || replacements.Count == 0) return;
+            try
+            {
+                var settings = read();
+                var values = new List<ShaderFXParameter>(Parameters.Count);
+                foreach (var parameter in Parameters) values.Add(parameter.Copy());
+                if (!CopyParameterValues(values, replacements)) return;
                 apply(() => settings.ApplyHlsl(settings.dynamics.hlslCode, values, settings.dynamics.hlslResolution));
             }
             catch (Exception exception) { error(exception.Message); }

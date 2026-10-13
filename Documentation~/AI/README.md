@@ -442,6 +442,27 @@ available rather than duplicating its code; see [the shader reference](../Shader
 `_Opacity` (0–1, default 1; FX header control) blends the complete selected output with
 the original input. Zero leaves the image unchanged, including in Outline Only.
 
+### Selective HSV and seeds
+
+`Color/Selective HSV` is a separate FX. `_MasterHue`, `_MasterSaturation` and `_MasterValue`
+correct the whole image; four `_Range1`…`_Range4` groups override Master inside selected hues.
+Each range has Enabled, Center/Width/Feather (degrees), signed Hue and Saturation/Value
+multipliers relative to the source, not to Master's output. All ranges start disabled.
+Ranges use source hue; overlaps average only range correction offsets. Feather and the shared
+Min Saturation/Saturation Feather blend overrides back toward Master. Gray pixels use Master.
+To desaturate everything except blue, set `_MasterSaturation` to 0, `_Range3Enabled` to true,
+`_Range3Center` to 240 and `_Range3Saturation` to 1, then adjust Width/Feather.
+Output selects Result or source range masks (unaffected by Master), and `_Opacity` blends
+that output with the input. See the
+[preset contract](../ShaderFX.md#selective-hsv-preset) for boundary and alpha rules.
+
+Declare an explicitly randomizable seed as `// @param seed float _Seed = 0 [0 .. ~10000]`.
+It remains an ordinary uniform. Random chooses an integer within both declared bounds;
+the finite bounds must be within −16777216…16777216 and contain at least one integer.
+Manual input keeps normal hard/soft rules. Preview/save/load never randomize. Labels, groups,
+conditions, `hidden` and repeated controls work normally; FX edits can explicitly invoke
+[`randomizeSeeds`](../AgentAPI.md#fx-edits-and-presets). The same modifier works in HLSL brush tips.
+
 ### Effect entry point
 
 Write a fragment function, **not a complete ShaderLab shader**:

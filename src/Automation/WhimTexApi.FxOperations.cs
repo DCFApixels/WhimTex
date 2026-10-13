@@ -100,7 +100,7 @@ namespace DCFApixels.WhimTex
                     continue;
                 }
                 Require(op == "add" || op == "replace" || op == "set" || op == "copy", "Unknown FX edit: " + op);
-                Keys(spec, "op", "index", "code", "includeBasePath", "presetId", "parameters", "enabled", "sourceLayer", "sourceIndex");
+                Keys(spec, "op", "index", "code", "includeBasePath", "presetId", "parameters", "randomizeSeeds", "enabled", "sourceLayer", "sourceIndex");
                 bool insert = op == "add" || op == "copy";
                 Require(op == "copy" || spec["sourceLayer"] == null && spec["sourceIndex"] == null, "Only copy takes sourceLayer/sourceIndex.");
                 int at = insert ? Int(spec, "index", layer.fx.Count, 0, layer.fx.Count) : RequiredFxIndex(layer, spec);
@@ -146,6 +146,7 @@ namespace DCFApixels.WhimTex
                         }
                     }
                     SetFxValues(effect, spec["parameters"], document);
+                    RandomizeFxSeeds(effect, spec["randomizeSeeds"], spec["parameters"], execute);
                     if (spec["enabled"] != null) effect.Active = Bool(spec, "enabled");
                     Require(effect.Parameters.Count <= MaxFxParameters, "At most 128 FX parameters are supported.", "resource_limit");
                     foreach (var parameter in effect.TextureLayerParameters())
@@ -182,7 +183,9 @@ namespace DCFApixels.WhimTex
                         value.floatValue = (bool)spec["value"] ? 1f : 0f;
                         break;
                     case ShaderFXParameterType.Enum:
-                    case ShaderFXParameterType.Float: value.floatValue = Number(spec["value"], "value", -1000000, 1000000); break;
+                    case ShaderFXParameterType.Float:
+                        int limit = ShaderFXSeed.Control(target) != null ? ShaderFXSeed.Limit : 1000000;
+                        value.floatValue = Number(spec["value"], "value", -limit, limit); break;
                     case ShaderFXParameterType.Color: value.colorValue = AgentJson.Color(spec["value"]); break;
                     case ShaderFXParameterType.Vector2:
                     case ShaderFXParameterType.Point:
@@ -256,6 +259,27 @@ namespace DCFApixels.WhimTex
                 }
 
             return value;
+        }
+
+        private static void RandomizeFxSeeds(ShaderFX effect, JToken token, JToken values, bool execute)
+        {
+            if (token == null) return;
+            Require(token is JArray seeds && seeds.Count > 0 && seeds.Count <= 128, "randomizeSeeds must contain 1..128 parameter names.");
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var item in (JArray)token)
+            {
+                Require(item.Type == JTokenType.String, "randomizeSeeds entries must be names.");
+                string name = (string)item;
+                Require(names.Add(name), "Duplicate randomized Seed: " + name);
+                Require(values?[name] == null, "Cannot set and randomize the same Seed: " + name);
+                var parameter = effect.Parameters.FirstOrDefault(p => p.name == name);
+                Require(parameter != null, "Unknown FX parameter: " + name);
+                var control = ShaderFXSeed.Control(parameter);
+                Require(control != null, "Parameter is not declared seed: " + name);
+                ShaderFXSeed.Validate(control);
+                // Validation/dry runs must not consume randomness or change the stored value.
+                if (execute) parameter.floatValue = ShaderFXSeed.NextValue(control);
+            }
         }
 
         private static void SetFxValues(ShaderFX effect, JToken token, WhimTexDocument document)

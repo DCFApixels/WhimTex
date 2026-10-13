@@ -199,7 +199,7 @@ namespace DCFApixels.WhimTex
                 try
                 {
                     string parameterLine = line;
-                    ParseParameterModifiers(ref parameterLine, out bool hidden, out string displayLabel);
+                    ParseParameterModifiers(ref parameterLine, out bool hidden, out bool seed, out string displayLabel);
                     string tooltip = ExtractTooltip(ref parameterLine);
                     Match enumMatch = Regex.Match(parameterLine, @"^\s*//\s*@param\s+enum\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^{}]+?))?\s*\{([^{}]+)\}\s*$");
                     Match match = Parameter.Match(enumMatch.Success ? "// @param float " + enumMatch.Groups[1].Value : parameterLine);
@@ -323,7 +323,7 @@ namespace DCFApixels.WhimTex
                     var control = new ShaderFXParameterControl { type = p.type, order = lineNumber, tooltip = tooltip, label = displayLabel,
                         headers = pendingHeaders.ToArray(),
                         helpBoxes = pendingHelpBoxes.ToArray(),
-                        hidden = hidden,
+                        hidden = hidden, seed = seed,
                         inGroup = activeGroup != null,
                         groupId = activeGroup?.id ?? 0,
                         groupTitle = activeGroup?.title,
@@ -361,6 +361,7 @@ namespace DCFApixels.WhimTex
                             p.floatValue = index >= 0 ? numbers[index] : Number(initial);
                         }
                     }
+                    if (seed) ShaderFXSeed.Validate(control);
                     p.controls.Add(control);
                     if (names.TryGetValue(name, out var existing))
                     {
@@ -406,9 +407,10 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
-        private static void ParseParameterModifiers(ref string line, out bool hidden, out string label)
+        private static void ParseParameterModifiers(ref string line, out bool hidden, out bool seed, out string label)
         {
             hidden = false;
+            seed = false;
             label = null;
             Match prefix = ParameterPrefix.Match(line);
             if (!prefix.Success) return;
@@ -418,6 +420,15 @@ namespace DCFApixels.WhimTex
             {
                 while (position < line.Length && char.IsWhiteSpace(line[position])) position++;
                 if (position >= line.Length) break;
+
+                if (line.IndexOf("seed", position, StringComparison.Ordinal) == position &&
+                    (position + 4 == line.Length || char.IsWhiteSpace(line[position + 4])))
+                {
+                    if (seed) throw new FormatException("The seed modifier may be specified only once.");
+                    seed = true;
+                    position += 4;
+                    continue;
+                }
 
                 if (line.IndexOf("hidden", position, StringComparison.Ordinal) == position &&
                     (position + 6 == line.Length || char.IsWhiteSpace(line[position + 6])))
@@ -594,7 +605,7 @@ namespace DCFApixels.WhimTex
         internal static bool IsScalar(ShaderFXParameterType type) => type == ShaderFXParameterType.Float || type == ShaderFXParameterType.Bool || type == ShaderFXParameterType.Enum;
         internal static bool Compatible(ShaderFXParameterType a, ShaderFXParameterType b) => a == b || IsScalar(a) && IsScalar(b) ||
             a == ShaderFXParameterType.Vector2 && b == ShaderFXParameterType.Point || a == ShaderFXParameterType.Point && b == ShaderFXParameterType.Vector2;
-        private static void CopyValue(ShaderFXParameter source, ShaderFXParameter target)
+        internal static void CopyValue(ShaderFXParameter source, ShaderFXParameter target)
         {
             target.floatValue = source.floatValue; target.colorValue = source.colorValue;
             target.gradientValue = source.gradientValue?.Clone();

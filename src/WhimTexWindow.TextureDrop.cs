@@ -7,6 +7,16 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexWindow
     {
+        private bool HasProjectTextureDrag()
+        {
+            if (activeDocument == null || DragAndDrop.GetGenericData(DraggedDocumentIdKey) != null) return false;
+            var objects = DragAndDrop.objectReferences;
+            if (objects.Length == 0) return false;
+            foreach (var item in objects)
+                if (!(item is Texture2D) || !AssetDatabase.Contains(item)) return false;
+            return true;
+        }
+
         private sealed class ProjectTextureDropManipulator : PointerManipulator
         {
             private readonly WhimTexWindow owner;
@@ -33,19 +43,9 @@ namespace DCFApixels.WhimTex
             }
 
             private bool HasProjectTextures()
-            {
-                if (owner.activeDocument == null || DragAndDrop.GetGenericData(DraggedDocumentIdKey) != null)
-                    return false;
-                UnityEngine.Object[] objects = DragAndDrop.objectReferences;
-                if (objects.Length == 0)
-                    return false;
-                foreach (UnityEngine.Object item in objects)
-                    if (!(item is Texture2D) || !AssetDatabase.Contains(item))
-                        return false;
-                return true;
-            }
+                => owner.HasProjectTextureDrag();
 
-            private void ResolveTarget(VisualElement element, Vector2 mousePosition,
+            private bool ResolveTarget(VisualElement element, Vector2 mousePosition,
                 out List<Layer> container, out int index, out Layer group,
                 out VisualElement indicator, out bool before, out int depth)
             {
@@ -59,53 +59,25 @@ namespace DCFApixels.WhimTex
                 {
                     index = 0;
                     before = true;
-                    return;
+                    return true;
                 }
-                for (VisualElement current = element; current != null && current != target; current = current.parent)
-                {
-                    if (current.userData is List<Layer> endContainer)
-                    {
-                        container = endContainer;
-                        index = container.Count;
-                        indicator = current;
-                        break;
-                    }
-                    if (!(current.userData is string id))
-                        continue;
-                    Layer layer = owner.activeDocument.FindLayer(id);
-                    if (layer == null || !owner.activeDocument.TryFindLayer(layer, out List<Layer> rowContainer, out int rowIndex))
-                        continue;
-                    container = rowContainer;
-                    index = rowIndex;
-                    indicator = current;
-                    float fraction = current.WorldToLocal(mousePosition).y / Mathf.Max(1f, current.resolvedStyle.height);
-                    before = fraction < 0.5f;
-                    if (layer?.AsGroup() is Layer destination && fraction >= 0.25f && fraction <= 0.75f)
-                    {
-                        group = destination;
-                        container = destination.layers;
-                        index = 0;
-                    }
-                    else if (!before)
-                        index++;
-                    break;
-                }
-                foreach (LayerTreeEntry entry in owner.toolkitLayerTree)
-                    if (ReferenceEquals(entry.Container, container))
-                    {
-                        depth = entry.Depth;
-                        break;
-                    }
+                if (!owner.TryResolveLayerDropTarget(mousePosition, out var drop)) return false;
+                container = drop.Container; index = drop.Index; group = drop.Expand;
+                indicator = drop.Indicator; before = drop.Before; depth = drop.Depth;
+                return true;
             }
 
             private void OnDragUpdated(DragUpdatedEvent evt)
             {
                 if (!HasProjectTextures())
                     return;
-                ResolveTarget(evt.target as VisualElement, evt.mousePosition,
-                    out _, out _, out Layer group, out VisualElement indicator, out bool before, out int depth);
+                if (!ResolveTarget(evt.target as VisualElement, evt.mousePosition,
+                    out _, out _, out Layer group, out VisualElement indicator, out bool before, out int depth))
+                { owner.ClearToolkitDropIndicator(); owner.layerDragAutoScroll?.Stop(); DragAndDrop.visualMode = DragAndDropVisualMode.Rejected; return; }
                 owner.ClearFooterDropIndicator();
                 owner.SetToolkitDropIndicator(indicator, group != null, before, depth);
+                if (!prependToRoot) owner.layerDragAutoScroll?.UpdatePointer(evt.mousePosition);
+                else owner.layerDragAutoScroll?.Stop();
                 DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
                 evt.StopImmediatePropagation();
             }
@@ -114,8 +86,9 @@ namespace DCFApixels.WhimTex
             {
                 if (!HasProjectTextures())
                     return;
-                ResolveTarget(evt.target as VisualElement, evt.mousePosition,
-                    out List<Layer> container, out int index, out Layer group, out _, out _, out _);
+                if (!ResolveTarget(evt.target as VisualElement, evt.mousePosition,
+                    out List<Layer> container, out int index, out Layer group, out _, out _, out _))
+                { owner.ClearToolkitDropIndicator(); return; }
                 UnityEngine.Object[] textures = DragAndDrop.objectReferences;
                 DragAndDrop.AcceptDrag();
                 evt.StopImmediatePropagation();
@@ -158,7 +131,10 @@ namespace DCFApixels.WhimTex
             private void OnDragLeave(DragLeaveEvent evt)
             {
                 if (HasProjectTextures())
+                {
                     owner.ClearToolkitDropIndicator();
+                    if (evt.target == target) owner.layerDragAutoScroll?.Stop();
+                }
             }
         }
     }

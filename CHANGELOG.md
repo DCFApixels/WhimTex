@@ -6,10 +6,16 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Named shader parameter groups offer header-only Copy/Paste/Reset menus, with Reset separated by a line. Compatible groups can share values, including hidden fields and linked header controls; Paste and Reset support batch Undo.
+- FX block menus offer Reset to restore declared parameter defaults without changing code, the preset link or enabled state.
+- Color/Selective HSV is a separate FX with whole-image Master controls, four feathered hue overrides, saturation protection and source range-mask outputs. Neutral ranges can preserve selected colors while Master desaturates the rest.
+- The seed modifier adds bounded integer Random actions to numeric FX/brush parameters, with Undo, preset export and agent randomizeSeeds support.
 - Noise adds Curl, Gradient Vector and Cell Direction fields with packed/signed vector output, Normalize and Strength. Applicable fields share Fractal and Domain Warp controls; Warp has an independent Seed and a Z scale multiplier in 3D. Layer controls, JSON and agent APIs expose the same settings.
 
 ### Changed
 
+- Horizontally expanded text rasterizes glyphs at higher density before layout scaling, reducing stretched edge blur without increasing the output mask dimensions.
+- FX catalog discovery reconciles imported files after script reload so newly added presets are not hidden by a stale session snapshot.
 - White/Blue Noise settings use the shared grainColor/grainSize names in code, JSON and agent APIs; the old whiteNoiseColor/whiteNoiseSize names are removed.
 - Noise shaders use less compiled code through specialized periodic lattice reductions and a shared fractal loop. Existing noise output and controls are unchanged.
 - Layer Settings renames Color & Blending to Rendering and Swizzle to Mapping, including related code, shader uniforms, hints, presets and export messages. Channel routing is now LayerChannelMapping / ChannelMappingSource / channelMapping in C#, JSON/TIFF and agent API; the settings view is LayerRenderingSettingsView. Document JSON, TIFF container and tagged model versions advance from 1 to 2; old document versions and the swizzle key are unsupported. Rendering behavior is unchanged.

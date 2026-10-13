@@ -173,6 +173,8 @@ namespace DCFApixels.WhimTex
                 string unavailable = owner.ApplyFXUnavailable(layer, index);
                 if (unavailable == null) menu.AddItem(new GUIContent("Apply"), false, () => ApplyThrough(index));
                 else menu.AddDisabledItem(new GUIContent("Apply", unavailable));
+                if (CanReset(index)) menu.AddItem(new GUIContent("Reset"), false, () => Reset(index));
+                else menu.AddDisabledItem(new GUIContent("Reset"));
                 menu.AddSeparator(string.Empty);
                 if (index > 0) menu.AddItem(new GUIContent("Move Up"), false, () => Move(index, -1));
                 else menu.AddDisabledItem(new GUIContent("Move Up"));
@@ -183,7 +185,7 @@ namespace DCFApixels.WhimTex
                 menu.AddSeparator(string.Empty);
                 menu.AddItem(new GUIContent("Remove"), false, () => Change("Remove FX", () => layer.fx.RemoveAt(index)));
                 menu.ShowAsContext();
-            }) { tooltip = "Copy, paste, apply, reorder, embed or remove this effect" };
+            }) { tooltip = "Copy, paste, apply, reset, reorder, embed or remove this effect" };
             actions.AddToClassList("whimtex-layer-menu-button");
             actions.EnableInClassList("whimtex-layer-menu-button--light", !EditorGUIUtility.isProSkin);
             for (int i = 0; i < 3; i++)
@@ -193,31 +195,7 @@ namespace DCFApixels.WhimTex
                 actions.Add(dot);
             }
             toolbar.Add(actions);
-            toolbar.AddManipulator(new ContextualMenuManipulator(evt =>
-            {
-                DropdownMenu menu = evt.menu;
-                bool canEdit = owner != null && !WhimTexApi.IsLayerContentLocked(owner, layer);
-                if (effect != null || fxEntry is Material)
-                    menu.AppendAction("Copy FX", _ => ShaderFXClipboard.Copy(owner, fxEntry));
-                else
-                    menu.AppendAction("Copy FX", _ => { }, DropdownMenuAction.Status.Disabled);
-                menu.AppendAction("Paste FX As New", _ => PasteAt(index + 1),
-                    ShaderFXClipboard.Current != null && canEdit ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-                menu.AppendSeparator();
-                menu.AppendAction("Apply", _ => ApplyThrough(index),
-                    owner.ApplyFXUnavailable(layer, index) == null ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-                menu.AppendSeparator();
-                menu.AppendAction("Move Up", _ => Move(index, -1),
-                    canEdit && index > 0 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-                menu.AppendAction("Move Down", _ => Move(index, 1),
-                    canEdit && index + 1 < layer.fx.Count ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-                if (effect != null && !embedded)
-                    menu.AppendAction("Embed Copy", _ => Change("Embed Shader FX", () => owner.EmbedShaderFX(layer, index)),
-                        canEdit ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-                menu.AppendSeparator();
-                menu.AppendAction("Remove", _ => Change("Remove FX", () => layer.fx.RemoveAt(index)),
-                    canEdit ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-            }));
+            toolbar.AddManipulator(new ContextualMenuManipulator(evt => BuildContextMenu(evt.menu, index)));
             toolbar.AddManipulator(new ReorderManipulator(
                 index, UpdateDropMarker, MoveTo, CanReorderLayer,
                 FindLayerDropTarget, CanMoveToLayer, UpdateLayerDropMarker, MoveToLayer));
@@ -239,6 +217,45 @@ namespace DCFApixels.WhimTex
                 card.Add(foldout);
             }
             entries.Add(card);
+        }
+
+        private void BuildContextMenu(DropdownMenu menu, int index)
+        {
+            var fxEntry = layer.fx[index];
+            var effect = fxEntry as ShaderFX;
+            bool canEdit = owner != null && !WhimTexApi.IsLayerContentLocked(owner, layer);
+            if (effect != null || fxEntry is Material)
+                menu.AppendAction("Copy FX", _ => ShaderFXClipboard.Copy(owner, fxEntry));
+            else
+                menu.AppendAction("Copy FX", _ => { }, DropdownMenuAction.Status.Disabled);
+            menu.AppendAction("Paste FX As New", _ => PasteAt(index + 1),
+                ShaderFXClipboard.Current != null && canEdit ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            menu.AppendSeparator();
+            menu.AppendAction("Apply", _ => ApplyThrough(index),
+                owner.ApplyFXUnavailable(layer, index) == null ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            menu.AppendAction("Reset", _ => Reset(index),
+                CanReset(index) ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            menu.AppendSeparator();
+            menu.AppendAction("Move Up", _ => Move(index, -1),
+                canEdit && index > 0 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            menu.AppendAction("Move Down", _ => Move(index, 1),
+                canEdit && index + 1 < layer.fx.Count ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            if (effect != null && effect.EmbeddedOwner != owner)
+                menu.AppendAction("Embed Copy", _ => Change("Embed Shader FX", () => owner.EmbedShaderFX(layer, index)),
+                    canEdit ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            menu.AppendSeparator();
+            menu.AppendAction("Remove", _ => Change("Remove FX", () => layer.fx.RemoveAt(index)),
+                canEdit ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+        }
+
+        private bool CanReset(int index) => owner != null && owner.TryFindLayer(layer, out _, out _) &&
+            !WhimTexApi.IsLayerContentLocked(owner, layer) && index >= 0 && index < layer.fx.Count &&
+            layer.fx[index] is ShaderFX effect && effect.CanResetParameters;
+
+        private void Reset(int index)
+        {
+            if (!CanReset(index)) return;
+            Change("Reset FX", () => ((ShaderFX)layer.fx[index]).ResetParameters());
         }
 
         private void ApplyThrough(int index)
@@ -517,7 +534,7 @@ namespace DCFApixels.WhimTex
                         return;
                     }
                     dragging = true;
-                    scrollView = FindScrollView(target);
+                    SetScrollView(FindScrollView(target));
                     autoScrollSchedule = target.schedule.Execute(AutoScrollTick).Every(16);
                 }
                 if (!dragging)
@@ -605,18 +622,42 @@ namespace DCFApixels.WhimTex
                     targetIndex = -1;
                     updateDropMarker(default, false);
                     updateLayerDropMarker(destinationLayer != null ? candidate.Row : null);
-                    scrollView = FindScrollView(candidate.Row);
+                    SetScrollView(FindScrollView(candidate.Row));
                     return;
                 }
 
                 destinationLayer = null;
                 updateLayerDropMarker(null);
-                scrollView = FindScrollView(target);
+                SetScrollView(FindScrollView(target));
                 bool overStack = scrollView != null && scrollView.contentViewport.worldBound.Contains(panelPosition);
                 targetIndex = overStack ? FindTargetIndex(panelPosition) : -1;
                 updateDropMarker(panelPosition, overStack);
                 if (!overStack)
-                    scrollView = null;
+                    SetScrollView(null);
+            }
+
+            private void SetScrollView(ScrollView next)
+            {
+                NormalizeScrollOffset(scrollView);
+                scrollView = next;
+                NormalizeScrollOffset(scrollView);
+            }
+
+            private static float ClampScrollOffset(float value, float low, float high)
+            {
+                float minimum = Mathf.Max(0f, low);
+                return Mathf.Clamp(value, minimum, Mathf.Max(minimum, high));
+            }
+
+            private static void NormalizeScrollOffset(ScrollView scroll)
+            {
+                if (scroll == null) return;
+                Vector2 offset = scroll.scrollOffset;
+                float bounded = ClampScrollOffset(offset.y,
+                    scroll.verticalScroller.lowValue, scroll.verticalScroller.highValue);
+                if (offset.y == bounded) return;
+                offset.y = bounded;
+                scroll.scrollOffset = offset;
             }
 
             private static ScrollView FindScrollView(VisualElement from)
@@ -632,6 +673,7 @@ namespace DCFApixels.WhimTex
                 if (!dragging || scrollView == null)
                     return;
 
+                NormalizeScrollOffset(scrollView);
                 Rect viewport = scrollView.contentViewport.worldBound;
                 if (!viewport.Contains(lastPointerPosition))
                     return;
@@ -654,8 +696,9 @@ namespace DCFApixels.WhimTex
 
                 Vector2 offset = scrollView.scrollOffset;
                 float previousY = offset.y;
-                offset.y += direction * Mathf.Lerp(4f, 18f, strength);
-                scrollView.scrollOffset = offset;
+                offset.y = ClampScrollOffset(offset.y + direction * Mathf.Lerp(4f, 18f, strength),
+                    scrollView.verticalScroller.lowValue, scrollView.verticalScroller.highValue);
+                if (offset != scrollView.scrollOffset) scrollView.scrollOffset = offset;
                 if (scrollView.scrollOffset.y != previousY)
                     UpdateDragTarget(lastPointerPosition);
             }
@@ -698,7 +741,7 @@ namespace DCFApixels.WhimTex
                 }
                 if (activePointerId >= 0 && target != null && target.HasPointerCapture(activePointerId))
                     target.ReleasePointer(activePointerId);
-                scrollView = null;
+                SetScrollView(null);
                 targetIndex = -1;
                 destinationLayer = null;
                 overLayerRow = false;

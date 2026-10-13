@@ -1265,6 +1265,9 @@
         "hidden": {
           "type": "boolean"
         },
+        "seed": {
+          "type": "boolean"
+        },
         "inGroup": {
           "type": "boolean"
         },

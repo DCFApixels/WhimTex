@@ -47,9 +47,10 @@ namespace DCFApixels.WhimTex
                         declaration = "// @param enum " + p.name + " = " + Number(p.floatValue) + " { " + string.Join(", ", options) + " }";
                     }
                     else declaration = Declaration(row);
-                    if (control.hidden || !string.IsNullOrWhiteSpace(control.label))
+                    if (control.hidden || control.seed || !string.IsNullOrWhiteSpace(control.label))
                     {
                         string modifiers = control.hidden ? "hidden " : string.Empty;
+                        if (control.seed) modifiers += "seed ";
                         if (!string.IsNullOrWhiteSpace(control.label))
                             modifiers += "label(\"" + control.label.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\") ";
                         declaration = declaration.Insert("// @param ".Length, modifiers);

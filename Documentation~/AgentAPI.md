@@ -354,6 +354,13 @@ presets remain visible with an error. This command does not insert anything into
 | `apply` | Existing `index`; bake that FX and all preceding entries, including disabled entries (removed without rendering). Later FX remain |
 | `applyAll` | Bake the complete nonempty stack |
 
+`add`, `replace`, `set` and `copy` also accept `randomizeSeeds:["_Seed"]`. Names must identify
+explicit `seed float` declarations; the first seed control defines each inclusive integer range.
+Do not include the same name in `parameters`. Each FX gets an independent choice when executed;
+validation/dry runs do not randomize. This uses the ordinary copy-on-write, Undo and invalidation
+path without recompiling a `set`. Catalog/live parameter snapshots expose `seed`, `seedMinimum`
+and `seedMaximum`; bounds are null for other parameters. Values remain fixed until explicitly edited.
+
 `parameters` is a **name/value object**, not a replacement list. Types are inferred from existing
 declarations; unknown names, invalid enum values and hard-range violations fail. Use numbers for
 enums, booleans for bools and the value formats below. Unmentioned values remain.
@@ -363,7 +370,7 @@ operation, 32 FX per layer, 128 parameters per effect, 65,536 characters of raw 
 | Parameter type | Shared `fx.edits[].parameters` value |
 | --- | --- |
 | `Bool` | JSON boolean |
-| `Float` | Finite number within -1000000..1000000 and the declaration's hard bounds; soft bounds may be exceeded |
+| `Float` | Finite number within -1000000..1000000 (−16777216…16777216 for explicit `seed`) and the declaration's hard bounds; soft bounds may be exceeded |
 | `Enum` | Number matching an explicitly declared option value; fractional option values are supported |
 | `Color` | `[r,g,b,a]`: RGB -107..107, alpha 0..1 |
 | `Vector2`, `Point` | Two numeric components, each -1000000..1000000 |

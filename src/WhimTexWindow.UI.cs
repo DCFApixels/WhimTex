@@ -26,7 +26,8 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private VisualElement toolkitLayerHierarchyRoot;
         [NonSerialized] private VisualElement toolkitLayerEndDropZone;
         [NonSerialized] private VisualElement activeDropElement;
-        [NonSerialized] private StyleLength activeDropMarginLeft;
+        [NonSerialized] private VisualElement activeDropMarker;
+        [NonSerialized] private bool activeDropMarkerOwned;
         [NonSerialized] private LayerDragManipulator activeLayerDrag;
         [NonSerialized] private int paintingPointerId = -1;
         [NonSerialized] private bool canvasPointerInside;
@@ -551,6 +552,7 @@ namespace DCFApixels.WhimTex
             var menuSpace = new VisualElement { pickingMode = PickingMode.Ignore };
             menuSpace.AddToClassList("whimtex-layer-menu-space");
             header.Add(menuSpace);
+            RegisterLayerRowLayout(header, name, name, alpha, blend);
             return header;
         }
 
@@ -645,6 +647,8 @@ namespace DCFApixels.WhimTex
                     toolkitLayerHierarchyRoot,
                     "Add a layer or group to start composing.",
                     HelpBoxMessageType.Info);
+                if (activeDocument != null)
+                    toolkitLayerHierarchyRoot.Add(toolkitLayerEndDropZone = BuildContainerEndDropZone(activeDocument.layers, 0));
                 return;
             }
 
@@ -786,7 +790,6 @@ namespace DCFApixels.WhimTex
         {
             for (; element != null && element != row; element = element.parent)
                 if (element.ClassListContains("whimtex-layer-name") ||
-                    element.ClassListContains("whimtex-layer-opacity") ||
                     element.ClassListContains("whimtex-layer-enabled"))
                     return element;
             return null;
@@ -794,7 +797,8 @@ namespace DCFApixels.WhimTex
 
         private static bool IsFocusedLayerTextControl(VisualElement control)
         {
-            if (!(control is TextField) && !(control is FloatField)) return false;
+            if (control is WhimTexLayerNameField name) return name.isEditing;
+            if (!(control is TextField)) return false;
             var focused = control.focusController?.focusedElement as VisualElement;
             return focused != null && (focused == control || control.Contains(focused));
         }
@@ -863,6 +867,50 @@ namespace DCFApixels.WhimTex
             RefreshToolkitLayerHierarchy();
         }
 
+        private WhimTexSliderField CreateLayerOpacityField(Layer layer)
+        {
+            var opacity = new WhimTexSliderField(null, 0f, 1f)
+            {
+                formatString = "0.####",
+                tooltip = "Opacity from 0 to 1. Drag to adjust; double-click to type."
+            };
+            opacity.AddToClassList("whimtex-layer-opacity");
+            opacity.AddToClassList("whimtex-layer-multi-edit");
+            toolkitLayerBindings.Track(opacity, () => layer.opacity);
+            int undoGroup = -1;
+            opacity.interactionStarted += () =>
+            {
+                FinishCanvasTransform();
+                FinishPaintingStroke();
+                Undo.IncrementCurrentGroup();
+                undoGroup = Undo.GetCurrentGroup();
+                Undo.SetCurrentGroupName("Change Selected Layers Opacity");
+            };
+            opacity.RegisterValueChangedCallback(evt => ApplySelectedOpacity(layer, evt.newValue));
+            opacity.interactionEnded += () =>
+            {
+                if (undoGroup < 0) return;
+                Undo.FlushUndoRecordObjects();
+                Undo.CollapseUndoOperations(undoGroup);
+                Undo.IncrementCurrentGroup();
+                undoGroup = -1;
+            };
+            return opacity;
+        }
+
+        private WhimTexLayerNameField CreateLayerNameField(Layer layer)
+        {
+            var name = new WhimTexLayerNameField(() => rootVisualElement.Focus())
+            {
+                isReadOnly = layer.Behaviour == null
+            };
+            toolkitLayerBindings.Track(name, () => layer.layerName);
+            name.RegisterValueChangedCallback(evt => ApplyToolkitChange(
+                layer.IsGroup ? "Rename Sprite Group" : "Rename Sprite Layer",
+                () => layer.layerName = evt.newValue));
+            return name;
+        }
+
         private VisualElement BuildToolkitGroupRow(
             Layer group,
             List<Layer> container,
@@ -886,21 +934,11 @@ namespace DCFApixels.WhimTex
             nameCell.Add(foldout);
             AddLayerFxWarning(nameCell, group);
 
-            TextField name = new TextField { isDelayed = true, isReadOnly = group.Behaviour == null };
-            name.AddToClassList("whimtex-layer-name");
-            name.SetValueWithoutNotify(group.layerName);
-            toolkitLayerBindings.Track(name, () => group.layerName);
-            name.RegisterValueChangedCallback(evt => ApplyToolkitChange(
-                "Rename Sprite Group",
-                () => group.layerName = evt.newValue));
+            var name = CreateLayerNameField(group);
             nameCell.Add(name);
 
             toolkitLayerBindings.Add(() => name.tooltip = $"{group.layers.Count} items");
-            var opacity = new FloatField { isDelayed = true, tooltip = "Group opacity from 0 to 1." };
-            opacity.AddToClassList("whimtex-layer-opacity");
-            opacity.AddToClassList("whimtex-layer-multi-edit");
-            toolkitLayerBindings.Track(opacity, () => group.opacity);
-            opacity.RegisterValueChangedCallback(evt => ApplySelectedOpacity(group, evt.newValue));
+            var opacity = CreateLayerOpacityField(group);
             row.Add(opacity);
             var blend = LayerRenderingSettingsView.GroupBlend(group,
                 (mode, passThrough) => ApplySelectedBlend(group, mode, passThrough), toolkitLayerBindings);
@@ -913,7 +951,8 @@ namespace DCFApixels.WhimTex
                 opacity.SetEnabled(editable); blend.SetEnabled(editable);
             });
             row.Add(CreateLayerMenuButton(() => ShowLayerContextMenu(group, container, index)));
-            RegisterToolkitLayerDrop(row, group, container, index, depth);
+            RegisterLayerRowLayout(row, nameCell, name, opacity, blend);
+            RegisterToolkitLayerDrop(row);
             return row;
         }
 
@@ -974,23 +1013,10 @@ namespace DCFApixels.WhimTex
             if (layer.Behaviour is TargetedLayerBehaviour || layer.Behaviour is ShaderProcessorLayerBehaviour)
                 thumbnail.schedule.Execute(RefreshThumbnail).Every(200);
 
-            TextField name = new TextField { isDelayed = true };
-            name.AddToClassList("whimtex-layer-name");
-            name.SetValueWithoutNotify(layer.layerName);
-            name.isReadOnly = layer.Behaviour == null;
-            toolkitLayerBindings.Track(name, () => layer.layerName);
-            name.RegisterValueChangedCallback(evt => ApplyToolkitChange(
-                "Rename Sprite Layer",
-                () => layer.layerName = evt.newValue));
+            var name = CreateLayerNameField(layer);
             nameCell.Add(name);
 
-            FloatField opacity = new FloatField { isDelayed = true };
-            opacity.AddToClassList("whimtex-layer-multi-edit");
-            opacity.tooltip = "Layer opacity from 0 to 1.";
-            opacity.AddToClassList("whimtex-layer-opacity");
-            opacity.SetValueWithoutNotify(layer.opacity);
-            toolkitLayerBindings.Track(opacity, () => layer.opacity);
-            opacity.RegisterValueChangedCallback(evt => ApplySelectedOpacity(layer, evt.newValue));
+            var opacity = CreateLayerOpacityField(layer);
             row.Add(opacity);
 
             EnumField blend = new EnumField(layer.blendMode);
@@ -1039,7 +1065,8 @@ namespace DCFApixels.WhimTex
             }
 
             row.Add(CreateLayerMenuButton(() => ShowLayerContextMenu(layer, container, index)));
-            RegisterToolkitLayerDrop(row, layer, container, index, depth);
+            RegisterLayerRowLayout(row, nameCell, name, opacity, blend);
+            RegisterToolkitLayerDrop(row);
             return row;
         }
 
@@ -1107,9 +1134,6 @@ namespace DCFApixels.WhimTex
             private int pointerId = -1;
             private VisualElement pressedFoldout;
             private VisualElement pressedControl;
-            private VisualElement textInputTarget;
-            private PointerDownEvent pendingTextDown;
-            private bool selectingText;
 
             public LayerDragManipulator(WhimTexWindow owner, Layer layer)
             {
@@ -1144,7 +1168,7 @@ namespace DCFApixels.WhimTex
                     return;
                 VisualElement control = FindLayerDragControl(target, evt.target as VisualElement);
                 if (IsFocusedLayerTextControl(control)) return;
-                if (control == null) owner.rootVisualElement.Focus();
+                owner.rootVisualElement.Focus();
                 if (evt.ctrlKey || evt.commandKey || evt.shiftKey)
                 {
                     owner.SelectLayerFromPointer(layer, evt, preserveSelection: true);
@@ -1154,6 +1178,16 @@ namespace DCFApixels.WhimTex
                 owner.FinishCanvasTransform();
                 owner.FinishPaintingStroke();
                 owner.activeLayerDrag?.Cancel();
+                if (control is WhimTexLayerNameField name && evt.clickCount >= 2 && !evt.altKey)
+                {
+                    if (owner.IsLayerSelected(layer.Id)) owner.ActivateSelectedLayer(layer.Id);
+                    else owner.SelectOnlyLayer(layer.Id);
+                    owner.selectionAnchorId = layer.Id;
+                    owner.RefreshToolkitInterface();
+                    name.BeginEditing();
+                    WhimTexUI.ConsumeEvent(evt);
+                    return;
+                }
                 owner.activeLayerDrag = this;
                 pressedControl = control;
                 for (var element = evt.target as VisualElement; element != null && element != target; element = element.parent)
@@ -1165,18 +1199,13 @@ namespace DCFApixels.WhimTex
                     }
                 start = evt.position;
                 pointerId = evt.pointerId;
-                if (control is TextField || control is FloatField)
-                {
-                    textInputTarget = evt.target as VisualElement;
-                    pendingTextDown = PointerDownEvent.GetPooled(evt);
-                }
                 target.CapturePointer(pointerId);
                 WhimTexUI.ConsumeEvent(evt);
             }
 
             private void OnPointerMove(PointerMoveEvent evt)
             {
-                if (pointerId != evt.pointerId || selectingText)
+                if (pointerId != evt.pointerId)
                     return;
                 if ((evt.pressedButtons & 1) == 0)
                 {
@@ -1190,16 +1219,6 @@ namespace DCFApixels.WhimTex
                     return;
                 }
 
-                if (pendingTextDown != null && Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
-                {
-                    BeginTextSelection(evt);
-                    return;
-                }
-
-                if (pressedControl is TextField name)
-                    name.SetValueWithoutNotify(layer.layerName);
-                else if (pressedControl is FloatField opacity)
-                    opacity.SetValueWithoutNotify(layer.opacity);
                 owner.rootVisualElement.Focus();
                 DragAndDrop.PrepareStartDrag();
                 DragAndDrop.objectReferences = Array.Empty<UnityEngine.Object>();
@@ -1215,37 +1234,10 @@ namespace DCFApixels.WhimTex
                 evt.StopImmediatePropagation();
             }
 
-            private void BeginTextSelection(PointerMoveEvent evt)
-            {
-                selectingText = true;
-                if (owner.IsLayerSelected(layer.Id)) owner.ActivateSelectedLayer(layer.Id);
-                else owner.SelectOnlyLayer(layer.Id);
-                owner.selectionAnchorId = layer.Id;
-                owner.RefreshToolkitInterface();
-                target.ReleasePointer(pointerId);
-                using (var down = pendingTextDown)
-                {
-                    pendingTextDown = null;
-                    down.target = textInputTarget;
-                    textInputTarget.SendEvent(down);
-                }
-                using (var move = PointerMoveEvent.GetPooled(evt))
-                {
-                    move.target = textInputTarget;
-                    textInputTarget.SendEvent(move);
-                }
-                WhimTexUI.ConsumeEvent(evt);
-            }
-
             private void OnPointerUp(PointerUpEvent evt)
             {
                 if (pointerId != evt.pointerId || evt.button != 0)
                     return;
-                if (selectingText)
-                {
-                    Release();
-                    return;
-                }
                 WhimTexUI.ConsumeEvent(evt);
                 VisualElement foldout = pressedFoldout;
                 VisualElement control = pressedControl;
@@ -1264,23 +1256,13 @@ namespace DCFApixels.WhimTex
                 owner.selectionAnchorId = layer.Id;
                 owner.RefreshToolkitInterface();
                 if (control == null || !control.worldBound.Contains(evt.position)) return;
-                if (control is TextField name)
-                {
-                    name.Focus();
-                    name.SelectAll();
-                }
-                else if (control is FloatField opacity)
-                {
-                    opacity.Focus();
-                    opacity.SelectAll();
-                }
-                else if (control.ClassListContains("whimtex-layer-enabled"))
+                if (control.ClassListContains("whimtex-layer-enabled"))
                     owner.ToggleLayerVisibility(layer);
             }
 
             private void OnCaptureOut(PointerCaptureOutEvent evt)
             {
-                if (pointerId == evt.pointerId && !selectingText && evt.target == target)
+                if (pointerId == evt.pointerId && evt.target == target)
                     Release();
             }
 
@@ -1299,10 +1281,6 @@ namespace DCFApixels.WhimTex
                 pointerId = -1;
                 pressedFoldout = null;
                 pressedControl = null;
-                textInputTarget = null;
-                pendingTextDown?.Dispose();
-                pendingTextDown = null;
-                selectingText = false;
                 if (owner.activeLayerDrag == this)
                     owner.activeLayerDrag = null;
                 if (previousPointer >= 0 && target.HasPointerCapture(previousPointer))
@@ -1310,99 +1288,41 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private void RegisterToolkitLayerDrop(
-            VisualElement row,
-            Layer rowLayer,
-            List<Layer> rowContainer,
-            int rowIndex,
-            int depth)
+        private void RegisterToolkitLayerDrop(VisualElement row)
         {
             row.RegisterCallback<DragUpdatedEvent>(evt =>
             {
-                if (!TryGetToolkitDrop(
-                        row,
-                        evt.mousePosition,
-                        rowLayer,
-                        rowContainer,
-                        rowIndex,
-                        out Layer dragged,
-                        out List<Layer> destination,
-                        out int destinationIndex,
-                        out Layer groupToExpand,
-                        out bool insertBefore))
+                Layer dragged = GetDraggedLayer();
+                if (dragged == null || !TryResolveLayerDropTarget(evt.mousePosition, out var drop) ||
+                    !CanDropLayer(dragged, drop.Container, drop.Index))
                 {
+                    ClearToolkitDropIndicator();
                     DragAndDrop.visualMode = DragAndDropVisualMode.Rejected;
+                    evt.StopImmediatePropagation();
                     return;
                 }
 
                 DragAndDrop.visualMode = DragAndDropVisualMode.Move;
-                SetToolkitDropIndicator(row, groupToExpand != null, insertBefore, depth);
+                ShowLayerDropTarget(drop);
                 evt.StopImmediatePropagation();
             });
             row.RegisterCallback<DragPerformEvent>(evt =>
             {
-                if (!TryGetToolkitDrop(
-                        row,
-                        evt.mousePosition,
-                        rowLayer,
-                        rowContainer,
-                        rowIndex,
-                        out Layer dragged,
-                        out List<Layer> destination,
-                        out int destinationIndex,
-                        out Layer groupToExpand,
-                        out _))
+                evt.StopImmediatePropagation();
+                Layer dragged = GetDraggedLayer();
+                if (dragged == null || !TryResolveLayerDropTarget(evt.mousePosition, out var drop) ||
+                    !CanDropLayer(dragged, drop.Container, drop.Index))
                 {
+                    ClearToolkitDropIndicator();
                     return;
                 }
 
                 DragAndDrop.AcceptDrag();
                 ClearToolkitDropIndicator();
-                PerformLayerDrop(dragged, destination, destinationIndex, groupToExpand);
-                ClearLayerDragData();
-                evt.StopImmediatePropagation();
+                try { PerformLayerDrop(dragged, drop.Container, drop.Index, drop.Expand); }
+                finally { ClearLayerDragData(); }
             });
             row.RegisterCallback<DragLeaveEvent>(_ => ClearToolkitDropIndicator());
-        }
-
-        private bool TryGetToolkitDrop(
-            VisualElement row,
-            Vector2 mousePosition,
-            Layer rowLayer,
-            List<Layer> rowContainer,
-            int rowIndex,
-            out Layer dragged,
-            out List<Layer> destination,
-            out int destinationIndex,
-            out Layer groupToExpand,
-            out bool insertBefore)
-        {
-            dragged = GetDraggedLayer();
-            destination = null;
-            destinationIndex = -1;
-            groupToExpand = null;
-            insertBefore = false;
-            if (dragged == null)
-                return false;
-
-            Vector2 local = row.WorldToLocal(mousePosition);
-            float height = Mathf.Max(1f, row.resolvedStyle.height);
-            bool dropInside = rowLayer?.IsGroup == true &&
-                              local.y >= height * 0.25f &&
-                              local.y <= height * 0.75f;
-            insertBefore = local.y < height * 0.5f;
-            if (dropInside)
-            {
-                groupToExpand = (Layer)rowLayer;
-                destination = groupToExpand.layers;
-                destinationIndex = 0;
-            }
-            else
-            {
-                destination = rowContainer;
-                destinationIndex = insertBefore ? rowIndex : rowIndex + 1;
-            }
-            return CanDropLayer(dragged, destination, destinationIndex);
         }
 
         private VisualElement BuildContainerEndDropZone(List<Layer> destination, int depth)
@@ -1410,12 +1330,13 @@ namespace DCFApixels.WhimTex
             VisualElement zone = new VisualElement();
             zone.userData = destination;
             zone.style.height = 8f;
-            zone.style.marginLeft = 4f + depth * ToolkitLayerIndent;
+            zone.style.marginLeft = 0f;
             zone.RegisterCallback<DragUpdatedEvent>(evt =>
             {
                 Layer dragged = GetDraggedLayer();
                 if (dragged == null || !CanDropLayer(dragged, destination, destination.Count))
                 {
+                    ClearToolkitDropIndicator();
                     DragAndDrop.visualMode = DragAndDropVisualMode.Rejected;
                     return;
                 }
@@ -1430,8 +1351,8 @@ namespace DCFApixels.WhimTex
                     return;
                 DragAndDrop.AcceptDrag();
                 ClearToolkitDropIndicator();
-                PerformLayerDrop(dragged, destination, destination.Count, null);
-                ClearLayerDragData();
+                try { PerformLayerDrop(dragged, destination, destination.Count, null); }
+                finally { ClearLayerDragData(); }
                 evt.StopImmediatePropagation();
             });
             zone.RegisterCallback<DragLeaveEvent>(_ => ClearToolkitDropIndicator());
@@ -1444,40 +1365,44 @@ namespace DCFApixels.WhimTex
             bool insertBefore,
             int depth)
         {
+            if (element == null) { ClearToolkitDropIndicator(); return; }
             if (activeDropElement != element)
             {
                 ClearToolkitDropIndicator();
-                activeDropMarginLeft = element.style.marginLeft;
             }
             activeDropElement = element;
-
-            if (element.userData is string)
+            activeDropMarker = null;
+            foreach (VisualElement child in element.Children())
+                if (child.ClassListContains("whimtex-layer-drop-marker")) { activeDropMarker = child; break; }
+            if (activeDropMarker == null)
             {
-                element.EnableInClassList("whimtex-layer-row--drop-inside", insideGroup);
-                element.EnableInClassList("whimtex-layer-row--drop-before", !insideGroup && insertBefore);
-                element.EnableInClassList("whimtex-layer-row--drop-after", !insideGroup && !insertBefore);
-                return;
+                activeDropMarker = new VisualElement { pickingMode = PickingMode.Ignore };
+                activeDropMarker.AddToClassList("whimtex-layer-drop-marker");
+                element.Add(activeDropMarker);
+                activeDropMarkerOwned = true;
             }
-
-            if (insideGroup)
+            element.EnableInClassList("whimtex-layer-row--drop-inside", insideGroup);
+            element.EnableInClassList("whimtex-layer-row--drop-before", !insideGroup && insertBefore);
+            element.EnableInClassList("whimtex-layer-row--drop-after", !insideGroup && !insertBefore);
+            var marker = activeDropMarker;
+            marker.style.display = DisplayStyle.Flex;
+            marker.style.left = 26f + Mathf.Max(0, depth - (insideGroup ? 1 : 0)) * ToolkitLayerIndent;
+            marker.style.borderTopWidth = insideGroup ? 1f : insertBefore ? 2f : 0f;
+            marker.style.borderBottomWidth = insideGroup ? 1f : insertBefore ? 0f : 2f;
+            marker.style.borderLeftWidth = insideGroup ? 1f : 0f;
+            marker.style.borderRightWidth = insideGroup ? 1f : 0f;
+            marker.style.backgroundColor = insideGroup ? GroupDropHighlightColor : Color.clear;
+            SetBorderColor(marker, DropIndicatorColor);
+            VisualElement endpoint = marker.Q<VisualElement>(className: "whimtex-layer-drop-endpoint");
+            if (endpoint == null)
             {
-                element.style.backgroundColor = GroupDropHighlightColor;
-                element.style.borderTopWidth = 1f;
-                element.style.borderRightWidth = 1f;
-                element.style.borderBottomWidth = 1f;
-                element.style.borderLeftWidth = 1f;
-                SetBorderColor(element, DropIndicatorColor);
+                endpoint = new VisualElement { pickingMode = PickingMode.Ignore };
+                endpoint.AddToClassList("whimtex-layer-drop-endpoint");
+                marker.Add(endpoint);
             }
-            else
-            {
-                element.style.borderTopWidth = insertBefore ? 2f : 0f;
-                element.style.borderBottomWidth = insertBefore ? 0f : 2f;
-                element.style.borderLeftWidth = 0f;
-                element.style.borderRightWidth = 0f;
-                element.style.borderTopColor = DropIndicatorColor;
-                element.style.borderBottomColor = DropIndicatorColor;
-                element.style.marginLeft = Mathf.Max(element.resolvedStyle.marginLeft, depth * ToolkitLayerIndent);
-            }
+            endpoint.style.display = insideGroup ? DisplayStyle.None : DisplayStyle.Flex;
+            endpoint.style.top = insertBefore ? -3f : StyleKeyword.Auto;
+            endpoint.style.bottom = insertBefore ? StyleKeyword.Auto : -3f;
         }
 
         private void ClearToolkitDropIndicator()
@@ -1489,20 +1414,21 @@ namespace DCFApixels.WhimTex
             activeDropElement.RemoveFromClassList("whimtex-layer-row--drop-before");
             activeDropElement.RemoveFromClassList("whimtex-layer-row--drop-after");
 
-            if (activeDropElement.userData is string layerId)
+            if (activeDropMarkerOwned) activeDropMarker?.RemoveFromHierarchy();
+            else if (activeDropMarker != null)
             {
-                activeDropElement.style.backgroundColor = StyleKeyword.Null;
-                ApplyLayerSelectionStyle(activeDropElement, layerId);
+                activeDropMarker.style.display = StyleKeyword.Null;
+                activeDropMarker.style.left = StyleKeyword.Null;
+                activeDropMarker.style.borderTopWidth = StyleKeyword.Null;
+                activeDropMarker.style.borderBottomWidth = StyleKeyword.Null;
+                activeDropMarker.style.borderLeftWidth = StyleKeyword.Null;
+                activeDropMarker.style.borderRightWidth = StyleKeyword.Null;
+                activeDropMarker.style.backgroundColor = StyleKeyword.Null;
+                VisualElement endpoint = activeDropMarker.Q<VisualElement>(className: "whimtex-layer-drop-endpoint");
+                if (endpoint != null) endpoint.style.display = DisplayStyle.None;
             }
-            else
-            {
-                activeDropElement.style.borderTopWidth = 0f;
-                activeDropElement.style.borderRightWidth = 0f;
-                activeDropElement.style.borderBottomWidth = 0f;
-                activeDropElement.style.borderLeftWidth = 0f;
-                activeDropElement.style.marginLeft = activeDropMarginLeft;
-                activeDropElement.style.backgroundColor = Color.clear;
-            }
+            activeDropMarker = null;
+            activeDropMarkerOwned = false;
             activeDropElement = null;
         }
 
@@ -2203,7 +2129,8 @@ namespace DCFApixels.WhimTex
                 return;
             }
 
-            if (IsTextInputTarget(evt.target as VisualElement))
+            if (IsTextInputTarget(evt.target as VisualElement) ||
+                (!(evt.ctrlKey || evt.commandKey) && IsSliderFieldTarget(evt.target as VisualElement)))
             {
                 ResetOpacityEntry();
                 return;
@@ -2366,15 +2293,28 @@ namespace DCFApixels.WhimTex
         {
             for (VisualElement current = element; current != null; current = current.parent)
             {
+                if (current is WhimTexLayerNameField layerName)
+                {
+                    if (layerName.isEditing) return true;
+                    continue;
+                }
                 if (current is TextField ||
                     current is IntegerField ||
                     current is FloatField ||
+                    (current is WhimTexSliderField slider && slider.isEditing) ||
                     current is Vector2Field ||
                     current.ClassListContains("unity-base-text-field__input"))
                 {
                     return true;
                 }
             }
+            return false;
+        }
+
+        private static bool IsSliderFieldTarget(VisualElement element)
+        {
+            for (var current = element; current != null; current = current.parent)
+                if (current is WhimTexSliderField) return true;
             return false;
         }
 

@@ -50,6 +50,10 @@ Find settings for [color correction](#levels-contrast-and-color-balance), [masks
 
 ## Parameter controls
 
+Use **⋮ → Reset** or right-click the FX header and choose **Reset** to restore all parameter defaults, including hidden fields and transforms. Code, the preset link and enabled state stay unchanged. Reset can be undone; for a shared FX asset it affects every use of that asset.
+
+Right-click a named parameter-group header for **Copy**, **Paste** and **Reset**, with a separator before Reset. Paste transfers values between compatible groups, including Selective HSV ranges. Hidden fields and the header checkbox are included. Reset affects only that group; Paste and Reset can be undone. The group body and unnamed groups have no group menu.
+
 The unlabeled checkbox in each Shader FX header enables or bypasses that effect without removing its settings. External FX references share this state; use **Embed** for an independent copy.
 
 Hover over a parameter to read its description, if the effect's author supplied one.
@@ -67,6 +71,12 @@ The thumb stays at the nearest endpoint, but the effect uses your number. Other 
 both dragging and numeric input limited to their range, as chosen by the effect's author.
 
 Gain, Levels, Threshold, ambient lighting and distortion offsets offer soft limits where appropriate. Levels and Threshold can work above 1 for HDR; blend amounts remain limited to 0–1. Pixelate and Posterize allow more than 64 levels and Gamma above 5 through numeric input.
+
+### Random seeds
+
+Seed fields marked by the author have a **Random** button on the right. It chooses an integer
+within the declared range, including its endpoints. You can still type or drag a fractional value
+where the bounds allow it. The choice supports Undo/Redo and stays fixed during preview, save and load.
 
 ### Texture sources
 
@@ -223,9 +233,31 @@ Color Balance groups Shadows, Midtones and Highlights in one block. **RGB Offset
 ### HSV correction
 **Color → HSV** adjusts hue, saturation and brightness. **Hue** shifts the hue in degrees;
 **Saturation** and **Value** are multipliers: 1 is neutral, 0 removes saturation or makes the image black.
-**Amount** mixes the correction with the original. Gray pixels stay gray when changing hue or saturation.
+**Opacity** in the FX header mixes the correction with the original. Gray pixels stay gray when changing hue or saturation.
 Alpha is preserved and HDR brightness is supported. HSV correction treats negative RGB channels as zero;
-neutral settings and Amount 0 leave the original unchanged.
+neutral settings and Opacity 0 leave the original unchanged.
+
+### Selective HSV
+
+**Color → Selective HSV** combines whole-image correction in **Master** with up to four hue
+ranges that override it. Hue shifts the source hue; Saturation and Value multiply source
+saturation and brightness. Their neutral values are 0, 1 and 1.
+
+To remove all color except blue, set **Master → Saturation** to 0. Enable **Range 3**, keep
+**Center** at 240° and **Saturation** at 1, then adjust **Width** and **Feather**. The blue core
+keeps its original color; Feather fades it into the desaturated surroundings.
+
+All ranges start disabled. Enable a Range and set its Center/Width/Feather in degrees, then
+adjust Hue/Saturation/Value. These settings replace Master inside the range; they are not
+applied after it. Disabled ranges retain their values and hide their controls.
+Ranges select the original hue, before any correction. Overlaps average range corrections;
+Master is not part of that average. **Min Saturation** and **Saturation Feather** restrict
+range selection in weakly colored areas, which still receive Master correction. Gray pixels
+also use Master. Width 360 covers all hues; Width and Feather both zero select nothing.
+
+Use **Output → All Ranges Mask** or an individual range mask to inspect the selection. Mask
+brightness includes source transparency and does not change with Master. **Result** preserves alpha and HDR brightness;
+the header **Opacity** blends any selected output with the original.
 
 ### Negative
 **Color → Negative** blends the source RGB toward its inverse (`1 - RGB`) with **Amount**.

@@ -178,6 +178,15 @@
     border-color: #339eff;
 }
 
+.whimtex-layer-drop-endpoint {
+    position: absolute;
+    left: -3px;
+    width: 5px;
+    height: 5px;
+    background-color: #339eff;
+    border-radius: 3px;
+}
+
 .whimtex-layer-row--drop-inside > .whimtex-layer-drop-marker {
     display: flex;
     border-width: 1px;
@@ -1280,7 +1289,7 @@
     flex-basis: 0;
     flex-grow: 1;
     flex-shrink: 1;
-    min-width: 72px;
+    min-width: 0;
     overflow: hidden;
 }
 
@@ -1329,6 +1338,32 @@
 
 .whimtex-layer-name > .unity-base-field__input {
     min-width: 0;
+}
+
+.whimtex-layer-name > .whimtex-layer-name__editor {
+    display: none;
+}
+
+.whimtex-layer-name > .whimtex-layer-name__display {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    margin: 0;
+    padding: 0 4px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    -unity-text-align: middle-left;
+}
+
+.whimtex-layer-name--editing > .whimtex-layer-name__editor {
+    display: flex;
+}
+
+.whimtex-layer-name--editing > .whimtex-layer-name__display {
+    display: none;
 }
 
 .whimtex-layer-drag-ghost {
@@ -2109,6 +2144,7 @@
 }
 .whimtex-fx-effect-control--bool { width: 20px; }
 .whimtex-fx-effect-control--vector { width: 200px; }
+.whimtex-fx-effect-control--seed { width: 170px; }
 .whimtex-fx-effect-control > .whimtex-fx-group-header-field {
     flex-grow: 1;
     width: auto;
@@ -2610,6 +2646,22 @@
     align-self: center;
     margin: 4px 0;
 }
+
+.whimtex-fx-seed-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.whimtex-fx-seed-input {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.whimtex-fx-seed-random {
+    flex-shrink: 0;
+    margin-left: 3px;
+}
 .whimtex-shape-corners-radial { height: 200px; }
 .whimtex-shape-corners-select { height: 196px; }
 .whimtex-shape-corner-fields {
@@ -2928,3 +2980,8 @@
     white-space: normal;
 }
 .whimtex-canvas-text-input--manual > .unity-base-text-field__input { white-space: nowrap; }
+
+.whimtex-layer-row--hide-opacity > .whimtex-layer-opacity,
+.whimtex-layer-row--hide-blend > .whimtex-layer-blend {
+    display: none;
+}

@@ -14,6 +14,12 @@ public static class LayerTransferTests
     static string TargetName => "UnityC.Target." + WhimTex.Tests.UnityC.FixtureContext.Scope.Token;
     static object Call(object owner, string method, params object[] args) => owner.GetType().GetMethod(method, Flags).Invoke(owner, args);
     static object Get(object owner, string field) => owner.GetType().GetField(field, Flags).GetValue(owner);
+    static object ResolveGeometry(WhimTexWindow window, Vector2 point)
+    {
+        var args = new object[] { point, null };
+        Check((bool)Call(window, "TryResolveLayerDropTarget", args), "Owned list point resolves without a drag payload");
+        return args[1];
+    }
     static WhimTexWindow Window(string name) => Resources.FindObjectsOfTypeAll<WhimTexWindow>().Single(w => w.name == name);
     static WhimTexDocument Document(WhimTexWindow window) => (WhimTexDocument)Get(window, "activeDocument");
     static void Check(bool ok, string message) { WhimTex.Tests.UnityC.FixtureContext.Context.True(ok, message); }
@@ -74,7 +80,8 @@ public static class LayerTransferTests
         {
             var layer = mode == "group" ? targetGroup : b.layers.Single(l => l.layerName == "Target B");
             element = scroll.Query<VisualElement>(className: "whimtex-layer-row").ToList().Single(e => (string)e.userData == layer.Id);
-            point = new Vector2(element.worldBound.center.x, mode == "group" ? element.worldBound.center.y :
+            point = new Vector2(mode == "group" ? element.worldBound.center.x : element.worldBound.xMin + 26f + 7f,
+                mode == "group" ? element.worldBound.center.y :
                 mode == "before" ? element.worldBound.yMin + 2 : element.worldBound.yMax - 2);
             destination = mode == "group" ? targetGroup.children : b.layers;
             index = mode == "group" ? 0 : b.layers.IndexOf(layer) + (mode == "after" ? 1 : 0);
@@ -89,6 +96,19 @@ public static class LayerTransferTests
             element = (VisualElement)Get(target, "toolkitLayerFooter"); point = element.worldBound.center;
         }
         Check(element.panel != null && element.worldBound.width > 0, "UI laid out");
+        if (mode == "before" || mode == "after")
+        {
+            var geometry = ResolveGeometry(target, point);
+            Check(ReferenceEquals(Get(geometry, "Container"), destination) && (int)Get(geometry, "Index") == index &&
+                (int)Get(geometry, "Depth") == 0, "Left side of the row boundary selects the root insertion slot");
+            if (mode == "before")
+            {
+                var nested = ResolveGeometry(target, new Vector2(element.worldBound.xMin + 26f + 14f + 7f, point.y));
+                Check(ReferenceEquals(Get(nested, "Container"), targetGroup.children) &&
+                    (int)Get(nested, "Index") == targetGroup.children.Count && (int)Get(nested, "Depth") == 1,
+                    "Right side of the shared closing boundary appends inside the preceding expanded group");
+            }
+        }
         string clipboard = GUIUtility.systemCopyBuffer;
         string sourceBefore = JsonUtility.ToJson(a);
         int oldCount = destination.Count, oldRootCount = b.layers.Count;

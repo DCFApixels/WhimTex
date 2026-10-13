@@ -105,6 +105,8 @@ namespace DCFApixels.WhimTex
             if (!initialized)
             {
                 initialized = true;
+                entries.Clear();
+                userFiles.Clear();
                 foreach (string path in AssetDatabase.GetAllAssetPaths())
                     if (path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase)) Inspect(path);
                 foreach (string guid in AssetDatabase.FindAssets("t:ShaderFX")) Inspect(AssetDatabase.GUIDToAssetPath(guid));
@@ -185,6 +187,13 @@ namespace DCFApixels.WhimTex
             EditorApplication.delayCall += FlushChanges;
         }
 
+        internal static void DomainReloaded()
+        {
+            // Imports that coincided with compilation may predate the restored SessionState snapshot.
+            // Reconcile with AssetDatabase once, on the next catalog request.
+            initialized = false;
+        }
+
         private static void FlushChanges()
         {
             queued = false;
@@ -259,7 +268,10 @@ namespace DCFApixels.WhimTex
 
     internal sealed class ShaderFXCatalogPostprocessor : AssetPostprocessor
     {
-        private static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved, string[] movedFrom) =>
+        private static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved, string[] movedFrom, bool didDomainReload)
+        {
+            if (didDomainReload) ShaderFXCatalog.DomainReloaded();
             ShaderFXCatalog.AssetsChanged(imported, deleted, moved, movedFrom);
+        }
     }
 }

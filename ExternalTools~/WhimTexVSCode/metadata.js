@@ -86,9 +86,13 @@ function stripTooltip(text) {
 }
 
 function modifiers(text) {
-  let hidden = false, label = null;
+  let hidden = false, seed = false, label = null;
   for (;;) {
     text = text.trimStart();
+    if (/^seed(?:\s|$)/.test(text)) {
+      if (seed) fail('The seed modifier may be specified only once.');
+      seed = true; text = text.slice(4); continue;
+    }
     if (/^hidden(?:\s|$)/.test(text)) {
       if (hidden) fail('The hidden modifier may be specified only once.');
       hidden = true; text = text.slice(6); continue;
@@ -111,15 +115,16 @@ function modifiers(text) {
     if (!label.trim()) fail('The label modifier must contain non-empty text.');
     text = text.slice(end + 1);
   }
-  return { text, hidden };
+  return { text, hidden, seed };
 }
 
 function parseParameter(body) {
-  const { text: modified, hidden } = modifiers(body);
+  const { text: modified, hidden, seed } = modifiers(body);
   const text = stripTooltip(modified);
   const head = text.match(/^([A-Za-z0-9]+)\s+([A-Za-z_][A-Za-z0-9_]*)(.*)$/);
   if (!head || !types.has(head[1])) fail('Expected a supported @param type and parameter name.');
   const [, type, name] = head;
+  if (seed && type !== 'float') fail('seed applies only to float parameters.');
   let rest = head[3].trim(), value;
   if (type === 'enum') {
     const match = rest.match(/^(?:=\s*([^{}]+?))?\s*\{([^{}]+)\}$/);
@@ -154,20 +159,21 @@ function parseParameter(body) {
       const soft = range.map(p => p.trim().startsWith('~'));
       const bounds = range.map((p, i) => (soft[i] ? p.trim().slice(1) : p).trim());
       const [min, max] = bounds.map(p => p ? number(p) : undefined);
+      if (seed && (min === undefined || max === undefined || min < -16777216 || max > 16777216 || Math.ceil(min) > Math.floor(max)))
+        fail('seed requires two bounds in [-16777216 .. 16777216] containing at least one integer.');
       if (min === undefined && max === undefined) fail('A range needs at least one boundary.');
       if (min > max) fail('Minimum exceeds maximum.');
       if (soft.some(Boolean) && !(min !== undefined && max !== undefined && min < max))
         fail('Soft ranges require two finite values with min < max; put ~ before the number.');
       if (initial !== undefined && ((!soft[0] && initial < min) || (!soft[1] && initial > max)))
         fail('Default is outside the declared hard range.');
-    }
+    } else if (seed) fail('seed requires two finite bounds.');
   } else if (value !== undefined) {
     switch (type) {
       case 'bool': if (!/^(true|false|0|1)$/.test(value)) fail('Expected true, false, 0 or 1 for bool.'); break;
       case 'float2': case 'float3': case 'float4': case 'normal': case 'point': {
         const count = {float2: 2, float3: 3, float4: 4, normal: 3, point: 2}[type];
         const components = tuple(value, count);
-        if (type === 'point' && components.some(v => v < 0 || v > 1)) fail('Point coordinates must be within 0..1.');
         break;
       }
       case 'color': color(value); break;
@@ -187,7 +193,7 @@ function parseParameter(body) {
       }
     }
   }
-  return { type, name, hidden };
+  return { type, name, hidden, seed };
 }
 
 // Match Unity's line-oriented metadata scanner, ignoring commented-out examples.

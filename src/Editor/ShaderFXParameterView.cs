@@ -65,6 +65,7 @@ namespace DCFApixels.WhimTex
                 Clear(); refresh.Clear(); postRefresh.Clear();
                 if (effectControl)
                 {
+                    EnableInClassList("whimtex-fx-effect-control--seed", false);
                     if (controlName != null && parametersByName.TryGetValue(controlName, out var parameter) && parameter.controls.Count == 1)
                     {
                         var control = parameter.controls[0];
@@ -80,6 +81,7 @@ namespace DCFApixels.WhimTex
                             Add(handle);
                         }
                         AddGroupHeaderParameter(this, parameter, control);
+                        EnableInClassList("whimtex-fx-effect-control--seed", control.seed);
                         EnableInClassList("whimtex-fx-effect-control--bool", control.type == ShaderFXParameterType.Bool);
                         EnableInClassList("whimtex-fx-effect-control--vector", control.type == ShaderFXParameterType.Vector2 ||
                             control.type == ShaderFXParameterType.Vector3 || control.type == ShaderFXParameterType.Vector);
@@ -146,7 +148,7 @@ namespace DCFApixels.WhimTex
             for (int i = 0; i < a.controls.Count; i++)
             {
                 var x = a.controls[i]; var y = b.controls[i];
-                if (x.type != y.type || x.order != y.order || x.tooltip != y.tooltip || x.label != y.label ||
+                if (x.type != y.type || x.order != y.order || x.tooltip != y.tooltip || x.label != y.label || x.seed != y.seed ||
                     x.hasMinimum != y.hasMinimum || x.hasMaximum != y.hasMaximum ||
                     x.softMinimum != y.softMinimum || x.softMaximum != y.softMaximum ||
                     !x.minimum.Equals(y.minimum) || !x.maximum.Equals(y.maximum) ||
@@ -170,7 +172,7 @@ namespace DCFApixels.WhimTex
                 copy.controls.Add(new ShaderFXParameterControl { type = c.type, order = c.order, tooltip = c.tooltip, label = c.label,
                     headers = c.headers == null ? null : (string[])c.headers.Clone(),
                     helpBoxes = c.helpBoxes == null ? null : (string[])c.helpBoxes.Clone(),
-                    hidden = c.hidden, inGroup = c.inGroup, groupId = c.groupId,
+                    hidden = c.hidden, seed = c.seed, inGroup = c.inGroup, groupId = c.groupId,
                     groupTitle = c.groupTitle, groupHeaderParameter = c.groupHeaderParameter,
                     hasMinimum = c.hasMinimum, hasMaximum = c.hasMaximum,
                     softMinimum = c.softMinimum, softMaximum = c.softMaximum, minimum = c.minimum, maximum = c.maximum,
@@ -243,6 +245,11 @@ namespace DCFApixels.WhimTex
                     linkedControl.type != ShaderFXParameterType.Bool &&
                     AddGroupHeaderParameter(header, linkedParameter, linkedControl))
                     headerParameterId = linkedParameter.id;
+                if (!string.IsNullOrEmpty(definition.groupTitle)) header.AddManipulator(new ContextualMenuManipulator(evt =>
+                {
+                    BuildGroupMenu(evt.menu, definition.groupId);
+                    evt.StopPropagation();
+                }));
                 content = new VisualElement();
                 content.AddToClassList("whimtex-fx-parameter-group-content");
                 root.Add(content);
@@ -266,6 +273,65 @@ namespace DCFApixels.WhimTex
                 root.EnableInClassList("whimtex-fx-parameter-group--empty", !hasVisibleContent);
             });
             return new ParameterGroupView { id = definition.groupId, headerParameterId = headerParameterId, content = content };
+        }
+
+        private bool HasGroupHeader(int groupId)
+        {
+            foreach (var parameter in source.Parameters)
+                if (parameter != null && ShaderParameterGroupClipboard.GroupControl(parameter, groupId) is ShaderFXParameterControl control &&
+                    !string.IsNullOrEmpty(control.groupTitle)) return true;
+            return false;
+        }
+
+        private void BuildGroupMenu(DropdownMenu menu, int groupId)
+        {
+            if (!HasGroupHeader(groupId)) return;
+            menu.AppendAction("Copy", _ => CopyGroup(groupId));
+            menu.AppendAction("Paste", _ => PasteGroup(groupId),
+                !source.IsReadOnly && ShaderParameterGroupClipboard.TryPaste(source, groupId, out _) ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            menu.AppendSeparator();
+            menu.AppendAction("Reset", _ => ResetGroup(groupId),
+                !source.IsReadOnly && TryGroupDefaults(groupId, out _) ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+        }
+
+        private void CopyGroup(int groupId)
+        {
+            if (HasGroupHeader(groupId)) ShaderParameterGroupClipboard.Copy(source, groupId);
+        }
+
+        private void PasteGroup(int groupId)
+        {
+            if (source.IsReadOnly || !HasGroupHeader(groupId) || !ShaderParameterGroupClipboard.TryPaste(source, groupId, out var values)) return;
+            source.ChangeParameters("Paste FX Parameter Group", values);
+            Refresh();
+        }
+
+        private bool TryGroupDefaults(int groupId, out List<ShaderFXParameter> values)
+        {
+            values = null;
+            List<ShaderFXParameter> defaults;
+            try { defaults = ShaderParameterGroupClipboard.Parameters(ShaderFXMetadata.Parse(source.Code, false, out _), groupId); }
+            catch (FormatException) { return false; }
+            var targets = ShaderParameterGroupClipboard.Parameters(source.Parameters, groupId);
+            if (targets.Count == 0 || defaults.Count != targets.Count) return false;
+            var prepared = new List<ShaderFXParameter>(targets.Count);
+            foreach (var target in targets)
+            {
+                var value = defaults.Find(p => p.name == target.name && p.type == target.type);
+                if (value == null) return false;
+                var next = target.Copy();
+                ShaderFXMetadata.CopyValue(value, next);
+                prepared.Add(next);
+            }
+            values = prepared;
+            return true;
+        }
+
+        private void ResetGroup(int groupId)
+        {
+            if (source.IsReadOnly || !HasGroupHeader(groupId) || !TryGroupDefaults(groupId, out var values)) return;
+            source.ChangeParameters("Reset FX Parameter Group", values);
+            Refresh();
         }
 
         private void MakeGroupTitleDraggable(VisualElement title, string id, ShaderFXParameterControl control)
@@ -407,6 +473,7 @@ namespace DCFApixels.WhimTex
                     return false;
             }
 
+            if (control.seed) field = SeedField(field, id, control);
             field.AddToClassList("whimtex-fx-group-header-field");
             if (!string.IsNullOrEmpty(control.tooltip)) field.tooltip = control.tooltip;
             header.Add(field);
@@ -420,6 +487,24 @@ namespace DCFApixels.WhimTex
             button.Add(WhimTexWindow.CreateTransformToolIcon());
             return button;
         }
+
+        private VisualElement SeedField(VisualElement field, string id, ShaderFXParameterControl control)
+        {
+            var row = new VisualElement();
+            row.AddToClassList("whimtex-fx-seed-row");
+            field.AddToClassList("whimtex-fx-seed-input");
+            row.Add(field);
+            var button = new Button(() => RandomizeSeed(id, control))
+            {
+                name = "randomizeSeed", text = "Random", tooltip = "Choose an integer within the declared range."
+            };
+            button.AddToClassList("whimtex-fx-seed-random");
+            row.Add(button);
+            return row;
+        }
+
+        private void RandomizeSeed(string id, ShaderFXParameterControl control) =>
+            Change(id, p => p.floatValue = ShaderFXSeed.NextValue(control));
 
         private static void AddCanvasField(VisualElement parent, VisualElement field, Button edit)
         {
@@ -514,7 +599,14 @@ namespace DCFApixels.WhimTex
                     refresh.Add(() => toggle.SetValueWithoutNotify(Find(id).BoolValue));
                     break;
                 case ShaderFXParameterType.Float:
-                    if (declaration.HasSoftRange)
+                    if (control.seed)
+                    {
+                        var field = new FloatField(label);
+                        field.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = declaration.Clamp(e.newValue)));
+                        rowRoot.Add(SeedField(field, id, control));
+                        refresh.Add(() => field.SetValueWithoutNotify(Find(id).floatValue));
+                    }
+                    else if (declaration.HasSoftRange)
                     {
                         var soft = new WhimTexSoftRangeField(label, declaration.minimum, declaration.maximum, declaration.softMinimum, declaration.softMaximum);
                         soft.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = e.newValue));

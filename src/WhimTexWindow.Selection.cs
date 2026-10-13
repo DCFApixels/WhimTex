@@ -599,18 +599,58 @@ namespace DCFApixels.WhimTex
 
         private bool CanDropLayers(List<Layer> layers, List<Layer> destination)
         {
-            if (destination == null || layers.Count == 0)
+            if (!IsLayerDropContainer(destination) || layers == null || layers.Count == 0)
                 return false;
-            foreach (Layer layer in layers)
+            for (int i = 0; i < layers.Count; i++)
+            {
+                Layer layer = layers[i];
                 if (!activeDocument.TryFindLayer(layer, out _, out _) ||
                     layer?.AsGroup() is Layer group && ContainsLayerContainer(group, destination))
                     return false;
+                for (int j = 0; j < i; j++)
+                {
+                    if (layers[j] == layer) return false;
+                    activeDocument.TryFindLayer(layer, out var source, out _);
+                    activeDocument.TryFindLayer(layers[j], out var otherSource, out _);
+                    if (layers[j].IsGroup && ContainsLayerContainer(layers[j], source) ||
+                        layer.IsGroup && ContainsLayerContainer(layer, otherSource)) return false;
+                }
+            }
             return true;
+        }
+
+        private bool IsLayerDropContainer(List<Layer> container) => activeDocument != null && container != null &&
+            (ReferenceEquals(container, activeDocument.layers) || activeDocument.TryFindParentGroup(container, out _, out _, out _));
+
+        private bool CanMoveLayerRoots(List<Layer> layers, List<Layer> destination, int index)
+        {
+            if (!CanDropLayers(layers, destination)) return false;
+            index = Mathf.Clamp(index, 0, destination.Count);
+            int insertion = index;
+            foreach (Layer layer in layers)
+            {
+                activeDocument.TryFindLayer(layer, out var source, out int sourceIndex);
+                if (!ReferenceEquals(source, destination)) return true;
+                if (sourceIndex < index) insertion--;
+            }
+            int cursor = 0;
+            for (int i = 0; i < destination.Count; i++)
+            {
+                Layer expected;
+                if (i >= insertion && i < insertion + layers.Count) expected = layers[i - insertion];
+                else
+                {
+                    while (cursor < destination.Count && layers.Contains(destination[cursor])) cursor++;
+                    expected = destination[cursor++];
+                }
+                if (expected != destination[i]) return true;
+            }
+            return false;
         }
 
         private void PerformSelectedLayersDrop(List<Layer> layers, List<Layer> destination, int index, Layer expand)
         {
-            if (!CanDropLayers(layers, destination))
+            if (!CanMoveLayerRoots(layers, destination, index))
                 return;
             FinishCanvasTransform();
             FinishPaintingStroke();

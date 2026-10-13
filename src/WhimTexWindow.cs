@@ -469,7 +469,7 @@ namespace DCFApixels.WhimTex
             if (dragged != null)
                 return dragged.Count == 1
                     ? TryResolveLayerDrop(dragged[0], destinationContainer, destinationIndex, out _, out _, out _)
-                    : CanDropLayers(dragged, destinationContainer);
+                    : CanMoveLayerRoots(dragged, destinationContainer, destinationIndex);
             return TryResolveLayerDrop(
                 layer,
                 destinationContainer,
@@ -491,7 +491,7 @@ namespace DCFApixels.WhimTex
             sourceIndex = -1;
             normalizedDestinationIndex = -1;
             if (layer == null ||
-                destinationContainer == null ||
+                !IsLayerDropContainer(destinationContainer) ||
                 !activeDocument.TryFindLayer(layer, out sourceContainer, out sourceIndex))
             {
                 return false;
@@ -551,6 +551,7 @@ namespace DCFApixels.WhimTex
 
             ExecuteModelChange("Move Sprite Layer", () =>
             {
+                activeDocument.PreserveTransformForMove(layer, destinationContainer);
                 sourceContainer.RemoveAt(sourceIndex);
                 normalizedDestinationIndex = Mathf.Clamp(
                     normalizedDestinationIndex,

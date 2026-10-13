@@ -50,6 +50,10 @@ Repeat 或 Mirror 则用重复图像填充边框外的区域。
 
 ## 参数控件
 
+使用 **⋮ → Reset**，或右键点击 FX 标题并选择 **Reset**，可恢复所有参数的默认值，包括隐藏字段和变换。代码、预设链接和启用状态保持不变。重置可以撤销；对于共享 FX 资源，重置会影响所有使用该资源的位置。
+
+右键点击有名称的参数组标题，可使用 **Copy**、**Paste** 和 **Reset**；Reset 前有分隔线。Paste 可在兼容的参数组之间传递值，例如 Selective HSV 的各个范围。隐藏字段和标题复选框也会复制和重置。Reset 只影响当前组；粘贴和重置均可撤销。组的内容区域和无名称的组没有此菜单。
+
 Shader FX 标题栏中的无标签复选框可启用或跳过效果，并保留其设置。外部 FX 引用共享此状态；使用 **Embed** 创建独立副本。
 
 将鼠标悬停在参数上，可以查看效果作者提供的说明（如果有）。
@@ -67,6 +71,12 @@ FX 标题栏中的数值字段前有 **↔** 手柄：左右拖动可调整数�
 具体行为由效果作者决定。
 
 Gain、Levels、Threshold、环境光及扭曲偏移在适当位置提供软边界。Levels 和 Threshold 支持大于 1 的 HDR 数值；混合比例仍限制在 0–1。Pixelate 和 Posterize 可手动输入超过 64 的级数和大于 5 的 Gamma。
+
+### Seed 与 Random
+
+作者标记为 Seed 的数值字段右侧会出现 **Random** 按钮。它在声明范围内选择一个整数，
+包括两端。只要范围允许，手动输入和拖动标签仍可使用小数。选择支持 Undo/Redo；
+预览、保存或打开文档不会自动重新随机。
 
 ### 纹理来源
 
@@ -216,9 +226,27 @@ Bevel Emboss 的 **Profile** 将选定的高度通道映射为浮雕高度。Gra
 
 ### HSV 校正
 **Color → HSV** 调整色相、饱和度和明度。**Hue** 以度数偏移色相；**Saturation** 和 **Value**
-是倍率：1 不变，0 去除饱和度或使图像变黑。**Amount** 与原图混合。
+是倍率：1 不变，0 去除饱和度或使图像变黑。标题栏中的 **Opacity** 与原图混合。
 调整色相或饱和度不会给灰色像素着色。保留透明度，支持 HDR 明度。
-校正时将负 RGB 通道视为零；中性设置和 Amount 0 完全保留原图。
+校正时将负 RGB 通道视为零；中性设置和 Opacity 0 完全保留原图。
+
+### Selective HSV
+
+**Color → Selective HSV** 在 **Master** 中调整整张图像，并用最多四个色相范围覆盖该校正。
+Hue 偏移原始色相；Saturation 和 Value 乘以原始饱和度和明度。中性值分别为 0、1、1。
+
+若要只保留蓝色，将 **Master → Saturation** 设为 0，启用 **Range 3**，保持
+**Center = 240°**、**Saturation = 1**，再调整 **Width** 和 **Feather**。
+蓝色范围中心保留原色，Feather 使其逐渐过渡到灰色区域。
+
+所有范围默认关闭。启用 Range，设置以度数表示的 Center/Width/Feather，再调整
+Hue/Saturation/Value。这些值覆盖 Master，而非在 Master 的结果上再次校正。
+禁用范围会隐藏字段，但保留值。范围依据校正前的原始色相选择；重叠时只平均范围的校正量，
+Master 不参与平均。**Min Saturation** 和 **Saturation Feather** 限制低饱和度区域的范围选择，
+这些区域和灰色像素仍接受 Master 校正。Width 360 覆盖整个色相环；Width 和 Feather 都为零时不选择任何颜色。
+
+在 **Output** 选择 **All Ranges Mask** 或单个范围的遮罩检查选择区域；遮罩亮度包含原图透明度，不受 Master 影响。
+**Result** 保持 Alpha 并支持 HDR 明度；标题栏中的 **Opacity** 将所选输出与原图混合。
 
 ### 反相
 **Color → Negative** 使用 **Amount** 将原始 RGB 与反相颜色（`1 - RGB`）混合。

@@ -58,7 +58,7 @@
 // @param float _AlphaNoise = 0 [0 .. 1] // Random per-pixel opacity variation.
 // @endgroup
 // @group(Playback)
-// @param float _Seed = 0 [0 .. ~10000] // Changes the deterministic corruption pattern.
+// @param seed float _Seed = 0 [0 .. ~10000] // Changes the deterministic corruption pattern.
 // @param float _EffectTime = 0 [0 .. ~3600] // Time in seconds; change it to inspect another glitch frame.
 // @param float _FrameRate = 12 [1 .. ~60] // Rate at which randomized artifacts change over time.
 // @endgroup

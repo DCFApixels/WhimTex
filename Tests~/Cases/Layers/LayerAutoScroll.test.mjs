@@ -59,12 +59,25 @@ context.case("LayerAutoScroll original assertion inputs and source contracts", a
   assert.match(source,/RegisterCallback<DragUpdatedEvent>\(OnDragUpdated, TrickleDown.TrickleDown\)/);
   assert.ok(source.includes('target.schedule.Execute(Tick).Every(16)'));
   assert.ok(source.includes('timer?.Pause()'));
-  assert.ok(source.includes('owner.GetDraggedLayer() == null'));
-  assert.ok(source.includes('target.panel.Pick(pointer)'));
-  assert.ok(source.includes('owner.TryGetToolkitDrop('));
+  assert.ok(source.includes('!HasScrollableDrag()'));
+  assert.ok(source.includes('owner.HasProjectTextureDrag()'));
+  assert.ok(source.includes('owner.TryResolveLayerDropTarget(pointer, out var drop)'));
+  assert.ok(source.includes('owner.ShowLayerDropTarget(drop)'));
   assert.ok(source.includes('scroll.verticalScroller.lowValue, scroll.verticalScroller.highValue'));
   assert.ok(read('src/WhimTexWindow.cs').includes('layerDragAutoScroll?.Stop();'));
   assert.ok(read('src/WhimTexWindow.UI.cs').includes('new LayerDragAutoScrollManipulator(this, toolkitSettingsScroll)'));
+
+  const fx = read('src/Editor/LayerShaderFXView.cs');
+  const fxClampBody = fx.match(/static float ClampScrollOffset\(float value, float low, float high\)\s*\{([^}]+)\}/)[1]
+    .replace(/float /g, 'let ').replace(/(\d)f\b/g, '$1').replace(/Mathf.Max/g, 'Math.max')
+    .replace(/Mathf.Clamp/g, 'clamp');
+  const fxOffset = new Function('value', 'low', 'high', 'clamp', fxClampBody);
+  for (const high of [-300, -1, 0, 100]) for (const value of [-30, 0, 10, 1000])
+    assert.equal(fxOffset(value, 0, high, clamp), clamp(value, 0, Math.max(0, high)),
+      'FX dragging shares the nonnegative ordered scroll range');
+  assert.match(fx, /offset\.y = ClampScrollOffset\(offset\.y \+ direction/);
+  assert.match(fx, /NormalizeScrollOffset\(scrollView\);/);
+  assert.match(fx, /SetScrollView\(null\);/);
 
 });
 await finish(context);

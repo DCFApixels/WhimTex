@@ -26,9 +26,29 @@ try {
     assert.deepEqual(validate('// @param curve _Profile // @param broken ;\n/*\n// @param bad _Bad\n*/'), []);
   });
 
+  context.case('seed modifiers enforce Unity float integer bounds without name inference', async () => {
+    const { parseParameter } = require('../../../ExternalTools~/WhimTexVSCode/metadata.js');
+    assert.equal(parseParameter('label(Seed) seed hidden float _Seed = 2.5 [~2.1 .. ~3.8]').seed, true);
+    assert.equal(parseParameter('float _Seed = 0 [0 .. 10]').seed, false);
+    for (const declaration of ['seed bool _Seed', 'seed enum _Seed {A:0}', 'seed float _Seed',
+      'seed float _Seed [0 ..]', 'seed float _Seed [0.1 .. 0.9]', 'seed seed float _Seed [0 .. 10]',
+      'seed float _Seed [-16777218 .. 0]', 'seed float _Seed [0 .. 16777218]'])
+      assert.throws(() => parseParameter(declaration), undefined, declaration);
+    for (const n of [-16777216, 0, 16777216]) assert.equal(parseParameter(`seed float _Seed = ${n} [${n} .. ${n}]`).seed, true);
+  });
+
   context.case('catalog marker is recognized and reports misplaced markers as a warning', async () => {
     assert.deepEqual(validate('// @whimtex-effect Color/Mask'), []);
     assert.equal(validate('\n// @whimtex-effect Color/Mask')[0].warning, true);
+  });
+
+  context.case('removed migration directives warn without creating aliases', async () => {
+    for (const source of ['// @formerlyserializedas(_Old)',
+      '// @formerlyserializedas(_Old)\n// @param float _New',
+      '// @formerlyserializedas(_Old)\n// @formerlyserializedas(_Old)\n// @param float _New']) {
+      const messages = validate(source);
+      assert.ok(messages.length > 0 && messages.every(d => d.warning && /Unknown WhimTex directive/.test(d.message)));
+    }
   });
 
   context.case('effect control is optional, warning-only and last declaration wins', async () => {

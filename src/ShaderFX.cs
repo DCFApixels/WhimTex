@@ -17,6 +17,7 @@ namespace DCFApixels.WhimTex
         public string[] headers = Array.Empty<string>();
         public string[] helpBoxes = Array.Empty<string>();
         public bool hidden;
+        public bool seed;
         public bool inGroup;
         public int groupId;
         public string groupTitle;
@@ -91,7 +92,7 @@ namespace DCFApixels.WhimTex
                 copy.controls.Add(new ShaderFXParameterControl { type = c.type, order = c.order, tooltip = c.tooltip, label = c.label,
                     headers = c.headers == null ? Array.Empty<string>() : (string[])c.headers.Clone(),
                     helpBoxes = c.helpBoxes == null ? Array.Empty<string>() : (string[])c.helpBoxes.Clone(),
-                    hidden = c.hidden, inGroup = c.inGroup, groupId = c.groupId,
+                    hidden = c.hidden, seed = c.seed, inGroup = c.inGroup, groupId = c.groupId,
                     groupTitle = c.groupTitle, groupHeaderParameter = c.groupHeaderParameter,
                     hasMinimum = c.hasMinimum, hasMaximum = c.hasMaximum, softMinimum = c.softMinimum, softMaximum = c.softMaximum, minimum = c.minimum, maximum = c.maximum,
                     optionNames = (string[])c.optionNames.Clone(), optionValues = (float[])c.optionValues.Clone(),
@@ -470,6 +471,31 @@ namespace DCFApixels.WhimTex
             undoDeserialized = false;
             MarkDraftChanged();
             QueueNotification(true);
+        }
+
+        internal bool CanResetParameters => !WhimTexApi.IsShaderFXContentLocked(this) && TryGetParameterDefaults(out _);
+
+        private bool TryGetParameterDefaults(out List<ShaderFXParameter> defaults)
+        {
+            defaults = null;
+            try { defaults = ShaderFXMetadata.Parse(code, false, out _); }
+            catch (FormatException) { return false; }
+            if (defaults.Count == 0 || defaults.Count != parameters.Count) return false;
+            foreach (var parameter in parameters)
+                if (parameter == null || !defaults.Exists(p => p.name == parameter.name && p.type == parameter.type))
+                    return false;
+            return true;
+        }
+
+        internal bool ResetParameters()
+        {
+            if (WhimTexApi.IsShaderFXContentLocked(this) || !TryGetParameterDefaults(out var defaults)) return false;
+            Undo.RecordObject(this, "Reset FX");
+            foreach (var parameter in parameters)
+                ShaderFXMetadata.CopyValue(defaults.Find(p => p.name == parameter.name), parameter);
+            EditorUtility.SetDirty(this);
+            NotifyValuesChanged();
+            return true;
         }
 
         private void QueueNotification(bool contentChanged)

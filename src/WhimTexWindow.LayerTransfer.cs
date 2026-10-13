@@ -28,40 +28,29 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
-        private void ResolveCrossWindowLayerDrop(Vector2 point, out List<Layer> destination, out int index,
+        private bool ResolveCrossWindowLayerDrop(Vector2 point, out List<Layer> destination, out int index,
             out Layer expand, out VisualElement indicator, out bool before, out int depth)
         {
-            destination = activeDocument.layers; index = 0; expand = null;
+            destination = null; index = -1; expand = null;
             indicator = null; before = true; depth = 0;
-            if (toolkitSettingsScroll?.panel == null || !toolkitSettingsScroll.contentViewport.worldBound.Contains(point)) return;
-            VisualElement picked = rootVisualElement.panel.Pick(point);
-            for (var element = picked; element != null && element != toolkitSettingsScroll; element = element.parent)
+            if (!TryResolveLayerDropTarget(point, out var drop))
             {
-                if (element.ClassListContains("whimtex-layer-row") && element.userData is string id)
-                {
-                    Layer layer = activeDocument.FindLayer(id);
-                    if (layer == null || !activeDocument.TryFindLayer(layer, out destination, out index)) return;
-                    foreach (var entry in toolkitLayerTree) if (entry.Layer == layer) { depth = entry.Depth; break; }
-                    float y = element.WorldToLocal(point).y, height = Mathf.Max(1, element.resolvedStyle.height);
-                    before = y < height * .5f;
-                    if (layer.IsGroup && y >= height * .25f && y <= height * .75f)
-                    { expand = layer; destination = layer.layers; index = 0; }
-                    else if (!before) index++;
-                    indicator = element;
-                    return;
-                }
-                if (element.userData is List<Layer> container)
-                { destination = container; index = container.Count; indicator = element; return; }
+                if (!rootVisualElement.worldBound.Contains(point) ||
+                    toolkitSettingsScroll?.contentViewport.worldBound.Contains(point) == true) return false;
+                destination = activeDocument.layers; index = 0;
+                return true;
             }
-            if (IsLayerListEndDropArea(point))
-            { index = destination.Count; indicator = toolkitLayerEndDropZone; }
+            destination = drop.Container; index = drop.Index; expand = drop.Expand;
+            indicator = drop.Indicator; before = drop.Before; depth = drop.Depth;
+            return true;
         }
 
         private bool UpdateCrossWindowLayerDrop(Vector2 point)
         {
             ClearToolkitDropIndicator();
             ClearFooterDropIndicator();
-            bool valid = TryGetCrossWindowLayers(out _, out _);
+            bool valid = TryGetCrossWindowLayers(out _, out _) &&
+                ResolveCrossWindowLayerDrop(point, out _, out _, out _, out _, out _, out _);
             if (valid)
             {
                 ResolveCrossWindowLayerDrop(point, out _, out _, out Layer expand, out var indicator, out bool before, out int depth);
@@ -88,7 +77,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 if (!TryGetCrossWindowLayers(out var source, out var roots)) return;
-                ResolveCrossWindowLayerDrop(evt.mousePosition, out var destination, out int index, out var expand, out _, out _, out _);
+                if (!ResolveCrossWindowLayerDrop(evt.mousePosition, out var destination, out int index, out var expand, out _, out _, out _)) return;
                 sourceWindow?.FinishCanvasTransform();
                 sourceWindow?.FinishPaintingStroke();
                 FinishCanvasTransform(); FinishPaintingStroke();

@@ -12,14 +12,6 @@
       "sdf-gradient-gpu-v2",
       "distance-field-render-v2"
     ],
-    "distance-field-performance": [
-      "distance-field-performance-star-512",
-      "distance-field-performance-star-1024",
-      "distance-field-performance-star-2048",
-      "distance-field-performance-outline-512",
-      "distance-field-performance-outline-1024",
-      "distance-field-performance-rings-512"
-    ],
     "noise-fields": [
       "noise-contract-v2",
       "noise-field-api-v3",
@@ -162,6 +154,11 @@
       "distance-field-boundaries-v2",
       "distance-field-modes-v2",
       "distance-field-render-v2",
+      "shader-fx-group-menu",
+      "shader-fx-reset",
+      "text-horizontal-scale",
+      "selective-hsv",
+      "shader-fx-seed-parameters",
       "halftone",
       "text-layer",
       "text-layer-ui",
@@ -658,13 +655,22 @@
       "document-save-cost-probe-cache-safety-v2",
       "player-release-workflow-v2",
       "fault-release-workflow-v2",
-      "reference-fixtures"
+      "reference-fixtures",
+      "slider-field-v1",
+      "layer-opacity-slider-v1",
+      "layer-name-field-v1",
+      "layer-drop-target-v1"
     ],
     "regressions": [
       "distance-contour-extraction-v1",
       "distance-field-boundaries-v2",
       "distance-field-modes-v2",
       "distance-field-render-v2",
+      "shader-fx-group-menu",
+      "shader-fx-reset",
+      "text-horizontal-scale",
+      "selective-hsv",
+      "shader-fx-seed-parameters",
       "halftone",
       "text-layer",
       "text-layer-ui",
@@ -1094,7 +1100,10 @@
       "psd-reader-roundtrip-v2",
       "document-save-cost-probe-cache-safety-v2",
       "player-release-workflow-v2",
-      "fault-release-workflow-v2"
+      "fault-release-workflow-v2",
+      "slider-field-v1",
+      "layer-opacity-slider-v1",
+      "layer-drop-target-v1"
     ],
     "source-guards": [
       "agent-command-inventory-v2",
@@ -1167,6 +1176,14 @@
       "reload-transport-d",
       "unity-b-async-skip-protocol-v2"
     ],
+    "distance-field-performance": [
+      "distance-field-performance-star-512",
+      "distance-field-performance-star-1024",
+      "distance-field-performance-star-2048",
+      "distance-field-performance-outline-512",
+      "distance-field-performance-outline-1024",
+      "distance-field-performance-rings-512"
+    ],
     "diagnostics": [
       "distance-field-performance-star-512",
       "distance-field-performance-star-1024",
@@ -1233,6 +1250,10 @@
     ],
     "unity-memory": [
       "distance-contour-extraction-v1",
+      "shader-fx-group-menu",
+      "shader-fx-reset",
+      "selective-hsv",
+      "shader-fx-seed-parameters",
       "entry-contract",
       "display-channels-v2",
       "canonical-reader-v2",
@@ -1352,6 +1373,8 @@
     ],
     "rendering": [
       "distance-field-render-v2",
+      "text-horizontal-scale",
+      "selective-hsv",
       "channel-mapping-ui",
       "smudge-hybrid-integration",
       "effect-cache-fingerprints",
@@ -1375,6 +1398,10 @@
       "scoped-undo-v2"
     ],
     "fx": [
+      "shader-fx-group-menu",
+      "shader-fx-reset",
+      "selective-hsv",
+      "shader-fx-seed-parameters",
       "halftone",
       "gaussian-kernel-math-v2",
       "blur-and-noise1-d-v2",
@@ -1478,6 +1505,7 @@
     "layers": [
       "distance-field-modes-v2",
       "distance-field-render-v2",
+      "text-horizontal-scale",
       "text-layer",
       "text-layer-ui",
       "text-tool",
@@ -1582,7 +1610,10 @@
       "layer-transfer-group-v2",
       "layer-transfer-end-v2",
       "layer-transfer-footer-v2",
-      "layer-transfer-guards-v2"
+      "layer-transfer-guards-v2",
+      "layer-opacity-slider-v1",
+      "layer-name-field-v1",
+      "layer-drop-target-v1"
     ],
     "contracts": [
       "branding-v2",
@@ -1722,7 +1753,9 @@
       "guide-settings-smoke-v2",
       "post-fx-background-settings-v2",
       "post-fx-presentation-v2",
-      "guide-reload-smoke-v2"
+      "guide-reload-smoke-v2",
+      "slider-field-v1",
+      "layer-opacity-slider-v1"
     ],
     "documents": [
       "document-json-schema-v2",
@@ -1878,6 +1911,17 @@
       "base-heart-reference-v2",
       "unknown-field-reader",
       "compatibility0125-v2"
+    ],
+    "slider-field": [
+      "slider-field-v1",
+      "layer-opacity-slider-v1"
+    ],
+    "layer-name": [
+      "layer-name-field-v1"
+    ],
+    "layer-drop": [
+      "layer-drop-target-v1",
+      "layer-auto-scroll-v2"
     ]
   },
   "scenarios": [
@@ -1962,63 +2006,6 @@
       "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
     },
     {
-      "id": "distance-field-modes-v2",
-      "file": "Tests~/Cases/Layers/DistanceFieldModesTests.cs",
-      "runner": "run_script",
-      "entry": "DistanceFieldModesTests.Run",
-      "args": [],
-      "category": "regression",
-      "timeoutMs": 60000,
-      "effects": [],
-      "groups": ["layers"],
-      "requiresUnity": true,
-      "prerequisites": "Idle matching Test6.6 Editor with current package; parent serializes Unity verification. Review case and declared support sources.",
-      "setup": "Independent analytic masks in NativeArrays and detached current-format clipboard documents. No persistent assets, windows or files.",
-      "teardown": "Dispose owned NativeArrays and detached clipboard documents through using/finally; no borrowed state is changed.",
-      "result": { "kind": "structured" },
-      "supportFiles": [
-        "Tests~/Framework/TestApi.cs",
-        "Tests~/Cases/Painting/DistanceFieldTests.cs"
-      ],
-      "reviewFiles": []
-    },
-    {
-      "id": "distance-field-render-v2",
-      "file": "Tests~/Cases/Layers/DistanceFieldRenderTests.cs",
-      "runner": "run_script",
-      "entry": "DistanceFieldRenderTests.Run",
-      "args": [],
-      "category": "regression",
-      "timeoutMs": 60000,
-      "effects": ["temp-files", "windows", "user-state"],
-      "groups": ["layers", "rendering"],
-      "requiresUnity": true,
-      "prerequisites": "Idle graphical matching Test6.6 Editor, imported WhimTex shaders and float render-texture support. Parent owns serial execution.",
-      "setup": "Owned transient input textures, unsaved document and SDF/Outline instances. Writes the six-mode contact sheet to project Temp/WhimTex/distance-fields/six-modes.png. A transient test EditorWindow attaches controls for public ChangeEvent assertions.",
-      "teardown": "Close only the owned control test window and restore previous Editor focus. Release owned render textures, destroy owned objects and restore caller GPU state; retain the contact sheet in project Temp. No assets or scenes are created.",
-      "result": { "kind": "structured" },
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
-      "reviewFiles": []
-    },
-    {
-      "id": "distance-field-boundaries-v2",
-      "file": "Tests~/Cases/Painting/DistanceFieldBoundaryTests.cs",
-      "runner": "run_script",
-      "entry": "DistanceFieldBoundaryTests.Run",
-      "args": [],
-      "category": "regression",
-      "timeoutMs": 60000,
-      "effects": [],
-      "groups": ["painting", "layers"],
-      "requiresUnity": true,
-      "prerequisites": "Idle matching graphical Editor; parent serializes all Unity verification. Review analytic case and explicit support files.",
-      "setup": "581 bounded CPU calls on masks up to 64x64, all six modes and intermediate thresholds; independent topology, line, norm, weak-component and remote-field oracles.",
-      "teardown": "Dispose owned NativeArrays and copied geometry after every synchronous computation. No assets, files, windows or borrowed Editor state.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Cases/Painting/DistanceFieldTests.cs"],
-      "reviewFiles": []
-    },
-    {
       "id": "halftone",
       "file": "Tests~/Cases/FX/HalftoneTests.cs",
       "runner": "run_script",
@@ -2027,12 +2014,46 @@
       "category": "regression",
       "timeoutMs": 60000,
       "effects": [],
-      "groups": ["regression", "shader-fx", "fx"],
+      "groups": [
+        "regression",
+        "shader-fx",
+        "fx"
+      ],
       "prerequisites": "Idle matching graphical Unity Editor with current WhimTex and an available graphics device.",
       "setup": "Owned in-memory document, FX, float input/readback textures and temporary render target; no asset imports or open-document changes.",
       "teardown": "Finally restores RenderTexture.active and GL.sRGBWrite and destroys only owned objects and the temporary render target.",
-      "result": { "kind": "structured" },
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "text-horizontal-scale",
+      "file": "Tests~/Cases/Layers/TextHorizontalScaleTests.cs",
+      "runner": "run_script",
+      "entry": "TextHorizontalScaleTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "layers",
+        "rendering"
+      ],
+      "prerequisites": "Idle matching graphical Editor with current text shader and a supported system font.",
+      "setup": "Owned transient text document and render resources; GUID PNG comparison in Temp/WhimTex.",
+      "teardown": "Release only owned textures/document. No scene, asset or preference changes.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -2043,146 +2064,325 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["temp-files", "user-state"],
-      "groups": ["layers", "rendering", "documents"],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "layers",
+        "rendering",
+        "documents"
+      ],
       "prerequisites": "Idle matching graphical Unity Editor, current WhimTex shaders and at least one supported installed system font.",
       "setup": "Owned transient documents, font raster resources and RT sentinel. Temporarily replace only the package font-availability cache to simulate a missing font. Write a GUID PNG proof only in Temp/WhimTex.",
       "teardown": "Restore render target, sRGB state and font cache; unsubscribe owned log callback; release only owned documents/render resources. No scene, asset or preference writes.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": []
     },
     {
-        "id": "grd-presets",
-        "file": "Tests~/Cases/Color/GrdPresetTests.cs",
-        "runner": "run_script",
-        "entry": "GrdPresetTests.Run",
-        "args": [],
-        "category": "regression",
-        "timeoutMs": 60000,
-        "effects": ["temp-files", "user-state"],
-        "groups": ["color", "export"],
-        "prerequisites": "Compiled WhimTex package in the assigned Editor.",
-        "setup": "In-memory GRD buffers plus a GUID Temp preset folder; redirect the library preference only for this test.",
-        "teardown": "Restore the original library preference and remove only the owned GUID Temp files; no user presets or Unity assets are changed.",
-        "result": {"kind": "structured"},
-        "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs", "src/PsdWriter.cs"]
+      "id": "grd-presets",
+      "file": "Tests~/Cases/Color/GrdPresetTests.cs",
+      "runner": "run_script",
+      "entry": "GrdPresetTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "color",
+        "export"
+      ],
+      "prerequisites": "Compiled WhimTex package in the assigned Editor.",
+      "setup": "In-memory GRD buffers plus a GUID Temp preset folder; redirect the library preference only for this test.",
+      "teardown": "Restore the original library preference and remove only the owned GUID Temp files; no user presets or Unity assets are changed.",
+      "result": {
+        "kind": "structured"
       },
-      {
-        "id": "gradient-creation",
-        "file": "Tests~/Cases/Canvas/GradientCreationTests.cs",
-        "runner": "run_script",
-        "entry": "GradientCreationTests.Start",
-        "args": ["$runId"],
-        "category": "regression",
-        "timeoutMs": 60000,
-        "effects": ["windows", "user-state"],
-        "groups": ["canvas", "color"],
-        "prerequisites": "Idle graphical Test6.6 Editor and current compiled package.",
-        "setup": "Own a transient window/document; send public pointer and key events. Reflection only on package types.",
-        "teardown": "Close owned window, clear owned Undo, destroy owned document, restore borrowed preferences and Editor state.",
-        "result": {"kind": "structured"},
-        "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
-        "async": {"entry": "GradientCreationTests.Poll", "args": ["$runId"], "pollMs": 100},
-        "cancel": {"entry": "GradientCreationTests.Cancel", "args": ["$runId"]},
-        "cleanup": {"entry": "GradientCreationTests.Cleanup", "args": ["$runId"]}
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs",
+        "src/PsdWriter.cs"
+      ]
+    },
+    {
+      "id": "gradient-creation",
+      "file": "Tests~/Cases/Canvas/GradientCreationTests.cs",
+      "runner": "run_script",
+      "entry": "GradientCreationTests.Start",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "canvas",
+        "color"
+      ],
+      "prerequisites": "Idle graphical Test6.6 Editor and current compiled package.",
+      "setup": "Own a transient window/document; send public pointer and key events. Reflection only on package types.",
+      "teardown": "Close owned window, clear owned Undo, destroy owned document, restore borrowed preferences and Editor state.",
+      "result": {
+        "kind": "structured"
       },
-      {
-        "id": "text-tool",
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "async": {
+        "entry": "GradientCreationTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 100
+      },
+      "cancel": {
+        "entry": "GradientCreationTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "GradientCreationTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "text-tool",
       "file": "Tests~/Cases/Canvas/TextToolTests.cs",
       "runner": "run_script",
       "entry": "TextToolTests.Start",
-      "args": ["$runId"],
+      "args": [
+        "$runId"
+      ],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["windows", "user-state"],
-      "groups": ["layers", "canvas"],
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "layers",
+        "canvas"
+      ],
       "prerequisites": "Idle graphical Editor, compiled Text tool and an installed system font.",
       "setup": "Owned transient document/window. Public Unity pointer/text events, reflection only on package types. Borrow the tool preference and restore it.",
       "teardown": "Close only the owned window, clear owned Undo, destroy the owned document and restore the preference and borrowed Editor state.",
-      "result": { "kind": "structured" },
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs", "Tests~/Framework/Unity/AsyncD.cs"],
-      "async": { "entry": "TextToolTests.Poll", "args": ["$runId"], "pollMs": 100 },
-      "cancel": { "entry": "TextToolTests.Cancel", "args": ["$runId"] },
-      "cleanup": { "entry": "TextToolTests.Cleanup", "args": ["$runId"] }
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs"
+      ],
+      "async": {
+        "entry": "TextToolTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 100
+      },
+      "cancel": {
+        "entry": "TextToolTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "TextToolTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
     },
     {
       "id": "text-layer-ui",
       "file": "Tests~/Cases/Layers/TextLayerUiTests.cs",
       "runner": "run_script",
       "entry": "TextLayerUiTests.Start",
-      "args": ["$runId"],
+      "args": [
+        "$runId"
+      ],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["windows", "user-state"],
-      "groups": ["layers", "canvas"],
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "layers",
+        "canvas"
+      ],
       "prerequisites": "Idle matching graphical Unity Editor, compiled Text layer, OS font catalog and UI Toolkit panel.",
       "setup": "Owned transient text document, Properties window and font picker. Public Unity UI APIs; reflection only on package-owned types.",
       "teardown": "Close only owned windows, clear only the owned document Undo, destroy owned document/fonts and restore borrowed Editor state.",
-      "result": { "kind": "structured" },
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs", "Tests~/Framework/Unity/AsyncD.cs"],
-      "async": { "entry": "TextLayerUiTests.Poll", "args": ["$runId"], "pollMs": 100 },
-      "cancel": { "entry": "TextLayerUiTests.Cancel", "args": ["$runId"] },
-      "cleanup": { "entry": "TextLayerUiTests.Cleanup", "args": ["$runId"] }
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs"
+      ],
+      "async": {
+        "entry": "TextLayerUiTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 100
+      },
+      "cancel": {
+        "entry": "TextLayerUiTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "TextLayerUiTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
     },
     {
       "id": "guide-interaction",
       "file": "Tests~/Cases/Canvas/GuideInteractionTests.cs",
       "runner": "run_script",
       "entry": "GuideInteractionTests.Start",
-      "args": ["$runId"],
+      "args": [
+        "$runId"
+      ],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["windows", "user-state"],
-      "groups": ["canvas"],
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "canvas"
+      ],
       "prerequisites": "Idle graphical Editor with the current package and UI Toolkit panel.",
       "setup": "Own one unsaved window/document. Exercise guide fallback for Layer Select/Zoom, Transform priority, corner pair creation, view rotation, cancellation, shared Undo/Redo and guide limits.",
       "teardown": "UnityAScope closes only owned windows and restores focus/preferences; no project assets or user documents are edited.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityAScope.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
       "reviewFiles": [],
-      "async": {"entry": "GuideInteractionTests.Poll", "args": ["$runId"], "pollMs": 100},
-      "cancel": {"entry": "GuideInteractionTests.Cancel", "args": ["$runId"]},
-      "cleanup": {"entry": "GuideInteractionTests.Cleanup", "args": ["$runId"]}
+      "async": {
+        "entry": "GuideInteractionTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 100
+      },
+      "cancel": {
+        "entry": "GuideInteractionTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "GuideInteractionTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
     },
     {
       "id": "channel-mapping-ui",
       "file": "Tests~/Cases/Canvas/ChannelMappingUiTests.cs",
       "runner": "run_script",
       "entry": "ChannelMappingUiTests.Start",
-      "args": ["$runId"],
+      "args": [
+        "$runId"
+      ],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["windows", "user-state"],
-      "groups": ["canvas", "rendering"],
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "canvas",
+        "rendering"
+      ],
       "prerequisites": "Connected idle Editor for the explicit project, compiled WhimTex and UI Toolkit panel.",
       "setup": "Owned transient document and test window; no imported assets or changes to an open user document.",
       "teardown": "Close only the test window, clear only test-document Undo, destroy the test document and restore borrowed Editor state.",
-      "result": { "kind": "structured" },
+      "result": {
+        "kind": "structured"
+      },
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Framework/Unity/AsyncD.cs"
       ],
-      "async": { "entry": "ChannelMappingUiTests.Poll", "args": ["$runId"], "pollMs": 100 },
-      "cancel": { "entry": "ChannelMappingUiTests.Cancel", "args": ["$runId"] },
-      "cleanup": { "entry": "ChannelMappingUiTests.Cleanup", "args": ["$runId"] }
+      "async": {
+        "entry": "ChannelMappingUiTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 100
+      },
+      "cancel": {
+        "entry": "ChannelMappingUiTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ChannelMappingUiTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
     },
     {
       "id": "smudge-hybrid-performance-2048",
       "file": "Tests~/Cases/Painting/SmudgeBrushTests.cs",
       "runner": "run_script",
       "entry": "SmudgeBrushTests.HybridBenchmark",
-      "args": [2048],
+      "args": [
+        2048
+      ],
       "category": "diagnostic",
       "timeoutMs": 60000,
-      "effects": ["temp-files", "user-state"],
-      "groups": ["painting", "diagnostics"],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "diagnostics"
+      ],
       "prerequisites": "Idle graphical Test6.6 Editor; reviewed case and framework.",
       "setup": "Measure GPU-drained 100-event strokes at Mixing 25, tips 32/128/512, current and sampled source on owned 2K textures. Diagnostic, not a performance acceptance assertion.",
       "teardown": "End owned strokes and dispose transient fixtures.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -2190,16 +2390,29 @@
       "file": "Tests~/Cases/Painting/SmudgeBrushTests.cs",
       "runner": "run_script",
       "entry": "SmudgeBrushTests.HybridBenchmark",
-      "args": [4096],
+      "args": [
+        4096
+      ],
       "category": "diagnostic",
       "timeoutMs": 60000,
-      "effects": ["temp-files", "user-state"],
-      "groups": ["painting", "diagnostics"],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "diagnostics"
+      ],
       "prerequisites": "Idle graphical Test6.6 Editor; reviewed case and framework.",
       "setup": "Measure GPU-drained 100-event strokes at Mixing 25, tips 32/128/512, current and sampled source on owned 4K textures. Diagnostic, not a performance acceptance assertion.",
       "teardown": "End owned strokes and dispose transient fixtures.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -2210,13 +2423,23 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["temp-files", "user-state"],
-      "groups": ["painting"],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
       "prerequisites": "Idle graphical Test6.6 Editor; reviewed case and framework.",
       "setup": "Own transient documents and textures; verify 16-circle color/alpha bounds, cropped positive history, endpoints, detail, no-ops and pointer-event density.",
       "teardown": "End owned strokes and dispose fixtures, restoring borrowed Editor state.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -2227,13 +2450,24 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["temp-files", "user-state"],
-      "groups": ["painting", "rendering"],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
       "prerequisites": "Idle graphical Test6.6 Editor; reviewed case and framework.",
       "setup": "Run the full pixel/mask/HDR/transform/Tiled/sampling/group/Target/clipping/thumbnail/roundtrip/export integration at Mixing 25, using only transient inputs.",
       "teardown": "End owned strokes and dispose fixtures, restoring borrowed Editor state.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -2244,13 +2478,23 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["temp-files", "user-state"],
-      "groups": ["painting"],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
       "prerequisites": "Idle graphical Test6.6 Editor; reviewed case and declared framework.",
       "setup": "Compare post-deposit pickup/retention to an independent premultiplied RGBA reference on straight/turning paths; require an unchanged initial patch at full Strength; verify hard-tip antialiasing, striped HDR/native Drawing surfaces, fractional/soft masks, rotation, growing projective footprints and tips above 1024 without user assets.",
       "teardown": "End owned strokes, release transient resources and restore borrowed Editor state through FixtureScope.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -2261,13 +2505,23 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["temp-files", "user-state"],
-      "groups": ["painting"],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
       "prerequisites": "Idle graphical Test6.6 Editor; Smudge shader imported. Reviewed case and declared framework.",
       "setup": "Own unsaved documents, source textures, masks and GPU buffers; no project assets or user documents.",
       "teardown": "End owned strokes, release transient resources and restore graphics/preferences through FixtureScope.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -2278,13 +2532,25 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["temp-files", "user-state", "windows"],
-      "groups": ["painting", "automation"],
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "groups": [
+        "painting",
+        "automation"
+      ],
       "prerequisites": "Idle graphical Test6.6 Editor; reviewed case and framework.",
       "setup": "Create one owned unsaved window/session and test Drawing. Exercise only this session's batch and Undo.",
       "teardown": "Destroy owned window/document/textures and restore borrowed Editor state through FixtureScope.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -2292,20 +2558,50 @@
       "file": "Tests~/Cases/Painting/SmudgeBrushTests.cs",
       "runner": "run_script",
       "entry": "SmudgeBrushTests.StartUi",
-      "args": ["$runId"],
+      "args": [
+        "$runId"
+      ],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["temp-files", "user-state", "windows"],
-      "groups": ["painting", "canvas"],
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "groups": [
+        "painting",
+        "canvas"
+      ],
       "prerequisites": "Idle graphical Test6.6 Editor; reviewed case and framework.",
       "setup": "Show an owned utility window with transient Drawing; click its tool button and exercise its controls/stroke routing.",
       "teardown": "Joined Cancel/Cleanup drains worker and destroys only GUID-owned resources; FixtureScope restores preferences/focus.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
       "reviewFiles": [],
-      "async": {"entry": "SmudgeBrushTests.Poll", "args": ["$runId"], "pollMs": 100},
-      "cancel": {"entry": "SmudgeBrushTests.Cancel", "args": ["$runId"]},
-      "cleanup": {"entry": "SmudgeBrushTests.Cleanup", "args": ["$runId"]}
+      "async": {
+        "entry": "SmudgeBrushTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 100
+      },
+      "cancel": {
+        "entry": "SmudgeBrushTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "SmudgeBrushTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
     },
     {
       "id": "smudge-visual",
@@ -2315,13 +2611,23 @@
       "args": [],
       "category": "diagnostic",
       "timeoutMs": 60000,
-      "effects": ["temp-files", "user-state"],
-      "groups": ["painting"],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
       "prerequisites": "Idle graphical Test6.6 Editor; reviewed case and framework.",
       "setup": "Render one owned color-boundary stroke; capture before/after PNGs in owned Temp scope.",
       "teardown": "Embed diagnostic artifacts before FixtureScope cleanup. Diagnostic SKIP is not regression PASS.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -2332,13 +2638,23 @@
       "args": [],
       "category": "diagnostic",
       "timeoutMs": 60000,
-      "effects": ["temp-files", "user-state"],
-      "groups": ["painting"],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
       "prerequisites": "Idle graphical Test6.6 Editor; reviewed case and framework; no concurrent painting.",
       "setup": "Owned 2K/4K Drawing surfaces, 32/128/512 pixel tips, current/frozen sources; measure 100 pointer segments and drain GPU with public one-pixel readback.",
       "teardown": "Release owned strokes, sources, previews and documents; timing is diagnostic, not regression PASS.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -2349,13 +2665,23 @@
       "args": [],
       "category": "diagnostic",
       "timeoutMs": 60000,
-      "effects": ["temp-files", "user-state"],
-      "groups": ["painting"],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
       "prerequisites": "Idle graphical Test6.6 Editor; reviewed case and framework.",
       "setup": "Capture owned native HDR stroke outputs for current/frozen and normal/Tiled paths before optimizing.",
       "teardown": "Embed actual raw snapshots in diagnostic receipt before owned fixture cleanup.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -2366,13 +2692,23 @@
       "args": [],
       "category": "diagnostic",
       "timeoutMs": 60000,
-      "effects": ["temp-files", "user-state"],
-      "groups": ["rendering"],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "rendering"
+      ],
       "prerequisites": "Idle Test6.6 Editor; reviewed sources.",
       "setup": "Thirty owned FX with 100K-character immutable sources; no Apply, shader compilation or project assets.",
       "teardown": "Dispose owned cache and transient models/FX; timing is diagnostic only.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -2383,13 +2719,23 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["temp-files", "user-state"],
-      "groups": ["rendering"],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "rendering"
+      ],
       "prerequisites": "Idle Test6.6 Editor; reviewed sources.",
       "setup": "Owned FX values/source snapshots, mutable gradient/curve/texture and hidden Target/processor dependencies.",
       "teardown": "Dispose owned cache, models and FX; restore editor/graphics state via FixtureScope.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -4686,12 +5032,20 @@
       "category": "regression",
       "timeoutMs": 60000,
       "effects": [],
-      "groups": ["regression", "shader-fx", "fx"],
+      "groups": [
+        "regression",
+        "shader-fx",
+        "fx"
+      ],
       "prerequisites": "Idle Test6.6 Editor with current WhimTex compiled and shader compilation available.",
       "setup": "Owned transient FX/documents, unattached UI trees and read-only diagnostic snapshots; invalid HLSL deliberately produces captured Console errors. GUID source paths are labels only. No file/asset writes or Undo changes.",
       "teardown": "Unsubscribes the public Console callback, unbinds own UI, destroys owned FX/documents/shaders and removes only this run's diagnostic suppression identities.",
-      "result": { "kind": "structured" },
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -4703,12 +5057,20 @@
       "category": "regression",
       "timeoutMs": 60000,
       "effects": [],
-      "groups": ["regression", "shader-fx", "fx"],
+      "groups": [
+        "regression",
+        "shader-fx",
+        "fx"
+      ],
       "prerequisites": "Connected idle Test6.6 Editor with current WhimTex compiled and shader compilation available.",
       "setup": "Transient FX only; GUID source paths are labels, not files. Captures owned time warnings through the public Unity logging callback.",
       "teardown": "Unsubscribes the callback, destroys owned FX/shaders and removes only suppression entries newly logged by the run. Does not change user assets, windows or Undo history.",
-      "result": { "kind": "structured" },
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -4786,6 +5148,125 @@
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "selective-hsv",
+      "file": "Tests~/Cases/FX/SelectiveHsvTests.cs",
+      "runner": "run_script",
+      "entry": "SelectiveHsvTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "fx",
+        "shader-fx",
+        "regression"
+      ],
+      "prerequisites": "Idle matching graphical Editor with current imported package FX.",
+      "setup": "Owned transient documents, catalog FX and float textures; no persistent assets or document saves.",
+      "teardown": "Destroy owned resources and restore render state; MigrationD restores borrowed Editor state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "reviewFiles": [
+        "src/FXPresets/SelectiveHSV.hlsl",
+        "src/FXPresets/HSV.hlsl",
+        "src/Shaders/HdrColor.cginc"
+      ]
+    },
+    {
+      "id": "shader-fx-group-menu",
+      "file": "Tests~/Cases/FX/ShaderFXGroupMenuTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXGroupMenuTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "fx",
+        "shader-fx",
+        "regression"
+      ],
+      "prerequisites": "Idle matching Editor; no concurrent user clipboard or Undo edits.",
+      "setup": "Owned transient FX/documents and unattached UI; snapshot current clipboard and owned Undo only.",
+      "teardown": "Restore prior clipboard/snapshot, clear only owned Undo, destroy owned objects.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderFXParameterView.cs",
+        "src/Editor/ShaderParameterViewSource.cs",
+        "src/Editor/ShaderParameterGroupClipboard.cs"
+      ]
+    },
+    {
+      "id": "shader-fx-reset",
+      "file": "Tests~/Cases/FX/ShaderFXResetTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXResetTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "fx",
+        "shader-fx",
+        "regression"
+      ],
+      "prerequisites": "Idle matching Editor; no concurrent user Undo edits.",
+      "setup": "Owned transient document/FX and unattached UI. No persistent assets or user windows.",
+      "teardown": "Clear Undo only for owned objects, then destroy owned models/resources.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/LayerShaderFXView.cs",
+        "src/ShaderFX.cs",
+        "src/ShaderFXMetadata.cs"
+      ]
+    },
+    {
+      "id": "shader-fx-seed-parameters",
+      "file": "Tests~/Cases/FX/ShaderFXSeedParameterTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXSeedParameterTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "fx",
+        "shader-fx",
+        "regression"
+      ],
+      "prerequisites": "Idle matching graphical Editor. No active user gestures or concurrent Undo edits.",
+      "setup": "Owned transient document/FX and unattached UI; Undo entries only for the owned FX.",
+      "teardown": "Clear Undo only for the owned FX and destroy owned models/resources. No global Undo clearing or persistent assets.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
       ],
       "reviewFiles": []
     },
@@ -4880,12 +5361,21 @@
       "category": "regression",
       "timeoutMs": 60000,
       "effects": [],
-      "groups": ["fx", "color", "rendering"],
+      "groups": [
+        "fx",
+        "color",
+        "rendering"
+      ],
       "prerequisites": "Idle matching Unity Editor with graphics support and the current WhimTex package.",
       "setup": "Transient document, FX, float textures, detached standard parameter views; no assets or user windows are modified.",
       "teardown": "Destroy owned objects, clear their Undo records, release RT and restore caller render state through MigrationD.",
-      "result": { "kind": "structured" },
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -5327,12 +5817,20 @@
       "category": "regression",
       "timeoutMs": 60000,
       "effects": [],
-      "groups": ["regression", "shape", "layers"],
+      "groups": [
+        "regression",
+        "shape",
+        "layers"
+      ],
       "prerequisites": "Connected idle Test6.6 Editor with a graphics device and current WhimTex scripts/shaders.",
       "setup": "Owned in-memory documents and textures; no scene, asset, window or Undo changes.",
       "teardown": "Dispose all owned documents, JSON readers and rendered textures in finally blocks.",
-      "result": { "kind": "structured" },
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -6982,13 +7480,28 @@
       "category": "regression",
       "timeoutMs": 60000,
       "effects": [],
-      "groups": ["fx", "shader-fx", "regression"],
+      "groups": [
+        "fx",
+        "shader-fx",
+        "regression"
+      ],
       "prerequisites": "Idle matching Unity Editor with imported package presets and a graphics device. Serialized execution only.",
       "setup": "Owned unsaved models, linked catalog FX and float textures. No scenes, imported assets or user documents are changed.",
       "teardown": "Finally destroys owned objects and temporary RTs; MigrationD restores caller render state.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs"],
-      "reviewFiles": ["src/FXPresets/Spherize.hlsl", "src/FXPresets/Twirl.hlsl", "src/FXPresets/RadialShear.hlsl", "src/FXPresets/PolarCoordinates.hlsl", "src/FXPresets/DisplacementMap.hlsl"]
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "reviewFiles": [
+        "src/FXPresets/Spherize.hlsl",
+        "src/FXPresets/Twirl.hlsl",
+        "src/FXPresets/RadialShear.hlsl",
+        "src/FXPresets/PolarCoordinates.hlsl",
+        "src/FXPresets/DisplacementMap.hlsl"
+      ]
     },
     {
       "id": "input-tiling-v2",
@@ -6998,14 +7511,35 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["windows", "user-state"],
-      "groups": ["fx", "shader-fx", "regression"],
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "fx",
+        "shader-fx",
+        "regression"
+      ],
       "prerequisites": "Idle matching Unity Editor with current WhimTex compiled, imported built-in presets and a graphics device.",
       "setup": "Owned unsaved documents, FX, one test-only Editor window, UI controls, float textures and temporary render targets. No scene, imported fixture, user document or project settings changes.",
       "teardown": "Harness destroys owned objects and RTs; MigrationD restores borrowed Editor/GPU state.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs"],
-      "reviewFiles": ["src/ShaderFXSourceBuilder.cs", "src/Layers/Layer.cs", "src/FXPresets/UVTransform.hlsl", "src/FXPresets/Spherize.hlsl", "src/FXPresets/Twirl.hlsl", "src/FXPresets/RadialShear.hlsl", "src/FXPresets/PolarCoordinates.hlsl", "src/FXPresets/DisplacementMap.hlsl"]
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "reviewFiles": [
+        "src/ShaderFXSourceBuilder.cs",
+        "src/Layers/Layer.cs",
+        "src/FXPresets/UVTransform.hlsl",
+        "src/FXPresets/Spherize.hlsl",
+        "src/FXPresets/Twirl.hlsl",
+        "src/FXPresets/RadialShear.hlsl",
+        "src/FXPresets/PolarCoordinates.hlsl",
+        "src/FXPresets/DisplacementMap.hlsl"
+      ]
     },
     {
       "id": "edge-outline-v2",
@@ -7015,14 +7549,27 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["temp-files"],
-      "groups": ["fx", "shader-fx", "regression"],
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "fx",
+        "shader-fx",
+        "regression"
+      ],
       "prerequisites": "Idle matching Unity Editor with imported package presets and a graphics device. Serialized execution only.",
       "setup": "Owned in-memory models, linked catalog FX and float textures; no user document, scene or imported fixture assets.",
       "teardown": "Finally destroys owned objects and temporary RTs; MigrationD restores caller render state. The GUID contact sheet remains in project Temp/WhimTex.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs"],
-      "reviewFiles": ["src/FXPresets/EdgeOutline.hlsl"]
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "reviewFiles": [
+        "src/FXPresets/EdgeOutline.hlsl"
+      ]
     },
     {
       "id": "brush-input-smoothing",
@@ -7033,12 +7580,18 @@
       "category": "regression",
       "timeoutMs": 60000,
       "effects": [],
-      "groups": ["painting"],
+      "groups": [
+        "painting"
+      ],
       "prerequisites": "Idle matching Unity Editor with the current package.",
       "setup": "Detached managed smoothing settings and filter instances.",
       "teardown": "No Editor state or resources are changed.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -7050,12 +7603,18 @@
       "category": "regression",
       "timeoutMs": 60000,
       "effects": [],
-      "groups": ["painting"],
+      "groups": [
+        "painting"
+      ],
       "prerequisites": "Idle graphical matching Unity Editor with the current package.",
       "setup": "Transient Drawing layers and textures; snapshot caller GPU state. No assets, Undo or preferences.",
       "teardown": "Finally releases owned paint buffers/textures and restores active target and sRGB write.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -7293,13 +7852,25 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["windows", "user-state"],
-      "groups": ["regression", "contracts", "canvas", "documents"],
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "regression",
+        "contracts",
+        "canvas",
+        "documents"
+      ],
       "prerequisites": "Idle graphical Test6.6 Editor with current WhimTex compiled.",
       "setup": "Owned transient documents and one unshown test window; script/GUID reads, in-memory JSON and TIFF model-block roundtrips, small Canvas renders. No file or asset writes.",
       "teardown": "Destroys the owned window/documents and restores caller render state and drag data; does not save user documents or change Undo history.",
-      "result": { "kind": "structured" },
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -7509,12 +8080,18 @@
       "category": "regression",
       "timeoutMs": 60000,
       "effects": [],
-      "groups": ["canvas"],
+      "groups": [
+        "canvas"
+      ],
       "prerequisites": "Idle matching Unity Editor with current WhimTex assembly.",
       "setup": "Owned in-memory transform structs only; no assets or user documents.",
       "teardown": "No Unity objects or persistent state are created.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -8982,6 +9559,63 @@
       "reviewFiles": []
     },
     {
+      "id": "distance-field-modes-v2",
+      "file": "Tests~/Cases/Layers/DistanceFieldModesTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldModesTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["layers"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor with current package; parent serializes Unity verification. Review case and declared support sources.",
+      "setup": "Independent analytic masks in NativeArrays and detached current-format clipboard documents. No persistent assets, windows or files.",
+      "teardown": "Dispose owned NativeArrays and detached clipboard documents through using/finally; no borrowed state is changed.",
+      "result": { "kind": "structured" },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/DistanceFieldTests.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-field-render-v2",
+      "file": "Tests~/Cases/Layers/DistanceFieldRenderTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldRenderTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "windows", "user-state"],
+      "groups": ["layers", "rendering"],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor, imported WhimTex shaders and float render-texture support. Parent owns serial execution.",
+      "setup": "Owned transient input textures, unsaved document and SDF/Outline instances. Writes the six-mode contact sheet to project Temp/WhimTex/distance-fields/six-modes.png. A transient test EditorWindow attaches controls for public ChangeEvent assertions.",
+      "teardown": "Close only the owned control test window and restore previous Editor focus. Release owned render textures, destroy owned objects and restore caller GPU state; retain the contact sheet in project Temp. No assets or scenes are created.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-field-boundaries-v2",
+      "file": "Tests~/Cases/Painting/DistanceFieldBoundaryTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldBoundaryTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["painting", "layers"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching graphical Editor; parent serializes all Unity verification. Review analytic case and explicit support files.",
+      "setup": "581 bounded CPU calls on masks up to 64x64, all six modes and intermediate thresholds; independent topology, line, norm, weak-component and remote-field oracles.",
+      "teardown": "Dispose owned NativeArrays and copied geometry after every synchronous computation. No assets, files, windows or borrowed Editor state.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Cases/Painting/DistanceFieldTests.cs"],
+      "reviewFiles": []
+    },
+    {
       "id": "distance-field-unity-v2",
       "file": "Tests~/Cases/Painting/DistanceFieldTests.cs",
       "runner": "run_script",
@@ -9951,14 +10585,33 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["user-state", "assets", "windows"],
-      "groups": ["unity", "documents"],
+      "effects": [
+        "user-state",
+        "assets",
+        "windows"
+      ],
+      "groups": [
+        "unity",
+        "documents"
+      ],
       "prerequisites": "Connected graphical Unity Editor; explicit authority for GUID-owned assets under Assets/WhimTexTestMigration. No writes to user documents or settings.",
       "setup": "Create an owned TIFF with a real unread field, detached models and one owned window. Test default protection, explicit recovery copy/overwrite, JSON and visible load warning.",
       "teardown": "Dispose owned models/window; restore graphics, focus and selection; remove only the run's GUID-owned asset directory. Native confirmation clicks are not automated.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityBSupport.cs"],
-      "reviewFiles": ["src/WhimTexDocumentFile.cs", "src/WhimTexDocumentFile.Json.cs", "src/WhimTexDocumentJson.cs", "src/WhimTexWindow.DocumentFile.cs", "src/WhimTexWindow.Json.cs", "src/WhimTexWindow.UI.cs"]
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/WhimTexDocumentFile.cs",
+        "src/WhimTexDocumentFile.Json.cs",
+        "src/WhimTexDocumentJson.cs",
+        "src/WhimTexWindow.DocumentFile.cs",
+        "src/WhimTexWindow.Json.cs",
+        "src/WhimTexWindow.UI.cs"
+      ]
     },
     {
       "id": "document-vector-types-smoke-v2",
@@ -17071,60 +17724,150 @@
       "file": "Tests~/Cases/Painting/BrushHeaderLayoutTests.cs",
       "runner": "run_script",
       "entry": "BrushHeaderLayoutTests.StartAllHeaders",
-      "args": ["$runId"],
+      "args": [
+        "$runId"
+      ],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["windows", "user-state", "temp-files"],
-      "groups": ["canvas", "painting"],
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "groups": [
+        "canvas",
+        "painting"
+      ],
       "prerequisites": "Idle graphical Editor with current package; only owned transient windows and documents.",
       "setup": "Exercise document, Layer Select, Transform, Zoom and Shape headers at wide/compact/wrapped widths.",
       "teardown": "UnityAScope destroys owned transient resources, restores focus/preferences, and preserves diagnostic captures in Temp/WhimTex.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityAScope.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
       "reviewFiles": [],
-      "async": {"entry": "BrushHeaderLayoutTests.Poll", "args": ["$runId"], "pollMs": 200},
-      "cancel": {"entry": "BrushHeaderLayoutTests.Cancel", "args": ["$runId"]},
-      "cleanup": {"entry": "BrushHeaderLayoutTests.Cleanup", "args": ["$runId"]}
+      "async": {
+        "entry": "BrushHeaderLayoutTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "BrushHeaderLayoutTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "BrushHeaderLayoutTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
     },
     {
       "id": "canvas-header-paint-layout",
       "file": "Tests~/Cases/Painting/BrushHeaderLayoutTests.cs",
       "runner": "run_script",
       "entry": "BrushHeaderLayoutTests.StartPaintHeaders",
-      "args": ["$runId"],
+      "args": [
+        "$runId"
+      ],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["windows", "user-state", "temp-files"],
-      "groups": ["canvas", "painting"],
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "groups": [
+        "canvas",
+        "painting"
+      ],
       "prerequisites": "Idle graphical Editor with current package; only owned transient windows and documents.",
       "setup": "Exercise Rectangle Select, Polygon Select, Fill and Pencil headers at wide/compact/wrapped widths.",
       "teardown": "UnityAScope destroys owned transient resources and restores focus/preferences.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityAScope.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
       "reviewFiles": [],
-      "async": {"entry": "BrushHeaderLayoutTests.Poll", "args": ["$runId"], "pollMs": 200},
-      "cancel": {"entry": "BrushHeaderLayoutTests.Cancel", "args": ["$runId"]},
-      "cleanup": {"entry": "BrushHeaderLayoutTests.Cleanup", "args": ["$runId"]}
+      "async": {
+        "entry": "BrushHeaderLayoutTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "BrushHeaderLayoutTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "BrushHeaderLayoutTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
     },
     {
       "id": "canvas-header-brush-layout",
       "file": "Tests~/Cases/Painting/BrushHeaderLayoutTests.cs",
       "runner": "run_script",
       "entry": "BrushHeaderLayoutTests.StartBrushHeaders",
-      "args": ["$runId"],
+      "args": [
+        "$runId"
+      ],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["windows", "user-state", "temp-files"],
-      "groups": ["canvas", "painting"],
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "groups": [
+        "canvas",
+        "painting"
+      ],
       "prerequisites": "Idle graphical Editor with current package; only owned transient windows and documents.",
       "setup": "Exercise Brush, Blur, Smudge and Healing headers, dynamic controls, dropdown widths, label dragging and compact-mode boundary stability.",
       "teardown": "UnityAScope destroys owned transient resources, restores focus/preferences, and preserves diagnostic captures in Temp/WhimTex.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityAScope.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
       "reviewFiles": [],
-      "async": {"entry": "BrushHeaderLayoutTests.Poll", "args": ["$runId"], "pollMs": 200},
-      "cancel": {"entry": "BrushHeaderLayoutTests.Cancel", "args": ["$runId"]},
-      "cleanup": {"entry": "BrushHeaderLayoutTests.Cleanup", "args": ["$runId"]}
+      "async": {
+        "entry": "BrushHeaderLayoutTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "BrushHeaderLayoutTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "BrushHeaderLayoutTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
     },
     {
       "id": "brush-header-live-layout-v2",
@@ -18602,17 +19345,28 @@
       "file": "Tests~/Cases/Layers/NoiseFieldControlsTests.cs",
       "runner": "run_script",
       "entry": "NoiseFieldControlsTests.Run",
-      "args": ["api"],
+      "args": [
+        "api"
+      ],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["temp-files"],
-      "groups": ["noise", "layers"],
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "noise",
+        "layers"
+      ],
       "requiresUnity": true,
       "prerequisites": "Idle matching Test6.6 Editor with current WhimTex. Review the case and TestApi support.",
       "setup": "Create only a data-only Noise model. Use reflection on WhimTex methods, not Unity internals.",
       "teardown": "No windows, assets or user state are changed.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -18620,17 +19374,29 @@
       "file": "Tests~/Cases/Layers/NoiseFieldControlsTests.cs",
       "runner": "run_script",
       "entry": "NoiseFieldControlsTests.Run",
-      "args": ["ui"],
+      "args": [
+        "ui"
+      ],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["temp-files", "windows"],
-      "groups": ["noise", "layers"],
+      "effects": [
+        "temp-files",
+        "windows"
+      ],
+      "groups": [
+        "noise",
+        "layers"
+      ],
       "requiresUnity": true,
       "prerequisites": "Idle matching Test6.6 Editor with current WhimTex. Review the case and TestApi support.",
       "setup": "Build UI Toolkit Noise fields in one owned temporary utility window and data-only models. No user window or asset edits.",
       "teardown": "Clear owned field bindings and close only the created test window; no persistent settings or global random state changes.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -18638,17 +19404,28 @@
       "file": "Tests~/Cases/Layers/NoiseVectorTests.cs",
       "runner": "run_script",
       "entry": "NoiseVectorTests.Run",
-      "args": ["integration"],
+      "args": [
+        "integration"
+      ],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["temp-files"],
-      "groups": ["noise", "layers"],
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "noise",
+        "layers"
+      ],
       "requiresUnity": true,
       "prerequisites": "Idle matching Test6.6 Editor; current WhimTex and graphics support. Review source and TestApi support.",
       "setup": "Create one transient unsaved document and owned textures. Exercise signed groups/processor, clipping, Target, thumbnail and export.",
       "teardown": "Destroy only owned document/textures; restore render target and sRGB write state. No asset or user document edits.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -18743,18 +19520,242 @@
       "file": "Tests~/Cases/Layers/NoiseVectorTests.cs",
       "runner": "run_script",
       "entry": "NoiseVectorTests.Run",
-      "args": ["grain"],
+      "args": [
+        "grain"
+      ],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["temp-files"],
-      "groups": ["noise", "layers"],
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "noise",
+        "layers"
+      ],
       "requiresUnity": true,
       "prerequisites": "Idle matching Test6.6 Editor with current WhimTex and graphics support. Review the case and TestApi support.",
       "setup": "Create only transient owned document/textures. Exercise White/Blue Grain Color/Size in 1D and 2D.",
       "teardown": "Destroy only owned objects; restore render target and sRGB write state. No user window or asset edits.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": []
+    },
+    {
+      "id": "slider-field-v1",
+      "file": "Tests~/Cases/Canvas/SliderFieldTests.cs",
+      "runner": "run_script",
+      "entry": "SliderFieldTests.Start",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "groups": [
+        "regression",
+        "canvas"
+      ],
+      "prerequisites": "Explicit idle Test6.6 Editor with current WhimTex compiled and graphical Editor panels; no concurrent Editor or document operations.",
+      "setup": "Own one unsaved utility window and standalone slider fields. Exercise public pointer, keyboard, focus and capture events without Unity assets; save the owned-window preview under project Temp/WhimTex.",
+      "teardown": "Close only the owned window, restore borrowed focus and drain AsyncD cancellation/cleanup. Retain the generated preview for visual inspection.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "SliderFieldTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "SliderFieldTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "SliderFieldTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "layer-opacity-slider-v1",
+      "file": "Tests~/Cases/Canvas/SliderFieldTests.cs",
+      "runner": "run_script",
+      "entry": "SliderFieldTests.StartIntegration",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "groups": [
+        "regression",
+        "canvas",
+        "layers"
+      ],
+      "prerequisites": "Explicit idle Test6.6 Editor with current WhimTex compiled and graphical Editor panels; no concurrent Editor or document operations.",
+      "setup": "Own one unsaved WhimTexWindow and in-memory document with two selected leaf layers and a group. Reflect only package-owned WhimTex state; exercise actual UI Toolkit pointer/keyboard/focus events without global Undo/Redo or native drag payloads.",
+      "teardown": "Clear Undo for the owned model, DiscardChanges before closing the owned window and destroy only surviving owned model resources. AsyncD restores borrowed Editor state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "SliderFieldTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "SliderFieldTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "SliderFieldTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "layer-name-field-v1",
+      "file": "Tests~/Cases/Layers/LayerNameFieldTests.cs",
+      "runner": "run_script",
+      "entry": "LayerNameFieldTests.Start",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "groups": [
+        "regression",
+        "layers"
+      ],
+      "prerequisites": "Explicit idle Test6.6 Editor with current WhimTex compiled and graphical Editor panels; no concurrent Editor or document operations.",
+      "setup": "Own one unsaved WhimTexWindow and in-memory document with leaf, nested group and missing-behaviour names. Exercise public UI Toolkit pointer/keyboard/focus/layout events and synchronized row/header columns without global Undo/Redo or native drag payloads. Save the owned-window previews under project Temp/WhimTex.",
+      "teardown": "UnityAScope discards and closes only the owned window, clears owned model Undo, destroys transient objects and restores borrowed Editor preferences, drag state and focus. AsyncD drains cancellation and removes GUID state; retain the preview for visual inspection.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "LayerNameFieldTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "LayerNameFieldTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "LayerNameFieldTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "layer-drop-target-v1",
+      "file": "Tests~/Cases/Layers/LayerDropTargetTests.cs",
+      "runner": "run_script",
+      "entry": "LayerDropTargetTests.Start",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "groups": [
+        "regression",
+        "layers"
+      ],
+      "prerequisites": "Explicit idle Test6.6 Editor with current WhimTex compiled and graphical Editor panels; no concurrent Editor or document operations.",
+      "setup": "Own one unsaved utility window and in-memory nested layer model. Inspect resolved public UI geometry, invoke package-owned placement and movement methods directly, and verify group boundaries, root end insertion, no-op guards, topology, transforms and bounded FX scrolling. Never start a native drag session, publish global drag payload or execute global Undo/Redo.",
+      "teardown": "UnityAScope discards and closes only the owned window, clears owned model Undo, destroys transient objects and restores borrowed Editor preferences and focus. AsyncD drains cancellation and removes per-run GUID state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
+      "reviewFiles": [
+        "src/WhimTexWindow.LayerDropTarget.cs",
+        "src/WhimTexWindow.Selection.cs",
+        "src/Editor/LayerShaderFXView.cs"
+      ],
+      "async": {
+        "entry": "LayerDropTargetTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "LayerDropTargetTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "LayerDropTargetTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
     }
   ]
 }
