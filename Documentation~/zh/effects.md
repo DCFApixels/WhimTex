@@ -89,18 +89,32 @@ Previous 和 Specific 可使用隐藏来源。对于组，隐藏组本身，不�
 | :--- | :--- |
 | Gradient（默认） | 调色板提供 RGB、HDR 强度及 Alpha，不保留来源 Alpha。 |
 | Linear Data | 原始 RGB 0–1 归一化距离，不透明 Alpha，不进行颜色伽马转换。 |
+| Multi Channel Data | 仅用于 MTSDF：RGB 保存保留尖角的三个距离通道，Alpha 保存到轮廓的真实距离。 |
 
 默认调色板在 0 为黑、1 为白，使用 **Perceptual** 插值。
 **Inverted** 先反转归一化距离，**Profile** 随后调整其形状，再进行调色板采样。
-两者适用于两种输出。线性 Profile 保持原样，切换 Output 保留调色板和反相设置。
+两者适用于 Gradient 与 Linear Data；MTSDF 在这两种输出中使用 RGB 距离的中值。
+线性 Profile 保持原样，切换 Output 保留调色板和反相设置。
 
-**Position** 选择距离区域：Outside、Inside、Center（两侧）或 **Signed**（默认）。
+对于 Gradient 与 Linear Data，**Position** 选择距离区域：Outside、Inside、Center（两侧）或 **Signed**（默认）。
 Signed 内部值低、外部值高；Profile 前轮廓对应 0.5。
 **Inside Distance** 与 **Outside Distance** 分别控制两侧范围，零继承 Max Distance 或自动范围。
-**Contour Offset (px)** 为正时扩张形状，为负时收缩。
+在这两种输出中，**Contour Offset (px)** 为正时扩张形状，为负时收缩。
 
 制作浮雕时使用 Linear Data 或灰度渐变，并用 Profile 调整高度。
 默认调色板下，两种 Output 从内到外的亮度方向一致。
+
+需要保留尖角的距离纹理时，选择 **Distance Algorithm → MTSDF** 与
+**Output → Multi Channel Data**。RGB 保存保留尖角的有符号垂直距离/伪距离，
+Alpha 保存到平滑亚像素轮廓的真实有符号欧氏距离。Alpha 是距离数据，不是透明度。
+每个通道的轮廓值为 0.5，内部值较低，外部值较高。**Max Distance** 为四个通道设置
+统一的对称范围，超出范围的值限制在 0 或 1。Position、Contour Offset、Inside/Outside Distance、
+Inverted、Profile 和调色板不改变此输出。合成或导出原始 RGBA 数据时，请选择
+**Rendering → Blend Mode → Overwrite**。Normal 混合会把 Alpha 当作覆盖率，可能改变数据。
+普通 FX 或效果图层直接读取此独立 SDF 图层时会收到其 RGBA 通道；组或 All Below 输入使用合成图像。
+导出时选择线性编码并保留 RGBA。
+选择其他算法会把此 Output 切换为 Linear Data。重建轮廓可能略微改变细小拐角与亚像素细节，
+不能精确再现原始连续曲线。
 
 ### 来源边缘与距离质量
 
@@ -111,16 +125,27 @@ Signed 内部值低、外部值高；Profile 前轮廓对应 0.5。
 大偏移和 Repeat 需要更多内存。扩展计算区域超过 6400 万像素时，
 请减小偏移或分辨率；WhimTex 会报错而非静默裁切。
 
-距离算法影响拐角和对角线：
+**Distance Algorithm** 为 Outline 与 SDF 提供六种抗锯齿模式：
 
 | 算法 | 结果 |
 | :--- | :--- |
-| Euclidean | 圆润的等距轮廓。 |
-| Manhattan / Chebyshev | 更棱角分明的轮廓。 |
-| Euclidean Antialiased | 考虑来源平滑、部分透明的边缘。 |
-| Euclidean Exact | 硬阈值轮廓，适合像素遮罩。 |
+| Round (Antialiased)，默认 | 圆润的欧氏偏移，保留原有 Round AA 效果。 |
+| Sharp (Antialiased) | 延伸轮廓边形成斜接，保留尖角。 |
+| Bevel (Antialiased) | 用直线斜角切平偏移轮廓的拐角。 |
+| Diamond (Antialiased) | L1 距离，形成沿计算坐标轴的菱形偏移。 |
+| Square (Antialiased) | L∞ 距离，形成沿计算坐标轴的方形偏移。 |
+| MTSDF | 通过三个距离通道保留尖角；Alpha 保存到轮廓的真实距离。 |
 
-Euclidean Antialiased 下，Outline 使用 Source Channel 的 50% 阈值，SDF 使用 Threshold。
+Sharp 与 Bevel 描述轮廓偏移，不是欧氏距离。Outline 与 SDF 使用相同的 **Miter Limit**，
+仅影响 Sharp：默认 4，范围 1–64。减小它可更早切平过长的尖角。Diamond 与 Square 取决于
+坐标轴方向，因此旋转轮廓会改变偏移形状。Sharp、Bevel、Diamond、Square 与 MTSDF
+根据多个轮廓采样点估计拐角两侧，避免像素采样产生斜向切口。
+在生成偏移拐角前合并相交的重建区域，内部接缝不会产生额外斜角。
+孔洞和真正独立的小尖端会保留。重建仍可能改变亚像素细节，
+不能精确再现原始遮罩。Round 保留原有 AA 效果。
+抗锯齿平滑边缘，同时保留所选拐角形状。
+
+所有模式中，Outline 使用 Source Channel 的 50% 阈值，SDF 使用 Threshold。
 未达到阈值的区域不会形成轮廓。
 
 ## Blur

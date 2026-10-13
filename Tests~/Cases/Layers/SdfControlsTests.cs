@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.IO;
 using Unity.Collections;
@@ -7,6 +8,7 @@ using DCFApixels.WhimTex;
 
 public static class SdfControlsTests
 {
+    // Support: Tests~/Framework/TestApi.cs and Framework/Unity/UnityCFixture.cs.
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
     static string ExecuteMain()
     {
@@ -28,16 +30,29 @@ public static class SdfControlsTests
             return Original(Mathf.Clamp(x,0,w-1),Mathf.Clamp(y,0,h-1));
         }
         var compute=typeof(SDFLayerBehaviour).GetMethod("ComputeSourceDistance",F);
-        for(int mode=0;mode<4;mode++)foreach(var shift in new[]{Vector2.zero,new Vector2(3,-2),new Vector2(-11,9)})
+        for(int mode=0;mode<4;mode++)
         {
-            compute.Invoke(null,new object[]{pixels,output,w,h,(byte)128,0,DistanceMetric.EuclideanExact,shift,(SDFLayerBehaviour.SourceEdges)mode});
-            for(int y=0;y<h;y++)for(int x=0;x<w;x++)
+            // Independent threshold intersections of the declared binary fixture. The AA
+            // contour lies between pixel centers; nearest opposite center is not its distance.
+            var contour = new List<Vector2>();
+            for(int yy=-32;yy<=32;yy++)for(int xx=-32;xx<=32;xx++)
             {
-                int qx=x-(int)shift.x,qy=y-(int)shift.y;bool inside=Sample(qx,qy,mode);float best=1e9f;
-                for(int yy=-32;yy<=32;yy++)for(int xx=-32;xx<=32;xx++)
-                    if(Sample(xx,yy,mode)!=inside)best=Mathf.Min(best,(xx-qx)*(xx-qx)+(yy-qy)*(yy-qy));
-                float expected=Mathf.Sqrt(best)*(inside?-1:1);
-                Check(Mathf.Abs(output[y*w+x]-expected)<.001,$"boundary {mode} {shift} at {x},{y}: {output[y*w+x]} != {expected}");
+                bool a=Sample(xx,yy,mode);
+                float fraction=a ? 127f/255f : 128f/255f;
+                if(a!=Sample(xx+1,yy,mode))contour.Add(new Vector2(xx+fraction,yy));
+                if(a!=Sample(xx,yy+1,mode))contour.Add(new Vector2(xx,yy+fraction));
+            }
+            Check(contour.Count>0,"Declared source-edge fixture has threshold crossings: "+mode);
+            foreach(var shift in new[]{Vector2.zero,new Vector2(3,-2),new Vector2(-11,9)})
+            {
+                compute.Invoke(null,new object[]{pixels,output,w,h,(byte)128,0,DistanceMetric.EuclideanAntialiased,shift,(SDFLayerBehaviour.SourceEdges)mode});
+                for(int y=0;y<h;y++)for(int x=0;x<w;x++)
+                {
+                    int qx=x-(int)shift.x,qy=y-(int)shift.y;bool inside=Sample(qx,qy,mode);float best=float.PositiveInfinity;
+                    foreach(var p in contour)best=Mathf.Min(best,(p.x-qx)*(p.x-qx)+(p.y-qy)*(p.y-qy));
+                    float expected=Mathf.Sqrt(best)*(inside?-1:1);
+                    Check(Mathf.Abs(output[y*w+x]-expected)<.001,$"AA boundary {mode} {shift} at {x},{y}: {output[y*w+x]} != {expected}");
+                }
             }
         }
         object Read(string json)=>typeof(WhimTexApi).GetMethod("ReadProceduralClipboard",F).Invoke(null,new object[]{json,128,128});
@@ -48,6 +63,8 @@ public static class SdfControlsTests
         using var copy=(IDisposable)Read(exported);
         var copied=(WhimTexDocument)copy.GetType().GetField("Document",F).GetValue(copy);
         var sdf=(SDFLayerBehaviour)copied.layers[0].Behaviour;
+        Check(sdf.metric == DistanceMetric.EuclideanAntialiased, "JSON without metric defaults to Round AA");
+        Check(Math.Abs(sdf.miterLimit - 4f) < .0001f, "JSON without miter limit defaults to 4");
         Check(sdf.encoding == SDFLayerBehaviour.OutputEncoding.Gradient, "Default Gradient output");
         Check(WhimTexApi.Describe().Contains("sdfEncodings"), "Output choices discoverable");
         foreach (var outputMode in new[] { "LinearData", "Gradient" })

@@ -28,6 +28,8 @@ Use **+** at the bottom of Layers to choose a type:
 | Noise | A generated pattern. See [Noise](noise.md). |
 | Shape | An editable rectangle, ellipse, polygon, star, line, arc or sector. |
 | Text | Editable text using fonts installed in the operating system. |
+| Outline | An editable border or filled silhouette. See [Outline and SDF](effects.md#outline-and-sdf). |
+| SDF | An edge-distance gradient or numeric distance map. See [Outline and SDF](effects.md#outline-and-sdf). |
 
 You can also drag a Project texture onto Canvas View to add it at the top,
 or drop it between rows to choose its position. A newly assigned image keeps its original proportions.

@@ -136,7 +136,7 @@
           "filterMode": "Source",
           "behaviour": {
             "$type": "SDFLayerBehaviour",
-            "metric": "EuclideanExact",
+            "metric": "EuclideanAntialiased",
             "sourceChannel": "Alpha",
             "threshold": 128,
             "distancePosition": "Inside",

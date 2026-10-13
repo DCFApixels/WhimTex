@@ -147,6 +147,8 @@ Thanks to the authors and maintainers of the libraries that help power WhimTex:
 
 - **[Sobol direction numbers](https://web.maths.unsw.edu.au/~fkuo/sobol/)** — Frances Kuo and Stephen Joe;
   evenly distributed brush variation. [Included license](ThirdPartyNotices.md#sobol-direction-numbers).
+- **[Clipper2](https://github.com/AngusJohnson/Clipper2)** — Angus Johnson;
+  portable SDF contour normalization. [Included Boost license](src/ThirdParty/Clipper2/LICENSE.txt).
 - **[FastNoiseLite](https://github.com/Auburn/FastNoiseLite)** — Jordan Peck and contributors;
   the HLSL implementation powers the Noise layer. [Included MIT license](ThirdPartyNotices.md#fastnoiselite).
 - **[Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)** — James Newton-King and contributors;

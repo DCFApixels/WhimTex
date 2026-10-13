@@ -89,18 +89,32 @@ Choose **Source Channel**: Alpha, an RGB channel or Luminance, including for gro
 | :--- | :--- |
 | Gradient (default) | The palette supplies RGB, HDR intensity and alpha. Source alpha is not retained. |
 | Linear Data | Normalized distance in raw 0–1 RGB, opaque alpha, without color gamma conversion. |
+| Multi Channel Data | MTSDF only: three corner-preserving distance channels in RGB and true contour distance in alpha. |
 
 The default palette is black at 0, white at 1, with **Perceptual** interpolation.
 **Inverted** reverses normalized distance; **Profile** then reshapes it before palette sampling.
-Both apply to both outputs. A linear Profile leaves the transition unchanged; changing Output preserves the palette and inversion.
+Both apply to Gradient and Linear Data. With MTSDF, these outputs use the median RGB distance.
+A linear Profile leaves the transition unchanged; changing Output preserves the palette and inversion.
 
-**Position** chooses the distance region: Outside, Inside, Center (both sides), or **Signed** (default).
+For Gradient and Linear Data, **Position** chooses the distance region: Outside, Inside, Center (both sides), or **Signed** (default).
 Signed is low inside and high outside; the contour maps to 0.5 before Profile.
 **Inside Distance** and **Outside Distance** set its two ranges independently; zero inherits Max Distance or auto.
-**Contour Offset (px)** expands the shape when positive and shrinks it when negative.
+In these two outputs, **Contour Offset (px)** expands the shape when positive and shrinks it when negative.
 
 For bevel lighting, use Linear Data or a grayscale gradient and shape the height with Profile.
 With the default palette, both outputs have the same inside-to-outside brightness direction.
+
+For a corner-preserving distance texture, choose **Distance Algorithm → MTSDF** and
+**Output → Multi Channel Data**. RGB contains signed perpendicular/pseudo distances that preserve corners;
+alpha contains true signed Euclidean distance to the smooth subpixel contour. Alpha is distance data,
+not transparency. The contour is 0.5 in each channel, lower values are inside and higher values outside.
+**Max Distance** sets one symmetric range for all four channels; values beyond it stop at 0 or 1.
+Position, Contour Offset, Inside/Outside Distance, Inverted, Profile and the palette do not change this output.
+For raw RGBA composition or export, set **Rendering → Blend Mode → Overwrite**.
+Normal blending uses alpha as coverage and can change the data. Ordinary FX or effect layers reading
+this standalone SDF layer receive its RGBA channels; a group or All Below input uses the combined image.
+Export with linear encoding and preserve RGBA. Choosing another algorithm switches this output to Linear Data.
+The reconstructed contour can slightly alter tiny corners and subpixel details; it does not reproduce an exact original curve.
 
 ### Source edges and distance quality
 
@@ -111,16 +125,28 @@ It cannot recover details already clipped by the source layer.
 Large offsets and Repeat need more memory. If the extended calculation exceeds 64 million pixels,
 reduce the offset or resolution; WhimTex reports an error instead of silently cropping.
 
-The distance algorithm changes corners and diagonals:
+**Distance Algorithm** offers six antialiased modes for both Outline and SDF:
 
 | Algorithm | Result |
 | :--- | :--- |
-| Euclidean | Rounded distance contours. |
-| Manhattan / Chebyshev | More angular contours. |
-| Euclidean Antialiased | Follows a smooth, partially transparent source edge. |
-| Euclidean Exact | Hard-threshold silhouette, useful for pixel masks. |
+| Round (Antialiased), default | Rounded Euclidean offsets; keeps the existing Round AA result. |
+| Sharp (Antialiased) | Extends contour edges to miter joins, preserving sharp corners. |
+| Bevel (Antialiased) | Cuts the offset corners with straight bevel joins. |
+| Diamond (Antialiased) | L1 distance with diamond-shaped offsets aligned to the calculation axes. |
+| Square (Antialiased) | L∞ distance with square-shaped offsets aligned to the calculation axes. |
+| MTSDF | Preserves corners through three distance channels; alpha stores true contour distance. |
 
-With Euclidean Antialiased, Outline follows 50% of the selected Source Channel; SDF uses Threshold.
+Sharp and Bevel describe contour offsets rather than Euclidean distance. **Miter Limit** is shared by
+Outline and SDF and affects Sharp only: default 4, range 1–64. Lower it to cut long corner spikes sooner.
+Diamond and Square depend on axis direction, so rotating a silhouette changes their offset shape.
+Sharp, Bevel, Diamond, Square and MTSDF estimate corner sides from several contour samples,
+avoiding a diagonal cap caused by pixel sampling. Intersecting reconstructed regions are combined
+before forming offset corners, so an internal seam does not create another bevel. Holes and
+genuinely separate small tips are retained. Reconstruction can still change subpixel
+details; the result does not reproduce the original matte exactly. Round retains its original AA result.
+AA smooths the edge while retaining the selected corner shape.
+
+Outline follows 50% of the selected Source Channel; SDF uses Threshold in every mode.
 Regions that never reach that threshold do not form a silhouette.
 
 ## Blur

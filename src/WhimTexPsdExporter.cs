@@ -227,7 +227,7 @@ namespace DCFApixels.WhimTex
             !requiresRasterization && !layer.fillCenter && layer.outlineOffset == 0f &&
             layer.sourceChannel == OutlineLayerBehaviour.SourceChannel.Alpha && layer.outlineSoftness <= 1f &&
             layer.Owner.CanvasTransform.IsIdentity() && layer.outlineWidth > 0f && layer.outlineWidth <= 250f &&
-            (layer.metric == DistanceMetric.EuclideanExact || layer.metric == DistanceMetric.EuclideanApproximate);
+            layer.metric == DistanceMetric.EuclideanAntialiased;
 
         private static bool CanExportGradient(GradientLayerBehaviour layer, bool requiresRasterization, int width, int height)
         {

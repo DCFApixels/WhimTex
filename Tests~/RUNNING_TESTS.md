@@ -201,6 +201,13 @@ generated result files. Fixture manifests and provenance are required input data
 A compact human summary can link to the historical Git snapshot without embedding raw results.
 
 Generated diagnostics must retain their actual samples/artifacts before owned cleanup.
+The opt-in `distance-field-performance` profile measures actual SDF/Outline Render
+calls on owned antialiased star/ring inputs, bypassing the outer document cache.
+Review the profile, then run with its receipt, `--allow-effects temp-files` and
+`--keep-going` to collect all diagnostic SKIPs. Raw JSON is retained in
+`Temp/WhimTex/distance-fields/performance`; nested phase times overlap. Render time
+includes input readback/output submission, not final GPU completion. The separate
+completion readback includes full RGBAFloat transfer and is not GPU-only timing.
 Successful timing/manual producers can still return SKIP; a saved PNG, CSV or timing array
 does not establish historical equivalence or a performance acceptance threshold. Unavailable
 process-memory counters must be labelled unavailable, not interpreted as zero memory usage.

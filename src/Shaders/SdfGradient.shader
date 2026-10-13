@@ -18,10 +18,12 @@ Shader "Hidden/WhimTex/SdfGradient"
             sampler2D _MainTex, _GradientLut, _ProfileLut;
             float4 _GradientLut_TexelSize;
             float _MaxDistance, _InsideDistance, _OutsideDistance, _ContourOffset;
-            int _Position, _Inverted, _GradientWrapMode, _UseGradient;
+            int _Position, _Inverted, _GradientWrapMode, _UseGradient, _MultiChannel, _DataOutput;
             float4 frag(v2f_img input) : SV_Target
             {
-                float d = tex2Dlod(_MainTex, float4(input.uv, 0, 0)).r - _ContourOffset;
+                float4 field = tex2Dlod(_MainTex, float4(input.uv, 0, 0));
+                if (_DataOutput != 0) return saturate(.5 + .5 * field / _MaxDistance);
+                float d = (_MultiChannel != 0 ? max(min(field.r, field.g), min(max(field.r, field.g), field.b)) : field.r) - _ContourOffset;
                 if (_Position == 0) d = max(d, 0);
                 else if (_Position == 1) d = max(-d, 0);
                 else if (_Position == 2) d = abs(d);

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -48,15 +49,25 @@ namespace DCFApixels.WhimTex
                 root.Add(field);
                 return field;
             }
-            DistanceField("Contour Offset (px)", () => layer.contourOffset, v => layer.contourOffset = v, -16384);
+            var contourOffset = DistanceField("Contour Offset (px)", () => layer.contourOffset, v => layer.contourOffset = v, -16384);
 
             EnumField metric = WhimTexUI.ConfigureField(new EnumField("Distance Algorithm", layer.metric));
-            metric.tooltip = "Euclidean Antialiased locates the Threshold contour between pixels, including soft edges. Euclidean Exact keeps a hard threshold; useful for pixel masks.";
+            metric.tooltip = "All algorithms use subpixel contours. Round rounds expanded corners; Sharp preserves them; Bevel cuts them. Diamond and Square use axis-aligned distance. MTSDF stores three corner channels and true distance.";
             bindings.Track(metric, () => (Enum)layer.metric);
             metric.RegisterValueChangedCallback(evt => applyChange(
                 "Change SDF Algorithm",
-                () => layer.metric = (DistanceMetric)evt.newValue));
+                () => {
+                    layer.metric = (DistanceMetric)evt.newValue;
+                    if (layer.metric != DistanceMetric.MTSDF && layer.encoding == SDFLayerBehaviour.OutputEncoding.MultiChannelData)
+                        layer.encoding = SDFLayerBehaviour.OutputEncoding.LinearData;
+                }));
             root.Add(metric);
+            var miter = DistanceField("Miter Limit", () => layer.miterLimit, v => layer.miterLimit = Mathf.Clamp(v, 1, 64), 1);
+            miter.tooltip = "Sharp only. Limits acute corner spikes; excessive joins become bevels.";
+            void RefreshMiter() => miter.EnableInClassList("whimtex-hidden", layer.metric != DistanceMetric.Sharp);
+            bindings.Add(RefreshMiter);
+            metric.RegisterValueChangedCallback(_ => RefreshMiter());
+            RefreshMiter();
 
             EnumField sourceChannel = WhimTexUI.ConfigureField(
                 new EnumField("Source Channel", layer.sourceChannel));
@@ -110,11 +121,15 @@ namespace DCFApixels.WhimTex
             profile.RegisterValueChangedCallback(e => applyChange("Change SDF Profile", () => layer.profile = WhimTexCurveTexture.Copy(e.newValue)));
             root.Add(profile);
 
-            var encoding = WhimTexUI.ConfigureField(new EnumField("Output", layer.encoding));
-            encoding.tooltip = "Linear Data outputs normalized distance as raw 0–1 RGB with opaque alpha. Gradient maps distance through the palette. Inverted reverses distance before Profile in either mode.";
-            bindings.Track(encoding, () => (Enum)layer.encoding);
+            var scalarOutputs = new List<SDFLayerBehaviour.OutputEncoding> { SDFLayerBehaviour.OutputEncoding.LinearData, SDFLayerBehaviour.OutputEncoding.Gradient };
+            var multiOutputs = new List<SDFLayerBehaviour.OutputEncoding>(scalarOutputs) { SDFLayerBehaviour.OutputEncoding.MultiChannelData };
+            string OutputLabel(SDFLayerBehaviour.OutputEncoding value) => ObjectNames.NicifyVariableName(value.ToString());
+            var encoding = WhimTexUI.ConfigureField(new PopupField<SDFLayerBehaviour.OutputEncoding>("Output",
+                layer.metric == DistanceMetric.MTSDF ? multiOutputs : scalarOutputs, layer.encoding, OutputLabel, OutputLabel));
+            encoding.tooltip = "Linear Data is remapped grayscale; Gradient uses a palette. Multi Channel Data stores signed RGB corner fields and true distance in alpha, with 0.5 at the contour and Max Distance as range; it bypasses Position, Contour Offset, Profile and Inverted. Use Overwrite when composing/exporting RGBA data: its alpha is distance, not coverage.";
+            bindings.Track(encoding, () => layer.encoding);
             encoding.RegisterValueChangedCallback(evt =>
-                applyChange("Change SDF Output", () => layer.encoding = (SDFLayerBehaviour.OutputEncoding)evt.newValue));
+                applyChange("Change SDF Output", () => layer.encoding = evt.newValue));
             root.Add(encoding);
 
             Toggle inverted = WhimTexUI.ConfigureField(new Toggle("Inverted"));
@@ -132,8 +147,17 @@ namespace DCFApixels.WhimTex
             {
                 bool showGradient = layer.encoding == SDFLayerBehaviour.OutputEncoding.Gradient;
                 gradient.EnableInClassList("whimtex-hidden", !showGradient);
+                var choices = layer.metric == DistanceMetric.MTSDF ? multiOutputs : scalarOutputs;
+                if (!ReferenceEquals(encoding.choices, choices)) encoding.choices = choices;
+                encoding.SetValueWithoutNotify(layer.encoding);
+                bool scalar = layer.encoding != SDFLayerBehaviour.OutputEncoding.MultiChannelData;
+                distancePosition.SetEnabled(scalar); profile.SetEnabled(scalar); inverted.SetEnabled(scalar); contourOffset.SetEnabled(scalar);
+                inside.SetEnabled(scalar && layer.distancePosition == SDFLayerBehaviour.DistancePosition.Signed);
+                outside.SetEnabled(scalar && layer.distancePosition == SDFLayerBehaviour.DistancePosition.Signed);
             }
             bindings.Add(RefreshOutput);
+            metric.RegisterValueChangedCallback(_ => RefreshOutput());
+            encoding.RegisterValueChangedCallback(_ => RefreshOutput());
             RefreshOutput();
         }
     }

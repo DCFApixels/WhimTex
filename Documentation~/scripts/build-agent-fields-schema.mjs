@@ -130,15 +130,29 @@ defs.transform.allOf = [{ if: { required: ['matrix'] }, then: { not: { anyOf: [
   ...['position','scale','rotation'].map(key => ({required:[key]})),
   { required: ['originalAspect'], properties: { originalAspect: { const: true } } }
 ] } } }];
+const distanceMetric = { ...enumeration('Utils.cs', 'DistanceMetric'), default: 'EuclideanAntialiased',
+  description: 'All six modes are antialiased. EuclideanAntialiased is UI Round AA (ID 4), preserving the original crossing-seed EDT rather than distance to continuous contour segments. Sharp (5) and Bevel (6) are contour-offset fields, not Euclidean SDFs. Diamond (7) is axis-dependent L1; Square (8) is axis-dependent L-infinity. Sharp/Bevel/Diamond/Square/MTSDF use fixed 0.25-pixel contour simplification. Sharp/Bevel/Diamond/Square/MTSDF fit straight flanks to multiple raw isocontour samples by orthogonal least squares before simplification; sampled fit-window deviation <= 0.6 px and tip distance <= min(2 px, 0.6 px / cosHalfTurn). Uncertain flanks are preserved. Closed filled contours undergo NonZero union at 1e-6-pixel precision; holes and genuinely separate islands remain, while regions overlapping after reconstruction share one boundary. Paths with perimeter below 4 px bypass simplification; open and zero-area contours bypass region union. Post-union cleanup uses a 0.05-pixel budget and rejects chords crossing nonincident original or replacement boundaries or changing containment/contact states. MTSDF resolves each contour median before combining contours; alpha remains the nearest true distance. Away from the contour, incompatible RGB interpolation encodings are corrected while preserving per-texel median and alpha; near-boundary texels are unchanged. Reconstruction can change subpixel detail and is not an exact original matte. MTSDF (9) has corner-preserving RGB perpendicular/pseudo distances and true signed Euclidean contour distance in alpha. Old IDs 0..3 are removed.' };
+const miterLimit = { type: 'number', minimum: 1, maximum: 64, default: 4,
+  description: 'Finite dimensionless miter-length limit relative to the contour offset. Sharp only; excessive joins are beveled. Same field on SDF and Outline.' };
+defs.outline = object({
+  metric: distanceMetric, miterLimit, sourceChannel: enumeration('Layers/SDFLayerBehaviour.cs', 'SourceChannel'),
+  color: rgba, outlineWidth: number(0,16384), outlineSoftness: number(0,16384),
+  outlinePosition: enumeration('Layers/OutlineLayerBehaviour.cs', 'OutlinePosition'), outlineOffset: number(-16384,16384),
+  fillCenter: { ...bool, default: false }, fillColor: rgba
+});
 defs.sdf = object({
-  metric: enumeration('Utils.cs', 'DistanceMetric'), sourceChannel: enumeration('Layers/SDFLayerBehaviour.cs', 'SourceChannel'),
+  metric: distanceMetric, miterLimit, sourceChannel: enumeration('Layers/SDFLayerBehaviour.cs', 'SourceChannel'),
   threshold: integer(0, 255), distancePosition: enumeration('Layers/SDFLayerBehaviour.cs', 'DistancePosition'),
   inverted: bool, maxDistance: number(0, 16384), sourceOffset: tuple(number(-16384,16384),2),
   sourceEdges: choice('Transparent Clamp Repeat Mirror'), contourOffset: number(-16384,16384),
   insideDistance: number(0,16384), outsideDistance: number(0,16384), profile: str(4096),
-  encoding: { ...enumeration('Layers/SDFLayerBehaviour.cs', 'OutputEncoding'), default: 'Gradient' },
+  encoding: { ...enumeration('Layers/SDFLayerBehaviour.cs', 'OutputEncoding'), default: 'Gradient',
+    description: 'Gradient/LinearData use the RGB median for MTSDF, then Position, normalization, Inverted and Profile; Gradient samples the palette, LinearData has alpha 1. MultiChannelData requires resulting metric MTSDF and writes raw linear RGBA as saturate(0.5 + 0.5*d/maxDistance) (0 selects auto), bypassing Position, Contour Offset, inside/outside ranges, Inverted, Profile and palette. RGB is perpendicular/pseudo distance; alpha is true signed Euclidean distance to the reconstructed subpixel contour, not coverage, binary-bitmap distance or an exact original matte. MTSDF uses constrained multi-sample corner fitting followed by fixed 0.25-pixel simplification. Sampled fit-window deviation <= 0.6 px; tip distance <= min(2 px, 0.6 px / cosHalfTurn). Closed filled contours undergo NonZero union before generating edge colors. Holes and genuinely separate islands remain; overlapping reconstructed regions share one boundary. Tiny paths bypass simplification; open and zero-area contours bypass union. MTSDF resolves each contour median before combining contours; alpha remains the nearest true distance. Away from the contour, incompatible RGB interpolation encodings are corrected while preserving per-texel median and alpha; near-boundary texels are unchanged. Use blend Overwrite for raw RGBA composition/export because Normal treats alpha as coverage and can alter data. Standalone ordinary FX/effect-layer inputs receive rendered RGBA.' },
   gradient: { $ref: '#/$defs/gradient' }
 });
+defs.sdf.description = 'Partial live settings patch. Omitted fields retain their values; the resulting layer must use MTSDF for MultiChannelData. This schema can check the pair only when both fields are supplied.';
+defs.sdf.allOf = [{ if: { required: ['encoding'], properties: { encoding: { const: 'MultiChannelData' } } },
+  then: { properties: { metric: { const: 'MTSDF' } } } }];
 defs.blend = enumeration('Utils.cs', 'BlendMode');
 defs.pressureBinding = object({
   enabled: bool,

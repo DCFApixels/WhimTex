@@ -2,6 +2,24 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "distance-fields": [
+      "distance-field-v2",
+      "distance-contour-extraction-v1",
+      "distance-field-unity-v2",
+      "distance-field-boundaries-v2",
+      "distance-field-modes-v2",
+      "sdf-controls-v2",
+      "sdf-gradient-gpu-v2",
+      "distance-field-render-v2"
+    ],
+    "distance-field-performance": [
+      "distance-field-performance-star-512",
+      "distance-field-performance-star-1024",
+      "distance-field-performance-star-2048",
+      "distance-field-performance-outline-512",
+      "distance-field-performance-outline-1024",
+      "distance-field-performance-rings-512"
+    ],
     "noise-fields": [
       "noise-contract-v2",
       "noise-field-api-v3",
@@ -140,6 +158,10 @@
       "reference-fixtures"
     ],
     "verify": [
+      "distance-contour-extraction-v1",
+      "distance-field-boundaries-v2",
+      "distance-field-modes-v2",
+      "distance-field-render-v2",
       "halftone",
       "text-layer",
       "text-layer-ui",
@@ -639,6 +661,10 @@
       "reference-fixtures"
     ],
     "regressions": [
+      "distance-contour-extraction-v1",
+      "distance-field-boundaries-v2",
+      "distance-field-modes-v2",
+      "distance-field-render-v2",
       "halftone",
       "text-layer",
       "text-layer-ui",
@@ -1142,6 +1168,12 @@
       "unity-b-async-skip-protocol-v2"
     ],
     "diagnostics": [
+      "distance-field-performance-star-512",
+      "distance-field-performance-star-1024",
+      "distance-field-performance-star-2048",
+      "distance-field-performance-outline-512",
+      "distance-field-performance-outline-1024",
+      "distance-field-performance-rings-512",
       "smudge-hybrid-performance-2048",
       "smudge-hybrid-performance-4096",
       "smudge-visual",
@@ -1200,6 +1232,7 @@
       "histogram-seamless-reference-fixtures-v2"
     ],
     "unity-memory": [
+      "distance-contour-extraction-v1",
       "entry-contract",
       "display-channels-v2",
       "canonical-reader-v2",
@@ -1318,6 +1351,7 @@
       "seamless-release-stress-2048-mode-4-v2"
     ],
     "rendering": [
+      "distance-field-render-v2",
       "channel-mapping-ui",
       "smudge-hybrid-integration",
       "effect-cache-fingerprints",
@@ -1442,6 +1476,8 @@
       "live-agent-unity-v2"
     ],
     "layers": [
+      "distance-field-modes-v2",
+      "distance-field-render-v2",
       "text-layer",
       "text-layer-ui",
       "text-tool",
@@ -1585,6 +1621,8 @@
       "procedural-clipboard-unity-v2"
     ],
     "painting": [
+      "distance-contour-extraction-v1",
+      "distance-field-boundaries-v2",
       "brush-input-smoothing",
       "brush-write-protection",
       "smudge-hybrid",
@@ -1843,6 +1881,143 @@
     ]
   },
   "scenarios": [
+    {
+      "id": "distance-contour-extraction-v1",
+      "file": "Tests~/Cases/Painting/DistanceContourExtractionTests.cs",
+      "runner": "run_script", "entry": "DistanceContourExtractionTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": [],
+      "groups": ["painting", "layers", "distance-contour"], "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor with current WhimTex compiled; serial parent-owned Unity execution.",
+      "setup": "Owned NativeArrays/NativeStreams; bit-exact ordered extraction against a frozen copy of the original managed channel/threshold scan. Five channels, ten thresholds, all corner signs, degenerate sizes, soft shapes, deterministic colors and row partitions. At most 4000 calls and 30s body budget.",
+      "teardown": "Complete production jobs before reading; dispose every owned stream/buffer through finally/using. No assets, files, windows or borrowed state.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-field-performance-star-512",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.Run",
+      "args": ["star", 512, "sdf", "all", 5],
+      "category": "diagnostic", "timeoutMs": 60000,
+      "effects": ["temp-files"], "groups": ["painting", "distance-field-performance"],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor, current WhimTex compiled; serial execution only.",
+      "setup": "Owned unsaved document, antialiased star texture and RTs. Two warmups and five full production Render samples per mode; bypass outer image cache. Temporarily install package-owned optional phase callback.",
+      "teardown": "Restore timing callback and caller GPU state; release only owned resources. Retain raw JSON in project Temp/WhimTex/distance-fields/performance. Diagnostic SKIP, not performance acceptance PASS.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-field-performance-star-1024",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs", "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.Run", "args": ["star", 1024, "sdf", "all", 5],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-field-performance"], "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor, current WhimTex compiled; serial execution only.",
+      "setup": "Owned 1024 star input and detached document; two warmups and five production Render samples per mode; outer cache bypassed; optional package-owned phase callback.",
+      "teardown": "Restore callback/GPU state; release owned resources; retain raw JSON in project Temp. Diagnostic SKIP, no acceptance threshold.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-field-performance-star-2048",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs", "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.Run", "args": ["star", 2048, "sdf", "all", 3],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-field-performance"], "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor, current WhimTex compiled; serial execution only.",
+      "setup": "Owned 2048 star input and detached document; two warmups and three production Render samples per mode; outer cache bypassed; optional package-owned phase callback.",
+      "teardown": "Restore callback/GPU state; release owned resources; retain raw JSON in project Temp. Diagnostic SKIP, no acceptance threshold.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-field-performance-outline-512",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs", "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.Run", "args": ["star", 512, "outline", "all", 5],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-field-performance"], "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor, current WhimTex compiled; serial execution only.",
+      "setup": "Owned 512 star; Outline width 8 px, softness 1 px, fill enabled. Two warmups/five samples per mode, actual Render including readback/output; optional package-owned phase callback.",
+      "teardown": "Restore callback/GPU state; release owned resources; retain raw JSON in project Temp. Diagnostic SKIP, no acceptance threshold.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-field-performance-outline-1024",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs", "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.Run", "args": ["star", 1024, "outline", "all", 5],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-field-performance"], "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor, current WhimTex compiled; serial execution only.",
+      "setup": "Owned 1024 star; Outline width 8 px, softness 1 px, fill enabled. Two warmups/five samples per mode, actual Render including readback/output; optional package-owned phase callback.",
+      "teardown": "Restore callback/GPU state; release owned resources; retain raw JSON in project Temp. Diagnostic SKIP, no acceptance threshold.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-field-performance-rings-512",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs", "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.Run", "args": ["rings", 512, "sdf", "all", 5],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-field-performance"], "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor, current WhimTex compiled; serial execution only.",
+      "setup": "Owned 6x6 ring fixture (72 contours), 512 input and detached document. Two warmups/five samples per mode, production Render/cache bypass; optional package-owned phase callback.",
+      "teardown": "Restore callback/GPU state; release owned resources; retain raw JSON in project Temp. Diagnostic SKIP, no acceptance threshold.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-field-modes-v2",
+      "file": "Tests~/Cases/Layers/DistanceFieldModesTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldModesTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["layers"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor with current package; parent serializes Unity verification. Review case and declared support sources.",
+      "setup": "Independent analytic masks in NativeArrays and detached current-format clipboard documents. No persistent assets, windows or files.",
+      "teardown": "Dispose owned NativeArrays and detached clipboard documents through using/finally; no borrowed state is changed.",
+      "result": { "kind": "structured" },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/DistanceFieldTests.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-field-render-v2",
+      "file": "Tests~/Cases/Layers/DistanceFieldRenderTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldRenderTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "windows", "user-state"],
+      "groups": ["layers", "rendering"],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor, imported WhimTex shaders and float render-texture support. Parent owns serial execution.",
+      "setup": "Owned transient input textures, unsaved document and SDF/Outline instances. Writes the six-mode contact sheet to project Temp/WhimTex/distance-fields/six-modes.png. A transient test EditorWindow attaches controls for public ChangeEvent assertions.",
+      "teardown": "Close only the owned control test window and restore previous Editor focus. Release owned render textures, destroy owned objects and restore caller GPU state; retain the contact sheet in project Temp. No assets or scenes are created.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-field-boundaries-v2",
+      "file": "Tests~/Cases/Painting/DistanceFieldBoundaryTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldBoundaryTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["painting", "layers"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching graphical Editor; parent serializes all Unity verification. Review analytic case and explicit support files.",
+      "setup": "581 bounded CPU calls on masks up to 64x64, all six modes and intermediate thresholds; independent topology, line, norm, weak-component and remote-field oracles.",
+      "teardown": "Dispose owned NativeArrays and copied geometry after every synchronous computation. No assets, files, windows or borrowed Editor state.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Cases/Painting/DistanceFieldTests.cs"],
+      "reviewFiles": []
+    },
     {
       "id": "halftone",
       "file": "Tests~/Cases/FX/HalftoneTests.cs",
@@ -3110,13 +3285,23 @@
       ],
       "requiresUnity": false,
       "prerequisites": "Node.js 22+ and current package sources/fixtures/docs; no Unity Editor needed.",
-      "setup": "Read-only repository inputs and owned in-memory scalar/mocked data; no Unity assets or persistent state.",
+      "setup": "Read-only guards over current six-mode source contracts and catalog registrations; no translated production jobs or numerical substitutes.",
       "teardown": "Only in-memory JavaScript data; no borrowed Unity/OS state or owned on-disk resources to release.",
       "result": {
         "kind": "structured"
       },
       "reviewFiles": [
-        "Tests~/Framework/test-api.mjs"
+        "Tests~/Framework/test-api.mjs",
+        "Tests~/scripts/test-catalog.json",
+        "src/Utils.cs",
+        "src/Layers/SDFLayerBehaviour.cs",
+        "src/Layers/OutlineLayerBehaviour.cs",
+        "src/Layers/ArtisticDistanceField.cs",
+        "src/Shaders/SdfGradient.shader",
+        "src/Automation/WhimTexApi.Inspect.cs",
+        "src/Automation/WhimTexApi.Layers.cs",
+        "src/EffectRenderCache.cs",
+        "src/WhimTexDocument.cs"
       ]
     },
     {
@@ -8808,15 +8993,15 @@
       "groups": [
         "painting"
       ],
+      "requiresUnity": true,
       "prerequisites": "Idle graphical Test6.6 Editor with current WhimTex package; review source and declared effects. Parent serializes verification.",
-      "setup": "Independent copied/adapted assertion inputs; scoped owned resources, GUID fixture paths and caller-state snapshots.",
-      "teardown": "Body using/finally and UnityAScope restore GPU state, focus, clipboard, touched prefs; destroy only owned resources; delete only owned GUID fixture and temporary outputs.",
+      "setup": "Independent analytic raster masks and segment/half-plane distance oracles in owned NativeArrays. CPU jobs only; no assets, windows, files or borrowed Editor state.",
+      "teardown": "Dispose owned NativeArrays with using/finally after each synchronous distance computation.",
       "result": {
         "kind": "structured"
       },
       "supportFiles": [
-        "Tests~/Framework/TestApi.cs",
-        "Tests~/Framework/Unity/UnityAScope.cs"
+        "Tests~/Framework/TestApi.cs"
       ],
       "reviewFiles": []
     },

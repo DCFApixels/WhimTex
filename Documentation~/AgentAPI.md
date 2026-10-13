@@ -672,8 +672,8 @@ HDR texture data is distinct from physical HDR monitor output; rendered PNG prev
 | File | `source` (already imported Texture2D path in Assets or Packages) |
 | Color | `color` (`[r,g,b,a]`, encoded RGB -107..107, alpha 0..1), `fillMode` (`Color`, `UV`, `Pattern`), `fillPattern` (partial settings below) |
 | Drawing | `brush` (partial brush settings below) |
-| Outline | `color`, `metric`, `sourceChannel` (`Alpha` default, `Red`, `Green`, `Blue`, `Luminance`), `outlineWidth`, `outlineSoftness` (0..16384), `outlinePosition` (`Outside`, `Inside`, `Center`), `outlineOffset` (-16384..16384), `fillCenter` (bool), `fillColor` (`[r,g,b,a]`) |
-| SDF | `metric`, `sourceChannel` (`Alpha`, `Red`, `Green`, `Blue`, `Luminance`), `threshold` (integer 0..255), `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`), `encoding` (`Gradient` default or `LinearData`), `inverted` (bool, both output modes), `maxDistance` (0..16384; zero = automatic), `sourceOffset` ([x,y], each -16384..16384 px), `sourceEdges` (`Transparent`, `Clamp`, `Repeat`, `Mirror`), `contourOffset` (-16384..16384 px; positive expands), `insideDistance`/`outsideDistance` (Signed only, 0..16384; 0 inherits maxDistance/auto), `profile` (FX curve string syntax, at most 4096 characters; default `linear`) |
+| Outline | `color`, `metric` (`EuclideanAntialiased` default; six modes below), `miterLimit` (float, 1..64, default 4; Sharp only), `sourceChannel` (`Alpha` default, `Red`, `Green`, `Blue`, `Luminance`), `outlineWidth`, `outlineSoftness` (0..16384), `outlinePosition` (`Outside`, `Inside`, `Center`), `outlineOffset` (-16384..16384), `fillCenter` (bool), `fillColor` (`[r,g,b,a]`) |
+| SDF | `metric` (`EuclideanAntialiased` default; six modes below), `miterLimit` (float, 1..64, default 4; Sharp only), `sourceChannel` (`Alpha`, `Red`, `Green`, `Blue`, `Luminance`), `threshold` (integer 0..255), `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`), `encoding` (`Gradient` default, `LinearData`, `MultiChannelData`), `inverted` (bool; Gradient/LinearData), `maxDistance` (0..16384; zero = automatic), `sourceOffset` ([x,y], each -16384..16384 px), `sourceEdges` (`Transparent`, `Clamp`, `Repeat`, `Mirror`), `contourOffset` (-16384..16384 px; positive expands; Gradient/LinearData only), `insideDistance`/`outsideDistance` (Signed Gradient/LinearData only, 0..16384; 0 inherits maxDistance/auto), `profile` (FX curve string syntax, at most 4096 characters; default `linear`; Gradient/LinearData only) |
 | Normal Map | `normalMap`: partial settings object described below |
 | Noise | `noise`: partial procedural settings object described below |
 | Shape | `shape`: partial settings object described below |
@@ -683,7 +683,18 @@ HDR texture data is distinct from physical HDR monitor output; rendered PNG prev
 | Make Seamless | `makeSeamless`: `{ "mode": "OffsetBlend", "edgeWidth": 0.2, "offsetTransitionStart": -0.25 }`; [all four methods and parameters](#make-seamless-settings) |
 | Gradient, SDF | `gradient`: 1..64 `{"time":0.0,"color":[1,1,1,1]}` stops in strictly increasing time order, time 0..1 |
 
-SDF also accepts `encoding` directly in settings: `Gradient` (default) or `LinearData`, reported by `sdfEncodings` in capabilities. Its default palette matches Noise: black at 0, white at 1, with Perceptual interpolation. Inverted remains available in both modes and reverses normalized distance before Profile and gradient sampling. LinearData outputs normalized distance after Inverted/Profile as raw linear RGB 0–1 with alpha 1, without gamma decoding or palette sampling. In Signed mode low values are inside and high values outside. Profile applies in both modes. Switching output preserves the palette and inversion setting; existing explicit gradient modes are retained. SDF has no `useGradient` field or ColorValues output. Document export encoding still applies normally; choose linear output when exporting numeric maps.
+SDF accepts `encoding` directly in settings: `Gradient` (default), `LinearData` or `MultiChannelData`, reported by `sdfEncodings` in capabilities. Its default palette matches Noise: black at 0, white at 1, with Perceptual interpolation. For Gradient and LinearData, Inverted reverses normalized distance before Profile; Gradient then samples the palette. LinearData outputs the remapped distance as raw linear RGB 0–1 with alpha 1, without gamma decoding or palette sampling. With `metric:"MTSDF"`, both scalar outputs use the median of the three RGB distances before this remap. In Signed mode low values are inside and high values outside. Switching output preserves the palette, profile and inversion setting; existing explicit gradient modes are retained. SDF has no `useGradient` field or ColorValues output. Document export encoding still applies normally; choose linear output when exporting numeric maps.
+
+`encoding:"MultiChannelData"` requires `metric:"MTSDF"` in the resulting layer state; API settings reject a mismatched pair. It writes raw linear RGBA: RGB holds corner-preserving signed perpendicular/pseudo distances, and alpha holds the true signed Euclidean distance to the reconstructed subpixel contour. Alpha is distance data, not coverage. Each channel encodes `saturate(0.5 + 0.5 * d / maxDistance)`, with negative distances inside, positive outside and zero at 0.5; `maxDistance:0` uses the automatic symmetric range. This output bypasses `distancePosition`, `contourOffset`, `insideDistance`, `outsideDistance`, `inverted`, `profile` and the palette. It is not a copy of one scalar field into four channels, and its alpha is not distance to the binary bitmap. Preserve RGBA and linear encoding when exporting these data.
+
+For raw RGBA document composition or export, set the SDF layer's `blend:"Overwrite"`
+(Rendering → Blend Mode → Overwrite). Normal composition treats alpha as coverage and can alter
+the channel values. An ordinary FX or effect-layer input reading the standalone SDF layer receives
+its rendered RGBA data; group and AllBelow inputs receive their composed image.
+
+Changing the UI algorithm away from MTSDF while Multi Channel Data is selected switches output to
+Linear Data in the same Undo operation. API callers must supply a valid resulting metric/encoding pair;
+they do not receive that UI fallback.
 
 SDF operations write `settings.gradient`, not `settings.sdf`. Unified document/clipboard JSON
 instead stores the native palette in `behaviour.gradient` on `SDFLayerBehaviour`.
@@ -692,12 +703,49 @@ Both stop arrays and the shared gradient object are accepted, including separate
 `mode`, `smoothness`, `wrapMode` and `colorSpace`. Supplying `gradient` replaces the whole palette but
 does not select an output mode; set `encoding:"Gradient"` explicitly to enable it from LinearData.
 
-SDF/Outline `metric` accepts `EuclideanExact` (default), `EuclideanApproximate`, `Manhattan`,
-`Chebyshev` and `EuclideanAntialiased`. The latter interpolates threshold crossings between horizontal/vertical
-neighboring samples and measures distance to the closest crossing point. It approximates the continuous contour
-between those points; it does not treat a wide translucent transition as subpixel coverage.
-`threshold` selects the SDF contour; Outline uses the fixed midpoint threshold (128) on its selected `sourceChannel`. In this mode a uniform source with no crossing has no border.
-Existing metric numeric IDs 0–3 remain stable; `EuclideanAntialiased` is 4 and is reported by capabilities/inspect.
+SDF and Outline use the same six `DistanceMetric` values and field semantics:
+
+| `metric` | Numeric ID | Distance Algorithm / field |
+| --- | --- | --- |
+| `EuclideanAntialiased` (default) | 4 | Round (Antialiased), or Round AA. Preserves the existing Euclidean antialiased implementation and rounded offsets. |
+| `Sharp` | 5 | Contour-offset field with miter joins, limited by `miterLimit`. Not a Euclidean SDF. |
+| `Bevel` | 6 | Contour-offset field with bevel joins. Not a Euclidean SDF. |
+| `Diamond` | 7 | L1 distance, `abs(dx) + abs(dy)`; diamond-shaped offsets depend on the calculation axes. |
+| `Square` | 8 | L∞ distance, `max(abs(dx), abs(dy))`; square-shaped offsets depend on the calculation axes. |
+| `MTSDF` | 9 | Corner-preserving RGB perpendicular/pseudo distances plus true signed Euclidean distance in alpha to the subpixel contour. |
+
+All six modes are antialiased. Round AA retains the original crossing-seed Euclidean distance
+transform (EDT): it interpolates threshold crossings between horizontal/vertical neighboring samples
+and propagates those seeds. It does not measure distance to continuous contour segments.
+Sharp, Bevel, Diamond, Square and MTSDF first fit straight flanks to multiple raw isocontour samples using
+orthogonal least squares. Uniform arc-length samples are at most 0.5 pixels apart; each flank
+has 8 pixels of support. Fits require maximum perpendicular error <= 0.35 pixels and mean
+squared error <= 0.025 px². A recovered turn is at least 45 degrees, its cap half-arc at most
+4 pixels, sampled fit-window deviation at most 0.6 pixels, and tip distance at most
+`min(2 px, 0.6 px / cosHalfTurn)`. Uncertain corners are preserved.
+Unsampled details outside fitted regions remain intact. All five segment modes then use fixed
+0.25-pixel contour simplification; paths with perimeter below 4 pixels bypass simplification.
+Closed filled contours are normalized by NonZero union at 1e-6-pixel precision before joins and
+edge colors are generated. Holes and genuinely separate islands remain; regions overlapping after
+reconstruction share one filled boundary. Open and zero-area threshold contours bypass this union.
+Post-union cleanup uses a 0.05-pixel budget and rejects replacement chords crossing nonincident
+original or replacement boundaries or changing contour containment/contact states. MTSDF resolves each contour's RGB median before combining
+contours; the nearest valid signed pseudo-distance wins, while alpha remains the nearest true
+Euclidean distance. RGB channels from unrelated contours are not mixed before median evaluation.
+For cells certified away from the contour by all four true-distance alpha values (same sign,
+absolute value > 1 pixel), incompatible RGB encodings are collapsed to their own per-texel median.
+This removes bilinear sign artifacts without changing the scalar median or alpha. Texels with
+absolute alpha distance <= 1 pixel are unchanged; neighbouring cells can interpolate those texels
+with corrected far texels. This is a conservative local correction, not a full upstream error-correction implementation.
+These steps can alter subpixel detail and do not reproduce the original matte exactly. MTSDF alpha
+measures true Euclidean distance to the reconstructed contour, not an exact original continuous curve.
+`miterLimit` is the same finite float field on SDF and Outline: API settings/inspect range 1..64,
+default 4, dimensionless,
+and used only by Sharp to limit miter length relative to the contour offset and bevel excessive joins.
+`threshold` selects the SDF contour; Outline uses the fixed midpoint threshold (128) on its selected
+`sourceChannel`. A uniform source with no threshold crossing has no border.
+The former enum values 0–3 and their names are removed; there are no aliases or numeric remappings.
+Capabilities/inspect report the six current names; the retained Round AA ID is 4.
 Outline filters both band edges, including at zero softness, and supports fractional widths. `outlineOffset`
 translates the band in canvas pixels (negative inward, positive outward), without changing its width.
 `fillCenter` defaults to false. When enabled, the region inside the band's inner edge uses `fillColor`

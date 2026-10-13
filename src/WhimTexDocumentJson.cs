@@ -291,6 +291,16 @@ namespace DCFApixels.WhimTex
                 foreach (var layer in layers)
                 {
                     if (layer?.Behaviour is TextLayerBehaviour text) text.Validate();
+                    if (layer?.Behaviour is SDFLayerBehaviour sdf)
+                    {
+                        if (!Enum.IsDefined(typeof(DistanceMetric), sdf.metric) || !float.IsFinite(sdf.miterLimit) || sdf.miterLimit < 1 || sdf.miterLimit > 64)
+                            throw new WhimTexDocumentException("Unsupported SDF algorithm or Miter Limit: " + layer.Id);
+                        if (sdf.encoding == SDFLayerBehaviour.OutputEncoding.MultiChannelData && sdf.metric != DistanceMetric.MTSDF)
+                            throw new WhimTexDocumentException("MultiChannelData requires the MTSDF algorithm: " + layer.Id);
+                    }
+                    if (layer?.Behaviour is OutlineLayerBehaviour outline &&
+                        (!Enum.IsDefined(typeof(DistanceMetric), outline.metric) || !float.IsFinite(outline.miterLimit) || outline.miterLimit < 1 || outline.miterLimit > 64))
+                        throw new WhimTexDocumentException("Unsupported Outline algorithm or Miter Limit: " + layer.Id);
                     if (layer?.Behaviour is TargetedLayerBehaviour target &&
                         (target.inputMode == EffectInputMode.Specific && !document.IsUsableStoredShaderTexture(layer, target.TargetLayerId) ||
                          target.inputMode == EffectInputMode.AllBelow && document.TryFindLayer(layer, out var siblings, out int index) && !document.HasUsableStoredEffectInput(target, siblings, index)))

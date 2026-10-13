@@ -29,12 +29,23 @@ namespace DCFApixels.WhimTex
             addEffectTarget(root, layer);
 
             EnumField metric = WhimTexUI.ConfigureField(new EnumField("Distance Algorithm", layer.metric));
-            metric.tooltip = "Euclidean Antialiased follows the 50% alpha contour, including soft edges. Euclidean Exact uses a hard silhouette.";
+            metric.tooltip = "All algorithms follow a subpixel contour. Round rounds expanded corners; Sharp preserves them; Bevel cuts them. Diamond and Square are axis-aligned. MTSDF reconstructs corners from three distance channels.";
             bindings.Track(metric, () => (Enum)layer.metric);
             metric.RegisterValueChangedCallback(evt => applyChange(
                 "Change Outline Algorithm",
                 () => layer.metric = (DistanceMetric)evt.newValue));
             root.Add(metric);
+
+            var miter = WhimTexUI.ConfigureField(new FloatField("Miter Limit"));
+            miter.tooltip = "Sharp only. Limits acute corner spikes; excessive joins become bevels.";
+            bindings.Track(miter, () => layer.miterLimit);
+            miter.SetValueWithoutNotify(layer.miterLimit);
+            miter.RegisterValueChangedCallback(e => applyChange("Change Outline Miter Limit", () => layer.miterLimit = Mathf.Clamp(e.newValue, 1, 64)));
+            root.Add(miter);
+            void RefreshMiter() => miter.EnableInClassList("whimtex-hidden", layer.metric != DistanceMetric.Sharp);
+            bindings.Add(RefreshMiter);
+            metric.RegisterValueChangedCallback(_ => RefreshMiter());
+            RefreshMiter();
 
             EnumField sourceChannel = WhimTexUI.ConfigureField(new EnumField("Source Channel", layer.sourceChannel));
             sourceChannel.tooltip = "Selects the channel used to detect the outline. Alpha preserves the traditional silhouette behavior.";

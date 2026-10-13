@@ -174,7 +174,7 @@ namespace DCFApixels.WhimTex
         private static void SetLayer(WhimTexDocument document, Layer layer, JObject settings)
         {
             Keys(settings, "name", "enabled", "clippingMask", "opacity", "blend", "filter", "source", "colorRange", "blendRange", "channelMapping", "compositing", "color", "brush",
-                "fillMode", "fillPattern", "metric", "outlineWidth", "outlineSoftness", "outlinePosition", "outlineOffset", "fillCenter", "fillColor", "sourceChannel", "threshold",
+                "fillMode", "fillPattern", "metric", "miterLimit", "outlineWidth", "outlineSoftness", "outlinePosition", "outlineOffset", "fillCenter", "fillColor", "sourceChannel", "threshold",
                 "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "encoding", "gradient", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape", "text");
             foreach (var property in settings.Properties())
             {
@@ -185,7 +185,7 @@ namespace DCFApixels.WhimTex
                     key == "source" && layer?.Behaviour is FileLayerBehaviour || key == "brush" && layer?.Behaviour is DrawingLayerBehaviour ||
                     key == "color" && (layer?.Behaviour is ColorFillLayerBehaviour || layer?.Behaviour is OutlineLayerBehaviour) ||
                     (key == "fillMode" || key == "fillPattern") && layer?.Behaviour is ColorFillLayerBehaviour ||
-                    key == "metric" && (layer?.Behaviour is SDFLayerBehaviour || layer?.Behaviour is OutlineLayerBehaviour) ||
+                    (key == "metric" || key == "miterLimit") && (layer?.Behaviour is SDFLayerBehaviour || layer?.Behaviour is OutlineLayerBehaviour) ||
                     key == "normalMap" && layer?.Behaviour is NormalMapLayerBehaviour ||
                     key == "blur" && layer?.Behaviour is BlurLayerBehaviour ||
                     key == "sharpen" && layer?.Behaviour is SharpenLayerBehaviour ||
@@ -258,6 +258,7 @@ namespace DCFApixels.WhimTex
             if (layer?.Behaviour is OutlineLayerBehaviour outline)
             {
                 outline.metric = Enum(settings, "metric", outline.metric);
+                outline.miterLimit = Number(settings, "miterLimit", outline.miterLimit, 1f, 64f);
                 outline.sourceChannel = Enum(settings, "sourceChannel", outline.sourceChannel);
                 outline.outlineWidth = Number(settings, "outlineWidth", outline.outlineWidth, 0f, 16384f);
                 outline.outlineSoftness = Number(settings, "outlineSoftness", outline.outlineSoftness, 0f, 16384f);
@@ -270,6 +271,7 @@ namespace DCFApixels.WhimTex
             if (layer?.Behaviour is SDFLayerBehaviour sdf)
             {
                 sdf.metric = Enum(settings, "metric", sdf.metric);
+                sdf.miterLimit = Number(settings, "miterLimit", sdf.miterLimit, 1f, 64f);
                 sdf.sourceChannel = Enum(settings, "sourceChannel", sdf.sourceChannel);
                 sdf.threshold = (byte)Int(settings, "threshold", sdf.threshold, 0, 255);
                 sdf.distancePosition = Enum(settings, "distancePosition", sdf.distancePosition);
@@ -287,6 +289,8 @@ namespace DCFApixels.WhimTex
                 }
                 if (settings["profile"] != null) sdf.profile = WhimTexCurveTexture.Parse(Text(settings, "profile"));
                 sdf.encoding = Enum(settings, "encoding", sdf.encoding);
+                Require(sdf.encoding != SDFLayerBehaviour.OutputEncoding.MultiChannelData || sdf.metric == DistanceMetric.MTSDF,
+                    "MultiChannelData requires metric MTSDF.");
                 if (settings["gradient"] != null) sdf.gradient = ReadGradient(settings["gradient"]);
             }
             if (layer?.Behaviour is GradientLayerBehaviour gradient && settings["gradient"] != null) gradient.gradient = ReadGradient(settings["gradient"]);

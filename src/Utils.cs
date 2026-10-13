@@ -42,11 +42,12 @@ namespace DCFApixels.WhimTex
 
     public enum DistanceMetric
     {
-        EuclideanExact = 0,
-        EuclideanApproximate = 1,
-        Manhattan = 2,
-        Chebyshev = 3,
-        EuclideanAntialiased = 4
+        [InspectorName("Round AA")] EuclideanAntialiased = 4,
+        [InspectorName("Sharp AA")] Sharp = 5,
+        [InspectorName("Bevel AA")] Bevel = 6,
+        [InspectorName("Diamond AA")] Diamond = 7,
+        [InspectorName("Square AA")] Square = 8,
+        MTSDF = 9
     }
 
     public enum EffectInputMode

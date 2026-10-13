@@ -137,8 +137,49 @@ for OneD. White/Blue Noise ignore Seamless and do not have a true ThreeD variant
 Noise Output uses `encoding` (`LinearData`, `ColorValues`, `Gradient`), with
 `gradient` storing the palette and `inverted` reversing the value before palette sampling.
 Color White/Blue Noise does not use Gradient output.
-SDF uses `SDFLayerBehaviour.encoding` with `LinearData` or `Gradient`, plus its own
-`gradient` and `inverted`. It has no ColorValues mode.
+SDF uses `SDFLayerBehaviour.encoding`: `Gradient` (default), `LinearData` or `MultiChannelData`.
+SDF and Outline share `metric`: `EuclideanAntialiased` (Round AA, default, numeric ID 4),
+`Sharp` (5), `Bevel` (6), `Diamond` (7), `Square` (8), `MTSDF` (9). All are antialiased;
+the old numeric values 0–3 are removed without aliases. Sharp and Bevel are contour-offset fields,
+not Euclidean SDFs. Diamond uses L1 and Square uses L∞; both depend on the calculation axes.
+The shared `miterLimit` float has range 1..64, defaults to 4, must be finite and affects Sharp only.
+Round AA keeps its original crossing-seed Euclidean distance transform (EDT), rather than distance
+to continuous contour segments. The other five modes share reconstructed, normalized subpixel contours.
+
+For MTSDF, RGB stores corner-preserving signed perpendicular/pseudo distances; alpha stores
+true signed Euclidean distance to the reconstructed subpixel contour, not to a binary bitmap.
+Gradient and LinearData reconstruct the scalar using the RGB median, then apply Position,
+normalization, Inverted and Profile; Gradient also samples `gradient`. LinearData has opaque alpha.
+`MultiChannelData` requires `metric:"MTSDF"` and encodes each raw linear RGBA channel as
+`saturate(0.5 + 0.5 * d / maxDistanceNormalization)` (negative inside, positive outside, zero at 0.5;
+zero normalization selects the automatic range). Alpha is data, not transparency.
+Position, Contour Offset, separate inside/outside ranges, Inverted, Profile and the palette do not remap these channels.
+Sharp, Bevel, Diamond, Square and MTSDF first fit straight flanks to multiple raw isocontour samples using
+orthogonal least squares. Recovery requires reliable flanks and bounded deviation: sampled
+fit-window deviation is at most 0.6 pixels; tip distance is at most `min(2 px, 0.6 px / cosHalfTurn)`.
+Uncertain corners are preserved. All five segment modes then use fixed 0.25-pixel simplification;
+paths with perimeter below 4 pixels bypass simplification. Closed filled contours are normalized
+by NonZero union at 1e-6-pixel precision before generating joins or RGB edge colors.
+Holes and genuinely separate islands remain; regions overlapping after reconstruction share one
+filled boundary. Open and zero-area threshold contours bypass filled-region union.
+Post-union cleanup uses a 0.05-pixel budget and rejects replacement chords crossing nonincident
+original or replacement boundaries or changing contour containment/contact states. MTSDF resolves each contour's RGB median before combining
+contours, avoiding cross-contour channel mixing; alpha remains nearest true Euclidean distance.
+Away from the contour, incompatible RGB color transitions are corrected for bilinear sampling,
+preserving each texel's scalar median and true-distance alpha. Near-boundary texels are unchanged;
+their neighbouring cells may interpolate them with corrected far texels.
+Recovery can move the tip up to 2 pixels and alter subpixel detail; the result is not an exact
+original matte. The true distance in alpha refers to the
+reconstructed contour, not an exact original continuous curve. API patches reject a mismatched metric/encoding pair.
+The UI switches Multi Channel Data to Linear Data when choosing an algorithm other than MTSDF.
+For raw RGBA composition/export, set the layer's native `blendMode:"Overwrite"`; Normal composition
+treats alpha as coverage and can alter the data. Ordinary FX/effect-layer inputs reading the standalone
+SDF layer receive its rendered RGBA channels; group/AllBelow inputs use the composed image.
+Use linear document output and preserve RGBA when exporting. Live settings use `blend:"Overwrite"`.
+SDF has no ColorValues mode.
+Document JSON stores `maxDistanceNormalization`; live patches use `maxDistance`.
+See the [shared SDF/Outline field contract](../AgentAPI.md#layer-settings) for mode semantics,
+but use native behaviour fields here, not live patch wrappers.
 For document gradients use the schema's native `WhimTexGradient` model;
 the standalone clipboard format below is a separate value contract.
 For algorithm behavior see [Noise](../AgentAPI.md#noise-settings) and
@@ -486,7 +527,7 @@ uniform. Other repeated types must match exactly. Control ranges do not clamp va
 another control. Preset export saves the current value once.
 `float2`, `float3` and `float4` are raw vectors with two, three and four components. `point` is a `float2` position in normalized canvas UV: bottom-left `(0, 0)`, top-right `(1, 1)`. Coordinates and tuple defaults may lie outside these bounds. Its hand button (**Edit on Canvas**) activates a handle that can also be dragged outside the canvas. Its default is `(0.5, 0.5)`; an explicit tuple is optional and ranges are not accepted. `normal` generates a normalized `float3`; its default and zero-vector fallback are `(0, 0, 1)`. It also offers an on-canvas direction handle; no range is accepted. Defaults are optional. Unknown parameter types are rejected.
 
-FX use ordinary input images and explicit parameters, not hidden layer-specific data. Lighting/Bevel Emboss reads a height texture (Self by default) and shares lighting with Normal Map/Lighting. Base Color alpha blends transparent lighting (0) into the shaded surface (1); Output selects Both/Highlight Only/Shadow Only for the transparent part. SDF inputs use their visible gradient, not raw distances. See [shader reference](../ShaderFX.md) for the complete contract.
+FX use ordinary input images and explicit parameters, not hidden layer-specific data. Lighting/Bevel Emboss reads a height texture (Self by default) and shares lighting with Normal Map/Lighting. Base Color alpha blends transparent lighting (0) into the shaded surface (1); Output selects Both/Highlight Only/Shadow Only for the transparent part. SDF inputs use the selected layer output; use Gradient or LinearData for a scalar height map. MultiChannelData remains an ordinary RGBA texture input, with distance data in alpha; it does not introduce a typed SDF parameter or hidden field access. See [shader reference](../ShaderFX.md) for the complete contract.
 
 `float4` is a raw vector; `color` is a color picker. Texture parameters without an explicit default keep Texture mode and sample white when empty. Use `= none` for transparent black, or `= self` to sample the current layer immediately before this FX (including earlier FX, excluding current/later FX). Both are unquoted declaration keywords and are preserved in exported presets. These are FX parameter defaults, not layer IDs. Users can change the texture source in the editor. In unified JSON, existing texture assets use `$asset` identity references in the parameter value. Do not invent asset identities. Drawing pixels and URL downloads are not part of this format.
 Names generate labels: `_NoiseScale` → Noise Scale. No need for a second uniform declaration.

@@ -147,6 +147,8 @@ https://github.com/DCFApixels/WhimTex.git
 
 - **[Параметры последовательности Sobol](https://web.maths.unsw.edu.au/~fkuo/sobol/)** — Frances Kuo и Stephen Joe;
   равномерный разброс кисти. [Приложенная лицензия](ThirdPartyNotices.md#sobol-direction-numbers).
+- **[Clipper2](https://github.com/AngusJohnson/Clipper2)** — Angus Johnson;
+  переносимая нормализация контуров SDF. [Приложенная лицензия Boost](src/ThirdParty/Clipper2/LICENSE.txt).
 - **[FastNoiseLite](https://github.com/Auburn/FastNoiseLite)** — Jordan Peck и участники проекта;
   HLSL-реализация используется для генерации слоя Noise. [Приложенная лицензия MIT](ThirdPartyNotices.md#fastnoiselite).
 - **[Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)** — James Newton-King и участники проекта;

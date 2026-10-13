@@ -301,6 +301,7 @@ namespace DCFApixels.WhimTex
                     {
                         settings["color"] = Json(outline.outlineColor);
                         settings["metric"] = outline.metric.ToString();
+                        settings["miterLimit"] = outline.miterLimit;
                         settings["sourceChannel"] = outline.sourceChannel.ToString();
                         settings["outlineWidth"] = outline.outlineWidth;
                         settings["outlineSoftness"] = outline.outlineSoftness;
@@ -312,6 +313,7 @@ namespace DCFApixels.WhimTex
                     if (layer?.Behaviour is SDFLayerBehaviour sdf)
                     {
                         settings["metric"] = sdf.metric.ToString();
+                        settings["miterLimit"] = sdf.miterLimit;
                         settings["sourceChannel"] = sdf.sourceChannel.ToString();
                         settings["threshold"] = sdf.threshold;
                         settings["distancePosition"] = sdf.distancePosition.ToString();

@@ -80,6 +80,9 @@ public static class DocumentJsonSchema
                     if (!(type == typeof(WhimTexDocument) && f.Name == "layers") && !(type == typeof(DrawingLayerBehaviour) && f.Name == "pixels"))
                         properties[f.Name] = type == typeof(ShapeLayerBehaviour) && (f.Name == "rectangleCorners" || f.Name == "polygonCorners")
                             ? D(("type", "array"), ("minItems", f.Name == "rectangleCorners" ? 4 : 3), ("maxItems", f.Name == "rectangleCorners" ? 4 : 32), ("items", Schema(typeof(ShapeLayerBehaviour.Corner)))) :
+                            (type == typeof(SDFLayerBehaviour) || type == typeof(OutlineLayerBehaviour)) && f.Name == "miterLimit"
+                            ? D(("type", "number"), ("minimum", 1), ("maximum", 64),
+                                ("description", "Finite dimensionless miter-length limit relative to contour offset, range 1..64, default 4. Sharp only; excessive joins are beveled. Same field on SDF and Outline.")) :
                             type == typeof(ShapeLayerBehaviour.Corner) && f.Name == "amount" ? D(("type", "number"), ("minimum", 0), ("maximum", 1)) :
                             type == typeof(TextLayerBehaviour) && (f.Name == "fontSize" || f.Name == "maxFontSize") ? D(("type", "number"), ("minimum", 1), ("maximum", 2048)) :
                             type == typeof(TextLayerBehaviour) && f.Name == "characterHorizontalScale" ? D(("type", "number"), ("minimum", .01), ("maximum", 10)) :
@@ -89,6 +92,20 @@ public static class DocumentJsonSchema
                             type == typeof(WhimTexDocument) && (f.Name == "width" || f.Name == "height")
                             ? D(("type", "integer"), ("minimum", 1), ("maximum", 16384)) :
                             type == typeof(Layer) && f.Name == "id" ? D(("type", "string"), ("minLength", 1)) : Schema(f.FieldType);
+                if (type == typeof(SDFLayerBehaviour) || type == typeof(OutlineLayerBehaviour))
+                {
+                    var metric = (Dictionary<string, object>)properties["metric"];
+                    metric["description"] = "All six modes are antialiased. EuclideanAntialiased is the default Round AA, retaining ID 4 and the original crossing-seed EDT rather than distance to continuous contour segments. Sharp/Bevel are contour-offset fields, not Euclidean SDFs. Diamond is axis-dependent L1; Square is axis-dependent L-infinity. Sharp/Bevel/Diamond/Square/MTSDF use fixed 0.25-pixel contour simplification. Sharp/Bevel/Diamond/Square/MTSDF fit straight flanks to multiple raw isocontour samples by orthogonal least squares before simplification; sampled fit-window deviation <= 0.6 px and tip distance <= min(2 px, 0.6 px / cosHalfTurn). Uncertain flanks are preserved. Closed filled contours undergo NonZero union at 1e-6-pixel precision; holes and genuinely separate islands remain, while regions overlapping after reconstruction share one boundary. Paths with perimeter below 4 px bypass simplification; open and zero-area contours bypass region union. Post-union cleanup uses a 0.05-pixel budget and rejects chords crossing nonincident original or replacement boundaries or changing containment/contact states. MTSDF resolves each contour median before combining contours; alpha remains the nearest true distance. Away from the contour, incompatible RGB interpolation encodings are corrected while preserving per-texel median and alpha; near-boundary texels are unchanged. Reconstruction may alter subpixel detail and is not an exact original matte. MTSDF has corner-preserving RGB perpendicular/pseudo distances plus true signed Euclidean subpixel-contour distance in alpha. Old IDs 0..3 are removed.";
+                }
+                if (type == typeof(SDFLayerBehaviour))
+                {
+                    var encoding = (Dictionary<string, object>)properties["encoding"];
+                    encoding["description"] = "Gradient is the default. Gradient/LinearData use the RGB median for MTSDF before artistic remapping. MultiChannelData requires metric MTSDF and encodes raw linear RGBA as saturate(0.5 + 0.5*d/maxDistanceNormalization) (0 selects auto). Alpha is true signed Euclidean distance to the reconstructed subpixel contour, not coverage, binary-bitmap distance or an exact original matte. MTSDF uses constrained multi-sample corner fitting followed by fixed 0.25-pixel simplification. Sampled fit-window deviation <= 0.6 px; tip distance <= min(2 px, 0.6 px / cosHalfTurn). Closed filled contours undergo NonZero union before generating edge colors. Holes and genuinely separate islands remain; overlapping reconstructed regions share one boundary. Tiny paths bypass simplification; open and zero-area contours bypass union. MTSDF resolves each contour median before combining contours; alpha remains the nearest true distance. Away from the contour, incompatible RGB interpolation encodings are corrected while preserving per-texel median and alpha; near-boundary texels are unchanged. Use blendMode Overwrite for raw RGBA composition/export because Normal treats alpha as coverage and can alter data. Standalone ordinary FX/effect-layer inputs receive rendered RGBA. Position, Contour Offset, inside/outside ranges, Inverted, Profile and palette are bypassed.";
+                    var scalar = D(("properties", D(("encoding", D(("not", D(("const", "MultiChannelData"))))))));
+                    var mtsdf = D(("required", new[] { "metric" }),
+                        ("properties", D(("metric", D(("const", "MTSDF"))))));
+                    ((Dictionary<string, object>)definitions[name])["anyOf"] = new[] { scalar, mtsdf };
+                }
             }
             object modelRef = D(("$ref", "#/$defs/" + name));
             return !type.IsValueType && type != typeof(WhimTexDocument) && type != typeof(Layer)

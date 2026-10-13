@@ -10,7 +10,8 @@ namespace DCFApixels.WhimTex
     [Serializable]
     public sealed class OutlineLayerBehaviour : TargetedLayerBehaviour
     {
-        public DistanceMetric metric = DistanceMetric.EuclideanExact;
+        public DistanceMetric metric = DistanceMetric.EuclideanAntialiased;
+        public float miterLimit = 4f;
         public SourceChannel sourceChannel = SourceChannel.Alpha;
         public Color outlineColor = Color.white;
         public float outlineWidth = 4f;
@@ -23,28 +24,34 @@ namespace DCFApixels.WhimTex
 
         internal override RenderTexture Render(in LayerRenderContext context)
         {
+            using var timing = DistanceFieldTiming.Measure("render.outline");
             if (context.input == null)
                 return null;
 
-            Texture2D inputTexture = WhimTexDocument.CopyToTexture2D(context.input, uploadToGpu: false);
+            RenderTexture previous = RenderTexture.active;
+            bool srgb = GL.sRGBWrite;
+            Texture2D inputTexture = null;
             NativeArray<float> signedDistances = default;
             Texture2D resultTexture = null;
             try
             {
+                using (DistanceFieldTiming.Measure("input.readback"))
+                    inputTexture = WhimTexDocument.CopyToTexture2D(context.input, uploadToGpu: false);
                 NativeArray<Color32> inputPixels = inputTexture.GetRawTextureData<Color32>();
                 signedDistances = new NativeArray<float>(
                     inputPixels.Length,
                     Allocator.TempJob,
                     NativeArrayOptions.UninitializedMemory);
-                DistanceFieldUtility.ComputeSignedDistance(
+                SDFLayerBehaviour.ComputeSourceField(
                     inputPixels,
                     signedDistances,
                     context.width,
                     context.height,
                     128,
                     (int)sourceChannel,
-                    metric);
+                    metric, Vector2.zero, SDFLayerBehaviour.SourceEdges.Transparent, miterLimit, default);
 
+                long stage = DistanceFieldTiming.Start();
                 resultTexture = new Texture2D(context.width, context.height, TextureFormat.RGBAFloat, false, true)
                 {
                     hideFlags = HideFlags.HideAndDontSave,
@@ -62,18 +69,26 @@ namespace DCFApixels.WhimTex
                     fillCenter = fillCenter,
                     fillColor = HdrUtility.Decode(fillColor),
                     outlineColor = HdrUtility.Decode(outlineColor),
-                    antialiasedDistance = metric == DistanceMetric.EuclideanAntialiased,
+                    antialiasedDistance = true,
                     width = context.width,
                     height = context.height,
                     outlinePosition = (int)outlinePosition
                 };
-                job.Schedule(outputPixels.Length, 128).Complete();
+                DistanceFieldTiming.Report("output.setup", ref stage);
+                using (DistanceFieldTiming.Measure("outline.shade"))
+                    job.Schedule(outputPixels.Length, 128).Complete();
 
+                stage = DistanceFieldTiming.Start();
                 resultTexture.Apply(false, false);
-                return ApplyTransformAndFx(resultTexture, context);
+                DistanceFieldTiming.Report("output.upload", ref stage);
+                var result = ApplyTransformAndFx(resultTexture, context);
+                DistanceFieldTiming.Report("output.submit", ref stage);
+                return result;
             }
             finally
             {
+                RenderTexture.active = previous;
+                GL.sRGBWrite = srgb;
                 if (signedDistances.IsCreated)
                     signedDistances.Dispose();
                 if (inputTexture != null)

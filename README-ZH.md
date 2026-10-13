@@ -147,6 +147,8 @@ https://github.com/DCFApixels/WhimTex.git
 
 - **[Sobol 方向数](https://web.maths.unsw.edu.au/~fkuo/sobol/)** — Frances Kuo 和 Stephen Joe；
   用于均匀分布的画笔变化。[附带许可证](ThirdPartyNotices.md#sobol-direction-numbers)。
+- **[Clipper2](https://github.com/AngusJohnson/Clipper2)** — Angus Johnson；
+  可移植的 SDF 轮廓归一化。[附带 Boost 许可证](src/ThirdParty/Clipper2/LICENSE.txt)。
 - **[FastNoiseLite](https://github.com/Auburn/FastNoiseLite)** — Jordan Peck 及贡献者；
   Noise 图层使用其 HLSL 实现。[附带 MIT 许可证](ThirdPartyNotices.md#fastnoiselite)。
 - **[Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)** — James Newton-King 及贡献者；

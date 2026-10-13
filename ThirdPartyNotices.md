@@ -1,7 +1,7 @@
 # Third-party notices
 
 WhimTex's own MIT license does not replace the licenses of third-party components.
-FastNoiseLite is bundled as source. The documentation theme is resolved separately at site build time.
+FastNoiseLite and the Clipper2 clipping core are bundled as source. The documentation theme is resolved separately at site build time.
 The Unity packages listed below are resolved by Package
 Manager and are not vendored into this repository; their installed packages supply their
 own licenses and any transitive third-party notices.
@@ -45,6 +45,26 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Clipper2
+
+WhimTex includes the managed C# clipping core of
+[Clipper2 source release 2.0.1](https://github.com/AngusJohnson/Clipper2/tree/Clipper2_2.0.1),
+commit `21ebba05db8894f0c7217ad35ea518080f324946`.
+The upstream project metadata at this source tag reports 2.0.0; the pinned source tag
+and commit above identify the included implementation.
+
+Files: `src/ThirdParty/Clipper2/Clipper.Core.cs`, `Clipper.Engine.cs`, `PooledList.cs`,
+and a reduced `Clipper.cs` helper facade. No native binary, offset module or NuGet
+dependency is included. It normalizes filled SDF contour regions before join generation.
+
+Local modifications: namespace isolation under `DCFApixels.WhimTex.ThirdParty`,
+explicit 2D compilation via `#undef USINGZ`, a minimal helper facade and a local
+deterministic hash combiner instead of the upstream compatibility shim. The
+clipping engine and predicates are otherwise unchanged. Copyright headers are retained.
+
+Copyright Angus Johnson 2010–2025. Distributed under the Boost Software License 1.0;
+the complete [license text](src/ThirdParty/Clipper2/LICENSE.txt) is included unchanged.
 
 ## Sobol direction numbers
 
