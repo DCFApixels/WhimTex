@@ -199,14 +199,14 @@ namespace DCFApixels.WhimTex
                 try
                 {
                     string parameterLine = line;
-                    ParseParameterModifiers(ref parameterLine, out bool hidden, out bool seed, out string displayLabel);
+                    ParseParameterModifiers(ref parameterLine, out bool hidden, out bool seed, out bool pixelUnits, out string displayLabel);
                     string tooltip = ExtractTooltip(ref parameterLine);
                     Match enumMatch = Regex.Match(parameterLine, @"^\s*//\s*@param\s+enum\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^{}]+?))?\s*\{([^{}]+)\}\s*$");
                     Match match = Parameter.Match(enumMatch.Success ? "// @param float " + enumMatch.Groups[1].Value : parameterLine);
                     if (!match.Success) throw new FormatException("Expected @param type name = value [min .. max], without a semicolon.");
                     string kind = match.Groups[1].Value;
                     string name = match.Groups[2].Value;
-                    var p = new ShaderFXParameter { name = name, floatValue = 0f, colorValue = Color.clear };
+                    var p = new ShaderFXParameter { name = name, floatValue = 0f, colorValue = Color.clear, pixelUnits = pixelUnits };
                     string value = match.Groups[3].Value.Trim();
                     bool explicitDefault = match.Groups[3].Success;
                     bool bounded = match.Groups[4].Success;
@@ -320,6 +320,8 @@ namespace DCFApixels.WhimTex
                             break;
                     }
                     if (kind != "float" && bounded) throw new FormatException("Ranges apply only to float parameters.");
+                    if (pixelUnits && (enumMatch.Success || seed || kind != "float" && kind != "float2" && kind != "float3" && kind != "float4"))
+                        throw new FormatException("The px modifier applies only to numeric float, float2, float3 or float4 lengths, without seed.");
                     var control = new ShaderFXParameterControl { type = p.type, order = lineNumber, tooltip = tooltip, label = displayLabel,
                         headers = pendingHeaders.ToArray(),
                         helpBoxes = pendingHelpBoxes.ToArray(),
@@ -366,6 +368,7 @@ namespace DCFApixels.WhimTex
                     if (names.TryGetValue(name, out var existing))
                     {
                         if (!Compatible(existing.type, p.type)) throw new FormatException("Conflicting storage types for " + name);
+                        if (existing.pixelUnits != p.pixelUnits) throw new FormatException("Conflicting pixel units for " + name);
                         existing.controls.Add(control);
                         if (IsScalar(p.type)) existing.type = ShaderFXParameterType.Float;
                         if (explicitDefault) CopyValue(p, existing);
@@ -407,10 +410,11 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
-        private static void ParseParameterModifiers(ref string line, out bool hidden, out bool seed, out string label)
+        private static void ParseParameterModifiers(ref string line, out bool hidden, out bool seed, out bool pixelUnits, out string label)
         {
             hidden = false;
             seed = false;
+            pixelUnits = false;
             label = null;
             Match prefix = ParameterPrefix.Match(line);
             if (!prefix.Success) return;
@@ -420,6 +424,15 @@ namespace DCFApixels.WhimTex
             {
                 while (position < line.Length && char.IsWhiteSpace(line[position])) position++;
                 if (position >= line.Length) break;
+
+                if (line.IndexOf("px", position, StringComparison.Ordinal) == position &&
+                    (position + 2 == line.Length || char.IsWhiteSpace(line[position + 2])))
+                {
+                    if (pixelUnits) throw new FormatException("The px modifier may be specified only once.");
+                    pixelUnits = true;
+                    position += 2;
+                    continue;
+                }
 
                 if (line.IndexOf("seed", position, StringComparison.Ordinal) == position &&
                     (position + 4 == line.Length || char.IsWhiteSpace(line[position + 4])))

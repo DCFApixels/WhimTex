@@ -25,8 +25,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private Button[] channelButtons;
         [SerializeField] private bool canvasDebug;
         [NonSerialized] private float canvasExposure;
-        [NonSerialized] private Slider canvasQualitySlider;
-        [NonSerialized] private Label canvasQualityValue;
+        [NonSerialized] private WhimTexSliderField canvasQualitySlider;
 
         private Vector4 CanvasChannelMask => new Vector4(
             (canvasChannels & 1) != 0 ? 1f : 0f,
@@ -169,40 +168,34 @@ namespace DCFApixels.WhimTex
             Label label = new Label("Live Quality");
             label.AddToClassList("whimtex-canvas-view-quality-label");
             control.Add(label);
-            Slider quality = new Slider(
+            var quality = new WhimTexSliderField(null,
                 MinimumPaintingCanvasScale * 100f, MaximumPaintingCanvasScale * 100f)
             {
                 value = paintingCanvasScale * 100f,
+                formatString = "0.#'%'",
                 tooltip = LiveCanvasQualityContent.tooltip
             };
             quality.AddToClassList("whimtex-canvas-view-quality-slider");
-            Label value = new Label($"{paintingCanvasScale * 100f:0.#}%");
-            value.AddToClassList("whimtex-canvas-view-quality-value");
             canvasQualitySlider = quality;
-            canvasQualityValue = value;
             quality.RegisterValueChangedCallback(evt =>
             {
                 if (canvasTool == CanvasTool.Pencil) return;
                 paintingCanvasScale = ClampPaintingCanvasScale(evt.newValue * 0.01f);
                 EditorPrefs.SetFloat(PaintingCanvasScalePrefKey, paintingCanvasScale);
-                value.text = $"{paintingCanvasScale * 100f:0.#}%";
             });
             control.Add(quality);
-            control.Add(value);
             RefreshCanvasQualityControl();
             return control;
         }
 
         private void RefreshCanvasQualityControl()
         {
-            if (canvasQualitySlider == null || canvasQualityValue == null) return;
+            if (canvasQualitySlider == null) return;
             bool pencil = canvasTool == CanvasTool.Pencil;
             float percent = pencil ? 100f : paintingCanvasScale * 100f;
             canvasQualitySlider.SetEnabled(!pencil);
             if (!Mathf.Approximately(canvasQualitySlider.value, percent))
                 canvasQualitySlider.SetValueWithoutNotify(percent);
-            string text = $"{percent:0.#}%";
-            if (canvasQualityValue.text != text) canvasQualityValue.text = text;
             canvasQualitySlider.tooltip = pencil
                 ? "Pencil uses full canvas resolution. Your Live Quality preference is restored with other tools."
                 : LiveCanvasQualityContent.tooltip;

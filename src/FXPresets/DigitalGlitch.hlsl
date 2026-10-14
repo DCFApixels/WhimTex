@@ -4,19 +4,19 @@
 // @header(Line Tearing)
 // @param float _TearDensity = 0.035 [0 .. 1] // Fraction of scanline bands that receive a large displacement.
 // @if _TearDensity != 0
-// @param float _TearLineHeight = 2 [1 .. ~32] // Height of each independently randomized horizontal band in pixels.
-// @param float _TearJitter = 0.25 [0 .. ~12] // Small horizontal wobble applied to every band in pixels.
-// @param float _TearShift = 24 [0 .. ~128] // Maximum extra horizontal shift on selected bands in pixels.
+// @param px float _TearLineHeight = 2 [1 .. ~32] // Height of each independently randomized horizontal band in pixels.
+// @param px float _TearJitter = 0.25 [0 .. ~12] // Small horizontal wobble applied to every band in pixels.
+// @param px float _TearShift = 24 [0 .. ~128] // Maximum extra horizontal shift on selected bands in pixels.
 // @endif
 // @header(Block Corruption)
 // @param float _BlockDensity = 0.025 [0 .. 1] // Fraction of grid cells that become corrupted blocks.
 // @if _BlockDensity != 0
-// @param float _BlockWidth = 48 [2 .. ~256] // Width of the block grid in canvas pixels.
-// @param float _BlockHeight = 8 [2 .. ~128] // Height of the block grid in canvas pixels.
+// @param px float _BlockWidth = 48 [2 .. ~256] // Width of the block grid in canvas pixels.
+// @param px float _BlockHeight = 8 [2 .. ~128] // Height of the block grid in canvas pixels.
 // @param float _BlockSizeRandomness = 0.75 [0 .. 1] // Randomize shared grid boundaries while keeping blocks packed without gaps.
 // @param enum _BlockOrder = RowsFirst {RowsFirst: 0, ColumnsFirst: 1} // RowsFirst jitters line heights, then gives each line an independent width layout. ColumnsFirst jitters column widths, then gives each column an independent height layout.
-// @param float _BlockShiftX = 24 [0 .. ~256] // Maximum horizontal block displacement in pixels.
-// @param float _BlockShiftY = 4 [0 .. ~128] // Maximum vertical block displacement in pixels.
+// @param px float _BlockShiftX = 24 [0 .. ~256] // Maximum horizontal block displacement in pixels.
+// @param px float _BlockShiftY = 4 [0 .. ~128] // Maximum vertical block displacement in pixels.
 // @param float _Dropout = 0 [0 .. 1] // Chance for a selected block to drop to black.
 // @param float _BlockVoidChance = 0 [0 .. 1] // Chance for a selected block to become transparent instead of black.
 // @endif
@@ -34,7 +34,7 @@
 // @param enum _GradientMapping = RandomPerBlock {RandomPerBlock: 0, Vertical: 1, Horizontal: 2} // Sample a random palette position per block, or map it across the canvas.
 // @endif
 // @header(Color Channels)
-// @param float _RGBSplit = 1 [0 .. ~16] // Red/blue channel separation in pixels.
+// @param px float _RGBSplit = 1 [0 .. ~16] // Red/blue channel separation in pixels.
 // @if _RGBSplit != 0
 // @param float _RGBAngle = 0 [~-180 .. ~180] // Direction of the red shift; blue shifts oppositely.
 // @endif
@@ -52,7 +52,7 @@
 // @group(Alpha Follow Chance; _AlphaFollowChance)
 // @param hidden float _AlphaFollowChance = 0 [0 .. 1] // Per block, chance for alpha to follow the same displacement as the corrupted color.
 // @if _AlphaFollowChance != 0
-// @param float _AlphaJitter = 0 [0 .. ~32] // Maximum additional alpha-only offset in canvas pixels when alpha follows.
+// @param px float _AlphaJitter = 0 [0 .. ~32] // Maximum additional alpha-only offset in canvas pixels when alpha follows.
 // @param float _AlphaJitterFlip = 0.5 [0 .. 1] // Chance to reverse the alpha-only offset relative to the color displacement.
 // @endif
 // @param float _AlphaNoise = 0 [0 .. 1] // Random per-pixel opacity variation.
@@ -215,11 +215,12 @@ float4 ApplyFX(float2 uv, float4 color)
     video *= 1.0 - dropoutMask;
 
     float noiseKey = frameIndex + _Seed * 53.9;
-    float grayNoise = HashNoise(pixel + float2(_Seed * 67.1, noiseKey + 17.3));
+    float2 noisePixel = pixel / _PixelScale;
+    float grayNoise = HashNoise(noisePixel + float2(_Seed * 67.1, noiseKey + 17.3));
     float3 colorNoise = float3(
-        HashNoise(pixel + float2(_Seed * 67.1 + 7.1, noiseKey + 31.7)),
-        HashNoise(pixel + float2(_Seed * 67.1 + 19.3, noiseKey + 47.9)),
-        HashNoise(pixel + float2(_Seed * 67.1 + 43.7, noiseKey + 71.1)));
+        HashNoise(noisePixel + float2(_Seed * 67.1 + 7.1, noiseKey + 31.7)),
+        HashNoise(noisePixel + float2(_Seed * 67.1 + 19.3, noiseKey + 47.9)),
+        HashNoise(noisePixel + float2(_Seed * 67.1 + 43.7, noiseKey + 71.1)));
     float3 noise = lerp(grayNoise.xxx, colorNoise, _NoiseColor) - 0.5;
     video = max(video + noise * _NoiseAmount, 0.0);
 
@@ -257,7 +258,7 @@ float4 ApplyFX(float2 uv, float4 color)
 
         if (_AlphaNoise > 0.0)
         {
-            float alphaNoise = HashNoise(pixel + float2(_Seed * 83.3, noiseKey + 101.9)) - 0.5;
+            float alphaNoise = HashNoise(noisePixel + float2(_Seed * 83.3, noiseKey + 101.9)) - 0.5;
             alpha = saturate(alpha + alphaNoise * _AlphaNoise);
         }
 

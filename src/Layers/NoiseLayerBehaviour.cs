@@ -177,8 +177,9 @@ namespace DCFApixels.WhimTex
             else material.DisableKeyword("WT_NOISE_PERIODIC");
             if (IsVectorField) material.EnableKeyword("WT_NOISE_VECTOR");
             else material.DisableKeyword("WT_NOISE_VECTOR");
-            float width = context.activeDocument != null ? context.activeDocument.width : context.width;
-            float height = context.activeDocument != null ? context.activeDocument.height : context.height;
+            Vector2Int sourceSize = Owner.GetSourceCanvasSize(context.activeDocument != null ? context.activeDocument.width : context.width,
+                context.activeDocument != null ? context.activeDocument.height : context.height);
+            float width = sourceSize.x, height = sourceSize.y;
             float shortest = Mathf.Max(1f, Mathf.Min(width, height));
             material.SetVector("_NoiseDomain", new Vector4(width / shortest, height / shortest,
                 Limit(offset.x, -10000f, 10000f, 0f), Limit(offset.y, -10000f, 10000f, 0f)));
@@ -216,8 +217,10 @@ namespace DCFApixels.WhimTex
                 material.SetTexture("_BlueNoise1D", EffectiveDimensions == NoiseDimensions.OneD ? BlueNoiseTextures.OneD : null);
             }
             material.SetInteger("_GrainColor", grainColor == GrainColor.Color ? 1 : 0);
-            material.SetVector("_GrainGrid", new Vector4(width, height,
-                Limit(grainSize, 1f, 1024f, 1f), 0f));
+            Vector2 grainCanvas = Owner.GetPixelSourceCanvasSize(context.activeDocument != null ? context.activeDocument.width : context.width,
+                context.activeDocument != null ? context.activeDocument.height : context.height);
+            material.SetVector("_GrainGrid", new Vector4(grainCanvas.x, grainCanvas.y,
+                Mathf.Max(context.CanvasPixels(Limit(grainSize, 1f, 1024f, 1f)), Mathf.Max(grainCanvas.x, grainCanvas.y) / 1000000000f), 0f));
             material.SetInteger("_NoiseFractal", Mathf.Clamp((int)EffectiveFractal, 0, 3));
             material.SetInteger("_NoiseOctaves", Mathf.Clamp(octaves, 1, 8));
             material.SetVector("_NoiseFractalSettings", new Vector4(Limit(lacunarity, 1f, 4f, 2f),

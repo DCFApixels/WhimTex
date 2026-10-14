@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
             if (!TiledCanvasUtility.IsInvertible(Owner.PixelCanvasTransform)) return;
             RenderTexture surface = EnsurePaintSurface(outputWidth, outputHeight);
             if (surface == null) return;
-            size = Mathf.Clamp(size, 1f, Mathf.Max(outputWidth, outputHeight));
+            size = Mathf.Max(.0001f, size);
             hardness = Mathf.Clamp01(hardness);
             strength = Mathf.Clamp01(strength);
             if (strength <= 0f) return;
@@ -54,12 +54,13 @@ namespace DCFApixels.WhimTex
                 blur.SetInt("_Edges", tiled ? 2 : 1);
                 blur.SetFloat("_Strength", 1f);
                 blur.SetTexture("_SourceTex", null);
-                float radius = Mathf.Max(1f, size * .5f);
-                BlurBrushKernel[0] = new Vector4(Mathf.Max(1f, radius * .15f), .12f, 0f, 0f);
-                BlurBrushKernel[1] = new Vector4(Mathf.Max(2f, radius * .30f), .10f, 0f, 0f);
-                BlurBrushKernel[2] = new Vector4(Mathf.Max(3f, radius * .45f), .08f, 0f, 0f);
-                BlurBrushKernel[3] = new Vector4(Mathf.Max(4f, radius * .60f), .06f, 0f, 0f);
-                BlurBrushKernel[4] = new Vector4(Mathf.Max(5f, radius * .80f), .04f, 0f, 0f);
+                float pixelScale = Owner.GetPixelScale();
+                float radius = Mathf.Max(pixelScale, size * .5f);
+                BlurBrushKernel[0] = new Vector4(Mathf.Max(pixelScale, radius * .15f), .12f, 0f, 0f);
+                BlurBrushKernel[1] = new Vector4(Mathf.Max(2f * pixelScale, radius * .30f), .10f, 0f, 0f);
+                BlurBrushKernel[2] = new Vector4(Mathf.Max(3f * pixelScale, radius * .45f), .08f, 0f, 0f);
+                BlurBrushKernel[3] = new Vector4(Mathf.Max(4f * pixelScale, radius * .60f), .06f, 0f, 0f);
+                BlurBrushKernel[4] = new Vector4(Mathf.Max(5f * pixelScale, radius * .80f), .04f, 0f, 0f);
                 GaussianKernel.Upload(blur, .2f, 5, BlurBrushKernel);
                 blur.SetVector("_Direction", new Vector4(1f / outputWidth, 0f, 0f, 0f));
                 Graphics.Blit(source, scratch, blur, 2);

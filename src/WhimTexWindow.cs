@@ -224,6 +224,10 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            lassoPicker?.Cancel();
+            cropManipulator?.Reset();
+            DisposeCanvasCropSnapTargets();
+            DisposeCanvasChangeSelectionUndo();
             gradientCreationManipulator?.Cancel();
             textManipulator?.Cancel();
             EndTextEditing(false);
@@ -321,6 +325,7 @@ namespace DCFApixels.WhimTex
 
         public override void DiscardChanges()
         {
+            cropManipulator?.Reset();
             FinishCanvasTransform();
             FinishPaintingStroke();
             StopLiveOutput();
@@ -330,6 +335,8 @@ namespace DCFApixels.WhimTex
 
         private void OnLostFocus()
         {
+            cropPicker?.Cancel(); shapePicker?.Cancel(); marqueePicker?.Cancel(); lassoPicker?.Cancel();
+            cropManipulator?.CancelGesture();
             canvasToolToggleKeyHeld = false;
             if (healingPointer >= 0) CancelHealing();
             StopKeyboardNudge();
@@ -420,6 +427,7 @@ namespace DCFApixels.WhimTex
         {
             UpdateHealing();
             if (ReconcileCanvasToolContext()) toolkitRefreshRequested = true;
+            if (canvasTool == CanvasTool.Crop) RefreshCanvasCropSnapTargets();
             UpdatePostFx();
             RequestEffectRefinement();
             UpdateUnsavedChangesState();
@@ -1190,6 +1198,9 @@ namespace DCFApixels.WhimTex
             if (next == null || next == activeDocument)
                 return;
 
+            cropManipulator?.Reset();
+            DisposeCanvasCropSnapTargets();
+
             if (HasPendingImageUrl) { CancelImageUrlPaste(); RemoveNotification(); }
             CancelCanvasEyedropper();
             CancelCanvasZoomGesture();
@@ -1204,6 +1215,7 @@ namespace DCFApixels.WhimTex
             StopLiveOutput();
             ReleaseEffectCache();
             ResetAreaSelection();
+            DisposeCanvasChangeSelectionUndo();
             ClearCanvasGuides();
             canvasGuidesDocument = next;
             ClearDocumentFile();
@@ -1318,6 +1330,8 @@ namespace DCFApixels.WhimTex
 
         private void OnUndoRedo()
         {
+            cropManipulator?.Reset();
+            DisposeCanvasCropSnapTargets();
             CancelHealing();
             ReleaseEffectCache();
             ResetOpacityEntry();
@@ -1325,6 +1339,7 @@ namespace DCFApixels.WhimTex
             gradientCanvasManipulator?.End(false, false);
             if (activeDocument == null)
                 return;
+            RestoreCanvasChangeSelectionUndo();
             paintingLayer?.EndStroke();
             paintingLayer = null;
             hasLastPaintingUv = false;

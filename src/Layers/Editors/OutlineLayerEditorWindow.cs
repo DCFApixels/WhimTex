@@ -29,22 +29,33 @@ namespace DCFApixels.WhimTex
             addEffectTarget(root, layer);
 
             EnumField metric = WhimTexUI.ConfigureField(new EnumField("Distance Algorithm", layer.metric));
-            metric.tooltip = "All algorithms follow a subpixel contour. Round rounds expanded corners; Sharp preserves them; Bevel cuts them. Diamond and Square are axis-aligned. MTSDF reconstructs corners from three distance channels.";
+            metric.tooltip = "Round and Contour round expanded corners; Bevel cuts them. Diamond and Square use axis-aligned distance. Sharp, MTSDF, Corner Fit, Spring and RBF support the experimental Corner Mode comparison. Contour preparation is unchanged by Corner Mode.";
             bindings.Track(metric, () => (Enum)layer.metric);
             metric.RegisterValueChangedCallback(evt => applyChange(
                 "Change Outline Algorithm",
                 () => layer.metric = (DistanceMetric)evt.newValue));
             root.Add(metric);
+            var sharpMode = WhimTexUI.ConfigureField(new EnumField("Corner Mode", layer.sharpMode));
+            sharpMode.tooltip = "Unrestricted: current experimental extensions, without artifact correction. Guarded Sharp: restore support, ownership and error checks, without rounding solely because a corner is acute. Invalid or unsupported corners may still use finite distance. Contour preparation is unchanged. Miter Limit bevels long joins only in Guarded Sharp.";
+            bindings.Track(sharpMode, () => (Enum)layer.sharpMode);
+            sharpMode.RegisterValueChangedCallback(e => applyChange("Change Outline Corner Mode", () => layer.sharpMode = (SharpDistanceMode)e.newValue));
+            root.Add(sharpMode);
 
             var miter = WhimTexUI.ConfigureField(new FloatField("Miter Limit"));
-            miter.tooltip = "Sharp only. Limits acute corner spikes; excessive joins become bevels.";
+            miter.tooltip = "Guarded Sharp only, except MTSDF. Bevel joins above this ratio; no separate angular rounding cap. Unrestricted ignores this value.";
             bindings.Track(miter, () => layer.miterLimit);
             miter.SetValueWithoutNotify(layer.miterLimit);
             miter.RegisterValueChangedCallback(e => applyChange("Change Outline Miter Limit", () => layer.miterLimit = Mathf.Clamp(e.newValue, 1, 64)));
             root.Add(miter);
-            void RefreshMiter() => miter.EnableInClassList("whimtex-hidden", layer.metric != DistanceMetric.Sharp);
+            void RefreshMiter()
+            {
+                bool sharp = ArtisticDistanceField.UnrestrictedCorners(layer.metric);
+                sharpMode.EnableInClassList("whimtex-hidden", !sharp);
+                miter.EnableInClassList("whimtex-hidden", !sharp || layer.metric == DistanceMetric.MTSDF || layer.sharpMode == SharpDistanceMode.Unrestricted);
+            }
             bindings.Add(RefreshMiter);
             metric.RegisterValueChangedCallback(_ => RefreshMiter());
+            sharpMode.RegisterValueChangedCallback(_ => RefreshMiter());
             RefreshMiter();
 
             EnumField sourceChannel = WhimTexUI.ConfigureField(new EnumField("Source Channel", layer.sourceChannel));

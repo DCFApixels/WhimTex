@@ -107,10 +107,12 @@ namespace DCFApixels.WhimTex
             : Mathf.Max(.5f, Size * spacingFraction * (Dynamics?.SizePressure(pressure) ?? 1f));
 
         internal PaintStrokeParameters(Color color, float size, float hardness, float spacing, bool erase,
-            bool pixelPerfect = false, PencilShape shape = PencilShape.Circle, BrushDynamics dynamics = null, bool standardColorInputs = false)
+            bool pixelPerfect = false, PencilShape shape = PencilShape.Circle, BrushDynamics dynamics = null, bool standardColorInputs = false,
+            float pixelScale = 1f)
         {
             Color = color;
-            Size = pixelPerfect ? Mathf.Clamp(Mathf.Round(size), 1f, 4096f) : Mathf.Max(1f, size);
+            float scaledSize = Mathf.Max(1f, size) * pixelScale;
+            Size = pixelPerfect ? Mathf.Max(1f, Mathf.Round(scaledSize)) : Mathf.Max(.0001f, scaledSize);
             Hardness = pixelPerfect ? 1f : Mathf.Clamp01(hardness);
             spacingFraction = Mathf.Clamp(spacing, DrawingLayerBehaviour.MinimumBrushSpacing, DrawingLayerBehaviour.MaximumBrushSpacing);
             SpacingPixels = pixelPerfect ? Mathf.Max(1f, Mathf.Floor(Size * 0.16f)) : Mathf.Max(.5f, Size * spacingFraction);

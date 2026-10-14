@@ -115,12 +115,12 @@ namespace DCFApixels.WhimTex
             material.SetInt("_ShapeKind", Mathf.Clamp((int)kind, 0, 6));
             material.SetInt("_ShapeEdgeMode", (int)edgeMode);
             material.SetInt("_ShapeLineCap", (int)lineCap);
-            material.SetFloat("_ShapeArcThickness", Limit(arcThickness, 0f, 8192f, 8f));
+            material.SetFloat("_ShapeArcThickness", context.CanvasPixels(Limit(arcThickness, 0f, 8192f, 8f)));
             material.SetVector("_ShapeFill", HdrUtility.Decode(fillColor));
             material.SetVector("_ShapeStroke", HdrUtility.Decode(strokeColor));
             material.SetVector("_ShapeStyle", new Vector4(fill ? 1f : 0f, stroke ? 1f : 0f,
-                Limit(strokeWidth, 0f, 8192f, 2f), (int)strokePosition));
-            material.SetVector("_ShapeFeather", new Vector4(edgeMode == EdgeMode.Step ? 0f : Limit(feather, 0f, 8192f, 0f),
+                context.CanvasPixels(Limit(strokeWidth, 0f, 8192f, 2f)), (int)strokePosition));
+            material.SetVector("_ShapeFeather", new Vector4(edgeMode == EdgeMode.Step ? 0f : context.CanvasPixels(Limit(feather, 0f, 8192f, 0f)),
                 featherPosition == FeatherPosition.Inside ? 0f : featherPosition == FeatherPosition.Outside ? 1f : .5f, 0f, 0f));
             material.SetVector("_ShapeAngles", new Vector4(Limit(startAngle, -360000f, 360000f, 0f) * Mathf.Deg2Rad,
                 Limit(sweepAngle, 0f, 360f, 90f) * Mathf.Deg2Rad, 0, 0));

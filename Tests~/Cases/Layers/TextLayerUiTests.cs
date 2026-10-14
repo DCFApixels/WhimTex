@@ -23,8 +23,8 @@ public static class TextLayerUiTests
     {
         using var submit = NavigationSubmitEvent.GetPooled(); submit.target = button; button.SendEvent(submit);
     }
-    static async Task AssertFontFaces(TestContext t, BaseField<string> field, ListView list,
-        Label sample, TextField search, VisualElement root, CancellationToken token)
+    static void AssertFontFaces(TestContext t, BaseField<string> field, ListView list,
+        Label sample, TextField search, VisualElement root)
     {
         var messages = new List<string>();
         Application.LogCallback capture = (message, stack, type) =>
@@ -53,29 +53,33 @@ public static class TextLayerUiTests
                 int index = list.itemsSource.Cast<string>().ToList().IndexOf(face.name);
                 t.True(index >= 0, face.name + " remains selectable by its original OS name");
                 list.SetSelection(index);
-                for (int i = 0; i < 3; i++) await AsyncD.Tick(root, token);
+                // Font acquisition is synchronous. Keep modal checks in one Editor turn:
+                // an external Pipeline poll may move OS focus and close a native popup.
+                t.True(sample.panel != null, "The owned popup is attached while selecting " + face.name);
                 var label = field.Q<Label>("fontName");
                 foreach (var preview in new[] { label, sample })
                 {
                     var asset = preview.style.unityFontDefinition.value.fontAsset;
                     t.True(asset != null && asset.faceInfo.familyName == face.family && asset.faceInfo.styleName == face.style,
                         face.name + " previews the actual family/face in " + preview.name + ": " +
-                        (asset == null ? "no asset" : asset.faceInfo.familyName + " / " + asset.faceInfo.styleName));
+                        (asset == null ? "no asset; panel=" + (preview.panel != null) + "; text=" + preview.text +
+                            "; selection=" + list.selectedItem + "; family=" + preview.GetType().GetField("family", Flags)?.GetValue(preview) +
+                            "; attempted=" + preview.GetType().GetField("attempted", Flags)?.GetValue(preview) + "; logs=" + string.Join(";", messages)
+                            : asset.faceInfo.familyName + " / " + asset.faceInfo.styleName));
                     t.True(asset.atlasTextures.Any(atlas => atlas != null && atlas.width > 1 && atlas.height > 1),
                         face.name + " has a generated glyph atlas, not an empty preview");
                 }
                 var row = (Label)list.makeItem();
                 try
                 {
-                    list.bindItem(row, index); root.Add(row); await AsyncD.Tick(root, token);
+                    list.bindItem(row, index); root.Add(row);
                     var asset = row.style.unityFontDefinition.value.fontAsset;
                     t.True(asset != null && asset.faceInfo.familyName == face.family && asset.faceInfo.styleName == face.style,
                         face.name + " uses the same correct face in a virtualized list row");
                 }
                 finally { list.unbindItem(row, index); row.RemoveFromHierarchy(); }
             }
-            await AsyncD.Tick(root, token);
-            t.Equal(0, messages.Count, "Font selection, popup samples, list binding and repaint emit no font-load warnings: " + string.Join("; ", messages));
+            t.Equal(0, messages.Count, "Font selection, popup samples and list binding emit no font-load warnings: " + string.Join("; ", messages));
         }
         finally
         {
@@ -137,6 +141,14 @@ public static class TextLayerUiTests
             text = (TextLayerBehaviour)document.layers[0].Behaviour;
             t.Equal(32f, text.fontSize, "Undo restores text size");
             t.Equal(32f, root.Q<FloatField>("textSize").value, "Undo refreshes the inspector binding");
+            var edges = root.Q<EnumField>("textEdgeMode");
+            t.True(edges != null && (TextEdgeMode)edges.value == TextEdgeMode.HintedAA, "Properties exposes Hinted AA by default");
+            Undo.FlushUndoRecordObjects(); Undo.IncrementCurrentGroup();
+            edges.value = TextEdgeMode.Pixel;
+            t.Equal(TextEdgeMode.Pixel, text.edgeMode, "Edges changes the actual text layer");
+            Undo.FlushUndoRecordObjects(); Undo.PerformUndo(); await AsyncD.Tick(root, token);
+            text = (TextLayerBehaviour)document.layers[0].Behaviour;
+            t.True(text.edgeMode == TextEdgeMode.HintedAA && (TextEdgeMode)edges.value == TextEdgeMode.HintedAA, "Undo restores edge mode and binding");
             root.Q<TextField>("textContent").value = "Edited\nТекст";
             t.Equal("Edited\nТекст", text.text, "Multiline text field updates source");
             var characterSpacing = root.Q<FloatField>("textSpacingCharacter"); var wordSpacing = root.Q<FloatField>("textSpacingWord");
@@ -316,13 +328,14 @@ public static class TextLayerUiTests
             window.Focus(); await AsyncD.Tick(root, token);
             UnityEditor.PopupWindow.Show(choose.worldBound, picker);
             t.True(picker.editorWindow != null, "Font picker opens an owned popup window");
+            picker.editorWindow.Focus();
             var pickerRoot = picker.editorWindow.rootVisualElement;
             var search = pickerRoot.Q<TextField>("fontSearch");
             var list = pickerRoot.Q<ListView>();
             t.True(list.itemsSource.Count > 0, "Font picker displays the installed font catalog");
             t.True(list.virtualizationMethod == CollectionVirtualizationMethod.FixedHeight && list.unbindItem != null && list.destroyItem != null,
                 "Font catalog uses virtualized rows with explicit resource cleanup");
-            await AssertFontFaces(t, font, list, pickerRoot.Q<Label>("fontPreview"), search, root, token);
+            AssertFontFaces(t, font, list, pickerRoot.Q<Label>("fontPreview"), search, root);
             search.value = selected;
             t.True(list.itemsSource.Count > 0 && list.itemsSource.Cast<string>().All(name => name.IndexOf(selected, StringComparison.OrdinalIgnoreCase) >= 0),
                 "Font search filters names");
@@ -359,6 +372,7 @@ public static class TextLayerUiTests
             var bindings = typeof(LayerEditorWindowBase).GetField("SettingsBindings", Flags).GetValue(window);
             bindings.GetType().GetMethod("Refresh").Invoke(bindings, new object[] { true });
             t.True(!root.Q<TextField>("textContent").enabledInHierarchy, "Missing font disables source layout editing");
+            t.True(!edges.enabledInHierarchy, "Missing font disables rerasterization controls");
             t.True(root.Q<BaseField<string>>("textFont").enabledInHierarchy && root.Q<VisualElement>("textColor").enabledInHierarchy,
                 "Missing font keeps replacement and tint controls enabled");
             t.True(fontName.text == text.fontFamily && fontName.style.unityFontDefinition.value.fontAsset == null,

@@ -47,7 +47,7 @@ if(stage==0)
     hint.text="Drag move • handles scale • circle rotate";
     hint.GetType().GetMethod("RefreshVisibility").Invoke(hint,null);
     T.True(!(hint.ClassListContains("whimtex-canvas-view-status--hidden")), "Hint should fit at 900 px.");
-    footer.style.width=650;hint.userData=1;
+    footer.style.width=620;hint.userData=1;
     return null;
 }
 if(stage==1)
@@ -69,7 +69,7 @@ foreach(var existing in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.Wh
     if(existing.name==(Scope.Tag + "-footer"))window=existing;
 T.True(!(window==null), "Run CanvasViewFooterSetup.cs first.");
 var root=window.rootVisualElement;var previous=root.userData as UnityEditor.EditorWindow;
-int checks=0;void Check(bool value,string label){ T.True(value, label); }
+void Check(bool value,string label){ T.True(value, label); }
 UnityEngine.UIElements.VisualElement Find(UnityEngine.UIElements.VisualElement parent,string name)=>UnityEngine.UIElements.UQueryExtensions.Q(parent,name);
 try
 {
@@ -87,7 +87,11 @@ try
         for(int i=0;i<4;i++)Check(((UnityEngine.UIElements.Button)color[i]).text==new[]{"R","G","B","A"}[i],"RGBA order unchanged");
         bool compact=footer.ClassListContains("whimtex-canvas-view-footer--compact");
         if(width>=700)Check(!compact,"Wide footer stays on one row at "+width);
-        if(width<=600)Check(compact,"Compact layout follows the actual control widths at "+width);
+        if(width<=400)Check(compact,"Narrow footer wraps its control groups at "+width);
+        var quality=updates[0].Q<WhimTexSliderField>();
+        Check(quality!=null&&updates[0].childCount==2,"Quality combines percentage and slider in one field");
+        Check(quality.worldBound.width>48f&&quality.worldBound.width<72f,"Quality width is between layer opacity and the previous footer slider");
+        Check(Math.Abs(quality.worldBound.height-20f)<.1f,"Quality retains the standard input height");
         var hint=(UnityEngine.UIElements.Label)footer[1];
         var refreshHint=hint.GetType().GetMethod("RefreshVisibility");
         foreach(string text in new[]{"Add a layer to start",new string('W',300),"", "Ready"})
@@ -124,8 +128,86 @@ finally
 
 }
 
+private static void Pointer(VisualElement target, EventType type, Vector2 position, int clicks=1) {
+    var input=new Event { type=type, button=0, mousePosition=position, clickCount=clicks };
+    if(type==EventType.MouseDown) { using var evt=PointerDownEvent.GetPooled(input);evt.target=target;target.SendEvent(evt); }
+    else if(type==EventType.MouseDrag) { using var evt=PointerMoveEvent.GetPooled(input);evt.target=target;target.SendEvent(evt); }
+    else { using var evt=PointerUpEvent.GetPooled(input);evt.target=target;target.SendEvent(evt); }
+}
+private static void Key(VisualElement target, KeyCode key, char character='\0') {
+    using var evt=KeyDownEvent.GetPooled(new Event { type=EventType.KeyDown, keyCode=key, character=character });
+    evt.target=target;target.SendEvent(evt);
+}
+private static async Task QualityInteraction() {
+    var window=Resources.FindObjectsOfTypeAll<WhimTexWindow>().Single(w=>w.name==Scope.Tag+"-footer");
+    var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
+    var type=typeof(WhimTexWindow);
+    var sliderField=type.GetField("canvasQualitySlider",flags);
+    var scaleField=type.GetField("paintingCanvasScale",flags);
+    var toolField=type.GetField("canvasTool",flags);
+    var refresh=type.GetMethod("RefreshCanvasQualityControl",flags);
+    var quality=window.rootVisualElement.Q<VisualElement>("footer900").Q<WhimTexSliderField>();
+    var previousSlider=sliderField.GetValue(window);
+    var previousScale=scaleField.GetValue(window);
+    var previousTool=toolField.GetValue(window);
+    const string pref="DCFApixels.WhimTex.Canvas.PaintingScale";
+    bool hadPreference=EditorPrefs.HasKey(pref);
+    float previousPreference=EditorPrefs.GetFloat(pref);
+    try {
+        window.Focus();
+        sliderField.SetValue(window,quality);
+        toolField.SetValue(window,Enum.Parse(toolField.FieldType,"Brush"));
+        scaleField.SetValue(window,.5f);refresh.Invoke(window,null);
+        var display=quality.Q<Label>(className:"whimtex-slider-field__value");
+        T.Equal("50%",display.text,"Display uses literal percent without multiplying the UI value");
+        T.Near(12.5f,quality.lowValue,0,"Quality preserves the 12.5 percent minimum");
+        T.Near(100f,quality.highValue,0,"Quality preserves the 100 percent maximum");
+        var input=quality.Q<VisualElement>(className:"whimtex-slider-field__input");
+        Vector2 press=input.worldBound.center;
+        Pointer(input,EventType.MouseDown,press);
+        Pointer(input,EventType.MouseDrag,press+new Vector2(input.worldBound.width*2f,0));
+        Pointer(input,EventType.MouseUp,press+new Vector2(input.worldBound.width*2f,0));
+        T.Near(1f,(float)scaleField.GetValue(window),.00001,"Dragging reaches full resolution");
+        T.Near(1f,EditorPrefs.GetFloat(pref),.00001,"Dragging saves the quality preference");
+        scaleField.SetValue(window,.5f);refresh.Invoke(window,null);
+        var editor=quality.Q<FloatField>(className:"whimtex-slider-field__editor");
+        int focusEntries=0;editor.RegisterCallback<FocusInEvent>(_=>focusEntries++);
+        Pointer(input,EventType.MouseDown,press,2);Pointer(input,EventType.MouseUp,press,2);
+        await WhimTex.Tests.UnityA.UnityAAsync.Delay(100,Cancellation);
+        T.True(quality.isEditing,"Double click opens quality keyboard editing");
+        var focused=editor.focusController.focusedElement as VisualElement;
+        T.True(focusEntries>0&&focused!=null&&(focused==quality||focused==editor||editor.Contains(focused)),"Quality editor receives keyboard focus");
+        var editingTarget=focused==editor||editor.Contains(focused)?focused:
+            editor.Q<VisualElement>(className:"unity-base-text-field__input").Q<TextElement>();
+        editor.textSelection.SelectAll();
+        foreach(char character in "37.5")Key(editingTarget,KeyCode.None,character);
+        refresh.Invoke(window,null);
+        T.True(quality.isEditing&&editor.text=="37.5","Quality refresh preserves the pending keyboard draft");
+        T.Near(.5f,(float)scaleField.GetValue(window),0,"Pending text leaves the quality model unchanged");
+        Key(editingTarget,KeyCode.Return,'\n');
+        await WhimTex.Tests.UnityA.UnityAAsync.Delay(100,Cancellation);
+        T.Near(.375f,(float)scaleField.GetValue(window),.00001,"Enter commits the typed percentage to the quality scale");
+        T.Near(.375f,EditorPrefs.GetFloat(pref),.00001,"Keyboard commit saves the quality preference");
+        T.True(!quality.isEditing&&display.text=="37.5%","Enter returns to the combined percentage display");
+        toolField.SetValue(window,Enum.Parse(toolField.FieldType,"Pencil"));refresh.Invoke(window,null);
+        T.True(!quality.enabledSelf&&display.text=="100%","Pencil locks the combined field at full resolution");
+        T.Near(.375f,(float)scaleField.GetValue(window),.00001,"Pencil preserves the preferred scale");
+        T.Near(.375f,EditorPrefs.GetFloat(pref),.00001,"Pencil does not overwrite the saved preference");
+        quality.BeginEditing();T.True(!quality.isEditing,"Pencil prevents keyboard editing");
+        toolField.SetValue(window,Enum.Parse(toolField.FieldType,"Brush"));refresh.Invoke(window,null);
+        T.True(quality.enabledSelf&&display.text=="37.5%","Returning to Brush restores the preferred quality");
+        await WhimTex.Tests.UnityA.UnityAAsync.Delay(100,Cancellation);
+        string path=System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Application.dataPath),"Temp","WhimTex","canvas-view-footer-preview.png");
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
+        await WhimTex.Tests.UnityA.UnityACapture.Capture(window,path,Cancellation);
+    } finally {
+        sliderField.SetValue(window,previousSlider);scaleField.SetValue(window,previousScale);toolField.SetValue(window,previousTool);
+        if(hadPreference)EditorPrefs.SetFloat(pref,previousPreference);else EditorPrefs.DeleteKey(pref);
+        refresh.Invoke(window,null);
+    }
+}
 private static async Task<string> BodyFooterScenario() {
-SetupFixture(); await WhimTex.Tests.UnityA.UnityAAsync.Delay(300, Cancellation); HintResize(); await WhimTex.Tests.UnityA.UnityAAsync.Delay(300, Cancellation); HintResize(); await WhimTex.Tests.UnityA.UnityAAsync.Delay(300, Cancellation); HintResize(); FooterAssertions();
+SetupFixture(); await WhimTex.Tests.UnityA.UnityAAsync.Delay(300, Cancellation); HintResize(); await WhimTex.Tests.UnityA.UnityAAsync.Delay(300, Cancellation); HintResize(); await WhimTex.Tests.UnityA.UnityAAsync.Delay(300, Cancellation); HintResize(); await QualityInteraction(); FooterAssertions();
 return null;
 }
 

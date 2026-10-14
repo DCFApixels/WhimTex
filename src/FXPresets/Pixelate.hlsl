@@ -1,7 +1,7 @@
 // @whimtex-effect Stylization/Pixelate
 // @header(Pixel Grid)
-// @param float _PixelSize = 4 [1 .. ~64] // Block size in canvas pixels.
-// @param float2 _Offset = (0, 0) // Shift the pixel grid origin in canvas pixels without moving the layer.
+// @param px float _PixelSize = 4 [1 .. ~64] // Block size in canvas pixels.
+// @param px float2 _Offset = (0, 0) // Shift the pixel grid origin in canvas pixels without moving the layer.
 // @param bool _Average = false // Average the block over a 4x4 grid instead of sampling its center; ignored for single-pixel blocks.
 /*
 // Disabled experimental upscalers; kept here for later rework.

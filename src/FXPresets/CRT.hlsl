@@ -2,11 +2,11 @@
 // @header(Screen)
 // @param float _Curvature = 0.08 [0 .. ~0.35] // Barrel curvature; stronger values crop more of the screen edges.
 // @param float _ScanlineStrength = 0.2 [0 .. 1] // Darkness of the scanlines.
-// @param float _ScanlineSpacing = 2 [1 .. ~8] // Distance between scanline peaks in canvas pixels.
+// @param px float _ScanlineSpacing = 2 [1 .. ~8] // Distance between scanline peaks in canvas pixels.
 // @param float _PhosphorStrength = 0.12 [0 .. 1] // Strength of the RGB phosphor stripe mask.
 // @param float _Vignette = 0.15 [0 .. 1] // Darken the screen toward its corners.
 // @header(Signal)
-// @param float _ChromaticAberration = 0.5 [0 .. ~8] // Radial red/blue separation in canvas pixels.
+// @param px float _ChromaticAberration = 0.5 [0 .. ~8] // Radial red/blue separation in canvas pixels.
 // @param float _NoiseAmount = 0.01 [0 .. ~0.1] // Static grain amplitude.
 // @param float _Flicker = 0.02 [0 .. ~0.1] // Frame brightness variation; evaluates from Effect Time and Seed.
 // @header(Playback)
@@ -39,7 +39,7 @@ float4 ApplyFX(float2 uv, float4 color)
     float scanPhase = 3.14159265 * pixel.y / max(_ScanlineSpacing, 1.0);
     float scanline = 1.0 - _ScanlineStrength * (0.5 + 0.5 * cos(scanPhase));
 
-    float stripe = fmod(floor(pixel.x), 3.0);
+    float stripe = fmod(floor(pixel.x / _PixelScale), 3.0);
     float3 stripeSelection = float3(
         1.0 - step(1.0, stripe),
         step(1.0, stripe) * (1.0 - step(2.0, stripe)),
@@ -49,7 +49,7 @@ float4 ApplyFX(float2 uv, float4 color)
 
     float frame = floor(max(_EffectTime, 0.0) * 24.0);
     float seededFrame = frame + _Seed * 31.7;
-    float grain = HashNoise(pixel + float2(_Seed * 17.13, seededFrame)) - 0.5;
+    float grain = HashNoise(pixel / _PixelScale + float2(_Seed * 17.13, seededFrame)) - 0.5;
     float flickerNoise = HashNoise(float2(_Seed * 13.1 + 7.7, seededFrame + 19.3)) * 2.0 - 1.0;
     float flicker = 1.0 + flickerNoise * _Flicker;
     float vignette = 1.0 - _Vignette * saturate(radialSq * 0.5);

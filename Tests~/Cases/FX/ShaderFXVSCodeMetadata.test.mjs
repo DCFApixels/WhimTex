@@ -42,6 +42,19 @@ try {
     assert.equal(validate('\n// @whimtex-effect Color/Mask')[0].warning, true);
   });
 
+  context.case('logical pixel metadata supports only explicit numeric lengths', async () => {
+    const { parseParameter } = require('../../../ExternalTools~/WhimTexVSCode/metadata.js');
+    for (const kind of ['float', 'float2', 'float3', 'float4'])
+      assert.equal(parseParameter(`hidden label(Length) px ${kind} _Length`).pixelUnits, true);
+    assert.equal(parseParameter('float _Radius').pixelUnits, false);
+    assert.deepEqual(validate('// @param px float _A\n// @param px float _A [0 .. 8]'), []);
+    assert.ok(validate('// @param px float _A\n// @param float _A').some(d => !d.warning));
+    for (const declaration of ['px bool _A', 'px color _A', 'px normal _A', 'px point _A',
+      'px texture2D _A', 'px curve _A', 'px gradient _A', 'px transform2D _A', 'px enum _A {A:0}',
+      'px seed float _A [0 .. 100]', 'px px float _A'])
+      assert.throws(() => parseParameter(declaration), undefined, declaration);
+  });
+
   context.case('removed migration directives warn without creating aliases', async () => {
     for (const source of ['// @formerlyserializedas(_Old)',
       '// @formerlyserializedas(_Old)\n// @param float _New',

@@ -35,7 +35,7 @@ public static class TextToolTests
         var text = (TextLayerBehaviour)layer.Behaviour;
         var transform = (TextureTransform)Call(document, "GetCanvasTransform", layer);
         var dimensions = new Vector2(document.width, document.height);
-        Vector2 uv = transform.Map(Vector2.one * .5f + Vector2.Scale(text.frameSize * .5f, new Vector2(1f / dimensions.x, 1f / dimensions.y)), dimensions);
+        Vector2 uv = transform.Map(Vector2.one * .5f + Vector2.Scale(text.layoutOffset + text.frameSize * .5f, new Vector2(1f / dimensions.x, 1f / dimensions.y)), dimensions);
         Rect image = (Rect)canvas.GetType().GetProperty("ImageRect", Flags).GetValue(canvas);
         return (Vector2)Call(canvas, "ToView", new Vector2(image.x + uv.x * image.width, image.yMax - uv.y * image.height));
     }
@@ -73,6 +73,12 @@ public static class TextToolTests
             t.Equal(1,document.layers.Count,"Single click creates exactly one text layer");
             var point = (TextLayerBehaviour)document.layers[0].Behaviour;
             var toolSettings = Read(window, "textToolSettings");
+            var toolEdges = root.Q<EnumField>("textToolEdgeMode");
+            t.True(toolEdges != null && (TextEdgeMode)toolEdges.value == TextEdgeMode.HintedAA && point.edgeMode == TextEdgeMode.HintedAA,
+                "Text tool and new Point layers default to Hinted AA");
+            toolEdges.value = TextEdgeMode.Pixel;
+            t.True(Read<TextEdgeMode>(toolSettings, "edgeMode") == TextEdgeMode.Pixel && point.edgeMode == TextEdgeMode.HintedAA,
+                "Tool edges change creation defaults without editing the existing layer");
             var layerFont = root.Q<BaseField<string>>("textFont");
             t.Equal(toolFont.GetType(), layerFont.GetType(), "Tool and layer reuse exactly the same selector type");
             string originalFont = toolFont.value;
@@ -221,6 +227,7 @@ public static class TextToolTests
             t.Equal(2,document.layers.Count,"Drag creates one additional layer");
             var framed=(TextLayerBehaviour)document.layers[0].Behaviour;
             t.Equal(TextLayoutMode.Frame,framed.layoutMode,"Rectangle drag creates frame text");
+            t.Equal(TextEdgeMode.Pixel, framed.edgeMode, "New Frame copies the tool edge mode");
             t.True(!ReferenceEquals(framed, toolSettings), "Frame text owns a separate settings copy");
             t.Equal(default(TextSpacing), framed.spacing, "New text does not inherit the selected layer's spacing");
             t.Equal(1f, framed.characterHorizontalScale, "New text does not inherit the selected layer's character scale");
@@ -230,6 +237,7 @@ public static class TextToolTests
                 "A new Frame uses ordinary layer defaults for frame-specific settings");
             t.True(framed.justify, "A dragged Frame inherits the tool Justify setting");
             t.True(framed.frameSize.x>1 && framed.frameSize.y>1,"Frame dimensions come from the dragged area");
+            t.True(framed.Owner.transform.Equals(TextureTransform.Default) && framed.layoutOffset != Vector2.zero, "New root Frame places its layout without editing Transform");
             toolSize.value = 20;
             t.True(Read<float>(toolSettings, "fontSize") == 20 && framed.fontSize == 12,
                 "Tool size changes do not alter an already-created Frame layer");
@@ -264,14 +272,29 @@ public static class TextToolTests
             t.Equal(before,document.layers.Count,"Cancelled drag creates no layer");
             t.True(!canvas.HasPointerCapture(PointerId.mousePointerId),"Cancelled drag releases capture");
             var frameLayer = framed.Owner;
+            var offsetField = root.Q<Vector2Field>("textLayoutOffset");
+            t.True(offsetField != null, "Text properties expose local layout offset");
+            var transformBeforeOffset = frameLayer.transform;
+            offsetField.value = new Vector2(12.3f, -8.7f);
+            t.True(framed.layoutOffset == offsetField.value && frameLayer.transform.Equals(transformBeforeOffset), "Layout offset edits do not change Transform");
+            await AsyncD.Tick(root, token);
             var frameSize = framed.frameSize;
             var frameTransform = frameLayer.transform;
             Vector2 handle = FrameCorner(window, document, frameLayer);
-            Pointer(canvas, EventType.MouseDown, handle); Pointer(canvas, EventType.MouseDrag, handle + new Vector2(40, -20));
+            Pointer(canvas, EventType.MouseDown, handle);
+            t.True(canvas.HasPointerCapture(PointerId.mousePointerId), "Offset Frame corner captures down; handle=" + handle + "; canvas=" + canvas.contentRect + "; editing=" + Read(window, "textEditingLayer"));
+            Pointer(canvas, EventType.MouseDrag, handle + new Vector2(40, -20));
             t.True(canvas.HasPointerCapture(PointerId.mousePointerId), "Frame corner starts a captured resize gesture");
             Pointer(canvas, EventType.MouseUp, handle + new Vector2(40, -20));
             t.True(framed.frameSize.x > frameSize.x && framed.frameSize.y > frameSize.y, "Frame resize increases dimensions without changing font size");
+            t.True(frameLayer.transform.Equals(frameTransform) && framed.layoutOffset != new Vector2(12.3f, -8.7f), "Frame resize moves the local center, not Transform");
+            Vector2 dimensions = new Vector2(document.width, document.height);
+            Vector2 oldFixed = frameTransform.Map(Vector2.one * .5f + Vector2.Scale(new Vector2(12.3f, -8.7f) - frameSize * .5f, new Vector2(1f / dimensions.x, 1f / dimensions.y)), dimensions);
+            Vector2 newFixed = frameLayer.transform.Map(Vector2.one * .5f + Vector2.Scale(framed.layoutOffset - framed.frameSize * .5f, new Vector2(1f / dimensions.x, 1f / dimensions.y)), dimensions);
+            t.Near(0, (newFixed - oldFixed).magnitude, .0001, "Opposite Frame corner stays fixed with an existing layout offset");
             t.True(!canvas.HasPointerCapture(PointerId.mousePointerId), "Successful resize releases pointer capture");
+            await AsyncD.Tick(root, token);
+            t.Equal(before, document.layers.Count, "Successful resize does not create another layer");
             frameSize = framed.frameSize; frameTransform = frameLayer.transform;
             handle = FrameCorner(window, document, frameLayer);
             Pointer(canvas, EventType.MouseDown, handle);
@@ -280,13 +303,16 @@ public static class TextToolTests
             t.True(framed.frameSize == frameSize + new Vector2(13, 7) && frameLayer.transform.Equals(frameTransform),
                 "A stale resize never overwrites a frame changed by another action");
             t.True(!canvas.HasPointerCapture(PointerId.mousePointerId), "Stale resize releases pointer capture");
+            t.Equal(before, document.layers.Count, "Stale resize does not create another layer");
             framed.frameSize = frameSize;
+            await AsyncD.Tick(root, token);
             handle = FrameCorner(window, document, frameLayer);
             Pointer(canvas, EventType.MouseDown, handle);
             Call(window, "SelectOnlyLayer", point.Owner.Id); Call(window, "RefreshToolkitInterface", false);
             Pointer(canvas, EventType.MouseUp, handle + new Vector2(40, -20));
             t.True(framed.frameSize == frameSize && frameLayer.transform.Equals(frameTransform) && document.layers.Count == before,
-                "Selection change cancels resize without changing or adding layers");
+                "Selection change cancels resize without changing or adding layers; frame=" + framed.frameSize + " expected=" + frameSize +
+                "; transformEqual=" + frameLayer.transform.Equals(frameTransform) + "; count=" + document.layers.Count + "/" + before);
             Call(window, "SelectOnlyLayer", point.Owner.Id); Call(window, "RefreshToolkitInterface", false);
             t.True(toolSize.value == 20 && toolSize.label == "Size" && Read<bool>(toolSettings, "justify"),
                 "Selecting another text layer preserves tool values and visibility");

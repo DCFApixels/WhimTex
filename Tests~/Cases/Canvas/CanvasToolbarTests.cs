@@ -99,7 +99,7 @@ static System.Threading.CancellationToken Cancellation;
         Press(KeyCode.B); Press(KeyCode.P);
         Press(toggleKey); IsTool("Brush", "Direct tool shortcuts update previous tool");
         Press(toggleKey); IsTool("Pencil", "Direct shortcut pair switches both ways");
-        foreach (string tool in new[] { "BlurBrush", "HealingBrush", "Fill", "Shape", "Transform", "Zoom", "RectangleSelect", "PolygonSelect", "None" })
+        foreach (string tool in new[] { "BlurBrush", "HealingBrush", "Fill", "Shape", "Transform", "Crop", "Zoom", "RectangleSelect", "PolygonSelect", "None" })
         {
             Select("Brush"); Select(tool);
             Press(toggleKey); IsTool("Brush", tool + " restores Brush");

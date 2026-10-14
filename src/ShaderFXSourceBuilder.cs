@@ -110,7 +110,7 @@ float4 SampleInput(float2 uv, float tiling)
             StringBuilder uniforms = new StringBuilder();
             HashSet<string> names = new HashSet<string>(StringComparer.Ordinal)
             {
-                "_MainTex", "_MainTex_TexelSize", "_InputSize", "_CanvasSize", "_RenderScale",
+                "_MainTex", "_MainTex_TexelSize", "_InputSize", "_CanvasSize", "_RenderScale", "_PixelScale",
                 "ApplyFX", "SampleInput", "LayerToLocal", "SpriteFXFragment", "vert_img", "v2f_img"
             };
             BuildParameterDeclarations(effect.Parameters, properties, uniforms, names);
@@ -123,7 +123,7 @@ float4 SampleInput(float2 uv, float tiling)
                 "SubShader { Cull Off ZWrite Off ZTest Always Blend Off\nPass {\nCGPROGRAM\n" +
                 "#pragma vertex vert_img\n#pragma fragment SpriteFXFragment\n#pragma target 3.5\n" +
                 "#include \"UnityCG.cginc\"\n" + NoiseLibraryInclude + "sampler2D _MainTex;\nfloat4 _MainTex_TexelSize;\n" +
-                "float4 _InputSize;\nfloat4 _CanvasSize;\nfloat _RenderScale;\n" + uniforms +
+                "float4 _InputSize;\nfloat4 _CanvasSize;\nfloat _RenderScale;\nfloat _PixelScale;\n" + uniforms +
                 "float4 _WhimTex_LayerToLocalRow0, _WhimTex_LayerToLocalRow1, _WhimTex_LayerToLocalRow2;\n" +
                 "float2 LayerToLocal(float2 uv) { float3 p = float3(uv, 1); float w = dot(_WhimTex_LayerToLocalRow2.xyz, p); w = abs(w) < 1e-8 ? (w < 0 ? -1e-8 : 1e-8) : w; return float2(dot(_WhimTex_LayerToLocalRow0.xyz, p), dot(_WhimTex_LayerToLocalRow1.xyz, p)) / w; }\n" +
                 InputSamplingSource +

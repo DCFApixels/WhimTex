@@ -1,7 +1,8 @@
 # Third-party notices
 
 WhimTex's own MIT license does not replace the licenses of third-party components.
-FastNoiseLite and the Clipper2 clipping core are bundled as source. The documentation theme is resolved separately at site build time.
+FastNoiseLite, the Clipper2 clipping core and an adapted edtaa3 distance transform are bundled as source.
+The documentation theme is resolved separately at site build time.
 The Unity packages listed below are resolved by Package
 Manager and are not vendored into this repository; their installed packages supply their
 own licenses and any transitive third-party notices.
@@ -60,11 +61,88 @@ dependency is included. It normalizes filled SDF contour regions before join gen
 
 Local modifications: namespace isolation under `DCFApixels.WhimTex.ThirdParty`,
 explicit 2D compilation via `#undef USINGZ`, a minimal helper facade and a local
-deterministic hash combiner instead of the upstream compatibility shim. The
+deterministic hash combiner instead of the upstream compatibility shim. Nullable
+annotations are explicitly enabled in `PooledList.cs` for the Unity compilation context. The
 clipping engine and predicates are otherwise unchanged. Copyright headers are retained.
 
 Copyright Angus Johnson 2010–2025. Distributed under the Boost Software License 1.0;
 the complete [license text](src/ThirdParty/Clipper2/LICENSE.txt) is included unchanged.
+
+## edtaa3
+
+WhimTex's experimental **AAEDT + 8SED** mode for SDF and Outline adapts Stefan Gustavson's
+anti-aliased Euclidean sweep-and-update distance transform, `edtaa3`.
+The reference is [edtaa3func.c in rougier/freetype-gl](https://github.com/rougier/freetype-gl/blob/ecf48bc72b9ef7d493a2491b9adcaa1504d01252/edtaa3func.c),
+pinned to commit `ecf48bc72b9ef7d493a2491b9adcaa1504d01252` (27 October 2016).
+The upstream header credits Ingemar Ragnemalm's SSED8 algorithm and Gustavson's C implementation,
+including the anti-aliased extension.
+
+File: `src/Layers/AaedtDistanceField.cs`.
+
+Local modifications: a portable C#/Burst job ports the gradient calculation, `edgedf` edge-distance
+metric and sweep/update flow. It uses single-precision values, integer nearest-pixel indices,
+clamped gradient sampling at image borders and a tighter local update tolerance (0.0001 instead
+of 0.001 pixel). This tolerance is not a global distance-error bound. A monotonic piecewise coverage remap maps the selected
+byte threshold to 0.5 while retaining 0/1 endpoints; thresholds 0 and 255 use binary classification.
+WhimTex integrates the scalar field with the shared SDF/Outline contract. No freetype-gl native
+binary or runtime dependency is included. The input is assumed to be area coverage of a crisp edge;
+blur, feather and arbitrary opacity do not provide exact geometry. The adaptation estimates the
+raster boundary and does not add sharp/miter extensions.
+
+The complete license from the pinned source follows:
+
+```text
+Copyright (C) 2009-2012 Stefan Gustavson (stefan.gustavson@gmail.com)
+The code in this file is distributed under the MIT license:
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+## Spring Simulation research reference
+
+The experimental Spring Simulation distance mode draws on ideas from Marko Matusovic,
+Amal Dev Parakkat and Elmar Eisemann,
+[Interactive Depixelization of Pixel Art through Spring Simulation](https://doi.org/10.1111/cgf.14743),
+Computer Graphics Forum 42(2), 51–60 (2023).
+
+This is research attribution for an automatic adaptation: spring relaxation initializes a raster
+contour before WhimTex's AA-tested corner fitting and scalar distance output. The paper concerns
+interactive depixelization, not SDF generation. The mode does not reproduce the full interactive
+tool or its C++ implementation. This citation is not a bundled third-party code license.
+
+## RBF Your SDF research reference
+
+The experimental RBF distance mode is an independent, bounded 2D adaptation of
+Yong Cheng and Yotam Gingold,
+[RBF Your SDF: Radial Basis Function Interpolation of Signed Distance Fields with Implied Tangent Points](https://arxiv.org/abs/2609.06209v3),
+version 3, 15 September 2026. The paper is available under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+WhimTex uses cubic RBF interpolation, implied tangent circles and projected tangent refinement.
+Local modifications use raster-derived initial distances, fixed overlapping 2D patches with
+per-patch refinement, and half-pixel zero-contour extraction followed by WhimTex's experimental
+unrestricted sharp-offset stage. That stage fits flanks and normalizes regions without
+re-rasterizing the recovered contour, then omits angle/support caps, nearest-boundary ownership
+and miter beveling. Extra rays and overlaps are possible. Numeric degeneracy and contour-validity
+checks remain. This is not an exact port or a Euclidean
+distance field. No source from the authors' code
+repositories is bundled; this section attributes the research, not an upstream code license.
 
 ## Sobol direction numbers
 

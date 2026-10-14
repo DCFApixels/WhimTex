@@ -14,7 +14,257 @@ public static class DistanceFieldRenderTests
     const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
     const int Size = 128;
 
-    public static string Run() => TestContext.Run("Six distance modes: native render and data output", t =>
+    public static string RunReconstructedCapture() => TestContext.Run("Captured false-ray raster: verified reconstruction modes", t =>
+    {
+        const int size = 512, crop = 320;
+        var objects = new List<UnityEngine.Object>();
+        T Own<T>(T value) where T : UnityEngine.Object { objects.Add(value); return value; }
+        RenderTexture previous = RenderTexture.active, input = null, output = null;
+        bool srgb = GL.sRGBWrite;
+        try
+        {
+            byte[] bytes = File.ReadAllBytes("Packages/com.dcfapixels.whimtex/Tests~/Fixtures/DistanceRaster/star-13-inner-0364-phase3-known-failure.png");
+            using (var hash = System.Security.Cryptography.SHA256.Create())
+                t.Equal("98BFDEDC59C261EDBAD7888C35500A3FAFC143A476C0118D7599274879BD1ACC",
+                    BitConverter.ToString(hash.ComputeHash(bytes)).Replace("-", ""), "Authentic original raster");
+            var source = Own(new Texture2D(2, 2, TextureFormat.RGBA32, false, true));
+            t.True(source.LoadImage(bytes), "Load captured source");
+            source.filterMode = FilterMode.Point;
+            var sourcePixels = source.GetPixels32();
+            var doc = Own(ScriptableObject.CreateInstance<WhimTexDocument>()); doc.width = doc.height = size;
+            input = RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+            GL.sRGBWrite = false; Graphics.Blit(source, input);
+            var read = Own(new Texture2D(size, size, TextureFormat.RGBAFloat, false, true));
+            var sheet = Own(new Texture2D(crop * 3, crop * 3, TextureFormat.RGBA32, false, true));
+            var contextType = typeof(SDFLayerBehaviour).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext", true);
+            object context = Activator.CreateInstance(contextType, doc, input, size, size, 1f, false, false, null);
+            var modes = new[] { DistanceMetric.Contour, DistanceMetric.CornerFit, DistanceMetric.Spring };
+            var records = new List<string> { "threshold,mode,renderMs,formerFalseRayNormalized" };
+            Color[] rawContour = null;
+            for (int column = 0; column < 3; column++) for (int row = 0; row < 3; row++)
+            {
+                byte threshold = new byte[] { 77, 128, 192 }[column];
+                var sdf = new SDFLayerBehaviour { metric = modes[row], threshold = threshold, miterLimit = 34.49f,
+                    maxDistanceNormalization = 16.3f, encoding = SDFLayerBehaviour.OutputEncoding.LinearData };
+                doc.layers.Add(sdf.Owner);
+                RenderTexture.active = input; GL.sRGBWrite = false;
+                var clock = System.Diagnostics.Stopwatch.StartNew();
+                output = (RenderTexture)typeof(SDFLayerBehaviour).GetMethod("Render", Hidden).Invoke(sdf, new[] { context });
+                clock.Stop();
+                t.True(RenderTexture.active == input && !GL.sRGBWrite, "Reconstruction preserves GPU state");
+                RenderTexture.active = output; read.ReadPixels(new Rect(0, 0, size, size), 0, 0);
+                var pixels = read.GetPixels();
+                int invalid = 0, badSigns = 0;
+                for (int i = 0; i < pixels.Length; i++)
+                {
+                    Color p = pixels[i];
+                    if (!float.IsFinite(p.r) || p.r < 0 || p.r > 1 || Math.Abs(p.a - 1) > .001) invalid++;
+                    // Reconstruction may legitimately move the zero contour. Its
+                    // membership must still agree outside the bounded recovery band.
+                    if (row == 0 || Math.Abs(rawContour[i].r - .5f) * 32.6f > 2.25f)
+                        if (sourcePixels[i].a > threshold ? p.r > .5001f : p.r < .4999f) badSigns++;
+                }
+                t.Equal(0, invalid, "Finite normalized reconstruction " + modes[row] + "/" + threshold);
+                t.Equal(0, badSigns, "Signs outside the recovery band " + modes[row] + "/" + threshold);
+                if (row == 0) rawContour = pixels;
+                t.Near(1, pixels[238 * size + 20].r, .002, "No former unrelated horizontal ray " + modes[row] + "/" + threshold);
+                var tile = new Color[crop * crop];
+                for (int y = 0; y < crop; y++) for (int x = 0; x < crop; x++) tile[y * crop + x] = pixels[(y + 92) * size + x + 85];
+                sheet.SetPixels(column * crop, (2 - row) * crop, crop, crop, tile);
+                records.Add(threshold + "," + modes[row] + "," + clock.Elapsed.TotalMilliseconds.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "," + pixels[238 * size + 20].r);
+                RenderTexture.active = input; RenderTexture.ReleaseTemporary(output); output = null;
+            }
+            sheet.Apply();
+            string directory = "Temp/WhimTex/distance-fields/reconstruction";
+            Directory.CreateDirectory(directory);
+            File.WriteAllBytes(Path.Combine(directory, "captured-contour-cornerfit-spring.png"), sheet.EncodeToPNG());
+            File.WriteAllLines(Path.Combine(directory, "captured.csv"), records);
+        }
+        finally
+        {
+            RenderTexture.active = previous; GL.sRGBWrite = srgb;
+            if (output != null) RenderTexture.ReleaseTemporary(output);
+            if (input != null) RenderTexture.ReleaseTemporary(input);
+            for (int i = objects.Count - 1; i >= 0; i--) if (objects[i] != null) UnityEngine.Object.DestroyImmediate(objects[i]);
+        }
+    });
+
+    // Support: Tests~/Framework/TestApi.cs. Six native renders; no borrowed document.
+    // Columns: thresholds 77/128/192. Top: Round AA. Bottom: AAEDT + 8SED.
+    // The authenticated PNG is input; the generated sheet is a diagnostic, not a golden.
+    public static string RunAaedt() => TestContext.Run("Frozen fifth input: Round AA versus AAEDT + 8SED at thresholds 77/128/192", t =>
+    {
+        const int size = 512, crop = 320;
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        void Budget() => t.True(clock.Elapsed.TotalSeconds < 30, "Six-render AAEDT comparison stays below 30 seconds");
+        byte[] bytes = File.ReadAllBytes(Path.GetFullPath(
+            "Packages/com.dcfapixels.whimtex/Tests~/Fixtures/DistanceRaster/star-13-inner-0364-phase3-known-failure.png"));
+        using (var hash = System.Security.Cryptography.SHA256.Create())
+            t.Equal("98BFDEDC59C261EDBAD7888C35500A3FAFC143A476C0118D7599274879BD1ACC",
+                BitConverter.ToString(hash.ComputeHash(bytes)).Replace("-", ""), "Authentic frozen fifth input");
+        var objects = new List<UnityEngine.Object>();
+        T Own<T>(T item) where T : UnityEngine.Object { objects.Add(item); return item; }
+        RenderTexture previous = RenderTexture.active, input = null, output = null;
+        bool srgb = GL.sRGBWrite;
+        try
+        {
+            var doc = Own(ScriptableObject.CreateInstance<WhimTexDocument>());
+            doc.width = doc.height = size;
+            var source = Own(new Texture2D(2, 2, TextureFormat.RGBA32, false, true));
+            t.True(source.LoadImage(bytes), "Decode captured input");
+            t.Equal(size, source.width, "Frozen width"); t.Equal(size, source.height, "Frozen height");
+            source.filterMode = FilterMode.Point;
+            var sourcePixels = source.GetPixels32();
+            input = RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+            GL.sRGBWrite = false; Graphics.Blit(source, input);
+            var read = Own(new Texture2D(size, size, TextureFormat.RGBAFloat, false, true));
+            var sheet = Own(new Texture2D(crop * 3, crop * 2, TextureFormat.RGBA32, false, true));
+            var contextType = typeof(SDFLayerBehaviour).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext", true);
+            object context = Activator.CreateInstance(contextType, doc, input, size, size, 1f, false, false, null);
+            var metrics = new List<string> { "threshold,topMode,bottomMode,changedPixels,maxNormalizedDelta" };
+            int column = 0, calls = 0;
+            foreach (byte threshold in new byte[] { 77, 128, 192 })
+            {
+                Color[] baseline = null;
+                int row = 0;
+                foreach (var mode in new[] { DistanceMetric.EuclideanAntialiased, DistanceMetric.AAEDT })
+                {
+                    Budget();
+                    var sdf = new SDFLayerBehaviour { metric = mode, threshold = threshold,
+                        maxDistanceNormalization = 16.3f, encoding = SDFLayerBehaviour.OutputEncoding.LinearData };
+                    doc.layers.Add(sdf.Owner);
+                    RenderTexture.active = input; GL.sRGBWrite = false;
+                    output = (RenderTexture)typeof(SDFLayerBehaviour).GetMethod("Render", Hidden).Invoke(sdf, new[] { context });
+                    calls++;
+                    t.True(output != null && output.width == size && output.height == size, "Captured field renders: " + mode);
+                    t.True(RenderTexture.active == input && !GL.sRGBWrite, "Captured render preserves caller GPU state");
+                    RenderTexture.active = output; read.ReadPixels(new Rect(0, 0, size, size), 0, 0);
+                    var pixels = read.GetPixels();
+                    int invalid = 0, badSigns = 0, changed = 0;
+                    float maximum = 0;
+                    for (int i = 0; i < pixels.Length; i++)
+                    {
+                        Color p = pixels[i];
+                        if (!float.IsFinite(p.r) || !float.IsFinite(p.g) || !float.IsFinite(p.b) || !float.IsFinite(p.a)
+                            || p.r < 0 || p.r > 1 || Math.Abs(p.r - p.g) > .001f || Math.Abs(p.r - p.b) > .001f || Math.Abs(1 - p.a) > .001f) invalid++;
+                        if (sourcePixels[i].a > threshold ? p.r > .5001f : p.r < .4999f) badSigns++;
+                        if (baseline != null)
+                        {
+                            float delta = Math.Abs(p.r - baseline[i].r);
+                            maximum = Math.Max(maximum, delta);
+                            if (delta > .00001f) changed++;
+                        }
+                    }
+                    t.Equal(0, invalid, "Finite opaque scalar render: " + mode + "/" + threshold);
+                    t.Equal(0, badSigns, "Rendered sign agrees with frozen threshold mask: " + mode + "/" + threshold);
+                    t.Near(1, pixels[238 * size + 20].r, .002, "Former false ray is outside the finite range: " + mode + "/" + threshold);
+                    t.True(pixels[252 * size + 245].r < .5f, "Captured star retains its interior");
+                    if (baseline == null) baseline = pixels;
+                    else
+                    {
+                        t.True(changed > 0, "AAEDT is not an alias of Round AA on captured coverage");
+                        metrics.Add(threshold + ",Round AA,AAEDT + 8SED," + changed + "," + maximum.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+                    }
+                    var tile = new Color[crop * crop];
+                    for (int y = 0; y < crop; y++) for (int x = 0; x < crop; x++) tile[y * crop + x] = pixels[(y + 92) * size + x + 85];
+                    sheet.SetPixels(column * crop, (1 - row) * crop, crop, crop, tile);
+                    RenderTexture.active = input; RenderTexture.ReleaseTemporary(output); output = null;
+                    row++;
+                    Budget();
+                }
+                column++;
+            }
+            t.Equal(6, calls, "Exactly six native comparison renders");
+            sheet.Apply();
+            string directory = Path.GetFullPath("Temp/WhimTex/distance-fields/aaedt");
+            Directory.CreateDirectory(directory);
+            File.WriteAllBytes(Path.Combine(directory, "captured-round-aaedt-77-128-192.png"), sheet.EncodeToPNG());
+            File.WriteAllLines(Path.Combine(directory, "captured-round-aaedt-77-128-192.csv"), metrics);
+        }
+        finally
+        {
+            RenderTexture.active = previous; GL.sRGBWrite = srgb;
+            if (output != null) RenderTexture.ReleaseTemporary(output);
+            if (input != null) RenderTexture.ReleaseTemporary(input);
+            for (int i = objects.Count - 1; i >= 0; i--) if (objects[i] != null) UnityEngine.Object.DestroyImmediate(objects[i]);
+        }
+        Budget();
+    });
+
+    public static string RunMerge() => TestContext.Run("Captured SDF native merge comparison: Sharp/MTSDF, 0/1/2 pixels, thresholds 77/128/192", t =>
+    {
+        const int size=512, crop=320;
+        const string sourcePath="Packages/com.dcfapixels.whimtex/Tests~/Fixtures/DistanceRaster/star-13-inner-0364-phase3-known-failure.png";
+        byte[] bytes=File.ReadAllBytes(Path.GetFullPath(sourcePath));
+        using (var hash=System.Security.Cryptography.SHA256.Create())
+            t.Equal("98BFDEDC59C261EDBAD7888C35500A3FAFC143A476C0118D7599274879BD1ACC",
+                BitConverter.ToString(hash.ComputeHash(bytes)).Replace("-", ""), "Frozen source is authentic, not an output golden");
+        var objects=new List<UnityEngine.Object>();
+        T Own<T>(T o) where T:UnityEngine.Object { objects.Add(o); return o; }
+        RenderTexture previous=RenderTexture.active, output=null, input=null;
+        bool srgb=GL.sRGBWrite;
+        try
+        {
+            var doc=Own(ScriptableObject.CreateInstance<WhimTexDocument>()); doc.width=doc.height=size;
+            var source=Own(new Texture2D(2,2,TextureFormat.RGBA32,false,true));
+            t.True(source.LoadImage(bytes),"Decode frozen source");
+            t.Equal(size,source.width,"Captured width"); t.Equal(size,source.height,"Captured height");
+            source.filterMode=FilterMode.Point;
+            input=RenderTexture.GetTemporary(size,size,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear);
+            GL.sRGBWrite=false; Graphics.Blit(source,input);
+            var read=Own(new Texture2D(size,size,TextureFormat.RGBAFloat,false,true));
+            var sheet=Own(new Texture2D(crop*3,crop*2,TextureFormat.RGBA32,false,true));
+            var contextType=typeof(SDFLayerBehaviour).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext",true);
+            object context=Activator.CreateInstance(contextType,doc,input,size,size,1f,false,false,null);
+            var metrics=new List<string>{"threshold,mode,mergePixels,changedPixels,maxNormalizedDelta"};
+            string directory=Path.GetFullPath("Temp/WhimTex/distance-fields/merge"); Directory.CreateDirectory(directory);
+            foreach(byte threshold in new byte[]{77,128,192})
+            {
+            int row=0;
+            foreach (var mode in new[]{DistanceMetric.Sharp,DistanceMetric.MTSDF})
+            {
+                Color[] baseline=null;
+                for(int merge=0;merge<=2;merge++)
+                {
+                    var sdf=new SDFLayerBehaviour { metric=mode,contourMergeDistance=merge,miterLimit=34.49f,
+                        threshold=threshold,maxDistanceNormalization=16.3f,encoding=SDFLayerBehaviour.OutputEncoding.LinearData };
+                    doc.layers.Add(sdf.Owner);
+                    RenderTexture.active=input; GL.sRGBWrite=false;
+                    output=(RenderTexture)typeof(SDFLayerBehaviour).GetMethod("Render",Hidden).Invoke(sdf,new[]{context});
+                    t.True(RenderTexture.active==input && !GL.sRGBWrite,"Merge render preserves caller state");
+                    RenderTexture.active=output; read.ReadPixels(new Rect(0,0,size,size),0,0);
+                    var pixels=read.GetPixels();
+                    int changed=0; float maximum=0;
+                    for(int i=0;i<pixels.Length;i++)
+                    {
+                        t.True(float.IsFinite(pixels[i].r) && pixels[i].r>=0 && pixels[i].r<=1,"Finite rendered merge field");
+                        if(baseline!=null) { float delta=Math.Abs(pixels[i].r-baseline[i].r); maximum=Math.Max(maximum,delta); if(delta>.00001f) changed++; }
+                    }
+                    t.Near(1,pixels[238*size+20].r,.002,"Former false horizontal ray stays absent: "+mode+"/"+merge+"/"+threshold);
+                    if(merge==0) baseline=pixels;
+                    var tile=new Color[crop*crop];
+                    for(int y=0;y<crop;y++) for(int x=0;x<crop;x++) tile[y*crop+x]=pixels[(y+92)*size+x+85];
+                    sheet.SetPixels(merge*crop,(1-row)*crop,crop,crop,tile);
+                    metrics.Add(threshold+","+mode+","+merge+","+changed+","+maximum.ToString("R",System.Globalization.CultureInfo.InvariantCulture));
+                    RenderTexture.active=input; RenderTexture.ReleaseTemporary(output); output=null;
+                }
+                row++;
+            }
+            sheet.Apply();
+            File.WriteAllBytes(Path.Combine(directory,"captured-merge-0-1-2"+(threshold==128?"":"-threshold-"+threshold)+".png"),sheet.EncodeToPNG());
+            }
+            File.WriteAllLines(Path.Combine(directory,"captured-merge-0-1-2.csv"),metrics);
+        }
+        finally
+        {
+            RenderTexture.active=previous; GL.sRGBWrite=srgb;
+            if(output!=null) RenderTexture.ReleaseTemporary(output);
+            if(input!=null) RenderTexture.ReleaseTemporary(input);
+            for(int i=objects.Count-1;i>=0;i--) if(objects[i]!=null) UnityEngine.Object.DestroyImmediate(objects[i]);
+        }
+    });
+
+    public static string Run() => TestContext.Run("Ten distance modes: native render and data output", t =>
     {
         var objects = new List<UnityEngine.Object>();
         T Own<T>(T item) where T : UnityEngine.Object { objects.Add(item); return item; }
@@ -53,7 +303,7 @@ public static class DistanceFieldRenderTests
             GL.sRGBWrite = false; Graphics.Blit(source, input);
             var contextType = typeof(SDFLayerBehaviour).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext", true);
             object context = Activator.CreateInstance(contextType, doc, input, Size, Size, 1f, false, false, null);
-            var sheet = Own(new Texture2D(Size * 6, Size * 2, TextureFormat.RGBA32, false, true));
+            var sheet = Own(new Texture2D(Size * 10, Size * 2, TextureFormat.RGBA32, false, true));
             int column = 0;
             foreach (DistanceMetric mode in Enum.GetValues(typeof(DistanceMetric)))
             {
@@ -93,11 +343,11 @@ public static class DistanceFieldRenderTests
                 RenderTexture.active = input; RenderTexture.ReleaseTemporary(rendered); rendered = null;
                 column++;
             }
-            t.Equal(6, column, "Exactly six artist modes");
+            t.Equal(10, column, "Exactly ten artist modes");
             sheet.Apply();
             string directory = Path.Combine(Application.dataPath, "../Temp/WhimTex/distance-fields");
             Directory.CreateDirectory(directory);
-            File.WriteAllBytes(Path.Combine(directory, "six-modes.png"), sheet.EncodeToPNG());
+            File.WriteAllBytes(Path.Combine(directory, "ten-modes.png"), sheet.EncodeToPNG());
 
             var mtsdf = new SDFLayerBehaviour { metric = DistanceMetric.MTSDF, encoding = SDFLayerBehaviour.OutputEncoding.MultiChannelData,
                 maxDistanceNormalization = 12, inverted = true, contourOffset = 5,
@@ -253,17 +503,32 @@ public static class DistanceFieldRenderTests
                 .Invoke(null, new object[] { root, sdf, doc, apply, bindings, target });
             var algorithm = root.Query<EnumField>().ToList().Find(field => field.label == "Distance Algorithm");
             var miter = root.Query<FloatField>().ToList().Find(field => field.label == "Miter Limit");
+            var merge = root.Query<FloatField>().ToList().Find(field => field.label == "Contour Merge (px)");
             var output = root.Query<PopupField<SDFLayerBehaviour.OutputEncoding>>().ToList().Find(field => field.label == "Output");
             t.True(algorithm != null && miter != null && output != null, "Artist controls are built without a window");
             t.True(miter.ClassListContains("whimtex-hidden"), "Miter Limit is hidden for Round");
+            t.True(merge != null && merge.ClassListContains("whimtex-hidden"), "Contour Merge is hidden for Round");
+            t.Near(0, sdf.contourMergeDistance, 0, "Merge is disabled by default");
             t.Equal(2, output.choices.Count, "Round has only scalar and gradient outputs");
             Edit(algorithm, (Enum)DistanceMetric.Sharp);
             t.Equal(DistanceMetric.Sharp, sdf.metric, "Algorithm field edits the actual model");
             t.True(!miter.ClassListContains("whimtex-hidden"), "Miter Limit appears for Sharp");
+            t.True(!merge.ClassListContains("whimtex-hidden"), "Contour Merge appears for Sharp");
+            int mergeChanges = changes;
+            Edit(merge, 1f);
+            t.Near(1, sdf.contourMergeDistance, 0, "One-pixel merge edits model");
+            t.Equal(mergeChanges + 1, changes, "Merge uses one change transaction");
+            Edit(merge, 8f);
+            t.Near(2, sdf.contourMergeDistance, 0, "Merge clamps at two pixels");
+            Edit(merge, -1f);
+            t.Near(0, sdf.contourMergeDistance, 0, "Negative merge clamps off");
+            Edit(merge, 1.5f);
             Edit(miter, 8f);
             t.Near(8, sdf.miterLimit, 0, "Miter field edits the model");
             Edit(algorithm, (Enum)DistanceMetric.MTSDF);
             t.Equal(3, output.choices.Count, "MTSDF exposes Multi Channel Data");
+            t.True(!merge.ClassListContains("whimtex-hidden"), "Contour Merge remains available for MTSDF");
+            t.Near(1.5, sdf.contourMergeDistance, 0, "Algorithm switching retains merge value");
             Edit(output, SDFLayerBehaviour.OutputEncoding.MultiChannelData);
             t.Equal(SDFLayerBehaviour.OutputEncoding.MultiChannelData, sdf.encoding, "Data output edits the model");
             t.True(!root.Query<CurveField>().ToList().Find(field => field.label == "Profile").enabledSelf,
@@ -273,6 +538,51 @@ public static class DistanceFieldRenderTests
             t.Equal(SDFLayerBehaviour.OutputEncoding.LinearData, sdf.encoding, "Leaving MTSDF restores a valid scalar output");
             t.Equal(before + 1, changes, "Algorithm and output transition is one change transaction");
             t.Equal(2, output.choices.Count, "Non-MTSDF cannot select data encoding");
+            t.True(merge.ClassListContains("whimtex-hidden"), "Round hides inactive merge");
+            t.Near(1.5, sdf.contourMergeDistance, 0, "Inactive mode does not discard saved merge");
+            before = changes;
+            Edit(algorithm, (Enum)DistanceMetric.AAEDT);
+            t.Equal(DistanceMetric.AAEDT, sdf.metric, "Algorithm control selects AAEDT");
+            t.Equal(before + 1, changes, "AAEDT selection uses one change transaction");
+            var aaedtLabel = typeof(DistanceMetric).GetField(nameof(DistanceMetric.AAEDT)).GetCustomAttribute<InspectorNameAttribute>();
+            t.True(aaedtLabel != null && aaedtLabel.displayName == "AAEDT + 8SED", "AAEDT has the requested inspector label");
+            t.True(miter.ClassListContains("whimtex-hidden") && merge.ClassListContains("whimtex-hidden"), "AAEDT hides inactive miter and merge");
+            t.Near(8, sdf.miterLimit, 0, "AAEDT retains saved miter");
+            t.Near(1.5, sdf.contourMergeDistance, 0, "AAEDT retains saved merge");
+            t.Equal(2, output.choices.Count, "AAEDT offers only gradient and scalar output");
+            Edit(algorithm, (Enum)DistanceMetric.MTSDF);
+            Edit(output, SDFLayerBehaviour.OutputEncoding.MultiChannelData);
+            before = changes;
+            Edit(algorithm, (Enum)DistanceMetric.AAEDT);
+            t.Equal(SDFLayerBehaviour.OutputEncoding.LinearData, sdf.encoding, "MTSDF to AAEDT restores valid scalar encoding");
+            t.Equal(before + 1, changes, "MTSDF to AAEDT encoding transition is one transaction");
+            t.True(root.Query<CurveField>().ToList().Find(field => field.label == "Profile").enabledSelf,
+                "AAEDT scalar output re-enables Profile");
+            Edit(algorithm, (Enum)DistanceMetric.MTSDF);
+            Edit(output, SDFLayerBehaviour.OutputEncoding.MultiChannelData);
+            before = changes;
+            Edit(algorithm, (Enum)DistanceMetric.Contour);
+            t.Equal(DistanceMetric.Contour, sdf.metric, "Algorithm control selects Contour AA");
+            t.Equal(before + 1, changes, "Contour selection and encoding use one transaction");
+            t.Equal(SDFLayerBehaviour.OutputEncoding.LinearData, sdf.encoding, "Contour restores scalar output");
+            t.Equal(2, output.choices.Count, "Contour has no multichannel output");
+            t.True(miter.ClassListContains("whimtex-hidden") && merge.ClassListContains("whimtex-hidden"), "Contour hides inactive miter and merge");
+            t.Near(8, sdf.miterLimit, 0, "Contour preserves inactive miter");
+            t.Near(1.5, sdf.contourMergeDistance, 0, "Contour preserves inactive merge");
+            var contourLabel = typeof(DistanceMetric).GetField(nameof(DistanceMetric.Contour)).GetCustomAttribute<InspectorNameAttribute>();
+            t.Equal("Contour AA", contourLabel.displayName, "Contour inspector label");
+            foreach (var mode in new[] { DistanceMetric.CornerFit, DistanceMetric.Spring })
+            {
+                Edit(algorithm, (Enum)DistanceMetric.MTSDF);
+                Edit(output, SDFLayerBehaviour.OutputEncoding.MultiChannelData);
+                before = changes;
+                Edit(algorithm, (Enum)mode);
+                t.Equal(mode, sdf.metric, "New reconstruction mode selection");
+                t.Equal(before + 1, changes, "Reconstruction mode change is one transaction");
+                t.Equal(SDFLayerBehaviour.OutputEncoding.LinearData, sdf.encoding, "Reconstruction uses scalar output");
+                t.True(!miter.ClassListContains("whimtex-hidden") && merge.ClassListContains("whimtex-hidden"), "Verified joins expose miter, not legacy merge");
+                t.Equal(2, output.choices.Count, "Reconstruction has no multichannel encoding");
+            }
         }
         finally
         {

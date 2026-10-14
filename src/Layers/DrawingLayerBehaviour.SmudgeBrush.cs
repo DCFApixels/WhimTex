@@ -29,7 +29,7 @@ namespace DCFApixels.WhimTex
             Material material = WhimTexMaterials.SmudgeBrush;
             if (material == null || !material.shader.isSupported)
                 throw new InvalidOperationException("Smudge Brush shader is unavailable.");
-            smudgeDiameter = Mathf.Clamp(size, 1f, 4096f);
+            smudgeDiameter = Mathf.Max(.0001f, size);
             smudgeMixing = Mathf.Clamp01(mixing);
             smudgeWrap = tiled;
             smudgeSpacing = default;

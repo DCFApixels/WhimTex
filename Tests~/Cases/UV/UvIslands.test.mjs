@@ -18,7 +18,7 @@ context.case("UvIslands original assertion inputs and source contracts", async (
   assert.match(topology, /ValidateSize\(\)/);
   assert.doesNotMatch(topology, /SetUVs|SetVertices|SetIndices|SaveAndReimport|Graphics\./);
   assert.match(uv, /pickingMode = PickingMode\.Ignore/);
-  assert.match(uv, /s\.Set\(uvMap\.Rasterize\(island, s\.Width, s\.Height\), combine\)/);
+  assert.match(uv, /s\.Set\(uvMap\.Rasterize\(island, s\.Width, s\.Height, antialias\), combine\)/);
   assert.match(uv, /toolkitCanvas\.ToCanvas\(point\)/);
   assert.match(uv, /toolkitCanvas\.ToView/);
   assert.match(uv, /ReferenceEquals\(mesh, uvCachedMesh\)/);

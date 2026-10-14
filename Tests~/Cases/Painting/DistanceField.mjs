@@ -3,10 +3,10 @@
 import { readFileSync } from 'node:fs';
 import { TestContext, finish } from '../../Framework/test-api.mjs';
 
-const context = new TestContext('DistanceField: six artistic modes and data contracts');
+const context = new TestContext('DistanceField: ten modes and data contracts');
 const assert = context.assert;
 const read = path => readFileSync(new URL('../../../' + path, import.meta.url), 'utf8');
-const modes = ['EuclideanAntialiased', 'Sharp', 'Bevel', 'Diamond', 'Square', 'MTSDF'];
+const modes = ['EuclideanAntialiased', 'Sharp', 'Bevel', 'Diamond', 'Square', 'MTSDF', 'AAEDT', 'Contour', 'CornerFit', 'Spring'];
 const sdf = read('src/Layers/SDFLayerBehaviour.cs');
 const outline = read('src/Layers/OutlineLayerBehaviour.cs');
 const artistic = read('src/Layers/ArtisticDistanceField.cs');
@@ -18,23 +18,24 @@ function parameters(text, name) {
     return match[1].split(',').map(p => p.trim().replace(/\s+\w+(?:\s*=.*)?$/, '').replace(/\s+/g, ''));
 }
 
-context.case('Exactly six artistic enum declarations and Round AA label', () => {
+context.case('Ten enum declarations with preserved Round AA default', () => {
     const enums = read('src/Utils.cs');
     const body = enums.match(/\benum\s+DistanceMetric\s*\{([^}]+)\}/);
     assert.ok(body, 'DistanceMetric declaration');
     const declarations = [...body[1].matchAll(/\b(\w+)\s*=\s*(\d+)/g)].map(m => [m[1], Number(m[2])]);
-    assert.deepEqual(declarations, modes.map((name, i) => [name, i + 4]), 'Only the current six artistic choices');
+    assert.deepEqual(declarations, modes.map((name, i) => [name, i + 4]), 'Current ten choices');
+    assert.match(body[1], /\[InspectorName\("AAEDT \+ 8SED"\)\]\s*AAEDT/, 'AAEDT display label');
     assert.match(body[1], /\[InspectorName\("Round AA"\)\]\s*EuclideanAntialiased/, 'Artist-facing Round AA label');
     const declaredNames = body[1].replace(/\[[^\]]*\]/g, '').split(',').map(s => s.trim().split(/\s*=/)[0]).filter(Boolean);
     assert.deepEqual(declaredNames, modes, 'No additional unnamed or implicit enum entries');
 });
 
-context.case('Seven-argument scalar and eight-argument artistic APIs', () => {
+context.case('Scalar, artistic and optional contour merge APIs', () => {
     const scalar = ['NativeArray<Color32>', 'NativeArray<float>', 'int', 'int', 'byte', 'int', 'DistanceMetric'];
     assert.deepEqual(parameters(sdf, 'ComputeSignedDistance'), scalar);
-    assert.deepEqual(parameters(sdf, 'ComputeArtisticDistance'), [...scalar, 'float']);
+    assert.deepEqual(parameters(sdf, 'ComputeArtisticDistance'), [...scalar, 'float', 'float']);
     assert.deepEqual(parameters(sdf, 'ComputeMtsdfDistance'),
-        ['NativeArray<Color32>', 'NativeArray<float4>', 'int', 'int', 'byte', 'int']);
+        ['NativeArray<Color32>', 'NativeArray<float4>', 'int', 'int', 'byte', 'int', 'float']);
     assert.match(sdf, /ComputeArtisticDistance\(input,\s*output,\s*width,\s*height,\s*threshold,\s*sourceChannel,\s*metric,\s*4f\)/,
         'Original scalar entry delegates to the artistic contract');
     for (const mode of modes) assert.ok((sdf + artistic).includes('DistanceMetric.' + mode), 'Mode has a production route: ' + mode);
@@ -43,12 +44,13 @@ context.case('Seven-argument scalar and eight-argument artistic APIs', () => {
 context.case('Shared source contour, explicit miter limit and image borders', () => {
     const source = ['NativeArray<Color32>', 'NativeArray<float>', 'int', 'int', 'byte', 'int', 'DistanceMetric', 'Vector2', 'SourceEdges'];
     assert.deepEqual(parameters(sdf, 'ComputeSourceDistance'), source);
-    assert.deepEqual(parameters(sdf, 'ComputeSourceField'), [...source, 'float', 'NativeArray<float4>']);
+    assert.deepEqual(parameters(sdf, 'ComputeSourceField'), [...source, 'float', 'NativeArray<float4>', 'float']);
+    assert.deepEqual(parameters(sdf, 'ComputeCachedSourceField'), [...source, 'float', 'NativeArray<float4>', 'float', 'ReconstructedDistanceCache']);
     for (const [name, text] of [['SDF', sdf], ['Outline', outline]]) {
         assert.match(text, /metric\s*=\s*DistanceMetric\.EuclideanAntialiased/, name + ' defaults to Round AA');
         assert.match(text, /public\s+float\s+miterLimit\s*=\s*4f/, name + ' declares join control');
         assert.match(text, /RequiresColorInput\s*=>\s*sourceChannel\s*!=\s*SourceChannel\.Alpha/, name + ' respects chosen data channels');
-        assert.match(text, /ComputeSourceField\(/, name + ' uses the shared source field');
+        assert.match(text, /ComputeCachedSourceField\(/, name + ' uses the shared source field with optional retained preparation');
     }
     assert.match(outline, /metric,\s*Vector2\.zero,\s*SDFLayerBehaviour\.SourceEdges\.Transparent,\s*miterLimit,\s*default/,
         'Outline includes the transparent image-border contour');
@@ -90,7 +92,7 @@ context.case('MTSDF keeps RGB edge distances and alpha true distance through SDF
 context.case('Agent inspection and editing expose the same artist choices', () => {
     const inspect = read('src/Automation/WhimTexApi.Inspect.cs');
     const edit = read('src/Automation/WhimTexApi.Layers.cs');
-    assert.ok(inspect.includes('System.Enum.GetNames(typeof(DistanceMetric))'), 'API discovers the actual six choices');
+    assert.ok(inspect.includes('System.Enum.GetNames(typeof(DistanceMetric))'), 'API discovers the actual choices');
     for (const name of ['miterLimit', 'outlineOffset', 'fillCenter', 'fillColor']) {
         assert.ok(edit.includes('settings, "' + name + '"') || edit.includes('settings["' + name + '"]'), 'API accepts ' + name);
         assert.ok(inspect.includes('settings["' + name + '"]'), 'API inspects ' + name);

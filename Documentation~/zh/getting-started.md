@@ -55,7 +55,7 @@ https://github.com/DCFApixels/WhimTex.git
 | Layer Select | `V` | 点击可见像素以选择图层。 |
 | Transform | `T` | 移动、缩放和旋转图层。 |
 | Area Select | `M` | 选择矩形或椭圆。按住工具按钮可选择形状。 |
-| Polygonal Lasso | `L` | 通过沿轮廓点击来选择区域。 |
+| Lasso | `L` | 按住工具按钮可选择 Polygonal 或 Freehand。点击放置多边形节点，或拖动绘制自由轮廓，松开鼠标按钮后自动闭合。 |
 | Brush / Pencil | `B` / `P` | 绘制柔和的笔触或锐利的像素。 |
 | Fill | `G` | 用颜色填充区域。 |
 | Zoom | `Z` | 放大或框选某个区域。 |

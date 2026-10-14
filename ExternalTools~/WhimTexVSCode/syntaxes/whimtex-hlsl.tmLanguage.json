@@ -46,7 +46,7 @@
         },
         {
           "name": "storage.modifier.whimtex",
-          "match": "\\b(?:hidden|seed)\\b"
+          "match": "\\b(?:hidden|seed|px)\\b"
         },
         {
           "name": "storage.type.whimtex",

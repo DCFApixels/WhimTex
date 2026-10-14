@@ -149,6 +149,8 @@ Thanks to the authors and maintainers of the libraries that help power WhimTex:
   evenly distributed brush variation. [Included license](ThirdPartyNotices.md#sobol-direction-numbers).
 - **[Clipper2](https://github.com/AngusJohnson/Clipper2)** — Angus Johnson;
   portable SDF contour normalization. [Included Boost license](src/ThirdParty/Clipper2/LICENSE.txt).
+- **[edtaa3](https://github.com/rougier/freetype-gl/blob/ecf48bc72b9ef7d493a2491b9adcaa1504d01252/edtaa3func.c)** — Stefan Gustavson;
+  adapted for the experimental AAEDT + 8SED distance mode. [Included MIT license](ThirdPartyNotices.md#edtaa3).
 - **[FastNoiseLite](https://github.com/Auburn/FastNoiseLite)** — Jordan Peck and contributors;
   the HLSL implementation powers the Noise layer. [Included MIT license](ThirdPartyNotices.md#fastnoiselite).
 - **[Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)** — James Newton-King and contributors;
@@ -160,6 +162,10 @@ Thanks to the authors and maintainers of the libraries that help power WhimTex:
 
 - **[Just the Docs](https://github.com/just-the-docs/just-the-docs)** — the documentation theme.
   [Included MIT license](Documentation~/Licenses/JustTheDocs-LICENSE.txt).
+
+Research acknowledgement: [Matusovic, Parakkat and Eisemann (2023)](https://doi.org/10.1111/cgf.14743)
+inspired the automatic spring relaxation in the experimental Spring Simulation mode.
+See the [adaptation scope](ThirdPartyNotices.md#spring-simulation-research-reference).
 
 See [Third-party notices](ThirdPartyNotices.md) for source versions and package license details.
 Third-party components retain their own licenses.

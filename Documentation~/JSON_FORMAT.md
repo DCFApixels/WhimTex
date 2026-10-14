@@ -110,6 +110,67 @@ Scalars, integer-vector conversions, narrowing and shortened colors/quaternions 
 Shader FX have `$type: "ShaderFX"`, source `code`, `parameters`, `active` and optional
 `$name`. Shared FX use `$id`/`$ref`; these IDs are distinct from layer IDs.
 
+### Canvas frame changes
+
+`WhimTexDocument.ApplyCanvasFrame(RectInt)` changes the output boundary in current canvas
+pixels, with X pointing right and Y up from the bottom-left corner. Negative origins expand
+that side. It preserves source images and the layer hierarchy; content beyond the new boundary
+is retained and can be revealed by expanding the canvas again. The caller owns Undo and change
+notification. The method returns false for the unchanged frame and validates every candidate
+transform before changing the model. Dimensions are 1..16384 per axis, at most 16,777,216 pixels.
+
+`WhimTexDocument.ApplyCanvasOrientation(CanvasOrientation)` applies `FlipHorizontal`,
+`FlipVertical`, `RotateLeft` or `RotateRight` to the whole document with the same atomic
+transform and source-preservation contract. Left is counterclockwise by 90 degrees; right is
+clockwise. Quarter turns exchange width and height. The caller owns Undo and change notification.
+The Crop toolbar applies these operations immediately and carries its pending frame, selection
+coverage and guides into the new coordinates. FX remain live and retain their parameters;
+canvas-dependent effects are reevaluated rather than baking and rotating the composite image.
+
+`WhimTexDocument.ApplyCanvasScale(width, height)` stretches canvas geometry through the same
+atomic preparation, preserving layer identities, hierarchy and owned source-image resolution.
+Stored pixel measurements remain logical values. The document's `pixelScale` (default `1`,
+finite and greater than zero, at most `16384`) converts them to physical canvas pixels during
+rendering and painting: Text font/layout metrics, Shape strokes, procedural pixel spacing,
+brush dimensions/distances and built-in FX radii. Render-quality reduction is a separate scale.
+Custom Shader FX mark pixel measurements with `// @param px float ...` (or float vectors);
+those uniforms are converted at upload. `_PixelScale` is available for explicit shader logic.
+
+`ApplyCanvasScale(width, height, pixelScale)` and `ApplyCanvasFrame(frame, pixelScale)` commit
+dimensions and the pixel multiplier together; `ApplyPixelScale(pixelScale)` changes the latter
+alone. Two-argument Scale and one-argument Frame retain the current multiplier. Each operation
+validates its full candidate before mutation and returns false only when all affected values
+are unchanged. Text layout follows logical pixel metrics, so its physical size scales with
+`pixelScale`; its stored settings and live FX parameters are not rewritten. The caller owns
+Undo and change notification.
+
+The Crop tool's `Scale` and `Resize` are subtypes selected with the shared toolbar flyout or
+header dropdown. Frame dimensions and Pixel Scale remain drafts until Apply. Scale's Auto
+uses the committed multiplier times `min(newWidth / width, newHeight / height)`, including
+nonuniform changes. Disabling Auto retains its current result for manual editing. Reset returns
+both drafts to the last committed dimensions and multiplier. The stretch preview displays
+geometry; pixel-dependent rendering is recalculated on Apply.
+
+`Layer.sourceCanvasSize` is a persistent `[width,height]` reference used by Noise, ordinary
+Pattern and uninitialized Drawing sources. The default `[0,0]` follows the current canvas;
+otherwise both dimensions must be positive, at most 16384, with a product at most 16,777,216.
+The first canvas or pixel-scale operation records the previous canvas size for existing layers.
+Later frame and orientation changes retain that reference. `sourcePixelScale` records the
+reference multiplier (`0` initially means the current document multiplier). `sourceCanvasScale`
+starts at `[1,1]` and accumulates the physical length ratios of the source's two local axes
+under Scale (measured at its centre for projective transforms); procedural pixel spacing
+uses this transformed source metric without applying the canvas stretch twice.
+These references are separate from an image's stored resolution and are not caches.
+Text keeps fixed local-pixel layout through transform compensation; Shape keeps its physical
+geometry and stroke metrics. Source images are neither resampled nor truncated.
+
+FX remain editable and run against the resized canvas. Effects that depend on canvas dimensions,
+canvas UV, input boundaries or time can produce a different result; arbitrary FX are not guaranteed
+to be pixel-identical after a frame change. Seamless Pattern recalculates its lattice for the new
+boundary, preserving its seamless constraint rather than freezing the previous lattice.
+Procedural antialiasing is also reevaluated on the new viewport's pixel-derivative grid;
+an odd-pixel frame shift can slightly change soft edge coverage while retaining the geometry.
+
 ### Open, insert and replace
 
 There is no document/fragment discriminator. Exporting selected layers produces a document containing
@@ -143,9 +204,12 @@ Empty placeholders can subsequently be saved normally. No URL download substitut
 ### Text and system fonts
 
 `TextLayerBehaviour` stores editable `text`, `fontFamily`, `fontStyle`, `fontSize`, `maxFontSize`, `spacing`, `characterHorizontalScale`,
-`alignment`, `casing`, `layoutMode`, `frameSize`, `wrapping`, `overflow`, `justify`, `autoSize` and `color`. `layoutMode` is
+`alignment`, `casing`, `layoutMode`, `layoutOffset`, `frameSize`, `wrapping`, `overflow`, `justify`, `autoSize` and `color`. `layoutMode` is
 `Point` or `Frame`; `wrapping` is `Manual`, `Words` or `Characters`. Frame dimensions are
 1..32768 canvas pixels per axis. Point text ignores the retained frame settings.
+`layoutOffset` is `[x,y]` in local document pixels, with finite components -1000000..1000000;
+X points right and Y up. It moves the layout before rasterization without changing Transform,
+is retained across Point/Frame switches, and participates in the saved-appearance key.
 `overflow` is `None` (default, unclipped), `Clip`, or `Ellipsis`. It participates in the layout
 key and saved appearance. Ellipsis shortens displayed text at text-element boundaries to fit both
 frame axes, after Auto Size, without changing the editable `text`.
@@ -161,7 +225,7 @@ field, not an alternative spelling or unit for `spacing.line`; old data must rec
 No font asset or machine-specific font path is embedded.
 Omitted Text settings use frozen version-2 defaults: `text: "Text"`, empty `fontFamily`,
 `fontStyle: "Normal"`, `fontSize: 64`, `maxFontSize: 256`, `alignment: "MiddleCenter"`,
-`layoutMode: "Point"`, `frameSize: [256,128]`, `wrapping: "Words"`, `overflow: "None"`,
+`layoutMode: "Point"`, `layoutOffset: [0,0]`, `frameSize: [256,128]`, `wrapping: "Words"`, `overflow: "None"`,
 `casing: "Normal"`, zero spacing, `characterHorizontalScale: 1`, white `color`,
 and `justify: false` / `autoSize: false`. An empty font family resolves to the installed default;
 specify a known installed family when a particular font is required.
@@ -175,6 +239,41 @@ be recolored and processed when the font is missing. A source layout change inva
 The PNG is limited to 768 KiB and 2048 pixels per axis; dimension checks precede image decoding.
 Missing fonts are warnings, not automatic substitutions. A matching backup renders normally;
 without one, the Text layer is transparent until a font is selected.
+
+### SDF and Outline distance modes
+
+Both `SDFLayerBehaviour.metric` and `OutlineLayerBehaviour.metric` accept the ten names
+`EuclideanAntialiased`, `Sharp`, `Bevel`, `Diamond`, `Square`, `MTSDF`, `AAEDT`, `Contour`,
+`CornerFit` and `Spring`.
+JSON stores these exact names, not numeric IDs. `EuclideanAntialiased` (UI **Round AA**, ID 4)
+remains the omitted/default value. `AAEDT` remains ID 10; `Contour` is ID 11, UI **Contour AA**.
+`CornerFit` is ID 12, UI **Corner Fit AA**; `Spring` is ID 13, UI **Spring Simulation**.
+The previous eight modes retain their behavior.
+
+`metric:"CornerFit"` and `metric:"Spring"` are experimental raster-only scalar modes.
+CornerFit fits sides from raw Contour geometry and verifies proposed corners by local AA
+re-rasterization. Spring first relaxes the raw contour with springs, then uses the same checks.
+Ambiguous cases retain raw geometry; intersecting or unconfirmed extensions are rejected.
+Only AA-verified corners receive bounded sharp joins with continuous, local endpoint influence. Both use `miterLimit`
+(finite 1..64, default 4) to bevel excessive validated joins, and ignore the validated
+`contourMergeDistance`. Source thresholds use coverage remapping; soft/noncoverage masks are
+approximate inputs. SDF supports `Gradient`/`LinearData`; `MultiChannelData` remains MTSDF-only.
+Neither mode guarantees sharp recovery. Spring adapts ideas from a depixelization paper and
+does not reproduce its full interactive tool or C++ implementation; see the shared contract below.
+
+`metric:"Contour"` measures Euclidean distance to finite straight segments extracted from raw
+marching-squares alpha/channel threshold crossings, with linearly interpolated subpixel endpoints.
+There is no contour fitting, smoothing, simplification, corner recovery, merge/union, miter extension
+or MSDF channel construction. Expanded corners round; the field measures the current raster
+threshold boundary without restoring lost detail. This is a separate algorithm, not an AAEDT
+modification or a sharp-miter mode. Quality comparison is experimental; improvement is not
+guaranteed for every input.
+
+Source-channel, threshold, `SourceEdges`, offset and rendering behavior use the existing wrapper.
+SDF exposes `threshold`; Outline uses fixed byte threshold 128. `miterLimit` and SDF
+`contourMergeDistance` are still validated but do not affect Contour. SDF supports `Gradient`
+and `LinearData`; `MultiChannelData` still requires `MTSDF`.
+See the [shared field contract](AgentAPI.md#layer-settings) for all mode semantics and controls.
 
 ### Asset references
 

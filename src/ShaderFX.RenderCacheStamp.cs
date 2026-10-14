@@ -61,6 +61,7 @@ namespace DCFApixels.WhimTex
                 if (value == null) continue;
                 hash = Mix(hash, HashText(value.name)); hash = Mix(hash, HashText(value.id));
                 hash = Mix(hash, (ulong)value.type);
+                hash = Mix(hash, value.pixelUnits ? 1UL : 0UL);
                 switch (value.type)
                 {
                     case ShaderFXParameterType.Float:

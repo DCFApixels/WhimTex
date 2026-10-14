@@ -13,7 +13,7 @@ context.case('chromatic aberration is an independent effect with radial and dire
         assert.match(code, /@param point _Center = \(0\.5, 0\.5\)/);
         assert.match(code, /@param float _Falloff/);
         assert.match(code, /@param float _Angle/);
-        assert.match(code, /@param label\(Channel Offset \(px\)\) float _Amount = 2 \[0 \.\. ~16\]/);
+        assert.match(code, /@param px label\(Channel Offset \(px\)\) float _Amount = 2 \[0 \.\. ~16\]/);
         assert.match(code, /@param float _Blend/);
     }
 });

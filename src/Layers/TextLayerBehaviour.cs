@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -10,6 +11,7 @@ namespace DCFApixels.WhimTex
     public enum TextWrapping { Manual, Words, Characters }
     public enum TextOverflowMode { None, Clip, Ellipsis }
     public enum TextCasing { Normal, Lowercase, Uppercase, SmallCaps }
+    public enum TextEdgeMode { [InspectorName("Hinted AA")] HintedAA = 0, Antialiased = 1, Pixel = 2 }
     [Serializable]
     public struct TextSpacing : IEquatable<TextSpacing>
     {
@@ -30,12 +32,14 @@ namespace DCFApixels.WhimTex
         public string fontFamily = "";
         public FontStyle fontStyle;
         public TextCasing casing;
+        public TextEdgeMode edgeMode = TextEdgeMode.HintedAA;
         public float fontSize = 64;
         public float maxFontSize = 256;
         public TextSpacing spacing;
         public float characterHorizontalScale = 1;
         public TextAnchor alignment = TextAnchor.MiddleCenter;
         public TextLayoutMode layoutMode;
+        public Vector2 layoutOffset;
         public Vector2 frameSize = new Vector2(256, 128);
         public TextWrapping wrapping = TextWrapping.Words;
         public TextOverflowMode overflow;
@@ -49,6 +53,7 @@ namespace DCFApixels.WhimTex
         [SerializeField, HideInInspector] private int fallbackWidth;
         [SerializeField, HideInInspector] private int fallbackHeight;
         [SerializeField, HideInInspector] private Rect fallbackRect;
+        [SerializeField, HideInInspector] private float fallbackPixelScale = 1f;
         [NonSerialized] private TextLayerRenderer renderer;
         [NonSerialized] private Texture2D decodedFallback;
         [NonSerialized] private string decodedPng;
@@ -97,6 +102,9 @@ namespace DCFApixels.WhimTex
         }
         internal void SetCharacterHorizontalScale(float value) =>
             characterHorizontalScale = Mathf.Clamp(float.IsFinite(value) ? value : 1, .01f, 10);
+        internal void SetLayoutOffset(Vector2 value) => layoutOffset = new Vector2(
+            Mathf.Clamp(float.IsFinite(value.x) ? value.x : 0, -1000000, 1000000),
+            Mathf.Clamp(float.IsFinite(value.y) ? value.y : 0, -1000000, 1000000));
         internal bool HasSavedAppearance => !string.IsNullOrEmpty(fallbackPng) && fallbackKey == LayoutKey(fallbackWidth, fallbackHeight);
         internal string Notice => FontAvailable ? null : HasSavedAppearance
             ? "System font '" + ResolvedFont + "' is unavailable. The saved text appearance is retained; choose an installed font to edit its layout."
@@ -104,15 +112,18 @@ namespace DCFApixels.WhimTex
 
         internal void Validate()
         {
+            WhimTexDocument.ValidatePixelScale(fallbackPixelScale);
             if ((text?.Length ?? 0) > MaxCharacters) throw new ArgumentException("Text exceeds the 8192-character limit.");
             if (!float.IsFinite(fontSize) || fontSize < 1 || fontSize > 2048) throw new ArgumentException("Font Size must be 1..2048 pixels.");
             if (!float.IsFinite(maxFontSize) || maxFontSize < 1 || maxFontSize > 2048) throw new ArgumentException("Max Font Size must be 1..2048 pixels.");
             if (UsesAutoSize && Mathf.Ceil(fontSize) > Mathf.Floor(maxFontSize))
                 throw new ArgumentException("Auto Size requires Min Size <= Max Size and at least one whole-pixel font size in the range.");
             if (!spacing.IsValid) throw new ArgumentException("Text spacing must be -1..10 em per field.");
+            if (!float.IsFinite(layoutOffset.x) || !float.IsFinite(layoutOffset.y) || Mathf.Abs(layoutOffset.x) > 1000000 || Mathf.Abs(layoutOffset.y) > 1000000)
+                throw new ArgumentException("Text Layout Offset must be finite and within +/-1000000 pixels per axis.");
             if (!float.IsFinite(characterHorizontalScale) || characterHorizontalScale < .01f || characterHorizontalScale > 10)
                 throw new ArgumentException("Character Horizontal Scale must be 0.01..10.");
-            if (!Enum.IsDefined(typeof(FontStyle), fontStyle) || !Enum.IsDefined(typeof(TextAnchor), alignment) || !Enum.IsDefined(typeof(TextCasing), casing))
+            if (!Enum.IsDefined(typeof(FontStyle), fontStyle) || !Enum.IsDefined(typeof(TextAnchor), alignment) || !Enum.IsDefined(typeof(TextCasing), casing) || !Enum.IsDefined(typeof(TextEdgeMode), edgeMode))
                 throw new ArgumentException("Unknown text style or alignment.");
             if (!Enum.IsDefined(typeof(TextLayoutMode), layoutMode) || !Enum.IsDefined(typeof(TextWrapping), wrapping) || !Enum.IsDefined(typeof(TextOverflowMode), overflow))
                 throw new ArgumentException("Unknown text layout, wrapping or overflow rule.");
@@ -123,7 +134,7 @@ namespace DCFApixels.WhimTex
         internal string LayoutKey(int width, int height)
         {
             string data = (text ?? "") + "\0" + (fontFamily ?? "") + "\0" + (int)fontStyle + "\0" + (int)casing + "\0" +
-                fontSize.ToString("R", CultureInfo.InvariantCulture) + "\0" + maxFontSize.ToString("R", CultureInfo.InvariantCulture) +
+                (int)edgeMode + "\0" + fontSize.ToString("R", CultureInfo.InvariantCulture) + "\0" + maxFontSize.ToString("R", CultureInfo.InvariantCulture) +
                 "\0" + spacing.character.ToString("R", CultureInfo.InvariantCulture) +
                 "\0" + spacing.word.ToString("R", CultureInfo.InvariantCulture) + "\0" + spacing.line.ToString("R", CultureInfo.InvariantCulture) +
                 "\0" + spacing.paragraph.ToString("R", CultureInfo.InvariantCulture) +
@@ -131,6 +142,7 @@ namespace DCFApixels.WhimTex
                 "\0" + (int)alignment + "\0" + (int)layoutMode + "\0" + (int)wrapping + "\0" + (int)overflow + "\0" + justify + "\0" + autoSize +
                 "\0" + frameSize.x.ToString("R", CultureInfo.InvariantCulture) + "\0" + frameSize.y.ToString("R", CultureInfo.InvariantCulture) +
                 "\0" + width + "\0" + height;
+            if (layoutOffset != Vector2.zero) data += "\0offset\0" + layoutOffset.x.ToString("R", CultureInfo.InvariantCulture) + "\0" + layoutOffset.y.ToString("R", CultureInfo.InvariantCulture);
             using var sha = SHA256.Create();
             return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(data)));
         }
@@ -174,8 +186,8 @@ namespace DCFApixels.WhimTex
         internal Rect GetLayoutBounds(int width, int height)
         {
             Validate();
-            if (layoutMode == TextLayoutMode.Frame) return new Rect(-frameSize * .5f, frameSize);
-            if (!FontAvailable) return HasSavedAppearance ? fallbackRect : new Rect(-width * .5f, -height * .5f, width, height);
+            if (layoutMode == TextLayoutMode.Frame) return new Rect((layoutOffset - frameSize * .5f) * Owner.GetPixelScale(), frameSize * Owner.GetPixelScale());
+            if (!FontAvailable) return HasSavedAppearance ? ScaledFallbackRect() : new Rect(-width * .5f, -height * .5f, width, height);
             return (renderer ??= new TextLayerRenderer()).GetBounds(this, width, height);
         }
 
@@ -187,12 +199,27 @@ namespace DCFApixels.WhimTex
             return renderer.FontSize;
         }
 
+        internal IReadOnlyList<Vector3> GetPointLines(int width, int height)
+        {
+            if (layoutMode != TextLayoutMode.Point || !FontAvailable) return Array.Empty<Vector3>();
+            GetLayoutBounds(width, height);
+            return renderer.PointLines;
+        }
+
+        internal Vector2 GetPointAnchor(int width, int height)
+        {
+            var lines = GetPointLines(width, height);
+            if (lines.Count == 0) return Vector2.zero;
+            var first = lines[0];
+            return new Vector2(Mathf.Lerp(first.x, first.y, (int)LayoutAlignment % 3 * .5f), first.z);
+        }
+
         internal void PrepareSavedAppearance(int width, int height)
         {
             Validate();
             if (!FontAvailable) return;
             string key = LayoutKey(width, height);
-            if (key == fallbackKey && fallbackFont == ResolvedFont && !string.IsNullOrEmpty(fallbackPng)) return;
+            if (key == fallbackKey && fallbackFont == ResolvedFont && fallbackPixelScale == Owner.GetPixelScale() && !string.IsNullOrEmpty(fallbackPng)) return;
             Mask(width, height, 1);
             float longest = Mathf.Max(renderer.SourceRect.width, renderer.SourceRect.height);
             float scale = Mathf.Min(1, 2048f / longest);
@@ -207,6 +234,14 @@ namespace DCFApixels.WhimTex
             fallbackPng = Convert.ToBase64String(png);
             fallbackKey = key; fallbackWidth = width; fallbackHeight = height; fallbackFont = ResolvedFont;
             fallbackRect = renderer.SourceRect;
+            fallbackPixelScale = Owner.GetPixelScale();
+        }
+
+        private Rect ScaledFallbackRect()
+        {
+            double scale = (double)Owner.GetPixelScale() / fallbackPixelScale;
+            return new Rect((float)(fallbackRect.x * scale), (float)(fallbackRect.y * scale),
+                (float)(fallbackRect.width * scale), (float)(fallbackRect.height * scale));
         }
 
         internal override RenderTexture Render(in LayerRenderContext context)
@@ -216,14 +251,14 @@ namespace DCFApixels.WhimTex
             RenderTexture previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;
             var source = RenderTexture.GetTemporary(mask.width, mask.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
-            source.filterMode = FilterMode.Bilinear; source.wrapMode = TextureWrapMode.Clamp;
+            source.filterMode = edgeMode == TextEdgeMode.Pixel ? FilterMode.Point : FilterMode.Bilinear; source.wrapMode = TextureWrapMode.Clamp;
             try
             {
                 Material material = WhimTexMaterials.Text;
                 material.SetColor("_TextColor", HdrUtility.Decode(color));
                 GL.sRGBWrite = false;
                 Graphics.Blit(mask, source, material, 1);
-                Rect rect = FontAvailable ? renderer.SourceRect : fallbackRect;
+                Rect rect = FontAvailable ? renderer.SourceRect : ScaledFallbackRect();
                 var sourceToLocal = ProjectiveMatrix.Translate(.5 + rect.x / context.activeDocument.width, .5 + rect.y / context.activeDocument.height) *
                     ProjectiveMatrix.Scale(rect.width / context.activeDocument.width, rect.height / context.activeDocument.height);
                 return Owner.ApplyTransformAndFx(source, context, sourceToLocal);

@@ -75,6 +75,7 @@ namespace DCFApixels.WhimTex
             result["systemFonts"] = new JArray(SystemFontCatalog.Names);
             result["textFontStyles"] = new JArray(System.Enum.GetNames(typeof(FontStyle)));
             result["textCasingModes"] = new JArray(System.Enum.GetNames(typeof(TextCasing)));
+            result["textEdgeModes"] = new JArray(System.Enum.GetNames(typeof(TextEdgeMode)));
             result["textAlignments"] = new JArray(System.Enum.GetNames(typeof(TextAnchor)));
             result["textLayoutModes"] = new JArray(System.Enum.GetNames(typeof(TextLayoutMode)));
             result["textWrappingRules"] = new JArray(System.Enum.GetNames(typeof(TextWrapping)));
@@ -97,6 +98,7 @@ namespace DCFApixels.WhimTex
             result["noiseWarps"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.WarpType)));
             result["noiseEncodings"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.OutputEncoding)));
             result["sdfEncodings"] = new JArray(System.Enum.GetNames(typeof(SDFLayerBehaviour.OutputEncoding)));
+            result["sharpDistanceModes"] = new JArray(System.Enum.GetNames(typeof(SharpDistanceMode)));
             result["normalMapDefaults"] = NormalMapSnapshot(new NormalMapLayerBehaviour());
             result["makeSeamlessDefaults"] = MakeSeamlessSnapshot(MakeSeamlessLayerBehaviour.CreateDefault());
             result["makeSeamlessModes"] = new JArray(System.Enum.GetNames(typeof(MakeSeamlessLayerBehaviour.SeamlessMode)));
@@ -303,6 +305,7 @@ namespace DCFApixels.WhimTex
                         settings["color"] = Json(outline.outlineColor);
                         settings["metric"] = outline.metric.ToString();
                         settings["miterLimit"] = outline.miterLimit;
+                        settings["sharpMode"] = outline.sharpMode.ToString();
                         settings["sourceChannel"] = outline.sourceChannel.ToString();
                         settings["outlineWidth"] = outline.outlineWidth;
                         settings["outlineSoftness"] = outline.outlineSoftness;
@@ -315,6 +318,8 @@ namespace DCFApixels.WhimTex
                     {
                         settings["metric"] = sdf.metric.ToString();
                         settings["miterLimit"] = sdf.miterLimit;
+                        settings["sharpMode"] = sdf.sharpMode.ToString();
+                        settings["contourMergeDistance"] = sdf.contourMergeDistance;
                         settings["sourceChannel"] = sdf.sourceChannel.ToString();
                         settings["threshold"] = sdf.threshold;
                         settings["distancePosition"] = sdf.distancePosition.ToString();

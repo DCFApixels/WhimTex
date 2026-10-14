@@ -139,7 +139,7 @@ namespace DCFApixels.WhimTex
 
         internal static string Declaration(ShaderFXParameter p)
         {
-            string prefix = "// @param ";
+            string prefix = "// @param " + (p.pixelUnits ? "px " : "");
             switch (p.type)
             {
                 case ShaderFXParameterType.Curve:

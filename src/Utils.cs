@@ -47,7 +47,12 @@ namespace DCFApixels.WhimTex
         [InspectorName("Bevel AA")] Bevel = 6,
         [InspectorName("Diamond AA")] Diamond = 7,
         [InspectorName("Square AA")] Square = 8,
-        MTSDF = 9
+        MTSDF = 9,
+        [InspectorName("AAEDT + 8SED")] AAEDT = 10,
+        [InspectorName("Contour AA")] Contour = 11,
+        [InspectorName("Corner Fit AA")] CornerFit = 12,
+        [InspectorName("Spring Simulation")] Spring = 13,
+        [InspectorName("RBF Your SDF")] Rbf = 14
     }
 
     public enum EffectInputMode

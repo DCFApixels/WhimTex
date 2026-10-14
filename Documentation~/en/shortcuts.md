@@ -39,12 +39,19 @@ In settings dropdowns with two choices, a short left-click switches to the other
 | Hold `Alt`, click/drag with Brush, Pencil or Fill | Pick a visible color anywhere on screen; release `Alt` to return to the tool. |
 | `RMB` with Brush/Pencil | Temporarily erase. |
 | `U` · `Shift`-drag with Shape | Shape tool · equal proportions / 45° line angles. |
+| `C` · `Enter` / `Escape` with Crop | Crop in its current Scale/Resize mode · apply / reset the preview (cancel the current drag first). |
+| `Shift`-drag a Crop corner | Preserve the frame's proportions. |
+| Arrow keys with Crop: Resize · hold `Shift` | Move the crop frame by one pixel · ten pixels. |
+| Arrow keys with Crop: Scale · hold `Shift` | Adjust the preview width/height by one pixel · ten pixels. |
+| `Q` | Swap with the previous tool; Crop remembers its Scale/Resize mode. |
 | `Shift`-drag / `Shift`-click while painting | Axis line / connect endpoints. |
 | `Ctrl`-click a thumbnail/group arrow | Select alpha. |
 | `Ctrl+C` / `Ctrl+Shift+C` / `Ctrl+V` | Copy selected layers (or selected pixels) / copy merged pixels / paste, including between windows. |
 | `Ctrl+A` / `Ctrl+D` / `Ctrl+Shift+I` | Select all / deselect / invert area. |
 | `Shift` / `Alt` / `Shift+Alt` with selection tools | Add / subtract / intersect. |
-| `Enter` / `Backspace` / `Escape` with Lasso | Close / remove vertex / cancel. |
+| `L` | Lasso in its chosen Polygonal/Freehand mode. |
+| `Enter` / `Backspace` / `Escape` with Polygonal Lasso | Close / remove vertex / cancel. |
+| Drag and release / `Escape` with Freehand Lasso | Draw and apply the closed selection / cancel the current outline. |
 | `MMB`-drag / mouse wheel | Pan / zoom with any tool. |
 | `Shift+MMB`-drag | Rotate the view with any tool; `Ctrl` bypasses angle snapping. |
 | `Alt`-click with Zoom | Zoom out. |

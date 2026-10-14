@@ -292,6 +292,7 @@ namespace DCFApixels.WhimTex
             BuildShapeTool();
             BuildTextTool();
             BuildGradientCreationTool();
+            BuildCanvasCropTool();
             BuildHealingOverlay();
             toolkitCanvas.RegisterCallback<PointerDownEvent>(OnCanvasPointerDown);
             toolkitCanvas.RegisterCallback<PointerMoveEvent>(OnCanvasPointerMove);
@@ -911,6 +912,23 @@ namespace DCFApixels.WhimTex
             return name;
         }
 
+        private void BindLayerEmptyIcon(Layer layer, VisualElement slot, WhimTexLayerEmptyIcon icon,
+            Image thumbnail = null)
+        {
+            string ordinaryTooltip = slot.tooltip;
+            void Refresh()
+            {
+                if (this == null || activeDocument == null) return;
+                bool empty = activeDocument.GetLayerContentState(layer, EffectsAreInteractive) == LayerContentState.Empty;
+                icon.EnableInClassList("whimtex-hidden", !empty);
+                slot.EnableInClassList("whimtex-layer-thumbnail--empty", empty);
+                slot.tooltip = empty ? icon.tooltip : ordinaryTooltip;
+                if (thumbnail != null) thumbnail.style.visibility = empty ? Visibility.Hidden : Visibility.Visible;
+            }
+            toolkitLayerBindings.Add(Refresh);
+            slot.schedule.Execute(Refresh).Every(200);
+        }
+
         private VisualElement BuildToolkitGroupRow(
             Layer group,
             List<Layer> container,
@@ -976,7 +994,13 @@ namespace DCFApixels.WhimTex
                 pickingMode = PickingMode.Ignore
             };
             thumbnail.AddToClassList("whimtex-layer-thumbnail");
-            nameCell.Add(thumbnail);
+            thumbnail.AddToClassList("whimtex-layer-thumbnail__image");
+            var thumbnailSlot = new WhimTexLayerThumbnail();
+            thumbnailSlot.Add(thumbnail);
+            var emptyIcon = new WhimTexLayerEmptyIcon();
+            thumbnailSlot.Add(emptyIcon);
+            nameCell.Add(thumbnailSlot);
+            BindLayerEmptyIcon(layer, thumbnailSlot, emptyIcon, thumbnail);
             AddLayerFxWarning(nameCell, layer);
             if (layer.Behaviour is FileLayerBehaviour fileLayer)
             {
@@ -1479,6 +1503,7 @@ namespace DCFApixels.WhimTex
             toolkitCanvasActions.Add(WhimTexUI.CreateToolbarButton("Refresh", () => RequestCanvasRender(true)));
             AddCanvasTransformSettings();
             AddCanvasZoomSettings();
+            AddCanvasCropSettings();
             AddShapeSettings();
             AddTextSettings();
             AddGradientCreationSettings();
@@ -1671,24 +1696,26 @@ namespace DCFApixels.WhimTex
                 return;
 
             bool hasLayers = HasCanvasLayers;
-            toolkitCanvas.SetCanvasVisible(hasLayers);
+            toolkitCanvas.SetCanvasVisible(hasLayers || canvasTool == CanvasTool.Crop);
             DrawingLayerBehaviour drawing = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
             ApplyCanvasTextureFilter();
             RefreshCanvasQualityControl();
             RefreshCanvasToolToolbar();
             RefreshCanvasTransformTool();
+            RefreshCanvasCropTool();
             GetAreaSelection();
             areaSelectionOverlay?.Invalidate();
             bool transforming = IsCanvasTransformEnabled;
             toolkitCanvas.SetTiled(tiledCanvas);
             tiledCanvasButton?.EnableInClassList("whimtex-channel-button--enabled", tiledCanvas);
             toolkitCanvas.SetPencilCursor(canvasTool == CanvasTool.Pencil);
+            toolkitCanvas.SetPencilCursorSize(EffectivePencilSize(paintSettings.pencilSize));
             toolkitCanvas.SetDocument(channelCanvasTexture != null ? (Texture)channelCanvasTexture : CanvasPresentationSource,
                 activeDocument.width, activeDocument.height,
                 IsCanvasBrushEnabled || IsCanvasBlurBrushEnabled || IsCanvasSmudgeBrushEnabled ? drawing : null, transforming,
                 IsCanvasPaintTool || canvasTool == CanvasTool.HealingBrush ? paintSettings : null);
-            toolkitCanvas.SetRoundCursorSize(canvasTool == CanvasTool.HealingBrush ? paintSettings.healingSize :
-                canvasTool == CanvasTool.BlurBrush ? paintSettings.blurSize : canvasTool == CanvasTool.SmudgeBrush ? paintSettings.smudgeSize : paintSettings.brushSize);
+            toolkitCanvas.SetRoundCursorSize(EffectivePaintSize(canvasTool == CanvasTool.HealingBrush ? paintSettings.healingSize :
+                canvasTool == CanvasTool.BlurBrush ? paintSettings.blurSize : canvasTool == CanvasTool.SmudgeBrush ? paintSettings.smudgeSize : paintSettings.brushSize));
             RefreshCanvasPointerCursor();
             if (toolkitCanvasError != null)
             {
@@ -1717,6 +1744,12 @@ namespace DCFApixels.WhimTex
                 else if (IsCanvasFillEnabled)
                 {
                     toolkitCanvasViewFooter.text = "LMB fill • Alt pick color • X colors • All Layers / Contiguous / Tolerance / Antialias / Expand";
+                }
+                else if (canvasTool == CanvasTool.Crop)
+                {
+                    toolkitCanvasViewFooter.text = canvasCropMode == CanvasCropMode.Scale
+                        ? "Scale • handles stretch image • Enter apply • Esc reset • Shift proportions • Ctrl no snapping"
+                        : "Resize • drag frame • Enter apply • Esc reset • Shift constrain • Ctrl no snapping";
                 }
                 else if (canvasTool == CanvasTool.Shape)
                 {
@@ -1861,7 +1894,7 @@ namespace DCFApixels.WhimTex
             }
             else if (canvasTool == CanvasTool.BlurBrush)
                 layer.BlurSegment(startUv, startUv, activeDocument.width, activeDocument.height,
-                    paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
+                    EffectivePaintSize(paintSettings.blurSize), paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
             else if (connect && originUv != startUv)
                 PaintTowardsLayerPoint(startUv);
             else
@@ -1916,7 +1949,7 @@ namespace DCFApixels.WhimTex
                         SmudgeTowardsLayerPoint(lastPaintingUv, clippedUv);
                     else if (canvasTool == CanvasTool.BlurBrush)
                         paintingLayer.BlurSegment(lastPaintingUv, clippedUv, activeDocument.width, activeDocument.height,
-                            paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
+                            EffectivePaintSize(paintSettings.blurSize), paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
                     else
                         paintingLayer.PaintSegment(lastPaintingUv, clippedUv, activeDocument.width, activeDocument.height, false,
                             GetPaintingParameters());
@@ -1938,7 +1971,7 @@ namespace DCFApixels.WhimTex
                     SmudgeTowardsLayerPoint(lastPaintingUv, pointUv);
                 else if (canvasTool == CanvasTool.BlurBrush)
                     paintingLayer.BlurSegment(lastPaintingUv, pointUv, activeDocument.width, activeDocument.height,
-                        paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
+                        EffectivePaintSize(paintSettings.blurSize), paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
                 else
                     paintingLayer.PaintSegment(lastPaintingUv, pointUv, activeDocument.width, activeDocument.height, false,
                         GetPaintingParameters());
@@ -1949,7 +1982,7 @@ namespace DCFApixels.WhimTex
                     BeginCanvasSmudge(paintingLayer, pointUv);
                 else if (canvasTool == CanvasTool.BlurBrush)
                     paintingLayer.BlurSegment(pointUv, pointUv, activeDocument.width, activeDocument.height,
-                        paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
+                        EffectivePaintSize(paintSettings.blurSize), paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
                 else
                     paintingLayer.PaintPoint(pointUv, activeDocument.width, activeDocument.height, GetPaintingParameters());
             }
@@ -1970,7 +2003,7 @@ namespace DCFApixels.WhimTex
                     BlurBrushSampleMode.AllLayers => activeDocument.RenderCanvasAtSize(activeDocument.width, activeDocument.height),
                     _ => null
                 };
-                layer.BeginSmudgeStroke(point, activeDocument.width, activeDocument.height, paintSettings.smudgeSize, sample, tiledCanvas, paintSettings.smudgeMixing);
+                layer.BeginSmudgeStroke(point, activeDocument.width, activeDocument.height, EffectivePaintSize(paintSettings.smudgeSize), sample, tiledCanvas, paintSettings.smudgeMixing);
             }
             finally
             {
@@ -2089,6 +2122,19 @@ namespace DCFApixels.WhimTex
             MouseCursor transformCursor = !panning && canvasPointerInside && IsCanvasTransformEnabled
                 ? canvasTransformManipulator?.GetCursor(localPosition, alt) ?? MouseCursor.Pan
                 : MouseCursor.Pan;
+            if (!panning && canvasTool == CanvasTool.Crop)
+                transformCursor = cropManipulator?.GetCursor(localPosition) ?? MouseCursor.Arrow;
+            if (!panning && !alt && canvasPointerInside && canvasTool == CanvasTool.Text &&
+                (!canvasPointerControl || textManipulator?.IsDragging == true) && textManipulator != null && textManipulator.TryGetCursor(localPosition, out var textCursor))
+            {
+                toolkitCanvas.SetToolCursor(CanvasTool.Transform, false, false, textCursor);
+                return;
+            }
+            if (!panning && canvasPointerInside && canvasTool == CanvasTool.PolygonSelect && areaSelectionManipulator?.WantsMoveCursor == true)
+            {
+                toolkitCanvas.SetToolCursor(CanvasTool.Transform, false, false, MouseCursor.MoveArrow);
+                return;
+            }
             toolkitCanvas?.SetToolCursor(canvasTool, visible, panning, transformCursor,
                 canvasZoomManipulator?.IsRotating ?? false);
         }
@@ -2136,7 +2182,14 @@ namespace DCFApixels.WhimTex
                 return;
             }
 
+            if (evt.keyCode == KeyCode.Escape && (cropPicker?.IsPressed == true || shapePicker?.IsPressed == true || marqueePicker?.IsPressed == true || lassoPicker?.IsPressed == true))
+            {
+                cropPicker?.Cancel(); shapePicker?.Cancel(); marqueePicker?.Cancel(); lassoPicker?.Cancel();
+                WhimTexUI.ConsumeEvent(evt);
+                return;
+            }
             if (HandlePreviousCanvasToolKey(evt)) return;
+            if (HandleCanvasCropKey(evt)) return;
 
             if (evt.keyCode == KeyCode.Escape && canvasGuideManipulator?.IsDragging == true)
             {
@@ -2336,6 +2389,7 @@ namespace DCFApixels.WhimTex
             private DrawingLayerBehaviour drawingLayer;
             private PaintToolSettings brushSettings;
             private bool pencilCursor;
+            private int pencilCursorSize = 1;
             private int documentWidth = 1;
             private int documentHeight = 1;
             private bool cursorVisible;
@@ -2345,9 +2399,12 @@ namespace DCFApixels.WhimTex
             private bool tiled;
             private bool canvasVisible = true;
             private Rect presentationRect;
+            private Rect displayedImageRect;
+            private RectInt? canvasFramePreview;
             private float presentedRotation;
 
             public Rect ImageRect { get; private set; }
+            public Rect DisplayedImageRect => displayedImageRect;
             public bool IsCanvasVisible => canvasVisible;
             public float PixelScale => ImageRect.width / Mathf.Max(1, documentWidth);
             public Vector2 ToCanvas(Vector2 point) => viewport.ToCanvas(contentRect, point);
@@ -2552,7 +2609,7 @@ namespace DCFApixels.WhimTex
 
             public void SetToolCursor(CanvasTool tool, bool hide, bool panning, MouseCursor transformCursor = MouseCursor.Pan, bool rotating = false)
             {
-                bool transforming = !panning && (tool == CanvasTool.Transform || tool == CanvasTool.GradientHandles || IsTemporaryCanvasTool(tool));
+                bool transforming = !panning && (tool == CanvasTool.Transform || tool == CanvasTool.Crop || tool == CanvasTool.GradientHandles || IsTemporaryCanvasTool(tool));
                 EnableInClassList("whimtex-canvas-cursor--pan", (panning && !rotating) || (transforming && transformCursor == MouseCursor.Pan));
                 EnableInClassList("whimtex-canvas-cursor--zoom", !panning && tool == CanvasTool.Zoom);
                 EnableInClassList("whimtex-canvas-cursor--scale", transforming && transformCursor == MouseCursor.ScaleArrow);
@@ -2612,6 +2669,12 @@ namespace DCFApixels.WhimTex
                 pencilCursor = value;
                 if (!value) pencilCursorElement.SetVisible(false);
                 overlay.MarkDirtyRepaint();
+            }
+            public void SetPencilCursorSize(int value)
+            {
+                if (pencilCursorSize == value) return;
+                pencilCursorSize = Mathf.Max(1, value);
+                UpdatePencilCursor();
             }
 
             public void SetDocument(Texture nextTexture, int width, int height, DrawingLayerBehaviour layer, bool transforming = false, PaintToolSettings brush = null)
@@ -2678,6 +2741,13 @@ namespace DCFApixels.WhimTex
                 UpdateImageLayout(false);
             }
 
+            public void SetCanvasFramePreview(RectInt? frame)
+            {
+                if (canvasFramePreview == frame) return;
+                canvasFramePreview = frame;
+                UpdateImageLayout(true);
+            }
+
             public void SetViewRotation(float degrees, bool snap = false)
             {
                 if (!canvasVisible) return;
@@ -2688,16 +2758,23 @@ namespace DCFApixels.WhimTex
             private void UpdateImageLayout(bool force)
             {
                 Rect nextRect = viewport.ImageRect(contentRect, new Vector2(documentWidth, documentHeight));
-                Rect nextPresentation = tiled ? contentRect : nextRect;
+                Rect displayedRect = nextRect;
+                if (canvasFramePreview is RectInt frame)
+                    displayedRect = new Rect(nextRect.x + frame.x / (float)documentWidth * nextRect.width,
+                        nextRect.yMax - frame.yMax / (float)documentHeight * nextRect.height,
+                        frame.width / (float)documentWidth * nextRect.width,
+                        frame.height / (float)documentHeight * nextRect.height);
+                Rect nextPresentation = tiled ? contentRect : displayedRect;
                 if (!force && nextRect == ImageRect && nextPresentation == presentationRect &&
-                    presentedRotation == viewport.Rotation)
+                    displayedRect == displayedImageRect && presentedRotation == viewport.Rotation)
                     return;
                 ImageRect = nextRect;
+                displayedImageRect = displayedRect;
                 presentationRect = nextPresentation;
                 presentedRotation = viewport.Rotation;
                 PositionSurface(checker, presentationRect, !tiled);
-                PositionSurface(canvasShadow, CanvasShadow.BoundsFor(ImageRect), true);
-                PositionSurface(image, ImageRect, true);
+                PositionSurface(canvasShadow, CanvasShadow.BoundsFor(displayedRect), true);
+                PositionSurface(image, displayedRect, true);
                 PositionElement(tiledImage, contentRect);
                 PositionElement(overlay, contentRect);
                 UpdatePencilCursor();
@@ -2784,12 +2861,12 @@ namespace DCFApixels.WhimTex
             {
                 Rect rect = tiledImage.contentRect;
                 if (!tiled || texture == null || rect.width <= 0f || rect.height <= 0f ||
-                    ImageRect.width <= 0f || ImageRect.height <= 0f) return;
+                    displayedImageRect.width <= 0f || displayedImageRect.height <= 0f) return;
                 Vector2 Uv(Vector2 point)
                 {
                     point = ToCanvas(point + contentRect.position);
-                    return new Vector2((point.x - ImageRect.xMin) / ImageRect.width,
-                        1f - (point.y - ImageRect.yMin) / ImageRect.height);
+                    return new Vector2((point.x - displayedImageRect.xMin) / displayedImageRect.width,
+                        1f - (point.y - displayedImageRect.yMin) / displayedImageRect.height);
                 }
                 Vector2 origin = Uv(rect.min);
                 // Rebase all corners together: preserve interpolation across repeated UVs.
@@ -2872,7 +2949,7 @@ namespace DCFApixels.WhimTex
                 Vector2 canvasCursor = ToCanvas(cursorPosition);
                 Vector2 documentUv = new Vector2((canvasCursor.x - ImageRect.x) / ImageRect.width,
                     1f - (canvasCursor.y - ImageRect.y) / ImageRect.height);
-                Vector2 center = PaintStrokeParameters.SnapPencilCenter(documentUv, documentWidth, documentHeight, brushSettings.pencilSize);
+                Vector2 center = PaintStrokeParameters.SnapPencilCenter(documentUv, documentWidth, documentHeight, pencilCursorSize);
                 Vector2 screenCenter = rect.position + new Vector2(center.x * rect.width, (1f - center.y) * rect.height);
                 float px = rect.width / documentWidth, py = rect.height / documentHeight;
                 Vector2 x = new Vector2(px, 0);
@@ -2880,7 +2957,7 @@ namespace DCFApixels.WhimTex
                 screenCenter = ToView(screenCenter + contentRect.position) - contentRect.position;
                 x = viewport.ToViewDelta(x);
                 y = viewport.ToViewDelta(y);
-                pencilCursorElement.SetState(brushSettings.pencilSize, brushSettings.pencilShape,
+                pencilCursorElement.SetState(pencilCursorSize, brushSettings.pencilShape,
                     screenCenter, x, y, cursorErase, EditorGUIUtility.pixelsPerPoint);
             }
 

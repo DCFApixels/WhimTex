@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
         {
             if (context.input == null) return null;
             float strength = Safe(layer.strength, 0f, MaximumStrength, 1f);
-            float radius = Safe(layer.radius, 0f, MaximumRadius, 1f) / context.scaleMultiplier;
+            float radius = Safe(layer.radius, 0f, MaximumRadius, 1f) * context.pixelScale / context.scaleMultiplier;
             if (strength <= 0f || radius <= .0001f)
                 return layer.ApplyTransformAndFx(context.input, context);
 

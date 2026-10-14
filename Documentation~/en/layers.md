@@ -31,6 +31,17 @@ Use **+** at the bottom of Layers to choose a type:
 | Outline | An editable border or filled silhouette. See [Outline and SDF](effects.md#outline-and-sdf). |
 | SDF | An edge-distance gradient or numeric distance map. See [Outline and SDF](effects.md#outline-and-sdf). |
 
+Outline and SDF offer experimental **Contour AA** in **Distance Algorithm**. It follows the current
+raster threshold boundary with subpixel straight segments; expanded corners round and lost detail
+is not restored. Compare it with the default **Round AA** on your source; improvement is not guaranteed.
+See [Outline and SDF](effects.md#outline-and-sdf) for the shared controls and algorithm choices.
+
+For experimental sharp-corner recovery, try **Corner Fit AA** or **Spring Simulation**.
+Both compare proposed corners with the source pixels, limit sharp joins to confirmed corners and
+retain the raw contour where the result is ambiguous. Spring first relaxes the contour with springs.
+Use **Miter Limit** to bevel long confirmed joins. Neither mode guarantees recovery of lost detail;
+SDF supports Gradient or Linear Data, and Round AA remains the default.
+
 You can also drag a Project texture onto Canvas View to add it at the top,
 or drop it between rows to choose its position. A newly assigned image keeps its original proportions.
 Assigning an HDR texture to a File layer sets **Color Range** and **Blend Range** to **HDR**.
@@ -40,6 +51,13 @@ File layers linked to another WhimTex document have a thin orange line along the
 Double-click its thumbnail or row background to open or focus that document without replacing the current one.
 
 Effect layers also show thumbnails of their results. Animated Shader FX use still thumbnails.
+All layer thumbnails use a 2×2 checkerboard behind transparent pixels, including the thumbnail shown while dragging.
+
+A fully transparent layer shows a checkerboard with a bright red diagonal slash from bottom left to top right instead of its thumbnail.
+The icon appears only when every pixel is confirmed to have zero alpha; until then, the regular thumbnail stays.
+The check uses the layer's own content, including FX; zero Opacity or a hidden layer does not count as empty content.
+Animated FX and unavailable inputs retain their regular icon when emptiness cannot be confirmed reliably.
+Groups keep their foldout arrow and do not display the empty-content icon.
 
 ## Select and arrange
 
@@ -107,11 +125,25 @@ No font asset needs to be imported into Project. **Refresh** rescans fonts.
 The creation gesture determines the layout; the tool header has no Layout selector.
 Frame Size, Wrapping, Overflow and Auto Size belong to the layer Properties, not the tool settings.
 In Properties, **Layout → Point** has no frame and wraps only at explicit line breaks.
+With the Text tool, each line is underlined instead of enclosed in a selection box.
+The round handle on the first baseline follows left/center/right alignment; drag it to move
+the text layout inside the layer, without changing the layer's Transform. Esc cancels
+the move, and a completed drag is one Undo step. **Layout Offset (px)** sets this local
+position before rasterization and is retained when switching between Point and Frame.
+Empty lines have no underline; an empty first line still has its handle. Moving the layout
+requires an available font. The general
+Transform tool keeps its usual transform box.
 **Layout → Frame** lays out text within **Frame Size (px)**. **Wrapping** can be **Manual** (line
 breaks only), **Words**, or **Characters**; words longer than the frame still break to fit.
 **Justify** is always available. It expands spacing between words on wrapped lines,
 leaving each paragraph's last line left-aligned. Point text and Manual wrapping reset it
-to left alignment without changing vertical alignment. Drag a frame's corner with the Text tool to reflow.
+to left alignment without changing vertical alignment. The Text tool shows four corner handles,
+four side handles and a central move handle. Corners change both frame dimensions; sides change
+only width or height. Drag the center to move the frame. Text reflows live, without stretching
+the glyphs or changing the layer Transform. Hold Shift for proportional corner resize or
+axis-constrained movement; Ctrl during dragging bypasses guide snapping. Esc cancels the gesture.
+Creation, movement and resizing place the layout before rasterization, avoiding extra filtering
+from moving a finished Hinted AA image. An independently applied layer/group Transform can still soften it.
 Enable **Auto Size** to fit the text into the frame. In Properties, **Size** shows **Min**
 and **Max** side by side, in canvas pixels. The largest fitting whole-pixel size is used
 within that range. **Overflow** controls text that does not fit: **None** (default) leaves it
@@ -135,6 +167,15 @@ not automatic wrapping. All four values participate in wrapping and Auto Size.
 width, `0.5` halves it, and `2` doubles it. Wrapping, Auto Size and Ellipsis use the new widths;
 added em spacing remains unchanged. Expanded glyphs are rasterized at higher density so their
 edges are not just enlarged from the original font bitmap; output texture limits still apply.
+
+Choose **Edge Mode** in **Properties (Text)**:
+
+- **Hinted AA** (default) smooths edges and fits strokes to the pixel grid, helping small text stay readable. The letter shape can shift slightly.
+- **Antialiased** smooths edges without grid-fitting the letter shapes.
+- **Pixel** removes glyph antialiasing, snaps glyph placement and uses nearest sampling by default for pixel art.
+
+Explicit filtering and FX can still soften Pixel text. For crisp pixel-art output, use integer
+placement and scaling, and check the result at its final resolution.
 
 **Color** includes alpha. Use **Transform**, **Rendering**
 and **FX** to place and process the result. The inline editor shows plain text; finishing
@@ -260,6 +301,8 @@ For example, put a Gradient above it and enable the gradient's clipping mask to 
 Convert it to Drawing only when you want to paint directly on it.
 
 ## Create textures for VFX
+
+For Sharp, MTSDF, Corner Fit, Spring and RBF, SDF and Outline expose **Corner Mode**. **Unrestricted** keeps the current experimental extensions; **Guarded Sharp** restores artifact checks without rounding a corner solely because it is acute. Unsupported corners may still round. Contour preparation stays the same. **Miter Limit** controls beveling in Guarded Sharp, except MTSDF. The default is Unrestricted for this comparison.
 
 Procedural layers are useful for energy rings, bursts and particle masks. In this example,
 a bright rim is combined with fine radial streaks.

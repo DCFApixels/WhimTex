@@ -9,12 +9,16 @@ using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
+    public enum SharpDistanceMode { Unrestricted, GuardedSharp }
+
     [Serializable]
     public sealed class SDFLayerBehaviour : TargetedLayerBehaviour
     {
         public enum OutputEncoding { LinearData, Gradient, MultiChannelData }
         public DistanceMetric metric = DistanceMetric.EuclideanAntialiased;
+        public SharpDistanceMode sharpMode = SharpDistanceMode.Unrestricted;
         public float miterLimit = 4f;
+        public float contourMergeDistance = 0f;
         public SourceChannel sourceChannel = SourceChannel.Alpha;
         [Range(0, 255)] public byte threshold = 128;
         public DistancePosition distancePosition = DistancePosition.Signed;
@@ -32,13 +36,17 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private WhimTexGradientTexture gradientLut;
         [NonSerialized] private Material gradientMaterial;
         [NonSerialized] private WhimTexCurveTexture profileLut;
+        [NonSerialized] private ReconstructedDistanceCache reconstructedCache;
         internal override bool RequiresColorInput => sourceChannel != SourceChannel.Alpha;
 
         internal override RenderTexture Render(in LayerRenderContext context)
         {
             using var timing = DistanceFieldTiming.Measure("render.sdf");
             if (context.input == null)
+            {
+                ReleaseDistancePreparation();
                 return null;
+            }
             if (encoding == OutputEncoding.MultiChannelData && metric != DistanceMetric.MTSDF)
                 throw new InvalidOperationException("Multi Channel Data output requires the MTSDF distance algorithm.");
 
@@ -60,14 +68,18 @@ namespace DCFApixels.WhimTex
                     NativeArrayOptions.UninitializedMemory);
                 if (metric == DistanceMetric.MTSDF)
                     multiChannel = new NativeArray<float4>(inputPixels.Length, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-                ComputeSourceField(
+                bool cacheDistances = metric == DistanceMetric.CornerFit || metric == DistanceMetric.Spring || metric == DistanceMetric.Rbf;
+                if (cacheDistances) reconstructedCache ??= new ReconstructedDistanceCache();
+                else ReleaseDistancePreparation();
+                ComputeCachedSourceFieldCore(
                     inputPixels,
                     signedDistances,
                     context.width,
                     context.height,
                     threshold,
                     (int)sourceChannel,
-                    metric, sourceOffset / context.scaleMultiplier, sourceEdges, miterLimit, multiChannel);
+                    metric, sourceOffset * context.pixelScale / context.scaleMultiplier, sourceEdges, miterLimit, multiChannel,
+                    contourMergeDistance * context.pixelScale / context.scaleMultiplier, reconstructedCache, sharpMode);
 
                 long stage = DistanceFieldTiming.Start();
                 resultTexture = new Texture2D(context.width, context.height, multiChannel.IsCreated ? TextureFormat.RGBAFloat : TextureFormat.RFloat, false, true)
@@ -98,9 +110,9 @@ namespace DCFApixels.WhimTex
                 }
                 gradientMaterial.SetFloat("_MaxDistance", GetNormalizationDistance(context));
                 float fallback = GetNormalizationDistance(context);
-                gradientMaterial.SetFloat("_InsideDistance", insideDistance > 0 ? insideDistance / context.scaleMultiplier : fallback);
-                gradientMaterial.SetFloat("_OutsideDistance", outsideDistance > 0 ? outsideDistance / context.scaleMultiplier : fallback);
-                gradientMaterial.SetFloat("_ContourOffset", contourOffset / context.scaleMultiplier);
+                gradientMaterial.SetFloat("_InsideDistance", insideDistance > 0 ? insideDistance * context.pixelScale / context.scaleMultiplier : fallback);
+                gradientMaterial.SetFloat("_OutsideDistance", outsideDistance > 0 ? outsideDistance * context.pixelScale / context.scaleMultiplier : fallback);
+                gradientMaterial.SetFloat("_ContourOffset", contourOffset * context.pixelScale / context.scaleMultiplier);
                 profileLut ??= new WhimTexCurveTexture();
                 gradientMaterial.SetTexture("_ProfileLut", profileLut.GetTexture(profile));
                 gradientMaterial.SetInt("_Position", (int)distancePosition);
@@ -128,11 +140,17 @@ namespace DCFApixels.WhimTex
 
         internal override void ReleaseTransientResources()
         {
+            ReleaseDistancePreparation();
             gradientLut?.Dispose(); gradientLut = null;
             profileLut?.Dispose(); profileLut = null;
             if (gradientMaterial != null) UnityEngine.Object.DestroyImmediate(gradientMaterial);
             gradientMaterial = null;
             base.ReleaseTransientResources();
+        }
+
+        internal void ReleaseDistancePreparation()
+        {
+            reconstructedCache?.Dispose(); reconstructedCache = null;
         }
 
         public override string ToString()
@@ -143,7 +161,7 @@ namespace DCFApixels.WhimTex
         private float GetNormalizationDistance(in LayerRenderContext context)
         {
             if (maxDistanceNormalization > 0f)
-                return Mathf.Max(0.0001f, maxDistanceNormalization / context.scaleMultiplier);
+                return Mathf.Max(0.0001f, maxDistanceNormalization * context.pixelScale / context.scaleMultiplier);
 
             switch (metric)
             {
@@ -173,16 +191,37 @@ namespace DCFApixels.WhimTex
 
         internal static void ComputeSourceField(NativeArray<Color32> source, NativeArray<float> output,
             int width, int height, byte threshold, int channel, DistanceMetric metric, Vector2 offset, SourceEdges edges,
-            float miterLimit, NativeArray<float4> multiChannel)
+            float miterLimit, NativeArray<float4> multiChannel, float contourMergeDistance = 0f)
+            => ComputeCachedSourceField(source, output, width, height, threshold, channel, metric, offset, edges,
+                miterLimit, multiChannel, contourMergeDistance, null);
+
+        internal static void ComputeCachedSourceField(NativeArray<Color32> source, NativeArray<float> output,
+            int width, int height, byte threshold, int channel, DistanceMetric metric, Vector2 offset, SourceEdges edges,
+            float miterLimit, NativeArray<float4> multiChannel, float contourMergeDistance, ReconstructedDistanceCache cache,
+            SharpDistanceMode sharpMode = SharpDistanceMode.Unrestricted)
+        {
+            DistanceFieldUtility.Validate(source.Length, output.Length, width, height, channel, metric, miterLimit, contourMergeDistance);
+            DistanceFieldUtility.ValidateSharpMode(sharpMode);
+            ComputeCachedSourceFieldCore(source, output, width, height, threshold, channel, metric, offset, edges,
+                miterLimit, multiChannel, contourMergeDistance, cache, sharpMode);
+        }
+
+        private static void ComputeCachedSourceFieldCore(NativeArray<Color32> source, NativeArray<float> output,
+            int width, int height, byte threshold, int channel, DistanceMetric metric, Vector2 offset, SourceEdges edges,
+            float miterLimit, NativeArray<float4> multiChannel, float contourMergeDistance, ReconstructedDistanceCache cache, SharpDistanceMode sharpMode)
         {
             using var timing = DistanceFieldTiming.Measure("field.total");
             // Translation commutes with the distance transform. Keep the source contour intact,
             // then sample the translated field; do not crop a shifted mask first.
+            if (float.IsNaN(offset.x) || float.IsInfinity(offset.x) || float.IsNaN(offset.y) || float.IsInfinity(offset.y))
+                throw new InvalidOperationException("SDF source offset must be finite.");
             if (edges == SourceEdges.Repeat || edges == SourceEdges.Mirror)
             {
                 offset.x = Mathf.Repeat(offset.x, width * (edges == SourceEdges.Mirror ? 2 : 1));
                 offset.y = Mathf.Repeat(offset.y, height * (edges == SourceEdges.Mirror ? 2 : 1));
             }
+            else if (Mathf.Abs(offset.x) > 67108860f || Mathf.Abs(offset.y) > 67108860f)
+                throw new InvalidOperationException("SDF source offset/edge expansion exceeds 64 million pixels. Reduce the source offset or canvas resolution.");
             int left = edges == SourceEdges.Repeat ? -width : Mathf.Min(-1, Mathf.FloorToInt(-offset.x) - 1);
             int bottom = edges == SourceEdges.Repeat ? -height : Mathf.Min(-1, Mathf.FloorToInt(-offset.y) - 1);
             int right = edges == SourceEdges.Repeat ? width * 2 : Mathf.Max(width, Mathf.CeilToInt(width - 1 - offset.x) + 1);
@@ -201,7 +240,7 @@ namespace DCFApixels.WhimTex
             if (multiChannel.IsCreated)
             {
                 using var channels = new NativeArray<float4>(w * h, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-                DistanceFieldUtility.ComputeMtsdfDistance(extended, channels, w, h, threshold, channel);
+                DistanceFieldUtility.ComputeMtsdfDistancePhysical(extended, channels, w, h, threshold, channel, contourMergeDistance, sharpMode);
                 using (DistanceFieldTiming.Measure("source.sample"))
                 new SdfSampleMultiSourceJob { source = channels, output = multiChannel, scalar = output,
                     width = width, height = height, extendedWidth = w, extendedHeight = h,
@@ -209,7 +248,12 @@ namespace DCFApixels.WhimTex
                 }.Schedule(output.Length, 128).Complete();
                 return;
             }
-            DistanceFieldUtility.ComputeArtisticDistance(extended, distances, w, h, threshold, channel, metric, miterLimit);
+            if (cache != null)
+            {
+                DistanceFieldUtility.ValidatePhysical(extended.Length, distances.Length, w, h, channel, metric, miterLimit, contourMergeDistance);
+                cache.Compute(extended, distances, w, h, threshold, channel, metric, miterLimit, sharpMode);
+            }
+            else DistanceFieldUtility.ComputeArtisticDistancePhysical(extended, distances, w, h, threshold, channel, metric, miterLimit, contourMergeDistance, sharpMode);
             using (DistanceFieldTiming.Measure("source.sample"))
             new SdfSampleSourceJob { source = distances, output = output, width = width, height = height,
                 extendedWidth = w, extendedHeight = h, left = left, bottom = bottom,
@@ -343,12 +387,39 @@ namespace DCFApixels.WhimTex
 
         public static void ComputeArtisticDistance(
             NativeArray<Color32> input, NativeArray<float> output, int width, int height,
-            byte threshold, int sourceChannel, DistanceMetric metric, float miterLimit)
+            byte threshold, int sourceChannel, DistanceMetric metric, float miterLimit, float contourMergeDistance = 0f,
+            SharpDistanceMode sharpMode = SharpDistanceMode.Unrestricted)
         {
-            Validate(input.Length, output.Length, width, height, sourceChannel, metric, miterLimit);
+            Validate(input.Length, output.Length, width, height, sourceChannel, metric, miterLimit, contourMergeDistance);
+            ComputeArtisticDistancePhysical(input, output, width, height, threshold, sourceChannel, metric, miterLimit, contourMergeDistance, sharpMode);
+        }
+
+        internal static void ComputeArtisticDistancePhysical(
+            NativeArray<Color32> input, NativeArray<float> output, int width, int height,
+            byte threshold, int sourceChannel, DistanceMetric metric, float miterLimit, float contourMergeDistance,
+            SharpDistanceMode sharpMode = SharpDistanceMode.Unrestricted)
+        {
+            ValidatePhysical(input.Length, output.Length, width, height, sourceChannel, metric, miterLimit, contourMergeDistance);
+            ValidateSharpMode(sharpMode);
+            if (metric == DistanceMetric.Rbf)
+            {
+                RbfDistanceField.Compute(input, output, width, height, threshold, sourceChannel, miterLimit, sharpMode);
+                return;
+            }
+            if (metric == DistanceMetric.AAEDT)
+            {
+                AaedtDistanceField.Compute(input, output, width, height, threshold, sourceChannel);
+                return;
+            }
             if (metric != DistanceMetric.EuclideanAntialiased && width > 1 && height > 1)
             {
-                ArtisticDistanceField.Compute(input, output, width, height, threshold, sourceChannel, metric, miterLimit);
+                if (metric == DistanceMetric.Contour)
+                {
+                    ArtisticDistanceField.ComputeContour(input, output, width, height, threshold, sourceChannel);
+                    return;
+                }
+                ArtisticDistanceField.Compute(input, output, width, height, threshold, sourceChannel, metric, miterLimit,
+                    metric == DistanceMetric.Sharp || metric == DistanceMetric.MTSDF ? contourMergeDistance : 0f, sharpMode);
                 return;
             }
             using var background = new NativeArray<float>(input.Length, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
@@ -356,12 +427,22 @@ namespace DCFApixels.WhimTex
         }
 
         public static void ComputeMtsdfDistance(
-            NativeArray<Color32> input, NativeArray<float4> output, int width, int height, byte threshold, int sourceChannel)
+            NativeArray<Color32> input, NativeArray<float4> output, int width, int height, byte threshold, int sourceChannel,
+            float contourMergeDistance = 0f, SharpDistanceMode sharpMode = SharpDistanceMode.Unrestricted)
         {
-            Validate(input.Length, output.Length, width, height, sourceChannel, DistanceMetric.MTSDF, 4f);
+            Validate(input.Length, output.Length, width, height, sourceChannel, DistanceMetric.MTSDF, 4f, contourMergeDistance);
+            ComputeMtsdfDistancePhysical(input, output, width, height, threshold, sourceChannel, contourMergeDistance, sharpMode);
+        }
+
+        internal static void ComputeMtsdfDistancePhysical(
+            NativeArray<Color32> input, NativeArray<float4> output, int width, int height, byte threshold, int sourceChannel,
+            float contourMergeDistance, SharpDistanceMode sharpMode = SharpDistanceMode.Unrestricted)
+        {
+            ValidatePhysical(input.Length, output.Length, width, height, sourceChannel, DistanceMetric.MTSDF, 4f, contourMergeDistance);
+            ValidateSharpMode(sharpMode);
             if (width > 1 && height > 1)
             {
-                ArtisticDistanceField.ComputeMultiChannel(input, output, width, height, threshold, sourceChannel);
+                ArtisticDistanceField.ComputeMultiChannel(input, output, width, height, threshold, sourceChannel, contourMergeDistance, sharpMode);
                 return;
             }
             using var scalar = new NativeArray<float>(input.Length, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
@@ -369,14 +450,30 @@ namespace DCFApixels.WhimTex
             for (int i = 0; i < output.Length; i++) output[i] = new float4(scalar[i]);
         }
 
-        static void Validate(int inputLength, int outputLength, int width, int height,
-            int channel, DistanceMetric metric, float miterLimit)
+        internal static void ValidateSharpMode(SharpDistanceMode mode)
+        {
+            if (mode != SharpDistanceMode.Unrestricted && mode != SharpDistanceMode.GuardedSharp)
+                throw new ArgumentOutOfRangeException(nameof(mode));
+        }
+
+        internal static void Validate(int inputLength, int outputLength, int width, int height,
+            int channel, DistanceMetric metric, float miterLimit, float contourMergeDistance)
         {
             if (width <= 0 || height <= 0 || (long)width * height != inputLength || outputLength != inputLength)
                 throw new ArgumentException("Distance field dimensions do not match the pixel buffers.");
             if (channel < 0 || channel > 4) throw new ArgumentOutOfRangeException(nameof(channel));
             if (!Enum.IsDefined(typeof(DistanceMetric), metric)) throw new ArgumentOutOfRangeException(nameof(metric));
             if (!float.IsFinite(miterLimit) || miterLimit < 1f || miterLimit > 64f) throw new ArgumentOutOfRangeException(nameof(miterLimit));
+            if (!float.IsFinite(contourMergeDistance) || contourMergeDistance < 0f || contourMergeDistance > 2f)
+                throw new ArgumentOutOfRangeException(nameof(contourMergeDistance));
+        }
+
+        internal static void ValidatePhysical(int inputLength, int outputLength, int width, int height,
+            int channel, DistanceMetric metric, float miterLimit, float contourMergeDistance)
+        {
+            Validate(inputLength, outputLength, width, height, channel, metric, miterLimit, 0f);
+            if (!float.IsFinite(contourMergeDistance) || contourMergeDistance < 0f || contourMergeDistance > 2f * WhimTexDocument.MaximumPixelScale)
+                throw new ArgumentOutOfRangeException(nameof(contourMergeDistance));
         }
 
         private static void ComputeAntialiasedSignedDistance(

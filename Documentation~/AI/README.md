@@ -139,12 +139,76 @@ Noise Output uses `encoding` (`LinearData`, `ColorValues`, `Gradient`), with
 Color White/Blue Noise does not use Gradient output.
 SDF uses `SDFLayerBehaviour.encoding`: `Gradient` (default), `LinearData` or `MultiChannelData`.
 SDF and Outline share `metric`: `EuclideanAntialiased` (Round AA, default, numeric ID 4),
-`Sharp` (5), `Bevel` (6), `Diamond` (7), `Square` (8), `MTSDF` (9). All are antialiased;
+`Sharp` (5), `Bevel` (6), `Diamond` (7), `Square` (8), `MTSDF` (9), `AAEDT` (10,
+UI **AAEDT + 8SED**, experimental), `Contour` (11, UI **Contour AA**, experimental),
+`CornerFit` (12, UI **Corner Fit AA**, experimental) and `Spring` (13, UI **Spring Simulation**, experimental).
+All ten are antialiased;
 the old numeric values 0–3 are removed without aliases. Sharp and Bevel are contour-offset fields,
 not Euclidean SDFs. Diamond uses L1 and Square uses L∞; both depend on the calculation axes.
-The shared `miterLimit` float has range 1..64, defaults to 4, must be finite and affects Sharp only.
+The shared `miterLimit` float has range 1..64, defaults to 4, must be finite and affects Sharp,
+CornerFit and Spring. For the new modes it bevels excessive AA-verified joins within their finite
+region of ownership; it does not validate uncertain corners.
+SDF alone adds experimental `contourMergeDistance`: a finite float in 0..2 inclusive, default 0 (off),
+in current raster/render pixels, independent of distance remap width and not divided by render scale.
+It applies only to Sharp/MTSDF, including MultiChannelData; other modes retain but ignore it and
+still require a valid value. The UI shows **Contour Merge (px)** only for Sharp/MTSDF.
+One pass merges disjoint pairs of consecutive vertices within one contour to their midpoints,
+shortest eligible pairs first. Pair distance is bounded by the requested value; each original vertex
+is used at most once. It does not build multi-vertex clusters or merge different loops. A topology
+conflict rolls back the whole batch. Existing safety protections remain active. It may shift short
+details and does not guarantee restored sharpness.
 Round AA keeps its original crossing-seed Euclidean distance transform (EDT), rather than distance
-to continuous contour segments. The other five modes share reconstructed, normalized subpixel contours.
+to continuous contour segments. Sharp, Bevel, Diamond, Square and MTSDF share reconstructed,
+normalized subpixel contours.
+
+`CornerFit` starts with raw Contour geometry, fits sides over multiple pixels and verifies proposed
+corners by local AA re-rasterization. `Spring` first applies automatic spring relaxation to that raw
+contour, then uses the same AA-tested proposals. Both reject intersecting or unconfirmed extensions,
+retain raw geometry where ambiguous and allow bounded sharp joins only at AA-verified corners.
+These are raster-only scalar modes using the existing downstream controls: Gradient/LinearData
+are supported; MultiChannelData remains MTSDF-only. `contourMergeDistance` is retained and validated
+but ignored. SDF's threshold is supported through coverage remapping of the selected channel;
+Outline uses fixed byte threshold 128. Fitting is approximate for soft or noncoverage masks.
+CornerFit is an experimental hybrid, with no guaranteed sharp recovery. Spring adapts ideas from
+[Matusovic, Parakkat and Eisemann (2023)](https://doi.org/10.1111/cgf.14743), whose paper concerns
+interactive depixelization, not SDF generation. It is not the full interactive tool or a C++ replica.
+The previous eight modes and the Round AA default are unchanged.
+
+`Contour` uses raw marching-squares threshold crossings on alpha or the selected source channel,
+with linear interpolation to subpixel endpoints, and measures Euclidean distance to the finite
+straight segments. It performs no contour fitting, smoothing, simplification, corner recovery,
+merge/union, miter extension or MSDF channel construction. Expanded corners round. It measures
+the current raster threshold boundary and cannot restore detail lost during rasterization.
+Contour AA is a separate algorithm, not an AAEDT modification or a sharp-miter mode.
+The existing source-channel, threshold, `SourceEdges`, offset and rendering wrapper still apply;
+SDF exposes the threshold and Outline uses fixed byte threshold 128. `miterLimit` and SDF
+`contourMergeDistance` remain validated but are ignored. SDF supports Gradient/LinearData;
+MultiChannelData remains MTSDF-only. Quality comparison is experimental, with no guaranteed
+improvement across all inputs. Round AA remains the default at ID 4; AAEDT stays ID 10 and
+the existing modes are unchanged.
+
+`AAEDT` estimates the raster boundary with an anti-aliased Euclidean sweep-and-update transform
+and 8-neighbor vector propagation, based on Stefan Gustavson's `edtaa3` reference. It uses a
+portable Burst job. Input alpha is assumed to represent the area coverage of a crisp edge
+(box-filter sampling); blur, feather and arbitrary opacity do not describe exact geometry.
+The same assumption applies when selecting another source channel. Wide external contours
+remain round. This mode does not extend sharp/miter corners or reconstruct contour segments;
+it ignores `miterLimit` and SDF `contourMergeDistance`, while retaining their validated values.
+Round AA remains the default, unchanged.
+
+The sweep keeps one candidate seed per pixel and is an approximate transform, not an exact
+or rotation-invariant solver. Its local update tolerance is 0.0001 pixel (tighter than the
+reference's 0.001); this is not a global distance-error bound.
+
+For `AAEDT`, SDF's byte `threshold` is adapted to coverage before distance estimation. With
+source coverage `a` in 0..1 and `t = threshold / 255`, for `0 < t < 1` use
+`c(a) = 0.5*a/t` when `a <= t`, otherwise `c(a) = 0.5 + 0.5*(a-t)/(1-t)`.
+This monotonic piecewise remap sends `t` to 0.5 and preserves 0 and 1. Thresholds 0 and 255
+use binary classification instead: coverage is 1 only when the selected byte-range source value
+exceeds the threshold, otherwise 0. Threshold 0 keeps nonzero samples; 255 leaves no covered samples.
+Outline uses fixed byte threshold 128. AAEDT supports
+Gradient and LinearData; MultiChannelData still requires MTSDF. The experimental mode is
+provided for comparison without a claim of verified accuracy or performance superiority.
 
 For MTSDF, RGB stores corner-preserving signed perpendicular/pseudo distances; alpha stores
 true signed Euclidean distance to the reconstructed subpixel contour, not to a binary bitmap.
@@ -156,7 +220,25 @@ zero normalization selects the automatic range). Alpha is data, not transparency
 Position, Contour Offset, separate inside/outside ranges, Inverted, Profile and the palette do not remap these channels.
 Sharp, Bevel, Diamond, Square and MTSDF first fit straight flanks to multiple raw isocontour samples using
 orthogonal least squares. Recovery requires reliable flanks and bounded deviation: sampled
-fit-window deviation is at most 0.6 pixels; tip distance is at most `min(2 px, 0.6 px / cosHalfTurn)`.
+flank deviation is at most 0.6 pixels. Acute tips may use independently straight
+16-pixel flanks agreeing with the base 8-pixel fits; these take priority over short fits.
+Only their tiny AA cap has a `sqrt(0.5)`-pixel engineering allowance; tip displacement
+stays within measured base support when `sqrt(0.5) px / cosHalfTurn` fits in it.
+Otherwise `min(2 px, 0.6 px / cosHalfTurn)` applies. This is not an exact raster inverse.
+Enclosed holes are protected before
+union by rejecting a conflicting local corner or simplification. Negative rings outside
+all filled outlines are separate NonZero components, not enclosed holes.
+Supported concave fits may minimally shift one wall outward within the existing
+0.6-pixel envelope to preserve a nearby hole, then recheck finite-tip/topology bounds.
+A merged convex AA cap receives one bounded enclosure pass using arc samples and
+exact union vertices. Tiny closed components (perimeter <4 pixels) keep their finite
+geometry but do not generate remote miter/pseudo extensions. Sharp/MTSDF also require
+2 pixels of straight support on both sides of an endpoint after union (direction dot >=0.995).
+Angular amplification has a separate safety cap of 4, approximately a 29-degree ideal tip.
+Unsupported or more acute endpoints use finite segment distance. Requested `miterLimit`
+values above 4 remain stored but cannot override that cap. Such corners may round.
+Sharp selects the nearest finite owner within each contour before applying an angular
+join, then combines contour fields; unrelated islands cannot cause a premature owner switch.
 Uncertain corners are preserved. All five segment modes then use fixed 0.25-pixel simplification;
 paths with perimeter below 4 pixels bypass simplification. Closed filled contours are normalized
 by NonZero union at 1e-6-pixel precision before generating joins or RGB edge colors.
@@ -165,10 +247,12 @@ filled boundary. Open and zero-area threshold contours bypass filled-region unio
 Post-union cleanup uses a 0.05-pixel budget and rejects replacement chords crossing nonincident
 original or replacement boundaries or changing contour containment/contact states. MTSDF resolves each contour's RGB median before combining
 contours, avoiding cross-contour channel mixing; alpha remains nearest true Euclidean distance.
-Away from the contour, incompatible RGB color transitions are corrected for bilinear sampling,
-preserving each texel's scalar median and true-distance alpha. Near-boundary texels are unchanged;
+Away from the contour, a common-channel bound certifies safe RGB interpolation. Suspect
+cells receive nine checks against finite contour distance. Geometric sign/amplification
+errors fall back to true distance; color-only incompatibility retains the scalar median.
+Alpha is unchanged. Scalar MTSDF uses the corrected RGB median. Near-boundary texels are unchanged;
 their neighbouring cells may interpolate them with corrected far texels.
-Recovery can move the tip up to 2 pixels and alter subpixel detail; the result is not an exact
+Recovery has an angle- and support-dependent tip allowance and can alter subpixel detail; the result is not an exact
 original matte. The true distance in alpha refers to the
 reconstructed contour, not an exact original continuous curve. API patches reject a mismatched metric/encoding pair.
 The UI switches Multi Channel Data to Linear Data when choosing an algorithm other than MTSDF.
@@ -193,6 +277,10 @@ An omitted or empty family uses the machine's default font. Use a verified insta
 a particular appearance; font files are not included. Save prepares the appearance backup.
 For a fitted label, use Frame layout with `autoSize`, its minimum `fontSize` and maximum
 `maxFontSize`. Spacing fields are in em; `characterHorizontalScale` changes width and advance.
+`edgeMode` is `HintedAA` by default: antialiased glyphs with pixel-grid fitting for small text.
+Choose `Antialiased` for smooth glyphs without hinting, or `Pixel` for binary glyph coverage,
+snapped placement and nearest sampling by default. Explicit filters and FX can still soften Pixel
+output; it does not quantize the final alpha. The mode is included in the saved-appearance key.
 
 ```json
 {
@@ -207,6 +295,7 @@ For a fitted label, use Frame layout with `autoSize`, its minimum `fontSize` and
         "$type": "TextLayerBehaviour",
         "text": "ENERGY",
         "fontStyle": "Bold",
+        "edgeMode": "HintedAA",
         "layoutMode": "Frame",
         "frameSize": [192, 80],
         "fontSize": 24,
@@ -223,6 +312,10 @@ For a fitted label, use Frame layout with `autoSize`, its minimum `fontSize` and
 ```
 
 Point layout uses fixed `fontSize`; Frame settings are retained for later edits.
+`layoutOffset: [x,y]` translates the layout in local document pixels before rasterization
+without editing the layer Transform (X right, Y up; finite ±1000000 per axis, default `[0,0]`).
+Point/Frame layout handles edit this offset; switching Point/Frame preserves it.
+Frame resize changes `frameSize` and the local offset together, leaving the layer Transform unchanged.
 For defaults, limits and missing-font behavior see [Text and system fonts](../JSON_FORMAT.md#text-and-system-fonts).
 
 ## Paste, copy and export
@@ -489,7 +582,10 @@ Expose tiling through a normal enum `@param`. The one-argument function is uncha
 `LayerToLocal(uv)` converts canvas UV to the owning layer's local UV, including parent group transforms and perspective. Use it for procedural shapes that must follow the layer transform. `ApplyFX` UV and `SampleInput` remain canvas-space; do not pass local UV to `SampleInput`. The helper does not wrap or clamp coordinates.
 
 Available inputs include `_MainTex`, `_MainTex_TexelSize`, `_InputSize`, `_CanvasSize`
-(width, height, reciprocal width, reciprocal height), `_RenderScale`; `UnityCG.cginc` is already included.
+(width, height, reciprocal width, reciprocal height), `_RenderScale`, and `_PixelScale`;
+`UnityCG.cginc` is already included. `_PixelScale` is the document's logical-pixel multiplier,
+default `1`; texture dimensions, texel sizes and `_RenderScale` remain physical pixels.
+`_PixelScale` is a canvas-FX input, not an HLSL brush-tip input.
 Do not redeclare these or generated parameters/helpers. Prefer explicit parameters for predictable
 time-dependent FX. Unity time inputs such as `_Time`, `_SinTime`, `_CosTime`, `_TimeParameters` or
 `unity_DeltaTime` are allowed and do not block compilation, but WhimTex does not control their updates:
@@ -505,6 +601,8 @@ are never suppressed. Errors and warnings retain their respective severity even 
 // @param float _Scale = 1 [0 ..]
 // @param float _Bias = 0 [.. 10]
 // @param float _Amount = 10
+// @param px float _Radius = 3 [0 .. ~64]
+// @param px float2 _PixelOffset = (0, 0)
 // @param bool _IncludeAlpha = false
 // @param float2 _Offset = (0, 0)
 // @param float3 _Direction = (1, 0, 0)
@@ -520,6 +618,21 @@ are never suppressed. Errors and warnings retain their respective severity even 
 ```
 
 No semicolon on metadata lines. Ranges apply to floats only. Defaults must be finite.
+For canvas FX, the `px` modifier marks artistic lengths in logical document pixels. It supports `float`,
+`float2`, `float3` and `float4`, combined with `hidden` and `label(...)`; it cannot be combined
+with `seed`, enum, bool, color, normal, point or resource parameters. Every declaration of
+the same variable must agree on `px`. Stored values, UI values and declared ranges remain
+logical pixels; FX upload multiplies these numeric values by `_PixelScale` exactly once.
+Do not multiply marked parameters by `_PixelScale` again in HLSL. For unmarked custom
+calculations, use `_PixelScale` explicitly for artistic pixel lengths or grid spacing;
+keep physical texture indices, sampling precision and antialiasing separate.
+
+HLSL brush tips render into their own fixed-resolution texture. Their numeric lengths,
+including declarations marked `px` through the shared metadata parser, stay in that texture's
+own units and do not receive the document multiplier. Pixel Scale already scales the physical
+brush diameter when the texture is stamped; multiplying the tip's lengths again would scale
+it twice. Changing document Pixel Scale does not rebake or resize the stored brush-tip texture.
+
 `[min .. max]` clamps edits through that control. Put `~` before a boundary value to allow crossing it:
 `[0 .. ~2]` allows values above 2, `[~0 .. 2]` allows values below 0, and `[~0 .. ~2]` allows both.
 The slider always stays within 0..2; numeric input and label dragging obey only the hard boundaries.

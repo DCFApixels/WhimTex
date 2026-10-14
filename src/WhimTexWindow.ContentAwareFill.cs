@@ -215,10 +215,11 @@ namespace DCFApixels.WhimTex
                     fillBounds = GetFillBounds();
                     if (fillBounds.width == 0 || fillBounds.height == 0)
                         throw new InvalidOperationException("No pixels to fill. Turn off Invert Selection or reopen with a smaller selection.");
+                    int physicalSamplingDistance = owner.EffectivePaintDistance(samplingDistance);
                     RectInt sampleBounds = sampling == Sampling.WholeImage ? new RectInt(0, 0, canvasWidth, canvasHeight) :
                         sampling == Sampling.CustomSelection ? customBounds : Bounds(
-                            Math.Max(0, fillBounds.xMin - samplingDistance), Math.Max(0, fillBounds.yMin - samplingDistance),
-                            Math.Min(canvasWidth, fillBounds.xMax + samplingDistance), Math.Min(canvasHeight, fillBounds.yMax + samplingDistance));
+                            Math.Max(0, fillBounds.xMin - physicalSamplingDistance), Math.Max(0, fillBounds.yMin - physicalSamplingDistance),
+                            Math.Min(canvasWidth, fillBounds.xMax + physicalSamplingDistance), Math.Min(canvasHeight, fillBounds.yMax + physicalSamplingDistance));
                     workingBounds = Bounds(Math.Min(fillBounds.xMin, sampleBounds.xMin), Math.Min(fillBounds.yMin, sampleBounds.yMin),
                         Math.Max(fillBounds.xMax, sampleBounds.xMax), Math.Max(fillBounds.yMax, sampleBounds.yMax));
                     int w = workingBounds.width, h = workingBounds.height;
@@ -236,7 +237,7 @@ namespace DCFApixels.WhimTex
                     }
                     var input = new ContentAwareFill.Input { width = w, height = h, pixels = original, donors = donors, seed = seed, quality = (int)quality };
                     bool border = area == FillArea.InnerBorder, empty = transparentOnly;
-                    int width = borderWidth;
+                    int width = Math.Max(1, owner.EffectivePaintDistance(borderWidth));
                     cancellation = new CancellationTokenSource(); var token = cancellation.Token;
                     progressValue = 0;
                     task = Task.Run(() =>

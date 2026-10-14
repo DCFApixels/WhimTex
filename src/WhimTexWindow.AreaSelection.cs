@@ -15,6 +15,8 @@ namespace DCFApixels.WhimTex
         private AreaSelectionManipulator areaSelectionManipulator;
         private AreaSelectionOverlay areaSelectionOverlay;
         private SelectionCombine areaSelectionMode;
+        private enum SelectionEdgeMode { Aliased, Antialiased }
+        [SerializeField] private SelectionEdgeMode selectionEdgeMode = SelectionEdgeMode.Aliased;
         private enum MarqueeShape { Rectangle, Ellipse, UvIsland }
         [SerializeField] private MarqueeShape marqueeShape;
         private static AreaClipboard areaClipboard;
@@ -128,6 +130,15 @@ namespace DCFApixels.WhimTex
             var row = CreateCanvasSettingsRow();
             row.AddToClassList("whimtex-area-settings");
             BindCanvasSettingsRow(row, tool);
+            if (tool == CanvasTool.PolygonSelect)
+            {
+                var lasso = new EnumField(lassoMode) { name = "lassoMode", tooltip = "Polygonal places editable points; Freehand draws an outline until the mouse button is released." };
+                TwoChoiceDropdown.Attach(lasso);
+                lasso.AddToClassList("whimtex-shape-kind");
+                toolkitHeaderBindings.Track(lasso, () => (Enum)lassoMode);
+                lasso.RegisterValueChangedCallback(evt => SetLassoMode((LassoMode)evt.newValue));
+                row.Add(lasso);
+            }
             var mode = new EnumField(areaSelectionMode);
             TwoChoiceDropdown.Attach(mode);
             mode.AddToClassList("whimtex-area-mode");
@@ -135,6 +146,17 @@ namespace DCFApixels.WhimTex
             toolkitHeaderBindings.Track(mode, () => (Enum)areaSelectionMode);
             mode.RegisterValueChangedCallback(evt => areaSelectionMode = (SelectionCombine)evt.newValue);
             row.Add(mode);
+            var edges = new EnumField(selectionEdgeMode) { name = "selectionEdgeMode",
+                tooltip = "Selection edges. Aliased selects whole pixels; Antialiased gives boundary pixels partial coverage. Applies to the next selection." };
+            TwoChoiceDropdown.Attach(edges);
+            edges.AddToClassList("whimtex-shape-kind");
+            toolkitHeaderBindings.Track(edges, () => (Enum)selectionEdgeMode);
+            edges.RegisterValueChangedCallback(evt =>
+            {
+                selectionEdgeMode = (SelectionEdgeMode)evt.newValue;
+                toolkitHeaderBindings.Refresh();
+            });
+            row.Add(edges);
             row.Add(WhimTexUI.CreateButton("All", () => ChangeAreaSelection(s => s.All())));
             row.Add(WhimTexUI.CreateButton("Deselect", () => ChangeAreaSelection(s => s.Clear())));
             row.Add(WhimTexUI.CreateButton("Invert", () => ChangeAreaSelection(s => s.Invert())));
@@ -147,7 +169,11 @@ namespace DCFApixels.WhimTex
                 s.Active && s.Bounds.width > 0 && s.Bounds.height > 0));
             row.Add(contentFill);
             if (tool == CanvasTool.PolygonSelect)
-                row.Add(WhimTexUI.CreateButton("Close", () => areaSelectionManipulator?.CompletePolygon()));
+            {
+                var close = WhimTexUI.CreateButton("Close", () => areaSelectionManipulator?.CompletePolygon());
+                toolkitHeaderBindings.Add(() => close.EnableInClassList("whimtex-hidden", lassoMode == LassoMode.Freehand));
+                row.Add(close);
+            }
             var status = new Label();
             status.AddToClassList("whimtex-area-status");
             toolkitHeaderBindings.Add(() =>
@@ -278,7 +304,8 @@ namespace DCFApixels.WhimTex
                     WhimTexApi.ProceduralClipboard generated = WhimTexApi.ReadProceduralClipboard(clipboardText, activeDocument.width, activeDocument.height);
                     try
                     {
-                        bool resize = generated.HasCanvas && (activeDocument.width != generated.Document.width || activeDocument.height != generated.Document.height);
+                        bool resize = generated.HasCanvas && (activeDocument.width != generated.Document.width || activeDocument.height != generated.Document.height ||
+                            !HasCanvasLayers && activeDocument.GetPixelScale() != generated.Document.GetPixelScale());
                         if (resize && HasCanvasLayers)
                             resize = EditorUtility.DisplayDialog("Canvas size from JSON",
                                 $"Change canvas from {activeDocument.width} × {activeDocument.height} to {generated.Document.width} × {generated.Document.height}?\n\nKeep Current still pastes the layers without resizing the canvas.",

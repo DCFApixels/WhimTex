@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
     {
         private static void SetText(TextLayerBehaviour layer, JObject value)
         {
-            Keys(value, "text", "fontFamily", "fontStyle", "casing", "fontSize", "maxFontSize", "spacing", "characterHorizontalScale", "alignment", "layoutMode", "frameSize", "wrapping", "overflow", "justify", "autoSize", "color");
+            Keys(value, "text", "fontFamily", "fontStyle", "casing", "edgeMode", "fontSize", "maxFontSize", "spacing", "characterHorizontalScale", "alignment", "layoutMode", "layoutOffset", "frameSize", "wrapping", "overflow", "justify", "autoSize", "color");
             if (value["text"] != null)
             {
                 Require(value["text"].Type == JTokenType.String, "text must be a string.");
@@ -17,6 +17,7 @@ namespace DCFApixels.WhimTex
             layer.fontFamily = Text(value, "fontFamily", layer.fontFamily);
             layer.fontStyle = Enum(value, "fontStyle", layer.fontStyle);
             layer.casing = Enum(value, "casing", layer.casing);
+            layer.edgeMode = Enum(value, "edgeMode", layer.edgeMode);
             layer.fontSize = Number(value, "fontSize", layer.fontSize, 1, 2048);
             layer.maxFontSize = Number(value, "maxFontSize", layer.maxFontSize, 1, 2048);
             layer.characterHorizontalScale = Number(value, "characterHorizontalScale", layer.characterHorizontalScale, .01f, 10);
@@ -36,6 +37,7 @@ namespace DCFApixels.WhimTex
             layer.justify = Bool(value, "justify", layer.justify);
             layer.autoSize = Bool(value, "autoSize", layer.autoSize);
             if (value["frameSize"] != null) layer.frameSize = Vector(value["frameSize"], "frameSize");
+            if (value["layoutOffset"] != null) layer.layoutOffset = Vector(value["layoutOffset"], "layoutOffset");
             layer.Validate();
             if (value["color"] != null) layer.color = Color(value["color"]);
             layer.SetAlignment(layer.alignment, layer.justify);
@@ -43,11 +45,13 @@ namespace DCFApixels.WhimTex
         private static JObject TextSnapshot(TextLayerBehaviour layer) => new JObject
         {
             ["text"] = layer.text, ["fontFamily"] = layer.fontFamily, ["fontStyle"] = layer.fontStyle.ToString(), ["casing"] = layer.casing.ToString(),
+            ["edgeMode"] = layer.edgeMode.ToString(),
             ["fontSize"] = layer.fontSize, ["maxFontSize"] = layer.maxFontSize, ["alignment"] = layer.alignment.ToString(),
             ["characterHorizontalScale"] = layer.characterHorizontalScale,
             ["spacing"] = new JObject { ["character"] = layer.spacing.character, ["word"] = layer.spacing.word,
                 ["line"] = layer.spacing.line, ["paragraph"] = layer.spacing.paragraph },
             ["layoutMode"] = layer.layoutMode.ToString(), ["frameSize"] = new JArray(layer.frameSize.x, layer.frameSize.y),
+            ["layoutOffset"] = new JArray(layer.layoutOffset.x, layer.layoutOffset.y),
             ["wrapping"] = layer.wrapping.ToString(), ["overflow"] = layer.overflow.ToString(), ["justify"] = layer.justify, ["autoSize"] = layer.autoSize,
             ["color"] = new JArray(layer.color.r, layer.color.g, layer.color.b, layer.color.a)
         };

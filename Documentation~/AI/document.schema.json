@@ -89,6 +89,13 @@
           "minimum": 1,
           "maximum": 16384
         },
+        "pixelScale": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 16384,
+          "default": 1,
+          "description": "Logical pixel lengths multiplied once at rendering/painting. Does not change source texel indices, canvas buffer dimensions, antialiasing grids, normalized layer coordinates or UI pixels."
+        },
         "outputFilter": {
           "type": "string",
           "enum": [
@@ -329,6 +336,57 @@
         },
         "transform": {
           "$ref": "#/$defs/TextureTransform"
+        },
+        "sourceCanvasSize": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "default": [
+            0,
+            0
+          ],
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16384
+          },
+          "anyOf": [
+            {
+              "const": [
+                0,
+                0
+              ]
+            },
+            {
+              "items": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16384
+              }
+            }
+          ],
+          "description": "Source reference canvas dimensions retained by Crop. [0,0] uses the current canvas; otherwise both dimensions must be positive and their product at most 16,777,216. Keeps Noise, ordinary Pattern and uninitialized Drawing sources at their original pixel scale. Not a source-image resolution, crop rectangle or rendering cache."
+        },
+        "sourcePixelScale": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 16384,
+          "default": 0,
+          "description": "Source pixel-scale reference retained at the first canvas change; zero uses the current document pixelScale."
+        },
+        "sourceCanvasScale": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "default": [
+            1,
+            1
+          ],
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "description": "Per-source-axis physical pixel metric accumulated by Scale, including nested rotations and quarter turns. Perspective uses the Jacobian at the source centre. Crop and Orientation retain it. Multiplies sourceCanvasSize only for pixel-sized Pattern/Grain parameters; source buffers and dimensionless Noise retain their original basis."
         },
         "filterMode": {
           "type": "string",
@@ -1001,6 +1059,11 @@
         },
         "softMaximum": {
           "type": "boolean"
+        },
+        "pixelUnits": {
+          "type": "boolean",
+          "default": false,
+          "description": "Numeric @param px declaration; the retained logical value is multiplied by document pixelScale once when uploaded."
         },
         "minimum": {
           "type": "number",
@@ -3128,15 +3191,30 @@
             "Bevel",
             "Diamond",
             "Square",
-            "MTSDF"
+            "MTSDF",
+            "AAEDT",
+            "Contour",
+            "CornerFit",
+            "Spring",
+            "Rbf"
           ],
-          "description": "All six modes are antialiased. EuclideanAntialiased is the default Round AA, retaining ID 4 and the original crossing-seed EDT rather than distance to continuous contour segments. Sharp/Bevel are contour-offset fields, not Euclidean SDFs. Diamond is axis-dependent L1; Square is axis-dependent L-infinity. Sharp/Bevel/Diamond/Square/MTSDF use fixed 0.25-pixel contour simplification. Sharp/Bevel/Diamond/Square/MTSDF fit straight flanks to multiple raw isocontour samples by orthogonal least squares before simplification; sampled fit-window deviation <= 0.6 px and tip distance <= min(2 px, 0.6 px / cosHalfTurn). Uncertain flanks are preserved. Closed filled contours undergo NonZero union at 1e-6-pixel precision; holes and genuinely separate islands remain, while regions overlapping after reconstruction share one boundary. Paths with perimeter below 4 px bypass simplification; open and zero-area contours bypass region union. Post-union cleanup uses a 0.05-pixel budget and rejects chords crossing nonincident original or replacement boundaries or changing containment/contact states. MTSDF resolves each contour median before combining contours; alpha remains the nearest true distance. Away from the contour, incompatible RGB interpolation encodings are corrected while preserving per-texel median and alpha; near-boundary texels are unchanged. Reconstruction may alter subpixel detail and is not an exact original matte. MTSDF has corner-preserving RGB perpendicular/pseudo distances plus true signed Euclidean subpixel-contour distance in alpha. Old IDs 0..3 are removed."
+          "description": "All eleven modes are antialiased. EuclideanAntialiased is the default Round AA, retaining ID 4 and the original crossing-seed EDT rather than distance to continuous contour segments. Sharp/Bevel are contour-offset fields, not Euclidean SDFs. Diamond is axis-dependent L1; Square is axis-dependent L-infinity. Sharp/Bevel/Diamond/Square/MTSDF use fixed 0.25-pixel contour simplification. Sharp/Bevel/Diamond/Square/MTSDF fit straight flanks to multiple raw isocontour samples by orthogonal least squares before simplification; sampled flank deviation <= 0.6 px and supported acute caps have an engineering allowance <= sqrt(0.5) px and tip displacement within the measured 8-pixel base support, only when independently straight 16-pixel flanks agree with the base fits and sqrt(0.5) px / cosHalfTurn fits in that support; otherwise tip distance <= min(2 px, 0.6 px / cosHalfTurn). Uncertain flanks are preserved. Closed filled contours undergo NonZero union at 1e-6-pixel precision; holes and genuinely separate islands remain, while regions overlapping after reconstruction share one boundary. Paths with perimeter below 4 px bypass simplification; open and zero-area contours bypass region union. Post-union cleanup uses a 0.05-pixel budget and rejects chords crossing nonincident original or replacement boundaries or changing containment/contact states. MTSDF resolves each contour median before combining contours; alpha remains the nearest true distance. Away from the contour, a common-channel bound certifies safe RGB interpolation; suspect cells receive nine finite-contour distance checks. Geometric sign/amplification errors fall back to true distance, color-only incompatibility preserves the scalar median, and alpha is unchanged. Scalar MTSDF uses the corrected RGB median; near-boundary texels are unchanged. Reconstruction may alter subpixel detail and is not an exact original matte. MTSDF has corner-preserving RGB perpendicular/pseudo distances plus true signed Euclidean subpixel-contour distance in alpha. Old IDs 0..3 are removed. Supported concave fits may minimally shift one wall outward within the existing 0.6-pixel envelope to preserve a nearby hole, then recheck finite-tip/topology bounds. After a component merge, one bounded convex-cap enclosure pass checks arc samples and exact unsampled union vertices, without another 0.25-pixel reduction. Closed components with perimeter below 4 pixels keep finite geometry but do not generate distant Sharp/Bevel miter or MTSDF pseudo extensions. Sharp/MTSDF endpoint extensions require at least 2 pixels of straight support on both flanks after union (successive direction dot >= 0.995), with angular amplification capped at 4. Unsupported or above-cap endpoints use finite segment distance, even inside a large merged contour. Sharp resolves finite ownership within each contour before combining contour fields. Very acute or uncertain corners can round; requested Miter Limit above 4 cannot override raster safety. This is a bounded raster reconstruction, not an exact inverse. AAEDT (ID 10, UI AAEDT + 8SED) is an experimental anti-aliased Euclidean sweep-and-update transform with 8-neighbor vector propagation, adapted from Stefan Gustavson edtaa3 in a portable Burst job. It estimates the raster boundary; wide external contours remain round. It bypasses segment reconstruction and sharp/miter extensions; miterLimit and SDF contourMergeDistance are retained and validated but ignored. Source alpha (or the selected source channel) is assumed to be area coverage of a crisp edge, sampled with a box filter; blur, feather and arbitrary opacity do not give exact geometry. For coverage a in 0..1 and normalized byte threshold t=threshold/255, 0<t<1 uses c=0.5*a/t when a<=t, else c=0.5+0.5*(a-t)/(1-t). This monotonic piecewise remap sends t to 0.5 and preserves 0/1 endpoints. Thresholds 0 and 255 use binary coverage: 1 only when the selected byte-range source value exceeds threshold, otherwise 0. Outline uses fixed threshold 128. SDF supports Gradient/LinearData; MultiChannelData remains MTSDF-only. The default Round AA is unchanged. No accuracy or performance superiority is claimed. Contour (ID 11, UI Contour AA) is an experimental Euclidean distance field to finite straight segments extracted by raw marching squares from alpha or the selected source channel. Threshold crossings are linearly interpolated to subpixel endpoints. It applies no contour fitting, smoothing, simplification, corner recovery, merge/union, miter extension or MSDF channel construction. Expanded corners round. It measures the current raster threshold boundary and does not restore lost detail. It is a separate algorithm, not an AAEDT modification or a sharp-miter mode. It uses the existing source-channel, threshold, SourceEdges, offset and rendering wrapper; SDF exposes threshold and Outline uses fixed byte threshold 128. miterLimit and SDF contourMergeDistance are retained and validated but ignored. SDF supports Gradient/LinearData; MultiChannelData remains MTSDF-only. Quality comparison is experimental, with no guaranteed improvement across all inputs. Round AA remains the default at ID 4; AAEDT remains ID 10 and all existing modes are unchanged. CornerFit (ID 12, UI Corner Fit AA) and Spring (ID 13, UI Spring Simulation) are separate experimental raster-only scalar modes for SDF and Outline. CornerFit starts with raw Contour geometry, fits sides over multiple pixels and verifies candidate corners by local AA re-rasterization. Spring first applies automatic spring relaxation to the raw contour, inspired by Matusovic, Parakkat and Eisemann, Interactive Depixelization of Pixel Art through Spring Simulation (2023), DOI 10.1111/cgf.14743, then uses the same AA-tested corner proposals. The paper concerns interactive depixelization, not SDF generation; Spring is not the full interactive tool or a C++ replica. Both reject intersecting or unconfirmed extensions and retain the raw contour for ambiguous cases. Only AA-verified corners receive bounded sharp joins with continuous, local endpoint domains. miterLimit (finite 1..64, default 4) bevels excessive validated joins; it does not validate uncertain corners. Threshold is supported through coverage remapping of the selected source channel; soft/noncoverage masks give an approximate fit. SDF uses its threshold; Outline uses fixed byte threshold 128. Both use the existing scalar downstream controls and support Gradient/LinearData, never MultiChannelData. SDF contourMergeDistance is validated and retained but ignored. CornerFit is an experimental hybrid, not a known guaranteed reconstruction algorithm; neither mode promises universal sharp recovery. Round AA remains the default at ID 4 and the previous eight modes are unchanged. Rbf (ID 14, UI RBF Your SDF) is an experimental 2D adaptation of Cheng and Gingold, arXiv:2609.06209v3 with a WhimTex sharp-offset stage. It seeds cubic RBF interpolation with raster-derived Contour distances, refines implied tangent-circle points in fixed overlapping patches, extracts a half-pixel zero contour, fits supported flanks and normalizes closed regions, then applies experimental unrestricted sharp joins. Fractional contour points are passed directly, without re-rasterizing a mask. This is not the authors' full implementation or a Euclidean distance field. RBF omits angle and flank-support caps, nearest-boundary ownership and miter beveling; extra rays and overlaps may appear. Numerical degeneracy and contour-validity checks remain. Rounded input or recovered contour segments are not guaranteed to become sharp. Contour Merge and Miter Limit are ignored. Max Distance remaps the retained scalar field; Changing the retained Miter Limit value does not rebuild RBF geometry or distance. Source or threshold changes reconstruct it. No universal corner-recovery or quality advantage is claimed. Refinement is limited to 16,777,216 samples; one-dimensional input uses Round AA. Gradient/LinearData are supported; MultiChannelData remains MTSDF-only. Current prototype override: sharpMode (Corner Mode) applies to Sharp, MTSDF, CornerFit, Spring and Rbf. Unrestricted is the default and preserves the unguarded prototype. GuardedSharp restores support and verified-corner eligibility, Sharp finite ownership, MTSDF per-contour channels and sign/seam correction, without fixed angular/amplification rounding caps. Invalid or unsupported corners may still use finite distance. Both retain the same contour preparation. Miter Limit bevels scalar joins only in GuardedSharp and is ignored by MTSDF. Other algorithms retain but ignore sharpMode. This supersedes earlier fixed-cap/correction descriptions.",
+          "default": "EuclideanAntialiased"
+        },
+        "sharpMode": {
+          "type": "string",
+          "enum": [
+            "Unrestricted",
+            "GuardedSharp"
+          ],
+          "default": "Unrestricted",
+          "description": " Current prototype override: sharpMode (Corner Mode) applies to Sharp, MTSDF, CornerFit, Spring and Rbf. Unrestricted is the default and preserves the unguarded prototype. GuardedSharp restores support and verified-corner eligibility, Sharp finite ownership, MTSDF per-contour channels and sign/seam correction, without fixed angular/amplification rounding caps. Invalid or unsupported corners may still use finite distance. Both retain the same contour preparation. Miter Limit bevels scalar joins only in GuardedSharp and is ignored by MTSDF. Other algorithms retain but ignore sharpMode. This supersedes earlier fixed-cap/correction descriptions."
         },
         "miterLimit": {
           "type": "number",
           "minimum": 1,
           "maximum": 64,
-          "description": "Finite dimensionless miter-length limit relative to contour offset, range 1..64, default 4. Sharp only; excessive joins are beveled. Same field on SDF and Outline."
+          "description": "Finite 1..64, default 4. In GuardedSharp, bevels joins above this ratio for Sharp, CornerFit, Spring and Rbf. Ignored in Unrestricted and MTSDF. No separate fixed angular rounding cap."
         },
         "sourceChannel": {
           "type": "string",
@@ -3252,15 +3330,37 @@
             "Bevel",
             "Diamond",
             "Square",
-            "MTSDF"
+            "MTSDF",
+            "AAEDT",
+            "Contour",
+            "CornerFit",
+            "Spring",
+            "Rbf"
           ],
-          "description": "All six modes are antialiased. EuclideanAntialiased is the default Round AA, retaining ID 4 and the original crossing-seed EDT rather than distance to continuous contour segments. Sharp/Bevel are contour-offset fields, not Euclidean SDFs. Diamond is axis-dependent L1; Square is axis-dependent L-infinity. Sharp/Bevel/Diamond/Square/MTSDF use fixed 0.25-pixel contour simplification. Sharp/Bevel/Diamond/Square/MTSDF fit straight flanks to multiple raw isocontour samples by orthogonal least squares before simplification; sampled fit-window deviation <= 0.6 px and tip distance <= min(2 px, 0.6 px / cosHalfTurn). Uncertain flanks are preserved. Closed filled contours undergo NonZero union at 1e-6-pixel precision; holes and genuinely separate islands remain, while regions overlapping after reconstruction share one boundary. Paths with perimeter below 4 px bypass simplification; open and zero-area contours bypass region union. Post-union cleanup uses a 0.05-pixel budget and rejects chords crossing nonincident original or replacement boundaries or changing containment/contact states. MTSDF resolves each contour median before combining contours; alpha remains the nearest true distance. Away from the contour, incompatible RGB interpolation encodings are corrected while preserving per-texel median and alpha; near-boundary texels are unchanged. Reconstruction may alter subpixel detail and is not an exact original matte. MTSDF has corner-preserving RGB perpendicular/pseudo distances plus true signed Euclidean subpixel-contour distance in alpha. Old IDs 0..3 are removed."
+          "description": "All eleven modes are antialiased. EuclideanAntialiased is the default Round AA, retaining ID 4 and the original crossing-seed EDT rather than distance to continuous contour segments. Sharp/Bevel are contour-offset fields, not Euclidean SDFs. Diamond is axis-dependent L1; Square is axis-dependent L-infinity. Sharp/Bevel/Diamond/Square/MTSDF use fixed 0.25-pixel contour simplification. Sharp/Bevel/Diamond/Square/MTSDF fit straight flanks to multiple raw isocontour samples by orthogonal least squares before simplification; sampled flank deviation <= 0.6 px and supported acute caps have an engineering allowance <= sqrt(0.5) px and tip displacement within the measured 8-pixel base support, only when independently straight 16-pixel flanks agree with the base fits and sqrt(0.5) px / cosHalfTurn fits in that support; otherwise tip distance <= min(2 px, 0.6 px / cosHalfTurn). Uncertain flanks are preserved. Closed filled contours undergo NonZero union at 1e-6-pixel precision; holes and genuinely separate islands remain, while regions overlapping after reconstruction share one boundary. Paths with perimeter below 4 px bypass simplification; open and zero-area contours bypass region union. Post-union cleanup uses a 0.05-pixel budget and rejects chords crossing nonincident original or replacement boundaries or changing containment/contact states. MTSDF resolves each contour median before combining contours; alpha remains the nearest true distance. Away from the contour, a common-channel bound certifies safe RGB interpolation; suspect cells receive nine finite-contour distance checks. Geometric sign/amplification errors fall back to true distance, color-only incompatibility preserves the scalar median, and alpha is unchanged. Scalar MTSDF uses the corrected RGB median; near-boundary texels are unchanged. Reconstruction may alter subpixel detail and is not an exact original matte. MTSDF has corner-preserving RGB perpendicular/pseudo distances plus true signed Euclidean subpixel-contour distance in alpha. Old IDs 0..3 are removed. Supported concave fits may minimally shift one wall outward within the existing 0.6-pixel envelope to preserve a nearby hole, then recheck finite-tip/topology bounds. After a component merge, one bounded convex-cap enclosure pass checks arc samples and exact unsampled union vertices, without another 0.25-pixel reduction. Closed components with perimeter below 4 pixels keep finite geometry but do not generate distant Sharp/Bevel miter or MTSDF pseudo extensions. Sharp/MTSDF endpoint extensions require at least 2 pixels of straight support on both flanks after union (successive direction dot >= 0.995), with angular amplification capped at 4. Unsupported or above-cap endpoints use finite segment distance, even inside a large merged contour. Sharp resolves finite ownership within each contour before combining contour fields. Very acute or uncertain corners can round; requested Miter Limit above 4 cannot override raster safety. This is a bounded raster reconstruction, not an exact inverse. AAEDT (ID 10, UI AAEDT + 8SED) is an experimental anti-aliased Euclidean sweep-and-update transform with 8-neighbor vector propagation, adapted from Stefan Gustavson edtaa3 in a portable Burst job. It estimates the raster boundary; wide external contours remain round. It bypasses segment reconstruction and sharp/miter extensions; miterLimit and SDF contourMergeDistance are retained and validated but ignored. Source alpha (or the selected source channel) is assumed to be area coverage of a crisp edge, sampled with a box filter; blur, feather and arbitrary opacity do not give exact geometry. For coverage a in 0..1 and normalized byte threshold t=threshold/255, 0<t<1 uses c=0.5*a/t when a<=t, else c=0.5+0.5*(a-t)/(1-t). This monotonic piecewise remap sends t to 0.5 and preserves 0/1 endpoints. Thresholds 0 and 255 use binary coverage: 1 only when the selected byte-range source value exceeds threshold, otherwise 0. Outline uses fixed threshold 128. SDF supports Gradient/LinearData; MultiChannelData remains MTSDF-only. The default Round AA is unchanged. No accuracy or performance superiority is claimed. Contour (ID 11, UI Contour AA) is an experimental Euclidean distance field to finite straight segments extracted by raw marching squares from alpha or the selected source channel. Threshold crossings are linearly interpolated to subpixel endpoints. It applies no contour fitting, smoothing, simplification, corner recovery, merge/union, miter extension or MSDF channel construction. Expanded corners round. It measures the current raster threshold boundary and does not restore lost detail. It is a separate algorithm, not an AAEDT modification or a sharp-miter mode. It uses the existing source-channel, threshold, SourceEdges, offset and rendering wrapper; SDF exposes threshold and Outline uses fixed byte threshold 128. miterLimit and SDF contourMergeDistance are retained and validated but ignored. SDF supports Gradient/LinearData; MultiChannelData remains MTSDF-only. Quality comparison is experimental, with no guaranteed improvement across all inputs. Round AA remains the default at ID 4; AAEDT remains ID 10 and all existing modes are unchanged. CornerFit (ID 12, UI Corner Fit AA) and Spring (ID 13, UI Spring Simulation) are separate experimental raster-only scalar modes for SDF and Outline. CornerFit starts with raw Contour geometry, fits sides over multiple pixels and verifies candidate corners by local AA re-rasterization. Spring first applies automatic spring relaxation to the raw contour, inspired by Matusovic, Parakkat and Eisemann, Interactive Depixelization of Pixel Art through Spring Simulation (2023), DOI 10.1111/cgf.14743, then uses the same AA-tested corner proposals. The paper concerns interactive depixelization, not SDF generation; Spring is not the full interactive tool or a C++ replica. Both reject intersecting or unconfirmed extensions and retain the raw contour for ambiguous cases. Only AA-verified corners receive bounded sharp joins with continuous, local endpoint domains. miterLimit (finite 1..64, default 4) bevels excessive validated joins; it does not validate uncertain corners. Threshold is supported through coverage remapping of the selected source channel; soft/noncoverage masks give an approximate fit. SDF uses its threshold; Outline uses fixed byte threshold 128. Both use the existing scalar downstream controls and support Gradient/LinearData, never MultiChannelData. SDF contourMergeDistance is validated and retained but ignored. CornerFit is an experimental hybrid, not a known guaranteed reconstruction algorithm; neither mode promises universal sharp recovery. Round AA remains the default at ID 4 and the previous eight modes are unchanged. Rbf (ID 14, UI RBF Your SDF) is an experimental 2D adaptation of Cheng and Gingold, arXiv:2609.06209v3 with a WhimTex sharp-offset stage. It seeds cubic RBF interpolation with raster-derived Contour distances, refines implied tangent-circle points in fixed overlapping patches, extracts a half-pixel zero contour, fits supported flanks and normalizes closed regions, then applies experimental unrestricted sharp joins. Fractional contour points are passed directly, without re-rasterizing a mask. This is not the authors' full implementation or a Euclidean distance field. RBF omits angle and flank-support caps, nearest-boundary ownership and miter beveling; extra rays and overlaps may appear. Numerical degeneracy and contour-validity checks remain. Rounded input or recovered contour segments are not guaranteed to become sharp. Contour Merge and Miter Limit are ignored. Max Distance remaps the retained scalar field; Changing the retained Miter Limit value does not rebuild RBF geometry or distance. Source or threshold changes reconstruct it. No universal corner-recovery or quality advantage is claimed. Refinement is limited to 16,777,216 samples; one-dimensional input uses Round AA. Gradient/LinearData are supported; MultiChannelData remains MTSDF-only. Current prototype override: sharpMode (Corner Mode) applies to Sharp, MTSDF, CornerFit, Spring and Rbf. Unrestricted is the default and preserves the unguarded prototype. GuardedSharp restores support and verified-corner eligibility, Sharp finite ownership, MTSDF per-contour channels and sign/seam correction, without fixed angular/amplification rounding caps. Invalid or unsupported corners may still use finite distance. Both retain the same contour preparation. Miter Limit bevels scalar joins only in GuardedSharp and is ignored by MTSDF. Other algorithms retain but ignore sharpMode. This supersedes earlier fixed-cap/correction descriptions.",
+          "default": "EuclideanAntialiased"
+        },
+        "sharpMode": {
+          "type": "string",
+          "enum": [
+            "Unrestricted",
+            "GuardedSharp"
+          ],
+          "default": "Unrestricted",
+          "description": " Current prototype override: sharpMode (Corner Mode) applies to Sharp, MTSDF, CornerFit, Spring and Rbf. Unrestricted is the default and preserves the unguarded prototype. GuardedSharp restores support and verified-corner eligibility, Sharp finite ownership, MTSDF per-contour channels and sign/seam correction, without fixed angular/amplification rounding caps. Invalid or unsupported corners may still use finite distance. Both retain the same contour preparation. Miter Limit bevels scalar joins only in GuardedSharp and is ignored by MTSDF. Other algorithms retain but ignore sharpMode. This supersedes earlier fixed-cap/correction descriptions."
         },
         "miterLimit": {
           "type": "number",
           "minimum": 1,
           "maximum": 64,
-          "description": "Finite dimensionless miter-length limit relative to contour offset, range 1..64, default 4. Sharp only; excessive joins are beveled. Same field on SDF and Outline."
+          "description": "Finite 1..64, default 4. In GuardedSharp, bevels joins above this ratio for Sharp, CornerFit, Spring and Rbf. Ignored in Unrestricted and MTSDF. No separate fixed angular rounding cap."
+        },
+        "contourMergeDistance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "default": 0,
+          "description": "Experimental SDF-only contour merge in current raster/render pixels, independent of distance remap width. Finite 0..2 inclusive; default 0 disables it. Applies only to Sharp and MTSDF; other modes retain but ignore it, with the same validation. One pass merges disjoint consecutive-vertex pairs within one contour, shortest eligible pairs first, to their midpoints. Each pair is within the requested distance; each original vertex is used at most once. Never merges different loops or builds multi-vertex clusters. A topology conflict rolls back the whole batch. Existing safety protections remain. May shift short details and does not guarantee restored sharpness."
         },
         "sourceChannel": {
           "type": "string",
@@ -3275,7 +3375,8 @@
         "threshold": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 255
+          "maximum": 255,
+          "description": "Byte threshold 0..255. In AAEDT, normalize to t=threshold/255 and remap coverage monotonically so t maps to 0.5 while 0/1 remain unchanged. Extreme thresholds use binary coverage: 1 only when the selected byte-range source value exceeds threshold, otherwise 0. CornerFit and Spring also support the threshold through coverage remapping; fitting is approximate for soft masks or values that do not represent area coverage. Remaining modes keep their existing threshold behavior."
         },
         "distancePosition": {
           "type": "string",
@@ -3441,7 +3542,7 @@
             "Gradient",
             "MultiChannelData"
           ],
-          "description": "Gradient is the default. Gradient/LinearData use the RGB median for MTSDF before artistic remapping. MultiChannelData requires metric MTSDF and encodes raw linear RGBA as saturate(0.5 + 0.5*d/maxDistanceNormalization) (0 selects auto). Alpha is true signed Euclidean distance to the reconstructed subpixel contour, not coverage, binary-bitmap distance or an exact original matte. MTSDF uses constrained multi-sample corner fitting followed by fixed 0.25-pixel simplification. Sampled fit-window deviation <= 0.6 px; tip distance <= min(2 px, 0.6 px / cosHalfTurn). Closed filled contours undergo NonZero union before generating edge colors. Holes and genuinely separate islands remain; overlapping reconstructed regions share one boundary. Tiny paths bypass simplification; open and zero-area contours bypass union. MTSDF resolves each contour median before combining contours; alpha remains the nearest true distance. Away from the contour, incompatible RGB interpolation encodings are corrected while preserving per-texel median and alpha; near-boundary texels are unchanged. Use blendMode Overwrite for raw RGBA composition/export because Normal treats alpha as coverage and can alter data. Standalone ordinary FX/effect-layer inputs receive rendered RGBA. Position, Contour Offset, inside/outside ranges, Inverted, Profile and palette are bypassed."
+          "description": "Gradient is the default. Gradient/LinearData use the RGB median for MTSDF before artistic remapping. MultiChannelData requires metric MTSDF and encodes raw linear RGBA as saturate(0.5 + 0.5*d/maxDistanceNormalization) (0 selects auto). Alpha is true signed Euclidean distance to the reconstructed subpixel contour, not coverage, binary-bitmap distance or an exact original matte. MTSDF uses constrained multi-sample corner fitting followed by fixed 0.25-pixel simplification. Sampled flank deviation <= 0.6 px; supported acute caps have an engineering allowance <= sqrt(0.5) px and tip displacement within the measured 8-pixel base support, only when independently straight 16-pixel flanks agree with the base fits and sqrt(0.5) px / cosHalfTurn fits in that support; otherwise tip distance <= min(2 px, 0.6 px / cosHalfTurn). Closed filled contours undergo NonZero union before generating edge colors. Holes and genuinely separate islands remain; overlapping reconstructed regions share one boundary. Tiny paths bypass simplification; open and zero-area contours bypass union. MTSDF resolves each contour median before combining contours; alpha remains the nearest true distance. Away from the contour, a common-channel bound certifies safe RGB interpolation; suspect cells receive nine finite-contour distance checks. Geometric sign/amplification errors fall back to true distance, color-only incompatibility preserves the scalar median, and alpha is unchanged. Scalar MTSDF uses the corrected RGB median; near-boundary texels are unchanged. Use blendMode Overwrite for raw RGBA composition/export because Normal treats alpha as coverage and can alter data. Standalone ordinary FX/effect-layer inputs receive rendered RGBA. Position, Contour Offset, inside/outside ranges, Inverted, Profile and palette are bypassed. Supported concave fits may minimally shift one wall outward within the existing 0.6-pixel envelope to preserve a nearby hole, then recheck finite-tip/topology bounds. After a component merge, one bounded convex-cap enclosure pass checks arc samples and exact unsampled union vertices, without another 0.25-pixel reduction. Closed components with perimeter below 4 pixels keep finite geometry but do not generate distant Sharp/Bevel miter or MTSDF pseudo extensions. Sharp/MTSDF endpoint extensions require at least 2 pixels of straight support on both flanks after union (successive direction dot >= 0.995), with angular amplification capped at 4. Unsupported or above-cap endpoints use finite segment distance, even inside a large merged contour. Sharp resolves finite ownership within each contour before combining contour fields. Very acute or uncertain corners can round; requested Miter Limit above 4 cannot override raster safety. This is a bounded raster reconstruction, not an exact inverse. Current prototype override: sharpMode (Corner Mode) applies to Sharp, MTSDF, CornerFit, Spring and Rbf. Unrestricted is the default and preserves the unguarded prototype. GuardedSharp restores support and verified-corner eligibility, Sharp finite ownership, MTSDF per-contour channels and sign/seam correction, without fixed angular/amplification rounding caps. Invalid or unsupported corners may still use finite distance. Both retain the same contour preparation. Miter Limit bevels scalar joins only in GuardedSharp and is ignored by MTSDF. Other algorithms retain but ignore sharpMode. This supersedes earlier fixed-cap/correction descriptions."
         },
         "gradient": {
           "anyOf": [
@@ -3790,6 +3891,16 @@
             "SmallCaps"
           ]
         },
+        "edgeMode": {
+          "type": "string",
+          "enum": [
+            "HintedAA",
+            "Antialiased",
+            "Pixel"
+          ],
+          "default": "HintedAA",
+          "description": "Glyph rasterization: HintedAA (default) uses grid-fitted antialiasing; Antialiased uses antialiasing without hinting; Pixel uses binary glyph coverage, snapped glyph placement and nearest sampling by default. Explicit filtering and FX can soften Pixel output; this is not final-alpha quantization. The mode is part of the saved-appearance key."
+        },
         "fontSize": {
           "type": "number",
           "minimum": 1,
@@ -3828,6 +3939,21 @@
             "Point",
             "Frame"
           ]
+        },
+        "layoutOffset": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
+          },
+          "default": [
+            0,
+            0
+          ],
+          "description": "Layout translation in local document pixels before rasterization, independent of the layer transform. Preserved across Point/Frame switches."
         },
         "frameSize": {
           "type": "array",
@@ -3908,6 +4034,13 @@
             "minimum": -3.40282347E+38,
             "maximum": 3.40282347E+38
           }
+        },
+        "fallbackPixelScale": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 16384,
+          "default": 1,
+          "description": "Pixel scale of the retained font fallback bitmap. Missing-font rendering rescales its placement by current pixelScale/reference without changing retained typography."
         },
         "recoveryId": {
           "type": [

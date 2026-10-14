@@ -18,6 +18,8 @@ If you try to paint on another layer type, the editor offers to convert it first
 
 A small cross marks the brush center when its outline becomes large relative to Canvas View.
 
+The document's [Pixel Scale](preview.md#crop-extend-or-scale-the-canvas) multiplies brush sizes without changing their entered values or presets. Size 3 with Pixel Scale 2 paints at 6 canvas pixels. Changing the multiplier affects new strokes; existing painted pixels remain in their source texture until the image is scaled.
+
 ## Shape the stroke
 
 | Control | What it changes |

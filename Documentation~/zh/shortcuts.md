@@ -39,12 +39,19 @@ next_page: "zh/automation.md"
 | 按住 `Alt`，用画笔、铅笔或填充点击/拖动 | 在屏幕任意位置拾取可见颜色；松开 `Alt` 返回该工具。 |
 | 使用画笔/铅笔时按 `RMB` | 临时擦除。 |
 | `U` · 使用形状时 `Shift`-拖动 | 形状工具 · 等比 / 45° 直线角度。 |
+| `C` · 使用 Crop 时按 `Enter` / `Escape` | 当前 Scale/Resize 模式的裁剪工具 · 应用 / 重置预览（先取消当前拖动）。 |
+| 拖动 Crop 角点时按 `Shift` | 保持裁剪框比例。 |
+| 使用 Crop: Resize 时按方向键 · 按住 `Shift` | 将裁剪框移动一个像素 · 十个像素。 |
+| 使用 Crop: Scale 时按方向键 · 按住 `Shift` | 将预览宽度/高度调整一个像素 · 十个像素。 |
+| `Q` | 切换到上一个工具；Crop 会记住 Scale/Resize 模式。 |
 | 绘制时 `Shift`-拖动 / `Shift`-点击 | 轴向直线 / 连接端点。 |
 | `Ctrl`-点击缩略图/组的箭头 | 选择透明通道。 |
 | `Ctrl+C` / `Ctrl+Shift+C` / `Ctrl+V` | 复制所选图层（或所选像素）/ 复制合并像素 / 粘贴，包括在窗口之间。 |
 | `Ctrl+A` / `Ctrl+D` / `Ctrl+Shift+I` | 全选 / 取消选择 / 反选区域。 |
 | 使用选区工具时按 `Shift` / `Alt` / `Shift+Alt` | 相加 / 相减 / 相交。 |
-| 使用套索时按 `Enter` / `Backspace` / `Escape` | 闭合 / 删除顶点 / 取消。 |
+| `L` | 返回所选 Polygonal/Freehand 套索模式。 |
+| 使用 Polygonal Lasso 时按 `Enter` / `Backspace` / `Escape` | 闭合 / 删除顶点 / 取消。 |
+| 使用 Freehand Lasso 时拖动并松开 / 按 `Escape` | 绘制并应用闭合选区 / 取消当前轮廓。 |
 | `MMB`-拖动 / 鼠标滚轮 | 在任意工具下平移 / 缩放。 |
 | `Shift+MMB`-拖动 | 在任意工具下旋转视图；`Ctrl` 会绕过角度吸附。 |
 | 使用缩放时 `Alt`-点击 | 缩小。 |

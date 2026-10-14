@@ -130,9 +130,13 @@ namespace DCFApixels.WhimTex
 
         private void CancelCanvasZoomGesture()
         {
+            if (areaSelectionManipulator?.IsFreehandDrawing == true) areaSelectionManipulator.Cancel();
+            lassoPicker?.Cancel();
+            cropManipulator?.CancelGesture();
             canvasGuideManipulator?.Cancel();
             shapePicker?.Cancel();
             marqueePicker?.Cancel();
+            cropPicker?.Cancel();
             shapeManipulator?.Cancel();
             canvasZoomManipulator?.Cancel();
         }
@@ -215,9 +219,10 @@ namespace DCFApixels.WhimTex
                 owner.CancelCanvasEyedropper();
                 owner.canvasGuideManipulator?.Cancel();
                 owner.shapeManipulator?.Cancel();
+                owner.cropManipulator?.CancelGesture();
                 owner.FinishCanvasTransform();
                 owner.FinishPaintingStroke();
-                if (owner.areaSelectionManipulator?.RectangleDragging == true)
+                if (owner.areaSelectionManipulator?.RectangleDragging == true || owner.areaSelectionManipulator?.IsFreehandDrawing == true)
                     owner.areaSelectionManipulator.Cancel();
                 owner.Focus();
                 target.Focus();
@@ -239,8 +244,10 @@ namespace DCFApixels.WhimTex
                     float.IsNaN(evt.delta.y) || float.IsInfinity(evt.delta.y)) return;
                 WhimTexUI.ConsumeEvent(evt);
                 owner.canvasGuideManipulator?.Cancel();
+                if (owner.areaSelectionManipulator?.IsFreehandDrawing == true) owner.areaSelectionManipulator.Cancel();
                 if (IsDragging && !panning) Cancel();
                 owner.shapeManipulator?.Cancel();
+                owner.cropManipulator?.CancelGesture();
                 owner.FinishCanvasTransform();
                 owner.FinishPaintingStroke();
                 CanvasElement canvas = owner.toolkitCanvas;

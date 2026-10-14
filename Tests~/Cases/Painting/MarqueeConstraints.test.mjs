@@ -28,12 +28,12 @@ context.case("MarqueeConstraints original assertion inputs and source contracts"
       assert.equal(Math.abs(value.x-start.x), Math.max(Math.abs(x), Math.abs(y)));
       checks++;
   }
-  const update = body('private void UpdateCurrent(', 'private void KeyDown(')
+  const update = body('private void UpdateCurrent(', 'private void SetCurrent(')
       .replace(/\b(pointerPosition|shiftStartsCombine|Current|RectangleDragging|Start)\b/g, 'state.$1');
-  const apply = new Function('state', 'position', 'shift', 'control', 'CanvasPoint', 'ConstrainMarquee', 'owner', update);
+  const apply = new Function('state', 'position', 'shift', 'control', 'SetCurrent', 'ConstrainMarquee', 'owner', update);
   const state = {Start:new Vector2(0,0), RectangleDragging:true, shiftStartsCombine:false};
   const point = new Vector2(9, 4);
-  const updateState = shift => apply(state, point, shift, true, p=>p,
+  const updateState = shift => apply(state, point, shift, true, p=>{state.pointerPosition=p; state.Current=p;},
       (a,b)=>constrain(a,b,Vector2), {areaSelectionOverlay:{MarkDirtyRepaint(){}}});
   updateState(true); assert.deepEqual(state.Current, new Vector2(9,9));
   updateState(false); assert.deepEqual(state.Current, point);
@@ -47,7 +47,7 @@ context.case("MarqueeConstraints original assertion inputs and source contracts"
       assert.ok(source.includes(`RegisterCallback<${event}Event>`));
       assert.ok(source.includes(`UnregisterCallback<${event}Event>`));
   }
-  assert.match(read('WhimTexWindow.Tools.cs'), /tool == CanvasTool.Shape \|\| tool == CanvasTool.RectangleSelect\)\s*button.Add\(new ToolDropdownMarker\(\)\)/);
+  assert.match(read('WhimTexWindow.Tools.cs'), /tool == CanvasTool.Shape \|\| tool == CanvasTool.RectangleSelect \|\| tool == CanvasTool.Crop \|\| tool == CanvasTool.PolygonSelect\)\s*button.Add\(new ToolDropdownMarker\(\)\)/);
   assert.match(read('WhimTexSplitView.uss'), /\.whimtex-tool-dropdown-marker \{\s*position: absolute;\s*right: 1px;\s*bottom: 1px;/);
 
   context.facts.referenceChecks = checks;

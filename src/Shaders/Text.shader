@@ -12,8 +12,11 @@ Shader "Hidden/WhimTex/Text"
             #include "UnityCG.cginc"
             sampler2D _MainTex;
             float2 _TextCanvasSize;
+            float2 _TextBoldOffset;
+            float4 _TextClipRect;
+            int _TextPixel, _TextClip;
             struct appdata { float4 vertex : POSITION; float2 uv : TEXCOORD0; };
-            struct v2f { float4 vertex : SV_POSITION; float2 uv : TEXCOORD0; };
+            struct v2f { float4 vertex : SV_POSITION; float2 uv : TEXCOORD0; float2 pixel : TEXCOORD1; };
             v2f vert(appdata v)
             {
                 v2f o;
@@ -21,9 +24,22 @@ Shader "Hidden/WhimTex/Text"
                 #if UNITY_UV_STARTS_AT_TOP
                 o.vertex.y = -o.vertex.y;
                 #endif
-                o.uv = v.uv; return o;
+                o.uv = v.uv; o.pixel = v.vertex.xy; return o;
             }
-            float4 frag(v2f i) : SV_Target { float coverage = tex2D(_MainTex, i.uv).a; return coverage.xxxx; }
+            float4 frag(v2f i) : SV_Target
+            {
+                if (_TextClip) clip(min(min(i.pixel.x - _TextClipRect.x, _TextClipRect.z - i.pixel.x), min(i.pixel.y - _TextClipRect.y, _TextClipRect.w - i.pixel.y)));
+                float coverage = tex2D(_MainTex, i.uv).a;
+                if (_TextBoldOffset.x > 0)
+                {
+                    coverage = max(coverage, tex2D(_MainTex, i.uv + float2(_TextBoldOffset.x, 0)).a);
+                    coverage = max(coverage, tex2D(_MainTex, i.uv - float2(_TextBoldOffset.x, 0)).a);
+                    coverage = max(coverage, tex2D(_MainTex, i.uv + float2(0, _TextBoldOffset.y)).a);
+                    coverage = max(coverage, tex2D(_MainTex, i.uv - float2(0, _TextBoldOffset.y)).a);
+                }
+                if (_TextPixel) coverage = step(.5, coverage);
+                return coverage.xxxx;
+            }
             ENDCG
         }
         Pass

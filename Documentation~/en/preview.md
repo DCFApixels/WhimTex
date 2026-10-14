@@ -36,7 +36,7 @@ In Canvas View or Layer Preview, hold the left mouse button and drag across **R 
 
 ## Context tools
 
-Tools below the toolbar separator appear when they are relevant. Selecting a Gradient layer automatically selects **Gradient Handles** (the hand icon). You can switch back to a basic tool; it stays selected until you activate another layer. With multiple layers selected, context tools use the active, last-selected layer.
+Tools below the toolbar separator appear when they are relevant. Selecting a Gradient layer automatically selects **Gradient Handles** (the hand icon), except while creating a gradient or using Crop. You can switch back to a basic tool; it stays selected until you activate another layer. With multiple layers selected, context tools use the active, last-selected layer.
 
 Enabling **UV** adds **UV Island Select** without switching tools. **Edit on Canvas** on an FX parameter adds one temporary hand tool at the bottom. Its tooltip and the Canvas View footer identify the parameter; editing another parameter replaces this tool.
 
@@ -80,6 +80,26 @@ and work across the edges: painting, erasing, filling and selections wrap to the
 The saved image size and layer transforms remain unchanged.
 See [seamless painting](symmetry.md).
 
+## Crop, extend or scale the canvas
+
+Choose **Crop** (`C`). Hold its toolbar button or drag it by 3 UI pixels to choose **Scale** or **Resize**, then release over the icon. You can also choose the mode in the tool settings. The button's icon and tooltip show the current mode; switching tools and returning with `C` or `Q` keeps that choice.
+
+**Resize** changes the canvas bounds while keeping the image's pixel size. Drag a corner or side handle to resize the frame, drag inside it to move it, or drag outside it to draw a new frame. The frame can extend beyond the current canvas. **X**, **Y**, **W** and **H** give exact placement: X and Y measure the frame's top-left corner from the current canvas's top-left corner, with negative positions extending it left or upward.
+
+**Scale** resizes the whole image to new canvas dimensions, including every layer, the area selection and guides. Drag the frame's corner or side handles to preview the result, or enter **W** and **H**. The frame's position only anchors the preview; its width and height determine the applied image size. X and Y are hidden, and dragging inside or outside the frame does not move it or create a new frame. Layers and their source pixels remain editable.
+
+Hold `Shift` while dragging a corner to preserve the frame's proportions; hold `Ctrl` to bypass snapping. Press **Apply** or `Enter` to apply the current mode. The frame is a preview until you apply it. **Reset** or `Escape` returns it to the current canvas dimensions; during a drag, `Escape` cancels that drag first. Changing modes resets the preview. Panning and zooming keep it in place.
+
+The **Flip Canvas Horizontal**, **Flip Canvas Vertical**, **Rotate Canvas Left 90°** and **Rotate Canvas Right 90°** icons in Crop affect the whole document immediately, including unselected layers. The rotation buttons turn it by 90° and swap the canvas width and height. The crop frame, area selection and guides follow the image. These actions are unavailable during a frame drag; their tooltips identify each icon. Use **Transform** for the corresponding actions on selected layers.
+
+In Resize mode, cropping hides content outside the new canvas without deleting layer pixels. Extending it reveals existing content outside its old bounds, with transparency where no layer contributes. Canvas-dependent procedural patterns and FX recalculate for the new bounds, so their appearance can change.
+
+The frame snaps to canvas edges and center, guides and guide intersections, and the current area selection's bounds. Selected layers also attract it by the combined bounds of their nontransparent content after FX, without counting their own Opacity or Visibility. These bounds follow the outermost pixels with nonzero alpha, leaving out transparent margins. The shared **Snap Radius (px)** controls attraction distance; hidden guides and guides with snapping disabled do not attract the frame.
+
+**Pixel Scale** sets how many canvas pixels occupy one logical pixel; its default is **1**. It scales pixel-sized strokes, text, brushes and effect distances while keeping their entered values unchanged. For example, a width of 3 occupies 6 canvas pixels when Pixel Scale is 2. Canvas dimensions, texture pixels and the screen's snapping radius keep their own pixel units.
+
+In **Scale**, **Auto** is enabled by default. It multiplies the applied Pixel Scale by the smaller width or height scale factor, for proportional and nonproportional changes alike: doubling the width and tripling the height doubles pixel sizes. Repeated draft edits always start from the applied document. Turn Auto off to enter a multiplier manually; **Resize** also allows manual entry. Pixel Scale and frame changes stay pending until **Apply**. **Reset** or idle `Escape` restores both to the applied document without changing Auto; after Apply, that result becomes the new reset point.
+
 ## Guides
 
 ### Create and edit guides
@@ -89,7 +109,7 @@ Drag from the ruler intersection to create both lines together. Cancelling or re
 The new line is parallel to the ruler even on a rotated canvas; afterwards it moves, zooms and rotates with the canvas.
 
 Drag an existing line to reposition it. Drop it back on either ruler or outside Canvas View to remove it; `Esc` cancels the drag.
-You can create guides from the rulers with any tool. Move existing guides with Layer Select, Zoom, or Transform outside its frame; temporary FX Edit on Canvas tools also support guides away from their handles. Transform handles and the inside of its frame take priority, including for multiple layers and temporary FX transforms; Point and Normal handles also take priority. Hold `Ctrl` to bypass the guide and use the active tool. Brushes, Pencil, Fill, Shape and area-selection tools ignore existing guides. The lines stay visible and draw below all tool handles.
+You can create guides from the rulers with any tool. Move existing guides with Layer Select, Zoom, or Transform outside its frame; temporary FX Edit on Canvas tools also support guides away from their handles. Transform handles and the inside of its frame take priority, including for multiple layers and temporary FX transforms; Point and Normal handles also take priority. Hold `Ctrl` to bypass the guide and use the active tool. Brushes, Pencil, Fill, Shape, Crop and area-selection tools ignore existing guides. The lines stay visible and draw below all tool handles.
 Click a guide to select it: arrow keys nudge it, `Shift` increases the step tenfold, and `Delete` removes it. Click elsewhere or press `Esc` to deselect. Double-click a guide to enter an exact **Position (px)** and **Angle (°)**. Angles are relative to the canvas: 0° is horizontal, 90° is vertical. For those two orientations, Position is the distance from the top or left edge; at other angles it is the signed perpendicular distance from the top-left corner.
 
 Right-click a guide to **Edit**, **Duplicate** or **Delete** it. Right-click either ruler for the shared controls:
@@ -129,6 +149,7 @@ In **User Settings → Guides & Snapping**, choose colors for **Aligned Guides**
 
 **Live Quality** defaults to **100%**. Your manually chosen value is remembered.
 Lower it in the footer if painting on a large image feels slow.
+Drag the **Live Quality** value horizontally, or double-click it to enter an exact percentage; `Enter`, `Tab` or leaving the field confirms it, and `Escape` cancels.
 Save and export still use full resolution.
 
 Ordinary non-painting preview is limited to 512 pixels. **Live Quality 100%** does not remove that limit.

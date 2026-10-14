@@ -35,7 +35,7 @@ namespace DCFApixels.WhimTex
             {
                 source = source, valid = valid, distance = distance, output = output, changed = changed,
                 color = standard ? HdrUtility.Saturate(HdrUtility.Safe(color)) : HdrUtility.Safe(color),
-                expand = Mathf.Clamp(expand, 0, 32), antialias = antialias, standard = standard
+                expand = Mathf.Clamp(expand, 0, Mathf.Max(width, height)), antialias = antialias, standard = standard
             }.Run();
             return changed[0] != 0;
         }

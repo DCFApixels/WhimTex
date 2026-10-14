@@ -13,6 +13,7 @@ namespace DCFApixels.WhimTex
         private const float DragThreshold = 3f;
         private const float FilledToneCompensation = .5f;
         private const float EmptyToneLift = 1f / 3f;
+        private const float EmptyToneLiftFadeRange = .25f;
         private static readonly CustomStyleProperty<Color> ToneBase =
             new CustomStyleProperty<Color>("--whimtex-slider-tone-base");
         private static readonly CustomStyleProperty<float> ToneContrast =
@@ -246,7 +247,7 @@ namespace DCFApixels.WhimTex
                 availabilityCheck.Resume();
             }
             evt.StopPropagation();
-            evt.PreventDefault();
+            focusController?.IgnoreEvent(evt);
         }
 
         private void OnPointerMove(PointerMoveEvent evt)
@@ -341,7 +342,6 @@ namespace DCFApixels.WhimTex
                 }
             }
             evt.StopPropagation();
-            evt.PreventDefault();
         }
 
         private void OnKeyUp(KeyUpEvent evt)
@@ -452,7 +452,9 @@ namespace DCFApixels.WhimTex
         {
             double span = (double)maximum - minimum;
             float fraction = span > 0d ? (float)((value - (double)minimum) / span) : 0f;
-            track.style.backgroundColor = OffsetTone(((1f - fraction) * EmptyToneLift - fraction) * toneContrast);
+            float emptyLift = EmptyToneLift * Mathf.Lerp(.5f, 1f,
+                Mathf.SmoothStep(0f, 1f, fraction / EmptyToneLiftFadeRange));
+            track.style.backgroundColor = OffsetTone(((1f - fraction) * emptyLift - fraction) * toneContrast);
             fill.style.backgroundColor = OffsetTone((1f - fraction * FilledToneCompensation) * toneContrast);
             fill.EnableInClassList(ClassName + "__fill--empty", fraction <= 0f);
             float width = input.contentRect.width;

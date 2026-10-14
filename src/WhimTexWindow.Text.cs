@@ -15,6 +15,7 @@ namespace DCFApixels.WhimTex
             public string fontFamily = "";
             public FontStyle fontStyle;
             public TextCasing casing;
+            public TextEdgeMode edgeMode = TextEdgeMode.HintedAA;
             public float fontSize = 64;
             public TextAnchor alignment = TextAnchor.UpperLeft;
             public bool justify;
@@ -85,7 +86,8 @@ namespace DCFApixels.WhimTex
                 if (editorFont != null) canvasTextInput.style.unityFontDefinition = FontDefinition.FromSDFFont(editorFont);
             }
             Rect bounds = text.GetLayoutBounds(activeDocument.width, activeDocument.height);
-            if (text.layoutMode == TextLayoutMode.Point) bounds.width = Mathf.Max(bounds.width + text.fontSize, text.fontSize * 3);
+            float pixelScale = text.Owner.GetPixelScale();
+            if (text.layoutMode == TextLayoutMode.Point) bounds.width = Mathf.Max(bounds.width + text.fontSize * pixelScale, text.fontSize * pixelScale * 3);
             var dimensions = new Vector2(activeDocument.width, activeDocument.height);
             TextureTransform transform = activeDocument.GetCanvasTransform(textEditingLayer);
             Vector2 View(Vector2 p)
@@ -101,7 +103,7 @@ namespace DCFApixels.WhimTex
             if (!TextPointFinite(origin) || !TextPointFinite(right) || !TextPointFinite(down) ||
                 !float.IsFinite(determinant) || Mathf.Abs(determinant) < .000001f || right.magnitude < .001f || down.magnitude < .001f)
             { canvasTextInput.EnableInClassList("whimtex-hidden", true); return; }
-            float fontSize = text.GetFontSize(activeDocument.width, activeDocument.height);
+            float fontSize = text.GetFontSize(activeDocument.width, activeDocument.height) * pixelScale;
             float horizontalScale = text.characterHorizontalScale;
             canvasTextInput.style.left = origin.x; canvasTextInput.style.top = origin.y;
             canvasTextInput.style.width = bounds.width / horizontalScale;
@@ -163,6 +165,10 @@ namespace DCFApixels.WhimTex
             var casing = new TextCasingField { name = "textToolCasing" }; row.Add(casing);
             toolkitHeaderBindings.Track(casing, () => textToolSettings.casing);
             casing.RegisterValueChangedCallback(e => ChangeTextToolSettings(settings => settings.casing = e.newValue));
+            var edges = new UnityEngine.UIElements.EnumField("Edges", textToolSettings.edgeMode) { name = "textToolEdgeMode" };
+            edges.AddToClassList("whimtex-view-field"); row.Add(edges);
+            toolkitHeaderBindings.Track(edges, () => (Enum)textToolSettings.edgeMode);
+            edges.RegisterValueChangedCallback(e => ChangeTextToolSettings(settings => settings.edgeMode = (TextEdgeMode)e.newValue));
             var alignment = new TextAlignmentField { name = "textToolAlignment" }; row.Add(alignment);
             alignment.SetCanJustify(true);
             toolkitHeaderBindings.Track(alignment, () => new TextAlignmentField.Settings(textToolSettings.alignment, textToolSettings.justify));
@@ -212,13 +218,17 @@ namespace DCFApixels.WhimTex
         {
             if (activeDocument == null) return;
             var settings = textToolSettings;
+            float pixelScale = activeDocument.GetPixelScale();
             var behaviour = new TextLayerBehaviour { text = "Text", fontFamily = settings.ResolvedFont ?? "", fontSize = settings.fontSize,
-                fontStyle = settings.fontStyle, casing = settings.casing, color = settings.color, alignment = settings.alignment,
+                fontStyle = settings.fontStyle, casing = settings.casing, edgeMode = settings.edgeMode, color = settings.color, alignment = settings.alignment,
                 layoutMode = frame ? TextLayoutMode.Frame : TextLayoutMode.Point, justify = settings.justify };
-            if (frame) behaviour.frameSize = new Vector2(Mathf.Clamp(Mathf.Abs(end.x - start.x), 1, 32768), Mathf.Clamp(Mathf.Abs(end.y - start.y), 1, 32768));
+            if (frame) behaviour.frameSize = new Vector2(Mathf.Clamp(Mathf.Abs(end.x - start.x) / pixelScale, 1, 32768),
+                Mathf.Clamp(Mathf.Abs(end.y - start.y) / pixelScale, 1, 32768));
             behaviour.SetAlignment(behaviour.alignment, behaviour.justify);
             var layer = new Layer(behaviour);
-            layer.transform.position = (frame ? (start + end) * .5f : start) - new Vector2(activeDocument.width, activeDocument.height) * .5f;
+            Vector2 position = (frame ? (start + end) * .5f : start) - new Vector2(activeDocument.width, activeDocument.height) * .5f;
+            if (frame) behaviour.SetLayoutOffset(position / pixelScale);
+            else layer.transform.position = position;
             if (behaviour.color.maxColorComponent > 1) { layer.colorRange = LayerColorRange.HDR; layer.blendRange = LayerBlendRange.HDR; }
             List<Layer> container = activeDocument.layers; int index = 0;
             if (insertionAnchor != null && activeDocument.TryFindLayer(insertionAnchor, out var selectedContainer, out int selectedIndex))
@@ -232,14 +242,21 @@ namespace DCFApixels.WhimTex
         {
             private readonly WhimTexWindow owner;
             private readonly VisualElement overlay = new VisualElement { pickingMode = PickingMode.Ignore };
-            private int pointer = -1, corner = -1;
+            private const int MoveHandle = 8;
+            private int pointer = -1, handle = -1;
             private Vector2 start, current, startView, dimensions;
             private WhimTexDocument document;
-            private Layer anchor, resized;
-            private TextLayerBehaviour resizedText;
+            private Layer anchor;
             private Rect originalRect;
             private TextureTransform original;
-            private Rect resizedRect;
+            private Layer moved;
+            private TextLayerBehaviour movedText;
+            private Vector2 moveOriginalOffset, moveLastOffset;
+            private Vector2 originalFrameSize, lastFrameSize;
+            private string moveLayoutKey;
+            private Vector2 moveAnchor;
+            private int moveUndoGroup = -1;
+            private float pixelScale = 1f;
             internal bool IsDragging => pointer >= 0;
             internal TextManipulator(WhimTexWindow owner)
             {
@@ -278,6 +295,35 @@ namespace DCFApixels.WhimTex
             private Vector2 Local(Vector2 point, TextureTransform transform) => Vector2.Scale(transform.Unmap(new Vector2(point.x / dimensions.x, point.y / dimensions.y), dimensions) - Vector2.one * .5f, dimensions);
             private Vector2 World(Vector2 local, TextureTransform transform) => Vector2.Scale(transform.Map(new Vector2(local.x / dimensions.x + .5f, local.y / dimensions.y + .5f), dimensions), dimensions);
             private static Vector2 Corner(Rect rect, int index) => new Vector2(index == 0 || index == 3 ? rect.xMin : rect.xMax, index < 2 ? rect.yMin : rect.yMax);
+            private static Vector2 FrameHandle(Rect rect, int index) => index < 4 ? Corner(rect, index) : index == MoveHandle ? rect.center :
+                (Corner(rect, index - 4) + Corner(rect, (index - 3) % 4)) * .5f;
+            private int HitFrame(Vector2 view, Rect rect, TextureTransform transform)
+            {
+                int hit = -1; float distance = 64;
+                for (int i = 0; i <= MoveHandle; i++)
+                {
+                    float candidate = (View(World(FrameHandle(rect, i), transform)) - view).sqrMagnitude;
+                    if (candidate < distance) { distance = candidate; hit = i; }
+                }
+                return hit;
+            }
+            internal bool TryGetCursor(Vector2 view, out MouseCursor cursor)
+            {
+                cursor = MouseCursor.Pan;
+                if (owner.textEditingLayer != null || owner.activeDocument == null ||
+                    !(owner.GetSelectedLayer()?.Behaviour is TextLayerBehaviour text) || !text.FontAvailable ||
+                    WhimTexApi.IsLayerContentLocked(owner.activeDocument, text.Owner)) return false;
+                if (IsDragging && !Valid) return false;
+                if (!IsDragging) dimensions = new Vector2(owner.activeDocument.width, owner.activeDocument.height);
+                var transform = owner.activeDocument.GetCanvasTransform(text.Owner);
+                if (!transform.ToMatrix(dimensions.x, dimensions.y).TryInverse(out _)) return false;
+                int hit = IsDragging ? handle : text.layoutMode == TextLayoutMode.Frame
+                    ? HitFrame(view, text.GetLayoutBounds((int)dimensions.x, (int)dimensions.y), transform)
+                    : (View(World(text.GetPointAnchor((int)dimensions.x, (int)dimensions.y), transform)) - view).sqrMagnitude <= 64 ? MoveHandle : -1;
+                if (hit < 0) return false;
+                cursor = hit == MoveHandle ? MouseCursor.MoveArrow : MouseCursor.ScaleArrow;
+                return true;
+            }
             private void Down(PointerDownEvent e)
             {
                 if (IsDragging || owner.canvasTool != CanvasTool.Text || owner.activeDocument == null || e.button != 0 || e.altKey ||
@@ -289,19 +335,30 @@ namespace DCFApixels.WhimTex
                 owner.FinishPaintingStroke(); owner.FinishCanvasTransform(); owner.Focus(); target.Focus();
                 owner.EndTextEditing(false);
                 document = owner.activeDocument; dimensions = new Vector2(document.width, document.height); anchor = owner.GetSelectedLayer();
+                pixelScale = document.GetPixelScale();
                 startView = e.localPosition; start = current = Point(startView, e.ctrlKey);
                 if (!TextPointFinite(start)) { Cancel(); return; }
-                corner = -1;
+                handle = -1;
                 if (!e.ctrlKey && anchor?.Behaviour is TextLayerBehaviour text && !WhimTexApi.IsLayerContentLocked(document, anchor))
                 {
                     original = document.GetCanvasTransform(anchor);
                     Rect rect = text.GetLayoutBounds(document.width, document.height);
-                    if (text.layoutMode == TextLayoutMode.Frame)
-                        for (int i = 0; i < 4; i++) if ((View(World(Corner(rect, i), original)) - startView).sqrMagnitude <= 64) { corner = i; break; }
-                    if (corner >= 0) { resized = anchor; resizedText = text; originalRect = resizedRect = rect; }
-                    else if (rect.Contains(Local(start, original))) { Cancel(); owner.FocusTextInput(false); WhimTexUI.ConsumeEvent(e); return; }
+                    if (text.FontAvailable && original.ToMatrix(dimensions.x, dimensions.y).TryInverse(out _))
+                        handle = text.layoutMode == TextLayoutMode.Frame ? HitFrame(startView, rect, original) :
+                            (View(World(text.GetPointAnchor(document.width, document.height), original)) - startView).sqrMagnitude <= 64 ? MoveHandle : -1;
+                    if (handle >= 0)
+                    {
+                        moved = anchor; movedText = text;
+                        originalRect = new Rect(rect.position / pixelScale, rect.size / pixelScale);
+                        originalFrameSize = lastFrameSize = text.frameSize;
+                        moveOriginalOffset = moveLastOffset = text.layoutOffset;
+                        moveLayoutKey = text.LayoutKey(document.width, document.height);
+                        moveAnchor = World(text.layoutMode == TextLayoutMode.Point ? text.GetPointAnchor(document.width, document.height) : FrameHandle(rect, handle), original);
+                        start = current = Point(startView, true);
+                    }
+                    else if (moved == null && rect.Contains(Local(start, original))) { Cancel(); owner.FocusTextInput(false); WhimTexUI.ConsumeEvent(e); return; }
                 }
-                if (!e.ctrlKey && resized == null)
+                if (!e.ctrlKey && moved == null)
                 {
                     var hit = document.PickLayerAtPixel(Mathf.FloorToInt(start.x), Mathf.FloorToInt(start.y), WhimTexUserSettings.LayerPickAlphaThreshold, true, null);
                     if (hit?.Behaviour is TextLayerBehaviour && !WhimTexApi.IsLayerContentLocked(document, hit))
@@ -310,23 +367,60 @@ namespace DCFApixels.WhimTex
                 pointer = e.pointerId; target.CapturePointer(pointer); Repaint(); WhimTexUI.ConsumeEvent(e);
             }
             private bool Valid => document != null && document == owner.activeDocument && owner.canvasTool == CanvasTool.Text && dimensions == new Vector2(document.width, document.height) &&
+                document.GetPixelScale() == pixelScale &&
                 ReferenceEquals(owner.GetSelectedLayer(), anchor) &&
-                (resized == null || ReferenceEquals(document.FindLayer(resized.Id), resized) && ReferenceEquals(resized.Behaviour, resizedText) &&
-                resizedText.layoutMode == TextLayoutMode.Frame && resizedText.frameSize == originalRect.size &&
-                document.GetCanvasTransform(resized).Equals(original) && !WhimTexApi.IsLayerContentLocked(document, resized));
-            private bool Update(Vector2 position, bool control)
+                (moved == null || ReferenceEquals(document.FindLayer(moved.Id), moved) && ReferenceEquals(moved.Behaviour, movedText) &&
+                movedText.LayoutKey(document.width, document.height) == moveLayoutKey &&
+                document.GetCanvasTransform(moved).Equals(original) && movedText.FontAvailable && !WhimTexApi.IsLayerContentLocked(document, moved));
+            private Rect ResizeFrame(Vector2 delta, bool proportional)
             {
-                current = Point(position, control);
-                if (!TextPointFinite(current)) return false;
-                if (resized != null)
+                bool left = handle == 0 || handle == 3 || handle == 7, right = handle == 1 || handle == 2 || handle == 5;
+                bool bottom = handle == 0 || handle == 1 || handle == 4, top = handle == 2 || handle == 3 || handle == 6;
+                Vector2 size = originalFrameSize;
+                if (left || right) size.x = Mathf.Clamp(size.x + (left ? -delta.x : delta.x), 1, 32768);
+                if (bottom || top) size.y = Mathf.Clamp(size.y + (bottom ? -delta.y : delta.y), 1, 32768);
+                if (proportional && handle < 4)
                 {
-                    Vector2 fixedPoint = Corner(originalRect, (corner + 2) % 4), moved = Local(current, original);
-                    if (!TextPointFinite(moved)) return false;
-                    Vector2 delta = moved - fixedPoint;
-                    delta.x = Mathf.Clamp(Mathf.Abs(delta.x), 1, 32768) * (corner == 0 || corner == 3 ? -1 : 1);
-                    delta.y = Mathf.Clamp(Mathf.Abs(delta.y), 1, 32768) * (corner < 2 ? -1 : 1);
-                    moved = fixedPoint + delta;
-                    resizedRect = Rect.MinMaxRect(Mathf.Min(fixedPoint.x, moved.x), Mathf.Min(fixedPoint.y, moved.y), Mathf.Max(fixedPoint.x, moved.x), Mathf.Max(fixedPoint.y, moved.y));
+                    float x = size.x / originalFrameSize.x, y = size.y / originalFrameSize.y;
+                    float scale = Mathf.Abs(x - 1) >= Mathf.Abs(y - 1) ? x : y;
+                    scale = Mathf.Clamp(scale, Mathf.Max(1 / originalFrameSize.x, 1 / originalFrameSize.y), Mathf.Min(32768 / originalFrameSize.x, 32768 / originalFrameSize.y));
+                    size = originalFrameSize * scale;
+                }
+                return new Rect(new Vector2(left ? originalRect.xMax - size.x : originalRect.xMin,
+                    bottom ? originalRect.yMax - size.y : originalRect.yMin), size);
+            }
+            private bool Update(Vector2 position, bool control, bool shift = false)
+            {
+                current = Point(position, moved != null || control);
+                if (!TextPointFinite(current)) return false;
+                if (moved != null)
+                {
+                    if (moveUndoGroup < 0 && (position - startView).sqrMagnitude < 9) return true;
+                    Vector2 delta = current - start;
+                    if (shift && handle == MoveHandle) { if (Mathf.Abs(delta.x) >= Mathf.Abs(delta.y)) delta.y = 0; else delta.x = 0; }
+                    if (!control) delta = owner.SnapCanvasGuidePoint(moveAnchor + delta) - moveAnchor;
+                    Vector2 localDelta = (Local(moveAnchor + delta, original) - Local(moveAnchor, original)) / pixelScale;
+                    Vector2 next = moveOriginalOffset + localDelta, nextSize = originalFrameSize;
+                    if (handle != MoveHandle)
+                    {
+                        Rect rect = ResizeFrame(localDelta, shift);
+                        next = rect.center; nextSize = rect.size;
+                    }
+                    if (!TextPointFinite(next)) return false;
+                    next = new Vector2(Mathf.Clamp(next.x, -1000000, 1000000), Mathf.Clamp(next.y, -1000000, 1000000));
+                    if (next != moveLastOffset || nextSize != lastFrameSize)
+                    {
+                        if (moveUndoGroup < 0)
+                        {
+                            Undo.IncrementCurrentGroup(); moveUndoGroup = Undo.GetCurrentGroup();
+                            string label = handle == MoveHandle ? "Move Text Layout" : "Resize Text Frame";
+                            Undo.SetCurrentGroupName(label); Undo.RegisterCompleteObjectUndo(document, label);
+                        }
+                        movedText.layoutOffset = moveLastOffset = next;
+                        movedText.frameSize = lastFrameSize = nextSize;
+                        moveLayoutKey = movedText.LayoutKey(document.width, document.height);
+                        owner.RequestTransformCanvas();
+                    }
                 }
                 Repaint();
                 return true;
@@ -334,35 +428,54 @@ namespace DCFApixels.WhimTex
             private void Move(PointerMoveEvent e)
             {
                 if (!IsDragging || e.pointerId != pointer) return;
-                if (!Valid || (e.pressedButtons & 1) == 0 || !Update(e.localPosition, e.ctrlKey)) Cancel();
+                if (!Valid || (e.pressedButtons & 1) == 0 || !Update(e.localPosition, e.ctrlKey, e.shiftKey)) Cancel();
                 WhimTexUI.ConsumeEvent(e);
             }
             private void Up(PointerUpEvent e)
             {
                 if (!IsDragging || e.pointerId != pointer || e.button != 0) return;
-                if (Valid && Update(e.localPosition, e.ctrlKey))
+                if (Valid && Update(e.localPosition, e.ctrlKey, e.shiftKey))
                 {
-                    var layer = resized; var insertion = anchor; Vector2 a = start, b = current;
+                    if (moved != null)
+                    {
+                        FinishLayoutEdit(false); Cancel(); WhimTexUI.ConsumeEvent(e); return;
+                    }
+                    var insertion = anchor; Vector2 a = start, b = current;
                     bool drag = ((Vector2)e.localPosition - startView).sqrMagnitude >= 9;
-                    Rect rect = resizedRect; var transform = original;
-                    var text = resizedText; var size = dimensions;
                     Cancel();
-                    if (layer != null && drag)
-                        owner.ExecuteModelChange("Resize Text Frame", () =>
-                        {
-                            if (transform.TrySetMatrix(transform.ToMatrix(size.x, size.y) * ProjectiveMatrix.Translate(rect.center.x / size.x, rect.center.y / size.y)) &&
-                                owner.activeDocument.SetCanvasTransform(layer, transform)) text.frameSize = rect.size;
-                        });
-                    else if (layer == null) owner.CreateText(a, b, drag, insertion);
+                    owner.CreateText(a, b, drag, insertion);
                 }
                 else Cancel();
                 WhimTexUI.ConsumeEvent(e);
             }
             internal void Cancel()
             {
-                int captured = pointer; pointer = -1; document = null; anchor = null; resized = null; resizedText = null; corner = -1;
+                FinishLayoutEdit(true);
+                int captured = pointer; pointer = -1; document = null; anchor = null; handle = -1;
                 if (captured >= 0 && target != null && target.HasPointerCapture(captured)) target.ReleasePointer(captured);
                 Repaint();
+            }
+            private void FinishLayoutEdit(bool cancel)
+            {
+                if (moved == null) return;
+                if (moveUndoGroup >= 0)
+                {
+                    if (cancel && document != null && ReferenceEquals(document.FindLayer(moved.Id), moved) &&
+                        ReferenceEquals(moved.Behaviour, movedText))
+                    {
+                        if (movedText.layoutOffset == moveLastOffset) movedText.layoutOffset = moveOriginalOffset;
+                        if (movedText.frameSize == lastFrameSize) movedText.frameSize = originalFrameSize;
+                    }
+                    Undo.FlushUndoRecordObjects(); Undo.CollapseUndoOperations(moveUndoGroup); Undo.IncrementCurrentGroup();
+                    if (document != null && document == owner.activeDocument)
+                    {
+                        owner.applyingToolkitChange = true;
+                        try { owner.CommitModelChange(); }
+                        finally { owner.applyingToolkitChange = false; }
+                        owner.RequestCanvasRender(true); owner.toolkitRefreshRequested = true;
+                    }
+                }
+                moved = null; movedText = null; moveLayoutKey = null; moveUndoGroup = -1;
             }
             private void Lost(PointerCaptureOutEvent e) { if (e.pointerId == pointer) Cancel(); }
             private void Interrupted(PointerCancelEvent e) => Cancel();
@@ -374,7 +487,7 @@ namespace DCFApixels.WhimTex
                 if (IsDragging && !Valid) return;
                 if (!IsDragging) dimensions = new Vector2(owner.activeDocument.width, owner.activeDocument.height);
                 Rect rect; TextureTransform transform; bool handles;
-                if (IsDragging && Valid && resized == null)
+                if (IsDragging && Valid && moved == null)
                 {
                     rect = Rect.MinMaxRect(Mathf.Min(start.x, current.x), Mathf.Min(start.y, current.y), Mathf.Max(start.x, current.x), Mathf.Max(start.y, current.y));
                     transform = TextureTransform.Default; handles = false;
@@ -382,8 +495,13 @@ namespace DCFApixels.WhimTex
                 else if (owner.GetSelectedLayer()?.Behaviour is TextLayerBehaviour text)
                 {
                     transform = owner.activeDocument.GetCanvasTransform(text.Owner);
-                    rect = resized != null ? resizedRect : text.GetLayoutBounds(owner.activeDocument.width, owner.activeDocument.height);
-                    handles = text.layoutMode == TextLayoutMode.Frame && !WhimTexApi.IsLayerContentLocked(owner.activeDocument, text.Owner);
+                    if (text.layoutMode == TextLayoutMode.Point)
+                    {
+                        DrawPoint(context.painter2D, text, transform);
+                        return;
+                    }
+                    rect = text.GetLayoutBounds(owner.activeDocument.width, owner.activeDocument.height);
+                    handles = text.FontAvailable && !WhimTexApi.IsLayerContentLocked(owner.activeDocument, text.Owner) && transform.ToMatrix(dimensions.x, dimensions.y).TryInverse(out _);
                 }
                 else return;
                 var p = context.painter2D; p.lineWidth = 1; p.strokeColor = new Color(.3f, .85f, 1, .9f); p.fillColor = p.strokeColor;
@@ -391,16 +509,38 @@ namespace DCFApixels.WhimTex
                 for (int i = 0; i < 4; i++)
                 {
                     Vector2 point = Corner(rect, i);
-                    point = View(IsDragging && resized == null ? point : World(point, transform));
+                    point = View(IsDragging && moved == null ? point : World(point, transform));
+                    if (!TextPointFinite(point)) return;
                     if (i == 0) p.MoveTo(point); else p.LineTo(point);
                 }
                 p.ClosePath(); p.Stroke();
-                if (handles) for (int i = 0; i < 4; i++)
+                if (handles) for (int i = 0; i <= MoveHandle; i++)
                 {
-                    Vector2 point = View(World(Corner(rect, i), transform));
+                    Vector2 point = View(World(FrameHandle(rect, i), transform));
+                    if (!TextPointFinite(point)) continue;
+                    if (i == MoveHandle)
+                    {
+                        p.BeginPath(); p.Arc(point, 4, Angle.Degrees(0), Angle.Degrees(360)); p.ClosePath(); p.Fill();
+                        continue;
+                    }
                     p.BeginPath(); p.MoveTo(point + new Vector2(-3, -3)); p.LineTo(point + new Vector2(3, -3));
                     p.LineTo(point + new Vector2(3, 3)); p.LineTo(point + new Vector2(-3, 3)); p.ClosePath(); p.Fill();
                 }
+            }
+            private void DrawPoint(Painter2D painter, TextLayerBehaviour text, TextureTransform transform)
+            {
+                painter.lineWidth = 1; painter.strokeColor = new Color(.3f, .85f, 1, .9f);
+                foreach (var line in text.GetPointLines(owner.activeDocument.width, owner.activeDocument.height))
+                {
+                    Vector2 a = View(World(new Vector2(line.x, line.z), transform)), b = View(World(new Vector2(line.y, line.z), transform));
+                    if (!TextPointFinite(a) || !TextPointFinite(b) || (b - a).sqrMagnitude < .01f) continue;
+                    painter.BeginPath(); painter.MoveTo(a); painter.LineTo(b); painter.Stroke();
+                }
+                if (!text.FontAvailable || WhimTexApi.IsLayerContentLocked(owner.activeDocument, text.Owner) || !transform.ToMatrix(dimensions.x, dimensions.y).TryInverse(out _)) return;
+                Vector2 point = View(World(text.GetPointAnchor(owner.activeDocument.width, owner.activeDocument.height), transform));
+                if (!TextPointFinite(point)) return;
+                painter.fillColor = painter.strokeColor;
+                painter.BeginPath(); painter.Arc(point, 4, Angle.Degrees(0), Angle.Degrees(360)); painter.ClosePath(); painter.Fill();
             }
         }
     }

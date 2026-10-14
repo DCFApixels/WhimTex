@@ -14,6 +14,14 @@ namespace DCFApixels.WhimTex
 
         public int width = 512;
         public int height = 512;
+        public float pixelScale = 1f;
+        internal const float MaximumPixelScale = 16384f;
+        internal static void ValidatePixelScale(float value)
+        {
+            if (float.IsNaN(value) || float.IsInfinity(value) || value <= 0f || value > MaximumPixelScale)
+                throw new WhimTexDocumentException("pixelScale must be finite, greater than zero and at most 16384.");
+        }
+        internal float GetPixelScale() { ValidatePixelScale(pixelScale); return pixelScale; }
         public FilterMode outputFilter = FilterMode.Bilinear;
         public WhimTexOutputPrecision outputPrecision = WhimTexOutputPrecision.Auto;
         // Pending output encoding, initialized from the TIFF importer when opened.
@@ -543,6 +551,7 @@ namespace DCFApixels.WhimTex
 
         internal void NormalizeModel()
         {
+            GetPixelScale();
             width = Mathf.Clamp(width, MinimumOutputSize, MaximumOutputSize);
             height = Mathf.Clamp(height, MinimumOutputSize, MaximumOutputSize);
             if (outputFilter != FilterMode.Point && outputFilter != FilterMode.Bilinear && outputFilter != FilterMode.Trilinear)

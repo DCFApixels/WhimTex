@@ -13,6 +13,9 @@ namespace DCFApixels.WhimTex
         public readonly int width;
         public readonly int height;
         public readonly float scaleMultiplier;
+        public readonly float pixelScale;
+        public float CanvasPixels(float logicalPixels) => logicalPixels * pixelScale;
+        public float RenderPixels(float logicalPixels) => logicalPixels * pixelScale / scaleMultiplier;
         public readonly bool applyTransform;
         public readonly bool applyFx;
         public readonly bool transformFxCoordinates;
@@ -32,6 +35,7 @@ namespace DCFApixels.WhimTex
             this.width = width;
             this.height = height;
             this.scaleMultiplier = Mathf.Max(0.0001f, scaleMultiplier);
+            pixelScale = activeDocument != null ? activeDocument.GetPixelScale() : 1f;
             this.applyTransform = applyTransform;
             this.applyFx = applyFx;
             this.transformFxCoordinates = transformFxCoordinates ?? applyTransform;
@@ -52,6 +56,34 @@ namespace DCFApixels.WhimTex
         public LayerChannelMapping channelMapping;
         public List<UnityEngine.Object> fx = new List<UnityEngine.Object>();
         public TextureTransform transform = TextureTransform.Default;
+        [SerializeField, HideInInspector] internal Vector2Int sourceCanvasSize;
+        [SerializeField, HideInInspector] internal float sourcePixelScale;
+        [SerializeField, HideInInspector] internal Vector2 sourceCanvasScale = Vector2.one;
+        internal float GetPixelScale() => transformCache?.document != null ? transformCache.document.GetPixelScale() : 1f;
+        internal float GetSourcePixelScale() => sourcePixelScale == 0f ? GetPixelScale() : sourcePixelScale;
+        internal Vector2Int GetSourceCanvasSize(int width, int height)
+        {
+            ValidateSourceCanvasSize();
+            return sourceCanvasSize == Vector2Int.zero ? new Vector2Int(width, height) : sourceCanvasSize;
+        }
+        internal Vector2 GetPixelSourceCanvasSize(int width, int height)
+        {
+            Vector2 size = Vector2.Scale(GetSourceCanvasSize(width, height), sourceCanvasScale);
+            if (!float.IsFinite(size.x) || !float.IsFinite(size.y) || size.x <= 0 || size.y <= 0)
+                throw new WhimTexDocumentException("Layer source pixel metric exceeds its supported range: " + id);
+            return size;
+        }
+        internal void ValidateSourceCanvasSize()
+        {
+            if (sourcePixelScale != 0f) WhimTexDocument.ValidatePixelScale(sourcePixelScale);
+            if (!float.IsFinite(sourceCanvasScale.x) || !float.IsFinite(sourceCanvasScale.y) || sourceCanvasScale.x <= 0 || sourceCanvasScale.y <= 0)
+                throw new WhimTexDocumentException("Layer sourceCanvasScale must contain finite positive values: " + id);
+            if (sourceCanvasSize == Vector2Int.zero) return;
+            if (sourceCanvasSize.x < 1 || sourceCanvasSize.y < 1 ||
+                sourceCanvasSize.x > WhimTexDocument.MaximumCanvasFrameDimension || sourceCanvasSize.y > WhimTexDocument.MaximumCanvasFrameDimension ||
+                (long)sourceCanvasSize.x * sourceCanvasSize.y > WhimTexDocument.MaximumCanvasFramePixels)
+                throw new WhimTexDocumentException("Layer sourceCanvasSize must be [0,0] or 1..16384 per axis, at most 16,777,216 pixels: " + id);
+        }
         [NonSerialized] internal LayerTransformCache transformCache;
         internal TextureTransform CanvasTransform
         {
@@ -190,6 +222,7 @@ namespace DCFApixels.WhimTex
 
         internal void EnsureId(HashSet<string> usedIds)
         {
+            ValidateSourceCanvasSize();
             if (string.IsNullOrEmpty(id) || usedIds.Contains(id))
                 id = Guid.NewGuid().ToString("N");
             usedIds.Add(id);
@@ -264,6 +297,9 @@ namespace DCFApixels.WhimTex
             blendRange = source.blendRange;
             channelMapping = source.channelMapping;
             filterMode = source.filterMode;
+            sourceCanvasSize = source.sourceCanvasSize;
+            sourcePixelScale = source.sourcePixelScale;
+            sourceCanvasScale = source.sourceCanvasScale;
             fx = source.fx == null ? new List<UnityEngine.Object>() : new List<UnityEngine.Object>(source.fx);
         }
 

@@ -12,6 +12,12 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private BrushPointerMotion brushPointerMotion;
         [NonSerialized] private WhimTexDocument brushPointerDocument;
 
+        private float CurrentPaintingPixelScale => activeDocument != null ? activeDocument.GetPixelScale() : 1f;
+        private float EffectivePaintSize(float size) => Mathf.Max(.0001f, Mathf.Max(1f, size) * CurrentPaintingPixelScale);
+        private int EffectivePencilSize(int size) => Mathf.Max(1, Mathf.RoundToInt(Mathf.Max(1, size) * CurrentPaintingPixelScale));
+        private int EffectivePaintDistance(float distance) => Mathf.Clamp(Mathf.RoundToInt(distance * CurrentPaintingPixelScale), 0,
+            WhimTexDocument.MaximumCanvasFrameDimension);
+
         private void ObserveBrushPointer(Vector2 position, int pointerId, bool alt)
         {
             if (canvasTool != CanvasTool.Brush || alt || toolkitCanvas == null || activeDocument == null ||
@@ -24,7 +30,7 @@ namespace DCFApixels.WhimTex
             if (paintingLayer != null && paintingPointerId != pointerId) return;
             if (!ReferenceEquals(brushPointerDocument, activeDocument)) brushPointerMotion = default;
             brushPointerDocument = activeDocument;
-            float visibleBrushSize = paintSettings.brushSize * toolkitCanvas.ImageRect.width / activeDocument.width;
+            float visibleBrushSize = EffectivePaintSize(paintSettings.brushSize) * toolkitCanvas.ImageRect.width / activeDocument.width;
             brushPointerMotion.Observe(position, pointerId, visibleBrushSize);
         }
 
@@ -49,7 +55,8 @@ namespace DCFApixels.WhimTex
             if (!paintingSmootherActive || !hasLastPaintingUv) BeginPaintingInput(sourceUv);
             var size = new Vector2(activeDocument.width, activeDocument.height);
             var transform = paintingLayer.Owner.PixelCanvasTransform;
-            paintingSmoother.Move(Vector2.Scale(transform.Map(sourceUv, size), size), paintingPressure, paintSettings.smoothing, exact);
+            paintingSmoother.MoveScaled(Vector2.Scale(transform.Map(sourceUv, size), size), paintingPressure,
+                paintSettings.smoothing, CurrentPaintingPixelScale, exact);
             paintingPressure = paintingSmoother.Pressure;
             Vector2 FilteredUv() => transform.Unmap(paintingSmoother.Position / size, size);
             Vector2 point = FilteredUv();

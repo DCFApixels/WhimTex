@@ -12,7 +12,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const schema = JSON.parse(fs.readFileSync(path.join(root, 'Documentation~/AI/document.schema.json')));
     // The generated schema deliberately uses this small, dependency-free Draft 2020-12 vocabulary.
     const keywords = new Set(['$schema', '$ref', '$defs', 'title', 'type', 'enum', 'const', 'anyOf', 'allOf',
-      'properties', 'additionalProperties', 'required', 'items', 'prefixItems', 'minItems', 'maxItems', 'minLength', 'minimum', 'maximum', 'deprecated', 'description', 'not']);
+      'properties', 'additionalProperties', 'required', 'items', 'prefixItems', 'minItems', 'maxItems', 'minLength', 'minimum', 'exclusiveMinimum', 'maximum', 'deprecated', 'description', 'default', 'not']);
     function validate(value, rule, location = '$') {
       for (const key of Object.keys(rule)) assert(keywords.has(key), `Unsupported schema keyword ${key}`);
       if (rule.$ref) validate(value, schema.$defs[rule.$ref.slice('#/$defs/'.length)], location);
@@ -33,6 +33,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
       if (typeof value === 'number') {
         assert(Number.isFinite(value), `${location}: non-finite number`);
         assert(value >= (rule.minimum ?? -Infinity) && value <= (rule.maximum ?? Infinity), `${location}: number range`);
+        if ('exclusiveMinimum' in rule) assert(value > rule.exclusiveMinimum, `${location}: exclusive lower bound`);
       }
       if (rule.type) {
         const types = [].concat(rule.type);
@@ -110,6 +111,17 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
       }
     const empty = { format: 'whimtex.document', version: 2, document: {}, layers: [] };
     validate(empty, schema);
+    for (const type of ['SDFLayerBehaviour', 'OutlineLayerBehaviour']) for (const mode of ['Contour', 'CornerFit', 'Spring']) {
+      const metric = schema.$defs[type].properties.metric;
+      assert.equal(metric.default, 'EuclideanAntialiased', 'Experimental modes do not change the default');
+      assert(metric.enum.includes(mode), `${mode} is a persisted metric`);
+      const document = settings => ({ ...empty, layers: [{ id: 'experimental', behaviour: { $type: type, metric: mode, ...settings } }] });
+      validate(document({}), schema);
+      if (type === 'SDFLayerBehaviour') {
+        for (const encoding of ['Gradient', 'LinearData']) validate(document({ encoding }), schema);
+        assert.throws(() => validate(document({ encoding: 'MultiChannelData' }), schema));
+      }
+    }
     validate({ format: 'whimtex.document', version: 2, layers: [] }, schema);
     for (const document of [{}, { width: 64 }, { height: 32 }, { outputSrgb: false }])
       validate({ ...empty, document }, schema);
@@ -124,6 +136,10 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
       assert.throws(() => validate({ ...empty, layers }, schema));
     for (const width of [0, 16385, 1.5, '8', null])
       assert.throws(() => validate({ ...empty, document: { width } }, schema));
+    for (const pixelScale of [.00001, .25, 1, 2.5, 16384])
+      validate({ ...empty, document: { pixelScale } }, schema);
+    for (const pixelScale of [0, -1, 16385, Infinity, NaN, '2', null])
+      assert.throws(() => validate({ ...empty, document: { pixelScale } }, schema));
     const noise = (settings) => ({ ...empty, layers: [{ id: 'fixture', behaviour: { $type: 'NoiseLayerBehaviour', ...settings } }] });
     for (const settings of [{ scale: '8' }, { scale: 1e40 }, { noiseType: '999' }, { noiseType: 1 },
       { seed: 2.5 }, { seed: 2147483648 }, { offset: [0, '1', 0] }, { offset: [0] }, { offset: [0, 1, 2, 3] }])

@@ -26,7 +26,7 @@ byte[] Mask() => (byte[])type.GetProperty("Coverage", flags).GetValue(selection)
 int Count() { int n = 0; foreach (byte b in Mask()) if (b != 0) n++; return n; }
 void Check(bool value, string message) { T.True(value, message); }
 void Rect(float x0, float y0, float x1, float y1, string mode = "Replace", bool wrap = false) =>
-    Call("Rectangle", new UnityEngine.Vector2(x0, y0), new UnityEngine.Vector2(x1, y1), Mode(mode), wrap);
+    Call("Rectangle", new UnityEngine.Vector2(x0, y0), new UnityEngine.Vector2(x1, y1), Mode(mode), wrap, false);
 float Sample(float x, float y, bool wrap = false) => (float)Call("Sample", new UnityEngine.Vector2(x, y), wrap);
 Check(Sample(.5f, .5f) == 1f, "Inactive selection permits painting");
 Rect(1, 1, 5, 5);
@@ -46,14 +46,14 @@ Check(Count() == 4 && Mask()[63] == 255 && Mask()[0] == 255, "Negative repeat co
 Rect(-100, -100, 100, 100, "Replace", true); Check(Count() == 64, "Large wrapped rectangle selects the whole canvas");
 var points = new System.Collections.Generic.List<UnityEngine.Vector2> {
     new UnityEngine.Vector2(1,1), new UnityEngine.Vector2(5,1), new UnityEngine.Vector2(1,5) };
-Call("Polygon", points, Mode("Replace"), false); Check(Count() == 6, "Triangle uses pixel-center coverage");
+Call("Polygon", points, Mode("Replace"), false, false); Check(Count() == 6, "Triangle uses pixel-center coverage");
 points = new System.Collections.Generic.List<UnityEngine.Vector2> {
     new UnityEngine.Vector2(0,0), new UnityEngine.Vector2(4,0), new UnityEngine.Vector2(4,2),
     new UnityEngine.Vector2(2,2), new UnityEngine.Vector2(2,4), new UnityEngine.Vector2(0,4) };
-Call("Polygon", points, Mode("Replace"), false); Check(Count() == 12, "Concave polygon");
+Call("Polygon", points, Mode("Replace"), false, false); Check(Count() == 12, "Concave polygon");
 points = new System.Collections.Generic.List<UnityEngine.Vector2> {
     new UnityEngine.Vector2(7,2), new UnityEngine.Vector2(9,2), new UnityEngine.Vector2(9,4), new UnityEngine.Vector2(7,4) };
-Call("Polygon", points, Mode("Replace"), true); Check(Count() == 4, "Polygon crosses repeated canvas seam");
+Call("Polygon", points, Mode("Replace"), true, false); Check(Count() == 4, "Polygon crosses repeated canvas seam");
 var soft = new byte[64]; soft[0] = 128;
 Call("Set", soft, Mode("Replace"));
 Check(System.Math.Abs(Sample(.01f,.01f) - 128f / 255f) < .001f, "Alpha-derived selection retains soft coverage");
@@ -62,7 +62,7 @@ Call("Set", other, Mode("Intersect")); Check(Mask()[0] == 64, "Soft intersection
 other = new byte[64]; other[0] = 128;
 Call("Set", other, Mode("Subtract")); Check(Mask()[0] == 32, "Soft subtraction");
 void Ellipse(float x0, float y0, float x1, float y1, string mode = "Replace", bool wrap = false) =>
-    Call("Ellipse", new UnityEngine.Vector2(x0, y0), new UnityEngine.Vector2(x1, y1), Mode(mode), wrap);
+    Call("Ellipse", new UnityEngine.Vector2(x0, y0), new UnityEngine.Vector2(x1, y1), Mode(mode), wrap, false);
 Ellipse(0, 0, 8, 8);
 Check(Count() == 52 && Mask()[0] == 0 && Sample(.5f, .5f) == 1f, "Ellipse excludes bounding-box corners");
 var circle = (byte[])Mask().Clone();

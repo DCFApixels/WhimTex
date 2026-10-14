@@ -24,9 +24,14 @@ namespace DCFApixels.WhimTex
         {
             layerThumbnails?.Dispose();
             layerThumbnails = null;
+            ReleaseLayerContent();
         }
 
-        internal void RefreshThumbnailStructure() => layerThumbnails?.RefreshStructure();
+        internal void RefreshThumbnailStructure()
+        {
+            layerThumbnails?.RefreshStructure();
+            RefreshLayerContentStructure();
+        }
 
         internal RenderTexture RenderLayerThumbnail(Layer layer, int maxSize, EffectRenderCache cache)
         {

@@ -21,7 +21,7 @@ namespace DCFApixels.WhimTex
             EdgeMode edges = layer.edges;
             float amount = Limit(strength, 0f, MaximumStrength, 1f);
             bool circular = layer.mode == BlurType.Circular;
-            float pixels = Limit(distance, 0f, MaximumDistance) / context.scaleMultiplier;
+            float pixels = Limit(distance, 0f, MaximumDistance) * context.pixelScale / context.scaleMultiplier;
             float radians = Limit(arc, 0f, 360f) * Mathf.Deg2Rad;
             if (amount == 0f || (circular ? radians : pixels) <= .0001f)
                 return layer.ApplyTransformAndFx(context.input, context);

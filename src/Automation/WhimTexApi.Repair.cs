@@ -20,12 +20,14 @@ namespace DCFApixels.WhimTex
             Require(target.Behaviour is DrawingLayerBehaviour, "Repair requires Drawing. Convert explicitly first.");
             var drawing = (DrawingLayerBehaviour)target.Behaviour;
             int width = document.width, height = document.height;
-            float size = Number(operation, "size", 32, 1, 512), hardness = Number(operation, "hardness", .8f, 0, 1);
+            float pixelScale = document.GetPixelScale();
+            float size = Number(operation, "size", 32, 1, 512) * pixelScale, hardness = Number(operation, "hardness", .8f, 0, 1);
             bool tiled = Bool(operation, "tiled");
             int writeChannels = Int(operation, "writeChannels", 15, 0, 15);
             string source = Text(operation, "source", "CurrentLayer");
             Require(source == "CurrentLayer" || source == "CurrentAndBelow" || !healing && source == "AllLayers", "Invalid repair source.");
-            int search = healing ? Int(operation, "search", 64, 8, 512) : 0;
+            int search = healing ? Mathf.Clamp(Mathf.RoundToInt(Int(operation, "search", 64, 8, 512) * pixelScale), 0,
+                WhimTexDocument.MaximumCanvasFrameDimension) : 0;
             var quality = healing ? Enum(operation, "quality", HealingQuality.Balanced) : HealingQuality.Fast;
             int seed = healing ? Int(operation, "seed", 1, int.MinValue, int.MaxValue) : 0;
             bool transparentOnly = healing && Bool(operation, "transparentOnly");

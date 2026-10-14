@@ -39,11 +39,14 @@ namespace DCFApixels.WhimTex
         }
 
         internal void Move(Vector2 input, float pressure, StrokeSmoothingSettings settings, bool exact = false)
+            => MoveScaled(input, pressure, settings, 1f, exact);
+
+        internal void MoveScaled(Vector2 input, float pressure, StrokeSmoothingSettings settings, float pixelScale, bool exact = false)
         {
             if (!float.IsFinite(input.x) || !float.IsFinite(input.y)) return;
             Vector2 delta = input - previousInput;
             float length = delta.magnitude;
-            float distance = Mathf.Clamp(settings.distance, 1f, 256f);
+            float distance = Mathf.Max(.0001f, Mathf.Clamp(settings.distance, 1f, 256f) * pixelScale);
             float decay = Mathf.Exp(-length / distance);
             if (exact || settings.mode == StrokeSmoothingMode.None) Position = input;
             else if (settings.mode == StrokeSmoothingMode.Smooth && length > 0f)
@@ -62,7 +65,7 @@ namespace DCFApixels.WhimTex
             pressure = Mathf.Clamp01(pressure);
             rawPressure = pressure;
             PushPressure(pressure, length);
-            Pressure = settings.smoothPressure && !exact ? FilterPressure(settings) : pressure;
+            Pressure = settings.smoothPressure && !exact ? FilterPressure(settings, distance) : pressure;
             previousInput = input;
         }
 
@@ -81,17 +84,17 @@ namespace DCFApixels.WhimTex
             pressureCount = Mathf.Min(256, pressureCount + 1);
         }
 
-        private float FilterPressure(StrokeSmoothingSettings settings)
+        private float FilterPressure(StrokeSmoothingSettings settings, float distance)
         {
             if (settings.mode == StrokeSmoothingMode.Stabilizer)
             {
-                int samples = Mathf.Min(pressureCount, Mathf.Max(2, Mathf.CeilToInt(settings.distance)));
+                int samples = Mathf.Min(pressureCount, Mathf.Max(2, Mathf.CeilToInt(distance)));
                 float sum = 0f;
                 for (int i = 0; i < samples; i++) sum += pressureHistory[(pressureHead - 1 - i) & 255];
                 return sum / samples;
             }
             if (pressureCount <= 3) return rawPressure;
-            float sigma = Mathf.Max(1f, settings.distance) / 3f;
+            float sigma = Mathf.Max(.0001f, distance) / 3f;
             float travelled = 0f, sumWeighted = 0f, weights = 0f, newestWeight = 0f;
             for (int i = 0; i < pressureCount; i++)
             {

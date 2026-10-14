@@ -42,7 +42,7 @@ public static class DistanceFieldTests
 
     static void CheckContract(TestContext t)
     {
-        t.Equal(6, Enum.GetNames(typeof(DistanceMetric)).Length, "Exactly the six artistic metrics are exposed");
+        t.Equal(10, Enum.GetNames(typeof(DistanceMetric)).Length, "Six original metrics plus four opt-in raster modes are exposed");
         for (int i = 0; i < Modes.Length; i++)
             t.Equal(i + 4, (int)Modes[i], "Current enum declaration: " + Modes[i]);
         var label = typeof(DistanceMetric).GetField(nameof(DistanceMetric.EuclideanAntialiased))
@@ -58,7 +58,7 @@ public static class DistanceFieldTests
 
     static MethodInfo ArtisticMethod() => Utility.GetMethod("ComputeArtisticDistance", PublicStatic, null,
         new[] { typeof(NativeArray<Color32>), typeof(NativeArray<float>), typeof(int), typeof(int),
-            typeof(byte), typeof(int), typeof(DistanceMetric), typeof(float) }, null);
+            typeof(byte), typeof(int), typeof(DistanceMetric), typeof(float), typeof(float) }, null);
 
     static float[] Compute(TestContext t, Color32[] input, int w, int h, DistanceMetric mode,
         byte threshold = 128, int channel = 0, float? miter = null)
@@ -70,7 +70,7 @@ public static class DistanceFieldTests
         var method = miter.HasValue ? ArtisticMethod() : SignedMethod();
         t.True(method != null, "Required scalar method for " + mode);
         object[] args = miter.HasValue
-            ? new object[] { pixels, distances, w, h, threshold, channel, mode, miter.Value }
+            ? new object[] { pixels, distances, w, h, threshold, channel, mode, miter.Value, 0f }
             : new object[] { pixels, distances, w, h, threshold, channel, mode };
         method.Invoke(null, args);
         var result = distances.ToArray();
@@ -400,12 +400,12 @@ public static class DistanceFieldTests
         // segments. Numeric join directions distinguish the positive left/right wedges.
         var artistic = typeof(SDFLayerBehaviour).Assembly.GetType("DCFApixels.WhimTex.ArtisticDistanceField", true);
         var build = artistic.GetMethod("Build", BindingFlags.Static | BindingFlags.NonPublic, null,
-            new[] { typeof(NativeArray<Color32>), typeof(int), typeof(int), typeof(byte), typeof(int), typeof(DistanceMetric) }, null);
+            new[] { typeof(NativeArray<Color32>), typeof(int), typeof(int), typeof(byte), typeof(int), typeof(DistanceMetric), typeof(float) }, null);
         t.True(build != null, "Package contour builder is available for explicit branch inspection");
         using var pixels = new NativeArray<Color32>(input, Allocator.TempJob);
         foreach (var mode in new[] { DistanceMetric.Sharp, DistanceMetric.Bevel })
         {
-            using var geometry = (IDisposable)build.Invoke(null, new object[] { pixels, 3, 3, (byte)128, 0, mode });
+            using var geometry = (IDisposable)build.Invoke(null, new object[] { pixels, 3, 3, (byte)128, 0, mode, 0f });
             const BindingFlags fields = BindingFlags.Public | BindingFlags.Instance;
             object features = geometry.GetType().GetField("features", fields).GetValue(geometry);
             Type arrayType = features.GetType(), featureType = arrayType.GetGenericArguments()[0];
@@ -544,10 +544,10 @@ public static class DistanceFieldTests
         // its public Length/Item properties, and geometry is disposed after the copied snapshot.
         var artistic = typeof(SDFLayerBehaviour).Assembly.GetType("DCFApixels.WhimTex.ArtisticDistanceField", true);
         var build = artistic.GetMethod("Build", BindingFlags.Static | BindingFlags.NonPublic, null,
-            new[] { typeof(NativeArray<Color32>), typeof(int), typeof(int), typeof(byte), typeof(int), typeof(DistanceMetric) }, null);
+            new[] { typeof(NativeArray<Color32>), typeof(int), typeof(int), typeof(byte), typeof(int), typeof(DistanceMetric), typeof(float) }, null);
         t.True(build != null, "Package builder is available for touching-branch regression inspection");
         using var pixels = new NativeArray<Color32>(input, Allocator.TempJob);
-        using var geometry = (IDisposable)build.Invoke(null, new object[] { pixels, 3, 3, (byte)128, 0, mode });
+        using var geometry = (IDisposable)build.Invoke(null, new object[] { pixels, 3, 3, (byte)128, 0, mode, 0f });
         const BindingFlags fields = BindingFlags.Public | BindingFlags.Instance;
         object features = geometry.GetType().GetField("features", fields).GetValue(geometry);
         Type arrayType = features.GetType(), featureType = arrayType.GetGenericArguments()[0];
@@ -609,14 +609,14 @@ public static class DistanceFieldTests
     static float4[] ComputeMulti(TestContext t, Color32[] input, int w, int h)
     {
         var method = Utility.GetMethod("ComputeMtsdfDistance", PublicStatic, null, new[] {
-            typeof(NativeArray<Color32>), typeof(NativeArray<float4>), typeof(int), typeof(int), typeof(byte), typeof(int)
+            typeof(NativeArray<Color32>), typeof(NativeArray<float4>), typeof(int), typeof(int), typeof(byte), typeof(int), typeof(float)
         }, null);
         t.True(method != null, "MTSDF API is available for contour regressions");
         using var pixels = new NativeArray<Color32>(input, Allocator.TempJob);
         using var output = new NativeArray<float4>(input.Length, Allocator.TempJob);
         var writable = output;
         for (int i = 0; i < output.Length; i++) writable[i] = new float4(float.NaN);
-        method.Invoke(null, new object[] { pixels, output, w, h, (byte)128, 0 });
+        method.Invoke(null, new object[] { pixels, output, w, h, (byte)128, 0, 0f });
         var result = output.ToArray();
         for (int i = 0; i < result.Length; i++)
         {
@@ -693,7 +693,7 @@ public static class DistanceFieldTests
             var method = Utility.GetMethod("ComputeMtsdfDistance", PublicStatic);
             foreach (byte threshold in new byte[] { 64, 127, 128, 129, 143, 192, 224 })
             {
-                method.Invoke(null, new object[] { pixels, output, w, h, threshold, 0 });
+                method.Invoke(null, new object[] { pixels, output, w, h, threshold, 0, 0f });
                 int farCount = 0, falseFields = 0, badSigns = 0, nonFinite = 0, firstBad = -1;
                 for (int i = 0; i < output.Length; i++)
                 {
@@ -720,7 +720,7 @@ public static class DistanceFieldTests
     static void CheckMtsdf(TestContext t)
     {
         var method = Utility.GetMethod("ComputeMtsdfDistance", PublicStatic, null, new[] {
-            typeof(NativeArray<Color32>), typeof(NativeArray<float4>), typeof(int), typeof(int), typeof(byte), typeof(int)
+            typeof(NativeArray<Color32>), typeof(NativeArray<float4>), typeof(int), typeof(int), typeof(byte), typeof(int), typeof(float)
         }, null);
         t.True(method != null, "MTSDF exposes float4 data through the confirmed package API");
         const int w = 49, h = 49;
@@ -732,7 +732,7 @@ public static class DistanceFieldTests
         using var output = new NativeArray<float4>(w * h, Allocator.TempJob);
         var writable = output;
         for (int i = 0; i < output.Length; i++) writable[i] = new float4(float.NaN);
-        method.Invoke(null, new object[] { pixels, output, w, h, (byte)128, 0 });
+        method.Invoke(null, new object[] { pixels, output, w, h, (byte)128, 0, 0f });
         var scalar = Compute(t, input, w, h, DistanceMetric.MTSDF);
         int coloredSamples = 0, cornerSamples = 0;
         for (int y = 2; y < h - 2; y++) for (int x = 2; x < w - 2; x++)
@@ -754,7 +754,7 @@ public static class DistanceFieldTests
         foreach (byte alpha in new byte[] { 0, 255 })
         {
             for (int i = 0; i < pixels.Length; i++) { var p = pixels; p[i] = new Color32(0, 0, 0, alpha); }
-            method.Invoke(null, new object[] { pixels, output, w, h, (byte)128, 0 });
+            method.Invoke(null, new object[] { pixels, output, w, h, (byte)128, 0, 0f });
             for (int i = 0; i < output.Length; i++) for (int c = 0; c < 4; c++)
                 t.True(Finite(output[i][c]) && (alpha == 0 ? output[i][c] > 0 : output[i][c] < 0), "MTSDF no-contour signed channels");
         }
@@ -778,7 +778,7 @@ public static class DistanceFieldTests
             using var pixels = new NativeArray<Color32>(input, Allocator.TempJob);
             foreach (byte threshold in new byte[] { 128, 143, 192, 224, 225, 226, 227, 228, 229, 240 })
             {
-                using var geometry = (IDisposable)build.Invoke(null, new object[] { pixels, size, size, threshold, 0, DistanceMetric.MTSDF });
+                using var geometry = (IDisposable)build.Invoke(null, new object[] { pixels, size, size, threshold, 0, DistanceMetric.MTSDF, 0f });
                 object array = geometry.GetType().GetField("features").GetValue(geometry);
                 int count = (int)array.GetType().GetProperty("Length").GetValue(array);
                 var item = array.GetType().GetProperty("Item");
@@ -965,6 +965,25 @@ public static class DistanceFieldTests
         bool tipPresent = false;
         foreach (var path in kept) foreach (float2 p in path) tipPresent |= math.distance(p, new float2(0, .04f)) < .0001f;
         t.True(tipPresent, "Normalization retains the shallow cap that contains the tiny hole");
+
+        // The fit-stage guard runs before region union: union cannot restore a
+        // hole already erased by a fitted/simplified enclosing boundary.
+        var fitGuard = artistic.GetMethod("FittingPreservesHoles", BindingFlags.Static | BindingFlags.NonPublic);
+        var quantize = artistic.GetMethod("QuantizeContour", BindingFlags.Static | BindingFlags.NonPublic);
+        t.True(fitGuard != null && quantize != null, "Pre-union hole guard is available");
+        var holeType = quantize.ReturnType;
+        object HoleList(List<float2> path)
+        {
+            var list = (System.Collections.IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(holeType));
+            list.Add(quantize.Invoke(null, new object[] { path })); return list;
+        }
+        t.True(!(bool)fitGuard.Invoke(null, new object[] { capped[0], lostContainment[0], HoleList(capped[1]) }),
+            "Before union, a swept tiny hole rejects the candidate even without crossings");
+        t.True((bool)fitGuard.Invoke(null, new object[] { capped[0], capped[0], HoleList(capped[1]) }),
+            "Before union, unchanged enclosure remains valid");
+        var notch = Path(0,0, 10,0, 10,10, 5.1f,10, 5.1f,3, 4.9f,3, 4.9f,10, 0,10);
+        t.True(!(bool)fitGuard.Invoke(null, new object[] { original[0], notch, HoleList(original[1]) }),
+            "A new notch crossing a hole is rejected even when every hole vertex retains its membership");
     }
 }
 

@@ -264,15 +264,21 @@ namespace DCFApixels.WhimTex
         }
 
         internal PaintStrokeParameters GetStrokeParameters(bool erase, Color? colorOverride = null)
+            => GetScaledStrokeParameters(erase, colorOverride, 1f);
+
+        internal PaintStrokeParameters GetScaledStrokeParameters(bool erase, Color? colorOverride, float pixelScale)
         {
             return new PaintStrokeParameters(colorOverride ?? brushColor, brushSize, brushHardness, brushSpacing, erase,
-                dynamics: dynamics, standardColorInputs: !WhimTexColorInputs.Hdr)
+                dynamics: dynamics, standardColorInputs: !WhimTexColorInputs.Hdr, pixelScale: pixelScale)
                 .WithWriteProtection(dynamics.writeChannels);
         }
 
         internal PaintStrokeParameters GetPencilParameters(bool erase, Color? colorOverride = null)
+            => GetScaledPencilParameters(erase, colorOverride, 1f);
+
+        internal PaintStrokeParameters GetScaledPencilParameters(bool erase, Color? colorOverride, float pixelScale)
         {
-            return new PaintStrokeParameters(colorOverride ?? brushColor, pencilSize, 1f, 0f, erase, true, pencilShape)
+            return new PaintStrokeParameters(colorOverride ?? brushColor, pencilSize, 1f, 0f, erase, true, pencilShape, pixelScale: pixelScale)
                 .WithWriteProtection(dynamics.writeChannels);
         }
 

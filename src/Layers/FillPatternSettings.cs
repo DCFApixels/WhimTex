@@ -77,13 +77,21 @@ namespace DCFApixels.WhimTex
         internal LayerRenderContext Prepare(Material material, Layer layer, in LayerRenderContext context)
         {
             float width = context.activeDocument.width, height = context.activeDocument.height;
-            Vector2 requested = Size;
+            if (!seamless)
+            {
+                Vector2 sourceSize = layer.GetPixelSourceCanvasSize(context.activeDocument.width, context.activeDocument.height);
+                width = sourceSize.x; height = sourceSize.y;
+            }
+            Vector2 requested = Size * context.pixelScale;
+            // Keep shader lattice coordinates representable for arbitrarily small positive scales.
+            float smallestCell = Mathf.Max(1e-12f, Mathf.Max(width, height) / 1000000000f);
+            requested.x = Mathf.Max(requested.x, smallestCell); requested.y = Mathf.Max(requested.y, smallestCell);
             float angle = Limit(rotation, -360000, 360000, 0) * Mathf.Deg2Rad;
             float c = Mathf.Cos(angle), s = Mathf.Sin(angle);
             var rotatedX = new Vector2(c, s);
             var rotatedY = new Vector2(-s, c);
-            Vector2 phase = new Vector2(Limit(offset.x, -1000000, 1000000, 0) / requested.x,
-                Limit(offset.y, -1000000, 1000000, 0) / requested.y);
+            Vector2 phase = new Vector2(context.CanvasPixels(Limit(offset.x, -1000000, 1000000, 0)) / requested.x,
+                context.CanvasPixels(Limit(offset.y, -1000000, 1000000, 0)) / requested.y);
             Vector2 cell = requested;
             LayerRenderContext rendered;
             if (seamless)

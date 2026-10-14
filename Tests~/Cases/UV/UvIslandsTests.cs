@@ -37,7 +37,7 @@ int Edges(object map)
     return count;
 }
 int Pick(object map, float x, float y) => (int)mapType.GetMethod("Pick", flags).Invoke(map, new object[] { V(x, y) });
-byte[] Raster(object map, int island = 0, int w = 32, int h = 32) => (byte[])mapType.GetMethod("Rasterize", flags).Invoke(map, new object[] { island, w, h });
+byte[] Raster(object map, int island = 0, int w = 32, int h = 32) => (byte[])mapType.GetMethod("Rasterize", flags).Invoke(map, new object[] { island, w, h, false });
 void ExpectError(System.Action action, string label)
 {
     bool thrown = false;

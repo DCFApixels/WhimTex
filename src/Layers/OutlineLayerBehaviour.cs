@@ -11,6 +11,7 @@ namespace DCFApixels.WhimTex
     public sealed class OutlineLayerBehaviour : TargetedLayerBehaviour
     {
         public DistanceMetric metric = DistanceMetric.EuclideanAntialiased;
+        public SharpDistanceMode sharpMode = SharpDistanceMode.Unrestricted;
         public float miterLimit = 4f;
         public SourceChannel sourceChannel = SourceChannel.Alpha;
         public Color outlineColor = Color.white;
@@ -20,13 +21,17 @@ namespace DCFApixels.WhimTex
         public bool fillCenter;
         public Color fillColor = Color.white;
         public OutlinePosition outlinePosition = OutlinePosition.Outside;
+        [NonSerialized] private ReconstructedDistanceCache reconstructedCache;
         internal override bool RequiresColorInput => sourceChannel != SourceChannel.Alpha;
 
         internal override RenderTexture Render(in LayerRenderContext context)
         {
             using var timing = DistanceFieldTiming.Measure("render.outline");
             if (context.input == null)
+            {
+                ReleaseDistancePreparation();
                 return null;
+            }
 
             RenderTexture previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;
@@ -42,14 +47,17 @@ namespace DCFApixels.WhimTex
                     inputPixels.Length,
                     Allocator.TempJob,
                     NativeArrayOptions.UninitializedMemory);
-                SDFLayerBehaviour.ComputeSourceField(
+                bool cacheDistances = metric == DistanceMetric.CornerFit || metric == DistanceMetric.Spring || metric == DistanceMetric.Rbf;
+                if (cacheDistances) reconstructedCache ??= new ReconstructedDistanceCache();
+                else ReleaseDistancePreparation();
+                SDFLayerBehaviour.ComputeCachedSourceField(
                     inputPixels,
                     signedDistances,
                     context.width,
                     context.height,
                     128,
                     (int)sourceChannel,
-                    metric, Vector2.zero, SDFLayerBehaviour.SourceEdges.Transparent, miterLimit, default);
+                    metric, Vector2.zero, SDFLayerBehaviour.SourceEdges.Transparent, miterLimit, default, 0, reconstructedCache, sharpMode);
 
                 long stage = DistanceFieldTiming.Start();
                 resultTexture = new Texture2D(context.width, context.height, TextureFormat.RGBAFloat, false, true)
@@ -63,9 +71,9 @@ namespace DCFApixels.WhimTex
                 {
                     signedDistances = signedDistances,
                     output = outputPixels,
-                    outlineWidth = Mathf.Max(0f, outlineWidth / context.scaleMultiplier),
-                    outlineSoftness = Mathf.Max(0f, outlineSoftness / context.scaleMultiplier),
-                    outlineOffset = outlineOffset / context.scaleMultiplier,
+                    outlineWidth = Mathf.Max(0f, outlineWidth * context.pixelScale / context.scaleMultiplier),
+                    outlineSoftness = Mathf.Max(0f, outlineSoftness * context.pixelScale / context.scaleMultiplier),
+                    outlineOffset = outlineOffset * context.pixelScale / context.scaleMultiplier,
                     fillCenter = fillCenter,
                     fillColor = HdrUtility.Decode(fillColor),
                     outlineColor = HdrUtility.Decode(outlineColor),
@@ -96,6 +104,17 @@ namespace DCFApixels.WhimTex
                 if (resultTexture != null)
                     UnityEngine.Object.DestroyImmediate(resultTexture);
             }
+        }
+
+        internal void ReleaseDistancePreparation()
+        {
+            reconstructedCache?.Dispose(); reconstructedCache = null;
+        }
+
+        internal override void ReleaseTransientResources()
+        {
+            ReleaseDistancePreparation();
+            base.ReleaseTransientResources();
         }
 
         public override string ToString()

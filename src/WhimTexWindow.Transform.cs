@@ -350,6 +350,8 @@ namespace DCFApixels.WhimTex
                 SetCanvasTool(CanvasTool.PolygonSelect);
             else if (evt.keyCode == KeyCode.U)
                 SetCanvasTool(CanvasTool.Shape);
+            else if (evt.keyCode == KeyCode.C)
+                SetCanvasTool(CanvasTool.Crop);
             else if (evt.keyCode == KeyCode.Z)
                 SetCanvasTool(CanvasTool.Zoom);
             else if (IsCanvasZoomEnabled && evt.keyCode == KeyCode.Escape)

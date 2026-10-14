@@ -149,6 +149,8 @@ https://github.com/DCFApixels/WhimTex.git
   равномерный разброс кисти. [Приложенная лицензия](ThirdPartyNotices.md#sobol-direction-numbers).
 - **[Clipper2](https://github.com/AngusJohnson/Clipper2)** — Angus Johnson;
   переносимая нормализация контуров SDF. [Приложенная лицензия Boost](src/ThirdParty/Clipper2/LICENSE.txt).
+- **[edtaa3](https://github.com/rougier/freetype-gl/blob/ecf48bc72b9ef7d493a2491b9adcaa1504d01252/edtaa3func.c)** — Stefan Gustavson;
+  адаптирован для экспериментального режима расстояний AAEDT + 8SED. [Приложенная лицензия MIT](ThirdPartyNotices.md#edtaa3).
 - **[FastNoiseLite](https://github.com/Auburn/FastNoiseLite)** — Jordan Peck и участники проекта;
   HLSL-реализация используется для генерации слоя Noise. [Приложенная лицензия MIT](ThirdPartyNotices.md#fastnoiselite).
 - **[Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)** — James Newton-King и участники проекта;
@@ -160,6 +162,10 @@ https://github.com/DCFApixels/WhimTex.git
 
 - **[Just the Docs](https://github.com/just-the-docs/just-the-docs)** — тема сайта документации.
   [Приложенная лицензия MIT](Documentation~/Licenses/JustTheDocs-LICENSE.txt).
+
+Исследовательская основа: [Matusovic, Parakkat и Eisemann (2023)](https://doi.org/10.1111/cgf.14743)
+послужили источником идей для автоматической пружинной релаксации в экспериментальном
+Spring Simulation. [Объём адаптации](ThirdPartyNotices.md#spring-simulation-research-reference).
 
 Версии исходников и сведения о лицензиях пакетов собраны в [Third-party notices](ThirdPartyNotices.md).
 Сторонние компоненты сохраняют собственные лицензии.

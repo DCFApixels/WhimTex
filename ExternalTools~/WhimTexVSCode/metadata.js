@@ -86,9 +86,13 @@ function stripTooltip(text) {
 }
 
 function modifiers(text) {
-  let hidden = false, seed = false, label = null;
+  let hidden = false, seed = false, pixelUnits = false, label = null;
   for (;;) {
     text = text.trimStart();
+    if (/^px(?:\s|$)/.test(text)) {
+      if (pixelUnits) fail('The px modifier may be specified only once.');
+      pixelUnits = true; text = text.slice(2); continue;
+    }
     if (/^seed(?:\s|$)/.test(text)) {
       if (seed) fail('The seed modifier may be specified only once.');
       seed = true; text = text.slice(4); continue;
@@ -115,16 +119,18 @@ function modifiers(text) {
     if (!label.trim()) fail('The label modifier must contain non-empty text.');
     text = text.slice(end + 1);
   }
-  return { text, hidden, seed };
+  return { text, hidden, seed, pixelUnits };
 }
 
 function parseParameter(body) {
-  const { text: modified, hidden, seed } = modifiers(body);
+  const { text: modified, hidden, seed, pixelUnits } = modifiers(body);
   const text = stripTooltip(modified);
   const head = text.match(/^([A-Za-z0-9]+)\s+([A-Za-z_][A-Za-z0-9_]*)(.*)$/);
   if (!head || !types.has(head[1])) fail('Expected a supported @param type and parameter name.');
   const [, type, name] = head;
   if (seed && type !== 'float') fail('seed applies only to float parameters.');
+  if (pixelUnits && (seed || !['float', 'float2', 'float3', 'float4'].includes(type)))
+    fail('The px modifier applies only to numeric float, float2, float3 or float4 lengths, without seed.');
   let rest = head[3].trim(), value;
   if (type === 'enum') {
     const match = rest.match(/^(?:=\s*([^{}]+?))?\s*\{([^{}]+)\}$/);
@@ -138,7 +144,7 @@ function parseParameter(body) {
       options.set(option[1], n); values.add(n);
     }
     if (match[1] !== undefined && !options.has(match[1].trim())) number(match[1]);
-    return { type, name, hidden };
+    return { type, name, hidden, pixelUnits };
   }
   let range;
   const rangeStart = rest.indexOf('[');
@@ -193,7 +199,7 @@ function parseParameter(body) {
       }
     }
   }
-  return { type, name, hidden, seed };
+  return { type, name, hidden, seed, pixelUnits };
 }
 
 // Match Unity's line-oriented metadata scanner, ignoring commented-out examples.
@@ -250,6 +256,8 @@ function validate(source) {
           const existing = names.get(p.name);
           if (existing && existing.some(other => !compatible(other.type, p.type)))
             fail(`Conflicting storage types for ${p.name}.`);
+          if (existing && existing.some(other => other.pixelUnits !== p.pixelUnits))
+            fail(`Conflicting pixel units for ${p.name}.`);
           if (!existing) names.set(p.name, [p]); else existing.push(p);
           declarations.push(p);
           if (group) group.parameters.push(p);

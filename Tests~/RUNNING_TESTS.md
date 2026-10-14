@@ -195,6 +195,61 @@ references are in the [test map](README.md#история).
 
 ## Generated artifacts
 
+`distance-round-contour` is an opt-in performance comparison, not a regression
+verdict. It measures seven fresh-resource builds per mode at 512/1024 on a star,
+36 rings and native HintedAA text, alternating Round/Contour AB/BA pairs. The
+source raster/upload is shared and untimed; no field result or geometry is reused.
+The Editor/compiler state and Unity RT pool remain shared. Reports retain the
+resolved font, CPU field phase, full Render and synchronous completion/readback.
+Use `--allow-effects temp-files --keep-going` after review; successful diagnostic
+sample collection returns SKIP. Files are under `Temp/WhimTex/distance-fields/performance`.
+
+`distance-contour` checks the separate Contour AA mode: distances to raw finite
+threshold segments, soft diagonal ramps, circles/rings, ambiguous cells, exact
+threshold contacts, small islands, degenerate dimensions, settings and native
+SDF/Outline render/UI. It does not replace Round AA or AAEDT. The text diagnostic
+is `Temp/WhimTex/distance-fields/contour/text-source-round-aaedt-contour.png`:
+columns are source, Round AA, AAEDT and Contour; row pairs are Hinted AA,
+Antialiased and Pixel, each with identity then fractional layer translation.
+These generated comparisons are not goldens or proof of universal superiority.
+Use `--allow-effects temp-files,windows,user-state` after reviewing its sources.
+
+`distance-aaedt` checks the additional AAEDT + 8SED mode: bounded independent
+coverage/geometry tests, a native comparison with Round AA on the authenticated
+fifth star at thresholds 77/128/192, existing six-mode numerical regressions, and
+eight-mode settings/render/UI checks. The comparison sheet and CSV go to
+`Temp/WhimTex/distance-fields/aaedt`: thresholds left to right, Round AA above,
+AAEDT below. The general SDF/Outline sheet is `eight-modes.png`. These outputs are
+diagnostics, not accuracy or speed rankings. Select this profile with
+`--allow-effects temp-files,windows,user-state` after reviewing its sources.
+
+`distance-merge` is the opt-in contour-merge regression profile. It compares merge
+0/1/2 for Sharp/MTSDF: bounded geometry, seven analytic rasters (42 CPU calls), and
+18 native renders of the authenticated fifth capture at thresholds 77/128/192.
+It also runs the six-mode kernel/boundary, settings roundtrip and render/UI cases.
+Contact sheets and delta CSV go to `Temp/WhimTex/distance-fields/merge`; columns are
+0/1/2 pixels, top row Sharp, bottom row MTSDF. These are diagnostic comparisons,
+not output goldens or evidence that merging restores sharpness. Caller documents
+are untouched; the UI test uses an owned transient window. Select this profile
+with `--allow-effects temp-files,windows,user-state` after reviewing its sources.
+
+The `distance-fields` profile includes independent raster-angle and five captured-input
+checks in addition to the kernel, UI and render cases. `DistanceRasterCornerTests`
+checks source hashes and analytic geometry, never newly rendered output goldens.
+`DistanceCornerFitTests` still compares fit-window arithmetic with the frozen original;
+whole-contour recovery is no longer asserted bit-identical after the raster-quality changes.
+The fifth originally failing input is retained in [DistanceRaster](Fixtures/DistanceRaster/README.md)
+and participates in the captured suite and `distance-safety-v1`. The three `distance-safety-*`
+entries add independent finite-contour bounds, full RGB interpolation before median,
+common-angle tips, thin strokes and holes. Their oracle excludes only raw/independent analytic
+near-boundary bands, never bands derived from the current output. Each body stays within 30s;
+35/106/60 production calls respectively. Raster reconstruction may extend a sampled-off tip,
+so a raw-mask-only sign oracle is not valid at that independently known analytic boundary.
+Sharp resolves ownership per contour before combining fields; these tests do not demand
+unlimited acute miters or treat the Euclidean-nearest island as the sole artistic contributor.
+The 15-case profile passed on 2026-10-13, receipt `2026-10-13T08-18-49.604Z-82572.json`.
+See F19 for the finite-distance compromise and measured cold costs.
+
 Runner reports, native input bundles and recovery logs stay under project `Temp/WhimTex`.
 Do not copy them into `Tests~` or commit expanded inventory snapshots. The package ignores
 generated result files. Fixture manifests and provenance are required input data, not reports.
@@ -208,6 +263,51 @@ Review the profile, then run with its receipt, `--allow-effects temp-files` and
 `Temp/WhimTex/distance-fields/performance`; nested phase times overlap. Render time
 includes input readback/output submission, not final GPU completion. The separate
 completion readback includes full RGBAFloat transfer and is not GPU-only timing.
+
+`distance-field-cold` selects six opt-in diagnostics with zero algorithm warmups:
+SDF star 512/1024/2048, Outline star 512/1024 and SDF rings 512. Each sample creates
+a new behaviour/material/LUT and rebuilds the field, geometry and scratch buffers;
+it does not reuse a persistent result cache. The source fixture, running Editor,
+compiler state and Unity's global temporary-RT pool remain shared: this measures
+cold resource construction, not a cold process/JIT or first shader compilation.
+The same review, `--allow-effects temp-files` and `--keep-going` requirements apply.
+Raw reports retain `creationMs`, `renderMs`, separate `completionReadbackMs`,
+`firstSampleForMode` and every sample, so compare creation + Render consistently.
+Cleanup is outside this construction interval. Diagnostics return SKIP even when
+all timing samples were collected; compare the matching production fingerprints
+with a separately passed `distance-fields` quality run.
+
+`distance-reconstruction` checks the experimental Corner Fit AA and Spring Simulation
+modes independently of the legacy Sharp/MTSDF guards. It includes exact pixel-area
+oracles, an AA-capped triangle that must actually recover a corner, 10–90 degree
+corners at 16–64 pixels, rotations/subpixel phases, holes, thin bars, tiny islands,
+channel selection, binary/ambiguous fallbacks and the authenticated false-ray input.
+`distance-spring-contribution-v1` compares 12 independently rasterized CornerFit/Spring
+pairs and requires measurable Spring influence in the final field. The existing sign,
+supported-side accuracy and remote-extension bounds also apply to these inputs.
+The native comparison writes `distance-fields/reconstruction` under project Temp;
+its single-render times are diagnostics, not a controlled performance benchmark.
+The final native render check covers all ten modes and writes `ten-modes.png`.
+Use the normal reviewed receipt and declared effect grants; no borrowed working
+document is changed. A passed matrix is not a guarantee of recovering lost geometry.
+
+`distance-preparation` covers retained CornerFit/Spring preparation and distance evaluation.
+The native render-cache case compares 512px range/width and miter edits against fresh full
+rebuilds, checks phase counts and all rendered channels, and writes `preparation/interaction.csv`
+under project `Temp/WhimTex/distance-fields`. Render times exclude the subsequent verification
+readback and are interaction diagnostics in the same Editor, not cold-process benchmarks.
+
+`distance-corner-parameters` includes an opt-in comparison with this session's pre-change
+native float snapshot. `distance-corner-parameters-capture-v1` is a diagnostic producer:
+run it only BEFORE changing the production kernel; it refuses overwrite and returns SKIP.
+`distance-corner-parameters-v1` authenticates the frozen SHA256 and checks the 24 CornerFit
+fields bitwise. The 24 Spring fields now record historical differences, without asserting
+equivalence: Spring deliberately stopped rejecting relaxation against source AA coverage
+after that snapshot. It records prepared-kernel timings and differences in project
+`Temp/WhimTex/distance-fields/corner-parameters`.
+If the session snapshot is unavailable, comparison is SKIP; it must never be rebuilt using
+the optimized kernel. Portable analytic/render/cache regressions remain independently runnable.
+
 Successful timing/manual producers can still return SKIP; a saved PNG, CSV or timing array
 does not establish historical equivalence or a performance acceptance threshold. Unavailable
 process-memory counters must be labelled unavailable, not interpreted as zero memory usage.

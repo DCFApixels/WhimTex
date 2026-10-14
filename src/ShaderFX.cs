@@ -52,6 +52,7 @@ namespace DCFApixels.WhimTex
         [HideInInspector] public string id = Guid.NewGuid().ToString("N");
         [HideInInspector] public bool hasMinimum, hasMaximum;
         [HideInInspector] public bool softMinimum, softMaximum;
+        [HideInInspector] public bool pixelUnits;
         internal bool HasSoftRange => softMinimum || softMaximum;
         [HideInInspector] public float minimum, maximum;
         [HideInInspector] public List<ShaderFXParameterControl> controls = new List<ShaderFXParameterControl>();
@@ -100,19 +101,20 @@ namespace DCFApixels.WhimTex
             return copy;
         }
 
-        internal void SetValue(Material material, ShaderFXParameter declaration, Vector2 dimensions)
+        internal void SetValue(Material material, ShaderFXParameter declaration, Vector2 dimensions, float pixelScale = 1f)
         {
             string propertyName = declaration.name;
+            float units = declaration.pixelUnits ? pixelScale : 1f;
             switch (type)
             {
                 case ShaderFXParameterType.Enum:
-                case ShaderFXParameterType.Float: material.SetFloat(propertyName, floatValue); break;
+                case ShaderFXParameterType.Float: material.SetFloat(propertyName, floatValue * units); break;
                 case ShaderFXParameterType.Bool: material.SetFloat(propertyName, BoolValue ? 1f : 0f); break;
                 case ShaderFXParameterType.Color: HdrUtility.SetShaderColor(material, propertyName, colorValue); break;
                 case ShaderFXParameterType.Vector2:
                 case ShaderFXParameterType.Point:
                 case ShaderFXParameterType.Vector3:
-                case ShaderFXParameterType.Vector: material.SetVector(propertyName, vectorValue); break;
+                case ShaderFXParameterType.Vector: material.SetVector(propertyName, vectorValue * units); break;
                 case ShaderFXParameterType.Normal: material.SetVector(propertyName, NormalizeNormal(vectorValue)); break;
                 case ShaderFXParameterType.Texture2D:
                     material.SetTexture(propertyName, textureValue != null ? textureValue : Texture2D.whiteTexture);
@@ -537,12 +539,13 @@ namespace DCFApixels.WhimTex
                         break;
                     }
                 parameterBindings ??= new ShaderParameterBindings();
-                parameterBindings.Apply(material, value, applied, new Vector2(context.activeDocument.width, context.activeDocument.height));
+                parameterBindings.Apply(material, value, applied, new Vector2(context.activeDocument.width, context.activeDocument.height), context.pixelScale);
             }
             material.SetVector("_InputSize", new Vector4(context.width, context.height, 1f / context.width, 1f / context.height));
             material.SetVector("_CanvasSize", new Vector4(context.activeDocument.width, context.activeDocument.height,
                 1f / context.activeDocument.width, 1f / context.activeDocument.height));
             material.SetFloat("_RenderScale", context.scaleMultiplier);
+            material.SetFloat("_PixelScale", context.pixelScale);
             return material;
         }
 

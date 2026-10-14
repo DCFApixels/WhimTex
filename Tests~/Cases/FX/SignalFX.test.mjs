@@ -11,9 +11,9 @@ try {
       const code = source('CRT');
       assert.equal(code.split('\n')[0], '// @whimtex-effect Stylization/CRT');
       for (const parameter of ['_Curvature', '_ScanlineStrength', '_PhosphorStrength', '_Vignette', '_ChromaticAberration', '_NoiseAmount', '_Flicker', '_Seed', '_EffectTime'])
-          assert.match(code, new RegExp(`@param float ${parameter}\\b`));
+          assert.match(code, new RegExp(`@param (?:(?:px|seed) )?float ${parameter}\\b`));
       assert.match(code, /#include ".*Dither\.cginc"/);
-      assert.match(code, /HashNoise\(pixel \+ float2\(_Seed/);
+      assert.match(code, /HashNoise\(pixel \/ _PixelScale \+ float2\(_Seed/);
       assert.match(code, /floor\(max\(_EffectTime, 0\.0\) \* 24\.0\)/);
       assert.match(code, /float3 stripeSelection = float3\([\s\S]*?step\(2\.0, stripe\)\)/);
       assert.doesNotMatch(code, /if \(stripe </);
@@ -24,7 +24,7 @@ try {
       const code = source('VHS');
       assert.equal(code.split('\n')[0], '// @whimtex-effect Stylization/VHS');
       for (const parameter of ['_ChromaBleed', '_LineJitter', '_ColorLoss', '_NoiseAmount', '_TrackingHeight', '_TrackingOffset', '_TrackingSpeed', '_Seed', '_EffectTime'])
-          assert.match(code, new RegExp(`@param float ${parameter}\\b`));
+          assert.match(code, new RegExp(`@param (?:(?:px|seed) )?float ${parameter}\\b`));
       assert.match(code, /@param hidden float _TrackingStrength\b/);
       assert.match(code, /HashNoise\(float2\(lineIndex \+ _Seed/);
       assert.match(code, /frac\(_EffectTime \* _TrackingSpeed \+ bandSeed\)/);

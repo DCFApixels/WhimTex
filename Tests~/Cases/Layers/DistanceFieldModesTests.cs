@@ -14,11 +14,16 @@ public static class DistanceFieldModesTests
     const BindingFlags Instance = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
     static readonly DistanceMetric[] Modes = {
         DistanceMetric.EuclideanAntialiased, DistanceMetric.Sharp, DistanceMetric.Bevel,
-        DistanceMetric.Diamond, DistanceMetric.Square, DistanceMetric.MTSDF
+        DistanceMetric.Diamond, DistanceMetric.Square, DistanceMetric.MTSDF, DistanceMetric.AAEDT, DistanceMetric.Contour,
+        DistanceMetric.CornerFit, DistanceMetric.Spring
     };
 
     public static string Run() => TestContext.Run("Distance modes: source fields, channels and current-format roundtrip", t =>
     {
+        t.Equal(10, Modes.Length, "All ten modes participate in source and roundtrip checks");
+        t.Equal(10, Enum.GetNames(typeof(DistanceMetric)).Length, "Exactly ten distance modes are exposed");
+        for (int i = 0; i < Modes.Length; i++)
+            t.Equal(i + 4, (int)Modes[i], "Mode values remain stable: " + Modes[i]);
         t.Equal(DistanceMetric.EuclideanAntialiased, new SDFLayerBehaviour().metric, "SDF defaults to Round AA");
         t.Equal(DistanceMetric.EuclideanAntialiased, new OutlineLayerBehaviour().metric, "Outline defaults to Round AA");
         CheckColorInputs(t);
@@ -26,6 +31,8 @@ public static class DistanceFieldModesTests
         CheckImageBorders(t);
         CheckRoundtrip(t);
         CheckBinaryModelRoundtrip(t);
+        CheckMergeSettingsApi(t);
+        CheckAaedtSettingsApi(t);
     });
 
     static void CheckColorInputs(TestContext t)
@@ -51,7 +58,7 @@ public static class DistanceFieldModesTests
     static MethodInfo FieldMethod() => typeof(SDFLayerBehaviour).GetMethod("ComputeSourceField", Static, null,
         new[] { typeof(NativeArray<Color32>), typeof(NativeArray<float>), typeof(int), typeof(int), typeof(byte),
             typeof(int), typeof(DistanceMetric), typeof(Vector2), typeof(SDFLayerBehaviour.SourceEdges),
-            typeof(float), typeof(NativeArray<float4>) }, null);
+            typeof(float), typeof(NativeArray<float4>), typeof(float) }, null);
 
     static void CheckSourceFields(TestContext t)
     {
@@ -64,12 +71,12 @@ public static class DistanceFieldModesTests
         using var output = new NativeArray<float>(w * h, Allocator.TempJob);
         using var channels = new NativeArray<float4>(w * h, Allocator.TempJob);
         var wrapper = SourceMethod(); var field = FieldMethod();
-        t.True(wrapper != null && field != null, "Source wrapper and eleven-argument field entry are present");
+        t.True(wrapper != null && field != null, "Source wrapper and field entry with contour merge are present");
         foreach (var mode in Modes) foreach (var offset in new[] { Vector2.zero, new Vector2(2.25f, -1.5f) })
         {
             field.Invoke(null, new object[] { pixels, output, w, h, (byte)128, 0, mode, offset,
                 SDFLayerBehaviour.SourceEdges.Transparent, 4f,
-                mode == DistanceMetric.MTSDF ? channels : default(NativeArray<float4>) });
+                mode == DistanceMetric.MTSDF ? channels : default(NativeArray<float4>), 0f });
             int distinct = 0;
             for (int y = 5; y < h - 5; y++) for (int x = 5; x < w - 5; x++)
             {
@@ -109,21 +116,25 @@ public static class DistanceFieldModesTests
         foreach (var mode in Modes)
         {
             field.Invoke(null, new object[] { pixels, output, w, h, (byte)128, 0, mode, Vector2.zero,
-                SDFLayerBehaviour.SourceEdges.Transparent, 4f, default(NativeArray<float4>) });
+                SDFLayerBehaviour.SourceEdges.Transparent, 4f, default(NativeArray<float4>), 0f });
             t.True(output[4 * w + 5] < -3, "Full image has a negative interior with transparent source edges: " + mode);
             t.Near(-127.0 / 255, output[4 * w], .04, "Image border is a real subpixel contour: " + mode);
             for (int i = 0; i < output.Length; i++) t.True(float.IsFinite(output[i]) && output[i] < 0, "Finite full-image source distance " + mode);
         }
+        foreach (var mode in new[] { DistanceMetric.EuclideanAntialiased, DistanceMetric.AAEDT, DistanceMetric.Contour })
         foreach (var edges in new[] { SDFLayerBehaviour.SourceEdges.Clamp, SDFLayerBehaviour.SourceEdges.Repeat, SDFLayerBehaviour.SourceEdges.Mirror })
         {
             SourceMethod().Invoke(null, new object[] { pixels, output, w, h, (byte)128, 0,
-                DistanceMetric.EuclideanAntialiased, new Vector2(3, -2), edges });
-            foreach (float d in output) t.True(float.IsFinite(d) && d < -1000, "Full " + edges + " source has no invented contour");
+                mode, new Vector2(3, -2), edges });
+            foreach (float d in output) t.True(float.IsFinite(d) && d < -1000, "Full " + mode + "/" + edges + " source has no invented contour");
         }
         for (int i = 0; i < pixels.Length; i++) writable[i] = new Color32(0, 0, 0, 0);
+        foreach (var mode in new[] { DistanceMetric.EuclideanAntialiased, DistanceMetric.AAEDT, DistanceMetric.Contour })
+        {
         SourceMethod().Invoke(null, new object[] { pixels, output, w, h, (byte)128, 0,
-            DistanceMetric.EuclideanAntialiased, Vector2.zero, SDFLayerBehaviour.SourceEdges.Transparent });
-        foreach (float d in output) t.True(float.IsFinite(d) && d > 1000, "Empty source has no invented image-border contour");
+            mode, Vector2.zero, SDFLayerBehaviour.SourceEdges.Transparent });
+        foreach (float d in output) t.True(float.IsFinite(d) && d > 1000, "Empty source has no invented image-border contour: " + mode);
+        }
     }
 
     static IDisposable Read(string json) => (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", Static)
@@ -143,13 +154,14 @@ public static class DistanceFieldModesTests
             t.Equal(DistanceMetric.EuclideanAntialiased, sdf.metric, "JSON without metric defaults SDF to Round AA");
             t.Equal(DistanceMetric.EuclideanAntialiased, outline.metric, "JSON without metric defaults Outline to Round AA");
             t.Near(4, sdf.miterLimit, .0001, "JSON without miter limit defaults SDF to 4");
+            t.Near(0, sdf.contourMergeDistance, 0, "Missing contour merge stays off");
             t.Near(4, outline.miterLimit, .0001, "JSON without miter limit defaults Outline to 4");
         }
         foreach (var mode in Modes)
         {
             string json = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":["
                 + "{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\",\"metric\":\"" + mode
-                + "\",\"miterLimit\":2.75,\"encoding\":\"LinearData\",\"sourceEdges\":\"Repeat\",\"sourceOffset\":[2.25,-1.5]}},"
+                + "\",\"miterLimit\":2.75,\"contourMergeDistance\":1.25,\"encoding\":\"LinearData\",\"sourceEdges\":\"Repeat\",\"sourceOffset\":[2.25,-1.5]}},"
                 + "{\"id\":\"outline\",\"behaviour\":{\"$type\":\"OutlineLayerBehaviour\",\"metric\":\"" + mode
                 + "\",\"miterLimit\":3.25,\"outlineWidth\":2.5,\"outlineOffset\":-1.25,\"fillCenter\":true}}]}";
             using var original = Read(json);
@@ -164,6 +176,7 @@ public static class DistanceFieldModesTests
             t.Equal(mode, sdf.metric, "SDF selected artistic metric roundtrip");
             t.Equal(mode, outline.metric, "Outline selected artistic metric roundtrip");
             t.Near(2.75, sdf.miterLimit, .0001, "SDF miter limit roundtrip");
+            t.Near(1.25, sdf.contourMergeDistance, 0, "SDF contour merge roundtrip, including inactive modes");
             t.Near(3.25, outline.miterLimit, .0001, "Outline miter limit roundtrip");
             t.Equal(new Vector2(2.25f, -1.5f), sdf.sourceOffset, "Fractional source offset roundtrip");
             t.Equal(SDFLayerBehaviour.SourceEdges.Repeat, sdf.sourceEdges, "Source edges roundtrip");
@@ -176,7 +189,12 @@ public static class DistanceFieldModesTests
                 "Explicit MTSDF data output accepted");
         foreach (string properties in new[] {
             "\"metric\":\"EuclideanAntialiased\",\"encoding\":\"MultiChannelData\"",
-            "\"metric\":123", "\"miterLimit\":0", "\"miterLimit\":65"
+            "\"metric\":\"AAEDT\",\"encoding\":\"MultiChannelData\"",
+            "\"metric\":\"Contour\",\"encoding\":\"MultiChannelData\"",
+            "\"metric\":\"CornerFit\",\"encoding\":\"MultiChannelData\"",
+            "\"metric\":\"Spring\",\"encoding\":\"MultiChannelData\"",
+            "\"metric\":123", "\"miterLimit\":0", "\"miterLimit\":65",
+            "\"contourMergeDistance\":-1", "\"contourMergeDistance\":2.01"
         })
         {
             bool rejected = false;
@@ -203,12 +221,13 @@ public static class DistanceFieldModesTests
         {
             var encoding = mode == DistanceMetric.MTSDF ? SDFLayerBehaviour.OutputEncoding.MultiChannelData
                 : SDFLayerBehaviour.OutputEncoding.LinearData;
-            var sourceSdf = new SDFLayerBehaviour { metric = mode, miterLimit = 2.75f, encoding = encoding,
+            var sourceSdf = new SDFLayerBehaviour { metric = mode, miterLimit = 2.75f, contourMergeDistance = 2, encoding = encoding,
                 sourceOffset = new Vector2(2.25f, -1.5f), contourOffset = -.375f,
                 insideDistance = 3.5f, outsideDistance = 7.25f };
             var sdf = (SDFLayerBehaviour)BinaryModelCopy(t, serialize, deserialize, sourceSdf);
             t.Equal(mode, sdf.metric, "Binary model SDF metric roundtrip");
             t.Near(2.75, sdf.miterLimit, .0001, "Binary model SDF miter limit roundtrip");
+            t.Near(2, sdf.contourMergeDistance, 0, "Binary model SDF contour merge roundtrip");
             t.Equal(encoding, sdf.encoding, "Binary model SDF encoding roundtrip, including MTSDF MultiChannelData");
             t.Equal(new Vector2(2.25f, -1.5f), sdf.sourceOffset, "Binary model SDF source offset roundtrip");
             t.Near(-.375, sdf.contourOffset, .0001, "Binary model SDF contour offset roundtrip");
@@ -238,5 +257,64 @@ public static class DistanceFieldModesTests
         t.True(copy != null && copy.GetType() == source.GetType() && !ReferenceEquals(source, copy),
             "Binary model roundtrip reconstructs a separate root of the expected type");
         return copy;
+    }
+
+    static void CheckMergeSettingsApi(TestContext t)
+    {
+        using var parsed=Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\"}},{\"id\":\"outline\",\"behaviour\":{\"$type\":\"OutlineLayerBehaviour\"}}]}");
+        var doc=Document(parsed);
+        var sdf=(SDFLayerBehaviour)doc.layers[0].Behaviour;
+        var set=typeof(WhimTexApi).GetMethod("SetLayer",Static);
+        var inspect=typeof(WhimTexApi).GetMethod("Snapshot",Static);
+        t.True(set!=null && inspect!=null,"Package-owned settings parser and snapshot available");
+        var jsonParse=set.GetParameters()[2].ParameterType.GetMethod("Parse",new[]{typeof(string)});
+        object Settings(double value) => jsonParse.Invoke(null,new object[]{"{\"contourMergeDistance\":"+
+            value.ToString("R",System.Globalization.CultureInfo.InvariantCulture)+"}"});
+        object Item(object token,object key) => token.GetType().GetProperty("Item",new[]{key.GetType()}).GetValue(token,new[]{key});
+        foreach(float value in new[]{0f,1f,2f})
+        {
+            set.Invoke(null,new object[]{doc,sdf.Owner,Settings(value)});
+            t.Near(value,sdf.contourMergeDistance,0,"API stores contour merge while mode inactive");
+            var snapshot=inspect.Invoke(null,new object[]{doc,null});
+            var saved=Item(Item(Item(Item(snapshot,"layers"),0),"settings"),"contourMergeDistance");
+            t.Near(value,double.Parse(saved.ToString(),System.Globalization.CultureInfo.InvariantCulture),0,"API snapshot exposes merge value");
+        }
+        foreach(double invalid in new[]{-1,2.01,double.NaN,double.PositiveInfinity})
+        {
+            bool rejected=false;
+            try { set.Invoke(null,new object[]{doc,sdf.Owner,Settings(invalid)}); }
+            catch(TargetInvocationException) { rejected=true; }
+            t.True(rejected,"API rejects invalid merge "+invalid);
+            t.Near(2,sdf.contourMergeDistance,0,"Invalid merge does not replace value");
+        }
+        bool outlineRejected=false;
+        try { set.Invoke(null,new object[]{doc,doc.layers[1],Settings(1)}); }
+        catch(TargetInvocationException) { outlineRejected=true; }
+        t.True(outlineRejected,"SDF-only merge is rejected on Outline");
+    }
+
+    static void CheckAaedtSettingsApi(TestContext t)
+    {
+        using var parsed = Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\"}},{\"id\":\"outline\",\"behaviour\":{\"$type\":\"OutlineLayerBehaviour\"}}]}");
+        var doc = Document(parsed);
+        var set = typeof(WhimTexApi).GetMethod("SetLayer", Static);
+        var inspect = typeof(WhimTexApi).GetMethod("Snapshot", Static);
+        t.True(set != null && inspect != null, "AAEDT settings and snapshot API are available");
+        // Reflect only package API parameter types; avoid references to duplicated JSON assemblies.
+        var parse = set.GetParameters()[2].ParameterType.GetMethod("Parse", new[] { typeof(string) });
+        object Item(object token, object key) => token.GetType().GetProperty("Item", new[] { key.GetType() }).GetValue(token, new[] { key });
+        foreach (var mode in new[] { DistanceMetric.AAEDT, DistanceMetric.Contour, DistanceMetric.CornerFit, DistanceMetric.Spring })
+        {
+        for (int i = 0; i < doc.layers.Count; i++)
+        {
+            object settings = parse.Invoke(null, new object[] { "{\"metric\":\"" + mode + "\",\"miterLimit\":3.25}" });
+            set.Invoke(null, new object[] { doc, doc.layers[i], settings });
+            var snapshot = inspect.Invoke(null, new object[] { doc, null });
+            var saved = Item(Item(Item(Item(snapshot, "layers"), i), "settings"), "metric");
+            t.Equal(mode.ToString(), saved.ToString(), "API snapshot preserves " + mode + " for effect " + i);
+        }
+        t.Equal(mode, ((SDFLayerBehaviour)doc.layers[0].Behaviour).metric, "API selects " + mode + " on SDF");
+        t.Equal(mode, ((OutlineLayerBehaviour)doc.layers[1].Behaviour).metric, "API selects " + mode + " on Outline");
+        }
     }
 }

@@ -17,6 +17,7 @@ namespace DCFApixels.WhimTex
         private Vector2Int healingCanvasSize;
         private int healingSelectionRevision;
         private ProjectiveMatrix healingTransform;
+        private float healingPixelScale;
         private HealingJob healingJob;
         private static Task healingWorker;
         private VisualElement healingOverlay;
@@ -107,6 +108,7 @@ namespace DCFApixels.WhimTex
             healingTransform = transform;
             healingCanvasSize = new Vector2Int(activeDocument.width, activeDocument.height);
             healingSelectionRevision = GetAreaSelection().Revision;
+            healingPixelScale = CurrentPaintingPixelScale;
             try { BeginHealingStroke(HealingCanvasPoint(evt.localPosition)); }
             catch (Exception e) { CancelHealing(); ShowNotification(new GUIContent("Healing: " + e.Message)); return true; }
             healingPointer = evt.pointerId;
@@ -130,7 +132,7 @@ namespace DCFApixels.WhimTex
             healingStroke?.Dispose();
             healingTransform.TryInverse(out var inverse);
             healingStroke = new DrawingLayerBehaviour.HealingStrokeBuffer(healingCanvasSize.x, healingCanvasSize.y,
-                Mathf.Clamp(paintSettings.healingSize, 1, 512), Mathf.Clamp01(paintSettings.healingHardness),
+                EffectivePaintSize(Mathf.Clamp(paintSettings.healingSize, 1, 512)), Mathf.Clamp01(paintSettings.healingHardness),
                 tiledCanvas, inverse, GetAreaSelectionTexture());
             healingStroke.Add(point);
         }
@@ -168,6 +170,7 @@ namespace DCFApixels.WhimTex
             canvasTool == CanvasTool.HealingBrush && healingLayer != null &&
             ReferenceEquals(GetSelectedLayer()?.Behaviour, healingLayer) &&
             activeDocument.width == healingCanvasSize.x && activeDocument.height == healingCanvasSize.y &&
+            CurrentPaintingPixelScale == healingPixelScale &&
             GetAreaSelection().Revision == healingSelectionRevision &&
             healingStroke != null && healingStroke.tiled == tiledCanvas &&
             activeDocument.GetPaintTransform(healingLayer).ToMatrix(activeDocument.width, activeDocument.height).Equals(healingTransform) &&
@@ -183,7 +186,7 @@ namespace DCFApixels.WhimTex
             {
                 if (!HealingContextValid) { CancelHealing(); return; }
                 int width = activeDocument.width, height = activeDocument.height;
-                RectInt bounds = healingStroke.Bounds(Mathf.Clamp(paintSettings.healingSearch, 8, 512));
+                RectInt bounds = healingStroke.Bounds(EffectivePaintDistance(Mathf.Clamp(paintSettings.healingSearch, 8, 512)));
                 if (bounds.width == 0 || bounds.height == 0) throw new InvalidOperationException("Draw inside the canvas.");
                 readback = new Texture2D(bounds.width, bounds.height, TextureFormat.RGBAFloat, false, true)
                     { hideFlags = HideFlags.HideAndDontSave };

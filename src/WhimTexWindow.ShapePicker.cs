@@ -9,7 +9,9 @@ namespace DCFApixels.WhimTex
     {
         private ShapePickerManipulator shapePicker;
         private ShapePickerManipulator marqueePicker;
+        private CropPickerManipulator cropPicker;
         private CanvasToolIcon marqueeToolIcon;
+        private CanvasToolIcon cropToolIcon;
         private ShapeToolIcon shapeToolIcon;
 
         private sealed class ToolDropdownMarker : VisualElement
@@ -95,30 +97,79 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private sealed class ShapePickerManipulator : PointerManipulator
+        private sealed class ShapePickerManipulator : ToolSubtypePickerManipulator
+        {
+            private readonly ShapeLayerBehaviour.ShapeKind[] kinds;
+            private readonly bool marquee;
+
+            internal ShapePickerManipulator(WhimTexWindow owner, bool marquee = false)
+                : base(owner, marquee ? 2 : Enum.GetValues(typeof(ShapeLayerBehaviour.ShapeKind)).Length)
+            {
+                this.marquee = marquee;
+                kinds = marquee
+                    ? new[] { ShapeLayerBehaviour.ShapeKind.Rectangle, ShapeLayerBehaviour.ShapeKind.Ellipse }
+                    : (ShapeLayerBehaviour.ShapeKind[])Enum.GetValues(typeof(ShapeLayerBehaviour.ShapeKind));
+            }
+
+            protected override string MenuName => marquee ? "marqueePicker" : "shapePicker";
+            protected override bool IsSelected(int index) => marquee
+                ? (int)owner.marqueeShape == index : owner.shapeToolSettings.kind == kinds[index];
+            protected override string ItemTooltip(int index) => kinds[index].ToString();
+            protected override VisualElement ItemIcon(int index) => marquee
+                ? new CanvasToolIcon(CanvasTool.RectangleSelect, index == 1) : new ShapeToolIcon(kinds[index]);
+            protected override void Select(int index)
+            {
+                if (marquee)
+                {
+                    owner.areaSelectionManipulator?.Cancel();
+                    owner.marqueeShape = (MarqueeShape)index;
+                }
+                else
+                {
+                    owner.shapeManipulator?.Cancel();
+                    owner.shapeToolSettings.kind = kinds[index];
+                }
+            }
+            protected override void Activate() => owner.SetCanvasTool(marquee ? CanvasTool.RectangleSelect : CanvasTool.Shape);
+        }
+
+        private sealed class CropPickerManipulator : ToolSubtypePickerManipulator
+        {
+            internal CropPickerManipulator(WhimTexWindow owner) : base(owner, 2) { }
+            protected override string MenuName => "cropPicker";
+            protected override string ItemName(int index) => index == 0 ? "cropScale" : "cropResize";
+            protected override string ItemTooltip(int index) => "Crop: " + (CanvasCropMode)index;
+            protected override bool IsSelected(int index) => owner.canvasCropMode == (CanvasCropMode)index;
+            protected override VisualElement ItemIcon(int index) => new CanvasToolIcon(CanvasTool.Crop, cropMode: (CanvasCropMode)index);
+            protected override void Select(int index) => owner.SetCanvasCropMode((CanvasCropMode)index);
+            protected override void Activate() => owner.SetCanvasTool(CanvasTool.Crop);
+        }
+
+        private abstract class ToolSubtypePickerManipulator : PointerManipulator
         {
             private const int HoldMilliseconds = 160;
             private const float DragDistance = 3f;
             private const float ItemSize = 30f, Inset = 3f;
-            private readonly ShapeLayerBehaviour.ShapeKind[] Kinds;
-            private readonly bool marquee;
-            private readonly WhimTexWindow owner;
+            protected readonly WhimTexWindow owner;
             private readonly VisualElement[] items;
             private VisualElement menu, root;
             private IVisualElementScheduledItem hold;
             private int pointer = -1, hovered = -1;
             private Vector2 press, current, menuPosition;
-            private bool IsPressed => pointer >= 0;
+            internal bool IsPressed => pointer >= 0;
 
-            internal ShapePickerManipulator(WhimTexWindow owner, bool marquee = false)
+            protected ToolSubtypePickerManipulator(WhimTexWindow owner, int itemCount)
             {
                 this.owner = owner;
-                this.marquee = marquee;
-                Kinds = marquee
-                    ? new[] { ShapeLayerBehaviour.ShapeKind.Rectangle, ShapeLayerBehaviour.ShapeKind.Ellipse }
-                    : (ShapeLayerBehaviour.ShapeKind[])Enum.GetValues(typeof(ShapeLayerBehaviour.ShapeKind));
-                items = new VisualElement[Kinds.Length];
+                items = new VisualElement[itemCount];
             }
+            protected abstract string MenuName { get; }
+            protected virtual string ItemName(int index) => string.Empty;
+            protected abstract string ItemTooltip(int index);
+            protected abstract bool IsSelected(int index);
+            protected abstract VisualElement ItemIcon(int index);
+            protected abstract void Select(int index);
+            protected abstract void Activate();
             protected override void RegisterCallbacksOnTarget()
             {
                 target.RegisterCallback<PointerDownEvent>(Down, TrickleDown.TrickleDown);
@@ -156,25 +207,25 @@ namespace DCFApixels.WhimTex
             private void Open()
             {
                 hold?.Pause(); hold = null;
-                if (!IsPressed || target.panel == null || !target.HasPointerCapture(pointer) || menu != null) return;
-                menu = new VisualElement { name = marquee ? "marqueePicker" : "shapePicker", pickingMode = PickingMode.Ignore };
+                if (!IsPressed) return;
+                if (target.panel == null || !target.HasPointerCapture(pointer)) { Cancel(); return; }
+                if (menu != null) return;
+                menu = new VisualElement { name = MenuName, pickingMode = PickingMode.Ignore };
                 menu.AddToClassList("whimtex-shape-picker");
                 menu.EnableInClassList("whimtex-shape-picker--light", !EditorGUIUtility.isProSkin);
-                for (int i = 0; i < Kinds.Length; i++)
+                for (int i = 0; i < items.Length; i++)
                 {
-                    var item = new VisualElement { tooltip = Kinds[i].ToString(), pickingMode = PickingMode.Ignore };
+                    var item = new VisualElement { name = ItemName(i), tooltip = ItemTooltip(i), pickingMode = PickingMode.Ignore };
                     item.AddToClassList("whimtex-shape-picker-item");
-                    item.EnableInClassList("whimtex-shape-picker-item--selected", marquee
-                        ? (int)owner.marqueeShape == i : owner.shapeToolSettings.kind == Kinds[i]);
-                    if (marquee) item.Add(new CanvasToolIcon(CanvasTool.RectangleSelect, i == 1));
-                    else item.Add(new ShapeToolIcon(Kinds[i]));
+                    item.EnableInClassList("whimtex-shape-picker-item--selected", IsSelected(i));
+                    item.Add(ItemIcon(i));
                     items[i] = item;
                     menu.Add(item);
                 }
                 Vector2 anchor = root.WorldToLocal(new Vector2(target.worldBound.xMax + 2f, target.worldBound.yMin));
                 Rect bounds = root.contentRect;
                 menuPosition = new Vector2(Mathf.Clamp(anchor.x, bounds.xMin, Mathf.Max(bounds.xMin, bounds.xMax - ItemSize - Inset * 2f)),
-                    Mathf.Clamp(anchor.y, bounds.yMin, Mathf.Max(bounds.yMin, bounds.yMax - Kinds.Length * ItemSize - Inset * 2f)));
+                    Mathf.Clamp(anchor.y, bounds.yMin, Mathf.Max(bounds.yMin, bounds.yMax - items.Length * ItemSize - Inset * 2f)));
                 menu.style.left = menuPosition.x;
                 menu.style.top = menuPosition.y;
                 root.Add(menu);
@@ -182,7 +233,7 @@ namespace DCFApixels.WhimTex
             }
             private int ItemAt(Vector2 local)
             {
-                if (local.x < Inset || local.x >= Inset + ItemSize || local.y < Inset || local.y >= Inset + Kinds.Length * ItemSize) return -1;
+                if (local.x < Inset || local.x >= Inset + ItemSize || local.y < Inset || local.y >= Inset + items.Length * ItemSize) return -1;
                 return Mathf.FloorToInt((local.y - Inset) / ItemSize);
             }
             private void UpdateHover()
@@ -198,7 +249,7 @@ namespace DCFApixels.WhimTex
             {
                 if (!IsPressed || evt.pointerId != pointer) return;
                 current = evt.position;
-                if ((evt.pressedButtons & 1) == 0) Cancel();
+                if ((evt.pressedButtons & 1) == 0 || !target.HasPointerCapture(pointer)) Cancel();
                 else
                 {
                     if (menu == null && (current - press).sqrMagnitude >= DragDistance * DragDistance) Open();
@@ -209,25 +260,14 @@ namespace DCFApixels.WhimTex
             private void Up(PointerUpEvent evt)
             {
                 if (!IsPressed || evt.pointerId != pointer || evt.button != 0) return;
+                if (!target.HasPointerCapture(pointer)) { Cancel(); WhimTexUI.ConsumeEvent(evt); return; }
                 current = evt.position;
                 UpdateHover();
                 int selection = hovered;
                 bool click = menu == null && target.worldBound.Contains(current);
                 Cancel();
-                if (selection >= 0)
-                {
-                    if (marquee)
-                    {
-                        owner.areaSelectionManipulator?.Cancel();
-                        owner.marqueeShape = (MarqueeShape)selection;
-                    }
-                    else
-                    {
-                        owner.shapeManipulator?.Cancel();
-                        owner.shapeToolSettings.kind = Kinds[selection];
-                    }
-                }
-                if (selection >= 0 || click) owner.SetCanvasTool(marquee ? CanvasTool.RectangleSelect : CanvasTool.Shape);
+                if (selection >= 0) Select(selection);
+                if (selection >= 0 || click) Activate();
                 WhimTexUI.ConsumeEvent(evt);
             }
             internal void Cancel()
@@ -249,7 +289,10 @@ namespace DCFApixels.WhimTex
             {
                 if (IsPressed && evt.keyCode == KeyCode.Escape) { Cancel(); WhimTexUI.ConsumeEvent(evt); }
             }
-            private void Lost(PointerCaptureOutEvent evt) { if (evt.pointerId == pointer) Cancel(); }
+            private void Lost(PointerCaptureOutEvent evt)
+            {
+                if (evt.pointerId == pointer && !target.HasPointerCapture(pointer)) Cancel();
+            }
             private void Interrupted(PointerCancelEvent evt) => Cancel();
             private void Detached(DetachFromPanelEvent evt) => Cancel();
             private void Geometry(GeometryChangedEvent evt) => Cancel();

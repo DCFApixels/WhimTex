@@ -31,6 +31,9 @@ namespace DCFApixels.WhimTex
             var mode = WhimTexUI.ConfigureField(new EnumField("Layout", layer.layoutMode) { name = "textLayoutMode" });
             bindings.Track(mode, () => (Enum)layer.layoutMode);
             mode.RegisterValueChangedCallback(e => apply("Change Text Layout", () => layer.SetLayoutMode((TextLayoutMode)e.newValue))); layout.Add(mode);
+            var offset = WhimTexUI.ConfigureField(new Vector2Field("Layout Offset (px)") { name = "textLayoutOffset" });
+            bindings.Track(offset, () => layer.layoutOffset);
+            offset.RegisterValueChangedCallback(e => apply("Move Text Layout", () => layer.SetLayoutOffset(e.newValue))); layout.Add(offset);
             var frame = WhimTexUI.ConfigureField(new Vector2Field("Frame Size (px)") { name = "textFrameSize" });
             bindings.Track(frame, () => layer.frameSize);
             frame.RegisterValueChangedCallback(e => apply("Resize Text Frame", () => layer.frameSize = new Vector2(
@@ -59,6 +62,10 @@ namespace DCFApixels.WhimTex
             bindings.Track(auto, () => layer.autoSize);
             auto.RegisterValueChangedCallback(e => apply("Change Text Auto Size", () => layer.SetAutoSize(e.newValue))); layout.Add(auto);
             AddFormatRow(layout, "textStyleRow", "Style", style, casing);
+            var edges = WhimTexUI.ConfigureField(new EnumField("Edge Mode", layer.edgeMode) { name = "textEdgeMode",
+                tooltip = "Hinted AA aligns glyph strokes to the pixel grid. Antialiased preserves unhinted outlines. Pixel uses monochrome glyphs and nearest sampling by default." });
+            bindings.Track(edges, () => (Enum)layer.edgeMode);
+            edges.RegisterValueChangedCallback(e => apply("Change Text Edges", () => layer.edgeMode = (TextEdgeMode)e.newValue)); layout.Add(edges);
             var alignment = new TextAlignmentField { name = "textAlignment", tooltip = "Horizontal alignment" };
             bindings.Track(alignment, () => new TextAlignmentField.Settings(layer.alignment, layer.justify));
             alignment.RegisterValueChangedCallback(e => apply("Change Text Alignment", () =>

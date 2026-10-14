@@ -62,6 +62,7 @@ try {
           ['1e-2', 'constant.numeric'], ['..', 'keyword.operator'], ['hint', 'comment.line.tooltip']])
           assert.ok(scopesAt(line, word).includes(scope), word + ': ' + scopesAt(line, word));
         assert.match(scopesAt('// @param gradient _Ramp = #FF0000 -> #0000FFFF', '#FF0000'), /constant.other.color/);
+        assert.match(scopesAt('// @param px float _Radius = 2', 'px'), /storage.modifier/);
         assert.match(scopesAt('// @param enum _Mode = A {A: 0, B: 1}', 'B:'), /constant.other.enum/);
         assert.match(scopesAt('// @whimtex-effect Color/Mask', '@whimtex-effect'), /keyword.control/);
         assert.doesNotMatch(scopesAt('// A note about @param float _A = 1', 'float'), /storage.type.whimtex/);

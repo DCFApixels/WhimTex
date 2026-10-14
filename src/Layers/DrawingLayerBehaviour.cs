@@ -349,10 +349,14 @@ namespace DCFApixels.WhimTex
         }
 
         internal PaintStrokeParameters GetStrokeParameters(bool erase)
+            => GetScaledStrokeParameters(erase, Owner.GetPixelScale());
+
+        internal PaintStrokeParameters GetScaledStrokeParameters(bool erase, float pixelScale)
         {
             NormalizeSettings();
             brushDynamics?.Normalize();
-            return new PaintStrokeParameters(brushColor, brushSize, brushHardness, brushSpacing, erase, dynamics: brushDynamics);
+            return new PaintStrokeParameters(brushColor, brushSize, brushHardness, brushSpacing, erase,
+                dynamics: brushDynamics, pixelScale: pixelScale);
         }
 
         internal void PaintPoint(Vector2 sourceUv, int outputWidth, int outputHeight, PaintStrokeParameters parameters)
@@ -675,6 +679,8 @@ namespace DCFApixels.WhimTex
         private RenderTexture EnsurePaintSurface(int fallbackWidth, int fallbackHeight)
         {
             EnsureDeferredTexture();
+            Vector2Int sourceSize = Owner.GetSourceCanvasSize(fallbackWidth, fallbackHeight);
+            fallbackWidth = sourceSize.x; fallbackHeight = sourceSize.y;
             int width = pixels != null ? pixels.width : Mathf.Max(1, fallbackWidth);
             int height = pixels != null ? pixels.height : Mathf.Max(1, fallbackHeight);
             if (paintSurface != null && paintSurface.width == width && paintSurface.height == height)

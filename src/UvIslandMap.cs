@@ -209,10 +209,11 @@ namespace DCFApixels.WhimTex
         private static double Cross(Vector2 a, Vector2 b) => (double)a.x * b.y - (double)a.y * b.x;
         private static bool Finite(Vector2 p) => !float.IsNaN(p.x) && !float.IsNaN(p.y) && !float.IsInfinity(p.x) && !float.IsInfinity(p.y);
 
-        internal byte[] Rasterize(int island, int width, int height)
+        internal byte[] Rasterize(int island, int width, int height, bool antialias = false)
         {
             new CanvasSelection(width, height).ValidateSize();
             if ((uint)island >= islands.Count) throw new ArgumentOutOfRangeException(nameof(island));
+            if (antialias) return RasterizeAntialiased(island, width, height);
             var pixels = new byte[width * height];
             foreach (int index in islands[island].triangles)
             {
@@ -238,6 +239,58 @@ namespace DCFApixels.WhimTex
                 }
             }
             return pixels;
+        }
+        private readonly struct ScanTriangle : IComparable<ScanTriangle>
+        {
+            internal readonly double ax, ay, bx, by, cx, cy, minY, maxY;
+            internal ScanTriangle(Triangle triangle, int width, int height)
+            {
+                ax = (double)triangle.a.x * width; ay = (double)triangle.a.y * height;
+                bx = (double)triangle.b.x * width; by = (double)triangle.b.y * height;
+                cx = (double)triangle.c.x * width; cy = (double)triangle.c.y * height;
+                minY = Math.Min(ay, Math.Min(by, cy)); maxY = Math.Max(ay, Math.Max(by, cy));
+            }
+            public int CompareTo(ScanTriangle other) => minY.CompareTo(other.minY);
+        }
+        private byte[] RasterizeAntialiased(int island, int width, int height)
+        {
+            var sorted = new List<ScanTriangle>(islands[island].triangles.Count);
+            double minY = double.PositiveInfinity, maxY = double.NegativeInfinity;
+            foreach (int index in islands[island].triangles)
+            {
+                var triangle = new ScanTriangle(triangles[index], width, height);
+                sorted.Add(triangle);
+                minY = Math.Min(minY, triangle.minY); maxY = Math.Max(maxY, triangle.maxY);
+            }
+            sorted.Sort();
+            var active = new List<int>();
+            int next = 0;
+            return CanvasSelection.RasterizeAntialiasedCoverage(width, height, minY, maxY, false,
+                (scan, spans) =>
+                {
+                    while (next < sorted.Count && sorted[next].minY <= scan) active.Add(next++);
+                    int retained = 0;
+                    for (int i = 0; i < active.Count; i++)
+                    {
+                        int index = active[i];
+                        ScanTriangle triangle = sorted[index];
+                        if (triangle.maxY <= scan) continue;
+                        active[retained++] = index;
+                        double left = double.PositiveInfinity, right = double.NegativeInfinity;
+                        IntersectScanEdge(triangle.ax, triangle.ay, triangle.bx, triangle.by, scan, ref left, ref right);
+                        IntersectScanEdge(triangle.bx, triangle.by, triangle.cx, triangle.cy, scan, ref left, ref right);
+                        IntersectScanEdge(triangle.cx, triangle.cy, triangle.ax, triangle.ay, scan, ref left, ref right);
+                        if (right > left) spans.Add(new CanvasSelection.CoverageSpan(left, right));
+                    }
+                    active.RemoveRange(retained, active.Count - retained);
+                });
+        }
+        private static void IntersectScanEdge(double ax, double ay, double bx, double by, double scan,
+            ref double left, ref double right)
+        {
+            if ((ay > scan) == (by > scan)) return;
+            double x = ax + (scan - ay) * (bx - ax) / (by - ay);
+            left = Math.Min(left, x); right = Math.Max(right, x);
         }
     }
 }

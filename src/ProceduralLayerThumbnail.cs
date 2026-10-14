@@ -11,6 +11,7 @@ namespace DCFApixels.WhimTex
         internal Texture2D Get(LayerBehaviour layer, int size, int hash)
         {
             size = Mathf.Clamp(size, 1, 128);
+            hash = HashCode.Combine(hash, layer.Owner.GetPixelScale(), layer.Owner.sourceCanvasSize, layer.Owner.sourcePixelScale, layer.Owner.sourceCanvasScale);
             if (texture != null && texture.width == size && settingsHash == hash) return texture;
             RenderTexture previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;
@@ -23,6 +24,7 @@ namespace DCFApixels.WhimTex
                 document.hideFlags = HideFlags.HideAndDontSave;
                 int resolution = Mathf.Max(64, size * 2);
                 document.width = document.height = resolution;
+                document.pixelScale = layer.Owner.GetPixelScale();
                 var context = new LayerRenderContext(document, null, resolution, resolution, 1f,
                     applyTransform: false, applyFx: false);
                 rendered = layer.Render(context);

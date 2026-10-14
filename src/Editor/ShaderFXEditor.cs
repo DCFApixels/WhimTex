@@ -173,6 +173,7 @@ namespace DCFApixels.WhimTex
                 "_InputSize: render width, height, 1/width, 1/height.\n" +
                 "_CanvasSize: full-resolution canvas size in the same format.\n" +
                 "_RenderScale: full-size pixels per preview pixel (1 for export).\n" +
+                "_PixelScale: document's logical-pixel multiplier (1 by default). Numeric @param px values are already multiplied once.\n" +
                 "Texture parameters: sampler2D with <name>_TexelSize; sample with tex2D(name, uv).\n" +
                 "Return straight RGBA. The layer's blend mode and opacity are applied afterwards.");
             inputHelp.AddToClassList("whimtex-fx-reference");

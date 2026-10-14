@@ -7,20 +7,38 @@ namespace DCFApixels.WhimTex
 {
     internal sealed class TextLayerRenderer : IDisposable
     {
-        private Font font;
+        private TextRasterFont font, smallFont;
+        private FontStyle fontStyle;
+        private TextEdgeMode edgeMode;
         private string family, key;
         private int revision = -1;
         private Texture2D mask;
         private float cachedScale;
+        private float cachedPixelScale;
+        private Vector2 cachedOrigin;
         private Mesh mesh;
-        private readonly TextGenerator generator = new TextGenerator();
+        private sealed class Batch
+        {
+            internal TextRasterFont font;
+            internal Texture2D atlas;
+            internal readonly List<Vector3> positions = new List<Vector3>();
+            internal readonly List<Vector2> uv = new List<Vector2>();
+            internal readonly List<int> triangles = new List<int>();
+        }
         internal Rect Bounds { get; private set; }
         internal Rect SourceRect { get; private set; }
         internal int FontSize { get; private set; }
+        private readonly List<Vector3> pointLines = new List<Vector3>();
+        internal IReadOnlyList<Vector3> PointLines => pointLines;
+        private static Vector2 GridOrigin(TextLayerBehaviour layer, int width, int height) =>
+            (Vector2)layer.Owner.GetSourceCanvasSize(width, height) * .5f;
 
         internal Rect GetBounds(TextLayerBehaviour layer, int width, int height)
         {
-            if (mask == null || key != layer.LayoutKey(width, height) || family != layer.ResolvedFont || revision != SystemFontCatalog.Revision)
+            if (mask == null || key != layer.LayoutKey(width, height) || family != layer.ResolvedFont ||
+                revision != SystemFontCatalog.Revision || cachedOrigin != GridOrigin(layer, width, height))
+                GetMask(layer, width, height, 1);
+            else if (cachedPixelScale != layer.Owner.GetPixelScale())
                 GetMask(layer, width, height, 1);
             return Bounds;
         }
@@ -28,16 +46,17 @@ namespace DCFApixels.WhimTex
         internal Texture2D GetMask(TextLayerBehaviour layer, int width, int height, float scale)
         {
             width = Mathf.Max(1, width); height = Mathf.Max(1, height);
-            if (font == null || family != layer.ResolvedFont || revision != SystemFontCatalog.Revision)
+            Vector2 origin = GridOrigin(layer, width, height);
+            float pixelScale = layer.Owner.GetPixelScale();
+            if (family != layer.ResolvedFont || revision != SystemFontCatalog.Revision || fontStyle != layer.fontStyle || edgeMode != layer.edgeMode)
             {
-                if (font != null) UnityEngine.Object.DestroyImmediate(font);
+                font?.Dispose(); smallFont?.Dispose(); font = smallFont = null;
                 family = layer.ResolvedFont; revision = SystemFontCatalog.Revision;
-                font = Font.CreateDynamicFontFromOSFont(family, 64);
-                font.hideFlags = HideFlags.HideAndDontSave;
+                fontStyle = layer.fontStyle; edgeMode = layer.edgeMode;
                 key = null;
             }
             string layoutKey = layer.LayoutKey(width, height);
-            if (mask != null && key == layoutKey && cachedScale == scale) return mask;
+            if (mask != null && key == layoutKey && cachedScale == scale && cachedOrigin == origin && cachedPixelScale == pixelScale) return mask;
             int size = Mathf.Clamp(Mathf.RoundToInt(layer.fontSize), 1, 2048);
             string text = (layer.text ?? "").Replace("\t", "    ");
             if (layer.casing == TextCasing.Lowercase) text = text.ToLowerInvariant();
@@ -49,17 +68,33 @@ namespace DCFApixels.WhimTex
             string glyphText = smallCaps ? text.ToUpperInvariant() : text;
             void Request(int full, int small)
             {
-                font.RequestCharactersInTexture(glyphText, full, layer.fontStyle);
-                if (smallCaps && small != full) font.RequestCharactersInTexture(glyphText, small, layer.fontStyle);
+                if (font == null || font.Size != full) { font?.Dispose(); font = new TextRasterFont(family, fontStyle, full, edgeMode); }
+                font.Add(glyphText);
+                if (smallCaps && small != full)
+                {
+                    if (smallFont == null || smallFont.Size != small) { smallFont?.Dispose(); smallFont = new TextRasterFont(family, fontStyle, small, edgeMode); }
+                    smallFont.Add(glyphText);
+                }
+                else { smallFont?.Dispose(); smallFont = null; }
             }
+            int RasterSize(float value) => Mathf.RoundToInt(Mathf.Clamp(value, 1, 2048));
             bool WordSpace(char character) => character == ' ' || character == '\u00a0';
             float GlyphAdvance(string value)
             {
                 float result = 0;
-                foreach (char character in value)
-                    if (font.GetCharacterInfo(smallCaps ? char.ToUpperInvariant(character) : character, out var info,
-                        smallCaps && char.IsLower(character) ? smallSize : size, layer.fontStyle))
-                        result += WordSpace(character) ? Mathf.Max(0, info.advance * horizontalScale + wordGap) : info.advance * horizontalScale;
+                for (int i = 0; i < value.Length; i++)
+                {
+                    char character = value[i];
+                    bool small = smallCaps && char.IsLower(character);
+                    uint unicode = smallCaps ? char.ToUpperInvariant(character) : character;
+                    if (char.IsHighSurrogate(character) && i + 1 < value.Length && char.IsLowSurrogate(value[i + 1]))
+                        unicode = (uint)char.ConvertToUtf32(character, value[++i]);
+                    var face = small ? smallFont ?? font : font;
+                    var glyph = face.Glyph(unicode);
+                    if (glyph == null) continue;
+                    float advance = glyph.metrics.horizontalAdvance * (small ? smallSize : size) / face.Size * horizontalScale;
+                    result += WordSpace(character) ? Mathf.Max(0, advance + wordGap) : advance;
+                }
                 return result;
             }
             float Measure(string value)
@@ -83,7 +118,7 @@ namespace DCFApixels.WhimTex
             {
                 widest = 0;
                 foreach (var line in lines) widest = Mathf.Max(widest, Measure(line.text));
-                lineHeight = font.lineHeight * size / (float)font.fontSize;
+                lineHeight = font.Asset.faceInfo.lineHeight * size / font.Size;
                 lineOffsets.Clear(); lineOffsets.Add(0);
                 float lineStep = Mathf.Max(1, lineHeight + layer.spacing.line * size);
                 for (int i = 1; i < lines.Count; i++)
@@ -95,7 +130,7 @@ namespace DCFApixels.WhimTex
                 size = candidate;
                 characterGap = layer.spacing.character * size; wordGap = layer.spacing.word * size;
                 smallSize = Mathf.Max(1, Mathf.RoundToInt(size * .75f));
-                Request(size, smallSize);
+                Request(RasterSize(size * pixelScale), RasterSize(smallSize * pixelScale));
                 lines = TextLayout.Build(text, framed ? layer.wrapping : TextWrapping.Manual, layer.frameSize.x, Measure, characterGap);
                 MeasureLines();
             }
@@ -119,7 +154,7 @@ namespace DCFApixels.WhimTex
             else Layout(size);
             if (framed && layer.overflow == TextOverflowMode.Ellipsis)
             {
-                font.RequestCharactersInTexture("\u2026", size, layer.fontStyle);
+                font.Add("\u2026");
                 lines = TextLayout.Ellipsize(lines, lineOffsets, lineHeight, layer.frameSize, Measure);
                 MeasureLines();
                 glyphText += "\u2026";
@@ -127,37 +162,50 @@ namespace DCFApixels.WhimTex
             FontSize = size;
             int horizontal = (int)layer.LayoutAlignment % 3, vertical = (int)layer.LayoutAlignment / 3;
             float extent = framed ? layer.frameSize.x : widest;
-            float left = framed ? -layer.frameSize.x * .5f : -extent * horizontal * .5f;
-            float top = framed ? layer.frameSize.y * .5f - (layer.frameSize.y - contentHeight) * vertical * .5f : contentHeight * vertical * .5f;
-            Bounds = framed ? new Rect(-layer.frameSize * .5f, layer.frameSize) : new Rect(left, top - contentHeight, Mathf.Max(1, widest), contentHeight);
+            float left = layer.layoutOffset.x + (framed ? -layer.frameSize.x * .5f : -extent * horizontal * .5f);
+            float top = layer.layoutOffset.y + (framed ? layer.frameSize.y * .5f - (layer.frameSize.y - contentHeight) * vertical * .5f : contentHeight * vertical * .5f);
+            Bounds = framed ? new Rect(layer.layoutOffset - layer.frameSize * .5f, layer.frameSize) : new Rect(left, top - contentHeight, Mathf.Max(1, widest), contentHeight);
+            pointLines.Clear();
+            if (!framed)
+            {
+                float ascent = font.Asset.faceInfo.ascentLine * size / font.Size;
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    float lineWidth = Measure(lines[i].text);
+                    float lineLeft = left + (extent - lineWidth) * horizontal * .5f;
+                    pointLines.Add(new Vector3(lineLeft, lineLeft + lineWidth, top - lineOffsets[i] - ascent));
+                }
+            }
             SourceRect = Bounds;
             if (!framed || layer.overflow == TextOverflowMode.None)
             {
-                float padding = size * .25f + 2;
-                float horizontalPadding = size * .25f * horizontalScale + 2;
+                // The extra raster margin is physical pixels, independent of authored font scale.
+                float rasterPadding = 2 / Mathf.Max(pixelScale, 1e-12f);
+                float padding = size * .25f + rasterPadding;
+                float horizontalPadding = size * .25f * horizontalScale + rasterPadding;
                 float contentWidth = layer.CanJustify && layer.justify ? Mathf.Max(widest, extent) : widest;
                 float contentLeft = left + (extent - contentWidth) * horizontal * .5f;
                 SourceRect = Rect.MinMaxRect(Mathf.Min(Bounds.xMin, contentLeft) - horizontalPadding,
                     Mathf.Min(Bounds.yMin, top - contentHeight) - padding, Mathf.Max(Bounds.xMax, contentLeft + contentWidth) + horizontalPadding,
                     Mathf.Max(Bounds.yMax, top) + padding);
             }
-            float renderScale = Mathf.Min(scale, Mathf.Min(SystemInfo.maxTextureSize, 8192f) / Mathf.Max(SourceRect.width, SourceRect.height),
-                Mathf.Sqrt(16 * 1024 * 1024f / (SourceRect.width * SourceRect.height)));
-            int outputWidth = Mathf.Max(1, Mathf.CeilToInt(SourceRect.width * renderScale));
-            int outputHeight = Mathf.Max(1, Mathf.CeilToInt(SourceRect.height * renderScale));
+            float renderScale = Mathf.Min(scale * pixelScale, (Mathf.Min(SystemInfo.maxTextureSize, 8192f) - 2) / Mathf.Max(SourceRect.width, SourceRect.height),
+                Mathf.Sqrt((16 * 1024 * 1024f - 32768) / (SourceRect.width * SourceRect.height)));
+            renderScale = Mathf.Max(renderScale, 1e-12f);
+            // Retain the source pixel-grid phase when Crop changes canvas parity.
+            Vector2 logicalOrigin = pixelScale < 1e-12f ? Vector2.zero : origin / pixelScale;
+            SourceRect = Rect.MinMaxRect(Mathf.Floor((SourceRect.xMin + logicalOrigin.x) * renderScale) / renderScale - logicalOrigin.x,
+                Mathf.Floor((SourceRect.yMin + logicalOrigin.y) * renderScale) / renderScale - logicalOrigin.y,
+                Mathf.Ceil((SourceRect.xMax + logicalOrigin.x) * renderScale) / renderScale - logicalOrigin.x,
+                Mathf.Ceil((SourceRect.yMax + logicalOrigin.y) * renderScale) / renderScale - logicalOrigin.y);
+            int outputWidth = Mathf.Max(1, Mathf.RoundToInt(SourceRect.width * renderScale));
+            int outputHeight = Mathf.Max(1, Mathf.RoundToInt(SourceRect.height * renderScale));
             // Rasterize expanded glyphs at their widest axis; mesh coordinates still use logical font units.
-            int renderSize = Mathf.Clamp(Mathf.RoundToInt(size * renderScale * Mathf.Max(1, horizontalScale)), 1, 2048);
+            int renderSize = RasterSize(size * renderScale * Mathf.Max(1, horizontalScale));
             float actualScale = renderSize / (float)size;
             int renderSmallSize = Mathf.Clamp(Mathf.RoundToInt(smallSize * actualScale), 1, 2048);
             Request(renderSize, renderSmallSize);
-            var settings = new TextGenerationSettings
-            {
-                font = font, fontSize = renderSize, fontStyle = layer.fontStyle, color = Color.white, scaleFactor = 1,
-                lineSpacing = 1, textAnchor = TextAnchor.UpperLeft, generationExtents = Vector2.zero, pivot = Vector2.zero,
-                horizontalOverflow = HorizontalWrapMode.Overflow,
-                verticalOverflow = VerticalWrapMode.Overflow, richText = false, updateBounds = false, generateOutOfBounds = true
-            };
-            var positions = new List<Vector3>(); var uv = new List<Vector2>(); var triangles = new List<int>();
+            var batches = new List<Batch>();
             for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++)
             {
                 var line = lines[lineIndex];
@@ -181,29 +229,47 @@ namespace DCFApixels.WhimTex
                 float offsetY = top - lineOffsets[lineIndex];
                 void Append(string run, bool small, float runX)
                 {
-                    settings.fontSize = small ? renderSmallSize : renderSize;
-                    generator.Invalidate();
-                    if (!generator.Populate(smallCaps ? run.ToUpperInvariant() : run, settings))
-                        throw new InvalidOperationException("The system font could not generate this text.");
-                    float baseline = small ? font.ascent * (renderSize - renderSmallSize) / (float)font.fontSize / actualScale : 0;
-                    var vertices = generator.verts;
-                    for (int q = 0; q + 3 < vertices.Count; q += 4)
+                    var face = small ? smallFont ?? font : font;
+                    float baseline = offsetY - font.Asset.faceInfo.ascentLine / actualScale;
+                    float cursor = runX;
+                    for (int q = 0; q < run.Length; q++)
                     {
-                        float center = runX + (vertices[q].position.x + vertices[q + 2].position.x) * .5f * horizontalScale / actualScale;
+                        char character = run[q];
+                        uint unicode = smallCaps ? char.ToUpperInvariant(character) : character;
+                        if (char.IsHighSurrogate(character) && q + 1 < run.Length && char.IsLowSurrogate(run[q + 1]))
+                            unicode = (uint)char.ConvertToUtf32(character, run[++q]);
+                        var glyph = face.Glyph(unicode);
+                        if (glyph == null) continue;
+                        var metrics = glyph.metrics; var rect = glyph.glyphRect;
+                        float glyphX = cursor;
+                        float advance = metrics.horizontalAdvance * horizontalScale / actualScale;
+                        cursor += WordSpace(character) ? Mathf.Max(0, advance + wordGap) : advance;
+                        if (rect.width == 0 || rect.height == 0) continue;
+                        float center = glyphX + (metrics.horizontalBearingX + metrics.width * .5f) * horizontalScale / actualScale;
                         int before = 0; if (justified) foreach (float gap in gaps) if (center > gap) before++;
                         float extra = justified ? before * (extent - lineWidth) / gaps.Count : 0;
-                        int v = positions.Count;
+                        var atlas = face.Asset.atlasTextures[glyph.atlasIndex];
+                        var batch = batches.Find(item => item.atlas == atlas);
+                        if (batch == null) { batch = new Batch { font = face, atlas = atlas }; batches.Add(batch); }
+                        float padding = face.SyntheticBold;
+                        float x0 = (offsetX + glyphX + extra + (metrics.horizontalBearingX - padding) * horizontalScale / actualScale - SourceRect.xMin) * renderScale;
+                        float y0 = (baseline + (metrics.horizontalBearingY - metrics.height - padding) / actualScale - SourceRect.yMin) * renderScale;
+                        if (edgeMode != TextEdgeMode.Antialiased) { x0 = Mathf.Round(x0); y0 = Mathf.Round(y0); }
+                        float x1 = x0 + (metrics.width + padding * 2) * horizontalScale / actualScale * renderScale;
+                        float y1 = y0 + (metrics.height + padding * 2) / actualScale * renderScale;
+                        float u0 = (rect.x - padding) / atlas.width, u1 = (rect.x + rect.width + padding) / atlas.width;
+                        float v0 = (rect.y - padding) / atlas.height, v1 = (rect.y + rect.height + padding) / atlas.height;
+                        int v = batch.positions.Count;
                         for (int n = 0; n < 4; n++)
                         {
-                            Vector3 p = vertices[q + n].position / actualScale;
-                            p.x *= horizontalScale;
-                            p.x += offsetX + runX + extra; p.y += offsetY - baseline;
-                            p.x = (p.x - SourceRect.center.x) / SourceRect.width * outputWidth;
-                            p.y = (p.y - SourceRect.center.y) / SourceRect.height * outputHeight;
-                            positions.Add(p); uv.Add(vertices[q + n].uv0);
+                            float px = n == 0 || n == 3 ? x0 : x1;
+                            float py = n < 2 ? y1 : y0;
+                            if (face.SyntheticItalic) px += .2f * (py - (baseline - SourceRect.yMin) * renderScale) * horizontalScale;
+                            batch.positions.Add(new Vector3(px - outputWidth * .5f, py - outputHeight * .5f, 0));
+                            batch.uv.Add(new Vector2(n == 0 || n == 3 ? u0 : u1, n < 2 ? v1 : v0));
                         }
-                        triangles.Add(v); triangles.Add(v + 1); triangles.Add(v + 2);
-                        triangles.Add(v); triangles.Add(v + 2); triangles.Add(v + 3);
+                        batch.triangles.Add(v); batch.triangles.Add(v + 1); batch.triangles.Add(v + 2);
+                        batch.triangles.Add(v); batch.triangles.Add(v + 2); batch.triangles.Add(v + 3);
                     }
                 }
                 if (!smallCaps && characterGap == 0 && wordGap == 0) Append(line.text, false, 0);
@@ -226,21 +292,31 @@ namespace DCFApixels.WhimTex
                 }
             }
             mesh ??= new Mesh { name = "Text Glyphs", hideFlags = HideFlags.HideAndDontSave };
-            mesh.Clear(); mesh.SetVertices(positions); mesh.SetUVs(0, uv); mesh.SetTriangles(triangles, 0);
             var target = RenderTexture.GetTemporary(outputWidth, outputHeight, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             RenderTexture previous = RenderTexture.active; bool srgb = GL.sRGBWrite;
             try
             {
                 RenderTexture.active = target; GL.sRGBWrite = false; GL.Clear(false, true, Color.clear);
                 Material material = WhimTexMaterials.Text;
-                material.SetTexture("_MainTex", font.material.mainTexture);
                 material.SetVector("_TextCanvasSize", new Vector4(outputWidth, outputHeight, 0, 0));
+                material.SetInt("_TextPixel", edgeMode == TextEdgeMode.Pixel ? 1 : 0);
+                material.SetInt("_TextClip", framed && layer.overflow != TextOverflowMode.None ? 1 : 0);
+                material.SetVector("_TextClipRect", new Vector4((Bounds.xMin - SourceRect.center.x) * renderScale,
+                    (Bounds.yMin - SourceRect.center.y) * renderScale, (Bounds.xMax - SourceRect.center.x) * renderScale,
+                    (Bounds.yMax - SourceRect.center.y) * renderScale));
                 GL.PushMatrix();
                 try
                 {
                     GL.LoadPixelMatrix(-outputWidth * .5f, outputWidth * .5f, -outputHeight * .5f, outputHeight * .5f);
-                    if (!material.SetPass(0)) throw new InvalidOperationException("Text glyph shader is unavailable.");
-                    if (positions.Count > 0) Graphics.DrawMeshNow(mesh, Matrix4x4.identity);
+                    foreach (var batch in batches)
+                    {
+                        mesh.Clear(); mesh.SetVertices(batch.positions); mesh.SetUVs(0, batch.uv); mesh.SetTriangles(batch.triangles, 0);
+                        material.SetTexture("_MainTex", batch.atlas);
+                        material.SetVector("_TextBoldOffset", new Vector4(batch.font.SyntheticBold / (float)batch.atlas.width,
+                            batch.font.SyntheticBold / (float)batch.atlas.height, 0, 0));
+                        if (!material.SetPass(0)) throw new InvalidOperationException("Text glyph shader is unavailable.");
+                        Graphics.DrawMeshNow(mesh, Matrix4x4.identity);
+                    }
                 }
                 finally { GL.PopMatrix(); }
                 if (mask == null || mask.width != outputWidth || mask.height != outputHeight)
@@ -250,7 +326,11 @@ namespace DCFApixels.WhimTex
                     { name = "Text Mask", hideFlags = HideFlags.HideAndDontSave, wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
                 }
                 mask.ReadPixels(new Rect(0, 0, outputWidth, outputHeight), 0, 0, false); mask.Apply(false, false);
-                key = layoutKey; cachedScale = scale;
+                mask.filterMode = edgeMode == TextEdgeMode.Pixel ? FilterMode.Point : FilterMode.Bilinear;
+                Bounds = new Rect(Bounds.position * pixelScale, Bounds.size * pixelScale);
+                SourceRect = new Rect(SourceRect.position * pixelScale, SourceRect.size * pixelScale);
+                for (int i = 0; i < pointLines.Count; i++) pointLines[i] *= pixelScale;
+                key = layoutKey; cachedScale = scale; cachedOrigin = origin; cachedPixelScale = pixelScale;
                 return mask;
             }
             finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; RenderTexture.ReleaseTemporary(target); }
@@ -258,11 +338,10 @@ namespace DCFApixels.WhimTex
 
         public void Dispose()
         {
-            ((IDisposable)generator).Dispose();
-            if (font != null) UnityEngine.Object.DestroyImmediate(font);
+            font?.Dispose(); smallFont?.Dispose();
             if (mesh != null) UnityEngine.Object.DestroyImmediate(mesh);
             if (mask != null) UnityEngine.Object.DestroyImmediate(mask);
-            font = null; mesh = null; mask = null;
+            font = smallFont = null; mesh = null; mask = null;
         }
     }
 }

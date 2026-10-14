@@ -1,14 +1,14 @@
 // @whimtex-effect Stylization/VHS
 // @header(Tape Signal)
-// @param float _ChromaBleed = 1 [0 .. ~8] // Horizontal red/blue separation in canvas pixels.
-// @param float _LineJitter = 1.5 [0 .. ~12] // Seeded horizontal wobble per scanline in canvas pixels.
+// @param px float _ChromaBleed = 1 [0 .. ~8] // Horizontal red/blue separation in canvas pixels.
+// @param px float _LineJitter = 1.5 [0 .. ~12] // Seeded horizontal wobble per scanline in canvas pixels.
 // @param float _ColorLoss = 0.12 [0 .. 1] // Reduce color saturation like an analog tape signal.
 // @param float _NoiseAmount = 0.025 [0 .. ~0.15] // Luma noise amplitude.
 // @group(Tracking Strength; _TrackingStrength)
 // @param hidden float _TrackingStrength = 0.35 [0 .. 1] // Strength of the moving horizontal tracking tear.
 // @if _TrackingStrength != 0
-// @param float _TrackingHeight = 8 [1 .. ~64] // Height of the tracking band in canvas pixels.
-// @param float _TrackingOffset = 18 [0 .. ~128] // Maximum horizontal displacement in the tracking band.
+// @param px float _TrackingHeight = 8 [1 .. ~64] // Height of the tracking band in canvas pixels.
+// @param px float _TrackingOffset = 18 [0 .. ~128] // Maximum horizontal displacement in the tracking band.
 // @param float _TrackingSpeed = 0.35 [0 .. ~4] // Tracking-band travel speed per second.
 // @endif
 // @endgroup
@@ -23,7 +23,7 @@ float4 ApplyFX(float2 uv, float4 color)
     float4 result = color;
     float2 pixel = uv * _CanvasSize.xy;
     float2 texel = _CanvasSize.zw;
-    float lineIndex = floor(pixel.y);
+    float lineIndex = floor(pixel.y / _PixelScale);
     float frame = floor(max(_EffectTime, 0.0) * 24.0);
     float seededFrame = frame + _Seed * 29.7;
 
@@ -55,7 +55,7 @@ float4 ApplyFX(float2 uv, float4 color)
     float luma = dot(video, float3(0.2126, 0.7152, 0.0722));
     video = lerp(video, luma.xxx, _ColorLoss);
 
-    float grain = (HashNoise(pixel + float2(_Seed * 37.1, seededFrame + 83.3)) - 0.5) * _NoiseAmount;
+    float grain = (HashNoise(pixel / _PixelScale + float2(_Seed * 37.1, seededFrame + 83.3)) - 0.5) * _NoiseAmount;
     video = max(video + grain, 0.0);
     result.rgb = video;
     return result;

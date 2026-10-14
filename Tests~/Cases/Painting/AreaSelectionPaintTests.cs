@@ -48,7 +48,7 @@ try
         var selectionType = drawingType.Assembly.GetType("DCFApixels.WhimTex.CanvasSelection", true);
         var combineType = drawingType.Assembly.GetType("DCFApixels.WhimTex.SelectionCombine", true);
         var selection = System.Activator.CreateInstance(selectionType, flags, null, new object[] { 16, 16 }, null);
-        Call(selection, "Ellipse", new UnityEngine.Vector2(0, 2), new UnityEngine.Vector2(12, 14), System.Enum.Parse(combineType, "Replace"), false);
+        Call(selection, "Ellipse", new UnityEngine.Vector2(0, 2), new UnityEngine.Vector2(12, 14), System.Enum.Parse(combineType, "Replace"), false, false);
         var coverage = (byte[])selectionType.GetProperty("Coverage", flags).GetValue(selection);
         for (int i = 0; i < colors.Length; i++) colors[i].r = coverage[i];
         mask.SetPixels32(colors); mask.Apply(false, false);

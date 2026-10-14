@@ -17,8 +17,8 @@
 // @endgroup
 // @group(Contour; _Shape)
 // @param hidden enum _Shape = Round {Round: 0, Square: 1, Diamond: 2} // Shape of contour joins and corners.
-// @param label("Thickness (px)") float _Thickness = 2 [0 .. 32] // Total width, centered on the boundary. Zero removes the line.
-// @param label("Softness (px)") float _Softness = 0 [0 .. 8] // Soften line edges. Zero keeps them crisp and antialiased.
+// @param px label("Thickness (px)") float _Thickness = 2 [0 .. 32] // Total width, centered on the boundary. Zero removes the line.
+// @param px label("Softness (px)") float _Softness = 0 [0 .. 8] // Soften line edges. Zero keeps them crisp and antialiased.
 // @endgroup
 // @group(Output; _Output)
 // @param hidden enum _Output = Overlay {Overlay: 0, OutlineOnly: 1} // Draw over the image or keep only contours on transparency.
@@ -133,16 +133,18 @@ float EdgeOutlineMask(float2 uv)
     // Find adjacent-texel discontinuities and expand their boundary segments.
     // A dense neighborhood retains small features between sparse radial taps.
     float2 texelPixels = _CanvasSize.xy * _InputSize.zw;
-    float transition = max(clamp(_Softness, 0.0, 8.0), max(texelPixels.x, texelPixels.y));
-    float radius = clamp(_Thickness, 0.0, 32.0) * 0.5;
+    float transition = max(clamp(_Softness, 0.0, 8.0 * _PixelScale), max(texelPixels.x, texelPixels.y));
+    float radius = clamp(_Thickness, 0.0, 32.0 * _PixelScale) * 0.5;
     float2 pixel = uv * _InputSize.xy - 0.5;
     float2 origin = floor(pixel + 0.5);
     int2 extent = (int2)ceil((radius + transition * 0.5) / texelPixels + 0.5);
+    int2 first = max(-extent, -(int2)origin);
+    int2 last = min(extent, (int2)_InputSize.xy - 1 - (int2)origin);
     float mask = 0.0;
 
-    [loop] for (int y = -extent.y; y <= extent.y; y++)
+    [loop] for (int y = first.y; y <= last.y; y++)
     {
-        [loop] for (int x = -extent.x; x <= extent.x; x++)
+        [loop] for (int x = first.x; x <= last.x; x++)
         {
             float2 p = origin + float2(x, y);
             if (any(p < 0.0) || any(p >= _InputSize.xy)) continue;

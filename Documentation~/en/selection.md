@@ -12,15 +12,40 @@ next_page: "en/symmetry.md"
 # Area selections
 
 Select an area to paint, erase or fill without touching the rest of the image.
-Use **Area Select** (`M`) for a rectangle or ellipse, or **Polygonal Lasso** (`L`) for a shape with straight sides.
+Use **Area Select** (`M`) for a rectangle or ellipse, **Polygonal Lasso** for straight sides, or **Freehand Lasso** for a drawn outline. `L` returns to the chosen lasso mode.
+
+Use the edge mode dropdown above the canvas to control the selection boundary:
+
+- **Aliased** (default) selects each pixel fully or leaves it unselected, keeping a hard pixel edge.
+- **Antialiased** partially selects pixels along the boundary for smoother edges. It does not add feathering.
+
+The setting is shared by Rectangle, Ellipse, both lasso modes and UV Island Select, and stays selected when you switch tools. Changing it affects the next selection; an outline already being drawn keeps the mode chosen when it started. Existing selections keep their edges.
 
 ## Make and adjust a selection
 
 Hold or drag the Area Select toolbar button to open its shape list. Release over **Rectangle** or **Ellipse**, then drag on the canvas. The button shows the chosen shape; `M` returns to it.
 
-With Lasso, click around the outline and finish with
-`Enter`, a double-click or a click on the first point.
+Hold or drag the Lasso toolbar button to choose **Polygonal Lasso** or **Freehand Lasso**, then release over the mode you want.
+
+With **Freehand Lasso**, hold the left mouse button and draw around the area. Release to close the outline from its endpoint to its start and apply the selection. `Escape` cancels the current outline.
+
+With **Polygonal Lasso**, click around the outline and finish with
+`Enter`, a double-click at the same position when adding a new point, or a click on the first point. Double-clicking an older point or segment does not finish the outline.
 `Backspace` or a right-click removes the last point; `Escape` cancels the unfinished outline.
+Small squares mark the placed points. The outline stays open, with its last segment following the cursor, until you finish the selection.
+Once the outline has moved away from its start and has at least three points, move near the first point: it turns blue and the endpoint snaps to it. Click and release to close; dragging the first point moves it instead.
+
+Before finishing, you can adjust the placed points:
+
+- Drag a square to move its point.
+- Click an existing segment to insert a point. The segment following the cursor does not accept inserted points.
+- `Alt+click` a square to remove its point and connect its neighbors directly.
+
+When placing or inserting a point, keep the mouse button held and drag to position it immediately.
+Hold `Shift` when adding or dragging a new endpoint to constrain its segment to the nearest horizontal, vertical or 45° diagonal direction relative to the canvas, even with a rotated view. `Ctrl+Shift` keeps this direction constraint while disabling snapping.
+When dragging an already placed point, `Shift` constrains its movement to those directions from its position at the start of the drag. Press `Ctrl` during the drag to disable guide snapping while keeping the angle constraint.
+
+A short click near the last point continues the outline. Hold `Ctrl` before pressing the mouse button to place a new point even over an existing point or segment, without snapping or closing. During a point drag that has already started, `Ctrl` only disables snapping.
 
 For a **square or circle**, start dragging, then hold `Shift`. Release `Shift` to return to free proportions. Holding `Shift` before starting instead adds to the selection. To add a square or circle, choose **Add** above the canvas and press `Shift` during the drag.
 
@@ -30,6 +55,8 @@ With no mode selected, a new drag replaces the selection. You can also hold:
 - `Shift` to add an area.
 - `Alt` to subtract.
 - `Shift+Alt` to keep only the overlap.
+
+For Lasso, these modifiers choose the operation when you place the first point or start the freehand drag; editing or drawing the outline does not change that operation.
 
 `Ctrl+A` selects the whole canvas. `Ctrl+Shift+I` selects the opposite area.
 `Ctrl+D` removes the selection so you can paint everywhere again.

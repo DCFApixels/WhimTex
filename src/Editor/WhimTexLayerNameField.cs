@@ -84,7 +84,6 @@ namespace DCFApixels.WhimTex
                 return;
             FinishEditing(evt.keyCode != KeyCode.Escape, true);
             evt.StopPropagation();
-            evt.PreventDefault();
         }
 
         private void OnFocusOut(FocusOutEvent evt)

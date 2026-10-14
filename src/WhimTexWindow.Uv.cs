@@ -206,7 +206,8 @@ namespace DCFApixels.WhimTex
             if (!uvEnabled || uvMap == null) { OpenUvDrawer(); ShowNotification(new GUIContent(uvMessage ?? "Assign a Mesh in UV settings.")); return; }
             int island = PickUvIsland(point);
             SetUvHovered(island);
-            if (island >= 0) ChangeAreaSelection(s => s.Set(uvMap.Rasterize(island, s.Width, s.Height), combine));
+            bool antialias = selectionEdgeMode == SelectionEdgeMode.Antialiased;
+            if (island >= 0) ChangeAreaSelection(s => s.Set(uvMap.Rasterize(island, s.Width, s.Height, antialias), combine));
             else if (combine == SelectionCombine.Replace) ChangeAreaSelection(s => s.Clear());
         }
         private static bool ClipUvLine(ref Vector2 a, ref Vector2 b, Rect bounds)

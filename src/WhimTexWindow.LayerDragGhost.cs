@@ -96,12 +96,30 @@ namespace DCFApixels.WhimTex
                 generateVisualContent += DrawBackground;
 
                 Image thumbnail = row.Q<Image>(className: "whimtex-layer-thumbnail");
-                if (thumbnail != null)
-                    AddCopy(new Image { image = thumbnail.image, scaleMode = thumbnail.scaleMode }, thumbnail, row);
-                else
+                WhimTexLayerEmptyIcon emptyIcon = row.Q<WhimTexLayerEmptyIcon>();
+                bool empty = emptyIcon != null && !emptyIcon.ClassListContains("whimtex-hidden");
+                if (empty)
+                {
+                    var copy = new WhimTexLayerEmptyIcon();
+                    copy.RemoveFromClassList("whimtex-hidden");
+                    AddCopy(copy, emptyIcon, row);
+                }
+                if (thumbnail != null && !empty)
+                {
+                    var copy = new WhimTexLayerThumbnail();
+                    var preview = new Image { image = thumbnail.image, scaleMode = thumbnail.scaleMode, pickingMode = PickingMode.Ignore };
+                    preview.AddToClassList("whimtex-layer-thumbnail__image");
+                    copy.Add(preview);
+                    AddCopy(copy, thumbnail, row);
+                }
+                else if (thumbnail == null)
                 {
                     VisualElement foldout = row.Q(className: "whimtex-group-foldout");
-                    if (foldout != null) AddCopy(new Label(foldout.Q<Label>()?.text), foldout, row);
+                    if (foldout != null)
+                    {
+                        Label arrow = foldout.Q<Label>();
+                        AddCopy(new Label(arrow?.text), foldout, row);
+                    }
                 }
 
                 TextField name = row.Q<TextField>(className: "whimtex-layer-name");

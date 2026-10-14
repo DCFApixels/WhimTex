@@ -293,13 +293,15 @@ namespace DCFApixels.WhimTex
                     if (layer?.Behaviour is TextLayerBehaviour text) text.Validate();
                     if (layer?.Behaviour is SDFLayerBehaviour sdf)
                     {
-                        if (!Enum.IsDefined(typeof(DistanceMetric), sdf.metric) || !float.IsFinite(sdf.miterLimit) || sdf.miterLimit < 1 || sdf.miterLimit > 64)
+                        if (!Enum.IsDefined(typeof(DistanceMetric), sdf.metric) || !Enum.IsDefined(typeof(SharpDistanceMode), sdf.sharpMode) || !float.IsFinite(sdf.miterLimit) || sdf.miterLimit < 1 || sdf.miterLimit > 64)
                             throw new WhimTexDocumentException("Unsupported SDF algorithm or Miter Limit: " + layer.Id);
+                        if (!float.IsFinite(sdf.contourMergeDistance) || sdf.contourMergeDistance < 0f || sdf.contourMergeDistance > 2f)
+                            throw new WhimTexDocumentException("SDF Contour Merge must be finite and within 0..2 pixels: " + layer.Id);
                         if (sdf.encoding == SDFLayerBehaviour.OutputEncoding.MultiChannelData && sdf.metric != DistanceMetric.MTSDF)
                             throw new WhimTexDocumentException("MultiChannelData requires the MTSDF algorithm: " + layer.Id);
                     }
                     if (layer?.Behaviour is OutlineLayerBehaviour outline &&
-                        (!Enum.IsDefined(typeof(DistanceMetric), outline.metric) || !float.IsFinite(outline.miterLimit) || outline.miterLimit < 1 || outline.miterLimit > 64))
+                        (!Enum.IsDefined(typeof(DistanceMetric), outline.metric) || !Enum.IsDefined(typeof(SharpDistanceMode), outline.sharpMode) || !float.IsFinite(outline.miterLimit) || outline.miterLimit < 1 || outline.miterLimit > 64))
                         throw new WhimTexDocumentException("Unsupported Outline algorithm or Miter Limit: " + layer.Id);
                     if (layer?.Behaviour is TargetedLayerBehaviour target &&
                         (target.inputMode == EffectInputMode.Specific && !document.IsUsableStoredShaderTexture(layer, target.TargetLayerId) ||

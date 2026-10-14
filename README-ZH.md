@@ -149,6 +149,8 @@ https://github.com/DCFApixels/WhimTex.git
   用于均匀分布的画笔变化。[附带许可证](ThirdPartyNotices.md#sobol-direction-numbers)。
 - **[Clipper2](https://github.com/AngusJohnson/Clipper2)** — Angus Johnson；
   可移植的 SDF 轮廓归一化。[附带 Boost 许可证](src/ThirdParty/Clipper2/LICENSE.txt)。
+- **[edtaa3](https://github.com/rougier/freetype-gl/blob/ecf48bc72b9ef7d493a2491b9adcaa1504d01252/edtaa3func.c)** — Stefan Gustavson；
+  经适配用于实验性 AAEDT + 8SED 距离模式。[附带 MIT 许可证](ThirdPartyNotices.md#edtaa3)。
 - **[FastNoiseLite](https://github.com/Auburn/FastNoiseLite)** — Jordan Peck 及贡献者；
   Noise 图层使用其 HLSL 实现。[附带 MIT 许可证](ThirdPartyNotices.md#fastnoiselite)。
 - **[Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)** — James Newton-King 及贡献者；
@@ -160,6 +162,10 @@ https://github.com/DCFApixels/WhimTex.git
 
 - **[Just the Docs](https://github.com/just-the-docs/just-the-docs)** — 文档网站主题。
   [附带 MIT 许可证](Documentation~/Licenses/JustTheDocs-LICENSE.txt)。
+
+研究致谢：[Matusovic、Parakkat 与 Eisemann（2023）](https://doi.org/10.1111/cgf.14743)
+为实验性 Spring Simulation 模式的自动弹簧松弛提供了思路。
+参见[改编范围](ThirdPartyNotices.md#spring-simulation-research-reference)。
 
 源码版本和包许可证信息见 [Third-party notices](ThirdPartyNotices.md)。
 第三方组件保留各自的许可证。

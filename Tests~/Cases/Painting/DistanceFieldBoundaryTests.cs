@@ -47,12 +47,12 @@ public static class DistanceFieldBoundaryTests
             const BindingFlags entry = BindingFlags.Public | BindingFlags.Static;
             scalar = utility.GetMethod("ComputeArtisticDistance", entry, null, new[] {
                 typeof(NativeArray<Color32>), typeof(NativeArray<float>), typeof(int), typeof(int),
-                typeof(byte), typeof(int), typeof(DistanceMetric), typeof(float) }, null);
+                typeof(byte), typeof(int), typeof(DistanceMetric), typeof(float), typeof(float) }, null);
             multi = utility.GetMethod("ComputeMtsdfDistance", entry, null, new[] {
                 typeof(NativeArray<Color32>), typeof(NativeArray<float4>), typeof(int), typeof(int),
-                typeof(byte), typeof(int) }, null);
+                typeof(byte), typeof(int), typeof(float) }, null);
             build = artistic.GetMethod("Build", BindingFlags.NonPublic | BindingFlags.Static, null, new[] {
-                typeof(NativeArray<Color32>), typeof(int), typeof(int), typeof(byte), typeof(int), typeof(DistanceMetric) }, null);
+                typeof(NativeArray<Color32>), typeof(int), typeof(int), typeof(byte), typeof(int), typeof(DistanceMetric), typeof(float) }, null);
             test.True(scalar != null && multi != null && build != null, "Required package-owned SDF entries exist");
         }
 
@@ -66,7 +66,7 @@ public static class DistanceFieldBoundaryTests
             using var output = new NativeArray<float>(input.Length, Allocator.TempJob);
             var writable = output;
             for (int i = 0; i < output.Length; i++) writable[i] = float.NaN;
-            scalar.Invoke(null, new object[] { pixels, output, width, height, threshold, 0, mode, 4f });
+            scalar.Invoke(null, new object[] { pixels, output, width, height, threshold, 0, mode, 4f, 0f });
             var result = output.ToArray();
             int nonfinite = 0, signs = 0, firstSign = -1, changed = 0;
             for (int i = 0; i < result.Length; i++)
@@ -89,7 +89,7 @@ public static class DistanceFieldBoundaryTests
             using var output = new NativeArray<float4>(input.Length, Allocator.TempJob);
             var writable = output;
             for (int i = 0; i < output.Length; i++) writable[i] = new float4(float.NaN);
-            multi.Invoke(null, new object[] { pixels, output, width, height, threshold, 0 });
+            multi.Invoke(null, new object[] { pixels, output, width, height, threshold, 0, 0f });
             var result = output.ToArray();
             int nonfinite = 0, signs = 0, changed = 0;
             double medianError = 0;
@@ -131,7 +131,7 @@ public static class DistanceFieldBoundaryTests
         {
             CheckTime(); Calls++;
             using var pixels = new NativeArray<Color32>(input, Allocator.TempJob);
-            using var geometry = (IDisposable)build.Invoke(null, new object[] { pixels, width, height, threshold, 0, mode });
+            using var geometry = (IDisposable)build.Invoke(null, new object[] { pixels, width, height, threshold, 0, mode, 0f });
             // Nonpublic reflection is restricted to package-owned Build/Geometry/Feature.
             // NativeArray is inspected through its PUBLIC Length and Item properties.
             const BindingFlags fields = BindingFlags.Public | BindingFlags.Instance;

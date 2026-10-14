@@ -19,6 +19,7 @@ namespace DCFApixels.WhimTex
             snapshot.name = "WhimTex Layer Clipboard";
             snapshot.width = width;
             snapshot.height = height;
+            snapshot.pixelScale = GetPixelScale();
             try
             {
                 snapshot.CopyLayersFrom(this, requested, false, null);

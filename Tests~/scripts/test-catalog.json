@@ -2,8 +2,77 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "selection-edges": ["selection-edges-v1", "canvas-selection-v2", "area-selection-paint-v2", "uv-islands-unity-v2", "lasso-editing-v2", "freehand-lasso-v2"],
+    "lasso": ["lasso-editing-v2", "freehand-lasso-v2", "selection-edges-v1", "canvas-selection-v2", "marquee-constraints-v2"],
+    "distance-corner-parameters": ["distance-corner-parameters-v1", "distance-reconstruction-accuracy-v1", "distance-reconstruction-boundaries-v1", "distance-reconstruction-safety-v1", "distance-reconstruction-cache-v1", "distance-reconstruction-render-cache-v1", "distance-field-render-v2"],
+    "distance-preparation": ["distance-reconstruction-cache-v1", "distance-reconstruction-render-cache-v1", "distance-reconstruction-accuracy-v1", "distance-reconstruction-boundaries-v1", "distance-reconstruction-safety-v1", "distance-spring-contour-v1", "distance-field-modes-v2", "distance-field-render-v2", "distance-field-unity-v2", "distance-field-v2"],
+    "distance-reconstruction": ["distance-reconstruction-accuracy-v1", "distance-reconstruction-boundaries-v1", "distance-reconstruction-safety-v1", "distance-spring-contour-v1", "distance-spring-contribution-v1", "distance-reconstruction-captured-v1", "distance-field-modes-v2", "distance-field-render-v2", "distance-field-unity-v2", "distance-field-v2"],
+    "crop": ["canvas-frame-v1", "crop-alpha-bounds-v1", "crop-tool-v1"],
+    "pixel-scale": ["pixel-scale-model-v1", "canvas-frame-v1", "pixel-scale-fx-v1", "pixel-scale-brush-v1", "pixel-scale-text-editing-v1", "crop-tool-v1"],
+    "distance-round-contour": ["distance-round-contour-star-512","distance-round-contour-star-1024","distance-round-contour-text-512","distance-round-contour-text-1024","distance-round-contour-rings-512","distance-round-contour-rings-1024"],
+    "distance-contour": [
+      "distance-contour-v1",
+      "distance-contour-text-v1",
+      "distance-field-modes-v2",
+      "distance-field-render-v2",
+      "distance-field-v2"
+    ],
+    "text-point": [
+      "text-frame-handles",
+      "text-point-handles",
+      "text-tool",
+      "text-edge-modes"
+    ],
+    "text-edges": [
+      "text-edge-modes",
+      "text-layer",
+      "text-horizontal-scale",
+      "text-layer-ui",
+      "text-tool"
+    ],
+    "distance-aaedt": [
+      "distance-aaedt-v1",
+      "distance-aaedt-render-v1",
+      "distance-field-unity-v2",
+      "distance-field-boundaries-v2",
+      "distance-field-modes-v2",
+      "distance-field-render-v2"
+    ],
+    "distance-merge": [
+      "distance-merge-geometry-v1",
+      "distance-merge-fields-v1",
+      "distance-merge-render-v1",
+      "distance-field-unity-v2",
+      "distance-field-boundaries-v2",
+      "distance-field-modes-v2",
+      "distance-field-render-v2"
+    ],
+    "distance-field-cold": [
+      "distance-field-cold-star-512",
+      "distance-field-cold-star-1024",
+      "distance-field-cold-star-2048",
+      "distance-field-cold-outline-512",
+      "distance-field-cold-outline-1024",
+      "distance-field-cold-rings-512"
+    ],
     "distance-fields": [
+      "distance-reconstruction-accuracy-v1",
+      "distance-reconstruction-boundaries-v1",
+      "distance-reconstruction-safety-v1",
+      "distance-spring-contour-v1",
+      "distance-reconstruction-captured-v1",
+      "distance-contour-v1",
+      "distance-contour-text-v1",
       "distance-field-v2",
+      "distance-aaedt-v1",
+      "distance-aaedt-render-v1",
+      "distance-corner-fit-v1",
+      "distance-raster-corners-v1",
+      "distance-raster-angles-v1",
+      "distance-raster-captured-v1",
+      "distance-safety-v1",
+      "distance-safety-angles-v1",
+      "distance-safety-thin-v1",
       "distance-contour-extraction-v1",
       "distance-field-unity-v2",
       "distance-field-boundaries-v2",
@@ -150,6 +219,20 @@
       "reference-fixtures"
     ],
     "verify": [
+      "selection-edges-v1",
+      "freehand-lasso-v2",
+      "lasso-editing-v2",
+      "distance-contour-v1",
+      "distance-contour-text-v1",
+      "layer-content-state-v1",
+      "alpha-presence-v1",
+      "distance-corner-fit-v1",
+      "distance-raster-corners-v1",
+      "distance-raster-angles-v1",
+      "distance-raster-captured-v1",
+      "distance-safety-v1",
+      "distance-safety-angles-v1",
+      "distance-safety-thin-v1",
       "distance-contour-extraction-v1",
       "distance-field-boundaries-v2",
       "distance-field-modes-v2",
@@ -162,6 +245,9 @@
       "halftone",
       "text-layer",
       "text-layer-ui",
+      "text-edge-modes",
+      "text-frame-handles",
+      "text-point-handles",
       "text-tool",
       "guide-interaction",
       "brush-input-smoothing",
@@ -662,6 +748,20 @@
       "layer-drop-target-v1"
     ],
     "regressions": [
+      "selection-edges-v1",
+      "freehand-lasso-v2",
+      "lasso-editing-v2",
+      "distance-contour-v1",
+      "distance-contour-text-v1",
+      "layer-content-state-v1",
+      "alpha-presence-v1",
+      "distance-corner-fit-v1",
+      "distance-raster-corners-v1",
+      "distance-raster-angles-v1",
+      "distance-raster-captured-v1",
+      "distance-safety-v1",
+      "distance-safety-angles-v1",
+      "distance-safety-thin-v1",
       "distance-contour-extraction-v1",
       "distance-field-boundaries-v2",
       "distance-field-modes-v2",
@@ -674,6 +774,9 @@
       "halftone",
       "text-layer",
       "text-layer-ui",
+      "text-edge-modes",
+      "text-frame-handles",
+      "text-point-handles",
       "text-tool",
       "guide-interaction",
       "brush-input-smoothing",
@@ -1185,6 +1288,12 @@
       "distance-field-performance-rings-512"
     ],
     "diagnostics": [
+      "distance-field-cold-star-512",
+      "distance-field-cold-star-1024",
+      "distance-field-cold-star-2048",
+      "distance-field-cold-outline-512",
+      "distance-field-cold-outline-1024",
+      "distance-field-cold-rings-512",
       "distance-field-performance-star-512",
       "distance-field-performance-star-1024",
       "distance-field-performance-star-2048",
@@ -1249,6 +1358,13 @@
       "histogram-seamless-reference-fixtures-v2"
     ],
     "unity-memory": [
+      "distance-corner-fit-v1",
+      "distance-raster-corners-v1",
+      "distance-raster-angles-v1",
+      "distance-raster-captured-v1",
+      "distance-safety-v1",
+      "distance-safety-angles-v1",
+      "distance-safety-thin-v1",
       "distance-contour-extraction-v1",
       "shader-fx-group-menu",
       "shader-fx-reset",
@@ -1372,6 +1488,7 @@
       "seamless-release-stress-2048-mode-4-v2"
     ],
     "rendering": [
+      "alpha-presence-v1",
       "distance-field-render-v2",
       "text-horizontal-scale",
       "selective-hsv",
@@ -1398,6 +1515,7 @@
       "scoped-undo-v2"
     ],
     "fx": [
+      "pixel-scale-fx-v1",
       "shader-fx-group-menu",
       "shader-fx-reset",
       "selective-hsv",
@@ -1503,11 +1621,24 @@
       "live-agent-unity-v2"
     ],
     "layers": [
+      "distance-contour-v1",
+      "distance-contour-text-v1",
+      "layer-content-state-v1",
+      "distance-corner-fit-v1",
+      "distance-raster-corners-v1",
+      "distance-raster-angles-v1",
+      "distance-raster-captured-v1",
+      "distance-safety-v1",
+      "distance-safety-angles-v1",
+      "distance-safety-thin-v1",
       "distance-field-modes-v2",
       "distance-field-render-v2",
       "text-horizontal-scale",
       "text-layer",
       "text-layer-ui",
+      "text-edge-modes",
+      "text-frame-handles",
+      "text-point-handles",
       "text-tool",
       "blue-noise-v2",
       "file-layer-canvas-v2",
@@ -1652,6 +1783,15 @@
       "procedural-clipboard-unity-v2"
     ],
     "painting": [
+      "selection-edges-v1",
+      "distance-contour-v1",
+      "distance-corner-fit-v1",
+      "distance-raster-corners-v1",
+      "distance-raster-angles-v1",
+      "distance-raster-captured-v1",
+      "distance-safety-v1",
+      "distance-safety-angles-v1",
+      "distance-safety-thin-v1",
       "distance-contour-extraction-v1",
       "distance-field-boundaries-v2",
       "brush-input-smoothing",
@@ -1722,6 +1862,11 @@
       "canvas-header-brush-layout"
     ],
     "canvas": [
+      "selection-edges-v1",
+      "freehand-lasso-v2",
+      "lasso-editing-v2",
+      "text-frame-handles",
+      "text-point-handles",
       "text-tool",
       "guide-interaction",
       "channel-mapping-ui",
@@ -1894,6 +2039,7 @@
       "seamless-release-stress-2048-mode-4-v2"
     ],
     "uv": [
+      "selection-edges-v1",
       "uv-islands-v2",
       "uv-islands-unity-v2",
       "uv-mesh-source-v2",
@@ -1919,12 +2065,1019 @@
     "layer-name": [
       "layer-name-field-v1"
     ],
+    "layer-content": [
+      "alpha-presence-v1",
+      "layer-content-state-v1"
+    ],
     "layer-drop": [
       "layer-drop-target-v1",
       "layer-auto-scroll-v2"
     ]
   },
   "scenarios": [
+    {
+      "id": "selection-edges-v1",
+      "file": "Tests~/Cases/Selection/SelectionEdgeTests.cs",
+      "runner": "run_script", "entry": "SelectionEdgeTests.Start", "args": ["$runId"],
+      "category": "regression", "timeoutMs": 60000,
+      "effects": ["windows", "user-state", "temp-files"], "groups": ["selection", "canvas", "painting", "uv"],
+      "prerequisites": "Idle graphical assigned Test6.6 Editor with current selection edge coverage implementation. Review the case and declared support first.",
+      "setup": "Independent geometric pixel-area checks for rectangle, diagonal polygon/freehand, ellipse, thin shapes, wrapped seams and joined UV triangles; coverage arithmetic and sampling. Owned unsaved window/model/mesh uses public input to check shared edge dropdown and first-DOWN mode capture. Native mask texture and actual pencil alpha verify paint consumption; enlarged point-filtered screenshots stay under project Temp/WhimTex.",
+      "teardown": "Joined UnityAAsync cancellation and UnityAScope cleanup. Close/destroy only owned windows, models, mesh and transient drawing resources; restore borrowed preferences/focus/clipboard/GPU/drag state and release the exact carrier. No imported/saved assets, user documents or global Undo changes.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityAScope.cs"], "reviewFiles": [],
+      "async": {"entry": "SelectionEdgeTests.Poll", "args": ["$runId"], "pollMs": 100},
+      "cancel": {"entry": "SelectionEdgeTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "SelectionEdgeTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "freehand-lasso-v2",
+      "file": "Tests~/Cases/Selection/FreehandLassoTests.cs",
+      "runner": "run_script",
+      "entry": "FreehandLassoTests.Start",
+      "args": ["$runId"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state", "temp-files"],
+      "groups": ["selection", "canvas"],
+      "prerequisites": "Idle graphical assigned Test6.6 Editor with current freehand lasso implementation. Reviewed case and declared support.",
+      "setup": "Owned unsaved window/documents. Public pointer/key input and package-owned reflection verify the shared lasso subtype picker, open freehand preview and release closure, press-time combine modes, raw unsnapped sampling, invalid-path preservation, zoom/rotation/tiled coverage, detailed paths beyond256 samples, bounded-complexity cancellation and capture/Escape/blur/tool/document/navigation interruption. Native captures stay under project Temp/WhimTex.",
+      "teardown": "Joined UnityAAsync cancellation/body cleanup. UnityAScope clears only owned Undo, closes/destroys owned windows/models, restores borrowed preferences/focus/clipboard/GPU/drag state and releases the exact async carrier. No assets are imported or saved, and no user document/global Undo is changed.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityAScope.cs"],
+      "reviewFiles": [],
+      "async": {"entry": "FreehandLassoTests.Poll", "args": ["$runId"], "pollMs": 100},
+      "cancel": {"entry": "FreehandLassoTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "FreehandLassoTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "lasso-editing-v2",
+      "file": "Tests~/Cases/Selection/LassoEditingTests.cs",
+      "runner": "run_script",
+      "entry": "LassoEditingTests.Start",
+      "args": ["$runId"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state", "temp-files"],
+      "groups": ["selection", "canvas"],
+      "prerequisites": "Idle graphical assigned Test6.6 Editor with current WhimTex lasso implementation. Reviewed case and declared support.",
+      "setup": "Owned unsaved window/document; public pointer/key input and package-owned reflection exercise editable draft nodes, Alt removal, committed-edge insertion, immediate new-point dragging, Ctrl identity and guide bypass, tail protection, dense one-pixel paths, overlap hits, deferred closure, capture loss/Escape, explicit completion and neighboring rectangle/ellipse capture. Retain native preview captures in project Temp/WhimTex.",
+      "teardown": "Joined cancellation/body finally through UnityAAsync and UnityAScope. Clear only owned Undo, close/destroy owned window and model, restore borrowed preferences/focus/clipboard/GPU/drag state, remove exact owned async carrier. No assets are imported or saved and no user document/global Undo is changed.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityAScope.cs"],
+      "reviewFiles": [],
+      "async": {"entry": "LassoEditingTests.Poll", "args": ["$runId"], "pollMs": 100},
+      "cancel": {"entry": "LassoEditingTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "LassoEditingTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "distance-sharp-modes-prototype-v1",
+      "file": "Tests~/Cases/Painting/SharpModePrototypeTests.cs",
+      "runner": "run_script", "entry": "SharpModePrototypeTests.Run", "args": [],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files", "windows", "user-state"],
+      "groups": ["painting", "distance-sharp-modes"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor; serial execution; no working document changes.",
+      "setup": "Two small AA stars, five sharp algorithms and two extension modes; finite fields, MTSDF channel/scalar agreement, mode-aware cache, detached JSON roundtrip and Properties controls on a transient test window.",
+      "teardown": "Dispose native arrays, caches, detached documents and preview texture; close owned test windows and restore prior focus. Unique comparison PNG remains under project Temp/WhimTex.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-rbf-prototype-v1",
+      "file": "Tests~/Cases/Painting/RbfPrototypeTests.cs",
+      "runner": "run_script", "entry": "RbfPrototypeTests.Run", "args": [],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-rbf"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor, serial execution. No working document changes.",
+      "setup": "Four 48x40 in-memory inputs: circle, star, acute star, empty; finite/sign checks, unrestricted-corner parameters, ignored miter value, retained-field reuse and contour-count regression. Comparison PNG and observational timings only, not a quality or performance benchmark.",
+      "teardown": "Dispose owned arrays, retained field and preview texture; observations remain only in a unique project Temp/WhimTex folder.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-round-contour-star-512",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.RunCold",
+      "args": [
+        "star",
+        512,
+        "sdf",
+        "round-contour",
+        7
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-round-contour"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical Test6.6 Editor, serial execution; no process/Burst startup claims.",
+      "setup": "Seven fresh-resource SDF builds per mode, alternating Round/Contour AB/BA pairs. Same untimed input raster/upload. No field cache or algorithm warmups. Retain field.total, render, completion/readback and all raw samples.",
+      "teardown": "Restore timing receiver and caller GPU state, release only owned transient documents/materials/textures. Raw timing JSON under project Temp/WhimTex; diagnostic SKIP is not a quality verdict.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-round-contour-star-1024",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.RunCold",
+      "args": [
+        "star",
+        1024,
+        "sdf",
+        "round-contour",
+        7
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-round-contour"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical Test6.6 Editor, serial execution; no process/Burst startup claims.",
+      "setup": "Seven fresh-resource SDF builds per mode, alternating Round/Contour AB/BA pairs. Same untimed input raster/upload. No field cache or algorithm warmups. Retain field.total, render, completion/readback and all raw samples.",
+      "teardown": "Restore timing receiver and caller GPU state, release only owned transient documents/materials/textures. Raw timing JSON under project Temp/WhimTex; diagnostic SKIP is not a quality verdict.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-round-contour-text-512",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.RunCold",
+      "args": [
+        "text",
+        512,
+        "sdf",
+        "round-contour",
+        7
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-round-contour"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical Test6.6 Editor, serial execution; no process/Burst startup claims.",
+      "setup": "Seven fresh-resource SDF builds per mode, alternating Round/Contour AB/BA pairs. Same untimed input raster/upload. No field cache or algorithm warmups. Retain field.total, render, completion/readback and all raw samples.",
+      "teardown": "Restore timing receiver and caller GPU state, release only owned transient documents/materials/textures. Raw timing JSON under project Temp/WhimTex; diagnostic SKIP is not a quality verdict.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-round-contour-text-1024",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.RunCold",
+      "args": [
+        "text",
+        1024,
+        "sdf",
+        "round-contour",
+        7
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-round-contour"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical Test6.6 Editor, serial execution; no process/Burst startup claims.",
+      "setup": "Seven fresh-resource SDF builds per mode, alternating Round/Contour AB/BA pairs. Same untimed input raster/upload. No field cache or algorithm warmups. Retain field.total, render, completion/readback and all raw samples.",
+      "teardown": "Restore timing receiver and caller GPU state, release only owned transient documents/materials/textures. Raw timing JSON under project Temp/WhimTex; diagnostic SKIP is not a quality verdict.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-round-contour-rings-512",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.RunCold",
+      "args": [
+        "rings",
+        512,
+        "sdf",
+        "round-contour",
+        7
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-round-contour"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical Test6.6 Editor, serial execution; no process/Burst startup claims.",
+      "setup": "Seven fresh-resource SDF builds per mode, alternating Round/Contour AB/BA pairs. Same untimed input raster/upload. No field cache or algorithm warmups. Retain field.total, render, completion/readback and all raw samples.",
+      "teardown": "Restore timing receiver and caller GPU state, release only owned transient documents/materials/textures. Raw timing JSON under project Temp/WhimTex; diagnostic SKIP is not a quality verdict.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-round-contour-rings-1024",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.RunCold",
+      "args": [
+        "rings",
+        1024,
+        "sdf",
+        "round-contour",
+        7
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-round-contour"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical Test6.6 Editor, serial execution; no process/Burst startup claims.",
+      "setup": "Seven fresh-resource SDF builds per mode, alternating Round/Contour AB/BA pairs. Same untimed input raster/upload. No field cache or algorithm warmups. Retain field.total, render, completion/readback and all raw samples.",
+      "teardown": "Restore timing receiver and caller GPU state, release only owned transient documents/materials/textures. Raw timing JSON under project Temp/WhimTex; diagnostic SKIP is not a quality verdict.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "text-edge-modes",
+      "file": "Tests~/Cases/Layers/TextEdgeModeTests.cs",
+      "runner": "run_script",
+      "entry": "TextEdgeModeTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"],
+      "groups": ["layers", "rendering", "documents"],
+      "prerequisites": "Idle graphical Editor with a supported system font and current text shaders.",
+      "setup": "Owned transient text documents and native font atlases; comparison PNG in Temp/WhimTex. Temporarily simulate missing font in the package catalog.",
+      "teardown": "Restore font catalog and render state; destroy only owned resources. No imported assets or user documents.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "layer-content-state-v1",
+      "file": "Tests~/Cases/Layers/LayerContentTests.cs",
+      "runner": "run_script",
+      "entry": "LayerContentTests.Start",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "groups": [
+        "regression",
+        "layers"
+      ],
+      "prerequisites": "Explicit idle Test6.6 Editor with current WhimTex compiled, a graphics device and supported alpha-presence shader; no concurrent Editor or document operations.",
+      "setup": "Own one unsaved utility window, an in-memory document, readable source pixels and transient inline FX. Check full-resolution content state, source and FX revisions, own Opacity/visibility, group child composition, Unknown fallback, stable icon geometry and actual name picking. Save the owned-window preview under project Temp/WhimTex. No native drag sessions, global drag payloads, global Undo/Redo execution or asset imports.",
+      "teardown": "UnityAScope discards and closes only the owned window, releases transient model/FX/texture resources and restores borrowed Editor preferences, selection and focus. AsyncD drains cancellation and removes per-run state; retain the preview for visual inspection.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "LayerContentTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "LayerContentTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "LayerContentTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "distance-contour-v1",
+      "file": "Tests~/Cases/Painting/ContourDistanceTests.cs",
+      "runner": "run_script",
+      "entry": "ContourDistanceTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["painting", "layers", "distance-contour"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Editor with the current package; serial execution and package-owned reflection only.",
+      "setup": "Bounded CPU fields up to 49 square: soft analytic half-planes, circles and thin rings, all sixteen cell cases, threshold ties, finite endpoints, weak islands, channels, rotation and degenerate dimensions.",
+      "teardown": "Dispose owned NativeArrays; borrowed inputs and user documents remain unchanged.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-corner-parameters-capture-v1",
+      "file": "Tests~/Cases/Painting/CornerParameterTests.cs",
+      "runner": "run_script", "entry": "CornerParameterTests.Capture", "args": ["corner-parameters-20261014-v1"],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-corner-parameters"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor and pre-optimization production kernel; run only before source change.",
+      "setup": "Capture native float fields and kernel timings for 12 geometries/48 queries from authenticated raster and independent AA triangles. Refuses overwrite. Returns SKIP as reference producer.",
+      "teardown": "Dispose native buffers, geometry and transient input texture; snapshot stays only under project Temp.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": ["Tests~/Fixtures/DistanceRaster/README.md"]
+    },
+    {
+      "id": "distance-corner-parameters-v1",
+      "file": "Tests~/Cases/Painting/CornerParameterTests.cs",
+      "runner": "run_script", "entry": "CornerParameterTests.Verify", "args": ["corner-parameters-20261014-v1", "2C102E0604FCD11A228E994BA78998BB3D8285D0907792EADEF82D688F5E5C18"],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-corner-parameters"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor; authenticated pre-change project-Temp snapshot, never regenerated during Verify.",
+      "setup": "Assert 24 CornerFit fields equal frozen pre-change floats; record 24 Spring fields as historical differences after deliberate removal of global raster acceptance. No Spring equivalence or speed assertion.",
+      "teardown": "Dispose owned geometry/native buffers and reader; retain comparison CSV in project Temp.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-reconstruction-cache-v1",
+      "file": "Tests~/Cases/Painting/ReconstructedCacheTests.cs",
+      "runner": "run_script", "entry": "ReconstructedCacheTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": [],
+      "groups": ["painting", "layers", "distance-preparation"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor; package-owned reflection only.",
+      "setup": "Bit-identical cached/uncached fields, exact stage counters, byte/channel/threshold/size/miter invalidation, owned snapshots, 64MiB pressure/LRU and idempotent disposal. CPU-only; 45s body budget.",
+      "teardown": "Dispose all owned native buffers and cache entries. No files, assets or user documents changed.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-reconstruction-render-cache-v1",
+      "file": "Tests~/Cases/Layers/ReconstructionRenderCacheTests.cs",
+      "runner": "run_script", "entry": "ReconstructionRenderCacheTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["layers", "rendering", "distance-preparation"], "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Editor, shaders and authenticated source raster.",
+      "setup": "Owned SDF/Outline at 512px, CornerFit/Spring. Compare reused range/miter edits to fresh full rebuilds; stage counts and all-channel image equivalence. Timing CSV under project Temp/WhimTex/distance-fields/preparation.",
+      "teardown": "Dispose owned behaviour caches/RTs, restore GPU/timing state; user documents untouched.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": ["Tests~/Fixtures/DistanceRaster/README.md"]
+    },
+    {
+      "id": "distance-spring-contribution-v1",
+      "file": "Tests~/Cases/Painting/RasterReconstructionTests.cs",
+      "runner": "run_script", "entry": "RasterReconstructionTests.SpringContribution", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": [],
+      "groups": ["painting", "layers", "distance-reconstruction"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor; package-owned reflection only.",
+      "setup": "Compare 12 CornerFit/Spring pairs from independent AA triangles; require a measurable final Spring contribution and preserve existing geometric accuracy/sign checks.",
+      "teardown": "Dispose owned native buffers; no borrowed documents or assets changed.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-spring-contour-v1",
+      "file": "Tests~/Cases/Painting/SpringDistanceContourTests.cs",
+      "runner": "run_script", "entry": "SpringDistanceContourTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": [],
+      "groups": ["painting", "layers", "distance-reconstruction"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor with current package; package-owned reflection only.",
+      "setup": "Bounded spring force adaptation on copied contours: measurable relaxation, anchored corners, winding/seam invariance and minimum edge clearance.",
+      "teardown": "Dispose owned native buffers; no borrowed documents or assets changed.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-reconstruction-accuracy-v1",
+      "file": "Tests~/Cases/Painting/RasterReconstructionTests.cs",
+      "runner": "run_script", "entry": "RasterReconstructionTests.Accuracy", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": [],
+      "groups": ["painting", "layers", "distance-reconstruction"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor; serial execution, package-owned reflection only.",
+      "setup": "Independent area-coverage rasters, exact pixel integral, accepted cap recovery, 48 angular/miter field calls at 16/32/64 pixels.",
+      "teardown": "Dispose owned native buffers; no borrowed documents or assets changed.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-reconstruction-boundaries-v1",
+      "file": "Tests~/Cases/Painting/RasterReconstructionTests.cs",
+      "runner": "run_script", "entry": "RasterReconstructionTests.Boundaries", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": [],
+      "groups": ["painting", "layers", "distance-reconstruction"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor; serial execution, package-owned reflection only.",
+      "setup": "40 fields: holes/thin features/islands, rotations and mirrors, source channels, saddles and uniform inputs; unsupported AA recovery fallback.",
+      "teardown": "Dispose owned native buffers; no borrowed documents or assets changed.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-reconstruction-safety-v1",
+      "file": "Tests~/Cases/Painting/ReconstructionSafetyTests.cs",
+      "runner": "run_script", "entry": "ReconstructionSafetyTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": [],
+      "groups": ["painting", "layers", "distance-reconstruction"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor; package-owned reflection only.",
+      "setup": "CPU-only shared-pixel coverage counterexample, independent membership XOR and bounded fractional samples of continuous local endpoint candidates.",
+      "teardown": "Dispose owned NativeArrays including boxed typed buffers; no files, assets or borrowed state.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-reconstruction-captured-v1",
+      "file": "Tests~/Cases/Layers/DistanceFieldRenderTests.cs",
+      "runner": "run_script", "entry": "DistanceFieldRenderTests.RunReconstructedCapture", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["layers", "rendering", "distance-reconstruction"], "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Editor and current shaders; authentic frozen raster input.",
+      "setup": "Nine native SDF renders: Contour/CornerFit/Spring at 77/128/192, including former false-ray point. Diagnostic PNG/CSV under project Temp/WhimTex/distance-fields/reconstruction.",
+      "teardown": "Release owned objects and RTs, restore GPU state; retain generated diagnostics. User documents untouched.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": ["Tests~/Fixtures/DistanceRaster/README.md"]
+    },
+    {
+      "id": "distance-contour-text-v1",
+      "file": "Tests~/Cases/Layers/ContourTextRenderTests.cs",
+      "runner": "run_script",
+      "entry": "ContourTextRenderTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files"],
+      "groups": ["layers", "rendering", "distance-contour"],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Editor, current shaders and installed default text font.",
+      "setup": "Owned unsaved text document: all three edge modes at identity/fractional translation, rendered through Round AA, AAEDT and Contour AA. Comparison PNG under project Temp/WhimTex/distance-fields/contour.",
+      "teardown": "Destroy owned document/textures and restore GPU state; retain diagnostic PNG. No borrowed document, asset, scene or font setting changed.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-aaedt-v1",
+      "file": "Tests~/Cases/Painting/AaedtDistanceTests.cs",
+      "runner": "run_script",
+      "entry": "AaedtDistanceTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["painting", "layers", "distance-aaedt"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor with current package compiled; serial execution and package-owned reflection only.",
+      "setup": "At most 160 CPU kernel calls on images up to 65 square; analytic axis/diagonal coverage, threshold remap, source channels, empty/full and 1D masks, circle/ring/star signs and finite-distance bounds, determinism and quarter-turn stability. Body budget 30s.",
+      "teardown": "Dispose owned NativeArrays after synchronous computation. Borrowed pixels remain unchanged; no assets, documents, windows or files changed.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-aaedt-render-v1",
+      "file": "Tests~/Cases/Layers/DistanceFieldRenderTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldRenderTests.RunAaedt",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files"],
+      "groups": ["layers", "painting", "distance-aaedt"],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor, current package compiled and authenticated fifth raster fixture. Parent serializes execution.",
+      "setup": "Native Round AA and AAEDT comparison on frozen 512-square star at thresholds 77/128/192. Finite output and absent former false-ray probe. Diagnostic contact sheets under project Temp/WhimTex, not goldens or proof of improved sharpness.",
+      "teardown": "Release owned transient textures/document and restore caller GPU state. No assets, live documents or windows changed.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": ["Tests~/Fixtures/DistanceRaster/README.md"]
+    },
+    {
+      "id": "distance-merge-geometry-v1",
+      "file": "Tests~/Cases/Painting/DistanceContourMergeTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceContourMergeTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["painting", "layers", "distance-merge"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor with current package compiled; serial execution and package-owned reflection only.",
+      "setup": "Bounded midpoint/threshold/seam/reversal and non-cascading geometry checks; winding, area, islands, holes, self-contact and whole-batch topology guards. Body budget 30s.",
+      "teardown": "Owned managed geometry only. No assets, files, windows or document changes.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Cases/Painting/DistanceFieldTests.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-merge-fields-v1",
+      "file": "Tests~/Cases/Painting/DistanceContourMergeTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceContourMergeTests.RunFields",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["painting", "layers", "distance-merge"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor with current package compiled; serial execution and package-owned reflection only.",
+      "setup": "42 calls on seven rasters up to 128 square; Sharp/MTSDF at merge 0/1/2. Independent envelopes, 30/45/60/75/90 degree tips, thin details, holes and measured deltas. Body budget 30s.",
+      "teardown": "Dispose owned CPU buffers; borrowed source remains unchanged. No assets, files, windows or document changes.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Cases/Painting/DistanceFieldTests.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-merge-render-v1",
+      "file": "Tests~/Cases/Layers/DistanceFieldRenderTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldRenderTests.RunMerge",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files"],
+      "groups": ["layers", "painting", "distance-merge"],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor, current package compiled and authenticated fifth raster fixture. Parent serializes execution.",
+      "setup": "18 owned native SDF renders: Sharp/MTSDF at merge 0/1/2 and thresholds 77/128/192. Finite output, absent former false-ray probe, contact sheets and numeric delta CSV under Temp/WhimTex. Output images are diagnostics, not goldens or a proof of improved sharpness.",
+      "teardown": "Dispose only owned transient textures/document and restore caller GPU state. No assets, live documents or windows changed.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": ["Tests~/Fixtures/DistanceRaster/README.md"]
+    },
+    {
+      "id": "distance-corner-fit-v1",
+      "file": "Tests~/Cases/Painting/DistanceCornerFitTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceCornerFitTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "painting",
+        "layers",
+        "distance-corner-fit"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor with current WhimTex compiled; serial parent-owned execution. Package-owned reflection only.",
+      "setup": "Frozen Fit-window arithmetic oracle checks exact float bits and validity. Frozen corner recovery bounds established displacement on independent outlines; adaptive corner policy also checks smooth/short contours and borrowed-input preservation. Body budget 30s.",
+      "teardown": "Production completes/disposes owned native jobs and buffers before return; test owns only managed inputs. No assets, files, windows or borrowed Editor state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-raster-corners-v1",
+      "file": "Tests~/Cases/Painting/DistanceRasterCornerTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceRasterCornerTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["painting", "layers", "distance-raster-corners"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor; current package compiled; serial execution and package-owned reflection only.",
+      "setup": "Independent generated raster stars with 13 rays, two sizes, three phase/rotation pairs and five moderate thresholds. Independent supporting planes, resolved acute cuts, thin smooth rasters and short-detail guards. Body budget 30s and 112 production calls.",
+      "teardown": "Dispose only owned CPU native buffers; no textures, assets, windows or document changes.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Cases/Painting/DistanceFieldTests.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-raster-angles-v1",
+      "file": "Tests~/Cases/Painting/DistanceRasterCornerTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceRasterCornerTests.RunAngles",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["painting", "layers", "distance-raster-corners"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor; current package compiled; serial execution and package-owned reflection only.",
+      "setup": "Raster wedges with 10/15/20/30/45/60/75/90-degree tips, two rotations/phases, three moderate thresholds and all six modes. Independent support-plane and norm-dual side-distance checks; Sharp/MTSDF tip fans. 30s body and 576 production calls.",
+      "teardown": "Dispose only owned CPU native buffers; no assets, textures, windows or documents.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Cases/Painting/DistanceFieldTests.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-raster-captured-v1",
+      "file": "Tests~/Cases/Painting/DistanceRasterCornerTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceRasterCornerTests.RunCaptured",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["painting", "layers", "distance-raster-corners"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor and authenticated package source inputs; serial execution.",
+      "setup": "Five frozen original RGBA raster inputs, authenticated by SHA-256 before PNG decoding; no output golden. Five moderate thresholds, Sharp/MTSDF (miter 64), conservative finite distances at above-cap acute tips, a shared concave join with preserved original tiny hole, and borrowed-input checks. 30s body and 52 production calls.",
+      "teardown": "Destroy owned transient source textures and CPU buffers; no assets, windows or user documents.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Cases/Painting/DistanceFieldTests.cs"],
+      "reviewFiles": ["Tests~/Fixtures/DistanceRaster/README.md"]
+    },
+    {
+      "id": "distance-safety-v1",
+      "file": "Tests~/Cases/Painting/DistanceSafetyTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceSafetyTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["painting", "layers", "distance-safety"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor with current package compiled; serial execution. Read-only authenticated fifth source.",
+      "setup": "Independent finite raster contour, absent-ray angular sampling, fifth source, tiny details and smooth curves. Full RGB interpolation before median; three moderate thresholds. 35 production calls, maximum 512 squared, 30s body.",
+      "teardown": "Dispose owned CPU buffers and transient source decode texture; no assets, windows or document changes.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Cases/Painting/DistanceFieldTests.cs"],
+      "reviewFiles": ["Tests~/Fixtures/DistanceRaster/README.md"]
+    },
+    {
+      "id": "distance-safety-angles-v1",
+      "file": "Tests~/Cases/Painting/DistanceSafetyTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceSafetyTests.RunAngles",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["painting", "layers", "distance-safety"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor with current package compiled; serial execution.",
+      "setup": "10/15/20/30/45/60/75/90-degree raster wedges, two phases and three thresholds. Common supported tips retain angular character, above-cap tips stay bounded, low requested limits retain bevels. Full RGB bilinear signs. 106 calls, maximum 96 squared, 30s body.",
+      "teardown": "Dispose owned CPU native buffers; no textures, assets, windows or documents.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Cases/Painting/DistanceFieldTests.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-safety-thin-v1",
+      "file": "Tests~/Cases/Painting/DistanceSafetyTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceSafetyTests.RunThinStroke",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["painting", "layers", "distance-safety"],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Test6.6 Editor with current package compiled; serial execution.",
+      "setup": "30/45/60/75/90-degree 4px triangular strokes plus 3px bars, two phases and three moderate thresholds. Independent finite sides, holes, angular envelopes and full RGB bilinear signs. 60 calls, maximum 128 squared, 30s body.",
+      "teardown": "Dispose owned CPU native buffers; no textures, assets, windows or documents.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Cases/Painting/DistanceFieldTests.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-field-cold-star-512",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.RunCold",
+      "args": [
+        "star",
+        512,
+        "sdf",
+        "all",
+        5
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-field-cold"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor; serial parent-owned execution, no editor restarts or compiler-state claims.",
+      "setup": "No algorithm warmups. Each sample constructs a new SDF/Outline behaviour with fresh LUTs/materials and rebuilds contour, field and workspace. Source fixture is uploaded once; Editor/compiler/global RT pool state is shared. First-call samples flagged separately; no retained field/geometry cache.",
+      "teardown": "Restore optional timing receiver and caller GPU state; release only owned documents, textures and behaviour resources. Retain raw JSON in project Temp/WhimTex. Diagnostic SKIP, no acceptance threshold.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-field-cold-star-1024",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.RunCold",
+      "args": [
+        "star",
+        1024,
+        "sdf",
+        "all",
+        5
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-field-cold"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor; serial parent-owned execution, no editor restarts or compiler-state claims.",
+      "setup": "No algorithm warmups. Each sample constructs a new SDF/Outline behaviour with fresh LUTs/materials and rebuilds contour, field and workspace. Source fixture is uploaded once; Editor/compiler/global RT pool state is shared. First-call samples flagged separately; no retained field/geometry cache.",
+      "teardown": "Restore optional timing receiver and caller GPU state; release only owned documents, textures and behaviour resources. Retain raw JSON in project Temp/WhimTex. Diagnostic SKIP, no acceptance threshold.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-field-cold-star-2048",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.RunCold",
+      "args": [
+        "star",
+        2048,
+        "sdf",
+        "all",
+        3
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-field-cold"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor; serial parent-owned execution, no editor restarts or compiler-state claims.",
+      "setup": "No algorithm warmups. Each sample constructs a new SDF/Outline behaviour with fresh LUTs/materials and rebuilds contour, field and workspace. Source fixture is uploaded once; Editor/compiler/global RT pool state is shared. First-call samples flagged separately; no retained field/geometry cache.",
+      "teardown": "Restore optional timing receiver and caller GPU state; release only owned documents, textures and behaviour resources. Retain raw JSON in project Temp/WhimTex. Diagnostic SKIP, no acceptance threshold.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-field-cold-outline-512",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.RunCold",
+      "args": [
+        "star",
+        512,
+        "outline",
+        "all",
+        5
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-field-cold"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor; serial parent-owned execution, no editor restarts or compiler-state claims.",
+      "setup": "No algorithm warmups. Each sample constructs a new SDF/Outline behaviour with fresh LUTs/materials and rebuilds contour, field and workspace. Source fixture is uploaded once; Editor/compiler/global RT pool state is shared. First-call samples flagged separately; no retained field/geometry cache.",
+      "teardown": "Restore optional timing receiver and caller GPU state; release only owned documents, textures and behaviour resources. Retain raw JSON in project Temp/WhimTex. Diagnostic SKIP, no acceptance threshold.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-field-cold-outline-1024",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.RunCold",
+      "args": [
+        "star",
+        1024,
+        "outline",
+        "all",
+        5
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-field-cold"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor; serial parent-owned execution, no editor restarts or compiler-state claims.",
+      "setup": "No algorithm warmups. Each sample constructs a new SDF/Outline behaviour with fresh LUTs/materials and rebuilds contour, field and workspace. Source fixture is uploaded once; Editor/compiler/global RT pool state is shared. First-call samples flagged separately; no retained field/geometry cache.",
+      "teardown": "Restore optional timing receiver and caller GPU state; release only owned documents, textures and behaviour resources. Retain raw JSON in project Temp/WhimTex. Diagnostic SKIP, no acceptance threshold.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-field-cold-rings-512",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script",
+      "entry": "DistanceFieldPerformanceTests.RunCold",
+      "args": [
+        "rings",
+        512,
+        "sdf",
+        "all",
+        5
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-field-cold"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Test6.6 Editor; serial parent-owned execution, no editor restarts or compiler-state claims.",
+      "setup": "No algorithm warmups. Each sample constructs a new SDF/Outline behaviour with fresh LUTs/materials and rebuilds contour, field and workspace. Source fixture is uploaded once; Editor/compiler/global RT pool state is shared. First-call samples flagged separately; no retained field/geometry cache.",
+      "teardown": "Restore optional timing receiver and caller GPU state; release only owned documents, textures and behaviour resources. Retain raw JSON in project Temp/WhimTex. Diagnostic SKIP, no acceptance threshold.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-guarded-cold-star-512",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script", "entry": "DistanceFieldPerformanceTests.RunGuardedCold", "args": ["star", 512, 5],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-guarded-cold"], "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Editor, serial execution. No process/compiler startup claim.",
+      "setup": "Five interleaved fresh SDF builds for every current metric with explicit GuardedSharp, miter 4, merge 0, threshold 128. No algorithm warmups or reused fields. Shared untimed source upload.",
+      "teardown": "Restore timing receiver and GPU state; release owned transient resources. Retain raw timing JSON under project Temp/WhimTex; diagnostic SKIP, not quality acceptance.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-guarded-cold-star-1024",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script", "entry": "DistanceFieldPerformanceTests.RunGuardedCold", "args": ["star", 1024, 5],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-guarded-cold"], "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Editor, serial execution. No process/compiler startup claim.",
+      "setup": "Five interleaved fresh SDF builds for every current metric with explicit GuardedSharp, miter 4, merge 0, threshold 128. No algorithm warmups or reused fields. Shared untimed source upload.",
+      "teardown": "Restore timing receiver and GPU state; release owned transient resources. Retain raw timing JSON under project Temp/WhimTex; diagnostic SKIP, not quality acceptance.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-guarded-cold-text-512",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script", "entry": "DistanceFieldPerformanceTests.RunGuardedPart", "args": ["text", 512, "fast", 5],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-guarded-cold"], "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Editor, serial execution. Installed font for native HintedAA input; recorded in artifact.",
+      "setup": "Five interleaved fresh builds per metric except CornerFit/Spring (separate bounded calls), with GuardedSharp, miter 4, merge 0, threshold 128. No warmups or reused fields. Shared untimed text raster/upload.",
+      "teardown": "Restore timing receiver and GPU state; release owned transient resources. Retain raw timing JSON under project Temp/WhimTex; diagnostic SKIP, not quality acceptance.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-guarded-cold-rings-512",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script", "entry": "DistanceFieldPerformanceTests.RunGuardedPart", "args": ["rings", 512, "fast", 5],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-guarded-cold"], "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Editor, serial execution. No process/compiler startup claim.",
+      "setup": "Five interleaved fresh builds per metric except CornerFit/Spring (separate bounded calls), with GuardedSharp, miter 4, merge 0, threshold 128. No warmups or reused fields. Shared untimed 36-ring raster/upload.",
+      "teardown": "Restore timing receiver and GPU state; release owned transient resources. Retain raw timing JSON under project Temp/WhimTex; diagnostic SKIP, not quality acceptance.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-guarded-cold-rings-cornerfit",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script", "entry": "DistanceFieldPerformanceTests.RunGuardedPart", "args": ["rings", 512, "CornerFit", 5],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-guarded-cold"], "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Editor, serial execution.",
+      "setup": "Five fresh CornerFit SDF builds, GuardedSharp/miter4/threshold128/merge0; source generation/upload untimed. No algorithm warmups or field reuse.",
+      "teardown": "Restore timing callback and GPU state, release owned transient resources. Retain JSON and cleanup marker under project Temp/WhimTex; diagnostic SKIP.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-guarded-cold-rings-spring",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script", "entry": "DistanceFieldPerformanceTests.RunGuardedPart", "args": ["rings", 512, "Spring", 5],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-guarded-cold"], "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Editor, serial execution.",
+      "setup": "Five fresh Spring SDF builds, GuardedSharp/miter4/threshold128/merge0; source generation/upload untimed. No algorithm warmups or field reuse.",
+      "teardown": "Restore timing callback and GPU state, release owned transient resources. Retain JSON and cleanup marker under project Temp/WhimTex; diagnostic SKIP.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-guarded-cold-text-cornerfit",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script", "entry": "DistanceFieldPerformanceTests.RunGuardedPart", "args": ["text", 512, "CornerFit", 1],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-guarded-cold"], "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Editor, serial execution; installed font for HintedAA text.",
+      "setup": "One fresh CornerFit SDF build, GuardedSharp/miter4/threshold128/merge0; text generation/upload untimed. Repeat independent runs for additional samples.",
+      "teardown": "Restore timing callback and GPU state, release owned transient resources. Retain JSON and cleanup marker under project Temp/WhimTex; diagnostic SKIP.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-guarded-cold-text-spring",
+      "file": "Tests~/Cases/Painting/DistanceFieldPerformanceTests.cs",
+      "runner": "run_script", "entry": "DistanceFieldPerformanceTests.RunGuardedPart", "args": ["text", 512, "Spring", 1],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-guarded-cold"], "requiresUnity": true,
+      "prerequisites": "Idle graphical matching Editor, serial execution; installed font for HintedAA text.",
+      "setup": "One fresh Spring SDF build, GuardedSharp/miter4/threshold128/merge0; text generation/upload untimed. Repeat independent runs for additional samples.",
+      "teardown": "Restore timing callback and GPU state, release owned transient resources. Retain JSON and cleanup marker under project Temp/WhimTex; diagnostic SKIP.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
     {
       "id": "distance-contour-extraction-v1",
       "file": "Tests~/Cases/Painting/DistanceContourExtractionTests.cs",
@@ -2113,6 +3266,76 @@
       ]
     },
     {
+      "id": "pixel-scale-model-v1",
+      "file": "Tests~/Cases/Canvas/PixelScaleTests.cs",
+      "runner": "run_script",
+      "entry": "PixelScaleTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["user-state"],
+      "groups": ["canvas", "crop", "pixel-scale", "rendering"],
+      "prerequisites": "Idle graphical assigned Editor, current pixel-scale implementation and an installed default font.",
+      "setup": "Owned transient documents/textures only. Counterfactual rendered pixel comparisons for Text, Shape, Pattern and Grain; atomic invalid-input cases, missing-font fallback, cache stamps and JSON persistence. Package reflection only; no assets, windows or global Undo.",
+      "teardown": "Release owned render resources/documents and restore borrowed Editor state.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityAScope.cs"]
+    },
+    {
+      "id": "canvas-frame-v1",
+      "file": "Tests~/Cases/Canvas/CanvasFrameTests.cs",
+      "runner": "run_script",
+      "entry": "CanvasFrameTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["user-state"],
+      "groups": ["canvas", "crop"],
+      "prerequisites": "Idle graphical assigned Editor and current canvas-frame implementation.",
+      "setup": "Owned in-memory documents and textures; preserve layer pixels, transformed nested layers and serialized canvas frames. No assets, windows or global Undo.",
+      "teardown": "Release owned render resources and documents; restore borrowed Editor state.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityAScope.cs"]
+    },
+    {
+      "id": "crop-alpha-bounds-v1",
+      "file": "Tests~/Cases/Canvas/CropAlphaBoundsTests.cs",
+      "runner": "run_script",
+      "entry": "CropAlphaBoundsTests.Start",
+      "args": ["$runId"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["user-state", "temp-files"],
+      "groups": ["canvas", "rendering", "crop"],
+      "prerequisites": "Idle graphical assigned Editor, compiled alpha-bounds shader and ARGBFloat render-texture support.",
+      "setup": "Owned sparse non-square float textures and documents. Compare native and synchronous GPU reduction against a CPU alpha oracle; check cancellation, render state and cached layer content.",
+      "teardown": "Drain owned readbacks, release owned GPU resources and documents, remove GUID fixture folder and restore borrowed Editor state.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "async": {"entry": "CropAlphaBoundsTests.Poll", "args": ["$runId"], "pollMs": 100},
+      "cancel": {"entry": "CropAlphaBoundsTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "CropAlphaBoundsTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "crop-tool-v1",
+      "file": "Tests~/Cases/Canvas/CropToolTests.cs",
+      "runner": "run_script",
+      "entry": "CropToolTests.Start",
+      "args": ["$runId"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state", "temp-files"],
+      "groups": ["canvas", "crop"],
+      "prerequisites": "Idle graphical assigned Editor and current Crop tool implementation.",
+      "setup": "Owned unsaved window/documents. Public pointer/key events exercise the two-mode Crop picker/header, eight handles, numeric fields, rotated view, expansion, cancellation, navigation, Resize/Scale Apply and whole-document flip/rotation actions with draft, selection and guide remapping; capture owned drafts to Temp/WhimTex/crop-tool-preview.png and crop-scale-preview.png. Package-only reflection; no global Undo/Redo.",
+      "teardown": "Clear only owned document/window Undo, close owned window and release documents, restore borrowed tool preferences and Editor state, remove GUID fixture folder.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs", "Tests~/Framework/Unity/UnityAScope.cs"],
+      "async": {"entry": "CropToolTests.Poll", "args": ["$runId"], "pollMs": 100},
+      "cancel": {"entry": "CropToolTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "CropToolTests.Cleanup", "args": ["$runId"]}
+    },
+    {
       "id": "gradient-creation",
       "file": "Tests~/Cases/Canvas/GradientCreationTests.cs",
       "runner": "run_script",
@@ -2159,6 +3382,44 @@
           "$runId"
         ]
       }
+    },
+    {
+      "id": "text-frame-handles",
+      "file": "Tests~/Cases/Canvas/TextFrameHandleTests.cs",
+      "runner": "run_script",
+      "entry": "TextFrameHandleTests.Start",
+      "args": ["$runId"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state"],
+      "groups": ["layers", "canvas"],
+      "prerequisites": "Idle graphical assigned Editor, compiled Frame handles and an installed system font.",
+      "setup": "Owned transient text document/window; actual pointer events, root and transformed group. Inspect package-owned data only.",
+      "teardown": "Close owned window, clear document Undo, destroy owned document and restore borrowed tool preference/Editor state.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs", "Tests~/Framework/Unity/AsyncD.cs"],
+      "async": {"entry": "TextFrameHandleTests.Poll", "args": ["$runId"], "pollMs": 100},
+      "cancel": {"entry": "TextFrameHandleTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "TextFrameHandleTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "text-point-handles",
+      "file": "Tests~/Cases/Canvas/TextPointHandleTests.cs",
+      "runner": "run_script",
+      "entry": "TextPointHandleTests.Start",
+      "args": ["$runId"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state", "temp-files"],
+      "groups": ["layers", "canvas"],
+      "prerequisites": "Idle graphical assigned Editor, compiled Point Text changes and an installed system font.",
+      "setup": "Owned transient document/window; actual pointer events. Inspect only package internals. Borrow the Text tool preference.",
+      "teardown": "Close owned window, clear only document Undo, destroy owned document, restore preference and borrowed Editor state.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs", "Tests~/Framework/Unity/AsyncD.cs"],
+      "async": {"entry": "TextPointHandleTests.Poll", "args": ["$runId"], "pollMs": 100},
+      "cancel": {"entry": "TextPointHandleTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "TextPointHandleTests.Cleanup", "args": ["$runId"]}
     },
     {
       "id": "text-tool",
@@ -3631,7 +4892,7 @@
       ],
       "requiresUnity": false,
       "prerequisites": "Node.js 22+ and current package sources/fixtures/docs; no Unity Editor needed.",
-      "setup": "Read-only guards over current six-mode source contracts and catalog registrations; no translated production jobs or numerical substitutes.",
+      "setup": "Read-only guards over current ten-mode source contracts and catalog registrations; no translated production jobs or numerical substitutes.",
       "teardown": "Only in-memory JavaScript data; no borrowed Unity/OS state or owned on-disk resources to release.",
       "result": {
         "kind": "structured"
@@ -5674,6 +6935,23 @@
       "reviewFiles": []
     },
     {
+      "id": "pixel-scale-fx-v1",
+      "file": "Tests~/Cases/FX/PixelScaleFxTests.cs",
+      "runner": "run_script",
+      "entry": "PixelScaleFxTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["regression", "shader-fx", "fx", "crop"],
+      "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders; no real documents are accessed.",
+      "setup": "Owned in-memory models, generated transient FX shaders, textures and render targets only; support preserves borrowed Editor state.",
+      "teardown": "Fixture cleanup releases only owned documents/FX/textures/RTs and restores render target/sRGB/focus/selection/clipboard.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "reviewFiles": []
+    },
+    {
       "id": "shader-fx-vectors-v2",
       "file": "Tests~/Cases/FX/ShaderFXVectorsTests.cs",
       "runner": "run_script",
@@ -6256,7 +7534,8 @@
       "category": "regression",
       "timeoutMs": 60000,
       "effects": [
-        "windows"
+        "windows",
+        "temp-files"
       ],
       "groups": [
         "regression",
@@ -6271,7 +7550,8 @@
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Framework/Unity/MigrationD.cs",
-        "Tests~/Framework/Unity/AsyncD.cs"
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
       ],
       "reviewFiles": [],
       "async": {
@@ -8008,7 +9288,8 @@
       "timeoutMs": 60000,
       "effects": [
         "windows",
-        "user-state"
+        "user-state",
+        "temp-files"
       ],
       "groups": [
         "canvas"
@@ -9591,7 +10872,7 @@
       "groups": ["layers", "rendering"],
       "requiresUnity": true,
       "prerequisites": "Idle graphical matching Test6.6 Editor, imported WhimTex shaders and float render-texture support. Parent owns serial execution.",
-      "setup": "Owned transient input textures, unsaved document and SDF/Outline instances. Writes the six-mode contact sheet to project Temp/WhimTex/distance-fields/six-modes.png. A transient test EditorWindow attaches controls for public ChangeEvent assertions.",
+      "setup": "Owned transient input textures, unsaved document and SDF/Outline instances. Writes the ten-mode contact sheet to project Temp/WhimTex/distance-fields/ten-modes.png. A transient test EditorWindow attaches controls for public ChangeEvent assertions.",
       "teardown": "Close only the owned control test window and restore previous Editor focus. Release owned render textures, destroy owned objects and restore caller GPU state; retain the contact sheet in project Temp. No assets or scenes are created.",
       "result": { "kind": "structured" },
       "supportFiles": ["Tests~/Framework/TestApi.cs"],
@@ -14943,6 +16224,43 @@
       "reviewFiles": []
     },
     {
+      "id": "pixel-scale-text-editing-v1",
+      "file": "Tests~/Cases/Canvas/PixelScaleTextEditingTests.cs",
+      "runner": "run_script",
+      "entry": "PixelScaleTextEditingTests.Start",
+      "args": ["$runId"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state", "temp-files"],
+      "groups": ["canvas", "layers", "pixel-scale"],
+      "prerequisites": "Idle graphical assigned Editor with imported WhimTex and an installed default font. Reviewed case and support sources.",
+      "setup": "Owned unsaved window/document only. Public pointer events check physical frame handles, logical layout edits, pixel-scale invalidation, keyboard editor dimensions and new Text frame creation at pixel scales 0.5 and 2. Package-owned reflection only; no global Undo/Redo or user document changes.",
+      "teardown": "Clear only owned document/window Undo, close the owned window and release its document, restore borrowed Editor state and preferences, and remove exact GUID scratch scope.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "reviewFiles": [],
+      "async": {"entry": "PixelScaleTextEditingTests.Poll", "args": ["$runId"], "pollMs": 100},
+      "cancel": {"entry": "PixelScaleTextEditingTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "PixelScaleTextEditingTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "pixel-scale-brush-v1",
+      "file": "Tests~/Cases/Painting/PixelScaleBrushTests.cs",
+      "runner": "run_script",
+      "entry": "PixelScaleBrushTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"],
+      "groups": ["painting", "canvas", "pixel-scale"],
+      "prerequisites": "Assigned Test6.6 Unity Editor with WhimTex imported and GPU rendering available. Reviewed case and explicit support sources.",
+      "setup": "Create only owned unsaved documents, Drawing pixels, stroke buffers and an unshown window in a per-invocation GUID scope. No user document mutation or global Undo operation.",
+      "teardown": "Release all owned paint/healing buffers and textures, destroy the unshown window/document, restore borrowed Editor preferences and render state, and remove only owned GUID scratch paths.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "reviewFiles": []
+    },
+    {
       "id": "paint-stroke-parameters-v2",
       "file": "Tests~/Cases/Painting/PaintStrokeParametersTests.cs",
       "runner": "run_script",
@@ -19543,6 +20861,33 @@
         "Tests~/Framework/TestApi.cs"
       ],
       "reviewFiles": []
+    },
+    {
+      "id": "alpha-presence-v1",
+      "file": "Tests~/Cases/Rendering/AlphaPresenceTests.cs",
+      "runner": "run_script",
+      "entry": "AlphaPresenceTests.Start",
+      "args": [ "$runId" ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [ "user-state" ],
+      "groups": [ "regression", "rendering" ],
+      "prerequisites": "Explicit idle Test6.6 Editor with current WhimTex compiled, supported AlphaPresenceReduce shader, float render targets and exact float texture-to-render-target copies. No concurrent Editor or document operations.",
+      "setup": "Own transient float texture/render-target fixtures and one package-owned alpha detector. Exercise exact full-image alpha reduction, asynchronous cancellation and single-pixel synchronous fallback. Reflect only package-owned utility methods and resources.",
+      "teardown": "Drain only owned detector requests, destroy owned textures/materials, release fixture render targets and restore borrowed render/Editor state through AsyncD. No assets, windows, global Undo/Redo or native drag payloads.",
+      "result": { "kind": "structured" },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/WhimTexAlphaPresence.cs",
+        "src/Shaders/AlphaPresenceReduce.shader"
+      ],
+      "async": { "entry": "AlphaPresenceTests.Poll", "args": [ "$runId" ], "pollMs": 200 },
+      "cancel": { "entry": "AlphaPresenceTests.Cancel", "args": [ "$runId" ] },
+      "cleanup": { "entry": "AlphaPresenceTests.Cleanup", "args": [ "$runId" ] }
     },
     {
       "id": "slider-field-v1",

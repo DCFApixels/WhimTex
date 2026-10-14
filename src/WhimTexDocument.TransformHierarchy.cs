@@ -10,6 +10,7 @@ namespace DCFApixels.WhimTex
 
         internal void RefreshTransformHierarchy()
         {
+            GetPixelScale();
             VisitTransforms(layers, null, ProjectiveMatrix.Identity, 0);
         }
 
@@ -32,11 +33,13 @@ namespace DCFApixels.WhimTex
                 var cache = layer.transformCache;
                 if (cache == null || cache.document != this || cache.parent != parent ||
                     cache.parentVersion != parentVersion || cache.width != width || cache.height != height ||
+                    cache.pixelScale != pixelScale ||
                     !cache.local.Equals(layer.transform))
                 {
                     cache ??= layer.transformCache = new LayerTransformCache();
                     cache.document = this; cache.parent = parent; cache.parentVersion = parentVersion;
                     cache.width = width; cache.height = height; cache.local = layer.transform;
+                    cache.pixelScale = pixelScale;
                     cache.parentMatrix = parentMatrix;
                     parentMatrix.TryInverse(out cache.parentInverse);
                     cache.world = parentMatrix * layer.transform.ToMatrix(width, height);
@@ -94,6 +97,7 @@ namespace DCFApixels.WhimTex
         internal Layer parent;
         internal ulong version, parentVersion;
         internal int width, height;
+        internal float pixelScale;
         internal TextureTransform local;
         internal ProjectiveMatrix parentMatrix, parentInverse, world, inverse;
         internal GpuRows inverseGpu, inputInverseGpu;

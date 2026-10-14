@@ -93,7 +93,7 @@ namespace DCFApixels.WhimTex
                 "canvasPixels painting requires Clip tiling. For repeating transforms, use layerUv to edit the source tile explicitly.");
             bool erase = Bool(operation, "erase");
             if (pressures != null) layer.brushDynamics ??= new BrushDynamics();
-            PaintStrokeParameters parameters = layer.GetStrokeParameters(erase);
+            PaintStrokeParameters parameters = layer.GetScaledStrokeParameters(erase, document.GetPixelScale());
             if (operation["pencil"] != null)
                 parameters = new PaintStrokeParameters(parameters.Color, parameters.Size, 1f, 0f, erase,
                     true, Enum(operation, "pencil", PencilShape.Circle)).WithWriteProtection(parameters.WriteChannels);

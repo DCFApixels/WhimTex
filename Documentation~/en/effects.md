@@ -16,6 +16,8 @@ next_page: "en/blending.md"
 Effect layers create outlines, soften images or turn texture detail into surface relief.
 They keep the source editable, so you can adjust it without rebuilding the effect.
 
+The document's [Pixel Scale](preview.md#crop-extend-or-scale-the-canvas) multiplies pixel lengths such as Outline width, SDF distances, Blur and Sharpen radii, and Normal Map smoothing. Entered values remain unchanged: a radius of 3 with Pixel Scale 2 uses 6 canvas pixels. Built-in Shader FX pixel lengths follow the same multiplier; colors, angles and strength ratios keep their usual meaning.
+
 Choose by where you want the result:
 
 | Kind | Where it lives | What it changes |
@@ -125,7 +127,7 @@ It cannot recover details already clipped by the source layer.
 Large offsets and Repeat need more memory. If the extended calculation exceeds 64 million pixels,
 reduce the offset or resolution; WhimTex reports an error instead of silently cropping.
 
-**Distance Algorithm** offers six antialiased modes for both Outline and SDF:
+**Distance Algorithm** offers ten antialiased modes for both Outline and SDF:
 
 | Algorithm | Result |
 | :--- | :--- |
@@ -135,9 +137,66 @@ reduce the offset or resolution; WhimTex reports an error instead of silently cr
 | Diamond (Antialiased) | L1 distance with diamond-shaped offsets aligned to the calculation axes. |
 | Square (Antialiased) | L∞ distance with square-shaped offsets aligned to the calculation axes. |
 | MTSDF | Preserves corners through three distance channels; alpha stores true contour distance. |
+| AAEDT + 8SED (experimental) | Estimates the raster edge from pixel coverage; wide external contours remain round. |
+| Contour AA (experimental) | Measures distance to straight subpixel segments along the current raster threshold boundary; expanded corners round. |
+| Corner Fit AA (experimental) | Fits corner sides across several pixels and checks their local AA coverage before allowing bounded sharp joins. |
+| Spring Simulation (experimental) | Accepts geometrically safe spring relaxation without requiring a global match to source AA coverage, then uses the same local corner checks and bounded sharp joins as Corner Fit AA. |
+
+Choose **Corner Fit AA** to test sharp-corner recovery from the raster source. It starts with the raw
+Contour boundary, fits sides over several pixels and re-rasterizes each proposed corner locally with
+antialiasing. Intersecting or unconfirmed extensions are rejected; ambiguous areas retain the raw
+contour. Verified endpoint joins blend continuously back to finite distance as another boundary
+becomes nearer; a remote corner cannot take over the field. This is an
+experimental hybrid; it cannot guarantee sharp recovery from every raster.
+
+**Spring Simulation** first applies automatic spring relaxation to the raw contour. Geometrically safe
+relaxation is accepted without requiring the whole relaxed contour to match the source's AA coverage.
+Spring forces, movement limits and topology protection remain in place; the subsequent local AA
+corner checks are still shared with Corner Fit AA. The shape can shift locally relative to the source,
+and neither better quality nor faster rendering is guaranteed.
+It adapts ideas from [Matusovic, Parakkat and Eisemann (2023)](https://doi.org/10.1111/cgf.14743)
+on interactive pixel-art depixelization. That paper does not generate SDFs; this mode does not reproduce
+the full interactive tool or its C++ implementation. Both modes use the same scalar output controls.
+
+For these two modes, **Threshold** remaps the selected channel as pixel coverage; Outline uses its fixed
+midpoint. Soft masks, blur and values that do not represent coverage give only an approximate fit.
+**Miter Limit** bevels long validated joins; it cannot make an uncertain corner valid.
+**Contour Merge (px)** has no effect. SDF supports Gradient or Linear Data, with no Multi Channel Data.
+Round AA stays the default, and the previous eight modes keep their behavior.
+
+These are testing modes, not replacements for the existing algorithms. Mixed verified-sharp and
+fallback-round regions can still show visible bands inside complex stars. Open contours crossing the
+image boundary retain raw geometry. Missing coverage evidence or an exhausted corner-fitting budget
+keeps the geometry entering that stage, which can already be relaxed in Spring Simulation.
+
+Once the source is prepared, changing distance ranges, the profile, gradient or Outline width
+reuses the field. Miter Limit reuses the contour and recalculates the field. Changing the source,
+threshold, source channel or preparation mode requires preparing the source again.
+
+The field recalculation used by Miter Limit also reuses prepared corner parameters.
+
+Choose **Contour AA** to compare a segment-based boundary with Round AA. It locates threshold
+crossings between source pixels and joins them with finite straight segments, without fitting,
+smoothing, corner recovery, merging or extending sharp corners. It measures the current raster
+boundary and cannot restore lost detail. Contour AA is separate from AAEDT and does not produce
+MSDF channels. **Source Channel**, **Threshold** (fixed midpoint for Outline), **Source Edges**,
+offsets and the usual output controls keep their existing behavior. **Miter Limit** and
+**Contour Merge (px)** have no effect; SDF supports Gradient or Linear Data.
+Round AA remains the default. Quality comparison is experimental; improvement is not guaranteed.
+
+To compare raster-edge estimates, choose **AAEDT + 8SED** and compare it with the default Round AA.
+It assumes each source alpha value measures how much of a pixel is covered by a crisp edge.
+Blur, feather and arbitrary transparency cannot recover exact geometry with this mode; the same
+limitation applies when another Source Channel is used as coverage. **Threshold** adjusts the
+coverage midpoint in SDF; Outline uses its fixed midpoint. At the minimum and maximum threshold,
+the input is classified as a binary mask. AAEDT estimates the boundary without extending sharp
+corners; **Miter Limit** and **Contour Merge (px)** have no effect. Use Gradient or Linear Data
+for SDF output. Round AA remains the default. AAEDT is experimental; improved accuracy or speed
+is not guaranteed.
 
 Sharp and Bevel describe contour offsets rather than Euclidean distance. **Miter Limit** is shared by
-Outline and SDF and affects Sharp only: default 4, range 1–64. Lower it to cut long corner spikes sooner.
+Outline and SDF and affects Sharp, Corner Fit AA and Spring Simulation: default 4, range 1–64.
+Lower it to cut long corner spikes sooner.
 Diamond and Square depend on axis direction, so rotating a silhouette changes their offset shape.
 Sharp, Bevel, Diamond, Square and MTSDF estimate corner sides from several contour samples,
 avoiding a diagonal cap caused by pixel sampling. Intersecting reconstructed regions are combined
@@ -145,6 +204,19 @@ before forming offset corners, so an internal seam does not create another bevel
 genuinely separate small tips are retained. Reconstruction can still change subpixel
 details; the result does not reproduce the original matte exactly. Round retains its original AA result.
 AA smooths the edge while retaining the selected corner shape.
+Sharp and MTSDF preserve angular extensions only when both sides have enough straight
+support. Their safety limit is 4: very acute tips (roughly below 29 degrees), tiny details
+and uncertain corners can round instead of producing distant spikes. Raising Miter Limit
+above 4 does not override this protection. MTSDF also checks suspect RGB transitions
+against finite contour distance; corrected regions may lose some sharpness.
+
+For SDF with Sharp or MTSDF, **Contour Merge (px)** experimentally merges nearby consecutive
+vertices within the same contour; separate loops are never merged by this setting. The range is
+0–2 current render pixels, with 0 (default) off. It is independent of the distance transition width.
+Other algorithms keep the value but ignore it and hide the control. One pass replaces eligible
+adjacent pairs with their midpoints, shortest pairs first, using each original vertex at most once.
+A topology conflict cancels the whole merge batch; existing corner protections still apply.
+Short details may shift; sharper corners are not guaranteed.
 
 Outline follows 50% of the selected Source Channel; SDF uses Threshold in every mode.
 Regions that never reach that threshold do not form a silhouette.

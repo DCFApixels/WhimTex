@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
         private enum CanvasTool
         {
             None, Brush, BlurBrush, Transform, Fill, Zoom, Pencil, RectangleSelect, PolygonSelect, Shape,
-            GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush, SmudgeBrush, Text, Gradient
+            GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush, SmudgeBrush, Text, Gradient, Crop
         }
 
         [NonSerialized] private CanvasTool canvasTool = CanvasTool.None;
@@ -144,8 +144,8 @@ namespace DCFApixels.WhimTex
         private PaintStrokeParameters GetPaintingParameters()
         {
             PaintStrokeParameters parameters = canvasTool == CanvasTool.Pencil
-                ? paintSettings.GetPencilParameters(paintingErase, GetPaintingColor())
-                : paintSettings.GetStrokeParameters(paintingErase, GetPaintingColor());
+                ? paintSettings.GetScaledPencilParameters(paintingErase, GetPaintingColor(), CurrentPaintingPixelScale)
+                : paintSettings.GetScaledStrokeParameters(paintingErase, GetPaintingColor(), CurrentPaintingPixelScale);
             if (canvasTool == CanvasTool.Brush && paintSettings.dynamics != null && paintSettings.dynamics.pressure)
                 parameters = parameters.WithPressure(paintingPressure);
             if (tiledCanvas) parameters = parameters.WithCanvasWrap();
@@ -220,6 +220,7 @@ namespace DCFApixels.WhimTex
                 case CanvasTool.Shape:
                 case CanvasTool.Text:
                 case CanvasTool.Gradient:
+                case CanvasTool.Crop:
                 case CanvasTool.RectangleSelect:
                 case CanvasTool.PolygonSelect: return activeDocument != null;
                 default: return false;
@@ -268,12 +269,19 @@ namespace DCFApixels.WhimTex
                 "Shift: constrain movement / preserve proportions / snap rotation to 15°. Groups are not supported yet.");
             toolbar.Add(canvasNoneButton);
             toolbar.Add(canvasTransformButton);
+            canvasCropButton = CreateCanvasToolButton("cropTool", CanvasTool.Crop,
+                GetCanvasCropToolTooltip());
+            cropPicker = new CropPickerManipulator(this);
+            canvasCropButton.AddManipulator(cropPicker);
+            toolbar.Add(canvasCropButton);
             canvasRectangleSelectButton = CreateCanvasToolButton("rectangleSelectTool", CanvasTool.RectangleSelect,
                 "Area Select (M). Hold or drag this button to choose Rectangle or Ellipse. Shift adds; Alt subtracts; Ctrl+D deselects. Selection limits painting and filling.");
             marqueePicker = new ShapePickerManipulator(this, true);
             canvasRectangleSelectButton.AddManipulator(marqueePicker);
             canvasPolygonSelectButton = CreateCanvasToolButton("polygonSelectTool", CanvasTool.PolygonSelect,
-                "Polygonal Lasso (L). Click vertices; Enter, double-click or click the first point to close. Backspace/RMB removes a vertex; Escape cancels.");
+                GetLassoToolTooltip());
+            lassoPicker = new LassoPickerManipulator(this);
+            canvasPolygonSelectButton.AddManipulator(lassoPicker);
             toolbar.Add(canvasRectangleSelectButton);
             toolbar.Add(canvasPolygonSelectButton);
             canvasShapeButton = CreateCanvasToolButton("shapeTool", CanvasTool.Shape,
@@ -282,7 +290,7 @@ namespace DCFApixels.WhimTex
             canvasShapeButton.AddManipulator(shapePicker);
             toolbar.Add(canvasShapeButton);
             canvasTextButton = CreateCanvasToolButton("textTool", CanvasTool.Text,
-                "Text. Click for point text; drag for framed text. Click existing text to edit; drag frame corners to reflow. Ctrl creates new text and disables guide snapping.");
+                "Text. Click for point text; drag for framed text. Click text to edit; drag the center to move its layout, or frame corners/sides to reflow. Shift constrains movement or corner proportions. Ctrl creates new text and disables guide snapping.");
             toolbar.Add(canvasTextButton);
             toolbar.Add(canvasBrushButton);
             toolbar.Add(canvasPencilButton);
@@ -308,7 +316,13 @@ namespace DCFApixels.WhimTex
             canvasToolScroll.AddToClassList("whimtex-tools-scroll");
             canvasToolScroll.EnableInClassList("whimtex-tools-scroll--light", !EditorGUIUtility.isProSkin);
             canvasToolScroll.Add(toolbar);
-            canvasToolScroll.RegisterCallback<GeometryChangedEvent>(_ => RevealActiveCanvasTool());
+            canvasToolScroll.RegisterCallback<GeometryChangedEvent>(_ =>
+            {
+                RevealActiveCanvasTool();
+                canvasHealingButton?.Q<CanvasToolIcon>()?.AlignHealingVectorImage();
+            });
+            canvasToolScroll.verticalScroller.valueChanged += _ =>
+                canvasHealingButton?.Q<CanvasToolIcon>()?.AlignHealingVectorImage();
             return canvasToolScroll;
         }
 
@@ -331,12 +345,39 @@ namespace DCFApixels.WhimTex
                 button.Add(shapeToolIcon = new ShapeToolIcon(shapeToolSettings?.kind ?? ShapeLayerBehaviour.ShapeKind.Rectangle));
             else if (tool == CanvasTool.RectangleSelect)
                 button.Add(marqueeToolIcon = new CanvasToolIcon(tool, marqueeShape == MarqueeShape.Ellipse));
+            else if (tool == CanvasTool.Crop)
+                button.Add(cropToolIcon = new CanvasToolIcon(tool, cropMode: canvasCropMode));
+            else if (tool == CanvasTool.PolygonSelect)
+            {
+                lassoToolIcon = new CanvasToolIcon(tool);
+                lassoToolIcon.SetFreehand(lassoMode == LassoMode.Freehand);
+                button.Add(lassoToolIcon);
+            }
             else
                 button.Add(new CanvasToolIcon(tool));
-            if (tool == CanvasTool.Shape || tool == CanvasTool.RectangleSelect)
+            if (tool == CanvasTool.Shape || tool == CanvasTool.RectangleSelect || tool == CanvasTool.Crop || tool == CanvasTool.PolygonSelect)
                 button.Add(new ToolDropdownMarker());
             return button;
         }
+
+        private string GetLassoToolTooltip() => lassoMode == LassoMode.Freehand
+            ? "Freehand Lasso (L). Hold or drag this button to choose Polygonal or Freehand. " +
+                "Drag to draw the selection contour; release to close it. " +
+                "Shift adds, Alt subtracts, Shift+Alt intersects. Escape cancels."
+            : "Polygonal Lasso (L). Hold or drag this button to choose Polygonal or Freehand. " +
+                "Click to extend; Shift constrains new segments and existing-point movement to 45-degree canvas directions. " +
+                "Click a committed edge to insert, drag a vertex to move, Alt-click a vertex to remove. " +
+                "Keep the button held after placing/inserting a point to position it immediately. Near the last point, short clicks extend the contour. " +
+                "Click-release the highlighted first point to close, or use Enter/double-click at the same position when adding a point. " +
+                "Ctrl before pressing bypasses editing and snapping; during a drag it disables snapping. Backspace/RMB removes the last vertex; Escape cancels.";
+
+        private string GetCanvasCropToolTooltip() => canvasCropMode == CanvasCropMode.Scale
+            ? "Crop: Scale (C). Hold or drag this button to choose Scale or Resize. " +
+                "Drag frame handles to scale the whole canvas and its contents. " +
+                "Enter applies; Escape resets. Shift keeps proportions; Ctrl disables snapping. Source pixels are preserved."
+            : "Crop: Resize (C). Hold or drag this button to choose Scale or Resize. " +
+                "Drag the frame to crop or expand the canvas without scaling its contents. " +
+                "Enter applies; Escape resets. Shift keeps proportions; Ctrl disables snapping. Source pixels are preserved.";
 
         private void RefreshCanvasToolToolbar()
         {
@@ -347,6 +388,10 @@ namespace DCFApixels.WhimTex
             Layer selected = hasLayers ? GetSelectedLayer() : null;
             shapeToolIcon?.SetKind(shapeToolSettings?.kind ?? ShapeLayerBehaviour.ShapeKind.Rectangle);
             marqueeToolIcon?.SetEllipse(marqueeShape == MarqueeShape.Ellipse);
+            cropToolIcon?.SetCropMode(canvasCropMode);
+            if (canvasCropButton != null) canvasCropButton.tooltip = GetCanvasCropToolTooltip();
+            lassoToolIcon?.SetFreehand(lassoMode == LassoMode.Freehand);
+            if (canvasPolygonSelectButton != null) canvasPolygonSelectButton.tooltip = GetLassoToolTooltip();
             if (!IsUvSelectionTool) SetUvHovered(-1);
             if (uvDisplayedSelection != IsUvSelectionTool || uvDisplayedLayers != hasLayers)
             {
@@ -359,6 +404,8 @@ namespace DCFApixels.WhimTex
             canvasTextButton?.EnableInClassList("whimtex-tool-button--unavailable", activeDocument == null);
             canvasGradientButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.Gradient);
             canvasGradientButton?.EnableInClassList("whimtex-tool-button--unavailable", activeDocument == null);
+            canvasCropButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.Crop);
+            canvasCropButton?.EnableInClassList("whimtex-tool-button--unavailable", activeDocument == null);
             canvasRectangleSelectButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.RectangleSelect);
             canvasPolygonSelectButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.PolygonSelect);
             canvasRectangleSelectButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
@@ -401,14 +448,61 @@ namespace DCFApixels.WhimTex
         {
             private readonly CanvasTool tool;
             private bool ellipse;
+            private bool freehand;
+            private CanvasCropMode cropMode;
+            private readonly Image healingVectorImage;
+            private Vector2 healingVectorOffset;
+            private bool hasHealingVectorOffset;
 
-            internal CanvasToolIcon(CanvasTool tool, bool ellipse = false)
+            internal CanvasToolIcon(CanvasTool tool, bool ellipse = false, CanvasCropMode cropMode = CanvasCropMode.Resize)
             {
                 this.tool = tool;
                 this.ellipse = ellipse;
+                this.cropMode = cropMode;
                 pickingMode = PickingMode.Ignore;
                 AddToClassList("whimtex-tool-icon");
                 generateVisualContent += Draw;
+#if UNITY_6000_3_OR_NEWER
+                if (tool == CanvasTool.HealingBrush)
+                {
+                    var vector = AssetDatabase.LoadAssetAtPath<VectorImage>(
+                        "Packages/com.dcfapixels.whimtex/src/Editor/Icons/HealingBrush.svg");
+                    if (vector != null)
+                    {
+                        healingVectorImage = new Image
+                        {
+                            vectorImage = vector,
+                            scaleMode = ScaleMode.ScaleToFit,
+                            pickingMode = PickingMode.Ignore
+                        };
+                        healingVectorImage.AddToClassList("whimtex-tool-vector-image");
+                        Add(healingVectorImage);
+                        RegisterCallback<GeometryChangedEvent>(OnHealingVectorGeometryChanged);
+                        healingVectorImage.RegisterCallback<GeometryChangedEvent>(OnHealingVectorGeometryChanged);
+                        RegisterCallback<AttachToPanelEvent>(_ => AlignHealingVectorImage());
+                    }
+                }
+#endif
+            }
+
+            private void OnHealingVectorGeometryChanged(GeometryChangedEvent evt) => AlignHealingVectorImage();
+
+            internal void AlignHealingVectorImage()
+            {
+                if (healingVectorImage == null || panel == null || healingVectorImage.contentRect.width < 1f)
+                    return;
+                float pixelsPerPoint = EditorGUIUtility.pixelsPerPoint;
+                Vector2 pixels = healingVectorImage.LocalToWorld(healingVectorImage.contentRect.center) * pixelsPerPoint;
+                Vector2 snapped = new Vector2(Mathf.Floor(pixels.x) + 0.5f,
+                    Mathf.Floor(pixels.y) + 0.5f);
+                Translate applied = healingVectorImage.resolvedStyle.translate;
+                Vector2 offset = new Vector2(applied.x.value, applied.y.value) + this.WorldToLocal(snapped / pixelsPerPoint)
+                    - this.WorldToLocal(pixels / pixelsPerPoint);
+                if (hasHealingVectorOffset && (offset - healingVectorOffset).sqrMagnitude < 0.000001f)
+                    return;
+                healingVectorOffset = offset;
+                hasHealingVectorOffset = true;
+                healingVectorImage.style.translate = new Translate(offset.x, offset.y);
             }
 
             internal void SetEllipse(bool value)
@@ -418,9 +512,25 @@ namespace DCFApixels.WhimTex
                 MarkDirtyRepaint();
             }
 
+            internal void SetCropMode(CanvasCropMode value)
+            {
+                if (cropMode == value) return;
+                cropMode = value;
+                MarkDirtyRepaint();
+            }
+
+            internal void SetFreehand(bool value)
+            {
+                if (freehand == value) return;
+                freehand = value;
+                MarkDirtyRepaint();
+            }
+
             private void Draw(MeshGenerationContext context)
             {
                 if (contentRect.width < 1f || contentRect.height < 1f)
+                    return;
+                if (healingVectorImage != null)
                     return;
                 Painter2D painter = context.painter2D;
                 painter.strokeColor = resolvedStyle.color;
@@ -434,6 +544,11 @@ namespace DCFApixels.WhimTex
                     DrawHand(painter);
                 else if (tool == CanvasTool.Text)
                     DrawTextTool(painter);
+                else if (tool == CanvasTool.Crop)
+                {
+                    if (cropMode == CanvasCropMode.Scale) DrawCanvasScaleTool(painter);
+                    else DrawCropTool(painter);
+                }
                 else if (tool == CanvasTool.GradientHandles || IsTemporaryCanvasTool(tool))
                     DrawHand(painter, withHandle: true);
                 else if (tool == CanvasTool.UvIslandSelect)
@@ -458,7 +573,10 @@ namespace DCFApixels.WhimTex
                     else DrawRectangleSelect(painter);
                 }
                 else if (tool == CanvasTool.PolygonSelect)
-                    DrawPolygonSelect(painter);
+                {
+                    if (freehand) DrawFreehandSelect(painter);
+                    else DrawPolygonSelect(painter);
+                }
                 else
                     DrawBrush(painter);
             }
@@ -466,6 +584,52 @@ namespace DCFApixels.WhimTex
             private Vector2 P(float x, float y) => new Vector2(
                 contentRect.x + x * contentRect.width / 24f,
                 contentRect.y + y * contentRect.height / 24f);
+
+            private void DrawCanvasScaleTool(Painter2D painter)
+            {
+                float ppi = EditorGUIUtility.pixelsPerPoint;
+                int strokePixels = Mathf.Max(1, Mathf.RoundToInt(2f * Mathf.Min(contentRect.width, contentRect.height) / 22f * ppi));
+                float offset = (strokePixels & 1) == 0 ? 0f : .5f;
+                Vector2 Pixel(float x, float y)
+                {
+                    Vector2 local = new Vector2(contentRect.x + x * contentRect.width / 22f,
+                        contentRect.y + y * contentRect.height / 22f);
+                    Vector2 world = this.LocalToWorld(local) * ppi;
+                    return this.WorldToLocal(new Vector2(Mathf.Round(world.x - offset) + offset,
+                        Mathf.Round(world.y - offset) + offset) / ppi);
+                }
+                painter.lineWidth = strokePixels / ppi;
+                painter.lineCap = LineCap.Butt;
+                painter.lineJoin = LineJoin.Miter;
+                painter.BeginPath();
+                painter.MoveTo(Pixel(6, 6)); painter.LineTo(Pixel(16, 6));
+                painter.LineTo(Pixel(16, 16)); painter.LineTo(Pixel(6, 16)); painter.ClosePath();
+                painter.Stroke();
+                painter.BeginPath();
+                painter.MoveTo(Pixel(16, 6)); painter.LineTo(Pixel(20, 2));
+                painter.MoveTo(Pixel(16, 2)); painter.LineTo(Pixel(20, 2)); painter.LineTo(Pixel(20, 6));
+                painter.MoveTo(Pixel(6, 16)); painter.LineTo(Pixel(2, 20));
+                painter.MoveTo(Pixel(2, 16)); painter.LineTo(Pixel(2, 20)); painter.LineTo(Pixel(6, 20));
+                painter.Stroke();
+            }
+
+            private void DrawCropTool(Painter2D painter)
+            {
+                float ppi = EditorGUIUtility.pixelsPerPoint;
+                Vector2 Pixel(float x, float y)
+                {
+                    Vector2 world = this.LocalToWorld(P(x, y)) * ppi;
+                    return this.WorldToLocal(new Vector2(Mathf.Round(world.x), Mathf.Round(world.y)) / ppi);
+                }
+                painter.BeginPath();
+                painter.MoveTo(Pixel(5, 2)); painter.LineTo(Pixel(8, 2)); painter.LineTo(Pixel(8, 16));
+                painter.LineTo(Pixel(22, 16)); painter.LineTo(Pixel(22, 19)); painter.LineTo(Pixel(5, 19)); painter.ClosePath();
+                painter.Fill();
+                painter.BeginPath();
+                painter.MoveTo(Pixel(2, 5)); painter.LineTo(Pixel(19, 5)); painter.LineTo(Pixel(19, 22));
+                painter.LineTo(Pixel(16, 22)); painter.LineTo(Pixel(16, 8)); painter.LineTo(Pixel(2, 8)); painter.ClosePath();
+                painter.Fill();
+            }
 
             private void DrawTextTool(Painter2D painter)
             {
@@ -592,7 +756,24 @@ namespace DCFApixels.WhimTex
                 painter.LineTo(P(21.3f, 6.8f));
                 painter.LineTo(P(15f, 16.4f));
                 painter.Stroke();
+                DrawLassoTail(painter);
+            }
 
+            private void DrawFreehandSelect(Painter2D painter)
+            {
+                painter.lineCap = LineCap.Round;
+                painter.BeginPath();
+                painter.MoveTo(P(15f, 16.4f));
+                painter.BezierCurveTo(P(12f, 17f), P(5f, 15f), P(4f, 11f));
+                painter.BezierCurveTo(P(2f, 5f), P(8f, 2f), P(13f, 3f));
+                painter.BezierCurveTo(P(19f, 2f), P(23f, 6f), P(20f, 11f));
+                painter.BezierCurveTo(P(19f, 14f), P(17f, 15f), P(15f, 16.4f));
+                painter.Stroke();
+                DrawLassoTail(painter);
+            }
+
+            private void DrawLassoTail(Painter2D painter)
+            {
                 painter.lineCap = LineCap.Round;
                 painter.BeginPath();
                 painter.MoveTo(P(15f, 16.4f));
@@ -764,16 +945,60 @@ namespace DCFApixels.WhimTex
 
             private void DrawHealingBrush(Painter2D painter)
             {
+                const float diagonal = 0.70710678f;
+                float pixelsPerPoint = EditorGUIUtility.pixelsPerPoint;
+                Vector2 center = this.LocalToWorld(contentRect.center) * pixelsPerPoint;
+                center = this.WorldToLocal(new Vector2(Mathf.Floor(center.x) + 0.5f,
+                    Mathf.Floor(center.y) + 0.5f) / pixelsPerPoint);
+                float unit = Mathf.Min(contentRect.width, contentRect.height) * (20f / 22f)
+                    / (2f * (9.09f * diagonal + 4.05f));
+                Vector2 Point(float along, float across) => center +
+                    new Vector2((along + across) * diagonal, (across - along) * diagonal) * unit;
+
+                void Wing(float direction)
+                {
+                    painter.MoveTo(Point(direction * 5.07f, -4.05f));
+                    painter.LineTo(Point(direction * 9.09f, -4.05f));
+                    painter.Arc(Point(direction * 9.09f, 0f), 4.05f * unit,
+                        -135f, direction > 0f ? 45f : -315f,
+                        direction > 0f ? ArcDirection.Clockwise : ArcDirection.CounterClockwise);
+                    painter.LineTo(Point(direction * 5.07f, 4.05f));
+                    painter.ClosePath();
+                }
+
+                void Corner(float along, float across, float start, float end)
+                    => painter.Arc(Point(along, across), 1.11f * unit, start, end);
+
+                void Pore(float along, float across)
+                {
+                    Vector2 point = Point(along, across);
+                    painter.MoveTo(point + Vector2.right * (1.07f * unit));
+                    painter.Arc(point, 1.07f * unit, 0f, 360f);
+                    painter.ClosePath();
+                }
+
+                Color ink = resolvedStyle.color;
+                ink.a = 1f;
+                painter.fillColor = ink;
                 painter.BeginPath();
-                painter.MoveTo(P(4, 14)); painter.LineTo(P(14, 4));
-                painter.BezierCurveTo(P(18, 0), P(24, 6), P(20, 10));
-                painter.LineTo(P(10, 20));
-                painter.BezierCurveTo(P(6, 24), P(0, 18), P(4, 14));
-                painter.ClosePath(); painter.Stroke();
-                painter.BeginPath();
-                painter.MoveTo(P(8, 11)); painter.LineTo(P(13, 16));
-                painter.MoveTo(P(11, 8)); painter.LineTo(P(16, 13));
-                painter.Stroke();
+                Wing(1f);
+                Wing(-1f);
+                painter.MoveTo(Point(-3.22f, -4.75f));
+                painter.LineTo(Point(3.22f, -4.75f));
+                Corner(3.22f, -3.64f, -135f, -45f);
+                painter.LineTo(Point(4.33f, 3.64f));
+                Corner(3.22f, 3.64f, -45f, 45f);
+                painter.LineTo(Point(-3.22f, 4.75f));
+                Corner(-3.22f, 3.64f, 45f, 135f);
+                painter.LineTo(Point(-4.33f, -3.64f));
+                Corner(-3.22f, -3.64f, 135f, 225f);
+                painter.ClosePath();
+                Pore(-2.2f, -2.2f);
+                Pore(-2.2f, 2.2f);
+                Pore(2.2f, -2.2f);
+                Pore(2.2f, 2.2f);
+                Pore(0f, 0f);
+                painter.Fill(FillRule.OddEven);
             }
 
             private void DrawPencil(Painter2D painter)

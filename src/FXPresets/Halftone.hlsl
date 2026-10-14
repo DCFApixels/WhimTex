@@ -1,7 +1,7 @@
 // @whimtex-effect Stylization/Halftone
 // @group(Screen Mode; _Mode)
 // @param hidden enum _Mode = 1 {Monochrome: 0, CMYKTriangle: 2, CMYKSquare: 3, CMYKManual: 1, RGBTriangle: 4, RGBManual: 5}
-// @param float _DotSize = 8 [1 .. ~64] // Screen-cell size in canvas pixels.
+// @param px float _DotSize = 8 [1 .. ~64] // Screen-cell size in canvas pixels.
 // @param enum _DotShape = 0 {Round: 0, Square: 1, Line: 2} // Round and square dots, or a line screen.
 // @param bool _FixedShape = false // Sample one color per screen cell to keep dots and lines undeformed; screen angles and plate registration are respected.
 // @param float _InkDensity = 1 [0 .. ~2] // Overall ink amount; values above 1 deepen the darkest tones.
@@ -20,10 +20,10 @@
 // @param float _YellowAngle = 0 [~-180 .. ~180]
 // @param float _BlackAngle = 0 [~-180 .. ~180]
 // @header(Plate Registration)
-// @param float2 _CyanOffset = (0, 0) // Shift the cyan plate in canvas pixels.
-// @param float2 _MagentaOffset = (0, 0) // Shift the magenta plate in canvas pixels.
-// @param float2 _YellowOffset = (0, 0) // Shift the yellow plate in canvas pixels.
-// @param float2 _BlackOffset = (0, 0) // Shift the black plate in canvas pixels.
+// @param px float2 _CyanOffset = (0, 0) // Shift the cyan plate in canvas pixels.
+// @param px float2 _MagentaOffset = (0, 0) // Shift the magenta plate in canvas pixels.
+// @param px float2 _YellowOffset = (0, 0) // Shift the yellow plate in canvas pixels.
+// @param px float2 _BlackOffset = (0, 0) // Shift the black plate in canvas pixels.
 // @endif
 // @if _Mode == 2
 // @header(CMYK Screen Angles)
@@ -33,7 +33,7 @@
 // @param float _YellowAngle = 0 [~-180 .. ~180]
 // @param float _BlackAngle = 0 [~-180 .. ~180]
 // @header(CMYK Plate Registration)
-// @param float _PlateSpread = 0 [0 .. ~64] // Spacing between neighboring plates in canvas pixels.
+// @param px float _PlateSpread = 0 [0 .. ~64] // Spacing between neighboring plates in canvas pixels.
 // @param float _PlateRotation = 0 [~-180 .. ~180] // Rotate the automatic plate layout around its center.
 // @endif
 // @if _Mode == 3
@@ -44,7 +44,7 @@
 // @param float _YellowAngle = 0 [~-180 .. ~180]
 // @param float _BlackAngle = 0 [~-180 .. ~180]
 // @header(CMYK Plate Registration)
-// @param float _PlateSpread = 0 [0 .. ~64] // Spacing between neighboring plates in canvas pixels.
+// @param px float _PlateSpread = 0 [0 .. ~64] // Spacing between neighboring plates in canvas pixels.
 // @param float _PlateRotation = 0 [~-180 .. ~180] // Rotate the automatic plate layout around its center.
 // @endif
 // @if _Mode == 4
@@ -53,7 +53,7 @@
 // @param float _GreenAngle = 0 [~-180 .. ~180]
 // @param float _BlueAngle = 0 [~-180 .. ~180]
 // @header(RGB Plate Registration)
-// @param float _PlateSpread = 0 [0 .. ~64] // Spacing between neighboring plates in canvas pixels.
+// @param px float _PlateSpread = 0 [0 .. ~64] // Spacing between neighboring plates in canvas pixels.
 // @param float _PlateRotation = 0 [~-180 .. ~180] // Rotate the automatic plate layout around its center.
 // @endif
 // @if _Mode == 5
@@ -62,9 +62,9 @@
 // @param float _GreenAngle = 0 [~-180 .. ~180]
 // @param float _BlueAngle = 0 [~-180 .. ~180]
 // @header(RGB Plate Registration)
-// @param float2 _RedOffset = (0, 0) // Shift the red plate in canvas pixels.
-// @param float2 _GreenOffset = (0, 0) // Shift the green plate in canvas pixels.
-// @param float2 _BlueOffset = (0, 0) // Shift the blue plate in canvas pixels.
+// @param px float2 _RedOffset = (0, 0) // Shift the red plate in canvas pixels.
+// @param px float2 _GreenOffset = (0, 0) // Shift the green plate in canvas pixels.
+// @param px float2 _BlueOffset = (0, 0) // Shift the blue plate in canvas pixels.
 // @endif
 // @endgroup
 

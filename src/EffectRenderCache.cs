@@ -44,6 +44,7 @@ namespace DCFApixels.WhimTex
             frame++;
             stamps.Clear(); visiting.Clear(); colorSources.Clear(); requiredEntries.Clear();
             VisitVisible(owner.layers);
+            ReleaseUnusedDistancePreparation(owner.layers);
             visiting.Clear();
             unused.Clear();
             foreach (Entry entry in entries.Values)
@@ -58,6 +59,21 @@ namespace DCFApixels.WhimTex
             if (layers == null) return;
             foreach (Layer layer in layers)
                 if (layer != null && layer.enabled) VisitRequired(layer);
+        }
+
+        private void ReleaseUnusedDistancePreparation(List<Layer> layers)
+        {
+            if (layers == null) return;
+            foreach (Layer layer in layers)
+            {
+                if (layer == null) continue;
+                if (!requiredEntries.Contains(layer.Id + "/effect"))
+                {
+                    if (layer.Behaviour is SDFLayerBehaviour sdf) sdf.ReleaseDistancePreparation();
+                    if (layer.Behaviour is OutlineLayerBehaviour outline) outline.ReleaseDistancePreparation();
+                }
+                if (layer.IsGroup) ReleaseUnusedDistancePreparation(layer.layers);
+            }
         }
 
         private void VisitRequired(Layer layer)
@@ -226,8 +242,8 @@ namespace DCFApixels.WhimTex
                     hash = Mix(hash, (ulong)texture.wrapModeU);
                     hash = Mix(hash, (ulong)texture.wrapModeV);
                 }
-                if (ReferenceEquals(layer, liveDrawing?.Owner))
-                    hash = Mix(hash, liveDrawing.PaintSurfaceRevision);
+                if (layer.Behaviour is DrawingLayerBehaviour drawing)
+                    hash = Mix(hash, drawing.PaintSurfaceRevision);
                 if (layer?.AsGroup() is Layer group && group.layers != null)
                     foreach (Layer child in group.layers)
                     {

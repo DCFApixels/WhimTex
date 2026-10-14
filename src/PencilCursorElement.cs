@@ -39,7 +39,7 @@ namespace DCFApixels.WhimTex
         internal void SetState(int size, PencilShape shape, Vector2 center, Vector2 x, Vector2 y,
             bool erasing, float pixelsPerPoint)
         {
-            size = Mathf.Clamp(size, 1, 4096);
+            size = Mathf.Max(1, size);
             pixelsPerPoint = Mathf.Max(1f, pixelsPerPoint);
             float smallestPixel = Mathf.Min(x.magnitude, y.magnitude) * pixelsPerPoint;
             bool detail = smallestPixel >= (requestedDetail ? 1.75f : 2.25f);

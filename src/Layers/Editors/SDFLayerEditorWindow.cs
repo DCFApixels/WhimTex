@@ -52,7 +52,7 @@ namespace DCFApixels.WhimTex
             var contourOffset = DistanceField("Contour Offset (px)", () => layer.contourOffset, v => layer.contourOffset = v, -16384);
 
             EnumField metric = WhimTexUI.ConfigureField(new EnumField("Distance Algorithm", layer.metric));
-            metric.tooltip = "All algorithms use subpixel contours. Round rounds expanded corners; Sharp preserves them; Bevel cuts them. Diamond and Square use axis-aligned distance. MTSDF stores three corner channels and true distance.";
+            metric.tooltip = "Round and Contour round expanded corners; Bevel cuts them. Diamond and Square use axis-aligned distance. Sharp, MTSDF, Corner Fit, Spring and RBF support the experimental Corner Mode comparison. Contour preparation is unchanged by Corner Mode.";
             bindings.Track(metric, () => (Enum)layer.metric);
             metric.RegisterValueChangedCallback(evt => applyChange(
                 "Change SDF Algorithm",
@@ -62,12 +62,38 @@ namespace DCFApixels.WhimTex
                         layer.encoding = SDFLayerBehaviour.OutputEncoding.LinearData;
                 }));
             root.Add(metric);
+            var sharpMode = WhimTexUI.ConfigureField(new EnumField("Corner Mode", layer.sharpMode));
+            sharpMode.tooltip = "Unrestricted: current experimental extensions, without artifact correction. Guarded Sharp: restore support, ownership and error checks, without rounding solely because a corner is acute. Invalid or unsupported corners may still use finite distance. Contour preparation is unchanged. Miter Limit bevels long joins only in Guarded Sharp.";
+            bindings.Track(sharpMode, () => (Enum)layer.sharpMode);
+            sharpMode.RegisterValueChangedCallback(e => applyChange("Change SDF Corner Mode", () => layer.sharpMode = (SharpDistanceMode)e.newValue));
+            root.Add(sharpMode);
             var miter = DistanceField("Miter Limit", () => layer.miterLimit, v => layer.miterLimit = Mathf.Clamp(v, 1, 64), 1);
-            miter.tooltip = "Sharp only. Limits acute corner spikes; excessive joins become bevels.";
-            void RefreshMiter() => miter.EnableInClassList("whimtex-hidden", layer.metric != DistanceMetric.Sharp);
-            bindings.Add(RefreshMiter);
-            metric.RegisterValueChangedCallback(_ => RefreshMiter());
-            RefreshMiter();
+            miter.tooltip = "Guarded Sharp only, except MTSDF. Bevel joins above this ratio; no separate angular rounding cap. Unrestricted ignores this value.";
+            var contourMerge = WhimTexUI.ConfigureField(new FloatField("Contour Merge (px)"));
+            contourMerge.tooltip = "Experimental, Sharp/MTSDF only. 0–2 current render pixels; 0 is off. Merges consecutive vertices within one contour, never separate loops. May shift short details and does not guarantee sharper corners; safety limits still apply.";
+            contourMerge.SetValueWithoutNotify(layer.contourMergeDistance);
+            bindings.Track(contourMerge, () => layer.contourMergeDistance);
+            contourMerge.RegisterValueChangedCallback(e =>
+            {
+                if (!float.IsFinite(e.newValue))
+                {
+                    contourMerge.SetValueWithoutNotify(layer.contourMergeDistance);
+                    return;
+                }
+                applyChange("Change SDF Contour Merge", () => layer.contourMergeDistance = Mathf.Clamp(e.newValue, 0f, 2f));
+            });
+            root.Add(contourMerge);
+            void RefreshAlgorithmSettings()
+            {
+                bool sharp = ArtisticDistanceField.UnrestrictedCorners(layer.metric);
+                sharpMode.EnableInClassList("whimtex-hidden", !sharp);
+                miter.EnableInClassList("whimtex-hidden", !sharp || layer.metric == DistanceMetric.MTSDF || layer.sharpMode == SharpDistanceMode.Unrestricted);
+                contourMerge.EnableInClassList("whimtex-hidden", layer.metric != DistanceMetric.Sharp && layer.metric != DistanceMetric.MTSDF);
+            }
+            bindings.Add(RefreshAlgorithmSettings);
+            metric.RegisterValueChangedCallback(_ => RefreshAlgorithmSettings());
+            sharpMode.RegisterValueChangedCallback(_ => RefreshAlgorithmSettings());
+            RefreshAlgorithmSettings();
 
             EnumField sourceChannel = WhimTexUI.ConfigureField(
                 new EnumField("Source Channel", layer.sourceChannel));

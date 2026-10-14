@@ -10,7 +10,7 @@ context.case('digital glitch preset exposes independent, conditionally displayed
     {
         assert.equal(code.split('\n')[0], '// @whimtex-effect Stylization/Digital Glitch');
         for (const parameter of ['_Blend', '_TearDensity', '_TearLineHeight', '_TearJitter', '_TearShift', '_BlockDensity', '_BlockWidth', '_BlockHeight', '_BlockSizeRandomness', '_BlockShiftX', '_BlockShiftY', '_Dropout', '_BlockVoidChance', '_ColorJitterDensity', '_BlockColorJitter', '_GradientDensity', '_GradientOpacity', '_RGBSplit', '_RGBAngle', '_ColorLoss', '_PosterizeAmount', '_PosterizeLevels', '_NoiseAmount', '_NoiseColor', '_AlphaJitter', '_AlphaJitterFlip', '_AlphaNoise', '_Seed', '_EffectTime', '_FrameRate'])
-            assert.match(code, new RegExp(`@param float ${parameter}\\b`));
+            assert.match(code, new RegExp(`@param (?:(?:px|seed) )?float ${parameter}\\b`));
         assert.match(code, /@param hidden float _AlphaFollowChance\b/);
         assert.match(code, /@if _TearDensity != 0[\s\S]*?@endif/);
         assert.match(code, /@if _BlockDensity != 0[\s\S]*?@endif/);
@@ -36,8 +36,8 @@ context.case('digital glitch preset exposes independent, conditionally displayed
         assert.match(code, /video = jitteredVideo \+ gradientColor \* gradientOpacity/);
         assert.match(code, /jitteredVideo \* gradientColor/);
         assert.match(code, /video = lerp\(jitteredVideo, gradientColor, gradientOpacity\)/);
-        assert.match(code, /@param hidden float _AlphaFollowChance = 0[\s\S]*?@param float _AlphaJitter = 0[\s\S]*?@param float _AlphaNoise = 0/);
-        assert.match(code, /@param float _AlphaJitter = 0 \[0 \.\. ~32\]/);
+        assert.match(code, /@param hidden float _AlphaFollowChance = 0[\s\S]*?@param px float _AlphaJitter = 0[\s\S]*?@param float _AlphaNoise = 0/);
+        assert.match(code, /@param px float _AlphaJitter = 0 \[0 \.\. ~32\]/);
         assert.match(code, /@param float _AlphaJitterFlip = 0\.5 \[0 \.\. 1\]/);
     }
 });

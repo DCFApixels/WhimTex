@@ -7,7 +7,7 @@ context.case("ShapePicker original assertion inputs and source contracts", async
   const read = p => readFileSync(new URL('../../../src/' + p, import.meta.url), 'utf8');
   const source = read('WhimTexWindow.ShapePicker.cs');
   const itemBody = source.split('private int ItemAt(Vector2 local)')[1].split('private void UpdateHover')[0];
-  const itemAt = new Function('local', 'Inset', 'ItemSize', 'Kinds', 'Mathf',
+  const itemAt = new Function('local', 'Inset', 'ItemSize', 'items', 'Mathf',
       itemBody.slice(itemBody.indexOf('{') + 1, itemBody.lastIndexOf('}')).replace(/-1;/g, '-1;'));
   let checks = 0;
   for (const count of [2, 7]) for (let x = -5; x <= 40; x += .5) for (let y = -5; y <= 230; y += .5) {
@@ -37,10 +37,21 @@ context.case("ShapePicker original assertion inputs and source contracts", async
   assert.match(source,/HoldMilliseconds = 160/);
   assert.match(source,/schedule.Execute\(Open\).StartingIn\(HoldMilliseconds\)/);
   assert.match(source,/sqrMagnitude >= DragDistance \* DragDistance\) Open\(\)/);
-  assert.match(source,/evt.pressedButtons & 1\) == 0\) Cancel\(\)/);
+  assert.match(source,/evt.pressedButtons & 1\) == 0 \|\| !target.HasPointerCapture\(pointer\)\) Cancel\(\)/);
   assert.match(source,/target.HasPointerCapture\(pointer\)/);
   assert.match(source,/Cancel\(\);\s*if \(selection >= 0\)/);
-  assert.match(source,/if \(selection >= 0 \|\| click\) owner.SetCanvasTool/);
+  assert.match(source,/if \(selection >= 0 \|\| click\) Activate\(\)/);
+  assert.match(source,/class ShapePickerManipulator : ToolSubtypePickerManipulator/);
+  assert.match(source,/protected override void Activate\(\) => owner.SetCanvasTool\(marquee \? CanvasTool.RectangleSelect : CanvasTool.Shape\)/);
+  const cropAdapter = source.split('private sealed class CropPickerManipulator')[1].split('private abstract class ToolSubtypePickerManipulator')[0];
+  assert.match(cropAdapter,/base\(owner, 2\)/);
+  assert.match(cropAdapter,/MenuName => "cropPicker"/);
+  assert.match(cropAdapter,/index == 0 \? "cropScale" : "cropResize"/);
+  assert.match(cropAdapter,/owner.SetCanvasCropMode\(\(CanvasCropMode\)index\)/);
+  assert.match(cropAdapter,/protected override void Activate\(\) => owner.SetCanvasTool\(CanvasTool.Crop\)/);
+  const lassoAdapter = read('WhimTexWindow.LassoPicker.cs');
+  assert.match(lassoAdapter,/class LassoPickerManipulator : ToolSubtypePickerManipulator/);
+  assert.match(lassoAdapter,/protected override void Activate\(\) => owner.SetCanvasTool\(CanvasTool.PolygonSelect\)/);
   assert.match(source,/bool click = menu == null && target.worldBound.Contains\(current\)/);
   assert.match(source,/root.WorldToLocal\(current\) - menuPosition/);
   for (const event of ['PointerDown','PointerMove','PointerUp','PointerCaptureOut','PointerCancel','DetachFromPanel','GeometryChanged','KeyDown']) {

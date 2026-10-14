@@ -18,22 +18,43 @@ public static class DistanceFieldPerformanceTests
     [Serializable] public sealed class Sample
     {
         public string mode;
-        public double renderMs, completionReadbackMs, endToEndMs;
+        public double creationMs, renderMs, completionReadbackMs, endToEndMs;
+        public bool firstSampleForMode;
         public Phase[] phases;
     }
     [Serializable] public sealed class Report
     {
-        public string utc, unity, cpu, gpu, fixture, kind;
+        public string utc, unity, cpu, gpu, fixture, kind, sourceFont, sharpMode;
+        public float miterLimit, contourMergeDistance, maxDistance;
+        public int threshold;
         public int processors, size, warmups, repetitions;
-        public bool burstEnabled, cacheBypassed;
+        public bool burstEnabled, cacheBypassed, freshBehaviour;
         public string notes;
     }
 
     public static string Run(string fixture, int size, string kind, string mode, int repetitions)
+        => Execute(fixture, size, kind, mode, repetitions, false);
+
+    public static string RunCold(string fixture, int size, string kind, string mode, int repetitions)
+        => Execute(fixture, size, kind, mode, repetitions, true);
+
+    public static string RunGuardedCold(string fixture, int size, int repetitions)
+        => Execute(fixture, size, "sdf", "guarded-all", repetitions, true);
+
+    public static string RunGuardedPart(string fixture, int size, string part, int repetitions)
+        => Execute(fixture, size, "sdf", "guarded-" + part, repetitions, true);
+
+    static string Execute(string fixture, int size, string kind, string mode, int repetitions, bool cold)
     {
-        if ((fixture != "star" && fixture != "rings") || (kind != "sdf" && kind != "outline")
+        bool paired = mode == "round-contour";
+        bool guarded = mode.StartsWith("guarded-", StringComparison.Ordinal);
+        bool interleaved = paired || guarded;
+        var cornerMode = guarded ? SharpDistanceMode.GuardedSharp : SharpDistanceMode.Unrestricted;
+        if ((fixture != "star" && fixture != "rings" && fixture != "text") || (kind != "sdf" && kind != "outline")
             || size < 128 || size > 2048 || repetitions < 1 || repetitions > 7)
             return TestContext.Result("failed", 0, "Invalid bounded benchmark arguments", "Arguments out of range").ToJson();
+        if (paired && !cold)
+            return TestContext.Result("failed", 0, "Paired comparison requires fresh resources", "Use RunCold").ToJson();
         var previous = RenderTexture.active;
         bool previousSrgb = GL.sRGBWrite;
         Texture2D source = null, read = null;
@@ -56,7 +77,7 @@ public static class DistanceFieldPerformanceTests
                 { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
             read = new Texture2D(size, size, TextureFormat.RGBAFloat, false, true)
                 { hideFlags = HideFlags.HideAndDontSave };
-            source.SetPixels32(Input(fixture, size)); source.Apply(false, false);
+            source.SetPixels32(Input(fixture, size, out string sourceFont)); source.Apply(false, false);
             input = RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             GL.sRGBWrite = false; Graphics.Blit(source, input);
             // Flush fixture upload before any measured production call.
@@ -69,24 +90,39 @@ public static class DistanceFieldPerformanceTests
                 phases.TryGetValue(name, out double accumulated);
                 phases[name] = accumulated + ms;
             }));
-            var modes = mode == "all" ? (DistanceMetric[])Enum.GetValues(typeof(DistanceMetric))
+            var modes = paired ? new[] { DistanceMetric.EuclideanAntialiased, DistanceMetric.Contour }
+                : mode == "all" || mode == "guarded-all" || mode == "guarded-fast" ? (DistanceMetric[])Enum.GetValues(typeof(DistanceMetric))
+                : guarded ? new[] { (DistanceMetric)Enum.Parse(typeof(DistanceMetric), mode.Substring("guarded-".Length)) }
                 : new[] { (DistanceMetric)Enum.Parse(typeof(DistanceMetric), mode) };
-            foreach (var metric in modes)
+            if (mode == "guarded-fast") modes = Array.FindAll(modes, m => m != DistanceMetric.CornerFit && m != DistanceMetric.Spring);
+            LayerBehaviour Create(DistanceMetric metric) => kind == "sdf"
+                ? (LayerBehaviour)new SDFLayerBehaviour { metric = metric, sharpMode = cornerMode, threshold = 128,
+                    encoding = SDFLayerBehaviour.OutputEncoding.Gradient, maxDistanceNormalization = 32 }
+                : new OutlineLayerBehaviour { metric = metric, sharpMode = cornerMode, outlineWidth = 8, outlineSoftness = 1, fillCenter = true };
+            for (int pairIndex = 0; pairIndex < (interleaved ? repetitions : 1); pairIndex++)
+            for (int position = 0; position < modes.Length; position++)
             {
-                behaviour = kind == "sdf"
-                    ? (LayerBehaviour)new SDFLayerBehaviour { metric = metric, threshold = 128,
-                        encoding = SDFLayerBehaviour.OutputEncoding.Gradient, maxDistanceNormalization = 32 }
-                    : new OutlineLayerBehaviour { metric = metric, outlineWidth = 8, outlineSoftness = 1, fillCenter = true };
-                doc.layers.Add(behaviour.Owner);
-                var render = behaviour.GetType().GetMethod("Render", Hidden);
+                // Alternate AB/BA to avoid giving either mode a consistent order advantage.
+                int modeIndex = interleaved && pairIndex % 2 != 0 ? modes.Length - 1 - position : position;
+                if (guarded) modeIndex = (modeIndex + pairIndex) % modes.Length;
+                var metric = modes[modeIndex];
+                if (!cold) { behaviour = Create(metric); doc.layers.Add(behaviour.Owner); }
+                var render = (kind == "sdf" ? typeof(SDFLayerBehaviour) : typeof(OutlineLayerBehaviour)).GetMethod("Render", Hidden);
                 var arguments = new[] { context };
-                for (int iteration = -2; iteration < repetitions; iteration++)
+                for (int iteration = interleaved ? pairIndex : cold ? 0 : -2; iteration < (interleaved ? pairIndex + 1 : repetitions); iteration++)
                 {
                     phases.Clear(); recording = iteration >= 0;
                     RenderTexture.active = input; GL.sRGBWrite = false;
                     var total = Stopwatch.StartNew();
+                    double creationMs = 0;
+                    if (cold)
+                    {
+                        behaviour = Create(metric); doc.layers.Add(behaviour.Owner);
+                        creationMs = total.Elapsed.TotalMilliseconds;
+                    }
+                    var renderClock = Stopwatch.StartNew();
                     rendered = (RenderTexture)render.Invoke(behaviour, arguments);
-                    double renderMs = total.Elapsed.TotalMilliseconds;
+                    double renderMs = renderClock.Elapsed.TotalMilliseconds;
                     if (rendered == null || RenderTexture.active != input || GL.sRGBWrite)
                         throw new InvalidOperationException("Render did not preserve caller state.");
                     RenderTexture.active = rendered;
@@ -98,7 +134,8 @@ public static class DistanceFieldPerformanceTests
                     {
                         var phaseArray = new List<Phase>();
                         foreach (var pair in phases) phaseArray.Add(new Phase { name = pair.Key, ms = pair.Value });
-                        samples.Add(new Sample { mode = metric.ToString(), renderMs = renderMs,
+                        samples.Add(new Sample { mode = metric.ToString(), creationMs = creationMs,
+                            firstSampleForMode = iteration == 0, renderMs = renderMs,
                             completionReadbackMs = completionMs, endToEndMs = endToEndMs, phases = phaseArray.ToArray() });
                     }
                     // Numerical/resource sanity is outside the timed interval, not an image golden.
@@ -107,18 +144,31 @@ public static class DistanceFieldPerformanceTests
                         if (!float.IsFinite(pixels[i].r) || !float.IsFinite(pixels[i].a))
                             throw new InvalidOperationException("Non-finite benchmark output.");
                     RenderTexture.active = input; RenderTexture.ReleaseTemporary(rendered); rendered = null;
+                    if (cold)
+                    {
+                        behaviour.GetType().GetMethod("ReleaseTransientResources", Hidden).Invoke(behaviour, null);
+                        doc.layers.Clear(); behaviour = null;
+                    }
                 }
-                behaviour.GetType().GetMethod("ReleaseTransientResources", Hidden).Invoke(behaviour, null);
-                doc.layers.Clear(); behaviour = null;
+                if (behaviour != null)
+                {
+                    behaviour.GetType().GetMethod("ReleaseTransientResources", Hidden).Invoke(behaviour, null);
+                    doc.layers.Clear(); behaviour = null;
+                }
             }
             var report = new Report { utc = DateTime.UtcNow.ToString("O"), unity = Application.unityVersion,
                 cpu = SystemInfo.processorType, processors = SystemInfo.processorCount, gpu = SystemInfo.graphicsDeviceName,
-                fixture = fixture, kind = kind, size = size, warmups = 2, repetitions = repetitions,
-                burstEnabled = BurstCompiler.IsEnabled, cacheBypassed = true,
-                notes = "Wall time in graphical Editor. Production Render bypasses outer document cache. Phase timers include allocation/job waits where scoped. Nested phase durations overlap; do not sum them. output.submit is CPU submission, not GPU duration. completionReadbackMs includes GPU completion AND RGBAFloat CPU readback, not GPU-only time. Fixture generation, result validation and final RT release are untimed. Two warmups do not guarantee asynchronous Burst compilation has finished; retain raw variance." };
+                fixture = fixture, kind = kind, sourceFont = sourceFont, size = size, warmups = cold ? 0 : 2, repetitions = repetitions,
+                burstEnabled = BurstCompiler.IsEnabled, cacheBypassed = true, freshBehaviour = cold,
+                sharpMode = cornerMode.ToString(), miterLimit = 4, contourMergeDistance = 0, threshold = 128, maxDistance = 32,
+                notes = "Wall time in graphical Editor. Production Render bypasses outer document cache. Phase timers include allocation/job waits where scoped. Nested phase durations overlap; do not sum them. output.submit is CPU submission, not GPU duration. completionReadbackMs includes GPU completion AND RGBAFloat CPU readback, not GPU-only time. Fixture generation, result validation and final RT release are untimed. " +
+                    (cold ? "Zero algorithm warmups. Every sample creates a new behaviour with fresh LUTs/materials and rebuilds all field/geometry/workspace data. Source fixture/RT and the already running Editor are shared; this is cold resource construction, not a restarted process or a guarantee of cold Burst/shader compilation. firstSampleForMode flags startup/first-call samples; compiler readiness is not inferred. creationMs times behaviour/owner attachment separately; endToEndMs includes creation. Unity's own temporary RT pool is not purged."
+                    : "Two warmups do not guarantee asynchronous Burst compilation has finished; retain raw variance.") +
+                    (paired ? " Round/Contour calls are paired with alternating AB/BA order. field.total measures CPU field construction, including source extension/sampling, without input GPU readback or output upload. Text input is HintedAA at size/9 with no layer transform; its rasterization is excluded from both modes." : "") +
+                    (guarded ? " Selected algorithms use GuardedSharp (ignored by modes without sharp-corner policy), miter 4, merge 0, threshold 128 and Max Distance 32. Repetitions interleave selected modes in alternating/rotating order. field.total includes fresh field preparation, source extension/sampling and jobs, excludes GPU input readback/output upload. Text is native HintedAA at size/9, generated before timing." : "") };
             string directory = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/WhimTex/distance-fields/performance"));
             Directory.CreateDirectory(directory);
-            artifact = Path.Combine(directory, fixture + "-" + size + "-" + kind + "-" + mode + "-" + Guid.NewGuid().ToString("N") + ".json");
+            artifact = Path.Combine(directory, (cold ? "cold-" : "") + fixture + "-" + size + "-" + kind + "-" + mode + "-" + Guid.NewGuid().ToString("N") + ".json");
             // The Editor serializer does not reliably retain nested arrays from an
             // ephemeral diagnostic assembly. Serialize and verify the complete raw data.
             if (samples.Count != modes.Length * repetitions)
@@ -139,6 +189,7 @@ public static class DistanceFieldPerformanceTests
             if (doc != null) UnityEngine.Object.DestroyImmediate(doc);
             if (source != null) UnityEngine.Object.DestroyImmediate(source);
             if (read != null) UnityEngine.Object.DestroyImmediate(read);
+            if (artifact != null) File.WriteAllText(artifact + ".cleaned", "Owned cleanup completed " + DateTime.UtcNow.ToString("O"));
         }
         return TestContext.Result("skipped", samples.Count,
             "Diagnostic samples retained: " + artifact + "; no performance acceptance threshold or image-equivalence verdict.").ToJson();
@@ -160,7 +211,9 @@ public static class DistanceFieldPerformanceTests
         {
             if (i > 0) json.Append(',');
             var s = samples[i];
-            json.Append("{\"mode\":\"").Append(s.mode).Append("\",\"renderMs\":").Append(Number(s.renderMs))
+            json.Append("{\"mode\":\"").Append(s.mode).Append("\",\"creationMs\":").Append(Number(s.creationMs))
+                .Append(",\"firstSampleForMode\":").Append(s.firstSampleForMode ? "true" : "false")
+                .Append(",\"renderMs\":").Append(Number(s.renderMs))
                 .Append(",\"completionReadbackMs\":").Append(Number(s.completionReadbackMs))
                 .Append(",\"endToEndMs\":").Append(Number(s.endToEndMs)).Append(",\"phases\":[");
             for (int j = 0; j < s.phases.Length; j++)
@@ -173,8 +226,34 @@ public static class DistanceFieldPerformanceTests
         return json.Append("]}").ToString();
     }
 
-    static Color32[] Input(string fixture, int size)
+    static Color32[] Input(string fixture, int size, out string sourceFont)
     {
+        sourceFont = null;
+        if (fixture == "text")
+        {
+            var textDocument = ScriptableObject.CreateInstance<WhimTexDocument>();
+            textDocument.hideFlags = HideFlags.HideAndDontSave;
+            textDocument.width = textDocument.height = size;
+            Texture2D image = null;
+            try
+            {
+                var text = new TextLayerBehaviour { text = "Text 123 ЧЧ\nContour AA\nRound AA", fontSize = size / 9f,
+                    edgeMode = TextEdgeMode.HintedAA };
+                textDocument.layers.Add(text.Owner);
+                if (string.IsNullOrEmpty(text.fontFamily)) throw new InvalidOperationException("Text fixture needs an installed font.");
+                sourceFont = text.fontFamily;
+                image = textDocument.ComposeCanvas();
+                var pixels = image.GetPixels32();
+                int ink = 0; foreach (var pixel in pixels) if (pixel.a > 128) ink++;
+                if (ink < size) throw new InvalidOperationException("Text fixture has insufficient visible ink.");
+                return pixels;
+            }
+            finally
+            {
+                if (image != null) UnityEngine.Object.DestroyImmediate(image);
+                UnityEngine.Object.DestroyImmediate(textDocument);
+            }
+        }
         var output = new Color32[size * size];
         var points = new Vector2[10];
         for (int i = 0; i < points.Length; i++)

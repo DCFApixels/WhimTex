@@ -397,6 +397,7 @@ namespace DCFApixels.WhimTex
                 {
                     activeDocument.width = snapshot.width;
                     activeDocument.height = snapshot.height;
+                    if (!HasCanvasLayers) activeDocument.pixelScale = snapshot.GetPixelScale();
                 }
                 Dictionary<Layer, Layer> copies = activeDocument.PasteLayers(snapshot);
                 if (destination != null)

@@ -114,7 +114,7 @@ namespace DCFApixels.WhimTex
             var distance = new Label();
             distance.AddToClassList("whimtex-brush-spacing-info");
             distance.tooltip = "Spacing at full input pressure. The actual step follows Pressure Size during the stroke.";
-            brushSettingsBindings.Add(() => distance.text = $"Full pressure step: {paintSettings.GetStrokeParameters(false).SpacingAtPressure(1f):0.##} px");
+            brushSettingsBindings.Add(() => distance.text = $"Full pressure step: {paintSettings.GetScaledStrokeParameters(false, null, CurrentPaintingPixelScale).SpacingAtPressure(1f):0.##} px");
             scroll.Add(distance);
             var algorithm = WhimTexUI.ConfigureField(new EnumField("Randomization", paintSettings.dynamics.randomAlgorithm)
             {

@@ -140,7 +140,8 @@ namespace DCFApixels.WhimTex
                     Mathf.Clamp(Mathf.FloorToInt(uv.x * width), 0, width - 1);
                 LimitFillToArea(layer, valid, width, height);
                 if (!HdrFloodFillUtility.Fill(source, reference, valid, output, width, height, seed, color,
-                    paintSettings.fillTolerance, paintSettings.fillExpand, paintSettings.fillAntialias, paintSettings.fillContiguous, layer.colorRange == LayerColorRange.Standard)) return true;
+                    paintSettings.fillTolerance, EffectivePaintDistance(paintSettings.fillExpand), paintSettings.fillAntialias,
+                    paintSettings.fillContiguous, layer.colorRange == LayerColorRange.Standard)) return true;
                 MaskFillToArea(layer, source, output, width, height);
                 if (paintSettings.dynamics.writeChannels != 15)
                 {

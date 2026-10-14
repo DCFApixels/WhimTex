@@ -23,6 +23,7 @@ namespace DCFApixels.WhimTex
 
         internal static long Validate(WhimTexDocument document)
         {
+            document.GetPixelScale();
             if (document.width < 1 || document.height < 1 || document.width > 16384 || document.height > 16384)
                 throw new WhimTexDocumentException("TIFF canvas dimensions must be between 1 and 16384.");
             if (!Enum.IsDefined(typeof(WhimTexOutputPrecision), document.outputPrecision))

@@ -16,19 +16,19 @@
 // @endif
 // @if _Mode == 0
 // @header(Vector)
-// @param float _StrengthX = 0 [~-512 .. ~512] // Horizontal displacement in canvas pixels at a full channel value.
-// @param float _StrengthY = 0 [~-512 .. ~512] // Vertical displacement in canvas pixels at a full channel value.
+// @param px float _StrengthX = 0 [~-512 .. ~512] // Horizontal displacement in canvas pixels at a full channel value.
+// @param px float _StrengthY = 0 [~-512 .. ~512] // Vertical displacement in canvas pixels at a full channel value.
 // @endif
 // @if _Mode == 1
 // @header(Grayscale)
 // @param enum _Direction = Horizontal {Horizontal: 0, Vertical: 1, Radial: 2, Tangential: 3, Angle: 4}
-// @param float _Strength = 0 [~-512 .. ~512] // Displacement in canvas pixels. The sign reverses the selected direction.
+// @param px float _Strength = 0 [~-512 .. ~512] // Displacement in canvas pixels. The sign reverses the selected direction.
 // @param point _Center = (0.5, 0.5) // Origin for Radial and Tangential directions.
 // @param float _Angle = 0 [~-180 .. ~180] // Direction angle in degrees when Direction is Angle.
 // @endif
 // @if _Mode == 2
 // @header(Parallax)
-// @param float _Depth = 8 [0 .. 128] // Height range in canvas pixels; lower view elevation creates a larger parallax shift.
+// @param px float _Depth = 8 [0 .. 128] // Height range in canvas pixels; lower view elevation creates a larger parallax shift.
 // @param float _ViewAngle = 0 [~-180 .. ~180] // Direction of the virtual view ray in the canvas plane.
 // @param float _ViewElevation = 60 [5 .. 85] // 90 degrees is head-on; lower values increase parallax.
 // @param enum _ParallaxSteps = Balanced {Fast: 4, Balanced: 8, High: 16, Ultra: 32}

@@ -50,6 +50,7 @@ namespace DCFApixels.WhimTex
             if (material == null) throw new InvalidOperationException("Normal Map shader is unavailable.");
             int width = context.width, height = context.height;
             float scale = context.scaleMultiplier;
+            float pixelUnits = context.pixelScale / scale;
             var buffers = new List<RenderTexture>(6);
             RenderTexture previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;
@@ -94,22 +95,22 @@ namespace DCFApixels.WhimTex
                     }
                 }
 
-                Blur(fine, work, Mathf.Clamp(smoothing, 0f, 64f) / scale);
+                Blur(fine, work, Mathf.Clamp(smoothing, 0f, 64f) * pixelUnits);
                 var swap = fine; fine = work; work = swap;
                 RenderTexture medium = fine, large = fine;
                 if (mode == GenerationMode.Texture)
                 {
                     medium = work;
-                    Blur(fine, medium, Mathf.Clamp(mediumRadius, .5f, 128f) / scale);
+                    Blur(fine, medium, Mathf.Clamp(mediumRadius, .5f, 128f) * pixelUnits);
                     large = Allocate();
-                    Blur(fine, large, Mathf.Clamp(largeRadius, .5f, 512f) / scale);
+                    Blur(fine, large, Mathf.Clamp(largeRadius, .5f, 512f) * pixelUnits);
                 }
                 material.SetTexture("_Fine", fine);
                 material.SetTexture("_Medium", medium);
                 material.SetTexture("_Large", large);
                 material.SetTexture("_Input", context.input);
                 material.SetFloat("_Mode", (int)mode);
-                material.SetFloat("_Strength", Mathf.Clamp(strength, 0f, 128f) / scale);
+                material.SetFloat("_Strength", Mathf.Clamp(strength, 0f, 128f) * pixelUnits);
                 material.SetVector("_Details", new Vector4(Mathf.Clamp(fineDetail, 0f, 8f),
                     Mathf.Clamp(mediumDetail, 0f, 8f), Mathf.Clamp(largeDetail, 0f, 8f), Mathf.Clamp01(lightRemoval)));
                 material.SetFloat("_Derivative", (int)derivative);
