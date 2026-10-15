@@ -22,6 +22,34 @@ The Canvas View footer holds controls for quality, live texture updates, post-pr
 UV overlays, guides and channel viewing. It also contains **HDR**, the color-input mode,
 and hints for the active tool.
 
+## Comments
+
+Choose **Comment** (**N**), directly below **Crop**, and click a point on the canvas. Type a note, then press
+**Post** or **Ctrl+Enter** (**Cmd+Enter** on macOS). Enter adds a new line; **Esc** or
+the close button discards the unposted draft. Notes appear as numbered pins while
+Comment is selected, including on an empty canvas.
+The tool icon is outlined when the document has no comments. Once a comment is posted,
+it becomes filled, with transparent text lines; resolved comments count too.
+
+The color swatch in the card header changes the speech-bubble marker's color. You can
+choose it before posting or change it later; light colors use dark numbers for readability.
+
+Click a pin to read its discussion or add a reply. **Edit** changes a message; **Delete**
+removes the whole thread. Drag a pin to move it. **Resolve** hides a finished discussion;
+enable **Show Resolved** to read it or **Reopen** it.
+
+The side panel lists all discussions, including resolved ones and notes outside the visible
+canvas. Each row has a thick left stripe matching its marker color. A slightly lighter,
+subtly outlined header shows the comment number; thin lines separate the rows. Scroll the list and
+click a row to open its discussion. **Comments (count)** or the arrow at the panel edge
+collapses or reopens the panel. Opening a resolved row also enables **Show Resolved**.
+The panel fits its contents up to the available canvas height; the scrollbar appears only
+when the list no longer fits.
+
+Posted comments are saved with the TIFF document and follow canvas cropping, scaling,
+flips and rotations. They do not appear in the exported image. Comments are local notes
+in the document; posting does not send notifications to other people.
+
 <a id="layer-mini-preview"></a>
 
 ## Layer Preview

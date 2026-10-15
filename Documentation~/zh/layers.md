@@ -35,10 +35,18 @@ Outline 和 SDF 的 **Distance Algorithm** 提供实验性 **Contour AA**。它�
 追踪当前栅格的阈值边界；向外扩展时拐角变圆，无法恢复丢失的细节。可在自己的图像上与
 默认 **Round AA** 比较，但不保证效果更好。共用设置和算法选择见[效果图层](effects.md)。
 
+在 **Round AA**、**Sharp AA**、**Bevel AA**、**Diamond AA**、**Square AA** 和 **MTSDF** 中，
+调整 SDF 的 **Max Distance** 或 Outline 宽度时，会复用仍可用的已计算距离场，
+让反复调整更灵敏，而不改变计算结果。更改源图像或边界设置后仍需重新计算。
+
 要试验尖角恢复，可选择 **Corner Fit AA** 或 **Spring Simulation**。两者都将候选拐角
 与源像素比较，仅为通过验证的拐角生成有界尖角连接，并在不确定的区域保留原始轮廓。
 Spring 会先对轮廓进行弹簧松弛。**Miter Limit** 可切平过长的已验证连接。
 两者都不保证恢复丢失的细节；SDF 可输出 Gradient 或 Linear Data，默认仍为 Round AA。
+
+**RBF Dual Contouring** 是 SDF 和 Outline 的 **Distance Algorithm** 中独立的实验选项。
+可与 **RBF Your SDF** 比较：它使用相同的拟合场，但根据边界方向放置轮廓顶点，可能更好地
+保留拐角，不保证恢复尖角。**Corner Mode** 和 **Miter Limit** 与 RBF 相同；**Contour Merge** 不适用。
 
 你也可以将 Project 中的纹理拖到画布视图中，把它添加到顶部，
 或将它放到行与行之间来选择位置。新指定的图像会保持其原始比例。
@@ -49,7 +57,7 @@ Spring 会先对轮廓进行弹簧松弛。**Miter Limit** 可切平过长的已
 双击缩略图或行背景可打开或切换到该文档，不替换当前文档。
 
 效果图层也会显示结果缩略图，动画 Shader FX 使用静态图像。
-所有图层缩略图的透明像素后方都显示 2×2 棋盘格，拖动时的缩略图也一样。
+所有图层缩略图的透明像素后方都显示 4×4 棋盘格，拖动时的缩略图也一样。
 
 完全透明的图层会以棋盘格代替缩略图，并显示从左下角到右上角的鲜红色斜线。
 只有确认所有像素的 alpha 都为零时才显示该图标；确认之前保留普通缩略图。
@@ -279,7 +287,9 @@ Shape 保持可编辑：它能像其他图层一样使用剪贴蒙版、混合�
 
 ## 为 VFX 创建纹理
 
-SDF 和 Outline 的 Sharp、MTSDF、Corner Fit、Spring、RBF 提供 **Corner Mode**。**Unrestricted** 保留当前实验性的尖角延伸；**Guarded Sharp** 恢复伪影检查，但不会仅因角度过尖而强制变圆。缺乏可靠依据的角仍可能变圆。两种模式使用相同的轮廓准备过程。**Miter Limit** 在 Guarded Sharp 中控制斜切，MTSDF 除外。本次比较默认使用 Unrestricted。
+SDF 和 Outline 的尖角算法提供 **Corner Mode**。**Guarded Sharp** 检查延伸是否属于最近边界，并对 MTSDF 检查纹理插值。**Unrestricted** 跳过这些检查。**Miter Limit** 在 Guarded Sharp 中控制斜切，MTSDF 除外。默认仍为 Unrestricted，以便比较。
+
+Sharp AA 和 MTSDF 现在使用多种长度的边界片段重建角点。可靠的角点保持尖锐，不确定的连接采用小幅平滑过渡；两种 Corner Mode 都保留此轮廓准备过程。要体验完整的质量改进，请选择 **Guarded Sharp**。低分辨率下非常尖锐的顶点仍可能变圆，或随 Threshold 改变；不保证完全恢复。其他实验算法保持不变。
 
 程序化图层适合制作能量环、爆发效果和粒子遮罩。
 这个示例将明亮的边缘与细微的径向条纹结合在一起。

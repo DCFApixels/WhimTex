@@ -3,14 +3,14 @@ using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
-    public enum ChannelMappingSource { R, G, B, A, OneMinusR, OneMinusG, OneMinusB, OneMinusA, Zero, One, RMultiplyA, GMultiplyA, BMultiplyA, Luminance, LuminanceMultiplyA }
+    public enum ChannelMappingSource { R, G, B, A, OneMinusR, OneMinusG, OneMinusB, OneMinusA, Zero, One, RMultiplyA, GMultiplyA, BMultiplyA, Luminance, LuminanceMultiplyA, OneMinusLuminance }
 
     [Serializable]
     public struct LayerChannelMapping
     {
         // Zero is the identity mapping, so default values leave RGBA unchanged.
         [SerializeField] private int packed;
-        internal static readonly string[] Labels = { "R", "G", "B", "A", "1-R", "1-G", "1-B", "1-A", "0", "1", "R * A", "G * A", "B * A", "Luminance", "Luminance * A" };
+        internal static readonly string[] Labels = { "R", "G", "B", "A", "1-R", "1-G", "1-B", "1-A", "0", "1", "R * A", "G * A", "B * A", "Luminance", "Luminance * A", "1 - Luminance" };
 
         public ChannelMappingSource this[int output]
         {

@@ -36,11 +36,21 @@ raster threshold boundary with subpixel straight segments; expanded corners roun
 is not restored. Compare it with the default **Round AA** on your source; improvement is not guaranteed.
 See [Outline and SDF](effects.md#outline-and-sdf) for the shared controls and algorithm choices.
 
+In **Round AA**, **Sharp AA**, **Bevel AA**, **Diamond AA**, **Square AA** and **MTSDF**,
+adjusting SDF **Max Distance** or Outline width reuses the prepared field when available,
+making repeated adjustments more responsive without changing the result. Changing the source
+or boundary settings still requires a new calculation.
+
 For experimental sharp-corner recovery, try **Corner Fit AA** or **Spring Simulation**.
 Both compare proposed corners with the source pixels, limit sharp joins to confirmed corners and
 retain the raw contour where the result is ambiguous. Spring first relaxes the contour with springs.
 Use **Miter Limit** to bevel long confirmed joins. Neither mode guarantees recovery of lost detail;
 SDF supports Gradient or Linear Data, and Round AA remains the default.
+
+**RBF Dual Contouring** is a separate experimental choice in **Distance Algorithm** for SDF and
+Outline. Compare it with **RBF Your SDF**: it uses the same fitted field but places contour vertices
+using the field's boundary directions, which may preserve corners better. Sharp-corner recovery
+is not guaranteed. **Corner Mode** and **Miter Limit** work as in RBF; **Contour Merge** does not apply.
 
 You can also drag a Project texture onto Canvas View to add it at the top,
 or drop it between rows to choose its position. A newly assigned image keeps its original proportions.
@@ -51,7 +61,7 @@ File layers linked to another WhimTex document have a thin orange line along the
 Double-click its thumbnail or row background to open or focus that document without replacing the current one.
 
 Effect layers also show thumbnails of their results. Animated Shader FX use still thumbnails.
-All layer thumbnails use a 2×2 checkerboard behind transparent pixels, including the thumbnail shown while dragging.
+All layer thumbnails use a 4×4 checkerboard behind transparent pixels, including the thumbnail shown while dragging.
 
 A fully transparent layer shows a checkerboard with a bright red diagonal slash from bottom left to top right instead of its thumbnail.
 The icon appears only when every pixel is confirmed to have zero alpha; until then, the regular thumbnail stays.
@@ -302,7 +312,9 @@ Convert it to Drawing only when you want to paint directly on it.
 
 ## Create textures for VFX
 
-For Sharp, MTSDF, Corner Fit, Spring and RBF, SDF and Outline expose **Corner Mode**. **Unrestricted** keeps the current experimental extensions; **Guarded Sharp** restores artifact checks without rounding a corner solely because it is acute. Unsupported corners may still round. Contour preparation stays the same. **Miter Limit** controls beveling in Guarded Sharp, except MTSDF. The default is Unrestricted for this comparison.
+For sharp algorithms, SDF and Outline expose **Corner Mode**. **Guarded Sharp** checks endpoint ownership and, for MTSDF, texture interpolation. **Unrestricted** omits those checks. **Miter Limit** controls beveling in Guarded Sharp, except MTSDF. The default remains Unrestricted for comparison.
+
+Sharp AA and MTSDF now try several sizes of straight-side support when recovering corners. Confirmed corners stay sharp; uncertain joins receive small smooth caps. Both Corner Modes retain this contour preparation. For the full quality prototype, choose **Guarded Sharp**. Very acute low-resolution tips can still round or change with Threshold; universal recovery is not guaranteed. The other experimental algorithms are unchanged.
 
 Procedural layers are useful for energy rings, bursts and particle masks. In this example,
 a bright rim is combined with fine radial streaks.

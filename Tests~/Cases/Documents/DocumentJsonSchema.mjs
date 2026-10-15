@@ -12,7 +12,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const schema = JSON.parse(fs.readFileSync(path.join(root, 'Documentation~/AI/document.schema.json')));
     // The generated schema deliberately uses this small, dependency-free Draft 2020-12 vocabulary.
     const keywords = new Set(['$schema', '$ref', '$defs', 'title', 'type', 'enum', 'const', 'anyOf', 'allOf',
-      'properties', 'additionalProperties', 'required', 'items', 'prefixItems', 'minItems', 'maxItems', 'minLength', 'minimum', 'exclusiveMinimum', 'maximum', 'deprecated', 'description', 'default', 'not']);
+      'properties', 'additionalProperties', 'required', 'items', 'prefixItems', 'minItems', 'maxItems', 'minLength', 'maxLength', 'pattern', 'minimum', 'exclusiveMinimum', 'maximum', 'deprecated', 'description', 'default', 'not']);
     function validate(value, rule, location = '$') {
       for (const key of Object.keys(rule)) assert(keywords.has(key), `Unsupported schema keyword ${key}`);
       if (rule.$ref) validate(value, schema.$defs[rule.$ref.slice('#/$defs/'.length)], location);
@@ -29,7 +29,10 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
       }
       if ('const' in rule) assert.deepEqual(value, rule.const, `${location}: constant`);
       if (rule.enum) assert(rule.enum.includes(value), `${location}: enum ${value}`);
-      if (typeof value === 'string') assert(value.length >= (rule.minLength ?? 0), `${location}: string length`);
+      if (typeof value === 'string') {
+        assert(value.length >= (rule.minLength ?? 0) && value.length <= (rule.maxLength ?? Infinity), `${location}: string length`);
+        if (rule.pattern) assert(new RegExp(rule.pattern).test(value), `${location}: string pattern`);
+      }
       if (typeof value === 'number') {
         assert(Number.isFinite(value), `${location}: non-finite number`);
         assert(value >= (rule.minimum ?? -Infinity) && value <= (rule.maximum ?? Infinity), `${location}: number range`);
@@ -67,6 +70,8 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
         assert(field in defaults[type], `${type}.${field}: omitted input would use an unfrozen initializer or zero/null`);
         // A layer must explicitly supply its behaviour, despite the unused null baseline.
         if (type === 'Layer' && field === 'behaviour') continue;
+        // Mandatory comment payloads have no valid omitted value; callers must supply them.
+        if (['WhimTexComment', 'WhimTexCommentMessage'].includes(type) && definition.required?.includes(field)) continue;
         validate(defaults[type][field], rule, `defaults.${type}.${field}`);
       }
     }
@@ -110,6 +115,14 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
         validate(value, schema, file);
       }
     const empty = { format: 'whimtex.document', version: 2, document: {}, layers: [] };
+    const comments = value => ({ ...empty, document: { comments: value } });
+    const note = { id: 'thread', anchor: [-.5, 1.25], color: [.9, .3, .1, 1], messages: [{ id: 'message', text: 'Note' }] };
+    validate(comments([note]), schema);
+    for (const invalid of [null, {}, { ...note, messages: [] }, { ...note, id: ' ' },
+      { ...note, color: [2, 0, 0, 1] }, { ...note, color: [1, 0, 0, 0] },
+      { ...note, messages: [{ id: 'message', text: ' ' }] },
+      { ...note, messages: [{ id: 'message', text: 'x'.repeat(16385) }] }])
+      assert.throws(() => validate(comments([invalid]), schema));
     validate(empty, schema);
     for (const type of ['SDFLayerBehaviour', 'OutlineLayerBehaviour']) for (const mode of ['Contour', 'CornerFit', 'Spring']) {
       const metric = schema.$defs[type].properties.metric;

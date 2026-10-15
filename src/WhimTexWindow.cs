@@ -150,6 +150,7 @@ namespace DCFApixels.WhimTex
             postFxEnabled = false;
             postFxExpanded = true;
             brushesExpanded = false;
+            commentsExpanded = true;
             uvEnabled = uvExpanded = false;
             uvLineColor = new Color(.35f, .85f, 1f, 1f);
             uvLineOpacity = .65f;
@@ -224,6 +225,8 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            commentManipulator?.Cancel();
+            CloseCanvasCommentEditor();
             lassoPicker?.Cancel();
             cropManipulator?.Reset();
             DisposeCanvasCropSnapTargets();
@@ -335,6 +338,7 @@ namespace DCFApixels.WhimTex
 
         private void OnLostFocus()
         {
+            commentManipulator?.Cancel();
             cropPicker?.Cancel(); shapePicker?.Cancel(); marqueePicker?.Cancel(); lassoPicker?.Cancel();
             cropManipulator?.CancelGesture();
             canvasToolToggleKeyHeld = false;
@@ -1198,6 +1202,8 @@ namespace DCFApixels.WhimTex
             if (next == null || next == activeDocument)
                 return;
 
+            commentManipulator?.Cancel();
+            CloseCanvasCommentEditor();
             cropManipulator?.Reset();
             DisposeCanvasCropSnapTargets();
 
@@ -1300,6 +1306,8 @@ namespace DCFApixels.WhimTex
             if (changedDocument != activeDocument)
                 return;
             RefreshTextEditing();
+            commentManipulator?.Cancel();
+            RefreshCanvasComments();
             if (healingJob != null || healingPointer >= 0) CancelHealing();
 
             if (paintingLayer != null && (!ReferenceEquals(paintingLayer.Owner.Behaviour, paintingLayer) ||
@@ -1330,6 +1338,7 @@ namespace DCFApixels.WhimTex
 
         private void OnUndoRedo()
         {
+            commentManipulator?.Cancel();
             cropManipulator?.Reset();
             DisposeCanvasCropSnapTargets();
             CancelHealing();

@@ -36,6 +36,14 @@ namespace DCFApixels.WhimTex
                 if (features.Count > 2000000)
                     throw new InvalidOperationException("RBF contour exceeds two million segments. Reduce source detail or resolution.");
             }
+            return BuildRbfContourGeometry(features, field, gridWidth, gridHeight, input, width, height,
+                threshold, channel, allocator, sharpMode, fitFlanks: true);
+        }
+
+        internal static Geometry BuildRbfContourGeometry(List<Feature> features, NativeArray<float> field,
+            int gridWidth, int gridHeight, NativeArray<Color32> input, int width, int height,
+            byte threshold, int channel, Allocator allocator, SharpDistanceMode sharpMode, bool fitFlanks)
+        {
             var vertices = new List<Vertex>();
             var indices = new Dictionary<float2, int>();
             var links = new List<Link>();
@@ -110,7 +118,9 @@ namespace DCFApixels.WhimTex
             }
             // Recover supported straight flanks on RBF's contour, then normalize
             // filled regions before allowing any corner extension.
-            var fitted = NormalizeContours(FitContours(contours, DistanceMetric.Sharp));
+            // DC already places its vertices with a QEF. Do not replace them
+            // with the existing marching-squares flank-fitting heuristic.
+            var fitted = NormalizeContours(fitFlanks ? FitContours(contours, DistanceMetric.Sharp) : contours);
             foreach (var path in fitted) Append(path, true);
             var signChanges = ReconstructedSignChanges(contours, fitted, width, height);
             for (int i = 0; i < input.Length; i++)

@@ -671,7 +671,9 @@ HDR texture data is distinct from physical HDR monitor output; rendered PNG prev
 
 ### Layer settings
 
-Current sharp-mode prototype: SDF and Outline accept `sharpMode: "Unrestricted" | "GuardedSharp"` (default `Unrestricted`). It applies to Sharp, MTSDF, CornerFit, Spring and Rbf; other algorithms retain but ignore it. Both modes keep the existing contour preparation. Unrestricted preserves the unguarded extension experiment. GuardedSharp restores support/verified-corner eligibility, Sharp finite-edge ownership and MTSDF per-contour/sign/seam checks, without the fixed angular/amplification rounding caps. Unsupported or invalid corners may still use finite distance. `miterLimit` bevels excessive scalar joins only in GuardedSharp and is ignored by MTSDF. Mode changes invalidate the retained field; distance remapping does not. This prototype contract supersedes the older unconditional guard descriptions below.
+Current sharp-mode prototype: SDF and Outline accept `sharpMode: "Unrestricted" | "GuardedSharp"` (default `Unrestricted`). It applies to Sharp, MTSDF, CornerFit, Spring, Rbf and RbfDual; other algorithms retain but ignore it. Mode changes invalidate the retained field; distance remapping does not.
+
+Current Sharp/MTSDF quality prototype: closed raster contours use line fits over 2/4/8/16-pixel supports, requiring agreement across scales in the two wall-normal directions with bounded longitudinal uncertainty. Supported vertices receive sharp extensions; uncertain joins receive small tangent quadratic caps (at most 0.15px displacement) and finite endpoint distances. This replaces their older fixed 8/16-pixel fitting and 2-pixel endpoint eligibility rules. Contour Merge happens before adaptive fitting. Both Corner Mode policies retain these geometric checks and MTSDF per-contour ownership. GuardedSharp additionally retains scalar finite-edge ownership and MTSDF selective interpolation correction: proximity-aware edge coloring, protected corner texels, analytic channel-crossing candidates verified against the same pseudo-distance field, RGB median and alpha unchanged at integer texels. Unrestricted omits that interpolation pass and scalar finite ownership. Miter Limit bevels scalar joins only in GuardedSharp; MTSDF ignores it. Max Distance is display remapping only. CornerFit, Spring, Rbf and RbfDual are unchanged. Very acute low-resolution corners may still round or differ with threshold; no universal reconstruction guarantee. This supersedes earlier Sharp/MTSDF fitting and correction descriptions.
 
 | Applies to | Supported keys |
 |---|---|
@@ -712,7 +714,7 @@ Both stop arrays and the shared gradient object are accepted, including separate
 `mode`, `smoothness`, `wrapMode` and `colorSpace`. Supplying `gradient` replaces the whole palette but
 does not select an output mode; set `encoding:"Gradient"` explicitly to enable it from LinearData.
 
-SDF and Outline use the same ten `DistanceMetric` values and field semantics:
+SDF and Outline use the same twelve `DistanceMetric` values and field semantics:
 
 | `metric` | Numeric ID | Distance Algorithm / field |
 | --- | --- | --- |
@@ -726,8 +728,18 @@ SDF and Outline use the same ten `DistanceMetric` values and field semantics:
 | `Contour` | 11 | **Contour AA** (experimental): Euclidean distance to finite straight segments from raw marching-squares threshold crossings with interpolated subpixel endpoints; expanded corners round. |
 | `CornerFit` | 12 | **Corner Fit AA** (experimental): raw-contour initialization, multi-pixel side fitting and local AA verification of proposed corners; bounded sharp joins only at verified corners. |
 | `Spring` | 13 | **Spring Simulation** (experimental): accepts geometrically safe spring relaxation without a global source-AA coverage gate, then uses the same local AA-tested corner proposals and scalar output path as CornerFit. |
+| `Rbf` | 14 | **RBF Your SDF** (experimental): fits overlapping cubic RBF patches, extracts a half-pixel zero contour and uses the shared sharp-distance stage. |
+| `RbfDual` | 15 | **RBF Dual Contouring** (experimental): shares the Rbf fit, extracts half-pixel cell connectivity using direct continuous RBF root searches, analytic blended normals and a bounded 2D QEF, then uses the shared sharp-distance stage. |
 
-All ten modes are antialiased. Round AA retains the original crossing-seed Euclidean distance
+`RbfDual` is a separate raster-only scalar mode; existing `Rbf` is unchanged. It uses the same
+source, threshold, `sharpMode`, `miterLimit` and scalar output controls. `contourMergeDistance`
+is retained but ignored. Max Distance remaps the retained field; the metric participates in the
+preparation cache key. `Gradient`/`LinearData` are supported; `MultiChannelData` remains MTSDF-only.
+This is an experimental 2D dual-contouring adaptation, not a faithful implementation of
+Occupancy-Based Dual Contouring (2024); no upstream code was copied. Sharp-corner recovery
+and a quality advantage over `Rbf` are not guaranteed.
+
+All twelve modes are antialiased. Round AA retains the original crossing-seed Euclidean distance
 transform (EDT): it interpolates threshold crossings between horizontal/vertical neighboring samples
 and propagates those seeds. It does not measure distance to continuous contour segments.
 
@@ -762,6 +774,20 @@ or kept in Undo. All retained entries share a 64 MiB budget with eviction; unuse
 resource release, assembly reload and editor shutdown release their retained data. Requests
 larger than the budget still render but do not retain preparation. This is local renderer reuse;
 the future shared SDF request API for FX remains separate.
+
+Round AA, Sharp AA, Bevel AA, Diamond AA, Square AA and MTSDF now use the same
+per-renderer retention budget for their completed unnormalized fields. Max Distance,
+Inside/Outside Distance, Contour Offset, profile/gradient and Outline width/shading
+reuse that field. Scalar modes retain float distances; MTSDF retains all four float
+channels, including true-distance alpha, so switching between Gradient, LinearData
+and MultiChannelData does not require another field calculation. Exact expanded
+input bytes, dimensions, threshold, source channel, algorithm and applicable
+sharpMode/miterLimit/contourMergeDistance settings identify the current entry;
+changing them replaces it. Inactive parameters are excluded. Each renderer retains
+only its current result, not a history of edited values. Source readback, comparison,
+sampling, texture upload and presentation still run; this avoids field construction,
+not all rendering work. Fields exceeding the shared 64 MiB budget render uncached.
+AAEDT and Contour are unchanged by this extension. No serialized settings were added.
 
 CornerFit/Spring preparation now computes constant endpoint directions, normals, bisectors,
 cosines and miter ratios once in a Burst job. Only eligible confirmed endpoints receive a
@@ -913,9 +939,10 @@ The UI groups choices independently of their stable enum values; JSON names do n
 Groups default to PassThrough; set `compositing:"Isolated"` to apply their own blend mode and ranges.
 Group opacity applies to the complete result, not separately to every child. Groups support transforms and FX. Child transforms are parent-local; canvas matrices compose from parent to child. The group's frame is its own unit rectangle rather than the bounds of its children. The move operation preserves canvas placement when changing parents.
 `channelMapping` accepts `R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A`,
-`Luminance`, `Luminance * A` as strings. Luminance is `0.2126 R + 0.7152 G + 0.0722 B` in linear space;
-the product uses the original alpha. `["1","1","1","Luminance"]` converts brightness to alpha with white RGB.
-Product names include spaces, matching `Describe`. All mappings read the original input RGBA:
+`Luminance`, `Luminance * A`, `1 - Luminance` as strings. Luminance is `0.2126 R + 0.7152 G + 0.0722 B` in linear space;
+the product uses the original alpha. `1 - Luminance` is one minus that same RGB luminance, independently of alpha.
+`["1","1","1","Luminance"]` converts brightness to alpha with white RGB; `["1","1","1","1 - Luminance"]` reverses that brightness mask.
+Labels include their exact spaces, matching `Describe`. All mappings read the original input RGBA:
 `["R * A","G * A","B * A","1"]` multiplies RGB by the input alpha and sets output alpha to 1.
 Selecting products does not change the document's blending convention or implicitly change output alpha.
 For example, `"channelMapping":["B","G","R","A"]` exchanges red and blue;

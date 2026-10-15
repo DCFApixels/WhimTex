@@ -222,6 +222,8 @@ For example, choose R in the R, G and B fields to make a grayscale image from th
 Each field offers the original channels, their inverses, black (`0`), white (`1`),
 or a color channel multiplied by transparency (`R * A`, `G * A`, `B * A`).
 `Luminance` combines RGB into grayscale brightness; `Luminance * A` also accounts for transparency.
+`1 - Luminance` reverses that RGB brightness: black becomes white and white becomes black, independently of the input alpha.
+The list groups original RGBA and Luminance first, then their inverses, alpha products, and the constants 0 and 1.
 
 The arrow button on the right offers builtin presets:
 
@@ -229,6 +231,7 @@ The arrow button on the right offers builtin presets:
 - **Default without Alpha:** keep RGB and make the image opaque (`R G B 1`).
 - **R**, **G**, **B:** put brightness in the selected color channel, set the other two to `0` and alpha to `1`.
 - **Luminance to Alpha:** make RGB white and use brightness as alpha (`1 1 1 Luminance`).
+- **1 - Luminance to Alpha:** make RGB white and use inverted brightness as alpha.
 - **Alpha to Grayscale:** show alpha as an opaque grayscale image (`A A A 1`).
 
 Changing a group's Mapping treats its contents as one image, so outside blending can look different.
@@ -239,6 +242,8 @@ Changing a group's Mapping treats its contents as one image, so outside blending
 2. In Mapping's preset menu, choose **Luminance to Alpha**. Black becomes transparent, white becomes opaque, and gray becomes partly transparent. RGB is set to white.
 3. To include the image's original transparency, set the A field to **Luminance * A** instead.
 4. Check the result with **A** alone in [Layer Preview](preview.md#layer-preview). Its channel buttons only inspect the result; they do not restrict painting.
+
+For the opposite mask, choose **1 - Luminance to Alpha** from Mapping's preset menu: black becomes opaque and white becomes transparent, with white RGB. This preset does not include the image's original transparency.
 
 To use this layer as a mask for another layer, select the artwork layer and add **FX → + Preset → Color → Mask**.
 Set the mask texture source to **Layer**, choose your mask layer, and set **Mask Channel → Alpha**.

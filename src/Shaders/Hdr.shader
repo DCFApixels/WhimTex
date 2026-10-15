@@ -26,6 +26,7 @@ Shader "Hidden/WhimTex/Hdr"
             if (source > 12.5)
             {
                 float luminance = dot(c.rgb, float3(0.2126, 0.7152, 0.0722));
+                if (source > 14.5) return 1.0 - luminance;
                 return source < 13.5 ? luminance : luminance * c.a;
             }
             if (source > 9.5) return (source < 10.5 ? c.r : source < 11.5 ? c.g : c.b) * c.a;

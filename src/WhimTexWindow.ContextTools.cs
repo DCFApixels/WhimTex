@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
         private VisualElement contextToolSeparator;
         private Button gradientToolButton, uvIslandToolButton, temporaryToolButton;
 
-        private static bool IsBaseCanvasTool(CanvasTool tool) => tool <= CanvasTool.Shape || tool == CanvasTool.HealingBrush || tool == CanvasTool.SmudgeBrush || tool == CanvasTool.Text || tool == CanvasTool.Gradient || tool == CanvasTool.Crop;
+        private static bool IsBaseCanvasTool(CanvasTool tool) => tool <= CanvasTool.Shape || tool == CanvasTool.HealingBrush || tool == CanvasTool.SmudgeBrush || tool == CanvasTool.Text || tool == CanvasTool.Gradient || tool == CanvasTool.Crop || tool == CanvasTool.Comment;
         private static bool IsTemporaryCanvasTool(CanvasTool tool) =>
             tool == CanvasTool.FXTransform || tool == CanvasTool.FXPoint || tool == CanvasTool.FXNormal;
         private bool IsUvToolAvailable => activeDocument != null && uvEnabled;
@@ -87,7 +87,7 @@ namespace DCFApixels.WhimTex
                 // A changed active layer ends gestures even when the tool kind stays the same.
                 FinishCanvasTransform();
                 gradientCreationManipulator?.Cancel();
-                if (IsGradientCanvasAvailable && !IsTemporaryCanvasTool(canvasTool) && canvasTool != CanvasTool.Gradient && canvasTool != CanvasTool.Crop)
+                if (IsGradientCanvasAvailable && !IsTemporaryCanvasTool(canvasTool) && canvasTool != CanvasTool.Gradient && canvasTool != CanvasTool.Crop && canvasTool != CanvasTool.Comment)
                     ChangeCanvasTool(CanvasTool.GradientHandles);
             }
             return changedContext || before != canvasTool;
@@ -155,6 +155,8 @@ namespace DCFApixels.WhimTex
                 (IsBaseCanvasTool(previous) || IsContextToolAvailable(previous)))
                 previousCanvasTool = previous;
             StopKeyboardNudge();
+            commentManipulator?.Cancel();
+            if (canvasTool != tool) CloseCanvasCommentEditor();
             areaSelectionManipulator?.Cancel();
             shapeManipulator?.Cancel();
             if (canvasTool != tool) cropManipulator?.Reset();

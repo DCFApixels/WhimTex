@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
         private enum CanvasTool
         {
             None, Brush, BlurBrush, Transform, Fill, Zoom, Pencil, RectangleSelect, PolygonSelect, Shape,
-            GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush, SmudgeBrush, Text, Gradient, Crop
+            GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush, SmudgeBrush, Text, Gradient, Crop, Comment
         }
 
         [NonSerialized] private CanvasTool canvasTool = CanvasTool.None;
@@ -221,6 +221,7 @@ namespace DCFApixels.WhimTex
                 case CanvasTool.Text:
                 case CanvasTool.Gradient:
                 case CanvasTool.Crop:
+                case CanvasTool.Comment:
                 case CanvasTool.RectangleSelect:
                 case CanvasTool.PolygonSelect: return activeDocument != null;
                 default: return false;
@@ -274,6 +275,9 @@ namespace DCFApixels.WhimTex
             cropPicker = new CropPickerManipulator(this);
             canvasCropButton.AddManipulator(cropPicker);
             toolbar.Add(canvasCropButton);
+            canvasCommentButton = CreateCanvasToolButton("commentTool", CanvasTool.Comment,
+                "Comment (N). Click the canvas to start a comment, click a pin to read or reply, and drag a pin to move it. Ctrl+Enter posts; Escape cancels. Comments are saved with the document.");
+            toolbar.Add(canvasCommentButton);
             canvasRectangleSelectButton = CreateCanvasToolButton("rectangleSelectTool", CanvasTool.RectangleSelect,
                 "Area Select (M). Hold or drag this button to choose Rectangle or Ellipse. Shift adds; Alt subtracts; Ctrl+D deselects. Selection limits painting and filling.");
             marqueePicker = new ShapePickerManipulator(this, true);
@@ -347,6 +351,8 @@ namespace DCFApixels.WhimTex
                 button.Add(marqueeToolIcon = new CanvasToolIcon(tool, marqueeShape == MarqueeShape.Ellipse));
             else if (tool == CanvasTool.Crop)
                 button.Add(cropToolIcon = new CanvasToolIcon(tool, cropMode: canvasCropMode));
+            else if (tool == CanvasTool.Comment)
+                button.Add(commentToolIcon = new CanvasToolIcon(tool));
             else if (tool == CanvasTool.PolygonSelect)
             {
                 lassoToolIcon = new CanvasToolIcon(tool);
@@ -406,6 +412,8 @@ namespace DCFApixels.WhimTex
             canvasGradientButton?.EnableInClassList("whimtex-tool-button--unavailable", activeDocument == null);
             canvasCropButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.Crop);
             canvasCropButton?.EnableInClassList("whimtex-tool-button--unavailable", activeDocument == null);
+            canvasCommentButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.Comment);
+            canvasCommentButton?.EnableInClassList("whimtex-tool-button--unavailable", activeDocument == null);
             canvasRectangleSelectButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.RectangleSelect);
             canvasPolygonSelectButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.PolygonSelect);
             canvasRectangleSelectButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
@@ -449,6 +457,7 @@ namespace DCFApixels.WhimTex
             private readonly CanvasTool tool;
             private bool ellipse;
             private bool freehand;
+            private bool hasComments;
             private CanvasCropMode cropMode;
             private readonly Image healingVectorImage;
             private Vector2 healingVectorOffset;
@@ -526,6 +535,13 @@ namespace DCFApixels.WhimTex
                 MarkDirtyRepaint();
             }
 
+            internal void SetHasComments(bool value)
+            {
+                if (hasComments == value) return;
+                hasComments = value;
+                MarkDirtyRepaint();
+            }
+
             private void Draw(MeshGenerationContext context)
             {
                 if (contentRect.width < 1f || contentRect.height < 1f)
@@ -544,6 +560,8 @@ namespace DCFApixels.WhimTex
                     DrawHand(painter);
                 else if (tool == CanvasTool.Text)
                     DrawTextTool(painter);
+                else if (tool == CanvasTool.Comment)
+                    DrawCommentTool(painter);
                 else if (tool == CanvasTool.Crop)
                 {
                     if (cropMode == CanvasCropMode.Scale) DrawCanvasScaleTool(painter);
@@ -579,6 +597,22 @@ namespace DCFApixels.WhimTex
                 }
                 else
                     DrawBrush(painter);
+            }
+
+            private void DrawCommentTool(Painter2D painter)
+            {
+                painter.BeginPath();
+                painter.MoveTo(P(5, 5)); painter.LineTo(P(20, 5)); painter.LineTo(P(20, 16));
+                painter.LineTo(P(11, 16)); painter.LineTo(P(5, 21)); painter.ClosePath(); painter.Stroke();
+                if (hasComments)
+                {
+                    TraceRectangle(painter, P(8, 8), P(17, 10));
+                    TraceRectangle(painter, P(8, 11), P(15, 13));
+                    painter.Fill(FillRule.OddEven);
+                    return;
+                }
+                painter.BeginPath(); painter.MoveTo(P(8, 9)); painter.LineTo(P(17, 9));
+                painter.MoveTo(P(8, 12)); painter.LineTo(P(15, 12)); painter.Stroke();
             }
 
             private Vector2 P(float x, float y) => new Vector2(

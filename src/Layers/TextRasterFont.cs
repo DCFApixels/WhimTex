@@ -50,11 +50,11 @@ namespace DCFApixels.WhimTex
             var mode = edges == TextEdgeMode.Pixel ? GlyphRenderMode.RASTER_HINTED :
                 edges == TextEdgeMode.Antialiased ? GlyphRenderMode.SMOOTH : GlyphRenderMode.SMOOTH_HINTED;
             int padding = Mathf.Max(2, SyntheticBold + 1);
-            // Family-based creation uses a fixed atlas. Large glyphs need the public file overload.
+            // Family-based creation uses a fixed atlas. Large glyphs need an explicitly sized atlas.
             if (size > 256 && TryFindFile(family, selected, out var file))
             {
                 int extent = Mathf.Min(SystemInfo.maxTextureSize, Mathf.NextPowerOfTwo(size * 2 + padding * 2 + 8));
-                Asset = FontAsset.CreateFontAsset(file.path, file.index, size, padding, mode, extent, extent);
+                Asset = CreateLargeAsset(file, size, padding, mode, extent);
             }
             else Asset = FontAsset.CreateFontAsset(family, selected, size, padding, mode);
             if (Asset == null) throw new InvalidOperationException("The system font could not create a text raster: " + name);
@@ -66,6 +66,45 @@ namespace DCFApixels.WhimTex
         {
             Asset.TryAddCharacters(text + "\uFFFD?");
             HideResources();
+        }
+        private static FontAsset CreateLargeAsset((string path, int index) file, int size, int padding,
+            GlyphRenderMode mode, int extent)
+        {
+            if (FontEngine.LoadFontFace(file.path, size, file.index) != FontEngineError.Success) return null;
+            var face = FontEngine.GetFaceInfo();
+            Font source = null;
+            FontAsset asset = null;
+            try
+            {
+                // The file-path factory initializes Dynamic tables before assigning its source path.
+                // A temporary Font lets the public factory initialize DynamicOS with a valid face.
+                source = new Font(file.path) { hideFlags = HideFlags.HideAndDontSave };
+                if (FontEngine.LoadFontFace(source, size) != FontEngineError.Success) return null;
+                asset = FontAsset.CreateFontAsset(source, size, padding, mode, extent, extent, AtlasPopulationMode.DynamicOS);
+                if (asset == null) return null;
+                if (asset.atlasWidth != extent || asset.atlasHeight != extent || asset.atlasRenderMode != mode ||
+                    asset.faceInfo.pointSize != size)
+                    throw new InvalidOperationException("The system font could not create the requested raster atlas: " + face.familyName);
+                asset.hideFlags = HideFlags.HideAndDontSave;
+                foreach (var texture in asset.atlasTextures)
+                    if (texture != null) texture.hideFlags = HideFlags.HideAndDontSave;
+                if (asset.material != null) asset.material.hideFlags = HideFlags.HideAndDontSave;
+                // The Font overload starts with face zero. Preserve the selected face of a collection.
+                if (file.index != 0 || asset.faceInfo.familyName != face.familyName ||
+                    asset.faceInfo.styleName != face.styleName)
+                {
+                    asset.faceInfo = face;
+                    asset.ClearFontAssetData(true);
+                    string name = face.familyName + " - " + face.styleName;
+                    asset.name = name + " Raster";
+                    if (asset.material != null) asset.material.name = name + " Material";
+                    foreach (var texture in asset.atlasTextures)
+                        if (texture != null) texture.name = name + " Atlas";
+                }
+                return asset;
+            }
+            catch { Release(asset); throw; }
+            finally { if (source != null) UnityEngine.Object.DestroyImmediate(source); }
         }
         private static bool TryFindFile(string family, string style, out (string path, int index) found)
         {
@@ -103,11 +142,13 @@ namespace DCFApixels.WhimTex
                 if (texture != null) { texture.hideFlags = HideFlags.HideAndDontSave; texture.filterMode = filter; }
             if (Asset.material != null) Asset.material.hideFlags = HideFlags.HideAndDontSave;
         }
-        public void Dispose()
+        private static void Release(FontAsset asset)
         {
-            foreach (var texture in Asset.atlasTextures) if (texture != null) UnityEngine.Object.DestroyImmediate(texture);
-            if (Asset.material != null) UnityEngine.Object.DestroyImmediate(Asset.material);
-            UnityEngine.Object.DestroyImmediate(Asset);
+            if (asset == null) return;
+            foreach (var texture in asset.atlasTextures) if (texture != null) UnityEngine.Object.DestroyImmediate(texture);
+            if (asset.material != null) UnityEngine.Object.DestroyImmediate(asset.material);
+            UnityEngine.Object.DestroyImmediate(asset);
         }
+        public void Dispose() => Release(Asset);
     }
 }

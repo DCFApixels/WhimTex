@@ -27,6 +27,19 @@ the TIFF reader diagnoses it as an unknown field and protects against unconfirme
 Channel routing is `Layer.channelMapping`, a `LayerChannelMapping` object with its existing
 packed representation. Live API patches use `settings.channelMapping`, an array of four
 source labels in output RGBA order; `describe` returns `channelMappingSources`.
+The source label `1 - Luminance` evaluates `1 - (0.2126 R + 0.7152 G + 0.0722 B)` from the original linear RGB, independently of alpha.
+Its public C# enum is `ChannelMappingSource.OneMinusLuminance`, value 15; existing source values 0–14 are unchanged.
+In stored document JSON, `"channelMapping":{"$type":"LayerChannelMapping","packed":49152}` preserves RGB and routes this source to output alpha. Output alpha remains bounded to 0–1.
+
+## Canvas comments
+
+Full-document JSON preserves an optional `document.comments` list. Empty lists and
+layer-only clipboard fragments omit it. Each `WhimTexComment` stores `id`, `anchor`
+(bottom-left canvas UV), opaque `color` (RGBA in 0..1, alpha 1), `resolved` and a nonempty `messages` list; messages store `id`,
+`author`, `text` and `createdUtcTicks`. IDs are unique across all threads and messages.
+Comments do not contribute to image pixels. See [TIFF comments](TIFF_FORMAT.md#optional-comments)
+for validation limits and anchor behavior. JSON insertion/paste imports layers only;
+opening a full document retains its comments.
 
 ## Write modes
 
@@ -242,13 +255,22 @@ without one, the Text layer is transparent until a font is selected.
 
 ### SDF and Outline distance modes
 
-Both `SDFLayerBehaviour.metric` and `OutlineLayerBehaviour.metric` accept the ten names
+Both `SDFLayerBehaviour.metric` and `OutlineLayerBehaviour.metric` accept the twelve names
 `EuclideanAntialiased`, `Sharp`, `Bevel`, `Diamond`, `Square`, `MTSDF`, `AAEDT`, `Contour`,
-`CornerFit` and `Spring`.
+`CornerFit`, `Spring`, `Rbf` and `RbfDual`.
 JSON stores these exact names, not numeric IDs. `EuclideanAntialiased` (UI **Round AA**, ID 4)
 remains the omitted/default value. `AAEDT` remains ID 10; `Contour` is ID 11, UI **Contour AA**.
 `CornerFit` is ID 12, UI **Corner Fit AA**; `Spring` is ID 13, UI **Spring Simulation**.
-The previous eight modes retain their behavior.
+`Rbf` is ID 14, UI **RBF Your SDF**; `RbfDual` is ID 15, UI **RBF Dual Contouring**.
+The new `RbfDual` leaves the previous modes unchanged.
+
+`metric:"RbfDual"` selects experimental continuous RBF root searches, analytic blended normals
+and bounded 2D QEF vertex placement with half-pixel cell connectivity. It shares Rbf fitting
+and the scalar sharp-distance stage. `sharpMode` and `miterLimit` have the same meaning as in
+`Rbf`; `contourMergeDistance` is retained but ignored. The metric participates in the preparation
+cache key; Max Distance only remaps the retained field. `Gradient`/`LinearData` are supported,
+and `MultiChannelData` remains MTSDF-only. This is not a faithful implementation of
+Occupancy-Based Dual Contouring (2024), and contains no copied upstream code.
 
 `metric:"CornerFit"` and `metric:"Spring"` are experimental raster-only scalar modes.
 CornerFit fits sides from raw Contour geometry and verifies proposed corners by local AA

@@ -26,6 +26,9 @@ namespace DCFApixels.WhimTex
             internal RectInt region;
             internal Vector2Int canvas;
             internal uint systemRevision;
+            internal Guid token;
+            internal bool systemImage;
+            internal string systemText;
         }
         private bool IsAreaSelectionTool => canvasTool == CanvasTool.RectangleSelect || canvasTool == CanvasTool.PolygonSelect || IsUvSelectionTool;
 
@@ -280,10 +283,17 @@ namespace DCFApixels.WhimTex
                     if (selection.Active) color.a *= selection.Coverage[index] / 255f;
                     copy[i] = color.a > 0f ? color : Color.clear;
                 }
-                areaClipboard = new AreaClipboard { pixels = copy, region = region,
-                    canvas = new Vector2Int(selection.Width, selection.Height), systemRevision = ImageClipboard.Revision };
+                var next = new AreaClipboard { pixels = copy, region = region,
+                    canvas = new Vector2Int(selection.Width, selection.Height), token = Guid.NewGuid() };
+                next.systemImage = ImageClipboard.TryPublishPixels(copy, region.width, region.height, next.token, out next.systemRevision);
+                if (!next.systemImage)
+                {
+                    next.systemRevision = ImageClipboard.Revision;
+                    next.systemText = GUIUtility.systemCopyBuffer;
+                }
+                areaClipboard = next;
                 LayerClipboard.Clear();
-                ShowNotification(new GUIContent("Copied to WhimTex clipboard"));
+                ShowNotification(new GUIContent(next.systemImage ? "Image copied" : "Copied to WhimTex clipboard"));
             }
             catch (Exception exception) { ShowNotification(new GUIContent("Copy failed: " + exception.Message)); }
             finally { if (rendered != null) DestroyImmediate(rendered); }
@@ -296,6 +306,12 @@ namespace DCFApixels.WhimTex
             Texture2D texture = null;
             try
             {
+                var copy = GetCurrentAreaClipboard();
+                if (copy != null)
+                {
+                    PasteAreaClipboard(copy);
+                    return;
+                }
                 string clipboardText = GUIUtility.systemCopyBuffer;
                 if (TryPasteBrushClipboard(clipboardText)) return;
                 if (TryPasteImageUrl(clipboardText)) return;
@@ -325,48 +341,70 @@ namespace DCFApixels.WhimTex
                     PasteCopiedLayers(copiedLayers);
                     return;
                 }
-                if (areaClipboard == null || areaClipboard.systemRevision != ImageClipboard.Revision)
+                texture = ImageClipboard.ReadImage();
+                if (texture == null) { ShowNotification(new GUIContent("No image in the clipboard.")); return; }
+                Texture2D source = texture;
+                bool insertedImage = false;
+                ExecuteContextChange("Paste Clipboard Image", () =>
                 {
-                    texture = ImageClipboard.ReadImage();
-                    if (texture == null) { ShowNotification(new GUIContent("No image in the clipboard.")); return; }
-                    Texture2D source = texture;
-                    bool insertedImage = false;
-                    ExecuteContextChange("Paste Clipboard Image", () =>
-                    {
-                        if (!HasCanvasLayers) { activeDocument.width = source.width; activeDocument.height = source.height; }
-                        var layer = DrawingLayerBehaviour.FromMergedTexture(source);
-                        layer.colorRange = LayerColorRange.Standard;
-                        layer.blendRange = LayerBlendRange.Standard;
-                        layer.layerName = activeDocument.AllocateLayerName(layer);
-                        // Keep all source pixels; placement is 1:1 and centered, not resampled or clipped.
-                        var placement = TextureTransform.Default;
-                        placement.scale = new Vector2((float)source.width / activeDocument.width, (float)source.height / activeDocument.height);
-                        layer.transform = placement;
-                        Undo.RegisterCreatedObjectUndo(source, "Paste Clipboard Image");
-                        activeDocument.layers.Insert(0, layer);
-                        SelectOnlyLayer(layer.Id);
-                        insertedImage = true;
-                    });
-                    if (insertedImage && activeDocument.layers.Exists(layer => layer?.Behaviour is DrawingLayerBehaviour drawing && drawing.StoredTexture == source))
-                        texture = null;
-                    return;
-                }
-                GetAreaSelection().ValidateSize();
-                var copy = areaClipboard;
-                int width = activeDocument.width, height = activeDocument.height;
-                int left = copy.canvas == new Vector2Int(width, height) ? copy.region.x : (width - copy.region.width) / 2;
-                int bottom = copy.canvas == new Vector2Int(width, height) ? copy.region.y : (height - copy.region.height) / 2;
-                var pixels = new Color[width * height];
-                for (int y = 0; y < copy.region.height; y++)
-                {
-                    int outputY = bottom + y;
-                    if (outputY < 0 || outputY >= height) continue;
-                    int first = Mathf.Max(0, -left), end = Mathf.Min(copy.region.width, width - left);
-                    if (end > first) Array.Copy(copy.pixels, y * copy.region.width + first, pixels, outputY * width + left + first, end - first);
-                }
-                texture = new Texture2D(width, height, TextureFormat.RGBAHalf, false, true)
-                { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Point };
-                texture.SetPixels(pixels); texture.Apply(false, false);
+                    if (!HasCanvasLayers) { activeDocument.width = source.width; activeDocument.height = source.height; }
+                    var layer = DrawingLayerBehaviour.FromMergedTexture(source);
+                    layer.colorRange = LayerColorRange.Standard;
+                    layer.blendRange = LayerBlendRange.Standard;
+                    layer.layerName = activeDocument.AllocateLayerName(layer);
+                    // Keep all source pixels; placement is 1:1 and centered, not resampled or clipped.
+                    var placement = TextureTransform.Default;
+                    placement.scale = new Vector2((float)source.width / activeDocument.width, (float)source.height / activeDocument.height);
+                    layer.transform = placement;
+                    Undo.RegisterCreatedObjectUndo(source, "Paste Clipboard Image");
+                    activeDocument.layers.Insert(0, layer);
+                    SelectOnlyLayer(layer.Id);
+                    insertedImage = true;
+                });
+                if (insertedImage && activeDocument.layers.Exists(layer => layer?.Behaviour is DrawingLayerBehaviour drawing && drawing.StoredTexture == source))
+                    texture = null;
+            }
+            catch (Exception exception) { ReportClipboardPasteError("Paste failed", exception); }
+            finally { if (texture != null) DestroyImmediate(texture, true); }
+        }
+
+        private static AreaClipboard GetCurrentAreaClipboard()
+        {
+            var copy = areaClipboard;
+            if (copy == null) return null;
+            bool current = copy.systemImage ? ImageClipboard.IsCurrentImage(copy.token, copy.systemRevision) :
+                copy.systemRevision == ImageClipboard.Revision && copy.systemText == GUIUtility.systemCopyBuffer;
+            if (current) return copy;
+            areaClipboard = null;
+            return null;
+        }
+
+        private static Texture2D BuildAreaClipboardTexture(AreaClipboard copy, int width, int height)
+        {
+            if (width < 1 || height < 1 || (long)width * height > CanvasSelection.MaximumPixels)
+                throw new InvalidOperationException("Paste canvas exceeds the supported image size.");
+            int left = copy.canvas == new Vector2Int(width, height) ? copy.region.x : (width - copy.region.width) / 2;
+            int bottom = copy.canvas == new Vector2Int(width, height) ? copy.region.y : (height - copy.region.height) / 2;
+            var pixels = new Color[width * height];
+            for (int y = 0; y < copy.region.height; y++)
+            {
+                int outputY = bottom + y;
+                if (outputY < 0 || outputY >= height) continue;
+                int first = Mathf.Max(0, -left), end = Mathf.Min(copy.region.width, width - left);
+                if (end > first) Array.Copy(copy.pixels, y * copy.region.width + first, pixels, outputY * width + left + first, end - first);
+            }
+            var texture = new Texture2D(width, height, TextureFormat.RGBAHalf, false, true)
+            { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Point };
+            try { texture.SetPixels(pixels); texture.Apply(false, false); return texture; }
+            catch { DestroyImmediate(texture); throw; }
+        }
+
+        private void PasteAreaClipboard(AreaClipboard copy)
+        {
+            GetAreaSelection().ValidateSize();
+            Texture2D texture = BuildAreaClipboardTexture(copy, activeDocument.width, activeDocument.height);
+            try
+            {
                 Texture2D pasted = texture;
                 bool inserted = false;
                 ExecuteContextChange("Paste Drawing Layer", () =>
@@ -380,7 +418,6 @@ namespace DCFApixels.WhimTex
                 });
                 if (inserted && activeDocument.layers.Exists(layer => layer?.Behaviour is DrawingLayerBehaviour drawing && drawing.StoredTexture == pasted)) texture = null;
             }
-            catch (Exception exception) { ReportClipboardPasteError("Paste failed", exception); }
             finally { if (texture != null) DestroyImmediate(texture, true); }
         }
         private void ReportClipboardPasteError(string operation, Exception exception)

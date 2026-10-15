@@ -43,7 +43,7 @@ namespace DCFApixels.WhimTex
         private void OpenUvDrawer()
         {
             uvEnabled = uvExpanded = true;
-            brushesExpanded = postFxExpanded = false;
+            brushesExpanded = postFxExpanded = commentsExpanded = false;
             RefreshUvReference();
             RefreshPostFxPanel();
         }
@@ -52,7 +52,7 @@ namespace DCFApixels.WhimTex
             uvTab = new Button(() =>
             {
                 uvExpanded = !uvExpanded;
-                if (uvExpanded) brushesExpanded = postFxExpanded = false;
+                if (uvExpanded) brushesExpanded = postFxExpanded = commentsExpanded = false;
                 RefreshPostFxPanel();
             }) { tooltip = "Show or hide UV settings. Closing this panel keeps the UV outlines visible." };
             uvTab.AddToClassList("whimtex-post-fx-tab"); tabs.Add(uvTab);

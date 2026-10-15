@@ -72,6 +72,8 @@ namespace DCFApixels.WhimTex
 
         public static byte[] Serialize(object root, WhimTexDocumentContainer container)
         {
+            var document = root as WhimTexDocument;
+            byte[] comments = document?.EncodeCommentsBlock(container);
             using var stream = new MemoryStream();
             using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, true))
             {
@@ -80,6 +82,7 @@ namespace DCFApixels.WhimTex
                 context.Write(root, root == null ? typeof(object) : root.GetType());
             }
             if (stream.Length > 64L * 1024 * 1024) throw new WhimTexDocumentException("The document model exceeds the 64 MiB budget.");
+            document?.WriteCommentsBlock(container, comments);
             return stream.ToArray();
         }
 
@@ -98,6 +101,7 @@ namespace DCFApixels.WhimTex
                 if (result != null && expectedType != null && !expectedType.IsInstanceOfType(result))
                     throw new WhimTexDocumentException("Unexpected document root type.");
                 if (stream.Position != stream.Length) throw new WhimTexDocumentException("Unexpected trailing model data.");
+                if (result is WhimTexDocument document) document.ReadCommentsBlock(container);
                 return context.Result(result);
             }
             catch (OperationCanceledException)
@@ -149,6 +153,7 @@ namespace DCFApixels.WhimTex
                     if (!field.IsPublic && field.GetCustomAttribute<SerializeField>() == null &&
                         field.GetCustomAttribute<SerializeReference>() == null) continue;
                     if (SkippedFields.Contains(field.Name)) continue;
+                    if (field.DeclaringType == typeof(WhimTexDocument) && field.Name == "comments") continue;
                     fields.Add(field);
                 }
             }

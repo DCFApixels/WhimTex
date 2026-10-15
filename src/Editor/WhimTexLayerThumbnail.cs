@@ -24,9 +24,19 @@ namespace DCFApixels.WhimTex
             Color low = dark ? new Color(.26f, .26f, .26f) : new Color(.73f, .73f, .73f);
             Color high = dark ? new Color(.34f, .34f, .34f) : new Color(.83f, .83f, .83f);
             Fill(painter, square, low);
-            float cell = size * .5f;
-            Fill(painter, new Rect(square.x + cell, square.y, cell, cell), high);
-            Fill(painter, new Rect(square.x, square.y + cell, cell, cell), high);
+            float cell = size * .25f;
+            float pixelScale = EditorGUIUtility.pixelsPerPoint;
+            for (int y = 0; y < 4; y++)
+            {
+                float top = square.y + Mathf.Round(y * cell * pixelScale) / pixelScale;
+                float bottom = y == 3 ? square.yMax : square.y + Mathf.Round((y + 1) * cell * pixelScale) / pixelScale;
+                for (int x = (y + 1) & 1; x < 4; x += 2)
+                {
+                    float left = square.x + Mathf.Round(x * cell * pixelScale) / pixelScale;
+                    float right = x == 3 ? square.xMax : square.x + Mathf.Round((x + 1) * cell * pixelScale) / pixelScale;
+                    Fill(painter, Rect.MinMaxRect(left, top, right, bottom), high);
+                }
+            }
         }
 
         private static void Fill(Painter2D painter, Rect rectangle, Color color)

@@ -214,6 +214,8 @@ Rounded 平滑让纯色区域与渐变之间的衔接更柔和，并调整过渡
 每个字段都可以选择原始通道、它们的反相、黑（`0`）、白（`1`），
 或颜色通道乘以透明通道（`R * A`、`G * A`、`B * A`）。
 `Luminance` 将 RGB 合成为灰度亮度；`Luminance * A` 还会计入透明度。
+`1 - Luminance` 反转此 RGB 亮度：黑色变白，白色变黑，不受输入 Alpha 影响。
+列表先显示原始 RGBA 和 Luminance，然后是它们的反相、乘以 Alpha 的结果，最后是常量 0 和 1。
 
 右侧箭头按钮提供内置预设：
 
@@ -221,6 +223,7 @@ Rounded 平滑让纯色区域与渐变之间的衔接更柔和，并调整过渡
 - **Default without Alpha：** 保留 RGB，并使图像完全不透明（`R G B 1`）。
 - **R**、**G**、**B：** 将亮度写入所选颜色通道，另外两个颜色通道设为 `0`，Alpha 设为 `1`。
 - **Luminance to Alpha：** 将 RGB 设为白色，并把亮度写入 Alpha（`1 1 1 Luminance`）。
+- **1 - Luminance to Alpha：** 将 RGB 设为白色，并把反转亮度写入 Alpha。
 - **Alpha to Grayscale：** 将 Alpha 显示为不透明的灰度图像（`A A A 1`）。
 
 更改某个组的 Mapping 会把它的内容视为一张图像，因此外部混合看起来可能不同。
@@ -231,6 +234,8 @@ Rounded 平滑让纯色区域与渐变之间的衔接更柔和，并调整过渡
 2. 在 Mapping 的预设菜单中选择 **Luminance to Alpha**。黑色变透明，白色变不透明，灰色变半透明；RGB 设为白色。
 3. 若要保留原图的透明度影响，将 A 字段设为 **Luminance * A**。
 4. 在 [Layer Preview](preview.md#图层预览) 中只开启 **A** 来检查结果。这里的通道按钮只控制查看，不限制绘制。
+
+要使用相反的遮罩，在 Mapping 预设菜单中选择 **1 - Luminance to Alpha**：黑色变不透明，白色变透明，RGB 设为白色。此预设不计入图像的原始透明度。
 
 若要用它遮罩另一个图层，选择目标图层并添加 **FX → + Preset → Color → Mask**。
 将遮罩纹理来源设为 **Layer**，选择遮罩图层，并将 **Mask Channel** 设为 **Alpha**。

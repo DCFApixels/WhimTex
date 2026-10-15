@@ -44,10 +44,11 @@ namespace DCFApixels.WhimTex
             tabs.AddToClassList("whimtex-canvas-view-drawer-tabs");
             panel.Add(tabs);
             BuildBrushTab(tabs);
+            BuildCommentTab(tabs);
             postFxTab = new Button(() =>
             {
                 postFxExpanded = !postFxExpanded;
-                if (postFxExpanded) brushesExpanded = uvExpanded = false;
+                if (postFxExpanded) brushesExpanded = uvExpanded = commentsExpanded = false;
                 RefreshPostFxPanel();
             })
                 { tooltip = "Show or hide post-processing settings. Closing this panel keeps Post FX enabled." };
@@ -55,6 +56,7 @@ namespace DCFApixels.WhimTex
             tabs.Add(postFxTab);
             BuildUvTab(tabs);
             BuildBrushDrawer(panel);
+            BuildCommentDrawer(panel);
             BuildUvDrawer(panel);
             postFxDrawer = new VisualElement();
             postFxDrawer.AddToClassList("whimtex-post-fx-drawer");
@@ -77,7 +79,7 @@ namespace DCFApixels.WhimTex
                 else
                 {
                     postFxDirty = true;
-                    if (postFxExpanded) brushesExpanded = uvExpanded = false;
+                    if (postFxExpanded) brushesExpanded = uvExpanded = commentsExpanded = false;
                 }
                 RefreshPostFxPanel();
                 if (postFxEnabled) RenderPostFx();
@@ -200,9 +202,14 @@ namespace DCFApixels.WhimTex
         private void RefreshPostFxPanel()
         {
             bool brushAvailable = canvasTool == CanvasTool.Brush;
+            bool commentsAvailable = canvasTool == CanvasTool.Comment && activeDocument != null;
+            if (commentsAvailable && commentsExpanded) brushesExpanded = postFxExpanded = uvExpanded = false;
             if (!brushAvailable) brushesExpanded = false;
             if (brushesExpanded) postFxExpanded = false;
-            postFxOverlay?.EnableInClassList("whimtex-post-fx-overlay--hidden", !postFxEnabled && !brushAvailable && !uvEnabled);
+            postFxOverlay?.EnableInClassList("whimtex-post-fx-overlay--hidden", !postFxEnabled && !brushAvailable && !uvEnabled && !commentsAvailable);
+            commentTab?.EnableInClassList("whimtex-post-fx-drawer--hidden", !commentsAvailable);
+            if (commentTab != null) commentTab.text = commentsExpanded ? "›" : "‹";
+            commentDrawer?.EnableInClassList("whimtex-post-fx-drawer--hidden", !commentsAvailable || !commentsExpanded);
             RefreshUvPanel();
             brushTab?.EnableInClassList("whimtex-post-fx-drawer--hidden", !brushAvailable);
             if (brushTab != null) brushTab.text = brushesExpanded ? "›" : "‹";

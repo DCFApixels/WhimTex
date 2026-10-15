@@ -51,7 +51,7 @@ try
         Check(clone.channelMapping[output] == (DCFApixels.WhimTex.ChannelMappingSource)source, "Channel serialization round-trip");
         var expected = before;
         float luminance = .2126f * before.r + .7152f * before.g + .0722f * before.b;
-        expected[output] = source == 13 ? luminance : source == 14 ? luminance * before.a : source >= 10 ? before[source - 10] * before.a : source == 8 ? 0f : source == 9 ? 1f : source >= 4 ? 1f - before[source - 4] : before[source];
+        expected[output] = source == 15 ? 1f - luminance : source == 13 ? luminance : source == 14 ? luminance * before.a : source >= 10 ? before[source - 10] * before.a : source == 8 ? 0f : source == 9 ? 1f : source >= 4 ? 1f - before[source - 4] : before[source];
         var actual = Pixel();
         if (expected.a == 0f) Check(Near(actual.a, 0f), "Zero alpha is transparent");
         else for (int c = 0; c < 4; c++) Check(Near(actual[c], expected[c]), "ChannelMapping output channel " + output + " source " + source);
@@ -131,9 +131,10 @@ try
     var description = DCFApixels.WhimTex.WhimTexApi.Describe();
     Check(description.Contains("channelMappingSources") && description.Contains("1-A") &&
         description.Contains("R * A") && description.Contains("G * A") && description.Contains("B * A") &&
-        description.Contains("Luminance") && description.Contains("Luminance * A"), "Agent discovery includes channelMapping choices");
+        description.Contains("Luminance") && description.Contains("Luminance * A") && description.Contains("1 - Luminance"), "Agent discovery includes channelMapping choices");
     CheckLuminance(context, document);
     CheckContract(context, document);
+    CheckInverseMappingUi(context, document);
     return;
 }
 finally { UnityEngine.Object.DestroyImmediate(document); }
@@ -197,6 +198,14 @@ private static void CheckContract(TestContext context, DCFApixels.WhimTex.WhimTe
     catch (System.Reflection.TargetInvocationException error) { rejectedApi = error.InnerException.Message.Contains("swizzle"); }
     context.True(rejectedApi, "Old API key is rejected explicitly");
     context.Equal(DCFApixels.WhimTex.ChannelMappingSource.G, layer.channelMapping[0], "Rejected patch does not replace the mapping");
+    context.Equal(15, (int)DCFApixels.WhimTex.ChannelMappingSource.OneMinusLuminance, "Inverse luminance uses the appended four-bit channel code");
+    setLayer.Invoke(null, new[] { (object)document, layer, Settings("{\"channelMapping\":[\"1 - Luminance\",\"R\",\"B\",\"1\"]}") });
+    context.Equal(DCFApixels.WhimTex.ChannelMappingSource.OneMinusLuminance, layer.channelMapping[0], "API parses the exact inverse-luminance label");
+    context.Equal(DCFApixels.WhimTex.ChannelMappingSource.One, layer.channelMapping[3], "Inverse-luminance API mapping leaves output alpha independent");
+    string inverseJson = DCFApixels.WhimTex.WhimTexDocumentJson.Write(document,
+        new DCFApixels.WhimTex.WhimTexJsonWriteOptions { Mode = DCFApixels.WhimTex.WhimTexJsonWriteMode.Full }).Json;
+    using var inverseRead = DCFApixels.WhimTex.WhimTexDocumentJson.Read(inverseJson, false);
+    context.Equal(layer.channelMapping, inverseRead.Document.layers[0].channelMapping, "API inverse-luminance mapping survives document JSON roundtrip");
 }
 
 private static void CheckLuminance(TestContext context, DCFApixels.WhimTex.WhimTexDocument document)
@@ -229,8 +238,8 @@ private static void CheckLuminance(TestContext context, DCFApixels.WhimTex.WhimT
         return result;
     }
     foreach (var input in new[] { new Color(.3f, .6f, .8f, 0), new Color(.3f, .6f, .8f, .25f),
-        new Color(.3f, .6f, .8f, 1), new Color(2, -3, 6, .5f) })
-    foreach (int source in new[] { 13, 14 })
+        new Color(.3f, .6f, .8f, 1), new Color(2, -3, 6, .5f), new Color(3, 3, 3, .5f) })
+    foreach (int source in new[] { 13, 14, 15 })
     foreach (bool clamp in new[] { false, true })
     {
         var raw = RenderTexture.GetTemporary(8, 8, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
@@ -240,10 +249,12 @@ private static void CheckLuminance(TestContext context, DCFApixels.WhimTex.WhimT
         RenderTexture finished;
         try { finished = (RenderTexture)type.GetMethod("FinishStage", flags).Invoke(document, new object[] { raw, clamp, Grayscale(source) }); }
         catch { RenderTexture.ReleaseTemporary(raw); throw; }
-        float value = Luminance(input) * (source == 14 ? input.a : 1);
+        float value = source == 15 ? 1f - Luminance(input) : Luminance(input) * (source == 14 ? input.a : 1);
         if (clamp) value = Mathf.Clamp01(value);
         Same(new Color(value, value, value, 1), Read(finished), "Linear luminance / original alpha / Color Range");
     }
+    foreach (int luminanceSource in new[] { 13, 15 })
+    {
     var fill = new DCFApixels.WhimTex.ColorFillLayerBehaviour
     {
         color = new Color(.6f, .8f, .3f, 1),
@@ -257,23 +268,24 @@ private static void CheckLuminance(TestContext context, DCFApixels.WhimTex.WhimT
     var original = document.ComposeCanvas();
     try { brightness = Luminance(original.GetPixel(2, 2)); }
     finally { UnityEngine.Object.DestroyImmediate(original); }
+    float mappedBrightness = luminanceSource == 15 ? 1f - brightness : brightness;
     group.channelMapping = new DCFApixels.WhimTex.LayerChannelMapping
     {
         [0] = DCFApixels.WhimTex.ChannelMappingSource.One, [1] = DCFApixels.WhimTex.ChannelMappingSource.One,
-        [2] = DCFApixels.WhimTex.ChannelMappingSource.One, [3] = DCFApixels.WhimTex.ChannelMappingSource.Luminance
+        [2] = DCFApixels.WhimTex.ChannelMappingSource.One, [3] = (DCFApixels.WhimTex.ChannelMappingSource)luminanceSource
     };
-    var expectedGroup = new Color(1, 1, 1, brightness);
+    var expectedGroup = new Color(1, 1, 1, mappedBrightness);
     var composite = document.ComposeCanvas();
     try { Same(expectedGroup, composite.GetPixel(2, 2), "Group luminance to alpha composite"); }
     finally { UnityEngine.Object.DestroyImmediate(composite); }
-    var expectedCoverage = new Color(brightness, brightness, brightness, brightness);
+    var expectedCoverage = new Color(mappedBrightness, mappedBrightness, mappedBrightness, mappedBrightness);
     Same(expectedCoverage, Read((RenderTexture)type.GetMethod("RenderLayerPreview", flags).Invoke(document,
         new object[] { group.Owner, 8 })), "Group coverage preview");
     Same(expectedGroup, Read((RenderTexture)type.GetMethod("RenderAgentLayerPreview", flags).Invoke(document,
         new object[] { group.Owner, 8 })), "Target color input");
     var alpha = Read((RenderTexture)type.GetMethod("RenderGroupAlpha", flags).Invoke(document,
         new object[] { group.Owner, 8, 8, 1f, new HashSet<DCFApixels.WhimTex.Layer>() }));
-    context.Near(brightness, alpha.a, .003, "Group target alpha");
+    context.Near(mappedBrightness, alpha.a, .003, "Group target alpha");
     var exported = (Texture2D)type.GetMethod("RenderPsdGroupContent", flags).Invoke(document, new object[] { group.Owner });
     try { Same(expectedGroup, exported.GetPixel(2, 2), "PSD group pixels"); }
     finally { UnityEngine.Object.DestroyImmediate(exported); }
@@ -292,7 +304,7 @@ private static void CheckLuminance(TestContext context, DCFApixels.WhimTex.WhimT
     }
     document.layers.Clear(); document.layers.Add(fill);
     fill.channelMapping = Grayscale(14);
-    fill.channelMapping[3] = DCFApixels.WhimTex.ChannelMappingSource.Luminance;
+    fill.channelMapping[3] = (DCFApixels.WhimTex.ChannelMappingSource)luminanceSource;
     foreach (DCFApixels.WhimTex.WhimTexJsonWriteMode mode in Enum.GetValues(typeof(DCFApixels.WhimTex.WhimTexJsonWriteMode)))
     {
         var json = DCFApixels.WhimTex.WhimTexDocumentJson.Write(document,
@@ -315,10 +327,48 @@ private static void CheckLuminance(TestContext context, DCFApixels.WhimTex.WhimT
         finally { UnityEngine.Object.DestroyImmediate(clone); }
     }
     var clipped = new DCFApixels.WhimTex.ColorFillLayerBehaviour { color = Color.red, clippingMask = true };
-    fill.channelMapping = new DCFApixels.WhimTex.LayerChannelMapping { [3] = DCFApixels.WhimTex.ChannelMappingSource.Luminance };
+    fill.channelMapping = new DCFApixels.WhimTex.LayerChannelMapping { [3] = (DCFApixels.WhimTex.ChannelMappingSource)luminanceSource };
     document.layers.Insert(0, clipped);
     var clippedPixels = document.ComposeCanvas();
-    try { Same(new Color(1, 0, 0, brightness), clippedPixels.GetPixel(2, 2), "Clipping uses luminance alpha"); }
+    try { Same(new Color(1, 0, 0, mappedBrightness), clippedPixels.GetPixel(2, 2), "Clipping uses luminance or inverse-luminance alpha"); }
     finally { UnityEngine.Object.DestroyImmediate(clippedPixels); }
+    }
+}
+
+private static void CheckInverseMappingUi(TestContext context, DCFApixels.WhimTex.WhimTexDocument document)
+{
+    var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
+    var assembly = document.GetType().Assembly;
+    var ui = assembly.GetType("DCFApixels.WhimTex.WhimTexUI");
+    var view = assembly.GetType("DCFApixels.WhimTex.LayerRenderingSettingsView");
+    var bindingType = ui.GetNestedType("ValueBindings", System.Reflection.BindingFlags.NonPublic);
+    var bindings = Activator.CreateInstance(bindingType, true);
+    var root = new UnityEngine.UIElements.VisualElement();
+    var layer = document.layers[0];
+    int changes = 0;
+    Action<string, Action> apply = (label, change) => { change(); changes++; bindingType.GetMethod("Refresh").Invoke(bindings, new object[] { true }); };
+    try
+    {
+        view.GetMethod("Build", flags).Invoke(null, new object[] { root, layer, apply, bindings, true, null, document });
+        foreach (string output in new[] { "R", "G", "B", "A" })
+            context.True(root.Q<DropdownField>("channelMapping" + output).choices.Contains("1 - Luminance"), "Inverse luminance is available for detached output selector " + output);
+        // Detached fields do not dispatch value-change input. API/model application is tested separately.
+        bindingType.GetMethod("Refresh").Invoke(bindings, new object[] { true });
+        context.Equal("1 - Luminance", root.Q<DropdownField>("channelMappingR").value, "Detached selector displays the current inverse-luminance route");
+        var presets = root.Q<UnityEditor.UIElements.ToolbarMenu>("channelMappingPresets");
+        DropdownMenuAction inversePreset = null;
+        foreach (var item in presets.menu.MenuItems())
+            if (item is DropdownMenuAction action && action.name == "1 - Luminance to Alpha") inversePreset = action;
+        context.True(inversePreset != null, "Inverse luminance-to-alpha preset is available in the mapping menu");
+        float opacity = layer.opacity;
+        inversePreset.Execute();
+        context.Equal(1, changes, "Inverse luminance-to-alpha preset applies one owned model change");
+        foreach (int output in new[] { 0, 1, 2 })
+            context.Equal(DCFApixels.WhimTex.ChannelMappingSource.One, layer.channelMapping[output], "Inverse luminance-to-alpha preset sets RGB to one");
+        context.Equal(DCFApixels.WhimTex.ChannelMappingSource.OneMinusLuminance, layer.channelMapping[3], "Inverse luminance-to-alpha preset maps alpha from inverse luminance");
+        context.Near(opacity, layer.opacity, 1e-6, "Inverse luminance-to-alpha preset preserves layer opacity");
+        context.Equal("1 - Luminance", root.Q<DropdownField>("channelMappingA").value, "Preset refreshes the inverse-luminance alpha selector binding");
+    }
+    finally { root.Clear(); }
 }
 }

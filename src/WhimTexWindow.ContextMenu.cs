@@ -7,11 +7,11 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexWindow
     {
-        private void ExecuteContextChange(string undoName, Action action)
+        private bool ExecuteContextChange(string undoName, Action action)
         {
             FinishCanvasTransform();
             FinishPaintingStroke();
-            if (activeDocument == null) return;
+            if (activeDocument == null) return false;
             var previousSelection = new List<string>(selectedLayerIds);
             string previousActive = selectedLayerId;
             Undo.IncrementCurrentGroup();
@@ -26,6 +26,7 @@ namespace DCFApixels.WhimTex
                 CommitModelChange();
                 Undo.FlushUndoRecordObjects();
                 Undo.CollapseUndoOperations(undoGroup);
+                return true;
             }
             catch (Exception exception)
             {
@@ -34,7 +35,8 @@ namespace DCFApixels.WhimTex
                 selectedLayerId = previousActive;
                 NormalizeLayerSelection();
                 Debug.LogException(exception);
-                EditorUtility.DisplayDialog("Cannot Change Layers", exception.Message, "OK");
+                EditorUtility.DisplayDialog("Cannot Change Document", exception.Message, "OK");
+                return false;
             }
             finally
             {

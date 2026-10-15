@@ -551,6 +551,7 @@ namespace DCFApixels.WhimTex
 
         internal void NormalizeModel()
         {
+            NormalizeComments();
             GetPixelScale();
             width = Mathf.Clamp(width, MinimumOutputSize, MaximumOutputSize);
             height = Mathf.Clamp(height, MinimumOutputSize, MaximumOutputSize);

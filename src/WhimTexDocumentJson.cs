@@ -98,10 +98,12 @@ namespace DCFApixels.WhimTex
             if (!Enum.IsDefined(typeof(WhimTexJsonWriteMode), options.Mode))
                 throw new ArgumentOutOfRangeException(nameof(options.Mode));
             RestoreMissingAssets(document);
+            document.ValidateComments();
             if (selection != null) selection = FragmentRoots(document, selection);
             var context = new Writer(options, document);
             var settings = context.ObjectFields(document);
             settings.Remove("layers");
+            if (selection != null || document.comments == null || document.comments.Count == 0) settings.Remove("comments");
             // Even Compact retains the source canvas: omission means the destination axis
             // when this same JSON is pasted, rather than the format's default axis.
             settings["width"] = document.width;
@@ -286,6 +288,7 @@ namespace DCFApixels.WhimTex
 
         internal static void ValidateModelInputs(WhimTexDocument document)
         {
+            document.ValidateComments();
             void Visit(List<Layer> layers)
             {
                 foreach (var layer in layers)

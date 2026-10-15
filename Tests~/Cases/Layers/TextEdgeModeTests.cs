@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using DCFApixels.WhimTex;
 using UnityEngine;
+using UnityEngine.TextCore.LowLevel;
 using UnityEngine.TextCore.Text;
 using WhimTex.Tests;
 
@@ -24,6 +25,55 @@ public static class TextEdgeModeTests
     static int Partial(Color32[] pixels) => pixels.Count(p => p.a > 0 && p.a < 255);
     static void Same(TestContext t, Color32[] a, Color32[] b, string label) => t.True(a.SequenceEqual(b), label);
     static object Json(string json) => Type.GetType("Newtonsoft.Json.Linq.JObject, Newtonsoft.Json", true).GetMethod("Parse", new[] { typeof(string) }).Invoke(null, new object[] { json });
+    static void CheckLargeGlyph(TestContext t, WhimTexDocument doc, TextLayerBehaviour text, int size,
+        FontStyle style, string[] systemFaces, List<UnityEngine.Object> resources)
+    {
+        text.fontSize = size; text.fontStyle = style; text.text = "H";
+        string label = text.edgeMode + "/" + size + "/" + style;
+        t.True(Pixels(doc).Any(p => p.a > 0), "Large glyph has visible ink " + label);
+        var font = Read(Read(text, "renderer"), "font");
+        var asset = (FontAsset)Read(font, "Asset");
+        t.Near(size, asset.faceInfo.pointSize, .001, "Font face retains the requested raster size " + label);
+#pragma warning disable CS0618
+        t.True(asset.characterLookupTable.TryGetValue('H', out var character), "Requested H is present rather than a replacement glyph " + label);
+#pragma warning restore CS0618
+        var glyph = character.glyph;
+        t.True(glyph.metrics.height > size * .25f && glyph.metrics.height < size * 2f &&
+            glyph.metrics.width > size * .15f && glyph.metrics.width < size * 2f &&
+            glyph.metrics.horizontalAdvance > size * .15f && glyph.metrics.horizontalAdvance < size * 2f,
+            "H metrics scale with the requested size, without a small-font fallback " + label);
+        t.True((uint)glyph.atlasIndex < asset.atlasTextures.Length, "H uses a live atlas " + label);
+        var atlas = asset.atlasTextures[glyph.atlasIndex];
+        var rect = glyph.glyphRect;
+        t.True(atlas != null && rect.width > 0 && rect.height > 0 && rect.x >= 0 && rect.y >= 0 &&
+            rect.x + rect.width <= atlas.width && rect.y + rect.height <= atlas.height,
+            "The large H bitmap fits its atlas " + label);
+        bool Bold(string face) => face.IndexOf("Bold", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool Italic(string face) => face.IndexOf("Italic", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            face.IndexOf("Oblique", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool bold = style == FontStyle.Bold || style == FontStyle.BoldAndItalic;
+        bool italic = style == FontStyle.Italic || style == FontStyle.BoldAndItalic;
+        bool matchingFace = Array.Exists(systemFaces, entry =>
+        {
+            int split = entry.LastIndexOf(" - ", StringComparison.Ordinal);
+            if (split < 1 || !entry.Substring(0, split).Equals(asset.faceInfo.familyName, StringComparison.OrdinalIgnoreCase)) return false;
+            string candidate = entry.Substring(split + 3);
+            return Bold(candidate) == bold && Italic(candidate) == italic;
+        });
+        if (matchingFace)
+        {
+            t.Equal(bold, Bold(asset.faceInfo.styleName), "Installed face has the requested Bold style " + label);
+            t.Equal(italic, Italic(asset.faceInfo.styleName), "Installed face has the requested Italic style " + label);
+        }
+        else
+        {
+            t.Equal(bold, Bold(asset.faceInfo.styleName) || (int)Read(font, "SyntheticBold") > 0,
+                "Unavailable Bold face retains the requested appearance " + label);
+            t.Equal(italic, Italic(asset.faceInfo.styleName) || (bool)Read(font, "SyntheticItalic"),
+                "Unavailable Italic face retains the requested appearance " + label);
+        }
+        resources.Add(asset); resources.Add(asset.material); resources.AddRange(asset.atlasTextures);
+    }
     static void CheckOffset(TestContext t, WhimTexDocument doc, TextLayerBehaviour text, Layer layer)
     {
         int oldHeight = doc.height; string oldText = text.text; float oldSize = text.fontSize;
@@ -79,10 +129,21 @@ public static class TextEdgeModeTests
         var resources = new List<UnityEngine.Object>();
         RenderTexture active = RenderTexture.active; bool srgb = GL.sRGBWrite;
         Texture2D sheet = null;
+        var fontMessages = new List<string>();
+        Application.LogCallback capture = (message, stack, kind) =>
+        {
+            if ((kind == LogType.Warning || kind == LogType.Error || kind == LogType.Exception) &&
+                message.IndexOf("font face", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                (message.IndexOf("Unable to load", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 message.IndexOf("Unable to find", StringComparison.OrdinalIgnoreCase) >= 0))
+                fontMessages.Add(message);
+        };
+        Application.logMessageReceived += capture;
         try
         {
             t.Equal(TextEdgeMode.HintedAA, text.edgeMode, "New text defaults to Hinted AA");
             var catalog = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.SystemFontCatalog");
+            string[] systemFaces = FontEngine.GetSystemFontNames() ?? Array.Empty<string>();
             t.True(!string.IsNullOrEmpty(text.fontFamily), "A real installed system font is available");
             var originals = new Dictionary<TextEdgeMode, Color32[]>();
             sheet = new Texture2D(512, 288, TextureFormat.RGBA32, false, true);
@@ -176,12 +237,12 @@ public static class TextEdgeModeTests
                 doc.layers.Clear(); grouped.children.Add(layer); doc.layers.Add(grouped);
                 t.True(Pixels(doc).Any(p => p.a > 0), mode + " works inside a group");
                 grouped.children.Clear(); doc.layers.Clear(); doc.layers.Add(layer); Call(grouped, "ReleaseTransientResources");
-                foreach (int size in new[] { 512, 2048 })
-                {
-                    text.fontSize = size; text.text = "H";
-                    t.True(Pixels(doc).Any(p => p.a > 0), mode + " supports large glyph " + size);
-                }
+                foreach (int size in new[] { 256, 257, 512, 2048 })
+                    CheckLargeGlyph(t, doc, text, size, FontStyle.Normal, systemFaces, resources);
+                foreach (FontStyle style in new[] { FontStyle.Bold, FontStyle.Italic, FontStyle.BoldAndItalic })
+                    CheckLargeGlyph(t, doc, text, 512, style, systemFaces, resources);
                 text.text = "Text 123 ЧЧ"; text.fontSize = 17;
+                text.fontStyle = FontStyle.Normal;
                 text.layoutOffset = Vector2.zero;
             }
             t.True(!originals[TextEdgeMode.Antialiased].SequenceEqual(originals[TextEdgeMode.HintedAA]), "Hinted AA and unhinted AA are distinct native rasters");
@@ -219,9 +280,11 @@ public static class TextEdgeModeTests
             t.True(RenderTexture.active == active && GL.sRGBWrite == srgb, "All edge modes restore caller render state");
             Call(layer, "ReleaseTransientResources");
             t.True(resources.All(obj => obj == null), "Changing settings and disposing releases owned atlases, materials and fonts");
+            t.Equal(0, fontMessages.Count, "Native text rasterization emits no font-face load/find warnings or errors: " + string.Join("; ", fontMessages));
         }
         finally
         {
+            Application.logMessageReceived -= capture;
             RenderTexture.active = active; GL.sRGBWrite = srgb;
             if (sheet != null) UnityEngine.Object.DestroyImmediate(sheet);
             UnityEngine.Object.DestroyImmediate(doc);

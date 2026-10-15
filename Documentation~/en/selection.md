@@ -125,7 +125,7 @@ You can use a hidden layer as the shape.
 | Shortcut | Action |
 | :--- | :--- |
 | `Ctrl+C` | Copy the selected area from the active layer; without an area selection, copy the selected layers. |
-| `Ctrl+Shift+C` | Copy what is visible in that area across all layers. |
+| `Ctrl+Shift+C` | Copy the visible composition in the selected area, or the whole canvas when there is no area selection. |
 | `Ctrl+V` | Insert copied layers, or paste copied pixels onto a new Drawing layer. |
 
 To transfer editable layers, deselect the canvas with `Ctrl+D`, select one or more rows in **Layers**, then press `Ctrl+C`.
@@ -138,11 +138,17 @@ The layer clipboard lasts until another copy, a script reload or closing Unity. 
 With an area selection, only its pixels are copied. On a canvas of the same size, these keep their position;
 on a different-sized canvas, they are centered. `Ctrl+Shift+C` without an area selection copies the whole visible canvas as pixels.
 
+On Windows, these pixel-copy commands also place a PNG image on the system clipboard for pasting into other applications.
+The image preserves transparency and is cropped to the copied region's bounding rectangle.
+WhimTex keeps an HDR copy and its original canvas position for pasting between its windows in the same Unity session,
+while that copy remains on the clipboard. Copying something else replaces it; the next paste uses the new clipboard content.
+Editable-layer copies made with `Ctrl+C` without an area selection stay in WhimTex's layer clipboard.
+On macOS and Linux, pixel copying currently works within WhimTex.
+
 On Windows, you can also copy an image in another application or take a screenshot with `Win+Shift+S`,
 then click Canvas View and press `Ctrl+V`. It becomes a new Drawing layer, centered at its original
 pixel size without cropping the stored image. In an empty document, the canvas takes the image's dimensions.
 PNG transparency is preserved. System image paste supports images up to 16 megapixels and your GPU's texture-size limit.
-Copying inside WhimTex takes priority until you copy something else to the system clipboard.
 You can also copy a direct HTTP(S) image link and press `Ctrl+V`: WhimTex downloads the PNG or JPEG
 as an independent Drawing layer, keeping its original pixels and transparency. It fits inside the canvas,
 centered with its proportions preserved, using the layer transform rather than resizing the image. The same size limits apply;

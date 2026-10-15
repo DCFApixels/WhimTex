@@ -20,6 +20,26 @@ container.
 This page describes the current format implemented by the package. It is an implementation
 reference, not a promise that arbitrary image editors will preserve the document payload.
 
+## Optional comments
+
+Canvas annotations are stored in the optional `comments` block, separate from the main
+`document` model and composite pixels. The block is omitted when the thread list is empty;
+resolved threads remain stored. Missing blocks load as an empty list. A malformed known
+block fails loading with a comment-specific diagnostic rather than silently losing notes.
+
+Its payload is a version-2 tagged `List<WhimTexComment>`. Each thread has a stable `id`,
+bottom-left normalized canvas `anchor`, opaque RGB `color`, `resolved` flag and `messages`. Each message contains
+`id`, `author`, plain `text` and `createdUtcTicks`. Thread and message IDs are globally unique
+within the document. Coordinates must be finite but may fall outside 0..1 after a crop.
+Crop, flips and quarter turns remap anchors; Scale preserves normalized positions.
+
+Limits: 4096 threads, 1..128 messages per thread, 16384 UTF-16 code units per message and
+128 per author. IDs, authors and messages must be nonblank valid Unicode; timestamps are
+valid UTC ticks. Marker color components are finite 0..1, with alpha exactly 1. The default
+is RGB (48, 96, 133) / 255. The encoded block is limited to 16 MiB and uses the normal
+compression/integrity handling. Draft text is UI-local until Post/Save. Comments never
+enter layer composition, thumbnails, image export or pixel clipboard data.
+
 ## Physical layout
 
 ```text

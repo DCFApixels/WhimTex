@@ -9,6 +9,14 @@ namespace DCFApixels.WhimTex
 {
     internal static class LayerRenderingSettingsView
     {
+        private static readonly ChannelMappingSource[] ChannelMappingOrder =
+        {
+            ChannelMappingSource.R, ChannelMappingSource.G, ChannelMappingSource.B, ChannelMappingSource.A, ChannelMappingSource.Luminance,
+            ChannelMappingSource.OneMinusR, ChannelMappingSource.OneMinusG, ChannelMappingSource.OneMinusB, ChannelMappingSource.OneMinusA,
+            ChannelMappingSource.OneMinusLuminance,
+            ChannelMappingSource.RMultiplyA, ChannelMappingSource.GMultiplyA, ChannelMappingSource.BMultiplyA, ChannelMappingSource.LuminanceMultiplyA,
+            ChannelMappingSource.Zero, ChannelMappingSource.One
+        };
         private static readonly (string Name, LayerChannelMapping Value)[] ChannelMappingPresets =
         {
             ("Default", default),
@@ -32,6 +40,11 @@ namespace DCFApixels.WhimTex
             {
                 [0] = ChannelMappingSource.One, [1] = ChannelMappingSource.One, [2] = ChannelMappingSource.One,
                 [3] = ChannelMappingSource.Luminance
+            }),
+            ("1 - Luminance to Alpha", new LayerChannelMapping
+            {
+                [0] = ChannelMappingSource.One, [1] = ChannelMappingSource.One, [2] = ChannelMappingSource.One,
+                [3] = ChannelMappingSource.OneMinusLuminance
             }),
             ("Alpha to Grayscale", new LayerChannelMapping
             {
@@ -165,15 +178,16 @@ namespace DCFApixels.WhimTex
             for (int channel = 0; channel < 4; channel++)
             {
                 int output = channel;
-                var choices = new List<string>(LayerChannelMapping.Labels);
-                var field = new DropdownField(choices, (int)layer.channelMapping[output]) { name = "channelMapping" + LayerChannelMapping.Labels[output] };
+                var choices = new List<string>(ChannelMappingOrder.Length);
+                foreach (var source in ChannelMappingOrder) choices.Add(LayerChannelMapping.Labels[(int)source]);
+                var field = new DropdownField(choices, choices.IndexOf(LayerChannelMapping.Labels[(int)layer.channelMapping[output]])) { name = "channelMapping" + LayerChannelMapping.Labels[output] };
                 TwoChoiceDropdown.Attach(field);
                 field.AddToClassList("whimtex-channel-mapping-channel");
-                field.tooltip = "Output " + LayerChannelMapping.Labels[output] + ": select a channel, inverse, constant or RGB luminance. Products use the original alpha. Applied after FX in linear space, before Color Range and blending.";
+                field.tooltip = "Output " + LayerChannelMapping.Labels[output] + ": select a channel, inverse, constant, RGB luminance or its inverse. Products use the original alpha. Applied after FX in linear space, before Color Range and blending.";
                 bindings.Track(field, () => LayerChannelMapping.Labels[(int)layer.channelMapping[output]]);
                 field.RegisterValueChangedCallback(evt =>
                 {
-                    int source = choices.IndexOf(evt.newValue);
+                    int source = Array.IndexOf(LayerChannelMapping.Labels, evt.newValue);
                     if (source >= 0) apply("Change Layer Channel Mapping", () => layer.channelMapping[output] = (ChannelMappingSource)source);
                 });
                 channels.Add(field);

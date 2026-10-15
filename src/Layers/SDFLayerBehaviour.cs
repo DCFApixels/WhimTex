@@ -68,7 +68,7 @@ namespace DCFApixels.WhimTex
                     NativeArrayOptions.UninitializedMemory);
                 if (metric == DistanceMetric.MTSDF)
                     multiChannel = new NativeArray<float4>(inputPixels.Length, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-                bool cacheDistances = metric == DistanceMetric.CornerFit || metric == DistanceMetric.Spring || metric == DistanceMetric.Rbf;
+                bool cacheDistances = ReconstructedDistanceCache.Supports(metric);
                 if (cacheDistances) reconstructedCache ??= new ReconstructedDistanceCache();
                 else ReleaseDistancePreparation();
                 ComputeCachedSourceFieldCore(
@@ -240,7 +240,9 @@ namespace DCFApixels.WhimTex
             if (multiChannel.IsCreated)
             {
                 using var channels = new NativeArray<float4>(w * h, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-                DistanceFieldUtility.ComputeMtsdfDistancePhysical(extended, channels, w, h, threshold, channel, contourMergeDistance, sharpMode);
+                if (cache != null)
+                    cache.ComputeField(extended, distances, channels, w, h, threshold, channel, metric, miterLimit, contourMergeDistance, sharpMode);
+                else DistanceFieldUtility.ComputeMtsdfDistancePhysical(extended, channels, w, h, threshold, channel, contourMergeDistance, sharpMode);
                 using (DistanceFieldTiming.Measure("source.sample"))
                 new SdfSampleMultiSourceJob { source = channels, output = multiChannel, scalar = output,
                     width = width, height = height, extendedWidth = w, extendedHeight = h,
@@ -251,7 +253,7 @@ namespace DCFApixels.WhimTex
             if (cache != null)
             {
                 DistanceFieldUtility.ValidatePhysical(extended.Length, distances.Length, w, h, channel, metric, miterLimit, contourMergeDistance);
-                cache.Compute(extended, distances, w, h, threshold, channel, metric, miterLimit, sharpMode);
+                cache.ComputeField(extended, distances, default, w, h, threshold, channel, metric, miterLimit, contourMergeDistance, sharpMode);
             }
             else DistanceFieldUtility.ComputeArtisticDistancePhysical(extended, distances, w, h, threshold, channel, metric, miterLimit, contourMergeDistance, sharpMode);
             using (DistanceFieldTiming.Measure("source.sample"))
@@ -401,9 +403,10 @@ namespace DCFApixels.WhimTex
         {
             ValidatePhysical(input.Length, output.Length, width, height, sourceChannel, metric, miterLimit, contourMergeDistance);
             ValidateSharpMode(sharpMode);
-            if (metric == DistanceMetric.Rbf)
+            if (metric == DistanceMetric.Rbf || metric == DistanceMetric.RbfDual)
             {
-                RbfDistanceField.Compute(input, output, width, height, threshold, sourceChannel, miterLimit, sharpMode);
+                RbfDistanceField.Compute(input, output, width, height, threshold, sourceChannel, miterLimit, sharpMode,
+                    dualContouring: metric == DistanceMetric.RbfDual);
                 return;
             }
             if (metric == DistanceMetric.AAEDT)

@@ -52,7 +52,8 @@ namespace DCFApixels.WhimTex
         [InspectorName("Contour AA")] Contour = 11,
         [InspectorName("Corner Fit AA")] CornerFit = 12,
         [InspectorName("Spring Simulation")] Spring = 13,
-        [InspectorName("RBF Your SDF")] Rbf = 14
+        [InspectorName("RBF Your SDF")] Rbf = 14,
+        [InspectorName("RBF Dual Contouring")] RbfDual = 15
     }
 
     public enum EffectInputMode

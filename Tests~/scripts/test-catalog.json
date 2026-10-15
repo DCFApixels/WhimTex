@@ -2,6 +2,8 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "comments": ["document-comments-v1", "comment-tool-v1"],
+    "image-clipboard": ["image-clipboard-write-v1", "image-clipboard-native-v1"],
     "selection-edges": ["selection-edges-v1", "canvas-selection-v2", "area-selection-paint-v2", "uv-islands-unity-v2", "lasso-editing-v2", "freehand-lasso-v2"],
     "lasso": ["lasso-editing-v2", "freehand-lasso-v2", "selection-edges-v1", "canvas-selection-v2", "marquee-constraints-v2"],
     "distance-corner-parameters": ["distance-corner-parameters-v1", "distance-reconstruction-accuracy-v1", "distance-reconstruction-boundaries-v1", "distance-reconstruction-safety-v1", "distance-reconstruction-cache-v1", "distance-reconstruction-render-cache-v1", "distance-field-render-v2"],
@@ -25,6 +27,7 @@
     ],
     "text-edges": [
       "text-edge-modes",
+      "text-font-atlas",
       "text-layer",
       "text-horizontal-scale",
       "text-layer-ui",
@@ -219,6 +222,9 @@
       "reference-fixtures"
     ],
     "verify": [
+      "document-comments-v1", "comment-tool-v1",
+      "image-clipboard-write-v1",
+      "image-clipboard-native-v1",
       "selection-edges-v1",
       "freehand-lasso-v2",
       "lasso-editing-v2",
@@ -244,6 +250,7 @@
       "shader-fx-seed-parameters",
       "halftone",
       "text-layer",
+      "text-font-atlas",
       "text-layer-ui",
       "text-edge-modes",
       "text-frame-handles",
@@ -748,6 +755,9 @@
       "layer-drop-target-v1"
     ],
     "regressions": [
+      "document-comments-v1", "comment-tool-v1",
+      "image-clipboard-write-v1",
+      "image-clipboard-native-v1",
       "selection-edges-v1",
       "freehand-lasso-v2",
       "lasso-editing-v2",
@@ -773,6 +783,7 @@
       "shader-fx-seed-parameters",
       "halftone",
       "text-layer",
+      "text-font-atlas",
       "text-layer-ui",
       "text-edge-modes",
       "text-frame-handles",
@@ -1491,6 +1502,7 @@
       "alpha-presence-v1",
       "distance-field-render-v2",
       "text-horizontal-scale",
+      "text-font-atlas",
       "selective-hsv",
       "channel-mapping-ui",
       "smudge-hybrid-integration",
@@ -1635,6 +1647,7 @@
       "distance-field-render-v2",
       "text-horizontal-scale",
       "text-layer",
+      "text-font-atlas",
       "text-layer-ui",
       "text-edge-modes",
       "text-frame-handles",
@@ -1767,6 +1780,8 @@
       "reference-fixtures"
     ],
     "clipboard": [
+      "image-clipboard-write-v1",
+      "image-clipboard-native-v1",
       "brush-clipboard-v2",
       "gradient-clipboard-cleanup-v2",
       "procedural-clipboard-v2",
@@ -1862,6 +1877,7 @@
       "canvas-header-brush-layout"
     ],
     "canvas": [
+      "comment-tool-v1",
       "selection-edges-v1",
       "freehand-lasso-v2",
       "lasso-editing-v2",
@@ -1903,6 +1919,7 @@
       "layer-opacity-slider-v1"
     ],
     "documents": [
+      "document-comments-v1",
       "document-json-schema-v2",
       "document-title-v2",
       "empty-document-save-v2",
@@ -2076,6 +2093,63 @@
   },
   "scenarios": [
     {
+      "id": "document-comments-v1",
+      "file": "Tests~/Cases/Documents/DocumentCommentsTests.cs",
+      "runner": "run_script", "entry": "DocumentCommentsTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": [], "groups": ["documents", "comments"],
+      "prerequisites": "Idle assigned Editor and compiled comment model.",
+      "setup": "In-memory models, textures and TIFF bytes; validate limits, optional blocks, malformed input, copies, composite pixels and canvas geometry. No files, assets, windows or global Undo.",
+      "teardown": "Destroy owned models/textures and restore render state.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "comment-tool-v1",
+      "file": "Tests~/Cases/Canvas/CommentToolTests.cs",
+      "runner": "run_script", "entry": "CommentToolTests.Start", "args": ["$runId"],
+      "category": "regression", "timeoutMs": 60000, "effects": ["windows", "user-state", "temp-files"], "groups": ["canvas", "comments"],
+      "prerequisites": "Idle graphical assigned Editor and compiled Comment tool.",
+      "setup": "Owned unsaved window/document; public pointer and key events, post/reply/edit/resolve/delete, owned Undo/Redo, navigation, cancellation, empty canvas, comments drawer, colored rows, resolved rows, virtualization, scroll retention and short-window layout. Public repaint captures to Temp/WhimTex/comment-tool-preview.png, comment-list-preview.png and comment-list-narrow-preview.png.",
+      "teardown": "Clear only owned Undo, close owned window, destroy owned document and restore captured tool preferences/focus. No clipboard writes or assets.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs", "Tests~/Framework/Unity/AsyncD.cs"],
+      "async": {"entry": "CommentToolTests.Poll", "args": ["$runId"], "pollMs": 100},
+      "cancel": {"entry": "CommentToolTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "CommentToolTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "image-clipboard-write-v1",
+      "file": "Tests~/Cases/Clipboard/ImageClipboardWriteTests.cs",
+      "runner": "run_script",
+      "entry": "ImageClipboardWriteTests.RunManaged",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["unity", "clipboard"],
+      "prerequisites": "Reviewed idle Unity Editor for D:/DCFA/Projects/Test6.6 with the package available; no concurrent tests or compilation. No OS clipboard access is required.",
+      "setup": "Encode independent tiny RGBA fixtures and construct an internal HDR clipboard snapshot; verify DIBV5 metadata, row/channel/alpha encoding and floating-point paste placement on matching and different canvas sizes.",
+      "teardown": "Destroy only the owned decoded and pasted textures in finally blocks; do not change OS clipboard, documents, windows or package clipboard state.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "image-clipboard-native-v1",
+      "file": "Tests~/Cases/Clipboard/ImageClipboardWriteTests.cs",
+      "runner": "run_script",
+      "entry": "ImageClipboardWriteTests.RunNative",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state"],
+      "groups": ["unity", "clipboard", "selection"],
+      "prerequisites": "Reviewed idle Windows Unity Editor for D:/DCFA/Projects/Test6.6 with package and shaders available. Complete safe capture of every existing clipboard format must succeed within 64 supported memory formats and 4 MiB total; unsupported handles, OLE formats, unavailable data or concurrent changes return SKIP before mutation. No concurrent tests, compilation or pending clipboard fixture recovery.",
+      "setup": "Capture all original clipboard bytes in memory, detach borrowed package clipboard state, and use owned transient windows/documents/textures. Verify PNG/DIBV5 publication, straight RGBA readback, cropped selection coverage, internal HDR priority and placement, merged copy, source independence and external replacement invalidation.",
+      "teardown": "Dispose only owned resources and scoped Undo, restore borrowed graphics/focus/selection/preferences and package clipboard state, and verify restoration of every original clipboard format and byte while fixture ownership is current. Never overwrite subsequent external clipboard changes. A failed owned restoration retains in-memory recovery state and reports recoveryRequired; do not rerun before resolving it.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
       "id": "selection-edges-v1",
       "file": "Tests~/Cases/Selection/SelectionEdgeTests.cs",
       "runner": "run_script", "entry": "SelectionEdgeTests.Start", "args": ["$runId"],
@@ -2139,6 +2213,282 @@
       "prerequisites": "Idle matching Editor; serial execution; no working document changes.",
       "setup": "Two small AA stars, five sharp algorithms and two extension modes; finite fields, MTSDF channel/scalar agreement, mode-aware cache, detached JSON roundtrip and Properties controls on a transient test window.",
       "teardown": "Dispose native arrays, caches, detached documents and preview texture; close owned test windows and restore prior focus. Unique comparison PNG remains under project Temp/WhimTex.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-rbf-opt-capture-small",
+      "file": "Tests~/Cases/Painting/RbfOptimizationTests.cs",
+      "runner": "run_script",
+      "entry": "RbfOptimizationTests.Capture",
+      "args": [
+        "small"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-rbf-optimization"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Editor; capture BEFORE changing production RBF, refuses overwrite.",
+      "setup": "Fresh CPU fields, half-pixel contour and sharp distance; same fixed raster inputs, no field cache. Small edge/threshold/mode matrix or five cold builds at 512/1024. Timings exclude source generation and input/output array allocation.",
+      "teardown": "Dispose owned NativeArrays and restore package timing receiver. Snapshot and phase CSV only under project Temp/WhimTex. No working documents or assets.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-rbf-opt-compare-small",
+      "file": "Tests~/Cases/Painting/RbfOptimizationTests.cs",
+      "runner": "run_script",
+      "entry": "RbfOptimizationTests.Compare",
+      "args": [
+        "small"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-rbf-optimization"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Editor; requires authenticated pre-change session snapshot.",
+      "setup": "Fresh CPU fields, half-pixel contour and sharp distance; same fixed raster inputs, no field cache. Small edge/threshold/mode matrix or five cold builds at 512/1024. Timings exclude source generation and input/output array allocation.",
+      "teardown": "Dispose owned NativeArrays and restore package timing receiver. Snapshot and phase CSV only under project Temp/WhimTex. No working documents or assets.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-rbf-opt-capture-star512",
+      "file": "Tests~/Cases/Painting/RbfOptimizationTests.cs",
+      "runner": "run_script",
+      "entry": "RbfOptimizationTests.Capture",
+      "args": [
+        "star512"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-rbf-optimization"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Editor; capture BEFORE changing production RBF, refuses overwrite.",
+      "setup": "Fresh CPU fields, half-pixel contour and sharp distance; same fixed raster inputs, no field cache. Small edge/threshold/mode matrix or five cold builds at 512/1024. Timings exclude source generation and input/output array allocation.",
+      "teardown": "Dispose owned NativeArrays and restore package timing receiver. Snapshot and phase CSV only under project Temp/WhimTex. No working documents or assets.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-rbf-opt-compare-star512",
+      "file": "Tests~/Cases/Painting/RbfOptimizationTests.cs",
+      "runner": "run_script",
+      "entry": "RbfOptimizationTests.Compare",
+      "args": [
+        "star512"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-rbf-optimization"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Editor; requires authenticated pre-change session snapshot.",
+      "setup": "Fresh CPU fields, half-pixel contour and sharp distance; same fixed raster inputs, no field cache. Small edge/threshold/mode matrix or five cold builds at 512/1024. Timings exclude source generation and input/output array allocation.",
+      "teardown": "Dispose owned NativeArrays and restore package timing receiver. Snapshot and phase CSV only under project Temp/WhimTex. No working documents or assets.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-rbf-opt-capture-rings512",
+      "file": "Tests~/Cases/Painting/RbfOptimizationTests.cs",
+      "runner": "run_script",
+      "entry": "RbfOptimizationTests.Capture",
+      "args": [
+        "rings512"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-rbf-optimization"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Editor; capture BEFORE changing production RBF, refuses overwrite.",
+      "setup": "Fresh CPU fields, half-pixel contour and sharp distance; same fixed raster inputs, no field cache. Small edge/threshold/mode matrix or five cold builds at 512/1024. Timings exclude source generation and input/output array allocation.",
+      "teardown": "Dispose owned NativeArrays and restore package timing receiver. Snapshot and phase CSV only under project Temp/WhimTex. No working documents or assets.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-rbf-opt-compare-rings512",
+      "file": "Tests~/Cases/Painting/RbfOptimizationTests.cs",
+      "runner": "run_script",
+      "entry": "RbfOptimizationTests.Compare",
+      "args": [
+        "rings512"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-rbf-optimization"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Editor; requires authenticated pre-change session snapshot.",
+      "setup": "Fresh CPU fields, half-pixel contour and sharp distance; same fixed raster inputs, no field cache. Small edge/threshold/mode matrix or five cold builds at 512/1024. Timings exclude source generation and input/output array allocation.",
+      "teardown": "Dispose owned NativeArrays and restore package timing receiver. Snapshot and phase CSV only under project Temp/WhimTex. No working documents or assets.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-rbf-opt-capture-star1024",
+      "file": "Tests~/Cases/Painting/RbfOptimizationTests.cs",
+      "runner": "run_script",
+      "entry": "RbfOptimizationTests.Capture",
+      "args": [
+        "star1024"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-rbf-optimization"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Editor; capture BEFORE changing production RBF, refuses overwrite.",
+      "setup": "Fresh CPU fields, half-pixel contour and sharp distance; same fixed raster inputs, no field cache. Small edge/threshold/mode matrix or five cold builds at 512/1024. Timings exclude source generation and input/output array allocation.",
+      "teardown": "Dispose owned NativeArrays and restore package timing receiver. Snapshot and phase CSV only under project Temp/WhimTex. No working documents or assets.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-rbf-opt-compare-star1024",
+      "file": "Tests~/Cases/Painting/RbfOptimizationTests.cs",
+      "runner": "run_script",
+      "entry": "RbfOptimizationTests.Compare",
+      "args": [
+        "star1024"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-rbf-optimization"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle matching Editor; requires authenticated pre-change session snapshot.",
+      "setup": "Fresh CPU fields, half-pixel contour and sharp distance; same fixed raster inputs, no field cache. Small edge/threshold/mode matrix or five cold builds at 512/1024. Timings exclude source generation and input/output array allocation.",
+      "teardown": "Dispose owned NativeArrays and restore package timing receiver. Snapshot and phase CSV only under project Temp/WhimTex. No working documents or assets.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-classic-remap-cache-v1",
+      "file": "Tests~/Cases/Layers/ClassicDistanceCacheTests.cs",
+      "runner": "run_script", "entry": "ClassicDistanceCacheTests.Run", "args": [],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": [],
+      "groups": ["layers", "distance-preparation"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor with sources compiled. Transient owned models/textures only; no working document edits.",
+      "setup": "Six classic algorithms, SDF range and Outline width reuse compared to independently rebuilt pixels; MTSDF raw RGBA reuse, source/threshold/merge/miter/mode invalidation, disposal.",
+      "teardown": "Dispose every owned cache and texture, restore caller render state; no persistent assets or output files.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-sharp-quality-baseline-v1",
+      "file": "Tests~/Cases/Painting/SharpQualityPrototypeTests.cs",
+      "runner": "run_script", "entry": "SharpQualityPrototypeTests.Run", "args": ["baseline"],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-sharp-quality"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor. Baseline capture is intentionally one-time, requires absent Temp/WhimTex/sharp-quality-baseline-20261014.bin.",
+      "setup": "Eight synthetic raster cases; Sharp and MTSDF Guarded Sharp; capture baseline floats and comparison PNG.",
+      "teardown": "Dispose owned arrays and preview; artifacts retained under Temp/WhimTex. No working document changes.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-sharp-quality-after-v1",
+      "file": "Tests~/Cases/Painting/SharpQualityPrototypeTests.cs",
+      "runner": "run_script", "entry": "SharpQualityPrototypeTests.Run", "args": ["after"],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-sharp-quality"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor with current sources compiled; baseline already captured.",
+      "setup": "Same eight cases after changes; finite fields, preserved hole, visual before/after; not an accuracy certification.",
+      "teardown": "Dispose owned arrays and preview; artifacts retained under Temp/WhimTex. No working document changes.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-rbf-dual-prototype-v1",
+      "file": "Tests~/Cases/Painting/RbfDualPrototypeTests.cs",
+      "runner": "run_script", "entry": "RbfDualPrototypeTests.Run", "args": [],
+      "category": "diagnostic", "timeoutMs": 60000, "effects": ["temp-files"],
+      "groups": ["painting", "distance-rbf-dual"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor with current sources compiled, serial execution; no working document changes.",
+      "setup": "Six 64x64 raster cases in both sharp policies, three thresholds, one-dimensional fallback, finite/sign checks and retained geometry switching. Write comparison PNG only for prototype visual evaluation.",
+      "teardown": "Dispose owned arrays, caches and preview texture. Unique comparison PNG stays under project Temp/WhimTex.",
       "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
     },
     {
@@ -2361,8 +2711,25 @@
       "effects": ["temp-files", "user-state"],
       "groups": ["layers", "rendering", "documents"],
       "prerequisites": "Idle graphical Editor with a supported system font and current text shaders.",
-      "setup": "Owned transient text documents and native font atlases; comparison PNG in Temp/WhimTex. Temporarily simulate missing font in the package catalog.",
-      "teardown": "Restore font catalog and render state; destroy only owned resources. No imported assets or user documents.",
+      "setup": "Owned transient text documents and native font atlases; compare all edge modes at 256/257/512/2048 pixels and all styles at 512 pixels, capture font-face load warnings, and write a comparison PNG in Temp/WhimTex. Temporarily simulate missing font in the package catalog.",
+      "teardown": "Restore font catalog and render state, unsubscribe the owned log callback, and destroy only owned resources. No imported assets or user documents.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "text-font-atlas",
+      "file": "Tests~/Cases/Layers/TextFontAtlasTests.cs",
+      "runner": "run_script",
+      "entry": "TextFontAtlasTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["user-state"],
+      "groups": ["layers", "rendering"],
+      "prerequisites": "Idle matching graphical Editor with a readable installed TTF. A TTC collection with a supported nonzero face is required for full coverage; an unavailable collection returns SKIP.",
+      "setup": "Owned large bitmap font atlases. Compare selected TTF/TTC glyph indices and metrics against independently loaded public FontEngine data, validate bitmap coverage and repeated population, and observe font-load warnings without suppressing them.",
+      "teardown": "Destroy all owned font resources, unsubscribe the log callback, and restore the initial public font face and render state. No assets, user documents, windows or preferences are modified.",
       "result": { "kind": "structured" },
       "supportFiles": ["Tests~/Framework/TestApi.cs"],
       "reviewFiles": []

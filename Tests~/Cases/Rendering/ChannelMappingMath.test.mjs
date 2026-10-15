@@ -11,9 +11,9 @@ context.case("ChannelMappingMath original assertion inputs and source contracts"
   const shader = read('../../../src/Shaders/Hdr.shader');
   const names = model.match(/enum ChannelMappingSource\s*\{([^}]+)\}/)[1].split(',').map(s => s.trim());
   assert.deepEqual(names, ['R','G','B','A','OneMinusR','OneMinusG','OneMinusB','OneMinusA','Zero','One',
-    'RMultiplyA','GMultiplyA','BMultiplyA','Luminance','LuminanceMultiplyA']);
+    'RMultiplyA','GMultiplyA','BMultiplyA','Luminance','LuminanceMultiplyA','OneMinusLuminance']);
   const labels = [...model.match(/Labels = \{([^}]+)\}/)[1].matchAll(/"([^"]+)"/g)].map(m => m[1]);
-  assert.deepEqual(labels, ['R','G','B','A','1-R','1-G','1-B','1-A','0','1','R * A','G * A','B * A','Luminance','Luminance * A']);
+  assert.deepEqual(labels, ['R','G','B','A','1-R','1-G','1-B','1-A','0','1','R * A','G * A','B * A','Luminance','Luminance * A','1 - Luminance']);
   assert.ok(names.length <= 16);
 
   // Translate the scalar HLSL helper, so expected values are checked against the actual source.
@@ -34,13 +34,14 @@ context.case("ChannelMappingMath original assertion inputs and source contracts"
   assert.equal(presets.has('A'),false,'Luminance to Alpha already covers the A preset');
   for (const c of [[.3,.6,.8,.7],[2,-3,6,.25],[2,.5,.25,0],[2,.5,.25,1]]) {
     const luminance = .2126*c[0]+.7152*c[1]+.0722*c[2];
-    const expected = [...c,...c.map(v => 1-v),0,1,...c.slice(0,3).map(v => v*c[3]),luminance,luminance*c[3]];
+    const expected = [...c,...c.map(v => 1-v),0,1,...c.slice(0,3).map(v => v*c[3]),luminance,luminance*c[3],1-luminance];
     for (let source=0;source<labels.length;source++) assert.equal(channel(c,source),expected[source]);
     assert.deepEqual([10,11,12,9].map(source => channel(c,source)),[c[0]*c[3],c[1]*c[3],c[2]*c[3],1]);
     for (const [name,expected] of [
       ['Default without Alpha',[...c.slice(0,3),1]],
       ['R',[luminance,0,0,1]],['G',[0,luminance,0,1]],['B',[0,0,luminance,1]],
-      ['Luminance to Alpha',[1,1,1,luminance]]
+      ['Luminance to Alpha',[1,1,1,luminance]],
+      ['1 - Luminance to Alpha',[1,1,1,1-luminance]]
     ]) {
       assert.ok(presets.has(name),'Builtin preset exists: '+name);
       assert.deepEqual(presets.get(name).map(source => channel(c,source)),expected,name+' ignores original alpha when packing brightness');
@@ -63,6 +64,9 @@ context.case("ChannelMappingMath original assertion inputs and source contracts"
   assert.ok(channel([1,0,0,1],13) < channel([0,1,0,1],13), 'Weighted brightness is not a simple RGB average');
   assert.equal(channel([1,1,1,0],13),1, 'Luminance ignores alpha');
   assert.equal(channel([1,1,1,0],14),0, 'Luminance product respects transparent input');
+  assert.equal(channel([0,0,0,0],15),1, 'Inverse luminance ignores alpha');
+  assert.equal(channel([1,1,1,0],15),0, 'Inverse luminance maps white to zero');
+  assert.equal(channel([2,2,2,1],15),-1, 'Inverse luminance preserves signed HDR arithmetic before Color Range');
 
 });
 await finish(context);

@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
     // Adaptations: raster-derived distances, fixed overlapping local patches,
     // per-patch tangent refinement, and half-pixel contour extraction. The final
     // stage uses experimental unrestricted sharp joins, not Euclidean redistancing.
-    internal static class RbfDistanceField
+    internal static partial class RbfDistanceField
     {
         const int SampleSide = 5, SampleCount = SampleSide * SampleSide;
         const int MaxCenters = SampleCount * 2, MaxSystem = MaxCenters + 3;
@@ -25,9 +25,10 @@ namespace DCFApixels.WhimTex
 
         internal static void Compute(NativeArray<Color32> input, NativeArray<float> output,
             int width, int height, byte threshold, int channel, float miterLimit = 4,
-            SharpDistanceMode sharpMode = SharpDistanceMode.Unrestricted)
+            SharpDistanceMode sharpMode = SharpDistanceMode.Unrestricted, bool dualContouring = false)
         {
-            DistanceFieldUtility.Validate(input.Length, output.Length, width, height, channel, DistanceMetric.Rbf, miterLimit, 0);
+            var metric = dualContouring ? DistanceMetric.RbfDual : DistanceMetric.Rbf;
+            DistanceFieldUtility.Validate(input.Length, output.Length, width, height, channel, metric, miterLimit, 0);
             // Degenerate one-dimensional input has no 2D reconstruction problem.
             if (width == 1 || height == 1)
             {
@@ -35,13 +36,13 @@ namespace DCFApixels.WhimTex
                     DistanceMetric.EuclideanAntialiased);
                 return;
             }
-            using var geometry = Prepare(input, width, height, threshold, channel, Allocator.TempJob, sharpMode);
-            ArtisticDistanceField.ComputePrepared(geometry, input, output, width, threshold, channel, DistanceMetric.Rbf, miterLimit);
+            using var geometry = Prepare(input, width, height, threshold, channel, Allocator.TempJob, sharpMode, dualContouring);
+            ArtisticDistanceField.ComputePrepared(geometry, input, output, width, threshold, channel, metric, miterLimit);
         }
 
         internal static ArtisticDistanceField.Geometry Prepare(NativeArray<Color32> input,
             int width, int height, byte threshold, int channel, Allocator allocator = Allocator.Persistent,
-            SharpDistanceMode sharpMode = SharpDistanceMode.Unrestricted)
+            SharpDistanceMode sharpMode = SharpDistanceMode.Unrestricted, bool dualContouring = false)
         {
             DistanceFieldUtility.Validate(input.Length, input.Length, width, height, channel, DistanceMetric.Rbf, 4, 0);
             if (width == 1 || height == 1) return null;
@@ -61,13 +62,24 @@ namespace DCFApixels.WhimTex
             using var counts = new NativeArray<int>(patches, Allocator.TempJob);
             using var failures = new NativeArray<int>(patches, Allocator.TempJob);
             using (DistanceFieldTiming.Measure("rbf.fit"))
-            // Allocator.Temp storage is reclaimed at job completion, not at each
-            // individual Dispose. Bound the amount of per-patch solver scratch
-            // retained by one scheduled job (about 4.6 MiB for 128 patches).
-            for (int first = 0; first < patches; first += 128)
-                new FitPatchesJob { source = source, width = width, height = height, columns = columns, first = first,
-                    centers = centers, weights = weights, counts = counts, failures = failures }
-                    .Schedule(math.min(128, patches - first), 1).Complete();
+            {
+                using var active = new NativeList<int>(Allocator.TempJob);
+                for (int patch = 0; patch < patches; patch++)
+                {
+                    int cx = math.min(patch % columns * Stride, width - 1);
+                    int cy = math.min(patch / columns * Stride, height - 1);
+                    // Same boundary band as the solver; inactive models remain empty.
+                    if (math.abs(source[cy * width + cx]) <= 8) active.Add(patch);
+                }
+                // Each lane owns one reusable workspace. Cap total Temp scratch
+                // at about 4.6 MiB, without a main-thread wait every 128 patches.
+                int lanes = math.min(128, active.Length);
+                if (lanes > 0)
+                    new FitPatchesJob { source = source, width = width, height = height, columns = columns,
+                        active = active.AsArray(), lanes = lanes,
+                        centers = centers, weights = weights, counts = counts, failures = failures }
+                        .Schedule(lanes, 1).Complete();
+            }
             int failed = 0;
             for (int i = 0; i < failures.Length; i++) failed += failures[i];
             if (failed != 0)
@@ -78,27 +90,28 @@ namespace DCFApixels.WhimTex
                     rows = rows, centers = centers, weights = weights, counts = counts,
                     field = field, gridWidth = gridWidth }.Schedule(field.Length, 64).Complete();
             using (DistanceFieldTiming.Measure("rbf.prepareSharp"))
+            {
+                if (dualContouring)
+                    return PrepareDualContour(new ContinuousField { source = source, width = width, height = height,
+                        columns = columns, rows = rows, centers = centers, weights = weights, counts = counts },
+                        field, gridWidth, gridHeight, input, width, height, threshold, channel, allocator, sharpMode);
                 return ArtisticDistanceField.PrepareRbfContour(field, gridWidth, gridHeight, input, width, height,
                     threshold, channel, allocator, sharpMode);
+            }
         }
 
         [BurstCompile(FloatMode = FloatMode.Strict)]
         struct FitPatchesJob : IJobParallelFor
         {
             [ReadOnly] public NativeArray<float> source;
+            [ReadOnly] public NativeArray<int> active;
             [NativeDisableParallelForRestriction] public NativeArray<double2> centers;
             [NativeDisableParallelForRestriction] public NativeArray<double> weights;
             [WriteOnly, NativeDisableParallelForRestriction] public NativeArray<int> counts, failures;
-            public int width, height, columns, first;
+            public int width, height, columns, lanes;
 
             public void Execute(int local)
             {
-                int patch = first + local;
-                int cx = math.min(patch % columns * Stride, width - 1);
-                int cy = math.min(patch / columns * Stride, height - 1);
-                // Fit only a boundary band. Far-field values are used for signs,
-                // not as the final distance: that is recomputed from the contour.
-                if (math.abs(source[cy * width + cx]) > 8) return;
                 using var points = new NativeArray<double2>(MaxCenters, Allocator.Temp);
                 using var values = new NativeArray<double>(MaxCenters, Allocator.Temp);
                 using var modelPoints = new NativeArray<double2>(MaxCenters, Allocator.Temp);
@@ -111,8 +124,16 @@ namespace DCFApixels.WhimTex
                 using var tangents = new NativeArray<double2>(SampleCount, Allocator.Temp);
                 using var directions = new NativeArray<double2>(SampleCount, Allocator.Temp);
                 using var status = new NativeArray<int>(SampleCount, Allocator.Temp);
-                Fit(patch, cx, cy, points, values, modelPoints, modelWeights, solution, matrix,
-                    arcs, arcCounts, arcLengths, tangents, directions, status);
+                // Interleave the active patches to spread expensive fits across
+                // lanes. Every model and every workspace still has one writer.
+                for (int index = local; index < active.Length; index += lanes)
+                {
+                    int patch = active[index];
+                    int cx = math.min(patch % columns * Stride, width - 1);
+                    int cy = math.min(patch / columns * Stride, height - 1);
+                    Fit(patch, cx, cy, points, values, modelPoints, modelWeights, solution, matrix,
+                        arcs, arcCounts, arcLengths, tangents, directions, status);
+                }
             }
 
             void Fit(int patch, int cx, int cy, NativeArray<double2> points, NativeArray<double> values,
@@ -121,6 +142,12 @@ namespace DCFApixels.WhimTex
                 NativeArray<int> arcCounts, NativeArray<double> arcLengths, NativeArray<double2> tangents,
                 NativeArray<double2> directions, NativeArray<int> status)
             {
+                for (int i = 0; i < SampleCount; i++)
+                {
+                    arcCounts[i] = 0; arcLengths[i] = 0;
+                    tangents[i] = default; directions[i] = default; status[i] = 0;
+                }
+                // All other scratch is written before use below or in Solve.
                 int samples = 0;
                 for (int y = -4; y <= 4; y += 2)
                 for (int x = -4; x <= 4; x += 2)
@@ -156,7 +183,7 @@ namespace DCFApixels.WhimTex
                         {
                             double theta = (exposed[a].x + exposed[a].y) * .5;
                             double2 p = points[i] + math.abs(d) * Unit(theta);
-                            double error = math.abs(Evaluate(modelPoints, modelWeights, fitted, p, out _));
+                            double error = math.abs(EvaluateValue(modelPoints, modelWeights, fitted, p));
                             if (error < best) { best = error; tangents[i] = p; status[i] = 2; }
                         }
                     }
@@ -177,7 +204,7 @@ namespace DCFApixels.WhimTex
                             for (int k = 0; k < 64; k++)
                             {
                                 double2 u = Unit(k * Tau / 64);
-                                double f = Evaluate(modelPoints, modelWeights, fitted, points[i] - d * u, out _) / d;
+                                double f = EvaluateValue(modelPoints, modelWeights, fitted, points[i] - d * u) / d;
                                 if (f < best) { best = f; g = u; }
                             }
                         }
@@ -315,7 +342,7 @@ namespace DCFApixels.WhimTex
                 for (int trial = 0; trial < 12; trial++)
                 {
                     double2 next = math.normalize(direction + rate * tangent);
-                    double nextValue = Evaluate(centers, weights, n, p - d * next, out _) / d;
+                    double nextValue = EvaluateValue(centers, weights, n, p - d * next) / d;
                     if (nextValue <= value - 1e-4 * rate * norm * norm)
                     { direction = next; accepted = true; break; }
                     rate *= .5;
@@ -367,8 +394,23 @@ namespace DCFApixels.WhimTex
             }
             // Reject numerically unusable fits instead of emitting distant spikes.
             for (int i = 0; i < n; i++)
-                if (math.abs(Evaluate(p, solution, n, p[i], out _) - values[i]) > 1e-5) return false;
+                if (math.abs(EvaluateValue(p, solution, n, p[i]) - values[i]) > 1e-5) return false;
             return true;
+        }
+
+        // Preserve the scalar operation order of Evaluate. Most callers do not
+        // need the derivative; only the tangent projection requests both.
+        static double EvaluateValue(NativeArray<double2> centers, NativeArray<double> weights, int n,
+            double2 p, int centerOffset = 0, int weightOffset = 0)
+        {
+            double value = weights[weightOffset + n] + weights[weightOffset + n + 1] * p.x + weights[weightOffset + n + 2] * p.y;
+            for (int i = 0; i < n; i++)
+            {
+                double2 delta = p - centers[centerOffset + i];
+                double r2 = math.lengthsq(delta), r = math.sqrt(r2), w = weights[weightOffset + i];
+                value += w * r2 * r;
+            }
+            return value;
         }
 
         static double Evaluate(NativeArray<double2> centers, NativeArray<double> weights, int n,
@@ -404,16 +446,21 @@ namespace DCFApixels.WhimTex
                 double sum = 0, total = 0;
                 int cellX = x / Stride, cellY = y / Stride;
                 for (int py = math.max(0, cellY - 1); py <= math.min(rows - 1, cellY + 2); py++)
-                for (int px = math.max(0, cellX - 1); px <= math.min(columns - 1, cellX + 2); px++)
                 {
-                    int patch = py * columns + px, n = counts[patch];
-                    if (n == 0) continue;
-                    double2 q = ((double2)p - new double2(math.min(px * Stride, width - 1), math.min(py * Stride, height - 1))) / Scale;
-                    double r = math.length(q);
-                    if (r >= 1) continue;
-                    double s = 1 - r, weight = s * s * s * s * (4 * r + 1);
-                    sum += weight * Evaluate(centers, weights, n, q, out _, patch * MaxCenters, patch * MaxSystem) * Scale;
-                    total += weight;
+                    double qy = ((double)p.y - math.min(py * Stride, height - 1)) / Scale;
+                    if (math.abs(qy) >= 1) continue;
+                    for (int px = math.max(0, cellX - 1); px <= math.min(columns - 1, cellX + 2); px++)
+                    {
+                        int patch = py * columns + px, n = counts[patch];
+                        if (n == 0) continue;
+                        double2 q = new double2(((double)p.x - math.min(px * Stride, width - 1)) / Scale, qy);
+                        double r2 = math.lengthsq(q);
+                        if (r2 >= 1) continue;
+                        double r = math.sqrt(r2);
+                        double s = 1 - r, weight = s * s * s * s * (4 * r + 1);
+                        sum += weight * EvaluateValue(centers, weights, n, q, patch * MaxCenters, patch * MaxSystem) * Scale;
+                        total += weight;
+                    }
                 }
                 field[i] = total > 1e-20 ? (float)(sum / total) : seed;
             }

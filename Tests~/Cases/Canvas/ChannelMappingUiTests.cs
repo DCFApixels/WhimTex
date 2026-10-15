@@ -68,7 +68,7 @@ public static class ChannelMappingUiTests
             context.True(presets != null, "Arrow preset button exists");
             context.Equal("Mapping presets", presets.tooltip, "Preset tooltip uses the UI terminology");
             var items = presets.menu.MenuItems().OfType<DropdownMenuAction>().ToArray();
-            var names = new[] { "Default", "Default without Alpha", "R", "G", "B", "Luminance to Alpha", "Alpha to Grayscale" };
+            var names = new[] { "Default", "Default without Alpha", "R", "G", "B", "Luminance to Alpha", "1 - Luminance to Alpha", "Alpha to Grayscale" };
             context.Equal(names.Length, items.Length, "Builtin presets only, no duplicate A or import menu");
             for (int i = 0; i < names.Length; i++) context.Equal(names[i], items[i].name, "Preset label and order");
             foreach (string output in new[] { "R", "G", "B", "A" })
@@ -87,6 +87,7 @@ public static class ChannelMappingUiTests
                 new[] { ChannelMappingSource.Zero, ChannelMappingSource.Luminance, ChannelMappingSource.Zero, ChannelMappingSource.One },
                 new[] { ChannelMappingSource.Zero, ChannelMappingSource.Zero, ChannelMappingSource.Luminance, ChannelMappingSource.One },
                 new[] { ChannelMappingSource.One, ChannelMappingSource.One, ChannelMappingSource.One, ChannelMappingSource.Luminance },
+                new[] { ChannelMappingSource.One, ChannelMappingSource.One, ChannelMappingSource.One, ChannelMappingSource.OneMinusLuminance },
                 new[] { ChannelMappingSource.A, ChannelMappingSource.A, ChannelMappingSource.A, ChannelMappingSource.One }
             };
             for (int i = 0; i < names.Length; i++)
@@ -98,7 +99,7 @@ public static class ChannelMappingUiTests
                 context.Equal(count + 1, changes, "Preset uses one apply transaction");
                 CheckChannels(expected[i], names[i]);
                 context.Near(.75, document.layers[0].opacity, .00001, "Preset changes only ChannelMapping");
-                var labels = expected[i].Select(c => c == ChannelMappingSource.One ? "1" : c == ChannelMappingSource.Zero ? "0" : c.ToString()).ToArray();
+                var labels = expected[i].Select(c => c == ChannelMappingSource.One ? "1" : c == ChannelMappingSource.Zero ? "0" : c == ChannelMappingSource.OneMinusLuminance ? "1 - Luminance" : c.ToString()).ToArray();
                 int output = 0;
                 foreach (string channel in new[] { "R", "G", "B", "A" })
                     context.Equal(labels[output++], root.Q<DropdownField>("channelMapping" + channel).value, "Preset refreshes all selectors");

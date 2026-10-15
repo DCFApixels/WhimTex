@@ -88,6 +88,7 @@ namespace DCFApixels.WhimTex
             textBasis.TryInverse(out var inverseTextBasis);
             var candidates = new List<CanvasFrameLayer>();
             var visited = new HashSet<Layer>();
+            CanvasCommentAnchor[] commentAnchors = PrepareCommentAnchors(canvasToNext);
 
             void Prepare(List<Layer> list, bool root, int depth, ProjectiveMatrix parent)
             {
@@ -155,6 +156,7 @@ namespace DCFApixels.WhimTex
 
             // Validate the entire hierarchy before changing any model data.
             Prepare(layers, true, 0, ProjectiveMatrix.Identity);
+            foreach (CanvasCommentAnchor candidate in commentAnchors) candidate.comment.anchor = candidate.anchor;
             foreach (CanvasFrameLayer candidate in candidates)
             {
                 candidate.layer.transform = candidate.transform;

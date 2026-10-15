@@ -21,7 +21,7 @@ namespace DCFApixels.WhimTex
         // sharp prototypes, retaining finite geometry and numerical validity.
         internal static bool UnrestrictedCorners(DistanceMetric metric) =>
             metric == DistanceMetric.Sharp || metric == DistanceMetric.MTSDF ||
-            metric == DistanceMetric.CornerFit || metric == DistanceMetric.Spring || metric == DistanceMetric.Rbf;
+            metric == DistanceMetric.CornerFit || metric == DistanceMetric.Spring || metric == DistanceMetric.Rbf || metric == DistanceMetric.RbfDual;
 
         internal struct Feature
         {
@@ -124,16 +124,13 @@ namespace DCFApixels.WhimTex
             long stage = DistanceFieldTiming.Start();
             new MultiJob { input = input, output = output, features = geometry.features,
                 nodes = geometry.nodes, roots = geometry.roots, rootCosines = geometry.rootCosines,
+                signChanges = geometry.signChanges,
                 width = width, threshold = threshold, channel = channel, unrestricted = sharpMode == SharpDistanceMode.Unrestricted
             }.Schedule(output.Length, 64).Complete();
             DistanceFieldTiming.Report("distance.jobs", ref stage);
             if (sharpMode == SharpDistanceMode.GuardedSharp)
             {
-                using var correction = new NativeArray<byte>(output.Length, Allocator.TempJob);
-                new CorrectionFlagsJob { field = output, flags = correction, features = geometry.features,
-                    nodes = geometry.nodes, roots = geometry.roots, width = width, height = height }
-                    .Schedule(output.Length, 64).Complete();
-                new CorrectColorsJob { field = output, flags = correction }.Schedule(output.Length, 64).Complete();
+                CorrectMtsdfQuality(output, geometry, width, height);
                 DistanceFieldTiming.Report("mtsdf.correct", ref stage);
             }
         }
@@ -180,8 +177,10 @@ namespace DCFApixels.WhimTex
             SharpDistanceMode sharpMode = SharpDistanceMode.Unrestricted)
         {
             bool reconstructed = metric == DistanceMetric.CornerFit || metric == DistanceMetric.Spring;
+            bool adaptiveSharp = metric == DistanceMetric.Sharp || metric == DistanceMetric.MTSDF;
             bool unrestricted = UnrestrictedCorners(metric) && sharpMode == SharpDistanceMode.Unrestricted;
             var verifiedCorners = reconstructed ? new HashSet<float2>() : null;
+            var reliableSharp = adaptiveSharp ? new HashSet<int2>() : null;
             using var timing = DistanceFieldTiming.Measure("geometry.total");
             long stage = DistanceFieldTiming.Start();
             var vertices = new List<Vertex>();
@@ -249,6 +248,7 @@ namespace DCFApixels.WhimTex
             var ranges = new List<int2>();
             var contours = new List<List<float2>>();
             bool hasOpenContours = false;
+            bool useAdaptiveSharp = false;
             foreach (var vertex in vertices)
                 if (vertex.links.Count == 0)
                     features.Add(new Feature { a = vertex.point, b = vertex.point, vertex = 4, color = 7 });
@@ -256,7 +256,8 @@ namespace DCFApixels.WhimTex
             void Append(List<float2> path, bool closed)
             {
                 int first = features.Count;
-                AddFeatures(path, closed, reconstructed ? DistanceMetric.Sharp : metric, features, unrestricted);
+                AddFeatures(path, closed, reconstructed ? DistanceMetric.Sharp : metric, features, unrestricted,
+                    useAdaptiveSharp && closed ? reliableSharp : null);
                 if (reconstructed && !unrestricted)
                     for (int i = first; i < features.Count; i++)
                     {
@@ -308,13 +309,14 @@ namespace DCFApixels.WhimTex
             }
             // Closed-loop coverage alone cannot explain an open foreground that
             // crosses the canvas edge. Keep the raw geometry in that case.
-            var fittedContours = reconstructed ? hasOpenContours ? contours : ReconstructRasterContours(contours, input, width, height,
+            useAdaptiveSharp = adaptiveSharp && !hasOpenContours;
+            var fittedContours = useAdaptiveSharp ? contours : reconstructed ? hasOpenContours ? contours : ReconstructRasterContours(contours, input, width, height,
                 threshold, channel, metric, verifiedCorners) : FitContours(contours, metric);
             // Fitting separate raster components can make their reconstructed regions
             // overlap. Only the boundary of the filled union may generate joins.
             DistanceFieldTiming.Report("contour.traceFit", ref stage);
             var normalizedContours = reconstructed ? fittedContours : NormalizeContours(fittedContours);
-            if (!reconstructed && normalizedContours.Count < fittedContours.Count && metric != DistanceMetric.EuclideanAntialiased)
+            if (!adaptiveSharp && !reconstructed && normalizedContours.Count < fittedContours.Count && metric != DistanceMetric.EuclideanAntialiased)
             {
                 // Merging a detached AA tip can leave a tiny cap between its
                 // supported flanks. Stabilize that joined boundary once, with
@@ -323,17 +325,14 @@ namespace DCFApixels.WhimTex
             }
             if (contourMergeDistance > 0 && (metric == DistanceMetric.Sharp || metric == DistanceMetric.MTSDF))
                 normalizedContours = MergeCloseVerticesPhysical(normalizedContours, contourMergeDistance);
+            if (useAdaptiveSharp)
+                normalizedContours = ImproveSharpContours(normalizedContours, reliableSharp);
             foreach (var path in normalizedContours) Append(path, true);
             DistanceFieldTiming.Report("contour.normalizeFeatures", ref stage);
             var array = features.ToArray();
             var nodes = new List<Node>();
             var roots = new List<int>(); var cosines = new List<float>();
-            if (metric == DistanceMetric.MTSDF && unrestricted && array.Length > 0)
-            {
-                // Raw per-channel nearest edges, without whole-contour ownership.
-                roots.Add(BuildTree(array, 0, array.Length, nodes)); cosines.Add(0);
-            }
-            else if (metric == DistanceMetric.MTSDF || metric == DistanceMetric.Sharp || reconstructed)
+            if (metric == DistanceMetric.MTSDF || metric == DistanceMetric.Sharp || reconstructed)
             {
                 foreach (int2 range in ranges)
                 {
@@ -355,7 +354,7 @@ namespace DCFApixels.WhimTex
                 result.nodes = new NativeArray<Node>(nodes.ToArray(), allocator);
                 result.roots = new NativeArray<int>(roots.ToArray(), allocator);
                 result.rootCosines = new NativeArray<float>(cosines.ToArray(), allocator);
-                result.signChanges = reconstructed
+                result.signChanges = reconstructed || useAdaptiveSharp
                     ? new NativeArray<byte>(ReconstructedSignChanges(contours, normalizedContours, width, height), allocator)
                     : new NativeArray<byte>(0, allocator);
                 PrepareCornerParameters(result.features, reconstructed || metric == DistanceMetric.Sharp,
@@ -1292,14 +1291,15 @@ namespace DCFApixels.WhimTex
                 math.lerp(DistanceFieldSource.Value(input[y1 * width + x], channel), DistanceFieldSource.Value(input[y1 * width + x1], channel), math.frac(p.x)), math.frac(p.y));
         }
 
-        static void AddFeatures(List<float2> path, bool closed, DistanceMetric metric, List<Feature> features, bool unrestricted = false)
+        static void AddFeatures(List<float2> path, bool closed, DistanceMetric metric, List<Feature> features, bool unrestricted = false,
+            HashSet<int2> reliableSharp = null)
         {
             int n = path.Count, edgeCount = closed ? n : n - 1;
             float perimeter = 0;
             for (int i=0;i<edgeCount;i++) perimeter += math.distance(path[i],path[(i+1)%n]);
             // Preserve tiny raster components geometrically, but do not extend
             // their unresolvable corner angles into distant miter/pseudo rays.
-            bool unresolved = !unrestricted && closed && perimeter < 4;
+            bool unresolved = reliableSharp == null && !unrestricted && closed && perimeter < 4;
             bool HasSupport(int index, int step, float2 direction)
             {
                 float length = 0;
@@ -1321,7 +1321,9 @@ namespace DCFApixels.WhimTex
                 return false;
             }
             var supported = new bool[n];
-            if (!unrestricted && !unresolved && (metric == DistanceMetric.Sharp || metric == DistanceMetric.MTSDF))
+            if (reliableSharp != null)
+                for (int i = 0; i < n; i++) supported[i] = reliableSharp.Contains(CornerKey(path[i]));
+            else if (!unrestricted && !unresolved && (metric == DistanceMetric.Sharp || metric == DistanceMetric.MTSDF))
                 for (int i=0;i<n;i++)
                 {
                     float2 incoming = math.normalizesafe(path[i]-path[(i+n-1)%n]);
@@ -1331,25 +1333,11 @@ namespace DCFApixels.WhimTex
             var corners = new List<int>();
             if (closed)
                 for (int i = 0; i < n; i++)
-                    if (math.dot(math.normalizesafe(path[i] - path[(i + n - 1) % n]), math.normalizesafe(path[(i + 1) % n] - path[i])) < .8660254f)
+                    if ((reliableSharp == null || supported[i]) && math.dot(math.normalizesafe(path[i] - path[(i + n - 1) % n]), math.normalizesafe(path[(i + 1) % n] - path[i])) < .8660254f)
                         corners.Add(i);
             int[] colors = new int[edgeCount];
             for (int i = 0; i < edgeCount; i++) colors[i] = 7;
-            if (metric == DistanceMetric.MTSDF && corners.Count > 0)
-            {
-                if (corners.Count == 1)
-                { corners.Add((corners[0] + math.max(1, n / 3)) % n); corners.Add((corners[0] + math.max(2, 2 * n / 3)) % n); corners.Sort(); }
-                int lastColor = -1;
-                for (int k = 0; k < corners.Count; k++)
-                {
-                    int colorIndex = k % 3;
-                    if (k == corners.Count - 1 && colorIndex == 0) colorIndex = lastColor == 1 ? 2 : 1;
-                    int color = colorIndex == 0 ? 6 : colorIndex == 1 ? 5 : 3;
-                    int end = corners[(k + 1) % corners.Count];
-                    for (int i = corners[k]; ; i = (i + 1) % n) { colors[i] = color; if ((i + 1) % n == end) break; }
-                    lastColor = colorIndex;
-                }
-            }
+            if (metric == DistanceMetric.MTSDF) colors = ColorDistanceContour(path, closed, corners);
             for (int i = 0; i < edgeCount; i++)
             {
                 int j = (i + 1) % n;
@@ -1357,7 +1345,7 @@ namespace DCFApixels.WhimTex
                 if (math.lengthsq(direction) < .5f) continue;
                 float2 previous = i > 0 || closed ? math.normalizesafe(path[i] - path[(i + n - 1) % n]) : direction;
                 float2 next = j + 1 < n || closed ? math.normalizesafe(path[(j + 1) % n] - path[j]) : direction;
-                int flags = !unrestricted && (metric == DistanceMetric.Sharp || metric == DistanceMetric.MTSDF)
+                int flags = (reliableSharp != null || !unrestricted) && (metric == DistanceMetric.Sharp || metric == DistanceMetric.MTSDF)
                     ? (supported[i] ? 0 : NoStartExtension) | (supported[j] ? 0 : NoEndExtension) : 0;
                 features.Add(new Feature { a = path[i], b = path[j], previousDirection = previous, nextDirection = next,
                     color = (unresolved ? 7 | UnresolvedContour : colors[i]) | flags });
@@ -1427,8 +1415,8 @@ namespace DCFApixels.WhimTex
                 bool inside = DistanceFieldSource.IsObject(input[index], channel, threshold);
                 if (signChanges.Length > 0 && signChanges[index] != 0) inside = !inside;
                 float2 point = new float2(index % width, index / width);
-                bool reconstructed = metric == DistanceMetric.Sharp || metric == DistanceMetric.CornerFit || metric == DistanceMetric.Spring || metric == DistanceMetric.Rbf;
-                float4 result = (metric == DistanceMetric.Sharp || metric == DistanceMetric.Rbf) && !unrestricted
+                bool reconstructed = metric == DistanceMetric.Sharp || metric == DistanceMetric.CornerFit || metric == DistanceMetric.Spring || metric == DistanceMetric.Rbf || metric == DistanceMetric.RbfDual;
+                float4 result = (metric == DistanceMetric.Sharp || metric == DistanceMetric.Rbf || metric == DistanceMetric.RbfDual) && !unrestricted
                     ? new float4((inside ? -1 : 1) * EvaluateSharpContours(point, features, nodes, roots, miterLimit, inside, 1 / minimumCosine))
                     : reconstructed ? new float4((inside ? -1 : 1) * EvaluatePreparedReconstructed(point, features, nodes, roots, cornerIndices, corners, miterLimit, inside, unrestricted, minimumCosine))
                     : metric == DistanceMetric.MTSDF ? EvaluateContours(point, features, nodes, roots, rootCosines, inside, unrestricted)
@@ -1441,6 +1429,7 @@ namespace DCFApixels.WhimTex
         struct MultiJob : IJobParallelFor
         {
             [ReadOnly] public NativeArray<Color32> input;
+            [ReadOnly] public NativeArray<byte> signChanges;
             [ReadOnly] public NativeArray<Feature> features;
             [ReadOnly] public NativeArray<Node> nodes;
             [ReadOnly] public NativeArray<int> roots;
@@ -1449,71 +1438,12 @@ namespace DCFApixels.WhimTex
             public int width, channel;
             public byte threshold;
             public bool unrestricted;
-            public void Execute(int index) => output[index] = EvaluateContours(new float2(index % width, index / width), features, nodes,
-                roots, rootCosines, DistanceFieldSource.IsObject(input[index], channel, threshold), unrestricted);
-        }
-
-        [BurstCompile]
-        struct CorrectionFlagsJob : IJobParallelFor
-        {
-            [ReadOnly] public NativeArray<float4> field;
-            [ReadOnly] public NativeArray<Feature> features;
-            [ReadOnly] public NativeArray<Node> nodes;
-            [ReadOnly] public NativeArray<int> roots;
-            [WriteOnly] public NativeArray<byte> flags;
-            public int width, height;
             public void Execute(int index)
             {
-                int x = index % width, y = index / width;
-                byte correct = 0;
-                for (int cy = y - 1; cy <= y; cy++) for (int cx = x - 1; cx <= x; cx++)
-                {
-                    if (cx < 0 || cy < 0 || cx + 1 >= width || cy + 1 >= height) continue;
-                    float4 a = field[cy * width + cx], b = field[cy * width + cx + 1];
-                    float4 c = field[(cy + 1) * width + cx], d = field[(cy + 1) * width + cx + 1];
-                    float sign = a.w < 0 ? -1 : 1;
-                    // True distance certifies an entire cell away from the contour.
-                    // Preserve the near-boundary corner band instead of rounding it.
-                    if (math.min(math.min(sign * a.w, sign * b.w), math.min(sign * c.w, sign * d.w)) <= 1) continue;
-                    float3 common = math.min(math.min(sign * a.xyz, sign * b.xyz), math.min(sign * c.xyz, sign * d.xyz));
-                    // Two common positive channels guarantee a positive median for
-                    // EVERY bilinear phase, not merely a few sampled phases.
-                    bool incompatible = math.select(0, 1, common.x > 0) + math.select(0, 1, common.y > 0) + math.select(0, 1, common.z > 0) < 2;
-                    // Finite distance is 1-Lipschitz: distance anywhere in this
-                    // cell is at most its smallest corner distance plus sqrt(2).
-                    // Compare the RGB lower bound to that UPPER distance bound.
-                    // Guard only incompatible/sign-flipped channels, not angular amplification.
-                    if (!incompatible) continue;
-                    // Only suspected cells pay for exact finite-contour queries.
-                    // Include corners, edge midpoints and centre; independent of
-                    // colour selection or interpolation of the alpha channel.
-                    bool geometricError = false;
-                    for (int sy=0;sy<3;sy++) for (int sx=0;sx<3;sx++)
-                    {
-                        float u=sx*.5f,v=sy*.5f;
-                        float actual=sign*Median(math.lerp(math.lerp(a,b,u),math.lerp(c,d,u),v).xyz);
-                        if (actual<=0) geometricError=true;
-                    }
-                    if (geometricError) correct |= 2;
-                    else if (incompatible) correct |= 1;
-                }
-                flags[index] = correct;
-            }
-        }
-
-        [BurstCompile]
-        struct CorrectColorsJob : IJobParallelFor
-        {
-            public NativeArray<float4> field;
-            [ReadOnly] public NativeArray<byte> flags;
-            public void Execute(int index)
-            {
-                if (flags[index] == 0) return;
-                float4 value = field[index];
-                // An unsafe geometric seam falls back to finite distance; a color-only
-                // seam retains its artistic median. Never alter true-distance alpha.
-                value.xyz = new float3((flags[index]&2)!=0 ? value.w : Median(value.xyz));
-                field[index] = value;
+                bool inside = DistanceFieldSource.IsObject(input[index], channel, threshold);
+                if (signChanges.Length > 0 && signChanges[index] != 0) inside = !inside;
+                output[index] = EvaluateContours(new float2(index % width, index / width), features, nodes,
+                    roots, rootCosines, inside, unrestricted);
             }
         }
 
@@ -1626,7 +1556,7 @@ namespace DCFApixels.WhimTex
                         // Else retain finite endpoint distance: an infinite supporting line
                         // must not invent a remote contour in two shared color channels.
                         float perp = signed;
-                        if (!unrestricted && (t < 0 || t > 1))
+                        if (t < 0 || t > 1)
                         {
                             float2 incoming = t < 0 ? f.previousDirection : direction;
                             float2 outgoing = t < 0 ? direction : f.nextDirection;

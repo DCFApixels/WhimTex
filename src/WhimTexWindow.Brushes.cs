@@ -18,7 +18,7 @@ namespace DCFApixels.WhimTex
             brushTab = new Button(() =>
             {
                 brushesExpanded = !brushesExpanded;
-                if (brushesExpanded) postFxExpanded = uvExpanded = false;
+                if (brushesExpanded) postFxExpanded = uvExpanded = commentsExpanded = false;
                 RefreshPostFxPanel();
             }) { tooltip = "Brushes: tip, spacing, scatter, size variation, tint and blending." };
             brushTab.AddToClassList("whimtex-post-fx-tab");

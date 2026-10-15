@@ -73,6 +73,8 @@ namespace DCFApixels.WhimTex
 
         public void CreateGUI()
         {
+            commentManipulator?.Cancel();
+            CloseCanvasCommentEditor();
             ClearCanvasPointerCursor();
             CancelCanvasEyedropper();
             CancelCanvasZoomGesture();
@@ -293,6 +295,7 @@ namespace DCFApixels.WhimTex
             BuildTextTool();
             BuildGradientCreationTool();
             BuildCanvasCropTool();
+            BuildCanvasCommentTool();
             BuildHealingOverlay();
             toolkitCanvas.RegisterCallback<PointerDownEvent>(OnCanvasPointerDown);
             toolkitCanvas.RegisterCallback<PointerMoveEvent>(OnCanvasPointerMove);
@@ -1504,6 +1507,7 @@ namespace DCFApixels.WhimTex
             AddCanvasTransformSettings();
             AddCanvasZoomSettings();
             AddCanvasCropSettings();
+            AddCanvasCommentSettings();
             AddShapeSettings();
             AddTextSettings();
             AddGradientCreationSettings();
@@ -1696,13 +1700,14 @@ namespace DCFApixels.WhimTex
                 return;
 
             bool hasLayers = HasCanvasLayers;
-            toolkitCanvas.SetCanvasVisible(hasLayers || canvasTool == CanvasTool.Crop);
+            toolkitCanvas.SetCanvasVisible(hasLayers || canvasTool == CanvasTool.Crop || canvasTool == CanvasTool.Comment);
             DrawingLayerBehaviour drawing = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
             ApplyCanvasTextureFilter();
             RefreshCanvasQualityControl();
             RefreshCanvasToolToolbar();
             RefreshCanvasTransformTool();
             RefreshCanvasCropTool();
+            RefreshCanvasComments();
             GetAreaSelection();
             areaSelectionOverlay?.Invalidate();
             bool transforming = IsCanvasTransformEnabled;
@@ -1754,6 +1759,10 @@ namespace DCFApixels.WhimTex
                 else if (canvasTool == CanvasTool.Shape)
                 {
                     toolkitCanvasViewFooter.text = "Drag new shape • Shift equal proportions / 45° line • Ctrl no snapping • Esc cancel • T transform";
+                }
+                else if (canvasTool == CanvasTool.Comment)
+                {
+                    toolkitCanvasViewFooter.text = "Click to comment • Drag a pin to move it • Ctrl+Enter post • Esc cancel";
                 }
                 else if (canvasTool == CanvasTool.Text)
                 {
@@ -2189,6 +2198,7 @@ namespace DCFApixels.WhimTex
                 return;
             }
             if (HandlePreviousCanvasToolKey(evt)) return;
+            if (HandleCanvasCommentKey(evt)) return;
             if (HandleCanvasCropKey(evt)) return;
 
             if (evt.keyCode == KeyCode.Escape && canvasGuideManipulator?.IsDragging == true)

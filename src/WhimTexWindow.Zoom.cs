@@ -78,7 +78,7 @@ namespace DCFApixels.WhimTex
 
         private void SetCanvasZoomPercent(float percent)
         {
-            if (!HasCanvasLayers || percent <= 0f || float.IsNaN(percent) || float.IsInfinity(percent)) return;
+            if (!HasNavigableCanvas || percent <= 0f || float.IsNaN(percent) || float.IsInfinity(percent)) return;
             CancelCanvasZoomGesture();
             FinishCanvasTransform();
             FinishPaintingStroke();
@@ -87,7 +87,7 @@ namespace DCFApixels.WhimTex
 
         private void SetCanvasRotation(float degrees)
         {
-            if (!HasCanvasLayers || float.IsNaN(degrees) || float.IsInfinity(degrees)) return;
+            if (!HasNavigableCanvas || float.IsNaN(degrees) || float.IsInfinity(degrees)) return;
             CancelCanvasZoomGesture();
             FinishCanvasTransform();
             FinishPaintingStroke();
@@ -106,10 +106,10 @@ namespace DCFApixels.WhimTex
                     displayedCanvasRotation = canvasViewport.Rotation;
                     canvasRotationField.SetValueWithoutNotify(displayedCanvasRotation);
                 }
-                canvasRotationField.SetEnabled(HasCanvasLayers);
+                canvasRotationField.SetEnabled(HasNavigableCanvas);
             }
-            canvasRotationReset?.SetEnabled(HasCanvasLayers && canvasViewport.Rotation != 0f);
-            canvasZoomPercent.SetEnabled(HasCanvasLayers);
+            canvasRotationReset?.SetEnabled(HasNavigableCanvas && canvasViewport.Rotation != 0f);
+            canvasZoomPercent.SetEnabled(HasNavigableCanvas);
             if (scale == displayedCanvasScale)
                 return;
             displayedCanvasScale = scale;
@@ -118,7 +118,7 @@ namespace DCFApixels.WhimTex
 
         private void ChangeCanvasZoom(bool fit)
         {
-            if (!HasCanvasLayers) return;
+            if (!HasNavigableCanvas) return;
             CancelCanvasZoomGesture();
             FinishCanvasTransform();
             FinishPaintingStroke();
@@ -213,10 +213,11 @@ namespace DCFApixels.WhimTex
                     WhimTexUI.ConsumeEvent(evt);
                     return;
                 }
-                if (!owner.HasCanvasLayers || (evt.button != 2 && !(evt.button == 0 && owner.IsCanvasZoomEnabled)) ||
+                if (!owner.HasNavigableCanvas || (evt.button != 2 && !(evt.button == 0 && owner.IsCanvasZoomEnabled)) ||
                     !target.contentRect.Contains(evt.localPosition)) return;
                 if (evt.button == 0 && owner.canvasGuideManipulator?.WantsPointer(evt.localPosition, evt.ctrlKey, evt.altKey) == true) return;
                 owner.CancelCanvasEyedropper();
+                owner.commentManipulator?.Cancel();
                 owner.canvasGuideManipulator?.Cancel();
                 owner.shapeManipulator?.Cancel();
                 owner.cropManipulator?.CancelGesture();
@@ -240,10 +241,11 @@ namespace DCFApixels.WhimTex
             private void OnWheel(WheelEvent evt)
             {
                 Vector2 point = target.WorldToLocal(evt.mousePosition);
-                if (!owner.HasCanvasLayers || !target.contentRect.Contains(point) || evt.delta.y == 0f ||
+                if (!owner.HasNavigableCanvas || !target.contentRect.Contains(point) || evt.delta.y == 0f ||
                     float.IsNaN(evt.delta.y) || float.IsInfinity(evt.delta.y)) return;
                 WhimTexUI.ConsumeEvent(evt);
                 owner.canvasGuideManipulator?.Cancel();
+                owner.commentManipulator?.Cancel();
                 if (owner.areaSelectionManipulator?.IsFreehandDrawing == true) owner.areaSelectionManipulator.Cancel();
                 if (IsDragging && !panning) Cancel();
                 owner.shapeManipulator?.Cancel();

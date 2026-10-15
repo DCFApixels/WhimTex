@@ -47,7 +47,7 @@ namespace DCFApixels.WhimTex
                     inputPixels.Length,
                     Allocator.TempJob,
                     NativeArrayOptions.UninitializedMemory);
-                bool cacheDistances = metric == DistanceMetric.CornerFit || metric == DistanceMetric.Spring || metric == DistanceMetric.Rbf;
+                bool cacheDistances = ReconstructedDistanceCache.Supports(metric);
                 if (cacheDistances) reconstructedCache ??= new ReconstructedDistanceCache();
                 else ReleaseDistancePreparation();
                 SDFLayerBehaviour.ComputeCachedSourceField(

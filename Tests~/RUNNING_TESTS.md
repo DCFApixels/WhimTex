@@ -57,6 +57,14 @@ standalone `whimtex-gradient-reload-begin-v2` / `-end-v2` entries are historical
 not independently runnable coverage: generic cleanup destroys Begin's fixture, and selecting
 both entries does not insert a real reload. Use the complete paired workflow for coverage.
 
+The `comments` profile checks optional TIFF comment storage and canvas geometry in memory,
+then exercises the Comment tool in an owned temporary window. Review all declared sources
+and allow `windows,user-state,temp-files`. It tests only its own Undo records, restores tool
+preferences and focus, and writes UI previews to `Temp/WhimTex/comment-tool-preview.png`,
+`comment-list-preview.png` and `comment-list-narrow-preview.png` in the same directory.
+The UI case also covers the shared comments drawer, colored row stripes, resolved rows,
+virtualization, scrolling and short-window layout.
+
 ## Compile and validate entry points
 
 Use the same reviewed selector and explicit project for these separate actions:
@@ -151,6 +159,20 @@ or lock acquisition. PowerShell automation should forward `$LASTEXITCODE`.
 
 ## Optional prerequisites
 
+`image-clipboard` selects only `image-clipboard-write-v1` and
+`image-clipboard-native-v1`. The first checks DIBV5 encoding and internal HDR paste
+placement without accessing the OS clipboard. The native case checks Windows
+PNG/DIBV5 publication, selection alpha, HDR snapshot priority, merged copy and
+replacement-image invalidation using owned transient documents and windows.
+After source review, use `--allow-effects windows,user-state` for this profile.
+
+Native checks return SKIP before mutation unless every original clipboard format
+can be captured safely: at most 64 supported memory formats and 4 MiB total.
+Unsupported handles, OLE data and concurrent changes prevent the run. Cleanup
+verifies every restored format and byte; a subsequent external clipboard change
+is left untouched. If `recoveryRequired` is true, retain the loaded fixture's
+in-memory capture and resolve its owned recovery before another native run.
+
 `fault-release-workflow-v2` owns installation, native reload verification, Faults/Deferred
 assertions, removal and another verified native reload. Its generated postprocessor can
 trigger only within its exact GUID folder. Its explicit `native-fixture` workflow has a
@@ -173,6 +195,14 @@ runtime pixels, packed contents, saved document/meta preservation and native hel
 
 ## Reference inputs and diagnostics
 
+`text-font-atlas` checks large native bitmap atlases against independently loaded
+system-font glyphs, including a nonzero face in a TTC collection with distinct glyph
+metrics. It prefers Arial and a monospaced/proportional collection when available.
+A readable TTF is required, and missing TTC coverage returns SKIP. The result
+retains the resolved faces and coverage facts. The case restores the initial public
+FontEngine face and releases only owned resources. `text-edge-modes` also rejects
+font-face load warnings across all three edge modes and large-font styles.
+
 `--id reference-fixtures` authenticates all 255 registered files, their dimensions/layouts
 and reference-reader safety contracts without Unity. `ReviewedOracle` authenticates bytes
 again before native use. The reference paths are relative to package Fixtures, not absolute
@@ -194,6 +224,17 @@ Original tests and completed migration evidence remain only in Git history; reco
 references are in the [test map](README.md#история).
 
 ## Generated artifacts
+
+`distance-rbf-opt-capture-*` / `distance-rbf-opt-compare-*` are paired, opt-in
+session checks for the RBF cold-build optimization. Capture the `small`, `star512`,
+`rings512` and `star1024` suites BEFORE modifying the kernel; capture refuses to
+overwrite a snapshot. Compare authenticates its SHA256 and checks every raster
+and output byte, or reports SKIP if the session snapshot is missing. The small
+suite has 30 fields covering both sharp modes, thresholds, channels and tiny/odd
+dimensions. Each large suite measures five fresh CPU field constructions with
+no retained geometry, excluding raster generation and input/output allocation.
+Phase CSVs and source hashes stay in `Temp/WhimTex/rbf-optimization-20261014`.
+Timings share Editor/compiler state and are diagnostics, not speed assertions.
 
 `distance-round-contour` is an opt-in performance comparison, not a regression
 verdict. It measures seven fresh-resource builds per mode at 512/1024 on a star,
