@@ -70,17 +70,17 @@ namespace DCFApixels.WhimTex
                 GL.sRGBWrite = srgb;
                 material.SetTexture("_BlurTex", null);
                 material.SetInt("_UseBlur", 0);
-                if (result != null) RenderTexture.ReleaseTemporary(result);
-                if (premultiplied != null) RenderTexture.ReleaseTemporary(premultiplied);
-                if (horizontal != null) RenderTexture.ReleaseTemporary(horizontal);
-                if (blurred != null) RenderTexture.ReleaseTemporary(blurred);
+                if (result != null) ProfiledRenderTexture.ReleaseTemporary(result);
+                if (premultiplied != null) ProfiledRenderTexture.ReleaseTemporary(premultiplied);
+                if (horizontal != null) ProfiledRenderTexture.ReleaseTemporary(horizontal);
+                if (blurred != null) ProfiledRenderTexture.ReleaseTemporary(blurred);
             }
         }
 
 
         private static RenderTexture Allocate(int width, int height)
         {
-            var texture = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+            var texture = ProfiledRenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             texture.filterMode = FilterMode.Bilinear;
             texture.wrapMode = TextureWrapMode.Clamp;
             return texture;

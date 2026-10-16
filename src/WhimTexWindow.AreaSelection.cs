@@ -59,6 +59,7 @@ namespace DCFApixels.WhimTex
             CanvasSelection selection = GetAreaSelection();
             if (selection == null || !selection.Active) return null;
             if (areaSelectionTexture != null && areaSelectionTextureRevision == selection.Revision) return areaSelectionTexture;
+            using var profile = WhimTexProfiler.Measure("selection.upload", activeDocument);
             if (areaSelectionTexture != null) DestroyImmediate(areaSelectionTexture);
             bool compact = SystemInfo.SupportsTextureFormat(TextureFormat.R8);
             areaSelectionTexture = new Texture2D(selection.Width, selection.Height, compact ? TextureFormat.R8 : TextureFormat.RGBA32, false, true)
@@ -79,7 +80,8 @@ namespace DCFApixels.WhimTex
         }
         private void ChangeAreaSelection(Action<CanvasSelection> action)
         {
-            if (!HasCanvasLayers) return;
+            if (!HasCanvasLayers && !(activeDocument != null && canvasTool == CanvasTool.Comment)) return;
+            using var profile = WhimTexProfiler.Measure("selection.change", activeDocument);
             areaSelectionManipulator?.Cancel();
             FinishPaintingStroke();
             FinishCanvasTransform();
@@ -306,6 +308,7 @@ namespace DCFApixels.WhimTex
             Texture2D texture = null;
             try
             {
+                if (TryPasteCommentLink(GUIUtility.systemCopyBuffer)) return;
                 var copy = GetCurrentAreaClipboard();
                 if (copy != null)
                 {

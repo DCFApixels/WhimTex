@@ -80,10 +80,10 @@ namespace DCFApixels.WhimTex
                 RenderTexture.active = previous; GL.sRGBWrite = srgb;
                 material.SetTexture("_Tables", null);
                 material.SetTexture("_Gaussian", null);
-                if (source != null) RenderTexture.ReleaseTemporary(source);
-                if (analysis != null) RenderTexture.ReleaseTemporary(analysis);
-                if (gaussian != null) RenderTexture.ReleaseTemporary(gaussian);
-                if (result != null) RenderTexture.ReleaseTemporary(result);
+                if (source != null) ProfiledRenderTexture.ReleaseTemporary(source);
+                if (analysis != null) ProfiledRenderTexture.ReleaseTemporary(analysis);
+                if (gaussian != null) ProfiledRenderTexture.ReleaseTemporary(gaussian);
+                if (result != null) ProfiledRenderTexture.ReleaseTemporary(result);
                 if (workspace != null)
                 {
                     if (reusable) SeamlessHistogramWorkspace.Return(workspace); else workspace.Dispose();
@@ -97,13 +97,13 @@ namespace DCFApixels.WhimTex
             if (!enabled || edges == MakeSeamlessLayerBehaviour.PoissonEdges.None) return;
             var corrected = ScreenedSeamless.RenderConfigured(result,width,height,edges,
                 radius > 0 ? radius : Mathf.Max(.005f,bandWidth*.25f));
-            RenderTexture.ReleaseTemporary(result);
+            ProfiledRenderTexture.ReleaseTemporary(result);
             result = corrected;
         }
 
         private static RenderTexture Temporary(int width, int height)
         {
-            var rt = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+            var rt = ProfiledRenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             rt.filterMode = FilterMode.Point; rt.wrapMode = TextureWrapMode.Clamp; return rt;
         }
 

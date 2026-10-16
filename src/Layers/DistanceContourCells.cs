@@ -61,15 +61,16 @@ namespace DCFApixels.WhimTex
             {
                 int y = firstRow + row;
                 writer.BeginForEachIndex(row);
+                float a = Value(input[y * width], channel) - threshold;
+                float d = Value(input[(y + 1) * width], channel) - threshold;
                 for (int x = 0; x + 1 < width; x++)
                 {
-                    float a = Value(input[y * width + x], channel) - threshold;
                     float b = Value(input[y * width + x + 1], channel) - threshold;
                     float c = Value(input[(y + 1) * width + x + 1], channel) - threshold;
-                    float d = Value(input[(y + 1) * width + x], channel) - threshold;
                     bool side = a > 0;
-                    if (side == (b > 0) && side == (c > 0) && side == (d > 0)) continue;
-                    writer.Write(new DistanceContourCell { x = x, y = y, values = new float4(a, b, c, d) });
+                    if (side != (b > 0) || side != (c > 0) || side != (d > 0))
+                        writer.Write(new DistanceContourCell { x = x, y = y, values = new float4(a, b, c, d) });
+                    a = b; d = c;
                 }
                 writer.EndForEachIndex();
             }

@@ -56,6 +56,7 @@ namespace DCFApixels.WhimTex
         public LayerChannelMapping channelMapping;
         public List<UnityEngine.Object> fx = new List<UnityEngine.Object>();
         public TextureTransform transform = TextureTransform.Default;
+        public VectorBooleanOperation booleanOperation;
         [SerializeField, HideInInspector] internal Vector2Int sourceCanvasSize;
         [SerializeField, HideInInspector] internal float sourcePixelScale;
         [SerializeField, HideInInspector] internal Vector2 sourceCanvasScale = Vector2.one;
@@ -134,14 +135,14 @@ namespace DCFApixels.WhimTex
         public void SetBehaviour(LayerBehaviour value)
         {
             if (ReferenceEquals(behaviour, value)) return;
-            if (value != null && !(value is GroupLayerBehaviour) && children != null && children.Count != 0)
+            if (value != null && !value.IsGroup && children != null && children.Count != 0)
                 throw new InvalidOperationException("A group with children must be rasterized or ungrouped before changing its behaviour.");
             value?.ValidateOwner(this);
             behaviour?.OnDetached();
             value?.Bind(this);
             behaviour = value;
             if (value != null) behaviourId = value.RecoveryId;
-            if (value != null) group = value is GroupLayerBehaviour;
+            if (value != null) group = value.IsGroup;
             if (group) children ??= new List<Layer>();
         }
 
@@ -193,11 +194,11 @@ namespace DCFApixels.WhimTex
 
         public string Id => id;
         internal bool RequiresInput => Behaviour?.RequiresInput ?? false;
-        internal bool IsGroup => group;
-        internal Layer AsGroup() => group ? this : null;
+        internal bool IsGroup => behaviour?.IsGroup ?? group;
+        internal Layer AsGroup() => IsGroup ? this : null;
         internal bool HasFx => fx != null && fx.Exists(value => value != null && (!(value is ShaderFX effect) || effect.Active && !effect.IsUnavailable));
-        internal bool IsPassThrough => compositing == GroupCompositing.PassThrough && channelMapping.IsIdentity && !HasFx;
-        internal BlendMode EffectiveBlendMode => compositing == GroupCompositing.PassThrough ? BlendMode.Normal : blendMode;
+        internal bool IsPassThrough => Behaviour is not BooleanGroupLayerBehaviour && compositing == GroupCompositing.PassThrough && channelMapping.IsIdentity && !HasFx;
+        internal BlendMode EffectiveBlendMode => Behaviour is not BooleanGroupLayerBehaviour && compositing == GroupCompositing.PassThrough ? BlendMode.Normal : blendMode;
         internal BlendMode CompositeBlendMode => Behaviour is DrawingLayerBehaviour drawing && drawing.UsesPremultipliedOverwrite
             ? (BlendMode)101 : blendMode;
         // Keep existing orphan clipping layers from attaching themselves to a baked Processor.
@@ -228,11 +229,25 @@ namespace DCFApixels.WhimTex
             usedIds.Add(id);
             fx ??= new List<UnityEngine.Object>();
             behaviour?.Bind(this);
-            if (behaviour != null) behaviourId = behaviour.RecoveryId;
+            if (behaviour != null) { behaviourId = behaviour.RecoveryId; group = behaviour.IsGroup; }
             if (group) children ??= new List<Layer>();
         }
 
-        internal RenderTexture Render(in LayerRenderContext context) => Behaviour?.Render(context);
+        internal RenderTexture Render(in LayerRenderContext context)
+        {
+            LayerBehaviour renderer = Behaviour;
+            if (renderer == null) return null;
+            using var profile = WhimTexProfiler.Measure("layer.generate", context.activeDocument, this,
+                detail: "Inclusive behaviour render: generation, transform and FX; GPU interval includes CPU submission gaps");
+            // Dispatch still runs on empty inputs so behaviour-owned cleanup is preserved. These
+            // known empty paths submit no pixels and should not acquire an elapsed GPU interval.
+            bool empty = renderer is GroupLayerBehaviour || renderer is PendingLayerBehaviour ||
+                (renderer.RequiresInput || renderer is ShaderProcessorLayerBehaviour) && context.input == null ||
+                renderer is FileLayerBehaviour file && file.sourceTexture == null;
+            using var gpu = empty ? default : profile.Gpu();
+            // Includes nested transform/FX intervals; it is not an exclusive GPU generation cost.
+            return renderer.Render(context);
+        }
 
         internal void SetRenderInverse(Material material, string prefix, in LayerRenderContext context)
         {
@@ -297,6 +312,7 @@ namespace DCFApixels.WhimTex
             blendRange = source.blendRange;
             channelMapping = source.channelMapping;
             filterMode = source.filterMode;
+            booleanOperation = source.booleanOperation;
             sourceCanvasSize = source.sourceCanvasSize;
             sourcePixelScale = source.sourcePixelScale;
             sourceCanvasScale = source.sourceCanvasScale;
@@ -318,7 +334,7 @@ namespace DCFApixels.WhimTex
             if (source == null)
                 return null;
 
-            RenderTexture current = RenderTexture.GetTemporary(
+            RenderTexture current = ProfiledRenderTexture.GetTemporary(
                 context.width,
                 context.height,
                 0,
@@ -330,59 +346,62 @@ namespace DCFApixels.WhimTex
 
             try
             {
-                Material transformMaterial = WhimTexMaterials.Transform;
-                if (transformMaterial != null)
-                    transformMaterial.SetFloat("_DecodeSource", source is Texture2D t &&
-                        UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsSRGBFormat(t.graphicsFormat) ? 1f : 0f);
-                if (transformMaterial == null)
+                using (var profile = WhimTexProfiler.Measure("layer.transform", context.activeDocument, this,
+                    detail: "Resampling blit and finishing passes; excludes FX"))
                 {
-                    Graphics.Blit(source, current);
-                }
-                else
-                {
-                    // Even identity transforms must use the independent filter/wrap settings.
-                    TextureTransform applied = context.applyTransform ? RenderTransform : TextureTransform.Default;
-                    Texture samplingSource = SamplingSource;
-                    if (samplingSource == null)
-                        samplingSource = source;
-                    TextureWrapMode wrapU = TextureWrapMode.Clamp;
-                    TextureWrapMode wrapV = TextureWrapMode.Clamp;
-                    switch (applied.tiling)
+                    Material transformMaterial = WhimTexMaterials.Transform;
+                    if (transformMaterial != null)
                     {
-                        case TransformTilingMode.Source:
-                            wrapU = samplingSource.wrapModeU;
-                            wrapV = samplingSource.wrapModeV;
-                            break;
-                        case TransformTilingMode.Repeat:
-                            wrapU = wrapV = TextureWrapMode.Repeat;
-                            break;
-                        case TransformTilingMode.Mirror:
-                            wrapU = wrapV = TextureWrapMode.Mirror;
-                            break;
+                        transformMaterial.SetFloat("_DecodeSource", source is Texture2D t &&
+                            UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsSRGBFormat(t.graphicsFormat) ? 1f : 0f);
+                        // Even identity transforms must use the independent filter/wrap settings.
+                        TextureTransform applied = context.applyTransform ? RenderTransform : TextureTransform.Default;
+                        Texture samplingSource = SamplingSource;
+                        if (samplingSource == null)
+                            samplingSource = source;
+                        TextureWrapMode wrapU = TextureWrapMode.Clamp;
+                        TextureWrapMode wrapV = TextureWrapMode.Clamp;
+                        switch (applied.tiling)
+                        {
+                            case TransformTilingMode.Source:
+                                wrapU = samplingSource.wrapModeU;
+                                wrapV = samplingSource.wrapModeV;
+                                break;
+                            case TransformTilingMode.Repeat:
+                                wrapU = wrapV = TextureWrapMode.Repeat;
+                                break;
+                            case TransformTilingMode.Mirror:
+                                wrapU = wrapV = TextureWrapMode.Mirror;
+                                break;
+                        }
+                        if (sourceToLocal.HasValue)
+                        {
+                            var localToCanvas = context.applyTransform ? RenderTransform.ToMatrix(context.activeDocument.width, context.activeDocument.height) : ProjectiveMatrix.Identity;
+                            (localToCanvas * sourceToLocal.Value).TryInverse(out var sourceInverse);
+                            sourceInverse.SetShader(transformMaterial, "_TransformRow");
+                        }
+                        else SetRenderInverse(transformMaterial, "_TransformRow", context);
+                        transformMaterial.SetInt("_ClipOutside", applied.tiling == TransformTilingMode.Clip || applied.tiling == TransformTilingMode.Unbounded ? 1 : 0);
+                        transformMaterial.SetInt("_WrapModeU", (int)wrapU);
+                        transformMaterial.SetInt("_WrapModeV", (int)wrapV);
+                        transformMaterial.SetInt("_FilterMode", (int)resolvedFilter);
+                        transformMaterial.SetInt("_SourceMipCount", source is Texture2D texture ? texture.mipmapCount : 1);
+                        transformMaterial.SetVector("_OutputSize", new Vector4(context.width, context.height, 0f, 0f));
                     }
-                    if (sourceToLocal.HasValue)
+                    using (profile.Gpu())
                     {
-                        var localToCanvas = context.applyTransform ? RenderTransform.ToMatrix(context.activeDocument.width, context.activeDocument.height) : ProjectiveMatrix.Identity;
-                        (localToCanvas * sourceToLocal.Value).TryInverse(out var sourceInverse);
-                        sourceInverse.SetShader(transformMaterial, "_TransformRow");
+                        if (transformMaterial == null) Graphics.Blit(source, current);
+                        else Graphics.Blit(source, current, transformMaterial);
+                        current = context.activeDocument.FinishStage(current);
                     }
-                    else SetRenderInverse(transformMaterial, "_TransformRow", context);
-                    transformMaterial.SetInt("_ClipOutside", applied.tiling == TransformTilingMode.Clip || applied.tiling == TransformTilingMode.Unbounded ? 1 : 0);
-                    transformMaterial.SetInt("_WrapModeU", (int)wrapU);
-                    transformMaterial.SetInt("_WrapModeV", (int)wrapV);
-                    transformMaterial.SetInt("_FilterMode", (int)resolvedFilter);
-                    transformMaterial.SetInt("_SourceMipCount", source is Texture2D texture ? texture.mipmapCount : 1);
-                    transformMaterial.SetVector("_OutputSize", new Vector4(context.width, context.height, 0f, 0f));
-                    Graphics.Blit(source, current, transformMaterial);
                 }
 
-                current = context.activeDocument.FinishStage(current);
                 ApplyFx(ref current, context, resolvedFilter);
                 return current;
             }
             catch
             {
-                RenderTexture.ReleaseTemporary(current);
+                ProfiledRenderTexture.ReleaseTemporary(current);
                 throw;
             }
         }
@@ -406,58 +425,61 @@ namespace DCFApixels.WhimTex
         internal void ApplyFx(ref RenderTexture current, in LayerRenderContext context, FilterMode filter = FilterMode.Bilinear,
             int count = int.MaxValue)
         {
-            if (!context.applyFx || fx == null || current == null)
+            if (!context.applyFx || fx == null || fx.Count == 0 || count <= 0 || current == null)
                 return;
+            using var block = WhimTexProfiler.Measure("fx.block", context.activeDocument, this);
+            using var blockGpu = block.Gpu();
             for (int i = 0; i < fx.Count && i < count; i++)
             {
                 if (fx[i] is ShaderFX inactive && (!inactive.Active || inactive.IsUnavailable)) continue;
-                using var textureInputs = fx[i] is ShaderFX textureFX
-                    ? context.activeDocument.BindShaderTextureLayers(textureFX, this, context, current) : null;
-                Material material = fx[i] is ShaderFX shaderFX
-                    ? shaderFX.GetMaterial(context)
-                    : fx[i] as Material;
-                if (material == null)
-                    continue;
-                textureInputs?.Apply(material);
-                if (fx[i] is ShaderFX)
-                {
-                    material.SetFloat("_WhimTex_InputFilter", current.filterMode == FilterMode.Point ? 0f : 1f);
-                    if (!context.transformFxCoordinates)
-                        ProjectiveMatrix.Identity.SetShader(material, "_WhimTex_LayerToLocalRow");
-                    else if (Behaviour is DrawingLayerBehaviour drawing && drawing.HasBakedFxFrame)
-                        drawing.GetBakedFxInverse(context.activeDocument.width, context.activeDocument.height).SetShader(material, "_WhimTex_LayerToLocalRow");
-                    else if (transformCache != null)
-                        transformCache.inverseGpu.Set(material, "_WhimTex_LayerToLocalRow");
-                    else
-                    {
-                        CanvasTransform.ToMatrix(context.activeDocument.width, context.activeDocument.height).TryInverse(out var inverse);
-                        inverse.SetShader(material, "_WhimTex_LayerToLocalRow");
-                    }
-                }
-
-                RenderTexture next = RenderTexture.GetTemporary(
-                    context.width,
-                    context.height,
-                    0,
-                    RenderTextureFormat.ARGBFloat,
-                    RenderTextureReadWrite.Linear);
-                next.filterMode = filter;
-                next.wrapMode = TextureWrapMode.Clamp;
+                using var profile = WhimTexProfiler.Measure("fx.render", context.activeDocument, this, i,
+                    WhimTexProfiler.Recording && fx[i] != null ? fx[i].name : null);
+                ShaderTextureBindings textureInputs = null;
+                RenderTexture next = null;
                 try
                 {
-                    Graphics.Blit(current, next, material);
-                }
-                catch
-                {
-                    RenderTexture.ReleaseTemporary(next);
-                    throw;
+                    Material material;
+                    using (WhimTexProfiler.Measure("fx.prepare"))
+                    {
+                        textureInputs = fx[i] is ShaderFX textureFX
+                            ? context.activeDocument.BindShaderTextureLayers(textureFX, this, context, current) : null;
+                        material = fx[i] is ShaderFX shaderFX ? shaderFX.GetMaterial(context) : fx[i] as Material;
+                        if (material == null) continue;
+                        textureInputs?.Apply(material);
+                        if (fx[i] is ShaderFX)
+                        {
+                            material.SetFloat("_WhimTex_InputFilter", current.filterMode == FilterMode.Point ? 0f : 1f);
+                            if (!context.transformFxCoordinates)
+                                ProjectiveMatrix.Identity.SetShader(material, "_WhimTex_LayerToLocalRow");
+                            else if (Behaviour is DrawingLayerBehaviour drawing && drawing.HasBakedFxFrame)
+                                drawing.GetBakedFxInverse(context.activeDocument.width, context.activeDocument.height).SetShader(material, "_WhimTex_LayerToLocalRow");
+                            else if (transformCache != null)
+                                transformCache.inverseGpu.Set(material, "_WhimTex_LayerToLocalRow");
+                            else
+                            {
+                                CanvasTransform.ToMatrix(context.activeDocument.width, context.activeDocument.height).TryInverse(out var inverse);
+                                inverse.SetShader(material, "_WhimTex_LayerToLocalRow");
+                            }
+                        }
+                        next = ProfiledRenderTexture.GetTemporary(context.width, context.height, 0,
+                            RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                        next.filterMode = filter;
+                        next.wrapMode = TextureWrapMode.Clamp;
+                    }
+                    using (profile.Gpu())
+                    using (WhimTexProfiler.Measure("fx.submit"))
+                    {
+                        Graphics.Blit(current, next, material);
+                        ProfiledRenderTexture.ReleaseTemporary(current);
+                        current = next; next = null;
+                        current = context.activeDocument.FinishStage(current);
+                    }
                 }
                 finally
                 {
+                    if (next != null) ProfiledRenderTexture.ReleaseTemporary(next);
+                    textureInputs?.Dispose();
                 }
-                RenderTexture.ReleaseTemporary(current);
-                current = next;
-                current = context.activeDocument.FinishStage(current);
             }
         }
     }
@@ -469,6 +491,7 @@ namespace DCFApixels.WhimTex
         internal string RecoveryId => recoveryId ??= Guid.NewGuid().ToString("N");
         internal void AssignRecoveryId() => recoveryId = Guid.NewGuid().ToString("N");
         public Layer Owner => owner ?? new Layer(this);
+        internal Layer BoundOwner => owner;
         internal LayerBehaviour Behaviour => this;
         internal void Bind(Layer layer)
         {

@@ -18,7 +18,11 @@ var sentinel = UnityEngine.RenderTexture.GetTemporary(8, 8);
 int checks = 0;
 double maxError = 0;
 void Check(bool value, string message) { UnityBRun.Check(!(!value), message); checks++; }
-UnityEngine.Texture2D Palette() => (UnityEngine.Texture2D)layerType.GetField("palette", flags).GetValue(layer);
+UnityEngine.Texture2D Palette()
+{
+    var holder = layerType.GetField("palette", flags).GetValue(layer);
+    return holder == null ? null : (UnityEngine.Texture2D)holder.GetType().GetField("texture", flags).GetValue(holder);
+}
 UnityEngine.RenderTexture Render(int w, int h)
 {
     var context = System.Activator.CreateInstance(contextType, new object[] { document, null, w, h, 1f, false, false, null });
@@ -114,6 +118,16 @@ try
     layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Circular;
     layer.circularWrapMode = DCFApixels.WhimTex.GradientLayerBehaviour.WrapMode.PingPong;
     Compare("Circular exact center and ping-pong");
+    foreach(var wrap in new[]{DCFApixels.WhimTex.GradientLayerBehaviour.WrapMode.Repeat, DCFApixels.WhimTex.GradientLayerBehaviour.WrapMode.PingPong})
+    foreach(float angle in new[]{0f,37f,90f,-123f,359f})
+    foreach(float repeats in new[]{.5f,1f,1.2f,3.2f})
+    {
+        layer.circularStartAngle=angle; layer.circularRepetitions=repeats; layer.circularWrapMode=wrap;
+        Compare("Angular handles "+angle+"/"+repeats+"/"+wrap,64,34);
+    }
+    var angularThumb=layer.GetPreviewTexture(18);layer.circularStartAngle+=1;
+    Check(layer.GetPreviewTexture(18)!=null && angularThumb==null,"Start angle invalidates thumbnail");
+    layer.circularStartAngle=0;
     layer.circularRepetitions = 0; Compare("Zero repetitions");
     layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Radial;
     layer.gradient = null; Compare("Null fallback");

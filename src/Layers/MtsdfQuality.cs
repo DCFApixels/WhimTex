@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Mathematics;
 
@@ -194,7 +195,8 @@ namespace DCFApixels.WhimTex
                 throw new ArgumentException("MTSDF field dimensions do not match.");
             if (geometry == null || geometry.roots.Length == 0 || geometry.rootCosines.Length != geometry.roots.Length) return;
             using var protectedTexels = new NativeArray<byte>(field.Length, Allocator.TempJob);
-            using var flags = new NativeArray<byte>(field.Length, Allocator.TempJob);
+            using var flags = new NativeArray<byte>(((width + 1) / 2) * ((height + 1) / 2),
+                Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
             var writableProtection = protectedTexels;
             foreach (Feature feature in geometry.features)
             {
@@ -211,14 +213,25 @@ namespace DCFApixels.WhimTex
             // Within a parity phase no two changed texels share a bilinear cell.
             // This makes the verified one-texel proposal match the applied one,
             // instead of combining individually safe but collectively bad edits.
-            for (int phase = 0; phase < 4; phase++)
+            JobHandle correction = default;
+            try
             {
-                new MtsdfQualityClassifyJob { field = field, protectedTexels = protectedTexels, flags = flags,
-                    features = geometry.features, nodes = geometry.nodes, roots = geometry.roots, cosines = geometry.rootCosines,
-                    width = width, height = height, phase = phase, unrestricted = geometry.sharpMode == SharpDistanceMode.Unrestricted
-                }.Schedule(field.Length, 64).Complete();
-                new MtsdfQualityApplyJob { field = field, flags = flags }.Schedule(field.Length, 128).Complete();
+                for (int phase = 0; phase < 4; phase++)
+                {
+                    int columns = (width + 1 - (phase & 1)) / 2;
+                    int rows = (height + 1 - (phase >> 1)) / 2;
+                    int count = columns * rows;
+                    if (count == 0) continue;
+                    correction = new MtsdfQualityClassifyJob { field = field, protectedTexels = protectedTexels, flags = flags,
+                        features = geometry.features, nodes = geometry.nodes, roots = geometry.roots, cosines = geometry.rootCosines,
+                        segments = geometry.segments,
+                        width = width, height = height, phase = phase, columns = columns, unrestricted = geometry.sharpMode == SharpDistanceMode.Unrestricted
+                    }.Schedule(count, 64, correction);
+                    correction = new MtsdfQualityApplyJob { field = field, flags = flags, width = width, columns = columns, phase = phase }
+                        .Schedule(count, 128, correction);
+                }
             }
+            finally { correction.Complete(); }
         }
 
         struct QualityInterpolation
@@ -233,18 +246,21 @@ namespace DCFApixels.WhimTex
             [ReadOnly] public NativeArray<float4> field;
             [ReadOnly] public NativeArray<byte> protectedTexels;
             [ReadOnly] public NativeArray<Feature> features;
+            [ReadOnly] public NativeArray<SegmentParameters> segments;
             [ReadOnly] public NativeArray<Node> nodes;
             [ReadOnly] public NativeArray<int> roots;
             [ReadOnly] public NativeArray<float> cosines;
             [WriteOnly] public NativeArray<byte> flags;
-            public int width, height, phase;
+            public int width, height, phase, columns;
             public bool unrestricted;
 
-            public void Execute(int index)
+            public void Execute(int slot)
             {
-                flags[index] = 0;
-                int x = index % width, y = index / width;
-                if (((x & 1) | ((y & 1) << 1)) != phase || protectedTexels[index] != 0) return;
+                // Compact flags describe only this phase; all slots are overwritten.
+                flags[slot] = 0;
+                int x = 2 * (slot % columns) + (phase & 1), y = 2 * (slot / columns) + (phase >> 1);
+                int index = y * width + x;
+                if (protectedTexels[index] != 0) return;
                 float4 value = field[index];
                 if (!math.all(math.isfinite(value)) || math.abs(value.w) <= .75f ||
                     math.cmax(math.abs(value)) >= EmptyDistance * .5f || math.cmax(value.xyz) - math.cmin(value.xyz) < .0001f) return;
@@ -255,7 +271,7 @@ namespace DCFApixels.WhimTex
                     if (dx == 0 && dy == 0 || x + dx < 0 || y + dy < 0 || x + dx >= width || y + dy >= height) continue;
                     if (!CheckDirection(index, new int2(dx, dy), ref improves, ref queries)) return;
                 }
-                if (improves) flags[index] = 1;
+                if (improves) flags[slot] = 1;
             }
 
             bool CheckDirection(int index, int2 direction, ref bool improves, ref int queries)
@@ -289,7 +305,7 @@ namespace DCFApixels.WhimTex
                     // A fixed work budget retains original samples on unusually
                     // complicated cells; it never accepts a partial validation.
                     if (++queries > 64) return false;
-                    float reference = Median(EvaluateContours(origin + t * (float2)direction, features, nodes, roots, cosines, inside, unrestricted).xyz);
+                    float reference = Median(EvaluateContours(origin + t * (float2)direction, features, nodes, roots, cosines, inside, unrestricted, segments).xyz);
                     if (!math.isfinite(reference) || math.abs(reference) >= EmptyDistance * .5f ||
                         (inside ? -reference : reference) <= .02f) return false;
                     float oldError = math.abs(oldMedian - reference), newError = math.abs(newMedian - reference);
@@ -371,11 +387,14 @@ namespace DCFApixels.WhimTex
         [BurstCompile]
         struct MtsdfQualityApplyJob : IJobParallelFor
         {
-            public NativeArray<float4> field;
+            // Each compact slot maps to a unique texel in this parity phase.
+            [NativeDisableParallelForRestriction] public NativeArray<float4> field;
             [ReadOnly] public NativeArray<byte> flags;
-            public void Execute(int index)
+            public int width, columns, phase;
+            public void Execute(int slot)
             {
-                if (flags[index] == 0) return;
+                if (flags[slot] == 0) return;
+                int index = (2 * (slot / columns) + (phase >> 1)) * width + 2 * (slot % columns) + (phase & 1);
                 float4 value = field[index];
                 value.xyz = new float3(Median(value.xyz));
                 field[index] = value;

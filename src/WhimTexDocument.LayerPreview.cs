@@ -31,7 +31,7 @@ namespace DCFApixels.WhimTex
                 if (layer.clippingMask && result != null) ApplyClippingCoverage(ref result, container, index, w, h, scale, stack);
                 return result;
             }
-            catch { if (result != null) RenderTexture.ReleaseTemporary(result); throw; }
+            catch { if (result != null) ProfiledRenderTexture.ReleaseTemporary(result); throw; }
             finally { RenderTexture.active = previous; }
         }
 

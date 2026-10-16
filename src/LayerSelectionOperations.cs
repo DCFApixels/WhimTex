@@ -86,7 +86,7 @@ namespace DCFApixels.WhimTex
                 {
                     int above = index - 1;
                     while (above >= 0 && selected.Contains(container[above])) above--;
-                    if (above >= 0 && container[above]?.AsGroup() is Layer group)
+                    if (above >= 0 && container[above]?.AsGroup() is Layer group && document.CanInsertInto(layer, group.layers))
                         moves.Add(new GroupMove(layer, group, container, group.layers));
                 }
                 else if (document.TryFindParentGroup(container, out Layer parent, out List<Layer> destination, out _))

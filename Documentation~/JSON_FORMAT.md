@@ -41,12 +41,317 @@ Comments do not contribute to image pixels. See [TIFF comments](TIFF_FORMAT.md#o
 for validation limits and anchor behavior. JSON insertion/paste imports layers only;
 opening a full document retains its comments.
 
+## Figure fills
+
+The ordinary `GradientLayerBehaviour` stores `circularStartAngle` (default 0), in
+counterclockwise degrees from the local left ray. For Circular, one period spans
+`360/circularRepetitions` degrees; Repeat/PingPong wrapping remains unchanged.
+The angle rotates the field without changing transform or palette keys; it is
+retained by native storage/Undo and included in JSON when Circular is active.
+Shifted angular fields rasterize on PSD export. This is separate from figure-fill geometry.
+
+Shape and Vector share `VectorFillMode`: `None=0`, `Solid=1`, `LinearGradient=2`,
+`RadialGradient=3`, `SquareGradient=4`, `DiamondGradient=5`, `CircularGradient=6`.
+JSON uses these exact names, never numeric enum values. `ShapeLayerBehaviour` and
+each `VectorShape` store `fillMode` (default `Solid`), `fillColor` (white),
+`gradient` (a new black-to-white `WhimTexGradient`, Perceptual/Clamp),
+`gradientStart` (`[0,0]`), `gradientEnd` (`[1,0]`) and `gradientRepetitions` (`1`). Shape also retains its
+`fill` boolean (default true) as the overall body-fill gate. None suppresses fill;
+Solid uses `fillColor`; gradient modes use the palette. Stroke is independent.
+
+Anchors are finite normalized layer-local coordinates, Y up, and can lie outside
+0..1. Geometry is evaluated in reference pixels: multiply local coordinates by
+the current canvas width/height for Shape, **before** the layer Transform, or by
+`referenceSize` for Vector. Thus a non-square reference frame affects distances
+and angles before the layer transform is applied. `gradientStart` is the start
+of a linear gradient and the center of every other gradient; `gradientEnd` sets
+the radius and orientation.
+
+Let `d = end - start`, `r = length(d)` in reference pixels, and let `q` be the
+point's offset from start, rotated so the start-to-end ray is +X, then divided by
+`r`. The palette parameter is:
+
+| Mode | Parameter `t` |
+| --- | --- |
+| `LinearGradient` | `q.x` |
+| `RadialGradient` | `length(q)` |
+| `SquareGradient` | `max(abs(q.x), abs(q.y))` |
+| `DiamondGradient` | `abs(q.x) + abs(q.y)` |
+| `CircularGradient` | Positive counterclockwise angle from +X divided by one turn, multiplied by `gradientRepetitions`; seam on the start-to-end ray |
+
+Equal anchors produce `t=0` everywhere for every gradient type. The palette's
+existing `wrapMode` handles clamping/repetition after the circular multiplier.
+`gradientRepetitions` is a finite float of at least `0.0001`, default `1`; one
+circular period spans `360 / gradientRepetitions` degrees. It affects only
+CircularGradient and is retained and validated in every mode, including disabled
+fills. The existing anchor ray sets the start angle; there is no separate angle field.
+All modes retain color and alpha stops, HDR values, midpoints, interpolation,
+smoothness and color space. A gradient mode requires a non-null palette, even when
+Shape's `fill` gate is off. Invalid modes or non-finite anchors are rejected.
+
+Shape, Vector and Boolean Group (`style`) also store an independent stroke paint:
+
+| Field | Default and behavior |
+| --- | --- |
+| `stroke` | `false`; existing stroke enable gate |
+| `strokeMode` | `Solid`; the same seven `VectorFillMode` names as fill. `None` disables stroke paint while retaining its settings |
+| `strokeColor` | Opaque black; used by Solid |
+| `strokeGradient` | A separate black-to-white Perceptual/Clamp `WhimTexGradient`; the same HDR, alpha, midpoint, interpolation, smoothness, color-space and wrap behavior as fill |
+| `strokeGradientStart`, `strokeGradientEnd` | `[0,0]`, `[1,0]`; finite normalized layer-local anchors using the same geometry and reference-pixel metric as fill |
+| `strokeGradientRepetitions` | `1`; finite float of at least `0.0001`. CircularGradient only, before palette wrapping; one period spans `360 / strokeGradientRepetitions` degrees |
+
+Stroke never borrows the fill palette, anchors or repetitions. Its gradient modes
+require a non-null `strokeGradient` even with `stroke:false`; modes, anchors and
+repetitions are validated while inactive. Changing stroke paint does not alter
+stroke geometry, fill settings or layer transforms. Boolean Group stores both
+paints in `style`, using its `referenceSize`; Combine with `appearance:Layers`
+uses each child's own paints and retains the inactive group style.
+
+Full JSON, TIFF and Unity serialization retain both complete paint styles, including
+inactive values. FullOptimized and Compact also preserve inactive figure fill/stroke
+settings; Compact may omit defaults and restores them on read. This applies to
+layer clipboard fragments as well. Other inactive branches still follow the
+[write-mode rules](#write-modes). See [Shape API settings](AgentAPI.md#shape-settings)
+and [Vector API settings](AgentAPI.md#vector-settings) for patch semantics.
+
+### Vector paint caching
+
+Vector separates geometric coverage from paint. Vector and Boolean operand contours
+are flattened by portable Jobs/Burst workers over data-only snapshots, preserving
+the curve tolerance, depth-first point order and near-duplicate/closing-seam handling.
+Clipper2 Boolean operations and stroke construction retain their geometry. Coverage preparation
+for GPU paint runs in independent bands of up to 32 rows, scheduled in batches of up
+to eight that complete before the next batch, retaining double-precision
+scan intersections and the original per-row accumulation order: Antialiased integrates
+horizontal spans at eight vertical samples; Step samples the destination pixel center.
+Jobs complete before the main thread uploads each figure's cropped RGBAFloat texture
+containing fill, stroke and their intersection coverage. Both job kernels use strict
+floating-point mode; this alone is not a universal cross-platform bitwise guarantee.
+The scalar CPU fallback retains its original flattening and scan conversion and serves
+as the coverage regression oracle. Preparation and paint edits do not reduce raster
+resolution, relax curve tolerances or simplify the resolved contours.
+
+Changing fill/stroke gradient anchors, active paint type, circular repetitions,
+palette colors, alpha, interpolation or wrapping reuses that coverage. GPU paint
+evaluates the local gradient coordinates and samples the shared interval-based
+`WhimTexGradientPalette`, with independent fill/stroke palettes. Solid colors and
+alpha also repaint without rebuilding coverage. Geometry, fill rule, stroke width,
+position, joins, caps, dashes, reference size, rasterized transform, output dimensions,
+clipping and Edge Mode invalidate coverage. Switching to/from None or changing the
+stroke enable gate can also change the required coverage. Repeat/Mirror/Source
+extension retains its existing source-image sampling path.
+
+Paint uses the stored fill/stroke intersection to preserve partially covered edges;
+it does not multiply independently averaged coverage values. Combine paints each
+figure's fill and then stroke in bottom-to-top order. Multiple figures accumulate
+premultiplied linear color in float precision, then convert to straight alpha for
+the ordinary layer/FX pipeline. Translucent overlap and interior outlines remain
+visible. This optimization preserves the rendering contract; GPU palette interpolation
+and floating-point arithmetic do not imply bitwise equality with CPU shading.
+
+The retained coverage budget is 128 MiB per Vector model, estimated across CPU and
+GPU mask storage. A separate 128 MiB scratch estimate bounds each scheduled mask batch:
+512 bytes per fill/stroke edge per band includes list growth allocations, plus three
+float row buffers and 4 KiB per band. Before native allocation or dispatch, a conservative
+work estimate includes prior figures' work, the crop's pixel count and each edge's
+crop-clipped row count multiplied by eight AA samples or one Step sample. Exceeding
+either memory estimate or the 100 million work estimate selects the original scalar
+CPU path, as does missing float shader/render-target support. The scalar path retains
+its original quality and actual-work rejection limits; a conservative estimate alone
+does not reject geometry. Contour output is separately batched in groups of eight,
+bounding native point payload to about 16 MiB before total-point validation. These
+budgets are not a total renderer memory cap: painted output, palettes, copied edges
+and any multi-figure accumulation target are additional storage. Caches and build
+counters are transient implementation details, absent from JSON/TIFF.
+
+Boolean Group caches its prepared result separately from paint. Group paint edits
+retain that result; group stroke-geometry edits rebuild coverage without repeating
+Boolean operations. Ignored child fill/stroke settings do not rebuild the Boolean
+result. Child geometry, fill rule, visibility, transforms, order or operations can
+invalidate it. Combine with `appearance:Layers` continues to render each child's
+own appearance through its existing path. See [Boolean groups](#boolean-groups).
+
+For cold builds, the render-only Boolean result passes prepared closed paths to
+the rasterizer instead of allocating editable points/IDs and flattening them again.
+The previous normalized-float coordinate round trip, duplicate-point filtering,
+path order, seams, bounds and geometry limits are retained. At extreme coordinates,
+float cancellation can make even zero-handle straight cubics subdivide; those
+figures keep the original flattening path. This does not remove normalization passes
+or change the editable/serialized vector model.
+
+Within one synchronous geometry build, sequential resolutions reuse one lazy,
+thread-local Clipper64 instance. Input state is cleared in `finally` after every
+operation; result paths remain independently owned. Nested build scopes borrow
+the outer lifetime, in-flight reentrant calls use an isolated engine, and the
+outer scope drops the engine on exit. No engine or its buffers are retained
+between builds. Clipper2 itself is unchanged.
+
+Polygon-resolution profiling separates `vector.clip.budget`, `vector.clip.input`
+(Clipper construction and input ingestion) and `vector.clip.execute`, nested under
+`vector.clip.resolve`; `vector.boolean.filled_region` includes its child resolves.
+Do not add parent and child durations together. The intersection-work guard keeps
+its original four-million-visit acceptance rule, but counts active edges with two
+sorted endpoint arrays in an integer-only Burst job instead of repeatedly scanning all overlapping edges.
+An empty subject and clip bypass execution. Boolean accumulation also omits the
+Union against an empty accumulator when its preceding NonZero normalization
+returned exactly the input paths: identical vertices, path order, orientation and
+seams. This observed fixed point avoids guessing from the fact that paths came
+from Clipper. Other passes remain: touching contour partitions can change on a
+subsequent Union even when the filled area is identical. That partition can affect
+centered outlines and dash phase, so fill-only equivalence is not sufficient.
+No curve tolerance, coordinate precision, winding rule or operand order changes.
+
+## Shape strokes
+
+`ShapeLayerBehaviour` stores `strokeJoin` (`Miter`, `Round`, `Bevel`; default `Round`),
+`strokeCap` (`Butt`, `Round`, `Square`; default `Butt`), `miterLimit` (default 4),
+`dashPattern` (default `[]`) and `dashOffset` (default 0). The stroke engine is shared
+with Vector. Styled Shape outlines use the shared stroke geometry with a cached
+polygon-BVH distance query in the Shape shader. Centered undashed Round outlines retain the
+analytic path for their existing appearance and performance. Shape retains its
+procedural Feather and document-pixel stroke metrics under layer transforms;
+Vector transforms its local stroke geometry.
+
+For closed Shape/Vector paths, Inside/Outside offsets the resolved fill boundary
+by half the stroke width, then strokes the resulting trajectory at full width.
+Joins and miter limits participate in the offset construction; holes use the opposite
+filled side. Dashes and caps are generated after offsetting, without clipping the
+finished stroke against the original fill. This preserves whole round dots/caps,
+but is not a strict containment mask at tight corners. Collapsed insets remain empty
+and narrow necks can split. Offset trajectories use a stable minimum-X/minimum-Y
+seam and resolved winding; their changed length/seam can change dash placement.
+Center and open paths keep their original trajectories. No source points or saved
+settings are rewritten. Explicit layer clipping remains a separate operation.
+
+Shape dash values are always multiples of `strokeWidth`: `[2,1]` means a dash twice
+the width and a gap once the width, independent of inside/center/outside alignment.
+Empty/null means solid; an odd list repeats twice. `dashOffset` remains document
+pixels. Shape has no `dashPatternRelative` flag. Dash lists allow at most 256 finite
+positive values, each at most 10000000; `miterLimit` is finite 1..10000 and `dashOffset`
+is finite -10000000..10000000. The inspector's pattern editor limits individual
+multipliers to 8192.
+
+`strokePosition` keeps the Shape enum ordering `Inside=0`, `Center=1`, `Outside=2`;
+do not cast it to Vector's position enum. JSON uses the names. `lineCap` remains
+the independent body end cap for Line/Arc; `strokeCap` controls outline dash ends.
+Full, FullOptimized and Compact retain inactive stroke settings, including when
+`stroke` is false or `strokeMode` is None. Compact may omit defaults and restores
+them on read.
+See [Shape settings](AgentAPI.md#shape-settings) for partial API updates and the full
+field contract.
+
+## Vector layers
+
+Vector layers use `$type: "VectorLayerBehaviour"`, with `shapes`, `referenceSize`,
+`edgeMode` and optional `brushDraft`. Each authored layer has at most one figure.
+Multiple contours, including holes and disconnected parts, may form that one figure.
+The layer owns its transform; whole-figure transforms do not rewrite its control points.
+Shape, contour and point IDs are persistent;
+point positions and tangent offsets use normalized layer-local coordinates, Y up,
+and may extend outside 0..1. `referenceSize` is the physical document pixel size at
+creation. Stroke widths and dash offsets use reference pixels and follow
+the layer transform. For width-relative dashes set `dashPatternRelative:true`:
+`dashPattern:[2,1]` means a dash of `2 * strokeWidth` and a gap of `strokeWidth`,
+independent of inside/center/outside alignment. `dashOffset` stays in reference pixels.
+False/omitted retains pixel-pattern interpretation for existing data. The inspector
+always displays multiples of width and converts older values on pattern or width
+edits, using the old width (or 1 when it is zero), in the same Undo operation.
+Each shape uses the shared [figure-fill contract](#figure-fills) and retains its fill rule, fill/gradient settings,
+stroke alignment, join, cap, miter limit and dash settings, including inactive values
+in every write mode.
+
+`brushDraft` retains `width`, `height`, `coverage`, `shapeId`, `tolerance`,
+`expansion` and `frame`. `frame` is `[x,y,width,height]` in normalized layer-local
+Y-up coordinates, defaults to `[0,0,1,1]`, and requires finite values and positive
+dimensions. Reframing the figure changes this mask mapping, not the original bytes.
+Coverage is base64 of the original bottom-up row-major byte mask,
+exactly `width * height` bytes, at most 1024 per axis. It is never replaced with a
+re-rasterized contour during saving. Tolerance is 0.25..64 reference pixels;
+expansion is -256..256. The draft survives JSON/clipboard, TIFF and Unity
+serialization. A new brush figure gets its own layer and mask;
+manual edits to its figure or Release Mask discard the draft explicitly. Native tagged storage encodes
+byte arrays as a bounded byte block (tag 32), avoiding the per-value graph limit.
+
+`VectorBrushGeometry.Rebuild` traces the unchanged coverage (or its signed-distance
+offset), then fits closed cubic Bezier contours with editable tangent offsets.
+Tolerance bounds the fit against the interpolated mask boundary in reference pixels;
+it is not an alpha threshold or a node-count target. Tangents are shared at smooth
+joins, including the closed seam. The fitter subdivides spans that exceed its error
+bound and tightens tolerance if flattened curves cross or change hole nesting.
+An unresolved shortest span retains its exact straight segment. Work/geometry limits
+fail before replacing the figure; no contour is silently dropped. Rebuilding does
+not mutate coverage, and callers replacing a figure retain its existing style.
+The fitting approach uses least-squares cubic handles, chord-length parameters and
+Newton refinement as described by [Schneider, Graphics Gems (1990)](https://github.com/erich666/GraphicsGems/blob/master/gems/FitCurves.c),
+with an additional between-sample error bound and compound-path validation.
+
+The data API exposes the same fields through `settings.vector`; supplied top-level
+fields replace their values, and supplied arrays replace whole arrays. Unspecified
+fields remain unchanged. API authoring rejects `shapes` with more than one figure.
+Document readers still accept older multi-figure Vector data: `NormalizeModel`
+splits it into an ordinary Group retaining the old layer ID, transform and FX,
+with one independently styled figure per child. It does not save or overwrite the
+source file. The resulting document must still satisfy the normal layer budget.
+`convertToVector` converts a Shape on the same layer shell,
+preserving its ID and FX. For appearance, conversion changes transform tiling from
+`Clip` to `Unbounded`: Shape's Clip does not clip geometric strokes, whereas Vector's
+Clip clips to the normalized layer frame. The geometry frame is fitted while
+preserving canvas placement and style; stored local coordinates/transform values
+may change together. The C# conversion helper is
+`ShapeToVector.Convert(ShapeLayerBehaviour, WhimTexDocument)` and returns a detached
+replacement behaviour; callers swapping it into a layer make the same Clip-to-Unbounded
+adjustment and call `VectorLayerStructure.FitFrame(layer, width, height)`.
+Straight edges remain straight; analytic arcs become cubic
+curves, with elliptic offset arcs subdivided to a 0.01 canvas-pixel sampling tolerance.
+Repeat/Mirror/Source sample Vector's raster source and may differ at frame boundaries.
+Active feather, strokes under nonuniform/projective transforms, overlapping
+translucent fill/stroke replacement, and arc offsets that develop cusps or overlapping end caps produce an
+explicit unsupported diagnostic before replacement. Curve approximation and the
+different rasterizers do not promise pixel-identical antialiasing.
+
+## Boolean groups
+
+Use `$type:"BooleanGroupLayerBehaviour"` on the group layer's `behaviour`, and put
+operands in the layer's ordinary `children` array. Common appearance is `style`
+(a `VectorShape` with empty `contours`), `referenceSize` and `edgeMode`.
+The group always uses `compositing:"Isolated"`; omitting this field also selects
+Isolated for this type. Explicit PassThrough is rejected.
+
+The bottom enabled child is the initial region; walk upward and combine each next
+operand using its layer-level `booleanOperation`: `Union` (default), `Subtract`,
+`Intersect`, `Xor` or `Combine`. The bottom operand's operation is retained but ignored.
+Children are stored top-to-bottom, so evaluation walks the array in reverse.
+Supported operands are Shape, single-figure Vector and nested Boolean Group.
+Unsupported raster layers and open contours produce a diagnostic instead of
+silently disappearing. Compound contours and holes remain part of their figure.
+
+Child transforms remain independent and local to the parent. Source geometry is
+combined before applying the group's common fill, stroke and FX. Child fill/stroke,
+FX and other appearance settings remain stored, but are not rendered into the Boolean
+result; source strokes do not enlarge the Boolean region. Moving a child out of the
+group reactivates its own appearance. Nested Boolean Groups contribute their geometry,
+not their painted result. Ordinary Group keeps its existing compositing behavior.
+
+`Combine` appends separate figures rather than resolving their filled regions, preserving
+each outline and bottom-to-top fill overlap. A later Boolean operation resolves the accumulated
+filled regions. `BooleanGroupLayerBehaviour.appearance` is `Group` (default) or `Layers`.
+Only a uniformly Combine group uses `Layers`: children render their own fill/gradient,
+stroke and edge treatment, including Shape Feather, with normal linear-light compositing.
+Their FX, opacity, blend settings, channel mapping and clipping flags remain ignored.
+Nested groups render according to their own mode and appearance. All other group modes,
+including mixed operations, always use the group style. The inactive appearance preference is retained.
+
+Creating a Boolean Group from figures in the UI copies the bottom figure's style
+once. Later child-style edits do not change the group style. The data API creates
+the group with defaults or explicit `settings.booleanGroup`; it does not infer a
+style from children added later. See [Boolean Group API](AgentAPI.md#boolean-group-settings).
+
 ## Write modes
 
 | Mode | Stored values |
 | --- | --- |
 | `Full` | All persistent settings, including inactive values and defaults. |
-| `FullOptimized` (default) | Active settings, including their defaults; inactive branches are omitted. |
+| `FullOptimized` (default) | Active settings, including their defaults; inactive branches are omitted except retained Shape/Vector fill and stroke styles, Boolean Group styles and Vector source data. |
 | `Compact` | Same inactive-branch rules, additionally omitting version-2 default values, except source canvas dimensions. |
 
 The optional envelope field `writeMode` uses these exact names; absence means `FullOptimized`.

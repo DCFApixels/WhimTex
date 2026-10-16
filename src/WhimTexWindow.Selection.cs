@@ -605,7 +605,7 @@ namespace DCFApixels.WhimTex
             for (int i = 0; i < layers.Count; i++)
             {
                 Layer layer = layers[i];
-                if (!activeDocument.TryFindLayer(layer, out _, out _) ||
+                if (!activeDocument.TryFindLayer(layer, out _, out _) || !activeDocument.CanInsertInto(layer, destination) ||
                     layer?.AsGroup() is Layer group && ContainsLayerContainer(group, destination))
                     return false;
                 for (int j = 0; j < i; j++)

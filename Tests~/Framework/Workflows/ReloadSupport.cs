@@ -36,8 +36,8 @@ public static class UnityBReload
 
     static string Key(string kind, string runId)
     {
-        if ((kind != "Document" && kind != "Guide") || !System.Guid.TryParseExact(runId, "N", out _))
-            throw new System.ArgumentException("Expected Document/Guide and a per-run N-format GUID.");
+        if ((kind != "Document" && kind != "Guide" && kind != "Profiler" && kind != "Agent") || !System.Guid.TryParseExact(runId, "N", out _))
+            throw new System.ArgumentException("Expected Document/Guide/Profiler/Agent and a per-run N-format GUID.");
         return "WhimTex.Tests.UnityB.Reload." + kind + "." + runId;
     }
     static Snapshot Read(string key)
@@ -254,7 +254,10 @@ public static class UnityBReload
                     var state = Read(key);
                     state.requestQueued = false;
                     Write(key, state);
-                    if (state.requestCount == 1 && (state.beforeReload != 1 || System.AppDomain.CurrentDomain.GetData(key) != null)
+                    // A throwing earlier beforeAssemblyReload subscriber can skip our marker.
+                    // Loss of the old domain plus the idle guard below is enough for cleanup,
+                    // but Verify still requires the marker and must report that run as failed.
+                    if (state.requestCount == 1 && System.AppDomain.CurrentDomain.GetData(key) != null
                         && string.IsNullOrEmpty(state.requestError) && state.compilationErrors.Length == 0)
                         throw new System.InvalidOperationException("Native request already issued without a completed domain reload; cannot cancel it or delete owned fixtures.");
                 }

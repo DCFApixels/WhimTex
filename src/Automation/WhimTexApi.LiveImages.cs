@@ -16,13 +16,21 @@ namespace DCFApixels.WhimTex
         private static void CaptureLiveInput(LiveJob job, WhimTexWindow window, JObject request)
         {
             string area = Text(request, "area", "canvas");
-            Require(area == "canvas" || area == "selection", "area must be canvas or selection.");
+            Require(area == "canvas" || area == "selection" || area == "commentMask", "area must be canvas, selection or commentMask.");
             job.selectionMode = Text(request, "selectionMode", "strict");
             Require(job.selectionMode == "strict" || job.selectionMode == "guide", "selectionMode must be strict or guide.");
-            Require(area == "selection" || request["selectionMode"] == null, "selectionMode is only used with area=selection.");
+            Require(area != "canvas" || request["selectionMode"] == null, "selectionMode requires selection or commentMask.");
+            Require(area == "commentMask" || request["maskRef"] == null, "maskRef requires area:commentMask.");
             CanvasSelection selection = window.AgentSelection;
+            if (area == "commentMask")
+            {
+                var mask = CheckCommentMask(job.document, request["maskRef"]);
+                selection = new CanvasSelection(job.width, job.height);
+                selection.Set(mask.Rasterize(job.width, job.height), SelectionCombine.Replace);
+                job.commentMaskRef = (JObject)request["maskRef"].DeepClone();
+            }
             job.region = new RectInt(0, 0, job.width, job.height);
-            if (area == "selection")
+            if (area != "canvas")
             {
                 Require(selection.Active && selection.Bounds.width > 0 && selection.Bounds.height > 0,
                     "Select a nonempty area first.", "selection_required");
@@ -33,7 +41,8 @@ namespace DCFApixels.WhimTex
                 job.region = new RectInt(x, y, Math.Min(job.width, b.xMax + padding) - x,
                     Math.Min(job.height, b.yMax + padding) - y);
             }
-            else Require(request["padding"] == null, "padding is only used with area=selection.");
+            else Require(request["padding"] == null, "padding requires selection or commentMask.");
+            CaptureApplicationMask(job, request);
             string source = Text(request, "source", "none");
             Require(source == "none" || source == "merged" || source == "layer", "source must be none, merged or layer.");
             Require(source == "layer" || request["sourceLayerId"] == null, "sourceLayerId is only used with source=layer.");
@@ -42,10 +51,13 @@ namespace DCFApixels.WhimTex
             job.capture = new JObject { ["source"] = source, ["sourceLayerId"] = layer?.Id,
                 ["region"] = LiveRect(job.region), ["canvas"] = new JArray(job.width, job.height),
                 ["selection"] = job.mask != null, ["selectionMode"] = job.mask != null ? job.selectionMode : null,
-                ["maskEnforced"] = job.mask != null && job.selectionMode == "strict",
+                ["maskEnforced"] = job.applicationMask != null,
                 ["colorSpace"] = "sRGB, 8-bit PNG; HDR is clamped for image generation",
                 ["coordinates"] = "region: bottom-left canvas pixels; PNG: normal top-left image orientation" };
-            if (source == "none" && job.mask == null) return;
+            job.capture["maskRef"] = job.commentMaskRef?.DeepClone();
+            job.capture["applicationMaskRef"] = job.applicationMaskRef?.DeepClone();
+            job.capture["applicationMask"] = request["applicationMask"]?.DeepClone();
+            if (source == "none" && job.mask == null && job.applicationMask == null) return;
             RequireGraphics();
             string folder = "Temp/WhimTex/Agent/" + job.id + "/";
             Texture2D rendered = null, crop = null;
@@ -84,6 +96,11 @@ namespace DCFApixels.WhimTex
                             : "White = suggested subject area; black = surrounding context, not protected pixels. Return the whole crop; output may extend anywhere within it. Mask is not enforced.";
                     }
                     finally { Object.DestroyImmediate(mask); }
+                }
+                if (job.applicationMask != null)
+                {
+                    job.capture["applicationMaskPath"] = WriteCoverageRegion(job.applicationMask, job.width, job.region, folder + "application-mask.png");
+                    job.capture["applicationMaskMeaning"] = "Enforced application coverage: white replaces/adds, black preserves, gray blends. Independent of the guide. Read red; alpha is opaque.";
                 }
             }
             finally
@@ -141,7 +158,7 @@ namespace DCFApixels.WhimTex
             finally
             {
                 if (texture != null) Object.DestroyImmediate(texture);
-                if (rt != null) RenderTexture.ReleaseTemporary(rt);
+                if (rt != null) ProfiledRenderTexture.ReleaseTemporary(rt);
             }
         }
 
@@ -211,7 +228,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 var colors = image.GetPixels32();
-                if (job.mask != null && job.selectionMode == "strict")
+                if (job.applicationMask != null)
                 {
                     for (int y = 0, i = 0; y < image.height; y++)
                     for (int x = 0; x < image.width; x++, i++)
@@ -263,7 +280,7 @@ namespace DCFApixels.WhimTex
         private static int LiveSelectionCoverage(LiveJob job, int x, int y)
         {
             if (x < 0 || y < 0 || x >= job.width || y >= job.height) return 0;
-            return job.mask == null || job.selectionMode == "guide" ? 255 : job.mask[y * job.width + x];
+            return job.applicationMask == null ? 255 : job.applicationMask[y * job.width + x];
         }
 
         private static Color SampleLiveImage(NativeArray<Color> pixels, int width, int height, float u, float v)

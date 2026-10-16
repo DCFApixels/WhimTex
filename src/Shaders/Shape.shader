@@ -10,6 +10,16 @@ Shader "Hidden/WhimTex/Shape"
             #pragma fragment frag
             #pragma target 3.5
             #include "UnityCG.cginc"
+            #include "GradientPalette.cginc"
+            int _FigureFillMode;
+            float4 _FigureFillAnchors;
+            float _FigureFillRepetitions;
+            int _FigureStrokeMode;
+            float4 _FigureStrokeAnchors;
+            float _FigureStrokeRepetitions;
+            sampler2D _StrokeGradientPalette;
+            float4 _StrokeGradientPalette_TexelSize, _StrokeGradientIntervals[129], _StrokeGradientStart;
+            int _StrokeGradientWrapMode, _StrokeGradientIntervalCount;
             float2 _CanvasSize, _ShapeScale;
             float3 _ShapeRow0, _ShapeRow1, _ShapeRow2;
             int _ShapeKind, _ShapeTiling, _ShapeSegmentCount, _ShapeLineCap, _ShapeEdgeMode;
@@ -18,6 +28,40 @@ Shader "Hidden/WhimTex/Shape"
             float _ShapeArcThickness;
             float2 _ShapeAngles;
             float2 _ShapeFeather;
+            sampler2D _ShapeStrokeTree;
+            float4 _ShapeStrokeTreeSize;
+            int _ShapeStyledStroke, _ShapeStrokeNodes;
+
+            float4 StrokeTreeTexel(int index)
+            {
+                float2 uv = (float2(index % (int)_ShapeStrokeTreeSize.x, index / (int)_ShapeStrokeTreeSize.x) + .5) * _ShapeStrokeTreeSize.zw;
+                return tex2Dlod(_ShapeStrokeTree, float4(uv, 0, 0));
+            }
+
+            float StyledStrokeDistance(float2 p)
+            {
+                float nearestSquared = 1e30;
+                bool inside = false;
+                int node = 0;
+                [loop] while (node < _ShapeStrokeNodes)
+                {
+                    float4 bounds = StrokeTreeTexel(node * 3);
+                    float4 info = StrokeTreeTexel(node * 3 + 2);
+                    float2 delta = max(max(bounds.xy - p, p - bounds.zw), 0);
+                    bool ray = p.y >= bounds.y && p.y < bounds.w && p.x < bounds.z;
+                    if (dot(delta, delta) > nearestSquared && !ray) { node = (int)info.x; continue; }
+                    if (info.y > 0)
+                    {
+                        float4 segment = StrokeTreeTexel(node * 3 + 1);
+                        float2 a = segment.xy, b = segment.zw, edge = b - a;
+                        float2 d = p - a - edge * saturate(dot(p - a, edge) / max(dot(edge, edge), 1e-20));
+                        nearestSquared = min(nearestSquared, dot(d, d));
+                        if ((a.y > p.y) != (b.y > p.y) && p.x < a.x + (p.y - a.y) * edge.x / edge.y) inside = !inside;
+                    }
+                    node++;
+                }
+                return sqrt(nearestSquared) * (inside ? -1 : 1);
+            }
 
             float EllipseDistance(float2 p, float2 halfSize)
             {
@@ -173,6 +217,19 @@ Shader "Hidden/WhimTex/Shape"
                 return _ShapeFeather.x > 0 ? FeatherCoverage(distance, aa) : saturate(.5 - distance / aa);
             }
 
+            float FigureFillCoordinate(float2 uv, float4 anchors, int mode, float repetitions)
+            {
+                float2 axis = (anchors.zw - anchors.xy) * _CanvasSize;
+                float squared = dot(axis, axis);
+                if (squared <= 1e-20) return 0;
+                float2 delta = (uv - anchors.xy) * _CanvasSize;
+                float2 p = float2(dot(delta, axis), delta.y * axis.x - delta.x * axis.y) / squared;
+                if (mode == 2) return p.x;
+                if (mode == 3) return length(delta) / sqrt(squared);
+                if (mode == 4) return max(abs(p.x), abs(p.y));
+                if (mode == 5) return abs(p.x) + abs(p.y);
+                return all(p == 0) ? 0 : frac(atan2(p.y, p.x) / (2 * UNITY_PI)) * repetitions;
+            }
             float4 frag(v2f_img input) : SV_Target
             {
                 if (any(abs(_ShapeScale) < 1e-6)) return 0;
@@ -207,6 +264,11 @@ Shader "Hidden/WhimTex/Shape"
                 float outsideWidth = _ShapeStyle.w == 0 ? 0 : _ShapeStyle.w == 1 ? _ShapeStyle.z * .5 : _ShapeStyle.z;
                 float insideWidth = _ShapeStyle.z - outsideWidth;
                 float strokeCoverage = min(Coverage(distance - outsideWidth, aa), Coverage(-distance - insideWidth, aa)) * _ShapeStyle.y;
+                if (_ShapeStyledStroke != 0)
+                {
+                    float strokeDistance = StyledStrokeDistance(p);
+                    strokeCoverage = Coverage(strokeDistance, max(fwidth(strokeDistance), 1e-4)) * _ShapeStyle.y;
+                }
                 if (_ShapeStyle.z <= 0) strokeCoverage = 0;
                 float fillCoverage = fill * _ShapeStyle.x;
                 // Replace only the overlapping fill area; an outside stroke must not cut into the fill.
@@ -215,10 +277,17 @@ Shader "Hidden/WhimTex/Shape"
                     float occupied = min(fill, strokeCoverage);
                     fillCoverage = max(0, fillCoverage - occupied * _ShapeStyle.x);
                 }
-                float fillAlpha = fillCoverage * saturate(_ShapeFill.a);
-                float strokeAlpha = strokeCoverage * saturate(_ShapeStroke.a);
+                float4 paint = _ShapeFill;
+                if (_ShapeStyle.x > 0 && _FigureFillMode >= 2) paint = SampleGradientPalette(FigureFillCoordinate(uv, _FigureFillAnchors, _FigureFillMode, _FigureFillRepetitions));
+                float4 ink = _ShapeStroke;
+                if (_ShapeStyle.y > 0 && _FigureStrokeMode >= 2)
+                    ink = SampleGradientPaletteAt(FigureFillCoordinate(uv, _FigureStrokeAnchors, _FigureStrokeMode, _FigureStrokeRepetitions),
+                        _StrokeGradientPalette, _StrokeGradientPalette_TexelSize, _StrokeGradientIntervals,
+                        _StrokeGradientIntervalCount, _StrokeGradientStart, _StrokeGradientWrapMode);
+                float fillAlpha = fillCoverage * saturate(paint.a);
+                float strokeAlpha = strokeCoverage * saturate(ink.a);
                 float alpha = fillAlpha + strokeAlpha;
-                float3 rgb = (_ShapeFill.rgb * fillAlpha + _ShapeStroke.rgb * strokeAlpha) / max(alpha, 1e-8);
+                float3 rgb = (paint.rgb * fillAlpha + ink.rgb * strokeAlpha) / max(alpha, 1e-8);
                 return float4(rgb, alpha);
             }
             ENDCG

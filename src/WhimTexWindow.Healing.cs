@@ -190,7 +190,7 @@ namespace DCFApixels.WhimTex
                 if (bounds.width == 0 || bounds.height == 0) throw new InvalidOperationException("Draw inside the canvas.");
                 readback = new Texture2D(bounds.width, bounds.height, TextureFormat.RGBAFloat, false, true)
                     { hideFlags = HideFlags.HideAndDontSave };
-                cropped = RenderTexture.GetTemporary(bounds.width, bounds.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                cropped = ProfiledRenderTexture.GetTemporary(bounds.width, bounds.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                 Color[] ReadRegion(RenderTexture source)
                 {
                     var wrap = source.wrapMode; var filter = source.filterMode;
@@ -235,8 +235,8 @@ namespace DCFApixels.WhimTex
             {
                 RenderTexture.active = previous;
                 if (readback != null) DestroyImmediate(readback);
-                if (cropped != null) RenderTexture.ReleaseTemporary(cropped);
-                if (rendered != null) RenderTexture.ReleaseTemporary(rendered);
+                if (cropped != null) ProfiledRenderTexture.ReleaseTemporary(cropped);
+                if (rendered != null) ProfiledRenderTexture.ReleaseTemporary(rendered);
                 RefreshHealingStatus();
             }
         }

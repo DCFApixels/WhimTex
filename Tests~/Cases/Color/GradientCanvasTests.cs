@@ -77,7 +77,37 @@ public static class GradientCanvasTests
             selection.SetValue(window,null);
             Check(!(bool)visible.GetValue(window),"Hidden without selected layer");
             selection.SetValue(window,g.Id);g.gradientType=GradientLayerBehaviour.GradientType.Circular;
-            Check(!(bool)visible.GetValue(window),"Circular excluded");
+            tool.SetValue(window,Enum.Parse(tool.FieldType,"GradientHandles"));
+            Check((bool)visible.GetValue(window),"Circular has canvas handles");
+            var circular=typeof(GradientLayerBehaviour).Assembly.GetType("DCFApixels.WhimTex.CircularGradientGeometry");
+            var boundary=circular.GetMethod("MoveBoundary",flags);
+            foreach(float origin in new[]{0f,83f,359f})
+            foreach(bool first in new[]{false,true})
+            {
+                var args=new object[]{origin,360f,first?60f:-60f,first,1f,null,null,false};
+                boundary.Invoke(null,args);
+                Check(Mathf.Abs((float)args[6]-300f)<.001f,"Both directions separate the seam");
+                Check(Mathf.Abs(Mathf.DeltaAngle(origin+(first?60:0),(float)args[5]))<.001f,"Opposite boundary remains fixed");
+                args=new object[]{(float)args[5],300f,first?-59.5f:59.5f,first,1f,null,null,false};
+                boundary.Invoke(null,args);
+                Check((float)args[6]==360f,"Near-full circle snaps closed");
+                Check(Mathf.Abs(Mathf.DeltaAngle(origin,(float)args[5]))<.001f,"Closing preserves the fixed boundary");
+                foreach(int repetitions in new[]{1,2,3,7,29,180,360})
+                {
+                    float delta=360f-360f/(repetitions+.1f);
+                    args=new object[]{origin,360f,first?delta:-delta,first,1f,null,null,true};
+                    boundary.Invoke(null,args);
+                    float actualSpan=(float)args[6];
+                    Check(Mathf.Abs(actualSpan-360f/repetitions)<.001f,"Ctrl snaps repetitions, not degrees");
+                    float fixedAngle=(float)args[5]+(first?actualSpan:0);
+                    Check(Mathf.Abs(Mathf.DeltaAngle(origin,fixedAngle))<.001f,"Ctrl preserves opposite endpoint");
+                }
+            }
+            var project=circular.GetMethod("Project",flags);
+            Check((float)project.Invoke(null,new object[]{-1f,360f,1f})>.99f,"End key does not jump to zero across seam");
+            Check((float)project.Invoke(null,new object[]{1f,360f,0f})<.01f,"Start key stays on start side of seam");
+            g.circularStartAngle=90;g.circularRepetitions=1;
+            Check(Mathf.Abs(g.GetGradientCoord(1,.5f)-.25f)<.00001f,"Start angle rotates the field without modifying keys");
         }
         finally
         {

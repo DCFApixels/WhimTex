@@ -113,7 +113,7 @@ namespace DCFApixels.WhimTex
             if (material == null || !material.shader.isSupported)
                 throw new InvalidOperationException("Healing Brush shader is unavailable.");
             RenderTexture surface = EnsurePaintSurface(canvasWidth, canvasHeight);
-            RenderTexture result = RenderTexture.GetTemporary(surface.descriptor);
+            RenderTexture result = ProfiledRenderTexture.GetTemporary(surface.descriptor);
             RenderTexture previous = RenderTexture.active;
             try
             {
@@ -135,7 +135,7 @@ namespace DCFApixels.WhimTex
                 material.SetTexture("_Patch", null);
                 material.SetTexture("_Coverage", null);
                 RenderTexture.active = previous;
-                RenderTexture.ReleaseTemporary(result);
+                ProfiledRenderTexture.ReleaseTemporary(result);
             }
         }
     }

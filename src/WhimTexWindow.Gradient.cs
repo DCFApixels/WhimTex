@@ -7,14 +7,47 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexWindow
     {
-        private GradientLayerBehaviour gradientCanvasLayer => GetSelectedLayer()?.Behaviour as GradientLayerBehaviour;
+        [NonSerialized] private bool editStrokeGradient;
+        private GradientCanvasTarget GradientTarget(bool stroke) => new GradientCanvasTarget(GetSelectedLayer(),
+            activeDocument != null ? new Vector2(activeDocument.width, activeDocument.height) : Vector2.one, stroke);
+        private GradientCanvasTarget gradientCanvasLayer
+        {
+            get
+            {
+                var preferred = GradientTarget(editStrokeGradient);
+                return preferred.IsValid ? preferred : GradientTarget(!editStrokeGradient);
+            }
+        }
         private VisualElement gradientCanvasOverlay;
         private GradientCanvasManipulator gradientCanvasManipulator;
-        private bool IsGradientCanvasAvailable => activeDocument != null && gradientCanvasLayer != null &&
-            gradientCanvasLayer.gradientType != GradientLayerBehaviour.GradientType.Circular &&
+        private bool IsGradientCanvasAvailable => activeDocument != null && gradientCanvasLayer.IsValid &&
+            gradientCanvasLayer.gradient != null && !activeDocument.IsBooleanStyleSuppressed(gradientCanvasLayer.Owner) &&
             !WhimTexApi.IsLayerContentLocked(activeDocument, gradientCanvasLayer.Owner) &&
             !WhimTexApi.ContainsReservation(gradientCanvasLayer.Owner);
         private bool IsGradientCanvasEnabled => canvasTool == CanvasTool.GradientHandles && IsGradientCanvasAvailable;
+
+        private void AddGradientHandleSettings()
+        {
+            var row = CreateCanvasSettingsRow();
+            var channel = new PopupField<string>("Gradient", new System.Collections.Generic.List<string> { "Fill", "Stroke" }, 0)
+                { name = "gradientHandleChannel" };
+            channel.AddToClassList("whimtex-view-field"); row.Add(channel);
+            channel.RegisterValueChangedCallback(e =>
+            {
+                gradientCanvasManipulator?.End(false);
+                editStrokeGradient = e.newValue == "Stroke";
+                toolkitRefreshRequested = true;
+                gradientCanvasOverlay?.MarkDirtyRepaint();
+                toolkitCanvas?.Focus();
+            });
+            toolkitHeaderBindings.Add(() =>
+            {
+                row.EnableInClassList("whimtex-tool-options--hidden", !IsGradientCanvasEnabled || !gradientCanvasLayer.IsFill);
+                channel.SetValueWithoutNotify(gradientCanvasLayer.IsStroke ? "Stroke" : "Fill");
+                channel.SetEnabled(GradientTarget(false).IsValid && GradientTarget(true).IsValid);
+            });
+            toolkitCanvasViewHeader.Add(row);
+        }
 
         private void BuildGradientCanvasTool()
         {
@@ -26,16 +59,17 @@ namespace DCFApixels.WhimTex
             toolkitCanvas.AddManipulator(gradientCanvasManipulator);
         }
 
-        private sealed class GradientCanvasManipulator : PointerManipulator
+        private sealed partial class GradientCanvasManipulator : PointerManipulator
         {
             private readonly WhimTexWindow owner;
-            private GradientLayerBehaviour layer;
+            private GradientCanvasTarget layer;
             private WhimTexGradient originalGradient;
             private TextureTransform originalTransform, originalLocal;
             private Vector2 pointerStart, start, end;
+            private Vector2 originalFillStart, originalFillEnd;
             private int pointer = -1, handle, undo = -1;
             private int selected = -1;
-            private GradientLayerBehaviour selectionLayer;
+            private GradientCanvasTarget selectionLayer;
             private bool pendingRemoval;
             private bool midpointSelected;
             public bool IsDragging => pointer >= 0;
@@ -49,6 +83,7 @@ namespace DCFApixels.WhimTex
                 target.RegisterCallback<PointerCaptureOutEvent>(Lost);
                 target.RegisterCallback<DetachFromPanelEvent>(Detach);
                 target.RegisterCallback<KeyDownEvent>(Key, TrickleDown.TrickleDown);
+                target.RegisterCallback<KeyUpEvent>(KeyUp, TrickleDown.TrickleDown);
             }
             protected override void UnregisterCallbacksFromTarget()
             {
@@ -59,6 +94,7 @@ namespace DCFApixels.WhimTex
                 target.UnregisterCallback<PointerCaptureOutEvent>(Lost);
                 target.UnregisterCallback<DetachFromPanelEvent>(Detach);
                 target.UnregisterCallback<KeyDownEvent>(Key, TrickleDown.TrickleDown);
+                target.UnregisterCallback<KeyUpEvent>(KeyUp, TrickleDown.TrickleDown);
             }
             private Vector2 View(Vector2 pixel)
             {
@@ -74,7 +110,7 @@ namespace DCFApixels.WhimTex
             private void Points(out Vector2 a, out Vector2 b)
             {
                 owner.activeDocument.RefreshTransformHierarchy();
-                GradientCanvasGeometry.UvEndpoints(owner.gradientCanvasLayer, out var ua, out var ub);
+                owner.gradientCanvasLayer.UvEndpoints(out var ua, out var ub);
                 var t = owner.gradientCanvasLayer.Owner.CanvasTransform;
                 a = GradientCanvasGeometry.Point(ua, t, Size); b = GradientCanvasGeometry.Point(ub, t, Size);
                 a=View(a); b=View(b);
@@ -87,24 +123,27 @@ namespace DCFApixels.WhimTex
             }
             private float Projection(Vector2 p, Vector2 a, Vector2 b)
             {
+                if (IsCircular) return CircularProjection(p);
                 float screenTime=Mathf.Clamp01(Vector2.Dot(p-a,b-a)/Mathf.Max(.0001f,(b-a).sqrMagnitude));
                 var g=owner.gradientCanvasLayer;
                 if(g.Owner.CanvasTransform.storage==TransformStorage.TRS) return screenTime;
-                GradientCanvasGeometry.UvEndpoints(g,out var ua,out var ub);
+                g.UvEndpoints(out var ua,out var ub);
                 var m=g.Owner.CanvasTransform.matrix;
                 double wa=m.m20*ua.x+m.m21*ua.y+m.m22, wb=m.m20*ub.x+m.m21*ub.y+m.m22;
                 return (float)(screenTime*wa/(wb*(1-screenTime)+screenTime*wa));
             }
             private Vector2 KeyPosition(Vector2 a,Vector2 b,float time)
             {
+                if (IsCircular) return CircularPoint(time);
                 var g=owner.gradientCanvasLayer;
                 if(g.Owner.CanvasTransform.storage==TransformStorage.TRS) return Vector2.Lerp(a,b,time);
-                GradientCanvasGeometry.UvEndpoints(g,out var ua,out var ub);
+                g.UvEndpoints(out var ua,out var ub);
                 return View(GradientCanvasGeometry.Point(Vector2.Lerp(ua,ub,time),g.Owner.CanvasTransform,Size));
             }
             private void Down(PointerDownEvent e)
             {
                 if (!owner.IsGradientCanvasEnabled || pointer>=0 || e.button!=0 || e.altKey || owner.toolkitCanvas.ImageRect.width<=0) return;
+                if (IsCircular) { CircularDown(e); return; }
                 Points(out var a,out var b); Vector2 p=e.localPosition, offset=Offset(a,b);
                 int hit = (p-a-offset).sqrMagnitude<=64 ? -2 : (p-b-offset).sqrMagnitude<=64 ? -3 : -1;
                 var g=owner.gradientCanvasLayer.gradient;
@@ -137,8 +176,8 @@ namespace DCFApixels.WhimTex
                     owner.gradientCanvasOverlay.MarkDirtyRepaint();
                     OpenColor(hit); e.StopImmediatePropagation(); return;
                 }
-                layer=owner.gradientCanvasLayer; originalGradient=g.Clone(); originalTransform=owner.activeDocument.GetCanvasTransform(layer); originalLocal=layer.transform;
-                GradientCanvasGeometry.UvEndpoints(layer,out var startUv,out var endUv);
+                layer=owner.gradientCanvasLayer; originalGradient=g.Clone(); CaptureGeometry();
+                layer.UvEndpoints(out var startUv,out var endUv);
                 start=GradientCanvasGeometry.Point(startUv,originalTransform,Size); end=GradientCanvasGeometry.Point(endUv,originalTransform,Size);
                 pointerStart=Document(p); handle=hit; selected=hit>=0?hit:-1;
                 selectionLayer=layer; pendingRemoval=false;
@@ -164,12 +203,21 @@ namespace DCFApixels.WhimTex
                 Undo.SetCurrentGroupName("Edit Gradient on Canvas");
                 Undo.RegisterCompleteObjectUndo(owner.activeDocument,"Edit Gradient on Canvas");
             }
+            private void CaptureGeometry()
+            {
+                originalTransform=owner.activeDocument.GetCanvasTransform(layer.Behaviour); originalLocal=layer.transform;
+                if(layer.IsFill){originalFillStart=layer.FillStart;originalFillEnd=layer.FillEnd;}
+            }
             private void Move(PointerMoveEvent e)
             {
                 if(pointer!=e.pointerId)return;
                 Validate(); if(pointer<0)return;
                 BeginUndo();
-                if(midpointSelected && handle>=0)
+                if(IsCircular && handle<0)
+                {
+                    CircularMove(e.localPosition, e.ctrlKey);
+                }
+                else if(midpointSelected && handle>=0)
                 {
                     Points(out var a,out var b);
                     var keys=originalGradient.ColorKeys;
@@ -185,7 +233,9 @@ namespace DCFApixels.WhimTex
                     var keys=originalGradient.ColorKeys;
                     Vector2 direction=(b-a).normalized;
                     Vector2 distance=(Vector2)e.localPosition-a;
-                    pendingRemoval=keys.Length>1 && Mathf.Abs(direction.x*distance.y-direction.y*distance.x)>32f;
+                    pendingRemoval=keys.Length>1 && (IsCircular
+                        ? Vector2.Distance(e.localPosition, CircularPoint(time))>32f
+                        : Mathf.Abs(direction.x*distance.y-direction.y*distance.x)>32f);
                     if(pendingRemoval)
                     {
                         owner.gradientCanvasOverlay.MarkDirtyRepaint();
@@ -203,8 +253,7 @@ namespace DCFApixels.WhimTex
                 else
                 {
                     Vector2 delta=Document(e.localPosition)-pointerStart;
-                    var next = GradientCanvasGeometry.MoveEndpointTransform(layer,Size,start,end,handle==-2,delta,originalTransform);
-                    owner.activeDocument.SetCanvasTransform(layer,next);
+                    layer.MoveEndpoint(owner.activeDocument,Size,start,end,handle==-2,delta,originalTransform,originalFillStart,originalFillEnd);
                 }
                 owner.RequestTransformCanvas(); owner.gradientCanvasOverlay.MarkDirtyRepaint();
                 e.StopImmediatePropagation();
@@ -224,8 +273,8 @@ namespace DCFApixels.WhimTex
             private void Detach(DetachFromPanelEvent e)=>End(false);
             public void Validate()
             {
-                if(pointer>=0 && (!owner.IsGradientCanvasEnabled || owner.gradientCanvasLayer!=layer))End(false);
-                if(selectionLayer!=owner.gradientCanvasLayer){selected=-1;selectionLayer=null;}
+                if(pointer>=0 && (!owner.IsGradientCanvasEnabled || owner.gradientCanvasLayer!=layer || circularGesture != IsCircular))End(false);
+                if(selectionLayer!=owner.gradientCanvasLayer){selected=-1;selectionLayer=default;}
             }
             private static WhimTexGradient WithoutColorKey(WhimTexGradient source,int index)
             {
@@ -258,24 +307,38 @@ namespace DCFApixels.WhimTex
             private void Key(KeyDownEvent e)
             {
                 if(!owner.IsGradientCanvasEnabled)return;
+                if(e.keyCode==KeyCode.LeftControl || e.keyCode==KeyCode.RightControl)
+                    CircularControlChanged(true);
                 if(e.keyCode==KeyCode.Escape && pointer>=0)
                 {
                     End(true);
                     e.StopImmediatePropagation();
                 }
             }
+            private void KeyUp(KeyUpEvent e)
+            {
+                if(e.keyCode==KeyCode.LeftControl || e.keyCode==KeyCode.RightControl)
+                    CircularControlChanged(e.ctrlKey);
+            }
             public void End(bool cancel, bool commit = true)
             {
                 if(pointer<0)return;
                 int captured=pointer; pointer=-1;
                 if(target.HasPointerCapture(captured))target.ReleasePointer(captured);
-                if(cancel && layer!=null && undo>=0)
+                if(cancel && layer.IsValid && undo>=0)
                 {
                     layer.transform=originalLocal; layer.gradient=originalGradient;
+                    if (circularGesture)
+                    {
+                        layer.circularStartAngle=originalCircularAngle;
+                        layer.circularRepetitions=originalCircularRepetitions;
+                    }
+                    if(layer.IsFill){layer.FillStart=originalFillStart;layer.FillEnd=originalFillEnd;}
                 }
                 if(undo>=0 && commit)Commit();
-                undo=-1; layer=null;
+                undo=-1; layer=default;
                 pendingRemoval=false;
+                circularGesture=false;
                 owner.gradientCanvasOverlay?.MarkDirtyRepaint();
             }
             private void Commit()
@@ -297,7 +360,7 @@ namespace DCFApixels.WhimTex
                 bool hdr=display.r>1 || display.g>1 || display.b>1 || display.r<0 || display.g<0 || display.b<0;
                 var picker = WhimTexColorPicker.Open(display,hdr,false,WhimTexColorRange.Switchable,document,value=>
                 {
-                    if(owner==null || owner.activeDocument!=document || owner.GetSelectedLayer()?.Behaviour!=edited ||
+                    if(owner==null || owner.activeDocument!=document || owner.gradientCanvasLayer!=edited || !owner.IsGradientCanvasAvailable ||
                         edited.gradient!=expected || WhimTexApi.IsLayerContentLocked(document,edited.Owner))return;
                     var keys=expected.ColorKeys;
                     Color color=linear?HdrUtility.Decode(value):value;
@@ -310,13 +373,14 @@ namespace DCFApixels.WhimTex
                     owner.applyingToolkitChange=true;
                     try{owner.CommitModelChange();}finally{owner.applyingToolkitChange=false;}
                     owner.RequestCanvasRender(true); owner.toolkitRefreshRequested=true;
-                }, valid: () => owner != null && owner.activeDocument == document && owner.GetSelectedLayer()?.Behaviour == edited &&
+                }, valid: () => owner != null && owner.activeDocument == document && owner.gradientCanvasLayer == edited && owner.IsGradientCanvasAvailable &&
                     edited.gradient == expected && !WhimTexApi.IsLayerContentLocked(document, edited.Owner));
                 picker.SetChannelSource(() => owner != null && owner.activeDocument == document ? owner.canvasChannels : -1);
             }
             public void Draw(MeshGenerationContext context)
             {
                 if(!owner.IsGradientCanvasEnabled || owner.toolkitCanvas.ImageRect.width<=0)return;
+                if(IsCircular) { DrawCircular(context.painter2D); return; }
                 Points(out var a,out var b); Vector2 offset=Offset(a,b);
                 var p=context.painter2D;
                 for(int pass=0;pass<2;pass++)

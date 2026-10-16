@@ -24,8 +24,8 @@ namespace DCFApixels.WhimTex
             try
             {
                 GL.sRGBWrite = false;
-                paintWriteBefore = RenderTexture.GetTemporary(paintSurface.descriptor);
-                paintWriteScratch = RenderTexture.GetTemporary(paintSurface.descriptor);
+                paintWriteBefore = ProfiledRenderTexture.GetTemporary(paintSurface.descriptor);
+                paintWriteScratch = ProfiledRenderTexture.GetTemporary(paintSurface.descriptor);
                 paintWriteBefore.filterMode = paintWriteScratch.filterMode = FilterMode.Point;
                 Graphics.Blit(paintSurface, paintWriteBefore);
             }
@@ -64,8 +64,8 @@ namespace DCFApixels.WhimTex
 
         private void ReleasePaintWriteProtection()
         {
-            if (paintWriteBefore != null) RenderTexture.ReleaseTemporary(paintWriteBefore);
-            if (paintWriteScratch != null) RenderTexture.ReleaseTemporary(paintWriteScratch);
+            if (paintWriteBefore != null) ProfiledRenderTexture.ReleaseTemporary(paintWriteBefore);
+            if (paintWriteScratch != null) ProfiledRenderTexture.ReleaseTemporary(paintWriteScratch);
             paintWriteBefore = paintWriteScratch = null;
             strokeWriteChannels = 15;
         }

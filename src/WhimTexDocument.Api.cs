@@ -87,6 +87,8 @@ namespace DCFApixels.WhimTex
                         }
                     if (!modelChanged && !effectChanged)
                         continue;
+                    using var profile = WhimTexProfiler.Measure("undo.model_restore", document);
+                    WhimTexProfiler.Changed(document, modelChanged ? "Undo/Redo document" : "Undo/Redo FX");
                     if (modelChanged)
                     {
                         document.NormalizeModel();

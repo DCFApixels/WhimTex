@@ -10,14 +10,13 @@ Shader "Hidden/WhimTex/Gradient"
             #pragma vertex vert_img
             #pragma fragment frag
             #include "UnityCG.cginc"
-            #include "HdrColor.cginc"
+            #include "GradientPalette.cginc"
             #include "ProceduralUv.cginc"
 
-            sampler2D _GradientPalette;
-            float4 _GradientPalette_TexelSize;
-            float4 _GradientIntervals[129], _GradientShape, _GradientStart;
+            float4 _GradientShape;
             float2 _GradientOutputSize;
-            int _GradientType, _GradientPingPong, _GradientWrapMode, _GradientIntervalCount;
+            float _GradientStartTurn;
+            int _GradientType, _GradientPingPong;
 
             float Coordinate(float2 uv)
             {
@@ -32,7 +31,9 @@ Shader "Hidden/WhimTex/Gradient"
                 {
                     // Match Mathf.Atan2(0, 0) at the exact center.
                     float angle = all(p == 0) ? 0 : atan2(p.y, p.x);
-                    float t = (angle + UNITY_PI) / (2 * UNITY_PI) * _GradientShape.w;
+                    float turn = (angle + UNITY_PI) / (2 * UNITY_PI) - _GradientStartTurn;
+                    if (turn < 0 || turn > 1) turn = frac(turn);
+                    float t = turn * _GradientShape.w;
                     return _GradientPingPong != 0 ? 1 - abs(frac(t * .5) * 2 - 1) : frac(t);
                 }
                 float distance = _GradientType == 2 ? length(p) :
@@ -40,32 +41,9 @@ Shader "Hidden/WhimTex/Gradient"
                 return _GradientShape.z <= 0 ? 0 : distance / _GradientShape.z;
             }
 
-            float WrapGradientTime(float t)
-            {
-                if (_GradientWrapMode == 1) return frac(t);
-                if (_GradientWrapMode == 2)
-                {
-                    float mirrored = t - floor(t * .5) * 2;
-                    return mirrored <= 1 ? mirrored : 2 - mirrored;
-                }
-                return saturate(t);
-            }
-
             float4 frag(v2f_img input) : SV_Target
             {
-                float t = WrapGradientTime(Coordinate(ProceduralSourceUv(input.uv)));
-                int row = 0;
-                // Fixed gradients select the right key within an interval, retaining the
-                // preceding interval at its exact endpoint (Unity Gradient semantics).
-                [loop] for (int i = 0; i < _GradientIntervalCount - 1; i++)
-                    if (t > _GradientIntervals[i].y) row = i + 1;
-                float4 interval = _GradientIntervals[row];
-                float local = saturate((t - interval.x) * interval.z);
-                float2 uv = float2(lerp(.5 * _GradientPalette_TexelSize.x,
-                    1 - .5 * _GradientPalette_TexelSize.x, local), (row + .5) * _GradientPalette_TexelSize.y);
-                float4 color = t <= 0 ? _GradientStart : tex2Dlod(_GradientPalette, float4(uv, 0, 0));
-                color.rgb = SpriteDecode(color.rgb);
-                return color;
+                return SampleGradientPalette(Coordinate(ProceduralSourceUv(input.uv)));
             }
             ENDCG
         }

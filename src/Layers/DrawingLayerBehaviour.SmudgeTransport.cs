@@ -33,7 +33,7 @@ namespace DCFApixels.WhimTex
                 ownsImage = !borrowImage && mixed;
                 try
                 {
-                    snapshot = RenderTexture.GetTemporary(new RenderTextureDescriptor(width, height, RenderTextureFormat.ARGBHalf, 0)
+                    snapshot = ProfiledRenderTexture.GetTemporary(new RenderTextureDescriptor(width, height, RenderTextureFormat.ARGBHalf, 0)
                     { sRGB = false, useMipMap = true, autoGenerateMips = false });
                     snapshot.filterMode = FilterMode.Trilinear; snapshot.wrapMode = TextureWrapMode.Clamp; snapshot.anisoLevel = 8;
                     Graphics.Blit(input, snapshot); snapshot.GenerateMips();
@@ -160,7 +160,7 @@ namespace DCFApixels.WhimTex
                 if (material != null)
                     foreach (string name in new[] { "_Original", "_Map", "_Paint", "_Carry", "_Backdrop", "_MainTex", "_Selection" }) material.SetTexture(name, null);
                 ReleaseSmudgeTexture(ref snapshot); ReleaseSmudgeTexture(ref coordinates); ReleaseSmudgeTexture(ref paint);
-                if (ownsImage && Image != null) RenderTexture.ReleaseTemporary(Image);
+                if (ownsImage && Image != null) ProfiledRenderTexture.ReleaseTemporary(Image);
             }
         }
 

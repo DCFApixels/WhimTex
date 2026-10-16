@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
         private VisualElement contextToolSeparator;
         private Button gradientToolButton, uvIslandToolButton, temporaryToolButton;
 
-        private static bool IsBaseCanvasTool(CanvasTool tool) => tool <= CanvasTool.Shape || tool == CanvasTool.HealingBrush || tool == CanvasTool.SmudgeBrush || tool == CanvasTool.Text || tool == CanvasTool.Gradient || tool == CanvasTool.Crop || tool == CanvasTool.Comment;
+        private static bool IsBaseCanvasTool(CanvasTool tool) => tool <= CanvasTool.Shape || tool == CanvasTool.HealingBrush || tool == CanvasTool.SmudgeBrush || tool == CanvasTool.Text || tool == CanvasTool.Gradient || tool == CanvasTool.Crop || tool == CanvasTool.Comment || IsVectorTool(tool);
         private static bool IsTemporaryCanvasTool(CanvasTool tool) =>
             tool == CanvasTool.FXTransform || tool == CanvasTool.FXPoint || tool == CanvasTool.FXNormal;
         private bool IsUvToolAvailable => activeDocument != null && uvEnabled;
@@ -159,6 +159,7 @@ namespace DCFApixels.WhimTex
             if (canvasTool != tool) CloseCanvasCommentEditor();
             areaSelectionManipulator?.Cancel();
             shapeManipulator?.Cancel();
+            vectorManipulator?.Cancel();
             if (canvasTool != tool) cropManipulator?.Reset();
             else cropManipulator?.CancelGesture();
             textManipulator?.Cancel();
@@ -207,7 +208,7 @@ namespace DCFApixels.WhimTex
                 canvasTransformManipulator?.IsDragging == true || canvasZoomManipulator?.IsDragging == true ||
                 canvasGuideManipulator?.IsDragging == true || gradientCanvasManipulator?.IsDragging == true ||
                 pointManipulator?.IsDragging == true || normalManipulator?.IsDragging == true ||
-                shapeManipulator?.IsDragging == true || cropManipulator?.IsDragging == true || textManipulator?.IsDragging == true ||
+                vectorManipulator?.IsDragging == true || shapeManipulator?.IsDragging == true || cropManipulator?.IsDragging == true || textManipulator?.IsDragging == true ||
                 gradientCreationManipulator?.IsDragging == true || areaSelectionManipulator?.HasGesture == true)
                 return true;
             ReconcileCanvasToolContext();

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace DCFApixels.WhimTex
@@ -13,18 +12,13 @@ namespace DCFApixels.WhimTex
         internal static readonly Vector2 BaseCenter = new Vector2(0.5f, 0.5f);
         internal const float BaseRadius = 0.5f;
         public float circularRepetitions = 1f;
+        public float circularStartAngle;
         public WrapMode circularWrapMode = WrapMode.Repeat;
 
         [NonSerialized] private Texture2D cachedPreview;
         [NonSerialized] private int cachedHash;
         [NonSerialized] private WhimTexGradient previewGradient;
-        [NonSerialized] private WhimTexGradient paletteGradient;
-        [NonSerialized] private Texture2D palette;
-        [NonSerialized] private Vector4[] paletteIntervals;
-        [NonSerialized] private int paletteIntervalCount;
-        [NonSerialized] private Color paletteStart;
-        private const int PaletteWidth = 256;
-        private const int MaxPaletteIntervals = 129;
+        [NonSerialized] private WhimTexGradientPalette palette;
 
         public override Texture2D GetPreviewTexture(int size)
         {
@@ -52,18 +46,16 @@ namespace DCFApixels.WhimTex
             RenderTexture source = null;
             try
             {
-                UpdatePalette();
-                material.SetTexture("_GradientPalette", palette);
-                material.SetVectorArray("_GradientIntervals", paletteIntervals);
-                material.SetInt("_GradientIntervalCount", paletteIntervalCount);
-                material.SetVector("_GradientStart", paletteStart);
+                palette ??= new WhimTexGradientPalette();
+                palette.Bind(material, gradient ?? GradientUtility.WhiteToBlack);
                 material.SetInt("_GradientType", (int)gradientType);
                 material.SetInt("_GradientWrapMode", (int)(gradient?.WrapMode ?? WhimTexGradientWrapMode.Clamp));
                 material.SetVector("_GradientOutputSize", new Vector4(context.width, context.height, 0f, 0f));
                 material.SetVector("_GradientShape", new Vector4(BaseCenter.x, BaseCenter.y, BaseRadius,
                     Mathf.Max(float.Epsilon, circularRepetitions)));
                 material.SetInt("_GradientPingPong", circularWrapMode == WrapMode.PingPong ? 1 : 0);
-                source = RenderTexture.GetTemporary(context.width, context.height, 0,
+                material.SetFloat("_GradientStartTurn", Mathf.Repeat(circularStartAngle, 360f) / 360f);
+                source = ProfiledRenderTexture.GetTemporary(context.width, context.height, 0,
                     RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                 source.filterMode = FilterMode.Bilinear;
                 source.wrapMode = TextureWrapMode.Clamp;
@@ -76,56 +68,13 @@ namespace DCFApixels.WhimTex
             {
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
-                if (source != null) RenderTexture.ReleaseTemporary(source);
+                if (source != null) ProfiledRenderTexture.ReleaseTemporary(source);
             }
         }
 
         private static void CopyGradient(ref WhimTexGradient destination, WhimTexGradient source)
         {
             destination = source.Clone();
-        }
-
-        private void UpdatePalette()
-        {
-            WhimTexGradient evaluated = gradient ?? GradientUtility.WhiteToBlack;
-            if (palette != null && paletteGradient != null && paletteGradient.EqualsRamp(evaluated)) return;
-
-            // Each interval has its own row, so even very close keys retain the full ramp
-            // resolution, including smooth interpolation between closely spaced keys.
-            var times = new List<float>(MaxPaletteIntervals + 1) { 0f, 1f };
-            foreach (var key in evaluated.ColorKeys) times.Add(key.time);
-            foreach (var key in evaluated.AlphaKeys) times.Add(key.time);
-            times.Sort();
-            for (int i = times.Count - 1; i > 0; i--)
-                if (times[i] == times[i - 1]) times.RemoveAt(i);
-            paletteIntervalCount = times.Count - 1;
-            paletteIntervals ??= new Vector4[MaxPaletteIntervals];
-            int paletteHeight = Mathf.Max(2, paletteIntervalCount);
-            if (palette == null || palette.height != paletteHeight)
-            {
-                if (palette != null) UnityEngine.Object.DestroyImmediate(palette);
-                palette = new Texture2D(PaletteWidth, paletteHeight, TextureFormat.RGBAFloat, false, true)
-                {
-                    name = "Gradient Palette", hideFlags = HideFlags.HideAndDontSave,
-                    filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp
-                };
-            }
-            var pixels = palette.GetRawTextureData<Color>();
-            WhimTexGradient paletteSource = evaluated.Clone();
-            paletteSource.WrapMode = WhimTexGradientWrapMode.Clamp;
-            bool fixedMode = paletteSource.Mode == WhimTexGradientMode.Fixed;
-            paletteStart = paletteSource.EvaluateEncoded(0f);
-            for (int row = 0; row < paletteIntervalCount; row++)
-            {
-                float start = times[row], end = times[row + 1];
-                paletteIntervals[row] = new Vector4(start, end, 1f / (end - start), 0f);
-                Color fixedColor = fixedMode ? paletteSource.EvaluateEncoded((start + end) * .5f) : default;
-                for (int x = 0; x < PaletteWidth; x++)
-                    pixels[row * PaletteWidth + x] = fixedMode ? fixedColor :
-                        paletteSource.EvaluateEncoded(Mathf.Lerp(start, end, x / (float)(PaletteWidth - 1)));
-            }
-            palette.Apply(false, false);
-            CopyGradient(ref paletteGradient, evaluated);
         }
 
         public float GetGradientCoord(float u, float v)
@@ -143,6 +92,8 @@ namespace DCFApixels.WhimTex
                     Vector2 direction = new Vector2(u - BaseCenter.x, v - BaseCenter.y);
                     float angle = Mathf.Atan2(direction.y, direction.x);
                     float turn = (angle + Mathf.PI) / (2f * Mathf.PI);
+                    turn -= Mathf.Repeat(circularStartAngle, 360f) / 360f;
+                    if (turn < 0f || turn > 1f) turn -= Mathf.Floor(turn);
                     float repeated = turn * Mathf.Max(float.Epsilon, circularRepetitions);
                     return circularWrapMode == WrapMode.PingPong
                         ? Mathf.PingPong(repeated, 1f)
@@ -160,11 +111,10 @@ namespace DCFApixels.WhimTex
         internal override void ReleaseTransientResources()
         {
             if (cachedPreview != null) UnityEngine.Object.DestroyImmediate(cachedPreview);
-            if (palette != null) UnityEngine.Object.DestroyImmediate(palette);
+            palette?.Dispose();
             cachedPreview = null;
             palette = null;
-            previewGradient = paletteGradient = null;
-            paletteIntervals = null;
+            previewGradient = null;
         }
 
         public override string ToString()
@@ -209,6 +159,7 @@ namespace DCFApixels.WhimTex
                 int hash = 17;
                 hash = hash * 31 + gradientType.GetHashCode();
                 hash = hash * 31 + circularRepetitions.GetHashCode();
+                hash = hash * 31 + circularStartAngle.GetHashCode();
                 hash = hash * 31 + circularWrapMode.GetHashCode();
                 return hash;
             }

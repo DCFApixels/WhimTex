@@ -17,7 +17,7 @@ context.case('AgentCommandInventory original assertions and branches', async () 
     const expected = [
       'whimtex_document_json',
       'whimtex_assistant_begin', 'whimtex_assistant_lock', 'whimtex_assistant_sessions', 'whimtex_assistant_live',
-      'whimtex_describe', 'whimtex_assistant_execute', 'whimtex_fx_catalog', 'whimtex_render_probe',
+      'whimtex_describe', 'whimtex_profile', 'whimtex_assistant_execute', 'whimtex_fx_catalog', 'whimtex_render_probe', 'whimtex_comments',
       'whimtex_document_inspect', 'whimtex_batch_execute', 'whimtex_image_import',
       'whimtex_document_render', 'whimtex_storage_inspect',
       'whimtex_document_validate',

@@ -45,6 +45,12 @@ namespace DCFApixels.WhimTex
             public int valid, inside;
         }
 
+        internal struct SegmentParameters
+        {
+            public float2 delta, direction, turns, cosines;
+            public float lengthSquared;
+        }
+
         internal sealed class Geometry : IDisposable
         {
             public SharpDistanceMode sharpMode;
@@ -55,11 +61,13 @@ namespace DCFApixels.WhimTex
             public NativeArray<byte> signChanges;
             public NativeArray<int2> cornerIndices;
             public NativeArray<CornerParameters> corners;
+            public NativeArray<SegmentParameters> segments;
             internal long ByteCount => (long)features.Length * Unity.Collections.LowLevel.Unsafe.UnsafeUtility.SizeOf<Feature>()
                 + (long)nodes.Length * Unity.Collections.LowLevel.Unsafe.UnsafeUtility.SizeOf<Node>()
                 + (long)roots.Length * sizeof(int) + (long)rootCosines.Length * sizeof(float) + signChanges.Length
                 + (long)cornerIndices.Length * Unity.Collections.LowLevel.Unsafe.UnsafeUtility.SizeOf<int2>()
-                + (long)corners.Length * Unity.Collections.LowLevel.Unsafe.UnsafeUtility.SizeOf<CornerParameters>();
+                + (long)corners.Length * Unity.Collections.LowLevel.Unsafe.UnsafeUtility.SizeOf<CornerParameters>()
+                + (long)segments.Length * Unity.Collections.LowLevel.Unsafe.UnsafeUtility.SizeOf<SegmentParameters>();
             public void Dispose()
             {
                 if (features.IsCreated) features.Dispose();
@@ -69,6 +77,7 @@ namespace DCFApixels.WhimTex
                 if (signChanges.IsCreated) signChanges.Dispose();
                 if (cornerIndices.IsCreated) cornerIndices.Dispose();
                 if (corners.IsCreated) corners.Dispose();
+                if (segments.IsCreated) segments.Dispose();
             }
         }
 
@@ -100,6 +109,14 @@ namespace DCFApixels.WhimTex
             int width, byte threshold, int channel, DistanceMetric metric, float miterLimit)
         {
             using var timing = DistanceFieldTiming.Measure("distance.jobs");
+            if (metric == DistanceMetric.Bevel || metric == DistanceMetric.Diamond || metric == DistanceMetric.Square)
+            {
+                new SimpleMetricJob { input = input, output = output, features = geometry.features,
+                    nodes = geometry.nodes, signChanges = geometry.signChanges, width = width,
+                    threshold = threshold, channel = channel, metric = metric, miterLimit = math.max(1, miterLimit) }
+                    .Schedule(output.Length, 64).Complete();
+                return;
+            }
             float minimumCosine = 1f / 64;
             if (UnrestrictedCorners(metric))
             {
@@ -121,17 +138,17 @@ namespace DCFApixels.WhimTex
             SharpDistanceMode sharpMode = SharpDistanceMode.Unrestricted)
         {
             using var geometry = Build(input, width, height, threshold, channel, DistanceMetric.MTSDF, contourMergeDistance, sharpMode);
-            long stage = DistanceFieldTiming.Start();
-            new MultiJob { input = input, output = output, features = geometry.features,
-                nodes = geometry.nodes, roots = geometry.roots, rootCosines = geometry.rootCosines,
-                signChanges = geometry.signChanges,
-                width = width, threshold = threshold, channel = channel, unrestricted = sharpMode == SharpDistanceMode.Unrestricted
-            }.Schedule(output.Length, 64).Complete();
-            DistanceFieldTiming.Report("distance.jobs", ref stage);
+            using (DistanceFieldTiming.Measure("distance.jobs"))
+                new MultiJob { input = input, output = output, features = geometry.features,
+                    segments = geometry.segments,
+                    nodes = geometry.nodes, roots = geometry.roots, rootCosines = geometry.rootCosines,
+                    signChanges = geometry.signChanges,
+                    width = width, threshold = threshold, channel = channel, unrestricted = sharpMode == SharpDistanceMode.Unrestricted
+                }.Schedule(output.Length, 64).Complete();
             if (sharpMode == SharpDistanceMode.GuardedSharp)
             {
-                CorrectMtsdfQuality(output, geometry, width, height);
-                DistanceFieldTiming.Report("mtsdf.correct", ref stage);
+                using (DistanceFieldTiming.Measure("mtsdf.correct"))
+                    CorrectMtsdfQuality(output, geometry, width, height);
             }
         }
 
@@ -182,77 +199,75 @@ namespace DCFApixels.WhimTex
             var verifiedCorners = reconstructed ? new HashSet<float2>() : null;
             var reliableSharp = adaptiveSharp ? new HashSet<int2>() : null;
             using var timing = DistanceFieldTiming.Measure("geometry.total");
-            long stage = DistanceFieldTiming.Start();
-            var vertices = new List<Vertex>();
-            var keys = new Dictionary<long, int>();
-            var links = new List<Link>();
-            int[] crossings = new int[4];
-            long pixelKeyStart = (long)(width - 1) * height + (long)(height - 1) * width;
-            int VertexAt(long key, float2 point)
+            List<Vertex> vertices;
+            List<Link> links;
+            using (DistanceFieldTiming.Measure("contour.extract"))
             {
-                // A contour exactly through a pixel center is shared by horizontal and
-                // vertical grid edges. Weld it, or quantized soft masks become open paths.
-                if (point.x == math.floor(point.x) && point.y == math.floor(point.y))
-                    key = pixelKeyStart + (long)(int)point.y * width + (int)point.x;
-                if (!keys.TryGetValue(key, out int id))
+                vertices = new List<Vertex>();
+                var keys = new Dictionary<long, int>();
+                links = new List<Link>();
+                int[] crossings = new int[4];
+                long pixelKeyStart = (long)(width - 1) * height + (long)(height - 1) * width;
+                int VertexAt(long key, float2 point)
                 {
-                    id = vertices.Count; keys.Add(key, id); vertices.Add(new Vertex { point = point });
-                }
-                return id;
-            }
-            void AddLink(int a, int b)
-            {
-                if (a == b || math.lengthsq(vertices[a].point - vertices[b].point) < 1e-12f) return;
-                int id = links.Count;
-                links.Add(new Link { a = a, b = b });
-                vertices[a].links.Add(id); vertices[b].links.Add(id);
-            }
-            long horizontalCount = (long)(width - 1) * height;
-            int rowsPerBatch = math.max(1, DistanceContourCells.CellsPerBatch / math.max(1, width - 1));
-            for (int firstRow = 0; firstRow + 1 < height; firstRow += rowsPerBatch)
-            {
-                int rowCount = math.min(rowsPerBatch, height - 1 - firstRow);
-                using var cells = DistanceContourCells.Extract(input, width, height, threshold, channel, firstRow, rowCount);
-                var reader = cells.AsReader();
-                for (int row = 0; row < rowCount; row++)
-                {
-                    int count = reader.BeginForEachIndex(row);
-                    for (int cellIndex = 0; cellIndex < count; cellIndex++)
+                    // A contour exactly through a pixel center is shared by horizontal and
+                    // vertical grid edges. Weld it, or quantized soft masks become open paths.
+                    if (point.x == math.floor(point.x) && point.y == math.floor(point.y))
+                        key = pixelKeyStart + (long)(int)point.y * width + (int)point.x;
+                    if (!keys.TryGetValue(key, out int id))
                     {
-                        var cell = reader.Read<DistanceContourCell>();
-                        int x = cell.x, y = cell.y;
-                        float a = cell.values.x, b = cell.values.y, c = cell.values.z, d = cell.values.w;
-                        int n = 0;
-                        if ((a > 0) != (b > 0)) crossings[n++] = VertexAt((long)y * (width - 1) + x, new float2(x + a / (a - b), y));
-                        if ((b > 0) != (c > 0)) crossings[n++] = VertexAt(horizontalCount + (long)y * width + x + 1, new float2(x + 1, y + b / (b - c)));
-                        if ((c > 0) != (d > 0)) crossings[n++] = VertexAt((long)(y + 1) * (width - 1) + x, new float2(x + d / (d - c), y + 1));
-                        if ((d > 0) != (a > 0)) crossings[n++] = VertexAt(horizontalCount + (long)y * width + x, new float2(x, y + a / (a - d)));
-                        if (n == 2) AddLink(crossings[0], crossings[1]);
-                        else if (n == 4)
-                        {
-                            // Bilinear asymptotic decider: do not arbitrarily merge diagonal islands.
-                            if (a * c - b * d >= 0)
-                            { AddLink(crossings[0], crossings[1]); AddLink(crossings[2], crossings[3]); }
-                            else
-                            { AddLink(crossings[0], crossings[3]); AddLink(crossings[1], crossings[2]); }
-                        }
-                        if (links.Count > 2000000)
-                            throw new InvalidOperationException("Distance contour exceeds two million segments. Reduce source detail or resolution.");
+                        id = vertices.Count; keys.Add(key, id); vertices.Add(new Vertex { point = point });
                     }
-                    reader.EndForEachIndex();
+                    return id;
+                }
+                void AddLink(int a, int b)
+                {
+                    if (a == b || math.lengthsq(vertices[a].point - vertices[b].point) < 1e-12f) return;
+                    int id = links.Count;
+                    links.Add(new Link { a = a, b = b });
+                    vertices[a].links.Add(id); vertices[b].links.Add(id);
+                }
+                long horizontalCount = (long)(width - 1) * height;
+                int rowsPerBatch = math.max(1, DistanceContourCells.CellsPerBatch / math.max(1, width - 1));
+                for (int firstRow = 0; firstRow + 1 < height; firstRow += rowsPerBatch)
+                {
+                    int rowCount = math.min(rowsPerBatch, height - 1 - firstRow);
+                    using var cells = DistanceContourCells.Extract(input, width, height, threshold, channel, firstRow, rowCount);
+                    var reader = cells.AsReader();
+                    for (int row = 0; row < rowCount; row++)
+                    {
+                        int count = reader.BeginForEachIndex(row);
+                        for (int cellIndex = 0; cellIndex < count; cellIndex++)
+                        {
+                            var cell = reader.Read<DistanceContourCell>();
+                            int x = cell.x, y = cell.y;
+                            float a = cell.values.x, b = cell.values.y, c = cell.values.z, d = cell.values.w;
+                            int n = 0;
+                            if ((a > 0) != (b > 0)) crossings[n++] = VertexAt((long)y * (width - 1) + x, new float2(x + a / (a - b), y));
+                            if ((b > 0) != (c > 0)) crossings[n++] = VertexAt(horizontalCount + (long)y * width + x + 1, new float2(x + 1, y + b / (b - c)));
+                            if ((c > 0) != (d > 0)) crossings[n++] = VertexAt((long)(y + 1) * (width - 1) + x, new float2(x + d / (d - c), y + 1));
+                            if ((d > 0) != (a > 0)) crossings[n++] = VertexAt(horizontalCount + (long)y * width + x, new float2(x, y + a / (a - d)));
+                            if (n == 2) AddLink(crossings[0], crossings[1]);
+                            else if (n == 4)
+                            {
+                                // Bilinear asymptotic decider: do not arbitrarily merge diagonal islands.
+                                if (a * c - b * d >= 0)
+                                { AddLink(crossings[0], crossings[1]); AddLink(crossings[2], crossings[3]); }
+                                else
+                                { AddLink(crossings[0], crossings[3]); AddLink(crossings[1], crossings[2]); }
+                            }
+                            if (links.Count > 2000000)
+                                throw new InvalidOperationException("Distance contour exceeds two million segments. Reduce source detail or resolution.");
+                        }
+                        reader.EndForEachIndex();
+                    }
                 }
             }
-            DistanceFieldTiming.Report("contour.extract", ref stage);
-            SplitTouchingBranches(vertices, links, input, width, height, threshold, channel);
             var features = new List<Feature>();
             var ranges = new List<int2>();
             var contours = new List<List<float2>>();
             bool hasOpenContours = false;
             bool useAdaptiveSharp = false;
-            foreach (var vertex in vertices)
-                if (vertex.links.Count == 0)
-                    features.Add(new Feature { a = vertex.point, b = vertex.point, vertex = 4, color = 7 });
-            if (features.Count > 0) ranges.Add(new int2(0, features.Count));
             void Append(List<float2> path, bool closed)
             {
                 int first = features.Count;
@@ -271,64 +286,76 @@ namespace DCFApixels.WhimTex
                     }
                 if (features.Count > first) ranges.Add(new int2(first, features.Count - first));
             }
-            var visited = new bool[links.Count];
-            for (int pass = 0; pass < 2; pass++)
-            for (int v = 0; v < vertices.Count; v++)
+            List<List<float2>> fittedContours;
+            using (DistanceFieldTiming.Measure("contour.traceFit"))
             {
-                if (pass == 0 && vertices[v].links.Count != 1) continue;
-                foreach (int firstLink in vertices[v].links)
+                SplitTouchingBranches(vertices, links, input, width, height, threshold, channel);
+                foreach (var vertex in vertices)
+                    if (vertex.links.Count == 0)
+                        features.Add(new Feature { a = vertex.point, b = vertex.point, vertex = 4, color = 7 });
+                if (features.Count > 0) ranges.Add(new int2(0, features.Count));
+                var visited = new bool[links.Count];
+                for (int pass = 0; pass < 2; pass++)
+                for (int v = 0; v < vertices.Count; v++)
                 {
-                    if (visited[firstLink]) continue;
-                    var path = new List<float2>();
-                    int current = v, linkId = firstLink;
-                    bool closed = false;
-                    path.Add(vertices[current].point);
-                    while (!visited[linkId])
+                    if (pass == 0 && vertices[v].links.Count != 1) continue;
+                    foreach (int firstLink in vertices[v].links)
                     {
-                        visited[linkId] = true;
-                        var link = links[linkId];
-                        current = link.a == current ? link.b : link.a;
-                        if (current == v) { closed = true; break; }
+                        if (visited[firstLink]) continue;
+                        var path = new List<float2>();
+                        int current = v, linkId = firstLink;
+                        bool closed = false;
                         path.Add(vertices[current].point);
-                        linkId = -1;
-                        foreach (int candidate in vertices[current].links)
-                            if (!visited[candidate]) { linkId = candidate; break; }
-                        if (linkId < 0) break;
-                    }
-                    if (path.Count < 2) continue;
-                    Orient(path, input, width, height, channel);
-                    if (closed && path.Count >= 3 && math.abs(SignedArea(path)) > 1e-8f) contours.Add(path);
-                    // Zero-area threshold contours are lines/point contacts, not filled
-                    // polygons. A boolean region operation must not erase their boundary.
-                    else
-                    {
-                        hasOpenContours |= !closed;
-                        Append(reconstructed ? path : Simplify(path, closed, metric), closed);
+                        while (!visited[linkId])
+                        {
+                            visited[linkId] = true;
+                            var link = links[linkId];
+                            current = link.a == current ? link.b : link.a;
+                            if (current == v) { closed = true; break; }
+                            path.Add(vertices[current].point);
+                            linkId = -1;
+                            foreach (int candidate in vertices[current].links)
+                                if (!visited[candidate]) { linkId = candidate; break; }
+                            if (linkId < 0) break;
+                        }
+                        if (path.Count < 2) continue;
+                        Orient(path, input, width, height, channel);
+                        if (closed && path.Count >= 3 && math.abs(SignedArea(path)) > 1e-8f) contours.Add(path);
+                        // Zero-area threshold contours are lines/point contacts, not filled
+                        // polygons. A boolean region operation must not erase their boundary.
+                        else
+                        {
+                            hasOpenContours |= !closed;
+                            Append(reconstructed ? path : Simplify(path, closed, metric), closed);
+                        }
                     }
                 }
+                // Closed-loop coverage alone cannot explain an open foreground that
+                // crosses the canvas edge. Keep the raw geometry in that case.
+                useAdaptiveSharp = adaptiveSharp && !hasOpenContours;
+                fittedContours = useAdaptiveSharp ? contours : reconstructed ? hasOpenContours ? contours : ReconstructRasterContours(contours, input, width, height,
+                    threshold, channel, metric, verifiedCorners) : FitContours(contours, metric);
+                // Fitting separate raster components can make their reconstructed regions
+                // overlap. Only the boundary of the filled union may generate joins.
             }
-            // Closed-loop coverage alone cannot explain an open foreground that
-            // crosses the canvas edge. Keep the raw geometry in that case.
-            useAdaptiveSharp = adaptiveSharp && !hasOpenContours;
-            var fittedContours = useAdaptiveSharp ? contours : reconstructed ? hasOpenContours ? contours : ReconstructRasterContours(contours, input, width, height,
-                threshold, channel, metric, verifiedCorners) : FitContours(contours, metric);
-            // Fitting separate raster components can make their reconstructed regions
-            // overlap. Only the boundary of the filled union may generate joins.
-            DistanceFieldTiming.Report("contour.traceFit", ref stage);
-            var normalizedContours = reconstructed ? fittedContours : NormalizeContours(fittedContours);
-            if (!adaptiveSharp && !reconstructed && normalizedContours.Count < fittedContours.Count && metric != DistanceMetric.EuclideanAntialiased)
+            List<List<float2>> normalizedContours;
+            using (DistanceFieldTiming.Measure("contour.normalizeFeatures"))
             {
-                // Merging a detached AA tip can leave a tiny cap between its
-                // supported flanks. Stabilize that joined boundary once, with
-                // convex cap enclosure rather than erasing covered samples.
-                normalizedContours = NormalizeContours(FitContoursCore(normalizedContours, metric, true));
+                normalizedContours = reconstructed ? fittedContours : NormalizeContours(fittedContours);
+                if (!adaptiveSharp && !reconstructed && normalizedContours.Count < fittedContours.Count && metric != DistanceMetric.EuclideanAntialiased)
+                {
+                    // Merging a detached AA tip can leave a tiny cap between its
+                    // supported flanks. Stabilize that joined boundary once, with
+                    // convex cap enclosure rather than erasing covered samples.
+                    normalizedContours = NormalizeContours(FitContoursCore(normalizedContours, metric, true));
+                }
+                if (contourMergeDistance > 0 && (metric == DistanceMetric.Sharp || metric == DistanceMetric.MTSDF))
+                    normalizedContours = MergeCloseVerticesPhysical(normalizedContours, contourMergeDistance);
+                if (useAdaptiveSharp)
+                    normalizedContours = ImproveSharpContours(normalizedContours, reliableSharp);
+                foreach (var path in normalizedContours) Append(path, true);
             }
-            if (contourMergeDistance > 0 && (metric == DistanceMetric.Sharp || metric == DistanceMetric.MTSDF))
-                normalizedContours = MergeCloseVerticesPhysical(normalizedContours, contourMergeDistance);
-            if (useAdaptiveSharp)
-                normalizedContours = ImproveSharpContours(normalizedContours, reliableSharp);
-            foreach (var path in normalizedContours) Append(path, true);
-            DistanceFieldTiming.Report("contour.normalizeFeatures", ref stage);
+            using var uploadTiming = DistanceFieldTiming.Measure("geometry.bvhUpload");
             var array = features.ToArray();
             var nodes = new List<Node>();
             var roots = new List<int>(); var cosines = new List<float>();
@@ -359,7 +386,10 @@ namespace DCFApixels.WhimTex
                     : new NativeArray<byte>(0, allocator);
                 PrepareCornerParameters(result.features, reconstructed || metric == DistanceMetric.Sharp,
                     allocator, out result.cornerIndices, out result.corners, unrestricted: true);
-                DistanceFieldTiming.Report("geometry.bvhUpload", ref stage);
+                result.segments = new NativeArray<SegmentParameters>(metric == DistanceMetric.MTSDF ? array.Length : 0,
+                    allocator, NativeArrayOptions.UninitializedMemory);
+                if (result.segments.Length > 0)
+                    new SegmentParametersJob { features = result.features, output = result.segments }.Schedule(array.Length, 64).Complete();
                 return result;
             }
             catch { result.Dispose(); throw; }
@@ -394,6 +424,25 @@ namespace DCFApixels.WhimTex
                 if (indices.IsCreated) indices.Dispose(); indices = default;
                 if (corners.IsCreated) corners.Dispose(); corners = default;
                 throw;
+            }
+        }
+
+        [BurstCompile(FloatMode = FloatMode.Strict)]
+        struct SegmentParametersJob : IJobParallelFor
+        {
+            [ReadOnly] public NativeArray<Feature> features;
+            [WriteOnly] public NativeArray<SegmentParameters> output;
+            public void Execute(int index)
+            {
+                Feature f = features[index];
+                if (f.vertex != 0) { output[index] = default; return; }
+                float2 delta = f.b - f.a;
+                float lengthSquared = math.lengthsq(delta);
+                float2 direction = delta * math.rsqrt(lengthSquared);
+                output[index] = new SegmentParameters { delta = delta, lengthSquared = lengthSquared, direction = direction,
+                    turns = new float2(f.previousDirection.x * direction.y - f.previousDirection.y * direction.x,
+                        direction.x * f.nextDirection.y - direction.y * f.nextDirection.x),
+                    cosines = new float2(math.length(f.previousDirection + direction) * .5f, math.length(direction + f.nextDirection) * .5f) };
             }
         }
 
@@ -857,6 +906,7 @@ namespace DCFApixels.WhimTex
 
         static bool FittingPreservesHoles(List<float2> original, List<float2> fitted, List<Path64> holes)
         {
+            if (ReferenceEquals(original, fitted)) return true;
             var before = QuantizeContour(original); var after = QuantizeContour(fitted);
             Rect64 oldBounds = InternalClipper.GetBounds(before), newBounds = InternalClipper.GetBounds(after);
             foreach (var hole in holes)
@@ -916,11 +966,11 @@ namespace DCFApixels.WhimTex
                         edges.Add(new Feature { a = paths[c][i], b = paths[c][(i + 1) % paths[c].Count], vertex = c, color = i });
                 return edges.ToArray();
             }
-            bool Meets(float2 a, float2 b, float2 c, float2 d)
+            bool Meets(Point64 aa, Point64 bb, Point64 cc, Point64 dd)
             {
                 // Robust integer predicates at the same precision as the union.
-                Point64 P(float2 p) => new Point64(new PointD(p.x, p.y), 1000000);
-                Point64 aa = P(a), bb = P(b), cc = P(c), dd = P(d);
+                if (Math.Max(aa.X, bb.X) < Math.Min(cc.X, dd.X) || Math.Max(cc.X, dd.X) < Math.Min(aa.X, bb.X) ||
+                    Math.Max(aa.Y, bb.Y) < Math.Min(cc.Y, dd.Y) || Math.Max(cc.Y, dd.Y) < Math.Min(aa.Y, bb.Y)) return false;
                 int ac = InternalClipper.CrossProductSign(aa, bb, cc), ad = InternalClipper.CrossProductSign(aa, bb, dd);
                 int ca = InternalClipper.CrossProductSign(cc, dd, aa), cb = InternalClipper.CrossProductSign(cc, dd, bb);
                 if (ac * ad < 0 && ca * cb < 0) return true;
@@ -934,10 +984,21 @@ namespace DCFApixels.WhimTex
                 // Coincident endpoints are existing point contacts, not a new join.
                 return ac == 0 && ad == 0 && (aa == cc && bb == dd || aa == dd && bb == cc);
             }
-            bool Clear(float2 a, float2 b, Feature[] edges, List<Node> nodes, int path, int first, int last, int n)
+            // Quantization and traversal storage belong to this build, not each edge query.
+            (Point64 a, Point64 b)[] QuantizedEdges(Feature[] edges)
+            {
+                var result = new (Point64 a, Point64 b)[edges.Length];
+                for (int i = 0; i < edges.Length; i++)
+                    result[i] = (new Point64(new PointD(edges[i].a.x, edges[i].a.y), 1000000),
+                        new Point64(new PointD(edges[i].b.x, edges[i].b.y), 1000000));
+                return result;
+            }
+            var stack = new Stack<int>();
+            bool Clear(float2 a, float2 b, Feature[] edges, (Point64 a, Point64 b)[] quantized, List<Node> nodes, int path, int first, int last, int n)
             {
                 float2 min = math.min(a, b), max = math.max(a, b);
-                var stack = new Stack<int>();
+                Point64 aa = new Point64(new PointD(a.x, a.y), 1000000), bb = new Point64(new PointD(b.x, b.y), 1000000);
+                stack.Clear();
                 if (nodes.Count > 0) stack.Push(0);
                 while (stack.Count > 0)
                 {
@@ -950,7 +1011,7 @@ namespace DCFApixels.WhimTex
                         Feature edge = edges[i];
                         int offset = (edge.color - first + n) % n, span = (last - first + n) % n;
                         if (edge.vertex == path && offset < span) continue;
-                        if (Meets(a, b, edge.a, edge.b)) return false;
+                        if (Meets(aa, bb, quantized[i].a, quantized[i].b)) return false;
                     }
                 }
                 return true;
@@ -959,6 +1020,8 @@ namespace DCFApixels.WhimTex
             if (sourceEdges.Length > 0) BuildTree(sourceEdges, 0, sourceEdges.Length, sourceNodes);
             var targetEdges = Edges(cleaned); var targetNodes = new List<Node>();
             if (targetEdges.Length > 0) BuildTree(targetEdges, 0, targetEdges.Length, targetNodes);
+            var sourceQuantized = QuantizedEdges(sourceEdges);
+            var targetQuantized = QuantizedEdges(targetEdges);
             for (int c = 0; c < original.Count; c++)
             {
                 var indices = new Dictionary<float2, int>();
@@ -972,8 +1035,8 @@ namespace DCFApixels.WhimTex
                     float2 a = cleaned[c][i], b = cleaned[c][(i + 1) % cleaned[c].Count];
                     int first = indices[a], last = indices[b], n = original[c].Count;
                     if ((last - first + n) % n == 1) continue;
-                    if (!Clear(a, b, sourceEdges, sourceNodes, c, first, last, n) ||
-                        !Clear(a, b, targetEdges, targetNodes, c, i, (i + 1) % cleaned[c].Count, cleaned[c].Count)) return false;
+                    if (!Clear(a, b, sourceEdges, sourceQuantized, sourceNodes, c, first, last, n) ||
+                        !Clear(a, b, targetEdges, targetQuantized, targetNodes, c, i, (i + 1) % cleaned[c].Count, cleaned[c].Count)) return false;
                 }
             }
             Path64 Quantize(List<float2> path)
@@ -984,17 +1047,26 @@ namespace DCFApixels.WhimTex
             }
             // An intersection-free chord can sweep over an entire small hole/island.
             // Preserve containment AND point-contact states, not only edge crossings.
+            var quantizedContours = new Path64[original.Count];
+            var contourBounds = new Rect64[original.Count];
+            for (int c = 0; c < original.Count; c++)
+            {
+                quantizedContours[c] = Quantize(original[c]);
+                contourBounds[c] = InternalClipper.GetBounds(quantizedContours[c]);
+            }
             for (int c = 0; c < original.Count; c++)
             {
                 if (original[c].Count == cleaned[c].Count) continue;
-                var before = Quantize(original[c]); var after = Quantize(cleaned[c]);
-                Rect64 bounds = InternalClipper.GetBounds(before);
+                var before = quantizedContours[c]; var after = Quantize(cleaned[c]);
+                Rect64 bounds = contourBounds[c];
                 for (int other = 0; other < original.Count; other++)
                 {
                     if (other == c) continue;
-                    foreach (float2 p in original[other])
+                    Rect64 otherBounds = contourBounds[other];
+                    if (otherBounds.right < bounds.left || otherBounds.left > bounds.right ||
+                        otherBounds.bottom < bounds.top || otherBounds.top > bounds.bottom) continue;
+                    foreach (Point64 point in quantizedContours[other])
                     {
-                        var point = new Point64(new PointD(p.x, p.y), 1000000);
                         if (point.X < bounds.left || point.X > bounds.right || point.Y < bounds.top || point.Y > bounds.bottom) continue;
                         if (InternalClipper.PointInPolygon(point, before) != InternalClipper.PointInPolygon(point, after)) return false;
                     }
@@ -1365,6 +1437,8 @@ namespace DCFApixels.WhimTex
             public int axis;
             public int Compare(Feature a, Feature b) => (a.a[axis] + a.b[axis]).CompareTo(b.a[axis] + b.b[axis]);
         }
+        static readonly FeatureComparer CompareFeaturesX = new FeatureComparer { axis = 0 };
+        static readonly FeatureComparer CompareFeaturesY = new FeatureComparer { axis = 1 };
 
         static int BuildTree(Feature[] features, int start, int count, List<Node> nodes)
         {
@@ -1374,7 +1448,7 @@ namespace DCFApixels.WhimTex
             nodes.Add(new Node { minimum = minimum, maximum = maximum, start = start, count = count });
             if (count > 8)
             {
-                Array.Sort(features, start, count, new FeatureComparer { axis = maximum.x - minimum.x > maximum.y - minimum.y ? 0 : 1 });
+                Array.Sort(features, start, count, maximum.x - minimum.x > maximum.y - minimum.y ? CompareFeaturesX : CompareFeaturesY);
                 BuildTree(features, start, count / 2, nodes);
                 int right = BuildTree(features, start + count / 2, count - count / 2, nodes);
                 nodes[index] = new Node { minimum = minimum, maximum = maximum, count = 0, right = right };
@@ -1390,6 +1464,33 @@ namespace DCFApixels.WhimTex
             [ReadOnly] public NativeArray<float4> field;
             [WriteOnly] public NativeArray<float> output;
             public void Execute(int index) => output[index]=Median(field[index].xyz);
+        }
+
+        // Constant metric call sites let Burst eliminate multi-channel/corner-only
+        // branches without changing the shared evaluator's arithmetic or traversal.
+        [BurstCompile]
+        struct SimpleMetricJob : IJobParallelFor
+        {
+            [ReadOnly] public NativeArray<Color32> input;
+            [ReadOnly] public NativeArray<byte> signChanges;
+            [ReadOnly] public NativeArray<Feature> features;
+            [ReadOnly] public NativeArray<Node> nodes;
+            [WriteOnly] public NativeArray<float> output;
+            public int width, channel;
+            public byte threshold;
+            public DistanceMetric metric;
+            public float miterLimit;
+            public void Execute(int index)
+            {
+                bool inside = DistanceFieldSource.IsObject(input[index], channel, threshold);
+                if (signChanges.Length > 0 && signChanges[index] != 0) inside = !inside;
+                float2 point = new float2(index % width, index / width);
+                output[index] = metric == DistanceMetric.Bevel
+                    ? Evaluate(point, features, nodes, DistanceMetric.Bevel, miterLimit, inside).x
+                    : metric == DistanceMetric.Diamond
+                        ? Evaluate(point, features, nodes, DistanceMetric.Diamond, miterLimit, inside).x
+                        : Evaluate(point, features, nodes, DistanceMetric.Square, miterLimit, inside).x;
+            }
         }
 
         [BurstCompile]
@@ -1417,7 +1518,8 @@ namespace DCFApixels.WhimTex
                 float2 point = new float2(index % width, index / width);
                 bool reconstructed = metric == DistanceMetric.Sharp || metric == DistanceMetric.CornerFit || metric == DistanceMetric.Spring || metric == DistanceMetric.Rbf || metric == DistanceMetric.RbfDual;
                 float4 result = (metric == DistanceMetric.Sharp || metric == DistanceMetric.Rbf || metric == DistanceMetric.RbfDual) && !unrestricted
-                    ? new float4((inside ? -1 : 1) * EvaluateSharpContours(point, features, nodes, roots, miterLimit, inside, 1 / minimumCosine))
+                    ? new float4((inside ? -1 : 1) * EvaluateSharpContours(point, features, nodes, roots, miterLimit, inside, 1 / minimumCosine,
+                        metric == DistanceMetric.Sharp ? cornerIndices : default, metric == DistanceMetric.Sharp ? corners : default))
                     : reconstructed ? new float4((inside ? -1 : 1) * EvaluatePreparedReconstructed(point, features, nodes, roots, cornerIndices, corners, miterLimit, inside, unrestricted, minimumCosine))
                     : metric == DistanceMetric.MTSDF ? EvaluateContours(point, features, nodes, roots, rootCosines, inside, unrestricted)
                     : Evaluate(point, features, nodes, metric, miterLimit, inside);
@@ -1431,6 +1533,7 @@ namespace DCFApixels.WhimTex
             [ReadOnly] public NativeArray<Color32> input;
             [ReadOnly] public NativeArray<byte> signChanges;
             [ReadOnly] public NativeArray<Feature> features;
+            [ReadOnly] public NativeArray<SegmentParameters> segments;
             [ReadOnly] public NativeArray<Node> nodes;
             [ReadOnly] public NativeArray<int> roots;
             [ReadOnly] public NativeArray<float> rootCosines;
@@ -1443,12 +1546,13 @@ namespace DCFApixels.WhimTex
                 bool inside = DistanceFieldSource.IsObject(input[index], channel, threshold);
                 if (signChanges.Length > 0 && signChanges[index] != 0) inside = !inside;
                 output[index] = EvaluateContours(new float2(index % width, index / width), features, nodes,
-                    roots, rootCosines, inside, unrestricted);
+                    roots, rootCosines, inside, unrestricted, segments);
             }
         }
 
         static float4 EvaluateContours(float2 p, NativeArray<Feature> features, NativeArray<Node> nodes,
-            NativeArray<int> roots, NativeArray<float> cosines, bool inside, bool unrestricted = true)
+            NativeArray<int> roots, NativeArray<float> cosines, bool inside, bool unrestricted = true,
+            NativeArray<SegmentParameters> segments = default)
         {
             float sign = inside ? -1 : 1;
             float4 best = new float4(sign * EmptyDistance);
@@ -1460,7 +1564,7 @@ namespace DCFApixels.WhimTex
                 if (bound > trueDistance && bound * cosines[i] > bestScalar) continue;
                 // Keep a contour's color channels together. Mixing channels of unrelated
                 // contours before resolving the median makes their Voronoi switch pop.
-                float4 value = Evaluate(p, features, nodes, DistanceMetric.MTSDF, 4, inside, roots[i], unrestricted);
+                float4 value = Evaluate(p, features, nodes, DistanceMetric.MTSDF, 4, inside, roots[i], unrestricted, segments);
                 trueDistance = math.min(trueDistance, math.abs(value.w));
                 float scalar = math.abs(Median(value.xyz));
                 if (scalar < bestScalar) { bestScalar = scalar; best = value; }
@@ -1470,7 +1574,8 @@ namespace DCFApixels.WhimTex
         }
 
         static float4 Evaluate(float2 p, NativeArray<Feature> features, NativeArray<Node> nodes,
-            DistanceMetric metric, float miterLimit, bool inside, int root = 0, bool unrestricted = true)
+            DistanceMetric metric, float miterLimit, bool inside, int root = 0, bool unrestricted = true,
+            NativeArray<SegmentParameters> segments = default)
         {
             if (nodes.Length == 0) return new float4(inside ? -EmptyDistance : EmptyDistance);
             if (metric == DistanceMetric.Sharp) return new float4((inside ? -1 : 1)*EvaluateSharp(p,features,nodes,miterLimit,inside,root));
@@ -1536,16 +1641,18 @@ namespace DCFApixels.WhimTex
                         best = math.min(best, distance);
                         continue;
                     }
-                    float2 delta = f.b - f.a;
                     if (metric == DistanceMetric.Diamond || metric == DistanceMetric.Square)
                     {
-                        best = math.min(best, SegmentMetric(r, delta, metric));
+                        best = math.min(best, SegmentMetric(r, f.b - f.a, metric));
                         continue;
                     }
-                    float len2 = math.lengthsq(delta), t = math.dot(r, delta) / len2;
+                    bool prepared = segments.IsCreated && segments.Length == features.Length;
+                    SegmentParameters parameters = prepared ? segments[i] : default;
+                    float2 delta = prepared ? parameters.delta : f.b - f.a;
+                    float len2 = prepared ? parameters.lengthSquared : math.lengthsq(delta), t = math.dot(r, delta) / len2;
                     if (metric == DistanceMetric.MTSDF)
                     {
-                        float2 direction = delta * math.rsqrt(len2);
+                        float2 direction = prepared ? parameters.direction : delta * math.rsqrt(len2);
                         // Use the shared endpoint exactly. Reconstructing B as A+delta gives
                         // adjacent edges different rounding errors far from the contour.
                         float euclidean = math.length(t <= 0 ? r : t >= 1 ? p - f.b : r - t * delta);
@@ -1561,8 +1668,8 @@ namespace DCFApixels.WhimTex
                             float2 incoming = t < 0 ? f.previousDirection : direction;
                             float2 outgoing = t < 0 ? direction : f.nextDirection;
                             float2 endpointDelta = t < 0 ? r : p - f.b;
-                            float turn = incoming.x * outgoing.y - incoming.y * outgoing.x;
-                            float cosine = math.length(incoming + outgoing) * .5f;
+                            float turn = prepared ? (t < 0 ? parameters.turns.x : parameters.turns.y) : incoming.x * outgoing.y - incoming.y * outgoing.x;
+                            float cosine = prepared ? (t < 0 ? parameters.cosines.x : parameters.cosines.y) : math.length(incoming + outgoing) * .5f;
                             int endpointFlag = t < 0 ? NoStartExtension : NoEndExtension;
                             bool cornerFan = (f.color & (UnresolvedContour | endpointFlag)) == 0 && cosine >= 1e-6f &&
                                 turn != 0 && inside == (turn < 0) &&
@@ -1651,7 +1758,8 @@ namespace DCFApixels.WhimTex
         }
 
         static float EvaluateSharpContours(float2 p, NativeArray<Feature> features, NativeArray<Node> nodes,
-            NativeArray<int> roots, float miterLimit, bool inside, float safetyLimit = RasterMiterLimit)
+            NativeArray<int> roots, float miterLimit, bool inside, float safetyLimit = RasterMiterLimit,
+            NativeArray<int2> cornerIndices = default, NativeArray<CornerParameters> corners = default)
         {
             float best = EmptyDistance;
             for (int i = 0; i < roots.Length; i++)
@@ -1662,7 +1770,7 @@ namespace DCFApixels.WhimTex
                 // Resolve finite ownership WITHIN each closed boundary first, then
                 // combine its artistic distance. Choosing one Euclidean-nearest island
                 // before its join evaluation makes ordinary offset unions discontinuous.
-                best = math.min(best, EvaluateSharp(p, features, nodes, miterLimit, inside, roots[i], safetyLimit));
+                best = math.min(best, EvaluateSharp(p, features, nodes, miterLimit, inside, roots[i], safetyLimit, cornerIndices, corners));
             }
             return best;
         }
@@ -1670,7 +1778,8 @@ namespace DCFApixels.WhimTex
         // Select by distance to FINITE geometry first. A remote supporting line
         // must not win merely because its angular distance is very small.
         static float EvaluateSharp(float2 p, NativeArray<Feature> features, NativeArray<Node> nodes,
-            float miterLimit, bool inside, int root, float safetyLimit = RasterMiterLimit)
+            float miterLimit, bool inside, int root, float safetyLimit = RasterMiterLimit,
+            NativeArray<int2> cornerIndices = default, NativeArray<CornerParameters> corners = default)
         {
             float nearest = EmptyDistance, result = EmptyDistance;
             var stack = new FixedList512Bytes<int>(); stack.Add(root);
@@ -1689,7 +1798,21 @@ namespace DCFApixels.WhimTex
                     float finite=math.length(t<=0?r:t>=1?p-f.b:r-t*d);
                     if (finite > nearest+.00001f) continue;
                     float artistic=finite;
-                    if (f.vertex==0 && (t<0 || t>1))
+                    if (f.vertex==0 && (t<0 || t>1) && cornerIndices.IsCreated && cornerIndices.Length == features.Length)
+                    {
+                        int cornerIndex = t < 0 ? cornerIndices[i].x : cornerIndices[i].y;
+                        if (cornerIndex >= 0)
+                        {
+                            CornerParameters corner = corners[cornerIndex];
+                            float2 delta = t < 0 ? r : p - f.b;
+                            if (corner.valid != 0 && corner.inside == (inside ? 1 : 0) &&
+                                math.dot(delta, corner.incoming) >= 0 && math.dot(delta, corner.outgoing) <= 0)
+                                artistic = corner.miterRatio > miterLimit ? math.abs(math.dot(delta, corner.bisector)) / corner.cosine
+                                    : inside ? math.max(-math.dot(delta, corner.normal1), -math.dot(delta, corner.normal2))
+                                    : math.max(math.dot(delta, corner.normal1), math.dot(delta, corner.normal2));
+                        }
+                    }
+                    else if (f.vertex==0 && (t<0 || t>1))
                     {
                         float2 direction=d*math.rsqrt(len2);
                         float2 incoming=t<0?f.previousDirection:direction,outgoing=t<0?direction:f.nextDirection;

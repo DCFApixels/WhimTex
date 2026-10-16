@@ -31,6 +31,7 @@ namespace DCFApixels.WhimTex
             new Entry("gradient", "Gradient", "Gradient", "Gradient Layer", typeof(GradientLayerBehaviour), 0, () => new GradientLayerBehaviour()),
             new Entry("noise", "Noise", "Noise", "Noise Layer", typeof(NoiseLayerBehaviour), 0, () => new NoiseLayerBehaviour()),
             new Entry("shape", "Shape", "Shape", "Shape", typeof(ShapeLayerBehaviour), 0, () => new ShapeLayerBehaviour()),
+            new Entry("vector", "Vector", "Vector", "Vector", typeof(VectorLayerBehaviour), 0, () => new VectorLayerBehaviour()),
             new Entry("text", "Text", "Text", "Text Layer", typeof(TextLayerBehaviour), 0, () => new TextLayerBehaviour()),
             new Entry("outline", "Outline", "Outline", "Outline Layer", typeof(OutlineLayerBehaviour), 1, () => new OutlineLayerBehaviour()),
             new Entry("sdf", "SDF", "SDF", "SDF Layer", typeof(SDFLayerBehaviour), 1, () => new SDFLayerBehaviour()),
@@ -39,7 +40,8 @@ namespace DCFApixels.WhimTex
             new Entry("sharpen", "Sharpen", "Sharpen", "Sharpen", typeof(SharpenLayerBehaviour), 1, () => new SharpenLayerBehaviour()),
             new Entry("makeSeamless", "Make Seamless", "Make Seamless", "Make Seamless", typeof(MakeSeamlessLayerBehaviour), 1, MakeSeamlessLayerBehaviour.CreateDefault),
             new Entry("shaderProcessor", "Shader Processor", "Shader Processor", "Shader Processor", typeof(ShaderProcessorLayerBehaviour), 1, () => new ShaderProcessorLayerBehaviour()),
-            new Entry("group", "Group", "Group", "Group", typeof(GroupLayerBehaviour), 2, () => new GroupLayerBehaviour())
+            new Entry("group", "Group", "Group", "Group", typeof(GroupLayerBehaviour), 2, () => new GroupLayerBehaviour()),
+            new Entry("booleanGroup", "Boolean Group", "Boolean Group", "Boolean Group", typeof(BooleanGroupLayerBehaviour), 2, () => new BooleanGroupLayerBehaviour())
         });
 
         private static readonly Dictionary<string, Entry> ById = new Dictionary<string, Entry>(StringComparer.Ordinal);

@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
     internal enum ImageOpenMode { TiffDocumentsOnly, AllSupportedImages }
     internal enum ImageOpenLayer { Drawing, File }
 
-    internal static class WhimTexUserSettings
+    internal static partial class WhimTexUserSettings
     {
         private const string PressureCurveKey = "DCFApixels.WhimTex.TabletPressureCurve";
         private static AnimationCurve tabletPressureCurve;
@@ -303,6 +303,8 @@ namespace DCFApixels.WhimTex
 
         internal static void Reset()
         {
+            ResetCommentAuthorColor();
+            ClearCommentAuthorName();
             EditorPrefs.DeleteKey(PressureCurveKey);
             tabletPressureCurve = null;
             EditorPrefs.DeleteKey(ImageOpenModeKey);

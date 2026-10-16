@@ -146,7 +146,20 @@ namespace DCFApixels.WhimTex
         private static JObject defaultsV2;
         private static JObject DefaultsFor(Type type)
         {
-            defaultsV2 ??= JObject.Parse(WhimTexJsonDefaultsV2.Data);
+            if (defaultsV2 == null)
+            {
+                defaultsV2 = JObject.Parse(WhimTexJsonDefaultsV2.Data);
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV2.VectorData).Properties())
+                    defaultsV2[entry.Name] = entry.Value;
+                defaultsV2["VectorShape"]["gradient"] = defaultsV2["WhimTexGradient"].DeepClone();
+                defaultsV2["VectorShape"]["strokeGradient"] = defaultsV2["WhimTexGradient"].DeepClone();
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV2.LayerBooleanData).Properties())
+                    defaultsV2["Layer"][entry.Name] = entry.Value;
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV2.ShapeFillData).Properties())
+                    defaultsV2["ShapeLayerBehaviour"][entry.Name] = entry.Value;
+                defaultsV2["ShapeLayerBehaviour"]["gradient"] = defaultsV2["WhimTexGradient"].DeepClone();
+                defaultsV2["ShapeLayerBehaviour"]["strokeGradient"] = defaultsV2["WhimTexGradient"].DeepClone();
+            }
             return defaultsV2[TypeName(type)] as JObject;
         }
 
@@ -159,7 +172,7 @@ namespace DCFApixels.WhimTex
         private static bool IsActive(object value, string field)
         {
             if (value is TargetedLayerBehaviour targeted && field == "targetLayerId") return targeted.inputMode == EffectInputMode.Specific;
-            if (value is GradientLayerBehaviour gradient && (field == "circularRepetitions" || field == "circularWrapMode"))
+            if (value is GradientLayerBehaviour gradient && (field == "circularRepetitions" || field == "circularWrapMode" || field == "circularStartAngle"))
                 return gradient.gradientType == GradientLayerBehaviour.GradientType.Circular;
             if (value is BlurLayerBehaviour blur)
             {
@@ -189,8 +202,14 @@ namespace DCFApixels.WhimTex
             if (value is ShapeLayerBehaviour shape)
             {
                 bool arc = shape.kind == ShapeLayerBehaviour.ShapeKind.Arc;
-                if (field == "fillColor") return shape.fill;
-                if (field == "strokeWidth" || field == "strokeColor" || field == "strokePosition") return shape.stroke;
+                // Keep both paint styles, as for VectorShape, even when their gates or modes are inactive.
+                if (field == "fillColor" || field == "fillMode" || field == "gradient" ||
+                    field == "gradientStart" || field == "gradientEnd" || field == "gradientRepetitions") return true;
+                if (field == "strokeMode" || field == "strokeGradient" || field == "strokeGradientStart" ||
+                    field == "strokeGradientEnd" || field == "strokeGradientRepetitions") return true;
+                if (field == "strokeWidth" || field == "strokeColor" || field == "strokePosition" ||
+                    field == "strokeJoin" || field == "strokeCap" || field == "miterLimit" ||
+                    field == "dashPattern" || field == "dashOffset") return true;
                 if (field == "arcThickness") return arc;
                 if (field == "lineCap") return arc || shape.kind == ShapeLayerBehaviour.ShapeKind.Line;
                 if (field == "feather" || field == "featherPosition") return shape.edgeMode != ShapeLayerBehaviour.EdgeMode.Step && (field == "feather" || shape.feather != 0);

@@ -23,10 +23,15 @@ namespace DCFApixels.WhimTex
                 if(stamp!=0 && effectCache.TryGet(key,stamp,context.width,context.height,context.scaleMultiplier,
                     interactiveEffects,true,out var cached,out _,out _))
                 {
-                    var copy=RenderTexture.GetTemporary(context.width,context.height,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear);
+                    var copy=ProfiledRenderTexture.GetTemporary(context.width,context.height,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear);
                     copy.filterMode=FilterMode.Bilinear; copy.wrapMode=TextureWrapMode.Clamp;
-                    try { Graphics.Blit(cached,copy); return copy; }
-                    catch { RenderTexture.ReleaseTemporary(copy); throw; }
+                    try
+                    {
+                        using var profile = WhimTexProfiler.Measure("cache.restore", this, layer.Owner, detail: "quilting");
+                        using (profile.Gpu()) Graphics.Blit(cached,copy);
+                        return copy;
+                    }
+                    catch { ProfiledRenderTexture.ReleaseTemporary(copy); throw; }
                 }
                 float contrast=layer.quiltingContrastCompensation && float.IsFinite(layer.quiltingContrast)
                     ? Mathf.Clamp01(layer.quiltingContrast) : 0;
@@ -37,13 +42,15 @@ namespace DCFApixels.WhimTex
                     if(stamp!=0) effectCache.StoreFullPrecision(key,stamp,context.scaleMultiplier,interactiveEffects,result);
                     return result;
                 }
-                catch { RenderTexture.ReleaseTemporary(result); throw; }
+                catch { ProfiledRenderTexture.ReleaseTemporary(result); throw; }
             }
             finally { RenderTexture.active=previous; GL.sRGBWrite=srgb; }
         }
 
         internal RenderTexture RenderCanvasWithCache(int maxSize, EffectRenderCache cache, bool interactive, DrawingLayerBehaviour painting)
         {
+            using var profile = WhimTexProfiler.Measure("document.canvas_update", this,
+                detail: interactive ? "interactive" : "settled");
             var previous = effectCache;
             bool previousQuality = interactiveEffects;
             bool previousPublishing = publishingLayerPreview;
@@ -67,7 +74,12 @@ namespace DCFApixels.WhimTex
             bool alphaOnly, Func<RenderTexture> render)
         {
             ulong stamp = effectCache?.Stamp(layer) ?? 0;
-            if (stamp == 0) return render();
+            if (stamp == 0)
+            {
+                WhimTexProfiler.Event("effect.cache", "cache", "bypass: missing cache or uncacheable dependency");
+                WhimTexProfiler.Reason("cache.bypass", effectCache == null ? "cache.not_attached" : "dependency.uncacheable", this, layer);
+                return render();
+            }
             string key = layer.Id + "/" + kind + (collectingErrors ? "/debug" : "");
             bool cacheHit = effectCache.TryGet(key, stamp, w, h, scale, interactiveEffects, !alphaOnly,
                 out var cached, out var errors, out bool packedAlpha);
@@ -84,6 +96,8 @@ namespace DCFApixels.WhimTex
                 copy.filterMode = cached.filterMode;
                 try
                 {
+                    using var profile = WhimTexProfiler.Measure("cache.restore", this, layer, detail: kind);
+                    using var gpu = profile.Gpu();
                     if (alphaOnly)
                     {
                         WhimTexMaterials.EffectCache.SetFloat("_PackedAlpha", packedAlpha ? 1f : 0f);
@@ -92,7 +106,7 @@ namespace DCFApixels.WhimTex
                     else Graphics.Blit(cached, copy);
                     return copy;
                 }
-                catch { RenderTexture.ReleaseTemporary(copy); throw; }
+                catch { ProfiledRenderTexture.ReleaseTemporary(copy); throw; }
             }
             RenderTexture parentErrors = numericErrors;
             RenderTexture localErrors = collectingErrors ? ErrorTarget(w, h) : null;
@@ -101,7 +115,8 @@ namespace DCFApixels.WhimTex
             {
                 var previous = RenderTexture.active;
                 RenderTexture.active = localErrors;
-                GL.Clear(false, true, Color.clear);
+                using (var profile = WhimTexProfiler.Measure("render.diagnostic_clear", this, layer))
+                using (profile.Gpu()) GL.Clear(false, true, Color.clear);
                 RenderTexture.active = previous;
                 numericErrors = localErrors;
             }
@@ -114,13 +129,13 @@ namespace DCFApixels.WhimTex
             }
             finally
             {
-                if (output != null) RenderTexture.ReleaseTemporary(output);
+                if (output != null) ProfiledRenderTexture.ReleaseTemporary(output);
                 if (localErrors != null)
                 {
                     localErrors = numericErrors;
                     numericErrors = parentErrors;
                     try { MergeEffectErrors(localErrors); }
-                    finally { RenderTexture.ReleaseTemporary(localErrors); }
+                    finally { ProfiledRenderTexture.ReleaseTemporary(localErrors); }
                 }
             }
         }
@@ -132,10 +147,11 @@ namespace DCFApixels.WhimTex
             try
             {
                 WhimTexMaterials.EffectCache.SetTexture("_Errors", numericErrors);
-                Graphics.Blit(errors, merged, WhimTexMaterials.EffectCache, 2);
+                using var profile = WhimTexProfiler.Measure("render.diagnostic_merge", this);
+                using (profile.Gpu()) Graphics.Blit(errors, merged, WhimTexMaterials.EffectCache, 2);
             }
-            catch { RenderTexture.ReleaseTemporary(merged); throw; }
-            RenderTexture.ReleaseTemporary(numericErrors);
+            catch { ProfiledRenderTexture.ReleaseTemporary(merged); throw; }
+            ProfiledRenderTexture.ReleaseTemporary(numericErrors);
             numericErrors = merged;
         }
 
@@ -146,6 +162,7 @@ namespace DCFApixels.WhimTex
             if (container == null || index < 0 || index >= container.Count) return null;
             Layer layer = container[index];
             if (layer?.Behaviour == null || !includeDisabled && !layer.enabled || renderStack != null && renderStack.Contains(layer)) return null;
+            using var profile = WhimTexProfiler.Measure("layer.render", this, layer, detail: layer.layerName);
             if ((layer?.Behaviour is TargetedLayerBehaviour || EffectRenderCache.CanCacheLayer(layer)) &&
                 applyTransform && applyFx && applyClipping)
                 return CachedEffectRender(layer, "effect", outputWidth, outputHeight, scaleMultiplier, false,
@@ -159,6 +176,7 @@ namespace DCFApixels.WhimTex
             float scaleMultiplier, HashSet<Layer> renderStack, bool preserveColor, bool includeDisabled = false)
         {
             if (group?.Behaviour == null || !includeDisabled && !group.enabled || renderStack != null && renderStack.Contains(group)) return null;
+            using var profile = WhimTexProfiler.Measure("layer.group_input", this, group, detail: group.layerName);
             bool color = preserveColor || effectCache != null && effectCache.NeedsColor(group);
             RenderTexture result = CachedEffectRender(group, "group", outputWidth, outputHeight, scaleMultiplier, !color,
                 () => RenderGroupEffectInputUncached(group, outputWidth, outputHeight, scaleMultiplier, renderStack,
@@ -169,11 +187,12 @@ namespace DCFApixels.WhimTex
             try
             {
                 WhimTexMaterials.EffectCache.SetFloat("_PackedAlpha", 0f);
-                Graphics.Blit(result, mask, WhimTexMaterials.EffectCache, 1);
+                using var maskProfile = WhimTexProfiler.Measure("render.group_mask", this, group);
+                using (maskProfile.Gpu()) Graphics.Blit(result, mask, WhimTexMaterials.EffectCache, 1);
                 return mask;
             }
-            catch { RenderTexture.ReleaseTemporary(mask); throw; }
-            finally { RenderTexture.ReleaseTemporary(result); }
+            catch { ProfiledRenderTexture.ReleaseTemporary(mask); throw; }
+            finally { ProfiledRenderTexture.ReleaseTemporary(result); }
         }
     }
 }

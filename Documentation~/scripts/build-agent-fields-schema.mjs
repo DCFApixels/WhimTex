@@ -67,9 +67,28 @@ const defs = {
     center: tuple(number(0, 1), 2), direction: choice('Centered Forward Backward'), edges: choice('Transparent Clamp Repeat Mirror') }),
   sharpen: object({ algorithm: choice('Gaussian Adaptive'), strength: number(0, 4), radius: number(0, 32), threshold: number(0, 1), noiseReduction: number(0, 1), haloSuppression: number(0, 1), channelMode: choice('RGB Luminance'), edges: choice('Transparent Clamp Repeat Mirror') }),
   shapeCorner: object({ style: choice('Round Bevel'), amount: number(0, 1) }),
-  shape: object({ kind: choice('Rectangle Ellipse Polygon Star Line Arc Sector'), fill: bool, fillColor: rgba, stroke: bool, strokeColor: rgba, strokeWidth: number(0, 8192),
+  shape: object({ kind: choice('Rectangle Ellipse Polygon Star Line Arc Sector'),
+    fill: { ...bool, default: true, description: 'Overall body-fill gate. Disabling it retains the complete fill style.' }, fillColor: rgba,
+    fillMode: { ...enumeration('Layers/VectorModel.cs', 'VectorFillMode'), default: 'Solid', description: 'Shared Shape/Vector fill mode. None disables fill; Solid uses fillColor; the five gradient modes use gradient. Inactive settings are retained in every JSON write mode.' },
+    gradient: { $ref: '#/$defs/gradient', description: 'Replaces the complete palette; default black-to-white Perceptual/Clamp. Uses existing wrapMode after the circular-only gradientRepetitions multiplier.' },
+    gradientStart: { ...vec, default: [0, 0], description: 'Normalized layer-local y-up start, or center for nonlinear gradients. Allowed outside 0..1. Shape uses current canvas width/height before layer Transform; Vector uses referenceSize.' },
+    gradientEnd: { ...vec, default: [1, 0], description: 'Normalized endpoint setting radius and orientation in reference pixels. Square uses max(abs(rotated coordinates)); Diamond uses sumabs. Circular advances CCW from the start-to-end ray, which is its seam. Equal anchors give t=0 for every gradient type.' },
+    gradientRepetitions: { ...number(.0001, 3.40282347e38), default: 1, description: 'Finite circular-gradient repetitions, at least 0.0001; default 1. CircularGradient only: one period spans 360/gradientRepetitions degrees from the gradientStart-to-gradientEnd ray, before palette wrapping. Retained and validated in every fill mode, including disabled fills.' },
+    stroke: bool, strokeColor: rgba, strokeWidth: number(0, 8192),
+    strokeMode: { ...enumeration('Layers/VectorModel.cs', 'VectorFillMode'), default: 'Solid', description: 'Independent stroke paint. None disables paint without clearing settings; Solid uses strokeColor; the five gradient modes use strokeGradient. stroke remains an additional gate. Inactive settings are retained in every JSON write mode.' },
+    strokeGradient: { $ref: '#/$defs/gradient', description: 'Replaces only the complete stroke palette; default black-to-white Perceptual/Clamp. Independent HDR/alpha stops, midpoints, interpolation, smoothness, colorSpace and wrapMode. Wrapping follows the circular-only strokeGradientRepetitions multiplier.' },
+    strokeGradientStart: { ...tuple(number(-3.40282347e38, 3.40282347e38), 2), default: [0, 0], description: 'Finite normalized layer-local y-up start, or center for nonlinear gradients; allowed outside 0..1. Shape uses canvas dimensions before Transform; Vector and Boolean Group use referenceSize. Independent of fill anchors and layer transform.' },
+    strokeGradientEnd: { ...tuple(number(-3.40282347e38, 3.40282347e38), 2), default: [1, 0], description: 'Finite local endpoint setting radius and orientation from strokeGradientStart. Same five gradient geometries as fill. Circular advances CCW from this ray, with its seam on the ray. Equal anchors give t=0.' },
+    strokeGradientRepetitions: { ...number(.0001, 3.40282347e38), default: 1, description: 'Finite circular stroke repetitions, at least 0.0001. One period spans 360/strokeGradientRepetitions degrees before palette wrapping. Retained and validated with stroke false and in every strokeMode; affects CircularGradient only.' },
     arcThickness: { ...number(0, 8192), default: 8, description: 'Arc body thickness in canvas pixels, independent of strokeWidth. Transform controls the centerline ellipse.' },
-    strokePosition: choice('Inside Center Outside'), lineCap: choice('Butt Round Square'), edgeMode: choice('Antialiased Step'),
+    strokePosition: { ...choice('Inside Center Outside'), default: 'Inside', description: 'Alignment relative to the body contour. Shape retains Inside=0, Center=1, Outside=2; do not cast Vector position values.' },
+    strokeJoin: { ...enumeration('Layers/VectorModel.cs', 'VectorStrokeJoin'), default: 'Round', description: 'Join of the outline, independent of body corner settings.' },
+    strokeCap: { ...enumeration('Layers/VectorModel.cs', 'VectorStrokeCap'), default: 'Butt', description: 'Caps of stroke dashes. Separate from lineCap, which shapes the Line/Arc body ends.' },
+    miterLimit: { ...number(1, 10000), default: 4, description: 'Maximum miter ratio before a Miter join becomes Bevel. Retained for other joins.' },
+    dashPattern: { type: ['array', 'null'], maxItems: 256, items: { type: 'number', exclusiveMinimum: 0, maximum: 10000000 }, default: [],
+      description: 'Alternating dash/gap lengths, always in multiples of strokeWidth, independent of stroke position. Empty/null is solid; odd lists repeat twice. Replaces the whole pattern. Shape has no dashPatternRelative field.' },
+    dashOffset: { ...number(-10000000, 10000000), default: 0, description: 'Phase along the contour in document pixels, never a stroke-width multiplier. Shape width and dash metrics stay fixed under layer transforms; Vector scales its local geometry.' },
+    lineCap: { ...choice('Butt Round Square'), default: 'Round', description: 'Line/Arc body end caps, independent of strokeCap.' }, edgeMode: choice('Antialiased Step'),
     feather: { ...number(0, 8192), default: 0 }, featherPosition: { ...choice('Inside Outside Centered'), default: 'Centered' },
     rectangleCorners: { type: 'array', minItems: 4, maxItems: 4, items: { $ref: '#/$defs/shapeCorner' } },
     polygonCorners: { type: 'array', minItems: 3, maxItems: 32, items: { $ref: '#/$defs/shapeCorner' } },
@@ -171,6 +190,25 @@ defs.sdf.description = 'Partial live settings patch. Omitted fields retain their
 defs.sdf.properties.encoding.description += rasterGuardContract + sharpMode.description;
 defs.sdf.allOf = [{ if: { required: ['encoding'], properties: { encoding: { const: 'MultiChannelData' } } },
   then: { properties: { metric: { const: 'MTSDF' } } } }];
+defs.vector = object({
+  shapes: { type: 'array', maxItems: 1, items: { $ref: 'document.schema.json#/$defs/VectorShape' } },
+  referenceSize: tuple({ type: 'number', exclusiveMinimum: 0, maximum: 10000000 }, 2),
+  edgeMode: enumeration('Layers/VectorModel.cs', 'VectorEdgeMode'),
+  brushDraft: { anyOf: [{ $ref: 'document.schema.json#/$defs/VectorBrushDraft' }, { type: 'null' }] }
+});
+defs.vector.description = 'Partial settings.vector patch. One figure per layer; compound contours and holes stay in that figure. Supplied top-level fields replace their values; arrays replace whole arrays. Preserves omitted fields and original brush coverage/frame mapping. Shape/contour/point IDs are unique within the layer; aggregate limits are 8192 contours and 65536 points.';
+defs.booleanOperation = { ...enumeration('Layers/BooleanGroupLayerBehaviour.cs', 'VectorBooleanOperation'), default: 'Union',
+  description: 'settings.booleanOperation on each Boolean Group operand. Bottom enabled child is the base; higher children apply operations upward. Combine appends separate figures without Union; a subsequent Boolean operation resolves the accumulated region. Outside a Boolean Group this value is retained but inactive.' };
+defs.booleanGroup = object({
+  style: { type: 'object', allOf: [{ $ref: 'document.schema.json#/$defs/VectorShape' }, { properties: { contours: { type: 'array', maxItems: 0 } } }],
+    description: 'Complete replacement of the common style; omit to retain it. Uses all VectorShape fill/stroke fields, but contours must be empty. Geometry comes from children.' },
+  referenceSize: tuple({ type: 'number', exclusiveMinimum: 0, maximum: 10000000 }, 2),
+  edgeMode: enumeration('Layers/VectorModel.cs', 'VectorEdgeMode'),
+  appearance: { ...enumeration('Layers/BooleanGroupLayerBehaviour.cs', 'BooleanGroupAppearance'), default: 'Group', description: 'Combine only: Group applies shared fill/stroke to separate figures; Layers uses original layer appearance. Boolean operations always use Group. Child FX, opacity and blend modes remain ignored.' }
+});
+defs.booleanGroup.description = 'Partial settings.booleanGroup for type:booleanGroup. Isolated compositing only. Children must be Shape, Vector or nested Boolean Groups with closed geometry; raster operands and open contours are rejected. Child styles remain stored and are active only in Combine with appearance:Layers. Child FX remain ignored. Creating through the API uses defaults or the supplied style, without implicit child-style inheritance.';
+defs.convertToVector = object({ op: { const: 'convertToVector' }, layer: str(256) }, ['op', 'layer']);
+defs.convertToVector.description = 'Convert a Shape geometrically while preserving the layer shell. Unsupported feather, stroke transforms/compositing or offset cusps fail before replacement.';
 defs.blend = enumeration('Utils.cs', 'BlendMode');
 defs.pressureBinding = object({
   enabled: bool,

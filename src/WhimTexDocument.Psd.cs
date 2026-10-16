@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
             {
                 rendered = GetClearRenderTexture(width, height);
                 RefreshTransformHierarchy();
-                CompositeLayers(group.layers, ref rendered, width, height, 1f, new HashSet<Layer>());
+                RenderGroupGeometry(group, ref rendered, width, height, 1f, new HashSet<Layer>());
                 group.ApplyFx(ref rendered, new LayerRenderContext(this, null, width, height, 1f, false, true));
                 rendered = FinishStage(rendered, group.colorRange == LayerColorRange.Standard, group.channelMapping);
                 return CopyToTexture2D(rendered, uploadToGpu: false);
@@ -23,7 +23,7 @@ namespace DCFApixels.WhimTex
             {
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
-                if (rendered != null) RenderTexture.ReleaseTemporary(rendered);
+                if (rendered != null) ProfiledRenderTexture.ReleaseTemporary(rendered);
             }
         }
 
@@ -43,7 +43,7 @@ namespace DCFApixels.WhimTex
             {
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
-                if (rendered != null) RenderTexture.ReleaseTemporary(rendered);
+                if (rendered != null) ProfiledRenderTexture.ReleaseTemporary(rendered);
             }
         }
 
@@ -75,7 +75,7 @@ namespace DCFApixels.WhimTex
             {
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
-                if (rendered != null) RenderTexture.ReleaseTemporary(rendered);
+                if (rendered != null) ProfiledRenderTexture.ReleaseTemporary(rendered);
             }
         }
     }

@@ -23,7 +23,7 @@ namespace DCFApixels.WhimTex
                 {
                     stack.Add(group);
                     rendered = GetClearRenderTexture(width, height);
-                    CompositeLayers(group.layers, ref rendered, width, height, 1f, stack);
+                    RenderGroupGeometry(group, ref rendered, width, height, 1f, stack);
                     rendered = FinishStage(rendered, group.colorRange == LayerColorRange.Standard, group.channelMapping);
                     if (group.clippingMask) ApplyClippingCoverage(ref rendered, container, index, width, height, 1f, stack);
                 }
@@ -34,7 +34,7 @@ namespace DCFApixels.WhimTex
             finally
             {
                 RenderTexture.active = previous;
-                if (rendered != null) RenderTexture.ReleaseTemporary(rendered);
+                if (rendered != null) ProfiledRenderTexture.ReleaseTemporary(rendered);
             }
         }
     }

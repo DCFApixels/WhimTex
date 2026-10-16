@@ -21,6 +21,7 @@ covers file formats, integrations and full shader syntax; it is optional for ord
 
 - [Start here](getting-started.md): installation, the first image and the workspace.
 - [Layers and groups](layers.md): separate parts, sources and procedural shapes.
+- [Vector paths](vector.md): editable curves, fills, strokes and brush figures.
 - [Transform and rasterize](transform.md): position content and decide when to turn it into pixels.
 
 ## Paint and select

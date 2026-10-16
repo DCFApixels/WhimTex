@@ -87,6 +87,8 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                     if (!(type == typeof(WhimTexDocument) && f.Name == "layers") && !(type == typeof(DrawingLayerBehaviour) && f.Name == "pixels"))
                         properties[f.Name] = type == typeof(ShapeLayerBehaviour) && (f.Name == "rectangleCorners" || f.Name == "polygonCorners")
                             ? D(("type", "array"), ("minItems", f.Name == "rectangleCorners" ? 4 : 3), ("maxItems", f.Name == "rectangleCorners" ? 4 : 32), ("items", Schema(typeof(ShapeLayerBehaviour.Corner)))) :
+                            type == typeof(GradientLayerBehaviour) && f.Name == "circularStartAngle"
+                            ? D(("type", "number"), ("default", 0), ("description", "Circular gradient start angle in counterclockwise degrees from the local left ray. Independent of transform and palette. One period spans 360/circularRepetitions degrees; default start angle preserves the existing field.")) :
                             (type == typeof(SDFLayerBehaviour) || type == typeof(OutlineLayerBehaviour)) && f.Name == "miterLimit"
                             ? D(("type", "number"), ("minimum", 1), ("maximum", 64),
 ("description", "Range 1..64, default 4. Finite dimensionless miter-length limit relative to the contour offset. Used by Sharp, CornerFit and Spring; excessive joins are beveled. Rbf retains but ignores this value. Same field on SDF and Outline. CornerFit/Spring apply it only to AA-verified corners with bounded local endpoint influence; it does not validate uncertain corners. In Sharp, values above 4 cannot override the separate raster angular-safety cap; unsupported or very acute corners can round.")) :
@@ -126,14 +128,129 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                                 ("anyOf", new[] { D(("const", new[] { 0, 0 })), D(("items", D(("type", "integer"), ("minimum", 1), ("maximum", 16384)))) }),
                                 ("description", "Source reference canvas dimensions retained by Crop. [0,0] uses the current canvas; otherwise both dimensions must be positive and their product at most 16,777,216. Keeps Noise, ordinary Pattern and uninitialized Drawing sources at their original pixel scale. Not a source-image resolution, crop rectangle or rendering cache.")) :
                             type == typeof(Layer) && f.Name == "id" ? D(("type", "string"), ("minLength", 1)) : Schema(f.FieldType);
+                if (type == typeof(ShapeLayerBehaviour) || type == typeof(VectorShape))
+                {
+                    var paintConstraints = new List<object>();
+                    foreach (bool stroke in new[] { false, true })
+                    {
+                        string mode = stroke ? "strokeMode" : "fillMode";
+                        string palette = stroke ? "strokeGradient" : "gradient";
+                        string start = palette + "Start", end = palette + "End", repetitions = palette + "Repetitions";
+                        ((Dictionary<string, object>)properties[mode])["default"] = "Solid";
+                        ((Dictionary<string, object>)properties[mode])["description"] = stroke
+                            ? "Independent stroke paint: None disables painting without clearing settings; Solid uses strokeColor; five gradient modes use strokeGradient. The stroke boolean remains an additional gate. Every JSON mode retains inactive stroke settings."
+                            : "Shared figure fill: None=0, Solid=1, LinearGradient=2, RadialGradient=3, SquareGradient=4, DiamondGradient=5, CircularGradient=6. Shape fill is an additional overall gate. Full, FullOptimized and Compact retain inactive fill settings.";
+                        ((Dictionary<string, object>)properties[palette])["description"] = "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the circular-only " + repetitions + " multiplier.";
+                        ((Dictionary<string, object>)properties[start])["default"] = new[] { 0, 0 };
+                        ((Dictionary<string, object>)properties[start])["description"] = "Finite normalized layer-local y-up anchor, allowed outside 0..1. Linear start; center for other gradients. Pixel metric: Shape current canvas dimensions before layer Transform; Vector and Boolean Group referenceSize. Changing this anchor does not change the layer transform or the other paint.";
+                        ((Dictionary<string, object>)properties[end])["default"] = new[] { 1, 0 };
+                        ((Dictionary<string, object>)properties[end])["description"] = "Finite normalized layer-local endpoint. Sets radius and orientation from " + start + " in reference pixels. Radial uses length, Square max(abs(rotated coordinates)), Diamond sum of absolute rotated coordinates. Circular is the positive CCW angle from this ray divided by one turn and multiplied by " + repetitions + ", with its seam on the ray. Equal anchors yield t=0 for every gradient type.";
+                        properties[repetitions] = D(("type", "number"), ("minimum", .0001), ("maximum", float.MaxValue), ("default", 1),
+                            ("description", "Finite circular-gradient repetitions, at least 0.0001; default 1. CircularGradient only: one period spans 360/" + repetitions + " degrees before palette wrapping. Retained and validated in every paint mode, including disabled painting."));
+                        var invalidPalette = D(("required", new[] { mode, palette }),
+                            ("properties", D((mode, D(("enum", new[] { "LinearGradient", "RadialGradient", "SquareGradient", "DiamondGradient", "CircularGradient" }))),
+                                (palette, D(("type", "null"))))));
+                        paintConstraints.Add(D(("not", invalidPalette)));
+                    }
+                    ((Dictionary<string, object>)definitions[name])["allOf"] = paintConstraints;
+                }
+                if (type == typeof(ShapeLayerBehaviour))
+                {
+                    ((Dictionary<string, object>)properties["strokePosition"])["default"] = "Inside";
+                    ((Dictionary<string, object>)properties["strokePosition"])["description"] = "Relative to the body contour. Shape retains Inside=0, Center=1, Outside=2; Vector uses a different numeric ordering.";
+                    ((Dictionary<string, object>)properties["strokeJoin"])["default"] = "Round";
+                    ((Dictionary<string, object>)properties["strokeJoin"])["description"] = "Outline join, independent of the body's corner descriptors.";
+                    ((Dictionary<string, object>)properties["strokeCap"])["default"] = "Butt";
+                    ((Dictionary<string, object>)properties["strokeCap"])["description"] = "Ends of stroke dashes. Separate from lineCap, which shapes the Line/Arc body ends.";
+                    properties["miterLimit"] = D(("type", "number"), ("minimum", 1), ("maximum", 10000), ("default", 4),
+                        ("description", "Maximum miter ratio before a Miter join becomes Bevel. Retained for other joins."));
+                    properties["dashPattern"] = D(("type", new[] { "array", "null" }), ("maxItems", 256), ("default", new float[0]),
+                        ("items", D(("type", "number"), ("exclusiveMinimum", 0), ("maximum", 10000000))),
+                        ("description", "Alternating dash/gap lengths, always in multiples of strokeWidth, independent of stroke position. Empty/null is solid; odd lists repeat twice. Shape has no dashPatternRelative field."));
+                    properties["dashOffset"] = D(("type", "number"), ("minimum", -10000000), ("maximum", 10000000), ("default", 0),
+                        ("description", "Phase along the contour in document pixels, never a stroke-width multiplier. Shape retains its transform metric: ordinary resizing keeps width, dash metrics and feather in document pixels; perspective retains the existing local approximation. Vector scales its local stroke geometry."));
+                    ((Dictionary<string, object>)properties["lineCap"])["description"] = "Line/Arc body end caps. Independent of strokeCap and the outline dash pattern.";
+                }
+                if (type == typeof(VectorLayerBehaviour))
+                {
+                    properties["referenceSize"] = D(("type", "array"), ("minItems", 2), ("maxItems", 2),
+                        ("items", D(("type", "number"), ("exclusiveMinimum", 0), ("maximum", 10000000))),
+                        ("default", new[] { 256, 256 }), ("description", "Physical document pixel size at creation. Coordinates and tangent offsets are layer-local y-up; stroke widths and dash offsets use these reference pixels. Relative dash lengths multiply strokeWidth. All follow the layer transform."));
+                    ((Dictionary<string, object>)properties["brushDraft"])["description"] = "Last stroke's original coverage and editable rebuild controls. Retained in all write modes, Undo and TIFF until the next stroke replaces it.";
+                    properties["shapes"] = D(("type", "array"), ("maxItems", 4096), ("items", D(("$ref", "#/$defs/VectorShape"))),
+                        ("description", "One figure per authored layer; multiple contours, including holes, belong to that figure. Older arrays with several figures are accepted only for normalization into an ordinary group with one figure per child, retaining the original shell and shared transform/FX."));
+                }
+                if (type == typeof(BooleanGroupLayerBehaviour))
+                {
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Layer.children contain closed Shape, Vector or nested Boolean Group operands. Bottom enabled child is the base; higher children apply booleanOperation upward. Combine retains separate figures; appearance Group shares this group's styling, Layers uses original child appearance. Other Boolean operations always use the group style. Child FX, opacity and blend modes remain ignored; group FX apply to the result. Isolated only; raster operands and open contours fail explicitly.";
+                    properties["referenceSize"] = D(("type", "array"), ("minItems", 2), ("maxItems", 2),
+                        ("items", D(("type", "number"), ("exclusiveMinimum", 0), ("maximum", 10000000))), ("default", new[] { 256, 256 }));
+                    properties["style"] = D(("type", "object"), ("allOf", new object[] { Schema(typeof(VectorShape)),
+                        D(("properties", D(("contours", D(("type", "array"), ("maxItems", 0)))))) }),
+                        ("description", "Common fill/stroke settings. Geometry comes from children; style.contours must be empty. No continuous inheritance from child appearance."));
+                }
+                if (type == typeof(Layer))
+                    properties["booleanOperation"] = D(("type", "string"), ("enum", Enum.GetNames(typeof(VectorBooleanOperation))), ("default", "Union"),
+                        ("description", "Operation when this layer is an operand of a Boolean Group. Bottom enabled operand is the base, so its operation is ignored. Retained outside Boolean Groups."));
+                if (type == typeof(VectorPoint) || type == typeof(VectorContour) || type == typeof(VectorShape))
+                    properties["id"] = D(("type", "string"), ("minLength", 1), ("maxLength", 256));
+                if (type == typeof(VectorShape))
+                {
+                    properties["contours"] = D(("type", "array"), ("maxItems", 8192), ("items", D(("$ref", "#/$defs/VectorContour"))));
+                    properties["strokeWidth"] = D(("type", "number"), ("minimum", 0), ("maximum", 10000000));
+                    properties["miterLimit"] = D(("type", "number"), ("minimum", 1), ("maximum", 10000));
+                    properties["dashOffset"] = D(("type", "number"), ("minimum", -10000000), ("maximum", 10000000));
+                    properties["dashPattern"] = D(("type", new[] { "array", "null" }), ("maxItems", 256),
+                        ("items", D(("type", "number"), ("exclusiveMinimum", 0), ("maximum", 10000000))),
+                        ("description", "Alternating dash/gap lengths. Set dashPatternRelative:true for multiples of strokeWidth; false retains reference-pixel lengths. Empty/null is solid; odd lists repeat twice."));
+                    properties["dashPatternRelative"] = D(("type", "boolean"), ("default", false),
+                        ("description", "True: dashPattern values multiply strokeWidth, independent of stroke position. The inspector authors this mode. False/omitted preserves older pixel patterns; the inspector converts them on pattern/width edits. dashOffset always remains reference pixels."));
+                    foreach (string color in new[] { "fillColor", "strokeColor" })
+                        properties[color] = D(("type", "array"), ("minItems", 4), ("maxItems", 4),
+                            ("prefixItems", new[] { Number(typeof(float)), Number(typeof(float)), Number(typeof(float)), D(("type", "number"), ("minimum", 0), ("maximum", 1)) }));
+                }
+                if (type == typeof(VectorContour))
+                    properties["points"] = D(("type", "array"), ("maxItems", 65536), ("items", D(("$ref", "#/$defs/VectorPoint"))));
+                if (type == typeof(VectorBrushDraft))
+                {
+                    ((Dictionary<string, object>)definitions[name])["required"] = new[] { "width", "height", "coverage", "shapeId" };
+                    properties["width"] = D(("type", "integer"), ("minimum", 1), ("maximum", 1024));
+                    properties["height"] = D(("type", "integer"), ("minimum", 1), ("maximum", 1024));
+                    properties["coverage"] = D(("type", "string"), ("contentEncoding", "base64"), ("maxLength", 1398104),
+                        ("description", "Original unmodified coverage bytes in bottom-up row-major order, exactly width*height bytes after base64 decoding; at most 1048576 bytes. Not a rendered preview."));
+                    properties["shapeId"] = D(("type", "string"), ("minLength", 1), ("maxLength", 128));
+                    properties["tolerance"] = D(("type", "number"), ("minimum", .25), ("maximum", 64), ("default", 1));
+                    properties["expansion"] = D(("type", "number"), ("minimum", -256), ("maximum", 256), ("default", 0));
+                    properties["frame"] = D(("type", "array"), ("minItems", 4), ("maxItems", 4), ("default", new[] { 0, 0, 1, 1 }),
+                        ("prefixItems", new object[] { Number(typeof(float)), Number(typeof(float)),
+                            D(("type", "number"), ("exclusiveMinimum", 0)), D(("type", "number"), ("exclusiveMinimum", 0)) }),
+                        ("description", "Original mask rectangle [x,y,width,height] in normalized layer-local y-up coordinates. Reframing a figure updates this mapping, not the coverage bytes."));
+                }
                 if (type == typeof(WhimTexDocument))
                 {
                     var notes = (Dictionary<string, object>)properties["comments"];
+                    properties["commentNumberSequence"] = D(("type", "integer"), ("minimum", 0), ("maximum", int.MaxValue),
+                        ("description", "Highest assigned comment number. Retained after deletion, omitted from layer fragments. Zero starts a fresh sequence."));
                     notes["maxItems"] = WhimTexDocument.MaximumCommentThreads;
                     notes["description"] = "Optional local canvas threads, omitted when empty and from layer fragments. Anchors use bottom-left UV and may lie outside the canvas after Crop. TIFF stores a separate optional comments block; annotations never alter composite pixels.";
+                    var receipts = (Dictionary<string, object>)properties["agentReceipts"];
+                    receipts["maxItems"] = 2048;
+                    receipts["description"] = "Document-owned work/request receipts prevent duplicate application after transport failures. Retained by TIFF/JSON and Undo, omitted from layer fragments and when empty. Combined metadata limit 4 MiB.";
                 }
                 if (type == typeof(WhimTexComment))
                 {
+                    properties["resolved"] = D(("type", "boolean"), ("default", false),
+                        ("description", "Resolved status. Mutually exclusive with awaitingReview; both false means In Progress."));
+                    properties["awaitingReview"] = D(("type", "boolean"), ("default", false),
+                        ("description", "Awaiting Review status. Explicit task state, never changed by opening or reading a thread."));
+                    ((Dictionary<string, object>)definitions[name])["not"] = D(("required", new[] { "resolved", "awaitingReview" }),
+                        ("properties", D(("resolved", D(("const", true))), ("awaitingReview", D(("const", true))))));
+                    properties["number"] = D(("type", "integer"), ("minimum", 0), ("maximum", int.MaxValue),
+                        ("description", "Permanent document-local display number. Zero/omitted is assigned once in list order after the highest existing number. Assigned positive values must be unique."));
+                    properties["useAuthorColor"] = D(("type", "boolean"), ("default", false),
+                        ("description", "Track the creator's profile color. Omitted/false preserves the stored manual color, including older comments. The color field retains the latest portable snapshot."));
+                    properties["colorAuthorId"] = D(("type", new[] { "string", "null" }), ("pattern", "^([0-9a-fA-F]{32})?$"),
+                        ("description", "Optional local author profile GUID for automatic color updates across nickname changes. Not a Unity account or project ID."));
                     var rgb = D(("type", "number"), ("minimum", 0), ("maximum", 1));
                     properties["color"] = D(("type", "array"), ("minItems", 4), ("maxItems", 4),
                         ("prefixItems", new object[] { rgb, rgb, rgb, D(("const", 1)) }));
@@ -144,11 +261,50 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 }
                 if (type == typeof(WhimTexCommentMessage))
                 {
+                    properties["authorId"] = D(("type", new[] { "string", "null" }), ("pattern", "^([0-9a-fA-F]{32})?$"),
+                        ("description", "Optional local author profile GUID, independent of the discussion color."));
+                    var rgb = D(("type", "number"), ("minimum", 0), ("maximum", 1));
+                    properties["authorColor"] = D(("anyOf", new object[] { D(("const", new[] { 0, 0, 0, 0 })),
+                        D(("type", "array"), ("minItems", 4), ("maxItems", 4),
+                            ("prefixItems", new object[] { rgb, rgb, rgb, D(("const", 1)) })) }),
+                        ("default", new[] { 0, 0, 0, 0 }), ("description", "Portable author color snapshot. All-zero means absent: resolve the local profile/name or use the author-name hue. The UI always displays an opaque author stripe."));
+                    ((Dictionary<string, object>)properties["attachments"])["maxItems"] = WhimTexDocument.MaximumCommentAttachments;
+                    properties["agentWorkId"] = D(("type", new[] { "string", "null" }), ("maxLength", 128));
+                    properties["agentContentHash"] = D(("type", new[] { "string", "null" }), ("maxLength", 128),
+                        ("description", "API provenance fingerprint. Editing message content invalidates its agent-only status for feedback guards."));
                     properties["id"] = D(("type", "string"), ("minLength", 1), ("pattern", @"\S"));
                     properties["author"] = D(("type", "string"), ("minLength", 1), ("maxLength", WhimTexDocument.MaximumCommentAuthorLength), ("pattern", @"\S"));
                     properties["text"] = D(("type", "string"), ("minLength", 1), ("maxLength", WhimTexDocument.MaximumCommentTextLength), ("pattern", @"\S"));
                     properties["createdUtcTicks"] = D(("type", "integer"), ("minimum", 0), ("maximum", DateTime.MaxValue.Ticks));
+                    properties["editedUtcTicks"] = D(("type", "integer"), ("minimum", 0), ("maximum", DateTime.MaxValue.Ticks),
+                        ("description", "Zero means never edited. Otherwise UTC ticks at or after createdUtcTicks; preserves the original author and creation time."));
                     ((Dictionary<string, object>)definitions[name])["required"] = new[] { "id", "text" };
+                }
+                if (type == typeof(WhimTexAgentReceipt))
+                {
+                    foreach (string field in new[] { "workId", "requestId", "requestHash" })
+                        properties[field] = D(("type", "string"), ("minLength", 1), ("maxLength", 128), ("pattern", @"\S"));
+                    properties["resultJson"] = D(("type", "string"), ("minLength", 1), ("maxLength", 262144));
+                    properties["createdUtcTicks"] = D(("type", "integer"), ("minimum", 0), ("maximum", DateTime.MaxValue.Ticks));
+                    ((Dictionary<string, object>)definitions[name])["required"] = new[] { "workId", "requestId", "requestHash", "resultJson", "createdUtcTicks" };
+                }
+                if (type == typeof(WhimTexCommentAttachment))
+                {
+                    properties["name"] = D(("type", "string"), ("minLength", 1), ("maxLength", 1024));
+                    properties["layerId"] = D(("type", new[] { "string", "null" }), ("maxLength", 128));
+                    properties["assetGuid"] = D(("type", new[] { "string", "null" }), ("description", "Persistent project asset GUID; localId identifies a sub-asset. Missing targets remain references."));
+                    ((Dictionary<string, object>)definitions[name])["required"] = new[] { "name" };
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Exactly one nonempty layerId, assetGuid or nonnull mask. Layer/mask references use localId 0. Empty UI draft fields are omitted before storage.";
+                }
+                if (type == typeof(WhimTexCommentMask))
+                {
+                    properties["version"] = D(("const", 1));
+                    properties["id"] = D(("type", "string"), ("pattern", "^[0-9a-fA-F]{32}$"));
+                    foreach (string axis in new[] { "width", "height" }) properties[axis] = D(("type", "integer"), ("minimum", 1), ("maximum", 16384));
+                    properties["coverageDeflate"] = D(("type", "string"), ("minLength", 1), ("maxLength", WhimTexDocument.MaximumCommentsBlockBytes));
+                    properties["sha256"] = D(("type", "string"), ("minLength", 44), ("maxLength", 44));
+                    ((Dictionary<string, object>)definitions[name])["required"] = new[] { "id", "width", "height", "coverageDeflate", "sha256" };
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Version 1: lossless Deflate/base64 R8 coverage, bottom row first, cropped to nonzero bounds. SHA-256/base64 checks decoded bytes. At most 16,777,216 pixels per mask and 67,108,864 per document. localToCanvas maps local bottom-left UV to current canvas UV, finite invertible affine only. Original pixels survive Crop/Scale/Orientation; consumers sample at pixel centres with nearest filtering. Mask IDs are unique in the document.";
                 }
                 if (type == typeof(SDFLayerBehaviour) || type == typeof(OutlineLayerBehaviour))
                 {
@@ -179,7 +335,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
             }
             object modelRef = D(("$ref", "#/$defs/" + name));
             return !type.IsValueType && type != typeof(WhimTexDocument) && type != typeof(Layer) &&
-                type != typeof(WhimTexComment) && type != typeof(WhimTexCommentMessage)
+                type != typeof(WhimTexComment) && type != typeof(WhimTexCommentMessage) && type != typeof(WhimTexCommentAttachment) && type != typeof(WhimTexAgentReceipt)
                 ? D(("anyOf", new[] { modelRef, D(("type", "null")) })) : modelRef;
         }
         object document = Schema(typeof(WhimTexDocument)), layers = D(("type", "array"), ("maxItems", 1024), ("items", Schema(typeof(Layer))));

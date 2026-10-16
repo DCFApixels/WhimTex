@@ -20,6 +20,8 @@ namespace DCFApixels.WhimTex
         private VisualElement strip;
         private Image image;
         private ColorField color;
+        private ColorField allColors;
+        private VisualElement allColorsMixedSwatch;
         private Func<int> channelSource;
         private VisualElement colorControls;
         private Button hdrToggle;
@@ -181,7 +183,28 @@ namespace DCFApixels.WhimTex
                     e.StopPropagation();
                 }
             });
-            rootVisualElement.Add(strip);
+            var stripRow = new VisualElement();
+            stripRow.AddToClassList("whimtex-gradient-strip-row");
+            allColors = new ColorField { name = "gradientAllColors", showAlpha = false, showEyeDropper = false,
+                UseCanvasChannels = true, ReadCanvasChannels = () => channelSource?.Invoke() ?? -1,
+                tooltip = "Set all color keys. Gray with a white diagonal indicates mixed colors." };
+            allColors.AddToClassList("whimtex-gradient-strip-action");
+            allColors.AddToClassList("whimtex-gradient-all-colors");
+            allColors.OpenPickerOverride = OpenAllColors;
+            allColors.RegisterValueChangedCallback(e => Edit(() => StoreAllColors(e.newValue)));
+            allColorsMixedSwatch = new VisualElement { pickingMode = PickingMode.Ignore };
+            allColorsMixedSwatch.AddToClassList("whimtex-gradient-mixed-color");
+            allColorsMixedSwatch.generateVisualContent += DrawMixedColor;
+            allColors.Add(allColorsMixedSwatch);
+            var reverse = new Button(ReverseGradient) { name = "gradientReverse", tooltip = "Reverse gradient" };
+            reverse.AddToClassList("whimtex-gradient-strip-action");
+            reverse.AddToClassList("whimtex-gradient-reverse");
+            var reverseIcon = new VisualElement { pickingMode = PickingMode.Ignore };
+            reverseIcon.AddToClassList("whimtex-gradient-reverse-icon");
+            reverseIcon.generateVisualContent += DrawReverseIcon;
+            reverse.Add(reverseIcon);
+            stripRow.Add(strip); stripRow.Add(allColors); stripRow.Add(reverse);
+            rootVisualElement.Add(stripRow);
             color = new ColorField("Color") { hdr = false, showAlpha = false, UseCanvasChannels = true, ReadCanvasChannels = () => channelSource?.Invoke() ?? -1 };
             color.OpenPickerOverride = OpenKeyColor;
             color.RegisterValueChangedCallback(e => Edit(() =>
@@ -246,6 +269,104 @@ namespace DCFApixels.WhimTex
             Refresh();
         }
         private int Count => alphaTrack ? alphas.Length : colors.Length;
+        private void OpenAllColors()
+        {
+            var expected = gradient;
+            var original = gradient.Clone();
+            var originalIntensities = new Dictionary<float, float>(intensityPreferences);
+            var picker = WhimTexColorPicker.Open(allColors.value, allColors.hdr, false, WhimTexColorRange.Switchable,
+                WhimTexColorPicker.DocumentFor(owner), value =>
+                {
+                    if (this == null || gradient != expected) return;
+                    Edit(() => StoreAllColors(value));
+                    expected = gradient;
+                }, valid: () => this != null && gradient == expected);
+            picker.SetMultiValueSource(allColors.showMixedValue, () =>
+                {
+                    Edit(() =>
+                    {
+                        gradient = original;
+                        intensityPreferences.Clear();
+                        foreach (var entry in originalIntensities) intensityPreferences.Add(entry.Key, entry.Value);
+                    });
+                    expected = gradient;
+                });
+            picker.SetChannelSource(channelSource);
+            keyColorPicker = picker;
+            waitingForColorPicker = true;
+        }
+
+        private void StoreAllColors(Color value)
+        {
+            if (gradient.ColorSpace == ColorSpace.Linear) value = value.linear;
+            value.r = Mathf.Clamp(value.r, -65504, 65504);
+            value.g = Mathf.Clamp(value.g, -65504, 65504);
+            value.b = Mathf.Clamp(value.b, -65504, 65504);
+            for (int i = 0; i < colors.Length; i++)
+            {
+                value.a = colors[i].color.a;
+                colors[i].color = value;
+            }
+            gradient.SetKeys(colors, alphas);
+            intensityPreferences.Clear();
+        }
+
+        private void ReverseGradient() => Edit(() =>
+        {
+            gradient.Reverse();
+            selected = Count - (midpointSelected ? 2 : 1) - selected;
+            ReversePreferences(hdrPreferences);
+            ReversePreferences(intensityPreferences);
+        });
+
+        private static void ReversePreferences<T>(Dictionary<float, T> preferences)
+        {
+            if (preferences.Count == 0) return;
+            var previous = new Dictionary<float, T>(preferences);
+            preferences.Clear();
+            foreach (var entry in previous) preferences[1 - entry.Key] = entry.Value;
+        }
+
+        private static void DrawMixedColor(MeshGenerationContext context)
+        {
+            var rect = context.visualElement.contentRect;
+            if (rect.width <= 0 || rect.height <= 0) return;
+            const float thickness = 1.8f;
+            const float shadowThickness = 2.4f;
+            var start = new Vector2(rect.xMin, rect.yMax);
+            var end = new Vector2(rect.xMax, rect.yMin);
+            var shadowOffset = new Vector2(rect.height, rect.width).normalized * (thickness * .7f);
+            var p = context.painter2D;
+            p.strokeColor = new Color(.18f, .18f, .18f, .75f);
+            p.lineWidth = shadowThickness;
+            p.lineCap = LineCap.Butt;
+            p.BeginPath();
+            p.MoveTo(start + shadowOffset);
+            p.LineTo(end + shadowOffset);
+            p.Stroke();
+            p.strokeColor = new Color(1, 1, 1, .55f);
+            p.lineWidth = thickness;
+            p.BeginPath();
+            p.MoveTo(start);
+            p.LineTo(end);
+            p.Stroke();
+        }
+
+        private static void DrawReverseIcon(MeshGenerationContext context)
+        {
+            var p = context.painter2D;
+            p.strokeColor = context.visualElement.resolvedStyle.color;
+            p.lineWidth = 1.5f; p.lineCap = LineCap.Round; p.lineJoin = LineJoin.Round;
+            p.BeginPath();
+            p.MoveTo(new Vector2(11.5f, 6));
+            p.BezierCurveTo(new Vector2(10.5f, 1), new Vector2(5, 1), new Vector2(2.5f, 4.5f));
+            p.MoveTo(new Vector2(2.5f, 1.5f)); p.LineTo(new Vector2(2.5f, 4.5f)); p.LineTo(new Vector2(5.5f, 4.5f));
+            p.MoveTo(new Vector2(2.5f, 8));
+            p.BezierCurveTo(new Vector2(3.5f, 13), new Vector2(9, 13), new Vector2(11.5f, 9.5f));
+            p.MoveTo(new Vector2(11.5f, 12.5f)); p.LineTo(new Vector2(11.5f, 9.5f)); p.LineTo(new Vector2(8.5f, 9.5f));
+            p.Stroke();
+        }
+
         private void OpenKeyColor()
         {
             var expected = gradient;
@@ -327,6 +448,20 @@ namespace DCFApixels.WhimTex
             colors = gradient.ColorKeys; alphas = gradient.AlphaKeys;
             selected = Mathf.Clamp(selected, 0, Count - 1);
             if (gradient.Mode == WhimTexGradientMode.Fixed || selected >= Count - 1) midpointSelected = false;
+            Color common = colors[0].color;
+            bool mixed = false, anyHdr = false;
+            foreach (var key in colors)
+            {
+                mixed |= key.color.r != common.r || key.color.g != common.g || key.color.b != common.b;
+                Color display = gradient.ColorSpace == ColorSpace.Linear ? key.color.gamma : key.color;
+                anyHdr |= ColorIntensity(display) > 1 || display.r < 0 || display.g < 0 || display.b < 0;
+            }
+            common = gradient.ColorSpace == ColorSpace.Linear ? common.gamma : common;
+            common.a = 1;
+            allColors.hdr = anyHdr;
+            allColors.SetValueWithoutNotify(common);
+            allColors.showMixedValue = mixed;
+            allColorsMixedSwatch.EnableInClassList("whimtex-gradient-hidden", !mixed);
             mode.SetValueWithoutNotify(gradient.Mode);
             wrapMode.SetValueWithoutNotify(gradient.WrapMode);
             smoothness.SetValueWithoutNotify(gradient.Smoothness * 100);

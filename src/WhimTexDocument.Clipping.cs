@@ -52,7 +52,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 content = GetClearRenderTexture(w, h);
-                CompositeLayers(group.layers, ref content, w, h, scale, stack, included);
+                RenderGroupGeometry(group, ref content, w, h, scale, stack, included);
                 group.ApplyFx(ref content, new LayerRenderContext(this, null, w, h, scale, false, true));
                 content = FinishStage(content, group.colorRange == LayerColorRange.Standard, group.channelMapping);
                 RenderTexture result = content;
@@ -61,7 +61,7 @@ namespace DCFApixels.WhimTex
             }
             finally
             {
-                if (content != null) RenderTexture.ReleaseTemporary(content);
+                if (content != null) ProfiledRenderTexture.ReleaseTemporary(content);
                 stack.Remove(group);
             }
         }
@@ -96,7 +96,7 @@ namespace DCFApixels.WhimTex
                         if (!includeBase && mode == BlendMode.Overwrite) mode = BlendMode.Normal;
                         BlendInto(ref chain, source, mode, layer.opacity, layer.blendRange, preserveAlpha: includeBase);
                     }
-                    finally { RenderTexture.ReleaseTemporary(source); }
+                    finally { ProfiledRenderTexture.ReleaseTemporary(source); }
                 }
                 // Partial merges use the unselected base only as a mask. Apply its
                 // coverage once, not once per selected clipping layer.
@@ -106,8 +106,8 @@ namespace DCFApixels.WhimTex
             }
             finally
             {
-                if (chain != null) RenderTexture.ReleaseTemporary(chain);
-                if (basePixels != null) RenderTexture.ReleaseTemporary(basePixels);
+                if (chain != null) ProfiledRenderTexture.ReleaseTemporary(chain);
+                if (basePixels != null) ProfiledRenderTexture.ReleaseTemporary(basePixels);
             }
         }
 
@@ -123,7 +123,7 @@ namespace DCFApixels.WhimTex
                 if (mask == null) mask = GetClearRenderTexture(w, h);
                 BlendInto(ref pixels, mask, (BlendMode)102, baseIndex < 0 ? 0f : container[baseIndex].opacity);
             }
-            finally { if (mask != null) RenderTexture.ReleaseTemporary(mask); }
+            finally { if (mask != null) ProfiledRenderTexture.ReleaseTemporary(mask); }
         }
     }
 }

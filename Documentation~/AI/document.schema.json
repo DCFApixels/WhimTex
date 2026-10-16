@@ -42,6 +42,17 @@
         "$type": {
           "const": "WhimTexDocument"
         },
+        "agentReceipts": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/WhimTexAgentReceipt"
+          },
+          "maxItems": 2048,
+          "description": "Document-owned work/request receipts prevent duplicate application after transport failures. Retained by TIFF/JSON and Undo, omitted from layer fragments and when empty. Combined metadata limit 4 MiB."
+        },
         "colorHistory": {
           "type": [
             "array",
@@ -68,6 +79,12 @@
           },
           "maxItems": 4096,
           "description": "Optional local canvas threads, omitted when empty and from layer fragments. Anchors use bottom-left UV and may lie outside the canvas after Crop. TIFF stores a separate optional comments block; annotations never alter composite pixels."
+        },
+        "commentNumberSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647,
+          "description": "Highest assigned comment number. Retained after deletion, omitted from layer fragments. Zero starts a fresh sequence."
         },
         "layerNameCounters": {
           "type": [
@@ -178,6 +195,50 @@
         }
       }
     },
+    "WhimTexAgentReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "WhimTexAgentReceipt"
+        },
+        "workId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "\\S"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "\\S"
+        },
+        "requestHash": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "\\S"
+        },
+        "resultJson": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 262144
+        },
+        "createdUtcTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3155378975999999999
+        }
+      },
+      "required": [
+        "workId",
+        "requestId",
+        "requestHash",
+        "resultJson",
+        "createdUtcTicks"
+      ]
+    },
     "WhimTexComment": {
       "type": "object",
       "additionalProperties": false,
@@ -189,6 +250,12 @@
           "type": "string",
           "minLength": 1,
           "pattern": "\\S"
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647,
+          "description": "Permanent document-local display number. Zero/omitted is assigned once in list order after the highest existing number. Assigned positive values must be unique."
         },
         "anchor": {
           "type": "array",
@@ -225,8 +292,28 @@
             }
           ]
         },
+        "useAuthorColor": {
+          "type": "boolean",
+          "default": false,
+          "description": "Track the creator's profile color. Omitted/false preserves the stored manual color, including older comments. The color field retains the latest portable snapshot."
+        },
+        "colorAuthorId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([0-9a-fA-F]{32})?$",
+          "description": "Optional local author profile GUID for automatic color updates across nickname changes. Not a Unity account or project ID."
+        },
         "resolved": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": false,
+          "description": "Resolved status. Mutually exclusive with awaitingReview; both false means In Progress."
+        },
+        "awaitingReview": {
+          "type": "boolean",
+          "default": false,
+          "description": "Awaiting Review status. Explicit task state, never changed by opening or reading a thread."
         },
         "messages": {
           "type": "array",
@@ -235,6 +322,20 @@
           },
           "minItems": 1,
           "maxItems": 128
+        }
+      },
+      "not": {
+        "required": [
+          "resolved",
+          "awaitingReview"
+        ],
+        "properties": {
+          "resolved": {
+            "const": true
+          },
+          "awaitingReview": {
+            "const": true
+          }
         }
       },
       "required": [
@@ -260,6 +361,58 @@
           "maxLength": 128,
           "pattern": "\\S"
         },
+        "authorId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([0-9a-fA-F]{32})?$",
+          "description": "Optional local author profile GUID, independent of the discussion color."
+        },
+        "authorColor": {
+          "anyOf": [
+            {
+              "const": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                {
+                  "const": 1
+                }
+              ]
+            }
+          ],
+          "default": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "description": "Portable author color snapshot. All-zero means absent: resolve the local profile/name or use the author-name hue. The UI always displays an opaque author stripe."
+        },
         "text": {
           "type": "string",
           "minLength": 1,
@@ -270,12 +423,171 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 3155378975999999999
+        },
+        "editedUtcTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3155378975999999999,
+          "description": "Zero means never edited. Otherwise UTC ticks at or after createdUtcTicks; preserves the original author and creation time."
+        },
+        "attachments": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/WhimTexCommentAttachment"
+          },
+          "maxItems": 32
+        },
+        "agentWorkId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128
+        },
+        "agentContentHash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128,
+          "description": "API provenance fingerprint. Editing message content invalidates its agent-only status for feedback guards."
         }
       },
       "required": [
         "id",
         "text"
       ]
+    },
+    "WhimTexCommentAttachment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "WhimTexCommentAttachment"
+        },
+        "layerId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128
+        },
+        "assetGuid": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Persistent project asset GUID; localId identifies a sub-asset. Missing targets remain references."
+        },
+        "localId": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "mask": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WhimTexCommentMask"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "description": "Exactly one nonempty layerId, assetGuid or nonnull mask. Layer/mask references use localId 0. Empty UI draft fields are omitted before storage."
+    },
+    "WhimTexCommentMask": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "WhimTexCommentMask"
+        },
+        "version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{32}$"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16384
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16384
+        },
+        "coverageDeflate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16777216
+        },
+        "sha256": {
+          "type": "string",
+          "minLength": 44,
+          "maxLength": 44
+        },
+        "localToCanvas": {
+          "$ref": "#/$defs/ProjectiveMatrix"
+        }
+      },
+      "required": [
+        "id",
+        "width",
+        "height",
+        "coverageDeflate",
+        "sha256"
+      ],
+      "description": "Version 1: lossless Deflate/base64 R8 coverage, bottom row first, cropped to nonzero bounds. SHA-256/base64 checks decoded bytes. At most 16,777,216 pixels per mask and 67,108,864 per document. localToCanvas maps local bottom-left UV to current canvas UV, finite invertible affine only. Original pixels survive Crop/Scale/Orientation; consumers sample at pixel centres with nearest filtering. Mask IDs are unique in the document."
+    },
+    "ProjectiveMatrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ProjectiveMatrix"
+        },
+        "m00": {
+          "type": "number"
+        },
+        "m01": {
+          "type": "number"
+        },
+        "m02": {
+          "type": "number"
+        },
+        "m10": {
+          "type": "number"
+        },
+        "m11": {
+          "type": "number"
+        },
+        "m12": {
+          "type": "number"
+        },
+        "m20": {
+          "type": "number"
+        },
+        "m21": {
+          "type": "number"
+        },
+        "m22": {
+          "type": "number"
+        }
+      }
     },
     "WhimTexDocument+LayerNameCounter": {
       "type": "object",
@@ -447,6 +759,18 @@
         "transform": {
           "$ref": "#/$defs/TextureTransform"
         },
+        "booleanOperation": {
+          "type": "string",
+          "enum": [
+            "Union",
+            "Subtract",
+            "Intersect",
+            "Xor",
+            "Combine"
+          ],
+          "default": "Union",
+          "description": "Operation when this layer is an operand of a Boolean Group. Bottom enabled operand is the base, so its operation is ignored. Retained outside Boolean Groups."
+        },
         "sourceCanvasSize": {
           "type": "array",
           "minItems": 2,
@@ -515,6 +839,26 @@
                   "anyOf": [
                     {
                       "$ref": "#/$defs/BlurLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/BooleanGroupLayerBehaviour"
                     },
                     {
                       "type": "null"
@@ -815,6 +1159,26 @@
                   "anyOf": [
                     {
                       "$ref": "#/$defs/TextLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/VectorLayerBehaviour"
                     },
                     {
                       "type": "null"
@@ -1356,42 +1720,6 @@
         }
       }
     },
-    "ProjectiveMatrix": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$type": {
-          "const": "ProjectiveMatrix"
-        },
-        "m00": {
-          "type": "number"
-        },
-        "m01": {
-          "type": "number"
-        },
-        "m02": {
-          "type": "number"
-        },
-        "m10": {
-          "type": "number"
-        },
-        "m11": {
-          "type": "number"
-        },
-        "m12": {
-          "type": "number"
-        },
-        "m20": {
-          "type": "number"
-        },
-        "m21": {
-          "type": "number"
-        },
-        "m22": {
-          "type": "number"
-        }
-      }
-    },
     "ShaderFXParameterControl": {
       "type": "object",
       "additionalProperties": false,
@@ -1672,6 +2000,471 @@
           "type": [
             "string",
             "null"
+          ]
+        }
+      }
+    },
+    "BooleanGroupLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "BooleanGroupLayerBehaviour"
+        },
+        "style": {
+          "type": "object",
+          "allOf": [
+            {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/VectorShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            {
+              "properties": {
+                "contours": {
+                  "type": "array",
+                  "maxItems": 0
+                }
+              }
+            }
+          ],
+          "description": "Common fill/stroke settings. Geometry comes from children; style.contours must be empty. No continuous inheritance from child appearance."
+        },
+        "referenceSize": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 10000000
+          },
+          "default": [
+            256,
+            256
+          ]
+        },
+        "edgeMode": {
+          "type": "string",
+          "enum": [
+            "Antialiased",
+            "Step"
+          ]
+        },
+        "appearance": {
+          "type": "string",
+          "enum": [
+            "Group",
+            "Layers"
+          ]
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Layer.children contain closed Shape, Vector or nested Boolean Group operands. Bottom enabled child is the base; higher children apply booleanOperation upward. Combine retains separate figures; appearance Group shares this group's styling, Layers uses original child appearance. Other Boolean operations always use the group style. Child FX, opacity and blend modes remain ignored; group FX apply to the result. Isolated only; raster operands and open contours fail explicitly."
+    },
+    "VectorShape": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "VectorShape"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visible": {
+          "type": "boolean"
+        },
+        "contours": {
+          "type": "array",
+          "maxItems": 8192,
+          "items": {
+            "$ref": "#/$defs/VectorContour"
+          }
+        },
+        "fillMode": {
+          "type": "string",
+          "enum": [
+            "None",
+            "Solid",
+            "LinearGradient",
+            "RadialGradient",
+            "SquareGradient",
+            "DiamondGradient",
+            "CircularGradient"
+          ],
+          "default": "Solid",
+          "description": "Shared figure fill: None=0, Solid=1, LinearGradient=2, RadialGradient=3, SquareGradient=4, DiamondGradient=5, CircularGradient=6. Shape fill is an additional overall gate. Full, FullOptimized and Compact retain inactive fill settings."
+        },
+        "fillColor": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "prefixItems": [
+            {
+              "type": "number",
+              "minimum": -3.40282347E+38,
+              "maximum": 3.40282347E+38
+            },
+            {
+              "type": "number",
+              "minimum": -3.40282347E+38,
+              "maximum": 3.40282347E+38
+            },
+            {
+              "type": "number",
+              "minimum": -3.40282347E+38,
+              "maximum": 3.40282347E+38
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          ]
+        },
+        "gradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WhimTexGradient"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the circular-only gradientRepetitions multiplier."
+        },
+        "gradientStart": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          },
+          "default": [
+            0,
+            0
+          ],
+          "description": "Finite normalized layer-local y-up anchor, allowed outside 0..1. Linear start; center for other gradients. Pixel metric: Shape current canvas dimensions before layer Transform; Vector and Boolean Group referenceSize. Changing this anchor does not change the layer transform or the other paint."
+        },
+        "gradientEnd": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          },
+          "default": [
+            1,
+            0
+          ],
+          "description": "Finite normalized layer-local endpoint. Sets radius and orientation from gradientStart in reference pixels. Radial uses length, Square max(abs(rotated coordinates)), Diamond sum of absolute rotated coordinates. Circular is the positive CCW angle from this ray divided by one turn and multiplied by gradientRepetitions, with its seam on the ray. Equal anchors yield t=0 for every gradient type."
+        },
+        "gradientRepetitions": {
+          "type": "number",
+          "minimum": 0.0001,
+          "maximum": 3.40282347E+38,
+          "default": 1,
+          "description": "Finite circular-gradient repetitions, at least 0.0001; default 1. CircularGradient only: one period spans 360/gradientRepetitions degrees before palette wrapping. Retained and validated in every paint mode, including disabled painting."
+        },
+        "fillRule": {
+          "type": "string",
+          "enum": [
+            "EvenOdd",
+            "NonZero"
+          ]
+        },
+        "stroke": {
+          "type": "boolean"
+        },
+        "strokeColor": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "prefixItems": [
+            {
+              "type": "number",
+              "minimum": -3.40282347E+38,
+              "maximum": 3.40282347E+38
+            },
+            {
+              "type": "number",
+              "minimum": -3.40282347E+38,
+              "maximum": 3.40282347E+38
+            },
+            {
+              "type": "number",
+              "minimum": -3.40282347E+38,
+              "maximum": 3.40282347E+38
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          ]
+        },
+        "strokeMode": {
+          "type": "string",
+          "enum": [
+            "None",
+            "Solid",
+            "LinearGradient",
+            "RadialGradient",
+            "SquareGradient",
+            "DiamondGradient",
+            "CircularGradient"
+          ],
+          "default": "Solid",
+          "description": "Independent stroke paint: None disables painting without clearing settings; Solid uses strokeColor; five gradient modes use strokeGradient. The stroke boolean remains an additional gate. Every JSON mode retains inactive stroke settings."
+        },
+        "strokeGradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WhimTexGradient"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the circular-only strokeGradientRepetitions multiplier."
+        },
+        "strokeGradientStart": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          },
+          "default": [
+            0,
+            0
+          ],
+          "description": "Finite normalized layer-local y-up anchor, allowed outside 0..1. Linear start; center for other gradients. Pixel metric: Shape current canvas dimensions before layer Transform; Vector and Boolean Group referenceSize. Changing this anchor does not change the layer transform or the other paint."
+        },
+        "strokeGradientEnd": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          },
+          "default": [
+            1,
+            0
+          ],
+          "description": "Finite normalized layer-local endpoint. Sets radius and orientation from strokeGradientStart in reference pixels. Radial uses length, Square max(abs(rotated coordinates)), Diamond sum of absolute rotated coordinates. Circular is the positive CCW angle from this ray divided by one turn and multiplied by strokeGradientRepetitions, with its seam on the ray. Equal anchors yield t=0 for every gradient type."
+        },
+        "strokeGradientRepetitions": {
+          "type": "number",
+          "minimum": 0.0001,
+          "maximum": 3.40282347E+38,
+          "default": 1,
+          "description": "Finite circular-gradient repetitions, at least 0.0001; default 1. CircularGradient only: one period spans 360/strokeGradientRepetitions degrees before palette wrapping. Retained and validated in every paint mode, including disabled painting."
+        },
+        "strokeWidth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "strokePosition": {
+          "type": "string",
+          "enum": [
+            "Center",
+            "Inside",
+            "Outside"
+          ]
+        },
+        "join": {
+          "type": "string",
+          "enum": [
+            "Miter",
+            "Round",
+            "Bevel"
+          ]
+        },
+        "cap": {
+          "type": "string",
+          "enum": [
+            "Butt",
+            "Round",
+            "Square"
+          ]
+        },
+        "miterLimit": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "dashPattern": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "maxItems": 256,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 10000000
+          },
+          "description": "Alternating dash/gap lengths. Set dashPatternRelative:true for multiples of strokeWidth; false retains reference-pixel lengths. Empty/null is solid; odd lists repeat twice."
+        },
+        "dashPatternRelative": {
+          "type": "boolean",
+          "default": false,
+          "description": "True: dashPattern values multiply strokeWidth, independent of stroke position. The inspector authors this mode. False/omitted preserves older pixel patterns; the inspector converts them on pattern/width edits. dashOffset always remains reference pixels."
+        },
+        "dashOffset": {
+          "type": "number",
+          "minimum": -10000000,
+          "maximum": 10000000
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "fillMode",
+              "gradient"
+            ],
+            "properties": {
+              "fillMode": {
+                "enum": [
+                  "LinearGradient",
+                  "RadialGradient",
+                  "SquareGradient",
+                  "DiamondGradient",
+                  "CircularGradient"
+                ]
+              },
+              "gradient": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "strokeMode",
+              "strokeGradient"
+            ],
+            "properties": {
+              "strokeMode": {
+                "enum": [
+                  "LinearGradient",
+                  "RadialGradient",
+                  "SquareGradient",
+                  "DiamondGradient",
+                  "CircularGradient"
+                ]
+              },
+              "strokeGradient": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "VectorContour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "VectorContour"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "closed": {
+          "type": "boolean"
+        },
+        "points": {
+          "type": "array",
+          "maxItems": 65536,
+          "items": {
+            "$ref": "#/$defs/VectorPoint"
+          }
+        }
+      }
+    },
+    "VectorPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "VectorPoint"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "position": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "inTangent": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "outTangent": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "tangentMode": {
+          "type": "string",
+          "enum": [
+            "Corner",
+            "Aligned",
+            "Mirrored"
           ]
         }
       }
@@ -2615,6 +3408,11 @@
           "type": "number",
           "minimum": -3.40282347E+38,
           "maximum": 3.40282347E+38
+        },
+        "circularStartAngle": {
+          "type": "number",
+          "default": 0,
+          "description": "Circular gradient start angle in counterclockwise degrees from the local left ray. Independent of transform and palette. One period spans 360/circularRepetitions degrees; default start angle preserves the existing field."
         },
         "circularWrapMode": {
           "type": "string",
@@ -3753,6 +4551,68 @@
             "maximum": 3.40282347E+38
           }
         },
+        "fillMode": {
+          "type": "string",
+          "enum": [
+            "None",
+            "Solid",
+            "LinearGradient",
+            "RadialGradient",
+            "SquareGradient",
+            "DiamondGradient",
+            "CircularGradient"
+          ],
+          "default": "Solid",
+          "description": "Shared figure fill: None=0, Solid=1, LinearGradient=2, RadialGradient=3, SquareGradient=4, DiamondGradient=5, CircularGradient=6. Shape fill is an additional overall gate. Full, FullOptimized and Compact retain inactive fill settings."
+        },
+        "gradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WhimTexGradient"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the circular-only gradientRepetitions multiplier."
+        },
+        "gradientStart": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          },
+          "default": [
+            0,
+            0
+          ],
+          "description": "Finite normalized layer-local y-up anchor, allowed outside 0..1. Linear start; center for other gradients. Pixel metric: Shape current canvas dimensions before layer Transform; Vector and Boolean Group referenceSize. Changing this anchor does not change the layer transform or the other paint."
+        },
+        "gradientEnd": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          },
+          "default": [
+            1,
+            0
+          ],
+          "description": "Finite normalized layer-local endpoint. Sets radius and orientation from gradientStart in reference pixels. Radial uses length, Square max(abs(rotated coordinates)), Diamond sum of absolute rotated coordinates. Circular is the positive CCW angle from this ray divided by one turn and multiplied by gradientRepetitions, with its seam on the ray. Equal anchors yield t=0 for every gradient type."
+        },
+        "gradientRepetitions": {
+          "type": "number",
+          "minimum": 0.0001,
+          "maximum": 3.40282347E+38,
+          "default": 1,
+          "description": "Finite circular-gradient repetitions, at least 0.0001; default 1. CircularGradient only: one period spans 360/gradientRepetitions degrees before palette wrapping. Retained and validated in every paint mode, including disabled painting."
+        },
         "fill": {
           "type": "boolean"
         },
@@ -3768,6 +4628,68 @@
             "minimum": -3.40282347E+38,
             "maximum": 3.40282347E+38
           }
+        },
+        "strokeMode": {
+          "type": "string",
+          "enum": [
+            "None",
+            "Solid",
+            "LinearGradient",
+            "RadialGradient",
+            "SquareGradient",
+            "DiamondGradient",
+            "CircularGradient"
+          ],
+          "default": "Solid",
+          "description": "Independent stroke paint: None disables painting without clearing settings; Solid uses strokeColor; five gradient modes use strokeGradient. The stroke boolean remains an additional gate. Every JSON mode retains inactive stroke settings."
+        },
+        "strokeGradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WhimTexGradient"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the circular-only strokeGradientRepetitions multiplier."
+        },
+        "strokeGradientStart": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          },
+          "default": [
+            0,
+            0
+          ],
+          "description": "Finite normalized layer-local y-up anchor, allowed outside 0..1. Linear start; center for other gradients. Pixel metric: Shape current canvas dimensions before layer Transform; Vector and Boolean Group referenceSize. Changing this anchor does not change the layer transform or the other paint."
+        },
+        "strokeGradientEnd": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          },
+          "default": [
+            1,
+            0
+          ],
+          "description": "Finite normalized layer-local endpoint. Sets radius and orientation from strokeGradientStart in reference pixels. Radial uses length, Square max(abs(rotated coordinates)), Diamond sum of absolute rotated coordinates. Circular is the positive CCW angle from this ray divided by one turn and multiplied by strokeGradientRepetitions, with its seam on the ray. Equal anchors yield t=0 for every gradient type."
+        },
+        "strokeGradientRepetitions": {
+          "type": "number",
+          "minimum": 0.0001,
+          "maximum": 3.40282347E+38,
+          "default": 1,
+          "description": "Finite circular-gradient repetitions, at least 0.0001; default 1. CircularGradient only: one period spans 360/strokeGradientRepetitions degrees before palette wrapping. Retained and validated in every paint mode, including disabled painting."
         },
         "strokeWidth": {
           "type": "number",
@@ -3785,7 +4707,57 @@
             "Inside",
             "Center",
             "Outside"
-          ]
+          ],
+          "default": "Inside",
+          "description": "Relative to the body contour. Shape retains Inside=0, Center=1, Outside=2; Vector uses a different numeric ordering."
+        },
+        "strokeJoin": {
+          "type": "string",
+          "enum": [
+            "Miter",
+            "Round",
+            "Bevel"
+          ],
+          "default": "Round",
+          "description": "Outline join, independent of the body's corner descriptors."
+        },
+        "strokeCap": {
+          "type": "string",
+          "enum": [
+            "Butt",
+            "Round",
+            "Square"
+          ],
+          "default": "Butt",
+          "description": "Ends of stroke dashes. Separate from lineCap, which shapes the Line/Arc body ends."
+        },
+        "miterLimit": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10000,
+          "default": 4,
+          "description": "Maximum miter ratio before a Miter join becomes Bevel. Retained for other joins."
+        },
+        "dashPattern": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "maxItems": 256,
+          "default": [],
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 10000000
+          },
+          "description": "Alternating dash/gap lengths, always in multiples of strokeWidth, independent of stroke position. Empty/null is solid; odd lists repeat twice. Shape has no dashPatternRelative field."
+        },
+        "dashOffset": {
+          "type": "number",
+          "minimum": -10000000,
+          "maximum": 10000000,
+          "default": 0,
+          "description": "Phase along the contour in document pixels, never a stroke-width multiplier. Shape retains its transform metric: ordinary resizing keeps width, dash metrics and feather in document pixels; perspective retains the existing local approximation. Vector scales its local stroke geometry."
         },
         "lineCap": {
           "type": "string",
@@ -3793,7 +4765,8 @@
             "Butt",
             "Round",
             "Square"
-          ]
+          ],
+          "description": "Line/Arc body end caps. Independent of strokeCap and the outline dash pattern."
         },
         "edgeMode": {
           "type": "string",
@@ -3866,7 +4839,53 @@
             "null"
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "fillMode",
+              "gradient"
+            ],
+            "properties": {
+              "fillMode": {
+                "enum": [
+                  "LinearGradient",
+                  "RadialGradient",
+                  "SquareGradient",
+                  "DiamondGradient",
+                  "CircularGradient"
+                ]
+              },
+              "gradient": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "strokeMode",
+              "strokeGradient"
+            ],
+            "properties": {
+              "strokeMode": {
+                "enum": [
+                  "LinearGradient",
+                  "RadialGradient",
+                  "SquareGradient",
+                  "DiamondGradient",
+                  "CircularGradient"
+                ]
+              },
+              "strokeGradient": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
     },
     "ShapeLayerBehaviour+Corner": {
       "type": "object",
@@ -4190,6 +5209,142 @@
           "maximum": 10
         }
       }
+    },
+    "VectorLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "VectorLayerBehaviour"
+        },
+        "shapes": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "$ref": "#/$defs/VectorShape"
+          },
+          "description": "One figure per authored layer; multiple contours, including holes, belong to that figure. Older arrays with several figures are accepted only for normalization into an ordinary group with one figure per child, retaining the original shell and shared transform/FX."
+        },
+        "referenceSize": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 10000000
+          },
+          "default": [
+            256,
+            256
+          ],
+          "description": "Physical document pixel size at creation. Coordinates and tangent offsets are layer-local y-up; stroke widths and dash offsets use these reference pixels. Relative dash lengths multiply strokeWidth. All follow the layer transform."
+        },
+        "edgeMode": {
+          "type": "string",
+          "enum": [
+            "Antialiased",
+            "Step"
+          ]
+        },
+        "brushDraft": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VectorBrushDraft"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Last stroke's original coverage and editable rebuild controls. Retained in all write modes, Undo and TIFF until the next stroke replaces it."
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "VectorBrushDraft": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "VectorBrushDraft"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1024
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1024
+        },
+        "coverage": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "maxLength": 1398104,
+          "description": "Original unmodified coverage bytes in bottom-up row-major order, exactly width*height bytes after base64 decoding; at most 1048576 bytes. Not a rendered preview."
+        },
+        "tolerance": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 64,
+          "default": 1
+        },
+        "expansion": {
+          "type": "number",
+          "minimum": -256,
+          "maximum": 256,
+          "default": 0
+        },
+        "frame": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "default": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "prefixItems": [
+            {
+              "type": "number",
+              "minimum": -3.40282347E+38,
+              "maximum": 3.40282347E+38
+            },
+            {
+              "type": "number",
+              "minimum": -3.40282347E+38,
+              "maximum": 3.40282347E+38
+            },
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          ],
+          "description": "Original mask rectangle [x,y,width,height] in normalized layer-local y-up coordinates. Reframing a figure updates this mapping, not the coverage bytes."
+        },
+        "shapeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "coverage",
+        "shapeId"
+      ]
     }
   }
 }

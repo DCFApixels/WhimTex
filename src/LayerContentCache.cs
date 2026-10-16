@@ -183,7 +183,7 @@ namespace DCFApixels.WhimTex
             }
             finally
             {
-                if (rendered != null) RenderTexture.ReleaseTemporary(rendered);
+                if (rendered != null) ProfiledRenderTexture.ReleaseTemporary(rendered);
             }
         }
 

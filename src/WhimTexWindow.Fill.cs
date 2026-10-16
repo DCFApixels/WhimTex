@@ -82,6 +82,7 @@ namespace DCFApixels.WhimTex
             Focus();
             toolkitCanvas.Focus();
             DrawingLayerBehaviour layer = (DrawingLayerBehaviour)GetSelectedLayer();
+            using var profile = WhimTexProfiler.Measure("tool.fill", activeDocument, layer.Owner);
             if (!TiledCanvasUtility.IsInvertible(activeDocument.GetPaintTransform(layer)) ||
                 !TryMapCanvasToLayerUv(evt.localPosition, toolkitCanvas.ImageRect, layer, out Vector2 uv))
             {

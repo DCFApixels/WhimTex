@@ -292,7 +292,7 @@ namespace DCFApixels.WhimTex
                 }
             }
             mesh ??= new Mesh { name = "Text Glyphs", hideFlags = HideFlags.HideAndDontSave };
-            var target = RenderTexture.GetTemporary(outputWidth, outputHeight, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+            var target = ProfiledRenderTexture.GetTemporary(outputWidth, outputHeight, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             RenderTexture previous = RenderTexture.active; bool srgb = GL.sRGBWrite;
             try
             {
@@ -333,7 +333,7 @@ namespace DCFApixels.WhimTex
                 key = layoutKey; cachedScale = scale; cachedOrigin = origin; cachedPixelScale = pixelScale;
                 return mask;
             }
-            finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; RenderTexture.ReleaseTemporary(target); }
+            finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; ProfiledRenderTexture.ReleaseTemporary(target); }
         }
 
         public void Dispose()

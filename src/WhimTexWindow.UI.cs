@@ -96,6 +96,7 @@ namespace DCFApixels.WhimTex
             root.UnregisterCallback<DragPerformEvent>(OnBrushPresetDragPerform, TrickleDown.TrickleDown);
             root.UnregisterCallback<PointerDownEvent>(OnOpacityPointerDown, TrickleDown.TrickleDown);
             root.UnregisterCallback<PointerDownEvent>(OnSectionPointerDown, TrickleDown.TrickleDown);
+            root.UnregisterCallback<PointerDownEvent>(OnCommentOutsidePointerDown, TrickleDown.TrickleDown);
             ResetOpacityEntry();
             toolkitLayerPreview?.Dispose();
             toolkitLayerPreview = null;
@@ -115,12 +116,21 @@ namespace DCFApixels.WhimTex
             RegisterAreaSelectionCommands(root);
             root.RegisterCallback<KeyUpEvent>(OnToolkitKeyUp, TrickleDown.TrickleDown);
             root.RegisterCallback<DragExitedEvent>(OnToolkitDragExited);
+            root.UnregisterCallback<DragUpdatedEvent>(OnCommentAttachmentDragUpdated, TrickleDown.TrickleDown);
+            root.UnregisterCallback<DragPerformEvent>(OnCommentAttachmentDragPerform, TrickleDown.TrickleDown);
+            root.RegisterCallback<DragUpdatedEvent>(OnCommentAttachmentDragUpdated, TrickleDown.TrickleDown);
+            root.RegisterCallback<DragPerformEvent>(OnCommentAttachmentDragPerform, TrickleDown.TrickleDown);
+            root.UnregisterCallback<DragLeaveEvent>(OnCommentAttachmentDragLeave, TrickleDown.TrickleDown);
+            root.UnregisterCallback<DragExitedEvent>(OnCommentAttachmentDragExited, TrickleDown.TrickleDown);
+            root.RegisterCallback<DragLeaveEvent>(OnCommentAttachmentDragLeave, TrickleDown.TrickleDown);
+            root.RegisterCallback<DragExitedEvent>(OnCommentAttachmentDragExited, TrickleDown.TrickleDown);
             root.RegisterCallback<DragUpdatedEvent>(OnCrossWindowLayerDragUpdated, TrickleDown.TrickleDown);
             root.RegisterCallback<DragPerformEvent>(OnCrossWindowLayerDragPerform, TrickleDown.TrickleDown);
             root.RegisterCallback<DragLeaveEvent>(OnCrossWindowLayerDragLeave);
             root.RegisterCallback<DragUpdatedEvent>(OnBrushPresetDragUpdated, TrickleDown.TrickleDown);
             root.RegisterCallback<DragPerformEvent>(OnBrushPresetDragPerform, TrickleDown.TrickleDown);
             root.RegisterCallback<PointerDownEvent>(OnOpacityPointerDown, TrickleDown.TrickleDown);
+            root.RegisterCallback<PointerDownEvent>(OnCommentOutsidePointerDown, TrickleDown.TrickleDown);
             root.RegisterCallback<PointerDownEvent>(OnSectionPointerDown, TrickleDown.TrickleDown);
 
             toolkitDocumentRoot = new VisualElement();
@@ -292,6 +302,7 @@ namespace DCFApixels.WhimTex
             BuildUvOverlay();
             BuildAreaSelectionTools();
             BuildShapeTool();
+            BuildVectorTools();
             BuildTextTool();
             BuildGradientCreationTool();
             BuildCanvasCropTool();
@@ -317,6 +328,7 @@ namespace DCFApixels.WhimTex
             if (rootVisualElement == null || toolkitDocumentRoot == null || rebuildingToolkit)
                 return;
 
+            using var profile = WhimTexProfiler.Measure("ui.refresh", activeDocument);
             rebuildingToolkit = true;
             try
             {
@@ -623,6 +635,7 @@ namespace DCFApixels.WhimTex
 
         private void RefreshToolkitLayerHierarchy(bool forceValues = false)
         {
+            using var profile = WhimTexProfiler.Measure("ui.layer_hierarchy", activeDocument);
             if (toolkitLayerHierarchyRoot == null)
                 return;
 
@@ -1509,8 +1522,10 @@ namespace DCFApixels.WhimTex
             AddCanvasCropSettings();
             AddCanvasCommentSettings();
             AddShapeSettings();
+            AddVectorSettings();
             AddTextSettings();
             AddGradientCreationSettings();
+            AddGradientHandleSettings();
             AddAreaSelectionSettings(CanvasTool.RectangleSelect);
             AddAreaSelectionSettings(CanvasTool.PolygonSelect);
 
@@ -1700,7 +1715,7 @@ namespace DCFApixels.WhimTex
                 return;
 
             bool hasLayers = HasCanvasLayers;
-            toolkitCanvas.SetCanvasVisible(hasLayers || canvasTool == CanvasTool.Crop || canvasTool == CanvasTool.Comment);
+            toolkitCanvas.SetCanvasVisible(hasLayers || canvasTool == CanvasTool.Crop || canvasTool == CanvasTool.Comment || IsVectorTool(canvasTool));
             DrawingLayerBehaviour drawing = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
             ApplyCanvasTextureFilter();
             RefreshCanvasQualityControl();
@@ -1760,6 +1775,14 @@ namespace DCFApixels.WhimTex
                 {
                     toolkitCanvasViewFooter.text = "Drag new shape • Shift equal proportions / 45° line • Ctrl no snapping • Esc cancel • T transform";
                 }
+                else if (canvasTool == CanvasTool.VectorPen)
+                    toolkitCanvasViewFooter.text = "Click corner • Drag tangent • Click first point to close • Enter open path • Esc cancel";
+                else if (canvasTool == CanvasTool.VectorSelect)
+                    toolkitCanvasViewFooter.text = "Click figure • Drag move • Corners resize • Circle rotate • Shift constrain • Delete figure";
+                else if (canvasTool == CanvasTool.VectorNodes)
+                    toolkitCanvasViewFooter.text = "Drag point / tangent • Shift select • Marquee points • Double-click edge insert • Alt-click delete • Esc cancel";
+                else if (canvasTool == CanvasTool.VectorBrush)
+                    toolkitCanvasViewFooter.text = "Drag mask • Release to vectorize • Last-stroke precision / expansion in Properties • Esc cancel";
                 else if (canvasTool == CanvasTool.Comment)
                 {
                     toolkitCanvasViewFooter.text = "Click to comment • Drag a pin to move it • Ctrl+Enter post • Esc cancel";
@@ -1864,6 +1887,7 @@ namespace DCFApixels.WhimTex
 
         private bool TryBeginCanvasStroke(Vector2 position, bool shift)
         {
+            using var profile = WhimTexProfiler.Measure("brush.begin", activeDocument, GetSelectedLayer());
             DrawingLayerBehaviour layer = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
             if (layer == null ||
                 !TryMapCanvasToLayerUv(position, toolkitCanvas.ImageRect, layer, out Vector2 startUv, allowOutside: true)) return false;
@@ -1949,6 +1973,7 @@ namespace DCFApixels.WhimTex
 
         private void PaintTowardsLayerPoint(Vector2 pointUv)
         {
+            using var profile = WhimTexProfiler.Measure("brush.input_batch", activeDocument, paintingLayer?.Owner);
             if (!paintingLayer.IsStrokePointInsideRepeatShape(pointUv, activeDocument.width, activeDocument.height))
             {
                 if (hasLastPaintingUv && paintingLayer.TryClipStrokeSegmentToRepeatShape(
@@ -2017,7 +2042,7 @@ namespace DCFApixels.WhimTex
             finally
             {
                 RenderTexture.active = previous;
-                if (sample != null) RenderTexture.ReleaseTemporary(sample);
+                if (sample != null) ProfiledRenderTexture.ReleaseTemporary(sample);
             }
         }
 
@@ -2170,6 +2195,7 @@ namespace DCFApixels.WhimTex
 
         private void OnToolkitKeyDown(KeyDownEvent evt)
         {
+            if (activeCommentChoice != null) { activeCommentChoice.HandleKey(evt); return; }
             if (keyboardTransform != null && evt.keyCode != nudgeKey) StopKeyboardNudge();
             if (evt.keyCode == KeyCode.LeftControl || evt.keyCode == KeyCode.RightControl)
             {
@@ -2200,6 +2226,7 @@ namespace DCFApixels.WhimTex
             if (HandlePreviousCanvasToolKey(evt)) return;
             if (HandleCanvasCommentKey(evt)) return;
             if (HandleCanvasCropKey(evt)) return;
+            if (vectorManipulator?.HandleKey(evt) == true) return;
 
             if (evt.keyCode == KeyCode.Escape && canvasGuideManipulator?.IsDragging == true)
             {

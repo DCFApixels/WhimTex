@@ -266,6 +266,24 @@ See the [shared SDF/Outline field contract](../AgentAPI.md#layer-settings) for m
 but use native behaviour fields here, not live patch wrappers.
 For document gradients use the schema's native `WhimTexGradient` model;
 the standalone clipboard format below is a separate value contract.
+Shape and Vector figures share `fillMode`: None, Solid, LinearGradient, RadialGradient,
+SquareGradient, DiamondGradient and CircularGradient. Use native `gradient`,
+`gradientStart`, `gradientEnd` and `gradientRepetitions` fields; Shape's `fill` boolean remains the overall
+gate. Anchors are normalized layer-local coordinates. Shape measures them in current
+canvas pixels before Transform; Vector uses `referenceSize`. Circular advances
+counterclockwise from the start-to-end ray, with a seam there. `gradientRepetitions`
+is a finite float of at least `0.0001`, default `1`, applied only to CircularGradient
+before palette wrapping; one period spans `360 / gradientRepetitions` degrees.
+Equal anchors give `t=0`. See the complete
+[figure-fill contract](../JSON_FORMAT.md#figure-fills). Independent stroke paint uses
+`strokeMode`, `strokeGradient`, `strokeGradientStart`, `strokeGradientEnd` and
+`strokeGradientRepetitions`, with the same modes and palette behavior. Defaults are
+Solid, a separate black-to-white Perceptual/Clamp palette, `[0,0]`, `[1,0]` and `1`.
+`stroke:false` or `strokeMode:"None"` disables painting while preserving settings.
+Anchors must be finite and repetitions finite and at least `0.0001` even while
+inactive; a gradient mode requires a non-null palette. Boolean Group stores these
+fields in `style` and uses its own `referenceSize`. Inactive fill and stroke
+settings survive every JSON write mode.
 For algorithm behavior see [Noise](../AgentAPI.md#noise-settings) and
 [Make Seamless](../AgentAPI.md#make-seamless-settings), but use document-schema field shapes,
 not the live API patch wrappers from those pages.

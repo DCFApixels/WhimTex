@@ -25,6 +25,7 @@ namespace DCFApixels.WhimTex
         public static PsdExportReport Export(WhimTexDocument document, string path, bool overwrite = false,
             Action<string, float> progress = null)
         {
+            using var profile = WhimTexProfiler.Measure("storage.export_psd", document);
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (string.IsNullOrWhiteSpace(path) || !string.Equals(Path.GetExtension(path), ".psd", StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("Choose a .psd destination.", nameof(path));
@@ -108,7 +109,7 @@ namespace DCFApixels.WhimTex
                 }
                 if (layer?.AsGroup() is Layer group)
                 {
-                    if (group.HasFx || !group.channelMapping.IsIdentity) continue;
+                    if (group.HasFx || !group.channelMapping.IsIdentity || group.Behaviour is BooleanGroupLayerBehaviour) continue;
                     Layer found = FindCompositeFallback(group.layers, out reason);
                     if (found != null) return found;
                 }
@@ -134,7 +135,7 @@ namespace DCFApixels.WhimTex
                 {
                     report.groupCount++;
                     records.Add(new PsdWriter.LayerRecord { name = "</Group>", id = LayerId(group, ids, ":end"), section = 3, visible = false });
-                    bool bakedChannelMapping = !missingBehaviour && (!group.channelMapping.IsIdentity || group.HasFx);
+                    bool bakedChannelMapping = !missingBehaviour && (!group.channelMapping.IsIdentity || group.HasFx || group.Behaviour is BooleanGroupLayerBehaviour);
                     if (bakedChannelMapping)
                         records.Add(new PsdWriter.LayerRecord { name = "</Group>", id = LayerId(group, ids, ":source-end"), section = 3, visible = false });
                     Collect(document, group.layers, records, report, visited, ids);
@@ -142,7 +143,7 @@ namespace DCFApixels.WhimTex
                     {
                         records.Add(new PsdWriter.LayerRecord { name = "Source Layers", id = LayerId(group, ids, ":sources"),
                             section = 1, visible = false, opacity = 255, blend = "norm", sectionBlend = "norm" });
-                        records.Add(new PsdWriter.LayerRecord { name = group.HasFx ? "FX Result" : "Mapping Result", id = LayerId(group, ids, ":channelMapping"),
+                        records.Add(new PsdWriter.LayerRecord { name = group.Behaviour is BooleanGroupLayerBehaviour ? "Boolean Result" : group.HasFx ? "FX Result" : "Mapping Result", id = LayerId(group, ids, ":channelMapping"),
                             visible = true, opacity = 255, blend = "norm",
                             openPixels = () => new Pixels(document.RenderPsdGroupContent(group), document.width, document.height) });
                         report.Note(group, "Group FX and Mapping are baked into a child layer. Original children are preserved in the hidden Source Layers folder.");
@@ -243,7 +244,7 @@ namespace DCFApixels.WhimTex
             if (Mathf.Abs(scale.x) < 0.00001f || Mathf.Abs(scale.y) < 0.00001f) return false;
             if (!linear && (width != height || scale.x <= 0 || !Mathf.Approximately(scale.x, scale.y))) return false;
             return layer.gradientType != GradientLayerBehaviour.GradientType.Circular ||
-                (Mathf.Approximately(layer.circularRepetitions, 1f) && layer.circularWrapMode == GradientLayerBehaviour.WrapMode.Repeat &&
+                (Mathf.Approximately(layer.circularStartAngle, 0f) && Mathf.Approximately(layer.circularRepetitions, 1f) && layer.circularWrapMode == GradientLayerBehaviour.WrapMode.Repeat &&
                  layer.Owner.CanvasTransform.tiling != TransformTilingMode.Source);
         }
 

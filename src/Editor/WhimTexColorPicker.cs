@@ -15,10 +15,11 @@ namespace DCFApixels.WhimTex
         private static WhimTexColorPicker current;
         internal object SourceContext;
         private Color original, color;
-        private bool hdr, initialHdr, alphaVisible, finished, edited, syncing;
+        private bool hdr, initialHdr, alphaVisible, finished, edited, syncing, mixedValue;
         private WhimTexColorRange range;
         private WhimTexDocument document;
         private Action<Color> changed;
+        private Action canceled;
         private Action<bool> modeChanged;
         private Func<bool> valid;
         private float hue, saturation, brightness, exposure;
@@ -80,6 +81,12 @@ namespace DCFApixels.WhimTex
             window.position = new Rect(200, 150, 260, 540);
             current = window; window.Decode(); window.ShowUtility();
             return window;
+        }
+
+        internal void SetMultiValueSource(bool mixed, Action restore)
+        {
+            mixedValue = mixed;
+            canceled = restore;
         }
 
         private void OnEnable() { Undo.undoRedoPerformed += RefreshHistory; AssemblyReloadEvents.beforeAssemblyReload += BeforeReload; }
@@ -266,7 +273,7 @@ namespace DCFApixels.WhimTex
         {
             if (!IsFinite(next) || finished || valid != null && !valid()) return;
             next = Limit(next, hdr, alphaVisible, original.a);
-            if (!color.Equals(next)) { color = next; edited = true; changed?.Invoke(color); }
+            if (mixedValue || !color.Equals(next)) { mixedValue = false; color = next; edited = true; changed?.Invoke(color); }
             if (decode) Decode(); Refresh();
         }
         private void Refresh()
@@ -356,7 +363,15 @@ namespace DCFApixels.WhimTex
             finished = true;
             if (valid != null && !valid()) return;
             if (accept) { if (document != null) document.RememberColor(color); }
-            else { modeChanged?.Invoke(initialHdr); if (edited) changed?.Invoke(original); }
+            else
+            {
+                modeChanged?.Invoke(initialHdr);
+                if (edited)
+                {
+                    if (canceled != null) canceled();
+                    else changed?.Invoke(original);
+                }
+            }
         }
 
         private sealed class ColorDrag : PointerManipulator

@@ -69,6 +69,7 @@ namespace DCFApixels.WhimTex
 
         private bool ApplyCanvasChange(int nextWidth, int nextHeight, ProjectiveMatrix canvasToNext, float nextPixelScale, bool preserveTextPixels)
         {
+            using var profile = WhimTexProfiler.Measure("edit.canvas_frame", this);
             ValidatePixelScale(nextPixelScale);
             float oldPixelScale = GetPixelScale();
             if (nextWidth < 1 || nextHeight < 1 || nextWidth > MaximumCanvasFrameDimension ||
@@ -89,6 +90,15 @@ namespace DCFApixels.WhimTex
             var candidates = new List<CanvasFrameLayer>();
             var visited = new HashSet<Layer>();
             CanvasCommentAnchor[] commentAnchors = PrepareCommentAnchors(canvasToNext);
+            var commentMasks = new List<(WhimTexCommentMask mask, ProjectiveMatrix placement)>();
+            if (comments != null) foreach (var comment in comments) foreach (var message in comment.messages)
+                if (message.attachments != null) foreach (var attachment in message.attachments)
+                    if (attachment.mask != null)
+                    {
+                        var placement = canvasToNext * attachment.mask.localToCanvas;
+                        WhimTexCommentMask.ValidatePlacement(placement);
+                        commentMasks.Add((attachment.mask, placement));
+                    }
 
             void Prepare(List<Layer> list, bool root, int depth, ProjectiveMatrix parent)
             {
@@ -157,6 +167,7 @@ namespace DCFApixels.WhimTex
             // Validate the entire hierarchy before changing any model data.
             Prepare(layers, true, 0, ProjectiveMatrix.Identity);
             foreach (CanvasCommentAnchor candidate in commentAnchors) candidate.comment.anchor = candidate.anchor;
+            foreach (var candidate in commentMasks) candidate.mask.localToCanvas = candidate.placement;
             foreach (CanvasFrameLayer candidate in candidates)
             {
                 candidate.layer.transform = candidate.transform;

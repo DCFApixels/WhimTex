@@ -85,11 +85,11 @@ namespace DCFApixels.WhimTex
                     {
                         var corrected = ScreenedSeamless.RenderConfigured(quilt, context.width, context.height,
                             quiltingPoissonEdges, Limit(quiltingCorrectionRadius,.005f,.25f,.05f));
-                        RenderTexture.ReleaseTemporary(quilt); quilt = corrected;
+                        ProfiledRenderTexture.ReleaseTemporary(quilt); quilt = corrected;
                     }
                     return Finish(quilt, context);
                 }
-                finally { RenderTexture.ReleaseTemporary(quilt); }
+                finally { ProfiledRenderTexture.ReleaseTemporary(quilt); }
             }
             if (EffectiveMode == SeamlessMode.OffsetBlend && (!offsetSeamCorrection || offsetPoissonEdges == PoissonEdges.None) && !leftEdge && !rightEdge && !bottomEdge && !topEdge)
                 return ApplyTransformAndFx(context.input, context);
@@ -100,7 +100,7 @@ namespace DCFApixels.WhimTex
                     offsetSeamCorrection, offsetAutoRadius ? 0 : Limit(offsetCorrectionRadius,.005f,.25f,.05f), offsetPoissonEdges,
                     Limit(offsetTransitionStart, -1, .95f, .325f));
                 try { return Finish(histogram, context); }
-                finally { RenderTexture.ReleaseTemporary(histogram); }
+                finally { ProfiledRenderTexture.ReleaseTemporary(histogram); }
             }
             if (EffectiveMode == SeamlessMode.ScreenedPoisson)
             {
@@ -108,7 +108,7 @@ namespace DCFApixels.WhimTex
                 var screened = ScreenedSeamless.RenderConfigured(context.input, context.width, context.height,
                     poissonEdges, Limit(screeningRadius, .005f, .25f, .05f));
                 try { return Finish(screened, context); }
-                finally { RenderTexture.ReleaseTemporary(screened); }
+                finally { ProfiledRenderTexture.ReleaseTemporary(screened); }
             }
             if (horizontal == HorizontalDirection.Off && vertical == VerticalDirection.Off && (!mirrorSeamCorrection || mirrorPoissonEdges == PoissonEdges.None))
                 return ApplyTransformAndFx(context.input, context);
@@ -134,7 +134,7 @@ namespace DCFApixels.WhimTex
                     material.SetFloat("_BlendWidth", Limit(blendWidth, .001f, .5f, .2f));
                     material.SetFloat("_TransitionStart", Limit(mirrorTransitionStart, -1, .95f, 0));
                     material.SetFloat("_Falloff", Limit(falloff, .25f, 4f, 1f));
-                    result = RenderTexture.GetTemporary(context.width, context.height, 0,
+                    result = ProfiledRenderTexture.GetTemporary(context.width, context.height, 0,
                         RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                     result.filterMode = FilterMode.Bilinear;
                     result.wrapMode = TextureWrapMode.Clamp;
@@ -144,7 +144,7 @@ namespace DCFApixels.WhimTex
                 {
                     var corrected = ScreenedSeamless.RenderConfigured(result,context.width,context.height,
                         mirrorPoissonEdges, EffectiveMirrorRadius);
-                    RenderTexture.ReleaseTemporary(result);
+                    ProfiledRenderTexture.ReleaseTemporary(result);
                     result = corrected;
                 }
                 return Finish(result, context);
@@ -153,7 +153,7 @@ namespace DCFApixels.WhimTex
             {
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
-                if (result != null) RenderTexture.ReleaseTemporary(result);
+                if (result != null) ProfiledRenderTexture.ReleaseTemporary(result);
             }
         }
 
@@ -165,7 +165,7 @@ namespace DCFApixels.WhimTex
             if (material == null) throw new InvalidOperationException("Make Seamless shader is unavailable.");
             var previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;
-            var masked = RenderTexture.GetTemporary(context.width, context.height, 0,
+            var masked = ProfiledRenderTexture.GetTemporary(context.width, context.height, 0,
                 RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             try
             {
@@ -181,7 +181,7 @@ namespace DCFApixels.WhimTex
             {
                 material.SetTexture("_Original", null);
                 RenderTexture.active = previous; GL.sRGBWrite = srgb;
-                RenderTexture.ReleaseTemporary(masked);
+                ProfiledRenderTexture.ReleaseTemporary(masked);
             }
         }
 

@@ -16,6 +16,7 @@ namespace DCFApixels.WhimTex
         private void RequestEffectRefinement()
         {
             if (!effectRefinementPending || EffectsAreInteractive) return;
+            ProfileCanvasRequest("quality.settled_refinement");
             effectRefinementPending = false;
             RequestCanvasRender(true);
         }

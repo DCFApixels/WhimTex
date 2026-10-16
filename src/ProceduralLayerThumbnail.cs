@@ -29,7 +29,7 @@ namespace DCFApixels.WhimTex
                     applyTransform: false, applyFx: false);
                 rendered = layer.Render(context);
                 if (rendered == null) return null;
-                reduced = RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                reduced = ProfiledRenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                 Graphics.Blit(rendered, reduced);
                 Texture2D next = WhimTexDocument.CopyToTexture2D(reduced);
                 Dispose();
@@ -41,8 +41,8 @@ namespace DCFApixels.WhimTex
             {
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
-                if (reduced != null) RenderTexture.ReleaseTemporary(reduced);
-                if (rendered != null) RenderTexture.ReleaseTemporary(rendered);
+                if (reduced != null) ProfiledRenderTexture.ReleaseTemporary(reduced);
+                if (rendered != null) ProfiledRenderTexture.ReleaseTemporary(rendered);
                 if (document != null) UnityEngine.Object.DestroyImmediate(document);
             }
         }

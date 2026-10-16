@@ -132,7 +132,7 @@ namespace DCFApixels.WhimTex
             {
                 RenderTexture.active = previous;
                 drawing.EndStroke();
-                if (sample != null) RenderTexture.ReleaseTemporary(sample);
+                if (sample != null) ProfiledRenderTexture.ReleaseTemporary(sample);
             }
         }
 
@@ -183,7 +183,7 @@ namespace DCFApixels.WhimTex
             var previous = RenderTexture.active;
             var wrapU = source.wrapModeU; var wrapV = source.wrapModeV; var wrapW = source.wrapModeW;
             var filter = source.filterMode;
-            var cropped = RenderTexture.GetTemporary(bounds.width, bounds.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+            var cropped = ProfiledRenderTexture.GetTemporary(bounds.width, bounds.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             Texture2D readback = null;
             try
             {
@@ -198,7 +198,7 @@ namespace DCFApixels.WhimTex
                 source.wrapModeU = wrapU; source.wrapModeV = wrapV; source.wrapModeW = wrapW; source.filterMode = filter;
                 RenderTexture.active = previous;
                 if (readback != null) Object.DestroyImmediate(readback);
-                RenderTexture.ReleaseTemporary(cropped);
+                ProfiledRenderTexture.ReleaseTemporary(cropped);
             }
         }
     }

@@ -57,7 +57,7 @@ namespace DCFApixels.WhimTex
 
         internal override RenderTexture Render(in LayerRenderContext context)
         {
-            RenderTexture source = RenderTexture.GetTemporary(
+            RenderTexture source = ProfiledRenderTexture.GetTemporary(
                 context.width,
                 context.height,
                 0,
@@ -100,7 +100,7 @@ namespace DCFApixels.WhimTex
             {
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
-                RenderTexture.ReleaseTemporary(source);
+                ProfiledRenderTexture.ReleaseTemporary(source);
             }
         }
 

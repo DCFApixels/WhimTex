@@ -29,13 +29,17 @@ namespace DCFApixels.WhimTex
         {
             JObject result = Success();
             result["operations"] = new JArray("add", "set", "transform", "target", "move", "stroke", "compact",
-                "fx", "delete", "duplicate", "merge", "convertToDrawing", "blurStroke", "smudgeStroke", "healStroke", "resize");
+                "fx", "delete", "duplicate", "merge", "convertToDrawing", "convertToVector", "blurStroke", "smudgeStroke", "healStroke", "resize", "comment", "commentCreate");
+            result["comments"] = "whimtex_comments: list/render/context discussions, export masks/overlays/compact layers with context, or query completed work receipts with op:work and workId, from assetPath/assistantSessionId/headlessSessionId. Threads include full revision and feedbackRevision (colors and intact agent replies excluded), anchors and messages with layer/asset attachments. Shared comment operations check expectedRevision or expectedFeedbackRevision, append reply/author/attachments and/or set status: InProgress, AwaitingReview or Resolved. Any transition is allowed; opening/reading/replying alone preserves status. Do not combine status with resolved. commentCreate takes anchorUv:[x,y] in 0..1 (bottom-left canvas), text, optional author (Assistant by default) and attachments; returns commentId/messageId. Live begin/lock accept frozen commentChecks and optional workId. Assistant Execute workId/requestId enables durable idempotent retries and links messages to work.";
+            result["commentMasks"] = "Attachments also support kind:mask, maskId/revision, source width/height, canvasBounds and localToCanvas (bottom-left UV). Read exact coverage PNGs with whimtex_comments op:mask and maskRef:{maskId,expectedRevision}. maskPath is full canvas; sourceMaskPath retains cropped original pixels. RGB bytes are linear coverage, alpha 255. Attach using {selection:true} in Assistant Execute, {maskRef:{maskId,expectedRevision}}, or {maskImagePath:absolutePng,channel:red|alpha,bounds:[x,y,w,h]} in shared comment/commentCreate. JSON live begin area:commentMask uses maskRef directly with strict/guide and padding; it leaves the working selection unchanged and rechecks mask revision before preview/complete/fork. Image completion required.";
+            result["commentQueries"] = "whimtex_comments list/render/context accepts filter:{status:Open|All|InProgress|AwaitingReview|Resolved,author:exactParticipantName,search:text,time:Created|Activity,fromUtc:ISO8601,toUtc:ISO8601}, sort:Number|Created|Activity|Author and descending:boolean. Time bounds require a timezone; lower inclusive, upper exclusive. Default order is Number ascending. Activity is latest message creation/edit. Returns totalCount/matchedCount; UI filters and clusters do not affect API results. Snapshots include createdUtc, lastActivityUtc, link and persistentLink. op:open accepts only apiVersion/op/link and navigates to the exact discussion. Asset GUID links survive project renames; unsaved session links expire with the window session. No OS protocol handler is registered.";
             result["resize"] = "Document operation: width/height (1..16384, at most 16,777,216 pixels), preserveLayout=true. Preserves normalized layer transforms, not pixel-valued effects or source raster dimensions. Result layerId/name are null.";
             result["fxOperations"] = new JArray("add", "replace", "set", "remove", "move", "copy", "apply", "applyAll");
             result["fxSeedRandomization"] = "FX add/replace/set/copy accepts randomizeSeeds:[uniformName]. Uses the first seed declaration's inclusive integer bounds. Validation does not randomize; execution changes saved values once with ordinary FX Undo/invalidation.";
             result["fxCatalog"] = "whimtex_fx_catalog: query installed presets; pass presetId for parameter details. Use returned id in FX add/replace.";
             result["assistantBatch"] = "whimtex_assistant_execute: sessionId + expectedRevision + operations, same operations as batch/headless; one Undo step, no save. Finish active jobs first.";
             result["renderProbe"] = "whimtex_render_probe: exactly one assetPath/assistantSessionId/headlessSessionId; stage composite/layer/beforeFx/afterFx; channel rgba/r/g/b/a.";
+            result["profiling"] = "whimtex_profile: apiVersion:1, action:start/stop/status/read/clear/export. Bounded main-thread wall-time capture independent of Unity Profiler. start: maxEvents 256..262144 (32768), durationSeconds 1..600 (120), optional documentId. stop/clear/export require captureId. read: offset/limit (max 2000), operationId/layerId/phase/documentId filters. export: new Temp/WhimTex/*.json. No document mutations, forced rendering or cache clearing. Captures do not survive script reload.";
             result["storageFormats"] = new JArray("tiff", "whimtex.document");
             result["documentJson"] = "whimtex_document_json: shared document/fragment schema; Full, FullOptimized (default), Compact. Drawing pixels require explicit omission permission. Assets resolve GUID/localId, then Path if GUID is missing.";
             result["backends"] = new JObject {
@@ -71,6 +75,11 @@ namespace DCFApixels.WhimTex
             result["fillPatternDefaults"] = FillPatternSnapshot(new FillPatternSettings());
             result["shapeDefaults"] = ShapeSnapshot(new ShapeLayerBehaviour());
             result["shapeKinds"] = new JArray(System.Enum.GetNames(typeof(ShapeLayerBehaviour.ShapeKind)));
+            result["vectorDefaults"] = WhimTexDocumentJson.VectorSnapshot(new VectorLayerBehaviour(), null);
+            result["vectorSettings"] = "settings.vector uses document VectorLayerBehaviour data fields. At most one figure per layer; compound contours remain one figure. Supplied top-level fields replace their values; arrays replace whole arrays. Original brushDraft.coverage is base64; frame maps the mask into local coordinates. convertToVector accepts a Shape layer and preserves its appearance and shell; unsupported appearance fails explicitly.";
+            result["booleanGroupDefaults"] = WhimTexDocumentJson.BooleanGroupSnapshot(new BooleanGroupLayerBehaviour(), null);
+            result["booleanOperations"] = new JArray(System.Enum.GetNames(typeof(VectorBooleanOperation)));
+            result["booleanGroupSettings"] = "type:booleanGroup uses settings.booleanGroup (style, referenceSize, edgeMode, appearance). Isolated only. Bottom enabled child is the base; higher children apply settings.booleanOperation in order. Combine keeps separate figures; appearance:Group shares styling, appearance:Layers retains child appearance. Boolean operations always use Group. Only closed Shape/Vector geometry and nested Boolean Groups are supported; open contours are rejected. Child FX, opacity and blend modes remain ignored.";
             result["textDefaults"] = TextSnapshot(new TextLayerBehaviour());
             result["systemFonts"] = new JArray(SystemFontCatalog.Names);
             result["textFontStyles"] = new JArray(System.Enum.GetNames(typeof(FontStyle)));
@@ -153,7 +162,10 @@ namespace DCFApixels.WhimTex
                 ["selectionModes"] = new JArray("strict", "guide"),
                 ["sessions"] = "whimtex_assistant_sessions / WhimTexApi.LiveSessions()",
                 ["execute"] = "whimtex_assistant_live / WhimTexApi.LiveFile(requestPath)",
-                ["operations"] = new JArray("inspect", "begin", "fork", "lock", "unlock", "status", "render", "preview", "complete", "fail", "cancel"),
+                ["operations"] = new JArray("inspect", "begin", "fork", "lock", "unlock", "status", "resume", "render", "preview", "complete", "fail", "cancel"),
+                ["applicationMask"] = "JSON begin: fromGuide:true or maskRef, optional expandPixels/featherPixels 0..512; guide and enforced application coverage are separate.",
+                ["review"] = "preview review:true returns before/after checkerboard, visual diff and a changed-area attachment.",
+                ["recovery"] = "Sessions list recoverableJobs after script reload. resume with jobId/current sessionId checks the frozen source; cancellation and closing never revive work.",
                 ["inlineShaderFX"] = true,
                 ["lock"] = "whimtex_assistant_lock / WhimTexApi.LiveLock(requestId, layerId, sessionId, expectedRevision)",
                 ["reference"] = "Documentation~/LiveAgentAPI.md" };
@@ -221,9 +233,10 @@ namespace DCFApixels.WhimTex
             return new JObject
             {
                 ["assetPath"] = path, ["guid"] = string.IsNullOrEmpty(path) ? "" : AssetDatabase.AssetPathToGUID(path),
+                ["profilerDocumentId"] = WhimTexProfiler.DocumentId(document),
                 ["revision"] = Revision(document), ["width"] = document.width, ["height"] = document.height,
                 ["dirty"] = EditorUtility.IsDirty(document) || document.documentBinding?.dirty == true, ["hasOutputTexture"] = document.OutputTexture != null,
-                ["layers"] = layers
+                ["layers"] = layers, ["comments"] = CommentSnapshots(document)
             };
 
             void Collect(List<Layer> source, string parent)
@@ -246,6 +259,7 @@ namespace DCFApixels.WhimTex
                     }
                     settings["opacity"] = layer.opacity;
                     settings["clippingMask"] = layer.clippingMask;
+                    settings["booleanOperation"] = layer.booleanOperation.ToString();
                     entry["clippingBaseId"] = document.GetClippingBase(layer)?.Id;
                     if (layer?.AsGroup() is Layer clippingGroup)
                         entry["isolatedByClipping"] = document.IsGroupIsolatedByClipping(clippingGroup);
@@ -257,7 +271,7 @@ namespace DCFApixels.WhimTex
                         LayerChannelMapping.Labels[(int)layer.channelMapping[3]]);
                     if (layer?.AsGroup() is Layer folder) settings["compositing"] = folder.compositing.ToString();
                     if (layer?.Behaviour is DrawingLayerBehaviour stored) entry["storageFormat"] = stored.StoredTexture != null ? stored.StoredTexture.format.ToString() : "Unallocated";
-                    if (!layer.IsGroup)
+                    if (!layer.IsGroup || layer.Behaviour is BooleanGroupLayerBehaviour)
                         settings["filter"] = layer.filterMode.ToString();
                     entry["transform"] = new JObject
                     {
@@ -340,6 +354,8 @@ namespace DCFApixels.WhimTex
                     if (layer?.Behaviour is MakeSeamlessLayerBehaviour seamless) settings["makeSeamless"] = MakeSeamlessSnapshot(seamless);
                     if (layer?.Behaviour is NoiseLayerBehaviour noise) settings["noise"] = NoiseSnapshot(noise);
                     if (layer?.Behaviour is ShapeLayerBehaviour shape) settings["shape"] = ShapeSnapshot(shape);
+                    if (layer?.Behaviour is VectorLayerBehaviour vector) settings["vector"] = WhimTexDocumentJson.VectorSnapshot(vector, document);
+                    if (layer?.Behaviour is BooleanGroupLayerBehaviour booleanGroup) settings["booleanGroup"] = WhimTexDocumentJson.BooleanGroupSnapshot(booleanGroup, document);
                     if (layer?.Behaviour is TextLayerBehaviour text)
                     {
                         settings["text"] = TextSnapshot(text);

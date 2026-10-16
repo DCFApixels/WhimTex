@@ -246,7 +246,7 @@ namespace DCFApixels.WhimTex
 
             var format = SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.ARGBHalf)
                 ? RenderTextureFormat.ARGBHalf : RenderTextureFormat.ARGBFloat;
-            var source = RenderTexture.GetTemporary(context.width, context.height, 0, format, RenderTextureReadWrite.Linear);
+            var source = ProfiledRenderTexture.GetTemporary(context.width, context.height, 0, format, RenderTextureReadWrite.Linear);
             source.filterMode = FilterMode.Bilinear;
             source.wrapMode = TextureWrapMode.Clamp;
             RenderTexture previous = RenderTexture.active;
@@ -262,7 +262,7 @@ namespace DCFApixels.WhimTex
             {
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
-                RenderTexture.ReleaseTemporary(source);
+                ProfiledRenderTexture.ReleaseTemporary(source);
             }
         }
     }

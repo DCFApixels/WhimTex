@@ -12,6 +12,7 @@ namespace DCFApixels.WhimTex
         /// <summary>Exports JSON without rebinding or marking the source document saved.</summary>
         public static WhimTexJsonWriteResult ExportJson(WhimTexDocument document, string path, WhimTexJsonWriteOptions options = null)
         {
+            using var profile = WhimTexProfiler.Measure("storage.export_json", document);
             if (!WhimTexDocumentJson.IsJsonPath(path)) throw new WhimTexDocumentException("Expected a .json destination.");
             path = WhimTexDocumentService.NormalizeDestination(path);
             using var lease = WhimTexDocumentService.BeginWrite(document, path);
@@ -24,6 +25,7 @@ namespace DCFApixels.WhimTex
 
         public static string SaveJson(WhimTexDocument document, string path, WhimTexJsonWriteOptions options = null, bool deferImport = false)
         {
+            using var profile = WhimTexProfiler.Measure("storage.save_json", document);
             if (document == null) throw new WhimTexDocumentException("There is no document to save.");
             options ??= new WhimTexJsonWriteOptions { Mode = document.JsonWriteMode };
             if (!WhimTexDocumentJson.IsJsonPath(path)) throw new WhimTexDocumentException("Expected a .json destination.");
@@ -53,6 +55,7 @@ namespace DCFApixels.WhimTex
 
         private static WhimTexJsonWriteResult WriteJsonFile(WhimTexDocument document, string path, WhimTexJsonWriteOptions options)
         {
+            using var profile = WhimTexProfiler.Measure("storage.write_json", document);
             if (document == null || AssetDatabase.Contains(document))
                 throw new WhimTexDocumentException("Editable documents must be in-memory models, not Unity assets.");
             var result = WhimTexDocumentJson.Write(document, options);
@@ -65,6 +68,7 @@ namespace DCFApixels.WhimTex
         private static bool TryLoadJson(string path, out WhimTexDocument document, out string error, bool prepareEffects,
             out IReadOnlyList<string> warnings)
         {
+            using var profile = WhimTexProfiler.Measure("storage.load_json");
             document = null;
             error = null;
             warnings = Array.Empty<string>();

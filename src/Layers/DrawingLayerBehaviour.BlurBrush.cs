@@ -38,7 +38,7 @@ namespace DCFApixels.WhimTex
             RenderTexture mask = null, source = null, scratch = null, blurred = null, output = null;
             try
             {
-                mask = RenderTexture.GetTemporary(outputWidth, outputHeight, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                mask = ProfiledRenderTexture.GetTemporary(outputWidth, outputHeight, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                 mask.filterMode = FilterMode.Bilinear;
                 mask.wrapMode = TextureWrapMode.Clamp;
                 Clear(mask);
@@ -46,10 +46,10 @@ namespace DCFApixels.WhimTex
                     false, outputWidth, outputHeight, patternCenter, tiled, Owner.PixelCanvasTransform,
                     false, false, null, null, false, false, false);
 
-                source = RenderTexture.GetTemporary(surface.descriptor);
+                source = ProfiledRenderTexture.GetTemporary(surface.descriptor);
                 Graphics.Blit(sample != null ? sample : surface, source);
-                scratch = RenderTexture.GetTemporary(surface.descriptor);
-                blurred = RenderTexture.GetTemporary(surface.descriptor);
+                scratch = ProfiledRenderTexture.GetTemporary(surface.descriptor);
+                blurred = ProfiledRenderTexture.GetTemporary(surface.descriptor);
                 Material blur = WhimTexMaterials.GaussianBlur;
                 blur.SetInt("_Edges", tiled ? 2 : 1);
                 blur.SetFloat("_Strength", 1f);
@@ -66,7 +66,7 @@ namespace DCFApixels.WhimTex
                 Graphics.Blit(source, scratch, blur, 2);
                 blur.SetVector("_Direction", new Vector4(0f, 1f / outputHeight, 0f, 0f));
                 Graphics.Blit(scratch, blurred, blur, 2);
-                output = RenderTexture.GetTemporary(surface.descriptor);
+                output = ProfiledRenderTexture.GetTemporary(surface.descriptor);
                 Material composite = WhimTexMaterials.BlurBrush;
                 composite.SetTexture("_BlurTex", blurred);
                 composite.SetTexture("_MaskTex", mask);
@@ -79,11 +79,11 @@ namespace DCFApixels.WhimTex
             }
             finally
             {
-                if (output != null) RenderTexture.ReleaseTemporary(output);
-                if (blurred != null) RenderTexture.ReleaseTemporary(blurred);
-                if (scratch != null) RenderTexture.ReleaseTemporary(scratch);
-                if (source != null) RenderTexture.ReleaseTemporary(source);
-                if (mask != null) RenderTexture.ReleaseTemporary(mask);
+                if (output != null) ProfiledRenderTexture.ReleaseTemporary(output);
+                if (blurred != null) ProfiledRenderTexture.ReleaseTemporary(blurred);
+                if (scratch != null) ProfiledRenderTexture.ReleaseTemporary(scratch);
+                if (source != null) ProfiledRenderTexture.ReleaseTemporary(source);
+                if (mask != null) ProfiledRenderTexture.ReleaseTemporary(mask);
             }
         }
 
@@ -91,7 +91,7 @@ namespace DCFApixels.WhimTex
         {
             RenderTexture surface = EnsurePaintSurface(width, height);
             if (surface == null) return null;
-            RenderTexture snapshot = RenderTexture.GetTemporary(surface.descriptor);
+            RenderTexture snapshot = ProfiledRenderTexture.GetTemporary(surface.descriptor);
             snapshot.filterMode = FilterMode.Bilinear;
             snapshot.wrapMode = TextureWrapMode.Clamp;
             Graphics.Blit(surface, snapshot);

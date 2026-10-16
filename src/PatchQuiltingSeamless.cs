@@ -194,15 +194,15 @@ namespace DCFApixels.WhimTex
                 if (vertical) Replace(true, horizontal);
                 var straight = Temporary(width, height);
                 try { Graphics.Blit(result, straight, material, 2); }
-                catch { RenderTexture.ReleaseTemporary(straight); throw; }
-                RenderTexture.ReleaseTemporary(result); result = null;
+                catch { ProfiledRenderTexture.ReleaseTemporary(straight); throw; }
+                ProfiledRenderTexture.ReleaseTemporary(result); result = null;
                 return straight;
 
                 void Replace(bool transpose, bool closed)
                 {
                     var next = Stitch(result, width, height, transpose, closed, band, feather,
                         quality, seed, independent, channels, material, contrast, alongSearch);
-                    RenderTexture.ReleaseTemporary(result); result = next;
+                    ProfiledRenderTexture.ReleaseTemporary(result); result = next;
                 }
             }
             finally
@@ -210,7 +210,7 @@ namespace DCFApixels.WhimTex
                 material.SetTexture("_Paths", null);
                 material.SetTexture("_Tables", null);material.SetTexture("_Gaussian", null);material.SetFloat("_Contrast",0);
                 material.SetVector("_AlongShift",Vector4.zero);
-                if (result != null) RenderTexture.ReleaseTemporary(result);
+                if (result != null) ProfiledRenderTexture.ReleaseTemporary(result);
                 RenderTexture.active = previous; GL.sRGBWrite = srgb;
             }
         }
@@ -330,9 +330,9 @@ namespace DCFApixels.WhimTex
                 {
                     material.SetTexture("_Paths", null);
                     material.SetTexture("_Tables", null);material.SetTexture("_Gaussian", null);material.SetFloat("_Contrast",0);
-                    RenderTexture.ReleaseTemporary(analysis);
-                    if(gaussian!=null)RenderTexture.ReleaseTemporary(gaussian);
-                    if (output != null) RenderTexture.ReleaseTemporary(output);
+                    ProfiledRenderTexture.ReleaseTemporary(analysis);
+                    if(gaussian!=null)ProfiledRenderTexture.ReleaseTemporary(gaussian);
+                    if (output != null) ProfiledRenderTexture.ReleaseTemporary(output);
                     if (reusable) ReturnWorkspace(workspace); else workspace.Dispose();
                 }
             }
@@ -512,7 +512,7 @@ namespace DCFApixels.WhimTex
 
         private static RenderTexture Temporary(int width, int height)
         {
-            var rt=RenderTexture.GetTemporary(width,height,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear);
+            var rt=ProfiledRenderTexture.GetTemporary(width,height,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear);
             rt.filterMode=FilterMode.Bilinear; rt.wrapMode=TextureWrapMode.Clamp; return rt;
         }
     }

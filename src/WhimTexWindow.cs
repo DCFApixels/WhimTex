@@ -189,6 +189,7 @@ namespace DCFApixels.WhimTex
 
         private void OnEnable()
         {
+            WhimTexUserSettings.EnsureCommentAuthorName();
             RestoreSourceImage();
             RefreshDocumentTitle(true);
             canvasExposure = 0f;
@@ -216,6 +217,7 @@ namespace DCFApixels.WhimTex
             else
                 activeDocument.NormalizeModel();
             WhimTexDocumentService.Attach(this, activeDocument);
+            SyncCommentAuthorColors();
             UpdateUnsavedChangesState();
             RequestCanvasRender(true);
 
@@ -225,6 +227,7 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            vectorManipulator?.Cancel();
             commentManipulator?.Cancel();
             CloseCanvasCommentEditor();
             lassoPicker?.Cancel();
@@ -241,7 +244,7 @@ namespace DCFApixels.WhimTex
             StopKeyboardNudge();
             CancelImageUrlPaste();
             uvMap = null; uvCachedMesh = null; uvCachedDocument = null;
-            WhimTexApi.CloseLiveSession(agentSessionId);
+            WhimTexApi.CloseLiveSession(agentSessionId, activeDocument);
             ReleaseBrushStrokePreview();
             EditorApplication.delayCall -= RestoreBrushTipAfterReload;
             EditorApplication.projectChanged -= RestoreBrushTipAfterReload;
@@ -280,6 +283,8 @@ namespace DCFApixels.WhimTex
 
         private void OnCanvasViewAppearanceChanged()
         {
+            SyncCommentAuthorColors();
+            RefreshCanvasComments();
             toolkitCanvas?.RefreshBackdropVisibility();
             toolkitHeaderBindings.Refresh();
             canvasGuideOverlay?.MarkDirtyRepaint();
@@ -338,6 +343,8 @@ namespace DCFApixels.WhimTex
 
         private void OnLostFocus()
         {
+            activeCommentChoice?.Close();
+            vectorManipulator?.Cancel();
             commentManipulator?.Cancel();
             cropPicker?.Cancel(); shapePicker?.Cancel(); marqueePicker?.Cancel(); lassoPicker?.Cancel();
             cropManipulator?.CancelGesture();
@@ -429,6 +436,9 @@ namespace DCFApixels.WhimTex
 
         private void Update()
         {
+            // Utility-window focus changes can precede the native OnLostFocus message.
+            if (vectorManipulator?.IsDragging == true && EditorWindow.focusedWindow != this)
+                vectorManipulator.Cancel();
             UpdateHealing();
             if (ReconcileCanvasToolContext()) toolkitRefreshRequested = true;
             if (canvasTool == CanvasTool.Crop) RefreshCanvasCropSnapTargets();
@@ -509,7 +519,7 @@ namespace DCFApixels.WhimTex
                 return false;
             }
 
-            if (layer?.AsGroup() is Layer group && ContainsLayerContainer(group, destinationContainer))
+            if (!activeDocument.CanInsertInto(layer, destinationContainer) || layer?.AsGroup() is Layer group && ContainsLayerContainer(group, destinationContainer))
                 return false;
 
             normalizedDestinationIndex = Mathf.Clamp(destinationIndex, 0, destinationContainer.Count);
@@ -589,6 +599,7 @@ namespace DCFApixels.WhimTex
         {
             if (layer == null || activeDocument == null || WhimTexApi.IsLayerContentLocked(activeDocument, layer))
                 return;
+            using var profile = WhimTexProfiler.Measure("brush.clear", activeDocument, layer.Owner);
             if (lineAnchorLayer == layer)
                 lineAnchorLayer = null;
             Undo.RecordObject(activeDocument, "Clear Drawing Layer");
@@ -601,6 +612,7 @@ namespace DCFApixels.WhimTex
 
         private void RefreshCanvasDuringPainting()
         {
+            ProfileCanvasRequest("brush.live");
             double now = EditorApplication.timeSinceStartup;
             double requestedAt = Math.Max(now, nextPaintingCanvasAt);
             if (!canvasRequested || requestedAt < canvasAt)
@@ -614,7 +626,7 @@ namespace DCFApixels.WhimTex
             CancelHealing();
             if (blurSampleTexture != null)
             {
-                RenderTexture.ReleaseTemporary(blurSampleTexture);
+                ProfiledRenderTexture.ReleaseTemporary(blurSampleTexture);
                 blurSampleTexture = null;
             }
             int capturedPointer = paintingPointerId;
@@ -635,6 +647,7 @@ namespace DCFApixels.WhimTex
             if (finishedLayer == null)
                 return;
 
+            using var profile = WhimTexProfiler.Measure("brush.commit", activeDocument, finishedLayer.Owner);
             bool pixelsChanged = canvasTool != CanvasTool.SmudgeBrush || finishedLayer.SmudgeStrokeChanged;
             finishedLayer.EndStroke();
             if (!ReferenceEquals(finishedLayer.Owner.Behaviour, finishedLayer) || activeDocument == null ||
@@ -748,11 +761,16 @@ namespace DCFApixels.WhimTex
 
         private void AddLayer(List<Layer> container, int insertionIndex, Layer layer, string namePrefix = null)
         {
+            if (!activeDocument.CanInsertInto(layer, container))
+            { ShowNotification(new GUIContent("Boolean Group accepts closed Shape, Vector or Boolean Group geometry.")); return; }
             ExecuteModelChange("Add Sprite Layer", () =>
             {
                 layer.layerName = activeDocument.AllocateLayerName(layer, namePrefix);
                 if (layer?.Behaviour is DrawingLayerBehaviour drawing)
                     drawing.InitializeCanvas(activeDocument.width, activeDocument.height);
+                if (layer?.Behaviour is VectorLayerBehaviour vector && vector.shapes.Count == 0)
+                    vector.referenceSize = new Vector2(activeDocument.width, activeDocument.height);
+                if (layer?.Behaviour is BooleanGroupLayerBehaviour boolean) boolean.referenceSize = new Vector2(activeDocument.width, activeDocument.height);
                 insertionIndex = Mathf.Clamp(insertionIndex, 0, container.Count);
                 container.Insert(insertionIndex, layer);
                 activeDocument.NormalizeModel();
@@ -788,6 +806,8 @@ namespace DCFApixels.WhimTex
             while (index < container.Count && container[index] != selected[0] &&
                 !(container[index]?.AsGroup() is Layer parentGroup && ContainerContainsLayer(parentGroup.layers, selected[0])))
                 index++;
+            if (activeDocument.TryFindParentGroup(container, out var booleanParent, out _, out _) && booleanParent.Behaviour is BooleanGroupLayerBehaviour)
+            { ShowNotification(new GUIContent("Use Boolean Group to nest geometry inside a Boolean Group.")); return; }
             ExecuteContextChange("Group Sprite Layers", () =>
             {
                 Layer group = new GroupLayerBehaviour { layerName = activeDocument.AllocateGroupName() };
@@ -831,6 +851,11 @@ namespace DCFApixels.WhimTex
                 menu.AddDisabledItem(new GUIContent("Move Out Of Group"));
 
             menu.AddItem(new GUIContent("Group Selected"), false, () => GroupLayers(roots));
+            foreach (VectorBooleanOperation operation in Enum.GetValues(typeof(VectorBooleanOperation)))
+            {
+                var choice = operation;
+                menu.AddItem(new GUIContent("Boolean Group/" + choice), false, () => GroupBooleanLayers(roots, choice));
+            }
             if (roots.Exists(WhimTexApi.ContainsReservation))
             {
                 menu.AddSeparator(string.Empty);
@@ -877,6 +902,8 @@ namespace DCFApixels.WhimTex
                 () => ConvertLayersToDrawing(roots, false));
             menu.AddItem(new GUIContent("Convert to Drawing/Apply Transform"), false,
                 () => ConvertLayersToDrawing(roots, true));
+            if (targets.Count == 1 && targets[0].Behaviour is ShapeLayerBehaviour)
+                menu.AddItem(new GUIContent("Convert to Vector"), false, () => ConvertShapeToVector(targets[0]));
             menu.AddSeparator(string.Empty);
             menu.AddItem(new GUIContent("Duplicate"), false, () => DuplicateLayers(roots));
             menu.AddItem(new GUIContent("Copy as JSON"), false, () =>
@@ -932,6 +959,8 @@ namespace DCFApixels.WhimTex
             FinishPaintingStroke();
             if (activeDocument == null || layers.Count == 0)
                 return;
+            if (layers.Exists(activeDocument.IsBooleanOperand))
+            { ShowNotification(new GUIContent("Move operands out of the Boolean Group before converting them to Drawing.")); return; }
             if (layers.Exists(layer => layer?.IsGroup == true) && !groupConfirmed && !EditorUtility.DisplayDialog(
                 "Convert Groups to Drawing",
                 GroupConversionWarning,
@@ -1038,6 +1067,13 @@ namespace DCFApixels.WhimTex
                 case ShapeLayerBehaviour shapeLayer:
                     ShapeLayerEditorWindow.Open(shapeLayer, activeDocument);
                     break;
+                case VectorLayerBehaviour:
+                case BooleanGroupLayerBehaviour:
+                    SelectOnlyLayer(layer.Id);
+                    layerPropertiesExpanded = true;
+                    ResetToolkitLayerInspector();
+                    RefreshToolkitLayerInspector(true);
+                    break;
                 case OutlineLayerBehaviour outlineLayer:
                     OutlineLayerEditorWindow.Open(outlineLayer, activeDocument);
                     break;
@@ -1083,6 +1119,7 @@ namespace DCFApixels.WhimTex
             if (activeDocument == null || action == null)
                 return;
 
+            using var profile = WhimTexProfiler.Measure("edit.model", activeDocument, detail: undoName);
             Undo.RecordObject(activeDocument, undoName);
             applyingToolkitChange = true;
             try
@@ -1099,6 +1136,7 @@ namespace DCFApixels.WhimTex
 
         private void CommitModelChange()
         {
+            using var profile = WhimTexProfiler.Measure("edit.commit", activeDocument);
             temporaryDocumentDirty = true;
             activeDocument.NormalizeModel();
             activeDocument.MarkChanged();
@@ -1107,6 +1145,7 @@ namespace DCFApixels.WhimTex
 
         private void RequestCanvasRender(bool immediate = false)
         {
+            ProfileCanvasRequest("canvas.request");
             immediate |= GetSelectedLayer()?.Behaviour is NoiseLayerBehaviour;
             double requestedAt = EditorApplication.timeSinceStartup + (immediate ? 0d : CanvasDelay);
             if (!canvasRequested || requestedAt < canvasAt)
@@ -1116,13 +1155,42 @@ namespace DCFApixels.WhimTex
 
         private void OnLayerPreviewRequested(WhimTexDocument document)
         {
-            if (document == activeDocument) RequestCanvasRender(true);
+            if (document == activeDocument) { ProfileCanvasRequest("layer.preview"); RequestCanvasRender(true); }
+        }
+
+        private string profilerRequestCapture, profilerRequestDocument;
+        private readonly Dictionary<string, int> profilerRenderRequests = new Dictionary<string, int>();
+
+        private void ProfileCanvasRequest(string reason)
+        {
+            if (!WhimTexProfiler.Recording) { profilerRenderRequests.Clear(); return; }
+            string capture = WhimTexProfiler.Current.id, document = WhimTexProfiler.DocumentId(activeDocument);
+            if (capture != profilerRequestCapture || document != profilerRequestDocument)
+            {
+                profilerRenderRequests.Clear();
+                profilerRequestCapture = capture; profilerRequestDocument = document;
+            }
+            if (profilerRenderRequests.Count >= 31 && !profilerRenderRequests.ContainsKey(reason)) reason = "other";
+            profilerRenderRequests.TryGetValue(reason, out int count);
+            profilerRenderRequests[reason] = count + 1;
+        }
+
+        private void PublishCanvasReasons()
+        {
+            if (WhimTexProfiler.Recording && profilerRequestCapture == WhimTexProfiler.Current.id &&
+                profilerRequestDocument == WhimTexProfiler.DocumentId(activeDocument))
+                foreach (var request in profilerRenderRequests)
+                    WhimTexProfiler.Reason("render.trigger", request.Key, activeDocument, count: request.Value);
+            profilerRenderRequests.Clear();
         }
 
         private void UpdateCanvasRender()
         {
+            using var profile = WhimTexProfiler.Measure("ui.canvas_update", activeDocument);
+            PublishCanvasReasons();
             if (outputDependencyDirty)
             {
+                WhimTexProfiler.Reason("cache.invalidate", "document.output_dependency", activeDocument);
                 outputDependencyDirty = false;
                 ReleaseEffectCache();
             }
@@ -1181,7 +1249,7 @@ namespace DCFApixels.WhimTex
                 ReleaseChannelCanvas();
             if (canvasTexture == null)
                 return;
-            RenderTexture.ReleaseTemporary(canvasTexture);
+            ProfiledRenderTexture.ReleaseTemporary(canvasTexture);
             canvasTexture = null;
         }
 
@@ -1217,7 +1285,7 @@ namespace DCFApixels.WhimTex
             lineAnchorLayer = null;
             WhimTexDocument previous = activeDocument;
             previous?.ReleaseLayerThumbnails();
-            if (agentSessionDocument != next) WhimTexApi.CloseLiveSession(agentSessionId);
+            if (agentSessionDocument != next) WhimTexApi.CloseLiveSession(agentSessionId, activeDocument);
             StopLiveOutput();
             ReleaseEffectCache();
             ResetAreaSelection();
@@ -1232,6 +1300,7 @@ namespace DCFApixels.WhimTex
             SelectOnlyLayer(null);
             temporaryDocumentDirty = false;
             groupExpansion?.Clear();
+            SyncCommentAuthorColors();
             RequestCanvasRender(true);
             RefreshToolkitInterface();
 
@@ -1305,6 +1374,9 @@ namespace DCFApixels.WhimTex
         {
             if (changedDocument != activeDocument)
                 return;
+            using var profile = WhimTexProfiler.Measure("ui.document_changed", activeDocument);
+            ProfileCanvasRequest(contentChanged ? "document.changed" : "document.resources_changed");
+            if (contentChanged) SyncCommentAuthorColors();
             RefreshTextEditing();
             commentManipulator?.Cancel();
             RefreshCanvasComments();
@@ -1325,7 +1397,11 @@ namespace DCFApixels.WhimTex
             }
 
             temporaryDocumentDirty |= contentChanged;
-            if (!contentChanged) ReleaseEffectCache();
+            if (!contentChanged)
+            {
+                WhimTexProfiler.Reason("cache.invalidate", "document.resources_changed", activeDocument);
+                ReleaseEffectCache();
+            }
             effectInteractiveUntil = EditorApplication.timeSinceStartup + .2d;
             UpdateUnsavedChangesState();
             RequestCanvasRender();
@@ -1338,6 +1414,12 @@ namespace DCFApixels.WhimTex
 
         private void OnUndoRedo()
         {
+            vectorManipulator?.Cancel();
+            // Native Undo may reuse the behaviour while replacing its nested figures/draft.
+            if (GetSelectedLayer()?.Behaviour is VectorLayerBehaviour) ResetToolkitLayerInspector();
+            using var profile = WhimTexProfiler.Measure("undo.window_refresh", activeDocument);
+            ProfileCanvasRequest("undo.redo");
+            WhimTexProfiler.Reason("cache.invalidate", "undo.redo", activeDocument);
             commentManipulator?.Cancel();
             cropManipulator?.Reset();
             DisposeCanvasCropSnapTargets();

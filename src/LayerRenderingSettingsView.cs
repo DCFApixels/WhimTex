@@ -56,16 +56,18 @@ namespace DCFApixels.WhimTex
         internal static DropdownField GroupBlend(Layer group, Action<BlendMode, bool> change,
             WhimTexUI.ValueBindings bindings)
         {
-            var choices = new List<string> { "Pass Through" };
+            bool boolean = group.Behaviour is BooleanGroupLayerBehaviour;
+            var choices = new List<string>();
+            if (!boolean) choices.Add("Pass Through");
             foreach (BlendMode mode in Enum.GetValues(typeof(BlendMode))) choices.Add(BlendModeMenu.Label(mode));
             var field = new DropdownField(choices, 0);
             BlendModeMenu.Attach(field);
-            bindings.Track(field, () => group.compositing == GroupCompositing.PassThrough
-                ? choices[0] : choices[(int)group.blendMode + 1]);
+            bindings.Track(field, () => !boolean && group.compositing == GroupCompositing.PassThrough
+                ? choices[0] : choices[(int)group.blendMode + (boolean ? 0 : 1)]);
             field.RegisterValueChangedCallback(evt =>
             {
                 int index = choices.IndexOf(evt.newValue);
-                if (index >= 0) change(index == 0 ? group.blendMode : (BlendMode)(index - 1), index == 0);
+                if (index >= 0) change(!boolean && index == 0 ? group.blendMode : (BlendMode)(index - (boolean ? 0 : 1)), !boolean && index == 0);
             });
             return field;
         }

@@ -56,6 +56,7 @@ namespace DCFApixels.WhimTex
         /// <summary>Saves the document and returns the TIFF path; HDR never changes its extension.</summary>
         public static string Save(WhimTexDocument document, string path, bool deferImport = false, bool allowDataLoss = false)
         {
+            using var profile = WhimTexProfiler.Measure("storage.save", document);
             if (WhimTexDocumentJson.IsJsonPath(path)) return SaveJson(document, path,
                 new WhimTexJsonWriteOptions { Mode = document == null ? WhimTexJsonWriteMode.FullOptimized : document.JsonWriteMode,
                     AllowDataLoss = allowDataLoss }, deferImport: deferImport);
@@ -80,10 +81,13 @@ namespace DCFApixels.WhimTex
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             long modelMs = 0, carrierMs = 0, writeMs = 0, importMs = 0;
             using var container = new WhimTexDocumentContainer();
-            container.Set(WhimTexDocumentContainer.DocumentBlock,
-                WhimTexDocumentSerializer.Serialize(document, container), System.IO.Compression.CompressionLevel.Optimal);
-            WhimTexDocumentOperation.Report("Compressing and verifying Drawing blocks", .2f);
-            container.PrepareStoredBlocks();
+            using (WhimTexProfiler.Measure("storage.serialize", document))
+            {
+                container.Set(WhimTexDocumentContainer.DocumentBlock,
+                    WhimTexDocumentSerializer.Serialize(document, container), System.IO.Compression.CompressionLevel.Optimal);
+                WhimTexDocumentOperation.Report("Compressing and verifying Drawing blocks", .2f);
+                container.PrepareStoredBlocks();
+            }
             modelMs = stopwatch.ElapsedMilliseconds;
             string signature = container.HasExternalInputs ? null : container.ContentSignature();
             var existingImporter = AssetImporter.GetAtPath(path) as TextureImporter;
@@ -94,6 +98,7 @@ namespace DCFApixels.WhimTex
                 snapshot.written == fileState.LastWriteTimeUtc && snapshot.length == fileState.Length &&
                 !ImportHasErrors(path) && AssetDatabase.LoadAssetAtPath<Texture2D>(path) != null)
             {
+                WhimTexProfiler.Reason("storage.save_skip", "unchanged_content_and_import", document);
                 BindImportedComposite(document, path);
                 WhimTexDocumentService.Bind(document, path);
                 if (allowDataLoss) document.documentLoadWarning = null;
@@ -121,6 +126,7 @@ namespace DCFApixels.WhimTex
                 AssetDatabase.DisallowAutoRefresh();
                 try
                 {
+                    using var writeProfile = WhimTexProfiler.Measure("storage.write", document);
                     wrote = WhimTexDocumentContainer.WriteStaged(path, stream =>
                     {
                         WhimTexTiffCarrier.WriteTo(stream, container, composite, document.outputSrgb, document.outputPrecision);
@@ -167,6 +173,8 @@ namespace DCFApixels.WhimTex
                 // because the asset has to exist before anything can point at it.
                 ImportAssetOptions options = ImportAssetOptions.ForceUpdate;
                 if (!deferImport || firstSave) options |= ImportAssetOptions.ForceSynchronousImport;
+                using var importProfile = WhimTexProfiler.Measure("storage.import", document,
+                    detail: deferImport && !firstSave ? "import request; completion may be deferred" : "synchronous import");
                 AssetDatabase.ImportAsset(path, options);
             }
             if (!deferImport || firstSave) ValidateImportedTexture(path);
@@ -278,6 +286,7 @@ namespace DCFApixels.WhimTex
         internal static bool TryLoad(string path, out WhimTexDocument document, out string error, bool prepareEffects,
             out IReadOnlyList<string> loadWarnings)
         {
+            using var profile = WhimTexProfiler.Measure("storage.load");
             loadWarnings = Array.Empty<string>();
             if (WhimTexDocumentJson.IsJsonPath(path)) return TryLoadJson(path, out document, out error, prepareEffects, out loadWarnings);
             document = null;
@@ -304,8 +313,10 @@ namespace DCFApixels.WhimTex
                     error = "The document has no model block.";
                     return false;
                 }
-                var read = WhimTexDocumentSerializer.Deserialize(model, container, typeof(WhimTexDocument),
-                    Path.GetFullPath(path), deferDrawingTextures: true);
+                WhimTexDocumentSerializer.ModelReadResult read;
+                using (WhimTexProfiler.Measure("storage.deserialize"))
+                    read = WhimTexDocumentSerializer.Deserialize(model, container, typeof(WhimTexDocument),
+                        Path.GetFullPath(path), deferDrawingTextures: true);
                 document = read.Model as WhimTexDocument;
                 if (document == null)
                 {

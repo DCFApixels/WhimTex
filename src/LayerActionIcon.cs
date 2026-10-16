@@ -7,7 +7,10 @@ namespace DCFApixels.WhimTex
     {
         internal enum Kind { Add, Group, Delete, Bug, Eye, EyeOff, Alpha, AddDrawing, Transform, Properties, Effects, Settings, Warning,
             CenterPivot, CenterOnCanvas, FlipHorizontal, FlipVertical, RotateLeft, RotateRight, OriginalAspect, OriginalSize, Reset,
-            TextAlignLeft, TextAlignCenter, TextAlignRight, TextJustify, TextAlignTop, TextAlignMiddle, TextAlignBottom }
+            TextAlignLeft, TextAlignCenter, TextAlignRight, TextJustify, TextAlignTop, TextAlignMiddle, TextAlignBottom,
+            StrokeJoinMiter, StrokeJoinRound, StrokeJoinBevel, StrokeCapButt, StrokeCapRound, StrokeCapSquare,
+            StrokeInside, StrokeCenter, StrokeOutside,
+            BooleanUnion, BooleanSubtract, BooleanIntersect, BooleanXor, BooleanCombine }
 
         private readonly Kind kind;
 
@@ -38,6 +41,28 @@ namespace DCFApixels.WhimTex
             painter.BeginPath();
             switch (kind)
             {
+                case Kind.BooleanUnion:
+                case Kind.BooleanCombine:
+                case Kind.BooleanSubtract:
+                case Kind.BooleanIntersect:
+                case Kind.BooleanXor:
+                    DrawBoolean(painter);
+                    return;
+                case Kind.StrokeInside:
+                case Kind.StrokeCenter:
+                case Kind.StrokeOutside:
+                    DrawStrokePosition(painter);
+                    return;
+                case Kind.StrokeJoinMiter:
+                case Kind.StrokeJoinRound:
+                case Kind.StrokeJoinBevel:
+                    DrawStrokeJoin(painter);
+                    return;
+                case Kind.StrokeCapButt:
+                case Kind.StrokeCapRound:
+                case Kind.StrokeCapSquare:
+                    DrawStrokeCap(painter);
+                    return;
                 case Kind.TextAlignLeft:
                 case Kind.TextAlignCenter:
                 case Kind.TextAlignRight:
@@ -172,6 +197,112 @@ namespace DCFApixels.WhimTex
                     break;
             }
             painter.Stroke();
+        }
+
+        private void DrawBoolean(Painter2D painter)
+        {
+            Color ink = resolvedStyle.color;
+            painter.lineWidth = 1f;
+            painter.lineJoin = LineJoin.Miter;
+            painter.fillColor = ink;
+            void Rectangle(float x0, float y0, float x1, float y1)
+            {
+                painter.MoveTo(new Vector2(x0, y0)); painter.LineTo(new Vector2(x1, y0));
+                painter.LineTo(new Vector2(x1, y1)); painter.LineTo(new Vector2(x0, y1)); painter.ClosePath();
+            }
+            painter.BeginPath();
+            if (kind == Kind.BooleanCombine)
+            {
+                painter.fillColor = new Color(1f, 1f, 1f, ink.a);
+                Rectangle(1, 1, 10, 10); painter.Fill();
+                painter.strokeColor = new Color(.12f, .12f, .12f, ink.a);
+                painter.lineWidth = 2f;
+                painter.BeginPath(); Rectangle(6, 6, 15, 15); painter.Stroke(); painter.Fill();
+                return;
+            }
+            if (kind == Kind.BooleanIntersect) Rectangle(6, 6, 10, 10);
+            else if (kind == Kind.BooleanUnion)
+            {
+                Rectangle(1, 1, 10, 10); Rectangle(6, 6, 15, 15);
+            }
+            else
+            {
+                painter.MoveTo(new Vector2(1, 1)); painter.LineTo(new Vector2(10, 1));
+                painter.LineTo(new Vector2(10, 6)); painter.LineTo(new Vector2(6, 6));
+                painter.LineTo(new Vector2(6, 10)); painter.LineTo(new Vector2(1, 10)); painter.ClosePath();
+                if (kind == Kind.BooleanXor)
+                {
+                    painter.MoveTo(new Vector2(10, 6)); painter.LineTo(new Vector2(15, 6));
+                    painter.LineTo(new Vector2(15, 15)); painter.LineTo(new Vector2(6, 15));
+                    painter.LineTo(new Vector2(6, 10)); painter.LineTo(new Vector2(10, 10)); painter.ClosePath();
+                }
+            }
+            painter.Fill();
+            painter.strokeColor = new Color(ink.r, ink.g, ink.b, ink.a * .45f);
+            painter.BeginPath(); Rectangle(1.5f, 1.5f, 9.5f, 9.5f); Rectangle(6.5f, 6.5f, 14.5f, 14.5f);
+            painter.Stroke();
+        }
+
+        private void DrawStrokePosition(Painter2D painter)
+        {
+            void Corner(float offset)
+            {
+                painter.BeginPath();
+                painter.MoveTo(new Vector2(offset, 16)); painter.LineTo(new Vector2(offset, offset)); painter.LineTo(new Vector2(16, offset));
+            }
+            Color color = resolvedStyle.color;
+            painter.fillColor = new Color(color.r, color.g, color.b, color.a * .2f);
+            Corner(6); painter.LineTo(new Vector2(16, 16)); painter.ClosePath(); painter.Fill();
+            float offset = kind == Kind.StrokeInside ? 8 : kind == Kind.StrokeOutside ? 4 : 6;
+            painter.lineWidth = 4; painter.lineJoin = LineJoin.Miter; painter.lineCap = LineCap.Butt;
+            Corner(offset); painter.Stroke();
+            painter.strokeColor = StrokeAnchorColor(); painter.lineWidth = 1;
+            Corner(6); painter.Stroke();
+            DrawStrokeAnchor(painter, 6, 6);
+        }
+
+        private void DrawStrokeJoin(Painter2D painter)
+        {
+            painter.lineWidth = 8; painter.lineCap = LineCap.Butt;
+            painter.lineJoin = kind == Kind.StrokeJoinMiter ? LineJoin.Miter :
+                kind == Kind.StrokeJoinRound ? LineJoin.Round : LineJoin.Bevel;
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(6, 16)); painter.LineTo(new Vector2(6, 6)); painter.LineTo(new Vector2(16, 6));
+            painter.Stroke();
+            painter.strokeColor = StrokeAnchorColor(); painter.lineWidth = 1.5f; painter.lineJoin = LineJoin.Miter;
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(6, 16)); painter.LineTo(new Vector2(6, 6)); painter.LineTo(new Vector2(16, 6));
+            painter.Stroke();
+            DrawStrokeAnchor(painter, 6, 6);
+        }
+
+        private void DrawStrokeCap(Painter2D painter)
+        {
+            painter.fillColor = painter.strokeColor;
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(4, 16)); painter.LineTo(new Vector2(4, 6));
+            if (kind == Kind.StrokeCapRound)
+                painter.Arc(new Vector2(8, 6), 4, 180, 360);
+            else
+            {
+                float top = kind == Kind.StrokeCapSquare ? 2 : 6;
+                painter.LineTo(new Vector2(4, top)); painter.LineTo(new Vector2(12, top));
+            }
+            painter.LineTo(new Vector2(12, 16)); painter.ClosePath(); painter.Fill();
+            painter.strokeColor = StrokeAnchorColor(); painter.lineWidth = 1.5f; painter.lineCap = LineCap.Butt;
+            painter.BeginPath(); painter.MoveTo(new Vector2(8, 6)); painter.LineTo(new Vector2(8, 16)); painter.Stroke();
+            DrawStrokeAnchor(painter, 8, 6);
+        }
+
+        private Color StrokeAnchorColor() => resolvedStyle.color.grayscale > .5f ? new Color(.12f, .12f, .12f) : new Color(.92f, .92f, .92f);
+
+        private static void DrawStrokeAnchor(Painter2D painter, float x, float y)
+        {
+            painter.fillColor = painter.strokeColor;
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(x - 1.5f, y - 1.5f)); painter.LineTo(new Vector2(x + 1.5f, y - 1.5f));
+            painter.LineTo(new Vector2(x + 1.5f, y + 1.5f)); painter.LineTo(new Vector2(x - 1.5f, y + 1.5f));
+            painter.ClosePath(); painter.Fill();
         }
 
         private static void DrawTextAlignment(Painter2D painter, int alignment, bool vertical)

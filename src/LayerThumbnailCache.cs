@@ -83,7 +83,7 @@ namespace DCFApixels.WhimTex
                 if (rendered != null)
                 {
                     float scale = (float)size / Mathf.Max(rendered.width, rendered.height);
-                    reduced = RenderTexture.GetTemporary(Mathf.Max(1, Mathf.RoundToInt(rendered.width * scale)),
+                    reduced = ProfiledRenderTexture.GetTemporary(Mathf.Max(1, Mathf.RoundToInt(rendered.width * scale)),
                         Mathf.Max(1, Mathf.RoundToInt(rendered.height * scale)), 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                     Graphics.Blit(rendered, reduced);
                     next = WhimTexDocument.CopyToTexture2D(reduced);
@@ -100,8 +100,8 @@ namespace DCFApixels.WhimTex
             {
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
-                if (reduced != null) RenderTexture.ReleaseTemporary(reduced);
-                if (rendered != null) RenderTexture.ReleaseTemporary(rendered);
+                if (reduced != null) ProfiledRenderTexture.ReleaseTemporary(reduced);
+                if (rendered != null) ProfiledRenderTexture.ReleaseTemporary(rendered);
             }
             return entry.texture;
         }

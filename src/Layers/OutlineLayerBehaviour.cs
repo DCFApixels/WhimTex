@@ -27,6 +27,7 @@ namespace DCFApixels.WhimTex
         internal override RenderTexture Render(in LayerRenderContext context)
         {
             using var timing = DistanceFieldTiming.Measure("render.outline");
+            if (WhimTexProfiler.Recording) WhimTexProfiler.Event("sdf.algorithm", "counter", metric.ToString(), (int)metric);
             if (context.input == null)
             {
                 ReleaseDistancePreparation();
@@ -59,38 +60,41 @@ namespace DCFApixels.WhimTex
                     (int)sourceChannel,
                     metric, Vector2.zero, SDFLayerBehaviour.SourceEdges.Transparent, miterLimit, default, 0, reconstructedCache, sharpMode);
 
-                long stage = DistanceFieldTiming.Start();
-                resultTexture = new Texture2D(context.width, context.height, TextureFormat.RGBAFloat, false, true)
+                NativeArray<Color> outputPixels;
+                OutlineJob job;
+                using (DistanceFieldTiming.Measure("output.setup"))
                 {
-                    hideFlags = HideFlags.HideAndDontSave,
-                    filterMode = FilterMode.Bilinear,
-                    wrapMode = TextureWrapMode.Clamp
-                };
-                NativeArray<Color> outputPixels = resultTexture.GetRawTextureData<Color>();
-                OutlineJob job = new OutlineJob
-                {
-                    signedDistances = signedDistances,
-                    output = outputPixels,
-                    outlineWidth = Mathf.Max(0f, outlineWidth * context.pixelScale / context.scaleMultiplier),
-                    outlineSoftness = Mathf.Max(0f, outlineSoftness * context.pixelScale / context.scaleMultiplier),
-                    outlineOffset = outlineOffset * context.pixelScale / context.scaleMultiplier,
-                    fillCenter = fillCenter,
-                    fillColor = HdrUtility.Decode(fillColor),
-                    outlineColor = HdrUtility.Decode(outlineColor),
-                    antialiasedDistance = true,
-                    width = context.width,
-                    height = context.height,
-                    outlinePosition = (int)outlinePosition
-                };
-                DistanceFieldTiming.Report("output.setup", ref stage);
+                    resultTexture = new Texture2D(context.width, context.height, TextureFormat.RGBAFloat, false, true)
+                    {
+                        hideFlags = HideFlags.HideAndDontSave,
+                        filterMode = FilterMode.Bilinear,
+                        wrapMode = TextureWrapMode.Clamp
+                    };
+                    outputPixels = resultTexture.GetRawTextureData<Color>();
+                    job = new OutlineJob
+                    {
+                        signedDistances = signedDistances,
+                        output = outputPixels,
+                        outlineWidth = Mathf.Max(0f, outlineWidth * context.pixelScale / context.scaleMultiplier),
+                        outlineSoftness = Mathf.Max(0f, outlineSoftness * context.pixelScale / context.scaleMultiplier),
+                        outlineOffset = outlineOffset * context.pixelScale / context.scaleMultiplier,
+                        fillCenter = fillCenter,
+                        fillColor = HdrUtility.Decode(fillColor),
+                        outlineColor = HdrUtility.Decode(outlineColor),
+                        antialiasedDistance = true,
+                        width = context.width,
+                        height = context.height,
+                        outlinePosition = (int)outlinePosition
+                    };
+                }
                 using (DistanceFieldTiming.Measure("outline.shade"))
                     job.Schedule(outputPixels.Length, 128).Complete();
 
-                stage = DistanceFieldTiming.Start();
-                resultTexture.Apply(false, false);
-                DistanceFieldTiming.Report("output.upload", ref stage);
+                using (DistanceFieldTiming.Measure("output.upload"))
+                    resultTexture.Apply(false, false);
+                    WhimTexProfiler.TrackTexture(resultTexture, "outline upload");
+                using var submitTiming = DistanceFieldTiming.Measure("output.submit");
                 var result = ApplyTransformAndFx(resultTexture, context);
-                DistanceFieldTiming.Report("output.submit", ref stage);
                 return result;
             }
             finally
@@ -99,6 +103,10 @@ namespace DCFApixels.WhimTex
                 GL.sRGBWrite = srgb;
                 if (signedDistances.IsCreated)
                     signedDistances.Dispose();
+                if (inputTexture != null)
+                    WhimTexProfiler.ReleaseTexture(inputTexture);
+                if (resultTexture != null)
+                    WhimTexProfiler.ReleaseTexture(resultTexture);
                 if (inputTexture != null)
                     UnityEngine.Object.DestroyImmediate(inputTexture);
                 if (resultTexture != null)

@@ -219,7 +219,7 @@ export function removeOwnedSource(file, directory, canonicalDirectory, fileSyste
 export function createReloadContext(type, project) {
     const context = new TestContext(type + ': real domain reload and original independent assertions');
     context.case('Begin -> one deferred native Trigger -> owned ReloadPoll + idle Editor -> Verify -> Cleanup', async () => {
-        context.assert.ok(['DocumentReloadTests', 'GuideReloadTests'].includes(type), 'Only the two owned reload fixtures are supported');
+        context.assert.ok(['DocumentReloadTests', 'GuideReloadTests', 'ProfilerReloadTests', 'AgentReloadTests'].includes(type), 'Only registered owned reload fixtures are supported');
         context.assert.equal(project, path.resolve(root, '../..'), 'Explicit project must be this package\'s exact Test6.6 project');
         const directory = path.join(project, 'Temp/WhimTex/test-runs');
         const lock = JSON.parse(fs.readFileSync(path.join(directory, 'runner.lock'), 'utf8'));
@@ -227,8 +227,10 @@ export function createReloadContext(type, project) {
         const canonicalDirectory = fs.realpathSync(directory);
         context.assert.ok(canonicalDirectory.startsWith(fs.realpathSync(project) + path.sep), 'Runner temporary directory must resolve inside the project');
         const runId = randomUUID().replaceAll('-', ''); // N format shared by all fresh Pipeline assemblies.
-        const caseFolder = type === 'DocumentReloadTests' ? 'Documents' : 'Canvas';
-        const sources = ['Tests~/Framework/TestApi.cs', 'Tests~/Framework/Unity/UnityBSupport.cs',
+        const caseFolder = ['ProfilerReloadTests', 'AgentReloadTests'].includes(type) ? 'Automation' : type === 'DocumentReloadTests' ? 'Documents' : 'Canvas';
+        const sources = ['Tests~/Framework/TestApi.cs', ...(type === 'ProfilerReloadTests'
+            ? ['Tests~/Cases/Automation/ProfilerTests.cs'] : type === 'AgentReloadTests'
+            ? ['Tests~/Framework/Unity/ApiJson.cs'] : ['Tests~/Framework/Unity/UnityBSupport.cs']),
             'Tests~/Framework/Workflows/ReloadSupport.cs', 'Tests~/Cases/' + caseFolder + '/' + type + '.cs'];
         const source = bundleSources(sources);
         const file = path.join(directory, 'unity-b-reload-' + runId + '.cs');

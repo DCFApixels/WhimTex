@@ -229,6 +229,7 @@ namespace DCFApixels.WhimTex
 
         private void ApplyCanvasTransformAction(CanvasTransformAction action, string undoName)
         {
+            using var profile = WhimTexProfiler.Measure("edit.transform_action", activeDocument, GetSelectedLayer(), detail: undoName);
             if (canvasTool != CanvasTool.Transform || !IsCanvasTransformEnabled) return;
             FinishCanvasTransform();
             FinishPaintingStroke();
@@ -395,6 +396,7 @@ namespace DCFApixels.WhimTex
 
         private void RequestTransformCanvas()
         {
+            ProfileCanvasRequest("transform.live");
             double requestedAt = Math.Max(EditorApplication.timeSinceStartup, nextTransformCanvasAt);
             if (!canvasRequested || canvasAt > requestedAt)
                 canvasAt = requestedAt;
@@ -717,6 +719,7 @@ namespace DCFApixels.WhimTex
 
             private void UpdateTransform(Vector2 point, bool constrain, bool disableSnap)
             {
+                using var profile = WhimTexProfiler.Measure("edit.transform_update", owner.activeDocument, layer);
                 ValidateSelection();
                 if (!IsDragging)
                     return;
@@ -939,6 +942,8 @@ namespace DCFApixels.WhimTex
             {
                 if (!IsDragging)
                     return;
+                using var profile = WhimTexProfiler.Measure("edit.transform_commit", owner.activeDocument, layer,
+                    detail: cancel ? "cancel" : commit ? "commit" : "release");
                 int captured = pointerId;
                 pointerId = -1;
                 if (target.HasPointerCapture(captured))

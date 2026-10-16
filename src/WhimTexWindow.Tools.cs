@@ -10,7 +10,8 @@ namespace DCFApixels.WhimTex
         private enum CanvasTool
         {
             None, Brush, BlurBrush, Transform, Fill, Zoom, Pencil, RectangleSelect, PolygonSelect, Shape,
-            GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush, SmudgeBrush, Text, Gradient, Crop, Comment
+            GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush, SmudgeBrush, Text, Gradient, Crop, Comment,
+            VectorPen, VectorSelect, VectorNodes, VectorBrush
         }
 
         [NonSerialized] private CanvasTool canvasTool = CanvasTool.None;
@@ -222,6 +223,10 @@ namespace DCFApixels.WhimTex
                 case CanvasTool.Gradient:
                 case CanvasTool.Crop:
                 case CanvasTool.Comment:
+                case CanvasTool.VectorPen:
+                case CanvasTool.VectorSelect:
+                case CanvasTool.VectorNodes:
+                case CanvasTool.VectorBrush:
                 case CanvasTool.RectangleSelect:
                 case CanvasTool.PolygonSelect: return activeDocument != null;
                 default: return false;
@@ -293,6 +298,7 @@ namespace DCFApixels.WhimTex
             shapePicker = new ShapePickerManipulator(this);
             canvasShapeButton.AddManipulator(shapePicker);
             toolbar.Add(canvasShapeButton);
+            AddVectorToolButtons(toolbar);
             canvasTextButton = CreateCanvasToolButton("textTool", CanvasTool.Text,
                 "Text. Click for point text; drag for framed text. Click text to edit; drag the center to move its layout, or frame corners/sides to reflow. Shift constrains movement or corner proportions. Ctrl creates new text and disables guide snapping.");
             toolbar.Add(canvasTextButton);
@@ -389,6 +395,7 @@ namespace DCFApixels.WhimTex
         {
             RefreshPostFxPanel();
             RefreshContextToolButtons();
+            RefreshVectorTools();
             bool hasLayers = HasCanvasLayers;
             CanvasTool displayedTool = canvasTool;
             Layer selected = hasLayers ? GetSelectedLayer() : null;
@@ -458,6 +465,7 @@ namespace DCFApixels.WhimTex
             private bool ellipse;
             private bool freehand;
             private bool hasComments;
+            private bool hasReviewComments;
             private CanvasCropMode cropMode;
             private readonly Image healingVectorImage;
             private Vector2 healingVectorOffset;
@@ -535,10 +543,11 @@ namespace DCFApixels.WhimTex
                 MarkDirtyRepaint();
             }
 
-            internal void SetHasComments(bool value)
+            internal void SetCommentsState(bool value, bool review)
             {
-                if (hasComments == value) return;
+                if (hasComments == value && hasReviewComments == review) return;
                 hasComments = value;
+                hasReviewComments = review;
                 MarkDirtyRepaint();
             }
 
@@ -556,6 +565,8 @@ namespace DCFApixels.WhimTex
                 painter.lineJoin = LineJoin.Round;
                 if (tool == CanvasTool.None)
                     DrawPointer(painter);
+                else if (IsVectorTool(tool))
+                    DrawVectorToolIcon(painter, tool, P);
                 else if (tool == CanvasTool.Transform)
                     DrawHand(painter);
                 else if (tool == CanvasTool.Text)
@@ -601,14 +612,26 @@ namespace DCFApixels.WhimTex
 
             private void DrawCommentTool(Painter2D painter)
             {
+                float unit = Mathf.Min(contentRect.width, contentRect.height) / 24f;
                 painter.BeginPath();
-                painter.MoveTo(P(5, 5)); painter.LineTo(P(20, 5)); painter.LineTo(P(20, 16));
-                painter.LineTo(P(11, 16)); painter.LineTo(P(5, 21)); painter.ClosePath(); painter.Stroke();
+                painter.MoveTo(P(20, hasReviewComments ? 9.5f : 5)); painter.LineTo(P(20, 16));
+                painter.LineTo(P(11, 16)); painter.LineTo(P(5, 21)); painter.LineTo(P(5, 5));
+                painter.LineTo(P(hasReviewComments ? 15.5f : 20, 5));
+                if (!hasReviewComments) painter.ClosePath();
+                painter.Stroke();
+                if (hasReviewComments)
+                {
+                    // Leave a real transparent gap; do not paint a panel-colored ring over the icon.
+                    painter.Arc(P(20, 5), 4.5f * unit, 180, 90, ArcDirection.CounterClockwise);
+                    painter.ClosePath();
+                }
                 if (hasComments)
                 {
-                    TraceRectangle(painter, P(8, 8), P(17, 10));
+                    TraceRectangle(painter, P(8, 8), P(hasReviewComments ? 16 : 17, 10));
                     TraceRectangle(painter, P(8, 11), P(15, 13));
                     painter.Fill(FillRule.OddEven);
+                    if (hasReviewComments)
+                        DrawCommentReviewBadge(painter, P(20, 5), 3f * unit, false);
                     return;
                 }
                 painter.BeginPath(); painter.MoveTo(P(8, 9)); painter.LineTo(P(17, 9));

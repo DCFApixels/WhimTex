@@ -42,6 +42,11 @@ namespace DCFApixels.WhimTex
             root.Add(gradient);
 
             VisualElement circularSettings = new VisualElement();
+            FloatField startAngle = WhimTexUI.ConfigureField(new FloatField("Start Angle"));
+            bindings.Track(startAngle, () => layer.circularStartAngle);
+            startAngle.RegisterValueChangedCallback(evt => applyChange(
+                "Rotate Circular Gradient", () => layer.circularStartAngle = Mathf.Repeat(evt.newValue, 360f)));
+            circularSettings.Add(startAngle);
             FloatField repetitions = WhimTexUI.ConfigureField(new FloatField("Repetitions"));
             bindings.Track(repetitions, () => layer.circularRepetitions);
             repetitions.RegisterValueChangedCallback(evt => applyChange(

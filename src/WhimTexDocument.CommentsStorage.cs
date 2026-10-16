@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
 
         internal byte[] EncodeCommentsBlock(WhimTexDocumentContainer container)
         {
-            ValidateComments();
+            EnsureCommentNumbers();
             if (comments == null || comments.Count == 0) return null;
             if (container == null) throw CommentError("A document container is required to preserve comments.");
             byte[] bytes = WhimTexDocumentSerializer.Serialize(comments, container);
@@ -24,6 +24,7 @@ namespace DCFApixels.WhimTex
 
         internal void ReadCommentsBlock(WhimTexDocumentContainer container)
         {
+            ValidateAgentReceipts();
             if (container == null || !container.Contains(CommentsBlockName))
             {
                 comments = new List<WhimTexComment>();
@@ -41,6 +42,7 @@ namespace DCFApixels.WhimTex
                 throw CommentError("The comments block contains unsupported or incomplete data.");
             ValidateCommentList(loaded);
             comments = loaded;
+            EnsureCommentNumbers();
         }
     }
 }

@@ -26,6 +26,10 @@ namespace DCFApixels.WhimTex
         private ColorField healingStrokeColor;
         private TextField vsCodeExecutable;
         private CurveField tabletPressureCurve;
+        private TextField commentAuthorName;
+        private Label commentAuthorStatus;
+        private ColorField commentAuthorColor;
+        private Button resetCommentAuthorColor;
 
         internal static void Open()
         {
@@ -45,12 +49,51 @@ namespace DCFApixels.WhimTex
 
         public void CreateGUI()
         {
+            WhimTexUserSettings.EnsureCommentAuthorName();
             VisualElement root = rootVisualElement;
             root.Clear();
             WhimTexUI.ApplyWindowStyles(root);
             root.AddToClassList("whimtex-user-settings");
             var scroll = new ScrollView();
             root.Add(scroll);
+            AddHeading(scroll, "Comments");
+            var authorRow = new VisualElement();
+            authorRow.AddToClassList("whimtex-user-settings-folder-row");
+            commentAuthorName = new TextField("Nickname")
+            {
+                name = "commentAuthorName", isDelayed = true,
+                tooltip = "Nickname saved with new comments and replies. Automatic detection uses your personal Unity organization, then the part of your Unity email before @. Changing it does not rename existing messages."
+            };
+            commentAuthorName.AddToClassList("whimtex-user-settings-folder");
+            commentAuthorName.RegisterValueChangedCallback(evt =>
+            {
+                if (!WhimTexUserSettings.TrySetCommentAuthorName(evt.newValue, out string error))
+                    EditorUtility.DisplayDialog("Comment Author", error, "OK");
+                RefreshValues();
+            });
+            authorRow.Add(commentAuthorName);
+            var detectAuthor = new Button(WhimTexUserSettings.UseUnityCommentAuthorName)
+            {
+                name = "detectCommentAuthor", text = "↺",
+                tooltip = "Detect your nickname from your personal Unity organization, falling back to your email before @. Replaces the saved name."
+            };
+            detectAuthor.AddToClassList("whimtex-user-settings-folder-button");
+            authorRow.Add(detectAuthor);
+            scroll.Add(authorRow);
+            commentAuthorStatus = new Label { name = "commentAuthorStatus" };
+            commentAuthorStatus.AddToClassList("whimtex-user-settings-note");
+            scroll.Add(commentAuthorStatus);
+            var authorColorRow = new VisualElement();
+            authorColorRow.AddToClassList("whimtex-user-settings-folder-row");
+            commentAuthorColor = AddColor(authorColorRow, "Color", value => WhimTexUserSettings.CommentAuthorColor = value);
+            commentAuthorColor.name = "commentAuthorColor";
+            commentAuthorColor.tooltip = "Color for your automatic comments. Reset to choose a hue from your nickname.";
+            commentAuthorColor.AddToClassList("whimtex-user-settings-folder");
+            resetCommentAuthorColor = new Button(WhimTexUserSettings.ResetCommentAuthorColor)
+            { name = "resetCommentAuthorColor", text = "↺", tooltip = "Use a color calculated from your nickname." };
+            resetCommentAuthorColor.AddToClassList("whimtex-user-settings-folder-button");
+            authorColorRow.Add(resetCommentAuthorColor);
+            scroll.Add(authorColorRow);
             AddHeading(scroll, "Tablet Input");
             tabletPressureCurve = WhimTexUI.ConfigureField(new CurveField("Pressure Curve")
             { ranges = new Rect(0, 0, 1, 1), tooltip = "Global pressure response before brush curves. Mouse input is 1. This setting is not stored in brush presets." });
@@ -260,6 +303,17 @@ namespace DCFApixels.WhimTex
 
         private void RefreshValues()
         {
+            commentAuthorColor?.SetValueWithoutNotify(WhimTexUserSettings.CommentAuthorColor);
+            resetCommentAuthorColor?.SetEnabled(WhimTexUserSettings.HasCustomCommentAuthorColor);
+            commentAuthorName?.SetValueWithoutNotify(WhimTexUserSettings.AssignedCommentAuthorName);
+            if (commentAuthorStatus != null)
+                commentAuthorStatus.text = WhimTexUserSettings.CommentAuthorNameSource switch
+                {
+                    CommentAuthorSource.UnityPrimaryOrganization => "Automatic: personal Unity organization.",
+                    CommentAuthorSource.UnityEmail => "Automatic: name before @ in your Unity email.",
+                    CommentAuthorSource.Manual => "Custom name. Used for new messages in all projects.",
+                    _ => "Not assigned. Using User; detection will retry when WhimTex opens or you post."
+                };
             tabletPressureCurve?.SetValueWithoutNotify(WhimTexUserSettings.TabletPressureCurve);
             imageOpening?.SetValueWithoutNotify(WhimTexUserSettings.ImageOpening);
             imageLayer?.SetValueWithoutNotify(WhimTexUserSettings.ImageLayer);

@@ -395,7 +395,7 @@ namespace DCFApixels.WhimTex
                 {
                     RenderTexture.active = previous;
                     GL.sRGBWrite = previousSrgb;
-                    if (owned != null) RenderTexture.ReleaseTemporary(owned);
+                    if (owned != null) ProfiledRenderTexture.ReleaseTemporary(owned);
                 }
             }
 

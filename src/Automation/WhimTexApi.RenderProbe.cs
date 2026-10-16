@@ -77,7 +77,7 @@ namespace DCFApixels.WhimTex
                     if (Mathf.Max(image.width, image.height) > maxSize)
                     {
                         float scale = maxSize / (float)Mathf.Max(image.width, image.height);
-                        resized = RenderTexture.GetTemporary(Mathf.Max(1, Mathf.RoundToInt(image.width * scale)), Mathf.Max(1, Mathf.RoundToInt(image.height * scale)), 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+                        resized = ProfiledRenderTexture.GetTemporary(Mathf.Max(1, Mathf.RoundToInt(image.width * scale)), Mathf.Max(1, Mathf.RoundToInt(image.height * scale)), 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
                         Graphics.Blit(image, resized);
                         Object.DestroyImmediate(image); image = HdrUtility.ReadLinear(resized);
                     }
@@ -89,7 +89,7 @@ namespace DCFApixels.WhimTex
                 finally
                 {
                     RenderTexture.active = previous;
-                    if (resized != null) RenderTexture.ReleaseTemporary(resized);
+                    if (resized != null) ProfiledRenderTexture.ReleaseTemporary(resized);
                     if (image != null) Object.DestroyImmediate(image);
                 }
             }

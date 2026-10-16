@@ -94,12 +94,12 @@ namespace DCFApixels.WhimTex
                 {
                     RenderTexture input = RenderBackdropBefore(layer, new HashSet<Layer> { layer });
                     try { rendered = layer.Render(new LayerRenderContext(this, input, width, height, 1f, applyFx: false)); }
-                    finally { RenderTexture.ReleaseTemporary(input); }
+                    finally { ProfiledRenderTexture.ReleaseTemporary(input); }
                 }
                 else if (layer.IsGroup)
                 {
                     rendered = GetClearRenderTexture(width, height);
-                    CompositeLayers(layer.layers, ref rendered, width, height, 1f, new HashSet<Layer> { layer });
+                    RenderGroupGeometry(layer, ref rendered, width, height, 1f, new HashSet<Layer> { layer });
                 }
                 else
                     rendered = RenderStandaloneUncached(container, index, width, height, 1f, new HashSet<Layer>(),
@@ -111,7 +111,7 @@ namespace DCFApixels.WhimTex
             finally
             {
                 RenderTexture.active = previous;
-                if (rendered != null) RenderTexture.ReleaseTemporary(rendered);
+                if (rendered != null) ProfiledRenderTexture.ReleaseTemporary(rendered);
                 effectCache = oldCache;
                 interactiveEffects = oldQuality;
             }
@@ -131,7 +131,7 @@ namespace DCFApixels.WhimTex
                 CompositeLayers(container, ref input, width, height, 1f, stack, firstIndex: index + 1);
                 return input;
             }
-            catch { RenderTexture.ReleaseTemporary(input); throw; }
+            catch { ProfiledRenderTexture.ReleaseTemporary(input); throw; }
             finally { if (added) stack.Remove(parent); }
         }
     }

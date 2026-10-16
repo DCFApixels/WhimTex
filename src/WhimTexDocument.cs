@@ -47,10 +47,15 @@ namespace DCFApixels.WhimTex
                 {
                     if (contentChanged)
                     {
+                        WhimTexProfiler.Changed(document, "shader.content_changed");
                         if (document.documentBinding != null) document.documentBinding.dirty = true;
                         Changed?.Invoke(document);
                     }
-                    else RenderResourcesChanged?.Invoke(document);
+                    else
+                    {
+                        WhimTexProfiler.Changed(document, "shader.resources_changed");
+                        RenderResourcesChanged?.Invoke(document);
+                    }
                 }
         }
 
@@ -188,6 +193,7 @@ namespace DCFApixels.WhimTex
 
         internal RenderTexture RenderLayerAndBelow(Layer layer, int outputWidth, int outputHeight)
         {
+            using var profile = WhimTexProfiler.Measure("document.layer_and_below", this, layer);
             if (layer == null || !TryFindLayer(layer, out List<Layer> container, out int index))
                 return null;
             RefreshTransformHierarchy();
@@ -200,7 +206,7 @@ namespace DCFApixels.WhimTex
             }
             catch
             {
-                RenderTexture.ReleaseTemporary(result);
+                ProfiledRenderTexture.ReleaseTemporary(result);
                 throw;
             }
         }
@@ -215,6 +221,7 @@ namespace DCFApixels.WhimTex
 
         private RenderTexture RenderLayerPreviewCore(Layer layer, int maxSize, bool includeDisabled, bool preserveGroupColor)
         {
+            using var profile = WhimTexProfiler.Measure("document.layer_preview", this, layer);
             if (layer == null || !TryFindLayer(layer, out List<Layer> container, out int index))
                 return null;
 
@@ -288,7 +295,7 @@ namespace DCFApixels.WhimTex
                 // Unbind our output before returning it to Unity's temporary pool.
                 RenderTexture.active = previous;
                 if (rendered != null)
-                    RenderTexture.ReleaseTemporary(rendered);
+                    ProfiledRenderTexture.ReleaseTemporary(rendered);
             }
         }
 
@@ -558,6 +565,7 @@ namespace DCFApixels.WhimTex
             if (outputFilter != FilterMode.Point && outputFilter != FilterMode.Bilinear && outputFilter != FilterMode.Trilinear)
                 outputFilter = FilterMode.Bilinear;
             layers ??= new List<Layer>();
+            VectorLayerStructure.Normalize(layers, width, height);
             HashSet<string> usedIds = new HashSet<string>();
             NormalizeLayers(layers, usedIds);
             RefreshTransformHierarchy();
@@ -576,6 +584,7 @@ namespace DCFApixels.WhimTex
 
         internal void MarkChanged()
         {
+            if (WhimTexProfiler.Recording) WhimTexProfiler.Changed(this, Undo.GetCurrentGroupName());
             if (documentBinding != null) documentBinding.dirty = true;
             undoDeserialized = false;
             NormalizeModel();
@@ -609,7 +618,7 @@ namespace DCFApixels.WhimTex
             if (source == null)
                 return null;
 
-            RenderTexture encoded = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+            RenderTexture encoded = ProfiledRenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             RenderTexture previous = RenderTexture.active;
             Texture2D texture = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false)
             {
@@ -623,11 +632,17 @@ namespace DCFApixels.WhimTex
                 conversion.SetFloat("_Saturate", 1f);
                 conversion.SetFloat("_Encode", 1f);
                 conversion.SetFloat("_UseChannelMapping", 0f);
-                Graphics.Blit(source, encoded, conversion, 0);
+                using (var encode = WhimTexProfiler.Measure("transfer.encode"))
+                using (encode.Gpu())
+                    Graphics.Blit(source, encoded, conversion, 0);
                 RenderTexture.active = encoded;
-                texture.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0, false);
+                // Readback/upload include CPU work and synchronization; GPU timestamp intervals
+                // cannot isolate transfer-engine time, so retain wall timing for these calls.
+                using (WhimTexProfiler.Measure("transfer.texture_readback"))
+                    texture.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0, false);
                 if (uploadToGpu)
-                    texture.Apply(false, false);
+                    using (WhimTexProfiler.Measure("transfer.texture_upload"))
+                        texture.Apply(false, false);
                 return texture;
             }
             catch
@@ -638,27 +653,33 @@ namespace DCFApixels.WhimTex
             finally
             {
                 RenderTexture.active = previous;
-                RenderTexture.ReleaseTemporary(encoded);
+                ProfiledRenderTexture.ReleaseTemporary(encoded);
             }
         }
 
         private Texture2D ComposeCanvasAtSize(int outputWidth, int outputHeight, float scaleMultiplier)
         {
+            using var profile = WhimTexProfiler.Measure("document.compose_readback", this);
             RenderTexture composite = RenderCanvasCore(outputWidth, outputHeight, scaleMultiplier);
             try
             {
-                Texture2D result = HdrUtility.ReadLinear(composite);
+                Texture2D result;
+                using (WhimTexProfiler.Measure("transfer.canvas_readback", this))
+                    result = HdrUtility.ReadLinear(composite);
                 result.filterMode = outputFilter;
                 return result;
             }
             finally
             {
-                RenderTexture.ReleaseTemporary(composite);
+                ProfiledRenderTexture.ReleaseTemporary(composite);
             }
         }
 
         private RenderTexture RenderCanvasCore(int outputWidth, int outputHeight, float scaleMultiplier)
         {
+            using var profile = WhimTexProfiler.Measure("document.render", this);
+            WhimTexProfiler.Event("render.width", "counter", value: outputWidth);
+            WhimTexProfiler.Event("render.height", "counter", value: outputHeight);
             RefreshTransformHierarchy();
             EffectRenderCache localCache = null;
             if (effectCache == null)
@@ -686,7 +707,7 @@ namespace DCFApixels.WhimTex
             catch
             {
                 RenderTexture.active = previous;
-                if (accumulator != null) RenderTexture.ReleaseTemporary(accumulator);
+                if (accumulator != null) ProfiledRenderTexture.ReleaseTemporary(accumulator);
                 ReleaseDiagnostics();
                 throw;
             }
@@ -777,7 +798,7 @@ namespace DCFApixels.WhimTex
                 }
                 finally
                 {
-                    RenderTexture.ReleaseTemporary(rendered);
+                    ProfiledRenderTexture.ReleaseTemporary(rendered);
                 }
             }
         }
@@ -785,6 +806,7 @@ namespace DCFApixels.WhimTex
         private void CompositeGroup(Layer group, ref RenderTexture accumulator, int w, int h,
             float scale, HashSet<Layer> stack, HashSet<Layer> included = null)
         {
+            using var profile = WhimTexProfiler.Measure("layer.group", this, group, detail: group.layerName);
             if (group.opacity <= 0f) return;
             bool passThrough = group.IsPassThrough;
             if (passThrough && group.opacity >= 1f)
@@ -802,14 +824,14 @@ namespace DCFApixels.WhimTex
                         RenderTexture result = GetClearRenderTexture(w, h);
                         try
                         {
-                            CompositeLayers(group.layers, ref result, w, h, scale, stack, included);
+                            RenderGroupGeometry(group, ref result, w, h, scale, stack, included);
                             group.ApplyFx(ref result, new LayerRenderContext(this, null, w, h, scale, false, true));
                             result = FinishStage(result, group.colorRange == LayerColorRange.Standard, group.channelMapping);
                             return result;
                         }
                         catch
                         {
-                            if (result != null) RenderTexture.ReleaseTemporary(result);
+                            if (result != null) ProfiledRenderTexture.ReleaseTemporary(result);
                             throw;
                         }
                     });
@@ -817,8 +839,12 @@ namespace DCFApixels.WhimTex
                 else
                 {
                     content = GetClearRenderTexture(w, h);
-                    if (passThrough) Graphics.Blit(accumulator, content);
-                    CompositeLayers(group.layers, ref content, w, h, scale, stack, included, localAccumulator: !passThrough);
+                    if (passThrough)
+                    {
+                        using var copy = WhimTexProfiler.Measure("render.backdrop_copy", this, group);
+                        using (copy.Gpu()) Graphics.Blit(accumulator, content);
+                    }
+                    RenderGroupGeometry(group, ref content, w, h, scale, stack, included, localAccumulator: !passThrough);
                     if (!passThrough)
                     {
                         group.ApplyFx(ref content, new LayerRenderContext(this, null, w, h, scale, false, true));
@@ -829,7 +855,7 @@ namespace DCFApixels.WhimTex
                 BlendInto(ref accumulator, content, passThrough ? (BlendMode)101 : group.EffectiveBlendMode,
                     group.opacity, group.blendRange);
             }
-            finally { if (content != null) RenderTexture.ReleaseTemporary(content); }
+            finally { if (content != null) ProfiledRenderTexture.ReleaseTemporary(content); }
         }
 
         private RenderTexture RenderStandaloneUncached(
@@ -851,7 +877,7 @@ namespace DCFApixels.WhimTex
             Layer layer = container[index];
             if (layer == null || (!includeDisabled && !layer.enabled))
                 return null;
-            if (layer?.AsGroup() is Layer group)
+            if (layer?.AsGroup() is Layer group && layer.Behaviour is not BooleanGroupLayerBehaviour)
                 return RenderGroupEffectInput(group, outputWidth, outputHeight, scaleMultiplier, renderStack,
                     preserveColor: false, includeDisabled: includeDisabled);
 
@@ -905,12 +931,12 @@ namespace DCFApixels.WhimTex
                         ApplyClippingCoverage(ref raw, container, index, outputWidth, outputHeight, scaleMultiplier, renderStack);
                     return raw;
                 }
-                catch { if (raw != null) RenderTexture.ReleaseTemporary(raw); throw; }
+                catch { if (raw != null) ProfiledRenderTexture.ReleaseTemporary(raw); throw; }
             }
             finally
             {
                 if (input != null && input != accumulatedInput)
-                    RenderTexture.ReleaseTemporary(input);
+                    ProfiledRenderTexture.ReleaseTemporary(input);
                 renderStack.Remove(layer);
             }
         }
@@ -933,7 +959,7 @@ namespace DCFApixels.WhimTex
                     CompositeLayers(container, ref combined, outputWidth, outputHeight, scaleMultiplier, renderStack, firstIndex: index + 1);
                     return combined;
                 }
-                catch { RenderTexture.ReleaseTemporary(combined); throw; }
+                catch { ProfiledRenderTexture.ReleaseTemporary(combined); throw; }
             }
             if (effect.inputMode != EffectInputMode.Specific)
             {
@@ -1020,7 +1046,7 @@ namespace DCFApixels.WhimTex
             {
                 // Render only the group's own content against transparency, never its external backdrop.
                 // This also respects nested opacity and alpha-replacing blend modes.
-                CompositeLayers(group.layers, ref mask, outputWidth, outputHeight, scaleMultiplier, renderStack);
+                RenderGroupGeometry(group, ref mask, outputWidth, outputHeight, scaleMultiplier, renderStack);
                 group.ApplyFx(ref mask, new LayerRenderContext(this, null, outputWidth, outputHeight, scaleMultiplier, false, true));
                 if (preserveColor || !group.channelMapping.IsIdentity)
                     mask = FinishStage(mask, group.colorRange == LayerColorRange.Standard, group.channelMapping);
@@ -1038,18 +1064,19 @@ namespace DCFApixels.WhimTex
                 renderStack.Remove(group);
                 RenderTexture.active = previous;
                 if (mask != null)
-                    RenderTexture.ReleaseTemporary(mask);
+                    ProfiledRenderTexture.ReleaseTemporary(mask);
                 if (scaled != null)
-                    RenderTexture.ReleaseTemporary(scaled);
+                    ProfiledRenderTexture.ReleaseTemporary(scaled);
             }
         }
 
         private void BlendInto(ref RenderTexture accumulator, RenderTexture layer, BlendMode mode, float opacity,
             LayerBlendRange blendRange = LayerBlendRange.Standard, bool preserveAlpha = false)
         {
+            using var profile = WhimTexProfiler.Measure("render.blend", this);
             RenderTexture previous = RenderTexture.active;
             Material material = WhimTexMaterials.Blend;
-            RenderTexture result = RenderTexture.GetTemporary(
+            RenderTexture result = ProfiledRenderTexture.GetTemporary(
                 accumulator.width,
                 accumulator.height,
                 0,
@@ -1059,6 +1086,8 @@ namespace DCFApixels.WhimTex
             {
                 result.filterMode = FilterMode.Bilinear;
                 result.wrapMode = TextureWrapMode.Clamp;
+                // The submitted blend and its finishing passes, excluding layer generation.
+                using var gpu = profile.Gpu();
                 if (material == null)
                 {
                     Graphics.Blit(layer, result);
@@ -1077,17 +1106,17 @@ namespace DCFApixels.WhimTex
             catch
             {
                 RenderTexture.active = previous;
-                RenderTexture.ReleaseTemporary(result);
+                ProfiledRenderTexture.ReleaseTemporary(result);
                 throw;
             }
 
-            RenderTexture.ReleaseTemporary(accumulator);
+            ProfiledRenderTexture.ReleaseTemporary(accumulator);
             accumulator = result;
         }
 
         private static RenderTexture GetClearRenderTexture(int outputWidth, int outputHeight)
         {
-            RenderTexture result = RenderTexture.GetTemporary(
+            RenderTexture result = ProfiledRenderTexture.GetTemporary(
                 outputWidth,
                 outputHeight,
                 0,
@@ -1099,12 +1128,13 @@ namespace DCFApixels.WhimTex
                 result.filterMode = FilterMode.Bilinear;
                 result.wrapMode = TextureWrapMode.Clamp;
                 RenderTexture.active = result;
-                GL.Clear(true, true, Color.clear);
+                using var profile = WhimTexProfiler.Measure("render.clear");
+                using (profile.Gpu()) GL.Clear(true, true, Color.clear);
             }
             catch
             {
                 RenderTexture.active = previous;
-                RenderTexture.ReleaseTemporary(result);
+                ProfiledRenderTexture.ReleaseTemporary(result);
                 throw;
             }
             finally

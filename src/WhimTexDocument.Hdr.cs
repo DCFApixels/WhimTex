@@ -26,7 +26,7 @@ namespace DCFApixels.WhimTex
 
         private static RenderTexture ErrorTarget(int w, int h)
         {
-            var target = RenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+            var target = ProfiledRenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             target.filterMode = FilterMode.Point;
             target.wrapMode = TextureWrapMode.Clamp;
             return target;
@@ -46,8 +46,8 @@ namespace DCFApixels.WhimTex
                 {
                     var next = ErrorTarget(numericErrors.width, numericErrors.height);
                     try { material.SetTexture("_Errors", numericErrors); Graphics.Blit(raw, next, material, 1); }
-                    catch { RenderTexture.ReleaseTemporary(next); throw; }
-                    RenderTexture.ReleaseTemporary(numericErrors);
+                    catch { ProfiledRenderTexture.ReleaseTemporary(next); throw; }
+                    ProfiledRenderTexture.ReleaseTemporary(numericErrors);
                     numericErrors = next;
                 }
                 result = HdrUtility.Temporary(raw.width, raw.height);
@@ -55,10 +55,10 @@ namespace DCFApixels.WhimTex
                 material.SetFloat("_Saturate", saturate ? 1f : 0f);
                 material.SetFloat("_Encode", 0f);
                 Graphics.Blit(raw, result, material, 0);
-                RenderTexture.ReleaseTemporary(raw);
+                ProfiledRenderTexture.ReleaseTemporary(raw);
                 return result;
             }
-            catch { if (result != null) RenderTexture.ReleaseTemporary(result); throw; }
+            catch { if (result != null) ProfiledRenderTexture.ReleaseTemporary(result); throw; }
         }
 
         private void EndDiagnostics()
@@ -73,7 +73,7 @@ namespace DCFApixels.WhimTex
                 {
                     var next = ErrorTarget(Mathf.Max(1, (source.width + 1) / 2), Mathf.Max(1, (source.height + 1) / 2));
                     Graphics.Blit(source, next, WhimTexMaterials.Hdr, 2);
-                    if (reduced != null) RenderTexture.ReleaseTemporary(reduced);
+                    if (reduced != null) ProfiledRenderTexture.ReleaseTemporary(reduced);
                     source = reduced = next;
                 } while (reduced.width > 1 || reduced.height > 1);
                 int revision = diagnosticRevision;
@@ -85,11 +85,11 @@ namespace DCFApixels.WhimTex
                         if (this != null && revision == diagnosticRevision && !request.hasError)
                             hasNumericErrors = request.GetData<Color32>()[0].r != 0;
                     }
-                    finally { RenderTexture.ReleaseTemporary(pending); }
+                    finally { ProfiledRenderTexture.ReleaseTemporary(pending); }
                 });
                 reduced = null;
             }
-            finally { if (reduced != null) RenderTexture.ReleaseTemporary(reduced); }
+            finally { if (reduced != null) ProfiledRenderTexture.ReleaseTemporary(reduced); }
         }
 
         private void ReleaseDiagnostics()
@@ -97,7 +97,7 @@ namespace DCFApixels.WhimTex
             diagnosticRevision++;
             collectingErrors = false;
             hasNumericErrors = false;
-            if (numericErrors != null) RenderTexture.ReleaseTemporary(numericErrors);
+            if (numericErrors != null) ProfiledRenderTexture.ReleaseTemporary(numericErrors);
             numericErrors = null;
         }
     }

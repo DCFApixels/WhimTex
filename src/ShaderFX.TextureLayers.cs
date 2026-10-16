@@ -163,7 +163,7 @@ namespace DCFApixels.WhimTex
         {
             if (material != null)
                 foreach (var input in inputs) material.SetTexture(input.name, null);
-            foreach (var texture in sources.Values) RenderTexture.ReleaseTemporary(texture);
+            foreach (var texture in sources.Values) ProfiledRenderTexture.ReleaseTemporary(texture);
             sources.Clear(); inputs.Clear(); material = null;
         }
     }

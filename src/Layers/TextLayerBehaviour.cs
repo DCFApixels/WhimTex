@@ -250,7 +250,7 @@ namespace DCFApixels.WhimTex
             if (mask == null) return null;
             RenderTexture previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;
-            var source = RenderTexture.GetTemporary(mask.width, mask.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+            var source = ProfiledRenderTexture.GetTemporary(mask.width, mask.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             source.filterMode = edgeMode == TextEdgeMode.Pixel ? FilterMode.Point : FilterMode.Bilinear; source.wrapMode = TextureWrapMode.Clamp;
             try
             {
@@ -265,7 +265,7 @@ namespace DCFApixels.WhimTex
             }
             finally
             {
-                RenderTexture.active = previous; GL.sRGBWrite = srgb; RenderTexture.ReleaseTemporary(source);
+                RenderTexture.active = previous; GL.sRGBWrite = srgb; ProfiledRenderTexture.ReleaseTemporary(source);
             }
         }
 

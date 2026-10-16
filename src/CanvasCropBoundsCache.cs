@@ -174,7 +174,7 @@ namespace DCFApixels.WhimTex
                 if (pending == entry) pending = null;
                 detector?.Cancel(); entry.bounds = null; entry.ready = true;
             }
-            finally { if (rendered != null) RenderTexture.ReleaseTemporary(rendered); }
+            finally { if (rendered != null) ProfiledRenderTexture.ReleaseTemporary(rendered); }
         }
 
         private void Complete(Entry entry, ulong generation, RectInt? bounds)

@@ -13,16 +13,24 @@ TIFF — основной формат документа. Документы `.
 Это карта команд, а не отдельная версия протокола. Полный контракт и лимиты находятся в
 [AgentAPI](../Documentation~/AgentAPI.md) и [LiveAgentAPI](../Documentation~/LiveAgentAPI.md).
 
+`whimtex_comments` с `op:context` возвращает обсуждения, компактные слои, frozen checks,
+маски и их наложения, чистое и аннотированное изображение одним запросом. Live begin разделяет
+ориентир (`guide`) и область применения (`applicationMask`, с расширением/мягким краем).
+`preview` с `review:true` возвращает сравнение и маску видимых изменений для ответа.
+После reload Assistant перечисляет `recoverableJobs`; `resume` проверяет прежний источник и
+восстанавливает ту же операцию в текущей сессии. Отмена/удаление/закрытие не восстанавливаются.
+Данные восстановления живут в текущем процессе Editor, не в TIFF; Headless это не затрагивает.
+
 ## Три режима редактирования
 
 | Режим | Команды | Состояние и сохранение |
 | --- | --- | --- |
 | Batch | `whimtex_batch_execute` | Независимая временная модель из TIFF или JSON. После запроса уничтожается, даже с `save:false`. `save:true` сохраняет файл в его формате, но не изменения открытого окна. JSON не хранит пиксели Drawing. Пользовательского Undo файла нет. |
 | Headless Live | `whimtex_headless_live` | Модель между запросами без окна. `begin`, `list`, `status`, `preview`, `render`, `complete`, `cancel`. Сохраняет только `complete`; активная сессия теряется при domain reload. |
-| Assistant | `whimtex_assistant_sessions`, `whimtex_assistant_begin`, `whimtex_assistant_lock`, `whimtex_assistant_live`, `whimtex_assistant_execute` | Открытый документ, Undo, резервирование/блокировки для длительных задач или немедленный batch без pending jobs. Автосохранения нет; сохранение через окно. |
+| Assistant | `whimtex_assistant_sessions`, `whimtex_assistant_begin`, `whimtex_assistant_lock`, `whimtex_assistant_live`, `whimtex_assistant_execute` | Открытый документ, Undo, резервирование/блокировки для длительных задач или немедленный batch. При pending jobs допустимы только операции `comment`/`commentCreate`. Автосохранения нет; сохранение через окно. |
 
 Общие операции: `add`, `set`, `transform`, `target`, `move`, `resize`, `stroke`, `compact`, `fx`,
-`delete`, `duplicate`, `merge`, `convertToDrawing`, `blurStroke`, `smudgeStroke`, `healStroke`.
+`delete`, `duplicate`, `merge`, `convertToDrawing`, `blurStroke`, `smudgeStroke`, `healStroke`, `comment`, `commentCreate`.
 Они доступны в Batch, Headless `operations` и Assistant Execute. Формат `fx.edits`
 общего batch отличается от `changes.fx` оконной резервации; примеры нельзя смешивать.
 В резервации и lock-job новые FX принимают только `code` с `@param` и его defaults,
@@ -88,8 +96,10 @@ Assistant или восстановить потерянный кандидат 
 | `whimtex_document_inspect` | Дисковый документ: ID, настройки, FX, локальные трансформации слоёв и групп, ревизия. |
 | `whimtex_document_render` | PNG композиции в `Temp/WhimTex`; не сохранение документа. |
 | `whimtex_fx_catalog` | Пресеты из Assets, Packages и пользовательской библиотеки; `presetId` раскрывает параметры. |
+| `whimtex_profile` | Захват, чтение и экспорт данных профайлера; [контракт](../Documentation~/AgentAPI.md#profiler-captures). |
 | `whimtex_fx_compile` | Компиляция пресета или raw HLSL без правки документа, с предупреждениями и ошибками. |
 | `whimtex_render_probe` | Композит, слой, вход/выход FX и каналы для дискового, Assistant или Headless документа. |
+| `whimtex_comments` | Фильтрация и сортировка обсуждений из файла/Assistant/Headless, контекст с изображениями и масками, receipts по workId; `op:open` явно открывает ссылку на обсуждение в UI. |
 | `whimtex_storage_inspect` | Каталог TIFF-блоков без материализации Drawing. |
 | `whimtex_document_validate` | Проверка модели, ссылок, лимитов и Shader FX; опционально рендер. |
 | `whimtex_document_status` | Дисковая SHA-256 ревизия, импорт, открытый документ, блокировки и staged-файлы. Эта ревизия не заменяет `document.revision`. |

@@ -21,15 +21,22 @@ namespace DCFApixels.WhimTex
             internal WhimTexDocument document;
             internal int width, height;
             internal byte[] mask;
+            internal byte[] applicationMask;
+            internal JObject applicationMaskRef;
+            internal string recoveryRevision;
             internal RectInt region;
             internal JObject capture;
             internal JObject context;
+            internal JArray commentChecks;
+            internal JObject commentMaskRef;
+            internal string workId;
         }
 
         private static readonly Dictionary<string, LiveJob> liveJobs = new Dictionary<string, LiveJob>();
 
         static WhimTexApi()
         {
+            InitializeLiveRecovery();
             Undo.undoRedoPerformed += RefreshLiveJobs;
             Undo.undoRedoPerformed += CancelLiveEditLocks;
             WhimTexDocument.Changed += _ => RefreshLiveJobs();
@@ -42,15 +49,17 @@ namespace DCFApixels.WhimTex
                 if (job.state == "pending" && (job.document == null ||
                     (job.editing ? job.document.FindLayer(job.layerId) == null :
                     !(job.document.FindLayer(job.layerId)?.Behaviour is PendingLayerBehaviour pending) || pending.jobId != job.id)))
-                { job.state = "cancelled"; job.mask = null; releasedEdit |= job.editing; }
+                { job.state = "cancelled"; job.mask = null; job.applicationMask = null; releasedEdit |= job.editing; }
             if (releasedEdit) LiveEditLocksChanged?.Invoke();
         }
 
-        internal static void CloseLiveSession(string session)
+        internal static void CloseLiveSession(string session, WhimTexDocument document = null)
         {
+            if (liveReloading) return;
+            ForgetRecoverableDocument(document);
             foreach (var job in liveJobs.Values)
                 if (job.session == session && job.state == "pending")
-                { job.state = "cancelled"; job.mask = null; }
+                { job.state = "cancelled"; job.mask = null; job.applicationMask = null; }
             LiveEditLocksChanged?.Invoke();
         }
 
@@ -62,6 +71,8 @@ namespace DCFApixels.WhimTex
                 if (job.targetId != null && previous.FindLayer(job.targetId) is Layer before &&
                     next.FindLayer(job.targetId) is Layer after && LiveLayerRevision(before) == job.targetRevision)
                     job.targetRevision = LiveLayerRevision(after);
+                if (LiveRecoveryRevision(previous) == job.recoveryRevision)
+                    job.recoveryRevision = LiveRecoveryRevision(next);
                 job.document = next;
             }
         }
@@ -74,9 +85,12 @@ namespace DCFApixels.WhimTex
                 var document = window.AgentDocument;
                 if (document == null) continue;
                 sessions.Add(new JObject { ["sessionId"] = window.AgentSessionId,
+                    ["profilerDocumentId"] = WhimTexProfiler.DocumentId(document),
                     ["name"] = document.name, ["assetPath"] = DocumentAssetPath(document),
                     ["focused"] = EditorWindow.focusedWindow == window,
                     ["focusOrder"] = window.AgentFocusOrder,
+                    ["recoverableJobs"] = new JArray(recoverableLiveJobs.Values.Where(j =>
+                        (string)j["documentId"] == UnityObjectID.FromObject(document).ToString()).Select(InterruptedLiveStatus)),
                     ["width"] = document.width, ["height"] = document.height });
             }
             var result = Success(); result["sessions"] = sessions; return result;
@@ -158,6 +172,7 @@ namespace DCFApixels.WhimTex
                 return result;
             }
             if (op == "begin") return BeginLiveJob(request);
+            if (op == "resume") return ResumeLiveJob(request);
             if (op == "lock") return LockLiveLayer(request);
             if (op == "fork") return ForkLiveJob(request);
             if (op == "render") return RenderLiveSession(request);
@@ -169,6 +184,11 @@ namespace DCFApixels.WhimTex
                 var selected = window.AgentDocument.FindLayer(Text(request, "layerId"));
                 if (IsLayerContentLocked(window.AgentDocument, selected))
                 { CancelLayerEdit(window.AgentDocument, selected); return Success(); }
+                var interruptedEdits = recoverableLiveJobs.Where(p => (bool)p.Value["editing"] &&
+                    (string)p.Value["documentId"] == UnityObjectID.FromObject(window.AgentDocument).ToString() &&
+                    (string)p.Value["layerId"] == selected?.Id).Select(p => p.Key).ToArray();
+                if (interruptedEdits.Length > 0)
+                { foreach (var jobId in interruptedEdits) ForgetRecoverableJob(jobId); return Success(); }
                 var pending = selected?.Behaviour as PendingLayerBehaviour;
                 Require(pending != null, "Reservation not found.", "layer_not_found");
                 CancelLiveReservation(window.AgentDocument, pending);
@@ -177,6 +197,11 @@ namespace DCFApixels.WhimTex
             Require(op == "status" || op == "unlock" || op == "preview" || op == "complete" || op == "fail",
                 "Unknown live operation: " + op);
             string id = Text(request, "jobId");
+            if (op == "status" && id != null && !liveJobs.ContainsKey(id) && recoverableLiveJobs.TryGetValue(id, out var interrupted))
+            {
+                Keys(request, "apiVersion", "op", "jobId");
+                return InterruptedLiveStatus(interrupted);
+            }
             Require(id != null && liveJobs.ContainsKey(id), "Job not found; it may have been interrupted by a script reload. Inspect the reservation before starting again.", "job_not_found");
             LiveJob job = liveJobs[id];
             RefreshLiveJob(job);
@@ -200,6 +225,12 @@ namespace DCFApixels.WhimTex
                 return LiveStatus(job);
             }
             LiveReady(job.document);
+            if (op == "preview" || op == "complete")
+            {
+                CheckComments(job.document, job.commentChecks);
+                if (job.commentMaskRef != null) CheckCommentMask(job.document, job.commentMaskRef);
+                if (job.applicationMaskRef != null) CheckCommentMask(job.document, job.applicationMaskRef);
+            }
             Require(job.width == job.document.width && job.height == job.document.height,
                 "Canvas dimensions changed. Cancel and capture again.", "revision_conflict");
             if (job.editing && (op == "preview" || op == "complete")) return ApplyLiveEdit(job, request, op == "preview");
@@ -219,7 +250,7 @@ namespace DCFApixels.WhimTex
 
         private static JObject BeginLiveJob(JObject request)
         {
-            Keys(request, "apiVersion", "op", "sessionId", "requestId", "name", "parent", "index", "source", "sourceLayerId", "area", "selectionMode", "padding", "destination", "targetLayerId");
+            Keys(request, "apiVersion", "op", "sessionId", "requestId", "name", "parent", "index", "source", "sourceLayerId", "area", "selectionMode", "padding", "destination", "targetLayerId", "commentChecks", "workId", "maskRef", "applicationMask");
             string requestId = Text(request, "requestId");
             Require(!string.IsNullOrWhiteSpace(requestId) && requestId.Length <= 128, "requestId must be a unique caller-generated string (1..128 characters). Reuse it only to retry this same begin request.");
             string canonical = request.ToString(Formatting.None);
@@ -231,6 +262,7 @@ namespace DCFApixels.WhimTex
                 }
             var window = ResolveLiveBeginWindow(Text(request, "sessionId"));
             var document = window.AgentDocument;
+            var replay = RetryLiveWork(document, request); if (replay != null) return replay;
             LiveReady(document);
             Require(liveJobs.Count < 512, "Live job limit reached for this script session. Finish work before reloading scripts.", "resource_limit");
             RefreshLiveJobs();
@@ -251,6 +283,8 @@ namespace DCFApixels.WhimTex
             var job = new LiveJob { id = Guid.NewGuid().ToString("N"), requestId = requestId, request = canonical,
                 session = window.AgentSessionId, document = document, width = document.width, height = document.height,
                 targetId = targetId, targetRevision = target == null ? null : LiveLayerRevision(target) };
+            job.commentChecks = CheckComments(document, request["commentChecks"]);
+            job.workId = Text(request, "workId");
             job.context = new JObject { ["name"] = document.name, ["assetPath"] = DocumentAssetPath(document),
                 ["activeLayerId"] = window.AgentSelectedLayer?.Id,
                 ["selectedLayerIds"] = new JArray(window.AgentSelectedIds),
@@ -264,6 +298,8 @@ namespace DCFApixels.WhimTex
                 captureRequest["sourceLayerId"] = window.AgentSelectedLayer.Id;
             }
             CaptureLiveInput(job, window, captureRequest);
+            RequireLiveMaskBudget(job);
+            job.recoveryRevision = LiveRecoveryRevision(document);
             List<Layer> container = Container(document, Text(request, "parent"), new Dictionary<string, Layer>());
             int index = Int(request, "index", 0, 0, container.Count);
             var reservation = new PendingLayerBehaviour { layerName = Text(request, "name", "Generating…"), jobId = job.id };
@@ -293,6 +329,9 @@ namespace DCFApixels.WhimTex
             Require(source.state == "pending", "Only pending reservations can be forked.", "job_closed");
             Require(source.targetId == null, "Fork supports newLayer jobs, not competing pixel replacements.");
             LiveReady(source.document);
+            CheckComments(source.document, source.commentChecks);
+            if (source.commentMaskRef != null) CheckCommentMask(source.document, source.commentMaskRef);
+            if (source.applicationMaskRef != null) CheckCommentMask(source.document, source.applicationMaskRef);
             Require(source.width == source.document.width && source.height == source.document.height,
                 "Canvas dimensions changed. Cancel and capture again.", "revision_conflict");
             RefreshLiveJobs();
@@ -306,8 +345,14 @@ namespace DCFApixels.WhimTex
             var fork = new LiveJob { id = Guid.NewGuid().ToString("N"), requestId = requestId, request = canonical,
                 session = source.session, document = source.document, width = source.width, height = source.height,
                 region = source.region, mask = source.mask, selectionMode = source.selectionMode,
+                applicationMask = source.applicationMask, recoveryRevision = source.recoveryRevision,
                 capture = (JObject)source.capture.DeepClone(),
                 context = (JObject)source.context.DeepClone() };
+            fork.commentChecks = (JArray)source.commentChecks?.DeepClone();
+            fork.commentMaskRef = (JObject)source.commentMaskRef?.DeepClone();
+            fork.applicationMaskRef = (JObject)source.applicationMaskRef?.DeepClone();
+            RequireLiveMaskBudget(fork);
+            fork.workId = source.workId;
             var reservation = new PendingLayerBehaviour { layerName = Text(request, "name", pending.layerName), jobId = fork.id };
             reservation.AssignNewId(); fork.layerId = reservation.Id;
             liveJobs.Add(fork.id, fork);
@@ -324,7 +369,7 @@ namespace DCFApixels.WhimTex
             var pending = job.document == null ? null : job.document.FindLayer(job.layerId)?.Behaviour as PendingLayerBehaviour;
             if (!open || (job.editing ? job.document.FindLayer(job.layerId) == null : pending == null || pending.jobId != job.id))
             {
-                job.state = "cancelled"; job.mask = null;
+                job.state = "cancelled"; job.mask = null; job.applicationMask = null;
             }
         }
 
@@ -335,6 +380,8 @@ namespace DCFApixels.WhimTex
             result["layerId"] = job.layerId; result["state"] = job.state;
             result["message"] = job.error; result["capture"] = job.capture?.DeepClone();
             result["context"] = job.context?.DeepClone();
+            result["commentChecks"] = job.commentChecks?.DeepClone();
+            result["workId"] = job.workId;
             result["targetLayerId"] = job.targetId;
             result["editing"] = job.editing;
             result["contentLocked"] = job.editing && job.state == "pending";
@@ -345,7 +392,9 @@ namespace DCFApixels.WhimTex
         internal static string LiveReservationStatus(PendingLayerBehaviour pending)
         {
             if (pending.jobId == null || !liveJobs.TryGetValue(pending.jobId, out var job))
-                return "Generation interrupted. Cancel this reservation and ask the agent to start again.";
+                return pending.jobId != null && recoverableLiveJobs.ContainsKey(pending.jobId)
+                    ? "Generation interrupted by reload. The agent can resume after checking the source."
+                    : "Generation interrupted. Cancel this reservation and ask the agent to start again.";
             if (job.document == null || !ReferenceEquals(job.document.FindLayer(job.layerId), pending.Owner))
                 return "Generation belongs to another document copy. Cancel this reservation to remove it.";
             RefreshLiveJob(job);
@@ -359,9 +408,10 @@ namespace DCFApixels.WhimTex
         internal static void CancelLiveReservation(WhimTexDocument document, PendingLayerBehaviour pending)
         {
             if (!document.TryFindLayer(pending, out var container, out _)) return;
+            ForgetRecoverableJob(pending.jobId);
             LiveChange(document, "Cancel Agent Layer", () => container.Remove(pending));
             if (pending.jobId != null && liveJobs.TryGetValue(pending.jobId, out var job) && job.document == document && job.layerId == pending.Id)
-            { job.state = "cancelled"; job.mask = null; }
+            { job.state = "cancelled"; job.mask = null; job.applicationMask = null; }
         }
 
         private static void LiveChange(WhimTexDocument document, string name, Action action)

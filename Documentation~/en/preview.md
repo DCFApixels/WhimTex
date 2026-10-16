@@ -22,29 +22,235 @@ The Canvas View footer holds controls for quality, live texture updates, post-pr
 UV overlays, guides and channel viewing. It also contains **HDR**, the color-input mode,
 and hints for the active tool.
 
+## Profiler
+
+In **Capture settings**, leave **Document ID** empty to record all documents; for one document, paste the returned
+`profilerDocumentId` string unchanged.
+
+To investigate a slow canvas update, open **Window → Analysis → WhimTex Profiler** and click
+**Record** (replaces the previous stopped capture). Repeat the action in WhimTex, then click **Stop**;
+results update automatically. Filter by **Layer** name or ID, or by **Phase**; confirm the field and select an event for details.
+In **Groups**, select any combination of **UI & Input**, **Tools & Editing**, **Rendering**,
+**Resources & Memory**, **Load & Save** and **Diagnostics**. Uncheck a group to hide it, use **All**
+to restore every group or **None** to clear the selection; then check one group to isolate it. Counts reflect the
+other filters before group selection; some groups may have no recorded events. The selection survives
+Refresh and script reload. Summary and Events share this filter; muted ancestors provide context only.
+Filtering does not change recorded timings or the complete JSON export. Colors identify groups,
+with separate cache hit/miss and error colors. SDF, text, shapes and FX belong to Rendering.
+Indents show nested stages; duration bars help
+spot expensive work. Drag the dividers to give the summary, event list or details more room.
+Click a stage's arrow to collapse or expand its children, or use Left/Right on the selected stage.
+**Expand all** opens every branch; **Collapse all** leaves only root events across all pages.
+Searching shows the path to each match; folding never changes the summary timings.
+New **Events** captures list stages in start order, earliest first. A running stage keeps its place
+and receives its duration when it finishes. **Summary** defaults to the largest total times first.
+Click **Count**, **Total ms**, **Self ms**, **Max ms**, **Prep ms**, **GPU ms**, **Allocations** or **Self allocations** to sort; click again to reverse the arrow.
+**Allocations** counts main-thread managed allocations including nested stages; **Self allocations** excludes nested stages. These are counts, not bytes.
+A `*` marks a partial sum: hover to see measured/eligible calls. Sorting uses the measured sum without extrapolation; unavailable values show `—`, not zero.
+Summary scrolls horizontally in narrow windows, keeping headers aligned with rows.
+The choice survives Refresh and script reload. Unavailable values stay at the bottom in either direction; duration bars
+always compare total time, regardless of sorting. Sorting Summary does not reorder Events.
+Script recompilation automatically restores the capture and displays it again. Active recording stops
+before reload; unfinished stages show **Interrupted** without a fabricated duration.
+**Export Temp JSON** saves a report for analysis; export before starting another capture or closing
+the Editor. **Clear** discards the stopped capture. Recording stops automatically at its event or time
+limit. Status and changed results update automatically; **Refresh** also updates them immediately.
+Automatic updates preserve selection, filters, sorting, folded branches and scroll position.
+
+The capture also covers brush batches and pixel readback, selection changes and mask uploads,
+transforms, canvas-frame edits, fill, Undo/Redo restoration, interface refresh, loading, saving and export.
+Select **render.trigger** to see why the canvas was requested; **Occurrences** counts repeated requests
+coalesced into this update. **cache.miss**, **cache.bypass**, **cache.release** and **cache.invalidate**
+explain cache decisions. **Cache entry** identifies the affected entry; **Latest change** shows the last
+recorded edit for that document, with its origin/layer when known. This is context, not proof that this
+edit caused every downstream miss. These reason rows have no elapsed work time.
+Brush wall timings include waits/submission; selected draw/composite batches also have separate GPU intervals.
+
+For FX, expand **fx.block** to see each effect by name. **Prep ms** shows CPU preparation;
+**GPU ms** shows the device interval for the block or effect. Details also show CPU command-submission time.
+After Record, wait for **GPU ready** before testing a one-shot action. GPU results arrive several frames later:
+**…** means pending, **—** unavailable, **\*** a partial summary. They update automatically even after Stop; export becomes
+available when pending queries finish. Wall times include waits; CPU/GPU and nested timings overlap and must
+not be added together. See the [profiler reference](../AgentAPI.md#profiler-captures) for interpretation.
+
+To compare two runs, stop the first capture and click **Set baseline**, then record and stop the second.
+Choose **Allocations** or **Self allocations** in Comparison's **Metric** selector to compare main-thread
+managed allocation counts with or without nested stages. Baseline, Current, **Δ alloc** and **Δ %** show
+the before/after change; rows sort by the magnitude of that change, largest first. These are counts, not bytes.
+Partial counts show `*` with measured/eligible calls in the tooltip. Their delta is `—` until both rows
+have complete measurements; a zero baseline also leaves the percentage unavailable. Compare call counts as well.
+Time and allocation decreases are green in Δ and Δ %, increases are red; zero and unavailable values remain neutral.
+Call-count differences remain neutral. Signs are retained, and values rounded to zero are not colored.
+Enable **Compare baseline** in the summary area. The baseline is independent: **Record** and **Clear** do not
+discard it, and script reload restores both records. **Clear baseline** removes it separately.
+The comparison shows before/after values and differences; check call counts and mean time as well as
+totals. More repeated actions can increase total time without slowing each action down. Missing GPU
+timings and added/removed stages show **—**, not a false improvement. Filters apply to both captures;
+the single-capture operation filter does not apply to comparison. Use the same document, input,
+quality and cache conditions when assessing a change. Export needed reports before closing Unity.
+
+Open **Diagnostics & benchmarks** to inspect memory. The separate **Managed allocated · all Editor threads**
+line shows total managed bytes allocated during the capture, including unrelated Editor work and
+instrumentation. Document and display filters do not limit this total; it is allocation traffic, not
+live heap size. Event details show main-thread allocation **counts**, inclusive and self, including
+instrumentation; they do not show stage bytes. Inclusive counts overlap across nested stages.
+Unavailable or recorder-limited measurements show **—**, not zero; recorder limits are marked.
+The panel also shows tracked texture/native-cache payload and sampled Unity-wide memory for the whole
+capture, unaffected by display filters. Texture payload is not physical VRAM, and returned RTs may
+remain in Unity's pool. **Explain cause** follows observed property changes through cache dependencies;
+missing evidence remains unknown, and tracking limits are marked.
+GPU coverage also includes common composition/layer/transform passes, cache copies, Drawing and
+output encoding; unavailable device intervals remain **—**.
+
+For repeated measurements, supply **Document ID**, choose Cold/Warm/Both, repetitions, warmups and
+maximum size, then click **Run**. This renders a separate snapshot without replacing the capture or
+baseline. Results update automatically with median, p95 and range. **Cancel** retains partial results.
+The interval includes synchronous GPU readback: it is wall time, not GPU-only time. Cold means fresh
+owned document caches, not a restarted Unity/JIT/driver. Source textures/Drawing are frozen; fonts,
+meshes and machine load remain shared. **Method & limitations** contains the full scope. Only the
+latest benchmark is retained in this Editor session; no archive is created.
+
 ## Comments
+
+Set your nickname in **WhimTex Settings → Comments → Nickname**. WhimTex first uses your personal
+Unity organization name, preserving its original capitalization when available. If the organization
+is unavailable, it uses the part of your Unity email before `@`. The result is remembered across
+projects. You can enter your own; **↺** detects the name again in this order. If account
+data is unavailable, new messages show **User** and detection retries when WhimTex opens or
+you post. Changing the setting affects new messages only, including replies.
 
 Choose **Comment** (**N**), directly below **Crop**, and click a point on the canvas. Type a note, then press
 **Post** or **Ctrl+Enter** (**Cmd+Enter** on macOS). Enter adds a new line; **Esc** or
-the close button discards the unposted draft. Notes appear as numbered pins while
+the close button hides the card and keeps the draft. **Cancel** discards it. Text, attachments and message edits
+survive switching tools or discussions and script reloads in the same editor window. **Resume Draft** reopens
+an unposted new comment. Until **Post** or **Save**, draft text and attachments stay local to the editor window and are invisible to agents. Notes appear as numbered pins while
 Comment is selected, including on an empty canvas.
 The tool icon is outlined when the document has no comments. Once a comment is posted,
 it becomes filled, with transparent text lines; resolved comments count too.
 
-The color swatch in the card header changes the speech-bubble marker's color. You can
-choose it before posting or change it later; light colors use dark numbers for readability.
+New comments use your **WhimTex Settings → Comments → Color**. Until you choose a color,
+WhimTex derives its hue from your nickname, keeping the saturation and brightness of the
+original blue. **↺** beside the setting returns to this automatic color. Changing your color
+also updates your automatic comments in open documents and when you reopen other documents.
 
-Click a pin to read its discussion or add a reply. **Edit** changes a message; **Delete**
-removes the whole thread. Drag a pin to move it. **Resolve** hides a finished discussion;
-enable **Show Resolved** to read it or **Reopen** it.
+The color swatch in the card header overrides the color for that discussion, before or after
+posting; right-click the swatch and choose **Reset to Author Color** to restore the author's color.
+Replies keep the discussion creator's color.
+All older comments retain their colors as manual choices. Light colors use dark numbers for readability.
+Each message shows a 5 px stripe to the left of its author's name. It follows that author's
+color independently of the discussion marker, including in replies.
 
-The side panel lists all discussions, including resolved ones and notes outside the visible
-canvas. Each row has a thick left stripe matching its marker color. A slightly lighter,
+Click a pin to read its discussion or add a reply. Each message's **⋮** menu at the right edge offers **Copy Text**,
+**Edit**, and **Delete Reply** for replies. Right-click anywhere on the author row to open the same menu.
+Edited messages show **edited**; hover over the date for the edit time.
+Messages posted on different local calendar days are separated by a muted date and thin lines. Editing a message does not change its day group.
+The trash button, immediately to the left of the close button in the card header, removes the whole discussion after a **Cancel / Delete** confirmation beside the trash button.
+The confirmation initially focuses **Cancel**; **Esc** or closing its window also cancels deletion.
+**Cancel** keeps the discussion and current draft; **Undo** restores a deleted discussion and its messages.
+Drag a pin to move it without opening its card; click to open it.
+Beside the card number, press the status icon, move onto an option in the vertical menu and release to select it in one gesture.
+You can also click to open the menu, then click an option. The status icons are
+a half-filled circle (**In Progress**), a red circle (**Awaiting Review**) or a checkmark
+(**Resolved**). The list and status filters use the same icons; hover to read their full names.
+You can switch freely between all three states.
+Awaiting Review adds a red dot beside the discussion number in the list, to that pin and to the filled Comment tool icon, even when a filter hides
+the discussion. The status is saved with the document in TIFF. Reading, opening and replying do not
+change it automatically; change the status explicitly when handing work over or accepting it.
+
+You can open several discussions at once, each in its own card with a line to its marker.
+A short, thicker accent follows the card outline where the line meets it, keeps its thickness around rounded corners, and extends slightly over the inside edge.
+Its outer edge forms a short arrow with concave sides, adjusting its base around corners and shortening as the marker approaches the card. The arrow and line meet at the same width, without a crosswise outline at the junction. The thin line stays behind all cards; the arrow and contact accent sit directly above their own card and can be covered by cards stacked higher.
+Clicking an already open discussion brings its card forward. Closing a card keeps the others open;
+each has its own draft and attachments. Switching away from **Comment** hides its cards, pins and side panel;
+returning restores the open cards. Script reloads retain this open set and changed drafts in the same window.
+Filters temporarily hide cards together with their markers; clearing the filter restores them.
+**Close All**, to the right of **Comments** in the list header, closes every card in the current document, including filtered ones.
+Discussions, drafts and attachments stay intact. Click a pin or list entry to reopen a discussion;
+use **Resume Draft** for an unposted new comment.
+A new card with no text, attachments or manual settings is discarded when you click outside it.
+Clicking another canvas point starts a fresh card there. Published discussions remain open.
+
+Drag the card's header to move it and its edges or corners to resize it. The header background and title show the move cursor; buttons and other controls keep their own cursors. Tooltips stay hidden while moving or resizing the card. A line keeps it connected to
+the canvas marker. Once moved, the card stays in place while you pan or zoom. Double-click its header
+to restore automatic placement and size. Closing a card resets its position: reopening places it beside its marker.
+The chosen size is retained.
+Published message text is justified across the available width, with each paragraph's last line aligned left. While editing, text stays left-aligned.
+Published discussions show a floating **+** at the bottom right of the message area, beside the scrollbar. It stays in place while scrolling and has no footer. While creating or editing a message, **+** is hidden; **Post**, **Save**, or **Cancel** brings it back.
+Click it to add a draft message directly to the list;
+**Edit** or a double-click on a message opens its text and attachments for editing in that message's own segment, with **Save / Cancel**.
+New comments also start with an editable message. There is no separate input block below the list.
+Switching messages or leaving the card cancels an unchanged edit without blocking; an empty new draft row disappears.
+Changed text or attachments stay in the draft: save or cancel them before editing another message.
+**Post** publishes a new message; **Save** finishes an edit; **Cancel** discards the draft. Closing the card preserves changed drafts,
+which reopen in place. Empty new messages are not saved to the document.
+Changing the card height resizes the message list. The text field grows as you type, then scrolls for long messages.
+Editing automatically scrolls the list to show the input and its action buttons together whenever they fit; a taller editor keeps the action buttons in view.
+Comment numbers are permanent: deleting a discussion never renumbers the remaining ones.
+
+The side panel and canvas share **Open / In Progress / Awaiting Review / Resolved / All** and search.
+**Open** includes both In Progress and Awaiting Review. Search matches all message text,
+authors and comment numbers. The header shows the open count; **Draft** marks unfinished replies or edits.
+Off-canvas discussions remain available in the list. Each row has a thick left stripe matching its marker color. A slightly lighter,
 subtly outlined header shows the comment number; thin lines separate the rows. Scroll the list and
-click a row to open its discussion. **Comments (count)** or the arrow at the panel edge
-collapses or reopens the panel. Opening a resolved row also enables **Show Resolved**.
+click a row to open its discussion. **Comments (open count)** or the arrow at the panel edge
+collapses or reopens the panel.
 The panel fits its contents up to the available canvas height; the scrollbar appears only
 when the list no longer fits.
+
+Use **◎ — Show on Canvas** in the discussion header to center and briefly highlight its marker.
+The current zoom and rotation stay unchanged, even for comments left outside the canvas after cropping.
+Your current reply or message edit stays in place.
+Double-click a row in the full Comments list to make the same jump directly; a single click only opens it.
+
+Expand **Filters & Sort** to choose an author (including reply authors), a creation/activity period,
+and sort by number, creation time, last activity or original author, in either direction.
+**Custom dates** accepts inclusive local dates in `yyyy-MM-dd` format; leave either bound empty.
+Last activity means the latest reply or message edit. Filters apply to both the list and canvas pins.
+Nearby closed pins combine into a stacked count as they overlap on screen. Click the count to choose
+a discussion; zooming in separates distinct anchors. Open cards keep their own visible pins.
+
+Use **Copy Link** in a row's context menu or the card's ↗ button. Paste it into the Comments search
+field to find that discussion in the current document. Search matches parts of message text, authors
+and numbers without case sensitivity; a discussion's own link must match in full, including case,
+ignoring only surrounding whitespace. Other filters still apply.
+Paste a link onto the canvas to open it directly. Links included in message text get an
+**Open linked comment** button. Navigation reveals
+the exact discussion even if the current filters hide it. Saved-document links survive asset renames;
+save new discussions before sharing. Unsaved-document links are temporary and expire with their
+window session. These links open inside WhimTex; external applications do not launch Unity with them.
+
+You can ask an agent using **whimtex-live** to address all open comments or specific numbers.
+It reads each discussion and its location, checks the edited image, then replies in the same thread.
+It can also leave new notes at specific canvas positions, with layers or assets attached as context.
+After verifying the result, the agent explicitly sets **Awaiting Review** with its reply, or **Resolved**
+if you asked it to close the discussion. Partial work stays **In Progress**, with the remaining work described.
+New comments are
+not automatically added to work already in progress; changed feedback must be reread before delivery.
+
+Attachments can be added below a message while composing it or using **Edit**. Click **+** for an
+empty field, or drop layers from this document and assets from the Project window onto a field,
+the **+**, or the attachment block. Multiple dragged objects create multiple fields.
+A blue outline marks a valid drop target. Post/Save
+commits the links; empty fields are omitted. Published links can be clicked to ping their targets.
+Layer ping reveals the row and briefly highlights it without changing selection. Asset links follow
+renames and moves within the project; deleted targets remain visibly missing until the message is edited.
+
+Use **Attach Selection** to attach a snapshot of the current nonempty selection, including soft
+edges and holes. Its **Selection · W × H** row shows a miniature mask. Click the selection field or its miniature to
+toggle a blue canvas preview without changing your working selection; **Use** restores the mask
+as the working selection. While composing or using **Edit**, **↻** replaces it with the current
+selection and **×** removes it; Post/Save commits these changes. Later selection edits do not change
+the attachment. Masks follow canvas Crop, Scale, flips and rotations, preserving cropped-away
+areas for later expansion. They are saved with comments in TIFF and do not appear in exported
+images. An agent can read a mask, use its exact region for an edit and attach masks to its replies.
+
+For approximate selections, an agent can allow a small soft margin around the marked area while
+preserving pixels outside it. It can compare the candidate with the original and attach a mask of
+the visible changes to its reply. If Unity reloads scripts during generation, the agent can resume
+while the original document remains open and its source is unchanged.
+
+Opening a discussion scrolls to its latest message, or to the message being edited when restoring a draft.
+You can scroll upward to read earlier replies.
 
 Posted comments are saved with the TIFF document and follow canvas cropping, scaling,
 flips and rotations. They do not appear in the exported image. Comments are local notes

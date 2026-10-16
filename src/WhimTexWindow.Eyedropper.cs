@@ -56,7 +56,7 @@ namespace DCFApixels.WhimTex
                     copy.SetPixels32(1, 1, source.width, source.height, source.GetPixels32());
                 else
                 {
-                    temporary = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32,
+                    temporary = ProfiledRenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32,
                         source.isDataSRGB ? RenderTextureReadWrite.sRGB : RenderTextureReadWrite.Linear);
                     GL.sRGBWrite = source.isDataSRGB && QualitySettings.activeColorSpace == ColorSpace.Linear;
                     Graphics.Blit(source, temporary);
@@ -96,7 +96,7 @@ namespace DCFApixels.WhimTex
             {
                 GL.sRGBWrite = previousSrgb;
                 RenderTexture.active = previous;
-                if (temporary != null) RenderTexture.ReleaseTemporary(temporary);
+                if (temporary != null) ProfiledRenderTexture.ReleaseTemporary(temporary);
             }
         }
 

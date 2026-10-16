@@ -152,6 +152,8 @@ and **Mirror** reflects each repeated interval.
 
 ### Edit keys
 
+The narrow color field to the left of the strip changes all color keys together. A gray swatch with a white diagonal and dark-gray shadow from the bottom-left to the top-right corner means their colors differ; the field remains editable. Key positions, midpoints and opacity are preserved. Escape in the picker restores the original colors. The equally sized circular-arrow button on the right reverses both key tracks and their midpoints. Both actions support Undo.
+
 Double-click a color-key marker in the gradient editor to open its color picker. A single click selects it; dragging moves it.
 Closing the color picker or canceling it with Escape returns to the gradient editor without closing that editor.
 Use **HDR** beside the selected color when extra brightness is needed. Drag a key vertically
@@ -194,8 +196,23 @@ Drag the small diamonds to move the midpoint between colors (except in Fixed mod
 Delete a selected color key with Delete while the preview has focus, or drag it away from the line and release.
 At least one color key remains.
 Position, size and rotation are controlled by the layer transform; there are no separate Center or Radius settings.
-Radial, diamond and square gradients share position, scale and rotation controls. Angular (Circular) gradients have no
-canvas controls yet. Select a basic tool to hide the handles, or press Escape when not dragging to return to your last basic tool. The contextual hand button restores the handles. Selecting another Gradient layer activates them automatically, except while the Gradient creation tool is active.
+Radial, diamond and square gradients share position, scale and rotation controls.
+For **Circular**, drag the center to move the gradient, or the start ray to rotate it without opening the circle.
+When the arc is open, a thinner, fainter line completes the circle as a visual guide.
+A full circle has one split-color handle: its halves are the independent 0% and 100% keys.
+Double-click a half to edit its color. Drag clockwise to separate the end, counterclockwise to separate the start;
+bringing the endpoints together joins the handle again. The arc edits one period through **Repetitions**;
+**Repeat/PingPong** still controls the rest of the circle. **Start Angle** rotates the field independently of the layer transform.
+Hold **Ctrl** while dragging an arc endpoint to snap Repetitions to integers (1, 2, 3… → 360°, 180°, 120°…). The opposite endpoint stays fixed. Press or release Ctrl during the drag to switch between snapped and continuous editing; rotation, center movement and intermediate keys are unaffected.
+Click the arc to add a color key; intermediate keys and midpoint diamonds move along it. Escape cancels a drag.
+With Repetitions below 1, only the visible portion of the period is shown; the start handle rotates it and the period length remains editable in Properties.
+Handles have no tooltips. Select a basic tool to hide the handles, or press Escape when not dragging to return to your last basic tool. The contextual hand button restores the handles. Selecting another Gradient layer activates them automatically, except while the Gradient creation tool is active.
+
+The same **Gradient Handles** tool edits Linear, Radial, Square, Diamond and Circular fills on **Shape** and **Vector** layers. Select a gradient-filled figure or click its contextual hand button. The handles change only the fill, not the figure's shape or transform. Linear endpoints move independently; moving the center of another fill moves its direction/radius handle with it. Color keys and midpoint diamonds work as above.
+
+Circular fills use the same split endpoint handle, opening/closing gestures, faint completion arc and Ctrl snapping. The start ray rotates the fill; **Center**, **Direction** and **Repetitions** in Properties follow the handles. Outside the first period, the palette's **Clamp/Repeat/Mirror** setting applies. A child whose appearance is replaced by a Boolean Group's style does not show fill handles; Combine with layer appearance keeps them available.
+
+**Boolean Group** also provides these handles for its common fill, including Circular. Select the group to edit its gradient without moving the group or its operands. In **Combine → Appearance: Layers**, the group handles are hidden; select a child to edit its own fill instead.
 
 New Color Fill, Gradient and Noise layers use **Unbounded** tiling by default.
 

@@ -110,7 +110,7 @@ namespace DCFApixels.WhimTex
                 bool firstPass = true;
                 do
                 {
-                    RenderTexture next = RenderTexture.GetTemporary((input.width + 1) / 2,
+                    RenderTexture next = ProfiledRenderTexture.GetTemporary((input.width + 1) / 2,
                         (input.height + 1) / 2, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
                     next.filterMode = FilterMode.Point;
                     next.wrapMode = TextureWrapMode.Clamp;
@@ -120,8 +120,8 @@ namespace DCFApixels.WhimTex
                         material.SetFloat(SourceIsPresence, firstPass ? 0f : 1f);
                         Graphics.Blit(input, next, material, 0);
                     }
-                    catch { RenderTexture.ReleaseTemporary(next); throw; }
-                    if (reduced != null) RenderTexture.ReleaseTemporary(reduced);
+                    catch { ProfiledRenderTexture.ReleaseTemporary(next); throw; }
+                    if (reduced != null) ProfiledRenderTexture.ReleaseTemporary(reduced);
                     input = reduced = next;
                     firstPass = false;
                 } while (reduced.width > 1 || reduced.height > 1);
@@ -133,7 +133,7 @@ namespace DCFApixels.WhimTex
             {
                 RenderTexture.active = previousActive;
                 GL.sRGBWrite = previousSrgb;
-                if (reduced != null) RenderTexture.ReleaseTemporary(reduced);
+                if (reduced != null) ProfiledRenderTexture.ReleaseTemporary(reduced);
             }
         }
 
@@ -197,7 +197,7 @@ namespace DCFApixels.WhimTex
                 EditorApplication.update -= Update;
                 updating = false;
             }
-            if (operation.pixel != null) RenderTexture.ReleaseTemporary(operation.pixel);
+            if (operation.pixel != null) ProfiledRenderTexture.ReleaseTemporary(operation.pixel);
             operation.pixel = null;
             if (ReferenceEquals(pending, operation)) pending = null;
             Action<bool?> completed = operation.completed;

@@ -5,7 +5,18 @@
 .whimtex-gradient-test-row { flex-direction: row; align-items: center; }
 .whimtex-gradient-test-field { flex-grow: 1; height: 28px; margin-left: 8px; }
 .whimtex-gradient-test-fill { position: absolute; left: 1px; right: 1px; top: 1px; bottom: 1px; }
-.whimtex-gradient-strip { height: 104px; margin-top: 6px; margin-bottom: 4px; flex-shrink: 0; }
+.whimtex-gradient-strip-row { flex-direction: row; align-items: center; margin-top: 6px; margin-bottom: 4px; flex-shrink: 0; }
+.whimtex-gradient-strip { height: 104px; min-width: 0; margin-left: 12px; margin-right: 12px; flex-grow: 1; flex-shrink: 1; }
+.whimtex-gradient-strip-action { position: absolute; top: 24px; bottom: 24px; width: 20px; min-width: 20px; height: auto; margin: 0; padding: 0; border-width: 1px; border-color: rgba(0, 0, 0, 0.45); border-radius: 1px; background-image: none; overflow: hidden; flex-grow: 0; flex-shrink: 0; align-items: center; justify-content: center; }
+.whimtex-gradient-strip-action:hover { border-color: rgb(128, 128, 128); }
+.whimtex-gradient-strip-action:focus { border-color: rgb(74, 128, 178); }
+.whimtex-gradient-all-colors { left: -1px; width: 19px; min-width: 19px; }
+.whimtex-gradient-reverse { right: -2px; }
+.whimtex-gradient-all-colors .unity-base-field__input { min-width: 0; height: 100%; align-self: stretch; margin: 0; padding: 0; border-width: 0; border-radius: 0; }
+.whimtex-gradient-all-colors .unity-color-field__color-container { margin: 0; padding: 0; border-width: 0; border-radius: 0; }
+.whimtex-gradient-all-colors .unity-color-field__hdr-label { display: none; }
+.whimtex-gradient-mixed-color { position: absolute; left: 0; right: 0; top: 0; bottom: 0; background-color: rgb(96, 96, 96); overflow: hidden; }
+.whimtex-gradient-reverse-icon { width: 14px; height: 14px; flex-shrink: 0; }
 .whimtex-gradient-image { position: absolute; left: 10px; right: 10px; top: 22px; bottom: 22px; }
 .whimtex-gradient-key-row { flex-direction: row; }
 .whimtex-gradient-key-separator { width: 1px; flex-shrink: 0; margin-left: 7px; margin-right: 7px; margin-top: 3px; margin-bottom: 3px; background-color: rgba(128, 128, 128, 0.45); }

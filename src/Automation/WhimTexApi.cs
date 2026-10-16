@@ -179,7 +179,7 @@ namespace DCFApixels.WhimTex
                     {
                         operationIndex = i;
                         Layer layer = ApplyOperation(document, Obj(operations[i], "operation"), aliases, true);
-                        results.Add(new JObject { ["index"] = i, ["layerId"] = layer?.Id, ["name"] = layer?.layerName });
+                        results.Add(OperationResult(document, (JObject)operations[i], i, layer));
                     }
                     ValidateTargets(document, path);
                     ValidateAgentBudget(document);
@@ -261,6 +261,7 @@ namespace DCFApixels.WhimTex
         {
             foreach (Layer layer in Enumerate(document.layers))
             {
+                if (layer?.Behaviour is BooleanGroupLayerBehaviour booleanGroup) booleanGroup.Validate();
                 if (layer?.Behaviour is FileLayerBehaviour file && file.sourceTexture != null)
                     Require(!string.Equals(AssetDatabase.GetAssetPath(file.sourceTexture), path, StringComparison.OrdinalIgnoreCase),
                         "A document cannot sample its own saved output texture.", "invalid_target");

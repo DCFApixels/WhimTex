@@ -67,7 +67,7 @@ namespace DCFApixels.WhimTex
                 finally
                 {
                     RenderTexture.active = previousTarget;
-                    if (rendered != null) RenderTexture.ReleaseTemporary(rendered);
+                    if (rendered != null) ProfiledRenderTexture.ReleaseTemporary(rendered);
                 }
             }
 

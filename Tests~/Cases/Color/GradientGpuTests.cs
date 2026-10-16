@@ -22,7 +22,12 @@ var sentinel = UnityEngine.RenderTexture.GetTemporary(8, 8);
 int checks = 0;
 double maxError = 0;
 void Check(bool value, string message) { UnityBRun.Check(!(!value), message); checks++; }
-UnityEngine.Texture2D Palette() => (UnityEngine.Texture2D)layerType.GetField("palette", flags).GetValue(layer);
+object PaletteHolder() => layerType.GetField("palette", flags).GetValue(layer);
+UnityEngine.Texture2D Palette()
+{
+    var holder = PaletteHolder();
+    return holder == null ? null : (UnityEngine.Texture2D)holder.GetType().GetField("texture", flags).GetValue(holder);
+}
 UnityEngine.RenderTexture Render(int w, int h)
 {
     var context = System.Activator.CreateInstance(contextType, new object[] { document, null, w, h, 1f, false, false, null });
@@ -72,10 +77,8 @@ void CompareFixedBoundaries()
     try
     {
         output.Create();
-        material.SetTexture("_GradientPalette", Palette());
-        material.SetVectorArray("_GradientIntervals", (UnityEngine.Vector4[])layerType.GetField("paletteIntervals", flags).GetValue(layer));
-        material.SetInt("_GradientIntervalCount", (int)layerType.GetField("paletteIntervalCount", flags).GetValue(layer));
-        material.SetVector("_GradientStart", (UnityEngine.Color)layerType.GetField("paletteStart", flags).GetValue(layer));
+        var holder = PaletteHolder();
+        holder.GetType().GetMethod("Bind", flags).Invoke(holder, new object[] { material, layer.gradient });
         material.SetInt("_GradientType", 1);
         material.SetInt("_GradientWrapMode", (int)layer.gradient.WrapMode);
         material.SetVector("_GradientOutputSize", UnityEngine.Vector4.one);

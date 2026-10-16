@@ -33,12 +33,16 @@ namespace DCFApixels.WhimTex
         [CliCommand("whimtex_assistant_sessions", "List open WhimTex documents, including unsaved documents, with live session IDs.", MainThreadRequired = true)]
         public static JObject Sessions() => JObject.Parse(WhimTexApi.LiveSessions());
 
-        [CliCommand("whimtex_assistant_live", "Reserve, preview or complete an agent layer in an open WhimTex document using a JSON request file.", MainThreadRequired = true)]
+        [CliCommand("whimtex_assistant_live", "Reserve, preview/review, complete or resume an interrupted agent operation in an open WhimTex document using a JSON request file.", MainThreadRequired = true)]
         public static JObject Live([CliArg("requestPath", "Absolute path to a live-edit JSON request file", Required = true)] string requestPath)
             => JObject.Parse(WhimTexApi.LiveFile(requestPath));
 
         [CliCommand("whimtex_describe", "Describe WhimTex's agent API, operations, enums and limits.", MainThreadRequired = true)]
         public static JObject Describe() => JObject.Parse(WhimTexApi.Describe());
+
+        [CliCommand("whimtex_profile", "Record, inspect, explain or compare bounded performance captures; explicitly benchmark an isolated document snapshot. Source documents and their caches are unchanged.", MainThreadRequired = true)]
+        public static JObject Profile([CliArg("requestPath", "Absolute JSON request path", Required = true)] string requestPath)
+            => JObject.Parse(WhimTexApi.ProfileFile(requestPath));
 
         [CliCommand("whimtex_assistant_execute", "Apply a revision-checked operation batch to an open document, with Undo and no automatic save.", MainThreadRequired = true)]
         public static JObject AssistantExecute([CliArg("requestPath", "Absolute JSON request path", Required = true)] string requestPath)
@@ -52,6 +56,10 @@ namespace DCFApixels.WhimTex
         [CliCommand("whimtex_render_probe", "Render a document, layer or FX input/output, optionally isolate a channel and report linear pixel ranges. Does not edit the source.", MainThreadRequired = true)]
         public static JObject RenderProbe([CliArg("requestPath", "Absolute JSON request path", Required = true)] string requestPath)
             => JObject.Parse(WhimTexApi.RenderProbeFile(requestPath));
+
+        [CliCommand("whimtex_comments", "Read/filter/sort discussions and work receipts; op:context bundles layers, masks and context images from a saved/open/Headless document. op:open navigates to a discussion link. Does not edit document data.", MainThreadRequired = true)]
+        public static JObject Comments([CliArg("requestPath", "Absolute JSON request path", Required = true)] string requestPath)
+            => JObject.Parse(WhimTexApi.CommentsFile(requestPath));
 
         [CliCommand("whimtex_document_inspect", "Read a WhimTex document's layer IDs, settings and revision before editing.", MainThreadRequired = true)]
         public static JObject Inspect([CliArg("assetPath", "Project-relative WhimTex TIFF or JSON path", Required = true)] string assetPath)

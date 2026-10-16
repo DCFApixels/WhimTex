@@ -38,7 +38,15 @@ namespace DCFApixels.WhimTex
 
         internal void BeginFrame(WhimTexDocument owner, DrawingLayerBehaviour painting = null)
         {
+            using var profile = WhimTexProfiler.Measure("cache.prepare", owner);
             if (document != owner) { Dispose(); document = owner; }
+            WhimTexProfiler.BeginCauseFrame();
+            if (WhimTexProfiler.Recording)
+                foreach (Entry entry in entries.Values)
+                {
+                    WhimTexProfiler.TrackTexture(entry.pixels, "effect cache", existing: true);
+                    WhimTexProfiler.TrackTexture(entry.errors, "effect cache diagnostics", existing: true);
+                }
             owner.RefreshTransformHierarchy();
             liveDrawing = painting;
             frame++;
@@ -49,7 +57,7 @@ namespace DCFApixels.WhimTex
             unused.Clear();
             foreach (Entry entry in entries.Values)
                 if (!requiredEntries.Contains(entry.key)) unused.Add(entry);
-            foreach (Entry entry in unused) Remove(entry);
+            foreach (Entry entry in unused) Remove(entry, "unused");
             unused.Clear();
             TrimToBudget(0);
         }
@@ -161,13 +169,13 @@ namespace DCFApixels.WhimTex
 
         private ulong InputStamp(TargetedLayerBehaviour effect)
         {
-            if (effect.inputMode != EffectInputMode.AllBelow) return Stamp(Input(effect));
+            if (effect.inputMode != EffectInputMode.AllBelow) return DependencyStamp(effect.Owner, Input(effect), "target input");
             ulong hash = 14695981039346656037UL;
             if (!document.TryFindLayer(effect, out var below, out int index)) return 0;
             for (int i = index + 1; i < below.Count; i++)
             {
                 if (below[i]?.enabled != true || below[i].Behaviour is PendingLayerBehaviour) continue;
-                ulong dependency = Stamp(below[i]);
+                ulong dependency = DependencyStamp(effect.Owner, below[i], "all-below input");
                 if (dependency == 0) return 0;
                 hash = Mix(hash, dependency);
             }
@@ -193,6 +201,7 @@ namespace DCFApixels.WhimTex
                         if (fxEntry != null && !CanCacheFx(fxEntry)) return stamps[layer] = 0;
                 ulong hash = Mix(14695981039346656037UL, layer.transformCache?.version ?? 0);
                 string settings = JsonUtility.ToJson(layer);
+                WhimTexProfiler.ObserveSettings(document, layer, settings);
                 foreach (char c in settings) hash = Mix(hash, c);
                 if (layer.Behaviour is TextLayerBehaviour text)
                 {
@@ -211,7 +220,7 @@ namespace DCFApixels.WhimTex
                                 if (parameter?.textureValue != null) hash = MixTexture(hash, parameter.textureValue);
                             foreach (var parameter in shaderFX.TextureLayerParameters())
                             {
-                                ulong dependency = Stamp(document.FindLayer(parameter.textureLayerId));
+                                ulong dependency = DependencyStamp(layer, document.FindLayer(parameter.textureLayerId), "FX texture input");
                                 if (dependency == 0) return stamps[layer] = 0;
                                 hash = Mix(hash, dependency);
                             }
@@ -248,7 +257,7 @@ namespace DCFApixels.WhimTex
                     foreach (Layer child in group.layers)
                     {
                         if (child?.enabled != true || child.Behaviour is PendingLayerBehaviour) continue;
-                        ulong dependency = Stamp(child);
+                        ulong dependency = DependencyStamp(layer, child, "group child");
                         if (dependency == 0) return stamps[layer] = 0;
                         hash = Mix(hash, dependency);
                     }
@@ -263,13 +272,13 @@ namespace DCFApixels.WhimTex
                     for (int i = index + 1; i < container.Count; i++)
                     {
                         if (container[i]?.enabled != true || container[i].Behaviour is PendingLayerBehaviour) continue;
-                        ulong dependency = Stamp(container[i]);
+                        ulong dependency = DependencyStamp(layer, container[i], "processor input");
                         if (dependency == 0) return stamps[layer] = 0;
                         hash = Mix(hash, dependency);
                     }
                 if (layer.clippingMask)
                 {
-                    ulong dependency = Stamp(document.GetClippingBase(layer));
+                    ulong dependency = DependencyStamp(layer, document.GetClippingBase(layer), "clipping base");
                     if (dependency == 0) return stamps[layer] = 0;
                     hash = Mix(hash, dependency);
                 }
@@ -301,6 +310,13 @@ namespace DCFApixels.WhimTex
 
         private static ulong Mix(ulong hash, ulong value) => unchecked((hash ^ value) * 1099511628211UL);
 
+        private ulong DependencyStamp(Layer consumer, Layer input, string relation)
+        {
+            ulong stamp = Stamp(input);
+            WhimTexProfiler.DependencyCause(document, consumer, input, relation);
+            return stamp;
+        }
+
         private static ulong MixTexture(ulong hash, Texture texture)
         {
             if (texture == null) return Mix(hash, 0);
@@ -320,14 +336,22 @@ namespace DCFApixels.WhimTex
             bool requireColor, out RenderTexture pixels, out RenderTexture errors, out bool alphaOnly)
         {
             pixels = errors = null; alphaOnly = false;
-            if (!entries.TryGetValue(key, out Entry entry) || entry.stamp != stamp || entry.interactive != interactive ||
-                entry.scale != scale || entry.pixels == null || !entry.pixels.IsCreated() ||
-                entry.errors != null && !entry.errors.IsCreated() ||
-                entry.pixels.width != width || entry.pixels.height != height || requireColor && entry.alphaOnly)
-            { Misses++; return false; }
+            string miss = !entries.TryGetValue(key, out Entry entry) ? "miss:not_retained" :
+                entry.stamp != stamp ? "miss:content_or_settings" : entry.interactive != interactive ? "miss:quality" :
+                entry.scale != scale ? "miss:scale" : entry.pixels == null || !entry.pixels.IsCreated() ||
+                entry.errors != null && !entry.errors.IsCreated() ? "miss:resource_lost" :
+                entry.pixels.width != width || entry.pixels.height != height ? "miss:dimensions" :
+                requireColor && entry.alphaOnly ? "miss:color_required" : null;
+            if (miss != null)
+            {
+                WhimTexProfiler.Event("effect.cache", "cache", miss);
+                ProfileCacheReason(key, miss);
+                Misses++; return false;
+            }
             entry.used = ++clock;
             pixels = entry.pixels; errors = entry.errors; alphaOnly = entry.alphaOnly;
             Hits++;
+            WhimTexProfiler.Event("effect.cache", "cache", "hit", entry.bytes);
             return true;
         }
 
@@ -342,6 +366,7 @@ namespace DCFApixels.WhimTex
             RenderTexture pixels, RenderTexture errors, bool fullPrecision)
         {
             if (pixels == null || stamp == 0) return;
+            using var profile = WhimTexProfiler.Measure("cache.store");
             if (entries.TryGetValue(key, out Entry old)) Remove(old);
             RenderTextureFormat format = fullPrecision ? RenderTextureFormat.ARGBFloat : alphaOnly && SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.RFloat)
                 ? RenderTextureFormat.RFloat : RenderTextureFormat.ARGBHalf;
@@ -350,7 +375,7 @@ namespace DCFApixels.WhimTex
             long area = (long)pixels.width * pixels.height;
             long size = area * (format == RenderTextureFormat.ARGBFloat ? 16 : format == RenderTextureFormat.RFloat ? 4 : 8) +
                 (errors == null ? 0 : area * (errorFormat == RenderTextureFormat.R8 ? 1 : 4));
-            if (size > BudgetBytes) return;
+            if (size > BudgetBytes) { WhimTexProfiler.Event("effect.cache", "cache", "bypass:budget", size); return; }
             TrimToBudget(size);
             var entry = new Entry { key = key, stamp = stamp, scale = scale, interactive = interactive,
                 alphaOnly = alphaOnly, bytes = size, used = ++clock };
@@ -371,6 +396,8 @@ namespace DCFApixels.WhimTex
                 }
                 entries.Add(key, entry);
                 Bytes += size;
+                WhimTexProfiler.Event("effect.cache", "cache", "stored", size);
+                WhimTexProfiler.Event("effect.cache.bytes", "counter", value: Bytes);
             }
             catch { Destroy(entry); throw; }
             finally { GL.sRGBWrite = srgb; RenderTexture.active = previous; }
@@ -383,7 +410,7 @@ namespace DCFApixels.WhimTex
                 Entry oldest = null;
                 foreach (Entry candidate in entries.Values)
                     if (oldest == null || candidate.used < oldest.used) oldest = candidate;
-                Remove(oldest);
+                Remove(oldest, "budget");
             }
         }
 
@@ -392,23 +419,38 @@ namespace DCFApixels.WhimTex
             var texture = new RenderTexture(width, height, 0, format, RenderTextureReadWrite.Linear)
             { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp };
             if (!texture.Create()) { UnityEngine.Object.DestroyImmediate(texture); throw new InvalidOperationException("Cannot allocate effect cache texture."); }
+            WhimTexProfiler.TrackTexture(texture, "effect cache");
             return texture;
         }
 
-        private void Remove(Entry entry)
+        private void Remove(Entry entry, string reason = "replaced")
         {
+            ProfileCacheReason(entry.key, reason, "cache.release");
+            WhimTexProfiler.Event("effect.cache.release", "cache", reason, entry.bytes);
             entries.Remove(entry.key); Bytes -= entry.bytes; Destroy(entry);
         }
         private static void Destroy(Entry entry)
         {
+            WhimTexProfiler.ReleaseTexture(entry.pixels);
+            WhimTexProfiler.ReleaseTexture(entry.errors);
             if (entry.pixels != null) UnityEngine.Object.DestroyImmediate(entry.pixels);
             if (entry.errors != null) UnityEngine.Object.DestroyImmediate(entry.errors);
         }
         public void Dispose()
         {
+            if (entries.Count > 0)
+                WhimTexProfiler.Reason("cache.invalidate", "cache.disposed", document, count: entries.Count);
             foreach (Entry entry in entries.Values) Destroy(entry);
             entries.Clear(); stamps.Clear(); visiting.Clear(); colorSources.Clear(); requiredEntries.Clear(); unused.Clear();
             Bytes = 0; document = null; liveDrawing = null;
+        }
+
+        private void ProfileCacheReason(string key, string reason, string phase = "cache.miss")
+        {
+            if (!WhimTexProfiler.Recording) return;
+            int separator = key.IndexOf('/');
+            Layer layer = document?.FindLayer(separator < 0 ? key : key.Substring(0, separator));
+            WhimTexProfiler.Reason(phase, reason, document, layer, key);
         }
     }
 }

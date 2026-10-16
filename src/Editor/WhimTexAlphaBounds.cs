@@ -92,7 +92,7 @@ namespace DCFApixels.WhimTex
                 bool first = true;
                 do
                 {
-                    RenderTexture next = RenderTexture.GetTemporary((input.width + 1) / 2,
+                    RenderTexture next = ProfiledRenderTexture.GetTemporary((input.width + 1) / 2,
                         (input.height + 1) / 2, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                     next.filterMode = FilterMode.Point; next.wrapMode = TextureWrapMode.Clamp;
                     try
@@ -101,8 +101,8 @@ namespace DCFApixels.WhimTex
                         material.SetFloat(SourceIsBounds, first ? 0f : 1f);
                         Graphics.Blit(input, next, material, 0);
                     }
-                    catch { RenderTexture.ReleaseTemporary(next); throw; }
-                    if (reduced != null) RenderTexture.ReleaseTemporary(reduced);
+                    catch { ProfiledRenderTexture.ReleaseTemporary(next); throw; }
+                    if (reduced != null) ProfiledRenderTexture.ReleaseTemporary(reduced);
                     input = reduced = next;
                     first = false;
                 } while (reduced.width > 1 || reduced.height > 1);
@@ -113,7 +113,7 @@ namespace DCFApixels.WhimTex
             finally
             {
                 RenderTexture.active = previous; GL.sRGBWrite = previousSrgb;
-                if (reduced != null) RenderTexture.ReleaseTemporary(reduced);
+                if (reduced != null) ProfiledRenderTexture.ReleaseTemporary(reduced);
             }
         }
 
@@ -183,7 +183,7 @@ namespace DCFApixels.WhimTex
             if (operation.finished) return;
             operation.finished = true;
             if (updating) { EditorApplication.update -= Update; updating = false; }
-            if (operation.pixel != null) RenderTexture.ReleaseTemporary(operation.pixel);
+            if (operation.pixel != null) ProfiledRenderTexture.ReleaseTemporary(operation.pixel);
             operation.pixel = null;
             if (ReferenceEquals(pending, operation)) pending = null;
             Action<RectInt?> completed = operation.completed;

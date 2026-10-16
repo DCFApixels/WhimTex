@@ -150,6 +150,27 @@ namespace DCFApixels.WhimTex
             Invalidate();
         }
 
+        public void Reverse()
+        {
+            float lastColorMidpoint = colors[colors.Length - 1].midpoint;
+            float lastAlphaMidpoint = alphas[alphas.Length - 1].midpoint;
+            Array.Reverse(colors);
+            Array.Reverse(alphas);
+            for (int i = 0; i < colors.Length; i++)
+            {
+                colors[i].time = 1 - colors[i].time;
+                colors[i].midpoint = i + 1 < colors.Length
+                    ? Mathf.Clamp(1 - NormalizeMidpoint(colors[i + 1].midpoint), .01f, .99f) : lastColorMidpoint;
+            }
+            for (int i = 0; i < alphas.Length; i++)
+            {
+                alphas[i].time = 1 - alphas[i].time;
+                alphas[i].midpoint = i + 1 < alphas.Length
+                    ? Mathf.Clamp(1 - NormalizeMidpoint(alphas[i + 1].midpoint), .01f, .99f) : lastAlphaMidpoint;
+            }
+            Invalidate();
+        }
+
         private static float NormalizeMidpoint(float value) => Finite(value) && value >= .01f && value <= .99f ? value : .5f;
         private static float MidpointTime(float left, float right, float ratio) =>
             Mathf.Clamp(Mathf.Lerp(left, right, ratio), left + .0000001f, right - .0000001f);

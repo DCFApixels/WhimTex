@@ -58,6 +58,9 @@ namespace DCFApixels.WhimTex
         private const byte TagObject = 29;
         private const byte TagList = 30;
         private const byte TagObjectRef = 31;
+        // Coverage masks are a single bounded blob, not a million graph values.
+        private const byte TagBytes = 32;
+        private const int MaxByteArrayLength = 64 * 1024 * 1024;
 
         /// <summary>Derived or transient state: rebuilt from the rest of the document, never stored.</summary>
         private static readonly HashSet<string> SkippedFields = new HashSet<string>(StringComparer.Ordinal)
@@ -292,6 +295,9 @@ namespace DCFApixels.WhimTex
                     case double v: _writer.Write(TagDouble); _writer.Write(v); return;
                     case char v: _writer.Write(TagChar); _writer.Write(v); return;
                     case string v: _writer.Write(TagString); _writer.Write(v); return;
+                    case byte[] v:
+                        if (v.Length > MaxByteArrayLength) throw new WhimTexDocumentException("Document byte array exceeds safety limits.");
+                        _writer.Write(TagBytes); _writer.Write(v.Length); _writer.Write(v); return;
                     case Vector2 v: _writer.Write(TagVector2); _writer.Write(v.x); _writer.Write(v.y); return;
                     case Vector3 v: _writer.Write(TagVector3); _writer.Write(v.x); _writer.Write(v.y); _writer.Write(v.z); return;
                     case Vector4 v: _writer.Write(TagVector4); _writer.Write(v.x); _writer.Write(v.y); _writer.Write(v.z); _writer.Write(v.w); return;
@@ -527,6 +533,7 @@ namespace DCFApixels.WhimTex
 
             private void WriteObject(object value, Type type)
             {
+                WhimTexDocumentJson.ValidateVectorStorage(value);
                 if (IsUnityType(type))
                     throw new WhimTexDocumentException("Unsupported Unity field type: " + type.FullName + ".");
                 if (TryWriteBackReference(value)) return;
@@ -744,6 +751,7 @@ namespace DCFApixels.WhimTex
                     case TagDouble: return _reader.ReadDouble();
                     case TagChar: return _reader.ReadChar();
                     case TagString: return ReadText();
+                    case TagBytes: return _reader.ReadBytes(ReadCount(MaxByteArrayLength, 1));
                     case TagVector2: return new Vector2(_reader.ReadSingle(), _reader.ReadSingle());
                     case TagVector3: return new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
                     case TagVector4: return new Vector4(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
@@ -970,6 +978,7 @@ namespace DCFApixels.WhimTex
                     ReadAutomaticFields(instance);
                 }
                 if (instance is ISerializationCallbackReceiver receiver) receiver.OnAfterDeserialize();
+                WhimTexDocumentJson.ValidateVectorStorage(instance);
                 // This reader reconstructs a file/copy, not a Unity Undo operation. Keep the
                 // deserialization hooks, but establish a clean baseline for later Undo events.
                 if (instance is WhimTexDocument document) document.ResetUndoTrackingAfterLoad();

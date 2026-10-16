@@ -77,7 +77,7 @@ namespace DCFApixels.WhimTex
 
         private static JObject LockLiveLayer(JObject request)
         {
-            Keys(request, "apiVersion", "op", "sessionId", "requestId", "layerId", "expectedRevision");
+            Keys(request, "apiVersion", "op", "sessionId", "requestId", "layerId", "expectedRevision", "commentChecks", "workId");
             string requestId = Text(request, "requestId"), canonical = request.ToString(Formatting.None);
             Require(!string.IsNullOrWhiteSpace(requestId) && requestId.Length <= 128, "A unique requestId is required.");
             foreach (var existing in liveJobs.Values)
@@ -88,6 +88,7 @@ namespace DCFApixels.WhimTex
                 }
             var window = ResolveLiveBeginWindow(Text(request, "sessionId"));
             var document = window.AgentDocument;
+            var replay = RetryLiveWork(document, request); if (replay != null) return replay;
             LiveReady(document); RefreshLiveJobs();
             Layer layer = document.FindLayer(Text(request, "layerId"));
             Require(layer != null && !(layer?.Behaviour is PendingLayerBehaviour), "Specify an existing content layer.", "layer_not_found");
@@ -100,6 +101,9 @@ namespace DCFApixels.WhimTex
             var job = new LiveJob { id = Guid.NewGuid().ToString("N"), requestId = requestId, request = canonical,
                 editing = true, document = document, session = window.AgentSessionId, layerId = layer.Id,
                 targetId = layer.Id, targetRevision = revision, width = document.width, height = document.height };
+            job.commentChecks = CheckComments(document, request["commentChecks"]);
+            job.workId = Text(request, "workId");
+            job.recoveryRevision = LiveRecoveryRevision(document);
             job.context = new JObject { ["layer"] = ((JArray)Snapshot(document, DocumentAssetPath(document))["layers"])
                 .First(entry => (string)entry["id"] == layer.Id).DeepClone() };
             liveJobs.Add(job.id, job);
@@ -204,11 +208,14 @@ namespace DCFApixels.WhimTex
                 SetLayer(document, layer, settings);
             }
             if (changes["transform"] != null) SetTransform(document, layer, Obj(changes["transform"], "transform"));
+            // A geometry edit can invalidate an ancestor even though its own style is unchanged.
+            foreach (var candidate in Enumerate(document.layers))
+                if (candidate.Behaviour is BooleanGroupLayerBehaviour booleanGroup) booleanGroup.Validate();
         }
 
         private static JObject ApplyLiveEdit(LiveJob job, JObject request, bool trial)
         {
-            if (trial) Keys(request, "apiVersion", "op", "jobId", "changes", "view", "maxSize", "outputPath");
+            if (trial) Keys(request, "apiVersion", "op", "jobId", "changes", "view", "maxSize", "outputPath", "review");
             else Keys(request, "apiVersion", "op", "jobId", "changes");
             Layer target = job.document.FindLayer(job.layerId);
             Require(target != null && IsLayerContentLocked(job.document, target), "Edit lock is no longer active.", "job_closed");
@@ -244,6 +251,7 @@ namespace DCFApixels.WhimTex
                     var result = LiveStatus(job);
                     result["outputPath"] = WriteLivePng(image, Text(request, "outputPath", "Temp/WhimTex/Agent/edit-" + Guid.NewGuid().ToString("N") + ".png"));
                     result["applied"] = false; result["fx"] = LiveFxSnapshot(candidate, job.document);
+                    if (Bool(request, "review")) result["review"] = ReviewLiveCandidate(job, probe, size);
                     return result;
                 }
                 LiveChange(job.document, "Complete Agent Edit", () =>
@@ -252,8 +260,10 @@ namespace DCFApixels.WhimTex
                     if (target?.Behaviour is DrawingLayerBehaviour drawing) drawing.SetColorRange(target.colorRange);
                     target.fx = new List<Object>(candidate.fx);
                     foreach (var fx in created) job.document.AdoptAgentShaderFX(fx, "Complete Agent Edit");
+                    RecordLiveWork(job, request);
                 });
                 committed = true;
+                if (job.workId != null) SessionState.SetString(ReceiptMemoryKey(job.document, job.workId, job.requestId), WorkRequestHash(JObject.Parse(job.request)));
                 job.state = "completed"; job.completion = request.ToString(Formatting.None); job.error = null;
                 NotifyLiveLockChanged(job.document);
                 var completed = LiveStatus(job);
@@ -262,7 +272,7 @@ namespace DCFApixels.WhimTex
             }
             finally
             {
-                if (rt != null) RenderTexture.ReleaseTemporary(rt);
+                if (rt != null) ProfiledRenderTexture.ReleaseTemporary(rt);
                 if (image != null) Object.DestroyImmediate(image);
                 if (probe != null) Object.DestroyImmediate(probe);
                 if (!committed) foreach (var fx in created) if (fx != null && !AssetDatabase.Contains(fx)) Object.DestroyImmediate(fx);

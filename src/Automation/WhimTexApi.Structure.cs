@@ -51,6 +51,7 @@ namespace DCFApixels.WhimTex
             {
                 Keys(operation, "op", "layer", "as");
                 Require(!(layer.Behaviour is ShaderProcessorLayerBehaviour), "Use FX apply/applyAll to bake a Shader Processor with its backdrop.");
+                Require(!document.IsBooleanOperand(layer), "Move the operand out of its Boolean Group before converting it to Drawing.");
                 if (!(layer.Behaviour is DrawingLayerBehaviour))
                 {
                     if (execute)

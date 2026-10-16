@@ -99,7 +99,7 @@ namespace DCFApixels.WhimTex
                 effectCache = cache;
                 RefreshTransformHierarchy();
                 var stack = new HashSet<Layer>();
-                if (!layer.IsGroup && !(layer.Behaviour is ShaderProcessorLayerBehaviour))
+                if ((!layer.IsGroup || layer.Behaviour is BooleanGroupLayerBehaviour) && !(layer.Behaviour is ShaderProcessorLayerBehaviour))
                     return RenderStandaloneUncached(container, index, w, h, 1f, stack,
                         applyTransform: false, includeDisabled: true, applyClipping: false);
                 stack.Add(layer);
@@ -115,14 +115,14 @@ namespace DCFApixels.WhimTex
                         RenderTexture input = content;
                         content = null;
                         try { content = layer.Render(new LayerRenderContext(this, input, w, h, 1f, false, true)); }
-                        finally { RenderTexture.ReleaseTemporary(input); }
+                        finally { ProfiledRenderTexture.ReleaseTemporary(input); }
                     }
                     content = FinishStage(content, layer.colorRange == LayerColorRange.Standard, layer.channelMapping);
                     RenderTexture result = content;
                     content = null;
                     return result;
                 }
-                finally { if (content != null) RenderTexture.ReleaseTemporary(content); }
+                finally { if (content != null) ProfiledRenderTexture.ReleaseTemporary(content); }
             }
             finally
             {

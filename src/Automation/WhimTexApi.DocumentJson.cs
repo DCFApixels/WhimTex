@@ -120,6 +120,9 @@ namespace DCFApixels.WhimTex
                 Require(parsed.Document.layers.Count == 1, "replace requires exactly one root layer.");
                 replace = Enumerate(destinationDocument.layers).FirstOrDefault(layer => layer.Id == Text(request, "layerId"));
                 Require(replace != null, "Replacement target was not found.");
+                Require(destinationDocument.TryFindLayer(replace, out var replacementContainer, out _) &&
+                    destinationDocument.CanInsertInto(parsed.Document.layers[0], replacementContainer),
+                    "Replacing a Boolean operand requires closed Shape/Vector geometry or a Boolean Group.");
             }
             var copies = destinationDocument.CopyLayersFrom(parsed.Document, parsed.Document.layers, false, null);
             if (replace != null)

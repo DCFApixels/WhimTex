@@ -135,7 +135,7 @@ namespace DCFApixels.WhimTex
 
         private static RenderTexture SmudgeTemporary(int width, int height, RenderTextureFormat format = RenderTextureFormat.ARGBHalf)
         {
-            var result = RenderTexture.GetTemporary(width, height, 0, format, RenderTextureReadWrite.Linear);
+            var result = ProfiledRenderTexture.GetTemporary(width, height, 0, format, RenderTextureReadWrite.Linear);
             result.filterMode = FilterMode.Bilinear;
             result.wrapMode = TextureWrapMode.Clamp;
             return result;
@@ -312,7 +312,7 @@ namespace DCFApixels.WhimTex
 
         private static void ReleaseSmudgeTexture(ref RenderTexture texture)
         {
-            if (texture != null) RenderTexture.ReleaseTemporary(texture);
+            if (texture != null) ProfiledRenderTexture.ReleaseTemporary(texture);
             texture = null;
         }
     }

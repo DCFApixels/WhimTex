@@ -22,6 +22,12 @@
 - Never increase version without an explicit request, including when committing/pushing.
 - Never mention or use names of external graphics editors in code, identifiers, comments, UI, tests/examples, documentation, changelogs, commit messages, pull requests or release notes. Describe behavior generically; do not use editor names as shorthand or comparisons.
 
+### Unity object IDs
+
+- Use the existing [`UnityObjectID`](src/UnityObjectID.cs) for Unity object identity, dictionary/set keys, comparisons and object resolution. Obtain it with `UnityObjectID.FromObject`; use `Resolve()` for the reverse lookup. Do not create another ID wrapper.
+- Keep version-specific storage and Unity calls in this adapter: `EntityId` under `UNITY_6000_4_OR_NEWER`, otherwise `int`. Direct `GetInstanceID`, `GetEntityId`, `InstanceIDToObject` and `EntityIdToObject` calls belong only there. Adapt IDs supplied by version-specific Unity callbacks immediately with `FromEntityId` / `FromInstanceId`.
+- Never narrow `EntityId` to `int` or use `GetHashCode()` as an object's identity; hashes can collide. At JSON/agent boundaries, expose the adapter's full `ToString()` as an opaque string and pass it unchanged. These are session-local IDs, not persistent document/layer IDs or asset GUIDs; rediscover them after reloading/reopening instead of saving them as durable references.
+
 ## Cross-platform code
 
 - Cross-platform code is the default. OS-specific system-library calls, platform-specific native binaries, explicit CPU/GPU instruction-set intrinsics and hardware/vendor-specific implementation paths may be researched and proposed, with their portability tradeoffs explained, but require explicit user approval before implementation or use. A portable fallback does not waive this requirement; a general optimization request is not approval for such an exception.

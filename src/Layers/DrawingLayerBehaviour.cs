@@ -171,7 +171,7 @@ namespace DCFApixels.WhimTex
 
             // Unpremultiply at source resolution. Resampling to the output size before
             // the transform loses details that a magnified/cropped layer still needs.
-            RenderTexture straight = RenderTexture.GetTemporary(
+            RenderTexture straight = ProfiledRenderTexture.GetTemporary(
                 surface.width,
                 surface.height,
                 0,
@@ -188,7 +188,7 @@ namespace DCFApixels.WhimTex
             }
             finally
             {
-                RenderTexture.ReleaseTemporary(straight);
+                ProfiledRenderTexture.ReleaseTemporary(straight);
             }
         }
 
@@ -227,6 +227,7 @@ namespace DCFApixels.WhimTex
 
         internal void PrepareStroke(int width, int height, string undoName)
         {
+            using var profile = WhimTexProfiler.Measure("brush.prepare", layer: Owner, detail: undoName);
             EnsureHdrStorage();
             EnsurePaintSurface(width, height);
             if (pixels == null)
@@ -372,6 +373,7 @@ namespace DCFApixels.WhimTex
             bool includeStart,
             PaintStrokeParameters parameters)
         {
+            using var profile = WhimTexProfiler.Measure("brush.segment", layer: Owner);
             Color color = parameters.Color;
             if (firstBrushPending && TiledCanvasUtility.IsInvertible(Owner.PixelCanvasTransform))
             {
@@ -442,6 +444,8 @@ namespace DCFApixels.WhimTex
         private void DrawBrushStamps(RenderTexture surface, List<PaintStamp> stamps, int outputWidth, int outputHeight, PaintStrokeParameters parameters)
         {
             if (stamps.Count == 0) return;
+            using var profile = WhimTexProfiler.Measure("brush.submit_batch", layer: Owner);
+            WhimTexProfiler.Event("brush.stamp_count", "counter", value: stamps.Count);
             BrushDynamics dynamics = parameters.Dynamics;
             bool isolatedStroke = dynamics != null && dynamics.NeedsStrokeBuffer(parameters.Erase);
             bool stampBlend = dynamics != null && dynamics.BlendsEachStamp(parameters.Erase);
@@ -470,7 +474,11 @@ namespace DCFApixels.WhimTex
                 colorRange == LayerColorRange.Standard,
                 !isolatedStroke && HdrUtility.IsHdr(pixels), parameters.SelectionMask, dynamics, parameters.StandardColorInputs,
                 stampBlend, blendRange == LayerBlendRange.HDR, strokeBase: isolatedStroke ? advancedStrokeBase : null);
-            if (isolatedStroke) CompositeAdvancedStroke(surface, parameters);
+            if (isolatedStroke)
+            {
+                using var composite = WhimTexProfiler.Measure("brush.composite", layer: Owner);
+                using (composite.Gpu()) CompositeAdvancedStroke(surface, parameters);
+            }
             ApplyPaintWriteProtection();
         }
 
@@ -530,7 +538,8 @@ namespace DCFApixels.WhimTex
             try
             {
                 RenderTexture.active = surface;
-                GL.Clear(true, true, Color.clear);
+                using var profile = WhimTexProfiler.Measure("brush.clear", layer: Owner);
+                using (profile.Gpu()) GL.Clear(true, true, Color.clear);
             }
             finally
             {
@@ -554,6 +563,7 @@ namespace DCFApixels.WhimTex
             EnsureDeferredTexture();
             if (paintSurface == null)
                 return;
+            using var profile = WhimTexProfiler.Measure("transfer.drawing_readback", layer: Owner);
 
             if (pixels == null || pixels.width != paintSurface.width || pixels.height != paintSurface.height)
             {
@@ -568,7 +578,7 @@ namespace DCFApixels.WhimTex
                 };
             }
 
-            RenderTexture straight = RenderTexture.GetTemporary(
+            RenderTexture straight = ProfiledRenderTexture.GetTemporary(
                 paintSurface.width,
                 paintSurface.height,
                 0,
@@ -580,8 +590,10 @@ namespace DCFApixels.WhimTex
                 BlitStraightSurface(straight, HdrUtility.IsHdr(pixels) ? 3f : 2f);
 
                 RenderTexture.active = straight;
-                pixels.ReadPixels(new Rect(0f, 0f, straight.width, straight.height), 0, 0, false);
-                pixels.Apply(false, false);
+                using (WhimTexProfiler.Measure("transfer.texture_readback", layer: Owner))
+                    pixels.ReadPixels(new Rect(0f, 0f, straight.width, straight.height), 0, 0, false);
+                using (WhimTexProfiler.Measure("transfer.texture_upload", layer: Owner))
+                    pixels.Apply(false, false);
                 paintSurfaceDirty = false;
                 pixels.name = GetTextureName();
                 if (AssetDatabase.Contains(pixels))
@@ -590,13 +602,15 @@ namespace DCFApixels.WhimTex
             finally
             {
                 RenderTexture.active = previous;
-                RenderTexture.ReleaseTemporary(straight);
+                ProfiledRenderTexture.ReleaseTemporary(straight);
             }
         }
 
         private void BlitStraightSurface(RenderTexture target, float mode)
         {
             Material conversion = WhimTexMaterials.AlphaConversion;
+            using var profile = WhimTexProfiler.Measure("layer.drawing_convert", layer: Owner);
+            using var gpu = profile.Gpu();
             if (conversion == null) { Graphics.Blit(paintSurface, target); return; }
             conversion.SetFloat("_Mode", mode);
             conversion.SetFloat("_StraightFallback", (hasBakedPixelFrame || preserveStraightPaintRgb) && pixels != null ? HdrUtility.IsHdr(pixels) ? 1f : 2f : 0f);
@@ -684,7 +698,10 @@ namespace DCFApixels.WhimTex
             int width = pixels != null ? pixels.width : Mathf.Max(1, fallbackWidth);
             int height = pixels != null ? pixels.height : Mathf.Max(1, fallbackHeight);
             if (paintSurface != null && paintSurface.width == width && paintSurface.height == height)
+            {
+                WhimTexProfiler.TrackTexture(paintSurface, "drawing.surface", existing: true);
                 return paintSurface;
+            }
 
             ReleasePaintSurface();
             paintSurface = new RenderTexture(
@@ -701,8 +718,10 @@ namespace DCFApixels.WhimTex
                 useMipMap = false,
                 autoGenerateMips = false
             };
-            paintSurface.Create();
+            if (paintSurface.Create()) WhimTexProfiler.TrackTexture(paintSurface, "drawing.surface");
 
+            using var profile = WhimTexProfiler.Measure("layer.drawing_surface", layer: Owner);
+            using var gpu = profile.Gpu();
             if (pixels != null)
             {
                 RenderTexture previous = RenderTexture.active;
@@ -1081,6 +1100,7 @@ namespace DCFApixels.WhimTex
             if (paintSurface == null)
                 return;
             paintSurface.Release();
+            WhimTexProfiler.ReleaseTexture(paintSurface);
             UnityEngine.Object.DestroyImmediate(paintSurface);
             paintSurface = null;
         }
@@ -1233,9 +1253,13 @@ namespace DCFApixels.WhimTex
                 RenderTexture snapshot = null;
                 try
                 {
+                    // Timestamp only the drawing batch after material/LUT/transform preparation.
+                    // Mesh submission gaps remain part of the elapsed GPU marker interval.
+                    using var profile = WhimTexProfiler.Measure("brush.draw_batch");
+                    using var gpu = profile.Gpu();
                     if (sequential)
                     {
-                        snapshot = RenderTexture.GetTemporary(target.descriptor);
+                        snapshot = ProfiledRenderTexture.GetTemporary(target.descriptor);
                         snapshot.filterMode = FilterMode.Point;
                         snapshot.wrapMode = TextureWrapMode.Clamp;
                         material.SetTexture("_Backdrop", snapshot);
@@ -1330,7 +1354,7 @@ namespace DCFApixels.WhimTex
                     material.SetFloat("_PressureOpacity", 0f);
                     material.SetTexture("_StrokeBase", null);
                     material.SetTexture("_Backdrop", null);
-                    if (snapshot != null) RenderTexture.ReleaseTemporary(snapshot);
+                    if (snapshot != null) ProfiledRenderTexture.ReleaseTemporary(snapshot);
                 }
             }
 

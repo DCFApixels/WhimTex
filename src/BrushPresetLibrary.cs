@@ -175,7 +175,7 @@ namespace DCFApixels.WhimTex
             preset.filter = tip.filterMode; preset.wrapU = tip.wrapModeU; preset.wrapV = tip.wrapModeV;
             RenderTexture previous = RenderTexture.active;
             bool previousSrgb = GL.sRGBWrite;
-            RenderTexture target = RenderTexture.GetTemporary(tip.width, tip.height, 0,
+            RenderTexture target = ProfiledRenderTexture.GetTemporary(tip.width, tip.height, 0,
                 preset.srgb ? RenderTextureFormat.ARGB32 : RenderTextureFormat.ARGBHalf,
                 preset.srgb ? RenderTextureReadWrite.sRGB : RenderTextureReadWrite.Linear);
             Texture2D copy = null;
@@ -194,7 +194,7 @@ namespace DCFApixels.WhimTex
                 GL.sRGBWrite = previousSrgb;
                 RenderTexture.active = previous;
                 if (copy != null) UnityEngine.Object.DestroyImmediate(copy);
-                RenderTexture.ReleaseTemporary(target);
+                ProfiledRenderTexture.ReleaseTemporary(target);
             }
         }
     }

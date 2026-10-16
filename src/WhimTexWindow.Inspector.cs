@@ -40,6 +40,7 @@ namespace DCFApixels.WhimTex
             if (toolkitLayerSettingsScroll == null)
                 return;
 
+            using var profile = WhimTexProfiler.Measure("ui.inspector_refresh", activeDocument);
             Layer selected = GetSelectedLayer();
             toolkitLayerPreview?.Bind(activeDocument, selected);
             bool locked = WhimTexApi.IsLayerContentLocked(activeDocument, selected);
@@ -76,6 +77,7 @@ namespace DCFApixels.WhimTex
 
         private void BuildToolkitLayerInspector(VisualElement root, Layer layer)
         {
+            using var profile = WhimTexProfiler.Measure("ui.inspector_build", activeDocument, layer);
             if (layer == null)
             {
                 WhimTexUI.AddHelpBox(root, "Select a layer below to edit its settings.", HelpBoxMessageType.Info);
@@ -157,6 +159,13 @@ namespace DCFApixels.WhimTex
                     break;
                 case ShapeLayerBehaviour shape:
                     ShapeLayerEditorWindow.BuildFields(root, shape, activeDocument, apply, toolkitInspectorBindings);
+                    root.Add(new Button(() => ConvertShapeToVector(layer)) { text = "Convert to Vector", name = "convert-shape-vector" });
+                    break;
+                case VectorLayerBehaviour vector:
+                    BuildVectorProperties(root, layer, vector, apply);
+                    break;
+                case BooleanGroupLayerBehaviour booleanGroup:
+                    BuildBooleanProperties(root, layer, booleanGroup, apply);
                     break;
                 case OutlineLayerBehaviour outline:
                     OutlineLayerEditorWindow.BuildFields(root, outline, activeDocument, apply, toolkitInspectorBindings,

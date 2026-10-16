@@ -297,7 +297,7 @@ namespace DCFApixels.WhimTex
                 for (int i = 0; i < operations.Count; i++)
                 {
                     Layer layer = ApplyOperation(candidate.Document, Obj(operations[i], "operation"), aliases, true);
-                    applied.Add(new JObject { ["index"] = i, ["layerId"] = layer?.Id, ["name"] = layer?.layerName });
+                    applied.Add(OperationResult(candidate.Document, (JObject)operations[i], i, layer));
                 }
                 ValidateTargets(candidate.Document, session.path);
                 ValidateAgentBudget(candidate.Document);

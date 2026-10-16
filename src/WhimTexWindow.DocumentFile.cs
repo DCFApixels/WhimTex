@@ -283,7 +283,7 @@ namespace DCFApixels.WhimTex
                     else
                     {
                         var previous = RenderTexture.active;
-                        var surface = RenderTexture.GetTemporary(texture.width, texture.height, 0,
+                        var surface = ProfiledRenderTexture.GetTemporary(texture.width, texture.height, 0,
                             RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
                         try
                         {
@@ -297,7 +297,7 @@ namespace DCFApixels.WhimTex
                         finally
                         {
                             RenderTexture.active = previous;
-                            RenderTexture.ReleaseTemporary(surface);
+                            ProfiledRenderTexture.ReleaseTemporary(surface);
                         }
                     }
                 }

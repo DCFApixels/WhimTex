@@ -24,7 +24,7 @@ namespace DCFApixels.WhimTex
             var owned = new List<RenderTexture>(24);
             RenderTexture Temp(int w, int h)
             {
-                var t = RenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                var t = ProfiledRenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                 t.filterMode = FilterMode.Point; t.wrapMode = TextureWrapMode.Clamp;
                 owned.Add(t); return t;
             }
@@ -133,7 +133,7 @@ namespace DCFApixels.WhimTex
                 foreach (string property in TextureBindings)
                     m.SetTexture(property,null);
                 RenderTexture.active = previous; GL.sRGBWrite = srgb;
-                foreach (var rt in owned) RenderTexture.ReleaseTemporary(rt);
+                foreach (var rt in owned) ProfiledRenderTexture.ReleaseTemporary(rt);
             }
         }
         private static void Swap(ref RenderTexture a, ref RenderTexture b) { var t=a; a=b; b=t; }

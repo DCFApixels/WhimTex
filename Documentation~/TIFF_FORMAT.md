@@ -27,18 +27,65 @@ Canvas annotations are stored in the optional `comments` block, separate from th
 resolved threads remain stored. Missing blocks load as an empty list. A malformed known
 block fails loading with a comment-specific diagnostic rather than silently losing notes.
 
-Its payload is a version-2 tagged `List<WhimTexComment>`. Each thread has a stable `id`,
-bottom-left normalized canvas `anchor`, opaque RGB `color`, `resolved` flag and `messages`. Each message contains
-`id`, `author`, plain `text` and `createdUtcTicks`. Thread and message IDs are globally unique
+Its payload is a version-2 tagged `List<WhimTexComment>`. Each thread has a stable `id`, permanent `number`,
+bottom-left normalized canvas `anchor`, opaque RGB `color`, mutually exclusive `resolved` / `awaitingReview`
+flags and `messages`. Both flags false means In Progress; `awaitingReview` means Awaiting Review;
+`resolved` means Resolved. Missing flags default to false. Conflicting flags are rejected. These are explicit
+document task states, never per-user read receipts; opening or reading a discussion does not modify them.
+Each message contains
+`id`, `author`, plain `text`, `createdUtcTicks`, `editedUtcTicks` and optional `attachments`. Attachments retain
+a local document layer ID or an asset GUID plus local file ID, and a fallback name. They
+reference content rather than embedding it; missing targets remain identifiable. A message
+may carry `agentWorkId` and `agentContentHash` for the agent feedback contract.
+Thread and message IDs are globally unique
 within the document. Coordinates must be finite but may fall outside 0..1 after a crop.
 Crop, flips and quarter turns remap anchors; Scale preserves normalized positions.
+
+Assigned numbers are positive and unique within the document. Omitted/zero numbers are assigned once
+in list order after the highest existing number. The main document's `commentNumberSequence` stores
+the high-water mark, including after deleting every discussion; it is omitted from layer fragments.
+An exhausted Int32 sequence rejects new threads instead of reusing a number. `editedUtcTicks` defaults
+to zero (never edited); nonzero values must be at or after creation and within DateTime's UTC range.
+Editor drafts, search/filter settings and card layout are not document data and are not written to TIFF/JSON.
 
 Limits: 4096 threads, 1..128 messages per thread, 16384 UTF-16 code units per message and
 128 per author. IDs, authors and messages must be nonblank valid Unicode; timestamps are
 valid UTC ticks. Marker color components are finite 0..1, with alpha exactly 1. The default
-is RGB (48, 96, 133) / 255. The encoded block is limited to 16 MiB and uses the normal
+for an omitted stored color is RGB (48, 96, 133) / 255. Optional `useAuthorColor` defaults to
+false, preserving every older color as manual. New UI threads default to automatic color:
+a deterministic nickname hue with the original blue's HSV saturation/value, or the creator's
+chosen preference. `colorAuthorId` is an optional local profile GUID (32 hexadecimal characters,
+null/empty when unassigned), not a Unity account ID. It keeps local ownership across nickname
+changes. `color` retains the latest portable snapshot: other profiles keep it; matching local
+profiles refresh it on opening the document or changing preferences. Manual colors remain fixed.
+Messages separately retain optional `authorId` (the same local profile GUID format) and
+`authorColor` (opaque RGBA in 0..1). An omitted/all-zero `authorColor` means no saved snapshot;
+the displayed color resolves from the matching local profile, then the saved snapshot or the
+author-name hue. Older messages can match the root thread's profile or, without an ID, the current
+nickname. This colors the stripe beside the author independently of manual thread colors.
+New UI messages keep this identity and color across renaming, replies, edits, Undo and saves.
+The encoded block is limited to 16 MiB and uses the normal
 compression/integrity handling. Draft text is UI-local until Post/Save. Comments never
-enter layer composition, thumbnails, image export or pixel clipboard data.
+enter layer composition, thumbnails, image export or pixel clipboard data. Each message
+allows at most 32 attachments; names are limited to 1024 UTF-16 code units.
+
+Selection attachments contain a `WhimTexCommentMask` in the same optional `comments` block,
+with no external texture asset. Version 1 stores nonzero-bounds-cropped R8 coverage in
+`coverageDeflate` (Deflate bytes as base64), decoded-byte `sha256` (SHA-256/base64), width/height,
+a document-unique GUID `id` and affine `localToCanvas`. Rows are bottom-first; values 0..255
+retain exact coverage. The map places local UV in canvas UV and changes with Crop/Orientation;
+Scale changes the canvas size while keeping the UV map. Original pixels, including those outside
+a cropped canvas, survive. Restore/generation uses nearest source samples at canvas pixel centres.
+Decoding validates size, checksum, nonempty cropped bounds and placement. Unsupported mask versions,
+corrupt data and budgets fail explicitly. Limits: 16,777,216 source pixels per mask, 67,108,864 total,
+16384 per axis, plus the existing 16 MiB encoded comments block. Layer/asset/mask are mutually
+exclusive per attachment. JSON retains the same mask data; layer fragments omit it with comments.
+
+Optional `agentReceipts` belong to the main document model. They record completed work/request
+IDs, canonical request hashes, result JSON and UTC ticks. The limits are 2048 entries,
+262144 characters per result and 4 MiB of combined metadata. Empty histories are omitted
+from document JSON; layer fragments omit them. They do not force an empty comments block
+to be written. See [agent work recovery](AgentAPI.md#comment-discussions).
 
 ## Physical layout
 

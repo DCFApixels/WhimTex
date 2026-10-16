@@ -91,6 +91,7 @@ namespace DCFApixels.WhimTex
 
         private static WhimTexJsonWriteResult WriteCore(WhimTexDocument document, List<Layer> selection, WhimTexJsonWriteOptions options)
         {
+            using var profile = WhimTexProfiler.Measure("storage.serialize_json", document);
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new WhimTexJsonWriteOptions();
             if (!options.AllowDataLoss && !string.IsNullOrEmpty(document.documentLoadWarning))
@@ -98,12 +99,14 @@ namespace DCFApixels.WhimTex
             if (!Enum.IsDefined(typeof(WhimTexJsonWriteMode), options.Mode))
                 throw new ArgumentOutOfRangeException(nameof(options.Mode));
             RestoreMissingAssets(document);
-            document.ValidateComments();
+            document.EnsureCommentNumbers();
             if (selection != null) selection = FragmentRoots(document, selection);
             var context = new Writer(options, document);
             var settings = context.ObjectFields(document);
             settings.Remove("layers");
             if (selection != null || document.comments == null || document.comments.Count == 0) settings.Remove("comments");
+            if (selection != null || document.commentNumberSequence == 0) settings.Remove("commentNumberSequence");
+            if (selection != null || document.agentReceipts == null || document.agentReceipts.Count == 0) settings.Remove("agentReceipts");
             // Even Compact retains the source canvas: omission means the destination axis
             // when this same JSON is pasted, rather than the format's default axis.
             settings["width"] = document.width;
@@ -129,6 +132,7 @@ namespace DCFApixels.WhimTex
 
         private static WhimTexJsonReadResult ReadCore(string json, bool prepareEffects, Vector2Int? fallbackCanvas)
         {
+            using var profile = WhimTexProfiler.Measure("storage.deserialize_json");
             JObject root = Parse(json);
             CheckKeys(root, "format", "version", "document", "layers", "writeMode");
             var mode = WhimTexJsonWriteMode.FullOptimized;
@@ -289,10 +293,16 @@ namespace DCFApixels.WhimTex
         internal static void ValidateModelInputs(WhimTexDocument document)
         {
             document.ValidateComments();
+            int layerCount = 0;
             void Visit(List<Layer> layers)
             {
                 foreach (var layer in layers)
                 {
+                    if (++layerCount > 1024)
+                        throw new WhimTexDocumentException("At most 1024 layers are supported after vector normalization.");
+                    if (layer != null && !Enum.IsDefined(typeof(VectorBooleanOperation), layer.booleanOperation))
+                        throw new WhimTexDocumentException("Unsupported Boolean operation: " + layer.Id);
+                    if (layer?.Behaviour is BooleanGroupLayerBehaviour booleanGroup) ValidateVectorStorage(booleanGroup);
                     if (layer?.Behaviour is TextLayerBehaviour text) text.Validate();
                     if (layer?.Behaviour is SDFLayerBehaviour sdf)
                     {
@@ -370,6 +380,7 @@ namespace DCFApixels.WhimTex
 
             internal JObject ObjectFields(object value)
             {
+                ValidateVectorStorage(value);
                 if (value is TextLayerBehaviour textLayer)
                 {
                     textLayer.PrepareSavedAppearance(document.width, document.height);
@@ -420,6 +431,8 @@ namespace DCFApixels.WhimTex
                         catch (Exception error) when (error is IOException || error is InvalidOperationException)
                         { encoded = new JValue(fx.Code); }
                     }
+                    else if (value is VectorBrushDraft && field.Name == "coverage")
+                        encoded = item == null ? JValue.CreateNull() : new JValue(Convert.ToBase64String((byte[])item));
                     else encoded = Value(item, field.FieldType);
                     if (options.Mode == WhimTexJsonWriteMode.Compact && IsDefault(value.GetType(), field.Name, encoded)) continue;
                     node[field.Name] = encoded;
@@ -501,6 +514,14 @@ namespace DCFApixels.WhimTex
                     return null;
                 }
                 if (declared.IsEnum || declared.IsPrimitive || declared == typeof(string) || declared == typeof(decimal)) return ReadScalar(token, declared);
+                if (parent is VectorBrushDraft && key == "coverage")
+                {
+                    if (token.Type != JTokenType.String || ((string)token).Length > 1398104)
+                        throw JsonError(token, "Brush coverage must be base64 for at most 1048576 original bytes.");
+                    byte[] coverage = Convert.FromBase64String((string)token);
+                    if (coverage.Length > 1048576) throw JsonError(token, "Brush coverage exceeds 1048576 bytes.");
+                    return coverage;
+                }
                 if (TryReadUnityValue(token, declared, out object primitive)) return primitive;
                 if (token is JArray array)
                 {
@@ -592,6 +613,13 @@ namespace DCFApixels.WhimTex
                 if (result is ShapeLayerBehaviour.Corner corner && (corner.amount < 0 || corner.amount > 1))
                     throw JsonError(node["amount"] ?? node, "Corner amount must be between 0 and 1.");
                 if (result is TextLayerBehaviour text && text.Notice != null) Warnings.Add(text.Notice);
+                if (result is Layer layer && layer.Behaviour is BooleanGroupLayerBehaviour)
+                {
+                    if (node["compositing"] != null && layer.compositing != GroupCompositing.Isolated)
+                        throw JsonError(node["compositing"], "Boolean Group requires Isolated compositing.");
+                    layer.compositing = GroupCompositing.Isolated;
+                }
+                ValidateVectorStorage(result);
                 return result;
             }
         }

@@ -18,6 +18,11 @@ FX delivery can compile transient GPU shaders; this is separate from script comp
 
 ## Immediate editing batches
 
+For comment-driven work, [comment queries](AgentAPI.md#comment-discussions) support author, status,
+text and creation/activity ranges, ordering, and links to exact discussions. Canvas clusters are
+presentation only; freeze individual IDs and feedback revisions. `whimtex_comments` `op:open`
+explicitly navigates a link and may open its saved document; ordinary list/context calls do not navigate.
+
 For parameter-only FX edits, preset insertion, reordering/copying/baking FX, layer structure changes
 and blur/healing strokes, use `whimtex_assistant_execute`. It takes the same operations as the
 batch/headless backend, an explicit open `sessionId` and the document `expectedRevision` from
@@ -36,6 +41,20 @@ For packed maps, `quiltingChannels:"Independent"` affects patch matching, while 
 `processGreen` / `processBlue` / `processAlpha` control which channels receive the result in every method.
 
 ## Connect and discover
+
+Shape and Vector fill edits use the same shared `set` operations: partial
+`settings.shape` fields or `settings.vector.shapes` as a complete replacement array.
+Both expose all seven fill modes and retain inactive palettes and anchors. See
+[Shape settings](AgentAPI.md#shape-settings), [Vector settings](AgentAPI.md#vector-settings)
+and the [shared fill/stroke geometry](JSON_FORMAT.md#figure-fills). Stroke has its own
+`strokeMode`, `strokeGradient`, `strokeGradientStart`, `strokeGradientEnd` and
+`strokeGradientRepetitions`; `stroke:false` or `strokeMode:"None"` retains inactive
+settings. Inspect before replacing
+a Vector array so the figure, compound contours and inactive settings remain present.
+New Vector authoring accepts one figure per layer. Use `type:"booleanGroup"` and
+`settings.booleanGroup` for common styling and Combine-only `appearance: Group / Layers`, with `settings.booleanOperation` on
+Shape/Vector/nested Boolean Group children. These are shared batch operations, not
+image-generation reservations. See [Boolean Group settings](AgentAPI.md#boolean-group-settings).
 
 For an authorized content-generation request, reserve and capture context in one call:
 
@@ -96,6 +115,81 @@ canvas `selection`. Pending entries expose `jobId`, `contentLocked` and status t
 pinned to that window/document pair: switching documents, closing the window or reloading scripts
 invalidates delivery. Discovery does not open windows or change selection.
 
+## Profiling live renders
+
+The profiler window is available at **Window → Analysis → WhimTex Profiler**.
+
+Use `whimtex_profile --requestPath` or `WhimTexApi.ProfileJson(requestJson)` to capture render
+performance around an authorized live edit. See [profiler captures](AgentAPI.md#profiler-captures)
+for requests, limits, pagination, export and timing semantics. Profiling control itself neither
+edits the document nor forces a render, clears caches or starts compilation.
+
+`LiveSessions` and document snapshots expose `profilerDocumentId` as an opaque string. Pass that
+returned string unchanged as `documentId` in a profiler `start` request to restrict the capture;
+omit the field or supply null for all documents. Do not guess numeric `EntityId` values. In the
+window, paste the returned string into **Document ID**, or leave it empty for all documents.
+This ID is session-local, distinct from `sessionId`, and must be rediscovered after reopening the
+document or reloading scripts. Retain the returned `captureId`, perform the live work separately,
+then stop, read and export that capture before script reload.
+
+The capture covers instrumented render paths. `changeId` associates renders with the latest model
+change; it does not establish full gesture latency or GPU presentation time. Measurements include
+main-thread waits and GPU submission, with null timings for unfinished spans. Summary rows overlap;
+only completed matching root spans contribute to `rootWallMs`. Native worker execution is visible
+through Unity's job profiler, without custom per-worker spans in this report.
+FX blocks and individual FX additionally expose `cpuPrepareMs`, `cpuSubmitMs`, and delayed `gpuMs`
+with `gpuStatus`. Wait for `capture.gpuAvailability:ready` before a one-shot GPU measurement and for
+`pendingGpuSamples:0` before export. Read the FX timing semantics in the profiler contract: nested GPU
+intervals overlap, and unavailable GPU timing is null rather than an estimate from CPU wall time.
+
+## Comment-driven editing
+
+The `inspect` snapshot includes all posted discussions in `document.comments`, including committed
+messages/edits not yet saved to the document file and resolved threads. Text and attachments still being
+composed or edited before **Post/Save** remain window-local and are invisible to the API.
+Each discussion exposes `status`: `InProgress`, `AwaitingReview`, or
+`Resolved`. Set it explicitly through a `comment` operation; opening or replying preserves it.
+Use `AwaitingReview` for verified work handed back to the user; all status transitions are allowed.
+To act on feedback, freeze the requested IDs and `feedbackRevision` values
+at the start. Read complete discussions and use `whimtex_comments` with this session's
+`assistantSessionId` for clean/numbered overviews and focused crops. New comments do not expand
+the assignment automatically. A marker is a location cue; it does not identify a layer or an edit mask.
+
+For immediate edits, put check-only `comment` operations before layer/FX operations in
+`whimtex_assistant_execute`. For long jobs, use JSON begin/lock with the frozen checks:
+
+```json
+{"apiVersion":1,"op":"begin","sessionId":"SESSION","requestId":"NEW-UUID","workId":"WORK-UUID","name":"Edge correction","source":"merged","area":"canvas","commentChecks":[{"commentId":"COMMENT-ID","expectedFeedbackRevision":"FEEDBACK-REVISION"}]}
+```
+
+For an existing layer:
+
+```json
+{"apiVersion":1,"op":"lock","sessionId":"SESSION","requestId":"ANOTHER-UUID","workId":"WORK-UUID","layerId":"LAYER-ID","commentChecks":[{"commentId":"COMMENT-ID","expectedFeedbackRevision":"FEEDBACK-REVISION"}]}
+```
+
+Checks follow forks and prevent preview/completion if feedback changed or disappeared. Reread and
+reassess the work on `comment_revision_conflict`/`comment_not_found`; cancellation/unlock remains
+available. Do not bypass the conflict by replacing a revision without considering the new feedback.
+
+After applying, render and inspect the result, then reply in each relevant thread with what changed
+and any remaining limitations. Combine the verified result reply with `status:AwaitingReview`, or
+`status:Resolved` when the user asked to close the discussion. Partial work stays `InProgress` with an explanation.
+Reply/status operations use fresh thread and document revisions, share Undo and never save the
+open document. The [comment contract](AgentAPI.md#comment-discussions) specifies filters, coordinates,
+limits, reply fields and retry semantics. The `whimtex-live` skill describes the complete workflow.
+
+Prefer `expectedFeedbackRevision` in task guards: colors and intact agent progress replies do not change it,
+but user corrections do. Message attachments expose layer IDs, persistent asset references and selection masks.
+Replies can attach the resulting layers/assets; the user can ping them from the comment card.
+Use a workId across the assignment, with a distinct requestId for each Assistant batch or begin/lock.
+The [work receipt contract](AgentAPI.md#work-ids-and-safe-retries) covers retrying completed edits,
+recovering result IDs after reload, and Undo. Comment-only batches can post progress during pending
+jobs; mixed image-edit batches remain blocked until pending jobs finish.
+To leave a new note, use the shared `commentCreate` operation with bottom-left `anchorUv` in 0..1,
+`text`, and optional `author`/`attachments`. Its result returns `commentId` and `messageId` for
+follow-up replies; work/request receipts preserve these IDs on retry. New discussions stay open.
+
 ## Reserve first, generate later
 
 ```json
@@ -116,15 +210,32 @@ reusing it for a different request fails. Keep the original JSON for transport r
 | `parent`, `index` | Group ID and insertion index; default root, top (`0`) |
 | `source` | `none` (default), `merged`, or `layer` |
 | `sourceLayerId` | For `source:layer`; omitted means the active layer. An explicit ID may identify any valid source |
-| `area` | `canvas` (default) or `selection`; selection must be active and nonempty |
-| `selectionMode` | Selection only: `strict` (default) enforces the mask; `guide` treats it as a placement reference |
-| `padding` | Context around selection bounds, 0..4096 pixels; defaults to 32 for strict, 128 for guide. Selection only. JSON does not accept the CLI's -1 sentinel |
+| `area` | `canvas` (default), `selection` (nonempty working selection), or `commentMask` (attached snapshot) |
+| `maskRef` | Required for `commentMask`: `{maskId,expectedRevision}` from a message's mask attachment; unavailable on the short CLI begin helper, use JSON |
+| `selectionMode` | For selection/commentMask: `strict` (default) enforces the mask; `guide` treats it as a placement reference |
+| `padding` | Context around mask bounds, 0..4096 pixels; defaults to 32 for strict, 128 for guide. Selection/commentMask only. JSON does not accept the CLI's -1 sentinel |
 | `destination` | `newLayer` (default) or `replacePixels` |
 | `targetLayerId` | Explicit Drawing ID required for `replacePixels` |
 
 The source and destination are independent. Choose them from the user's request. For example,
 removing an object from the visible composition usually needs `source:merged`; fixing the content
 of a particular layer may need `source:layer`. Do not require all tasks to use Copy Merged.
+
+An attached selection can drive a job directly, without replacing the user's current selection:
+
+```json
+{"apiVersion":1,"op":"begin","sessionId":"SESSION","requestId":"mask-edit-1",
+ "name":"Edge correction","source":"merged","area":"commentMask","selectionMode":"strict",
+ "maskRef":{"maskId":"MASK-ID","expectedRevision":"MASK-REVISION"},"padding":32}
+```
+
+Read the mask metadata through `whimtex_comments` first. `capture.maskRef` records the frozen
+reference; `capture.maskPath` follows the existing region-relative generation-mask contract.
+Preview, completion and forks recheck the mask revision; replacement, deletion or canvas geometry
+changes require rereading and recapturing. Changes to the working selection do not invalidate the
+job. A mask with no selected pixels inside the canvas is rejected. Both strict and guide modes
+require image completion, as with ordinary selection jobs. `replacePixels` is supported for a
+Drawing target; global FX/settings edits do not become spatially masked by this field.
 
 A reservation is an inert layer, ignored by compositing, effect inputs and clipping chains.
 Users may rename, hide, move or group it immediately. Content settings and painting are unavailable.
@@ -169,7 +280,7 @@ Choose strict for precise masked edits or explicit outside-area protection. Choo
 placement with shadows/soft edges that need extra room. A request to fill the selection with the main
 object need not constrain its shadow. Keep unrelated surroundings unchanged in the generation prompt.
 `capture.selectionMode`, `capture.maskEnforced` and `capture.maskMeaning` report the frozen policy;
-canvas captures have null selectionMode and false maskEnforced. Unknown modes are errors.
+Canvas captures have null selectionMode; maskEnforced is true when an application mask is supplied. Unknown modes are errors.
 
 For example, reserve a new object with room for its shadow:
 
@@ -181,7 +292,7 @@ For example, reserve a new object with room for its shadow:
 ```
 
 Choose padding before capture; both modes remain bounded by the canvas. In guide mode the generator
-must not use the selection as a hard editing mask. With `replacePixels`, **the entire crop is replaced**,
+must not use the selection as a hard editing mask. Without an application mask, `replacePixels` replaces **the entire crop**,
 including black-mask context and any transparent pixels in the result. Prefer newLayer for additions
 unless replacing this wider area is part of the user's request. Preview before delivery when useful.
 
@@ -194,6 +305,41 @@ even if it is hidden. Groups are isolated color sources; child visibility is res
 
 Selection, its interpretation, crop bounds and source pixels are frozen at begin. Later selection changes do not change the task.
 Context files live under `Temp/WhimTex/Agent/<jobId>/`, not Assets. Returned paths are absolute.
+
+### Separate guide and application masks
+
+For approximate feedback, keep the guide for generation and explicitly limit where the result may
+be applied. JSON `begin` accepts `applicationMask` alongside `selectionMode:"guide"`:
+
+```json
+{
+  "apiVersion":1,"op":"begin","sessionId":"SESSION","requestId":"repair-uuid",
+  "source":"layer","sourceLayerId":"DRAWING-ID","area":"commentMask",
+  "maskRef":{"maskId":"MASK-ID","expectedRevision":"MASK-REVISION"},
+  "selectionMode":"guide","padding":48,"destination":"replacePixels","targetLayerId":"DRAWING-ID",
+  "applicationMask":{"fromGuide":true,"expandPixels":4,"featherPixels":3}
+}
+```
+
+`applicationMask` requires exactly one of `fromGuide:true` or a separate
+`maskRef:{maskId,expectedRevision}`. `expandPixels` and `featherPixels` are integers 0..512,
+default 0, measured on the canvas. Expansion grows every nonzero mask pixel by Euclidean distance;
+feather adds an outward linear transition after that radius. With both zero, soft coverage is
+preserved exactly. Expansion promotes covered pixels to full coverage; feather alone retains
+existing soft pixels. Holes can shrink as the mask grows. Inspect the exported coverage.
+
+The capture crop includes the application mask even if it extends beyond the guide's padded bounds.
+`capture.applicationMaskPath` is a PNG aligned with that crop: coverage is in RGB, alpha is opaque.
+`capture.applicationMask` describes its settings, and `capture.applicationMaskRef` identifies a
+separate attached mask when used. Both references are checked again on preview, fork and completion.
+Application coverage clips new Drawing pixels or blends replacements with original pixels;
+zero coverage preserves the target's source pixels. Existing layer FX may still spread visually
+outside the mask. It does not mask global FX/settings edits. Forks inherit the frozen masks.
+Strict mode already enforces its selection and rejects an additional application mask.
+
+Guide mode without `applicationMask` retains its unrestricted padded-crop behavior. Do not use
+large padding alone to protect surrounding pixels. Choose the smallest expansion/feather needed
+for the requested edge and inspect the comparison before applying.
 
 ## Complete with an image
 
@@ -356,7 +502,8 @@ Successful completion releases the lock. `{"apiVersion":1,"op":"unlock","jobId":
 releases it without changes and is safe to repeat. The user can choose **Cancel Agent Edit** in Layer
 Settings or the context menu; `cancel` with sessionId/layerId also works. A terminal `fail` releases
 an edit lock. If pausing or abandoning work, unlock/fail rather than leaving the user waiting.
-Locks are session-local, not saved: close/switch, deletion, script reload and Undo/Redo cancel them;
+Locks are session-local, not saved: close/switch, deletion and Undo/Redo cancel them;
+script reload interrupts them with explicit checked recovery as described below.
 Redo never reacquires one. A late completion cannot revive a cancelled job. Save As transfers the
 job to the new document copy. If content changed by another route, `revision_conflict` prevents
 overwriting it: unlock, inspect and agree on a new edit rather than bypassing the check.
@@ -379,6 +526,23 @@ No trial is mandatory: use it when visual feedback helps choose parameters. If t
 reservation, a composite preview also respects that visibility. A layer-only preview still shows
 its content, so hiding a reservation does not prevent the agent from checking it.
 
+Add `review:true` to a generation or edit-lock preview to also receive a `review` bundle:
+
+- `beforePath`, `afterPath`: current and candidate composites as transparent PNGs.
+- `comparisonPath`: before on the left, after on the right, over checkerboard.
+- `differencePath`: amplified visual difference; `changedOverlayPath`: orange changed-area overlay.
+- `changedMaskPath`: binary RGB coverage of changed samples; alpha is opaque.
+- `changedPixels`, `outsideGuidePixels`, `outsideApplicationPixels`: sample counts; absent masks
+  produce null outside counts. `sampled:true` means the images are smaller than the canvas.
+- `attachment`: a ready-to-use `{maskImagePath,channel:"red",bounds}` for a comment reply, or null
+  when no visible change was detected. Regenerate if the candidate or live document changes.
+
+The comparison uses premultiplied sRGB and alpha differences greater than 1/255 at the preview
+resolution. It is a visual review, not an exact HDR/source-pixel audit. Small changes may disappear
+in a reduced preview. Outside counts compare pixel centres; filtering and downstream FX can extend
+beyond application coverage. Inspect the images together with the counts. `maxSize` controls the
+cost and detail; the original document and its Undo history remain unchanged.
+
 To inspect a current document without a candidate:
 
 ```json
@@ -395,7 +559,7 @@ for an automatically unique name. These renders require a graphics device.
 {"apiVersion":1,"op":"status","jobId":"JOB"}
 ```
 
-Status returns `pending`, `completed` or `cancelled`. On a generation failure, report it to the user
+Status returns `pending`, `completed`, `cancelled`, or `interrupted` with `recoverable:true` after script reload. On a generation failure, report it to the user
 and optionally attach a message without discarding the reservation:
 
 ```json
@@ -409,14 +573,33 @@ reservations by session and layer ID:
 {"apiVersion":1,"op":"cancel","sessionId":"SESSION","layerId":"RESERVATION"}
 ```
 
+After script reload, rediscover `whimtex_assistant_sessions`: each original open document lists
+`recoverableJobs`. Resume using its **current** session ID and the original job ID:
+
+```json
+{"apiVersion":1,"op":"resume","sessionId":"CURRENT-SESSION","jobId":"ORIGINAL-JOB"}
+```
+
+Resume reuses the original reservation/edit target and frozen capture/guide/application buffers.
+It never creates a layer or recaptures pixels. It checks the original document instance, canvas size,
+source layer content/order, target revision, feedback and attached-mask revisions before enabling
+delivery. Changed source produces `revision_conflict`; changed masks produce `mask_revision_conflict`.
+Keep the generated image, inspect the new state and start a new capture when appropriate. Cancellation,
+deletion, closing/switching documents and Undo cannot be bypassed by resume. An interrupted edit lock
+can also be cancelled with sessionId/layerId. Repeating successful resume is safe.
+
+Recovery lasts only within the current Editor process and requires its temporary mask files.
+It does not survive restarting Unity or cleaning Temp; it is not saved in TIFF. Missing/corrupt
+recovery data returns `recovery_unavailable`. Closed documents are never reopened automatically.
+
 - Completion is one Undo action. Its repeated identical request returns the completed status without
   inserting again. A different completion request for an already-completed job is rejected.
 - Removing/undoing a reservation cancels its delivery. Redo does not restart generation. Undoing a
   completed result restores an inactive reservation; cancel it or start a new job, rather than replaying
   an old completion. A `completed` status acknowledges that the command ran, not that its result has
   never subsequently been undone or deleted.
-- Closing/switching the source window or reloading scripts interrupts delivery. Serialized reservations
-  remain recognizable and removable, but jobs/masks are session-local and are not resumed automatically.
+- Closing/switching the source window cancels delivery. Script reload retains checked recovery data;
+  the agent must explicitly resume. Serialized reservations remain recognizable and removable.
   Saving normally keeps jobs alive; Save As transfers active jobs to the newly saved copy in that window.
 - `document_busy` means wait for the current paint/transform/selection/drag gesture or delayed text edit
   to end, then retry the same request. No command ends the user's gesture or discards typed text.
@@ -426,7 +609,7 @@ reservations by session and layer ID:
   route a late result into another document.
 - `rollback_failed` reports `applied:true` conservatively because the document may be partially changed.
   Stop automatic retries and inspect the document before attempting recovery.
-- Limits: 16 pending jobs, 64 MiB total retained selection coverage, 512 job receipts per script session,
+- Limits: 16 pending jobs, 64 MiB total retained guide/application coverage, 512 job receipts per script session,
   1024 layers, 16,777,216 canvas pixels and 67,108,864 owned Drawing pixels. Preview/capture pixels are
   transient and are not stored in Undo. Temporary PNG files remain available for inspection until Temp
   is cleaned; the API does not delete user-provided images.

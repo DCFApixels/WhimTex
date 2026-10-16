@@ -61,6 +61,7 @@ namespace DCFApixels.WhimTex
             long bytes = (long)source.Length * (multi ? 20 : 8);
             if (bytes > BudgetBytes)
             {
+                WhimTexProfiler.Event("sdf.cache", "cache", "bypass:budget", bytes);
                 Dispose();
                 if (multiChannel.IsCreated)
                 {
@@ -73,6 +74,7 @@ namespace DCFApixels.WhimTex
             }
             bool same = fieldReady && input.IsCreated && width == w && height == h && channel == sourceChannel &&
                 threshold == boundary && metric == algorithm && sharpMode == mode && miter == miterLimit && merge == contourMergeDistance;
+            string miss = same ? "miss:source_pixels" : "miss:not_ready_or_settings";
             using (DistanceFieldTiming.Measure("reconstruction.match"))
                 if (same)
                     for (int i = 0; i < source.Length; i++)
@@ -80,6 +82,7 @@ namespace DCFApixels.WhimTex
                         Color32 a = source[i], b = input[i];
                         if (a.r != b.r || a.g != b.g || a.b != b.b || a.a != b.a) { same = false; break; }
                     }
+            WhimTexProfiler.Event("sdf.cache", "cache", same ? "hit" : miss, RetainedBytes);
             if (!same)
             {
                 Dispose();
@@ -106,6 +109,7 @@ namespace DCFApixels.WhimTex
                 catch { Dispose(); throw; }
             }
             used = ++clock;
+            WhimTexProfiler.NativeCacheBytes(this, RetainedBytes);
             using (DistanceFieldTiming.Measure("reconstruction.copy"))
             {
                 if (multi)
@@ -153,6 +157,7 @@ namespace DCFApixels.WhimTex
             if (mode == SharpDistanceMode.Unrestricted) miterLimit = 4;
             if ((long)source.Length * 8 > BudgetBytes)
             {
+                WhimTexProfiler.Event("sdf.cache", "cache", "bypass:budget");
                 Dispose();
                 if (rbf)
                     RbfDistanceField.Compute(source, output, w, h, boundary, sourceChannel, miterLimit, mode, algorithm == DistanceMetric.RbfDual);
@@ -162,6 +167,7 @@ namespace DCFApixels.WhimTex
             }
             bool same = input.IsCreated && width == w && height == h && channel == sourceChannel &&
                 threshold == boundary && metric == algorithm && sharpMode == mode;
+            string miss = same ? "miss:source_pixels" : "miss:not_ready_or_settings";
             using (DistanceFieldTiming.Measure("reconstruction.match"))
                 if (same)
                     for (int i = 0; i < source.Length; i++)
@@ -169,6 +175,7 @@ namespace DCFApixels.WhimTex
                         Color32 a = source[i], b = input[i];
                         if (a.r != b.r || a.g != b.g || a.b != b.b || a.a != b.a) { same = false; break; }
                     }
+            WhimTexProfiler.Event("sdf.geometry.cache", "cache", same ? "hit" : miss, RetainedBytes);
             if (!same)
             {
                 Dispose();
@@ -192,8 +199,10 @@ namespace DCFApixels.WhimTex
                 catch { Dispose(); throw; }
             }
             used = ++clock;
+            WhimTexProfiler.NativeCacheBytes(this, RetainedBytes);
             try
             {
+                WhimTexProfiler.Event("sdf.cache", "cache", fieldReady && miter == miterLimit ? "hit" : "miss:field_parameters", RetainedBytes);
                 if (!fieldReady || miter != miterLimit)
                 {
                     fieldReady = false;
@@ -220,6 +229,7 @@ namespace DCFApixels.WhimTex
 
         public void Dispose()
         {
+            WhimTexProfiler.NativeCacheBytes(this, 0);
             if (retained.Remove(this)) totalBytes -= RetainedBytes;
             geometry?.Dispose(); geometry = null;
             if (input.IsCreated) input.Dispose(); input = default;

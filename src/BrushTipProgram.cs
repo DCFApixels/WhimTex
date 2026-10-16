@@ -175,7 +175,7 @@ namespace DCFApixels.WhimTex
             RenderTexture target=null; Texture2D result=null;
             try
             {
-                target=RenderTexture.GetTemporary(resolution,resolution,0,RenderTextureFormat.ARGBHalf,RenderTextureReadWrite.Linear);
+                target=ProfiledRenderTexture.GetTemporary(resolution,resolution,0,RenderTextureFormat.ARGBHalf,RenderTextureReadWrite.Linear);
                 GL.sRGBWrite=false; Graphics.Blit(null,target,material);
                 RenderTexture.active=target;
                 result=new Texture2D(resolution,resolution,TextureFormat.RGBAHalf,false,true)
@@ -186,7 +186,7 @@ namespace DCFApixels.WhimTex
             finally
             {
                 RenderTexture.active=previous; GL.sRGBWrite=srgb;
-                if(target!=null)RenderTexture.ReleaseTemporary(target);
+                if(target!=null)ProfiledRenderTexture.ReleaseTemporary(target);
                 if(result!=null)UnityEngine.Object.DestroyImmediate(result);
             }
         }

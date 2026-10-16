@@ -50,8 +50,8 @@ namespace DCFApixels.WhimTex
                 {
                     var smaller = Allocate((current.width + 1) / 2, (current.height + 1) / 2);
                     try { Graphics.Blit(current, smaller, material, 1); }
-                    catch { RenderTexture.ReleaseTemporary(smaller); throw; }
-                    RenderTexture.ReleaseTemporary(current);
+                    catch { ProfiledRenderTexture.ReleaseTemporary(smaller); throw; }
+                    ProfiledRenderTexture.ReleaseTemporary(current);
                     current = smaller;
                     reduction *= 2;
                 }
@@ -66,13 +66,13 @@ namespace DCFApixels.WhimTex
                 material.SetInt("_SampleLimit", interactive ? InteractiveSampleLimit : FullSampleLimit);
                 blurred = Allocate(current.width, current.height);
                 Graphics.Blit(current, blurred, material, circular ? 3 : 2);
-                RenderTexture.ReleaseTemporary(current);
+                ProfiledRenderTexture.ReleaseTemporary(current);
                 current = null;
                 straight = Allocate(context.width, context.height);
                 material.SetFloat("_Strength", amount);
                 material.SetTexture("_SourceTex", amount < 1f ? context.input : null);
                 Graphics.Blit(blurred, straight, material, 4);
-                RenderTexture.ReleaseTemporary(blurred);
+                ProfiledRenderTexture.ReleaseTemporary(blurred);
                 blurred = null;
                 return layer.ApplyTransformAndFx(straight, context);
             }
@@ -81,15 +81,15 @@ namespace DCFApixels.WhimTex
                 material.SetTexture("_SourceTex", null);
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
-                if (current != null) RenderTexture.ReleaseTemporary(current);
-                if (blurred != null) RenderTexture.ReleaseTemporary(blurred);
-                if (straight != null) RenderTexture.ReleaseTemporary(straight);
+                if (current != null) ProfiledRenderTexture.ReleaseTemporary(current);
+                if (blurred != null) ProfiledRenderTexture.ReleaseTemporary(blurred);
+                if (straight != null) ProfiledRenderTexture.ReleaseTemporary(straight);
             }
         }
 
         private static RenderTexture Allocate(int width, int height)
         {
-            var texture = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+            var texture = ProfiledRenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             texture.filterMode = FilterMode.Bilinear;
             texture.wrapMode = TextureWrapMode.Clamp;
             return texture;

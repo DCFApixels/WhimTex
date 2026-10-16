@@ -118,6 +118,9 @@ namespace DCFApixels.WhimTex
                     plan.destination = parent;
                 }
             plan.index = plan.destination.Count;
+            if (TryFindParentGroup(plan.destination, out var booleanParent, out _, out _) &&
+                booleanParent.Behaviour is BooleanGroupLayerBehaviour)
+                throw new InvalidOperationException("Merge the whole Boolean Group, or move its operands out before rasterizing them.");
             foreach (Layer root in plan.roots)
             {
                 AddSubtree(root);
@@ -168,7 +171,7 @@ namespace DCFApixels.WhimTex
             finally
             {
                 RenderTexture.active = previous;
-                RenderTexture.ReleaseTemporary(rendered);
+                ProfiledRenderTexture.ReleaseTemporary(rendered);
             }
         }
 

@@ -20,6 +20,7 @@ next_page: "zh/getting-started.md"
 
 - [入门](getting-started.md)：安装、第一张图像及工作区。
 - [图层与组](layers.md)：图像组成、来源和程序化形状。
+- [矢量路径](vector.md)：可编辑曲线、填充、描边和画笔图形。
 - [变换与栅格化](transform.md)：放置内容，并决定何时转换为像素。
 
 ## 绘制与选择

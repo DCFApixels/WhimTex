@@ -42,6 +42,7 @@ namespace DCFApixels.WhimTex
         internal override RenderTexture Render(in LayerRenderContext context)
         {
             using var timing = DistanceFieldTiming.Measure("render.sdf");
+            if (WhimTexProfiler.Recording) WhimTexProfiler.Event("sdf.algorithm", "counter", metric.ToString(), (int)metric);
             if (context.input == null)
             {
                 ReleaseDistancePreparation();
@@ -81,16 +82,19 @@ namespace DCFApixels.WhimTex
                     metric, sourceOffset * context.pixelScale / context.scaleMultiplier, sourceEdges, miterLimit, multiChannel,
                     contourMergeDistance * context.pixelScale / context.scaleMultiplier, reconstructedCache, sharpMode);
 
-                long stage = DistanceFieldTiming.Start();
-                resultTexture = new Texture2D(context.width, context.height, multiChannel.IsCreated ? TextureFormat.RGBAFloat : TextureFormat.RFloat, false, true)
+                using (DistanceFieldTiming.Measure("output.upload"))
                 {
-                    hideFlags = HideFlags.HideAndDontSave,
-                    filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp
-                };
-                if (multiChannel.IsCreated) resultTexture.SetPixelData(multiChannel, 0);
-                else resultTexture.SetPixelData(signedDistances, 0);
-                resultTexture.Apply(false, false);
-                DistanceFieldTiming.Report("output.upload", ref stage);
+                    resultTexture = new Texture2D(context.width, context.height, multiChannel.IsCreated ? TextureFormat.RGBAFloat : TextureFormat.RFloat, false, true)
+                    {
+                        hideFlags = HideFlags.HideAndDontSave,
+                        filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp
+                    };
+                    if (multiChannel.IsCreated) resultTexture.SetPixelData(multiChannel, 0);
+                    else resultTexture.SetPixelData(signedDistances, 0);
+                    resultTexture.Apply(false, false);
+                    WhimTexProfiler.TrackTexture(resultTexture, "distance field upload");
+                }
+                using var submitTiming = DistanceFieldTiming.Measure("output.submit");
                 if (gradientMaterial == null)
                 {
                     var shader = Shader.Find("Hidden/WhimTex/SdfGradient");
@@ -117,20 +121,21 @@ namespace DCFApixels.WhimTex
                 gradientMaterial.SetTexture("_ProfileLut", profileLut.GetTexture(profile));
                 gradientMaterial.SetInt("_Position", (int)distancePosition);
                 gradientMaterial.SetInt("_Inverted", inverted ? 1 : 0);
-                colored = RenderTexture.GetTemporary(context.width, context.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                colored = ProfiledRenderTexture.GetTemporary(context.width, context.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                 GL.sRGBWrite = false;
                 Graphics.Blit(resultTexture, colored, gradientMaterial);
                 var result = ApplyTransformAndFx(colored, context);
-                DistanceFieldTiming.Report("output.submit", ref stage);
                 return result;
             }
             finally
             {
                 RenderTexture.active = previous; GL.sRGBWrite = srgb;
-                if (colored != null) RenderTexture.ReleaseTemporary(colored);
+                if (colored != null) ProfiledRenderTexture.ReleaseTemporary(colored);
                 if (signedDistances.IsCreated)
                     signedDistances.Dispose();
                 if (multiChannel.IsCreated) multiChannel.Dispose();
+                WhimTexProfiler.ReleaseTexture(inputTexture);
+                WhimTexProfiler.ReleaseTexture(resultTexture);
                 if (inputTexture != null)
                     UnityEngine.Object.DestroyImmediate(inputTexture);
                 if (resultTexture != null)
@@ -486,11 +491,18 @@ namespace DCFApixels.WhimTex
             int threadCount = JobsUtility.ThreadIndexCount;
             int maximumLineLength = math.max(width, height);
             using var temporary = new NativeArray<float>(input.Length, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-            using var vertices = new NativeArray<int>(maximumLineLength * threadCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-            using var boundaries = new NativeArray<float>((maximumLineLength + 1) * threadCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
             using var coverageFlags = new NativeArray<byte>(threadCount * 2, Allocator.TempJob, NativeArrayOptions.ClearMemory);
-            new DistanceCoverageJob { input = input, coverageFlags = coverageFlags,
-                threshold = threshold, sourceChannel = sourceChannel }.Schedule(input.Length, 128).Complete();
+            ContourCrossingsJob crossings = new ContourCrossingsJob
+            {
+                input = input, output = temporary, threshold = threshold, sourceChannel = sourceChannel,
+                lineLength = width, lineStride = 1, lineStartStride = width,
+                coverageFlags = coverageFlags, collectCoverage = true,
+                largeValue = ((float)width * width + (float)height * height) * 4f + 1f
+            };
+            // The seed scan already visits every source texel. Detect uniform masks
+            // there instead of scheduling another full-image coverage pass.
+            JobHandle horizontalSeeds = crossings.Schedule(height, 1);
+            horizontalSeeds.Complete();
             bool hasObject = false, hasBackground = false;
             for (int i = 0; i < threadCount; i++)
             {
@@ -502,13 +514,8 @@ namespace DCFApixels.WhimTex
                 new FillDistanceJob { output = output, value = hasObject ? -1e10f : 1e10f }.Schedule(output.Length, 128).Complete();
                 return;
             }
-            ContourCrossingsJob crossings = new ContourCrossingsJob
-            {
-                input = input, output = temporary, threshold = threshold, sourceChannel = sourceChannel,
-                lineLength = width, lineStride = 1, lineStartStride = width,
-                largeValue = ((float)width * width + (float)height * height) * 4f + 1f
-            };
-            JobHandle horizontalSeeds = crossings.Schedule(height, 1);
+            using var vertices = new NativeArray<int>(maximumLineLength * threadCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+            using var boundaries = new NativeArray<float>((maximumLineLength + 1) * threadCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
             ExactDistanceTransformPassJob transform = new ExactDistanceTransformPassJob
             {
                 input = temporary, output = output, vertices = vertices, boundaries = boundaries,
@@ -517,6 +524,7 @@ namespace DCFApixels.WhimTex
             };
             JobHandle horizontalField = transform.Schedule(width, 1, horizontalSeeds);
             crossings.lineLength = height; crossings.lineStride = width; crossings.lineStartStride = 1;
+            crossings.collectCoverage = false;
             JobHandle verticalSeeds = crossings.Schedule(width, 1, horizontalField);
             transform.output = other; transform.lineLength = width; transform.lineStride = 1; transform.lineStartStride = width;
             JobHandle verticalField = transform.Schedule(height, 1, verticalSeeds);
@@ -548,6 +556,9 @@ namespace DCFApixels.WhimTex
         [ReadOnly] public NativeArray<Color32> input;
         [NativeDisableParallelForRestriction] public NativeArray<float> output;
         public int lineLength, lineStride, lineStartStride;
+        [NativeDisableParallelForRestriction] public NativeArray<byte> coverageFlags;
+        public bool collectCoverage;
+        [NativeSetThreadIndex] private int threadIndex;
         public int sourceChannel;
         public byte threshold;
         public float largeValue;
@@ -560,20 +571,30 @@ namespace DCFApixels.WhimTex
                 int step = direction == 0 ? 1 : -1;
                 int first = direction == 0 ? 0 : lineLength - 1;
                 float nearest = -1e10f;
+                float previousValue = 0;
+                bool hasObject = false, hasBackground = false;
                 for (int q = first; q >= 0 && q < lineLength; q += step)
                 {
                     int index = start + q * lineStride;
                     int previous = q - step;
+                    float b = DistanceFieldSource.Value(input[index], sourceChannel);
+                    if (collectCoverage && direction == 0)
+                    { hasObject |= b > threshold; hasBackground |= b <= threshold; }
                     if (previous >= 0 && previous < lineLength)
                     {
-                        float a = DistanceFieldSource.Value(input[start + previous * lineStride], sourceChannel);
-                        float b = DistanceFieldSource.Value(input[index], sourceChannel);
+                        float a = previousValue;
                         if ((a > threshold) != (b > threshold))
                             nearest = previous + step * (threshold - a) / (b - a);
                     }
+                    previousValue = b;
                     float delta = q - nearest;
                     float squared = math.min(largeValue, delta * delta);
                     output[index] = direction == 0 ? squared : math.min(output[index], squared);
+                }
+                if (collectCoverage && direction == 0)
+                {
+                    if (hasObject) coverageFlags[threadIndex * 2] = 1;
+                    if (hasBackground) coverageFlags[threadIndex * 2 + 1] = 1;
                 }
             }
         }
@@ -633,10 +654,10 @@ namespace DCFApixels.WhimTex
             for (int q = 1; q < lineLength; q++)
             {
                 float intersection;
+                float qValue = input[lineStart + q * lineStride];
                 while (true)
                 {
                     int p = vertices[vertexStart + envelopeSize];
-                    float qValue = input[lineStart + q * lineStride];
                     float pValue = input[lineStart + p * lineStride];
                     intersection = ((qValue + q * q) - (pValue + p * p)) / (2f * (q - p));
                     if (intersection > boundaries[boundaryStart + envelopeSize])

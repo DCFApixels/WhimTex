@@ -9,9 +9,14 @@ namespace DCFApixels.WhimTex
 {
     public static partial class WhimTexApi
     {
-        private static Layer ApplyOperation(WhimTexDocument document, JObject operation, Dictionary<string, Layer> aliases, bool execute)
+        private static Layer ApplyOperation(WhimTexDocument document, JObject operation, Dictionary<string, Layer> aliases, bool execute, string workId = null, CanvasSelection attachmentSelection = null)
         {
             string op = Text(operation, "op");
+            if (op == "comment" || op == "commentCreate")
+            {
+                ApplyCommentOperation(document, operation, aliases, workId, attachmentSelection);
+                return null;
+            }
             if (op == "resize")
             {
                 ResizeCanvas(document, operation);
@@ -24,6 +29,10 @@ namespace DCFApixels.WhimTex
                 var descriptor = LayerTypeRegistry.Find(type);
                 Require(descriptor != null, "Unknown layer type: " + type);
                 Layer added = descriptor.CreateLayer();
+                if (added.Behaviour is VectorLayerBehaviour addedVector)
+                    addedVector.referenceSize = new Vector2(document.width, document.height);
+                if (added.Behaviour is BooleanGroupLayerBehaviour addedBoolean)
+                    addedBoolean.referenceSize = new Vector2(document.width, document.height);
                 string alias = Text(operation, "as");
                 if (alias != null)
                 {
@@ -32,11 +41,13 @@ namespace DCFApixels.WhimTex
                 }
                 List<Layer> container = Container(document, Text(operation, "parent"), aliases);
                 int index = Int(operation, "index", 0, 0, container.Count);
+                Require(document.CanInsertInto(added, container), "Boolean Group accepts only closed Shape/Vector geometry and nested Boolean Groups.");
+                if (operation["settings"] != null) SetLayer(document, added, Obj(operation["settings"], "settings"));
+                Require(document.CanInsertInto(added, container), "Boolean Group operands require closed contours; close open paths before insertion.");
                 added.AssignNewId();
-                added.layerName = document.AllocateLayerName(added);
+                if (operation["settings"]?["name"] == null) added.layerName = document.AllocateLayerName(added);
                 container.Insert(index, added);
                 if (alias != null) aliases.Add(alias, added);
-                if (operation["settings"] != null) SetLayer(document, added, Obj(operation["settings"], "settings"));
                 if (operation["transform"] != null) SetTransform(document, added, Obj(operation["transform"], "transform"));
                 if (execute && added?.Behaviour is DrawingLayerBehaviour drawing)
                 {
@@ -54,6 +65,14 @@ namespace DCFApixels.WhimTex
             }
             switch (op)
             {
+                case "convertToVector":
+                    Keys(operation, "op", "layer");
+                    Require(layer.Behaviour is ShapeLayerBehaviour, "convertToVector requires a Shape layer.");
+                    layer.SetBehaviour(ShapeToVector.Convert((ShapeLayerBehaviour)layer.Behaviour, document));
+                    if (layer.transform.tiling == TransformTilingMode.Clip)
+                        layer.transform.tiling = TransformTilingMode.Unbounded;
+                    VectorLayerStructure.FitFrame(layer, document.width, document.height);
+                    break;
                 case "fx":
                     Keys(operation, "op", "layer", "edits");
                     ApplyFxOperations(document, layer, operation["edits"], execute, aliases);
@@ -102,10 +121,12 @@ namespace DCFApixels.WhimTex
                     List<Layer> destination = Container(document, Text(operation, "parent"), aliases);
                     if (layer?.AsGroup() is Layer movingGroup)
                         Require(!ContainsContainer(movingGroup, destination), "A group cannot be moved into itself or its descendants.");
+                    Require(document.CanInsertInto(layer, destination), "Boolean Group accepts only closed Shape/Vector geometry and nested Boolean Groups.");
                     Require(document.TryFindLayer(layer, out List<Layer> source, out int sourceIndex), "Layer not found.");
+                    int destinationIndex = Int(operation, "index", 0, 0, destination.Count - (ReferenceEquals(source, destination) ? 1 : 0));
                     document.PreserveTransformForMove(layer, destination);
                     source.RemoveAt(sourceIndex);
-                    destination.Insert(Int(operation, "index", 0, 0, destination.Count), layer);
+                    destination.Insert(destinationIndex, layer);
                     break;
                 default:
                     throw new WhimTexApiException("invalid_request", "Unknown operation: " + op);
@@ -175,12 +196,15 @@ namespace DCFApixels.WhimTex
         {
             Keys(settings, "name", "enabled", "clippingMask", "opacity", "blend", "filter", "source", "colorRange", "blendRange", "channelMapping", "compositing", "color", "brush",
                 "fillMode", "fillPattern", "metric", "sharpMode", "miterLimit", "contourMergeDistance", "outlineWidth", "outlineSoftness", "outlinePosition", "outlineOffset", "fillCenter", "fillColor", "sourceChannel", "threshold",
-                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "encoding", "gradient", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape", "text");
+                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "encoding", "gradient", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape", "vector", "booleanGroup", "booleanOperation", "text");
             foreach (var property in settings.Properties())
             {
                 string key = property.Name;
                 bool valid = key == "name" || key == "enabled" || key == "clippingMask" || key == "opacity" || key == "blend" ||
-                    key == "colorRange" || key == "blendRange" || key == "channelMapping" || key == "compositing" && layer?.IsGroup == true || !layer.IsGroup &&
+                    key == "colorRange" || key == "blendRange" || key == "channelMapping" || key == "booleanOperation" ||
+                    key == "booleanGroup" && layer?.Behaviour is BooleanGroupLayerBehaviour ||
+                    key == "filter" && layer?.Behaviour is BooleanGroupLayerBehaviour ||
+                    key == "compositing" && layer?.IsGroup == true || !layer.IsGroup &&
                     (key == "opacity" || key == "blend" || key == "filter" ||
                     key == "source" && layer?.Behaviour is FileLayerBehaviour || key == "brush" && layer?.Behaviour is DrawingLayerBehaviour ||
                     key == "color" && (layer?.Behaviour is ColorFillLayerBehaviour || layer?.Behaviour is OutlineLayerBehaviour) ||
@@ -192,6 +216,7 @@ namespace DCFApixels.WhimTex
                     key == "makeSeamless" && layer?.Behaviour is MakeSeamlessLayerBehaviour ||
                     key == "noise" && layer?.Behaviour is NoiseLayerBehaviour ||
                     key == "shape" && layer?.Behaviour is ShapeLayerBehaviour ||
+                    key == "vector" && layer?.Behaviour is VectorLayerBehaviour ||
                     key == "text" && layer?.Behaviour is TextLayerBehaviour ||
                     (key == "sourceChannel" || key == "outlineWidth" || key == "outlineSoftness" || key == "outlinePosition" ||
                      key == "outlineOffset" || key == "fillCenter" || key == "fillColor") && layer?.Behaviour is OutlineLayerBehaviour ||
@@ -205,6 +230,7 @@ namespace DCFApixels.WhimTex
             Require(!(layer?.Behaviour is ShaderProcessorLayerBehaviour) || !layer.clippingMask, "Shader Processor is a stack operation and cannot be a clipping layer.");
             layer.opacity = Number(settings, "opacity", layer.opacity, 0f, 1f);
             layer.blendMode = Enum(settings, "blend", layer.blendMode);
+            layer.booleanOperation = Enum(settings, "booleanOperation", layer.booleanOperation);
             if (settings["channelMapping"] != null)
             {
                 Require(settings["channelMapping"] is JArray array && array.Count == 4,
@@ -221,7 +247,11 @@ namespace DCFApixels.WhimTex
                 layer.channelMapping = channelMapping;
             }
             if (layer?.AsGroup() is Layer group)
+            {
                 group.compositing = Enum(settings, "compositing", group.compositing);
+                Require(!(layer.Behaviour is BooleanGroupLayerBehaviour) || group.compositing == GroupCompositing.Isolated,
+                    "Boolean Group requires Isolated compositing.");
+            }
             layer.filterMode = Enum(settings, "filter", layer.filterMode);
             if (layer?.Behaviour is FileLayerBehaviour file && settings["source"] != null)
             {
@@ -252,6 +282,13 @@ namespace DCFApixels.WhimTex
                 SetNoise(noise, Obj(settings["noise"], "noise"));
             if (layer?.Behaviour is ShapeLayerBehaviour shape && settings["shape"] != null)
                 SetShape(shape, Obj(settings["shape"], "shape"));
+            if (layer?.Behaviour is VectorLayerBehaviour vector && settings["vector"] != null)
+                WhimTexDocumentJson.PatchVector(vector, Obj(settings["vector"], "vector"), document);
+            if (layer?.Behaviour is BooleanGroupLayerBehaviour booleanGroup && settings["booleanGroup"] != null)
+            {
+                WhimTexDocumentJson.PatchBooleanGroup(booleanGroup, Obj(settings["booleanGroup"], "booleanGroup"), document);
+                booleanGroup.Validate();
+            }
             if (layer?.Behaviour is TextLayerBehaviour text && settings["text"] != null)
                 SetText(text, Obj(settings["text"], "text"));
             if (layer?.Behaviour is DrawingLayerBehaviour drawing && settings["brush"] != null) SetBrush(document, drawing, Obj(settings["brush"], "brush"));

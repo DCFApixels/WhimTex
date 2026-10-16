@@ -23,7 +23,7 @@ namespace DCFApixels.WhimTex
                     }
                     catch
                     {
-                        if (result != null) RenderTexture.ReleaseTemporary(result);
+                        if (result != null) ProfiledRenderTexture.ReleaseTemporary(result);
                         throw;
                     }
                 });
@@ -36,7 +36,7 @@ namespace DCFApixels.WhimTex
             }
             finally
             {
-                if (processed != null) RenderTexture.ReleaseTemporary(processed);
+                if (processed != null) ProfiledRenderTexture.ReleaseTemporary(processed);
                 stack.Remove(layer);
             }
         }

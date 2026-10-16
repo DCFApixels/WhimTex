@@ -91,6 +91,7 @@ namespace DCFApixels.WhimTex
             {
                 if (format == TextureExportFormat.Asset && !CanExportTextureAsset(path))
                     return false;
+                using var profile = WhimTexProfiler.Measure("storage.export", activeDocument, detail: format.ToString());
                 texture = activeDocument.ComposeCanvas();
                 if (format == TextureExportFormat.Asset)
                 {
@@ -190,6 +191,7 @@ namespace DCFApixels.WhimTex
 
         private static byte[] EncodeExportTextureWithOptions(Texture2D texture, TextureExportFormat format, int jpegQuality, Texture2D.EXRFlags exrFlags)
         {
+            using var profile = WhimTexProfiler.Measure("storage.encode", detail: format.ToString());
             RasterImageFormat rasterFormat;
             switch (format)
             {

@@ -27,6 +27,8 @@ Use **+** at the bottom of Layers to choose a type:
 | Gradient | A smooth color transition. |
 | Noise | A generated pattern. See [Noise](noise.md). |
 | Shape | An editable rectangle, ellipse, polygon, star, line, arc or sector. |
+| Vector | One editable figure with its own transform, nodes, curves, fill and stroke; compound contours can include holes. See [Vector paths](vector.md). |
+| Boolean Group | Union, Subtract, Intersect and Xor use a common fill and stroke. Combine keeps separate figures with group or layer styling. See [Boolean figures](vector.md#combine-figures-without-merging-them). |
 | Text | Editable text using fonts installed in the operating system. |
 | Outline | An editable border or filled silhouette. See [Outline and SDF](effects.md#outline-and-sdf). |
 | SDF | An edge-distance gradient or numeric distance map. See [Outline and SDF](effects.md#outline-and-sdf). |
@@ -206,7 +208,7 @@ formatting and advanced text shaping are not provided.
 Select layers and click **Folder**, or drag layers into an existing group.
 Use the group's arrow to expand or collapse it.
 
-Groups start in **Pass Through**, so their layers can blend with layers outside the group.
+Ordinary groups start in **Pass Through**, so their layers can blend with layers outside the group.
 Choose another blend mode to blend the group as one image. Group opacity fades the whole group.
 Add **FX** to a group to process its combined image. FX automatically isolate a Pass Through group using Normal blending, so they do not affect the image outside it. Removing all FX restores Pass Through unless clipping or Mapping still requires isolation. **Properties → Compositing** shows the effective mode, read-only. Groups also have **Transform**: move, rotate, scale, skew or distort the group with perspective. Children keep local transforms relative to their group. The group frame represents its own transform, not the bounds of its children. Moving layers between groups or ungrouping preserves their canvas placement.
 
@@ -280,6 +282,18 @@ Press `Escape` before releasing to cancel.
 Use **Transform** to move, resize or rotate an existing figure. In **Properties (Shape)**,
 change its type, colors, polygon sides or star points and inner radius.
 
+Enable **Fill**, then choose **Type**: Solid for one color, or Linear, Radial, Square,
+Diamond or Circular for a gradient. None leaves the body empty. Click **Gradient**
+to edit its colors and transparency; adjust Start/End or Center and the radius/direction
+point to place it. Turning Fill off hides these controls and keeps your settings.
+See [fill controls](vector.md#fill-and-stroke) for the shapes of each gradient and
+Circular's counterclockwise direction and seam.
+
+**Stroke → Type** offers the same solid and gradient choices with its own palette,
+points and circular Repetitions. None or turning Stroke off preserves those settings.
+With **Gradient Handles**, choose Fill or Stroke when both gradients are active;
+dragging the selected gradient's points keeps the figure in place.
+
 - **Corners (%)** shows a shape diagram with amount fields at the corners. Zero keeps a sharp corner.
   The icon beside each field selects **Round** or **Bevel**. For polygons with more than eight vertices, click a vertex on the diagram to edit it.
   Rectangle has four independent corners, each up to 100% of the shorter side when its neighbours leave enough room.
@@ -289,6 +303,10 @@ change its type, colors, polygon sides or star points and inner radius.
   Growing an independent corner reduces adjacent sizes when they no longer fit. Reducing it later does not restore them.
   Linked edits and geometry changes reduce sizes proportionally to fit the available edges.
 - **Stroke Position** chooses Inside, Center or Outside. Stroke width is in canvas pixels and stays fixed when resizing.
+  Inside/Outside offsets the trajectory before adding dashes and caps, keeping dots and round ends whole.
+  Narrow insets may split or disappear; dash placement follows the shifted path. See [stroke alignment](vector.md#fill-and-stroke).
+- The stroke **Join** icons choose Miter, Round or Bevel; **Miter Limit** cuts off long Miter points.
+  The stroke **Cap** icons choose Butt, Round or Square for dash ends. These controls are independent of the body's corners and Line Caps.
 - **Line Caps** chooses Butt, Round or Square for Line and Arc. Transform controls Line's length and thickness.
   Round/Square caps extend beyond the endpoints.
 - **Thickness (px)** sets Arc's body thickness; Transform controls its centerline ellipse.
@@ -296,6 +314,16 @@ change its type, colors, polygon sides or star points and inner radius.
   **Stroke Width** and **Stroke Position** control that outline, not the body's thickness.
 - **Start Angle** and **Sweep Angle** set Arc/Sector's range: zero degrees points right, increasing angles turn counterclockwise.
   Sweep 0 is empty; 360 produces a full ring or ellipse.
+
+For a dashed outline, use **Dashes** presets or enter alternating dash/gap lengths in
+**Pattern (× Width)**: `2 1` means a dash twice the stroke width and a gap once that width.
+An empty field gives a solid outline. The live preview reflects width, caps and **Dash Offset**;
+press **Enter** or leave the field to apply, or **Escape** to cancel. Expand **Segments** to
+edit **Dash**/**Gap** pairs. These are the same [dash controls as Vector](vector.md), including
+positive multipliers up to 8192, at most 256 values and odd lists that repeat twice.
+**Dash Offset** shifts the pattern in document pixels. Changing **Stroke Width** scales the
+pattern; resizing Shape keeps the stroke width and dash lengths fixed. Vector scales both
+with its layer. Round dot presets also select round stroke caps; Line Caps stay independent.
 
 **Feather (px)** softens the contour without blurring the whole image. **Feather Position**
 selects Inside, Outside or Centered; it also affects both edges of a hollow stroke.

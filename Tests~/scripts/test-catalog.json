@@ -2,7 +2,10 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
-    "comments": ["document-comments-v1", "comment-tool-v1"],
+    "vector-tools": ["vector-tools-geometry-v1", "vector-tools-cancel-v1", "vector-tools-brush-v1", "vector-tools-pen-v1", "vector-tools-stale-layer-v1", "vector-tools-focus-v1", "vector-stroke-style-v1", "vector-dashes-v1", "boolean-group-mode-v1"],
+    "vector": ["vector-geometry-v1", "vector-preparation-flatten-v1", "vector-preparation-coverage-aa-v1", "vector-preparation-coverage-step-v1", "vector-preparation-coverage-budgets-v1", "vector-clipper-regions-v1", "vector-clipper-budgets-v1", "vector-clipper-reuse-v1", "vector-prepared-geometry-v1", "vector-prepared-fill-v1", "vector-prepared-stroke-v1", "vector-prepared-dashes-v1", "vector-union-fill-v1", "vector-union-stroke-v1", "vector-union-dashes-v1", "vector-rendering-v1", "vector-paint-cache-v1", "vector-brush-v1", "vector-persistence-v1", "shape-to-vector-v1", "vector-shape-parity-v1", "shape-strokes-v1", "vector-boolean-v1", "vector-frames-v1", "vector-boolean-persistence-v1"],
+    "comments": ["document-comments-v1", "comment-editing-v1", "comment-author-v1", "comment-tool-v1", "comment-agent-v1",
+      "comment-workflow-v1", "comment-navigation-v1", "comment-file-v1"],
     "image-clipboard": ["image-clipboard-write-v1", "image-clipboard-native-v1"],
     "selection-edges": ["selection-edges-v1", "canvas-selection-v2", "area-selection-paint-v2", "uv-islands-unity-v2", "lasso-editing-v2", "freehand-lasso-v2"],
     "lasso": ["lasso-editing-v2", "freehand-lasso-v2", "selection-edges-v1", "canvas-selection-v2", "marquee-constraints-v2"],
@@ -222,7 +225,7 @@
       "reference-fixtures"
     ],
     "verify": [
-      "document-comments-v1", "comment-tool-v1",
+      "document-comments-v1", "comment-author-v1", "comment-tool-v1",
       "image-clipboard-write-v1",
       "image-clipboard-native-v1",
       "selection-edges-v1",
@@ -755,7 +758,7 @@
       "layer-drop-target-v1"
     ],
     "regressions": [
-      "document-comments-v1", "comment-tool-v1",
+      "document-comments-v1", "comment-author-v1", "comment-tool-v1",
       "image-clipboard-write-v1",
       "image-clipboard-native-v1",
       "selection-edges-v1",
@@ -1499,6 +1502,9 @@
       "seamless-release-stress-2048-mode-4-v2"
     ],
     "rendering": [
+      "vector-geometry-v1",
+      "vector-rendering-v1",
+      "vector-shape-parity-v1",
       "alpha-presence-v1",
       "distance-field-render-v2",
       "text-horizontal-scale",
@@ -1611,6 +1617,19 @@
       "psd-reader-roundtrip-v2"
     ],
     "automation": [
+      "profiler-v1",
+      "profiler-coverage-v1",
+      "profiler-analysis-v1",
+      "profiler-diagnostics-v1",
+      "profiler-allocations-v1",
+      "profiler-diagnostics-ui-v1",
+      "profiler-gpu-coverage-v1",
+      "profiler-benchmark-statistics-v1",
+      "profiler-benchmark-v1",
+      "profiler-comparison-ui-v1",
+      "profiler-table-layout-v1",
+      "profiler-fx-v1",
+      "profiler-reload-v1",
       "agent-command-inventory-v2",
       "agent-documentation-v2",
       "agent-samples-v2",
@@ -1633,6 +1652,7 @@
       "live-agent-unity-v2"
     ],
     "layers": [
+      "shape-to-vector-v1",
       "distance-contour-v1",
       "distance-contour-text-v1",
       "layer-content-state-v1",
@@ -1798,6 +1818,7 @@
       "procedural-clipboard-unity-v2"
     ],
     "painting": [
+      "vector-brush-v1",
       "selection-edges-v1",
       "distance-contour-v1",
       "distance-corner-fit-v1",
@@ -1877,6 +1898,15 @@
       "canvas-header-brush-layout"
     ],
     "canvas": [
+      "vector-tools-geometry-v1",
+      "vector-tools-cancel-v1",
+      "vector-tools-brush-v1",
+      "vector-tools-pen-v1",
+      "vector-tools-stale-layer-v1",
+      "vector-tools-focus-v1",
+      "vector-stroke-style-v1",
+      "vector-dashes-v1",
+      "comment-author-v1",
       "comment-tool-v1",
       "selection-edges-v1",
       "freehand-lasso-v2",
@@ -1919,6 +1949,7 @@
       "layer-opacity-slider-v1"
     ],
     "documents": [
+      "vector-persistence-v1",
       "document-comments-v1",
       "document-json-schema-v2",
       "document-title-v2",
@@ -1988,6 +2019,8 @@
       "color-presets-v2",
       "gradient-canvas-smoke-v2",
       "gradient-defaults-smoke-v2",
+      "gradient-circular-canvas-v1",
+      "figure-gradient-canvas-v1",
       "gradient-fx-smoke-v2",
       "gradient-gpu-run-smoke-main-v2",
       "gradient-gpu-run-smoke-rounded-v2",
@@ -2093,14 +2126,1173 @@
   },
   "scenarios": [
     {
+      "id": "vector-boolean-persistence-v1",
+      "file": "Tests~/Cases/Automation/VectorBooleanPersistenceTests.cs",
+      "runner": "run_script", "entry": "VectorBooleanPersistenceTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": [],
+      "groups": ["documents", "layers", "regression"],
+      "prerequisites": "Idle matching Editor; no concurrent compilation.",
+      "setup": "Owned detached documents, styles and inactive FX; native payload remains in memory.",
+      "teardown": "Destroy every owned document and FX; no files or assets.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/ApiJson.cs"]
+    },
+    {
+      "id":"vector-preparation-flatten-v1", "file":"Tests~/Cases/Rendering/VectorPreparationTests.cs",
+      "runner":"run_script", "entry":"VectorPreparationTests.Flatten", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":[], "groups":["rendering","regression"],
+      "prerequisites":"Idle matching Editor with Vector preparation Jobs compiled.",
+      "setup":"Owned contour snapshots; independent scalar oracle across degenerates and tolerance boundaries.",
+      "teardown":"No persistent objects or files; native preparation buffers are disposed by production code.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"vector-preparation-coverage-aa-v1", "file":"Tests~/Cases/Rendering/VectorPreparationTests.cs",
+      "runner":"run_script", "entry":"VectorPreparationTests.CoverageAA", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":[], "groups":["rendering","regression"],
+      "prerequisites":"Idle graphics-enabled matching Editor with float textures and VectorPaint shader.",
+      "setup":"Owned models and textures; compare parallel AA masks to scalar scan conversion and GPU paint.",
+      "teardown":"Dispose owned masks, palettes and targets; restore render state.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"vector-preparation-coverage-step-v1", "file":"Tests~/Cases/Rendering/VectorPreparationTests.cs",
+      "runner":"run_script", "entry":"VectorPreparationTests.CoverageStep", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":[], "groups":["rendering","regression"],
+      "prerequisites":"Idle graphics-enabled matching Editor with float textures and VectorPaint shader.",
+      "setup":"Owned models and textures; compare parallel Step masks to scalar scan conversion and GPU paint.",
+      "teardown":"Dispose owned masks, palettes and targets; restore render state.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"vector-preparation-coverage-budgets-v1", "file":"Tests~/Cases/Rendering/VectorPreparationTests.cs",
+      "runner":"run_script", "entry":"VectorPreparationTests.CoverageBudgets", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":[], "groups":["rendering","regression"],
+      "prerequisites":"Idle matching Editor with RGBAFloat textures.",
+      "setup":"Owned small textures and synthetic edges; global work precheck, crop bounds, exact limit and prior-work accounting.",
+      "teardown":"Dispose owned textures; oversized cases use an unreadable output tripwire and must not dispatch jobs.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"vector-boolean-v1", "file":"Tests~/Cases/Rendering/VectorBooleanTests.cs",
+      "runner":"run_script", "entry":"VectorBooleanTests.Run", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","regression"],
+      "prerequisites":"Idle graphics-enabled matching Editor.",
+      "setup":"Owned transient Boolean groups, vector and shape geometry only; no current document.",
+      "teardown":"Destroy owned documents/textures/material and restore render state. Preview in Temp/WhimTex/vector-boolean.png.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"vector-frames-v1", "file":"Tests~/Cases/Rendering/VectorBooleanTests.cs",
+      "runner":"run_script", "entry":"VectorBooleanTests.Frames", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":[], "groups":["layers","regression"],
+      "prerequisites":"Idle matching Editor.", "setup":"Owned transient vector frames and brush mask.",
+      "teardown":"Destroy owned document; no assets or windows.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"figure-fill-ui-v1", "file":"Tests~/Cases/Canvas/FigureFillUiTests.cs",
+      "runner":"run_script", "entry":"FigureFillUiTests.Run", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":["windows","user-state"], "groups":["canvas","color"],
+      "prerequisites":"Idle matching Editor; no concurrent user input or tests.",
+      "setup":"Owned utility window and transient Shape/Vector documents exercise shared fill controls and owned Undo.",
+      "teardown":"Close owned window, destroy models, clear only owned Undo, restore focus and shared caches.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs","Tests~/Framework/Unity/UnityBSupport.cs"]
+    },
+    {
+      "id":"figure-fill-persistence-v1", "file":"Tests~/Cases/Persistence/FigureFillPersistenceTests.cs",
+      "runner":"run_script", "entry":"FigureFillPersistenceTests.Run", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":[], "groups":["documents","color"],
+      "prerequisites":"Idle matching Editor with shared fill model compiled.",
+      "setup":"Detached document models, JSON/API snapshots and in-memory TIFF bytes; no current document access.",
+      "teardown":"Dispose owned containers and documents; destroy transient preview texture.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs","Tests~/Framework/Unity/ApiJson.cs"]
+    },
+    {
+      "id":"vector-paint-cache-v1", "file":"Tests~/Cases/Rendering/VectorPaintCacheTests.cs",
+      "runner":"run_script", "entry":"VectorPaintCacheTests.Run", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":[], "groups":["rendering","regression"],
+      "prerequisites":"Idle graphics-enabled matching Editor with supported VectorPaint shader and ARGBFloat targets.",
+      "setup":"Owned transient documents; coverage/Boolean reuse, invalidation and independent paint/overlap checks.",
+      "teardown":"Destroy owned documents/textures and restore render state.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"vector-clipper-regions-v1", "file":"Tests~/Cases/Rendering/VectorClipperWrapperTests.cs",
+      "runner":"run_script", "entry":"VectorClipperWrapperTests.Regions", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":[], "groups":["rendering","regression"],
+      "prerequisites":"Idle matching Editor.", "setup":"Independent pre-optimization normalization oracle and exact oriented integer-contour comparisons, mixed fill rules and all Boolean operations.",
+      "teardown":"Owned geometry and disposed native budget buffers only; no document or asset changes.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"vector-clipper-budgets-v1", "file":"Tests~/Cases/Rendering/VectorClipperWrapperTests.cs",
+      "runner":"run_script", "entry":"VectorClipperWrapperTests.Budgets", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":[], "groups":["rendering","regression"],
+      "prerequisites":"Idle matching Editor.", "setup":"Compare pre-optimization sweep acceptance at workload boundaries and mixed endpoints.",
+      "teardown":"Owned geometry and disposed native budget buffers only; no assets or user state.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"vector-union-fill-v1", "file":"Tests~/Cases/Rendering/VectorUnionAppearanceTests.cs",
+      "runner":"run_script", "entry":"VectorUnionAppearanceTests.Fill", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","regression"],
+      "prerequisites":"Idle matching graphics Editor; production Union guard compiled.",
+      "setup":"Compare fill pixels against original two-pass normalization, including touching contours, holes, mixed fill rules, AA and Step.",
+      "teardown":"Dispose owned textures and native scratch; preserve user capture; previews in Temp/WhimTex/vector-union-appearance.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Cases/Rendering/VectorClipperWrapperTests.cs","Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"vector-union-stroke-v1", "file":"Tests~/Cases/Rendering/VectorUnionAppearanceTests.cs",
+      "runner":"run_script", "entry":"VectorUnionAppearanceTests.Stroke", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","regression"],
+      "prerequisites":"Idle matching graphics Editor; production Union guard compiled.",
+      "setup":"Compare solid stroke pixels across positions, joins, caps and widths; retain harmful centerline counterexample.",
+      "teardown":"Dispose owned textures and native scratch; preserve user capture; previews in Temp/WhimTex/vector-union-appearance.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Cases/Rendering/VectorClipperWrapperTests.cs","Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"vector-union-dashes-v1", "file":"Tests~/Cases/Rendering/VectorUnionAppearanceTests.cs",
+      "runner":"run_script", "entry":"VectorUnionAppearanceTests.Dashes", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","regression"],
+      "prerequisites":"Idle matching graphics Editor; production Union guard compiled.",
+      "setup":"Compare dashed stroke pixels across positions, joins, caps, width-relative/absolute patterns, odd patterns and offset.",
+      "teardown":"Dispose owned textures and native scratch; preserve user capture; previews in Temp/WhimTex/vector-union-appearance.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Cases/Rendering/VectorClipperWrapperTests.cs","Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"vector-clipper-before-v1", "file":"Tests~/Cases/Rendering/VectorClipperBenchmark.cs",
+      "runner":"run_script", "entry":"VectorClipperBenchmark.Before", "args":[], "category":"diagnostic",
+      "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","diagnostic"],
+      "prerequisites":"Idle graphics Editor, Burst; before reports absent. Run only before the wrapper optimization.",
+      "setup":"Fresh transient documents per sample; isolated timing sink, frozen pre-change RGBAFloat pixels.",
+      "teardown":"Destroy owned resources, restore render state and instrumentation; retain immutable reports.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Cases/Rendering/VectorColdBenchmark.cs"]
+    },
+    {
+      "id":"vector-clipper-before-timings-v1", "file":"Tests~/Cases/Rendering/VectorClipperBenchmark.cs",
+      "runner":"run_script", "entry":"VectorClipperBenchmark.BeforeTimings", "args":[], "category":"diagnostic",
+      "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","diagnostic"],
+      "prerequisites":"Pre-optimization production, frozen before pixels in Temp/WhimTex/vector-clipper-v1; before-timings reports absent.",
+      "setup":"Repeat original cold fixtures with complete structured phase timing serialization, comparing to existing frozen pixels.",
+      "teardown":"Destroy owned resources and restore instrumentation; never overwrite original before captures.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Cases/Rendering/VectorColdBenchmark.cs"]
+    },
+    {
+      "id":"vector-clipper-after-v1", "file":"Tests~/Cases/Rendering/VectorClipperBenchmark.cs",
+      "runner":"run_script", "entry":"VectorClipperBenchmark.AfterBurst", "args":[], "category":"diagnostic",
+      "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","diagnostic"],
+      "prerequisites":"Idle graphics Editor, Burst; frozen before pixels in Temp/WhimTex/vector-clipper-v1 and no after-burst reports.",
+      "setup":"Same six cold fixtures; compare exact pixels and count/time Clipper calls separately from full timings.",
+      "teardown":"Destroy owned resources, restore render state and instrumentation; preserve user profiler captures.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Cases/Rendering/VectorColdBenchmark.cs"]
+    },
+    {
+      "id":"vector-prepared-geometry-v1", "file":"Tests~/Cases/Rendering/VectorPreparedContourTests.cs",
+      "runner":"run_script", "entry":"VectorPreparedContourTests.Geometry", "args":[],
+      "category":"regression", "timeoutMs":60000, "effects":[], "groups":["rendering"],
+      "prerequisites":"Prepared-contour support compiled; graphics-enabled matching Editor for pixel checks.",
+      "setup":"Compare detached prepared paths to former zero-handle anchor construction; check geometry, CPU pixels, coverage and GPU subset.",
+      "teardown":"Release owned transient models, textures and coverage; restore render state; no user documents or assets.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"vector-prepared-fill-v1", "file":"Tests~/Cases/Rendering/VectorPreparedContourTests.cs",
+      "runner":"run_script", "entry":"VectorPreparedContourTests.Fill", "args":[],
+      "category":"regression", "timeoutMs":60000, "effects":[], "groups":["rendering"],
+      "prerequisites":"Prepared-contour support compiled; graphics-enabled matching Editor for pixel checks.",
+      "setup":"Compare detached prepared paths to former zero-handle anchor construction; check geometry, CPU pixels, coverage and GPU subset.",
+      "teardown":"Release owned transient models, textures and coverage; restore render state; no user documents or assets.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"vector-prepared-stroke-v1", "file":"Tests~/Cases/Rendering/VectorPreparedContourTests.cs",
+      "runner":"run_script", "entry":"VectorPreparedContourTests.Stroke", "args":[],
+      "category":"regression", "timeoutMs":60000, "effects":[], "groups":["rendering"],
+      "prerequisites":"Prepared-contour support compiled; graphics-enabled matching Editor for pixel checks.",
+      "setup":"Compare detached prepared paths to former zero-handle anchor construction; check geometry, CPU pixels, coverage and GPU subset.",
+      "teardown":"Release owned transient models, textures and coverage; restore render state; no user documents or assets.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"vector-prepared-dashes-v1", "file":"Tests~/Cases/Rendering/VectorPreparedContourTests.cs",
+      "runner":"run_script", "entry":"VectorPreparedContourTests.Dashes", "args":[],
+      "category":"regression", "timeoutMs":60000, "effects":[], "groups":["rendering"],
+      "prerequisites":"Prepared-contour support compiled; graphics-enabled matching Editor for pixel checks.",
+      "setup":"Compare detached prepared paths to former zero-handle anchor construction; check geometry, CPU pixels, coverage and GPU subset.",
+      "teardown":"Release owned transient models, textures and coverage; restore render state; no user documents or assets.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"vector-clipper-reuse-v1", "file":"Tests~/Cases/Rendering/VectorClipperReuseTests.cs",
+      "runner":"run_script", "entry":"VectorClipperReuseTests.Run", "args":[],
+      "category":"regression", "timeoutMs":60000, "effects":[], "groups":["rendering"],
+      "prerequisites":"Scoped Clipper build support compiled in the matching Editor.",
+      "setup":"Owned detached contours; compare fresh and reused engines, nested scopes, exceptions and output ownership.",
+      "teardown":"Scopes release their thread-local engines; no Unity objects, user state or assets changed.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"vector-clipper-paired-1-v1", "file":"Tests~/Cases/Rendering/VectorClipperPairedBenchmark.cs",
+      "runner":"run_script", "entry":"VectorClipperPairedBenchmark.Block1", "args":[],
+      "category":"diagnostic", "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","diagnostic"],
+      "prerequisites":"Idle Editor, Burst enabled, original vector-clipper-v1/before-0 and before-3 RGBAFloat references present.",
+      "setup":"Counterbalanced fresh-engine versus scoped-engine cold Vector renders at 512 and 1024; inspect all samples and phase timings.",
+      "teardown":"Restore owned wrapper scope, instrumentation/render state; destroy transient documents/textures; unique Temp report.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Cases/Rendering/VectorColdBenchmark.cs"]
+    },
+    {
+      "id":"vector-clipper-paired-2-v1", "file":"Tests~/Cases/Rendering/VectorClipperPairedBenchmark.cs",
+      "runner":"run_script", "entry":"VectorClipperPairedBenchmark.Block2", "args":[],
+      "category":"diagnostic", "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","diagnostic"],
+      "prerequisites":"Same paired-benchmark prerequisites as block 1; reverse resolution order.",
+      "setup":"Independent second block, alternating AB/BA cold Vector renders.",
+      "teardown":"Restore owned wrapper scope, instrumentation/render state; destroy transient documents/textures; unique Temp report.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Cases/Rendering/VectorColdBenchmark.cs"]
+    },
+    {
+      "id":"vector-clipper-paired-3-v1", "file":"Tests~/Cases/Rendering/VectorClipperPairedBenchmark.cs",
+      "runner":"run_script", "entry":"VectorClipperPairedBenchmark.Block3", "args":[],
+      "category":"diagnostic", "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","diagnostic"],
+      "prerequisites":"Same paired-benchmark prerequisites as block 1.",
+      "setup":"Independent third block, alternating AB/BA cold Vector renders.",
+      "teardown":"Restore owned wrapper scope, instrumentation/render state; destroy transient documents/textures; unique Temp report.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Cases/Rendering/VectorColdBenchmark.cs"]
+    },
+    {
+      "id":"vector-clipper-paired-4-v1", "file":"Tests~/Cases/Rendering/VectorClipperPairedBenchmark.cs",
+      "runner":"run_script", "entry":"VectorClipperPairedBenchmark.Block4", "args":[],
+      "category":"diagnostic", "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","diagnostic"],
+      "prerequisites":"Same paired-benchmark prerequisites as block 1; reverse resolution order.",
+      "setup":"Independent fourth block, alternating AB/BA cold Vector renders.",
+      "teardown":"Restore owned wrapper scope, instrumentation/render state; destroy transient documents/textures; unique Temp report.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Cases/Rendering/VectorColdBenchmark.cs"]
+    },
+    {
+      "id":"vector-prepared-before-v1", "file":"Tests~/Cases/Rendering/VectorClipperBenchmark.cs",
+      "runner":"run_script", "entry":"VectorClipperBenchmark.PreparedBefore", "args":[],
+      "category":"diagnostic", "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","diagnostic"],
+      "prerequisites":"Before prepared-path and scoped-engine changes; frozen original pixels required; prepared-before reports absent.",
+      "setup":"Six fresh cold fixtures and separate Clipper phase counters.",
+      "teardown":"Destroy owned objects and restore render state/instrumentation; immutable measurements in Temp/WhimTex.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Cases/Rendering/VectorColdBenchmark.cs"]
+    },
+    {
+      "id":"vector-prepared-after-v1", "file":"Tests~/Cases/Rendering/VectorClipperBenchmark.cs",
+      "runner":"run_script", "entry":"VectorClipperBenchmark.PreparedAfter", "args":[],
+      "category":"diagnostic", "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","diagnostic"],
+      "prerequisites":"Prepared-path and scoped-engine changes compiled; frozen original pixels required; prepared-after reports absent.",
+      "setup":"Same six cold fixtures, compare exact pixels and separate Clipper phase counters.",
+      "teardown":"Destroy owned objects and restore render state/instrumentation; immutable measurements in Temp/WhimTex.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Cases/Rendering/VectorColdBenchmark.cs"]
+    },
+    {
+      "id":"vector-union-before-v1", "file":"Tests~/Cases/Rendering/VectorClipperBenchmark.cs",
+      "runner":"run_script", "entry":"VectorClipperBenchmark.UnionBefore", "args":[], "category":"diagnostic",
+      "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","diagnostic"],
+      "prerequisites":"Burst budget optimization compiled; run before Union changes. Frozen original pixels required; union-before reports absent.",
+      "setup":"Six fresh cold fixtures and separate Clipper phase counters.",
+      "teardown":"Destroy owned objects and restore render state/instrumentation; immutable measurements in Temp/WhimTex.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Cases/Rendering/VectorColdBenchmark.cs"]
+    },
+    {
+      "id":"vector-union-after-v1", "file":"Tests~/Cases/Rendering/VectorClipperBenchmark.cs",
+      "runner":"run_script", "entry":"VectorClipperBenchmark.UnionAfter", "args":[], "category":"diagnostic",
+      "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","diagnostic"],
+      "prerequisites":"Union optimization compiled; frozen original pixels required; union-after reports absent.",
+      "setup":"Same six cold fixtures, compare exact pixels and separate Clipper phase counters.",
+      "teardown":"Destroy owned objects and restore render state/instrumentation; immutable measurements in Temp/WhimTex.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Cases/Rendering/VectorColdBenchmark.cs"]
+    },
+    {
+      "id":"vector-cold-benchmark-v1", "file":"Tests~/Cases/Rendering/VectorColdBenchmark.cs",
+      "runner":"run_script", "entry":"VectorColdBenchmark.Check", "args":[], "category":"diagnostic",
+      "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","diagnostic"],
+      "prerequisites":"Burst enabled; six frozen before references under Temp/WhimTex/vector-cold-jobs-v1; after-final reports must not exist.",
+      "setup":"Six 512/1024 Vector/Boolean cases; each sample owns a fresh document. Nine cold samples after two engine warmups; compare RGBAFloat pixels to frozen references.",
+      "teardown":"Destroy owned documents/textures; preserve references, readback previews and immutable measurement reports.",
+      "result":{"kind":"structured"}
+    },
+    {
+      "id":"vector-paint-benchmark-v1", "file":"Tests~/Cases/Rendering/VectorPaintBenchmark.cs",
+      "runner":"run_script", "entry":"VectorPaintBenchmark.Check", "args":[], "category":"diagnostic",
+      "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","diagnostic"],
+      "prerequisites":"Original before reference under Temp/WhimTex/vector-paint-benchmark-v2; phase/scenario can be invoked explicitly through run_script.",
+      "setup":"Owned 512/1024 Vector/Boolean cases with changed anchors or palette keys. Repeated wall measurements include GPU completion readback.",
+      "teardown":"Destroy owned documents/textures, preserve reference pixels and measurements.",
+      "result":{"kind":"structured"}
+    },
+    {
+      "id":"figure-fills-v1", "file":"Tests~/Cases/Rendering/FigureFillTests.cs",
+      "runner":"run_script", "entry":"FigureFillTests.Run", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","color","regression"],
+      "prerequisites":"Idle graphics-enabled matching Editor with shared fill shaders compiled.",
+      "setup":"Owned transient Shape/Vector documents; gradient color/alpha/coordinate oracles and conversion parity.",
+      "teardown":"Destroy owned textures/documents and restore graphics state; preview remains in Temp/WhimTex/figure-fills.png.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"stroke-alignment-v1", "file":"Tests~/Cases/Rendering/StrokeAlignmentTests.cs",
+      "runner":"run_script", "entry":"StrokeAlignmentTests.Run", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","regression"],
+      "prerequisites":"Idle graphics-enabled matching Editor.",
+      "setup":"Owned offset geometry and transient Shape/Vector previews; no current document access.",
+      "teardown":"Destroy owned objects, restore render state; preview retained under Temp/WhimTex/stroke-alignment.png.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id":"stroke-seams-v1", "file":"Tests~/Cases/Rendering/StrokeSeamTests.cs",
+      "runner":"run_script", "entry":"StrokeSeamTests.Run", "args":[], "category":"regression",
+      "timeoutMs":60000, "effects":["temp-files"], "groups":["rendering","regression"],
+      "prerequisites":"Idle graphics-enabled matching Editor.",
+      "setup":"Owned transient Shape/Vector and round-cap geometry at 360 orientations.",
+      "teardown":"Destroy owned objects, restore render state; preview retained under Temp/WhimTex/stroke-seams.png.",
+      "result":{"kind":"structured"}, "supportFiles":["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "shape-stroke-ui-v1", "file": "Tests~/Cases/Canvas/VectorToolsTests.cs",
+      "runner": "run_script", "entry": "VectorToolsTests.StartShapeStrokes", "args": ["$runId"],
+      "category": "regression", "timeoutMs": 60000, "effects": ["windows", "user-state", "temp-files"],
+      "groups": ["canvas", "shape", "regression"],
+      "prerequisites": "Idle matching Editor with current shared stroke inspector.",
+      "setup": "Owned utility window and document, icon/preset/pattern controls and native Undo.",
+      "teardown": "Destroy owned window/document and restore preferences/focus; retain preview under Temp/WhimTex.",
+      "result": {"kind":"structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs", "Tests~/Framework/Unity/AsyncD.cs"],
+      "async": {"entry":"VectorToolsTests.Poll","args":["$runId"],"pollMs":1000},
+      "cancel": {"entry":"VectorToolsTests.Cancel","args":["$runId"]},
+      "cleanup": {"entry":"VectorToolsTests.Cleanup","args":["$runId"]}
+    },
+    {
+      "id": "vector-dashes-v1",
+      "file": "Tests~/Cases/Canvas/VectorToolsTests.cs",
+      "runner": "run_script",
+      "entry": "VectorToolsTests.StartDashes",
+      "args": ["$runId"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state"],
+      "groups": ["regression", "canvas"],
+      "prerequisites": "Idle matching Editor. No concurrent input, Undo or compilation.",
+      "setup": "Owned vector inspector; native text, focus, pair and preset events with Undo/Redo.",
+      "teardown": "Destroy owned windows/documents and restore preferences/focus. No assets.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs", "Tests~/Framework/Unity/AsyncD.cs"],
+      "async": {"entry": "VectorToolsTests.Poll", "args": ["$runId"], "pollMs": 1000},
+      "cancel": {"entry": "VectorToolsTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "VectorToolsTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "vector-dashes-preview-v1",
+      "file": "Tests~/Cases/Canvas/VectorToolsTests.cs",
+      "runner": "run_script",
+      "entry": "VectorToolsTests.StartDashPreview",
+      "args": ["$runId"],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state", "temp-files"],
+      "groups": ["diagnostic", "canvas"],
+      "prerequisites": "Idle matching Editor. No concurrent input or compilation.",
+      "setup": "Owned vector window; capture expanded dash controls and preset thumbnails.",
+      "teardown": "Destroy owned windows/documents/textures and restore preferences/focus; retain PNGs under Temp/WhimTex.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs", "Tests~/Framework/Unity/AsyncD.cs"],
+      "async": {"entry": "VectorToolsTests.Poll", "args": ["$runId"], "pollMs": 1000},
+      "cancel": {"entry": "VectorToolsTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "VectorToolsTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "vector-stroke-style-preview-v1",
+      "file": "Tests~/Cases/Canvas/VectorToolsTests.cs",
+      "runner": "run_script",
+      "entry": "VectorToolsTests.StartStrokePreview",
+      "args": ["$runId"],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state", "temp-files"],
+      "groups": ["diagnostic", "canvas"],
+      "prerequisites": "Idle matching Editor. No concurrent input or compilation.",
+      "setup": "Own transient Vector window and capture its rendered inspector using public ReadPixels in ImmediateModeElement.",
+      "teardown": "Destroy owned windows, documents and capture texture; restore preferences/focus. Preview retained under Temp/WhimTex.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs", "Tests~/Framework/Unity/AsyncD.cs"],
+      "async": {"entry": "VectorToolsTests.Poll", "args": ["$runId"], "pollMs": 1000},
+      "cancel": {"entry": "VectorToolsTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "VectorToolsTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "vector-stroke-style-v1",
+      "file": "Tests~/Cases/Canvas/VectorToolsTests.cs",
+      "runner": "run_script",
+      "entry": "VectorToolsTests.StartStrokeStyle",
+      "args": ["$runId"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state"],
+      "groups": ["regression", "canvas"],
+      "prerequisites": "Idle matching Editor. No concurrent input, Undo or compilation.",
+      "setup": "Own transient window and brush figure; submit icon buttons with public UI Toolkit events.",
+      "teardown": "Destroy owned windows/documents, clear owned Undo and restore preferences/focus via AsyncD. No assets.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs", "Tests~/Framework/Unity/AsyncD.cs"],
+      "async": {"entry": "VectorToolsTests.Poll", "args": ["$runId"], "pollMs": 1000},
+      "cancel": {"entry": "VectorToolsTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "VectorToolsTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "boolean-group-mode-v1",
+      "file": "Tests~/Cases/Canvas/BooleanGroupModeTests.cs",
+      "runner": "run_script",
+      "entry": "BooleanGroupModeTests.Start",
+      "args": ["$runId"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state", "temp-files"],
+      "groups": ["regression", "canvas"],
+      "prerequisites": "Idle matching Editor; no concurrent input, Undo or compilation.",
+      "setup": "Owned transient document and utility window. Public submit events; package-only reflection. Capture to Temp/WhimTex/boolean-group-mode.png.",
+      "teardown": "Destroy owned window/document/textures, clear only owned Undo, restore preferences and focus through AsyncD.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs", "Tests~/Framework/Unity/AsyncD.cs"],
+      "async": {"entry": "BooleanGroupModeTests.Poll", "args": ["$runId"], "pollMs": 500},
+      "cancel": {"entry": "BooleanGroupModeTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "BooleanGroupModeTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "vector-tools-geometry-v1",
+      "file": "Tests~/Cases/Canvas/VectorToolsTests.cs",
+      "runner": "run_script",
+      "entry": "VectorToolsTests.StartGeometry",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "groups": [
+        "regression",
+        "canvas"
+      ],
+      "prerequisites": "Idle matching Editor. No concurrent input, Undo or compilation.",
+      "setup": "Own transient window and documents; use public UI Toolkit pointer/key events and reflect package-owned state.",
+      "teardown": "Cancel gestures, destroy owned windows/documents/textures, clear owned Undo and restore preferences/focus via AsyncD. No assets.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs"
+      ],
+      "async": {
+        "entry": "VectorToolsTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "VectorToolsTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "VectorToolsTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "vector-tools-cancel-v1",
+      "file": "Tests~/Cases/Canvas/VectorToolsTests.cs",
+      "runner": "run_script",
+      "entry": "VectorToolsTests.StartCancel",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "regression",
+        "canvas"
+      ],
+      "prerequisites": "Idle matching Editor. No concurrent input, Undo or compilation.",
+      "setup": "Own transient window and documents; use public UI Toolkit pointer/key events and reflect package-owned state.",
+      "teardown": "Cancel gestures, destroy owned windows/documents/textures, clear owned Undo and restore preferences/focus via AsyncD. No assets.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs"
+      ],
+      "async": {
+        "entry": "VectorToolsTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "VectorToolsTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "VectorToolsTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "vector-tools-brush-v1",
+      "file": "Tests~/Cases/Canvas/VectorToolsTests.cs",
+      "runner": "run_script",
+      "entry": "VectorToolsTests.StartBrush",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "regression",
+        "canvas"
+      ],
+      "prerequisites": "Idle matching Editor. No concurrent input, Undo or compilation.",
+      "setup": "Own transient window and documents; use public UI Toolkit pointer/key events and reflect package-owned state.",
+      "teardown": "Cancel gestures, destroy owned windows/documents/textures, clear owned Undo and restore preferences/focus via AsyncD. No assets.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs"
+      ],
+      "async": {
+        "entry": "VectorToolsTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "VectorToolsTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "VectorToolsTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "vector-tools-pen-v1",
+      "file": "Tests~/Cases/Canvas/VectorToolsTests.cs",
+      "runner": "run_script",
+      "entry": "VectorToolsTests.StartPen",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "regression",
+        "canvas"
+      ],
+      "prerequisites": "Idle matching Editor. No concurrent input, Undo or compilation.",
+      "setup": "Own transient window and documents; use public UI Toolkit pointer/key events and reflect package-owned state.",
+      "teardown": "Cancel gestures, destroy owned windows/documents/textures, clear owned Undo and restore preferences/focus via AsyncD. No assets.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs"
+      ],
+      "async": {
+        "entry": "VectorToolsTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "VectorToolsTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "VectorToolsTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "vector-tools-stale-layer-v1",
+      "file": "Tests~/Cases/Canvas/VectorToolsTests.cs",
+      "runner": "run_script",
+      "entry": "VectorToolsTests.StartStaleLayer",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "regression",
+        "canvas"
+      ],
+      "prerequisites": "Idle matching Editor. No concurrent input, Undo or compilation.",
+      "setup": "Own transient window and documents; use public UI Toolkit pointer/key events and reflect package-owned state.",
+      "teardown": "Cancel gestures, destroy owned windows/documents/textures, clear owned Undo and restore preferences/focus via AsyncD. No assets.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs"
+      ],
+      "async": {
+        "entry": "VectorToolsTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "VectorToolsTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "VectorToolsTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "vector-tools-focus-v1",
+      "file": "Tests~/Cases/Canvas/VectorToolsTests.cs",
+      "runner": "run_script",
+      "entry": "VectorToolsTests.StartFocus",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "regression",
+        "canvas"
+      ],
+      "prerequisites": "Idle matching Editor. No concurrent input, Undo or compilation.",
+      "setup": "Own transient window and documents; use public UI Toolkit pointer/key events and reflect package-owned state.",
+      "teardown": "Cancel gestures, destroy owned windows/documents/textures, clear owned Undo and restore preferences/focus via AsyncD. No assets.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs"
+      ],
+      "async": {
+        "entry": "VectorToolsTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "VectorToolsTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "VectorToolsTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "shape-strokes-v1", "file": "Tests~/Cases/Rendering/ShapeStrokeTests.cs",
+      "runner": "run_script", "entry": "ShapeStrokeTests.Run", "args": [], "category": "regression",
+      "timeoutMs": 60000, "effects": [], "groups": ["rendering", "shape", "regression"],
+      "prerequisites": "Idle graphics-enabled Editor with current Shape and shared stroke renderer.",
+      "setup": "Owned transient documents and textures; no assets or user document edits.",
+      "teardown": "Restore render state and dispose owned documents, textures and geometry caches.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "vector-shape-parity-v1",
+      "file": "Tests~/Cases/Rendering/VectorShapeParityTests.cs",
+      "runner": "run_script",
+      "entry": "VectorShapeParityTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "regression",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphics-enabled matching Editor with current conversion compiled.",
+      "setup": "Owned transient document compares Shape and converted Vector pixels, across shape kinds and styles.",
+      "teardown": "Restore render state and destroy owned textures/document. No assets/files or Undo.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ]
+    },
+    {
+      "id": "vector-brush-preview-v1",
+      "file": "Tests~/Cases/Rendering/VectorRenderingPreview.cs",
+      "runner": "run_script",
+      "entry": "VectorRenderingPreview.CaptureBrush",
+      "args": [],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": ["temp-files"],
+      "groups": ["rendering", "painting", "diagnostic"],
+      "prerequisites": "Idle graphics-enabled Editor with vector renderer compiled.",
+      "setup": "Transient vector document renders two fits of the same original brush mask with cubic handles.",
+      "teardown": "Destroy owned document and textures, restore render state; retain PNG under Temp/WhimTex.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "vector-render-preview-v1",
+      "file": "Tests~/Cases/Rendering/VectorRenderingPreview.cs",
+      "runner": "run_script",
+      "entry": "VectorRenderingPreview.Capture",
+      "args": [],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": ["temp-files"],
+      "groups": ["rendering", "diagnostic"],
+      "prerequisites": "Idle graphics-enabled Editor with vector renderer compiled.",
+      "setup": "Transient vector document renders curves, holes, gradients, stroke joins and dashes.",
+      "teardown": "Destroy owned document and textures, restore render state; retain PNG under Temp/WhimTex.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "vector-geometry-v1",
+      "file": "Tests~/Cases/Rendering/VectorGeometryTests.cs",
+      "runner": "run_script",
+      "entry": "VectorGeometryTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "regression",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphics-enabled matching Editor with current Vector sources compiled.",
+      "setup": "Transient data and owned documents/textures; no user documents or Unity assets.",
+      "teardown": "Dispose owned objects and restore borrowed render state. No global Undo.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ]
+    },
+    {
+      "id": "vector-rendering-v1",
+      "file": "Tests~/Cases/Rendering/VectorRenderingTests.cs",
+      "runner": "run_script",
+      "entry": "VectorRenderingTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "regression",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphics-enabled matching Editor with current Vector sources compiled.",
+      "setup": "Transient data and owned documents/textures; no user documents or Unity assets.",
+      "teardown": "Dispose owned objects and restore borrowed render state. No global Undo.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ]
+    },
+    {
+      "id": "vector-brush-v1",
+      "file": "Tests~/Cases/Painting/VectorBrushTests.cs",
+      "runner": "run_script",
+      "entry": "VectorBrushTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "regression",
+        "painting"
+      ],
+      "prerequisites": "Idle graphics-enabled matching Editor with current Vector sources compiled.",
+      "setup": "Transient data and owned documents/textures; no user documents or Unity assets.",
+      "teardown": "Dispose owned objects and restore borrowed render state. No global Undo.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ]
+    },
+    {
+      "id": "vector-persistence-v1",
+      "file": "Tests~/Cases/Documents/VectorPersistenceTests.cs",
+      "runner": "run_script",
+      "entry": "VectorPersistenceTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "regression",
+        "documents"
+      ],
+      "prerequisites": "Idle graphics-enabled matching Editor with current Vector sources compiled.",
+      "setup": "Transient data and owned documents/textures; no user documents or Unity assets.",
+      "teardown": "Dispose owned objects and restore borrowed render state. No global Undo.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ]
+    },
+    {
+      "id": "shape-to-vector-v1",
+      "file": "Tests~/Cases/Layers/ShapeToVectorTests.cs",
+      "runner": "run_script",
+      "entry": "ShapeToVectorTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "regression",
+        "layers"
+      ],
+      "prerequisites": "Idle graphics-enabled matching Editor with current Vector sources compiled.",
+      "setup": "Transient data and owned documents/textures; no user documents or Unity assets.",
+      "teardown": "Dispose owned objects and restore borrowed render state. No global Undo.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ]
+    },
+    {
+      "id": "profiler-allocations-v1", "file": "Tests~/Cases/Automation/ProfilerAllocationTests.cs",
+      "runner": "run_script", "entry": "ProfilerAllocationTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": ["user-state"],
+      "groups": ["automation", "rendering"], "requiresUnity": true,
+      "prerequisites": "Idle profiler without pending GPU work; preserve stopped capture.",
+      "setup": "Private capture, bounded owned worker and real Editor frames check stage counts, nested self counts, Editor-wide bytes and overflow.",
+      "teardown": "Join owned worker, dispose recorders and restore capture. No assets, files or windows.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Cases/Automation/ProfilerAnalysisTests.cs", "Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "profiler-diagnostics-v1", "file": "Tests~/Cases/Automation/ProfilerDiagnosticsTests.cs",
+      "runner": "run_script", "entry": "ProfilerDiagnosticsTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": ["user-state"],
+      "groups": ["automation", "rendering"], "requiresUnity": true,
+      "prerequisites": "Idle profiler with no pending GPU samples; stopped user capture/baseline preserved.",
+      "setup": "Synthetic private capture, transient textures and tiny document render test GC/self accounting, resource lifetimes, changed-property dependency links, bounded explanation and reload codec.",
+      "teardown": "Release owned native/cache/document resources, reset fixture trackers, restore capture/baseline/render state. No assets, files or windows.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Cases/Automation/ProfilerAnalysisTests.cs", "Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "profiler-diagnostics-ui-v1", "file": "Tests~/Cases/Automation/ProfilerDiagnosticsUiTests.cs",
+      "runner": "run_script", "entry": "ProfilerDiagnosticsUiTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": ["windows", "user-state"],
+      "groups": ["automation", "rendering"], "requiresUnity": true,
+      "prerequisites": "Idle profiler; retained captures and benchmark remain untouched.",
+      "setup": "Owned window and synthetic responses exercise memory labels, causal explanation, benchmark controls, nullable results, UI recreation and view-state preservation.",
+      "teardown": "Destroy owned window and restore focus; assert capture/baseline/reload tokens unchanged. Does not start benchmarks.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Cases/Automation/ProfilerAnalysisTests.cs", "Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "profiler-gpu-coverage-v1", "file": "Tests~/Cases/Automation/ProfilerGpuCoverageTests.cs",
+      "runner": "run_script", "entry": "ProfilerGpuCoverageTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": ["user-state"],
+      "groups": ["automation", "rendering", "painting"], "requiresUnity": true,
+      "prerequisites": "Idle profiler without in-flight native queries; preserve user capture.",
+      "setup": "Owned small documents/brush/cache and synthetic capture verify actual GPU scope boundaries, pixel parity, unavailable timings, resource ownership and bounded query/error bookkeeping. Native delivery tested separately.",
+      "teardown": "Dispose owned cache/documents, restore profiler dictionaries, scalar state and render state. No assets or windows.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "profiler-benchmark-statistics-v1", "file": "Tests~/Cases/Automation/ProfilerBenchmarkTests.cs",
+      "runner": "run_script", "entry": "ProfilerBenchmarkTests.Statistics", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": [],
+      "groups": ["automation"], "requiresUnity": true,
+      "prerequisites": "Compiled benchmark backend in matching Editor.",
+      "setup": "Deterministic sample arrays verify median, interpolated p95, mean/population deviation and invalid input.",
+      "teardown": "Managed local arrays only; no retained state changed.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/Unity/ApiJson.cs", "Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "profiler-benchmark-v1", "file": "Tests~/Cases/Automation/ProfilerBenchmarkTests.cs",
+      "runner": "run_script", "entry": "ProfilerBenchmarkTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": ["user-state"],
+      "groups": ["automation", "rendering"], "requiresUnity": true,
+      "prerequisites": "Idle stopped matching Editor, no active user benchmark/capture.",
+      "setup": "Transient document/Drawing/File inputs verify frozen snapshots, bounded sequential cold/warm samples, source/cache/capture preservation, cancellation/deadline/failure/reload callback cleanup and unreadable texture copy.",
+      "teardown": "Destroy owned resources, restore prior benchmark/report/session token and capture/baseline/render state. No assets, files, windows or actual reload.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/Unity/ApiJson.cs", "Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "profiler-reload-v1", "file": "Tests~/Cases/Automation/ProfilerReload.mjs",
+      "runner": "node", "args": ["--project-path", "$projectPath"],
+      "category": "regression", "timeoutMs": 60000, "effects": ["temp-files", "windows", "user-state"],
+      "groups": ["automation", "native-reload"], "requiresUnity": true,
+      "prerequisites": "Idle stopped Test6.6 Editor, compiled profiler and no user capture. One real native compilation, no project assets or player build.",
+      "setup": "Own filtered capture with completed child and unfinished root; shared deferred Trigger and SessionState/AppDomain proof establish actual reload. Verify exact completed events, interrupted root and automatic UI population.",
+      "teardown": "Clear only owned capture, discard consumed snapshot, detach own callbacks and restore borrowed focus/selection through the shared reload workflow. Keep outer lock after uncertain transport.",
+      "result": {"kind": "structured"},
+      "reviewFiles": ["Tests~/Cases/Automation/ProfilerReloadTests.cs", "Tests~/Cases/Automation/ProfilerTests.cs", "Tests~/Framework/TestApi.cs", "Tests~/Framework/Workflows/ReloadSupport.cs", "Tests~/Framework/Workflows/ReloadOrchestration.mjs", "Tests~/Framework/test-api.mjs", "Tests~/scripts/run-tests.mjs"]
+    },
+    {
+      "id": "profiler-table-layout-v1", "file": "Tests~/Cases/Automation/ProfilerTableLayoutTests.cs",
+      "runner": "run_script", "entry": "ProfilerTableLayoutTests.Start", "args": ["$runId"],
+      "category": "regression", "timeoutMs": 60000, "effects": ["windows", "user-state"],
+      "groups": ["automation", "rendering"], "requiresUnity": true,
+      "prerequisites": "Idle matching graphical Editor; only synthetic rows in an owned profiler window, user captures unchanged.",
+      "setup": "Compare actual header/realized-row world bounds in Summary, Comparison and Events across two widths/themes, with/without scrollbar and after scrolling.",
+      "teardown": "Close owned window, drain schedules and restore focus through shared async fixture; no assets or user capture changes.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/AsyncD.cs", "Tests~/Framework/Unity/MigrationD.cs"],
+      "async": {"entry": "ProfilerTableLayoutTests.Poll", "args": ["$runId"], "pollMs": 100},
+      "cancel": {"entry": "ProfilerTableLayoutTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "ProfilerTableLayoutTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "profiler-comparison-ui-v1", "file": "Tests~/Cases/Automation/ProfilerComparisonUiTests.cs",
+      "runner": "run_script", "entry": "ProfilerComparisonUiTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": ["windows", "user-state"],
+      "groups": ["automation", "rendering"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor and profiler; preserve stopped current/baseline captures and SessionState tokens.",
+      "setup": "Owned temporary profiler window exercises baseline controls, shared filters, ignored operation warning, metric selection, 205-row paging, nullable GPU presentation and serialized view lifecycle.",
+      "teardown": "Close only owned windows, restore focus, captures and SessionState tokens. No Unity assets, renders or files.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Cases/Automation/ProfilerAnalysisTests.cs", "Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "profiler-analysis-v1", "file": "Tests~/Cases/Automation/ProfilerAnalysisTests.cs",
+      "runner": "run_script", "entry": "ProfilerAnalysisTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": ["temp-files", "user-state"],
+      "groups": ["automation", "rendering"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor, idle profiler without pending GPU samples. Preserve user current capture, baseline and reload token.",
+      "setup": "Deterministic synthetic spans check workload/mean deltas, identities, missing/GPU/null values, paging/filtering, bounded brief and isolated baseline reload persistence.",
+      "teardown": "Restore original current/baseline references and SessionState token; remove only fixture snapshot. No Unity assets or rendering.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "profiler-coverage-v1", "file": "Tests~/Cases/Automation/ProfilerCoverageTests.cs",
+      "runner": "run_script", "entry": "ProfilerCoverageTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": ["windows"],
+      "groups": ["automation", "rendering", "painting"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor and idle profiler without pending GPU samples. Preserve retained stopped capture and reload backup.",
+      "setup": "Owned transient documents/window/brush/cache; real render and brush pixel parity, selection upload reuse, JSON roundtrip, per-document change provenance, grouped requests, cache-entry reasons and in-memory reload codec.",
+      "teardown": "Restore original capture/dictionaries, clear only fixture texture Undo records, destroy owned window/documents/textures and cache. No Unity assets or files.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Cases/Automation/ProfilerTests.cs", "Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "profiler-fx-v1", "file": "Tests~/Cases/Automation/ProfilerFxTests.cs",
+      "runner": "run_script", "entry": "ProfilerFxTests.Start", "args": ["$runId"],
+      "category": "regression", "timeoutMs": 60000, "effects": ["temp-files", "windows"],
+      "groups": ["automation", "rendering", "fx"], "requiresUnity": true,
+      "prerequisites": "Idle matching graphical Editor with idle profiler and no pending GPU queries. Preserve any retained stopped capture.",
+      "setup": "Transient FX child/group/Target/material fixtures, isolated package capture during synchronous render only; CPU phase accounting, per-invocation native GPU results across three batches and Stop, pending export/reload handling, exact pixel parity, UI columns, automatic refresh/state preservation/throttling/lifecycle and snapshot retention.",
+      "teardown": "Unsubscribe owned callback, release owned queries/documents/materials/windows, retain JSON under Temp/WhimTex; user capture is never discarded.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Cases/Automation/ProfilerTests.cs", "Tests~/Framework/TestApi.cs"],
+      "async": {"entry": "ProfilerFxTests.Poll", "args": ["$runId"], "pollMs": 100},
+      "cancel": {"entry": "ProfilerFxTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "ProfilerFxTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "profiler-groups-readonly-v1", "file": "Tests~/Cases/Automation/ProfilerTests.cs",
+      "runner": "run_script", "entry": "ProfilerTests.ReadOnlyGroups", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": ["windows"],
+      "groups": ["automation", "rendering"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor with a stopped retained capture, zero open scopes and at most 2000 events containing document.render. Never starts, stops, clears or replaces this capture.",
+      "setup": "Read-only group API filters, counts, paging and timing identity; phase classification; owned window checkbox/all/none controls and serialized selection.",
+      "teardown": "Close only owned windows, restore focus; verify retained capture events, metadata and ID unchanged.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "profiler-v1", "file": "Tests~/Cases/Automation/ProfilerTests.cs",
+      "runner": "run_script", "entry": "ProfilerTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": ["temp-files", "windows"],
+      "groups": ["automation", "rendering"], "requiresUnity": true,
+      "prerequisites": "Idle matching Editor, compiled profiler API and no existing user capture. Own transient documents/textures; no user edits, assets or Unity profiler setting changes.",
+      "setup": "Capture control, nested accounting, bounded events, filters, read/export, deadline, change identity, real SDF cache hit/invalidation and exact pixel parity. Reflect only package-owned diagnostics for deterministic scope/deadline tests.",
+      "teardown": "Stop/clear owned capture, dispose owned cache/documents/textures and profiler windows, restore render state and focus after the temporary summary-sorting window. Keep uniquely named JSON report in Temp/WhimTex.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "comment-editing-v1",
+      "file": "Tests~/Cases/Canvas/CommentEditingTests.cs",
+      "runner": "run_script", "entry": "CommentEditingTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": [], "groups": ["canvas", "comments"],
+      "prerequisites": "Idle assigned Editor with compiled comment editing and queries.",
+      "setup": "Owned transient document, serialized draft states and detached VisualElements only. Checks unchanged/new drafts, reload snapshots, author-color versus content conflicts, mask/reference changes, atomic edits, exact links, author/status/time queries, agent feedback revisions and retained row ordering. No windows, focus, input, assets or global Undo.",
+      "teardown": "Destroy the owned document; detached UI and local state are released. No user preferences or documents changed.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "comment-author-v1",
+      "file": "Tests~/Cases/Canvas/CommentAuthorTests.cs",
+      "runner": "run_script", "entry": "CommentAuthorTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": ["windows", "user-state"], "groups": ["canvas", "comments"],
+      "prerequisites": "Idle assigned Editor and compiled comment author settings.",
+      "setup": "Injected organization/email providers exercise primary organization priority, original display casing and ambiguous name handling, email fallback, failures, persisted absence and retries, rejection of previously automatic full names, manual identity, settings fields and independent model/agent authors. Checks stable color hashing, HSV saturation/value, profile ownership, manual colors and reset. Owns a transient settings window and document, with an isolated profile ID.",
+      "teardown": "Destroy owned window/document, restore author/color/profile preferences and refresh settings listeners. No account changes or user document edits.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
       "id": "document-comments-v1",
       "file": "Tests~/Cases/Documents/DocumentCommentsTests.cs",
       "runner": "run_script", "entry": "DocumentCommentsTests.Run", "args": [],
       "category": "regression", "timeoutMs": 60000, "effects": [], "groups": ["documents", "comments"],
       "prerequisites": "Idle assigned Editor and compiled comment model.",
-      "setup": "In-memory models, textures and TIFF bytes; validate limits, optional blocks, malformed input, copies, composite pixels and canvas geometry. No files, assets, windows or global Undo.",
+      "setup": "In-memory models, textures and TIFF bytes; validate limits, optional blocks, attachments, agent receipt roundtrips, malformed input, copies, composite pixels and canvas geometry. No files, assets, windows or global Undo.",
       "teardown": "Destroy owned models/textures and restore render state.",
       "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "agent-reload-v1",
+      "file": "Tests~/Cases/Automation/AgentReload.mjs",
+      "runner": "node",
+      "args": [
+        "--project-path",
+        "$projectPath"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "automation",
+        "comments",
+        "reload"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Idle Test6.6 Editor with no borrowed pending or recoverable live operations. All fixture state is transient; no assets or user documents are changed.",
+      "setup": "Own transient document/window, Drawing pixels, comment mask, pending generation and edit lock; one native domain reload, resume the same reservation with frozen guide/application data, cancel interrupted lock, preview and complete.",
+      "teardown": "Close only GUID-named owned window/document/pixels; native workflow restores previous selection/focus. Retain recovery journal/runner lock if execution is uncertain.",
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Cases/Automation/AgentReloadTests.cs",
+        "Tests~/Framework/Unity/ApiJson.cs",
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Workflows/ReloadSupport.cs",
+        "Tests~/Framework/Workflows/ReloadOrchestration.mjs",
+        "Tests~/Framework/test-api.mjs",
+        "Tests~/scripts/run-tests.mjs"
+      ]
+    },
+    {
+      "id": "comment-navigation-v1",
+      "file": "Tests~/Cases/Canvas/CommentNavigationTests.cs", "runner": "run_script", "entry": "CommentNavigationTests.Start", "args": ["$runId"],
+      "category": "regression", "timeoutMs": 60000, "effects": ["windows", "user-state", "temp-files"], "groups": ["canvas", "comments"],
+      "prerequisites": "Idle assigned graphical Editor with compiled comment navigation.",
+      "setup": "Owned transient document/window; shared author/date/sort queries, screen-space clusters, chooser and zoom, temporary link navigation and API guards. Native screenshot in Temp/WhimTex.",
+      "teardown": "Close owned windows, clear owned Undo and restore preferences/focus. No clipboard writes or user documents.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/ApiJson.cs", "Tests~/Framework/Unity/MigrationD.cs", "Tests~/Framework/Unity/AsyncD.cs"],
+      "async": {"entry": "CommentNavigationTests.Poll", "args": ["$runId"], "pollMs": 5000},
+      "cancel": {"entry": "CommentNavigationTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "CommentNavigationTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "comment-file-v1",
+      "file": "Tests~/Cases/Automation/CommentFileTests.cs", "runner": "run_script", "entry": "CommentFileTests.Run", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": ["assets", "windows", "user-state", "temp-files"], "groups": ["automation", "comments"],
+      "prerequisites": "Idle assigned Editor; authorized GUID-owned fixture assets only.",
+      "setup": "Create TIFF in a GUID-owned Assets/WhimTexTestMigration directory; full file and Headless comments/masks/replies/status lifecycle, dry-run/conflict/cancel/save, feedback provenance and persistent link after rename.",
+      "teardown": "Cancel owned headless session, close owned window, delete only GUID-owned fixture assets/temp files and restore user state.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/ApiJson.cs", "Tests~/Framework/Unity/MigrationD.cs"]
+    },
+    {
+      "id": "comment-workflow-v1",
+      "file": "Tests~/Cases/Automation/CommentWorkflowTests.cs",
+      "runner": "run_script", "entry": "CommentWorkflowTests.Start", "args": ["$runId"],
+      "category": "regression", "timeoutMs": 60000, "effects": ["windows", "user-state", "temp-files"], "groups": ["automation", "comments"],
+      "prerequisites": "Idle graphical Editor, no borrowed pending live operations, compiled comment workflow API.",
+      "setup": "Owned transient document/window. Context bundle and overlays; guide/application separation with dilation/feather, pixel replacement, review artifacts, mask guards/forks and serialized recovery with source conflicts and cancellation. Recovery protocol simulation only; real reload has a separate case.",
+      "teardown": "Close owned window/jobs and clear owned Undo; destroy textures; restore focus. No existing documents or assets edited.",
+      "result": {"kind": "structured"}, "supportFiles": [
+        "Tests~/Framework/Unity/ApiJson.cs","Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs", "Tests~/Framework/Unity/AsyncD.cs"],
+      "async": {"entry": "CommentWorkflowTests.Poll", "args": ["$runId"], "pollMs": 100},
+      "cancel": {"entry": "CommentWorkflowTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "CommentWorkflowTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "comment-agent-v1",
+      "file": "Tests~/Cases/Automation/CommentAgentTests.cs",
+      "runner": "run_script", "entry": "CommentAgentTests.Start", "args": ["$runId"],
+      "category": "regression", "timeoutMs": 60000, "effects": ["windows", "user-state", "temp-files"], "groups": ["automation", "comments"],
+      "prerequisites": "Idle graphical assigned Editor and compiled comment API.",
+      "setup": "Owned unsaved window, Drawing texture and comments; inspect/list, clean and annotated crops, replies, status, batch validation and Undo, stale discussion checks on reservations, forks and locks; attachment aliases/assets, work/request replay and conflict, receipt Undo/Redo, progress during a pending job and completed-work recovery. PNG diagnostics in Temp/WhimTex/Agent; no assets or existing documents changed.",
+      "teardown": "Close owned window/jobs, clear only owned Undo and destroy owned model/texture; restore focus and render state.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs", "Tests~/Framework/Unity/AsyncD.cs"],
+      "async": {"entry": "CommentAgentTests.Poll", "args": ["$runId"], "pollMs": 100},
+      "cancel": {"entry": "CommentAgentTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "CommentAgentTests.Cleanup", "args": ["$runId"]}
     },
     {
       "id": "comment-tool-v1",
@@ -2108,10 +3300,10 @@
       "runner": "run_script", "entry": "CommentToolTests.Start", "args": ["$runId"],
       "category": "regression", "timeoutMs": 60000, "effects": ["windows", "user-state", "temp-files"], "groups": ["canvas", "comments"],
       "prerequisites": "Idle graphical assigned Editor and compiled Comment tool.",
-      "setup": "Owned unsaved window/document; public pointer and key events, post/reply/edit/resolve/delete, owned Undo/Redo, navigation, cancellation, empty canvas, comments drawer, colored rows, resolved rows, virtualization, scroll retention and short-window layout. Public repaint captures to Temp/WhimTex/comment-tool-preview.png, comment-list-preview.png and comment-list-narrow-preview.png.",
+      "setup": "Owned unsaved window/document; public pointer and key events, post/reply/edit/resolve/delete, owned Undo/Redo, navigation, cancellation, empty canvas, comments drawer, colored rows, resolved rows, virtualization, scroll retention, short-window layout, draft/posted attachment drag-and-drop and nonselecting layer/asset ping. Public repaint captures to Temp/WhimTex/comment-tool-preview.png, comment-list-preview.png, comment-list-narrow-preview.png and comment-attachments-preview.png.",
       "teardown": "Clear only owned Undo, close owned window, destroy owned document and restore captured tool preferences/focus. No clipboard writes or assets.",
       "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs", "Tests~/Framework/Unity/AsyncD.cs"],
-      "async": {"entry": "CommentToolTests.Poll", "args": ["$runId"], "pollMs": 100},
+      "async": {"entry": "CommentToolTests.Poll", "args": ["$runId"], "pollMs": 5000},
       "cancel": {"entry": "CommentToolTests.Cancel", "args": ["$runId"]},
       "cleanup": {"entry": "CommentToolTests.Cleanup", "args": ["$runId"]}
     },
@@ -2214,6 +3406,238 @@
       "setup": "Two small AA stars, five sharp algorithms and two extension modes; finite fields, MTSDF channel/scalar agreement, mode-aware cache, detached JSON roundtrip and Properties controls on a transient test window.",
       "teardown": "Dispose native arrays, caches, detached documents and preview texture; close owned test windows and restore prior focus. Unique comparison PNG remains under project Temp/WhimTex.",
       "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"], "reviewFiles": []
+    },
+    {
+      "id": "distance-classic-opt-capture-small",
+      "file": "Tests~/Cases/Painting/ClassicDistanceOptimizationTests.cs",
+      "runner": "run_script",
+      "entry": "ClassicDistanceOptimizationTests.Capture",
+      "args": [
+        "small"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-classic-optimization"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Capture before production changes; refuses overwrite.",
+      "setup": "Six algorithms; fresh CPU fields and geometry, no result cache. Input generation/allocation excluded, Editor/compiler shared. Small threshold/mode matrix or seven builds.",
+      "teardown": "Dispose native arrays; restore timing receiver. Outputs only in Temp/WhimTex; no assets or working documents.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-classic-opt-compare-small",
+      "file": "Tests~/Cases/Painting/ClassicDistanceOptimizationTests.cs",
+      "runner": "run_script",
+      "entry": "ClassicDistanceOptimizationTests.Compare",
+      "args": [
+        "small"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-classic-optimization"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Requires authenticated pre-change session snapshot.",
+      "setup": "Six algorithms; fresh CPU fields and geometry, no result cache. Input generation/allocation excluded, Editor/compiler shared. Small threshold/mode matrix or seven builds.",
+      "teardown": "Dispose native arrays; restore timing receiver. Outputs only in Temp/WhimTex; no assets or working documents.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-classic-opt-capture-star512",
+      "file": "Tests~/Cases/Painting/ClassicDistanceOptimizationTests.cs",
+      "runner": "run_script",
+      "entry": "ClassicDistanceOptimizationTests.Capture",
+      "args": [
+        "star512"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-classic-optimization"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Capture before production changes; refuses overwrite.",
+      "setup": "Six algorithms; fresh CPU fields and geometry, no result cache. Input generation/allocation excluded, Editor/compiler shared. Small threshold/mode matrix or seven builds.",
+      "teardown": "Dispose native arrays; restore timing receiver. Outputs only in Temp/WhimTex; no assets or working documents.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-classic-opt-compare-star512",
+      "file": "Tests~/Cases/Painting/ClassicDistanceOptimizationTests.cs",
+      "runner": "run_script",
+      "entry": "ClassicDistanceOptimizationTests.Compare",
+      "args": [
+        "star512"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-classic-optimization"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Requires authenticated pre-change session snapshot.",
+      "setup": "Six algorithms; fresh CPU fields and geometry, no result cache. Input generation/allocation excluded, Editor/compiler shared. Small threshold/mode matrix or seven builds.",
+      "teardown": "Dispose native arrays; restore timing receiver. Outputs only in Temp/WhimTex; no assets or working documents.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-classic-opt-capture-rings512",
+      "file": "Tests~/Cases/Painting/ClassicDistanceOptimizationTests.cs",
+      "runner": "run_script",
+      "entry": "ClassicDistanceOptimizationTests.Capture",
+      "args": [
+        "rings512"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-classic-optimization"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Capture before production changes; refuses overwrite.",
+      "setup": "Six algorithms; fresh CPU fields and geometry, no result cache. Input generation/allocation excluded, Editor/compiler shared. Small threshold/mode matrix or seven builds.",
+      "teardown": "Dispose native arrays; restore timing receiver. Outputs only in Temp/WhimTex; no assets or working documents.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-classic-opt-compare-rings512",
+      "file": "Tests~/Cases/Painting/ClassicDistanceOptimizationTests.cs",
+      "runner": "run_script",
+      "entry": "ClassicDistanceOptimizationTests.Compare",
+      "args": [
+        "rings512"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-classic-optimization"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Requires authenticated pre-change session snapshot.",
+      "setup": "Six algorithms; fresh CPU fields and geometry, no result cache. Input generation/allocation excluded, Editor/compiler shared. Small threshold/mode matrix or seven builds.",
+      "teardown": "Dispose native arrays; restore timing receiver. Outputs only in Temp/WhimTex; no assets or working documents.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-classic-opt-capture-star1024",
+      "file": "Tests~/Cases/Painting/ClassicDistanceOptimizationTests.cs",
+      "runner": "run_script",
+      "entry": "ClassicDistanceOptimizationTests.Capture",
+      "args": [
+        "star1024"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-classic-optimization"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Capture before production changes; refuses overwrite.",
+      "setup": "Six algorithms; fresh CPU fields and geometry, no result cache. Input generation/allocation excluded, Editor/compiler shared. Small threshold/mode matrix or seven builds.",
+      "teardown": "Dispose native arrays; restore timing receiver. Outputs only in Temp/WhimTex; no assets or working documents.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "distance-classic-opt-compare-star1024",
+      "file": "Tests~/Cases/Painting/ClassicDistanceOptimizationTests.cs",
+      "runner": "run_script",
+      "entry": "ClassicDistanceOptimizationTests.Compare",
+      "args": [
+        "star1024"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "distance-classic-optimization"
+      ],
+      "requiresUnity": true,
+      "prerequisites": "Requires authenticated pre-change session snapshot.",
+      "setup": "Six algorithms; fresh CPU fields and geometry, no result cache. Input generation/allocation excluded, Editor/compiler shared. Small threshold/mode matrix or seven builds.",
+      "teardown": "Dispose native arrays; restore timing receiver. Outputs only in Temp/WhimTex; no assets or working documents.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
     },
     {
       "id": "distance-rbf-opt-capture-small",
@@ -8572,6 +9996,23 @@
       }
     },
     {
+      "id": "gradient-reverse-v1",
+      "file": "Tests~/Cases/Color/GradientReverseTests.cs",
+      "runner": "run_script",
+      "entry": "GradientReverseTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["regression", "gradient", "color"],
+      "prerequisites": "Connected idle Editor with current WhimTex compiled.",
+      "setup": "Owned data-only gradient instances; no windows or user documents.",
+      "teardown": "No Unity objects or persistent state created.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
       "id": "whim-tex-gradient-v2",
       "file": "Tests~/Cases/Color/WhimTexGradientTests.cs",
       "runner": "run_script",
@@ -12783,6 +14224,46 @@
         "Tests~/Framework/Unity/UnityBSupport.cs"
       ],
       "reviewFiles": []
+    },
+    {
+      "id": "figure-gradient-canvas-v1",
+      "file": "Tests~/Cases/Color/FigureGradientCanvasTests.cs",
+      "runner": "run_script",
+      "entry": "FigureGradientCanvasTests.Start",
+      "args": ["$runId"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state", "temp-files"],
+      "groups": ["unity", "color", "canvas"],
+      "prerequisites": "Idle graphical Editor; no concurrent tests.",
+      "setup": "Owned transient Shape, Vector and Boolean Group documents with transformed parents, five gradient types and Combine Group/Layers switching.",
+      "teardown": "Close owned windows, clear owned Undo and restore preferences/focus/caches. Retain GUID canvas previews.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityBSupport.cs"],
+      "reviewFiles": [],
+      "async": {"entry": "FigureGradientCanvasTests.Poll", "args": ["$runId"], "pollMs": 1000},
+      "cancel": {"entry": "FigureGradientCanvasTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "FigureGradientCanvasTests.Cleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "gradient-circular-canvas-v1",
+      "file": "Tests~/Cases/Color/CircularGradientCanvasTests.cs",
+      "runner": "run_script",
+      "entry": "CircularGradientCanvasTests.Start",
+      "args": ["$runId"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state", "temp-files"],
+      "groups": ["unity", "color"],
+      "prerequisites": "Idle graphical Editor; no user color picker or concurrent tests.",
+      "setup": "Owned transient document/window and independent endpoint colors. Save tool preferences.",
+      "teardown": "Close owned windows, clear owned Undo, restore preferences/focus and shared caches. Retain GUID preview evidence in Temp.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityBSupport.cs"],
+      "reviewFiles": [],
+      "async": {"entry": "CircularGradientCanvasTests.Poll", "args": ["$runId"], "pollMs": 1000},
+      "cancel": {"entry": "CircularGradientCanvasTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "CircularGradientCanvasTests.Cleanup", "args": ["$runId"]}
     },
     {
       "id": "gradient-canvas-smoke-v2",

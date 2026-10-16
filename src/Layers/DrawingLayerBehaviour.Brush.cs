@@ -313,8 +313,8 @@ namespace DCFApixels.WhimTex
         private void ReleaseAdvancedStroke()
         {
             ClearFirstBrush();
-            if (advancedStroke != null) RenderTexture.ReleaseTemporary(advancedStroke);
-            if (advancedStrokeBase != null) RenderTexture.ReleaseTemporary(advancedStrokeBase);
+            if (advancedStroke != null) ProfiledRenderTexture.ReleaseTemporary(advancedStroke);
+            if (advancedStrokeBase != null) ProfiledRenderTexture.ReleaseTemporary(advancedStrokeBase);
             advancedStroke = advancedStrokeBase = null;
         }
     }

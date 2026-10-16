@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace DCFApixels.WhimTex
@@ -21,12 +22,25 @@ namespace DCFApixels.WhimTex
         }
         public ShapeKind kind;
         public Color fillColor = Color.white;
+        public VectorFillMode fillMode = VectorFillMode.Solid;
+        public WhimTexGradient gradient = new WhimTexGradient();
+        public Vector2 gradientStart = Vector2.zero, gradientEnd = Vector2.right;
+        public float gradientRepetitions = 1f;
         public bool fill = true;
         public bool stroke;
         public Color strokeColor = Color.black;
+        public VectorFillMode strokeMode = VectorFillMode.Solid;
+        public WhimTexGradient strokeGradient = new WhimTexGradient();
+        public Vector2 strokeGradientStart = Vector2.zero, strokeGradientEnd = Vector2.right;
+        public float strokeGradientRepetitions = 1f;
         public float strokeWidth = 2f;
         public float arcThickness = 8f;
         public StrokePosition strokePosition;
+        public VectorStrokeJoin strokeJoin = VectorStrokeJoin.Round;
+        public VectorStrokeCap strokeCap;
+        public float miterLimit = 4;
+        public List<float> dashPattern = new List<float>();
+        public float dashOffset;
         public LineCap lineCap = LineCap.Round;
         public EdgeMode edgeMode;
         public float feather;
@@ -41,6 +55,9 @@ namespace DCFApixels.WhimTex
         public float sweepAngle = 90f;
         [NonSerialized] private ShapeContour contour;
         [NonSerialized] private ProceduralLayerThumbnail thumbnail;
+        [NonSerialized] private ShapeStrokeCache strokeCache;
+        [NonSerialized] private WhimTexGradientPalette fillPalette;
+        [NonSerialized] private WhimTexGradientPalette strokePalette;
         internal ShapeContour Contour => contour ??= new ShapeContour();
 
         public override Texture2D GetPreviewTexture(int size)
@@ -48,7 +65,12 @@ namespace DCFApixels.WhimTex
             EnsureCorners();
             var hash = new HashCode();
             hash.Add(kind); hash.Add(fillColor); hash.Add(fill); hash.Add(stroke); hash.Add(strokeColor);
+            hash.Add(fillMode); hash.Add(gradient?.GetHashCode() ?? 0); hash.Add(gradientStart); hash.Add(gradientEnd);
+            hash.Add(gradientRepetitions);
+            hash.Add(strokeMode); hash.Add(strokeGradient?.GetHashCode() ?? 0);
+            hash.Add(strokeGradientStart); hash.Add(strokeGradientEnd); hash.Add(strokeGradientRepetitions);
             hash.Add(strokeWidth); hash.Add(arcThickness); hash.Add(strokePosition); hash.Add(lineCap); hash.Add(edgeMode);
+            AddStrokeHash(ref hash);
             hash.Add(sides); hash.Add(innerRadius); hash.Add(filterMode); hash.Add(startAngle); hash.Add(sweepAngle);
             AddCornerHash(ref hash);
             hash.Add(feather); hash.Add(featherPosition);
@@ -61,6 +83,17 @@ namespace DCFApixels.WhimTex
             thumbnail?.Dispose();
             thumbnail = null;
             contour = null;
+            strokeCache?.Dispose();
+            strokeCache = null;
+            fillPalette?.Dispose(); fillPalette = null;
+            strokePalette?.Dispose(); strokePalette = null;
+        }
+
+        internal void AddStrokeHash(ref HashCode hash)
+        {
+            hash.Add(strokeWidth); hash.Add(strokePosition); hash.Add(strokeJoin); hash.Add(strokeCap);
+            hash.Add(miterLimit); hash.Add(dashOffset);
+            if (dashPattern != null) foreach (float value in dashPattern) hash.Add(value);
         }
 
         internal void AddCornerHash(ref HashCode hash)
@@ -73,6 +106,14 @@ namespace DCFApixels.WhimTex
         internal override void InitializeLayer(Layer layer) => layer.transform.scaleF = Vector2.one * .5f;
         internal static float Limit(float value, float min, float max, float fallback) =>
             float.IsNaN(value) || float.IsInfinity(value) ? fallback : Mathf.Clamp(value, min, max);
+
+        internal void ValidateGradientRepetitions()
+        {
+            if (!float.IsFinite(gradientRepetitions) || gradientRepetitions < .0001f)
+                throw new InvalidOperationException("Shape gradientRepetitions must be finite and at least 0.0001.");
+            if (!float.IsFinite(strokeGradientRepetitions) || strokeGradientRepetitions < .0001f)
+                throw new InvalidOperationException("Shape strokeGradientRepetitions must be finite and at least 0.0001.");
+        }
 
         internal void EnsureCorners()
         {
@@ -117,8 +158,24 @@ namespace DCFApixels.WhimTex
             material.SetInt("_ShapeLineCap", (int)lineCap);
             material.SetFloat("_ShapeArcThickness", context.CanvasPixels(Limit(arcThickness, 0f, 8192f, 8f)));
             material.SetVector("_ShapeFill", HdrUtility.Decode(fillColor));
+            material.SetInt("_FigureFillMode", (int)fillMode);
+            material.SetVector("_FigureFillAnchors", new Vector4(gradientStart.x, gradientStart.y, gradientEnd.x, gradientEnd.y));
+            material.SetFloat("_FigureFillRepetitions", gradientRepetitions);
+            if (fill && FigureFill.IsGradient(fillMode))
+            {
+                fillPalette ??= new WhimTexGradientPalette();
+                fillPalette.Bind(material, gradient);
+            }
             material.SetVector("_ShapeStroke", HdrUtility.Decode(strokeColor));
-            material.SetVector("_ShapeStyle", new Vector4(fill ? 1f : 0f, stroke ? 1f : 0f,
+            material.SetInt("_FigureStrokeMode", (int)strokeMode);
+            material.SetVector("_FigureStrokeAnchors", new Vector4(strokeGradientStart.x, strokeGradientStart.y, strokeGradientEnd.x, strokeGradientEnd.y));
+            material.SetFloat("_FigureStrokeRepetitions", strokeGradientRepetitions);
+            if (stroke && FigureFill.IsGradient(strokeMode))
+            {
+                strokePalette ??= new WhimTexGradientPalette();
+                strokePalette.Bind(material, strokeGradient, stroke: true);
+            }
+            material.SetVector("_ShapeStyle", new Vector4(fill && fillMode != VectorFillMode.None ? 1f : 0f, stroke && strokeMode != VectorFillMode.None ? 1f : 0f,
                 context.CanvasPixels(Limit(strokeWidth, 0f, 8192f, 2f)), (int)strokePosition));
             material.SetVector("_ShapeFeather", new Vector4(edgeMode == EdgeMode.Step ? 0f : context.CanvasPixels(Limit(feather, 0f, 8192f, 0f)),
                 featherPosition == FeatherPosition.Inside ? 0f : featherPosition == FeatherPosition.Outside ? 1f : .5f, 0f, 0f));
@@ -129,7 +186,18 @@ namespace DCFApixels.WhimTex
                 contour ??= new ShapeContour();
                 contour.SetMaterial(material, this, new Vector2(Mathf.Abs((float)displayScale.x) * width * .5f, Mathf.Abs((float)displayScale.y) * height * .5f));
             }
-            var source = RenderTexture.GetTemporary(context.width, context.height, 0,
+            // Keep the exact analytic centered solid-round path; all other outlines use the same
+            // contour stroker as Vector, evaluated in Shape's existing pixel metric.
+            bool styledStroke = stroke && strokeMode != VectorFillMode.None && strokeWidth > 0 && (strokePosition != StrokePosition.Center ||
+                strokeJoin != VectorStrokeJoin.Round || (dashPattern?.Count ?? 0) > 0);
+            material.SetInt("_ShapeStyledStroke", styledStroke ? 1 : 0);
+            if (styledStroke)
+            {
+                strokeCache ??= new ShapeStrokeCache();
+                strokeCache.Bind(material, this, new Vector2(Mathf.Max(1e-5f, Mathf.Abs((float)displayScale.x) * width * .5f),
+                    Mathf.Max(1e-5f, Mathf.Abs((float)displayScale.y) * height * .5f)), context.CanvasPixels(1));
+            }
+            var source = ProfiledRenderTexture.GetTemporary(context.width, context.height, 0,
                 RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             source.filterMode = edgeMode == EdgeMode.Step ? FilterMode.Point : FilterMode.Bilinear;
             source.wrapMode = TextureWrapMode.Clamp;
@@ -147,7 +215,7 @@ namespace DCFApixels.WhimTex
             {
                 GL.sRGBWrite = srgb;
                 RenderTexture.active = previous;
-                RenderTexture.ReleaseTemporary(source);
+                ProfiledRenderTexture.ReleaseTemporary(source);
             }
         }
     }

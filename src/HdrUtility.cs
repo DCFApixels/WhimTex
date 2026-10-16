@@ -55,7 +55,7 @@ namespace DCFApixels.WhimTex
 
         internal static RenderTexture Temporary(int width, int height, bool fullPrecision = false)
         {
-            var result = RenderTexture.GetTemporary(width, height, 0,
+            var result = ProfiledRenderTexture.GetTemporary(width, height, 0,
                 fullPrecision ? RenderTextureFormat.ARGBFloat : RenderTextureFormat.ARGBHalf,
                 RenderTextureReadWrite.Linear);
             result.filterMode = FilterMode.Bilinear;

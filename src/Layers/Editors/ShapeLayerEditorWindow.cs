@@ -2,7 +2,6 @@ using System;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
-using ColorField = DCFApixels.WhimTex.WhimTexColorField;
 
 namespace DCFApixels.WhimTex
 {
@@ -26,13 +25,6 @@ namespace DCFApixels.WhimTex
             {
                 var field = WhimTexUI.ConfigureField(new Toggle(label));
                 bindings.Track(field, get);
-                field.RegisterValueChangedCallback(evt => apply("Change Shape " + label, () => set(evt.newValue)));
-                root.Add(field);
-                return field;
-            }
-            ColorField Color(string label, Func<Color> get, Action<Color> set)
-            {
-                var field = WhimTexUI.ConfigureField(WhimTexColorInputs.Bind(new ColorField(label), bindings, get));
                 field.RegisterValueChangedCallback(evt => apply("Change Shape " + label, () => set(evt.newValue)));
                 root.Add(field);
                 return field;
@@ -61,16 +53,22 @@ namespace DCFApixels.WhimTex
             }
             var thickness = Pixels("Thickness (px)", () => layer.arcThickness, value => layer.arcThickness = value,
                 "Arc body thickness in canvas pixels, independent of the outline. Transform controls the centerline ellipse.");
-            Toggle("Fill", () => layer.fill, value => layer.fill = value);
-            Color("Fill Color", () => layer.fillColor, value => layer.fillColor = value);
-            Toggle("Stroke", () => layer.stroke, value => layer.stroke = value);
-            Color("Stroke Color", () => layer.strokeColor, value => layer.strokeColor = value);
+            var fillToggle = Toggle("Fill", () => layer.fill, value => layer.fill = value);
+            var fillOptions = new FigureFillEditor(layer, apply, bindings);
+            root.Add(fillOptions); bindings.Add(() => fillOptions.EnableInClassList("whimtex-hidden", !layer.fill));
+            var strokeToggle = Toggle("Stroke", () => layer.stroke, value => layer.stroke = value);
+            var strokeColor = new FigureFillEditor(layer, apply, bindings, stroke: true);
+            root.Add(strokeColor); bindings.Add(() => strokeColor.EnableInClassList("whimtex-hidden", !layer.stroke));
             var width = Pixels("Stroke Width (px)", () => layer.strokeWidth, value => layer.strokeWidth = value,
                 "Outline width in canvas pixels. Resizing the shape keeps this width.");
-            var strokePosition = WhimTexUI.ConfigureField(new EnumField("Stroke Position", layer.strokePosition));
-            bindings.Track(strokePosition, () => (Enum)layer.strokePosition);
-            strokePosition.RegisterValueChangedCallback(evt => apply("Change Shape Stroke Position", () => layer.strokePosition = (ShapeLayerBehaviour.StrokePosition)evt.newValue));
-            root.Add(strokePosition);
+            var strokeOptions = new StrokeStyleEditor(() => StrokeStyle.From(layer), value =>
+            {
+                layer.strokePosition = value.strokePosition == VectorStrokePosition.Inside ? ShapeLayerBehaviour.StrokePosition.Inside :
+                    value.strokePosition == VectorStrokePosition.Outside ? ShapeLayerBehaviour.StrokePosition.Outside : ShapeLayerBehaviour.StrokePosition.Center;
+                layer.strokeJoin = value.join; layer.strokeCap = value.cap;
+                layer.miterLimit = value.miterLimit; layer.dashOffset = value.dashOffset;
+            }, new StrokeDashEditor(layer, apply), apply, bindings);
+            root.Add(strokeOptions);
             var caps = WhimTexUI.ConfigureField(new EnumField("Line Caps", layer.lineCap));
             bindings.Track(caps, () => (Enum)layer.lineCap);
             caps.RegisterValueChangedCallback(evt => apply("Change Shape Line Caps", () => layer.lineCap = (ShapeLayerBehaviour.LineCap)evt.newValue));
@@ -114,12 +112,15 @@ namespace DCFApixels.WhimTex
             bindings.Add(() =>
             {
                 bool arc = layer.kind == ShapeLayerBehaviour.ShapeKind.Arc, sector = layer.kind == ShapeLayerBehaviour.ShapeKind.Sector;
+                bool appearance = activeDocument == null || !activeDocument.IsBooleanStyleSuppressed(layer.Owner);
+                fillToggle.SetEnabled(appearance); fillOptions.SetEnabled(appearance); strokeToggle.SetEnabled(appearance); strokeColor.SetEnabled(appearance);
+                strokeOptions.SetEnabled(appearance); edgeMode.SetEnabled(appearance);
                 thickness.EnableInClassList("whimtex-hidden", !arc);
-                width.SetEnabled(layer.stroke);
-                strokePosition.EnableInClassList("whimtex-hidden", !layer.stroke);
+                width.SetEnabled(appearance && layer.stroke);
+                strokeOptions.EnableInClassList("whimtex-hidden", !layer.stroke);
                 caps.EnableInClassList("whimtex-hidden", !arc && layer.kind != ShapeLayerBehaviour.ShapeKind.Line);
-                feather.SetEnabled(layer.edgeMode != ShapeLayerBehaviour.EdgeMode.Step);
-                featherPosition.SetEnabled(layer.feather > 0f && layer.edgeMode != ShapeLayerBehaviour.EdgeMode.Step);
+                feather.SetEnabled(appearance && layer.edgeMode != ShapeLayerBehaviour.EdgeMode.Step);
+                featherPosition.SetEnabled(appearance && layer.feather > 0f && layer.edgeMode != ShapeLayerBehaviour.EdgeMode.Step);
                 start.EnableInClassList("whimtex-hidden", !arc && !sector); sweep.EnableInClassList("whimtex-hidden", !arc && !sector);
                 sides.EnableInClassList("whimtex-hidden", layer.kind != ShapeLayerBehaviour.ShapeKind.Polygon && layer.kind != ShapeLayerBehaviour.ShapeKind.Star);
                 inner.EnableInClassList("whimtex-hidden", layer.kind != ShapeLayerBehaviour.ShapeKind.Star);

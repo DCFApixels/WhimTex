@@ -17,6 +17,7 @@ For clipboard content without a connected Editor, use the self-contained [author
 | Task | Start here |
 | :--- | :--- |
 | Connect and discover commands | [Connecting](#connecting) |
+| Capture render performance | [Profiler captures](#profiler-captures) |
 | Read or write document/layer JSON | [Unified JSON documents](#unified-json-documents) |
 | Change settings or build a layer stack | [Batch contract](#batch-contract) |
 | Validate, recover or retry | [Validation, Undo and recovery](#validation-undo-and-recovery) |
@@ -68,6 +69,8 @@ Import/save commands do import the specific image or document asset they write.
 | `whimtex_fx_catalog` | Optional `query`, `presetId` | Discover installed presets; inspect defaults, bounds and enum choices |
 | `whimtex_assistant_execute` | Absolute `requestPath` | Revision-checked shared operations in an open window; one Undo step, no save |
 | `whimtex_render_probe` | Absolute `requestPath` | Render composite/layer/FX stages and channels; report linear ranges |
+| `whimtex_profile` | Absolute `requestPath` | Record, summarize, compare with a pinned baseline or export bounded profiler captures; [contract](#profiler-captures) |
+| `whimtex_comments` | Absolute `requestPath` | Query discussions, export context/masks, inspect work receipts or explicitly open a discussion link |
 | `whimtex_document_status` | `assetPath` | Disk revision, GUID, importer, dirty/live/lock and staged recovery state |
 | `whimtex_document_compare` | `leftPath`, `rightPath`, optional `render`, `maxSize` | Compare model, TIFF storage and optional rendered pixels |
 | `whimtex_document_recover` | `sourcePath`, `destinationPath` | Recover a staged TIFF into a new document |
@@ -195,6 +198,425 @@ The existing `whimtex_assistant_live` remains the open-window API.
   A create session also rechecks that its destination and `.meta` are absent before saving;
   if another writer created them after `begin`, completion returns `already_exists` and keeps the session.
 
+
+## Profiler captures
+
+Open **Window → Analysis → WhimTex Profiler**, or call `DCFApixels.WhimTex.WhimTexApi.ProfileJson(requestJson)`
+on the Editor main thread. The optional Pipeline command accepts the same JSON in a file:
+
+```powershell
+unity command whimtex_profile --requestPath 'D:/Projects/MyGame/Temp/WhimTex/profile-request.json' --project-path 'D:/Projects/MyGame' --format json
+```
+
+Every request requires `apiVersion:1` and `action`. Check the returned envelope's `success`,
+`errorCode` and `error`. Profiling is off by default. Capture/analysis calls do not render, edit scenes or
+documents, clear render caches, refresh assets or compile scripts. The explicit `benchmarkStart`
+action renders an isolated snapshot as described below; it does not alter the source document.
+
+| Action | Additional request fields | Behavior |
+| --- | --- | --- |
+| `start` | Optional `maxEvents` (256–262144, default 32768), `durationSeconds` (1–600, default 120), `documentId` (opaque string; omitted or null means all documents) | Starts a new capture, replacing the retained stopped capture; refuses an active capture or unfinished spans |
+| `status` | Optional `captureId` | Returns current capture status; validates the ID when supplied |
+| `stop` | Required `captureId` | Stops recording; already open spans may still finish |
+| `read` | Optional `captureId`, `offset` (default 0), `limit` (1–2000, default 200), `operationId`, `documentId`, `layerId`, `layer`, `phase`, `groups`, `tree` (default false), `collapsedIds` | Pages matching events (or visible tree rows) and summarizes all matching retained events; validates the ID when supplied |
+| `clear` | Required `captureId` | Discards the stopped capture; refuses recording or unfinished spans |
+| `export` | Required `captureId`, `outputPath` | Writes the entire stopped capture, without filters, to a new project-relative `Temp/WhimTex/*.json`; refuses unfinished spans and existing files |
+| `baseline` | Required `captureId` | Copies a stopped capture into the one retained baseline; replaces the previous baseline. Requires zero open scopes and pending GPU queries |
+| `clearBaseline` | Required `baselineId` | Discards only the baseline, even when there is no current capture |
+| `summary` | Optional `captureId`, `top` (1–20, default 5), `operationId`, `documentId`, `layerId`, `layer`, `phase`, `groups` | Returns a compact `brief`, without raw events or the full legacy summary; active/incomplete captures carry warnings |
+| `compare` | Optional `captureId`, `baselineId`, `offset` (default 0), `limit` (1–2000, default 20), `sort`, `documentId`, `layerId`, `layer`, `phase`, `groups` | Compares the stopped current capture against the baseline; requires zero open scopes and pending GPU queries. Same filters apply to both captures |
+| `explain` | Required `captureId`, `eventId`; optional `limit` (1–256, default 64) | Traverses recorded property/dependency causes backward from one retained event; bounded and read-only |
+| `benchmarkStart` | Required `documentId`; optional `mode` (`cold`, `warm`, `both`, default `both`), `repetitions` (1–30, default 7), `warmups` (0–5, default 1), `maxSize` (1–2048, default 512) | Freezes an owned snapshot, then renders one sample/warmup per Editor update; refuses concurrent runs or busy/playing Editor |
+| `benchmarkStatus` | Optional `benchmarkId` | Reads the latest benchmark; validates identity when supplied |
+| `benchmarkRead` | Required `benchmarkId` | Reads the identified benchmark, including partial samples |
+| `benchmarkCancel` | Required `benchmarkId` | Stops between operations and releases only owned resources; retains partial results |
+
+### Compact analysis and comparison
+
+Prefer `summary` for a first agent inspection, then `read` for the relevant events:
+
+```json
+{"apiVersion":1,"action":"summary","top":5}
+```
+
+`brief` contains root-only `rootWallMs`/`rootCount`, `matchedEvents`, `spanCount`, `completedSpanCount`,
+bounded `hotspots` ranked by self wall time, `gpuHotspots` ranked by measured GPU time, `slowOperations`
+ranked by root wall time, `reasons`, cache lookup counts/rate, `omitted` counts and `warnings`.
+Stages include phase/group, document/layer/FX identity and captured names, representative `eventId`,
+calls and completed calls, total/self/mean/max times. FX CPU preparation/submission and GPU coverage
+are separate. GPU hotspots include measured sample counts and `partial`; absent GPU samples are not zero.
+`reasons.events` counts recorded reason rows; `occurrences` sums their batched counts, not user actions.
+Cache `missRate` is misses/(hits+misses), null without lookups; bypasses and releases are separate.
+Representative event IDs are capture-local: use `read` with the same capture and phase/layer filters;
+`read` has no exact event-ID filter. The lists are independently capped by `top`, so a CPU hotspot
+does not hide a GPU hotspot. Inclusive CPU/GPU and nested timings overlap; do not sum them.
+The brief also includes whole-capture `memory`, filtered bounded `allocationHotspots` ranked by
+self managed allocation **count**, and `causes` for matching cache misses with recorded property/dependency links.
+Stage metrics include nullable `gcAllocationCount` and `gcSelfAllocationCount`: main-thread allocation
+counts, including instrumentation, with no per-stage byte amounts. Inclusive counts overlap across
+nested stages. Aggregate counts sum measured calls only and include `measuredCalls`, `eligibleCalls`
+and `partial`; missing measurements never contribute a fabricated zero. `allocationHotspots` includes
+stages with at least one measured call, is independently capped by `top`, and reports its omitted rows
+in `omitted.allocationHotspots`. Comparison also supports these two allocation-count metrics;
+see [Memory accounting](#memory-accounting) for measurement coverage.
+
+For a before/after comparison, stop and pin the first capture, then record the second:
+
+```json
+{"apiVersion":1,"action":"baseline","captureId":"BEFORE_CAPTURE"}
+```
+
+```json
+{"apiVersion":1,"action":"compare","captureId":"AFTER_CAPTURE","baselineId":"BEFORE_CAPTURE","sort":"selfMs","limit":20}
+```
+
+Successful responses include `baseline` metadata (or null), using the same fields as `capture`.
+The baseline identity is `baseline.captureId`. Record/Clear affects only the current capture;
+the independent baseline survives new recordings, current clearing and script reload in the same Editor
+session. Pinning freezes all its events and recorded Unity version. It is not an archive across Editor
+restarts, and importing previously exported reports is not supported. Export saves the current capture,
+not the baseline; export it before replacing the current capture if an external report is needed.
+
+`comparison` contains paged `rows`, `totalRows`, `offset`, `nextOffset`, before/after root/event totals
+and `warnings`. Rows match by phase, captured document ID, layer ID and FX slot, never display name.
+Renaming a layer does not split it; reopening a document with a different session-local ID does.
+Replacing/reordering FX slots can change what is measured: compare equivalent workloads and inspect FX names.
+Each row includes `before`/`after` metrics, `status` (`matched`, `added`, `removed`), `countChanged`,
+`gpuComparable`, `allocationComparable`, `delta` and `percent`. Metrics: count/completedCount, totalMs/selfMs/meanMs/maxMs,
+cpuPrepareMs/cpuSubmitMs, gpuMs/gpuMeanMs and GPU ready/pending/unavailable counts,
+plus nullable `gcAllocationCount`/`gcSelfAllocationCount` with `measuredCalls`, `eligibleCalls` and `partial`.
+Delta is after minus before. Percent is delta/before × 100, null if the baseline is zero or absent.
+Missing rows have null timing deltas, not a claimed speedup to zero. GPU deltas require every call
+in both rows to have a measured result; otherwise they are null. Call-count deltas remain available.
+Allocation deltas require `allocationComparable:true`: both rows exist and every eligible call in each
+has a measured allocation count. Partial sums remain visible in `before`/`after`, but neither a missing
+row nor an unmeasured call is treated as zero. Both allocation deltas are integer counts, not bytes;
+inclusive counts include nested stages, self counts exclude them. Zero baseline permits an absolute
+delta but not a percentage. Different call counts still produce deltas, with the workload warning.
+`sort` is `selfMs` (default), `totalMs`, `meanMs`, `maxMs`, `gpuMs`, `count`, `gcAllocationCount` or `gcSelfAllocationCount`, ordered by absolute
+delta descending, unknown deltas last, with deterministic identity ties. `operationId` is deliberately
+unsupported here because it belongs to one capture, not a repeatable operation identity.
+Warnings cover different call counts/documents, added/removed stages, truncation and missing timings.
+This is an observational comparison, not a benchmark: match input, quality, cache state and hardware.
+Increasing call counts can increase total time while decreasing mean time. Legacy post-hoc `phase`
+rows are excluded from both new analyses to avoid mixing overlapping accounting models.
+
+### Capture filters and event details
+
+`documentId` is an opaque string, exposed as `profilerDocumentId` by document snapshots and
+`LiveSessions`. Copy the returned string unchanged; do not construct or guess numeric `EntityId`
+values. Omit `documentId` or supply null for all documents in `start` and `read` requests.
+Discover it again after reopening a document or reloading scripts; it is not a persistent asset
+identity or a live editing `sessionId`. In the window, leave **Document ID** empty for all documents
+or paste the returned `profilerDocumentId` to restrict the next capture.
+`operationId` selects one correlated operation; `layerId` is an exact stable layer ID;
+`layer` matches a captured layer name substring case-insensitively or an exact layer ID;
+`phase` matches text case-insensitively. Supplied filters combine with AND. Omit filters to include all events.
+
+`groups` accepts up to six string IDs: `ui` (UI & Input), `editing` (Tools & Editing),
+`rendering` (Rendering), `resources` (Resources & Memory), `storage` (Load & Save),
+`diagnostics` (Diagnostics). Selected groups combine with OR, then AND with the other filters.
+Omit the field for all groups; `[]` selects none. Unknown IDs, null and non-string items are rejected.
+Each event belongs to one group, classified from its phase/kind at read time, including restored captures.
+SDF, text, shapes and FX are ordinary rendering work; caches, readback/upload and cache matching/copying
+belong to resources. Change events belong to editing; otherwise counters, errors and unrecognized
+phases belong to diagnostics. New instrumentation uses the centralized phase-family classification
+in `WhimTexProfiler.Groups.cs`; the filter does not add measurement coverage to uninstrumented work.
+The window offers group checkboxes, **All** and **None**, with serialized selection. To isolate one group,
+click **None**, then check that group.
+Groups filter both views before pagination and folding; context-only ancestors may belong to hidden
+groups. Filtering never recalculates event wall/self times or changes the full export.
+
+For example, start with the defaults:
+
+```json
+{"apiVersion":1,"action":"start","maxEvents":32768,"durationSeconds":120}
+```
+
+Retain `capture.captureId` from the response. Perform the authorized editing or rendering separately,
+then stop and inspect the same capture; replace `CAPTURE` with that returned ID:
+
+```json
+{"apiVersion":1,"action":"stop","captureId":"CAPTURE"}
+```
+
+```json
+{"apiVersion":1,"action":"read","captureId":"CAPTURE","offset":0,"limit":200,"phase":"SDF"}
+```
+
+```json
+{"apiVersion":1,"action":"export","captureId":"CAPTURE","outputPath":"Temp/WhimTex/profile-unique-id.json"}
+```
+
+`capture` is null when no capture exists. Otherwise it contains `captureId`, `recording`, `stopReason`,
+`capacity`, `eventCount`, `droppedEvents`, `elapsedMs`, `openSpans`, `pendingGpuSamples`, `gpuAvailability`, `documentId`, `truncated`,
+`unityVersion`, `allocationCountUnit`, `allocationCountScope`, `memory` and `causeTrackingLimited`.
+Recording stops at the event limit or deadline; document-change tracking also has
+a bounded document limit. Inspect `stopReason`, `truncated` and `droppedEvents` before treating a
+capture as complete. Captures are automatically saved before script reload and restored in the same
+Editor session, with the same ID, events and completed timings. An active capture stops with
+`stopReason:assembly_reload`; recording does not resume automatically or include the compilation gap.
+Unfinished scopes become `interrupted:true`, stay `completed:false` with null timings, and no longer
+count as active `openSpans`. The restored capture can be exported or cleared normally.
+The reload snapshot is a versioned temporary file under `Temp/WhimTex`, referenced by Unity SessionState
+only after writing finishes, then consumed after restoration. It is not an archive across Editor restarts;
+export before closing the Editor. Invalid snapshots are rejected with a Console warning.
+Starting again replaces the previous stopped capture. Export never overwrites an existing file.
+
+`read` returns `events`, `summary`, `groups`, `totalMatched`, `totalVisible`, `offset`, `nextOffset` and `rootWallMs`.
+`groups` lists all six IDs with `name`, `count` and `selected`; counts apply other filters but ignore
+group selection and tree folding, so hidden groups remain discoverable. Event and summary rows include `group`.
+Use `nextOffset` for the next request; null means the end. Each event contains `id`, `parentId`,
+`operationId`, `changeId`, `documentId`, `layerId`, `layerName`, `depth`, `operationMs`, `fxIndex`, `fxName`, `phase`, `kind`, `detail`, `startedMs`,
+`durationMs`, `selfMs`, `completed`, `interrupted` and `value`. IDs correlate events within this capture, not across
+Editor sessions. Kinds are `span` (nested scopes), `cache`,
+`change`, `reason`, `resource`, `counter` and `error`. Open events have null `durationMs` and `selfMs`, not zero;
+`selfMs` is also null for non-span events. Preserve nulls when processing reports.
+Timed stages reserve their event slot when they begin, then fill that same slot on completion.
+New captures keep start order (earliest first), with parents before their children; events are not
+sorted by duration or completion time. SDF/Outline stages use this same nested-scope mechanism.
+Previously retained captures can still contain `phase` (post-hoc diagnostic intervals); their order is unchanged.
+`layerName` is a recording-time string snapshot, not a live lookup; renaming or closing a document
+does not change old events. `depth` is zero-based nesting in the complete capture, even when filters
+or pagination omit parents. `operationMs` is the completed root span's wall time, or null when
+the root is still open or is not a span. This provides a consistent duration-bar denominator across pages.
+
+With `tree:true`, matching events include their ancestors as context rows. `collapsedIds` is an optional
+array of current-capture event IDs (positive integers, at most `eventCount` entries); it requires tree mode.
+All descendants of collapsed nodes are excluded before pagination, including those on other pages.
+Tree events include `hasChildren` (in the filtered tree, even beyond the current page), `collapsed`
+and `contextOnly`. In flat mode these flags are false. `totalVisible` counts rows after folding,
+including context; `totalMatched`, summaries and root timings remain independent of folding and exclude
+context-only ancestors. Tree pagination uses visible-row offsets and clamps an offset past the end
+to the last page. Omit `tree` for the flat API behavior; exports always retain all events, unfolded.
+
+Summary rows group by `phase` and `kind`; `fx.*` additionally groups by `documentId`, `layerId`,
+`fxIndex` and captured `fxName`, so distinct FX slots/layers are not merged. Rows include `layerName`, `count`, `completedCount`, `totalMs`, `selfMs`
+and `maxMs`. Counts include open events; timing aggregates include completed events only.
+The window can sort Summary by clicking Count, Total ms, Self ms, Max ms, Prep ms or GPU ms. Selecting a new
+column starts descending; clicking it again toggles direction. Unavailable timings stay last,
+ties use phase/kind ordinal order, and duration bars always scale to the largest total time.
+The window retains the column/direction across refresh and script reload. This is presentation-only:
+it does not reorder API events, change summary values or affect exports.
+The summary covers **all matches**, independently of pagination. `rootWallMs` sums only completed
+root spans matching the filters; filtering out roots can make it zero even when child events remain.
+Inclusive summary rows overlap and must not be summed. Legacy `phase` intervals are statistics only:
+they may overlap spans, do not contribute to `rootWallMs`, and are not subtracted from span self time.
+
+`durationMs` and `selfMs` measure main-thread wall elapsed, including waits and GPU command submission.
+They are not GPU duration, pure CPU execution time, or summed worker time. Per-stage managed allocation
+counts cover measured main-thread scopes; the separate allocated-byte total covers all Editor threads,
+as detailed below. Instrumented stages include canvas updates, composition/readback, layer previews, groups, FX and SDF;
+brush input batches, preparation, segment submission and pixel readback; selection edits/mask uploads;
+transforms, canvas-frame edits, fill, model commits, Undo/Redo restoration, interface/hierarchy/inspector
+refresh; TIFF/JSON load/save, serialization, file writing/import requests and image/PSD export.
+Brush batches are instrumented rather than every stamp; `brush.stamp_count.value` counts stamps per submitted batch.
+Deferred `storage.import` measures the import request, not background completion. A standalone load has no
+document ID before decoding, so use an all-document capture to include it. File-dialog waiting is excluded
+from the texture-export scope. GPU queries now also bracket selected composition, layer, brush and copy passes;
+readback/upload spans remain CPU wall elapsed rather than fabricated GPU-only timings.
+`changeId` links renders to the latest model change or Undo/Redo restoration; it does not
+measure a whole input gesture through GPU presentation. Native Unity markers are independently
+enabled by normal Unity Profiler recording and cover `Measure` scopes, including the SDF/Outline stages.
+Worker execution remains in Unity's job profiler;
+this capture does not add per-worker spans.
+
+### Recalculation reasons
+
+Events additionally expose `changeEventId`, `changeReason`, `changeOrigin`, `changedLayerId`,
+`changedLayerName` and `resourceKey`. `changeEventId` points to the last recorded `document.changed`
+event **for this document** (zero if absent); the other change fields are snapshots of its label,
+originating measured phase and layer when known. The changed layer can differ from the currently
+rendered layer. Nested work observes a change made after its parent scope began; it does not inherit
+the parent's stale change ID. This is last-change context, not a full dependency-causality graph or
+an assertion that every later miss was caused by that edit. An uninstrumented edit can have no origin/layer;
+the generic `MarkChanged` label falls back to the current Undo group name.
+
+`kind:reason` is an instantaneous event (`durationMs:0`, `selfMs:null`), not a measured task.
+`render.trigger` records accumulated canvas requests: `brush.live`, `transform.live`, `document.changed`,
+`document.resources_changed`, `layer.preview`, `undo.redo`, `quality.settled_refinement` and generic
+`canvas.request`. Repeated requests of one kind coalesce until the next canvas update, with their count
+in `value`; they do not imply that many renders. Pending reasons are bounded and discarded when the
+capture or document changes. Generic and specific requests may both occur; do not sum them as user actions.
+
+`cache.miss` includes the exact `resourceKey` and layer. Its detail is `miss:not_retained`,
+`miss:content_or_settings`, `miss:quality`, `miss:scale`, `miss:resource_lost`, `miss:dimensions` or
+`miss:color_required`. The combined content/settings stamp also covers dependencies; it does not
+identify a specific changed property by itself. `cache.bypass` distinguishes `cache.not_attached` from
+`dependency.uncacheable`. `cache.release` gives per-entry `unused`, `budget` or `replaced` reasons;
+`cache.invalidate` records whole-cache release requests such as Undo/Redo or resource changes,
+and `cache.disposed` reports the released entry count in `value`.
+The existing `effect.cache` hit/miss events remain; a reason is explanatory metadata, not another miss.
+The window shows these fields as **Latest change**, **Cache entry** and **Occurrences**; API reads,
+full exports and reload snapshots retain them. Older captures have zero/null for absent provenance.
+
+During recorded cache preparation, `edit.observed_change` records actual serialized property
+differences (including embedded FX settings, source-pixel revisions and group child order).
+`cache.dependency_changed` links the dependent layer to observed input changes. A content/settings
+miss can carry `causeEventId`, `causeEventIds`, `causeLayerId`, `causeLayerName`, `causeProperty` and
+`causeKind`; the array preserves multiple incoming causes, while singular fields describe the latest.
+`explain` returns `nodes` with `eventId`, phase/layer/name/property/kind/detail and `causes`, plus
+`truncated`, `trackingLimited` and an `evidence` caveat. All links are capture-local and backward.
+First observation establishes a baseline, not an invented edit. Missing links do not prove absence
+of a cause; external dependencies/unobserved changes can remain unattributed. Bounds: 1024 layers,
+32 changed properties/incoming links per layer, 256 Ki input characters per layer and 2 Mi overall
+(serialized-input budget, not managed-heap bytes). Limits or diagnostic read failures set
+`causeTrackingLimited`. **Explain cause** in event details uses this same read-only API.
+
+### Memory accounting
+
+`capture.memory` is null for older/unavailable captures. Otherwise it exposes
+`editorManagedAllocatedBytes`, `editorManagedAllocationAvailable`, `editorManagedAllocationLimited`,
+`editorManagedAllocationScope`, `editorManagedAllocationUnit`, `allocationCountLimited`,
+`trackedTextureBytes`, `peakTrackedTextureBytes`, `acquiredBytes`,
+`releasedBytes`, `observedBytes`, `acquireCount`, `releaseCount`, `nativeCacheBytes`,
+`peakNativeCacheBytes`, `processUsedBytes`, `processReservedBytes`, `peakProcessUsedBytes`,
+`trackingLimited` and a `coverage` description. Values describe the whole retained capture, not display filters.
+
+`editorManagedAllocatedBytes` is total managed allocation traffic during the capture across **all
+Editor threads**, including unrelated Editor work and instrumentation. Neither the capture's
+`documentId` nor any display/read/summary filters limit this total. Its metadata explicitly states
+`editorManagedAllocationScope: "all_editor_threads"` and `editorManagedAllocationUnit: "bytes"`.
+It is not live heap size, GC collection time, document-only memory or a sum of stage measurements.
+The API samples current Editor allocations before reading memory totals. The byte value is null if
+`editorManagedAllocationAvailable` is false or `editorManagedAllocationLimited` is true.
+
+Each completed span with a complete, valid scoped measurement exposes nullable `gcAllocationCount`
+and `gcSelfAllocationCount`. These are **counts** on the main thread, including instrumentation;
+there are no per-stage managed byte measurements. Inclusive counts include nested work; self counts
+subtract child counts. Do not sum inclusive counts across nested stages. Capture metadata states
+`allocationCountUnit: "allocations"` and `allocationCountScope: "main_thread"`.
+Open, interrupted, unavailable and incompletely measured spans expose null, not zero. Captures
+without these scoped count measurements also expose null; retained byte measurements are not counts.
+
+Stage count aggregates in `read.summary`, brief timing/allocation hotspots and comparison
+`before`/`after` metrics include `measuredCalls`, `eligibleCalls` and `partial`. `eligibleCalls`
+counts all retained matching spans, including open/interrupted spans; `measuredCalls` counts only
+complete valid measurements. `partial` is true when `measuredCalls < eligibleCalls`. Numeric totals
+sum the measured subset; both counts are null when no calls were measured. A measured zero remains
+zero, including in a partial aggregate. Non-span summary rows have zero eligible/measured calls and
+null counts. `gpuHotspots.partial` separately describes GPU coverage.
+
+The core uses bounded Unity `ProfilerRecorder` measurements. Recorder overflow makes affected scoped
+counts or the Editor byte total unavailable, never zero. `allocationCountLimited` reports a stage
+count recorder limit; `editorManagedAllocationLimited` independently reports a limit affecting the
+Editor byte total. Texture/native payload and sampled Unity-wide memory remain available independently.
+
+Textures are estimated format/mip/sample payload for instrumented temporary RT checkouts, effect
+caches, Drawing surfaces and distance-field uploads. `resource.acquire/observe/release` carry byte
+counts in `value` and object identity in `resourceKey`. First observed pre-existing resources are
+separate from new acquisitions. Returning a temporary RT ends our ownership; Unity may retain its
+allocation in its pool. These figures are not physical VRAM: driver overhead, CPU-readable copies,
+unobserved pre-existing resources and pool residency are excluded. Retained native distance-cache
+payload is counted separately; native scratch arrays are not comprehensively tracked. Each tracker
+is bounded to 8192 owners. Stop freezes ownership accounting, not future texture lifetimes.
+Unity-wide allocation/reservation is sampled at start, completed root scopes and stop; the peak is
+sampled, not continuous, and is neither document-only memory nor OS resident memory.
+**Diagnostics & benchmarks** displays bytes on a separate **Managed allocated · all Editor threads**
+line. Event details show main-thread inclusive/self allocation counts without byte formatting.
+Unavailable measurements show **—**; recorder limits are marked explicitly.
+
+### Repeatable snapshot benchmarks
+
+Use `benchmarkStart` only for an authorized measurement, then poll `benchmarkStatus`/`benchmarkRead`.
+The response has a separate `benchmark` object; it never replaces current capture or baseline.
+It contains identity/source, `state`, `phase`, `running`, mode/settings, progress counts, `stopReason`,
+`error`, `elapsedMs`, `partial`, `metadata`, and `cold`/`warm` series. Each series holds ordered
+`samplesMs` and nullable `statistics`: count, medianMs, minMs, maxMs, meanMs, p95Ms, stddevMs.
+P95 uses interpolation at `(n-1)*.95`; deviation is population standard deviation. Check execution
+`state`/`error` even after a successful API envelope. Terminal states are completed, cancelled,
+timedOut, interrupted and failed; partial statistics are retained.
+
+The interval is **main-thread wall elapsed from render entry through synchronous HDR readback**,
+including GPU/queue waits and transfer, excluding snapshot/clone setup and cleanup. It is not pure
+CPU execution or GPU time. Cold samples get fresh owned document/layer-derived resources and effect
+cache; warm samples reuse one owned document/cache after excluded warmups. This does not reset
+Unity's RT/material/font caches, JIT, shaders or driver. `warmups:0` includes first-use work. Both mode
+runs cold before warm; shared global caches can warm during the cold series.
+
+Snapshot creation freezes model, Drawing pixels and texture dependencies without flushing the source's
+Drawing surface or clearing its caches. Readable textures retain pixels/mips; non-readable textures
+are copied to linear RGBAFloat with generated mips. Fonts/meshes remain shared asset references.
+Known time-dependent Shader FX and arbitrary Material FX are rejected. Other shader globals and
+Editor/GPU load remain uncontrolled. Metadata records content SHA-256, dimensions, quality,
+Unity/device/CPU and method caveats; compare equivalent inputs and environments.
+The snapshot is bounded to 256 layers, nesting 32 and 128 MiB source-payload budget; this is not a
+total process/VRAM cap (temporary copies/readbacks coexist). The 120-second deadline and cancellation
+are checked between operations, so one synchronous operation can exceed them. Compilation/import/Play
+interrupts the run. Reload releases owned resources and retains partial statistics in the same Editor
+session. Only the latest run is retained; no recording archive or report-import feature is added.
+
+### CPU and GPU timings
+
+`fx.block` encloses one layer's FX stack, including group and input-dependency stacks.
+Each active FX has `fx.render`, with zero-based `fxIndex` and captured `fxName`, plus child spans
+`fx.prepare` (inputs, material/parameters, target allocation) and `fx.submit` (blit, output finalization
+and target handoff). Inactive/unavailable FX are skipped. Null materials have preparation but no submitted GPU work.
+Block and effect events expose `cpuPrepareMs` and `cpuSubmitMs`; other events and older captures expose null.
+Block CPU components sum its immediate FX, not all recursively nested events. Preparation can include
+rendering input layers and waits; it is wall elapsed on the calling CPU thread, not pure CPU busy time.
+
+`gpuMs` is an asynchronous GPU timestamp interval from public Unity GPU recorders. The block brackets
+the whole stack, including GPU work for input preparation. An individual FX brackets its own blit and
+`FinishStage` output sanitization/diagnostics, excluding input preparation. These are elapsed device
+intervals: queue gaps and GPU idle time can be included. CPU and GPU overlap, as do parent/child GPU
+intervals: **never add CPU + GPU or sum nested GPU rows as total render latency**.
+
+Additional GPU intervals cover common layer generation/transform, blend/finalization, accumulator
+clears, backdrop/cache copies, selected group/diagnostic passes, Drawing-surface initialization and
+straight-alpha conversion, brush draw batches/composites/clears, and output encoding blits.
+They use the same bounded query pool and status contract as FX. Specialized paths outside these
+boundaries remain unmeasured. Preparation/CPU jobs/readback are not reclassified as GPU work.
+`layer.generate` is inclusive of its behavior's rendering, including nested transform/FX commands;
+its device interval can include submission gaps while the CPU prepares those commands.
+
+Before a capture's first GPU measurement, `gpuAvailability` is `warming_up`: empty markers check
+that the Editor actually returns GPU timestamps. Wait for `ready` in `status` before a one-shot render
+if its first GPU timing matters. No document is rendered/replayed to warm up instrumentation. Calls
+during warmup retain CPU timings and `gpuStatus:warming_up`; they are not replayed later. Hardware/API
+support alone does not guarantee the current Editor delivers counters. Native recording stays attached
+during capture and stops after outstanding work drains; it does not enable the Unity Profiler window.
+
+`gpuStatus` is `pending` until the result arrives several Editor frames later, then `ready` or an explicit
+unavailable reason (`unsupported`, `warming_up`, `capacity`, `timeout`, `ambiguous`, `error`, `interrupted`).
+`not_submitted` means no FX commands were submitted; `not_measured` covers other/older events.
+`gpuMs` is null unless ready; `gpuDetail` contains a diagnostic when available. A bounded pool permits
+128 outstanding invocation markers. Each marker belongs to exactly one invocation until consumed;
+frame totals are never divided among FX. Missing results time out after 10 seconds; their markers are
+retired until script reload to prevent late-result misattribution. CPU recording continues if GPU capacity is exhausted.
+
+Summary rows expose `gpuTotalMs`, `gpuMaxMs`, `gpuCount`,
+`gpuPendingCount`, `gpuUnavailableCount`. GPU aggregates include only ready samples; no ready samples
+means null, not zero. FX additionally exposes `cpuPrepareMs` and `cpuSubmitMs`.
+The UI marks partial GPU totals with `*`, pending with `…`, unavailable with `—`.
+The window automatically displays arriving GPU results. Stop does not discard pending queries; export requires
+`pendingGpuSamples:0` (otherwise `capture_gpu_pending`). Clear/new capture abandons old queries safely.
+Completed GPU values survive script reload; unfinished queries become `interrupted`, never fabricated timings.
+
+The attached window checks status every 250 ms and refreshes changed rows at most twice per second,
+including GPU results arriving after Stop. Unchanged stopped captures do not reread their tables.
+Automatic updates preserve selected event identity, filters, sort order, folded branches and scroll position;
+they do not render documents or clear caches. Closing/disabling the window stops its scheduled callback.
+**Refresh** still updates immediately and discovers the current capture; committing a filter field or changing group selection also applies it. The virtualized event list retains one page
+of 200 events; summary rows still cover all matches. Select an event to read its fields, use
+**Only this operation** to filter by its operation, and **All operations** to remove that filter.
+`—` denotes unavailable timing; open spans have an **Open** kind label. **Record**
+discards the retained stopped capture; **Clear** only clears capture data. **Export Temp JSON**
+exports all retained events regardless of the window's filters. Stop and wait for `openSpans:0` and `pendingGpuSamples:0`
+before exporting; the controls update automatically after an automatic stop.
+
+The three scrollable panels (summary, events and details) have draggable horizontal dividers;
+their heights are retained by the window. **Capture settings** holds capacity, timeout and Document ID.
+Category stripes distinguish general groups; cache hits/misses also have text labels.
+Event rows show captured layer names and expandable branches. Click the arrow beside a stage or use
+Left/Right on a selected parent; **Expand all** opens every branch and **Collapse all** leaves only
+root events across all pages. Folding persists through Refresh
+and pagination within a capture; a changed text filter opens matching paths, and a new capture resets
+folding. Filter ancestors are muted/italic and identified in their tooltips. Nested indentation is
+visually capped at eight levels; the full depth remains in details. IDs remain in tooltips and **Raw event data / IDs**.
+Event duration bars compare wall time with that event's complete operation; instant events have no bar.
+Summary rows are sorted by total duration, and their bars compare with the largest matching total,
+not with a sum of overlapping rows. These bars are comparisons, not a timeline or GPU utilization.
 
 ## Unified JSON documents
 
@@ -332,6 +754,304 @@ before retrying: operations such as duplicate and paint are not idempotent. A st
 is rejected. Use the reservation/lock workflow for longer generation tasks; its `changes.fx`
 schema remains separate from this batch's `edits` schema. `dryRun` validates on an independent
 copy; it does not compile new HLSL, render or calculate healing.
+
+### Comment discussions
+
+The UI snapshots its saved user nickname into each new message. Automatic detection first reads
+the account's `UnityConnect.userInfo.primaryOrg` alias through an optional reflection lookup,
+then falls back to the Unity email prefix before `@` through public `CloudProjectSettings.userName`.
+The alias keeps the casing of its unambiguous ordinal case-insensitive match in `userInfo.organizationNames`.
+Missing, unrelated or ambiguously cased display names retain the primary alias; names are not used to infer renamed organizations.
+Missing, invalid or changed internal organization data cannot block the email fallback. The current
+project's organization and the user's full name are never selected. Previously saved automatic full
+names are treated as unassigned and resolved again; manually assigned names are preserved.
+The name and its source are stored in EditorPrefs across projects. Unavailable account data
+persists an unassigned state, displays `User` and retries on window opening or the next UI post.
+Manual and successfully detected names remain stable until explicitly reset. Existing message
+authors are never changed by this setting. Standalone model calls default to `User`; agent API
+replies keep their independent `Assistant` default or explicit `author`.
+
+Regular document and Assistant inspection include `document.comments`, including resolved threads.
+Assistant reads published messages and committed edits in the open model even before the document is saved;
+saved-path reads see only the saved version. Unposted replies and unsaved message-editor drafts are excluded.
+Each entry contains `id`, permanent document-local display `number`, per-thread `revision`, `anchorUv`, `anchorPixels`,
+`coordinates:"bottom-left canvas"`, RGB `color`, `status` (`InProgress`, `AwaitingReview`, `Resolved`),
+`resolved` (true only for Resolved), and all `messages` with stable `id`,
+`author`, plain `text`, ISO-8601 `createdUtc` and nullable `editedUtc` (null when never edited).
+Deleting a discussion never renumbers the others or reuses its number; continue using IDs for operations.
+Draft text, attachments and card layout stay in the local editor window, outside the model and API.
+
+Each message also has `attachments`, `workId` and `agentMessage`. An attachment reports `kind`
+(`layer`, `asset` or `mask`). Layer/asset entries report `layerId` or `assetGuid`/decimal-string `localId`, current `name`, `assetPath`
+and `missing`. Layer IDs belong to this document; assets retain GUID/sub-asset identity across moves.
+Missing targets remain references and never resolve by display name. Attachment content is context,
+not permission to edit external assets. Empty editor fields are drafts and are not stored.
+
+Mask entries report `maskId`, `revision`, original cropped `width`/`height`, `canvasBounds:[x,y,w,h]`
+clipped to the current canvas and `localToCanvas` (a 3×3 affine matrix mapping bottom-left local
+UV into bottom-left canvas UV). The stored snapshot retains linear 8-bit coverage, including soft
+edges, holes and disconnected regions. Crop/Scale/Orientation update its placement without
+resampling the original; off-canvas pixels remain available after expanding the canvas. Individual
+layer transforms do not move masks. Sampling uses nearest source pixels at canvas pixel centres.
+
+Read exact mask pixels without changing the user's working selection:
+
+```json
+{"apiVersion":1,"op":"mask","assistantSessionId":"SESSION","maskRef":{"maskId":"MASK-ID","expectedRevision":"MASK-REVISION"}}
+```
+
+`op:mask` accepts the same three document sources. It returns `mask` metadata, `maskPath` (the
+current full-canvas mask) and `sourceMaskPath` (retained cropped source), unique PNG files under
+`Temp/WhimTex/Agent`. Coverage is copied exactly into RGB, alpha is 255; use the **red** channel,
+not alpha. PNG orientation is ordinary top-left; placement metadata remains bottom-left. No
+display gamma is applied to coverage. For image context use `op:render`, or fetch the combined `op:context` bundle below. Mask revisions
+include original coverage, placement and current canvas dimensions. Missing/stale references fail
+with `mask_not_found`/`mask_revision_conflict`. Export needs graphics; listing does not decode PNGs.
+
+Threads additionally expose `feedbackRevision`. Unlike the full `revision`, it excludes intact
+API-authored replies and presentation metadata (`color`, `useAuthorColor`, `colorAuthorId`, message
+`authorId`/`authorColor`). The first message always participates, including agent-created discussions.
+Editing an agent reply makes it feedback again; new user messages, text, authorship text, attachments,
+anchors and all status changes invalidate this revision. A check accepts exactly
+one of `expectedRevision` or `expectedFeedbackRevision`. Use the latter for a long-running task,
+so progress replies do not invalidate its guards. Full revision checks remain available.
+
+`whimtex_comments` reads a JSON request file; C# equivalents are `WhimTexApi.CommentsFile(path)`
+and `WhimTexApi.CommentsJson(json)`. Exactly one document source is required:
+`assetPath` (saved TIFF/JSON), `assistantSessionId` (current unsaved window model) or
+`headlessSessionId` (current Headless candidate). These sources are not interchangeable.
+
+```json
+{"apiVersion":1,"op":"list","assistantSessionId":"SESSION"}
+```
+
+Render the selected discussion:
+
+```json
+{"apiVersion":1,"op":"render","assistantSessionId":"SESSION","commentIds":["COMMENT-ID"],"maxSize":1024}
+```
+
+Render a focused crop:
+
+```json
+{"apiVersion":1,"op":"render","assistantSessionId":"SESSION","commentIds":["COMMENT-ID"],"focusCommentId":"COMMENT-ID","radius":128,"maxSize":1024}
+```
+
+`op` defaults to `list`. Without `commentIds`, the result includes unresolved threads; set
+`includeResolved:true` to include all. Explicit unique `commentIds` (1..256) select exactly those
+threads, including resolved ones; a missing ID fails with `comment_not_found`. Results default to
+permanent-number order and include document `revision`, dimensions, `totalCount`, `matchedCount` and full selected discussions.
+
+For `list`, `render` and `context`, optional `filter` accepts `status` (`Open`, `All`, `InProgress`,
+`AwaitingReview`, `Resolved`), exact case-insensitive participant `author`, substring `search`,
+`time` (`Created` or `Activity`, default Activity), and `fromUtc` / `toUtc` ISO-8601 timestamps with
+an explicit timezone. The lower bound is inclusive, the upper bound exclusive. Filters intersect
+explicit IDs; the status filter overrides the unresolved default. `sort` is `Number` (default),
+`Created`, `Activity` or `Author`; `descending:true` reverses the selected key. Author sorting uses
+the initial author; activity is the latest message creation/edit, not reading or marker/color changes.
+Ties use permanent number and ID. Queries never reorder stored discussions or change revisions.
+`filter.search` and the Comments search field also match a discussion's complete `link` using ordinal,
+case-sensitive equality after trimming surrounding whitespace. No URI decoding or normalization is
+applied for search. Message/author/number substring matching remains case-insensitive; all other filters
+still intersect the result. Search does not open another document or navigate to the discussion.
+
+```json
+{"apiVersion":1,"op":"list","assistantSessionId":"SESSION","filter":{"author":"Artist","time":"Activity","fromUtc":"2026-10-01T00:00:00Z"},"sort":"Activity","descending":true}
+```
+
+Each snapshot additionally exposes thread `createdUtc`, `lastActivityUtc`, `link` and `persistentLink`.
+Saved project documents use `whimtex://comment/asset/ASSET-GUID/COMMENT-ID` (URI-escaped ID), so renames
+retain navigation. Save new discussions before sharing a persistent link. Unsaved windows expose
+temporary `session` links valid only for that current window session; detached unsaved/headless candidates
+may have `link:null`. No automatic save is performed. Canvas clustering is view-only: agent queries and
+context exports retain every individual discussion and its exact anchor.
+
+`op:open` is the explicit UI navigation exception to the one-source rule: supply only `apiVersion`,
+`op` and `link`. It opens the matching discussion, activates Comment, clears excluding UI filters and
+centres its anchor. It returns `sessionId`, `commentId`, `navigated:true`, `applied:false`; unavailable,
+expired or deleted targets fail with `comment_link_unavailable`. It never guesses a target by name.
+
+```json
+{"apiVersion":1,"op":"open","link":"whimtex://comment/asset/0123456789abcdef0123456789abcdef/COMMENT-ID"}
+```
+
+Links open through canvas paste, clickable link buttons in messages or this API. The Comments search
+field finds links in the current document. External applications do not launch Unity through this scheme;
+no OS protocol is registered.
+
+Each discussion includes `useAuthorColor` and its effective `color`. New UI discussions follow
+their creator's user color; a manual thread color disables that link until reset. Existing comments
+without the flag remain manual, including the former default blue. TIFF/document JSON also retain
+an optional `colorAuthorId` local profile GUID and the latest `color` snapshot. Profile identity
+survives nickname changes; it is not a Unity account ID. Other profiles retain the snapshot rather
+than applying their own preference. A reply never changes the thread creator's color.
+Each message also exposes effective `authorColor` as an RGB triple for the stripe beside its
+author. It is independent of the discussion color. Stored messages can retain a local `authorId`
+and an opaque RGBA `authorColor` snapshot; omitted/all-zero snapshots resolve by author name.
+Author color metadata does not invalidate agent message provenance.
+
+`render` accepts at most 128 selected comments. It returns a clean `imagePath` and separate
+`annotatedPath`, both unique PNGs under `Temp/WhimTex/Agent`, plus `imageWidth`, `imageHeight` and
+`cropBounds:[x,y,width,height]` in bottom-left canvas pixels. No document pixels are modified.
+`maxSize` is 64..4096 (default 1024); images downscale to fit and never upscale. Optional
+`focusCommentId` must be in the selected set. `radius` is 1..16384 canvas pixels, default 128:
+the crop includes the anchor pixel and that many neighbours on each side, clipped to the canvas.
+Off-canvas comments remain in overview metadata with `inView:false`; focusing one fails with
+`comment_outside_canvas`. Each returned comment has `imagePoint:[x,y]` in top-left output-image
+pixels and `inView`. Markers are navigation cues, not selection masks or layer bindings. Overlapping
+markers can be separated by requesting individual IDs or focused crops. Rendering requires graphics.
+
+### Comment context bundle
+
+```json
+{"apiVersion":1,"op":"context","assistantSessionId":"SESSION","commentIds":["COMMENT-ID"],"maxSize":1024}
+```
+
+`context` accepts the same sources, filters and render options as `render`. One response includes
+full selected discussions, document revision, clean/numbered images, `checkerboardPath`, frozen
+`commentChecks` and compact `layers` (id, name, parent, type, enabled, contentRevision). Read full
+settings separately only for relevant layers. `masks` contains each attachment's `maskRef`, metadata,
+exact full-canvas/source PNGs and a blue `overlayPath` on the rendered context, with `overlayBounds`.
+Use the mask ID to match exports to message attachments. Coverage PNGs are data; overlays are visual aids.
+No working selection or document content is changed. At most 32 masks and 67,108,864 full-canvas mask
+pixels may be exported in one bundle; narrow `commentIds` for larger discussions.
+
+Live preview's `review:true` additionally provides before/after images, a difference map and a
+ready-to-use changed-area mask attachment. See [live comparisons](LiveAgentAPI.md#optional-trial-renders).
+
+The shared `comment` operation is supported by Batch, Headless operations and Assistant Execute:
+
+```json
+{"apiVersion":1,"sessionId":"SESSION","expectedRevision":"DOCUMENT-REVISION","operations":[
+  {"op":"comment","commentId":"COMMENT-ID","expectedFeedbackRevision":"FEEDBACK-REVISION"},
+  {"op":"set","layer":"LAYER-ID","settings":{"opacity":0.8}}
+]}
+```
+
+An operation with only `commentId` and either `expectedFeedbackRevision` or `expectedRevision`
+checks that discussion without changing it. Put these checks before image edits to protect the feedback the edits were based on.
+After rendering and verifying the result, post a reply with freshly inspected revisions:
+
+```json
+{"apiVersion":1,"sessionId":"SESSION","expectedRevision":"CURRENT-DOCUMENT-REVISION","workId":"WORK-UUID","requestId":"REPLY-UUID","operations":[
+  {"op":"comment","commentId":"COMMENT-ID","expectedFeedbackRevision":"CURRENT-FEEDBACK-REVISION","reply":"Softened the edge on layer LAYER-ID and checked the rendered result.","author":"Assistant","status":"AwaitingReview"}
+]}
+```
+
+`reply` is nonblank plain text up to 16,384 UTF-16 characters; `author` defaults to `Assistant`
+and is nonblank up to 128 characters. `author` requires `reply`. Optional `status` accepts exactly
+`InProgress`, `AwaitingReview` or `Resolved`; all transitions are allowed, with or without a reply.
+Use `AwaitingReview` when a verified result is ready for user review. Optional `resolved:true/false`
+maps to `Resolved` / `InProgress`; do not supply it together with `status`. Omission preserves status.
+Reading, rendering and replying never advance status implicitly. Open queries include both In Progress
+and Awaiting Review. Status changes participate in Undo, document/thread revisions and `feedbackRevision`.
+TIFF/JSON retain this task state with the discussion: `resolved` and `awaitingReview` are mutually exclusive
+flags; both false means In Progress. There is no per-user read/unread metadata.
+Optional `attachments` requires `reply` and contains at most 32 entries. Each entry selects exactly
+one source: `{ "layer":"ID-or-@alias" }`, `{ "assetPath":"Assets/Example.png" }`,
+`{ "assetGuid":"GUID", "localId":"21300000" }`. Asset paths may also be under Packages.
+Optional localId selects a sub-asset; it accepts a decimal string (recommended for exact 64-bit IDs)
+or an integer. Targets must exist when attaching them; later deletion leaves a visible missing link.
+Selection-mask entries use one of these alternatives:
+
+- `{"selection":true}` snapshots the current nonempty working selection. This is available only
+  through Assistant Execute; attach before a resize operation in the same batch.
+- `{"maskRef":{"maskId":"MASK-ID","expectedRevision":"MASK-REVISION"}}` copies an existing
+  attachment with a new ID and independent placement.
+- `{"maskImagePath":"D:/Work/mask.png","channel":"red","bounds":[0,0,512,512]}` attaches an
+  agent-prepared PNG. Use an absolute local PNG path, explicit `red` or `alpha` channel and
+  `[x,y,width,height]` in bottom-left canvas pixels. Width/height are positive and may differ from
+  image dimensions; placement may extend outside the canvas. Raw channel bytes are coverage,
+  without gamma conversion. Empty masks are rejected; zero borders are cropped automatically.
+
+PNG inputs are bounded to 64 MiB, 16384 per axis and 16,777,216 pixels. All attachment kinds
+share the 32-entry message limit. Masks additionally share a 67,108,864 source-pixel budget per
+document and the 16 MiB comments-block limit. File/mask-reference entries also work in Batch and
+Headless operations. No attachment operation changes the working selection or imports a Unity asset.
+The API never edits or deletes existing messages. Existing thread/message/storage limits apply.
+The operation result has null `layerId`/`name`, the thread's `commentId`, and `messageId` when replying;
+the returned snapshot contains updated messages.
+Dry runs validate on a copy. Assistant changes participate in one batch Undo and do not save.
+
+Create a new discussion with the shared `commentCreate` operation:
+
+```json
+{"apiVersion":1,"sessionId":"SESSION","expectedRevision":"DOCUMENT-REVISION",
+ "workId":"review-edges","requestId":"note-1","operations":[
+  {"op":"commentCreate","anchorUv":[0.3,0.7],"text":"This edge needs review.","author":"Assistant",
+   "attachments":[{"layer":"LAYER-ID"}]}
+ ]}
+```
+
+`anchorUv` is a required pair of finite coordinates in 0..1, measured from the bottom-left of the
+canvas; `text` is required and has the same nonblank 16,384-character limit as `reply`.
+`author` and `attachments` follow the reply contract, including aliases of layers created earlier
+in the same batch. A new thread is unresolved and uses its author's automatic color. Its root
+message retains agent provenance and the batch work ID. The operation returns stable `commentId`
+and `messageId`; use these IDs for subsequent replies. Creation has no thread revision to check,
+but Assistant Execute still requires the current document revision. Validation, dry-run and Undo
+cover the whole batch, including its new layers and discussions. Creation-only batches may run
+during a pending job. Use `workId`/`requestId` for retry protection: a replay returns the original
+IDs in `receipt.operations`; without these IDs, inspect before retrying an ambiguous result.
+Batch and Headless retain their usual save/replay contracts. A stale thread returns
+`comment_revision_conflict`; missing threads return `comment_not_found`. This guard still applies
+when a caller supplies a newer document revision. Reinspect after ambiguous timeouts before
+retrying a reply without work/request IDs: those appends are not idempotent. A reply changes its thread revision, so combine reply
+and status in one operation, or inspect again before the next operation on the same thread.
+
+For long generation/edit jobs, JSON `begin` and `lock` accept `commentChecks`, an array of 1..256
+checks with unique `commentId` values and exactly one of `expectedFeedbackRevision` (recommended)
+or `expectedRevision`. The `context` bundle already returns checks with `expectedFeedbackRevision`.
+They are checked before reservation/locking and again
+before preview/completion; forks inherit and check them. Status returns the frozen checks.
+Changed/deleted discussions block delivery without closing the job. Cancel/unlock remains available.
+An identical retry of a completed job returns its original receipt rather than checking later edits.
+The short CLI/C# begin and lock helpers do not expose `commentChecks`; use `whimtex_assistant_live`
+with a JSON request. See [comment-driven editing](LiveAgentAPI.md#comment-driven-editing).
+
+### Work IDs and safe retries
+
+Assistant Execute accepts optional `workId` and `requestId`, supplied together, each nonblank and at
+most 128 characters. Use one workId per assignment and a different requestId per edit/reply step.
+An applied batch stores its compact operation results, including result layer and reply message IDs,
+in the same Undo transaction. An identical retry returns `replayed:true`, `applied:false` and the
+original `receipt`, even with a stale document revision. The returned document snapshot is current.
+Request property order, sessionId, document expectedRevision and dryRun are excluded from request
+identity; the operations and their thread guards must remain identical. Different operations under
+the same IDs return `request_conflict`. Dry runs do not store receipts. Requests without IDs retain
+the earlier non-idempotent behavior.
+
+```json
+{"apiVersion":1,"sessionId":"SESSION","workId":"WORK-UUID","requestId":"REPLY-UUID","expectedRevision":"DOCUMENT-REVISION","operations":[
+  {"op":"comment","commentId":"COMMENT-ID","expectedFeedbackRevision":"FEEDBACK-REVISION","reply":"Added the requested heart and checked the image.","attachments":[{"layer":"RESULT-LAYER-ID"}]}
+]}
+```
+
+Query completed work after a reconnect:
+
+```json
+{"apiVersion":1,"op":"work","assistantSessionId":"SESSION","workId":"WORK-UUID"}
+```
+
+The `work` response contains completed `receipts` for this workId. It supports the same saved,
+Assistant and Headless read sources as list/render. Comment-only Assistant batches may run while
+live jobs are pending, allowing progress replies; other batches still require jobs to finish.
+JSON begin/lock accepts workId, and forks inherit it. Completion stores a receipt linked to its
+begin/fork/lock requestId, comment checks and result layer. After loss of transient jobs, inspect the
+receipts; retrying a completed begin/lock returns its receipt without creating another job.
+Script reload interrupts pending Assistant jobs but retains checked recovery data in the same Editor process.
+Rediscover the original open document's `recoverableJobs` and explicitly call `op:resume` with its current
+session ID and original job ID. Resume validates the source, target, feedback and masks and reuses the
+reservation; it does not repeat completed work. Recovery is unavailable after Editor restart, lost temporary
+files or closing/switching the source document. See [live recovery](LiveAgentAPI.md#status-cancellation-and-recovery).
+
+Receipts persist with ordinary TIFF/JSON saves, participate in Undo, and are omitted from layer
+fragments. They do not autosave the document. A session journal detects an undone/removed receipt
+and returns `request_undone` instead of silently reapplying it; the journal lasts until Editor exit.
+Redo restores the receipt. After restarting from an older unsaved state, inspect the document before
+starting again. Up to 2048 receipts and 4 MiB of receipt metadata are retained per document; reaching
+the limit rejects new recorded work instead of evicting deduplication history. Historical receipts
+do not prove that a result layer/message still exists or has not subsequently changed.
 
 ### FX edits and presets
 
@@ -688,6 +1408,8 @@ Current Sharp/MTSDF quality prototype: closed raster contours use line fits over
 | Normal Map | `normalMap`: partial settings object described below |
 | Noise | `noise`: partial procedural settings object described below |
 | Shape | `shape`: partial settings object described below |
+| Vector | `vector`: partial data settings; arrays replace whole arrays. See [Vector storage and API](JSON_FORMAT.md#vector-layers). |
+| Boolean Group | `booleanGroup`: `style`, `referenceSize`, `edgeMode`, `appearance` (`Group` / `Layers`, Combine only); always Isolated. Children use `booleanOperation`: Union, Subtract, Intersect, Xor or Combine. |
 | Text | `text`: partial settings object described below |
 | Blur | `blur`: partial settings object; `mode`: Gaussian (default), Linear or Circular; [Gaussian](#gaussian-blur-settings), [motion](#motion-blur-settings) |
 | Sharpen | `sharpen`: algorithm (`Gaussian`/`Adaptive`), strength 0..4, radius 0..32 px, threshold/noiseReduction/haloSuppression 0..1, channelMode (`RGB`/`Luminance`), edges |
@@ -936,7 +1658,7 @@ sRGB blend space (luminosity weights 0.30/0.59/0.11, saturation max−min, lumin
 gamut clipping), not HSV channel replacement. HDR evaluates the same component substitutions
 in linear light without gamut clipping. Alpha/opacity compositing is unchanged.
 The UI groups choices independently of their stable enum values; JSON names do not change.
-Groups default to PassThrough; set `compositing:"Isolated"` to apply their own blend mode and ranges.
+Ordinary Groups default to PassThrough; set `compositing:"Isolated"` to apply their own blend mode and ranges. Boolean Groups are always Isolated.
 Group opacity applies to the complete result, not separately to every child. Groups support transforms and FX. Child transforms are parent-local; canvas matrices compose from parent to child. The group's frame is its own unit rectangle rather than the bounds of its children. The move operation preserves canvas placement when changing parents.
 `channelMapping` accepts `R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A`,
 `Luminance`, `Luminance * A`, `1 - Luminance` as strings. Luminance is `0.2126 R + 0.7152 G + 0.0722 B` in linear space;
@@ -1078,6 +1800,101 @@ Native coverage is rasterized independently of the canvas bounds, capped at 8192
 axis and 16 megapixels, before Transform and FX. Live Canvas View text editing reserves the
 document from agent writes until editing ends; it uses the ordinary document transaction and Undo.
 
+### Vector settings
+
+Use `type:"vector"` to add a layer. Its `referenceSize` starts at the current document
+pixel dimensions. `settings.vector` accepts `shapes`, `referenceSize`, `edgeMode` and
+`brushDraft`. It uses the [document data fields](JSON_FORMAT.md#vector-layers), including
+stable shape/contour/point IDs, tangent offsets and named enums. Supplied top-level
+fields replace their values; omitted fields stay unchanged. Arrays replace whole arrays.
+The `shapes` array accepts at most one figure; its multiple contours and holes remain
+part of that figure. Add another layer for another figure. Whole-figure placement uses
+the layer's transform, independently of sibling figures.
+All vector styles remain stored while inactive. `inspect` returns the same data,
+including the last stroke's original base64 coverage and local `frame` rectangle;
+`describe` returns `vectorDefaults`.
+
+Each shape's `fillMode` accepts None, Solid, LinearGradient, RadialGradient,
+SquareGradient, DiamondGradient and CircularGradient. `gradient`, `gradientStart`,
+`gradientEnd` and `gradientRepetitions` use the shared [figure-fill geometry](JSON_FORMAT.md#figure-fills)
+in `referenceSize` pixels. A supplied `shapes` array replaces every figure and its
+style; include inactive settings when constructing that replacement.
+
+Each figure also has independent `strokeMode`, `strokeGradient`,
+`strokeGradientStart`, `strokeGradientEnd` and `strokeGradientRepetitions` fields.
+They use the same modes, palette features and geometry as fill. `stroke` remains
+the enable gate; `strokeMode:"None"` also suppresses stroke without clearing its
+settings. Defaults are Solid, a separate black-to-white Perceptual/Clamp palette,
+`[0,0]`, `[1,0]` and `1`. Anchors must be finite; repetitions must be finite and at
+least `0.0001`, including when inactive. Vector/Boolean palettes use the native
+document gradient object, as for fill; Shape patches use the API gradient contract.
+
+`{"op":"convertToVector","layer":"<layer-id>"}` converts a Shape geometrically on
+its existing layer shell. It preserves the layer ID, FX and shared settings except
+transform tiling: `Clip` becomes `Unbounded` to retain protruding caps and outside
+strokes. Fitting the figure frame preserves appearance, but can change the stored
+local geometry and transform values together.
+Unsupported appearance produces a diagnostic before replacement; see the conversion
+limits in the [vector contract](JSON_FORMAT.md#vector-layers). This operation uses the
+existing batch transaction and does not save by itself.
+
+### Boolean Group settings
+
+The canvas Gradient Handles tool edits the chosen paint's local anchors in the
+group's `referenceSize` metric: `style.gradientStart`/`style.gradientEnd` for Fill,
+or `style.strokeGradientStart`/`style.strokeGradientEnd` for Stroke. The canvas
+toolbar's Fill/Stroke popup (`gradientHandleChannel`) selects the available gradient
+automatically and is disabled when only one is valid; with both active it chooses
+which paint to edit. Palettes and circular
+repetitions belong to the chosen paint. Handles leave group/child transforms and
+the other paint unchanged. Combine with `appearance:Layers` exposes child paint
+handles while retaining the inactive group style. The shared inspector controls
+use `figureFill*` and `figureStroke*` names for their respective paints.
+
+Add `type:"booleanGroup"`. Its `referenceSize` starts at the current document size.
+`settings.booleanGroup` accepts `style`, `referenceSize` and `edgeMode`. Omitted
+top-level fields remain unchanged; a supplied `style` replaces the complete style,
+so include retained inactive fields when constructing it. Style uses the
+`VectorShape` fill/gradient/stroke fields, with empty `contours`; geometry comes from
+the group's children. `describe` returns `booleanGroupDefaults` and `booleanOperations`;
+`inspect` returns `settings.booleanGroup` and every layer's `settings.booleanOperation`.
+
+The group is always Isolated; explicit PassThrough is rejected. Add or move Shape,
+Vector or another Boolean Group into it with the usual `parent` and `index` fields.
+Index 0 is the top. Starting with the bottom enabled child, each next child upward
+combines with the accumulated region using its `settings.booleanOperation`:
+Union, Subtract, Intersect, Xor or Combine. The base child's operation is ignored. Raster
+layers and open contours are rejected. The entire batch is preflighted before
+application; a bad operand does not silently disappear.
+
+Child transforms and source geometry remain editable. Their appearance and FX stay
+stored but do not affect the Boolean result; the group supplies common styling and
+FX after geometry combination. Extraction reactivates a child's own style. API
+creation does not copy a later-added child's style; pass the desired common style
+explicitly. This differs from the UI command that copies the bottom figure's style once.
+
+`Combine` preserves separate figures and their complete outlines, drawn bottom to top.
+Set `settings.booleanGroup.appearance` to `Group` (default) for shared styling, or `Layers`
+for each child's fill, gradient, stroke and edge treatment. This choice applies only when
+the group has a uniform Combine mode; Boolean and mixed modes always use group styling.
+The preference is retained on switching. Child FX, opacity, blend settings, channel mapping
+and clipping flags remain ignored; figures composite with normal linear-light blending.
+
+```json
+{"operations":[
+  {"op":"add","type":"booleanGroup","as":"cutout"},
+  {"op":"add","type":"shape","parent":"@cutout","as":"body",
+   "settings":{"shape":{"kind":"Rectangle"}}},
+  {"op":"add","type":"shape","parent":"@cutout","as":"hole",
+   "settings":{"booleanOperation":"Subtract","shape":{"kind":"Ellipse"}},
+   "transform":{"scale":[0.5,0.5]}}
+]}
+```
+
+This operation fragment makes a rectangle with an elliptical hole. Supply the
+usual path/session and revision fields required by the selected API entry point.
+See the [storage contract](JSON_FORMAT.md#boolean-groups) for nested groups and order.
+
 ### Shape settings
 
 Use `type:"shape"` and partial `settings.shape` updates. `describe` returns `shapeDefaults`
@@ -1087,11 +1904,24 @@ and `shapeKinds`; `inspect` includes all parameters. One layer contains one edit
 | :--- | :--- |
 | `kind` | Rectangle (default), Ellipse, Polygon, Star, Line, Arc, Sector |
 | `fill`, `fillColor` | Boolean (default true), RGBA color (default white) |
+| `fillMode` | None, Solid (default), LinearGradient, RadialGradient, SquareGradient, DiamondGradient, CircularGradient; `fill` remains the overall gate |
+| `gradient` | Complete gradient palette, using the existing gradient object or color-stop array contract; default black-to-white Perceptual/Clamp. A supplied value replaces the palette |
+| `gradientStart`, `gradientEnd` | Two finite normalized layer-local coordinates, Y up; defaults `[0,0]` / `[1,0]`; API components -1000000..1000000, allowed outside 0..1 |
+| `gradientRepetitions` | Finite float, minimum `0.0001`, default `1`; CircularGradient only. One period spans `360 / gradientRepetitions` degrees from the start-to-end ray before palette wrapping. Retained and validated in every mode, including disabled fills |
 | `stroke`, `strokeColor` | Boolean (default false), RGBA color (default black) |
+| `strokeMode` | None, Solid (default), LinearGradient, RadialGradient, SquareGradient, DiamondGradient, CircularGradient; `stroke` remains the enable gate; None suppresses paint without clearing settings |
+| `strokeGradient` | Complete independent palette using the API gradient object or color-stop array; default black-to-white Perceptual/Clamp. A supplied value replaces only this palette |
+| `strokeGradientStart`, `strokeGradientEnd` | Two finite normalized layer-local coordinates, Y up; defaults `[0,0]` / `[1,0]`; allowed outside 0..1 within the finite float range |
+| `strokeGradientRepetitions` | Finite float, minimum `0.0001`, default `1`; CircularGradient only, before palette wrapping. Retained and validated even with stroke disabled or another mode selected |
 | `strokeWidth` | 0–8192 canvas pixels; default 2; outline width, independent of body thickness |
 | `arcThickness` | 0–8192 canvas pixels; default 8; Arc body thickness; Transform sets the centerline ellipse |
-| `strokePosition` | Inside (default), Center, Outside; relative to the body contour, including Arc |
-| `lineCap` | Butt, Round (default), Square; Line and Arc |
+| `strokePosition` | Inside (default), Center, Outside; relative to the body contour, including Arc. Shape's C# values remain Inside=0, Center=1, Outside=2; Vector uses different values |
+| `strokeJoin` | Miter, Round (default), Bevel; outline joins, independent of body corner settings |
+| `strokeCap` | Butt (default), Round, Square; ends of stroke dashes; independent of `lineCap` |
+| `miterLimit` | Finite 1–10000; default 4; miter ratio above which a Miter join becomes Bevel; retained for other joins |
+| `dashPattern` | Up to 256 finite positive numbers, each at most 10000000; alternating dash/gap lengths in multiples of `strokeWidth`. Default `[]`; empty or null is solid; odd lists repeat twice |
+| `dashOffset` | Finite -10000000..10000000 document pixels; default 0; phase along the contour, independent of stroke width |
+| `lineCap` | Butt, Round (default), Square; body ends of Line and Arc, independent of outline dashes |
 | `edgeMode` | Antialiased (default), Step; Step ignores Feather and evaluates binary geometric coverage after Transform on the canvas pixel grid |
 | `feather` | 0–8192 canvas pixels; total soft transition width; default 0 keeps the original antialiasing |
 | `featherPosition` | Inside, Outside, Centered (default); fades inward, outward or equally across the contour, including both boundaries of a hollow stroke |
@@ -1102,6 +1932,24 @@ and `shapeKinds`; `inspect` includes all parameters. One layer contains one edit
 | `sides` | 3–32 polygon sides / star points; default 5 |
 | `innerRadius` | 0.01–1 star inner/outer radius ratio; default 0.5 |
 | `startAngle`, `sweepAngle` | Arc/Sector degrees: start -360000..360000 (default 0), sweep 0..360 (default 90); zero points right, positive turns counterclockwise |
+
+Shape and Vector share [figure-fill geometry](JSON_FORMAT.md#figure-fills). Shape
+measures the gradient in current canvas width/height before layer Transform;
+Vector uses `referenceSize`. Start is the center for nonlinear gradients, and End
+sets radius and orientation. Circular advances counterclockwise from the start-to-end
+ray, with its seam on that ray. Equal anchors yield `t=0`. Palette `wrapMode` controls
+repetition after the circular-only `gradientRepetitions` multiplier. Partial Shape updates preserve omitted
+fill and stroke fields, including their independent inactive palettes, anchors and
+repetitions; inspect/describe expose them. FullOptimized and Compact preserve both
+inactive paint styles as well as Full JSON. Changing stroke settings does not
+change fill settings or the layer transform.
+
+Shape and Vector Inside/Outside strokes use a half-width trajectory offset before
+dash/cap generation, not clipping of a finished double-width stroke. Round dots and
+caps remain whole. Dash placement follows the new path; holes reverse the filled
+side, narrow insets can split/disappear, and tight corners do not guarantee strict
+containment of complete caps. Center/open paths retain their original trajectories.
+See [stroke geometry semantics](JSON_FORMAT.md#shape-strokes).
 
 UI displays corner amounts as 0–100%; data/API uses 0–1. Zero keeps a sharp corner.
 For Rectangle, amount scales the shorter full side: an independent corner can exceed 50%, up to the
@@ -1128,6 +1976,19 @@ or makes Sector a full ellipse. Arc thickness and stroke width stay in canvas pi
 Colors follow the existing encoded-color contract; set layer color/blend ranges to HDR when needed.
 Inactive type-specific settings are retained when `kind` changes. SVG import/export is not implied.
 
+Shape and Vector share stroke join, cap and dash construction. Shape retains its existing
+transform metric: ordinary resizing keeps stroke width, dash lengths and offset in document
+pixels; perspective retains the existing local approximation. Vector transforms its local
+stroke geometry along with the layer. Shape retains its Feather
+controls. Shape's `dashPattern` is always width-relative: `[2,1]` gives a dash twice the
+stroke width and a gap once that width, for every stroke position. Shape has no
+`dashPatternRelative` field. Changing `strokeWidth` scales those lengths; ordinary resizing
+does not. `dashOffset` remains a pixel distance. Supplied patterns replace the entire list;
+omitted fields retain their current values. `inspect` and `shapeDefaults` expose the stroke
+fields, including inactive settings. A null pattern is normalized to `[]` by the API.
+All document JSON modes retain inactive stroke settings, including when `stroke`
+is false or `strokeMode` is None. Compact may omit defaults and restores them on read.
+
 Feather uses the procedural contour distance, not a blur pass. At large widths, thin strokes and
 small shapes can become faint or disappear with Inside/Centered. Outside can expand into nearby
 gaps. Feather is applied before layer FX, opacity and compositing; colors retain their RGB/HDR values.
@@ -1138,6 +1999,15 @@ normal behavior. With opaque colors and no subsequent softening, full-resolution
 {"op":"add","type":"shape","as":"badge","settings":{"shape":{
   "kind":"Star","sides":5,"innerRadius":0.45,
   "fillColor":[1,0.65,0.1,1],"stroke":true,"strokeWidth":3
+}}}
+```
+
+To add a dashed outline to that Shape:
+
+```json
+{"op":"set","layer":"@badge","settings":{"shape":{
+  "strokeJoin":"Bevel","strokeCap":"Round","miterLimit":4,
+  "dashPattern":[2,1],"dashOffset":3
 }}}
 ```
 

@@ -49,7 +49,7 @@ namespace DCFApixels.WhimTex
                 EndStroke();
                 parameters.Dynamics?.ReleaseHlsl();
                 RenderTexture.active = previous;
-                if (straight != null) RenderTexture.ReleaseTemporary(straight);
+                if (straight != null) ProfiledRenderTexture.ReleaseTemporary(straight);
             }
         }
 

@@ -57,7 +57,7 @@ namespace DCFApixels.WhimTex
                 catch { if (owned != null) Object.DestroyImmediate(owned); owned = null; throw; }
                 finally { Object.DestroyImmediate(image); }
             }
-            Require(job.targetId == null && job.mask == null,
+            Require(job.targetId == null && job.mask == null && job.applicationMask == null,
                 "Selection edits and replacePixels jobs require imagePath. Parameter layers are created with area=canvas and destination=newLayer.");
             JObject spec = Obj(request["layer"], "layer");
             Keys(spec, "type", "settings", "transform", "input", "target", "fx");
@@ -135,7 +135,7 @@ namespace DCFApixels.WhimTex
 
         private static JObject PreviewLiveCandidate(LiveJob job, JObject request)
         {
-            Keys(request, "apiVersion", "op", "jobId", "layer", "imagePath", "fit", "fx", "view", "maxSize", "outputPath");
+            Keys(request, "apiVersion", "op", "jobId", "layer", "imagePath", "fit", "fx", "view", "maxSize", "outputPath", "review");
             string view = Text(request, "view", "layer");
             Require(view == "layer" || view == "composite", "view must be layer or composite.");
             int size = Int(request, "maxSize", 1024, 1, 4096);
@@ -165,11 +165,12 @@ namespace DCFApixels.WhimTex
                 result["width"] = image.width; result["height"] = image.height;
                 result["applied"] = false;
                 result["fx"] = LiveFxSnapshot(candidate, job.document);
+                if (Bool(request, "review")) result["review"] = ReviewLiveCandidate(job, preview, size);
                 return result;
             }
             finally
             {
-                if (rt != null) RenderTexture.ReleaseTemporary(rt);
+                if (rt != null) ProfiledRenderTexture.ReleaseTemporary(rt);
                 if (image != null) Object.DestroyImmediate(image);
                 if (preview != null) Object.DestroyImmediate(preview);
                 if (!installed) candidate?.ReleaseTransientResources();
@@ -230,10 +231,12 @@ namespace DCFApixels.WhimTex
                         candidate = pending;
                         foreach (var fx in effects) job.document.AdoptAgentShaderFX(fx, "Complete Agent Layer");
                     }
+                    RecordLiveWork(job, request);
                 });
                 committed = true;
+                if (job.workId != null) SessionState.SetString(ReceiptMemoryKey(job.document, job.workId, job.requestId), WorkRequestHash(JObject.Parse(job.request)));
                 job.state = "completed"; job.completion = request.ToString(Formatting.None);
-                job.mask = null; job.error = null;
+                job.mask = null; job.applicationMask = null; job.error = null;
                 var result = LiveStatus(job);
                 result["fx"] = LiveFxSnapshot(candidate, job.document);
                 return result;

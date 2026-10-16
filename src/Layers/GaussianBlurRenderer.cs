@@ -34,8 +34,8 @@ namespace DCFApixels.WhimTex
                 {
                     var smaller = Allocate(Mathf.Max(1, (current.width + 1) / 2), Mathf.Max(1, (current.height + 1) / 2));
                     try { Graphics.Blit(current, smaller, material, 1); }
-                    catch { RenderTexture.ReleaseTemporary(smaller); throw; }
-                    RenderTexture.ReleaseTemporary(current);
+                    catch { ProfiledRenderTexture.ReleaseTemporary(smaller); throw; }
+                    ProfiledRenderTexture.ReleaseTemporary(current);
                     current = smaller;
                 }
                 float sigma = Mathf.Max(pixels / 3f, 1f / 3f);
@@ -60,16 +60,16 @@ namespace DCFApixels.WhimTex
                 material.SetTexture("_SourceTex", null);
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
-                if (current != null) RenderTexture.ReleaseTemporary(current);
-                if (scratch != null) RenderTexture.ReleaseTemporary(scratch);
-                if (straight != null) RenderTexture.ReleaseTemporary(straight);
+                if (current != null) ProfiledRenderTexture.ReleaseTemporary(current);
+                if (scratch != null) ProfiledRenderTexture.ReleaseTemporary(scratch);
+                if (straight != null) ProfiledRenderTexture.ReleaseTemporary(straight);
             }
         }
 
 
         private static RenderTexture Allocate(int width, int height)
         {
-            var texture = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+            var texture = ProfiledRenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             texture.filterMode = FilterMode.Bilinear;
             texture.wrapMode = TextureWrapMode.Clamp;
             return texture;

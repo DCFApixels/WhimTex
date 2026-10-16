@@ -61,7 +61,7 @@ namespace DCFApixels.WhimTex
                 display = new Material(source) { hideFlags = HideFlags.HideAndDontSave };
                 display.SetVector("_Channels", Vector4.one);
                 display.SetFloat("_Exposure", 1f); display.SetFloat("_Debug", 0f);
-                surface = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default);
+                surface = ProfiledRenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default);
                 var dynamics = JsonUtility.FromJson<BrushDynamics>(JsonUtility.ToJson(preset.dynamics));
                 dynamics.tip = preset.dynamics.tip;
                 dynamics.Normalize();
@@ -101,7 +101,7 @@ namespace DCFApixels.WhimTex
                 if (display != null) DestroyImmediate(display);
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
-                if (surface != null) RenderTexture.ReleaseTemporary(surface);
+                if (surface != null) ProfiledRenderTexture.ReleaseTemporary(surface);
             }
         }
     }

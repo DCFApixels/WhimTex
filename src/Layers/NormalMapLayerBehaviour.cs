@@ -61,7 +61,7 @@ namespace DCFApixels.WhimTex
                 {
                     RenderTextureFormat format = !color && SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.RGFloat)
                         ? RenderTextureFormat.RGFloat : RenderTextureFormat.ARGBFloat;
-                    var buffer = RenderTexture.GetTemporary(width, height, 0, format, RenderTextureReadWrite.Linear);
+                    var buffer = ProfiledRenderTexture.GetTemporary(width, height, 0, format, RenderTextureReadWrite.Linear);
                     buffer.filterMode = FilterMode.Bilinear;
                     buffer.wrapMode = edges == EdgeMode.Repeat ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
                     buffers.Add(buffer);
@@ -130,7 +130,7 @@ namespace DCFApixels.WhimTex
                 material.SetTexture("_Input", null);
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
-                foreach (RenderTexture buffer in buffers) RenderTexture.ReleaseTemporary(buffer);
+                foreach (RenderTexture buffer in buffers) ProfiledRenderTexture.ReleaseTemporary(buffer);
             }
         }
     }

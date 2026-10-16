@@ -151,6 +151,13 @@ unchanged within 0–1. Gradient editing does not inherit this shared preference
 the selected color key, initially inferred from that key's intensity or negative RGB unless overridden
 in the current gradient session. The key's picker and History filter follow that per-key mode.
 
+The gradient editor's compact field beside the strip sets every color key to one display-space RGB value,
+converted to the palette's stored color space and bounded to half-float range. Different RGB values show
+the gray mixed-value swatch with a white corner-to-corner diagonal and a dark-gray shadow; alpha does not affect this state. The picker starts in HDR if any key requires it.
+Positions, midpoints and alpha keys are preserved; cancel restores the entire original palette.
+The opposite button reverses both tracks (`time = 1 - time`) and their interval midpoints,
+retaining interpolation, smoothness, wrap mode and color space. Both operations use the owner's Undo path.
+
 Switching modes never rewrites stored colors: returning to HDR restores their full intensity.
 Explicitly editing a color or gradient in Standard replaces that value with the edited bounded value.
 Existing layer rendering, pixels, layer ranges and exports are untouched by the picker preference.

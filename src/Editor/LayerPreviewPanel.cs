@@ -154,7 +154,7 @@ namespace DCFApixels.WhimTex
             descriptor.depthBufferBits = 0;
             descriptor.msaaSamples = 1;
             descriptor.useMipMap = descriptor.autoGenerateMips = false;
-            var copy = RenderTexture.GetTemporary(descriptor);
+            var copy = ProfiledRenderTexture.GetTemporary(descriptor);
             RenderTexture previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;
             try
@@ -164,7 +164,7 @@ namespace DCFApixels.WhimTex
                 GL.sRGBWrite = copy.sRGB;
                 Graphics.Blit(pixels, copy);
             }
-            catch { RenderTexture.ReleaseTemporary(copy); throw; }
+            catch { ProfiledRenderTexture.ReleaseTemporary(copy); throw; }
             finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
             ReleaseTextures();
             source = copy;
@@ -252,7 +252,7 @@ namespace DCFApixels.WhimTex
         private void UpdateChannels()
         {
             image.image = null;
-            if (channelTexture != null) RenderTexture.ReleaseTemporary(channelTexture);
+            if (channelTexture != null) ProfiledRenderTexture.ReleaseTemporary(channelTexture);
             channelTexture = null;
             if (source == null) return;
             if (channelMaterial == null)
@@ -261,7 +261,7 @@ namespace DCFApixels.WhimTex
                 if (shader == null || !shader.isSupported) { image.image = source; return; }
                 channelMaterial = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
             }
-            channelTexture = RenderTexture.GetTemporary(source.descriptor);
+            channelTexture = ProfiledRenderTexture.GetTemporary(source.descriptor);
             channelTexture.filterMode = source.filterMode;
             channelTexture.wrapMode = TextureWrapMode.Clamp;
             RenderTexture previous = RenderTexture.active;
@@ -305,8 +305,8 @@ namespace DCFApixels.WhimTex
         private void ReleaseTextures()
         {
             image.image = null;
-            if (channelTexture != null) RenderTexture.ReleaseTemporary(channelTexture);
-            if (source != null) RenderTexture.ReleaseTemporary(source);
+            if (channelTexture != null) ProfiledRenderTexture.ReleaseTemporary(channelTexture);
+            if (source != null) ProfiledRenderTexture.ReleaseTemporary(source);
             channelTexture = source = null;
             surface.MarkDirtyRepaint();
         }

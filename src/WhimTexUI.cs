@@ -328,10 +328,19 @@ namespace DCFApixels.WhimTex
             AddTextureTransform(root, layer, owner, apply, bindings, transformExpanded, transformExpansionChanged);
 
             LayerRenderingSettingsView.Build(root, layer, apply, bindings, renderingExpanded, renderingExpansionChanged, owner);
+            var operand = new VisualElement { name = "booleanOperandSettings" }; root.Add(operand);
+            var operandHelp = new HelpBox("", HelpBoxMessageType.Info); operand.Add(operandHelp);
+            bindings.Add(() => operandHelp.text = owner != null && !owner.IsBooleanStyleSuppressed(layer)
+                ? "Combine uses this layer's appearance. Layer FX, opacity and blending are ignored inside the group."
+                : "This is Boolean geometry. Its appearance and FX are retained but ignored inside the group.");
+            var operation = ConfigureField(new EnumField("Operation", layer.booleanOperation)); operand.Add(operation);
+            bindings.Track(operation, () => (Enum)layer.booleanOperation);
+            operation.RegisterValueChangedCallback(e => apply("Change Boolean Operation", () => layer.booleanOperation = (VectorBooleanOperation)e.newValue));
+            bindings.Add(() => operand.EnableInClassList("whimtex-hidden", owner == null || !owner.IsBooleanOperand(layer)));
             var properties = CreateInspectorSection($"Properties ({WhimTexDocument.LayerMenuName(layer)})", "propertiesSection", LayerActionIcon.Kind.Properties,
                 propertiesExpanded, propertiesExpansionChanged, !(layer?.Behaviour is ShaderProcessorLayerBehaviour));
             root.Add(properties);
-            if (group)
+            if (group && layer.Behaviour is not BooleanGroupLayerBehaviour)
             {
                 var mode = ConfigureField(new TextField("Compositing") { name = "groupCompositing", isReadOnly = true });
                 bindings.Track(mode, () => layer.IsPassThrough && !(owner != null && owner.IsGroupIsolatedByClipping(layer))
@@ -360,6 +369,7 @@ namespace DCFApixels.WhimTex
             bindings.Add(RefreshWarning);
             var view = new LayerShaderFXView(layer, owner, apply);
             fx.Add(view);
+            bindings.Add(() => view.SetEnabled(owner == null || !owner.IsBooleanOperand(layer)));
             return view;
         }
 

@@ -64,6 +64,21 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        // Export the same ordered analytic primitives used by the shader. Curve.z == 0
+        // denotes line endpoints; otherwise Segment stores center/axes and Curve start/sweep.
+        internal void CopyGeometry(ShapeLayerBehaviour shape, Vector2 halfSize,
+            List<Vector4> exportedSegments, List<Vector4> exportedCurves)
+        {
+            EnsureContour(shape, halfSize);
+            exportedSegments.Clear();
+            exportedCurves.Clear();
+            for (int i = 0; i < count; i++)
+            {
+                exportedSegments.Add(segments[i]);
+                exportedCurves.Add(curves[i]);
+            }
+        }
+
         private Corner[] Settings(ShapeLayerBehaviour shape) => shape.kind == ShapeKind.Rectangle ? shape.rectangleCorners :
             shape.kind == ShapeKind.Star ? new[] { shape.outerCorner, shape.innerCorner } : shape.polygonCorners;
         private int Group(ShapeLayerBehaviour shape, int index) => shape.kind == ShapeKind.Star ? index & 1 : index;

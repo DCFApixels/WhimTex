@@ -27,6 +27,8 @@ next_page: "zh/transform.md"
 | Gradient | 平滑的颜色过渡。 |
 | Noise | 生成的图案。参见 [Noise](noise.md)。 |
 | Shape | 可编辑的矩形、椭圆、多边形、星形、直线、圆弧或扇形。 |
+| Vector | 一个拥有独立变换、节点、曲线、填充和描边的图形；复合轮廓可以包含孔洞。参见[矢量路径](vector.md)。 |
+| Boolean Group | Union、Subtract、Intersect 和 Xor 使用统一填充和描边；Combine 保留独立图形，可选择组或子图层样式。参见[组合图形](vector.md#组合图形并保留独立编辑)。 |
 | Text | 使用操作系统已安装字体的可编辑文字。 |
 | Outline | 可编辑的描边或填充轮廓。参见[效果图层](effects.md)。 |
 | SDF | 按边缘距离生成的渐变或数值距离图。参见[效果图层](effects.md)。 |
@@ -188,7 +190,7 @@ TIFF 和 JSON 保存可编辑文字、字体名称和外观的栅格备份，不
 选择图层并点击 **Folder**，或将图层拖入已有的组。
 使用组的箭头展开或折叠它。
 
-组默认处于 **Pass Through**，因此其图层可以与组外的图层混合。
+普通组默认处于 **Pass Through**，因此其图层可以与组外的图层混合。
 选择其他混合模式可将组作为一张图像进行混合。组不透明度会让整个组淡出。
 为组添加 **FX** 可处理其合成图像。FX 会自动将 Pass Through 组隔离，并使用 Normal 混合，不影响组外图像。移除全部 FX 后，若剪贴或 Mapping 不再需要隔离，将恢复 Pass Through。**Properties → Compositing** 以只读方式显示实际模式。组也支持 **Transform**：移动、旋转、缩放、倾斜和透视会作用于所有子图层。子图层的变换相对于所属组；组的操作框表示自身变换，不自动包围子图层。移动图层到其他组或取消分组时，画布上的位置保持不变。
 
@@ -257,6 +259,15 @@ Seamless 优先于图层 Tiling，只保证生成图案的周期性；后续任�
 使用 **Transform** 来移动、缩放或旋转已有的图形。在 **Properties (Shape)** 中，
 可以更改其类型、颜色、多边形边数或星形角数和内半径。
 
+启用 **Fill** 后选择 **Type**：Solid 使用单色；Linear、Radial、Square、Diamond
+和 Circular 使用渐变；None 不填充主体。点击 **Gradient** 调整颜色和透明度，
+再用起止点或中心与半径/方向点定位渐变。关闭 Fill 会隐藏这些控件并保留设置。
+各渐变的形状以及 Circular 的逆时针方向和接缝见[填充控件](vector.md#填充与描边)。
+
+**Stroke → Type** 提供相同的单色和渐变选项，拥有独立色带、控制点及 Circular 的
+Repetitions。选择 None 或关闭 Stroke 会保留这些设置。两种渐变同时启用时，
+在 **Gradient Handles** 中选择 Fill 或 Stroke；拖动所选渐变的控制点不会移动图形。
+
 - **Corners (%)** 显示图形示意图，各角旁的数值字段控制大小；零表示尖角。
   字段旁的图标选择 **Round**（圆角）或 **Bevel**（斜角）。多边形超过八个顶点时，点击示意图中的顶点来编辑它。
   矩形的四个角可独立设置；相邻角留有空间时，单角可达到短边长度的 100%。多边形可逐顶点设置。
@@ -265,6 +276,10 @@ Seamless 优先于图层 Tiling，只保证生成图案的周期性；后续任�
   独立角增大到无法容纳时，邻角的大小会减小；之后缩小该角不会自动恢复邻角。
   链接编辑和几何变化会按比例限制大小，使各角能容纳在边上。
 - **Stroke Position** 选择 Inside、Center 或 Outside。描边宽度以画布像素为单位，缩放图形不会改变它。
+  Inside/Outside 先偏移路径，再生成虚线，因此圆点和圆形端帽保持完整。
+  过窄的内缩路径可能分裂或消失；虚线沿偏移后的路径排列。详见[描边位置](vector.md#填充与描边)。
+- 描边的 **Join** 图标选择 Miter、Round 或 Bevel；**Miter Limit** 截短过长的 Miter 尖角。
+  **Cap** 图标为虚线端点选择 Butt、Round 或 Square。这些设置与形状主体的角和 Line Caps 相互独立。
 - **Line Caps** 为 Line 和 Arc 选择 Butt、Round 或 Square。Transform 控制 Line 的长度和粗细；
   Round/Square 会延伸到端点之外。
 - **Thickness (px)** 设置 Arc 主体的粗细；Transform 控制其中心线所在的椭圆。
@@ -272,6 +287,15 @@ Seamless 优先于图层 Tiling，只保证生成图案的周期性；后续任�
   **Stroke Width** 和 **Stroke Position** 控制描边，而不是圆弧主体的粗细。
 - **Start Angle** 和 **Sweep Angle** 设置 Arc/Sector 的范围：0° 指向右侧，角度增加时逆时针旋转。
   Sweep 0 为空，360 为完整圆环或椭圆。
+
+要绘制虚线轮廓，可选择 **Dashes** 预设，或在 **Pattern (× Width)** 中输入交替的线段和间隔长度：
+`2 1` 表示线段长为描边宽度的两倍，间隔为一倍；留空表示实线。预览会随宽度、端点和
+**Dash Offset** 更新。按 **Enter** 或离开字段应用输入，按 **Escape** 取消。
+展开 **Segments** 可逐对编辑 **Dash**/**Gap**。这些与 [Vector 的虚线控件](vector.md)相同：
+倍率必须为正且不大于 8192，最多 256 个数值；奇数项列表会重复两遍。
+**Dash Offset** 以文档像素移动图案。调整 **Stroke Width** 会同步缩放线段和间隔；
+缩放 Shape 则保持描边宽度和虚线长度不变。Vector 的宽度和虚线会随图层一起缩放。
+圆点预设还会选择圆形描边端点，Line Caps 仍可独立设置。
 
 **Feather (px)** 柔化轮廓，而不模糊整张图像。**Feather Position** 可选择
 Inside（向内）、Outside（向外）或 Centered（两侧）；空心描边的两条边界也会柔化。
