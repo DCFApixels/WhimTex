@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
-    /// <summary>Rebuilds editable closed contours from the unchanged last-stroke mask.</summary>
+    /// <summary>Rebuilds editable closed contours from the retained source mask.</summary>
     public static partial class VectorBrushGeometry
     {
         public const int MaxTracePoints = 131072, MaxContours = 512, MaxOutputPoints = 8192;
@@ -17,8 +18,10 @@ namespace DCFApixels.WhimTex
         /// initialized to solid white; callers replacing an existing shape must retain its style.
         /// An empty result is valid after contraction and retains the draft's shape ID.
         /// </summary>
-        public static VectorShape Rebuild(VectorBrushDraft draft, Vector2 referenceSize)
+        public static VectorShape Rebuild(VectorBrushDraft draft, Vector2 referenceSize, CancellationToken cancellation = default)
         {
+            using var diagnostic = WhimTexHangDiagnostics.Enter("vector.mask.rebuild");
+            cancellation.ThrowIfCancellationRequested();
             if (draft == null) throw new ArgumentNullException(nameof(draft));
             draft.Validate();
             referenceSize = Vector2.Scale(referenceSize, draft.frame.size);
@@ -29,22 +32,23 @@ namespace DCFApixels.WhimTex
             int minX = draft.width, minY = draft.height, maxX = -1, maxY = -1;
             for (int y = 0; y < draft.height; y++) for (int x = 0; x < draft.width; x++)
             {
+                if (x == 0) cancellation.ThrowIfCancellationRequested();
                 if (draft.coverage[y * draft.width + x] < 128) continue;
                 minX = Math.Min(minX, x); minY = Math.Min(minY, y);
                 maxX = Math.Max(maxX, x); maxY = Math.Max(maxY, y);
             }
             if (maxX < minX) return shape;
             Vector2 step = new Vector2(referenceSize.x / draft.width, referenceSize.y / draft.height);
-            Grid source = CoverageGrid(draft, minX - 1, minY - 1, maxX + 1, maxY + 1, step);
-            Trace original = TraceGrid(source);
+            Grid source = CoverageGrid(draft, minX - 1, minY - 1, maxX + 1, maxY + 1, step, cancellation);
+            Trace original = TraceGrid(source, cancellation);
             List<List<Vector2>> loops = original.loops;
             if (draft.expansion != 0 && original.segments.Count > 0)
             {
                 int paddingX = ExpansionPadding(draft.expansion, step.x);
                 int paddingY = ExpansionPadding(draft.expansion, step.y);
                 Grid offset = NewGrid(minX - paddingX, minY - paddingY, maxX + paddingX, maxY + paddingY, step);
-                var distance = new SegmentTree(original.segments);
-                int work = MaxDistanceWork;
+                var distance = new SegmentTree(original.segments, cancellation);
+                var work = new WorkBudget(MaxDistanceWork, cancellation);
                 double band = Math.Abs(draft.expansion) + 2 * Math.Max(step.x, step.y);
                 for (int y = 0; y < offset.height; y++) for (int x = 0; x < offset.width; x++)
                 {
@@ -56,10 +60,10 @@ namespace DCFApixels.WhimTex
                     // A deterministic exterior tie avoids vertices shared by four cells.
                     offset.values[y * offset.width + x] = value == 0 ? -1e-6f * Math.Min(step.x, step.y) : value;
                 }
-                loops = TraceGrid(offset).loops;
+                loops = TraceGrid(offset, cancellation).loops;
             }
             if (loops.Count == 0) return shape;
-            shape.contours = FitContours(loops, draft.tolerance, step, referenceSize, draft.shapeId);
+            shape.contours = FitContours(loops, draft.tolerance, step, referenceSize, draft.shapeId, cancellation);
             foreach (var contour in shape.contours) foreach (var point in contour.points)
             {
                 point.position = draft.frame.min + Vector2.Scale(point.position, draft.frame.size);
@@ -96,11 +100,16 @@ namespace DCFApixels.WhimTex
         static byte CoverageAt(VectorBrushDraft draft, int x, int y) => x < 0 || y < 0 || x >= draft.width || y >= draft.height
             ? (byte)0 : draft.coverage[y * draft.width + x];
 
-        static Grid CoverageGrid(VectorBrushDraft draft, int x, int y, int right, int top, Vector2 step)
+        static Grid CoverageGrid(VectorBrushDraft draft, int x, int y, int right, int top, Vector2 step, CancellationToken cancellation)
         {
+            using var diagnostic = WhimTexHangDiagnostics.Enter("vector.mask.coverage_grid");
             Grid grid = NewGrid(x, y, right, top, step);
-            for (int row = 0; row < grid.height; row++) for (int col = 0; col < grid.width; col++)
-                grid.values[row * grid.width + col] = CoverageAt(draft, col + x, row + y) - 127.5f;
+            for (int row = 0; row < grid.height; row++)
+            {
+                cancellation.ThrowIfCancellationRequested();
+                for (int col = 0; col < grid.width; col++)
+                    grid.values[row * grid.width + col] = CoverageAt(draft, col + x, row + y) - 127.5f;
+            }
             return grid;
         }
 
@@ -124,14 +133,16 @@ namespace DCFApixels.WhimTex
 
         // Interpolated marching squares. Shared grid-edge IDs weld exactly, without
         // rounding positions. The bilinear determinant resolves diagonal ambiguity.
-        static Trace TraceGrid(Grid grid)
+        static Trace TraceGrid(Grid grid, CancellationToken cancellation)
         {
+            using var diagnostic = WhimTexHangDiagnostics.Enter("vector.mask.trace_grid");
             var result = new Trace();
             var vertices = new List<Vertex>();
             var keys = new Dictionary<long, int>();
             var crossings = new int[4];
             for (int y = 0; y + 1 < grid.height; y++) for (int x = 0; x + 1 < grid.width; x++)
             {
+                if (x == 0) cancellation.ThrowIfCancellationRequested();
                 int index = y * grid.width + x;
                 float a = grid.values[index], b = grid.values[index + 1];
                 float c = grid.values[index + grid.width + 1], d = grid.values[index + grid.width];
@@ -157,6 +168,7 @@ namespace DCFApixels.WhimTex
                 int current = i, previous = -1;
                 do
                 {
+                    if ((loop.Count & 1023) == 0) cancellation.ThrowIfCancellationRequested();
                     if (current < 0 || visited[current]) throw Complexity("Vector brush contour is not a closed manifold.");
                     Vertex vertex = vertices[current];
                     if (vertex.first < 0 || vertex.second < 0) throw Complexity("Vector brush contour reached the field boundary.");
@@ -206,13 +218,94 @@ namespace DCFApixels.WhimTex
             public float minX, maxX, minY, maxY;
         }
 
-        static bool TopologyMatches(List<List<Vector2>> source, List<List<Vector2>> candidate, ref int work)
+        sealed class TopologyTree
+        {
+            struct Node
+            {
+                public float minX, maxX, minY, maxY;
+                public int start, count, left, right;
+            }
+            sealed class CenterComparer : IComparer<TopologyEdge>
+            {
+                readonly bool horizontal;
+                public CenterComparer(bool horizontal) { this.horizontal = horizontal; }
+                public int Compare(TopologyEdge a, TopologyEdge b) => horizontal
+                    ? ((double)a.minX + a.maxX).CompareTo((double)b.minX + b.maxX)
+                    : ((double)a.minY + a.maxY).CompareTo((double)b.minY + b.maxY);
+            }
+            static readonly CenterComparer SortX = new CenterComparer(true), SortY = new CenterComparer(false);
+            readonly TopologyEdge[] edges;
+            readonly List<Node> nodes = new List<Node>();
+            readonly CancellationToken cancellation;
+
+            public TopologyTree(List<TopologyEdge> edges, CancellationToken cancellation)
+            {
+                this.edges = edges.ToArray(); this.cancellation = cancellation;
+                Build(0, edges.Count);
+            }
+
+            int Build(int start, int count)
+            {
+                cancellation.ThrowIfCancellationRequested();
+                TopologyEdge first = edges[start];
+                var node = new Node { start = start, count = count, left = -1, right = -1,
+                    minX = first.minX, maxX = first.maxX, minY = first.minY, maxY = first.maxY };
+                for (int i = start + 1; i < start + count; i++)
+                {
+                    var edge = edges[i];
+                    node.minX = Math.Min(node.minX, edge.minX); node.maxX = Math.Max(node.maxX, edge.maxX);
+                    node.minY = Math.Min(node.minY, edge.minY); node.maxY = Math.Max(node.maxY, edge.maxY);
+                }
+                int index = nodes.Count; nodes.Add(default);
+                if (count > 8)
+                {
+                    Array.Sort(edges, start, count, node.maxX - node.minX >= node.maxY - node.minY ? SortX : SortY);
+                    int half = count / 2;
+                    node.left = Build(start, half); node.right = Build(start + half, count - half);
+                }
+                nodes[index] = node;
+                return index;
+            }
+
+            public bool HasIntersection(ref WorkBudget work)
+            {
+                for (int i = 0; i < edges.Length; i++)
+                    if (Query(0, i, edges[i], ref work)) return true;
+                return false;
+            }
+
+            bool Query(int index, int edgeIndex, TopologyEdge edge, ref WorkBudget work)
+            {
+                Spend(ref work, "Vector brush topology work limit exceeded.");
+                var node = nodes[index];
+                if (node.start + node.count <= edgeIndex + 1 || node.minX > edge.maxX || node.maxX < edge.minX ||
+                    node.minY > edge.maxY || node.maxY < edge.minY) return false;
+                if (node.left >= 0)
+                    return Query(node.left, edgeIndex, edge, ref work) || Query(node.right, edgeIndex, edge, ref work);
+                for (int j = Math.Max(node.start, edgeIndex + 1); j < node.start + node.count; j++)
+                {
+                    Spend(ref work, "Vector brush topology work limit exceeded.");
+                    var other = edges[j];
+                    if (other.minX > edge.maxX || other.maxX < edge.minX || other.minY > edge.maxY || other.maxY < edge.minY) continue;
+                    int gap = Math.Abs(edge.point - other.point);
+                    if (edge.loop == other.loop && (gap == 1 || gap == edge.length - 1)) continue;
+                    if (Intersects(edge.line, other.line)) return true;
+                }
+                return false;
+            }
+        }
+
+        static bool TopologyMatches(List<List<Vector2>> source, List<List<Vector2>> candidate,
+            LoopBox[] sourceBounds, sbyte[] sourceNesting, ref WorkBudget work)
         {
             var edges = new List<TopologyEdge>();
+            var bounds = new LoopBox[candidate.Count];
             for (int c = 0; c < candidate.Count; c++)
             {
+                work.cancellation.ThrowIfCancellationRequested();
                 List<Vector2> loop = candidate[c];
                 if (Area(source[c]) * Area(loop) <= 0) return false;
+                bounds[c] = LoopBounds(loop);
                 for (int p = 0; p < loop.Count; p++)
                 {
                     Vector2 a = loop[p], b = loop[(p + 1) % loop.Count];
@@ -221,26 +314,33 @@ namespace DCFApixels.WhimTex
                         minX = Math.Min(a.x, b.x), maxX = Math.Max(a.x, b.x), minY = Math.Min(a.y, b.y), maxY = Math.Max(a.y, b.y) });
                 }
             }
-            edges.Sort((a, b) => a.minX.CompareTo(b.minX));
-            for (int i = 0; i < edges.Count; i++) for (int j = i + 1; j < edges.Count; j++)
-            {
-                TopologyEdge a = edges[i], b = edges[j];
-                if (b.minX > a.maxX) break;
-                Spend(ref work, "Vector brush topology work limit exceeded.");
-                if (b.minY > a.maxY || b.maxY < a.minY) continue;
-                int gap = Math.Abs(a.point - b.point);
-                if (a.loop == b.loop && (gap == 1 || gap == a.length - 1)) continue;
-                if (Intersects(a.line, b.line)) return false;
-            }
+            if (edges.Count > 0 && new TopologyTree(edges, work.cancellation).HasIntersection(ref work)) return false;
             for (int i = 0; i < candidate.Count; i++) for (int j = 0; j < candidate.Count; j++)
             {
                 if (i == j) continue;
-                if (Contains(source[j], source[i][0], ref work) != Contains(candidate[j], candidate[i][0], ref work)) return false;
+                Spend(ref work, "Vector brush nesting work limit exceeded.");
+                int slot = i * candidate.Count + j;
+                if (sourceNesting[slot] == 0)
+                    sourceNesting[slot] = (sbyte)(InBounds(sourceBounds[j], source[i][0]) && Contains(source[j], source[i][0], ref work) ? 1 : -1);
+                bool contained = InBounds(bounds[j], candidate[i][0]) && Contains(candidate[j], candidate[i][0], ref work);
+                if ((sourceNesting[slot] > 0) != contained) return false;
             }
             return true;
         }
 
-        static bool Contains(List<Vector2> polygon, Vector2 p, ref int work)
+        struct LoopBox { public Vector2 min, max; }
+
+        static LoopBox LoopBounds(List<Vector2> loop)
+        {
+            Vector2 min = loop[0], max = min;
+            for (int i = 1; i < loop.Count; i++) { min = Vector2.Min(min, loop[i]); max = Vector2.Max(max, loop[i]); }
+            return new LoopBox { min = min, max = max };
+        }
+
+        static bool InBounds(LoopBox bounds, Vector2 p) => p.x >= bounds.min.x && p.x <= bounds.max.x &&
+            p.y >= bounds.min.y && p.y <= bounds.max.y;
+
+        static bool Contains(List<Vector2> polygon, Vector2 p, ref WorkBudget work)
         {
             bool inside = false;
             for (int i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
@@ -297,11 +397,14 @@ namespace DCFApixels.WhimTex
             static readonly CenterComparer SortX = new CenterComparer(true), SortY = new CenterComparer(false);
             readonly Segment[] segments;
             readonly List<Node> nodes = new List<Node>();
+            readonly CancellationToken cancellation;
 
-            public SegmentTree(List<Segment> segments) { this.segments = segments.ToArray(); Build(0, segments.Count); }
+            public SegmentTree(List<Segment> segments, CancellationToken cancellation)
+            { this.segments = segments.ToArray(); this.cancellation = cancellation; Build(0, segments.Count); }
 
             int Build(int start, int count)
             {
+                cancellation.ThrowIfCancellationRequested();
                 Vector2 min = segments[start].a, max = min;
                 for (int i = start; i < start + count; i++)
                 {
@@ -322,14 +425,14 @@ namespace DCFApixels.WhimTex
                 return index;
             }
 
-            public double DistanceSquared(Vector2 point, double maximumSquared, ref int work)
+            public double DistanceSquared(Vector2 point, double maximumSquared, ref WorkBudget work)
             {
                 double best = maximumSquared;
                 Query(0, point, ref best, ref work);
                 return best;
             }
 
-            void Query(int index, Vector2 point, ref double best, ref int work)
+            void Query(int index, Vector2 point, ref double best, ref WorkBudget work)
             {
                 Spend(ref work, "Vector brush signed-distance work limit exceeded. Reduce mask resolution or expansion.");
                 Node node = nodes[index];
@@ -364,7 +467,19 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        static void Spend(ref int work, string message) { if (--work < 0) throw Complexity(message); }
+        struct WorkBudget
+        {
+            public int remaining;
+            public readonly CancellationToken cancellation;
+            public WorkBudget(int remaining, CancellationToken cancellation)
+            { this.remaining = remaining; this.cancellation = cancellation; }
+        }
+
+        static void Spend(ref WorkBudget work, string message)
+        {
+            if ((work.remaining & 1023) == 0) work.cancellation.ThrowIfCancellationRequested();
+            if (--work.remaining < 0) throw Complexity(message);
+        }
         static InvalidOperationException Complexity(string message) => new InvalidOperationException(message);
     }
 }

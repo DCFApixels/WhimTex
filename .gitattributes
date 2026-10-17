@@ -24,3 +24,7 @@ Tests~/CoverageAudit/legacy-backup-removal-20261005.json -text
 Tests~/Fixtures/CompositionMissingTestBehaviour.cs.txt -text
 Tests~/Fixtures/WhimTexImportFailureProbe.cs -text
 Tests~/Fixtures/WhimTexPlayerProbe.cs -text
+
+# Vendored font sources and original notices are authenticated by byte hashes.
+src/ThirdParty/Typography/** -text
+Tests~/Fixtures/Fonts/** -text

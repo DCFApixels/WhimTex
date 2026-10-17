@@ -1,0 +1,14 @@
+{
+    "name": "DCFApixels.WhimTex.Typography.OpenFont",
+    "rootNamespace": "Typography.OpenFont",
+    "references": [],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

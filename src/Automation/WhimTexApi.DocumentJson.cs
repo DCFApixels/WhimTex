@@ -122,7 +122,7 @@ namespace DCFApixels.WhimTex
                 Require(replace != null, "Replacement target was not found.");
                 Require(destinationDocument.TryFindLayer(replace, out var replacementContainer, out _) &&
                     destinationDocument.CanInsertInto(parsed.Document.layers[0], replacementContainer),
-                    "Replacing a Boolean operand requires closed Shape/Vector geometry or a Boolean Group.");
+                    "Replacing a Boolean operand requires closed Shape/Vector geometry, editable Text or a Boolean Group.");
             }
             var copies = destinationDocument.CopyLayersFrom(parsed.Document, parsed.Document.layers, false, null);
             if (replace != null)

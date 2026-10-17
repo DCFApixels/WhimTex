@@ -9,6 +9,7 @@ namespace DCFApixels.WhimTex
     {
         [NonSerialized] private CanvasTool lastBaseCanvasTool;
         [NonSerialized] private CanvasTool temporaryReturnTool;
+        [NonSerialized] private bool gradientHandlesSelectedManually;
         [NonSerialized] private WhimTexDocument toolContextDocument, temporaryDocument;
         [NonSerialized] private string toolContextLayerId, temporaryLayerId;
         private VisualElement contextToolSeparator;
@@ -73,7 +74,9 @@ namespace DCFApixels.WhimTex
 
         private bool ReconcileCanvasToolContext()
         {
-            string layerId = GetSelectedLayer()?.Id;
+            Layer layer = GetSelectedLayer();
+            string layerId = layer?.Id;
+            if (toolContextDocument != activeDocument) gradientHandlesSelectedManually = false;
             bool changedContext = toolContextDocument != activeDocument || toolContextLayerId != layerId;
             toolContextDocument = activeDocument;
             toolContextLayerId = layerId;
@@ -87,7 +90,10 @@ namespace DCFApixels.WhimTex
                 // A changed active layer ends gestures even when the tool kind stays the same.
                 FinishCanvasTransform();
                 gradientCreationManipulator?.Cancel();
-                if (IsGradientCanvasAvailable && !IsTemporaryCanvasTool(canvasTool) && canvasTool != CanvasTool.Gradient && canvasTool != CanvasTool.Crop && canvasTool != CanvasTool.Comment)
+                bool gradientLayer = layer?.Behaviour is GradientLayerBehaviour;
+                if (!gradientLayer && canvasTool == CanvasTool.GradientHandles && !gradientHandlesSelectedManually)
+                    ChangeCanvasTool(lastBaseCanvasTool);
+                else if (gradientLayer && IsGradientCanvasAvailable && !IsTemporaryCanvasTool(canvasTool) && canvasTool != CanvasTool.Gradient && canvasTool != CanvasTool.Crop && canvasTool != CanvasTool.Comment)
                     ChangeCanvasTool(CanvasTool.GradientHandles);
             }
             return changedContext || before != canvasTool;
@@ -150,6 +156,8 @@ namespace DCFApixels.WhimTex
 
         private void ChangeCanvasTool(CanvasTool tool)
         {
+            if (tool != CanvasTool.GradientHandles && !IsTemporaryCanvasTool(tool))
+                gradientHandlesSelectedManually = false;
             CanvasTool previous = IsTemporaryCanvasTool(canvasTool) ? ResolveTemporaryReturnTool() : canvasTool;
             if (previous != tool && !IsTemporaryCanvasTool(tool) &&
                 (IsBaseCanvasTool(previous) || IsContextToolAvailable(previous)))

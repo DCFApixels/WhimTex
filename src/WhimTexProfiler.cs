@@ -192,13 +192,15 @@ namespace DCFApixels.WhimTex
             readonly int slot, parent;
             readonly bool filtered, native;
             readonly ProfilerMarker marker;
+            readonly WhimTexHangDiagnostics.Scope diagnostic;
 
             internal GpuScope Gpu() => BeginGpu(owner, slot);
 
             internal Scope(string phase, WhimTexDocument document, Layer layer, int fxIndex, string detail)
             {
-                owner = null; slot = parent = -1; filtered = native = false; marker = default;
+                owner = null; slot = parent = -1; filtered = native = false; marker = default; diagnostic = default;
                 if (Thread.CurrentThread.ManagedThreadId != mainThread || instrumentationSuspended != 0) return;
+                diagnostic = WhimTexHangDiagnostics.Enter(phase);
                 if (UnityEngine.Profiling.Profiler.enabled)
                 {
                     if (!markers.TryGetValue(phase, out marker))
@@ -225,6 +227,12 @@ namespace DCFApixels.WhimTex
             }
 
             public void Dispose()
+            {
+                try { Complete(); }
+                finally { diagnostic.Dispose(); }
+            }
+
+            void Complete()
             {
                 if (native) marker.End();
                 if (filtered) { suppressed--; return; }

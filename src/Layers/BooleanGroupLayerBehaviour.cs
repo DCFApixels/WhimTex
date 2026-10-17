@@ -39,7 +39,7 @@ namespace DCFApixels.WhimTex
             ValidateOperands(BoundOwner?.children, new HashSet<Layer>(), 0);
         }
 
-        internal static bool IsOperand(Layer layer) => layer?.Behaviour is ShapeLayerBehaviour or VectorLayerBehaviour or BooleanGroupLayerBehaviour;
+        internal static bool IsOperand(Layer layer) => layer?.Behaviour is ShapeLayerBehaviour or VectorLayerBehaviour or TextLayerBehaviour or BooleanGroupLayerBehaviour;
 
         internal static void ValidateOperands(List<Layer> layers, HashSet<Layer> visited, int depth)
         {
@@ -47,9 +47,10 @@ namespace DCFApixels.WhimTex
             if (layers == null) return;
             foreach (var layer in layers)
             {
-                if (!IsOperand(layer)) throw new InvalidOperationException("Boolean Group accepts only Shape, Vector and Boolean Group layers.");
+                if (!IsOperand(layer)) throw new InvalidOperationException("Boolean Group accepts only Shape, Vector, Text and Boolean Group layers.");
                 if (!visited.Add(layer)) throw new InvalidOperationException("Boolean Group contains a cycle or shared operand.");
                 if ((uint)layer.booleanOperation > (uint)VectorBooleanOperation.Combine) throw new InvalidOperationException("Unknown Boolean operation.");
+                if (layer.Behaviour is TextLayerBehaviour text) text.Validate();
                 if (layer.Behaviour is VectorLayerBehaviour vector)
                 {
                     vector.Validate();
@@ -160,6 +161,7 @@ namespace DCFApixels.WhimTex
                 else
                 {
                     var figures = child.Behaviour is VectorLayerBehaviour vector ? vector.shapes :
+                        child.Behaviour is TextLayerBehaviour text ? text.GetVectorGeometry(document).shapes :
                         new List<VectorShape> { new VectorShape { contours = ShapeToVector.GeometryContours(
                             (ShapeLayerBehaviour)child.Behaviour, ((ShapeLayerBehaviour)child.Behaviour).GeometryHalfSize(document), document.GetPixelScale()) } };
                     Vector2 reference = child.Behaviour is VectorLayerBehaviour v ? v.referenceSize : new Vector2(document.width, document.height);
@@ -236,6 +238,12 @@ namespace DCFApixels.WhimTex
                 hash.Add(child?.enabled); if (child == null) continue;
                 HashMatrix(child.transform.ToMatrix(width, height), ref hash); hash.Add(child.booleanOperation);
                 if (child.Behaviour is VectorLayerBehaviour vector) hash.Add(vector.ComputeGeometryHash(booleanOperand: true));
+                else if (child.Behaviour is TextLayerBehaviour text)
+                {
+                    hash.Add(text.LayoutKey(width, height)); hash.Add(text.ResolvedFont);
+                    hash.Add(SystemFontCatalog.Revision); hash.Add(child.GetPixelScale());
+                    hash.Add(child.GetSourceCanvasSize(width, height));
+                }
                 else if (child.Behaviour is ShapeLayerBehaviour shape)
                 {
                     hash.Add(shape.kind); hash.Add(shape.sides); hash.Add(shape.innerRadius);

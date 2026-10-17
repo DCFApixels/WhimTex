@@ -142,6 +142,8 @@ namespace DCFApixels.WhimTex
             => RasterizePolygon(points, combine, wrap, 256, antialias);
         internal void Freehand(IReadOnlyList<Vector2> points, SelectionCombine combine, bool wrap, bool antialias = false)
             => RasterizePolygon(points, combine, wrap, 4096, antialias);
+        internal void SmoothPolygon(IReadOnlyList<Vector2> outline, SelectionCombine combine, bool wrap, bool antialias = false)
+            => RasterizePolygon(outline, combine, wrap, SmoothLassoContour.MaximumPoints, antialias);
         private void RasterizePolygon(IReadOnlyList<Vector2> points, SelectionCombine combine, bool wrap, int maximumPoints, bool antialias)
         {
             ValidateSize();

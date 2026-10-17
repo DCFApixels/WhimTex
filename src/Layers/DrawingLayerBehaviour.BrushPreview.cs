@@ -38,10 +38,7 @@ namespace DCFApixels.WhimTex
                     from = to;
                 }
                 straight = HdrUtility.Temporary(width, height);
-                Material conversion = WhimTexMaterials.AlphaConversion;
-                if (conversion == null) return;
-                conversion.SetFloat("_Mode", 1f);
-                Graphics.Blit(surface, straight, conversion);
+                BlitStraightSurface(straight, 1f);
                 Graphics.Blit(straight, target, display);
             }
             finally

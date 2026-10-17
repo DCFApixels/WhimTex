@@ -161,6 +161,7 @@ namespace DCFApixels.WhimTex
             SelectOnlyLayer(null);
             groupExpansion?.Clear();
             canvasTool = CanvasTool.None;
+            gradientHandlesSelectedManually = false;
             previousCanvasTool = null;
             canvasToolToggleKeyHeld = false;
             lastBaseCanvasTool = CanvasTool.None;
@@ -227,6 +228,7 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            CancelVectorMaskRebuild(false);
             vectorManipulator?.Cancel();
             commentManipulator?.Cancel();
             CloseCanvasCommentEditor();
@@ -313,7 +315,7 @@ namespace DCFApixels.WhimTex
         {
             RefreshDocumentTitle();
             RefreshLiveOutputButton();
-            hasUnsavedChanges = HasDocumentChanges() || paintingLayer != null ||
+            hasUnsavedChanges = HasDocumentChanges() || vectorMaskRebuild != null || paintingLayer != null ||
                  canvasTransformManipulator != null && canvasTransformManipulator.IsDragging;
             saveChangesMessage = "Save this WhimTex document before closing?\n\n" +
                 "Save opens Save As to choose a file. Discard closes without saving. Cancel keeps the window open.";
@@ -333,6 +335,7 @@ namespace DCFApixels.WhimTex
 
         public override void DiscardChanges()
         {
+            CancelVectorMaskRebuild(false);
             cropManipulator?.Reset();
             FinishCanvasTransform();
             FinishPaintingStroke();
@@ -344,7 +347,7 @@ namespace DCFApixels.WhimTex
         private void OnLostFocus()
         {
             activeCommentChoice?.Close();
-            vectorManipulator?.Cancel();
+            if (!IsVectorMaskRebuilding) vectorManipulator?.Cancel();
             commentManipulator?.Cancel();
             cropPicker?.Cancel(); shapePicker?.Cancel(); marqueePicker?.Cancel(); lassoPicker?.Cancel();
             cropManipulator?.CancelGesture();
@@ -439,6 +442,7 @@ namespace DCFApixels.WhimTex
             // Utility-window focus changes can precede the native OnLostFocus message.
             if (vectorManipulator?.IsDragging == true && EditorWindow.focusedWindow != this)
                 vectorManipulator.Cancel();
+            UpdateVectorMaskRebuild();
             UpdateHealing();
             if (ReconcileCanvasToolContext()) toolkitRefreshRequested = true;
             if (canvasTool == CanvasTool.Crop) RefreshCanvasCropSnapTargets();
@@ -661,7 +665,7 @@ namespace DCFApixels.WhimTex
                 Undo.FlushUndoRecordObjects();
                 return;
             }
-            finishedLayer.SyncSurfaceToTexture();
+            finishedLayer.FinishStrokeStorage();
             nextPaintingCanvasAt = 0d;
             if (canvasTool == CanvasTool.BlurBrush || canvasTool == CanvasTool.SmudgeBrush)
             {
@@ -759,10 +763,10 @@ namespace DCFApixels.WhimTex
             menu.ShowAsContext();
         }
 
-        private void AddLayer(List<Layer> container, int insertionIndex, Layer layer, string namePrefix = null)
+        private void AddLayer(List<Layer> container, int insertionIndex, Layer layer, string namePrefix = null, bool completeUndo = false)
         {
             if (!activeDocument.CanInsertInto(layer, container))
-            { ShowNotification(new GUIContent("Boolean Group accepts closed Shape, Vector or Boolean Group geometry.")); return; }
+            { ShowNotification(new GUIContent("Boolean Group accepts closed Shape/Vector geometry, Text or nested Boolean Groups.")); return; }
             ExecuteModelChange("Add Sprite Layer", () =>
             {
                 layer.layerName = activeDocument.AllocateLayerName(layer, namePrefix);
@@ -778,7 +782,7 @@ namespace DCFApixels.WhimTex
                 SelectOnlyLayer(layer.Id);
                 if (layer?.IsGroup == true)
                     groupExpansion[layer.Id] = true;
-            });
+            }, completeUndo);
         }
 
         private void GroupSelectedLayer()
@@ -904,6 +908,8 @@ namespace DCFApixels.WhimTex
                 () => ConvertLayersToDrawing(roots, true));
             if (targets.Count == 1 && targets[0].Behaviour is ShapeLayerBehaviour)
                 menu.AddItem(new GUIContent("Convert to Vector"), false, () => ConvertShapeToVector(targets[0]));
+            if (targets.Count == 1 && targets[0].Behaviour is TextLayerBehaviour)
+                menu.AddItem(new GUIContent("Convert to Vector"), false, () => ConvertTextToVector(targets[0]));
             menu.AddSeparator(string.Empty);
             menu.AddItem(new GUIContent("Duplicate"), false, () => DuplicateLayers(roots));
             menu.AddItem(new GUIContent("Copy as JSON"), false, () =>
@@ -1114,13 +1120,20 @@ namespace DCFApixels.WhimTex
             return expanded;
         }
 
-        private void ExecuteModelChange(string undoName, Action action)
+        private void ExecuteModelChange(string undoName, Action action, bool completeUndo = false)
         {
             if (activeDocument == null || action == null)
                 return;
 
             using var profile = WhimTexProfiler.Measure("edit.model", activeDocument, detail: undoName);
-            Undo.RecordObject(activeDocument, undoName);
+            if (completeUndo)
+            {
+                // Replaced/resized mask arrays must not go through per-element Undo diffing.
+                // Keep the exact document state, including the mask and its vector geometry.
+                using var undoProfile = WhimTexProfiler.Measure("undo.snapshot", activeDocument, detail: undoName);
+                Undo.RegisterCompleteObjectUndo(activeDocument, undoName);
+            }
+            else Undo.RecordObject(activeDocument, undoName);
             applyingToolkitChange = true;
             try
             {
@@ -1414,6 +1427,7 @@ namespace DCFApixels.WhimTex
 
         private void OnUndoRedo()
         {
+            CancelVectorMaskRebuild();
             vectorManipulator?.Cancel();
             // Native Undo may reuse the behaviour while replacing its nested figures/draft.
             if (GetSelectedLayer()?.Behaviour is VectorLayerBehaviour) ResetToolkitLayerInspector();

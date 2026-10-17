@@ -329,6 +329,7 @@ namespace DCFApixels.WhimTex
                 if (canvasTool == tool) { ExitContextTool(); return; }
             }
             ChangeCanvasTool(tool);
+            if (tool == CanvasTool.GradientHandles) gradientHandlesSelectedManually = true;
             RefreshToolkitInterface();
             toolkitCanvas?.Focus();
         }

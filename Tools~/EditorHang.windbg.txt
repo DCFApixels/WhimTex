@@ -1,0 +1,8 @@
+.symfix
+.sympath+ SRV*https://symbolserver.unity3d.com
+.reload
+.time
+!runaway 7
+~* kb 100
+lm
+q

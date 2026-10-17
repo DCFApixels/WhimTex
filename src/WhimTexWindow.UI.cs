@@ -1734,7 +1734,8 @@ namespace DCFApixels.WhimTex
                 activeDocument.width, activeDocument.height,
                 IsCanvasBrushEnabled || IsCanvasBlurBrushEnabled || IsCanvasSmudgeBrushEnabled ? drawing : null, transforming,
                 IsCanvasPaintTool || canvasTool == CanvasTool.HealingBrush ? paintSettings : null);
-            toolkitCanvas.SetRoundCursorSize(EffectivePaintSize(canvasTool == CanvasTool.HealingBrush ? paintSettings.healingSize :
+            toolkitCanvas.SetRoundCursorSize(canvasTool == CanvasTool.VectorBrush ? vectorBrushSize :
+                EffectivePaintSize(canvasTool == CanvasTool.HealingBrush ? paintSettings.healingSize :
                 canvasTool == CanvasTool.BlurBrush ? paintSettings.blurSize : canvasTool == CanvasTool.SmudgeBrush ? paintSettings.smudgeSize : paintSettings.brushSize));
             RefreshCanvasPointerCursor();
             if (toolkitCanvasError != null)
@@ -1782,7 +1783,9 @@ namespace DCFApixels.WhimTex
                 else if (canvasTool == CanvasTool.VectorNodes)
                     toolkitCanvasViewFooter.text = "Drag point / tangent • Shift select • Marquee points • Double-click edge insert • Alt-click delete • Esc cancel";
                 else if (canvasTool == CanvasTool.VectorBrush)
-                    toolkitCanvasViewFooter.text = "Drag mask • Release to vectorize • Last-stroke precision / expansion in Properties • Esc cancel";
+                    toolkitCanvasViewFooter.text = IsEditingVectorMask(GetSelectedLayer())
+                        ? "LMB add • RMB erase (red preview) • Enter finish • Shift: straight / connect • [ ] size • Esc cancel stroke"
+                        : "LMB new figure • Edit Mask to resume selected figure • [ ] size • Shift: straight • Esc cancel stroke";
                 else if (canvasTool == CanvasTool.Comment)
                 {
                     toolkitCanvasViewFooter.text = "Click to comment • Drag a pin to move it • Ctrl+Enter post • Esc cancel";
@@ -1899,7 +1902,9 @@ namespace DCFApixels.WhimTex
             lastPaintingUv = originUv;
             hasLastPaintingUv = true;
             Undo.RecordObject(activeDocument, "Paint Stroke");
-            layer.PrepareStroke(activeDocument.width, activeDocument.height, "Paint Stroke");
+            if (canvasTool == CanvasTool.Brush || canvasTool == CanvasTool.Pencil)
+                layer.PrepareBufferedStroke(activeDocument.width, activeDocument.height, "Paint Stroke");
+            else layer.PrepareStroke(activeDocument.width, activeDocument.height, "Paint Stroke");
             if (tiledCanvas)
                 layer.BeginTiledStroke(originUv, activeDocument.width, activeDocument.height);
             else
@@ -1910,7 +1915,8 @@ namespace DCFApixels.WhimTex
                     new Vector2(activeDocument.width, activeDocument.height));
             if (connect && originUv != startUv) layer.SetKnownBrushDirection(initialDelta);
             else layer.SetInitialBrushDelta(initialDelta);
-            layer.ConfigureStrokeWriteProtection(paintSettings.dynamics.writeChannels);
+            if (canvasTool == CanvasTool.BlurBrush || canvasTool == CanvasTool.SmudgeBrush)
+                layer.ConfigureStrokeWriteProtection(paintSettings.dynamics.writeChannels);
             BeginPaintingInput(startUv);
             if (canvasTool == CanvasTool.BlurBrush)
                 blurSampleTexture = paintSettings.blurSampleMode switch
@@ -2147,12 +2153,15 @@ namespace DCFApixels.WhimTex
                 toolkitCanvas.SetToolCursor(CanvasTool.Transform, false, false, MouseCursor.MoveArrow);
                 return;
             }
-            bool visible = (IsCanvasPaintTool || canvasTool == CanvasTool.HealingBrush) &&
+            bool vectorBrush = canvasTool == CanvasTool.VectorBrush && activeDocument != null;
+            toolkitCanvas?.SetBrushCursorShape(vectorBrush ? vectorManipulator?.CursorBrushShape ?? vectorBrushShape : VectorBrushShape.Circle);
+            bool visible = (IsCanvasPaintTool || canvasTool == CanvasTool.HealingBrush || vectorBrush) &&
                            !panning && !alt && canvasPointerInside;
             toolkitCanvas?.SetCursor(
                 visible,
+                visible && vectorBrush ? vectorManipulator?.BrushCursorPosition(localPosition) ?? localPosition :
                 visible ? GetCanvasPaintPosition(localPosition, paintingShiftHeld, canvasPointerControl, updateConstraint: false) : localPosition,
-                canvasTool != CanvasTool.HealingBrush && canvasTool != CanvasTool.SmudgeBrush && (paintingLayer != null ? paintingErase : paintSettings.tool == PaintToolMode.Eraser));
+                vectorBrush ? vectorManipulator?.IsBrushErasing == true : canvasTool != CanvasTool.HealingBrush && canvasTool != CanvasTool.SmudgeBrush && (paintingLayer != null ? paintingErase : paintSettings.tool == PaintToolMode.Eraser));
             MouseCursor transformCursor = !panning && canvasPointerInside && IsCanvasTransformEnabled
                 ? canvasTransformManipulator?.GetCursor(localPosition, alt) ?? MouseCursor.Pan
                 : MouseCursor.Pan;
@@ -2227,6 +2236,7 @@ namespace DCFApixels.WhimTex
             if (HandleCanvasCommentKey(evt)) return;
             if (HandleCanvasCropKey(evt)) return;
             if (vectorManipulator?.HandleKey(evt) == true) return;
+            if (HandleVectorBrushSizeKey(evt)) return;
 
             if (evt.keyCode == KeyCode.Escape && canvasGuideManipulator?.IsDragging == true)
             {
@@ -2350,6 +2360,12 @@ namespace DCFApixels.WhimTex
 
         private void OnToolkitKeyUp(KeyUpEvent evt)
         {
+            if ((evt.keyCode == KeyCode.LeftShift || evt.keyCode == KeyCode.RightShift) && vectorManipulator?.SetBrushShift(evt.shiftKey) == true)
+            {
+                RefreshCanvasPointerCursor();
+                WhimTexUI.ConsumeEvent(evt);
+                return;
+            }
             if (evt.keyCode == CanvasToolToggleKey) canvasToolToggleKeyHeld = false;
             if (keyboardTransform != null && evt.keyCode == nudgeKey)
             {
@@ -2725,9 +2741,7 @@ namespace DCFApixels.WhimTex
                 brushSettings = brush;
                 if (brushSettings == null)
                     cursorVisible = false;
-                overlay.style.display = brushSettings == null
-                    ? DisplayStyle.None
-                    : DisplayStyle.Flex;
+                UpdateOverlayVisibility();
                 image.image = texture;
                 image.MarkDirtyRepaint();
                 tiledImage.MarkDirtyRepaint();
@@ -2748,8 +2762,17 @@ namespace DCFApixels.WhimTex
                 cursorVisible = visible;
                 cursorPosition = position;
                 cursorErase = erase;
+                UpdateOverlayVisibility();
                 if (pencilCursor) UpdatePencilCursor();
                 else overlay.MarkDirtyRepaint();
+            }
+
+            private void UpdateOverlayVisibility()
+            {
+                // Vector cursors share the overlay but have no raster brush settings.
+                overlay.style.display = brushSettings != null || cursorVisible
+                    ? DisplayStyle.Flex
+                    : DisplayStyle.None;
             }
 
             public void ZoomAt(Vector2 point, float scale)
@@ -2923,36 +2946,37 @@ namespace DCFApixels.WhimTex
             }
 
             private float roundCursorSize = 32;
+            private VectorBrushShape brushCursorShape;
+            internal void SetBrushCursorShape(VectorBrushShape shape)
+            {
+                if (brushCursorShape == shape) return;
+                brushCursorShape = shape; overlay.MarkDirtyRepaint();
+            }
             internal void SetRoundCursorSize(float size) { roundCursorSize = size; overlay.MarkDirtyRepaint(); }
+            private float RoundCursorRadius => Mathf.Max(2f, roundCursorSize * PixelScale * 0.5f);
 
             private void DrawOverlay(MeshGenerationContext context)
             {
-                if (brushSettings == null)
-                    return;
-
                 Rect rect = new Rect(ImageRect.position - contentRect.position, ImageRect.size);
                 Painter2D painter = context.painter2D;
                 Color guide = new Color(0.20f, 0.70f, 1f, 0.55f);
                 painter.lineWidth = 1f;
                 painter.strokeColor = guide;
 
-                if (drawingLayer != null)
+                if (drawingLayer != null && brushSettings != null)
                     DrawPatternGuides(painter, rect);
 
                 if (!cursorVisible || pencilCursor)
                     return;
                 Vector2 localCursor = cursorPosition - contentRect.position;
-                float pixelScale = PixelScale;
-                float radius = Mathf.Max(
-                    2f,
-                    roundCursorSize * pixelScale * 0.5f);
+                float radius = RoundCursorRadius;
                 painter.lineWidth = 1f;
                 painter.strokeColor = new Color(0f, 0f, 0f, 0.95f);
-                StrokeCircle(painter, localCursor, radius + 1f);
+                StrokeBrushCursor(painter, localCursor, radius + 1f);
                 painter.strokeColor = cursorErase
                     ? new Color(1f, 0.35f, 0.25f, 1f)
                     : new Color(1f, 1f, 1f, 0.95f);
-                StrokeCircle(painter, localCursor, radius);
+                StrokeBrushCursor(painter, localCursor, radius);
                 float viewportSize = Mathf.Min(contentRect.width, contentRect.height);
                 if (viewportSize > 0f && radius * 2f >= viewportSize * 0.8f)
                 {
@@ -2970,6 +2994,22 @@ namespace DCFApixels.WhimTex
                         painter.Stroke();
                     }
                 }
+            }
+
+            private void StrokeBrushCursor(Painter2D painter, Vector2 center, float radius)
+            {
+                if (brushCursorShape == VectorBrushShape.Circle) { StrokeCircle(painter, center, radius); return; }
+                painter.BeginPath();
+                for (int i = 0; i < 4; i++)
+                {
+                    Vector2 offset = brushCursorShape == VectorBrushShape.Square
+                        ? new Vector2(i == 0 || i == 3 ? -radius : radius, i < 2 ? -radius : radius)
+                        : i == 0 ? new Vector2(-radius, 0) : i == 1 ? new Vector2(0, -radius)
+                        : i == 2 ? new Vector2(radius, 0) : new Vector2(0, radius);
+                    Vector2 point = center + viewport.ToViewDelta(offset);
+                    if (i == 0) painter.MoveTo(point); else painter.LineTo(point);
+                }
+                painter.ClosePath(); painter.Stroke();
             }
 
             private void UpdatePencilCursor()

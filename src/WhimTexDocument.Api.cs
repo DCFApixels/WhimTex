@@ -33,7 +33,8 @@ namespace DCFApixels.WhimTex
                 {
                     if (layer == null) continue;
                     // A baseline must not materialize lazy TIFF pixels just to track Undo.
-                    if (layer?.Behaviour is DrawingLayerBehaviour drawing && !drawing.HasDeferredTexture) Track(drawing.StoredTexture);
+                    if (layer?.Behaviour is DrawingLayerBehaviour drawing && !drawing.HasDeferredTexture)
+                    { Track(drawing.StoredTexture); Track(drawing.PixelUndoObject); }
                     else if (layer?.Behaviour is FileLayerBehaviour) Track(layer.SamplingSource);
                     if (layer.fx != null)
                         foreach (UnityEngine.Object fxEntry in layer.fx)
@@ -76,7 +77,10 @@ namespace DCFApixels.WhimTex
             {
                 foreach (WhimTexDocument document in Resources.FindObjectsOfTypeAll<WhimTexDocument>())
                 {
-                    bool modelChanged = document.undoDeserialized || document.NativeUndoVersionsChanged();
+                    bool pixelsChanged = false;
+                    if (document.undoDeserialized) document.NormalizeModel();
+                    VisitDrawingLayers(document.layers, drawing => pixelsChanged |= drawing.ReconcilePixelUndo());
+                    bool modelChanged = pixelsChanged || document.undoDeserialized || document.NativeUndoVersionsChanged();
                     document.undoDeserialized = false;
                     bool effectChanged = false;
                     foreach (ShaderFX effect in changedEffects)

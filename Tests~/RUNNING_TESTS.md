@@ -15,6 +15,255 @@ profiler, and ReadScreenPixel on test-created windows. It does not authorize oth
 
 ## Inspect and select
 
+`paint-tile-history-small` uses detached documents to check sparse coverage, queued low-flow strokes,
+exact Half/storage Undo/Redo, disk-only restoration, mixed native/model Undo, history branching,
+surface reconstruction, non-power-of-two edge blocks and unchanged hidden RGB. It checks the same
+sync boundary as Save and a TIFF container roundtrip in Temp, without importing an asset.
+`paint-tile-history-8k-small`, `paint-tile-history-8k-large`, `paint-tile-history-8k-frame` and
+`paint-tile-history-8k-frame-hdr` each own one 8K document. They check fractional selection and
+opacity, HDR where applicable, precise bounded Undo/Redo probes, and report transferred bytes and
+wall timings under `Temp/WhimTex/paint-tile-history`. Run large cases separately. The only full-size
+upload is fixture initialization; subsequent uploads/readbacks are bounded pages or tiles.
+These cases require `temp-files,user-state` for their owned files and Undo objects; no windows/input.
+
+`paint-tile-history-raw` adds full-image exact SDR/HDR checks on detailed 513px sources, including
+1×1 edge blocks and corruption rejection before any pixel restoration. The paired explicit
+`paint-tile-history-async-prepare` / `paint-tile-history-async-verify` checks Editor-update completion
+without an explicit drain across three wide HDR strokes. Run prepare and verify as separate commands,
+allowing several seconds of Editor updates between them; a single update no longer drains all pages.
+`paint-tile-history-queued` checks six
+overlapping 1536px strokes in SDR/HDR: the first three complete without CPU extraction or capacity
+waits, sustained overload stays within 256 MiB of owned GPU staging, and immediate Undo/Redo restores
+every complete Half/storage revision exactly, including masks, eraser and tiny flow.
+`paint-tile-history-8k-textured` owns an opaque noise source to expose
+compression cost hidden by blank-canvas benchmarks. `paint-history-codecs` compares the available
+portable compression streams on bounded synthetic buffers. Large cases preserve a previous stopped
+profiler capture to Temp before recording their own detailed phase profiles; an active capture is rejected.
+
+The two explicit `paint-tile-history-reload-prepare` / `paint-tile-history-reload-verify` entries
+bracket an actual normal Unity script recompile. Preparation intentionally leaves one unique owned
+document; verification checks exact stored/Half pixels and Undo/Redo, then cleans it up. Do not
+perform other edits between them. The verify entry refuses Undo if the current group changed.
+On 2026-10-17 these checks and the compute/raster suites passed on Unity 6000.7.0a6, RTX 5060,
+D3D12, Linear. Other backends, asynchronous-readback-unavailable devices, disk-full behavior and
+Editor-process restart are not verified by these runs; restart does not preserve the Undo session.
+
+At 8K, the 32px perimeter uses 124/1024 blocks (12.1% of source pixels); a local 32px stroke uses
+4 blocks, and the tested 2048px brush uses 100. Readback includes before/after Half plus straight
+storage, not just the final 8-bit pixels: 5/155/125 MiB respectively, or 186 MiB for the HDR frame.
+The 2026-10-17 phase-profiled optimization run measured stroke submission plus forced drain:
+Standard frame 883 → 497 ms, HDR frame 1222 → 607 ms, and the 2048px brush 1054 → 774 ms.
+Undo changed 1016 → 277 ms, 1362 → 422 ms and 927 → 254 ms respectively. These are individual
+diagnostic runs on the hardware above, not steady-state medians or interactive frame latency.
+GPU/GC/queue variance remains: earlier optimized runs measured 476/533/614 ms for the same
+three completion scenarios. Local small-stroke values from the earlier pass are not remeasured here.
+
+On the detailed 8K source, always compressing pages still took 4616 ms for submission plus drain;
+adaptive raw storage reduced this to 396 ms, with Undo 707 → 175 ms. That comparison isolates the
+adaptive storage change after the other optimizations. The raw journal used 150 MiB for 100 blocks;
+the empty-source broad stroke used 7.3 MiB and the two perimeter journals 0.50/0.60 MiB. Stage
+profiles identify readback waits, CPU extraction/patching, write backpressure, validation, decode,
+and bounded texture uploads separately. They measure main-thread wall time, including queued GPU
+work; they are not GPU timestamp measurements. Those measurements predate deferred staging.
+Integrity-failure checks, exact stored/Half restoration, both compute and raster suites passed.
+
+The subsequent deferred-staging run measured return from a stroke separately from forced drain:
+2048px SDR brush 640 → 12 ms; HDR perimeter 505 → 40 ms. Both queued all their pages without CPU
+extraction or capacity waits (125/186 MiB owned GPU staging). Immediate forced drains still took
+1023/907 ms, so this improves responsiveness, not total transfer throughput. These remain individual
+diagnostic runs, not interactive FPS or guaranteed worst-case bounds. A single-block page now uses
+256×256 instead of 1024×256; exact tests cover one-, two- and three-column pages. Full completion
+can still block on queue capacity, GPU pressure, fallback reads, Undo, saving or resource release.
+
+`drawing-readback-format-accuracy` compares the retained Half-staging readback with
+matching storage staging: alpha/color ramps, a float conversion reference, signed HDR,
+and 240 low-flow masked strokes/erasures. It checks exact working-surface preservation,
+production/diagnostic agreement, at most one 8-bit storage step of difference, and GPU state.
+`drawing-readback-format-512` is a bounded paired timing smoke. The separate
+`drawing-readback-format-8192`, `drawing-readback-half-8192` and
+`drawing-readback-format-hdr-8192` perform **one** transfer/upload per Editor command,
+with detached fixtures and unique reports in `Temp/WhimTex/drawing-readback-format`.
+Allow Editor updates between large samples. Never batch repeated full-size `Apply` calls
+in one synchronous command: the first 8K series on D3D12 retained 4 GiB in the frame's
+release queue and failed allocating another 256 MiB upload scratch resource. That series
+is invalid; the revised one-transfer entries avoid that test-only accumulation.
+All these cases require `temp-files`, and never access user documents, Undo or windows.
+On 2026-10-17, Unity 6000.7.0a6 / RTX 5060 / D3D12 / Linear completed the revised
+cases: three independent 8K standard samples per path gave median ReadPixels wall
+latency 723.17 → 209.68 ms (ranges 667.76–734.27 / 183.37–337.98 ms). These include
+queued GPU work and fresh fixture preparation dependencies; they are not interactive
+latency guarantees. The 743-check accuracy case kept every working Half surface
+bit-identical; stored Standard bytes differed by at most one code value, including
+alpha crossing 0↔1/255. HDR bytes were exact. Compute/raster regressions passed
+857784 / 857783 checks. Other backends and Gamma color space remain unverified.
+
+`brush-buffered-stroke-v1` checks the immutable paint source, soft selection applied once,
+all 29 blend modes in Stamp/Stroke with Standard/HDR, independent blend arithmetic,
+Flow/Opacity/pressure, erasing, cancellation/commit, 8-bit and signed HDR storage,
+projective/wrapped canvas-space masks and caller GPU state. Full-image reference comparisons cover
+dirty regions, tiled commit seams, non-square partial tiles and the portable shader-copy fallback.
+It owns only transient GPU/model
+fixtures. `brush-dynamics-v2`, `brush-hlsl-v2` and `brush-write-protection` add pressure curves,
+tip variants, first-stamp correction, group/Target/clipping/thumbnail/export and channel locks.
+These brush cases do not open windows, drive input or restore window focus.
+
+The separate opt-in `brush-pipeline-benchmark-smoke` and
+`brush-pipeline-benchmark` profiles compare the previous conditional-buffer route
+with the current unified route at 512 through 8192 pixels, including large brushes,
+selection, opacity, blend modes, pressure, channel locks and HDR. Read the
+[baseline provenance and measurement limits](Framework/Painting/BrushBaseline/README.md)
+before interpreting the output. They require `temp-files`, own only detached GPU
+fixtures, and write unique raw timing/memory reports under project
+`Temp/WhimTex/brush-pipeline-benchmark`.
+
+The initial 2026-10-17 check, before region optimization, used RTX 5060 / D3D12 / Unity 6000.7.0a6 / Linear.
+The corrected diagnostic passed eight smoke cases, two full 20-case series and
+four separate 8K repeats. At 4K with a 2048-pixel brush, the second series gave
+these whole-stroke medians (16 preview updates, milliseconds): Normal 5.78 → 7.75,
+fractional selection 6.06 → 11.02, HDR 5.92 → 9.49, Opacity 8.95 → 8.04,
+pressure 9.92 → 8.76, Stamp blend 11.00 → 9.98. This is not a universal speedup.
+One full-size RGBAHalf buffer costs 128 MiB at 4K and 512 MiB at 8K: the simple
+path adds one while the former buffered path removes one during the stroke;
+the commit scratch means peak savings depend on the mode.
+
+8K Opacity/Stroke blend consistently improved to about 25/27 ms from 38/40 ms,
+while HDR changed from about 20 to 31 ms. Normal was unstable across series:
+an isolated repeat gave about 19.5 → 24.3 ms, but full runs showed new-path spikes
+up to 929 ms. The role of resource reuse/residency is not established; neither
+those spikes nor a universal warm-speed claim should be hidden in an average.
+Interactive frame pacing, other GPUs/backends and full-document FX/Undo/storage
+were not benchmarked. The initial full-size-source ReadPixels diagnostic caused
+a native readback allocation failure; it was replaced with a real 1x1 readback RT,
+and its earlier reports are excluded. See the baseline README for the incident
+and the remaining limits.
+
+The subsequent region implementation limits commit scratch to 1024×1024 RGBAHalf (8 MiB)
+and copies compact padded stamp backdrops. `brush-region-benchmark-smoke` and
+`brush-region-benchmark` compare full assembly with this path; both sides share the current
+stamp renderer. See [reference provenance and methodology](Framework/Painting/BrushFullAssembly/README.md).
+`brush-isolated-smoke` checks 512-pixel canvases; `brush-isolated-current` selects separate
+8K invocations. Prefer individual IDs after the smoke test. These use synchronous calls,
+two warmups and nine timed strokes, without async carriers or Editor-frame delays.
+
+The resumed 2026-10-17 synchronous series passed all eight smoke modes, eight 4K/2048
+cases, nine 8K cases (256/2048 brushes), two full-assembly reference cases and three
+current-path repeats. Current 8K/2048 medians were 23.74–29.12 ms per 16-update stroke;
+the largest sample was 55.64 ms in an HDR repeat. In the same Editor session, full assembly
+gave Normal 118.08 ms (max 805.58) and Stamp 109.70 ms (max 960.30); current repeats after
+those reference runs gave 23.48 ms (max 24.04) and 27.99 ms (max 30.96). Commit diagnostics
+fell from about 97–105 ms to 1.7 ms for those two cases. Phase barriers change timing;
+these values are not interactive frame rates or a universal speed ratio.
+
+Commit scratch at 8K fell from 512 to at most 8 MiB. For this fixed 2048-pixel stamp,
+backdrop capacity is conservatively 36.125 MiB instead of 512 MiB. Full-size source/stroke
+and preview memory remain; neither figure is total physical VRAM. Full-assembly stalls
+were reproduced while the current path completed without them, but exact driver residency
+causality remains unmeasured. Earlier async timeouts are excluded from this accepted series;
+their ownership was recovered before the restart and synchronous checks. Correctness and
+source/scalar tests passed, cleanup completed, and the runner lock was released. Raw captures
+and the accepted manifest are under project `Temp/WhimTex/brush-pipeline-benchmark`.
+
+The compute-commit trial (2026-10-17) adds `brush-compute-correctness`: forced compute
+and actual non-UAV raster fallback run the same suite, including all 16 write masks at
+zero/tiny alpha, full-image non-square bounds, group/Target/clipping, thumbnails,
+PNG roundtrip and EXR encoding. Final checks passed 857784 / 857783 assertions respectively.
+The final shader compiled without new diagnostics. No windows or user documents are used.
+
+Opt-in `brush-compute-512-128`, `brush-compute-4096-2048`, `brush-compute-8192-2048`
+and the `*-256` profiles compare **current tiled raster versus compute final commit**.
+They require `temp-files`; the 8K cases require at least 7000 MB reported graphics memory.
+Use the small profile first. Both paths share current accumulation and preview code; two
+warmups precede nine alternating whole-stroke pairs and nine separately fenced phase pairs.
+The fixture retains one extra idle control surface for allocation-free A/B switching.
+Completion uses a real 1×1 readback target, never a full-size staging readback.
+
+On RTX 5060 / D3D12 / Linear, final Normal commit medians were 0.803 → 0.595 ms at
+4K/2048 and 1.826 → 1.230 ms at 8K/2048. Whole 16-update strokes changed
+7.620 → 7.409 and 22.650 → 22.060 ms respectively. Final 8K selection repeat:
+2.101 → 1.365 ms commit, 26.077 → 25.292 ms whole stroke. Committed probes matched
+exactly; the full correctness suite separately compares pixels with half-precision tolerances.
+Compute removes up to 8 MiB of commit scratch. Full-size source/stroke and sequential-stamp
+backdrops remain; their memory is not eliminated by compute.
+
+Keep the outliers: an earlier 8K/256 compute run reached 258.332 ms, with a separate
+phase sample spending 195.30 ms in drawing and 0.605 ms in commit. One 8K selection
+raster series reached 228.411 ms. Subsequent repeats completed normally, but do not
+establish the scheduling/residency cause or universally smooth input. Raw captures and
+`compute-commit-report-2026-10-17.md` under project `Temp/WhimTex/brush-pipeline-benchmark`
+retain all runs. Other GPUs/backends, actual unsupported hardware, Gamma mode and
+interactive input latency remain unmeasured; unsupported-path behavior is tested with
+non-UAV surfaces on the current device.
+
+### Brush spike diagnosis
+
+`brush-trace-smoke` and opt-in `brush-trace-8k` run 32 detached strokes per case.
+Every setup, update, preview and commit records main-thread submission separately
+from the completion wait, with GC collection counts and monotonic timestamps.
+These are wall times, not GPU timestamps. Fenced traces serialize every stage;
+streamed traces fence only stroke boundaries. Neither is interactive frame pacing.
+The `brush-trace-control-*` cases isolate readback, preview, mesh updates and source
+bindings; their output is a diagnostic control, not a pixel-equivalence reference.
+`brush-trace-warm-*` retains two consecutive 32-stroke traces on the same resources.
+Only the paired controls retain an extra idle source surface.
+
+`brush-native-markers-start` / `brush-native-markers-stop` bracket a separately
+selected trace with supported public CPU recorders. They leave `Profiler.enabled`
+unchanged, refuse an existing Unity CPU capture, and release their own recorders
+on Stop or after a 90-second deadline. Native summaries aggregate per frame;
+trace deltas use available current-frame counters. Missing markers are not evidence
+of zero work. No OS tracing or native plug-in is used by these cases.
+
+The 2026-10-17 investigation on RTX 5060 / D3D12 reproduced 12–31 ms completion
+waits after stamp submission, whose main-thread work was around 0.1 ms. They also
+occurred without preview and with a different completion mechanism. Dropping the
+extra A/B surface did not remove them. A fixed-mesh control and source-binding
+controls motivated removing the unused full-size source binding from ordinary
+stamp accumulation. Subsequent small-brush repeats were smoother, but this does
+not prove that binding caused every previous outlier. Large-brush selection still
+showed a first-series outlier; consecutive repeats on the same resources did not.
+One separate 8–10 ms main-thread outlier coincided with GC in the diagnostic
+session; it must not be attributed to the shader.
+
+Public native markers distinguish cold texture creation/upload/scratch reservation
+from the measured warm strokes. They do not establish the driver scheduling or
+residency cause of the remaining intermittent waits. The historical 195–258 ms
+events were not reproduced by these traces; their exact cause remains open.
+Compute remains enabled. Both compute and raster correctness suites passed after
+the binding change (857784 / 857783 checks). See the local
+`Temp/WhimTex/brush-pipeline-benchmark/spike-investigation-2026-10-17.md` for raw
+captures, instrumentation limitations and the unresolved native GPU diagnosis.
+
+`vector-tools-brush-lines-v1` checks Circle/Square/Diamond cursor selection,
+Shift axis locking at two canvas rotations/zooms, modifier transitions, endpoint
+connection, per-stroke mask ownership and Undo/Redo. It owns a transient window
+and requires `windows,user-state`. `vector-brush-v1` also compares tip coverage
+against analytic shapes and sparse/dense tapered strokes, without a window.
+
+`vector-tools-brush-editing-v1` checks repeated LMB additions, RMB holes/full erase,
+Enter, toolbar/Properties Finish Editing and Edit Mask, selection changes, cancellation,
+immutable source snapshots and native Undo/Redo. It captures its owned window under
+`Temp/WhimTex/vector-mask-editing.png` and requires `windows,user-state,temp-files`.
+`vector-brush-v1` additionally checks mask growth without resampling, bounded storage,
+all three eraser tips and non-accumulating AA coverage across repeated samples.
+
+The 2026-10-17 resumed check passed `vector-brush-v1`, `vector-tools-brush-editing-v1`,
+`vector-tools-brush-lines-v1`, `vector-tools-brush-v1` and `vector-tools-cancel-v1`
+in Unity 6000.7.0a6; owned cleanup completed. The empty-window fixture sets its
+viewport directly before the first stroke because navigation commands require a
+rendered image. This run does not establish tip/cursor agreement on manually
+scaled or projectively deformed mask figures.
+
+A later cursor regression check reproduced a hidden overlay despite a true cursor
+visibility flag. `vector-tools-brush-v1` now checks the displayed overlay after canvas
+refresh and during drawing; `vector-tools-brush-editing-v1` additionally compares
+owned-window pixels with the cursor hidden, hovering, drawing and erasing. The drawing
+comparison retains the identical held-stroke preview, so its fill cannot count as the
+cursor. Both updated cases passed on 2026-10-17 in Unity 6000.7.0a6, including owned
+cleanup, after the shared-overlay visibility fix. They use `windows,user-state,temp-files`;
+captures under `Temp/WhimTex/vector-cursor-*.png` are bounded to the owned 1280x820
+window, not the user's document texture. The earlier five-case pass predates these pixel
+assertions. No test runner lock remains.
+
 ### Vector prototype
 
 `vector-clipper-reuse-v1` compares scoped reuse with fresh Clipper instances,
@@ -478,6 +727,33 @@ settings, builds only its owned scene to Temp/WhimTex, executes the built Player
 runtime pixels, packed contents, saved document/meta preservation and native helper removal.
 
 ## Reference inputs and diagnostics
+
+`text-outlines` covers original font curves and editable Text operands in Boolean Groups.
+`text-outlines-v1` compares nine layouts with the native unhinted raster, including
+SmallCaps, horizontal scaling, Frame/Clip/Ellipsis, justification and Auto Size.
+`text-boolean-v1` checks all five operations, nested/reflected transforms, pixel scale,
+editing, JSON render parity, Target, thumbnails and export. Its PNG stays in
+`Temp/WhimTex/text-outlines`. `font-outlines-v1` compares TTF/composite, TTC and CFF
+curve bounds with the public native font engine and rejects unsupported sources.
+Its OFL fixtures and provenance are in `Fixtures/Fonts`; they are not installed or
+imported. Missing installed TTC coverage returns SKIP.
+`text-outline-persistence-v1` checks public API dry-run, atomic conversion failure,
+layer-shell/FitFrame preservation, TIFF payload/carrier roundtrips in memory and
+pure-model Unity serialization snapshots without transient FX references. The snapshot
+check is not a live Undo/Redo test or an Editor restart; public EditorJsonUtility
+snapshots are not an oracle for transient Unity object references. FX data/identity
+are checked through the API and native TIFF cases. These cases leave user documents,
+assets and the Undo stack alone.
+
+`text-outline-undo-v1` separately exercises native Undo/Redo through the actual
+conversion button, Properties fields and inline text editing. It requires
+`--allow-effects windows,user-state`: six owned utility-window fixtures cover
+Point, Frame/Clip/Ellipsis and nested Combine/Union/Subtract. Each of 21 edits
+gets two Undo/Redo cycles, checking complete layout/curves, fitted transforms,
+parent transforms/style, live native FX identity/data and RGBA restoration
+(maximum channel error 1e-5). The 2026-10-16 run passed 1858 assertions and cleanup.
+It is not a full Editor restart or a manual usability assessment. No user document
+or saved asset is edited; only owned Undo records are cleared afterward.
 
 `text-font-atlas` checks large native bitmap atlases against independently loaded
 system-font glyphs, including a nonzero face in a TTC collection with distinct glyph

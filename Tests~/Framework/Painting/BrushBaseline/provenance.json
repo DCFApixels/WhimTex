@@ -1,0 +1,47 @@
+{
+  "commit": "e5486ca609cec3b0e4cd57543295661395ff24db",
+  "files": [
+    {
+      "path": "src/Layers/DrawingLayerBehaviour.cs",
+      "sha256": "44f42aab52aa7ffe2c6e4480796963857c2a5a717e1c9e35d887ba3c2b12effc",
+      "rendererOnly": true,
+      "sourceBindingAudit": "2026-10-17: re-audited the change from renderer hash 0dbae5e64dc68f8d221f31c54b8cda7d4cbfc17adf74e7bb2ee8914355b77b48. Non-sequential dabs no longer bind the unused stroke source; shader math and geometry are unchanged. Sequential modes retain the binding. Old ordinary orchestration already supplies no source; current ordinary accumulation drops its unused source. Compute/raster correctness passed 857784/857783 checks, including every blend, masks, pressure and HDR. Frozen reference shaders are unchanged.",
+      "previousSha256": "0ab9466e1c495fd1e643dfabc64a5703068dc3ff32f0c5ce4ad0f68cbd7bb871",
+      "audit": "2026-10-17: shared rasterizer now records submitted bounds and copies a compact stamp backdrop with UV remapping. Vertex geometry, blend arithmetic and stamp coverage unchanged. Both benchmark paths use this renderer; this comparison isolates orchestration, not the historical full-size stamp scratch. CPU blend, full-image reference, HLSL and pressure regression suites cover output."
+    },
+    {
+      "path": "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+      "sha256": "eb9bec197f1e2d5be43a5cc7b9b13a1bf7cdb0651a7b15334045d2e8da2746be",
+      "rendererOnly": false,
+      "previousSha256": "1425c0074c57a367d95589519f56027d60df6f82d2fe62fb0f7c23cccb8d52db",
+      "audit": "2026-10-17: shared rasterizer now records submitted bounds and copies a compact stamp backdrop with UV remapping. Vertex geometry, blend arithmetic and stamp coverage unchanged. Both benchmark paths use this renderer; this comparison isolates orchestration, not the historical full-size stamp scratch. CPU blend, full-image reference, HLSL and pressure regression suites cover output."
+    },
+    {
+      "path": "src/Shaders/PaintBrush.shader",
+      "sha256": "6dcd9ff6b37294093ecb7278da6507a5b69bf12d44a561a79d9e39fc5daa78f9",
+      "rendererOnly": false,
+      "previousSha256": "3054d3a8851436d5a38baa6ebc25a0e999aa25f2a82eea533bc810610480e1c9",
+      "audit": "2026-10-17: shared rasterizer now records submitted bounds and copies a compact stamp backdrop with UV remapping. Vertex geometry, blend arithmetic and stamp coverage unchanged. Both benchmark paths use this renderer; this comparison isolates orchestration, not the historical full-size stamp scratch. CPU blend, full-image reference, HLSL and pressure regression suites cover output."
+    },
+    {
+      "path": "src/Shaders/ColorBlend.cginc",
+      "sha256": "4dce812871b13b4d42d4d8cfc7d6ef2383135e07de8d520bbe95407163e41db3",
+      "rendererOnly": false
+    },
+    {
+      "path": "src/Shaders/HdrColor.cginc",
+      "sha256": "d1d346e2b946c7962be21a33277f25619ee6aa2ef4ae36958b720a6d2a9b7a7c",
+      "rendererOnly": false
+    },
+    {
+      "path": "Tests~/Framework/Painting/BrushBaseline/Blend.shader",
+      "sha256": "6a7ad7e11dea510b06b9561e9fcb79c5e8341becbb48cc183d9bd067c87a626e",
+      "rendererOnly": false
+    },
+    {
+      "path": "Tests~/Framework/Painting/BrushBaseline/AlphaConversion.shader",
+      "sha256": "92f71f31a78639331e5497defee22ed5cb8270651a193b95d33130e4750e0b75",
+      "rendererOnly": false
+    }
+  ]
+}

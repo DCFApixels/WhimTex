@@ -18,6 +18,12 @@ If you try to paint on another layer type, the editor offers to convert it first
 
 A small cross marks the brush center when its outline becomes large relative to Canvas View.
 
+Brush and Pencil strokes use the normal Undo/Redo sequence alongside other edits. Their history
+survives script recompilation, but is not included in saved TIFF documents or a new Unity session.
+On supported devices, you can start the next stroke while the previous stroke's history finishes
+in the background. Undo and saving may wait for pending strokes; a long series of heavy strokes can
+also pause briefly when the queue fills. Pixel precision and Undo order stay unchanged.
+
 The document's [Pixel Scale](preview.md#crop-extend-or-scale-the-canvas) multiplies brush sizes without changing their entered values or presets. Size 3 with Pixel Scale 2 paints at 6 canvas pixels. Changing the multiplier affects new strokes; existing painted pixels remain in their source texture until the image is scaled.
 
 ## Shape the stroke
@@ -33,6 +39,11 @@ The document's [Pixel Scale](preview.md#crop-extend-or-scale-the-canvas) multipl
 For example, **Opacity 40%** keeps one stroke at no more than 40%, even when you go
 over it repeatedly. **Flow 10%** builds up gently as you draw, up to the Opacity limit.
 These controls also work when erasing with Brush.
+
+Inside a soft selection, repeated Brush or Pencil stamps preserve the selection's softness
+within one stroke. Releasing and starting another stroke can build more coverage at that edge.
+Finishing a stroke keeps the visible result, including its soft selection edge and protected channels.
+WhimTex automatically accelerates stroke completion on compatible GPUs; other devices keep the same painting behavior.
 
 Hardness keeps the center opaque and controls the soft edge of a procedural round tip.
 At 100%, a pixel-sized antialiased edge keeps the circle smooth; Pencil remains pixel-sharp.

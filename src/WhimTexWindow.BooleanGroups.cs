@@ -95,6 +95,7 @@ namespace DCFApixels.WhimTex
             VectorShape result;
             if (layer.Behaviour is VectorLayerBehaviour vector && vector.shapes.Count > 0) result = vector.shapes[0].Clone(false);
             else if (layer.Behaviour is BooleanGroupLayerBehaviour group) result = group.style.Clone(false);
+            else if (layer.Behaviour is TextLayerBehaviour text) result = new VectorShape { fillColor = text.color };
             else if (layer.Behaviour is ShapeLayerBehaviour shape)
                 result = new VectorShape { fillMode = shape.fill ? shape.fillMode : VectorFillMode.None, fillColor = shape.fillColor,
                     gradient = shape.gradient?.Clone(), gradientStart = shape.gradientStart, gradientEnd = shape.gradientEnd,

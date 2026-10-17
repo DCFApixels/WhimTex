@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexWindow
     {
-        private sealed class AreaSelectionManipulator : PointerManipulator
+        private sealed partial class AreaSelectionManipulator : PointerManipulator
         {
             private const float VertexHitRadius = 6f;
             private const float SegmentHitRadius = 3f;
@@ -128,6 +128,7 @@ namespace DCFApixels.WhimTex
                         else if (pointerShift && createdVertex < 0)
                             point = ConstrainPolygonLine(vertexOriginal, point);
                         Vertices[pressedVertex] = point;
+                        InvalidatePolygonCurve();
                         HoverVertex = pressedVertex;
                         ShowPolygonTail = false;
                     }
@@ -192,6 +193,7 @@ namespace DCFApixels.WhimTex
             }
             private int HitSegment(Vector2 point, float scale, out Vector2 projected)
             {
+                if (owner.IsSmoothLasso) return HitSmoothSegment(point, scale, out projected);
                 int index = -1;
                 projected = point;
                 float nearest = SegmentHitRadius * SegmentHitRadius;
@@ -229,9 +231,12 @@ namespace DCFApixels.WhimTex
                 int captured = polygonPointer;
                 polygonPointer = -1;
                 if (restore && createdVertex >= 0 && createdVertex < Vertices.Count)
-                    Vertices.RemoveAt(createdVertex);
+                    RemovePolygonPoint(createdVertex);
                 else if (restore && vertexDragging && pressedVertex >= 0 && pressedVertex < Vertices.Count)
+                {
                     Vertices[pressedVertex] = vertexOriginal;
+                    InvalidatePolygonCurve();
+                }
                 vertexDragging = false;
                 createdVertex = -1;
                 pressedVertex = pressedSegment = -1;
@@ -449,7 +454,7 @@ namespace DCFApixels.WhimTex
                     if (polygonPress == PolygonPress.Insert && Vertices.Count < 256)
                     {
                         createdVertex = pressedSegment + 1;
-                        Vertices.Insert(createdVertex, pressPoint);
+                        InsertPolygonPoint(createdVertex, pressPoint);
                     }
                     else if (polygonPress == PolygonPress.Append)
                     {
@@ -458,7 +463,7 @@ namespace DCFApixels.WhimTex
                             (pressPoint - Vertices[Vertices.Count - 1]).sqrMagnitude > .0001f))
                         {
                             createdVertex = Vertices.Count;
-                            Vertices.Add(pressPoint);
+                            InsertPolygonPoint(createdVertex, pressPoint);
                         }
                         else if (Vertices.Count > 0 && HoverVertex == Vertices.Count - 1 &&
                             (pressPoint - Vertices[Vertices.Count - 1]).sqrMagnitude <= .0001f && !evt.ctrlKey)
@@ -472,6 +477,7 @@ namespace DCFApixels.WhimTex
                     }
                     if (pressedVertex >= 0)
                     {
+                        SelectPolygonPoint(pressedVertex);
                         vertexOriginal = Vertices[pressedVertex];
                         vertexGrabOffset = createdVertex >= 0 && polygonPress == PolygonPress.Append
                             ? Vector2.zero : vertexOriginal - CanvasPoint(evt.localPosition, true);
@@ -550,7 +556,7 @@ namespace DCFApixels.WhimTex
                     else if (polygonClick && (action == PolygonPress.Close || action == PolygonPress.Complete)) CompletePolygon();
                     else if (action == PolygonPress.Delete && polygonClick && vertex >= 0 && vertex < Vertices.Count)
                     {
-                        Vertices.RemoveAt(vertex);
+                        RemovePolygonPoint(vertex);
                         UpdateCloseArming(true);
                     }
                     pointerAlt = evt.altKey;
@@ -585,10 +591,26 @@ namespace DCFApixels.WhimTex
                 else EndPolygonPress(false);
                 lastAppendCanComplete = false;
                 if (Vertices.Count < 3) return;
-                Vector2[] points = Vertices.ToArray();
+                Vector2[] points;
+                bool curved = owner.IsSmoothLasso;
+                if (curved)
+                {
+                    if (!TryGetSmoothPolygon(out IReadOnlyList<Vector2> outline) || outline.Count < 4)
+                    {
+                        owner.ShowNotification(new GUIContent(polygonCurveError ?? "Place at least three distinct lasso points."));
+                        return;
+                    }
+                    points = new Vector2[outline.Count - 1];
+                    for (int i = 0; i < points.Length; i++) points[i] = outline[i];
+                }
+                else points = Vertices.ToArray();
                 var operation = combine; bool tiled = wrap, smooth = antialias;
                 Cancel();
-                owner.ChangeAreaSelection(s => s.Polygon(points, operation, tiled, smooth));
+                owner.ChangeAreaSelection(s =>
+                {
+                    if (curved) s.SmoothPolygon(points, operation, tiled, smooth);
+                    else s.Polygon(points, operation, tiled, smooth);
+                });
             }
             internal void RemoveVertex()
             {
@@ -596,7 +618,7 @@ namespace DCFApixels.WhimTex
                 bool creating = createdVertex >= 0;
                 EndPolygonPress(true);
                 lastAppendCanComplete = false;
-                if (!creating && Vertices.Count > 0) Vertices.RemoveAt(Vertices.Count - 1);
+                if (!creating && Vertices.Count > 0) RemovePolygonPoint(Vertices.Count - 1);
                 UpdateCloseArming(true);
                 if (owner.activeDocument != null) SetCurrent(pointerPosition, pointerControl);
                 owner.areaSelectionOverlay?.MarkDirtyRepaint();
@@ -611,6 +633,7 @@ namespace DCFApixels.WhimTex
                 closeArmed = false;
                 lastAppendCanComplete = false;
                 Vertices.Clear();
+                ResetPolygonCurve();
                 if (captured >= 0 && target != null && target.HasPointerCapture(captured)) target.ReleasePointer(captured);
                 if (traced >= 0 && target != null && target.HasPointerCapture(traced)) target.ReleasePointer(traced);
                 owner.areaSelectionOverlay?.MarkDirtyRepaint();
@@ -646,6 +669,7 @@ namespace DCFApixels.WhimTex
             private readonly WhimTexWindow owner;
             private readonly List<Vector4> edges = new List<Vector4>();
             private readonly List<Vector4> visibleEdges = new List<Vector4>();
+            private readonly List<Vector4> polygonPreviewEdges = new List<Vector4>();
             private CanvasSelection cached;
             private int revision = -1;
             internal AreaSelectionOverlay(WhimTexWindow owner)
@@ -716,7 +740,7 @@ namespace DCFApixels.WhimTex
             private Vector2 CanvasViewPoint(Vector2 canvas, Rect image) => owner.toolkitCanvas.ToView(new Vector2(
                 image.x + canvas.x * image.width / owner.activeDocument.width,
                 image.yMax - canvas.y * image.height / owner.activeDocument.height));
-            private void AddVisible(Vector2 a, Vector2 b)
+            private void AddVisible(Vector2 a, Vector2 b, List<Vector4> output = null)
             {
                 Rect bounds = contentRect;
                 float first = 0f, last = 1f;
@@ -731,7 +755,8 @@ namespace DCFApixels.WhimTex
                 if (!Clip(-d.x, a.x - bounds.xMin) || !Clip(d.x, bounds.xMax - a.x) ||
                     !Clip(-d.y, a.y - bounds.yMin) || !Clip(d.y, bounds.yMax - a.y)) return;
                 Vector2 from = a + d * first, to = a + d * last;
-                if (visibleEdges.Count < 16384) visibleEdges.Add(new Vector4(from.x, from.y, to.x, to.y));
+                output ??= visibleEdges;
+                if (output.Count < 16384) output.Add(new Vector4(from.x, from.y, to.x, to.y));
             }
             private void Draw(MeshGenerationContext context)
             {
@@ -739,6 +764,7 @@ namespace DCFApixels.WhimTex
                 Rect image = owner.toolkitCanvas.DisplayedImageRect;
                 if (image.width <= .0001f || image.height <= .0001f) return;
                 visibleEdges.Clear();
+                polygonPreviewEdges.Clear();
                 int left = 0, right = 0, top = 0, bottom = 0;
                 if (owner.tiledCanvas)
                 {
@@ -792,21 +818,64 @@ namespace DCFApixels.WhimTex
                 }
                 else if (gesture != null && gesture.Vertices.Count > 0)
                 {
-                    for (int i = 1; i < gesture.Vertices.Count; i++)
-                        AddVisible(CanvasViewPoint(gesture.Vertices[i - 1], image), CanvasViewPoint(gesture.Vertices[i], image));
-                    if (gesture.ShowPolygonTail)
-                        AddVisible(CanvasViewPoint(gesture.Vertices[gesture.Vertices.Count - 1], image), CanvasViewPoint(gesture.Current, image));
+                    if (owner.IsSmoothLasso)
+                    {
+                        if (gesture.TryGetSmoothPolygon(out IReadOnlyList<Vector2> outline))
+                            for (int i = 1; i < gesture.SmoothPolygonPreviewCount; i++)
+                                AddVisible(CanvasViewPoint(outline[i - 1], image), CanvasViewPoint(outline[i], image), polygonPreviewEdges);
+                    }
+                    else
+                    {
+                        for (int i = 1; i < gesture.Vertices.Count; i++)
+                            AddVisible(CanvasViewPoint(gesture.Vertices[i - 1], image), CanvasViewPoint(gesture.Vertices[i], image));
+                        if (gesture.ShowPolygonTail)
+                            AddVisible(CanvasViewPoint(gesture.Vertices[gesture.Vertices.Count - 1], image), CanvasViewPoint(gesture.Current, image));
+                    }
                 }
                 Painter2D painter = context.painter2D;
+                DrawOutline(painter, visibleEdges);
+                if (polygonPreviewEdges.Count > 0) DrawOutline(painter, polygonPreviewEdges);
+                if (gesture != null && gesture.Vertices.Count > 0)
+                {
+                    if (owner.IsSmoothLasso && gesture.ShowPolygonTail && !gesture.ClosingPolygon)
+                    {
+                        painter.lineWidth = 1f;
+                        painter.strokeColor = new Color(.3f, .8f, 1f, .5f);
+                        painter.BeginPath();
+                        painter.MoveTo(CanvasViewPoint(gesture.Vertices[gesture.Vertices.Count - 1], image));
+                        painter.LineTo(CanvasViewPoint(gesture.Current, image));
+                        painter.Stroke();
+                    }
+                    float ppi = Mathf.Max(.0001f, EditorGUIUtility.pixelsPerPoint);
+                    float radius = Mathf.Max(2f, Mathf.Round(2f * ppi)) / ppi;
+                    for (int i = 0; i < gesture.Vertices.Count; i++)
+                    {
+                        bool closing = i == 0 && gesture.ClosingPolygon;
+                        bool hover = i == gesture.HoverVertex;
+                        bool deleting = hover && gesture.DeletingVertex;
+                        Color color = deleting ? new Color(1f, .25f, .25f) :
+                            closing || hover || owner.IsSmoothLasso && i == gesture.SelectedPolygonPoint
+                                ? new Color(.3f, .8f, 1f) : Color.white;
+                        DrawPolygonMarker(painter, CanvasViewPoint(gesture.Vertices[i], image),
+                            radius + (closing || hover ? 1f / ppi : 0f), color, deleting ? -1 : 0, ppi,
+                            owner.IsSmoothLasso && !gesture.IsPolygonCorner(i));
+                    }
+                    if (gesture.InsertSegment >= 0)
+                        DrawPolygonMarker(painter, CanvasViewPoint(gesture.InsertPoint, image),
+                            radius + 2f / ppi, new Color(.3f, .8f, 1f), 1, ppi);
+                }
+            }
+            private static void DrawOutline(Painter2D painter, List<Vector4> outline)
+            {
                 painter.lineWidth = 1.5f; painter.lineCap = LineCap.Butt; painter.strokeColor = Color.black;
                 painter.BeginPath();
-                foreach (Vector4 e in visibleEdges) { painter.MoveTo(new Vector2(e.x, e.y)); painter.LineTo(new Vector2(e.z, e.w)); }
+                foreach (Vector4 e in outline) { painter.MoveTo(new Vector2(e.x, e.y)); painter.LineTo(new Vector2(e.z, e.w)); }
                 painter.Stroke();
                 painter.lineWidth = 1f; painter.strokeColor = Color.white;
                 painter.BeginPath();
                 int budget = 16384;
                 float dashPhase = 0f;
-                foreach (Vector4 e in visibleEdges)
+                foreach (Vector4 e in outline)
                 {
                     Vector2 a = new Vector2(e.x, e.y), d = new Vector2(e.z - e.x, e.w - e.y);
                     float length = d.magnitude;
@@ -820,26 +889,9 @@ namespace DCFApixels.WhimTex
                     dashPhase = (dashPhase + length) % 8f;
                 }
                 painter.Stroke();
-                if (gesture != null && gesture.Vertices.Count > 0)
-                {
-                    float ppi = Mathf.Max(.0001f, EditorGUIUtility.pixelsPerPoint);
-                    float radius = Mathf.Max(2f, Mathf.Round(2f * ppi)) / ppi;
-                    for (int i = 0; i < gesture.Vertices.Count; i++)
-                    {
-                        bool closing = i == 0 && gesture.ClosingPolygon;
-                        bool hover = i == gesture.HoverVertex;
-                        bool deleting = hover && gesture.DeletingVertex;
-                        Color color = deleting ? new Color(1f, .25f, .25f) :
-                            closing || hover ? new Color(.3f, .8f, 1f) : Color.white;
-                        DrawPolygonMarker(painter, CanvasViewPoint(gesture.Vertices[i], image),
-                            radius + (closing || hover ? 1f / ppi : 0f), color, deleting ? -1 : 0, ppi);
-                    }
-                    if (gesture.InsertSegment >= 0)
-                        DrawPolygonMarker(painter, CanvasViewPoint(gesture.InsertPoint, image),
-                            radius + 2f / ppi, new Color(.3f, .8f, 1f), 1, ppi);
-                }
             }
-            private void DrawPolygonMarker(Painter2D painter, Vector2 position, float radius, Color color, int symbol, float ppi)
+
+            private void DrawPolygonMarker(Painter2D painter, Vector2 position, float radius, Color color, int symbol, float ppi, bool round = false)
             {
                 Vector2 pixels = this.LocalToWorld(position) * ppi;
                 Vector2 p = this.WorldToLocal(new Vector2(Mathf.Floor(pixels.x) + .5f, Mathf.Floor(pixels.y) + .5f) / ppi);
@@ -848,10 +900,14 @@ namespace DCFApixels.WhimTex
                 painter.strokeColor = Color.black;
                 painter.fillColor = color;
                 painter.BeginPath();
-                painter.MoveTo(p + new Vector2(-radius, -radius));
-                painter.LineTo(p + new Vector2(radius, -radius));
-                painter.LineTo(p + new Vector2(radius, radius));
-                painter.LineTo(p + new Vector2(-radius, radius));
+                if (round) painter.Arc(p, radius, Angle.Degrees(0), Angle.Degrees(360));
+                else
+                {
+                    painter.MoveTo(p + new Vector2(-radius, -radius));
+                    painter.LineTo(p + new Vector2(radius, -radius));
+                    painter.LineTo(p + new Vector2(radius, radius));
+                    painter.LineTo(p + new Vector2(-radius, radius));
+                }
                 painter.ClosePath();
                 painter.Fill(); painter.Stroke();
                 if (symbol == 0) return;

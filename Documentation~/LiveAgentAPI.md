@@ -53,8 +53,12 @@ settings. Inspect before replacing
 a Vector array so the figure, compound contours and inactive settings remain present.
 New Vector authoring accepts one figure per layer. Use `type:"booleanGroup"` and
 `settings.booleanGroup` for common styling and Combine-only `appearance: Group / Layers`, with `settings.booleanOperation` on
-Shape/Vector/nested Boolean Group children. These are shared batch operations, not
+Shape/Vector/editable Text/nested Boolean Group children. These are shared batch operations, not
 image-generation reservations. See [Boolean Group settings](AgentAPI.md#boolean-group-settings).
+The shared `convertToVector` operation accepts Shape or Text on the same layer shell.
+Text conversion preserves its canvas placement and current layout as font-outline curves;
+direct Text operands stay editable. See [Vector settings](AgentAPI.md#vector-settings)
+for font restrictions and atomic failures.
 
 For an authorized content-generation request, reserve and capture context in one call:
 

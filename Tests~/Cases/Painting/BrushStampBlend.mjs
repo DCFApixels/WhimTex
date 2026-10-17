@@ -60,18 +60,20 @@ context.case('BrushStampBlend original assertions and branches', async () => {
       assert.ok(x<=clamp(l*w,w)&&y<=clamp(b*h,h)&&right>=clamp(r*w,w)&&top>=clamp(t*h,h)); 
     }
     const paint=read('src/Layers/DrawingLayerBehaviour.cs'), brush=read('src/Layers/DrawingLayerBehaviour.Brush.cs'), mesh=read('src/Layers/DrawingLayerBehaviour.BrushMesh.cs');
-    assert.ok(paint.includes('EnsureAdvancedStroke(surface, stampBlend)'));
-    assert.ok(brush.includes('if (withBackdrop) Graphics.Blit(advancedStrokeBase, advancedStroke)'));
-    assert.ok(paint.includes('if (stampBlend) BeginBrushMesh();'));
-    assert.ok(paint.includes('if (stampBlend) EndBrushMesh(target, material, snapshot);'));
-    assert.ok(paint.includes('snapshot = RenderTexture.GetTemporary(target.descriptor)'));
-    assert.ok(paint.includes('snapshot.filterMode = FilterMode.Point'));
-    assert.ok(mesh.indexOf('CopyStampBackdrop(target, backdrop)')<mesh.indexOf('brushCommands.DrawMesh'));
-    assert.ok(mesh.includes('Graphics.CopyTexture(target, 0, 0, x, y, right - x, top - y, backdrop, 0, 0, x, y)'));
-    assert.ok(mesh.includes('else Graphics.Blit(target, backdrop)'));
-    assert.ok(read('src/Shaders/Blend.shader').includes('if (_BrushStampAccumulation > .5) return lerp(before, stroke, saturate(_Opacity))'));
-    assert.ok(read('src/Shaders/PaintBrush.shader').includes('CompositeBrushPixel(tex2D(_Backdrop, input.canvasUv), stamp, 1.0, _StampBlendMode, 0.0, _TipStandard)'));
-    assert.ok(brush.includes('material.SetFloat("_BrushStampAccumulation", 0f)'));
+    assert.ok(paint.includes('EnsureAdvancedStroke(surface, stampBlend,'));
+    assert.ok(brush.includes('if (withBackdrop) Graphics.Blit(paintSurface, advancedStroke)'));
+    assert.ok(paint.includes('if (sequential) BeginBrushMesh();'));
+    assert.match(paint, /CopyStampBackdrop\(target, material, ref snapshot\);\s*EndBrushMesh\(target, material\);/,
+      'Sequential feedback is captured before submitting each stamp');
+    assert.ok(mesh.includes('backdrop.filterMode = FilterMode.Point'));
+    assert.ok(mesh.includes('Graphics.CopyTexture(target, 0, 0, x, y, width, height, backdrop, 0, 0, 0, 0)'));
+    assert.ok(mesh.includes('DrawBrushRegion(target, backdrop, copy, 3,'), 'Portable region-copy fallback');
+    assert.ok(!mesh.includes('Graphics.Blit(target, backdrop)'), 'Sequential stamps do not copy the full target');
+    const assembly=read('src/Shaders/BrushComposite.cginc');
+    assert.ok(assembly.includes('after = lerp(before, stroke, saturate(_StrokeOpacity))'));
+    assert.ok(assembly.includes('after = lerp(before, after, selection)'));
+    assert.ok(read('src/Shaders/PaintBrush.shader').includes('CompositeBrushPixel(tex2D(_Backdrop, input.canvasUv * _BackdropTransform.xy + _BackdropTransform.zw), stamp, 1.0, _StampBlendMode, 0.0, _TipStandard)'));
+    assert.ok(brush.includes('material.SetFloat("_PendingBrush", 0f)'));
     const dynamics=read('src/BrushDynamics.cs');
     assert.ok(dynamics.includes('enum BrushBlendApplication { Stroke, Stamp }'));
     assert.ok(dynamics.includes('!erase && blend != BlendMode.Normal && blendApplication == BrushBlendApplication.Stamp'));

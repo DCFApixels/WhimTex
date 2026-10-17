@@ -38,29 +38,48 @@ namespace DCFApixels.WhimTex
 
             var draft = vector.brushDraft;
             if (draft?.shapeId != selected.id) return;
-            var brush = new Foldout { text = "Last Stroke — Original Mask", value = true }; root.Add(brush);
+            var brush = new Foldout { text = "Original Mask", value = true }; root.Add(brush);
             brush.Add(new Label($"{draft.width} × {draft.height} original mask for this figure."));
+            AddVectorMaskEditingButton(brush, () => layer, bindings, "vectorPropertiesEditMask");
+            var rebuildStatus = new VisualElement(); rebuildStatus.AddToClassList("whimtex-vector-actions"); brush.Add(rebuildStatus);
+            var status = new Label(); rebuildStatus.Add(status);
+            bindings.Add(() => status.text = IsVectorMaskRebuilding ? "Rebuilding mask…" : "");
+            var cancelRebuild = new Button(() => CancelVectorMaskRebuild()) { text = "Cancel Rebuild" }; rebuildStatus.Add(cancelRebuild);
+            bindings.Add(() => cancelRebuild.SetEnabled(IsVectorMaskRebuilding));
             void RebuildDraft(float tolerance, float expansion)
             {
+                if (IsVectorMaskRebuilding) { bindings.Refresh(true); return; }
                 try
                 {
+                    vectorManipulator?.Cancel();
                     var next = draft.DeepClone(); next.tolerance = tolerance; next.expansion = expansion;
-                    using var measure = WhimTexProfiler.Measure("vector.brush_rebuild", activeDocument, layer);
-                    var geometry = VectorBrushGeometry.Rebuild(next, vector.referenceSize);
-                    Change("Adjust Vector Brush Figure", () =>
-                    {
-                        selected.contours = geometry.contours; draft.tolerance = tolerance; draft.expansion = expansion;
-                        vectorManipulator?.Cancel();
-                    });
+                    var referenceSize = vector.referenceSize;
+                    string originalJson = JsonUtility.ToJson(selected);
+                    float oldTolerance = draft.tolerance, oldExpansion = draft.expansion;
+                    int oldWidth = draft.width, oldHeight = draft.height;
+                    var oldFrame = draft.frame; var oldCoverage = draft.coverage;
+                    BeginVectorMaskRebuild(next, referenceSize, layer, "vector.brush_rebuild",
+                        () => layer.Behaviour == vector && vector.brushDraft == draft && vector.shapes.Contains(selected) &&
+                            vector.referenceSize == referenceSize && draft.frame == oldFrame && draft.tolerance == oldTolerance &&
+                            draft.expansion == oldExpansion && draft.width == oldWidth && draft.height == oldHeight &&
+                            ReferenceEquals(draft.coverage, oldCoverage) &&
+                            !WhimTexApi.IsLayerContentLocked(activeDocument, layer) && JsonUtility.ToJson(selected) == originalJson,
+                        geometry => Change("Adjust Vector Brush Figure", () =>
+                        {
+                            selected.contours = geometry.contours; draft.tolerance = tolerance; draft.expansion = expansion;
+                            vectorManipulator?.Cancel();
+                        }), () => bindings.Refresh(true));
                 }
                 catch (Exception error) { ShowNotification(new GUIContent(error.Message)); bindings.Refresh(true); }
             }
             var tolerance = WhimTexUI.ConfigureField(new FloatField("Tolerance (px)") { isDelayed = true,
                 tooltip = "Refit Bezier curves from the original mask. Lower values retain more detail; higher values usually use fewer anchors. Measured in layer reference pixels." }); brush.Add(tolerance);
             bindings.Track(tolerance, () => draft.tolerance);
+            bindings.Add(() => tolerance.SetEnabled(!IsVectorMaskRebuilding));
             tolerance.RegisterValueChangedCallback(e => RebuildDraft(ShapeLayerBehaviour.Limit(e.newValue, VectorBrushDraft.MinTolerance, VectorBrushDraft.MaxTolerance, draft.tolerance), draft.expansion));
             var expansion = WhimTexUI.ConfigureField(new FloatField("Expand (px)") { isDelayed = true }); brush.Add(expansion);
             bindings.Track(expansion, () => draft.expansion);
+            bindings.Add(() => expansion.SetEnabled(!IsVectorMaskRebuilding));
             expansion.RegisterValueChangedCallback(e => RebuildDraft(draft.tolerance, ShapeLayerBehaviour.Limit(e.newValue, -VectorBrushDraft.MaxExpansion, VectorBrushDraft.MaxExpansion, draft.expansion)));
             brush.Add(new Button(() => Change("Finalize Vector Brush Figure", () => { vector.brushDraft = null; Rebuild(); })) { text = "Release Mask", tooltip = "Keep the editable vector figure and discard only its procedural source mask." });
         }

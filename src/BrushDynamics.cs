@@ -134,7 +134,6 @@ namespace DCFApixels.WhimTex
         internal bool HasPressureBindings => pressure && (pressureSize?.enabled == true || pressureOpacity?.enabled == true || pressureFlow?.enabled == true);
         internal bool PressureOpacity => pressure && pressureOpacity?.enabled == true;
         internal bool PerStamp => HasPressureBindings || DynamicTip || scatter > 0f || sizeJitter > 0f || HasTint || CanRotateTip || HasTip && (flipX > 0f || flipY > 0f);
-        internal bool NeedsStrokeBuffer(bool erase) => opacity < 1f || PressureOpacity || !erase && blend != BlendMode.Normal || NeedsDirection;
         internal float SizePressure(float value) => pressure ? pressureSize?.Evaluate(value) ?? 1f : 1f;
         internal float OpacityPressure(float value) => pressure ? pressureOpacity?.Evaluate(value) ?? 1f : 1f;
         internal float FlowPressure(float value) => pressure ? pressureFlow?.Evaluate(value) ?? 1f : 1f;

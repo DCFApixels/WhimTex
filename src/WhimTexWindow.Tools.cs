@@ -75,6 +75,7 @@ namespace DCFApixels.WhimTex
 
         private void LoadCanvasToolSettings()
         {
+            gradientHandlesSelectedManually = false;
             previousCanvasTool = null;
             canvasToolToggleKeyHeld = false;
             canvasTool = ParseCanvasTool(EditorPrefs.GetString(CanvasToolPrefKey, string.Empty));
@@ -381,7 +382,9 @@ namespace DCFApixels.WhimTex
                 "Click a committed edge to insert, drag a vertex to move, Alt-click a vertex to remove. " +
                 "Keep the button held after placing/inserting a point to position it immediately. Near the last point, short clicks extend the contour. " +
                 "Click-release the highlighted first point to close, or use Enter/double-click at the same position when adding a point. " +
-                "Ctrl before pressing bypasses editing and snapping; during a drag it disables snapping. Backspace/RMB removes the last vertex; Escape cancels.";
+                "Ctrl before pressing bypasses editing and snapping; during a drag it disables snapping. " +
+                "Smooth curves pass through placed points; C or Corner toggles a sharp point. " +
+                "Backspace/RMB removes the last vertex; Escape cancels.";
 
         private string GetCanvasCropToolTooltip() => canvasCropMode == CanvasCropMode.Scale
             ? "Crop: Scale (C). Hold or drag this button to choose Scale or Resize. " +

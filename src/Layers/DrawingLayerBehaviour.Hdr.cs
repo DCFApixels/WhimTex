@@ -47,6 +47,7 @@ namespace DCFApixels.WhimTex
 
         internal void ApplyFillPixels(NativeArray<Color> output, int width, int height, string undoName)
         {
+            PaintTileTransfer.Drain();
             EnsureHdrStorage();
             InitializeCanvas(width, height);
             Undo.RegisterCompleteObjectUndo(pixels, undoName);

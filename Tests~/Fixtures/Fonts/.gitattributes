@@ -1,0 +1,4 @@
+# Preserve original font and license bytes (including upstream CRLF) on all hosts.
+*.otf -text
+SourceCodePro-LICENSE.txt -text
+SourceSerifPro-LICENSE.md -text

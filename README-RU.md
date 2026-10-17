@@ -145,6 +145,10 @@ https://github.com/DCFApixels/WhimTex.git
 
 Спасибо авторам и разработчикам библиотек, на которых основана часть возможностей WhimTex:
 
+- **[Typography.OpenFont](https://github.com/LayoutFarm/Typography)** — WinterDev и участники проекта;
+  чтение исходных контуров шрифтов на C#. [Приложенные лицензии и уведомления](src/ThirdParty/Typography/NOTICE.md).
+- **[Source Serif Pro](https://github.com/adobe-fonts/source-serif)** и **[Source Code Pro](https://github.com/adobe-fonts/source-code-pro)** — Adobe и авторы шрифтов;
+  неизменённые входные данные только для тестов. [Лицензии OFL и происхождение файлов](Tests~/Fixtures/Fonts/README.md).
 - **[Параметры последовательности Sobol](https://web.maths.unsw.edu.au/~fkuo/sobol/)** — Frances Kuo и Stephen Joe;
   равномерный разброс кисти. [Приложенная лицензия](ThirdPartyNotices.md#sobol-direction-numbers).
 - **[Clipper2](https://github.com/AngusJohnson/Clipper2)** — Angus Johnson;

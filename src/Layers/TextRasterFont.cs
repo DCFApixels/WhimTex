@@ -126,6 +126,13 @@ namespace DCFApixels.WhimTex
             files[key] = found = default;
             return false;
         }
+        internal (string path, int index) SourceFile()
+        {
+            var info = Asset.faceInfo;
+            if (!TryFindFile(info.familyName, info.styleName, out var file))
+                throw new NotSupportedException("Text outlines: the original font file is unavailable for " + info.familyName + " / " + info.styleName + ".");
+            return file;
+        }
         // The public bitmap layout API still exposes glyph metrics through this table.
 #pragma warning disable CS0618
         internal Glyph Glyph(uint unicode)

@@ -124,7 +124,7 @@ namespace DCFApixels.WhimTex
             double area = System.Math.Min(maxSize, document.width) * System.Math.Min(maxSize, document.height);
             Require(stamps * copies * area <= 250000000d, "Stroke exceeds the brush coverage budget. Reduce repetitions, size or point count.", "resource_limit");
             if (!execute || parameters.Color.a <= 0f) return;
-            layer.PrepareStroke(document.width, document.height, UndoName);
+            layer.PrepareBufferedStroke(document.width, document.height, UndoName);
             layer.BeginStroke(uv[0]);
             try
             {

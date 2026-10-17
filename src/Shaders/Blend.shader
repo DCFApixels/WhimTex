@@ -25,8 +25,8 @@ Shader "Hidden/WhimTex/Blend"
             float _Opacity;
             float _HdrBlend;
             float _PreserveAlpha;
-            float _BrushErase, _BrushStandard, _BrushStampAccumulation, _BrushPressureOpacity;
             #include "ColorBlend.cginc"
+            #include "BrushComposite.cginc"
 
             float4 frag(v2f_img input) : SV_Target
             {
@@ -93,19 +93,13 @@ Shader "Hidden/WhimTex/Blend"
             }
             float4 fragBrush(v2f_img input) : SV_Target
             {
-                float4 before = tex2D(_MainTex, input.uv);
-                float4 stroke = tex2D(_Blend, input.uv);
-                if (_BrushStampAccumulation > .5)
-                {
-                    if (_BrushPressureOpacity > .5) stroke.a = before.a + stroke.a * (1.0 - before.a);
-                    return lerp(before, stroke, saturate(_Opacity));
-                }
-                return CompositeBrushPixel(before, stroke, _Opacity, _Mode, _BrushErase, _BrushStandard);
+                return CompositePendingBrush(tex2D(_MainTex, input.uv), input.uv);
             }
             float4 fragPressureBase(v2f_img input) : SV_Target
             {
                 return float4(tex2D(_MainTex, input.uv).rgb, 0.0);
             }
+            float4 fragCopy(v2f_img input) : SV_Target { return tex2D(_MainTex, input.uv); }
         ENDCG
         Pass
         {
@@ -128,6 +122,14 @@ Shader "Hidden/WhimTex/Blend"
             CGPROGRAM
             #pragma vertex vert_img
             #pragma fragment fragPressureBase
+            #pragma target 3.0
+            ENDCG
+        }
+        Pass
+        {
+            CGPROGRAM
+            #pragma vertex vert_img
+            #pragma fragment fragCopy
             #pragma target 3.0
             ENDCG
         }

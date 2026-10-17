@@ -1,0 +1,582 @@
+Typography.OpenFont original source headers
+Source: https://github.com/LayoutFarm/Typography
+Commit: 5877180c7c5271091379a0eaf9f03ab6ebd256b3
+Original comment text is reproduced below; local modification notices are in the vendored source files.
+
+===== Typography.OpenFont/AdditionalInfo/AdobeGlyphList.cs =====
+//BSD, 2015, Adobe Systems Incorporated
+//from https://github.com/adobe-type-tools/agl-aglfn/blob/master/glyphlist.txt
+//# -----------------------------------------------------------
+//# Copyright 2002, 2010, 2015 Adobe Systems Incorporated.
+//# All rights reserved.
+//#
+//# Redistribution and use in source and binary forms, with or
+//# without modification, are permitted provided that the
+//# following conditions are met:
+//#
+//# Redistributions of source code must retain the above
+//# copyright notice, this list of conditions and the following
+//# disclaimer.
+//#
+//# Redistributions in binary form must reproduce the above
+//# copyright notice, this list of conditions and the following
+//# disclaimer in the documentation and/or other materials
+//# provided with the distribution.
+//#
+//# Neither the name of Adobe Systems Incorporated nor the names
+//# of its contributors may be used to endorse or promote
+//# products derived from this software without specific prior
+//# written permission.
+//#
+//# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+//# CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+//# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+//# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+//# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+//# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+//# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+//# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+//# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+//# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+//# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+//# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+//# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//# -----------------------------------------------------------
+//# Name:          Adobe Glyph List
+//# Table version: 2.0
+//# Date:          September 20, 2002
+//# URL:           https://github.com/adobe-type-tools/agl-aglfn
+//#
+//# Format: two semicolon-delimited fields:
+//#   (1) glyph name--upper/lowercase letters and digits
+//#   (2) Unicode scalar value--four uppercase hexadecimal digits
+//#
+
+
+===== Typography.OpenFont/AdditionalInfo/AdobeGlyphListForNewFont.cs =====
+//BSD, 2015, Adobe Systems Incorporated.
+//from https://raw.githubusercontent.com/adobe-type-tools/agl-aglfn/master/aglfn.txt
+//# -----------------------------------------------------------
+//# Copyright 2002, 2003, 2005, 2006, 2008, 2010, 2015 Adobe Systems
+//# Incorporated. All rights reserved.
+//#
+//# Redistribution and use in source and binary forms, with or
+//# without modification, are permitted provided that the
+//# following conditions are met:
+//#
+//# Redistributions of source code must retain the above
+//# copyright notice, this list of conditions and the following
+//# disclaimer.
+//#
+//# Redistributions in binary form must reproduce the above
+//# copyright notice, this list of conditions and the following
+//# disclaimer in the documentation and/or other materials
+//# provided with the distribution.
+//#
+//# Neither the name of Adobe Systems Incorporated nor the names
+//# of its contributors may be used to endorse or promote
+//# products derived from this software without specific prior
+//# written permission.
+//#
+//# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+//# CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+//# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+//# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+//# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+//# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+//# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+//# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+//# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+//# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+//# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+//# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+//# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//# -----------------------------------------------------------
+//# Name:          Adobe Glyph List For New Fonts
+//# Table version: 1.7
+//# Date:          November 6, 2008
+//# URL:           https://github.com/adobe-type-tools/agl-aglfn
+//#
+//# Description:
+//#
+//# AGLFN (Adobe Glyph List For New Fonts) provides a list of base glyph
+//# names that are recommended for new fonts, which are compatible with
+//# the AGL (Adobe Glyph List) Specification, and which should be used
+//# as described in Section 6 of that document. AGLFN comprises the set
+//# of glyph names from AGL that map via the AGL Specification rules to
+//# the semantically correct UV (Unicode Value). For example, "Asmall"
+//# is omitted because AGL maps this glyph name to the PUA (Private Use
+//# Area) value U+F761, rather than to the UV that maps from the glyph
+//# name "A." Also omitted is "ffi," because AGL maps this to the
+//# Alphabetic Presentation Forms value U+FB03, rather than decomposing
+//# it into the following sequence of three UVs: U+0066, U+0066, and
+//# U+0069. The name "arrowvertex" has been omitted because this glyph
+//# now has a real UV, and AGL is now incorrect in mapping it to the PUA
+//# value U+F8E6. If you do not find an appropriate name for your glyph
+//# in this list, then please refer to Section 6 of the AGL
+//# Specification.
+//#
+//# Format: three semicolon-delimited fields:
+//#   (1) Standard UV or CUS UV--four uppercase hexadecimal digits
+//#   (2) Glyph name--upper/lowercase letters and digits
+//#   (3) Character names: Unicode character names for standard UVs, and
+//#       descriptive names for CUS UVs--uppercase letters, hyphen, and
+//#       space
+//#
+//# The records are sorted by glyph name in increasing ASCII order,
+//# entries with the same glyph name are sorted in decreasing priority
+//# order, the UVs and Unicode character names are provided for
+//# convenience, lines starting with "#" are comments, and blank lines
+//# should be ignored.
+//#
+//# Revision History:
+//#
+//# 1.7 [6 November 2008]
+//# - Reverted to the original 1.4 and earlier mappings for Delta,
+//#   Omega, and mu.
+//# - Removed mappings for "afii" names. These should now be assigned
+//#   "uni" names.
+//# - Removed mappings for "commaaccent" names. These should now be
+//#   assigned "uni" names.
+//#
+//# 1.6 [30 January 2006]
+//# - Completed work intended in 1.5.
+//#
+//# 1.5 [23 November 2005]
+//# - Removed duplicated block at end of file.
+//# - Changed mappings:
+//#   2206;Delta;INCREMENT changed to 0394;Delta;GREEK CAPITAL LETTER DELTA
+//#   2126;Omega;OHM SIGN changed to 03A9;Omega;GREEK CAPITAL LETTER OMEGA
+//#   03BC;mu;MICRO SIGN changed to 03BC;mu;GREEK SMALL LETTER MU
+//# - Corrected statement above about why "ffi" is omitted.
+//#
+//# 1.4 [24 September 2003]
+//# - Changed version to 1.4, to avoid confusion with the AGL 1.3.
+//# - Fixed spelling errors in the header.
+//# - Fully removed "arrowvertex," as it is mapped only to a PUA Unicode
+//#   value in some fonts.
+//#
+//# 1.1 [17 April 2003]
+//# - Renamed [Tt]cedilla back to [Tt]commaaccent.
+//#
+//# 1.0 [31 January 2003]
+//# - Original version.
+//# - Derived from the AGLv1.2 by:
+//#   removing the PUA area codes;
+//#   removing duplicate Unicode mappings; and
+//#   renaming "tcommaaccent" to "tcedilla" and "Tcommaaccent" to "Tcedilla"
+//# 
+
+===== Typography.OpenFont/AdditionalInfo/Languages.cs =====
+//MIT, 2020-present, WinterDev
+
+===== Typography.OpenFont/AdditionalInfo/MacPostFormat1.cs =====
+//Apache2, 2017-present, WinterDev
+
+
+
+===== Typography.OpenFont/AdditionalInfo/OS2_IBMFontClassParameters.cs =====
+//Apache2, 2017-present, WinterDev
+//https://www.microsoft.com/typography/otspec/ibmfc.htm
+
+
+===== Typography.OpenFont/Bounds.cs =====
+//Apache2, 2017-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+
+===== Typography.OpenFont/PreviewFontInfo.cs =====
+//Apache2, 2017-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+
+
+===== Typography.OpenFont/Tables/CharacterMap.cs =====
+//Apache2, 2017-present, WinterDev, Sam Hocevar
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+
+===== Typography.OpenFont/Geometry.cs =====
+//MIT, 2015, Michael Popoloski's SharpFont,
+//MIT, 2016-present, WinterDev
+
+
+
+===== Typography.OpenFont/Glyph.cs =====
+//Apache2, 2017-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+
+===== Typography.OpenFont/IGlyphTranslator.cs =====
+//MIT, 2016-present, WinterDev
+//MIT, 2015, Michael Popoloski 
+//FTL, 3-clauses BSD, FreeType project
+//-----------------------------------------------------
+
+
+===== Typography.OpenFont/ByteOrderSwappingBinaryReader.cs =====
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+
+===== Typography.OpenFont/OpenFontReader.cs =====
+//Apache2, 2017-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+
+===== Typography.OpenFont/Tables.AdvancedLayout/AttachmentListTable.cs =====
+//Apache2, 2016-present, WinterDev
+
+
+===== Typography.OpenFont/Tables.AdvancedLayout/Base.cs =====
+//Apache2, 2016-present, WinterDev
+//https://docs.microsoft.com/en-us/typography/opentype/spec/base
+//BASE - Baseline Table
+//The Baseline table (BASE) provides information used to align glyphs of different scripts and sizes in a line of text, 
+//whether the glyphs are in the same font or in different fonts.
+//To improve text layout, the Baseline table also provides minimum (min) and maximum (max) glyph extent values for each script,
+//language system, or feature in a font.
+
+
+===== Typography.OpenFont/Tables.AdvancedLayout/ClassDefTable.cs =====
+//Apache2, 2016-present, WinterDev
+
+===== Typography.OpenFont/Tables.AdvancedLayout/COLR.cs =====
+//Apache2, 2017-present Sam Hocevar <sam@hocevar.net>, WinterDev
+
+
+===== Typography.OpenFont/Tables.AdvancedLayout/CoverageTable.cs =====
+//Apache2, 2016-present, WinterDev
+
+===== Typography.OpenFont/Tables.AdvancedLayout/FeatureInfo.cs =====
+//Apache2, 2016-present, WinterDev
+
+===== Typography.OpenFont/Tables.AdvancedLayout/FeatureList.cs =====
+//Apache2, 2016-present, WinterDev
+
+
+===== Typography.OpenFont/Tables.AdvancedLayout/GDEF.cs =====
+//Apache2, 2016-present, WinterDev
+
+===== Typography.OpenFont/Tables.AdvancedLayout/GPOS.cs =====
+//Apache2, 2016-present, WinterDev, Sam Hocevar <sam@hocevar.net>
+
+
+===== Typography.OpenFont/Tables.AdvancedLayout/GPOS.Others.cs =====
+//Apache2, 2016-present, WinterDev
+
+===== Typography.OpenFont/Tables.AdvancedLayout/GSUB.cs =====
+//Apache2, 2016-present, WinterDev
+
+
+===== Typography.OpenFont/Tables.AdvancedLayout/IGlyphIndexList.cs =====
+//Apache2, 2016-present, WinterDev
+
+
+
+===== Typography.OpenFont/Tables.AdvancedLayout/GlyphShapingTableEntry.cs =====
+//Apache2, 2016-present, WinterDev, Sam Hocevar <sam@hocevar.net>
+
+
+===== Typography.OpenFont/Tables.AdvancedLayout/JustificationTable.cs =====
+//MIT, 2019-present, WinterDev
+
+
+===== Typography.OpenFont/Tables.AdvancedLayout/LigatureCaretListTable.cs =====
+//Apache2, 2016-present, WinterDev
+
+
+===== Typography.OpenFont/Tables.AdvancedLayout/MathTable.cs =====
+//MIT, 2018-present, WinterDev
+//https://docs.microsoft.com/en-us/typography/opentype/spec/math
+
+
+===== Typography.OpenFont/Tables.AdvancedLayout/ScriptList.cs =====
+//Apache2, 2016-present, WinterDev
+
+
+===== Typography.OpenFont/Tables.AdvancedLayout/ScriptTable.cs =====
+//Apache2, 2016-present, WinterDev
+//https://docs.microsoft.com/en-us/typography/opentype/spec/chapter2#script-table-and-language-system-record
+
+
+===== Typography.OpenFont/Tables.AdvancedLayout/CPAL.cs =====
+//Apache2, 2017-present Sam Hocevar <sam@hocevar.net>, WinterDev
+
+
+===== Typography.OpenFont/Tables.BitmapAndSvgFonts/SvgTable.cs =====
+//Apache2, 2017-present, WinterDev 
+
+
+===== Typography.OpenFont/Tables.BitmapAndSvgFonts/BitmapFontGlyphSource.cs =====
+//MIT, 2019-present, WinterDev
+
+===== Typography.OpenFont/Tables.BitmapAndSvgFonts/BitmapFontsCommon.cs =====
+//MIT, 2019-present, WinterDev
+
+===== Typography.OpenFont/Tables.BitmapAndSvgFonts/EBDT.cs =====
+//MIT, 2019-present, WinterDev
+
+===== Typography.OpenFont/Tables.BitmapAndSvgFonts/EBSC.cs =====
+//MIT, 2019-present, WinterDev
+
+===== Typography.OpenFont/Tables.CFF/CffEvaluationEngine.cs =====
+//Apache2, 2018, apache/pdfbox Authors ( https://github.com/apache/pdfbox) 
+//MIT, 2018-present, WinterDev  
+
+
+===== Typography.OpenFont/Tables.CFF/CFFTable.cs =====
+//Apache2, 2018, Apache/PDFBox Authors ( https://github.com/apache/pdfbox) 
+//
+//
+//Apache PDFBox
+//Copyright 2014 The Apache Software Foundation
+
+//This product includes software developed at
+//The Apache Software Foundation(http://www.apache.org/).
+
+//Based on source code originally developed in the PDFBox and
+//FontBox projects.
+
+//Copyright (c) 2002-2007, www.pdfbox.org
+
+//Based on source code originally developed in the PaDaF project.
+//Copyright (c) 2010 Atos Worldline SAS
+
+//Includes the Adobe Glyph List
+//Copyright 1997, 1998, 2002, 2007, 2010 Adobe Systems Incorporated.
+
+//Includes the Zapf Dingbats Glyph List
+//Copyright 2002, 2010 Adobe Systems Incorporated.
+
+//Includes OSXAdapter
+//Copyright (C) 2003-2007 Apple, Inc., All Rights Reserved
+
+//----------------
+//ccf1 spec from http://wwwimages.adobe.com/www.adobe.com/content/dam/acom/en/devnet/font/pdfs/5176.CFF.pdf
+
+//------------------------------------------------------------------
+//Apache2, 2018-present, WinterDev
+
+
+
+===== Typography.OpenFont/Tables.CFF/CFF.cs =====
+//Apache2, 2018, apache/pdfbox Authors ( https://github.com/apache/pdfbox) 
+//
+//Apache PDFBox
+//Copyright 2014 The Apache Software Foundation
+
+//This product includes software developed at
+//The Apache Software Foundation(http://www.apache.org/).
+
+//Based on source code originally developed in the PDFBox and
+//FontBox projects.
+
+//Copyright (c) 2002-2007, www.pdfbox.org
+
+//Based on source code originally developed in the PaDaF project.
+//Copyright (c) 2010 Atos Worldline SAS
+
+//Includes the Adobe Glyph List
+//Copyright 1997, 1998, 2002, 2007, 2010 Adobe Systems Incorporated.
+
+//Includes the Zapf Dingbats Glyph List
+//Copyright 2002, 2010 Adobe Systems Incorporated.
+
+//Includes OSXAdapter
+//Copyright (C) 2003-2007 Apple, Inc., All Rights Reserved
+
+//----------------
+//Adobe's The Compact Font Format Specification
+//from http://wwwimages.adobe.com/www.adobe.com/content/dam/acom/en/devnet/font/pdfs/5176.CFF.pdf
+
+//Type1CharString Format spec:
+//https://www-cdf.fnal.gov/offline/PostScript/T1_SPEC.PDF
+
+//Type2CharString Format spec:
+//http://wwwimages.adobe.com/www.adobe.com/content/dam/acom/en/devnet/font/pdfs/5177.Type2.pdf
+
+//------------------------------------------------------------------
+//many areas are ported from Java code
+//Apache2, 2018-present, WinterDev
+
+
+
+===== Typography.OpenFont/Tables.CFF/Type2CharStringParser.cs =====
+//Apache2, 2018, Villu Ruusmann , Apache/PdfBox Authors ( https://github.com/apache/pdfbox)  
+//Apache2, 2018-present, WinterDev 
+
+//ref http://wwwimages.adobe.com/www.adobe.com/content/dam/acom/en/devnet/font/pdfs/5177.Type2.pdf
+
+
+===== Typography.OpenFont/Tables.BitmapAndSvgFonts/CBDT.cs =====
+//MIT, 2019-present, WinterDev
+
+===== Typography.OpenFont/Tables.BitmapAndSvgFonts/CBLC.cs =====
+//MIT, 2019-present, WinterDev
+
+===== Typography.OpenFont/Tables.BitmapAndSvgFonts/EBLC.cs =====
+//MIT, 2017-present, WinterDev
+//MIT, 2015, Michael Popoloski, WinterDev
+
+
+===== Typography.OpenFont/Tables.CFF/Type2InstructionCompacter.cs =====
+//MIT, 2020-present, WinterDev  
+
+
+===== Typography.OpenFont/Tables.Others/HorizontalDeviceMetrics.cs =====
+//Apache2, 2016-present, WinterDev 
+
+
+===== Typography.OpenFont/Tables.Others/Kern.cs =====
+//Apache2, 2017-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+
+===== Typography.OpenFont/Tables.Others/LinearThreashold.cs =====
+//TODO: implement this
+
+===== Typography.OpenFont/Tables.Others/Merge.cs =====
+//TODO: implement this
+
+===== Typography.OpenFont/Tables.Others/Meta.cs =====
+//MIT, 2020-present, WinterDev
+
+
+===== Typography.OpenFont/Tables.Others/STAT.cs =====
+//MIT, 2019-present, WinterDev
+
+===== Typography.OpenFont/Tables.Others/VerticalDeviceMetrics.cs =====
+//Apache2, 2016-present, WinterDev 
+
+
+===== Typography.OpenFont/Tables.Others/VerticalMetrics.cs =====
+//Apache2, 2017-present, WinterDev
+
+
+===== Typography.OpenFont/Tables.Others/VerticalMetricsHeader.cs =====
+//Apache2, 2017-present, WinterDev
+//https://docs.microsoft.com/en-us/typography/opentype/spec/vhea
+
+
+===== Typography.OpenFont/Tables.TrueType/Cvt_Programs.cs =====
+//MIT, 2015-2016, Michael Popoloski, WinterDev
+
+
+===== Typography.OpenFont/Tables.TrueType/Gasp.cs =====
+//Apache2, 2016-present, WinterDev
+
+===== Typography.OpenFont/Tables.TrueType/Glyf.cs =====
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+===== Typography.OpenFont/Tables.TrueType/GlyphLocations.cs =====
+//MIT, 2018-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+//https://www.microsoft.com/typography/otspec/loca.htm
+
+
+===== Typography.OpenFont/Tables.Variations/AVar.cs =====
+//MIT, 2019-present, WinterDev
+
+===== Typography.OpenFont/Tables.Variations/Common.ItemVariationStore.cs =====
+//MIT, 2019-present, WinterDev
+
+===== Typography.OpenFont/Tables.Variations/Common.TupleVariationStore.cs =====
+//MIT, 2019-present, WinterDev
+
+===== Typography.OpenFont/Tables.Variations/CVar.cs =====
+//MIT, 2019-present, WinterDev
+
+===== Typography.OpenFont/Tables.Variations/FVar.cs =====
+//MIT, 2019-present, WinterDev
+
+===== Typography.OpenFont/Tables.Variations/GVar.cs =====
+//MIT, 2019-present, WinterDev
+
+===== Typography.OpenFont/Tables.Variations/HVar.cs =====
+//MIT, 2019-present, WinterDev
+
+===== Typography.OpenFont/Tables.Variations/MVar.cs =====
+//MIT, 2019-present, WinterDev
+
+===== Typography.OpenFont/Tables.Variations/VVar.cs =====
+//TODO: implement this
+//https://docs.microsoft.com/en-us/typography/opentype/spec/vvar
+
+===== Typography.OpenFont/Tables/Cmap.cs =====
+//Apache2, 2017-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+
+===== Typography.OpenFont/Tables/Head.cs =====
+//Apache2, 2017-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+
+===== Typography.OpenFont/Tables/HorizontalHeader.cs =====
+//Apache2, 2017-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+
+===== Typography.OpenFont/Tables/HorizontalMetrics.cs =====
+//Apache2, 2017-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+
+===== Typography.OpenFont/Tables/MaxProfile.cs =====
+//Apache2, 2017-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+
+
+===== Typography.OpenFont/Tables/NameEntry.cs =====
+//Apache2, 2017-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+
+===== Typography.OpenFont/Tables/OS2.cs =====
+//Apache2, 2016-present, WinterDev 
+
+===== Typography.OpenFont/Tables/Post.cs =====
+//Apache2, 2016-present, WinterDev
+
+
+===== Typography.OpenFont/Tables/TableEntry.cs =====
+//Apache2, 2017-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+
+===== Typography.OpenFont/Tables/TableEntryCollection.cs =====
+//Apache2, 2017-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+
+===== Typography.OpenFont/Tables/TableHeader.cs =====
+//Apache2, 2017-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+
+===== Typography.OpenFont/Tables/Utils.cs =====
+//Apache2, 2017-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev 
+
+
+===== Typography.OpenFont/Typeface.cs =====
+//Apache2, 2017-present, WinterDev
+//Apache2, 2014-2016, Samuel Carlsson, WinterDev
+
+===== Typography.OpenFont/Typeface_Extensions.cs =====
+//Apache2, 2017-present, WinterDev 
+
+
+
+===== Typography.OpenFont/Typeface_TrimableExtensions.cs =====
+//MIT, 2020-present, WinterDev
+
+
+===== Typography.OpenFont/WebFont/Woff2Reader.cs =====
+//MIT, 2019-present, WinterDev 
+
+===== Typography.OpenFont/WebFont/WoffReader.cs =====
+//MIT, 2019-present, WinterDev 
+//see https://www.w3.org/TR/2012/REC-WOFF-20121213/
+

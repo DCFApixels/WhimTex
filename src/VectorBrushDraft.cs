@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
-    /// <summary>The last stroke's original mask, owned and serialized by its vector layer.</summary>
+    /// <summary>The figure's editable source mask, owned and serialized by its vector layer.</summary>
     [Serializable]
     public sealed class VectorBrushDraft
     {

@@ -10,6 +10,24 @@ public static class BrushHlslTests
 static WhimTex.Tests.TestContext T;
 static WhimTex.Tests.UnityA.UnityAScope Scope;
 
+    static Color[] LivePixels(DrawingLayerBehaviour layer, Texture2D readback)
+    {
+        var previous = RenderTexture.active;
+        var target = RenderTexture.GetTemporary(readback.width, readback.height, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+        try
+        {
+            typeof(DrawingLayerBehaviour).GetMethod("BlitStraightSurface", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(layer, new object[] { target, 1f });
+            RenderTexture.active = target;
+            readback.ReadPixels(new Rect(0, 0, readback.width, readback.height), 0, 0);
+            var pixels = readback.GetPixels();
+            for (int i = 0; i < pixels.Length; i++)
+                pixels[i] = new Color(pixels[i].r * pixels[i].a, pixels[i].g * pixels[i].a, pixels[i].b * pixels[i].a, pixels[i].a);
+            return pixels;
+        }
+        finally { RenderTexture.active = previous; RenderTexture.ReleaseTemporary(target); }
+    }
+
     private static string BodyRun()
     {
         var assembly=typeof(WhimTexApi).Assembly;
@@ -141,9 +159,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             Color pixel;
             try
             {
-                RenderTexture.active = (RenderTexture)Get(layer, "paintSurface");
-                readback.ReadPixels(new Rect(0,0,width,height),0,0);
-                pixel = readback.GetPixel(x,y);
+                pixel = LivePixels(layer, readback)[y * width + x];
             }
             finally { RenderTexture.active = previous; }
             T.Near(1, pixel.a, .002, message + ": covered pixel");
@@ -753,7 +769,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
         Color[] Image(DrawingLayerBehaviour layer)
         {
             var previous = RenderTexture.active;
-            try { RenderTexture.active = (RenderTexture)Get(layer,"paintSurface"); readback.ReadPixels(new Rect(0,0,width,height),0,0); return readback.GetPixels(); }
+            try { return LivePixels(layer, readback); }
             finally { RenderTexture.active = previous; }
         }
         void Same(Color[] expected, Color[] actual, string message)
@@ -777,16 +793,16 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
                 T.True((bool)Get(Get(dynamics,"hlslProgram"),"UsesMotion"),"Signature order declares motion: "+args);
                 var layer = Layer(); Call(layer,"BeginStroke",origin); Call(layer,"SetKnownBrushDirection",Vector2.up);
                 Call(layer,"PaintPoint",origin,width,height,Parameters());
-                T.True(Get(layer,"advancedStrokeBase")!=null,"Motion allocates the stroke pair");
+                T.True(Get(layer,"advancedStroke")!=null,"Motion uses the shared stroke buffer");
                 T.True(!(bool)Get(layer,"firstBrushPending"),"Known direction needs no provisional correction");
                 Call(layer,"EndStroke");
-                T.True(Get(layer,"advancedStroke")==null && Get(layer,"advancedStrokeBase")==null,"End releases the pair");
+                T.True(Get(layer,"advancedStroke")==null,"End releases the stroke buffer");
             }
             foreach (string args in new[] { "BrushSequence s, float2 uv", "float2 uv, BrushSequence s", "BrushMotion m, float2 uv", "float2 uv, BrushMotion m", "float2 uv" })
             {
                 Call(settings,"ApplyHlsl",header+"float4 BrushTip("+args+") { return 1; }",new List<ShaderFXParameter>(),64);
                 var layer = Layer(); Call(layer,"BeginStroke",origin); Call(layer,"PaintPoint",origin,width,height,Parameters());
-                T.Equal(args.Contains("BrushMotion"),Get(layer,"advancedStrokeBase")!=null,"Only the motion capability requires a pair: "+args);
+                T.True(Get(layer,"advancedStroke")!=null,"Every brush signature uses the shared stroke buffer: "+args);
                 Call(layer,"EndStroke");
             }
             string code = header+"float4 BrushTip(BrushMotion m, float2 uv, BrushSequence s) { " +
@@ -882,11 +898,11 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             Set(dynamics,"rotationMode",Enum.Parse(Get(dynamics,"rotationMode").GetType(),"Fixed"));
             Call(settings,"ApplyHlsl",header+"float4 BrushTip(float2 uv, BrushSequence s) { return 1; }",new List<ShaderFXParameter>(),64);
             Call(direct,"BeginStroke",origin); Call(direct,"PaintPoint",origin,width,height,Parameters());
-            T.True(Get(direct,"advancedStrokeBase")==null,"Sequence-only comparison uses the direct path");
+            T.True(Get(direct,"advancedStroke")!=null,"Sequence-only brush uses the common buffered path");
             Call(settings,"ApplyHlsl",header+"float4 BrushTip(float2 uv, BrushMotion m) { return 1; }",new List<ShaderFXParameter>(),64);
             Call(buffered,"BeginStroke",origin); Call(buffered,"SetKnownBrushDirection",Vector2.right);
             Call(buffered,"PaintPoint",origin,width,height,Parameters());
-            Same(Image(direct),Image(buffered),"Direct and buffered paths preserve the same stamp on a translucent base");
+            Same(Image(direct),Image(buffered),"Sequence and Motion signatures preserve the same stamp on a translucent base");
             Call(direct,"EndStroke"); Call(buffered,"EndStroke");
             Set(dynamics,"rotationMode",Enum.Parse(Get(dynamics,"rotationMode").GetType(),"StrokeDirection"));
             Call(settings,"ApplyHlsl",code,new List<ShaderFXParameter>(),64);
@@ -901,7 +917,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             var cancelled=Layer(); Call(cancelled,"BeginStroke",origin); Call(cancelled,"EnsurePaintSurface",width,height);
             Color[] source=Image(cancelled); Call(cancelled,"PaintPoint",origin,width,height,Parameters()); Call(cancelled,"CancelStroke");
             Same(source,Image(cancelled),"Cancellation restores the exact GPU base");
-            T.True(Get(cancelled,"advancedStrokeBase")==null,"Cancellation releases its pair");
+            T.True(Get(cancelled,"advancedStroke")==null,"Cancellation releases the stroke buffer");
             var live=Layer(); var reference=Layer();
             WhimTexDocument Document(DrawingLayerBehaviour drawing)
             {
@@ -962,5 +978,5 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             Call(settings,"ReleasePresetTip");
         }
     }
-public static string Run() => WhimTex.Tests.TestContext.Run("Run", context => WhimTex.Tests.UnityA.UnityAScope.RunOwned(scope => { T = context; Scope = scope; try { BodyRun(); } finally { T = null; Scope = null; } }));
+public static string Run() => WhimTex.Tests.TestContext.Run("Run", context => WhimTex.Tests.UnityA.UnityAScope.RunOwned(scope => { scope.RestoreWindowFocus = false; T = context; Scope = scope; try { BodyRun(); } finally { T = null; Scope = null; } }));
 }

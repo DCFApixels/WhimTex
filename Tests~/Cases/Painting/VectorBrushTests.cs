@@ -11,6 +11,8 @@ public static class VectorBrushTests
     public static string Run() => TestContext.Run("Vector brush source ownership, raster preview, holes and bounded reversible offsets", t =>
     {
         Builder(t);
+        TipShapes(t);
+        Editing(t);
         Rebuild(t);
         Hole(t);
         ReferenceMetric(t);
@@ -92,6 +94,87 @@ public static class VectorBrushTests
         VectorShape restored = VectorBrushGeometry.Rebuild(draft, size);
         SameGeometry(t, precise, restored);
         EqualBytes(t, source, draft.coverage, "Rebuilding never mutates original coverage");
+    }
+
+    static void Editing(TestContext t)
+    {
+        foreach (VectorBrushShape tip in Enum.GetValues(typeof(VectorBrushShape)))
+        {
+            var original = Disc(64, 64, new Vector2(32, 32), 15);
+            original.frame = new Rect(-.2f, .3f, 2, 2); original.tolerance = .5f;
+            string snapshot = JsonUtility.ToJson(original);
+            var edit = new VectorBrushBuilder(); edit.Begin(original, tip, false);
+            Vector2 p = new Vector2(1.9f, 1.3f);
+            edit.AddPoint(edit.ToPixel(p), 5);
+            var next = edit.Finish();
+            t.True(next.frame.xMax > original.frame.xMax, "Painting grows the frame beyond the old mask");
+            t.Near(original.frame.width / original.width, next.frame.width / next.width, 1e-6, "Growth preserves pixel size");
+            t.Equal(original.shapeId, next.shapeId, "Editing keeps figure identity");
+            t.Equal(original.tolerance, next.tolerance, "Editing keeps precision");
+            t.Equal(snapshot, JsonUtility.ToJson(original), "Editing never mutates source or Undo snapshots");
+            for (int y = 18; y < 46; y++) for (int x = 18; x < 46; x++)
+            {
+                Vector2 local = original.frame.min + Vector2.Scale(new Vector2((x + .5f) / 64, (y + .5f) / 64), original.frame.size);
+                int nx = Mathf.FloorToInt((local.x - next.frame.xMin) * next.width / next.frame.width);
+                int ny = Mathf.FloorToInt((local.y - next.frame.yMin) * next.height / next.frame.height);
+                t.Equal(original.coverage[y * 64 + x], next.coverage[ny * next.width + nx], "Untouched source pixels survive growth byte-for-byte");
+            }
+            edit.Begin(next, tip, true);
+            Vector2 center = original.frame.center;
+            edit.AddPoint(edit.ToPixel(center), 5);
+            byte[] once = (byte[])edit.Coverage.Clone();
+            for (int i = 0; i < 20; i++) edit.AddPoint(edit.ToPixel(center), 5);
+            EqualBytes(t, once, edit.Coverage, "Repeated erase samples never harden the AA edge");
+            var erased = edit.Finish();
+            var shape = VectorBrushGeometry.Rebuild(erased, new Vector2(64, 64));
+            t.True(!Contains(shape, center), "Erasing creates a real hole in the vector geometry");
+            edit.Begin(erased, tip, true);
+            edit.AddPoint(new Vector2(-100, -100), 2);
+            t.True(!edit.HasChanges, "Erasing outside the figure is a no-op");
+            edit.Begin(erased, tip, false);
+            Throws<ArgumentOutOfRangeException>(t, () => edit.AddPoint(new Vector2(2048, 0), 5), "Growth budget rejects instead of resampling the source");
+            t.Equal(snapshot, JsonUtility.ToJson(original), "Rejected growth preserves original source");
+        }
+    }
+
+    static void TipShapes(TestContext t)
+    {
+        foreach (VectorBrushShape shape in Enum.GetValues(typeof(VectorBrushShape)))
+        {
+            var brush = new VectorBrushBuilder(); brush.Begin(64, 64, shape);
+            Vector2 center = new Vector2(31.2f, 29.7f); const float radius = 9.3f;
+            brush.AddPoint(center, radius);
+            int soft = 0;
+            for (int y = 0; y < 64; y++) for (int x = 0; x < 64; x++)
+            {
+                Vector2 d = new Vector2(x + .5f, y + .5f) - center;
+                float distance = d.magnitude - radius;
+                if (shape != VectorBrushShape.Circle)
+                {
+                    if (shape == VectorBrushShape.Diamond)
+                        d = new Vector2(d.x + d.y, d.y - d.x) / Mathf.Sqrt(2);
+                    float half = shape == VectorBrushShape.Diamond ? radius / Mathf.Sqrt(2) : radius;
+                    var q = new Vector2(Mathf.Abs(d.x) - half, Mathf.Abs(d.y) - half);
+                    distance = new Vector2(Mathf.Max(q.x, 0), Mathf.Max(q.y, 0)).magnitude + Mathf.Min(Mathf.Max(q.x, q.y), 0);
+                }
+                int expected = Mathf.RoundToInt(Mathf.Clamp01(.5f - distance) * 255), actual = brush.Coverage[y * 64 + x];
+                t.Near(expected, actual, 1, shape + " stamp matches analytic AA distance");
+                if (actual > 0 && actual < 255) soft++;
+            }
+            t.True(soft > 0, shape + " retains antialiasing");
+            foreach (var end in new[] { new Vector2(53.8f, 51.4f), new Vector2(-10, 15) })
+            foreach (float endRadius in new[] { 0f, 3f, 14f })
+            {
+                var dense = new VectorBrushBuilder(); dense.Begin(64, 64, shape);
+                brush.Begin(64, 64, shape);
+                Vector2 start = new Vector2(8.3f, 9.7f);
+                brush.AddPoint(start, 4); brush.AddPoint(end, endRadius);
+                for (int i = 0; i <= 24; i++) dense.AddPoint(Vector2.Lerp(start, end, i / 24f), Mathf.Lerp(4, endRadius, i / 24f));
+                for (int i = 0; i < brush.Coverage.Length; i++)
+                    t.Near(brush.Coverage[i], dense.Coverage[i], 1, shape + " sparse and dense tapered sweeps agree");
+            }
+        }
+        Throws<ArgumentOutOfRangeException>(t, () => new VectorBrushBuilder().Begin(16, 16, (VectorBrushShape)42), "Invalid tip shape rejected");
     }
 
     static void Hole(TestContext t)

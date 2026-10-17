@@ -81,6 +81,7 @@ Shader "Hidden/WhimTex/PaintBrush"
             sampler2D _BrushSdfGradient;
             float4 _BrushSdfGradient_TexelSize;
             sampler2D _Backdrop;
+            float4 _BackdropTransform;
             sampler2D _SelectionMask;
             float _UseSelection, _SelectionWrap;
             float _PrepareStandard;
@@ -280,13 +281,13 @@ Shader "Hidden/WhimTex/PaintBrush"
                 if (_CoverageMask > .5) return float4(1, 1, 1, alpha);
                 if (_PrepareStandard > 0.5)
                 {
-                    float4 before = tex2D(_Backdrop, input.canvasUv);
+                    float4 before = tex2D(_Backdrop, input.canvasUv * _BackdropTransform.xy + _BackdropTransform.zw);
                     return float4(clamp(before.rgb, 0.0, before.a), before.a);
                 }
                 float4 stamp = float4(color.rgb * alpha, alpha);
                 if (_PressureOpacity > .5)
                 {
-                    float4 before = tex2D(_Backdrop, input.canvasUv);
+                    float4 before = tex2D(_Backdrop, input.canvasUv * _BackdropTransform.xy + _BackdropTransform.zw);
                     float limit = saturate(input.tileData.w);
                     float newAlpha = before.a + max(limit - before.a, 0.0) * alpha;
                     if (_StampBlendEnabled > .5)
@@ -303,7 +304,7 @@ Shader "Hidden/WhimTex/PaintBrush"
                     return float4(mixed * newAlpha, newAlpha);
                 }
                 if (_StampBlendEnabled > .5)
-                    return CompositeBrushPixel(tex2D(_Backdrop, input.canvasUv), stamp, 1.0, _StampBlendMode, 0.0, _TipStandard);
+                    return CompositeBrushPixel(tex2D(_Backdrop, input.canvasUv * _BackdropTransform.xy + _BackdropTransform.zw), stamp, 1.0, _StampBlendMode, 0.0, _TipStandard);
                 return stamp;
             }
             ENDCG

@@ -75,6 +75,7 @@ namespace DCFApixels.WhimTex
         /// <summary>Saves into the document's own file, or asks for one when the document has none yet.</summary>
         private bool SaveDocument()
         {
+            if (!CanSaveVectorMask()) return false;
             if (activeDocument == null) return true;
             if (TrySaveLinkedImage()) return true;
             if (TryGetDocumentFile(activeDocument, out string path))
@@ -91,6 +92,7 @@ namespace DCFApixels.WhimTex
         private static bool SaveDocumentAs(WhimTexDocument document)
         {
             if (document == null) return false;
+            if (WindowFor(document)?.CanSaveVectorMask() == false) return false;
             string suggested = TryGetDocumentFile(document, out string currentPath) ? Path.GetFileNameWithoutExtension(currentPath)
                 : (string.IsNullOrEmpty(document.name) ? "WhimTex Document" : document.name);
             string path = EditorUtility.SaveFilePanelInProject("Save WhimTex Document", suggested, "tiff",
@@ -107,6 +109,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 WhimTexWindow owner = WindowFor(document);
+                if (owner?.CanSaveVectorMask() == false) return false;
                 owner?.PrepareDocumentSave();
                 if (!ConfirmIncompleteDocumentSave(document, ref path, out bool allowDataLoss)) return false;
                 bool wasLive = WhimTexDocumentSession.IsLiveFor(document);

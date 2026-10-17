@@ -66,10 +66,9 @@ namespace DCFApixels.WhimTex
                 if (meshSequence) meshContexts.Add(stamp.dynamicContext.StampVertex);
             }
 
-            private static void EndBrushMesh(RenderTexture target, Material material, RenderTexture backdrop = null)
+            private static void EndBrushMesh(RenderTexture target, Material material)
             {
                 if (meshPositions.Count == 0) return;
-                if (backdrop != null) CopyStampBackdrop(target, backdrop);
                 brushMesh.Clear(meshSequence == meshHadSequence);
                 meshHadSequence = meshSequence;
                 brushMesh.SetVertices(meshPositions);
@@ -91,7 +90,7 @@ namespace DCFApixels.WhimTex
                 brushCommands.Clear();
             }
 
-            private static void CopyStampBackdrop(RenderTexture target, RenderTexture backdrop)
+            private static void CopyStampBackdrop(RenderTexture target, Material material, ref RenderTexture backdrop)
             {
                 float minX = 1f, minY = 1f, maxX = 0f, maxY = 0f;
                 foreach (Vector3 p in meshPositions)
@@ -104,10 +103,37 @@ namespace DCFApixels.WhimTex
                 int right = Mathf.Clamp(Mathf.CeilToInt(maxX * target.width) + 1, 0, target.width);
                 int top = Mathf.Clamp(Mathf.CeilToInt(maxY * target.height) + 1, 0, target.height);
                 if (right <= x || top <= y) return;
+                int width = right - x, height = top - y;
+                if (backdrop == null || backdrop.width < width || backdrop.height < height)
+                {
+                    // Small capacity buckets avoid a new pool entry for every pressure/jitter value.
+                    int capacityX = Mathf.Min(target.width, ((width + 127) / 128) * 128);
+                    int capacityY = Mathf.Min(target.height, ((height + 127) / 128) * 128);
+                    if (backdrop != null)
+                    {
+                        capacityX = Mathf.Max(capacityX, backdrop.width); capacityY = Mathf.Max(capacityY, backdrop.height);
+                        ProfiledRenderTexture.ReleaseTemporary(backdrop); backdrop = null;
+                    }
+                    backdrop = HdrUtility.Temporary(capacityX, capacityY);
+                    backdrop.filterMode = FilterMode.Point;
+                }
                 RenderTexture.active = null;
                 if ((SystemInfo.copyTextureSupport & CopyTextureSupport.Basic) != 0)
-                    Graphics.CopyTexture(target, 0, 0, x, y, right - x, top - y, backdrop, 0, 0, x, y);
-                else Graphics.Blit(target, backdrop);
+                    Graphics.CopyTexture(target, 0, 0, x, y, width, height, backdrop, 0, 0, 0, 0);
+                else
+                {
+                    var copy = WhimTexMaterials.Blend;
+                    try
+                    {
+                        DrawBrushRegion(target, backdrop, copy, 3,
+                            new Rect(0, 0, width / (float)backdrop.width, height / (float)backdrop.height),
+                            new Rect(x / (float)target.width, y / (float)target.height, width / (float)target.width, height / (float)target.height));
+                    }
+                    finally { copy.SetTexture("_MainTex", null); }
+                }
+                material.SetTexture("_Backdrop", backdrop);
+                material.SetVector("_BackdropTransform", new Vector4(target.width / (float)backdrop.width,
+                    target.height / (float)backdrop.height, -x / (float)backdrop.width, -y / (float)backdrop.height));
                 RenderTexture.active = target;
             }
 

@@ -225,22 +225,27 @@ namespace DCFApixels.WhimTex
             SyncSurfaceToTexture();
         }
 
-        internal void PrepareStroke(int width, int height, string undoName)
+        internal void PrepareStroke(int width, int height, string undoName) => PrepareStrokeStorage(width, height, undoName, false);
+        internal void PrepareBufferedStroke(int width, int height, string undoName) => PrepareStrokeStorage(width, height, undoName, true);
+        private void PrepareStrokeStorage(int width, int height, string undoName, bool blockHistory)
         {
             using var profile = WhimTexProfiler.Measure("brush.prepare", layer: Owner, detail: undoName);
             EnsureHdrStorage();
             EnsurePaintSurface(width, height);
             if (pixels == null)
                 SyncSurfaceToTexture();
-            if (pixels != null)
+            pixelUndoLabel = blockHistory && PaintTileTransfer.SupportsPixels(pixels) ? undoName : null;
+            if (pixelUndoLabel != null) Undo.RegisterCompleteObjectUndo(DrawingPixelHistory.Find(pixels, true), undoName);
+            if (pixels != null && pixelUndoLabel == null)
+            {
+                PaintTileTransfer.Drain();
                 Undo.RegisterCompleteObjectUndo(pixels, undoName);
+            }
         }
 
         internal void BeginStroke(Vector2 sourceUv)
         {
-            ReleasePaintWriteProtection();
-            ReleaseAdvancedStroke();
-            ReleaseSmudgeStroke();
+            EndStroke();
             brushSpacingState = default;
             brushRandomState = 0;
             brushStampIndex = 0;
@@ -271,6 +276,7 @@ namespace DCFApixels.WhimTex
 
         internal void EndStroke()
         {
+            CommitBrushStroke();
             ReleasePaintWriteProtection();
             ReleaseAdvancedStroke();
             ReleaseSmudgeStroke();
@@ -381,9 +387,7 @@ namespace DCFApixels.WhimTex
                 if (float.IsFinite(point.x) && float.IsFinite(point.y)) RefineFirstBrush(point);
                 if (includeStart) ClearFirstBrush();
             }
-            if (parameters.WriteChannels != 15)
-                ConfigureStrokeWriteProtection(parameters.WriteChannels);
-            if (StrokeWritesNothing) return;
+            if (parameters.WriteChannels == 0) return;
             if (color.a <= 0f || parameters.Dynamics != null && (parameters.Dynamics.opacity <= 0f || parameters.Dynamics.flow <= 0f))
                 return;
             parameters.Dynamics?.EnsureHlsl();
@@ -396,8 +400,7 @@ namespace DCFApixels.WhimTex
             RenderTexture surface = EnsurePaintSurface(outputWidth, outputHeight);
             if (surface == null)
                 return;
-            if (parameters.WriteChannels != 15)
-                ConfigureStrokeWriteProtection(parameters.WriteChannels);
+            if (parameters.WriteChannels != 15) preserveStraightPaintRgb = pixels != null;
 
             NormalizeSettings();
             outputWidth = Mathf.Max(1, outputWidth);
@@ -432,9 +435,8 @@ namespace DCFApixels.WhimTex
                 distance, brushBudget);
 
             BrushDynamics dynamics = parameters.Dynamics;
-            bool isolatedStroke = dynamics != null && dynamics.NeedsStrokeBuffer(parameters.Erase);
             bool stampBlend = dynamics != null && dynamics.BlendsEachStamp(parameters.Erase);
-            if (isolatedStroke && segmentStamps.Count > 0) EnsureAdvancedStroke(surface, stampBlend, dynamics.PressureOpacity);
+            if (segmentStamps.Count > 0) EnsureAdvancedStroke(surface, stampBlend, dynamics?.PressureOpacity == true);
             if (rememberFirst && segmentStamps.Count > 0) RememberFirstBrush(fromSourceUv, outputWidth, outputHeight, parameters);
             else if (firstBrushPending && segmentStamps.Count > 0) ClearFirstBrush();
 
@@ -447,10 +449,11 @@ namespace DCFApixels.WhimTex
             using var profile = WhimTexProfiler.Measure("brush.submit_batch", layer: Owner);
             WhimTexProfiler.Event("brush.stamp_count", "counter", value: stamps.Count);
             BrushDynamics dynamics = parameters.Dynamics;
-            bool isolatedStroke = dynamics != null && dynamics.NeedsStrokeBuffer(parameters.Erase);
             bool stampBlend = dynamics != null && dynamics.BlendsEachStamp(parameters.Erase);
             Color color = parameters.Color;
             color.a *= dynamics != null ? dynamics.flow : 1f;
+            brushCompositeParameters = parameters;
+            brushCompositeTransform = Owner.PixelCanvasTransform.ToMatrix(outputWidth, outputHeight);
 
             paintSurfaceDirty = true;
             if (stamps.Count > 0)
@@ -458,28 +461,24 @@ namespace DCFApixels.WhimTex
                 unchecked { paintSurfaceRevision++; }
             }
             PaintBrushRenderer.Draw(
-                isolatedStroke ? advancedStroke : surface,
+                advancedStroke,
                 stamps,
                 parameters.Size,
                 parameters.Hardness,
                 parameters.PixelPerfect,
                 parameters.Shape,
                 color,
-                parameters.Erase && !isolatedStroke,
+                false,
                 outputWidth,
                 outputHeight,
                 patternCenter,
                 parameters.WrapCanvas,
                 Owner.PixelCanvasTransform,
                 colorRange == LayerColorRange.Standard,
-                !isolatedStroke && HdrUtility.IsHdr(pixels), parameters.SelectionMask, dynamics, parameters.StandardColorInputs,
-                stampBlend, blendRange == LayerBlendRange.HDR, strokeBase: isolatedStroke ? advancedStrokeBase : null);
-            if (isolatedStroke)
-            {
-                using var composite = WhimTexProfiler.Measure("brush.composite", layer: Owner);
-                using (composite.Gpu()) CompositeAdvancedStroke(surface, parameters);
-            }
-            ApplyPaintWriteProtection();
+                // Selection clips the assembled change once, so overlapping dabs cannot harden it.
+                false, null, dynamics, parameters.StandardColorInputs,
+                stampBlend, blendRange == LayerBlendRange.HDR, strokeBase: paintSurface);
+            IncludeBrushBounds(PaintBrushRenderer.DrawBounds);
         }
 
         private void BuildPencilSegment(Vector2 from, Vector2 to, int width, int height,
@@ -530,6 +529,7 @@ namespace DCFApixels.WhimTex
 
         internal void ClearSurface(int width, int height)
         {
+            ReleaseAdvancedStroke();
             RenderTexture surface = EnsurePaintSurface(width, height);
             if (surface == null)
                 return;
@@ -550,6 +550,7 @@ namespace DCFApixels.WhimTex
 
         internal void SyncPendingSurfaceToTexture()
         {
+            PaintTileTransfer.Drain();
             EnsureDeferredTexture();
             // A surface created for preview is only a derived copy. Reading it back
             // can quantize otherwise untouched source pixels and invalidate save caches.
@@ -559,6 +560,9 @@ namespace DCFApixels.WhimTex
 
         internal void SyncSurfaceToTexture()
         {
+            CommitBrushStroke();
+            PaintTileTransfer.Drain();
+            if (partialStorageCurrent && !paintSurfaceDirty) return;
             ClearFirstBrush();
             EnsureDeferredTexture();
             if (paintSurface == null)
@@ -578,16 +582,19 @@ namespace DCFApixels.WhimTex
                 };
             }
 
+            bool hdrStorage = HdrUtility.IsHdr(pixels);
+            // Match the readback staging format to storage. The working paint surface
+            // stays half precision; standard storage is encoded to 8-bit on the GPU.
             RenderTexture straight = ProfiledRenderTexture.GetTemporary(
                 paintSurface.width,
                 paintSurface.height,
                 0,
-                RenderTextureFormat.ARGBHalf,
+                hdrStorage ? RenderTextureFormat.ARGBHalf : RenderTextureFormat.ARGB32,
                 RenderTextureReadWrite.Linear);
             RenderTexture previous = RenderTexture.active;
             try
             {
-                BlitStraightSurface(straight, HdrUtility.IsHdr(pixels) ? 3f : 2f);
+                BlitStraightSurface(straight, hdrStorage ? 3f : 2f);
 
                 RenderTexture.active = straight;
                 using (WhimTexProfiler.Measure("transfer.texture_readback", layer: Owner))
@@ -611,15 +618,26 @@ namespace DCFApixels.WhimTex
             Material conversion = WhimTexMaterials.AlphaConversion;
             using var profile = WhimTexProfiler.Measure("layer.drawing_convert", layer: Owner);
             using var gpu = profile.Gpu();
-            if (conversion == null) { Graphics.Blit(paintSurface, target); return; }
-            conversion.SetFloat("_Mode", mode);
-            conversion.SetFloat("_StraightFallback", (hasBakedPixelFrame || preserveStraightPaintRgb) && pixels != null ? HdrUtility.IsHdr(pixels) ? 1f : 2f : 0f);
-            conversion.SetTexture("_OriginalStraight", pixels);
-            try { Graphics.Blit(paintSurface, target, conversion); }
+            if (conversion == null || !conversion.shader.isSupported)
+                throw new InvalidOperationException("Drawing source conversion shader is unavailable.");
+            var previous = RenderTexture.active;
+            bool srgb = GL.sRGBWrite;
+            try
+            {
+                GL.sRGBWrite = false;
+                conversion.SetFloat("_Mode", mode);
+                conversion.SetFloat("_StraightFallback", (hasBakedPixelFrame || preserveStraightPaintRgb) && pixels != null ? HdrUtility.IsHdr(pixels) ? 1f : 2f : 0f);
+                conversion.SetTexture("_OriginalStraight", pixels);
+                ConfigureBrushComposite(conversion);
+                Graphics.Blit(paintSurface, target, conversion);
+            }
             finally
             {
+                ClearBrushComposite(conversion);
                 conversion.SetFloat("_StraightFallback", 0f);
                 conversion.SetTexture("_OriginalStraight", null);
+                RenderTexture.active = previous;
+                GL.sRGBWrite = srgb;
             }
         }
 
@@ -627,6 +645,7 @@ namespace DCFApixels.WhimTex
         // resolution, so callers fit the transform instead of resampling it to the canvas.
         internal void AdoptStoredTexture(Texture2D texture)
         {
+            PaintTileTransfer.Drain();
             deferredTexture = null;
             if (pixels != null && !AssetDatabase.Contains(pixels))
                 UnityEngine.Object.DestroyImmediate(pixels);
@@ -664,6 +683,7 @@ namespace DCFApixels.WhimTex
 
         internal void InvalidatePaintSurface()
         {
+            if (WhimTexDocument.IsRefreshingUndo && restoredPixelUndo) { restoredPixelUndo = false; return; }
             ReleasePaintSurface();
         }
 
@@ -716,9 +736,15 @@ namespace DCFApixels.WhimTex
                 filterMode = FilterMode.Bilinear,
                 wrapMode = TextureWrapMode.Clamp,
                 useMipMap = false,
-                autoGenerateMips = false
+                autoGenerateMips = false,
+                enableRandomWrite = BrushStrokeCompute.Supported
             };
-            if (paintSurface.Create()) WhimTexProfiler.TrackTexture(paintSurface, "drawing.surface");
+            if (!paintSurface.Create() && paintSurface.enableRandomWrite)
+            {
+                paintSurface.Release();
+                paintSurface.enableRandomWrite = false;
+            }
+            if (paintSurface.IsCreated() || paintSurface.Create()) WhimTexProfiler.TrackTexture(paintSurface, "drawing.surface");
 
             using var profile = WhimTexProfiler.Measure("layer.drawing_surface", layer: Owner);
             using var gpu = profile.Gpu();
@@ -757,6 +783,7 @@ namespace DCFApixels.WhimTex
                     RenderTexture.active = previous;
                 }
             }
+            RestoreHalfHistory();
             return paintSurface;
         }
 
@@ -1092,6 +1119,9 @@ namespace DCFApixels.WhimTex
 
         private void ReleasePaintSurface()
         {
+            PaintTileTransfer.Drain();
+            partialStorageCurrent = false;
+            pixelUndoLabel = null;
             preserveStraightPaintRgb = false;
             ReleasePaintWriteProtection();
             ReleaseAdvancedStroke();
@@ -1154,6 +1184,9 @@ namespace DCFApixels.WhimTex
 
         private static partial class PaintBrushRenderer
         {
+            // UV bounds of geometry actually submitted by the last Draw, including wrap/projective fallback.
+            public static Rect DrawBounds { get; private set; }
+            internal static readonly PaintTileSet DrawTiles = new PaintTileSet();
             private static readonly int ColorId = Shader.PropertyToID("_Color");
             private static readonly int HardnessId = Shader.PropertyToID("_Hardness");
             private static readonly int CanvasSizeId = Shader.PropertyToID("_CanvasSize");
@@ -1178,6 +1211,8 @@ namespace DCFApixels.WhimTex
                 bool standardColorInputs = false, bool stampBlend = false, bool hdrBlend = false,
                 ProjectiveMatrix? maskCanvasToSource = null, Texture strokeBase = null)
             {
+                DrawBounds = default;
+                if (target != null) DrawTiles.Reset(target.width, target.height);
                 if (target == null || stamps == null || stamps.Count == 0)
                     return;
 
@@ -1189,6 +1224,7 @@ namespace DCFApixels.WhimTex
                 bool variation = dynamics != null && dynamics.PerStamp;
                 bool pressureOpacity = dynamics?.PressureOpacity == true && !maskCanvasToSource.HasValue;
                 bool sequential = stampBlend || pressureOpacity;
+                material.SetVector("_BackdropTransform", new Vector4(1f, 1f, 0f, 0f));
                 material.SetFloat("_CoverageMask", maskCanvasToSource.HasValue ? 1f : 0f);
                 material.SetFloat("_BlendOperation", maskCanvasToSource.HasValue
                     ? (float)UnityEngine.Rendering.BlendOp.Max : (float)UnityEngine.Rendering.BlendOp.Add);
@@ -1215,7 +1251,9 @@ namespace DCFApixels.WhimTex
                 material.SetFloat("_TipStandard", standard ? 1f : 0f);
                 material.SetFloat("_StampBlendEnabled", stampBlend ? 1f : 0f);
                 material.SetFloat("_PressureOpacity", pressureOpacity ? 1f : 0f);
-                material.SetTexture("_StrokeBase", strokeBase);
+                // Ordinary accumulation never samples the source. Binding a full-size UAV
+                // anyway adds an unnecessary GPU resource dependency to every stamp batch.
+                material.SetTexture("_StrokeBase", sequential ? strokeBase : null);
                 material.SetFloat("_StampBlendMode", dynamics != null ? (int)dynamics.blend : 0f);
                 material.SetFloat("_HdrBlend", hdrBlend ? 1f : 0f);
                 float tipExtent = tip != null ? Mathf.Max(tip.width, tip.height) : 1f;
@@ -1257,14 +1295,7 @@ namespace DCFApixels.WhimTex
                     // Mesh submission gaps remain part of the elapsed GPU marker interval.
                     using var profile = WhimTexProfiler.Measure("brush.draw_batch");
                     using var gpu = profile.Gpu();
-                    if (sequential)
-                    {
-                        snapshot = ProfiledRenderTexture.GetTemporary(target.descriptor);
-                        snapshot.filterMode = FilterMode.Point;
-                        snapshot.wrapMode = TextureWrapMode.Clamp;
-                        material.SetTexture("_Backdrop", snapshot);
-                    }
-                    else if (standard && hdrStorage && !erase)
+                    if (!sequential && standard && hdrStorage && !erase)
                     {
                         snapshot = HdrUtility.Temporary(target.width, target.height);
                         Graphics.Blit(target, snapshot);
@@ -1329,7 +1360,11 @@ namespace DCFApixels.WhimTex
                                     }
                                     finally
                                     {
-                                        if (sequential) EndBrushMesh(target, material, snapshot);
+                                        if (sequential)
+                                        {
+                                            CopyStampBackdrop(target, material, ref snapshot);
+                                            EndBrushMesh(target, material);
+                                        }
                                     }
                                 }
                             }
@@ -1387,6 +1422,10 @@ namespace DCFApixels.WhimTex
                     else { min=Vector2.zero;max=Vector2.one; }
                 }
                 if (max.x<=min.x || max.y<=min.y) return;
+                DrawTiles.IncludeUv(Rect.MinMaxRect(min.x, min.y, max.x, max.y));
+                DrawBounds = DrawBounds.width <= 0f ? Rect.MinMaxRect(min.x, min.y, max.x, max.y)
+                    : Rect.MinMaxRect(Mathf.Min(DrawBounds.xMin, min.x), Mathf.Min(DrawBounds.yMin, min.y),
+                        Mathf.Max(DrawBounds.xMax, max.x), Mathf.Max(DrawBounds.yMax, max.y));
                 DrawVertex(min.x,min.y,0,0,stamp);
                 DrawVertex(min.x,max.y,0,1,stamp);
                 DrawVertex(max.x,max.y,1,1,stamp);

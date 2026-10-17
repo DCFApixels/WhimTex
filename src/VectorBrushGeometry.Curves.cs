@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 
 namespace DCFApixels.WhimTex
@@ -10,17 +11,25 @@ namespace DCFApixels.WhimTex
         // subdivision (Schneider, Graphics Gems, 1990). This implementation also bounds
         // error BETWEEN samples and checks the compound contour after fitting.
         static List<VectorContour> FitContours(List<List<Vector2>> source, float tolerance,
-            Vector2 step, Vector2 referenceSize, string shapeId)
+            Vector2 step, Vector2 referenceSize, string shapeId, CancellationToken cancellation)
         {
-            int work = MaxFitWork, topologyWork = MaxTopologyWork;
+            using var diagnostic = WhimTexHangDiagnostics.Enter("vector.mask.fit_curves");
+            var work = new WorkBudget(MaxFitWork, cancellation);
+            var topologyWork = new WorkBudget(MaxTopologyWork, cancellation);
+            var fitters = new BrushCurveFit[source.Count];
+            var sourceBounds = new LoopBox[source.Count];
+            var sourceNesting = new sbyte[source.Count * source.Count];
+            for (int c = 0; c < source.Count; c++) sourceBounds[c] = LoopBounds(source[c]);
             for (int attempt = 0; attempt < 9; attempt++, tolerance *= .5f)
             {
+                using var attemptDiagnostic = WhimTexHangDiagnostics.Enter("vector.mask.fit_attempt");
                 var contours = new List<VectorContour>(source.Count);
                 var flattened = new List<List<Vector2>>(source.Count);
                 int total = 0, flatTotal = 0;
                 for (int c = 0; c < source.Count; c++)
                 {
-                    var fitter = new BrushCurveFit(source[c], 1.5f * Mathf.Min(step.x, step.y), ref work);
+                    cancellation.ThrowIfCancellationRequested();
+                    var fitter = fitters[c] ??= new BrushCurveFit(source[c], 1.5f * Mathf.Min(step.x, step.y), ref work);
                     List<BrushCubic> curves = fitter.Fit(tolerance, ref work);
                     total += curves.Count;
                     if (total > MaxOutputPoints) throw Complexity("Vector brush exceeds 8192 editable points. Increase tolerance or reduce source detail.");
@@ -48,7 +57,8 @@ namespace DCFApixels.WhimTex
                 }
                 // Check the CURVES, not only their anchors. Tighten from the original
                 // trace when smoothing would cross a neighbor or change hole nesting.
-                if (TopologyMatches(source, flattened, ref topologyWork)) return contours;
+                using (WhimTexHangDiagnostics.Enter("vector.mask.topology"))
+                    if (TopologyMatches(source, flattened, sourceBounds, sourceNesting, ref topologyWork)) return contours;
             }
             throw Complexity("Vector brush curve fitting could not preserve contour topology. Reduce source detail.");
 
@@ -74,7 +84,7 @@ namespace DCFApixels.WhimTex
             readonly List<int> breaks = new List<int>();
             readonly int count;
 
-            public BrushCurveFit(List<Vector2> loop, float support, ref int work)
+            public BrushCurveFit(List<Vector2> loop, float support, ref WorkBudget work)
             {
                 count = loop.Count;
                 points = new Vector2[count + 1]; tangents = new Vector2[count + 1];
@@ -107,7 +117,7 @@ namespace DCFApixels.WhimTex
 
             void AddBreak(int value) { if (!breaks.Contains(value)) breaks.Add(value); }
 
-            Vector2 Along(int start, int direction, float distance, ref int work)
+            Vector2 Along(int start, int direction, float distance, ref WorkBudget work)
             {
                 Vector2 a = points[start];
                 for (int k = 1; k <= count; k++)
@@ -121,7 +131,7 @@ namespace DCFApixels.WhimTex
                 return a;
             }
 
-            public List<BrushCubic> Fit(float tolerance, ref int work)
+            public List<BrushCubic> Fit(float tolerance, ref WorkBudget work)
             {
                 var output = new List<BrushCubic>();
                 var pending = new Stack<Vector2Int>();
@@ -160,7 +170,7 @@ namespace DCFApixels.WhimTex
                 return output;
             }
 
-            float Parameterize(int first, int last, ref int work)
+            float Parameterize(int first, int last, ref WorkBudget work)
             {
                 parameters[first] = 0;
                 for (int i = first + 1; i <= last; i++)
@@ -172,7 +182,7 @@ namespace DCFApixels.WhimTex
                 return length;
             }
 
-            BrushCubic Generate(int first, int last, float length, ref int work)
+            BrushCubic Generate(int first, int last, float length, ref WorkBudget work)
             {
                 Vector2 a = points[first], d = points[last], chord = d - a;
                 Vector2 forward = tangents[first], backward = -tangents[last];
@@ -197,7 +207,7 @@ namespace DCFApixels.WhimTex
                 return new BrushCubic { a = a, b = a + (float)left * forward, c = d + (float)right * backward, d = d };
             }
 
-            double Error(BrushCubic curve, int first, int last, out int split, ref int work)
+            double Error(BrushCubic curve, int first, int last, out int split, ref WorkBudget work)
             {
                 double worst = 0;
                 split = (first + last) / 2;
@@ -219,7 +229,7 @@ namespace DCFApixels.WhimTex
                 return worst;
             }
 
-            bool Refine(BrushCubic curve, int first, int last, ref int work)
+            bool Refine(BrushCubic curve, int first, int last, ref WorkBudget work)
             {
                 bool changed = false;
                 for (int i = first + 1; i < last; i++)
@@ -238,7 +248,7 @@ namespace DCFApixels.WhimTex
                 return changed;
             }
 
-            static void Tick(ref int work) => Spend(ref work, "Vector brush curve-fitting work limit exceeded. Reduce source detail.");
+            static void Tick(ref WorkBudget work) => Spend(ref work, "Vector brush curve-fitting work limit exceeded. Reduce source detail.");
         }
     }
 }

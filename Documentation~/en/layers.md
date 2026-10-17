@@ -200,6 +200,12 @@ and FX remain available. Without a matching backup, the text is transparent unti
 is chosen. The backup is limited to 2048 pixels on its longest side and may be reduced
 further to fit its storage budget.
 
+Use **Convert to Vector** to edit the letters as curves; duplicate the Text first if
+you will need to change the wording later. You can also place Text directly in a
+Boolean Group to keep the wording editable while combining or cutting out its shapes.
+Both use original font outlines and require an available supported font. See
+[Text conversion and Boolean figures](vector.md#convert-text).
+
 This version uses one font and style per layer, up to 8192 characters. Per-character
 formatting and advanced text shaping are not provided.
 

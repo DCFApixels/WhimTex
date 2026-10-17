@@ -19,7 +19,13 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private double dynamicStrokeStartDistance;
         [NonSerialized] private Vector2 dynamicPreviousStampPoint;
         [NonSerialized] private bool dynamicHasPreviousStamp;
-        [NonSerialized] private RenderTexture advancedStroke, advancedStrokeBase;
+        // paintSurface is the immutable base; only this accumulation changes until commit.
+        [NonSerialized] private RenderTexture advancedStroke;
+        [NonSerialized] private PaintStrokeParameters brushCompositeParameters;
+        [NonSerialized] private ProjectiveMatrix brushCompositeTransform;
+        [NonSerialized] private bool brushBaseDirty;
+        [NonSerialized] private RectInt brushDirtyBounds;
+        private const int BrushCompositeTileSize = 1024;
         [NonSerialized] private bool initialDirectionKnown;
         [NonSerialized] private bool firstBrushPending;
         [NonSerialized] private Vector2 firstBrushPosition;
@@ -221,7 +227,7 @@ namespace DCFApixels.WhimTex
 
         private void RefineFirstBrush(Vector2 point)
         {
-            if (!firstBrushPending || advancedStrokeBase == null) return;
+            if (!firstBrushPending || advancedStroke == null) return;
             Vector2 delta = Vector2.Scale(point - firstBrushPosition, new Vector2(firstBrushWidth, firstBrushHeight));
             // Below the minimum logical spacing (half a pixel), so no continuation dab is lost to jitter.
             if (delta.sqrMagnitude < .0625f) return;
@@ -245,28 +251,34 @@ namespace DCFApixels.WhimTex
             ClearFirstBrush();
         }
 
-        // Explicit cancellation restores the GPU source, never the quantized storage texture.
+        // The GPU source remains unchanged until commit.
         internal void CancelStroke()
         {
-            if (advancedStrokeBase != null && paintSurface != null)
+            pixelUndoLabel = null;
+            if (advancedStroke != null)
             {
-                var previous = RenderTexture.active;
-                try { Graphics.Blit(advancedStrokeBase, paintSurface); unchecked { paintSurfaceRevision++; } }
-                finally { RenderTexture.active = previous; }
+                paintSurfaceDirty = brushBaseDirty;
+                unchecked { paintSurfaceRevision++; }
+                ReleaseAdvancedStroke();
             }
             EndStroke();
         }
 
         private void ResetAdvancedStroke(bool withBackdrop, bool pressureOpacity = false)
         {
+            brushDirtyBounds = default;
+            brushDirtyTiles ??= new PaintTileSet();
+            brushDirtyTiles.Reset(advancedStroke.width, advancedStroke.height);
             var previous = RenderTexture.active;
+            bool srgb = GL.sRGBWrite;
             try
             {
-                if (withBackdrop && pressureOpacity) Graphics.Blit(advancedStrokeBase, advancedStroke, WhimTexMaterials.Blend, 2);
-                else if (withBackdrop) Graphics.Blit(advancedStrokeBase, advancedStroke);
+                GL.sRGBWrite = false;
+                if (withBackdrop && pressureOpacity) Graphics.Blit(paintSurface, advancedStroke, WhimTexMaterials.Blend, 2);
+                else if (withBackdrop) Graphics.Blit(paintSurface, advancedStroke);
                 else { RenderTexture.active = advancedStroke; GL.Clear(false, true, Color.clear); }
             }
-            finally { RenderTexture.active = previous; }
+            finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
         }
 
         private void EnsureAdvancedStroke(RenderTexture surface, bool withBackdrop = false, bool pressureOpacity = false)
@@ -275,38 +287,101 @@ namespace DCFApixels.WhimTex
             var previous = RenderTexture.active;
             try
             {
-                advancedStrokeBase = HdrUtility.Temporary(surface.width, surface.height);
+                brushBaseDirty = paintSurfaceDirty;
                 advancedStroke = HdrUtility.Temporary(surface.width, surface.height);
-                Graphics.Blit(surface, advancedStrokeBase);
                 ResetAdvancedStroke(withBackdrop, pressureOpacity);
             }
             catch { ReleaseAdvancedStroke(); throw; }
             finally { RenderTexture.active = previous; }
         }
 
-        private void CompositeAdvancedStroke(RenderTexture target, PaintStrokeParameters parameters)
+        private void ConfigureBrushComposite(Material material)
         {
+            material.SetFloat("_PendingBrush", advancedStroke != null ? 1f : 0f);
+            if (advancedStroke == null) return;
+            var parameters = brushCompositeParameters;
+            var dynamics = parameters.Dynamics;
+            material.SetTexture("_BrushStroke", advancedStroke);
+            material.SetVector("_BrushDirtyRect", new Vector4(brushDirtyBounds.xMin / (float)advancedStroke.width,
+                brushDirtyBounds.yMin / (float)advancedStroke.height, brushDirtyBounds.xMax / (float)advancedStroke.width,
+                brushDirtyBounds.yMax / (float)advancedStroke.height));
+            material.SetFloat("_StrokeOpacity", dynamics?.opacity ?? 1f);
+            material.SetFloat("_StrokeMode", (int)(dynamics?.blend ?? BlendMode.Normal));
+            material.SetFloat("_HdrBlend", blendRange == LayerBlendRange.HDR ? 1f : 0f);
+            material.SetFloat("_BrushErase", parameters.Erase ? 1f : 0f);
+            material.SetFloat("_BrushStandard", colorRange == LayerColorRange.Standard ? 1f : 0f);
+            material.SetFloat("_BrushStampAccumulation", dynamics?.BlendsEachStamp(parameters.Erase) == true ? 1f : 0f);
+            material.SetFloat("_BrushPressureOpacity", dynamics?.PressureOpacity == true ? 1f : 0f);
+            material.SetTexture("_BrushSelection", parameters.SelectionMask);
+            material.SetFloat("_BrushUseSelection", parameters.SelectionMask != null ? 1f : 0f);
+            material.SetFloat("_BrushSelectionWrap", parameters.WrapCanvas ? 1f : 0f);
+            brushCompositeTransform.SetShader(material, "_BrushCanvasRow");
+            int channels = parameters.WriteChannels;
+            material.SetVector("_BrushWriteChannels", new Vector4((channels & 1) != 0 ? 1 : 0,
+                (channels & 2) != 0 ? 1 : 0, (channels & 4) != 0 ? 1 : 0, (channels & 8) != 0 ? 1 : 0));
+            material.SetTexture("_BrushOriginalStraight", pixels);
+            material.SetFloat("_BrushStraightFallback", pixels != null ? (HdrUtility.IsHdr(pixels) ? 1f : 2f) : 0f);
+            material.SetFloat("_BrushGamma", QualitySettings.activeColorSpace == ColorSpace.Gamma ? 1f : 0f);
+        }
+
+        private static void ClearBrushComposite(Material material)
+        {
+            material.SetFloat("_PendingBrush", 0f);
+            material.SetTexture("_BrushStroke", null);
+            material.SetTexture("_BrushSelection", null);
+            material.SetTexture("_BrushOriginalStraight", null);
+        }
+
+        private void CommitBrushStroke()
+        {
+            if (advancedStroke == null || paintSurface == null) return;
+            if (brushDirtyBounds.width <= 0 || brushDirtyBounds.height <= 0) { ReleaseAdvancedStroke(); return; }
             Material material = WhimTexMaterials.Blend;
-            if (material == null) return;
+            if (material == null || !material.shader.isSupported)
+                throw new InvalidOperationException("Brush composite shader is unavailable.");
             var previous = RenderTexture.active;
+            bool srgb = GL.sRGBWrite;
+            RenderTexture result = null;
             try
             {
-                material.SetTexture("_Blend", advancedStroke);
-                material.SetFloat("_Opacity", parameters.Dynamics.opacity);
-                material.SetFloat("_Mode", (int)parameters.Dynamics.blend);
-                material.SetFloat("_HdrBlend", blendRange == LayerBlendRange.HDR ? 1f : 0f);
-                material.SetFloat("_BrushErase", parameters.Erase ? 1f : 0f);
-                material.SetFloat("_BrushStandard", colorRange == LayerColorRange.Standard ? 1f : 0f);
-                material.SetFloat("_BrushStampAccumulation", parameters.Dynamics.BlendsEachStamp(parameters.Erase) ? 1f : 0f);
-                material.SetFloat("_BrushPressureOpacity", parameters.Dynamics.PressureOpacity ? 1f : 0f);
-                Graphics.Blit(advancedStrokeBase, target, material, 1);
+                GL.sRGBWrite = false;
+                ConfigureBrushComposite(material);
+                using var profile = WhimTexProfiler.Measure("brush.composite", layer: Owner);
+                using (profile.Gpu())
+                {
+                    if (CommitPixelHistory(material)) { ReleaseAdvancedStroke(); return; }
+                    if (brushDirtyTiles != null && brushDirtyTiles.Count > 0)
+                    {
+                        for (int i = 0; i < brushDirtyTiles.Count; i++) CommitBrushTile(material, brushDirtyTiles[i]);
+                    }
+                    else if (!BrushStrokeCompute.TryCommit(paintSurface, brushDirtyBounds, material,
+                        advancedStroke, brushCompositeParameters.SelectionMask, pixels))
+                    {
+                        // Portable raster fallback reuses one bounded tile, up to 8 MiB.
+                        result = HdrUtility.Temporary(Mathf.Min(BrushCompositeTileSize, brushDirtyBounds.width),
+                            Mathf.Min(BrushCompositeTileSize, brushDirtyBounds.height));
+                        for (int y = brushDirtyBounds.yMin; y < brushDirtyBounds.yMax; y += result.height)
+                        for (int x = brushDirtyBounds.xMin; x < brushDirtyBounds.xMax; x += result.width)
+                        {
+                            var tile = new RectInt(x, y, Mathf.Min(result.width, brushDirtyBounds.xMax - x),
+                                Mathf.Min(result.height, brushDirtyBounds.yMax - y));
+                            DrawBrushRegion(paintSurface, result, material, 1,
+                                new Rect(0, 0, tile.width / (float)result.width, tile.height / (float)result.height),
+                                new Rect(x / (float)paintSurface.width, y / (float)paintSurface.height,
+                                    tile.width / (float)paintSurface.width, tile.height / (float)paintSurface.height));
+                            CopyBrushRegion(result, paintSurface, tile);
+                        }
+                    }
+                }
+                ReleaseAdvancedStroke();
             }
             finally
             {
-                material.SetTexture("_Blend", null);
-                material.SetFloat("_BrushStampAccumulation", 0f);
-                material.SetFloat("_BrushPressureOpacity", 0f);
+                ClearBrushComposite(material);
+                material.SetTexture("_MainTex", null);
                 RenderTexture.active = previous;
+                GL.sRGBWrite = srgb;
+                if (result != null) ProfiledRenderTexture.ReleaseTemporary(result);
             }
         }
 
@@ -314,8 +389,68 @@ namespace DCFApixels.WhimTex
         {
             ClearFirstBrush();
             if (advancedStroke != null) ProfiledRenderTexture.ReleaseTemporary(advancedStroke);
-            if (advancedStrokeBase != null) ProfiledRenderTexture.ReleaseTemporary(advancedStrokeBase);
-            advancedStroke = advancedStrokeBase = null;
+            advancedStroke = null;
+            brushCompositeParameters = default;
+            brushDirtyBounds = default;
+            brushDirtyTiles?.Clear();
+        }
+
+        private void IncludeBrushBounds(Rect uv)
+        {
+            if (uv.width <= 0f || uv.height <= 0f || advancedStroke == null) return;
+            brushDirtyTiles?.Union(PaintBrushRenderer.DrawTiles);
+            // One source texel guards bilinear sampling and rasterization at a quad boundary.
+            int x = Mathf.Max(0, Mathf.FloorToInt(uv.xMin * advancedStroke.width) - 1);
+            int y = Mathf.Max(0, Mathf.FloorToInt(uv.yMin * advancedStroke.height) - 1);
+            int right = Mathf.Min(advancedStroke.width, Mathf.CeilToInt(uv.xMax * advancedStroke.width) + 1);
+            int top = Mathf.Min(advancedStroke.height, Mathf.CeilToInt(uv.yMax * advancedStroke.height) + 1);
+            if (brushDirtyBounds.width > 0 && brushDirtyBounds.height > 0)
+            {
+                x = Mathf.Min(x, brushDirtyBounds.xMin); y = Mathf.Min(y, brushDirtyBounds.yMin);
+                right = Mathf.Max(right, brushDirtyBounds.xMax); top = Mathf.Max(top, brushDirtyBounds.yMax);
+            }
+            brushDirtyBounds = new RectInt(x, y, right - x, top - y);
+        }
+
+        private static void CopyBrushRegion(RenderTexture source, RenderTexture target, RectInt bounds)
+        {
+            RenderTexture.active = null;
+            if ((SystemInfo.copyTextureSupport & UnityEngine.Rendering.CopyTextureSupport.Basic) != 0)
+                Graphics.CopyTexture(source, 0, 0, 0, 0, bounds.width, bounds.height, target, 0, 0, bounds.x, bounds.y);
+            else
+                CopyBrushRegionWithShader(source, target, bounds);
+        }
+
+        private static void CopyBrushRegionWithShader(Texture source, RenderTexture target, RectInt bounds)
+        {
+            var material = WhimTexMaterials.Blend;
+            try
+            {
+                DrawBrushRegion(source, target, material, 3,
+                    new Rect(bounds.x / (float)target.width, bounds.y / (float)target.height,
+                        bounds.width / (float)target.width, bounds.height / (float)target.height),
+                    new Rect(0, 0, bounds.width / (float)source.width, bounds.height / (float)source.height));
+            }
+            finally { material.SetTexture("_MainTex", null); }
+        }
+
+        private static void DrawBrushRegion(Texture source, RenderTexture target, Material material, int pass, Rect destination, Rect uv)
+        {
+            material.SetTexture("_MainTex", source);
+            RenderTexture.active = target;
+            GL.PushMatrix();
+            try
+            {
+                GL.LoadOrtho();
+                if (!material.SetPass(pass)) throw new InvalidOperationException("Cannot render brush region.");
+                GL.Begin(GL.QUADS);
+                GL.TexCoord2(uv.xMin, uv.yMin); GL.Vertex3(destination.xMin, destination.yMin, 0);
+                GL.TexCoord2(uv.xMin, uv.yMax); GL.Vertex3(destination.xMin, destination.yMax, 0);
+                GL.TexCoord2(uv.xMax, uv.yMax); GL.Vertex3(destination.xMax, destination.yMax, 0);
+                GL.TexCoord2(uv.xMax, uv.yMin); GL.Vertex3(destination.xMax, destination.yMin, 0);
+                GL.End();
+            }
+            finally { GL.PopMatrix(); }
         }
     }
 }

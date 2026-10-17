@@ -51,6 +51,7 @@ next_page: "zh/automation.md"
 | 使用选区工具时按 `Shift` / `Alt` / `Shift+Alt` | 相加 / 相减 / 相交。 |
 | `L` | 返回所选 Polygonal/Freehand 套索模式。 |
 | 使用 Polygonal Lasso 时按 `Enter` / `Backspace` / `Escape` | 闭合 / 删除顶点 / 取消。 |
+| 使用 Smooth Polygonal Lasso 时按 `C` | 切换光标下点的平滑/角点类型；光标下没有点时修改选中点。 |
 | 使用 Freehand Lasso 时拖动并松开 / 按 `Escape` | 绘制并应用闭合选区 / 取消当前轮廓。 |
 | `MMB`-拖动 / 鼠标滚轮 | 在任意工具下平移 / 缩放。 |
 | `Shift+MMB`-拖动 | 在任意工具下旋转视图；`Ctrl` 会绕过角度吸附。 |

@@ -2,6 +2,7 @@
     "name": "DCFApixels.WhimTex",
     "rootNamespace": "DCFApixels",
     "references": [
+        "DCFApixels.WhimTex.Typography.OpenFont",
         "Unity.Burst",
         "Unity.Collections",
         "Unity.Mathematics"

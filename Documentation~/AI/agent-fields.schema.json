@@ -2160,7 +2160,7 @@
           "description": "Combine only: Group applies shared fill/stroke to separate figures; Layers uses original layer appearance. Boolean operations always use Group. Child FX, opacity and blend modes remain ignored."
         }
       },
-      "description": "Partial settings.booleanGroup for type:booleanGroup. Isolated compositing only. Children must be Shape, Vector or nested Boolean Groups with closed geometry; raster operands and open contours are rejected. Child styles remain stored and are active only in Combine with appearance:Layers. Child FX remain ignored. Creating through the API uses defaults or the supplied style, without implicit child-style inheritance."
+      "description": "Partial settings.booleanGroup for type:booleanGroup. Isolated compositing only. Children must be Shape, Vector, editable Text or nested Boolean Groups with closed geometry; raster operands and open contours are rejected. Text uses original source-font outlines and retains editable settings.text; missing or unsupported outlines fail explicitly, without raster tracing. Child styles remain stored and are active only in Combine with appearance:Layers. Child FX remain ignored. Creating through the API uses defaults or the supplied style, without implicit child-style inheritance."
     },
     "convertToVector": {
       "type": "object",
@@ -2178,7 +2178,7 @@
         "op",
         "layer"
       ],
-      "description": "Convert a Shape geometrically while preserving the layer shell. Unsupported feather, stroke transforms/compositing or offset cusps fail before replacement."
+      "description": "Convert Shape or Text geometrically on the same layer shell. Both fit the geometry frame and change Clip tiling to Unbounded while preserving canvas placement; stored local geometry and transform values may change together. Unsupported Shape feather, stroke transforms/compositing or offset cusps fail before replacement. Text preserves layout as one NonZero compound figure from original unhinted font outlines, including Frame Clip/Ellipsis before frame fitting. Crossing glyphs may be flattened for clipping with 0.01px tolerance. Missing/unsupported source fonts or synthetic bold without a real bold face fail before replacement. Synthetic italic is supported. No raster tracing or variable-axis/color/bitmap-font support is promised."
     },
     "blend": {
       "type": "string",

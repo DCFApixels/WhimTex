@@ -268,9 +268,27 @@ Coverage is base64 of the original bottom-up row-major byte mask,
 exactly `width * height` bytes, at most 1024 per axis. It is never replaced with a
 re-rasterized contour during saving. Tolerance is 0.25..64 reference pixels;
 expansion is -256..256. The draft survives JSON/clipboard, TIFF and Unity
-serialization. A new brush figure gets its own layer and mask;
+serialization. A new brush figure gets its own layer and mask. Within an active
+editing session, left strokes union coverage and right strokes subtract it using
+max/min coverage, retaining the shape ID, styles, tolerance and expansion. Each
+committed stroke owns new coverage storage for Undo; frame growth copies existing
+pixels without resampling and rejects dimensions above the limit. Enter / Finish
+Editing retains the mask and makes the next stroke create a new layer; Edit Mask
+resumes the selected saved mask. Editing-session state is window-local and is not
+serialized. Escape discards only the pending stroke. Figures without a saved mask
+are not silently rasterized for editing;
 manual edits to its figure or Release Mask discard the draft explicitly. Native tagged storage encodes
 byte arrays as a bounded byte block (tag 32), avoiding the per-value graph limit.
+
+The window's mask brush clips new paint/erase contributions to document canvas UV
+using the figure's full render transform; this transient clip is not serialized.
+Existing off-canvas source samples are retained. The builder bounds the swept tip
+before buffer growth, skips outside rows/cells, and evaluates canvas-edge pixel
+coverage without resampling the source. An empty figure starts with one grid cell;
+only affected storage is allocated. Completing a stroke trims zero-only borders
+and shifts `frame` on the same pixel grid. A stroke with no changed coverage creates
+neither an Undo entry nor a background rebuild. Procedural Expand and subsequent
+layer transforms are not restricted by this painting clip.
 
 `VectorBrushGeometry.Rebuild` traces the unchanged coverage (or its signed-distance
 offset), then fits closed cubic Bezier contours with editable tangent offsets.
@@ -281,6 +299,23 @@ bound and tightens tolerance if flattened curves cross or change hole nesting.
 An unresolved shortest span retains its exact straight segment. Work/geometry limits
 fail before replacing the figure; no contour is silently dropped. Rebuilding does
 not mutate coverage, and callers replacing a figure retain its existing style.
+Window brush commits and Original Mask adjustments run this data-only calculation on
+a detached mask snapshot in a cancellable worker. Only the completed, still-current
+result is applied on the main thread in a separate Undo group. Figure commits that
+insert, replace or remove an original mask use a complete document Undo snapshot
+instead of per-element diffing of the replaced coverage array. Snapshot capture and
+Undo finalization are profiled separately as `undo.snapshot` and `undo.finalize`.
+This leaves mask samples and curve fitting unchanged but can use more Undo memory.
+A pending rebuild
+blocks further vector gestures and window saving, not the Editor event loop. Escape,
+Cancel, tool/layer/document changes, Undo or window disposal discard pending results.
+The direct C# method remains synchronous and accepts an optional cancellation token.
+Curve fitting reuses source tangents across retries; topology validation uses a 2D
+bounding-volume tree with the same inclusive segment-intersection predicate and
+cached source nesting. Tolerance, mask sampling and between-sample error checks are
+unchanged. Worker time appears under `WhimTex.VectorMask.RebuildWorker` in the Unity
+Profiler; the editor statistics' `vector.brush_trace.commit` and
+`vector.brush_rebuild.commit` cover main-thread application only, not worker time.
 The fitting approach uses least-squares cubic handles, chord-length parameters and
 Newton refinement as described by [Schneider, Graphics Gems (1990)](https://github.com/erich666/GraphicsGems/blob/master/gems/FitCurves.c),
 with an additional between-sample error bound and compound-path validation.
@@ -309,6 +344,40 @@ translucent fill/stroke replacement, and arc offsets that develop cusps or overl
 explicit unsupported diagnostic before replacement. Curve approximation and the
 different rasterizers do not promise pixel-identical antialiasing.
 
+### Text outline conversion
+
+`convertToVector` also accepts Text. The C# helper
+`TextToVector.Convert(TextLayerBehaviour source, WhimTexDocument document)` returns a
+detached `VectorLayerBehaviour`. As with Shape, callers replace the behaviour on the
+existing layer, change transform tiling `Clip` to `Unbounded`, then call
+`VectorLayerStructure.FitFrame(layer, width, height)`. The layer ID, name, FX, shared
+rendering settings and Boolean operation stay intact. Fitting preserves canvas placement;
+stored local geometry and transform values may change together. Text Frame Clip is
+already baked into the geometry before fitting, so it remains effective.
+
+The result contains one compound figure with `fillRule:"NonZero"` for all glyphs and
+holes, using the text color as its solid fill. Layout comes from the shared
+`TextLayerRenderer`, including effective Auto Size, alignment, wrapping, spacing,
+casing, Horizontal Scale, Layout Offset and Frame overflow. Glyph indices and the
+actual resolved font face select the original outlines through Typography.OpenFont:
+TrueType outlines in TTF, CFF outlines in OTF and faces in TTC are supported sources.
+Variable axes, color glyphs and bitmap fonts are not supported by this contract.
+
+Original curves are unhinted. Quadratic segments become equivalent cubic segments;
+cubic outlines retain their curves. Frame Ellipsis uses the displayed layout, including
+the ellipsis glyph. Frame Clip clips the geometry; glyphs crossing the frame may be
+flattened for geometric clipping with a 0.01-pixel tolerance. Synthetic italic is
+supported; synthetic bold requires a real bold face and otherwise produces an explicit
+unsupported diagnostic. Missing, unreadable or unsupported source-font outlines fail
+before replacing the layer. A saved raster mask is never traced or used as geometry.
+Grid fitting from Hinted AA/Pixel is not baked into outlines, so edge coverage can differ
+from the original text rasterization.
+
+The Vector stores the resulting contours, not editable text or a font dependency.
+TIFF/JSON roundtrips therefore use ordinary Vector data. Keep a Text duplicate when
+later wording or font changes are needed. Direct Text children of Boolean Groups retain
+their editable source instead, using the same outline and layout rules at evaluation.
+
 ## Boolean groups
 
 Use `$type:"BooleanGroupLayerBehaviour"` on the group layer's `behaviour`, and put
@@ -321,9 +390,15 @@ The bottom enabled child is the initial region; walk upward and combine each nex
 operand using its layer-level `booleanOperation`: `Union` (default), `Subtract`,
 `Intersect`, `Xor` or `Combine`. The bottom operand's operation is retained but ignored.
 Children are stored top-to-bottom, so evaluation walks the array in reverse.
-Supported operands are Shape, single-figure Vector and nested Boolean Group.
+Supported operands are Shape, single-figure Vector, editable Text and nested Boolean Group.
 Unsupported raster layers and open contours produce a diagnostic instead of
 silently disappearing. Compound contours and holes remain part of their figure.
+
+Text children keep `TextLayerBehaviour` and their original text/font/layout data in
+TIFF/JSON. They contribute source-font outlines without conversion; edits rebuild their
+geometry. The font restrictions and overflow behavior in [Text outline conversion](#text-outline-conversion)
+also apply here. A missing or unsupported font produces an explicit diagnostic; a
+saved text raster backup cannot replace Boolean geometry, and font files are not embedded.
 
 Child transforms remain independent and local to the parent. Source geometry is
 combined before applying the group's common fill, stroke and FX. Child fill/stroke,

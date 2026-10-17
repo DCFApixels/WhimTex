@@ -31,6 +31,8 @@ public static class VectorToolsTests
     public static string StartGeometry(string id) => AsyncD.Start(id, (t, token) => Run(t, token, Geometry));
     public static string StartCancel(string id) => AsyncD.Start(id, (t, token) => Run(t, token, Cancellation));
     public static string StartBrush(string id) => AsyncD.Start(id, (t, token) => Run(t, token, Brush));
+    public static string StartBrushLines(string id) => AsyncD.Start(id, (t, token) => Run(t, token, BrushLines));
+    public static string StartBrushEditing(string id) => AsyncD.Start(id, (t, token) => Run(t, token, BrushEditing));
     public static string StartPen(string id) => AsyncD.Start(id, (t, token) => Run(t, token, Pen));
     public static string StartStaleLayer(string id) => AsyncD.Start(id, (t, token) => Run(t, token, StaleLayer));
     public static string StartFocus(string id) => AsyncD.Start(id, (t, token) => Run(t, token, FocusLoss));
@@ -127,8 +129,10 @@ public static class VectorToolsTests
             window.ShowUtility(); window.position = new Rect(80, 80, 1280, 820); window.CreateGUI();
             for (int i = 0; i < 5; i++) await Tick();
             canvas = (VisualElement)Read(window, "toolkitCanvas");
-            Call(window, "SetCanvasZoomPercent", 100f);
-            Call(window, "SetCanvasRotation", 0f);
+            // An empty document has no render texture, so the window navigation commands
+            // are disabled. Set the owned viewport explicitly before its first stroke.
+            Call(canvas, "ZoomAt", canvas.contentRect.center, 1f);
+            Call(canvas, "SetViewRotation", 0f, false);
             await Tool("VectorSelect");
             window.Focus();
             for (int i = 0; i < 4; i++) await Tick();
@@ -193,9 +197,9 @@ public static class VectorToolsTests
             return Layer == null ? uv : ((TextureTransform)Call(document, "GetCanvasTransform", Layer)).Unmap(uv, Size);
         }
 
-        public void Pointer(EventType type, Vector2 view, EventModifiers modifiers = EventModifiers.Control, int clicks = 1)
+        public void Pointer(EventType type, Vector2 view, EventModifiers modifiers = EventModifiers.Control, int clicks = 1, int button = 0)
         {
-            var input = new Event { type = type, button = 0, clickCount = clicks, modifiers = modifiers, mousePosition = canvas.LocalToWorld(view) };
+            var input = new Event { type = type, button = button, clickCount = clicks, modifiers = modifiers, mousePosition = canvas.LocalToWorld(view) };
             if (type == EventType.MouseDown) { using var evt = PointerDownEvent.GetPooled(input); evt.target = canvas; canvas.SendEvent(evt); }
             else if (type == EventType.MouseUp) { using var evt = PointerUpEvent.GetPooled(input); evt.target = canvas; canvas.SendEvent(evt); }
             else { using var evt = PointerMoveEvent.GetPooled(input); evt.target = canvas; canvas.SendEvent(evt); }
@@ -248,6 +252,7 @@ public static class VectorToolsTests
             {
                 () => { if (window != null && Read(window, "vectorManipulator") != null) Call(Manipulator, "Cancel"); },
                 () => { if (canvas != null) Pointer(EventType.MouseUp, canvas.contentRect.center); },
+                () => { if (canvas != null) Pointer(EventType.MouseUp, canvas.contentRect.center, button: 1); },
                 () => { if (document != null) Undo.ClearUndo(document); if (window != null) Undo.ClearUndo(window); },
                 () => { if (detachedLayer != null) Call(detachedLayer, "ReleaseTransientResources"); },
                 () => { if (focusWindow != null) { focusWindow.DiscardChanges(); focusWindow.Close(); } },
@@ -265,6 +270,9 @@ public static class VectorToolsTests
     {
         public WhimTexWindow owner;
         public string path = "Temp/WhimTex/vector-stroke-style-preview.png";
+        public bool retainPixels;
+        public Color32[] pixels;
+        public int imageWidth, imageHeight;
         public readonly TaskCompletionSource<bool> done = new TaskCompletionSource<bool>();
         protected override void ImmediateRepaint()
         {
@@ -277,6 +285,7 @@ public static class VectorToolsTests
                 int height = target != null ? target.height : Mathf.RoundToInt(owner.position.height * EditorGUIUtility.pixelsPerPoint);
                 texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
                 texture.ReadPixels(new Rect(0, 0, width, height), 0, 0, false); texture.Apply(false);
+                if (retainPixels) { pixels = texture.GetPixels32(); imageWidth = width; imageHeight = height; }
                 System.IO.Directory.CreateDirectory("Temp/WhimTex");
                 System.IO.File.WriteAllBytes(path, texture.EncodeToPNG());
                 done.TrySetResult(true);
@@ -685,21 +694,110 @@ public static class VectorToolsTests
         }, "Tool change");
     }
 
+    static async Task BrushLines(Fixture f)
+    {
+        await f.Tool("VectorBrush");
+        var shape = f.window.rootVisualElement.Q<EnumField>("vectorBrushShape");
+        f.t.True(shape != null, "Vector brush has the Pencil-style Shape selector");
+        f.window.rootVisualElement.Q<FloatField>("vectorBrushSize").value = 12;
+        const EventModifiers shifted = EventModifiers.Shift | EventModifiers.Control;
+        Vector2 ActualView() => (Vector2)Call(f.Manipulator, "View", Read(f.Manipulator, "brushLastPoint"));
+        void Check(Vector2 expected, string label)
+        {
+            Near(f.t, expected, ActualView(), label);
+            Near(f.t, expected, (Vector2)Read(f.canvas, "cursorPosition"), label + " cursor");
+        }
+        foreach (VectorBrushShape tip in Enum.GetValues(typeof(VectorBrushShape)))
+        {
+            shape.value = tip;
+            f.Pointer(EventType.MouseMove, f.canvas.contentRect.center);
+            f.t.Equal(tip, (VectorBrushShape)Read(f.canvas, "brushCursorShape"), "Hover cursor reflects Shape");
+            foreach (float rotation in new[] { 0f, 37f })
+            {
+                Call(f.canvas, "SetViewRotation", rotation, false);
+                Call(f.canvas, "ZoomAt", f.canvas.contentRect.center, rotation == 0 ? 1f : 2f);
+                await f.Tick();
+                Vector2 a = f.canvas.contentRect.center, b = a + new Vector2(42, 9);
+                f.Pointer(EventType.MouseDown, a, shifted);
+                f.Pointer(EventType.MouseDrag, b, shifted);
+                Check(new Vector2(b.x, a.y), "Held Shift locks horizontal in view space");
+                f.Pointer(EventType.MouseDrag, a + new Vector2(48, 65), shifted);
+                Check(new Vector2(a.x + 48, a.y), "Chosen axis stays locked despite crossing the diagonal");
+                // KeyUp changes the constraint even without pointer movement; next event is freehand.
+                using (var key = KeyUpEvent.GetPooled(new Event { type = EventType.KeyUp, keyCode = KeyCode.LeftShift }))
+                { key.target = f.canvas; f.canvas.SendEvent(key); }
+                f.t.True(!(bool)Read(f.Manipulator, "brushShift"), "Shift key release exits the constraint");
+                Vector2 free = a + new Vector2(10, 20);
+                f.Pointer(EventType.MouseDrag, free); Check(free, "Released Shift is freehand");
+                f.Key(KeyCode.LeftShift);
+                f.Pointer(EventType.MouseDrag, free + new Vector2(4, 35), shifted);
+                Check(free + new Vector2(0, 35), "Pressing Shift mid-stroke uses the last painted point");
+                f.Key(KeyCode.Escape);
+                f.t.Equal(0, f.document.layers.Count, "Cancelled line leaves no figure");
+            }
+        }
+        Call(f.canvas, "SetViewRotation", 0f, false); Call(f.canvas, "ZoomAt", f.canvas.contentRect.center, 1f); await f.Tick();
+        shape.value = VectorBrushShape.Diamond;
+        Vector2 first = f.canvas.contentRect.center - new Vector2(42, 24);
+        f.Pointer(EventType.MouseDown, first); f.Pointer(EventType.MouseUp, first); await f.Tick();
+        f.t.Equal(1, f.document.layers.Count, "First dab creates its own figure");
+        var previous = (VectorLayerBehaviour)f.document.layers[0].Behaviour;
+        string previousJson = JsonUtility.ToJson(previous);
+        byte[] previousMask = (byte[])previous.brushDraft.coverage.Clone();
+        var previousDraft = previous.brushDraft;
+        Vector2 next = first + new Vector2(64, 48);
+        f.Fence(); f.Pointer(EventType.MouseDown, next, shifted);
+        var builder = (VectorBrushBuilder)Read(f.Manipulator, "brushBuilder");
+        f.t.Equal(2, builder.SampleCount, "Shift-click starts at the previous endpoint then connects to the new point");
+        Vector2 midpoint = (Vector2)Call(f.Manipulator, "Local", (first + next) / 2, true);
+        Vector2 maskPoint = builder.ToPixel(midpoint);
+        f.t.True(builder.Coverage[Mathf.FloorToInt(maskPoint.y) * builder.Width + Mathf.FloorToInt(maskPoint.x)] == 255,
+            "Shift-click paints the segment between strokes");
+        f.Pointer(EventType.MouseUp, next, shifted); await f.Tick();
+        f.t.Equal(1, f.document.layers.Count, "Connected segment extends the active figure");
+        f.t.True(previousMask.SequenceEqual(previousDraft.coverage), "Connecting never mutates an old Undo mask");
+        string result = JsonUtility.ToJson(f.document.layers[0].Behaviour);
+        Undo.FlushUndoRecordObjects(); Undo.PerformUndo(); await f.Tick();
+        f.t.Equal(1, f.document.layers.Count, "Undo keeps the figure");
+        f.t.Equal(previousJson, JsonUtility.ToJson(f.document.layers[0].Behaviour), "Undo removes only the connected segment");
+        Undo.PerformRedo(); await f.Tick();
+        f.t.Equal(result, JsonUtility.ToJson(f.document.layers[0].Behaviour), "Redo restores its shape and original mask");
+        await f.Tool("VectorPen"); await f.Tool("VectorBrush");
+        f.Pointer(EventType.MouseDown, next, shifted);
+        builder = (VectorBrushBuilder)Read(f.Manipulator, "brushBuilder");
+        f.t.Equal(1, builder.SampleCount, "Tool switch invalidates the old line anchor");
+        f.Key(KeyCode.Escape);
+    }
+
     static async Task Brush(Fixture f)
     {
         await f.Seed(true); await f.Tool("VectorBrush");
-        Write(f.window, "vectorBrushSize", 20f); Write(f.window, "vectorBrushTolerance", .75f);
+        await BrushCursor(f);
+        f.window.rootVisualElement.Q<FloatField>("vectorBrushSize").value = 20f;
+        Write(f.window, "vectorBrushTolerance", .75f);
         TextureTransform transform = f.Layer.transform;
         string before = JsonUtility.ToJson(f.Vector);
         VectorBrushDraft previous = f.Vector.brushDraft;
         byte[] previousCoverage = (byte[])previous.coverage.Clone();
         Vector2 start = f.View(new Vector2(.55f, .35f)), end = f.View(new Vector2(.7f, .65f));
         f.Fence(); f.Pointer(EventType.MouseDown, start); f.Pointer(EventType.MouseDrag, end);
+        await f.Tick();
+        f.t.True(((VisualElement)Read(f.canvas, "overlay")).resolvedStyle.display != DisplayStyle.None,
+            "Cursor overlay stays displayed during a captured drawing stroke");
+        f.t.True((bool)Read(f.canvas, "cursorVisible"), "Vector cursor remains visible during the captured stroke");
+        Near(f.t, end, (Vector2)Read(f.canvas, "cursorPosition"), "Vector cursor follows captured pointer movement");
         f.t.Equal(before, JsonUtility.ToJson(f.Vector), "Raster stroke preview leaves committed figures and draft unchanged");
         f.t.True(ReferenceEquals(previous, f.Vector.brushDraft), "Previous draft remains owned until successful stroke commit");
         var builder = (VectorBrushBuilder)Read(f.Manipulator, "brushBuilder");
         var preview = (Texture2D)Read(f.Manipulator, "brushPreview");
         f.t.True(builder != null && preview != null && builder.Coverage.Any(value => value > 0), "Held stroke has a real raster buffer and preview texture");
+        byte[] beforeResize = (byte[])builder.Coverage.Clone();
+        f.Key(KeyCode.RightBracket);
+        f.t.Equal(22f, (float)Read(f.window, "vectorBrushSize"), "Size shortcut works during a captured stroke");
+        f.t.Equal(11f, (float)Read(f.Manipulator, "brushRadius"), "Pending samples use the updated brush radius");
+        f.t.Near(11f, (float)Property(f.canvas, "RoundCursorRadius"), .001, "Captured-stroke cursor updates without pointer movement");
+        f.t.True(beforeResize.SequenceEqual(builder.Coverage), "Size changes do not rewrite the mask or insert a stamp");
+        f.Key(KeyCode.LeftBracket);
         f.Pointer(EventType.MouseUp, end);
         f.t.Equal(2, f.document.layers.Count, "One release creates a separate figure layer");
         f.t.Equal(before, JsonUtility.ToJson(f.Vector), "New stroke leaves the previous figure and mask intact");
@@ -763,6 +861,260 @@ public static class VectorToolsTests
             }, "Rejected brush rebuild");
         }
         finally { f.Vector.referenceSize = reference; }
+    }
+
+    static async Task BrushEditing(Fixture f)
+    {
+        await f.Tool("VectorBrush");
+        Button Toggle() => f.window.rootVisualElement.Q<Button>("vectorBrushEditMask");
+        async Task Dab(Vector2 view, int button = 0)
+        {
+            f.Pointer(EventType.MouseDown, view, button: button);
+            f.Pointer(EventType.MouseUp, view, button: button);
+            await f.Tick();
+        }
+        f.window.rootVisualElement.Q<FloatField>("vectorBrushSize").value = 40;
+        Vector2 a = f.canvas.contentRect.center, b = a + new Vector2(45, 0);
+        f.t.True(!Toggle().enabledInHierarchy, "No source mask to edit before the first stroke");
+        await Dab(a, 1); f.t.Equal(0, f.document.layers.Count, "RMB never creates an empty figure");
+        await Dab(a); f.layerId = (string)Read(f.window, "selectedLayerId");
+        f.t.Equal("Finish Editing", Toggle().text, "First stroke enters mask editing");
+        f.t.Equal(1, f.document.layers.Count, "First stroke creates exactly one figure");
+        var oldDraft = f.Vector.brushDraft; byte[] oldPixels = (byte[])oldDraft.coverage.Clone();
+        string shapeId = oldDraft.shapeId, first = JsonUtility.ToJson(f.Vector);
+        var firstTransform = f.Layer.transform;
+        f.Fence(); f.Pointer(EventType.MouseDown, b);
+        var adding = (VectorBrushBuilder)Read(f.Manipulator, "brushBuilder");
+        f.t.True(adding != null && adding.HasChanges, "Second dab changes the editable mask");
+        f.t.Near(20, (float)Read(f.Manipulator, "brushRadius"), .001, "Rebased frame keeps the brush's source-pixel radius");
+        f.Pointer(EventType.MouseUp, b); await f.Tick();
+        f.t.Equal(1, f.document.layers.Count, "LMB adds a disconnected island to the same layer");
+        f.t.Equal(shapeId, f.Vector.shapes[0].id, "Dabs keep the same shape ID");
+        f.t.True(f.Vector.shapes[0].contours.Count >= 2, "Both islands are retained; contours=" + f.Vector.shapes[0].contours.Count +
+            ", changed=" + (first != JsonUtility.ToJson(f.Vector)) + ", frame=" + f.Vector.brushDraft.frame + ", reference=" + f.Vector.referenceSize);
+        f.t.True(oldPixels.SequenceEqual(oldDraft.coverage), "Old snapshot stays immutable");
+        await f.UndoRedo(first, JsonUtility.ToJson(f.Vector), firstTransform, "Add mask island", f.Layer.transform);
+
+        // Styles and procedural controls survive edits; their coordinates rebase with the frame.
+        var shape = f.Vector.shapes[0]; shape.fillMode = VectorFillMode.LinearGradient;
+        shape.stroke = true; shape.strokeWidth = 3; shape.strokeMode = VectorFillMode.RadialGradient;
+        shape.dashPattern = new List<float> { 2, 1 }; shape.dashPatternRelative = true;
+        Call(f.window, "RefreshToolkitInterface", true); await f.Tick();
+        if (Toggle().text == "Edit Mask") { SubmitDash(Toggle()); await f.Tick(); }
+        string before = JsonUtility.ToJson(f.Vector); var transform = f.Layer.transform;
+        string style = Style(f.Vector.shapes[0]);
+        f.window.rootVisualElement.Q<FloatField>("vectorBrushSize").value = 10;
+        f.Fence(); f.Pointer(EventType.MouseDown, a, button: 1);
+        f.t.True((bool)Read(f.canvas, "cursorErase"), "RMB immediately shows the eraser cursor");
+        f.t.Equal(before, JsonUtility.ToJson(f.Vector), "Erase preview does not modify the committed figure");
+        f.Pointer(EventType.MouseUp, a, button: 1); await f.Tick();
+        f.t.True(!((bool)Read(f.canvas, "cursorErase")), "Releasing RMB restores the paint cursor");
+        f.t.Equal(1, f.document.layers.Count, "RMB edits, never duplicates");
+        f.t.True(f.Vector.shapes[0].contours.Count >= 3, "Erasure creates a hole");
+        f.t.Equal(style, Style(f.Vector.shapes[0]), "Erasure keeps gradients, stroke and dash settings");
+        await f.UndoRedo(before, JsonUtility.ToJson(f.Vector), transform, "Erase mask hole", f.Layer.transform);
+
+        before = JsonUtility.ToJson(f.Vector);
+        await f.NoUndo(async () =>
+        {
+            f.Pointer(EventType.MouseDown, b, button: 1); f.Pointer(EventType.MouseDrag, b + Vector2.right * 7, button: 1);
+            f.Key(KeyCode.Escape); f.Pointer(EventType.MouseUp, b, button: 1); await f.Tick();
+            f.t.Equal(before, JsonUtility.ToJson(f.Vector), "Escape cancels erasing atomically");
+        }, "Cancelled erase");
+        f.Key(KeyCode.Return); await f.Tick();
+        f.t.Equal("Edit Mask", Toggle().text, "Enter ends editing but keeps the source");
+        f.t.Equal(before, JsonUtility.ToJson(f.Vector), "Finishing does not discard or refit the mask");
+        await Dab(a, 1); f.t.Equal(before, JsonUtility.ToJson(f.Vector), "RMB on a finished figure cannot erase without Edit Mask");
+        SubmitDash(Toggle()); await f.Tick();
+        f.t.Equal("Finish Editing", Toggle().text, "Toolbar resumes selected mask");
+        var inspector = (VisualElement)Read(f.window, "toolkitLayerSettingsScroll");
+        f.t.Equal("Finish Editing", inspector.Q<Button>("vectorPropertiesEditMask").text, "Inspector button stays synchronized");
+        SubmitDash(inspector.Q<Button>("vectorPropertiesEditMask")); await f.Tick();
+        f.t.Equal("Edit Mask", Toggle().text, "Inspector can finish editing");
+        string finishedId = f.layerId, finished = JsonUtility.ToJson(f.Vector);
+        await Dab(a + new Vector2(-50, 0));
+        f.t.Equal(2, f.document.layers.Count, "Next LMB after Finish starts a new layer");
+        f.t.Equal(finished, JsonUtility.ToJson(f.Vector), "Finished figure is untouched by the next stroke");
+        f.layerId = (string)Read(f.window, "selectedLayerId");
+        f.t.True(f.layerId != finishedId, "New figure has its own layer ID");
+        Call(f.window, "SelectOnlyLayer", finishedId); Call(f.window, "RefreshToolkitInterface", true); await f.Tick();
+        f.layerId = finishedId;
+        f.t.Equal("Edit Mask", Toggle().text, "Changing selection ends the previous editing session");
+        SubmitDash(((VisualElement)Read(f.window, "toolkitLayerSettingsScroll")).Q<Button>("vectorPropertiesEditMask")); await f.Tick();
+        before = JsonUtility.ToJson(f.Vector); transform = f.Layer.transform;
+        f.window.rootVisualElement.Q<FloatField>("vectorBrushSize").value = 220;
+        f.Fence(); await Dab(a, 1);
+        f.t.Equal(0, f.Vector.shapes[0].contours.Count, "Erasing everything retains an empty editable figure");
+        f.t.True(f.Vector.brushDraft != null, "Empty figure retains its editable mask");
+        await f.UndoRedo(before, JsonUtility.ToJson(f.Vector), transform, "Erase whole mask", f.Layer.transform);
+        f.window.rootVisualElement.Q<FloatField>("vectorBrushSize").value = 20;
+        await Dab(a); f.t.True(f.Vector.shapes[0].contours.Count > 0, "An empty figure can be painted again");
+        f.t.Equal(2, f.document.layers.Count, "Painting after full erase still uses the same layer");
+        f.Key(KeyCode.Return); await f.Tick();
+        await BrushCursorPixels(f);
+        var probe = new StrokeCapture { owner = f.window, path = "Temp/WhimTex/vector-mask-editing.png", pickingMode = PickingMode.Ignore };
+        probe.style.position = Position.Absolute; probe.style.left = 0; probe.style.top = 0; probe.style.width = 1; probe.style.height = 1;
+        f.window.rootVisualElement.Add(probe);
+        try
+        {
+            for (int i = 0; i < 40 && !probe.done.Task.IsCompleted; i++) { f.window.Repaint(); await f.Tick(); }
+            f.t.True(probe.done.Task.IsCompleted, "Owned mask editing controls captured"); await probe.done.Task;
+        }
+        finally { probe.RemoveFromHierarchy(); }
+    }
+
+    static async Task BrushCursor(Fixture f)
+    {
+        var inspector = (VisualElement)Read(f.window, "toolkitLayerSettingsScroll");
+        f.t.True(inspector.Query<Foldout>().ToList().Any(v => v.text == "Original Mask"), "Retained mask uses the Original Mask heading");
+        var size = f.window.rootVisualElement.Q<FloatField>("vectorBrushSize");
+        f.t.True(size != null, "Vector brush size control is available");
+        var paint = Read(f.window, "paintSettings");
+        var oldTool = Read(paint, "tool");
+        try
+        {
+            Write(paint, "tool", PaintToolMode.Eraser);
+            foreach (float zoom in new[] { 25f, 100f, 200f })
+            {
+                Call(f.window, "SetCanvasZoomPercent", zoom);
+                await f.Tick();
+                Vector2 center = f.canvas.contentRect.center;
+                f.Pointer(EventType.MouseMove, center);
+                Call(f.window, "UpdateToolkitCanvasPresentation"); await f.Tick();
+                var cursorOverlay = (VisualElement)Read(f.canvas, "overlay");
+                f.t.True(cursorOverlay.resolvedStyle.display != DisplayStyle.None && cursorOverlay.worldBound.width > 0,
+                    "Vector cursor overlay is actually displayed after refreshing the canvas without raster settings: " +
+                    cursorOverlay.resolvedStyle.display + ", width=" + cursorOverlay.worldBound.width +
+                    ", visible=" + Read(f.canvas, "cursorVisible") + ", helper=" +
+                    (f.canvas.GetType().GetMethod("UpdateOverlayVisibility", Instance) != null));
+                f.t.True((bool)Read(f.canvas, "cursorVisible"), "Vector brush shows its circle on hover");
+                f.t.True((bool)Read(f.canvas, "toolCursorHidden"), "System arrow is hidden over the vector brush canvas");
+                f.t.True(!(bool)Read(f.canvas, "cursorErase"), "Raster eraser setting does not color the vector cursor");
+                f.t.True(Read(f.canvas, "brushSettings") == null, "Vector cursor does not require raster paint settings");
+                foreach (float diameter in new[] { 8f, 24f, 96f })
+                {
+                    size.value = diameter;
+                    f.t.Near(Mathf.Max(2f, diameter * zoom / 200f), (float)Property(f.canvas, "RoundCursorRadius"), .001,
+                        "Circle radius responds immediately to Size and zoom (minimum 2 screen points)");
+                }
+                f.Pointer(EventType.MouseMove, center, EventModifiers.Alt);
+                f.t.True(!(bool)Read(f.canvas, "cursorVisible") && !(bool)Read(f.canvas, "toolCursorHidden"), "Alt restores the navigation cursor");
+                f.Pointer(EventType.MouseMove, center);
+                using (var leave = PointerLeaveEvent.GetPooled()) { leave.target = f.canvas; f.canvas.SendEvent(leave); }
+                f.t.True(!(bool)Read(f.canvas, "cursorVisible") && !(bool)Read(f.canvas, "toolCursorHidden"), "Pointer leave hides the circle and restores the arrow");
+            }
+            Call(f.window, "SetCanvasZoomPercent", 100f);
+            f.Pointer(EventType.MouseMove, f.canvas.contentRect.center);
+            await f.Tool("VectorPen");
+            f.t.True(!(bool)Read(f.canvas, "cursorVisible"), "Pen does not inherit a brush circle");
+            await f.Tool("VectorBrush");
+            f.Pointer(EventType.MouseMove, f.canvas.contentRect.center);
+            f.t.True((bool)Read(f.canvas, "cursorVisible"), "Switching back restores the circle");
+            f.t.Equal(96f, (float)Read(f.canvas, "roundCursorSize"), "Switching tools retains vector brush size");
+            BrushSizeShortcuts(f, size);
+        }
+        finally { Write(paint, "tool", oldTool); }
+    }
+
+    static async Task BrushCursorPixels(Fixture f)
+    {
+        var toggle = f.window.rootVisualElement.Q<Button>("vectorBrushEditMask");
+        if (toggle.text == "Edit Mask") { SubmitDash(toggle); await f.Tick(); }
+        f.window.rootVisualElement.Q<FloatField>("vectorBrushSize").value = 40;
+        Vector2 center = f.canvas.contentRect.center + new Vector2(80, 60);
+        async Task<StrokeCapture> Capture(string name)
+        {
+            var capture = new StrokeCapture { owner = f.window, retainPixels = true,
+                path = "Temp/WhimTex/vector-cursor-" + name + ".png", pickingMode = PickingMode.Ignore };
+            capture.style.position = Position.Absolute; capture.style.left = 0; capture.style.top = 0;
+            capture.style.width = 1; capture.style.height = 1; f.window.rootVisualElement.Add(capture);
+            try
+            {
+                for (int i = 0; i < 40 && !capture.done.Task.IsCompleted; i++) { f.window.Repaint(); await f.Tick(); }
+                f.t.True(capture.done.Task.IsCompleted, "Owned cursor pixels captured: " + name);
+                await capture.done.Task; return capture;
+            }
+            finally { capture.RemoveFromHierarchy(); }
+        }
+        f.Pointer(EventType.MouseMove, center, EventModifiers.Alt); await f.Tick();
+        var hidden = await Capture("hidden");
+        f.Pointer(EventType.MouseMove, center);
+        Call(f.window, "UpdateToolkitCanvasPresentation"); await f.Tick();
+        var hover = await Capture("hover");
+        f.Pointer(EventType.MouseDown, center); await f.Tick();
+        // Keep the same held-stroke preview in both images so its white fill cannot
+        // accidentally satisfy the cursor-pixel assertion.
+        Call(f.window, "UpdateCanvasCursor", center, true); await f.Tick();
+        var drawingHidden = await Capture("drawing-hidden");
+        Call(f.window, "UpdateCanvasCursor", center, false); await f.Tick();
+        var drawing = await Capture("drawing");
+        f.Key(KeyCode.Escape); f.Pointer(EventType.MouseUp, center); await f.Tick();
+        f.Pointer(EventType.MouseDown, center, button: 1); await f.Tick();
+        var erase = await Capture("erase");
+        f.Key(KeyCode.Escape); f.Pointer(EventType.MouseUp, center, button: 1); await f.Tick();
+        f.t.Equal(hidden.imageWidth, hover.imageWidth, "Captured viewport width remains fixed");
+        f.t.Equal(hidden.imageWidth, drawing.imageWidth, "Drawing capture width remains fixed");
+        f.t.Equal(hidden.imageHeight, drawing.imageHeight, "Drawing capture height remains fixed");
+        f.t.Equal(drawingHidden.imageWidth, drawing.imageWidth, "Held-stroke comparison width remains fixed");
+        f.t.Equal(drawingHidden.imageHeight, drawing.imageHeight, "Held-stroke comparison height remains fixed");
+        f.t.Equal(hidden.imageHeight, erase.imageHeight, "Captured viewport height remains fixed");
+        Vector2 panel = f.canvas.LocalToWorld(center) - f.window.rootVisualElement.worldBound.min;
+        float sx = hover.imageWidth / f.window.rootVisualElement.worldBound.width;
+        float sy = hover.imageHeight / f.window.rootVisualElement.worldBound.height;
+        int cx = Mathf.RoundToInt(panel.x * sx), cy = Mathf.RoundToInt(hover.imageHeight - panel.y * sy);
+        int radius = Mathf.CeilToInt(26 * Mathf.Max(sx, sy)), white = 0, drawingWhite = 0, red = 0;
+        float cursorRadius = (float)Property(f.canvas, "RoundCursorRadius");
+        for (int y = Mathf.Max(0, cy - radius); y < Mathf.Min(hover.imageHeight, cy + radius); y++)
+        for (int x = Mathf.Max(0, cx - radius); x < Mathf.Min(hover.imageWidth, cx + radius); x++)
+        {
+            int index = y * hover.imageWidth + x;
+            var a = hidden.pixels[index]; var b = hover.pixels[index]; var c = erase.pixels[index];
+            if (b.r > a.r + 40 && b.g > a.g + 40 && b.b > a.b + 40) white++;
+            var d = drawing.pixels[index]; var e = drawingHidden.pixels[index];
+            float ringDistance = new Vector2((x + .5f - cx) / sx, (y + .5f - cy) / sy).magnitude;
+            if (Mathf.Abs(ringDistance - cursorRadius) <= 1.5f &&
+                d.r > e.r + 40 && d.g > e.g + 40 && d.b > e.b + 40) drawingWhite++;
+            if (c.r > c.g + 45 && c.r > c.b + 45 && c.r > a.r + 35) red++;
+        }
+        f.t.True(white >= 20, "Hover draws visible white cursor pixels, not only a visible flag; pixels=" + white);
+        f.t.True(drawingWhite >= 20, "Drawing retains visible white cursor pixels on its circumference; pixels=" + drawingWhite);
+        f.t.True(red >= 20, "Erasing draws visible red cursor pixels; pixels=" + red);
+        f.Key(KeyCode.Return); await f.Tick();
+    }
+
+    static void BrushSizeShortcuts(Fixture f, FloatField size)
+    {
+        var paint = Read(f.window, "paintSettings");
+        string rasterSettings = JsonUtility.ToJson(paint);
+        string documentBefore = JsonUtility.ToJson(f.Vector);
+        void Key(KeyCode code, char character = '\0', EventModifiers modifiers = EventModifiers.None, VisualElement target = null)
+        {
+            using var evt = KeyDownEvent.GetPooled(new Event { type = EventType.KeyDown, keyCode = code, character = character, modifiers = modifiers });
+            evt.target = target ?? f.canvas; (target ?? f.canvas).SendEvent(evt);
+        }
+        void Check(float expected)
+        {
+            f.t.Equal(expected, (float)Read(f.window, "vectorBrushSize"), "Shortcut changes vector size");
+            f.t.Equal(expected, size.value, "Size field is synchronized immediately");
+            f.t.Near(Mathf.Max(2f, expected * .5f), (float)Property(f.canvas, "RoundCursorRadius"), .001,
+                "Circle updates without moving the pointer");
+        }
+        f.t.True(size.ClassListContains("whimtex-brush-size"), "Size uses the common brush field styling");
+        size.value = 20; Key(KeyCode.RightBracket); Check(22);
+        Key(KeyCode.RightBracket); Check(24);
+        Key(KeyCode.LeftBracket); Check(22);
+        size.value = 7.6f; Key(KeyCode.RightBracket); Check(9);
+        size.value = 1; Key(KeyCode.LeftBracket); Check(1);
+        size.value = 2048; Key(KeyCode.RightBracket); Check(2048);
+        size.value = 20; Key(KeyCode.None, ']'); Check(22);
+        Key(KeyCode.None, '['); Check(20);
+        foreach (var modifier in new[] { EventModifiers.Control, EventModifiers.Command, EventModifiers.Alt })
+        { Key(KeyCode.RightBracket, '\0', modifier); Check(20); }
+        var text = new TextField(); f.window.rootVisualElement.Add(text);
+        try { Key(KeyCode.RightBracket, ']', target: text); Check(20); }
+        finally { text.RemoveFromHierarchy(); }
+        f.t.Equal(rasterSettings, JsonUtility.ToJson(paint), "Vector size shortcuts leave raster brush settings unchanged");
+        f.t.Equal(documentBefore, JsonUtility.ToJson(f.Vector), "Size shortcuts do not change existing figures or masks");
     }
 
     static async Task Pen(Fixture f)
@@ -878,7 +1230,8 @@ public static class VectorToolsTests
     {
         VectorShape copy = shape.Clone(); copy.contours.Clear();
         // Anchor coordinates are rebased along with the geometry; the palette/style remains unchanged.
-        copy.gradientStart=Vector2.zero;copy.gradientEnd=Vector2.right;return JsonUtility.ToJson(copy);
+        copy.gradientStart=Vector2.zero;copy.gradientEnd=Vector2.right;
+        copy.strokeGradientStart=Vector2.zero;copy.strokeGradientEnd=Vector2.right;return JsonUtility.ToJson(copy);
     }
 }
 

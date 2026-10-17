@@ -1,11 +1,65 @@
 # Third-party notices
 
 WhimTex's own MIT license does not replace the licenses of third-party components.
-FastNoiseLite, the Clipper2 clipping core and an adapted edtaa3 distance transform are bundled as source.
+FastNoiseLite, the Clipper2 clipping core, Typography.OpenFont and an adapted edtaa3 distance transform are bundled as source.
 The documentation theme is resolved separately at site build time.
 The Unity packages listed below are resolved by Package
 Manager and are not vendored into this repository; their installed packages supply their
 own licenses and any transitive third-party notices.
+
+## Typography.OpenFont
+
+WhimTex includes managed OpenFont sources from
+[LayoutFarm/Typography](https://github.com/LayoutFarm/Typography/tree/5877180c7c5271091379a0eaf9f03ab6ebd256b3),
+commit `5877180c7c5271091379a0eaf9f03ab6ebd256b3`, under
+`src/ThirdParty/Typography/`. The import follows the upstream OpenFont `.projitems`
+and omits the TrueType hinting interpreter and its exception types. It includes
+no GlyphLayout, renderer, native binaries, or decompression libraries.
+
+The retained sources credit WinterDev, Samuel Carlsson, Michael Popoloski,
+Sam Hocevar, Villu Ruusmann, the Apache PDFBox/FontBox authors, the FreeType team,
+and Adobe Systems Incorporated. Their original headers and inherited notices
+are preserved. WhimTex is based in part on the work of the FreeType Team
+([FreeType Project](https://www.freetype.org/)) through the managed glyph translator;
+no native FreeType library is bundled.
+
+The [license and notice index](src/ThirdParty/Typography/NOTICE.md) includes
+Apache-2.0, MIT, the FreeType Project License, Adobe glyph-list BSD terms, and
+the inherited PDFBox/FontBox/PaDaF notices. The upstream repository's umbrella
+MIT description does not replace these per-file licenses.
+
+Local changes add `Typeface.ContainsTable(string)` for format safety checks,
+make the 20 unimplemented CFF Type 2 operators throw `NotSupportedException`,
+suppress one automatic DEBUG file dump, and replace DEBUG debugger breaks with
+diagnostic messages. See the [integration notes](src/ThirdParty/Typography/README.md)
+for exact scope and limitations, and the
+[source manifest](src/ThirdParty/Typography/SOURCE-MANIFEST.json) for file hashes.
+
+## Adobe font test fixtures
+
+`Tests~/Fixtures/Fonts` contains two unmodified Adobe OTF files as test inputs,
+not installed fonts or Unity-imported Font assets:
+
+- [Source Serif Pro Regular 3.000R](https://github.com/adobe-fonts/source-serif/tree/fb33c384290783887810dcfcc25132817509cf9f),
+  commit `fb33c384290783887810dcfcc25132817509cf9f`, supplies a static CFF1 input
+  without variation, SVG, COLR or bitmap tables. Its exact upstream
+  [license and copyright notice](Tests~/Fixtures/Fonts/SourceSerifPro-LICENSE.md)
+  are included unchanged: Copyright 2014-2019 Adobe, reserved font name `Source`.
+- [Source Code Pro Regular 2.030R](https://github.com/adobe-fonts/source-code-pro/tree/482adcaccf9777f2850974e08c60e706b1ad9169),
+  release `2.030R-ro/1.050R-it`, commit `482adcaccf9777f2850974e08c60e706b1ad9169`,
+  supplies CFF1 outlines and an original SVG table for conservative adapter
+  rejection checks. Its exact upstream
+  [license and copyright notice](Tests~/Fixtures/Fonts/SourceCodePro-LICENSE.txt)
+  are included unchanged: Copyright 2010, 2012 Adobe Systems Incorporated,
+  reserved font name `Source`.
+
+Both fonts remain under SIL Open Font License 1.1. The embedded designer
+credits are Frank Grießhammer (Source Serif Pro), and Paul D. Hunt and
+Teo Tuominen (Source Code Pro). The copies came from the Typography checkout
+pinned above, and their bytes were independently matched by SHA-256 to the
+original Adobe release binaries. See the [fixture provenance and hashes](Tests~/Fixtures/Fonts/manifest.json)
+and [coverage notes](Tests~/Fixtures/Fonts/README.md). No font tables or names
+were modified, and WhimTex's MIT license does not replace the font licenses.
 
 ## FastNoiseLite
 

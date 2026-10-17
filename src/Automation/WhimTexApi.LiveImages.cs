@@ -199,7 +199,10 @@ namespace DCFApixels.WhimTex
                 foreach (var fxEntry in layer.fx)
                     if (fxEntry != null) text.Append(EditorJsonUtility.ToJson(fxEntry));
             if (layer?.Behaviour is DrawingLayerBehaviour drawing && drawing.StoredTexture != null)
+            {
+                drawing.SyncPendingSurfaceToTexture();
                 text.Append(Convert.ToBase64String(hash.ComputeHash(drawing.StoredTexture.GetRawTextureData())));
+            }
             return Convert.ToBase64String(hash.ComputeHash(Encoding.UTF8.GetBytes(text.ToString())));
         }
 
@@ -248,6 +251,7 @@ namespace DCFApixels.WhimTex
 
         private static NativeArray<Color> LiveImagePixels(LiveJob job, Texture2D image, string fit, DrawingLayerBehaviour target)
         {
+            target?.SyncPendingSurfaceToTexture();
             Require(fit == "stretch" || fit == "contain", "fit must be stretch or contain.");
             int width = target?.StoredTexture != null ? target.StoredTexture.width : job.width;
             int height = target?.StoredTexture != null ? target.StoredTexture.height : job.height;

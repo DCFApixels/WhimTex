@@ -1,0 +1,17 @@
+{
+  "captured": "2026-10-17 before dirty-region optimization; unified paintSurface + stroke pipeline",
+  "files": [
+    {
+      "path": "Tests~/Framework/Painting/BrushFullAssembly/AlphaConversion.shader",
+      "sha256": "1eed13cdb1d0d9f3f3a53ebdda2edf574989e591677a2fd6922173228973df4a"
+    },
+    {
+      "path": "Tests~/Framework/Painting/BrushFullAssembly/Blend.shader",
+      "sha256": "1cbf06bdd384d269687e42d60d4acc55769d9ad6486f06d8d246544ab6c3ceab"
+    },
+    {
+      "path": "Tests~/Framework/Painting/BrushFullAssembly/BrushComposite.cginc",
+      "sha256": "dedd983ae97ce285f2f1f686609eea59a99b330c2c022d36219bed3b9c5c1691"
+    }
+  ]
+}

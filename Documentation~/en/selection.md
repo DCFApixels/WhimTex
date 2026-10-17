@@ -12,7 +12,7 @@ next_page: "en/symmetry.md"
 # Area selections
 
 Select an area to paint, erase or fill without touching the rest of the image.
-Use **Area Select** (`M`) for a rectangle or ellipse, **Polygonal Lasso** for straight sides, or **Freehand Lasso** for a drawn outline. `L` returns to the chosen lasso mode.
+Use **Area Select** (`M`) for a rectangle or ellipse, **Polygonal Lasso** for an outline through placed points, or **Freehand Lasso** for a drawn outline. `L` returns to the chosen lasso mode.
 
 Use the edge mode dropdown above the canvas to control the selection boundary:
 
@@ -33,13 +33,29 @@ With **Polygonal Lasso**, click around the outline and finish with
 `Enter`, a double-click at the same position when adding a new point, or a click on the first point. Double-clicking an older point or segment does not finish the outline.
 `Backspace` or a right-click removes the last point; `Escape` cancels the unfinished outline.
 Small squares mark the placed points. The outline stays open, with its last segment following the cursor, until you finish the selection.
+Choose **Straight** for this behavior, or **Smooth** above the canvas for an automatically
+smoothed Catmull–Rom curve through every placed point. With three or more points,
+Smooth calculates the curve as a closed shape but displays an open outline: the
+closing curve from the last point to the first stays hidden until you finish.
+The visible curves keep their shape on completion. The faint blue line to the cursor
+only helps place the next point. Moving or inserting points updates the outline
+immediately; points can be inserted only on visible curves. You can switch
+Straight/Smooth while editing the outline.
+
+In Smooth, round markers are smooth points and square markers are corners. Hover a
+point and press `C` to toggle its kind. The **Corner** checkbox edits the selected
+point, highlighted in blue; placing, inserting or dragging a point selects it.
+With no point under the cursor, `C` edits that selected point. The boundary preview
+and the applied selection share the same contour; **Aliased / Antialiased** still
+controls how its edge covers pixels. A smooth curve can extend beyond the straight
+sides between points.
 Once the outline has moved away from its start and has at least three points, move near the first point: it turns blue and the endpoint snaps to it. Click and release to close; dragging the first point moves it instead.
 
 Before finishing, you can adjust the placed points:
 
-- Drag a square to move its point.
+- Drag a point marker to move its point.
 - Click an existing segment to insert a point. The segment following the cursor does not accept inserted points.
-- `Alt+click` a square to remove its point and connect its neighbors directly.
+- `Alt+click` a point marker to remove its point and reconnect its neighbors.
 
 When placing or inserting a point, keep the mouse button held and drag to position it immediately.
 Hold `Shift` when adding or dragging a new endpoint to constrain its segment to the nearest horizontal, vertical or 45° diagonal direction relative to the canvas, even with a rotated view. `Ctrl+Shift` keeps this direction constraint while disabling snapping.

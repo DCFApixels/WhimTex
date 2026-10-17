@@ -153,6 +153,7 @@ namespace DCFApixels.WhimTex
                     break;
                 case TextLayerBehaviour text:
                     TextLayerEditorWindow.BuildFields(root, text, apply, toolkitInspectorBindings);
+                    root.Add(new Button(() => ConvertTextToVector(layer)) { text = "Convert to Vector", name = "convert-text-vector" });
                     break;
                 case NoiseLayerBehaviour noise:
                     NoiseLayerEditorWindow.BuildFields(root, noise, activeDocument, apply, toolkitInspectorBindings);

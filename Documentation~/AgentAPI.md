@@ -1791,7 +1791,8 @@ Capabilities expose `systemFonts`, `textDefaults`, `textFontStyles`, `textAlignm
 Layer inspection exposes `settings.text`, `fontAvailable`, `resolvedFont` and missing-font `warnings`.
 Missing fonts do not silently substitute another family: rendering uses a matching saved mask or
 transparent output. Restoring/selecting a font enables source editing. Ordinary Transform, FX,
-Mapping, blending and grouping apply to Text layers. Text is rasterized before those stages.
+Mapping, blending and grouping apply to Text layers. Ordinary composition rasterizes Text
+before those stages; Boolean Groups consume its source-font outlines while keeping it editable.
 
 TIFF and unified JSON retain editable settings and a bounded appearance backup, not font files or
 project font assets. The agent settings snapshot excludes this encoded mask; it is managed by save.
@@ -1811,7 +1812,7 @@ The `shapes` array accepts at most one figure; its multiple contours and holes r
 part of that figure. Add another layer for another figure. Whole-figure placement uses
 the layer's transform, independently of sibling figures.
 All vector styles remain stored while inactive. `inspect` returns the same data,
-including the last stroke's original base64 coverage and local `frame` rectangle;
+including the figure's editable source-mask base64 coverage and local `frame` rectangle;
 `describe` returns `vectorDefaults`.
 
 Each shape's `fillMode` accepts None, Solid, LinearGradient, RadialGradient,
@@ -1829,14 +1830,22 @@ settings. Defaults are Solid, a separate black-to-white Perceptual/Clamp palette
 least `0.0001`, including when inactive. Vector/Boolean palettes use the native
 document gradient object, as for fill; Shape patches use the API gradient contract.
 
-`{"op":"convertToVector","layer":"<layer-id>"}` converts a Shape geometrically on
-its existing layer shell. It preserves the layer ID, FX and shared settings except
-transform tiling: `Clip` becomes `Unbounded` to retain protruding caps and outside
-strokes. Fitting the figure frame preserves appearance, but can change the stored
-local geometry and transform values together.
-Unsupported appearance produces a diagnostic before replacement; see the conversion
-limits in the [vector contract](JSON_FORMAT.md#vector-layers). This operation uses the
-existing batch transaction and does not save by itself.
+`{"op":"convertToVector","layer":"<layer-id-or-@alias>"}` converts a Shape or Text
+geometrically on its existing layer shell, preserving the ID, name, FX and shared settings.
+For both source types, transform tiling `Clip` becomes `Unbounded` to retain geometry
+outside the original unit frame. Fitting the figure's frame preserves canvas placement,
+but can change the stored local geometry and transform values together.
+
+Text conversion produces one compound Vector figure with `fillRule:"NonZero"`,
+containing all laid-out glyphs and their holes.
+It reads original unhinted font curves and preserves the current layout, including
+Frame Clip/Ellipsis, applied before fitting the geometry frame. It does not retain
+editable text; keep a duplicate if needed.
+Missing or unsupported source fonts and synthetic bold without a real bold face fail
+before replacement. Synthetic italic is supported. The operation never traces a raster
+backup. See [Text outline conversion](JSON_FORMAT.md#text-outline-conversion) for supported
+font sources, clipping tolerance and edge differences. The existing batch transaction
+applies to both source types; this operation does not save by itself.
 
 ### Boolean Group settings
 
@@ -1860,12 +1869,19 @@ the group's children. `describe` returns `booleanGroupDefaults` and `booleanOper
 `inspect` returns `settings.booleanGroup` and every layer's `settings.booleanOperation`.
 
 The group is always Isolated; explicit PassThrough is rejected. Add or move Shape,
-Vector or another Boolean Group into it with the usual `parent` and `index` fields.
+Vector, Text or another Boolean Group into it with the usual `parent` and `index` fields.
 Index 0 is the top. Starting with the bottom enabled child, each next child upward
 combines with the accumulated region using its `settings.booleanOperation`:
 Union, Subtract, Intersect, Xor or Combine. The base child's operation is ignored. Raster
 layers and open contours are rejected. The entire batch is preflighted before
 application; a bad operand does not silently disappear.
+
+Text remains `type:"text"` with editable `settings.text`; conversion is not required.
+Changing its text or layout rebuilds the operand from the same source-font outlines
+used by Text conversion, with the same font restrictions and Frame overflow rules.
+Text's raster backup cannot supply Boolean geometry. The child retains its font and
+layout settings in TIFF/JSON; the font file is not embedded. See
+[Text outline conversion](JSON_FORMAT.md#text-outline-conversion).
 
 Child transforms and source geometry remain editable. Their appearance and FX stay
 stored but do not affect the Boolean result; the group supplies common styling and
@@ -2497,6 +2513,15 @@ The brush uses the same renderer and source-over alpha as manual painting. `eras
 No layer selection, canvas-area selection or RGBA Preview mask is inherited from the window:
 specify the desired RGBA explicitly. Rectangle/lasso coverage and the internal pixel clipboard
 are temporary window tools, not serialized document data or API stroke parameters.
+Polygonal Lasso's Straight/Smooth choice and per-point Corner flags are also window
+tool state. Smooth uses closed centripetal Catmull–Rom interpolation (alpha 0.5);
+corner points use separate one-sided tangents. A shared cached polyline, flattened
+to a 1/16-canvas-pixel tolerance, drives the boundary preview, curve insertion hit
+testing and final even-odd selection rasterization. During editing, the final closing
+segment is hidden and excluded from insertion hit testing. Completion uses the full
+closed contour without changing the visible curves. It supports 256 placed nodes
+and at most 16,384 rasterized contour points, reporting excessive detail before
+applying a selection. The existing Aliased/Antialiased and combine/wrap rules apply.
 
 For pixel-aligned pencil strokes, add `"pencil":"Circle"`, `"Square"`, or `"Diamond"` to the
 `stroke` operation (not inside `brush`). Omit it for the regular soft brush. Pencil uses `brush.size`
@@ -2524,6 +2549,9 @@ Color alpha zero leaves no mark, including for the eraser; eraser strength other
 - Optional `pressures` supplies one 0..1 number per point, with the same length as `points`.
   Omitted values mean full pressure. Stamp pressure is linearly interpolated along segments;
   the global tablet curve and interactive smoothing do not apply. Not supported by Pencil.
+- Each paint/erase operation is one committed stroke. A selection clips the assembled change
+  once, preserving its soft edge across overlapping stamps; separate operations can build coverage.
+  The interactive brush and API share [stroke assembly, blend and HDR semantics](AI/BRUSHES.md#stroke-assembly-and-selection).
 
 | Brush field | Values |
 |---|---|

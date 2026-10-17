@@ -44,6 +44,18 @@ namespace DCFApixels.WhimTex
         }
 
         internal Texture2D GetMask(TextLayerBehaviour layer, int width, int height, float scale)
+            => Build(layer, width, height, scale, null);
+
+        // Uses exactly the raster renderer's layout and selected glyph IDs. Only its output
+        // changes: placements instead of atlas quads. No mask/readback or tracing is involved.
+        internal List<TextGlyphPlacement> GetGlyphLayout(TextLayerBehaviour layer, int width, int height)
+        {
+            var glyphs = new List<TextGlyphPlacement>();
+            Build(layer, width, height, 1, glyphs);
+            return glyphs;
+        }
+
+        private Texture2D Build(TextLayerBehaviour layer, int width, int height, float scale, List<TextGlyphPlacement> placements)
         {
             width = Mathf.Max(1, width); height = Mathf.Max(1, height);
             Vector2 origin = GridOrigin(layer, width, height);
@@ -56,7 +68,7 @@ namespace DCFApixels.WhimTex
                 key = null;
             }
             string layoutKey = layer.LayoutKey(width, height);
-            if (mask != null && key == layoutKey && cachedScale == scale && cachedOrigin == origin && cachedPixelScale == pixelScale) return mask;
+            if (placements == null && mask != null && key == layoutKey && cachedScale == scale && cachedOrigin == origin && cachedPixelScale == pixelScale) return mask;
             int size = Mathf.Clamp(Mathf.RoundToInt(layer.fontSize), 1, 2048);
             string text = (layer.text ?? "").Replace("\t", "    ");
             if (layer.casing == TextCasing.Lowercase) text = text.ToLowerInvariant();
@@ -248,6 +260,16 @@ namespace DCFApixels.WhimTex
                         float center = glyphX + (metrics.horizontalBearingX + metrics.width * .5f) * horizontalScale / actualScale;
                         int before = 0; if (justified) foreach (float gap in gaps) if (center > gap) before++;
                         float extra = justified ? before * (extent - lineWidth) / gaps.Count : 0;
+                        if (placements != null)
+                        {
+                            if (face.SyntheticBold != 0)
+                                throw new NotSupportedException("Text outlines: synthetic Bold has no original contour. Choose an installed bold font face.");
+                            var file = face.SourceFile();
+                            placements.Add(new TextGlyphPlacement(file.path, file.index, glyph.index,
+                                new Vector2(offsetX + glyphX + extra, baseline) * pixelScale,
+                                face.Size / actualScale * pixelScale, horizontalScale, face.SyntheticItalic));
+                            continue;
+                        }
                         var atlas = face.Asset.atlasTextures[glyph.atlasIndex];
                         var batch = batches.Find(item => item.atlas == atlas);
                         if (batch == null) { batch = new Batch { font = face, atlas = atlas }; batches.Add(batch); }
@@ -290,6 +312,13 @@ namespace DCFApixels.WhimTex
                         start = end;
                     }
                 }
+            }
+            if (placements != null)
+            {
+                Bounds = new Rect(Bounds.position * pixelScale, Bounds.size * pixelScale);
+                SourceRect = new Rect(SourceRect.position * pixelScale, SourceRect.size * pixelScale);
+                key = null;
+                return null;
             }
             mesh ??= new Mesh { name = "Text Glyphs", hideFlags = HideFlags.HideAndDontSave };
             var target = ProfiledRenderTexture.GetTemporary(outputWidth, outputHeight, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);

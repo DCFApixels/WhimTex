@@ -150,6 +150,7 @@ namespace WhimTex.Tests.UnityA
         readonly System.Collections.Generic.List<System.Func<System.Threading.Tasks.Task>> asyncFinalizers = new System.Collections.Generic.List<System.Func<System.Threading.Tasks.Task>>();
         string assets, temp;
         public string Tag => guid;
+        public bool RestoreWindowFocus { get; set; } = true;
         public UnityAScope()
         {
             StringPreference("DCFApixels.WhimTex.Canvas.Tool");
@@ -448,7 +449,7 @@ namespace WhimTex.Tests.UnityA
             if (assets != null) Clean(() => { if (!UnityEditor.AssetDatabase.DeleteAsset(assets)) throw new System.IO.IOException("Could not delete owned fixture " + assets); });
             Clean(PreserveDiagnostics);
             if (temp != null) Clean(() => { if (System.IO.Directory.Exists(temp)) System.IO.Directory.Delete(temp, true); });
-            Clean(() => { if (focus != null) focus.Focus(); });
+            Clean(() => { if (RestoreWindowFocus && focus != null) focus.Focus(); });
             if (failures.Count != 0) throw new System.AggregateException("Fixture cleanup failed.", failures);
         }
     }

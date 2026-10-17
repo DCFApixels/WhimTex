@@ -22,6 +22,13 @@ permalink: /reference/hdr/
 ## Layer controls
 
 The document uses **linear floating-point working pixels** and straight alpha. Alpha stays in 0–1.
+Drawing internally accumulates brush work in premultiplied RGBAHalf. Synchronizing standard
+RGBA32 storage converts into a temporary linear 8-bit render target on the GPU (RGB encoding
+is already performed by the conversion shader), then reads the encoded bytes. This does not
+replace or quantize the working Half surface. HDR storage retains the Half conversion target.
+Compared with the former Half-to-RGBA32 readback, final 8-bit rounding can differ by one code
+value; the low-flow regression checks that this difference does not accumulate between strokes.
+
 Each layer has two independent controls:
 
 | Control | Standard (default) | HDR |
@@ -171,6 +178,13 @@ New Standard Drawing layers store RGBA32 (4 bytes/pixel). Selecting HDR promotes
 linear RGBAHalf (8 bytes/pixel). Switching back to Standard **does not compact or discard** that data.
 The storage label shows the actual format. **Convert to 8-bit** explicitly clamps and quantizes source
 pixels; its confirmation explains the loss. Undo records both format and pixels.
+
+Brush/Pencil keep the working surface in premultiplied linear RGBAHalf. Their block journal stores
+the exact Half values alongside straight RGBA32/RGBAHalf before/after bytes, so Undo/Redo does not
+reconstruct low-alpha accumulation from an 8-bit snapshot. Rebuilding a surface after script reload
+reuses journal Half blocks only when their straight bytes still match the current source; intervening
+native pixel edits are not overwritten. See [stroke assembly and history](AI/BRUSHES.md#stroke-assembly-and-selection)
+for partial synchronization, fallbacks and session limits.
 
 Painting on a Standard layer with retained HDR storage reads a clamped destination under the stroke.
 Pixels outside the footprint keep their hidden HDR values. The eraser changes alpha without clamping

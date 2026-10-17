@@ -21,18 +21,28 @@ Shader "Hidden/WhimTex/AlphaConversion"
             #pragma fragment frag
             #pragma target 3.5
             #include "UnityCG.cginc"
-        #include "HdrColor.cginc"
+            #include "HdrColor.cginc"
+            float _HdrBlend;
+            #include "BrushComposite.cginc"
 
             sampler2D _MainTex;
             float _Mode;
             float _DecodeSource;
             sampler2D _OriginalStraight;
             float _StraightFallback;
+            sampler2D _PaintPreviousHalf;
+            float4 _PaintPreviousMap;
+            float _SkipUnchangedPaint;
             float safe(float v) { return (asuint(v) & 0x7fffffffu) >= 0x7f800000u ? 0.0 : clamp(v, -65504.0, 65504.0); }
 
             float4 frag(v2f_img input) : SV_Target
             {
                 float4 color = tex2D(_MainTex, input.uv);
+                // The destination already contains the original straight texels.
+                // Leave untouched pixels byte-exact, including hidden RGB at zero alpha.
+                if (_SkipUnchangedPaint > .5 && all(color == tex2D(_PaintPreviousHalf,
+                    input.uv * _PaintPreviousMap.xy + _PaintPreviousMap.zw))) discard;
+                if (_PendingBrush > .5) color = CompositePendingBrush(color, input.uv);
                 #if defined(UNITY_COLORSPACE_GAMMA)
                 if (_Mode < 0.5 && _DecodeSource > 0.5) color.rgb = SpriteDecode(color.rgb);
                 #endif

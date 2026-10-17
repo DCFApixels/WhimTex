@@ -7,9 +7,12 @@ namespace DCFApixels.WhimTex
     {
         private enum LassoMode { Polygonal, Freehand }
         [SerializeField] private LassoMode lassoMode = LassoMode.Polygonal;
+        private enum LassoCurveMode { Straight, Smooth }
+        [SerializeField] private LassoCurveMode lassoCurveMode = LassoCurveMode.Straight;
         private LassoPickerManipulator lassoPicker;
         private CanvasToolIcon lassoToolIcon;
         private bool IsFreehandLasso => canvasTool == CanvasTool.PolygonSelect && lassoMode == LassoMode.Freehand;
+        private bool IsSmoothLasso => canvasTool == CanvasTool.PolygonSelect && lassoMode == LassoMode.Polygonal && lassoCurveMode == LassoCurveMode.Smooth;
 
         private void SetLassoMode(LassoMode mode)
         {

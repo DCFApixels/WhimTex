@@ -143,6 +143,34 @@ namespace DCFApixels.WhimTex
                 toolkitHeaderBindings.Track(lasso, () => (Enum)lassoMode);
                 lasso.RegisterValueChangedCallback(evt => SetLassoMode((LassoMode)evt.newValue));
                 row.Add(lasso);
+                var curve = new EnumField(lassoCurveMode) { name = "lassoCurveMode",
+                    tooltip = "Straight connects points with lines. Smooth passes through them with an automatically smoothed curve." };
+                TwoChoiceDropdown.Attach(curve);
+                curve.AddToClassList("whimtex-shape-kind");
+                toolkitHeaderBindings.Track(curve, () => (Enum)lassoCurveMode);
+                toolkitHeaderBindings.Add(() => curve.EnableInClassList("whimtex-hidden", lassoMode == LassoMode.Freehand));
+                curve.RegisterValueChangedCallback(evt =>
+                {
+                    lassoCurveMode = (LassoCurveMode)evt.newValue;
+                    areaSelectionManipulator?.RefreshPolygonCurve();
+                    toolkitHeaderBindings.Refresh();
+                    toolkitCanvas?.Focus();
+                });
+                row.Add(curve);
+                var corner = new Toggle("Corner") { name = "lassoCornerPoint",
+                    tooltip = "Make the selected point a sharp corner. C toggles the point under the cursor, or the selected point." };
+                toolkitHeaderBindings.Track(corner, () => areaSelectionManipulator?.SelectedPointIsCorner ?? false);
+                toolkitHeaderBindings.Add(() =>
+                {
+                    corner.EnableInClassList("whimtex-hidden", lassoMode == LassoMode.Freehand || lassoCurveMode != LassoCurveMode.Smooth);
+                    corner.SetEnabled(areaSelectionManipulator?.HasSelectedPolygonPoint ?? false);
+                });
+                corner.RegisterValueChangedCallback(evt =>
+                {
+                    areaSelectionManipulator?.SetSelectedPointCorner(evt.newValue);
+                    toolkitCanvas?.Focus();
+                });
+                row.Add(corner);
             }
             var mode = new EnumField(areaSelectionMode);
             TwoChoiceDropdown.Attach(mode);
@@ -200,6 +228,7 @@ namespace DCFApixels.WhimTex
                 if (evt.keyCode == KeyCode.Escape) areaSelectionManipulator.Cancel();
                 else if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter) areaSelectionManipulator.CompletePolygon();
                 else if (evt.keyCode == KeyCode.Backspace) areaSelectionManipulator.RemoveVertex();
+                else if (evt.keyCode == KeyCode.C && IsSmoothLasso) areaSelectionManipulator.TogglePolygonCorner();
                 else return false;
             }
             else if (action && !evt.altKey)
@@ -212,6 +241,7 @@ namespace DCFApixels.WhimTex
                 else return false;
             }
             else return false;
+            toolkitHeaderBindings.Refresh();
             WhimTexUI.ConsumeEvent(evt);
             return true;
         }

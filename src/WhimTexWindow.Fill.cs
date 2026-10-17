@@ -108,6 +108,7 @@ namespace DCFApixels.WhimTex
             int undoGroup = -1;
             try
             {
+                layer.SyncPendingSurfaceToTexture();
                 Texture2D stored = layer.StoredTexture;
                 int width = stored != null ? stored.width : activeDocument.width;
                 int height = stored != null ? stored.height : activeDocument.height;

@@ -1,0 +1,498 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Immutable font-reader test inputs. Positive static CFF1 candidate plus SVG-rejection input; metadata is not a runtime test result.",
+  "metadataProvenance": "Read directly from original SFNT bytes with standalone big-endian table/name/cmap-format-4/hmtx inspection, not derived from Typography.OpenFont or WhimTex outputs.",
+  "fixtures": [
+    {
+      "file": "SourceCodePro-Regular.otf",
+      "bytes": 145556,
+      "sha256": "1b87680aa1b825253e65d051755664ade67cd6b842c19cb669a88a0dc57ddae0",
+      "format": "OTTO",
+      "outlineFormat": "CFF1",
+      "cffMajor": 1,
+      "cffMinor": 0,
+      "unitsPerEm": 1000,
+      "glyphCount": 1585,
+      "tables": [
+        {
+          "tag": "BASE",
+          "offset": 118240,
+          "length": 70
+        },
+        {
+          "tag": "CFF ",
+          "offset": 20384,
+          "length": 97853
+        },
+        {
+          "tag": "DSIG",
+          "offset": 139188,
+          "length": 6368
+        },
+        {
+          "tag": "GDEF",
+          "offset": 118312,
+          "length": 650
+        },
+        {
+          "tag": "GPOS",
+          "offset": 118964,
+          "length": 5668
+        },
+        {
+          "tag": "GSUB",
+          "offset": 124632,
+          "length": 7482
+        },
+        {
+          "tag": "OS/2",
+          "offset": 352,
+          "length": 96
+        },
+        {
+          "tag": "SVG ",
+          "offset": 132116,
+          "length": 3899
+        },
+        {
+          "tag": "cmap",
+          "offset": 6624,
+          "length": 13726
+        },
+        {
+          "tag": "head",
+          "offset": 252,
+          "length": 54
+        },
+        {
+          "tag": "hhea",
+          "offset": 308,
+          "length": 36
+        },
+        {
+          "tag": "hmtx",
+          "offset": 136016,
+          "length": 3172
+        },
+        {
+          "tag": "maxp",
+          "offset": 344,
+          "length": 6
+        },
+        {
+          "tag": "name",
+          "offset": 448,
+          "length": 6176
+        },
+        {
+          "tag": "post",
+          "offset": 20352,
+          "length": 32
+        }
+      ],
+      "nameRecords": [
+        {
+          "nameId": 0,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "Copyright 2010, 2012 Adobe Systems Incorporated (http://www.adobe.com/), with Reserved Font Name ‘Source’."
+        },
+        {
+          "nameId": 1,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "Source Code Pro"
+        },
+        {
+          "nameId": 2,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "Regular"
+        },
+        {
+          "nameId": 3,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "2.030;ADBO;SourceCodePro-Regular;ADOBE"
+        },
+        {
+          "nameId": 4,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "Source Code Pro"
+        },
+        {
+          "nameId": 5,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "Version 2.030;PS 1.0;hotconv 16.6.51;makeotf.lib2.5.65220"
+        },
+        {
+          "nameId": 6,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "SourceCodePro-Regular"
+        },
+        {
+          "nameId": 7,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "Source is a trademark of Adobe Systems Incorporated in the United States and/or other countries."
+        },
+        {
+          "nameId": 8,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "Adobe Systems Incorporated"
+        },
+        {
+          "nameId": 9,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "Paul D. Hunt, Teo Tuominen"
+        },
+        {
+          "nameId": 11,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "http://www.adobe.com/type"
+        },
+        {
+          "nameId": 13,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL. This Font Software is distributed on an ‘AS IS’ BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the SIL Open Font License for the specific language, permissions and limitations governing your use of this Font Software."
+        },
+        {
+          "nameId": 14,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "http://www.adobe.com/type/legal.html"
+        }
+      ],
+      "sampleMappings": [
+        {
+          "character": "A",
+          "unicode": 65,
+          "glyphIndex": 2,
+          "advanceWidthFontUnits": 600
+        },
+        {
+          "character": "O",
+          "unicode": 79,
+          "glyphIndex": 16,
+          "advanceWidthFontUnits": 600
+        },
+        {
+          "character": "S",
+          "unicode": 83,
+          "glyphIndex": 20,
+          "advanceWidthFontUnits": 600
+        },
+        {
+          "character": "g",
+          "unicode": 103,
+          "glyphIndex": 34,
+          "advanceWidthFontUnits": 600
+        },
+        {
+          "character": "0",
+          "unicode": 48,
+          "glyphIndex": 877,
+          "advanceWidthFontUnits": 600
+        },
+        {
+          "character": "@",
+          "unicode": 64,
+          "glyphIndex": 998,
+          "advanceWidthFontUnits": 600
+        }
+      ],
+      "copiedFrom": {
+        "repository": "https://github.com/LayoutFarm/Typography",
+        "commit": "5877180c7c5271091379a0eaf9f03ab6ebd256b3",
+        "path": "Demo/Windows/TestFonts/SourceCodePro-Regular.otf",
+        "gitBlob": "1bae0027fff74f0fbf704b1a4cb9a54ece4aa6ce"
+      },
+      "authoritativeVerification": {
+        "repository": "https://github.com/adobe-fonts/source-code-pro",
+        "tag": "2.030R-ro/1.050R-it",
+        "commit": "482adcaccf9777f2850974e08c60e706b1ad9169",
+        "path": "OTF/SourceCodePro-Regular.otf",
+        "rawUrl": "https://raw.githubusercontent.com/adobe-fonts/source-code-pro/482adcaccf9777f2850974e08c60e706b1ad9169/OTF/SourceCodePro-Regular.otf",
+        "method": "Downloaded the authoritative binary to memory; length and SHA-256 match the pinned Typography copy.",
+        "verifiedOn": "2026-10-16"
+      },
+      "license": {
+        "spdx": "OFL-1.1",
+        "file": "SourceCodePro-LICENSE.txt",
+        "bytes": 4622,
+        "sha256": "cb30d3086a8b3ce0b9e3690bf48d6620402b61160bc658076f95180ccd9e9dae",
+        "sourceUrl": "https://raw.githubusercontent.com/adobe-fonts/source-code-pro/482adcaccf9777f2850974e08c60e706b1ad9169/LICENSE.txt",
+        "reservedFontName": "Source",
+        "redistributionBasis": "Unmodified original Adobe release; SIL OFL 1.1 permission and condition 2 permit software bundling with copyright and license retained."
+      },
+      "modifications": "None. All original table bytes and embedded notices retained.",
+      "expectedAdapterResult": {
+        "result": "reject",
+        "reason": "Original SVG table is present; conservative adapter policy rejects the whole font."
+      }
+    },
+    {
+      "file": "SourceSerifPro-Regular.otf",
+      "bytes": 236192,
+      "sha256": "8570d750feabf4ddd4efd26836ba3f5b70188db784baa12aa32d70142c750455",
+      "format": "OTTO",
+      "outlineFormat": "CFF1",
+      "cffMajor": 1,
+      "cffMinor": 0,
+      "unitsPerEm": 1000,
+      "glyphCount": 1450,
+      "tables": [
+        {
+          "tag": "BASE",
+          "offset": 236112,
+          "length": 70
+        },
+        {
+          "tag": "CFF ",
+          "offset": 13472,
+          "length": 113234
+        },
+        {
+          "tag": "DSIG",
+          "offset": 236184,
+          "length": 8
+        },
+        {
+          "tag": "GDEF",
+          "offset": 132508,
+          "length": 884
+        },
+        {
+          "tag": "GPOS",
+          "offset": 146788,
+          "length": 89322
+        },
+        {
+          "tag": "GSUB",
+          "offset": 133392,
+          "length": 13396
+        },
+        {
+          "tag": "OS/2",
+          "offset": 336,
+          "length": 96
+        },
+        {
+          "tag": "cmap",
+          "offset": 3084,
+          "length": 10356
+        },
+        {
+          "tag": "head",
+          "offset": 236,
+          "length": 54
+        },
+        {
+          "tag": "hhea",
+          "offset": 292,
+          "length": 36
+        },
+        {
+          "tag": "hmtx",
+          "offset": 126708,
+          "length": 5800
+        },
+        {
+          "tag": "maxp",
+          "offset": 328,
+          "length": 6
+        },
+        {
+          "tag": "name",
+          "offset": 432,
+          "length": 2650
+        },
+        {
+          "tag": "post",
+          "offset": 13440,
+          "length": 32
+        }
+      ],
+      "nameRecords": [
+        {
+          "nameId": 0,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "© 2014 - 2019 Adobe Systems Incorporated (http://www.adobe.com/), with Reserved Font Name ‘Source’."
+        },
+        {
+          "nameId": 1,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "Source Serif Pro"
+        },
+        {
+          "nameId": 2,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "Regular"
+        },
+        {
+          "nameId": 3,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "3.000;ADBO;SourceSerifPro-Regular;ADOBE"
+        },
+        {
+          "nameId": 4,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "Source Serif Pro"
+        },
+        {
+          "nameId": 5,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "Version 3.000;hotconv 1.0.109;makeotfexe 2.5.65596"
+        },
+        {
+          "nameId": 6,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "SourceSerifPro-Regular"
+        },
+        {
+          "nameId": 7,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "Source is a trademark of Adobe Systems Incorporated in the United States and/or other countries."
+        },
+        {
+          "nameId": 8,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "Adobe Systems Incorporated"
+        },
+        {
+          "nameId": 9,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "Frank Grießhammer"
+        },
+        {
+          "nameId": 11,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "http://www.adobe.com/type"
+        },
+        {
+          "nameId": 13,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL. This Font Software is distributed on an ‘AS IS’ BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the SIL Open Font License for the specific language, permissions and limitations governing your use of this Font Software."
+        },
+        {
+          "nameId": 14,
+          "platformId": 3,
+          "encodingId": 1,
+          "languageId": 1033,
+          "text": "http://scripts.sil.org/OFL"
+        }
+      ],
+      "sampleMappings": [
+        {
+          "character": "A",
+          "unicode": 65,
+          "glyphIndex": 2,
+          "advanceWidthFontUnits": 664
+        },
+        {
+          "character": "O",
+          "unicode": 79,
+          "glyphIndex": 16,
+          "advanceWidthFontUnits": 707
+        },
+        {
+          "character": "S",
+          "unicode": 83,
+          "glyphIndex": 20,
+          "advanceWidthFontUnits": 512
+        },
+        {
+          "character": "g",
+          "unicode": 103,
+          "glyphIndex": 34,
+          "advanceWidthFontUnits": 518
+        },
+        {
+          "character": "0",
+          "unicode": 48,
+          "glyphIndex": 422,
+          "advanceWidthFontUnits": 500
+        },
+        {
+          "character": "@",
+          "unicode": 64,
+          "glyphIndex": 539,
+          "advanceWidthFontUnits": 835
+        }
+      ],
+      "copiedFrom": {
+        "repository": "https://github.com/LayoutFarm/Typography",
+        "commit": "5877180c7c5271091379a0eaf9f03ab6ebd256b3",
+        "path": "Demo/Windows/TestFonts/SourceSerifPro-Regular.otf",
+        "gitBlob": "3bdf6790406ece4f75aba5f22fbfcd6718a8e5c7"
+      },
+      "authoritativeVerification": {
+        "repository": "https://github.com/adobe-fonts/source-serif",
+        "tag": "3.000R",
+        "commit": "fb33c384290783887810dcfcc25132817509cf9f",
+        "path": "OTF/SourceSerifPro-Regular.otf",
+        "rawUrl": "https://raw.githubusercontent.com/adobe-fonts/source-serif/fb33c384290783887810dcfcc25132817509cf9f/OTF/SourceSerifPro-Regular.otf",
+        "method": "Downloaded the authoritative binary to memory; length and SHA-256 match the pinned Typography copy.",
+        "verifiedOn": "2026-10-16"
+      },
+      "license": {
+        "spdx": "OFL-1.1",
+        "file": "SourceSerifPro-LICENSE.md",
+        "bytes": 4578,
+        "sha256": "80c6ab285b3ee07cfd7ee0c4d682a79d250240925ebe6af74bb929736cab0b87",
+        "sourceUrl": "https://raw.githubusercontent.com/adobe-fonts/source-serif/fb33c384290783887810dcfcc25132817509cf9f/LICENSE.md",
+        "reservedFontName": "Source",
+        "redistributionBasis": "Unmodified original Adobe release; SIL OFL 1.1 permission and condition 2 permit software bundling with copyright and license retained."
+      },
+      "modifications": "None. All original table bytes and embedded notices retained.",
+      "expectedAdapterResult": {
+        "result": "accept-static-cff1",
+        "reason": "CFF1 outlines; no glyf, fvar, CFF2, SVG, COLR, sbix or bitmap tables. Actual adapter execution remains unverified."
+      }
+    }
+  ]
+}

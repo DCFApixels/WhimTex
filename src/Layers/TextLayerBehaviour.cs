@@ -58,6 +58,28 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private Texture2D decodedFallback;
         [NonSerialized] private string decodedPng;
         [NonSerialized] private string loggedNotice;
+        [NonSerialized] private VectorLayerBehaviour vectorGeometry;
+        [NonSerialized] private string vectorKey;
+        [NonSerialized] private int vectorFontRevision;
+        [NonSerialized] private float vectorPixelScale;
+        [NonSerialized] private Vector2Int vectorCanvasSize;
+
+        internal VectorLayerBehaviour GetVectorGeometry(WhimTexDocument document)
+        {
+            string key = LayoutKey(document.width, document.height);
+            float pixelScale = Owner.GetPixelScale();
+            var canvasSize = Owner.GetSourceCanvasSize(document.width, document.height);
+            if (vectorGeometry == null || vectorKey != key || vectorFontRevision != SystemFontCatalog.Revision ||
+                vectorPixelScale != pixelScale || vectorCanvasSize != canvasSize)
+            {
+                var next = TextToVector.Build(this, document);
+                vectorGeometry?.ReleaseTransientResources();
+                vectorGeometry = next; vectorKey = key; vectorFontRevision = SystemFontCatalog.Revision;
+                vectorPixelScale = pixelScale; vectorCanvasSize = canvasSize;
+            }
+            vectorGeometry.shapes[0].fillColor = color;
+            return vectorGeometry;
+        }
 
         internal override void InitializeLayer(Layer layer)
         {
@@ -271,6 +293,7 @@ namespace DCFApixels.WhimTex
 
         internal override void ReleaseTransientResources()
         {
+            vectorGeometry?.ReleaseTransientResources(); vectorGeometry = null; vectorKey = null;
             renderer?.Dispose(); renderer = null;
             if (decodedFallback != null) UnityEngine.Object.DestroyImmediate(decodedFallback);
             decodedFallback = null; decodedPng = null;

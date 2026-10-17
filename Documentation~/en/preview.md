@@ -270,7 +270,7 @@ In Canvas View or Layer Preview, hold the left mouse button and drag across **R 
 
 ## Context tools
 
-Tools below the toolbar separator appear when they are relevant. Selecting a Gradient layer automatically selects **Gradient Handles** (the hand icon), except while creating a gradient or using Crop. You can switch back to a basic tool; it stays selected until you activate another layer. With multiple layers selected, context tools use the active, last-selected layer.
+Tools below the toolbar separator appear when they are relevant. Only selecting a Gradient layer automatically selects **Gradient Handles** (the hand icon), except while creating a gradient or using Crop or Comment. For Shape, Vector and Boolean Group gradients, select the hand button manually. Manually activated handles remain selected when switching between layers with an editable fill or stroke gradient in the same document, including Gradient layers. Selecting a layer without an editable gradient or choosing another tool ends this behavior. Automatically activated handles return to the last basic tool when you select a non-Gradient layer. You can also switch back to a basic tool manually; it stays selected until you activate another layer. With multiple layers selected, context tools use the active, last-selected layer.
 
 Enabling **UV** adds **UV Island Select** without switching tools. **Edit on Canvas** on an FX parameter adds one temporary hand tool at the bottom. Its tooltip and the Canvas View footer identify the parameter; editing another parameter replaces this tool.
 

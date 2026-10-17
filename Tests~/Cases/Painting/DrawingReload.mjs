@@ -32,7 +32,9 @@ context.case('DrawingReload original assertions and branches', async () => {
     assert.ok(visit.includes('ReleaseLayerResources(group.layers, preserveDrawingPixels)'));
     assert.ok(activeDocument.includes('bool preserveDrawingPixels = false'), 'Merge/deletion retain destructive cleanup by default');
     const paint = body(drawing, 'internal void PaintSegment(');
-    assert.ok(paint.indexOf('paintSurfaceDirty |= segmentStamps.Count > 0') < paint.indexOf('PaintBrushRenderer.Draw('));
+    const draw = body(drawing, 'private void DrawBrushStamps(');
+    assert.ok(paint.includes('DrawBrushStamps('));
+    assert.ok(draw.indexOf('paintSurfaceDirty = true') >= 0 && draw.indexOf('paintSurfaceDirty = true') < draw.indexOf('PaintBrushRenderer.Draw('));
     assert.ok(drawing.includes('[NonSerialized] private bool paintSurfaceDirty;'));
     assert.ok(!paint.includes('SyncSurfaceToTexture()'), 'Painting does not gain extra readbacks');
     const sync = body(drawing, 'internal void SyncSurfaceToTexture()');
@@ -40,7 +42,9 @@ context.case('DrawingReload original assertions and branches', async () => {
     const syncPending = new Function('state', 'EnsureDeferredTexture', `with (state) { ${body(drawing, 'internal void SyncPendingSurfaceToTexture()')} }`);
     for (const dirty of [false, true]) for (const pixels of [null, {}]) {
         let calls = 0;
-        syncPending({ paintSurfaceDirty: dirty, pixels, SyncSurfaceToTexture() { calls++; } }, () => {});
+        let drains = 0;
+        syncPending({ paintSurfaceDirty: dirty, pixels, PaintTileTransfer: { Drain() { drains++; } }, SyncSurfaceToTexture() { calls++; } }, () => {});
+        assert.equal(drains, 1, 'Persistence boundary drains pending tile transfers');
         assert.equal(calls, dirty || pixels === null ? 1 : 0, 'Saving only reads back dirty/new Drawing surfaces');
     }
     assert.ok(body(activeDocument, 'internal void SyncDrawingLayerTextures()').includes('drawing.SyncPendingSurfaceToTexture()'));
@@ -54,7 +58,7 @@ context.case('DrawingReload original assertions and branches', async () => {
         const pixels = { format: 'RGBAHalf', value: 2.5, persistent, hideFlags: 1 };
         const calls = [];
         const state = {
-            pixels, paintSurfaceDirty: dirty,
+            pixels, paintSurfaceDirty: dirty, brushDynamics: null,
             SyncSurfaceToTexture() { calls.push('sync'); state.pixels.value = 3.5; state.paintSurfaceDirty = false; },
             ReleasePaintSurface() { calls.push('release'); state.paintSurfaceDirty = false; },
             AssetDatabase: { Contains(texture) { return texture.persistent; } }, HideFlags: { DontSave: 1 },

@@ -104,6 +104,79 @@ HLSL changes how the tip is obtained. Changing its parameters does not reset
 these settings. Use opaque grayscale RGB plus Luminance for a distance field; with SDF enabled,
 the selected value is inverted before looking up tipGradient, as for a texture tip.
 
+## Stroke assembly and selection
+
+Flow and pressure control stamp accumulation. Stroke Blend applies to the isolated accumulated
+paint; Stamp Blend evaluates each stamp against the accumulated backdrop. Brush Opacity applies
+once to the stroke result. The canvas-space selection then clips the change from the immutable
+source in premultiplied linear RGBA: `result = lerp(source, strokeResult, selection)`.
+Selection is not multiplied into each stamp. Repeated dabs within one stroke therefore retain
+a soft selection edge; separate committed strokes can still build coverage. Write RGBA protection
+is applied to that assembled change, retaining locked channels and hidden source RGB.
+
+Live assembly runs at the Drawing source resolution before its transform, layer/group opacity,
+blend, clipping and FX. Canvas, Target inputs, previews and thumbnails use this same source.
+Commit uses the same assembly function. Standard painting remains bounded; HDR keeps signed and
+above-one RGB through accumulation and storage. Blur/Smudge retain their separate retouching paths.
+
+The immutable `paintSurface` and full-resolution stroke buffer remain separate. Submitted stamp
+geometry determines conservative source-pixel bounds, with a one-texel guard. Live conversion
+still covers the requested source image, but skips stroke assembly outside those bounds.
+Commit visits distinct 256 × 256 source blocks touched by stamp geometry, clipped to the stamp
+bounds. A perimeter stroke does not include its empty center. On devices with a supported compute kernel and
+RGBAHalf LoadStore access, it reads and replaces each source texel in place, without commit
+scratch. Each invocation owns one pixel; accumulation and preview still use the raster path.
+The compute kernel and raster shaders share `BrushComposite.cginc`, including signed HDR,
+selection, opacity, blend and channel protection. Dispatch stays on the graphics queue.
+
+Unsupported devices, unavailable kernels, failed UAV allocation and existing non-UAV paint
+surfaces retain the raster path: one 256 × 256 RGBAHalf scratch block (0.5 MiB) for tracked strokes,
+including partial edge tiles. Fallback is chosen before dispatch, never after a potentially
+partial write. Both paths apply selection once. The scratch bound does not include the
+full-resolution source/stroke, stamp backdrops or downstream document rendering.
+
+Interactive Brush/Pencil and API paint use a session pixel journal when readable, single-mip
+RGBA32/RGBAHalf storage and the required texture copies/render format are supported. Unity Undo
+records a small revision cursor; files under `Library/WhimTex/PaintUndo` hold each
+block's before/after Half and straight-storage bytes. Ctrl+Z/Redo share the normal action order.
+History survives script reload within the Editor session, but is not included in TIFF or restored
+after restarting the Editor. Normal Editor exit removes that session's journal.
+Each new page samples up to 64 KiB: Deflate is used when the sample compresses below one third
+of its original size; otherwise the page is stored raw to avoid expensive compression on detailed
+images. Both paths preserve exact bytes. Compressed-page checksums are verified before restoring
+any block; Undo then decodes each page once into reusable block buffers. Raw pages have the same
+integrity checks. Existing pages in the current Editor session remain readable.
+
+The stored GPU image is updated immediately. Immutable packed pages feed ordered asynchronous
+readbacks into the existing CPU texture without a full-image `Apply`. Readbacks write directly
+into owned native buffers, avoiding an intermediate full-page managed copy. Each page packs up to
+sixteen blocks; a page of one to three blocks uses only its occupied columns. Immutable GPU staging
+is capped at 256 MiB; only two pages at a time allocate native
+readback buffers. Stroke completion queues pages and keeps the next stroke available without waiting
+for readback or payload compression while staging fits that budget. GPU submission/allocation and a
+small revision manifest still run on completion; this is not a zero-cost or zero-I/O operation.
+Editor updates process the FIFO in approximately 4 ms slices, yielding between blocks, and never
+wait for pending journal writes. A page reserves space under the 64 MiB pending-write budget before
+CPU patching; background compression/file writes release that space. GPU saturation, readback errors
+and devices without asynchronous readback can still stall. Exceeding the staging budget waits for
+the oldest page to finish, preserving exact revisions instead of dropping history. The same FIFO
+captures each stored before-image before patching the after-image, including overlapping strokes.
+A separate bounded pool can retain up to about 64 MiB of managed tile arrays for reuse. Raw journal
+pages trade disk space for lower latency.
+Disk errors retain affected payloads in RAM and report the failure; this exceptional retention can
+exceed that budget. Disk history currently has no size quota or per-document eviction.
+Undo, CPU pixel consumers, save, resource release and script reload drain pending work. API paint
+returns after synchronization. Unchanged source pixels keep their original storage bytes, including
+hidden RGB. Devices without asynchronous readback use bounded synchronous page reads. Unsupported
+storage/copy configurations, Blur/Smudge/Healing and other native pixel operations retain their
+previous storage/Undo path. Full-size working surfaces and document rendering are not tiled storage.
+
+Sequential Stamp blending and pressure Opacity copy only the current stamp's padded backdrop
+region, remapping sampling coordinates to that scratch texture. Capacity grows in 128-pixel
+buckets within a draw batch. Large, wrapped or projectively expanded stamps can still require a
+large region. Region copies use `Graphics.CopyTexture` where supported and a shader-copy fallback
+otherwise. Neither route changes blend arithmetic, source resolution or the selection contract.
+
 ## Full HLSL specification
 
 Optional `// @header(Shape)` adds a bold, non-collapsible heading, while `// @helpbox(Your hint text.)` adds an informational help box above the next parameter. These are UI metadata, not uniforms, and are preserved when saving a preset. Headings and help boxes without a following parameter declaration are ignored. Former-name aliases are not supported; declaration edits preserve matching values/identity using the same rules as FX.
@@ -179,10 +252,11 @@ change the painted path's Smoothing setting or delay the first stamp. Preview an
 strokes use the first known nonzero path direction upfront, without hover interpolation;
 a one-point API stroke without direction starts with `(0,0)`.
 
-Sequence-only Dynamic tips need no stroke-buffer pair unless brush Opacity is below 1, Pressure → Opacity
-is enabled, or non-erase Blend is not Normal. Motion tips and Stroke Direction also use the existing pair; correction adds
-no third full-size texture or CPU readback. Storage sync commits any pending start. Normal settings,
-preset/seed/tool changes finish the stroke before applying new values.
+All Brush and Pencil strokes accumulate in a separate linear ARGBHalf texture. The layer's
+`paintSurface` remains the immutable source until commit; there is no copied `advancedStrokeBase`.
+First-stamp correction reuses this source and accumulation texture without a CPU readback.
+Storage sync or EndStroke commits the result and releases the accumulation texture; cancellation
+discards it. Settings, preset/seed/tool changes finish the stroke before applying new values.
 
 After the first stamp, `deltaPixels` is measured after input smoothing, before Scatter and canvas wrapping.
 It carries across input events, including events too short to emit a stamp. Clipped

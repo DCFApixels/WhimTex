@@ -21,6 +21,8 @@ context.case('BrushDynamicsMath original assertions and branches', async () => {
     
     // Execute the scalar spacing method after only translating C# declarations/casts.
     const method = dynamics.slice(dynamics.indexOf('spacing = Math.Max'), dynamics.indexOf('return count;') + 13)
+      .replace('BeginSegment(spacing, includeStart)', dynamics.match(/double BeginSegment[^]*?=> ([^;]+);/)[1])
+      .replace('EndSegment(distance, first + count * spacing);', dynamics.match(/void EndSegment[^]*?=> ([^;]+);/)[1].replace('nextOffset', '(first + count * spacing)') + ';')
       .replace(/\bspacing =/, 'spacing =')
       .replace(/\bint count =/, 'let count =')
       .replace(/\(int\)/g, '').replace(/int.MaxValue/g, '2147483647')
@@ -32,7 +34,7 @@ context.case('BrushDynamicsMath original assertions and branches', async () => {
       const result = [];
       lengths.forEach((length, i) => {
         const state = sample(length, spacing, i === 0, remaining);
-        for (let j = 0; j < state.count; j++) result.push(position + state.first + j * Math.max(1, spacing));
+        for (let j = 0; j < state.count; j++) result.push(position + state.first + j * Math.max(.5, spacing));
         remaining = state.remaining;
         position += length;
       });
@@ -41,7 +43,7 @@ context.case('BrushDynamicsMath original assertions and branches', async () => {
     assert.deepEqual(stamps([20], 4), [0, 4, 8, 12, 16, 20]); 
     assert.deepEqual(stamps([0, 1, 2, 3, 5, 9], 4), stamps([20], 4)); 
     assert.deepEqual(stamps([0, 0, 0], 4), [0]); 
-    assert.deepEqual(stamps([5], .01), [0, 1, 2, 3, 4, 5]); 
+    assert.deepEqual(stamps([5], .01), [0, .5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]);
     for (let spacing of [1, 1.25, 3.3, 10, 100]) {
       const one = stamps([100], spacing);
       const many = stamps(Array(400).fill(.25), spacing);
@@ -57,14 +59,13 @@ context.case('BrushDynamicsMath original assertions and branches', async () => {
       near(stroke * opacity, opacity * (1 - (1 - flow) ** 20));
       near(.8 * (1 - stroke * opacity), .8 - .8 * stroke * opacity);
     }
-    assert.match(dynamics, /opacity < 1f \|\| !erase && blend != BlendMode.Normal/);
-    assert.match(paint, /if \(isolatedStroke && segmentStamps.Count > 0\) EnsureAdvancedStroke/);
-    assert.match(brush, /Graphics.Blit\(advancedStrokeBase, target, material, 1\)/);
+    assert.ok(!dynamics.includes('NeedsStrokeBuffer'), 'Ordinary strokes cannot bypass accumulation');
+    assert.ok(!brush.includes('advancedStrokeBase'), 'The paint surface is the immutable base');
     assert.match(read('src/WhimTexDocument.cs'), /Graphics.Blit\(accumulator, result, material, 0\)/);
     assert.match(blend, /float4 fragBrush/);
     assert.match(shader, /multi_compile_local __ BRUSH_DYNAMICS BRUSH_TEXTURE/);
     assert.ok(!paint.includes('GL.MultiTexCoord4('), 'Only supported GL coordinate methods');
-    assert.ok(paint.includes('if (!stampBlend) BeginBrushMesh();'));
+    assert.ok(paint.includes('if (!sequential) BeginBrushMesh();'));
     const mesh = read('src/Layers/DrawingLayerBehaviour.BrushMesh.cs');
     assert.ok(mesh.includes('brushMesh.SetUVs(5, meshColors);'));
     assert.ok(mesh.includes('brushMesh.SetUVs(6, meshStamps);'));
@@ -73,7 +74,7 @@ context.case('BrushDynamicsMath original assertions and branches', async () => {
     assert.ok(shader.includes('output.color = float4(input.color, input.size.y);'));
     assert.match(shader, /brushDelta \/ _TipAspect/);
     assert.ok(ui.indexOf('BuildBrushTab(tabs)') < ui.indexOf('tabs.Add(postFxTab)'));
-    assert.match(ui, /if \(postFxExpanded\) brushesExpanded = (?:uvExpanded = )?false/,
+    assert.match(ui, /if \(postFxExpanded\) brushesExpanded = (?:\w+ = )*false/,
       'Expanding Post FX collapses Brushes');
     assert.match(ui, /if \(brushesExpanded\) postFxExpanded = false/,
       'Expanding Brushes collapses Post FX');
@@ -205,7 +206,7 @@ context.case('BrushDynamicsMath original assertions and branches', async () => {
     const settingsSource = read('src/PaintToolSettings.cs');
     const drawerSource = read('src/WhimTexWindow.Brushes.cs');
     for (const [section, fields] of [
-      ['Tip', ['dynamics.tip', 'dynamics.source', 'dynamics.hlslCode', 'dynamics.hlslParameters', 'dynamics.hlslResolution', 'clipboardTipId', 'dynamics.tipChannel', 'dynamics.tipSdf', 'dynamics.proceduralMode', 'dynamics.tipGradient', 'brushTipGuid', 'brushTipLocalId', 'brushTipPresetPath']],
+      ['Tip', ['dynamics.tip', 'dynamics.source', 'dynamics.hlslCode', 'dynamics.hlslParameters', 'hlslTextureReferences', 'dynamics.hlslResolution', 'clipboardTipId', 'dynamics.tipChannel', 'dynamics.tipSdf', 'dynamics.proceduralMode', 'dynamics.tipGradient', 'brushTipGuid', 'brushTipLocalId', 'brushTipPresetPath']],
       ['Stamps', ['dynamics.randomAlgorithm', 'dynamics.scatter', 'dynamics.scatterBias', 'dynamics.sizeJitter', 'dynamics.angleJitter', 'dynamics.angleOffset', 'dynamics.rotationMode', 'dynamics.flipX', 'dynamics.flipY']],
       ['Color', ['dynamics.blend', 'dynamics.blendApplication']]
     ]) {
@@ -235,7 +236,7 @@ context.case('BrushDynamicsMath original assertions and branches', async () => {
       }
     }
     assert.ok(brush.includes('float rotation = baseRotation;'));
-    const constantOffset = 'if (dynamics?.tip != null) baseRotation += dynamics.angleOffset * Mathf.Deg2Rad;';
+    const constantOffset = 'if (dynamics?.HasTip == true) baseRotation += dynamics.angleOffset * Mathf.Deg2Rad;';
     assert.ok(brush.includes(constantOffset));
     assert.ok(brush.indexOf('baseRotation = brushDirection;') < brush.indexOf(constantOffset));
     assert.ok(brush.indexOf(constantOffset) < brush.indexOf('float rotation = baseRotation;'));
@@ -247,13 +248,13 @@ context.case('BrushDynamicsMath original assertions and branches', async () => {
     const applyOffset = new Function('baseRotation', 'dynamics', 'Mathf', constantOffset + 'return baseRotation;');
     for (const base of [0,Math.PI/4,Math.PI,-Math.PI/2])
       for (const angleOffset of [-180,-90,0,90,180]) {
-        near(applyOffset(base,{tip:{},angleOffset},{Deg2Rad:Math.PI/180}),base+angleOffset*Math.PI/180);
-        near(applyOffset(base,{tip:null,angleOffset},{Deg2Rad:Math.PI/180}),base);
+        near(applyOffset(base,{HasTip:true,angleOffset},{Deg2Rad:Math.PI/180}),base+angleOffset*Math.PI/180);
+        near(applyOffset(base,{HasTip:false,angleOffset},{Deg2Rad:Math.PI/180}),base);
       }
     assert.ok(brush.includes('rotation += dynamics.angleJitter'));
     assert.ok(brush.includes('MovementAngle((to.x - from.x) * width, (to.y - from.y) * height, brushDirection)'));
     assert.ok(brush.indexOf('MovementAngle(')<brush.indexOf('for (long i'));
-    assert.ok(paint.includes('brushDirection = 0f;'));
+    assert.ok(brush.includes('brushDirection = BrushDynamics.MovementAngle(initialBrushDeltaPixels.x, initialBrushDeltaPixels.y, 0f)'));
     assert.ok(paint.includes('parameters.Dynamics?.CanRotateTip == true'));
     assert.ok(api.includes('parameters.Dynamics?.CanRotateTip == true'));
     assert.ok(dynamics.includes('HasTint || CanRotateTip'));

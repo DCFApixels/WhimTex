@@ -21,7 +21,7 @@ namespace DCFApixels.WhimTex
             string originalJson;
             VectorContour pen;
             VectorPoint activePoint;
-            int pointer = -1, tangent, frameHandle = -1;
+            int pointer = -1, pointerButton, tangent, frameHandle = -1;
             bool moved, marquee;
             Vector2 dimensions, start, startView, lastView;
             Rect frame;
@@ -66,6 +66,8 @@ namespace DCFApixels.WhimTex
                 !WhimTexApi.IsLayerContentLocked(document, layer);
             internal void Refresh()
             {
+                if (owner.canvasTool != CanvasTool.VectorBrush || owner.activeDocument != brushLineDocument || owner.GetSelectedLayer() != brushLineLayer)
+                { brushLineDocument = null; brushLineLayer = null; }
                 if ((candidate != null || pointer >= 0) && !Valid) Cancel();
                 overlay.MarkDirtyRepaint();
             }
@@ -92,7 +94,8 @@ namespace DCFApixels.WhimTex
                 dimensions = new Vector2(document.width, document.height);
                 layer = owner.GetSelectedLayer();
                 insertionAnchor = layer;
-                creatingLayer = layer?.Behaviour is not VectorLayerBehaviour || create && ((VectorLayerBehaviour)layer.Behaviour).shapes.Count > 0;
+                bool editMask = owner.canvasTool == CanvasTool.VectorBrush && owner.IsEditingVectorMask(layer);
+                creatingLayer = layer?.Behaviour is not VectorLayerBehaviour || create && !editMask && ((VectorLayerBehaviour)layer.Behaviour).shapes.Count > 0;
                 if (creatingLayer)
                 {
                     if (!create) return false;
@@ -104,8 +107,17 @@ namespace DCFApixels.WhimTex
             }
             void Down(PointerDownEvent evt)
             {
-                if (!IsVectorTool(owner.canvasTool) || evt.button != 0 || evt.altKey && owner.canvasTool != CanvasTool.VectorNodes ||
+                if (owner.IsVectorMaskRebuilding && IsVectorTool(owner.canvasTool) && (evt.button == 0 || evt.button == 1))
+                {
+                    owner.ShowNotification(new GUIContent("Rebuilding the vector mask. Wait for completion or press Escape to cancel."));
+                    WhimTexUI.ConsumeEvent(evt); return;
+                }
+                bool brushTool = owner.canvasTool == CanvasTool.VectorBrush;
+                if (!IsVectorTool(owner.canvasTool) || evt.button != 0 && !(brushTool && evt.button == 1) || evt.altKey && owner.canvasTool != CanvasTool.VectorNodes ||
                     pointer >= 0 || owner.activeDocument == null || !target.contentRect.Contains(evt.localPosition) || owner.toolkitCanvas.PixelScale <= 0) return;
+                if (brushTool && (owner.GetSelectedLayer() is Layer selected && WhimTexApi.IsLayerContentLocked(owner.activeDocument, selected) ||
+                    evt.button == 1 && !owner.IsEditingVectorMask(owner.GetSelectedLayer())))
+                { WhimTexUI.ConsumeEvent(evt); return; }
                 bool drawing = owner.canvasTool == CanvasTool.VectorPen || owner.canvasTool == CanvasTool.VectorBrush;
                 if (pen == null && !Prepare(drawing) || pen != null && !Valid) return;
                 Vector2 p = Local(evt.localPosition, evt.ctrlKey);
@@ -116,7 +128,7 @@ namespace DCFApixels.WhimTex
                 gestureTool = owner.canvasTool;
                 if (gestureTool == CanvasTool.VectorBrush)
                 {
-                    if (!BeginBrush(p)) return;
+                    if (!BeginBrush(p, evt.shiftKey, evt.localPosition, evt.button == 1)) { WhimTexUI.ConsumeEvent(evt); return; }
                 }
                 else if (gestureTool == CanvasTool.VectorPen)
                 {
@@ -169,21 +181,29 @@ namespace DCFApixels.WhimTex
                     }
                     frame = Bounds(original);
                 }
-                pointer = evt.pointerId; target.CapturePointer(pointer);
+                pointer = evt.pointerId; pointerButton = evt.button; target.CapturePointer(pointer);
+                if (gestureTool == CanvasTool.VectorBrush) owner.UpdateCanvasCursor(evt.localPosition, evt.altKey);
                 overlay.MarkDirtyRepaint(); WhimTexUI.ConsumeEvent(evt);
             }
             void Move(PointerMoveEvent evt)
             {
                 if (pointer < 0 || evt.pointerId != pointer) return;
-                if (!Valid || !target.HasPointerCapture(pointer) || owner.canvasTool != gestureTool || (evt.pressedButtons & 1) == 0) { Cancel(); return; }
+                if (!Valid || !target.HasPointerCapture(pointer) || owner.canvasTool != gestureTool || (evt.pressedButtons & (1 << pointerButton)) == 0 ||
+                    gestureTool == CanvasTool.VectorBrush && !ValidBrushSource) { Cancel(); return; }
                 Update(evt.localPosition, evt.shiftKey, evt.ctrlKey, evt.altKey);
                 WhimTexUI.ConsumeEvent(evt);
             }
             void Update(Vector2 view, bool shift, bool control, bool alt)
             {
-                Vector2 p = Local(view, control); if (!Finite(p)) return;
+                Vector2 p = gestureTool == CanvasTool.VectorBrush ? BrushPosition(view, shift, control) : Local(view, control);
+                if (!Finite(p)) return;
                 lastView = view; moved |= (view - startView).sqrMagnitude > 4;
-                if (gestureTool == CanvasTool.VectorBrush) UpdateBrush(p);
+                if (gestureTool == CanvasTool.VectorBrush)
+                {
+                    UpdateBrush(p);
+                    // This manipulator consumes captured pointer events before the canvas listener.
+                    owner.UpdateCanvasCursor(view, alt);
+                }
                 else if (gestureTool == CanvasTool.VectorPen)
                 {
                     if (moved) { activePoint.outTangent = p - activePoint.position; activePoint.inTangent = -activePoint.outTangent; activePoint.tangentMode = VectorTangentMode.Mirrored; }
@@ -233,9 +253,10 @@ namespace DCFApixels.WhimTex
             }
             void Up(PointerUpEvent evt)
             {
-                if (evt.pointerId != pointer || pointer < 0 || evt.button != 0) return;
-                if (!Valid || !target.HasPointerCapture(pointer)) { Cancel(); return; }
+                if (evt.pointerId != pointer || pointer < 0 || evt.button != pointerButton) return;
+                if (!Valid || !target.HasPointerCapture(pointer) || gestureTool == CanvasTool.VectorBrush && !ValidBrushSource) { Cancel(); return; }
                 Update(evt.localPosition, evt.shiftKey, evt.ctrlKey, evt.altKey);
+                if (pointer < 0) return;
                 ReleasePointer();
                 if (gestureTool == CanvasTool.VectorBrush) FinishBrush();
                 else if (gestureTool != CanvasTool.VectorPen)
@@ -298,9 +319,14 @@ namespace DCFApixels.WhimTex
             }
             internal bool HandleKey(KeyDownEvent evt)
             {
+                if (evt.keyCode == KeyCode.Escape && owner.IsVectorMaskRebuilding)
+                { Cancel(); WhimTexUI.ConsumeEvent(evt); return true; }
                 if (!IsVectorTool(owner.canvasTool) || IsTextInputTarget(evt.target as VisualElement)) return false;
-                if (evt.keyCode == KeyCode.Escape) Cancel();
-                else if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter) FinishPen(false);
+                if ((evt.keyCode == KeyCode.LeftShift || evt.keyCode == KeyCode.RightShift) && SetBrushShift(true))
+                    owner.RefreshCanvasPointerCursor();
+                else if (evt.keyCode == KeyCode.Escape) Cancel();
+                else if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
+                { if (owner.canvasTool == CanvasTool.VectorBrush) owner.FinishVectorMaskEditing(); else FinishPen(false); }
                 else if (evt.keyCode == KeyCode.Backspace && pen != null)
                 { if (pen.points.Count > 0) pen.points.RemoveAt(pen.points.Count - 1); overlay.MarkDirtyRepaint(); }
                 else if ((evt.keyCode == KeyCode.Delete || evt.keyCode == KeyCode.Backspace) && Prepare(false))
@@ -325,6 +351,7 @@ namespace DCFApixels.WhimTex
             void ReleasePointer() { int id = pointer; pointer = -1; if (id >= 0 && target.HasPointerCapture(id)) target.ReleasePointer(id); }
             internal void Cancel()
             {
+                owner.CancelVectorMaskRebuild();
                 ReleasePointer(); CancelBrush(); candidate = original = null; pen = null; activePoint = null; marquee = false;
                 document = null; layer = null; behaviour = null; overlay.MarkDirtyRepaint();
             }

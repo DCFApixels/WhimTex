@@ -1,0 +1,20 @@
+#pragma kernel Commit
+
+// The qualifier must match the ARGBHalf surface on every graphics backend.
+RWTexture2D<half4> _BrushSurface;
+float4 _BrushCommitRect, _BrushSurfaceSize;
+float _HdrBlend;
+#define WHIMTEX_BRUSH_COMPUTE
+#include "BrushComposite.cginc"
+
+[numthreads(8, 8, 1)]
+void Commit(uint3 thread : SV_DispatchThreadID)
+{
+    if (any(thread.xy >= (uint2)_BrushCommitRect.zw)) return;
+    uint2 pixel = (uint2)_BrushCommitRect.xy + thread.xy;
+    float2 uv = (pixel + .5) * _BrushSurfaceSize.zw;
+    // One invocation owns one texel. No neighboring writes, filtering of the base,
+    // atomics or inter-thread synchronization are needed for this final blend.
+    float4 before = _BrushSurface[pixel];
+    _BrushSurface[pixel] = CompositePendingBrush(before, uv);
+}

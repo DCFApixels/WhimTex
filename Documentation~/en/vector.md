@@ -107,10 +107,33 @@ Changing **Width** scales dashes and gaps together without changing Pattern valu
 If caps close the gaps, increase **Gap** to separate them. **Dash Offset** shifts
 the pattern along the contour in pixels. Lengths are not automatically fitted to corners.
 
-## Adjust the last brush figure
+## Adjust a brush figure
 
-**Vector Brush** fits editable closed cubic Bezier curves to the painted mask when you
-release the pointer. In **Last Stroke — Original Mask**, lower **Tolerance (px)**
+**Vector Brush** starts a figure with the first left stroke. Further left strokes add to
+that figure; right strokes erase, including holes. Red marks preview the erased area;
+release the pointer to rebuild the closed cubic Bezier curves. **Enter** or **Finish Editing**
+ends the figure, keeping its mask. The next left stroke starts a new layer.
+Rebuilding runs in the background, including changes to **Tolerance** and **Expand**.
+While **Rebuilding mask…** is shown, wait before the next stroke or saving; the stroke
+preview remains visible. **Escape**, **Cancel**, or **Cancel Rebuild** discards the pending
+result, keeping the previous figure. Changing layer/tool or using Undo also cancels it.
+Finishing editing during rebuilding finishes the figure after the result is applied.
+To resume an older figure, select its layer and press **Edit Mask** in the toolbar or
+**Original Mask**. Figures without a retained mask are not rasterized automatically.
+**Escape** cancels only the current stroke. **Shape** selects Circle, Square or Diamond, as in Pencil;
+the cursor follows the tip shape, **Size**, canvas zoom and rotation.
+On a manually scaled or deformed figure, the tip still follows the mask's local
+pixel metric while the cursor uses canvas pixels, so their footprints can differ.
+Hold **Shift** while dragging to lock a horizontal or vertical line on screen;
+release it to continue freehand. **Shift-click** connects to the previous stroke's
+endpoint within the active figure, with the same paint/erase action. Finishing or changing the figure resets this connection.
+Shift lines take priority over guide snapping. Shape changes apply to the next stroke.
+Drag the **Size** label or use `[` / `]` to resize the brush (1–2048 px), with the same
+shortcut steps as the raster brush. The field and cursor update immediately, including
+during a stroke. Toolbar **Fill** and **Tolerance** set defaults for new figures;
+an edited figure keeps its own appearance and Original Mask settings.
+There are no Hardness, Flow or raster-blending controls.
+In **Original Mask**, lower **Tolerance (px)**
 (0.25..64 reference pixels) to follow the mask more closely; higher values usually give
 fewer anchors and simpler curves. Narrow features and holes can require more anchors
 than this setting suggests. Positive **Expand (px)** (-256..256) grows the figure; negative values
@@ -118,10 +141,19 @@ shrink it. These adjustments rebuild from the original mask, so repeated changes
 do not accumulate fitting error. Numeric edits apply when you confirm them.
 
 Each brush figure retains its mask after saving and reopening TIFF or JSON. The next
-brush stroke creates a separate layer; the previous figure keeps its mask. Manually editing
-that figure clears its mask. **Release Mask** also discards this adjustment source
+brush stroke stays in the active figure until you finish editing. Manually editing
+its nodes clears its mask. **Release Mask** also discards this adjustment source
 while keeping the vector figure. The mask is scaled down from the reference size
-to at most 1024 pixels on its longest edge, so a large image's finest detail may not survive brush conversion. Complex strokes can reach
+to at most 1024 pixels on its longest edge, so a large image's finest detail may not survive brush conversion.
+Further strokes grow the mask without resampling existing pixels. If it would exceed
+1024 × 1024 pixels, the stroke is rejected; finish the figure and start another.
+Painting and erasing are clipped to the document canvas, including on transformed
+figures. The pointer can leave the canvas and return; only the overlapping part of
+the brush is applied, without clamping its center to the edge. Existing mask content
+outside the canvas is retained. Outside-only contributions do not grow the buffer
+or trigger a rebuild. New masks allocate only the touched region, and empty borders
+are removed on completion without resampling.
+Expand remains a procedural offset over the whole edited source mask. Complex strokes can reach
 a reported geometry or work limit.
 
 ## Convert a Shape
@@ -143,13 +175,42 @@ cusps or overlapping end caps. Set Feather to zero, adjust the indicated style, 
 keep the original Shape. Curves use cubic approximations; edge antialiasing may differ.
 See the [data contract](../JSON_FORMAT.md#vector-layers) for exact storage and API fields.
 
+## Convert Text
+
+Select a Text layer and choose **Convert to Vector**. The letters become one editable
+figure with separate contours and holes. The current line layout, alignment, spacing,
+Horizontal Scale, Layout Offset and Frame Clip/Ellipsis are preserved, along with the
+layer's placement and FX. You can then reshape letters with the node tools.
+As with Shape, conversion changes **Clip** tiling to **Unbounded** and fits the figure
+frame. Local coordinates and transform values may change together while preserving
+canvas placement. Text's Frame Clip is applied before this fitting step.
+
+Conversion uses the font's original curves. It does not trace the rendered text;
+Hinted AA/Pixel grid fitting is not retained, so edges may look slightly different.
+Glyphs cut by Frame Clip may use a fine straight-segment approximation at the cut.
+The wording and font are no longer editable as Text. Duplicate the layer first if
+you want to keep that option; the resulting Vector no longer needs the source font.
+
+The source font must be available and contain supported outlines. TTF, OTF with CFF
+outlines and TTC faces are supported; variable axes, color and bitmap fonts are not.
+Synthetic italic is supported. Bold needs a real bold face: synthetic bold reports an
+error. Missing or unsupported outlines leave the original Text unchanged; a saved
+raster backup cannot be converted this way.
+
 ## Combine figures without merging them
 
-**Boolean Group** combines the geometry of its Shape, Vector and nested Boolean Group
+**Boolean Group** combines the geometry of its Shape, Vector, Text and nested Boolean Group
 children, then gives the result one common fill and stroke. Each child stays editable
 and can be moved independently; moving the group moves the whole construction.
 Select figures in the same parent, open their context menu, then choose
 **Boolean Group → Combine**, **Union**, **Subtract**, **Intersect** or **Xor**.
+
+Text can go straight into the group and remain editable. For a text cutout, place Text
+above the base figure and choose **Subtract** for that child. Edit the wording or font
+in **Properties (Text)** to update the cutout. The group uses the same original font
+outlines and font restrictions as [Text conversion](#convert-text), including Frame
+Clip/Ellipsis. Keep the font available when reopening the document; its raster backup
+cannot supply the group's geometry.
 
 To change an existing group, use the five **Mode** icon buttons in its Properties.
 The filled area in each icon shows the result of combining two shapes. A button

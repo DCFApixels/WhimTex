@@ -66,6 +66,7 @@ namespace DCFApixels.WhimTex
             }
             var shape = vector.shapes[0];
             shape.gradientStart = Map(shape.gradientStart); shape.gradientEnd = Map(shape.gradientEnd);
+            shape.strokeGradientStart = Map(shape.strokeGradientStart); shape.strokeGradientEnd = Map(shape.strokeGradientEnd);
             if (vector.brushDraft != null)
             {
                 var r = vector.brushDraft.frame;

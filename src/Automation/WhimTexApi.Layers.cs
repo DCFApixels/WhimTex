@@ -41,9 +41,9 @@ namespace DCFApixels.WhimTex
                 }
                 List<Layer> container = Container(document, Text(operation, "parent"), aliases);
                 int index = Int(operation, "index", 0, 0, container.Count);
-                Require(document.CanInsertInto(added, container), "Boolean Group accepts only closed Shape/Vector geometry and nested Boolean Groups.");
+                Require(document.CanInsertInto(added, container), "Boolean Group accepts only closed Shape/Vector geometry, editable Text and nested Boolean Groups.");
                 if (operation["settings"] != null) SetLayer(document, added, Obj(operation["settings"], "settings"));
-                Require(document.CanInsertInto(added, container), "Boolean Group operands require closed contours; close open paths before insertion.");
+                Require(document.CanInsertInto(added, container), "Boolean Group operands require closed Shape/Vector geometry, editable Text or nested Boolean Groups; close open paths before insertion.");
                 added.AssignNewId();
                 if (operation["settings"]?["name"] == null) added.layerName = document.AllocateLayerName(added);
                 container.Insert(index, added);
@@ -67,8 +67,17 @@ namespace DCFApixels.WhimTex
             {
                 case "convertToVector":
                     Keys(operation, "op", "layer");
-                    Require(layer.Behaviour is ShapeLayerBehaviour, "convertToVector requires a Shape layer.");
-                    layer.SetBehaviour(ShapeToVector.Convert((ShapeLayerBehaviour)layer.Behaviour, document));
+                    Require(layer.Behaviour is ShapeLayerBehaviour || layer.Behaviour is TextLayerBehaviour,
+                        "convertToVector requires a Shape or Text layer.");
+                    if (layer.Behaviour is TextLayerBehaviour textSource)
+                    {
+                        // Prepare every glyph before replacing the source, including Frame overflow clipping.
+                        layer.SetBehaviour(TextToVector.Convert(textSource, document));
+                    }
+                    else
+                    {
+                        layer.SetBehaviour(ShapeToVector.Convert((ShapeLayerBehaviour)layer.Behaviour, document));
+                    }
                     if (layer.transform.tiling == TransformTilingMode.Clip)
                         layer.transform.tiling = TransformTilingMode.Unbounded;
                     VectorLayerStructure.FitFrame(layer, document.width, document.height);
@@ -121,7 +130,7 @@ namespace DCFApixels.WhimTex
                     List<Layer> destination = Container(document, Text(operation, "parent"), aliases);
                     if (layer?.AsGroup() is Layer movingGroup)
                         Require(!ContainsContainer(movingGroup, destination), "A group cannot be moved into itself or its descendants.");
-                    Require(document.CanInsertInto(layer, destination), "Boolean Group accepts only closed Shape/Vector geometry and nested Boolean Groups.");
+                    Require(document.CanInsertInto(layer, destination), "Boolean Group accepts only closed Shape/Vector geometry, editable Text and nested Boolean Groups.");
                     Require(document.TryFindLayer(layer, out List<Layer> source, out int sourceIndex), "Layer not found.");
                     int destinationIndex = Int(operation, "index", 0, 0, destination.Count - (ReferenceEquals(source, destination) ? 1 : 0));
                     document.PreserveTransformForMove(layer, destination);
