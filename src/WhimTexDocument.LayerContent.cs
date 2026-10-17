@@ -23,6 +23,17 @@ namespace DCFApixels.WhimTex
 
         internal void RefreshLayerContentStructure() => layerContent?.RefreshStructure();
 
+        private void OfferLayerContent(Layer layer, RenderTexture rendered, bool applyTransform, float scale)
+        {
+            if (layerContent == null || interactiveEffects || scale != 1f ||
+                layer.IsGroup || layer.Behaviour is ShaderProcessorLayerBehaviour || layer.Behaviour is TargetedLayerBehaviour)
+                return;
+            if (applyTransform && (!layer.RenderTransform.ToMatrix(width, height).Equals(ProjectiveMatrix.Identity) ||
+                !layer.CanvasTransform.ToMatrix(width, height).Equals(ProjectiveMatrix.Identity) ||
+                layer.Behaviour is DrawingLayerBehaviour drawing && drawing.HasBakedFxFrame)) return;
+            layerContent.AcceptRendered(layer, rendered);
+        }
+
         internal void GetLayerContentSize(Layer layer, out int w, out int h)
         {
             Texture source = layer.SamplingSource;

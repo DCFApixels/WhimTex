@@ -266,6 +266,9 @@ namespace DCFApixels.WhimTex
 
         private void ResetAdvancedStroke(bool withBackdrop, bool pressureOpacity = false)
         {
+            brushPreviewValid = false;
+            brushPreviewTiles ??= new PaintTileSet();
+            brushPreviewTiles.Reset(advancedStroke.width, advancedStroke.height);
             brushDirtyBounds = default;
             brushDirtyTiles ??= new PaintTileSet();
             brushDirtyTiles.Reset(advancedStroke.width, advancedStroke.height);
@@ -284,6 +287,8 @@ namespace DCFApixels.WhimTex
         private void EnsureAdvancedStroke(RenderTexture surface, bool withBackdrop = false, bool pressureOpacity = false)
         {
             if (advancedStroke != null) return;
+            using var profile = WhimTexProfiler.Measure("brush.allocate_stroke", layer: Owner);
+            using var gpu = profile.Gpu();
             var previous = RenderTexture.active;
             try
             {
@@ -352,11 +357,19 @@ namespace DCFApixels.WhimTex
                     if (CommitPixelHistory(material)) { ReleaseAdvancedStroke(); return; }
                     if (brushDirtyTiles != null && brushDirtyTiles.Count > 0)
                     {
-                        for (int i = 0; i < brushDirtyTiles.Count; i++) CommitBrushTile(material, brushDirtyTiles[i]);
+                        if (!BrushStrokeCompute.TryCommitTiles(paintSurface, brushDirtyTiles.ToArray(), material,
+                            advancedStroke, brushCompositeParameters.SelectionMask, pixels, alphaCoverage))
+                        {
+                            InvalidateAlphaCoverage();
+                            for (int i = 0; i < brushDirtyTiles.Count; i++) CommitBrushTile(material, brushDirtyTiles[i]);
+                        }
                     }
-                    else if (!BrushStrokeCompute.TryCommit(paintSurface, brushDirtyBounds, material,
-                        advancedStroke, brushCompositeParameters.SelectionMask, pixels))
+                    else
                     {
+                        InvalidateAlphaCoverage();
+                        if (BrushStrokeCompute.TryCommit(paintSurface, brushDirtyBounds, material,
+                            advancedStroke, brushCompositeParameters.SelectionMask, pixels))
+                        { ReleaseAdvancedStroke(); return; }
                         // Portable raster fallback reuses one bounded tile, up to 8 MiB.
                         result = HdrUtility.Temporary(Mathf.Min(BrushCompositeTileSize, brushDirtyBounds.width),
                             Mathf.Min(BrushCompositeTileSize, brushDirtyBounds.height));
@@ -387,6 +400,7 @@ namespace DCFApixels.WhimTex
 
         private void ReleaseAdvancedStroke()
         {
+            ReleaseBrushPreview();
             ClearFirstBrush();
             if (advancedStroke != null) ProfiledRenderTexture.ReleaseTemporary(advancedStroke);
             advancedStroke = null;
@@ -399,6 +413,7 @@ namespace DCFApixels.WhimTex
         {
             if (uv.width <= 0f || uv.height <= 0f || advancedStroke == null) return;
             brushDirtyTiles?.Union(PaintBrushRenderer.DrawTiles);
+            brushPreviewTiles?.Union(PaintBrushRenderer.DrawTiles);
             // One source texel guards bilinear sampling and rasterization at a quad boundary.
             int x = Mathf.Max(0, Mathf.FloorToInt(uv.xMin * advancedStroke.width) - 1);
             int y = Mathf.Max(0, Mathf.FloorToInt(uv.yMin * advancedStroke.height) - 1);

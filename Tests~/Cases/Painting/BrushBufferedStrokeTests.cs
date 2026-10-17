@@ -27,6 +27,12 @@ public static class BrushBufferedStrokeTests
             Object.DestroyImmediate(surface); surface = raster;
         }
         if (requireCompute && !surface.enableRandomWrite) throw new InvalidOperationException("Compute path was not enabled.");
+        if (requireCompute)
+        {
+            var args = new object[] { width, height, null };
+            if (!(bool)Call(layer, "TryGetAlphaContentState", args))
+                throw new InvalidOperationException("Tracked compute coverage was not enabled.");
+        }
         return surface;
     }
     static object Call(object target, string method, params object[] args) => target.GetType().GetMethod(method, F).Invoke(target, args);
@@ -67,6 +73,8 @@ public static class BrushBufferedStrokeTests
         { for (int i = 0; i < count; i++) Call(Layer, "PaintPoint", Center, Size, Size, parameters); }
         public Color[] Live()
         {
+            if (Get(Layer, "advancedStroke") != null)
+                return Read((RenderTexture)Call(Layer, "GetBrushPreviewSurface"));
             var rt = RenderTexture.GetTemporary(Size, Size, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
             try { Call(Layer, "BlitStraightSurface", rt, 1f); return Read(rt); }
             finally { RenderTexture.ReleaseTemporary(rt); }

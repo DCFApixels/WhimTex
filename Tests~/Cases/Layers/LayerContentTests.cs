@@ -103,7 +103,7 @@ public static class LayerContentTests
                             " unavailable=" + typeof(ShaderFX).GetProperty("IsUnavailable", instance).GetValue(effect) +
                             " time=" + typeof(ShaderFX).GetProperty("UsesUnityTimeInputs", instance).GetValue(effect);
                 object cache = typeof(WhimTexDocument).GetField("layerContent", instance).GetValue(document);
-                foreach (string field in new[] { "updating", "deferUntil", "disposed" })
+                foreach (string field in new[] { "updating", "disposed" })
                     diagnostic += " cache." + field + "=" + cache.GetType().GetField(field, instance).GetValue(cache);
                 diagnostic += " now=" + EditorApplication.timeSinceStartup;
                 object pendingEntry = cache.GetType().GetField("pending", instance).GetValue(cache);
@@ -192,6 +192,38 @@ public static class LayerContentTests
         await Icon(fxClearLayer, true, "Cleared by FX");
         await Expect(fxOpaqueLayer, "Present", "FX can make transparent source content Present");
         await Icon(fxOpaqueLayer, false, "Made opaque by FX");
+
+        // A requested content check may borrow an already required exact FX render.
+        typeof(WhimTexDocument).GetMethod("ReleaseLayerContent", instance).Invoke(document, null);
+        context.Equal("Unknown", State(fxClearLayer), "Changed FX content starts asynchronous detection");
+        object reuseCache = typeof(WhimTexDocument).GetField("layerContent", instance).GetValue(document);
+        object Pending() => reuseCache.GetType().GetField("pending", instance).GetValue(reuseCache);
+        RenderTexture RenderContent(int w, int h) => (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderLayerContent", instance)
+            .Invoke(document, new object[] { fxClearLayer, w, h, null });
+        var miniature = RenderContent(8, 8); RenderTexture.ReleaseTemporary(miniature);
+        context.True(Pending() == null, "Reduced preview cannot establish exact alpha presence");
+        var exactContent = RenderContent(16, 16); RenderTexture.ReleaseTemporary(exactContent);
+        var reuseEntries = (System.Collections.IDictionary)reuseCache.GetType().GetField("entries", instance).GetValue(reuseCache);
+        object reuseEntry = reuseEntries[fxClearLayer];
+        context.True(Pending() == reuseEntry || (bool)reuseEntry.GetType().GetField("ready", instance).GetValue(reuseEntry),
+            "Full-size finished FX output starts detection before the fallback render queue runs");
+        await Expect(fxClearLayer, "Empty", "Borrowed full-size FX result retains the correct alpha answer");
+        typeof(WhimTexDocument).GetMethod("ReleaseLayerContent", instance).Invoke(document, null);
+        await Expect(drawing, "Empty", "Drawing begins with confirmed block coverage");
+        drawing.fx.Add(opaqueFx); Changed();
+        var drawingOutput = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderLayerContent", instance)
+            .Invoke(document, new object[] { drawing, 65, 33, null });
+        RenderTexture.ReleaseTemporary(drawingOutput);
+        reuseCache = typeof(WhimTexDocument).GetField("layerContent", instance).GetValue(document);
+        reuseEntries = (System.Collections.IDictionary)reuseCache.GetType().GetField("entries", instance).GetValue(reuseCache);
+        reuseEntry = reuseEntries[drawing];
+        context.True(Pending() == reuseEntry || (bool)reuseEntry.GetType().GetField("ready", instance).GetValue(reuseEntry) &&
+            reuseEntry.GetType().GetField("state", instance).GetValue(reuseEntry).ToString() == "Present",
+            "Enabling FX offers its ready output before the next icon poll switches away from block coverage");
+        await Expect(drawing, "Present", "Enabled FX can create alpha over an empty Drawing");
+        drawing.fx.Remove(opaqueFx); Changed();
+        await Expect(drawing, "Empty", "Removing FX returns to the unchanged block map");
+        await Expect(clearColor, "Empty", "Recreated cache confirms the independent transparent layer before deferral");
 
         opaqueColor.opacity = 0f; opaqueColor.enabled = false; Changed();
         context.Equal("Empty", State(clearColor, true),

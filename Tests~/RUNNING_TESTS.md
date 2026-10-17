@@ -15,15 +15,103 @@ profiler, and ReadScreenPixel on test-created windows. It does not authorize oth
 
 ## Inspect and select
 
+`brush-preview-cache` compares incremental live conversion against full-source conversion on
+non-square, non-power-of-two images across disjoint dabs and partial edge tiles. It covers
+nearly transparent paint, HDR, soft/mutable selection, stamp blending, erasure, channel locks,
+wrapping, parameter changes, provisional reset and commit/cancel ownership. The existing
+`brush-compute-correctness` profile also exercises the cached preview across all blend modes,
+analytic checks, a frozen shader reference and document consumers, with compute and raster commits.
+
+`brush-live-512-81-ui-current`, `brush-live-8192-81-ui-current` and
+`brush-live-8192-2048-ui-current` diagnose movement **during** an ordinary stroke.
+They own one detached document and temporary WhimTex window, submit all 360 points of a
+near-full-canvas curve in order, and use a 60 Hz input target / 30 Hz canvas-update ceiling.
+The explicit brush snapshot is hardness 0, spacing 0.225, flow/opacity 1, no pressure;
+it does not read or overwrite saved brush preferences. Other controls use hardness 0.65,
+spacing 0.15 and flow 0.35. Half storage and production commit-compute support are unchanged.
+No stroke finalization, Undo extraction or full-size readback occurs inside the measured region.
+The final proof image reads only a 512px preview after timing. Every window is closed on cleanup;
+running an owned window still requires the user's permission where computer-control restrictions apply.
+
+Controls include `brush-live-8192-81-full` (simple preview window), `-ui-stamps` (input/stamps
+without preview updates), `-ui-direct` (direct document rendering), `-ui-raw` (direct segment input),
+`-ui-convert` (persistent conversion target), `-ui-copy` (plain copy instead of preview assembly),
+`-ui-unprofiled`, `-ui-warm` (15-second opening warm-up), `-ui-hidden`, `-ui-clear`, and `-ui-nouav`
+(only the owned zero-filled control surface omits UAV support). These are diagnostic isolations,
+not alternative production algorithms or visual-equivalence tests. `brush-live-state`
+only reads open-document/brush metadata. Reports, raw captures and bounded PNGs live under
+`Temp/WhimTex/brush-live-trace`; an existing stopped WhimTex capture is saved before replacement.
+
+`brush-live-8192-81-ui-native` additionally uses documented native Editor profiler APIs, preserves
+an existing stopped native capture, and restores CPU-recording settings. It records bounded
+main/render-thread samples of at least 1 ms; this selection is not a complete call tree, and
+inclusive entries overlap. Native capture changes overhead, so compare with the unprofiled control.
+GPU samples are continuously drained per-Unity-frame totals with invocation counts; do not interpret
+them as pure shader execution, sum nested intervals, or equate update cadence with presented FPS.
+Editor idle throttling and Pipeline poll/compile pauses are included in raw intervals. In the
+2026-10-17 D3D12 run, native samples identified roughly 98 ms `Application.Idle` periods and
+264–540 ms Pipeline dispatch pauses; neither measures brush computation. Only native frame data
+was used to classify those waits: optional raw native-marker recorder arrays can contain unavailable
+or invalid cross-thread samples. The 8K display path and `WaitForLastPresentation` remain distinct
+from the cheap CPU stamp path. Backend/driver causes of variable large-texture intervals are not
+resolved by these tests. An in-stroke diagnostic PASS means the owned workload and cleanup completed,
+not that frame-rate targets were achieved or a performance regression was fixed.
+
+`brush-live-512-81-ui-post` and `brush-live-8192-81-ui-post` extend that fixture with
+production finalization of the first stroke, then start a second after 100 ms. The second
+stroke is cancelled after timing. `-ui-post-wait` waits for the first history transfer/writer
+to finish before starting the second; it is a diagnostic control, not a production throttle.
+The 8K `-ui-post-native` / `-ui-post-wait-native` variants retain public native CPU frames
+of at least 8 ms through both strokes. `-ui-post-wait-noempty-native` additionally disposes
+only the fixture's empty-layer detector before timing; user documents retain normal detection.
+All post-stroke controls clear Undo only on their owned objects and drain their transfers before
+destroying them. They require the same window permission and exclude any active user stroke.
+
+Reports include transfer/staging/write queues, ordered frame timestamps, process CPU totals,
+GC counts, and completed page worker timings. Working set is null when the runtime cannot report
+it; allocated graphics bytes are not physical VRAM residency. Encoding time includes stream writes,
+not just compression; overlapping workers must not be summed into elapsed UI latency.
+On 2026-10-17, the 8K/81px curve touched 346 blocks: 435 MiB of GPU readback, 519 MiB of raw
+history and about 28 MiB of files. Measured commit return was 619–842 ms, including nine staging
+capacity waits. Native data identified a 230 ms readback-resource allocation during the second
+stroke. Waiting for history alone did not eliminate the delay: the fixture performed five
+full-resolution empty-layer checks, with 153–180 ms forced readback waits and a 1187 ms
+presentation wait near second-stroke start. The single no-detector control reduced the observed
+history tail from 3.82 s to 1.24 s and had no >20 ms presentation wait in the first 30 inputs of
+the second stroke. These describe the diagnostic baseline before block alpha coverage.
+
+After block alpha coverage and persistent stroke deferral were implemented, the same wait-history
+control performed no full empty-content renders or forced readback waits: one map initialization
+took 1.85 ms of measured GPU time. History tail was 1.14 s versus the earlier 3.82 s; commit return
+was 613 ms. A separate immediate-second-stroke run started with 13 pending pages after 129 ms,
+returned from commit in 684 ms and finished history 1.53 s later. No presentation wait above 20 ms
+was observed in its first 30 second-stroke inputs. Both PNG previews were byte-identical to the
+baseline. The wait-history run still had presentation waits up to 380 ms, and Pipeline polling/idle
+pauses remain separate. These are individual 2026-10-17 RTX 5060/D3D12 observations, not a claim
+that all 8K stalls or all backends are fixed.
+
+`brush-alpha-coverage` compares each block flag and Empty/Present answer with independently rendered
+full-resolution alpha on an odd 513 × 257 image. It covers separated occupied blocks, erasing the
+last block, zero/soft selection, cancellation, clear/source replacement, Half cutoff boundaries,
+non-finite alpha cleanup, repeated near-transparent strokes and storage-only dirty notifications.
+`brush-buffered-compute-v1` initializes tracking before its blend/mask/HDR/reference comparisons;
+the raster variant retains the unsupported-surface path. `layer-content-state-v1` additionally
+checks reuse of exact FX output and rejection of reduced previews. `alpha-presence-v1` checks
+asynchronous completion while idle, cancellation and resource ownership. The detector submits
+pending GPU work through public `GL.Flush` without waiting for completion.
+
 `paint-tile-history-small` uses detached documents to check sparse coverage, queued low-flow strokes,
 exact Half/storage Undo/Redo, disk-only restoration, mixed native/model Undo, history branching,
 surface reconstruction, non-power-of-two edge blocks and unchanged hidden RGB. It checks the same
 sync boundary as Save and a TIFF container roundtrip in Temp, without importing an asset.
+Coverage tracking is enabled; Undo/Redo must restore the correct Empty/Present answer as well.
 `paint-tile-history-8k-small`, `paint-tile-history-8k-large`, `paint-tile-history-8k-frame` and
 `paint-tile-history-8k-frame-hdr` each own one 8K document. They check fractional selection and
 opacity, HDR where applicable, precise bounded Undo/Redo probes, and report transferred bytes and
 wall timings under `Temp/WhimTex/paint-tile-history`. Run large cases separately. The only full-size
 upload is fixture initialization; subsequent uploads/readbacks are bounded pages or tiles.
+The HDR perimeter case passed again with tracked alpha coverage, fractional selection and exact
+Half Undo/Redo; the ring still touched 124 of 1024 blocks.
 These cases require `temp-files,user-state` for their owned files and Undo objects; no windows/input.
 
 `paint-tile-history-raw` adds full-image exact SDR/HDR checks on detailed 513px sources, including

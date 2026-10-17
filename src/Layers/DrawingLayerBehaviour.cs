@@ -169,6 +169,11 @@ namespace DCFApixels.WhimTex
             // This is an owned transient surface, never the imported source texture.
             surface.filterMode = ResolveFilterMode();
 
+            // During a stroke, reuse the source-resolution conversion and refresh only
+            // new damage. Transform/FX still receive the complete, exact source image.
+            if (advancedStroke != null)
+                return ApplyTransformAndFx(GetBrushPreviewSurface(), context);
+
             // Unpremultiply at source resolution. Resampling to the output size before
             // the transform loses details that a magnified/cropped layer still needs.
             RenderTexture straight = ProfiledRenderTexture.GetTemporary(
@@ -429,10 +434,13 @@ namespace DCFApixels.WhimTex
 
             segmentStamps ??= new List<PaintStamp>(256);
             segmentStamps.Clear();
-            if (parameters.PixelPerfect)
-                BuildPencilSegment(fromSourceUv, toSourceUv, outputWidth, outputHeight, includeStart, parameters, steps);
-            else BuildBrushSegment(fromSourceUv, toSourceUv, outputWidth, outputHeight, includeStart, parameters,
-                distance, brushBudget);
+            using (WhimTexProfiler.Measure("brush.build_stamps", layer: Owner))
+            {
+                if (parameters.PixelPerfect)
+                    BuildPencilSegment(fromSourceUv, toSourceUv, outputWidth, outputHeight, includeStart, parameters, steps);
+                else BuildBrushSegment(fromSourceUv, toSourceUv, outputWidth, outputHeight, includeStart, parameters,
+                    distance, brushBudget);
+            }
 
             BrushDynamics dynamics = parameters.Dynamics;
             bool stampBlend = dynamics != null && dynamics.BlendsEachStamp(parameters.Erase);
@@ -458,7 +466,9 @@ namespace DCFApixels.WhimTex
             paintSurfaceDirty = true;
             if (stamps.Count > 0)
             {
+                if (brushPreviewRevision != paintSurfaceRevision) brushPreviewValid = false;
                 unchecked { paintSurfaceRevision++; }
+                brushPreviewRevision = paintSurfaceRevision;
             }
             PaintBrushRenderer.Draw(
                 advancedStroke,
@@ -479,6 +489,7 @@ namespace DCFApixels.WhimTex
                 false, null, dynamics, parameters.StandardColorInputs,
                 stampBlend, blendRange == LayerBlendRange.HDR, strokeBase: paintSurface);
             IncludeBrushBounds(PaintBrushRenderer.DrawBounds);
+            WhimTexProfiler.Event("brush.dirty_bounds_pixels", "counter", value: (double)brushDirtyBounds.width * brushDirtyBounds.height);
         }
 
         private void BuildPencilSegment(Vector2 from, Vector2 to, int width, int height,
@@ -529,6 +540,8 @@ namespace DCFApixels.WhimTex
 
         internal void ClearSurface(int width, int height)
         {
+            InvalidateAlphaCoverage();
+            unchecked { paintSurfaceRevision++; }
             ReleaseAdvancedStroke();
             RenderTexture surface = EnsurePaintSurface(width, height);
             if (surface == null)
@@ -613,11 +626,14 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private void BlitStraightSurface(RenderTexture target, float mode)
+        private void BlitStraightSurface(RenderTexture target, float mode) => ConvertStraightSurface(target, mode, null);
+
+        private void ConvertStraightSurface(RenderTexture target, float mode, PaintTileSet tiles)
         {
             Material conversion = WhimTexMaterials.AlphaConversion;
             using var profile = WhimTexProfiler.Measure("layer.drawing_convert", layer: Owner);
             using var gpu = profile.Gpu();
+            WhimTexProfiler.Event("layer.drawing_convert_pixels", "counter", value: tiles != null ? tiles.PixelCount : (double)target.width * target.height);
             if (conversion == null || !conversion.shader.isSupported)
                 throw new InvalidOperationException("Drawing source conversion shader is unavailable.");
             var previous = RenderTexture.active;
@@ -629,13 +645,19 @@ namespace DCFApixels.WhimTex
                 conversion.SetFloat("_StraightFallback", (hasBakedPixelFrame || preserveStraightPaintRgb) && pixels != null ? HdrUtility.IsHdr(pixels) ? 1f : 2f : 0f);
                 conversion.SetTexture("_OriginalStraight", pixels);
                 ConfigureBrushComposite(conversion);
-                Graphics.Blit(paintSurface, target, conversion);
+                using (var blit = WhimTexProfiler.Measure("layer.drawing_convert_blit", layer: Owner))
+                using (blit.Gpu())
+                {
+                    if (tiles == null) Graphics.Blit(paintSurface, target, conversion);
+                    else DrawBrushPreviewTiles(target, conversion, tiles);
+                }
             }
             finally
             {
                 ClearBrushComposite(conversion);
                 conversion.SetFloat("_StraightFallback", 0f);
                 conversion.SetTexture("_OriginalStraight", null);
+                conversion.SetTexture("_MainTex", null);
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
             }
@@ -1119,6 +1141,8 @@ namespace DCFApixels.WhimTex
 
         private void ReleasePaintSurface()
         {
+            alphaCoverage?.Dispose(); alphaCoverage = null;
+            unchecked { paintSurfaceRevision++; }
             PaintTileTransfer.Drain();
             partialStorageCurrent = false;
             pixelUndoLabel = null;

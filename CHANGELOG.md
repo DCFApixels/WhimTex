@@ -40,6 +40,7 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Empty-layer detection tracks Drawing alpha in small GPU block metadata, updated during compute stroke assembly and block Undo/Redo. CPU history synchronization no longer triggers redundant checks. Exact finished FX renders can supply detection directly; reduced or transformed previews retain the intrinsic-content fallback. Background detection no longer forces timed GPU waits, while preserving masks, Half precision and existing empty-icon semantics.
 - Broad brush strokes and pixel Undo use reusable buffers and direct native readback. History uses single-pass restoration with integrity checks and skips costly compression for detailed pages; those pages use more disk space while preserving exact Half and stored pixels.
 - Brush/Pencil completion queues immutable GPU snapshots while CPU synchronization and journal writes finish. Editor updates process small portions in revision order; bounded staging applies backpressure when full, and Undo/save still synchronize pending work. Synthetic completion timings improved, but real 8K drawing has a reported severe responsiveness regression with angular strokes. This remains unresolved; the measurements do not establish an interactive performance improvement.
 
@@ -65,6 +66,7 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Buffered Brush/Pencil preview refreshes only source blocks changed since its previous display, preserving Half precision, selection, blend and HDR. Inputs without new paint retain spacing/pressure progression without requesting a redundant canvas composition. The straight preview target is retained for the stroke and released on commit/cancel; FX processing is unchanged.
 - Selecting a gradient-filled Shape or Vector no longer automatically activates Gradient Handles. An explicitly active handles tool stays available across supported figures; Gradient layers keep automatic activation except during Gradient creation, Crop or Comment.
 - Vector Brush cursor overlays remain visible without raster brush settings, including after canvas refresh and during mask drawing/erasing.
 - Soft selections retain their edge coverage across repeated Brush/Pencil stamps within one stroke. All strokes now accumulate separately from the immutable paint source and apply selection during assembly, sharing the same live and committed result across blend modes, opacity and HDR.

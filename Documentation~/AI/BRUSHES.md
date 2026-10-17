@@ -120,14 +120,39 @@ Commit uses the same assembly function. Standard painting remains bounded; HDR k
 above-one RGB through accumulation and storage. Blur/Smudge retain their separate retouching paths.
 
 The immutable `paintSurface` and full-resolution stroke buffer remain separate. Submitted stamp
-geometry determines conservative source-pixel bounds, with a one-texel guard. Live conversion
-still covers the requested source image, but skips stroke assembly outside those bounds.
+geometry determines conservative source-pixel bounds, with a one-texel guard. During a buffered
+stroke, live rendering retains the source-resolution Half straight image. A separate set of
+256 × 256 damage tiles accumulates since its last refresh; each update draws those tiles in
+one submission from the immutable base plus the current stroke. Previously converted pixels
+are reused, never blended again. First use, a provisional-stroke reset or changed composite
+settings/mask requires full conversion. The target is released on commit/cancel. At 8K it keeps
+the 512 MiB target allocated for the stroke instead of borrowing it for each render;
+this reduces conversion traffic, not source/stroke memory. FX processing remains unchanged.
+Input points still advance in order; segments producing no paint do not request another canvas
+composition, and multiple pending requests remain coalesced.
 Commit visits distinct 256 × 256 source blocks touched by stamp geometry, clipped to the stamp
 bounds. A perimeter stroke does not include its empty center. On devices with a supported compute kernel and
 RGBAHalf LoadStore access, it reads and replaces each source texel in place, without commit
 scratch. Each invocation owns one pixel; accumulation and preview still use the raster path.
 The compute kernel and raster shaders share `BrushComposite.cginc`, including signed HDR,
 selection, opacity, blend and channel protection. Dispatch stays on the graphics queue.
+
+Empty-content detection for an ordinary Drawing with unchanged alpha mapping keeps one uint
+per 256 × 256 source block (4 KiB of metadata at 8192²). It initializes lazily from the Half
+surface once; subsequent compute commits clear and recompute only touched blocks while assembling
+the stroke. The test follows Half quantization and the existing straight-conversion/HDR cleanup,
+so it describes rendered content rather than raw storage bits. Undo/Redo refresh restored blocks;
+source replacement and retouching paths invalidate the map for a fresh initialization. The map
+is transient, does not change pixels or history payloads, and has no full-size texture of its own.
+Only this small buffer is read asynchronously. Pending or stale results are Unknown, never an
+assumed empty layer. CPU journal-page synchronization does not invalidate the authoritative Half
+image. Queries remain deferred throughout an active stroke, with no timed forced GPU wait.
+
+With FX, alpha remapping or unsupported coverage compute, the badge uses finished layer output.
+An already required full-resolution render can supply that output before clipping, without another
+FX render. Reduced previews, transformed or interactive approximations cannot substitute for exact
+intrinsic content; those cases retain the existing full-resolution fallback. Own layer Opacity and
+visibility remain excluded, while FX and alpha mapping remain included.
 
 Unsupported devices, unavailable kernels, failed UAV allocation and existing non-UAV paint
 surfaces retain the raster path: one 256 × 256 RGBAHalf scratch block (0.5 MiB) for tracked strokes,

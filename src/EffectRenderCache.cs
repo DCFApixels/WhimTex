@@ -239,14 +239,17 @@ namespace DCFApixels.WhimTex
                         }
                     }
                 Texture texture = layer.SamplingSource;
+                bool paintSource = layer.Behaviour is DrawingLayerBehaviour sourceDrawing && sourceDrawing.HasPaintSurface;
                 if (texture != null)
                 {
                     hash = Mix(hash, unchecked((ulong)texture.GetHashCode()));
-                    hash = Mix(hash, texture.updateCount);
+                    // CPU Undo/storage pages catch up asynchronously. Rendering already reads
+                    // the completed Half surface, whose revision tracks actual image changes.
+                    if (!paintSource) hash = Mix(hash, texture.updateCount);
                     hash = Mix(hash, (ulong)texture.width);
                     hash = Mix(hash, (ulong)texture.height);
                     hash = Mix(hash, (ulong)texture.graphicsFormat);
-                    hash = Mix(hash, unchecked((ulong)UnityEditor.EditorUtility.GetDirtyCount(texture)));
+                    if (!paintSource) hash = Mix(hash, unchecked((ulong)UnityEditor.EditorUtility.GetDirtyCount(texture)));
                     hash = Mix(hash, (ulong)texture.filterMode);
                     hash = Mix(hash, (ulong)texture.wrapModeU);
                     hash = Mix(hash, (ulong)texture.wrapModeV);

@@ -411,6 +411,40 @@ brush input batches, preparation, segment submission and pixel readback; selecti
 transforms, canvas-frame edits, fill, model commits, Undo/Redo restoration, interface/hierarchy/inspector
 refresh; TIFF/JSON load/save, serialization, file writing/import requests and image/PSD export.
 Brush batches are instrumented rather than every stamp; `brush.stamp_count.value` counts stamps per submitted batch.
+The in-stroke breakdown includes `brush.build_stamps` (CPU generation), `brush.mesh_upload`
+(CPU mesh preparation), `brush.mesh_submit` (CPU submission and GPU interval), and
+`brush.allocate_stroke` (first buffer allocation/initialization). `ui.window_update`,
+`ui.canvas_presentation` and `ui.brush_cursor` distinguish window work from painting.
+`layer.drawing_convert_blit` brackets only the conversion draw within `layer.drawing_convert`;
+their inclusive GPU intervals overlap. `layer.drawing_convert_pixels.value` is the destination
+pixel count actually converted for that invocation (the sum of damaged tiles for a partial update).
+During a buffered stroke, a source-resolution Half straight preview is retained until commit/cancel;
+256px damage tiles are independent of the stroke-wide history tiles. Every refresh recomputes
+from the Half base and accumulated stroke, applying mask/blend/opacity once; it never blends into
+the cached preview. Transform, FX, groups and export still consume a complete source image.
+`layer.drawing_preview_full`, `layer.drawing_preview_partial` and `layer.drawing_preview_reuse`
+count the chosen cache path. Initialization, stroke reset or changed composite settings/mask
+invalidate the whole preview. Outside a buffered stroke the ordinary conversion path remains.
+Input samples still advance spacing/pressure in order, but segments that produce no paint do not
+request another canvas composition; existing scheduled requests remain coalesced.
+`brush.dirty_bounds_pixels.value` is the accumulated stroke
+bounding rectangle, **not** touched-tile coverage or the area changed since the previous preview.
+These counters diagnose live display work separately from end-of-stroke/history work; they do
+not measure OS input delivery or the time at which pixels become visible on the monitor.
+`layer.content_check` brackets full-resolution intrinsic layer rendering and alpha reduction
+for the empty-layer badge's fallback; its GPU interval includes the submitted work.
+`layer.content_check.reuse` reduces an already available, exact full-resolution layer result,
+including FX, without rendering it again. `layer.content_coverage.initialize` initializes the
+ordinary Drawing's 256 × 256 alpha block map after creation or invalidation. Later compute
+commits update touched flags inside the existing `brush.composite` / history submission scopes;
+Undo refreshes restored blocks. The map payload is 4 KiB at 8192². Storage-page synchronization
+does not invalidate the completed Half image. Pending detection is asynchronous and returns
+Unknown; the former timed `layer.content_check.wait` path has been removed. Explicit resource
+teardown may still drain an outstanding owned readback before releasing its resources.
+`brush.history.store` measures main-thread enqueueing, not background compression/file writing.
+The opt-in `brush-live-*-ui-post*` diagnostics separately export completed worker page timings
+(sampling, encoding plus stream writes, checksum, total), transfer queues and consecutive strokes.
+Worker durations overlap and are not pure disk time; see [the test guide](https://github.com/DCFApixels/WhimTex/blob/dev/Tests~/RUNNING_TESTS.md).
 Deferred `storage.import` measures the import request, not background completion. A standalone load has no
 document ID before decoding, so use an all-document capture to include it. File-dialog waiting is excluded
 from the texture-export scope. GPU queries now also bracket selected composition, layer, brush and copy passes;

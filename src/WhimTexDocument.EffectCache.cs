@@ -165,9 +165,15 @@ namespace DCFApixels.WhimTex
             using var profile = WhimTexProfiler.Measure("layer.render", this, layer, detail: layer.layerName);
             if ((layer?.Behaviour is TargetedLayerBehaviour || EffectRenderCache.CanCacheLayer(layer)) &&
                 applyTransform && applyFx && applyClipping)
-                return CachedEffectRender(layer, "effect", outputWidth, outputHeight, scaleMultiplier, false,
+            {
+                var rendered = CachedEffectRender(layer, "effect", outputWidth, outputHeight, scaleMultiplier, false,
                     () => RenderStandaloneUncached(container, index, outputWidth, outputHeight, scaleMultiplier,
                         renderStack, applyTransform, applyFx, includeDisabled, applyClipping, accumulatedInput: accumulatedInput));
+                // Cached output includes clipping; only an unclipped layer is interchangeable
+                // with the intrinsic pre-clipping content consumed by the empty badge.
+                if (!layer.clippingMask) OfferLayerContent(layer, rendered, applyTransform, scaleMultiplier);
+                return rendered;
+            }
             return RenderStandaloneUncached(container, index, outputWidth, outputHeight, scaleMultiplier,
                 renderStack, applyTransform, applyFx, includeDisabled, applyClipping, accumulatedInput: accumulatedInput);
         }

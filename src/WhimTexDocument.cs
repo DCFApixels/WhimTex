@@ -927,6 +927,7 @@ namespace DCFApixels.WhimTex
                 {
                     if (finishLayer)
                         raw = FinishStage(raw, layer.colorRange == LayerColorRange.Standard, applyFx ? layer.channelMapping : default);
+                    if (finishLayer && applyFx) OfferLayerContent(layer, raw, applyTransform, scaleMultiplier);
                     if (applyClipping && raw != null && layer.clippingMask)
                         ApplyClippingCoverage(ref raw, container, index, outputWidth, outputHeight, scaleMultiplier, renderStack);
                     return raw;

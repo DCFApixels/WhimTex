@@ -75,6 +75,7 @@ namespace DCFApixels.WhimTex
                 Graphics.Blit(output, surface);
                 ApplyPaintWriteProtection();
                 paintSurfaceDirty = true;
+                InvalidateAlphaCoverage();
                 unchecked { paintSurfaceRevision++; }
             }
             finally

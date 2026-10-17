@@ -69,19 +69,24 @@ namespace DCFApixels.WhimTex
             private static void EndBrushMesh(RenderTexture target, Material material)
             {
                 if (meshPositions.Count == 0) return;
-                brushMesh.Clear(meshSequence == meshHadSequence);
-                meshHadSequence = meshSequence;
-                brushMesh.SetVertices(meshPositions);
-                brushMesh.SetUVs(0, meshUv);
-                brushMesh.SetUVs(1, meshClipMin);
-                brushMesh.SetUVs(2, meshClipMax);
-                brushMesh.SetUVs(3, meshClips);
-                brushMesh.SetUVs(4, meshTiles);
-                brushMesh.SetUVs(5, meshColors);
-                brushMesh.SetUVs(6, meshStamps);
-                if (meshSequence) brushMesh.SetUVs(7, meshContexts);
-                brushMesh.SetIndices(meshIndices, MeshTopology.Quads, 0, false);
-                brushMesh.bounds = new Bounds(new Vector3(.5f, .5f, 0f), new Vector3(2f, 2f, 2f));
+                using (WhimTexProfiler.Measure("brush.mesh_upload"))
+                {
+                    brushMesh.Clear(meshSequence == meshHadSequence);
+                    meshHadSequence = meshSequence;
+                    brushMesh.SetVertices(meshPositions);
+                    brushMesh.SetUVs(0, meshUv);
+                    brushMesh.SetUVs(1, meshClipMin);
+                    brushMesh.SetUVs(2, meshClipMax);
+                    brushMesh.SetUVs(3, meshClips);
+                    brushMesh.SetUVs(4, meshTiles);
+                    brushMesh.SetUVs(5, meshColors);
+                    brushMesh.SetUVs(6, meshStamps);
+                    if (meshSequence) brushMesh.SetUVs(7, meshContexts);
+                    brushMesh.SetIndices(meshIndices, MeshTopology.Quads, 0, false);
+                    brushMesh.bounds = new Bounds(new Vector3(.5f, .5f, 0f), new Vector3(2f, 2f, 2f));
+                }
+                using var submit = WhimTexProfiler.Measure("brush.mesh_submit");
+                using var gpu = submit.Gpu();
                 brushCommands.Clear();
                 brushCommands.SetRenderTarget(target);
                 brushCommands.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.Ortho(0f, 1f, 0f, 1f, -1f, 1f));

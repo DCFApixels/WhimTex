@@ -15,7 +15,7 @@ namespace DCFApixels.WhimTex
             internal ulong stamp, generation;
             internal int width, height;
             internal LayerContentState state;
-            internal bool ready, queued;
+            internal bool ready, queued, deferred, coverage;
         }
 
         private readonly WhimTexDocument document;
@@ -26,8 +26,8 @@ namespace DCFApixels.WhimTex
         private readonly HashSet<Layer> validation = new HashSet<Layer>();
         private WhimTexAlphaPresence detector;
         private Entry pending;
-        private double nextCheck, deferUntil;
-        private bool updating, disposed;
+        private double nextCheck;
+        private bool updating, disposed, analyzing;
 
         internal LayerContentCache(WhimTexDocument document)
         {
@@ -72,6 +72,7 @@ namespace DCFApixels.WhimTex
             BeginCheck();
             if (!entries.TryGetValue(layer, out Entry entry))
                 entries.Add(layer, entry = new Entry { layer = layer });
+            entry.deferred = deferUpdates;
             if (!GetKey(layer, out ulong stamp, out int width, out int height))
             {
                 Invalidate(entry);
@@ -84,8 +85,17 @@ namespace DCFApixels.WhimTex
             }
             if (deferUpdates)
             {
-                deferUntil = EditorApplication.timeSinceStartup + .15d;
                 if (!entry.ready) Invalidate(entry);
+                return entry.state;
+            }
+            LayerContentState coverageState = LayerContentState.Unknown;
+            entry.coverage = layer.Behaviour is DrawingLayerBehaviour drawing &&
+                drawing.TryGetAlphaContentState(width, height, out coverageState);
+            if (entry.coverage)
+            {
+                entry.state = coverageState;
+                if (pending == entry) { pending = null; detector?.Cancel(); }
+                entry.ready = entry.state != LayerContentState.Unknown;
                 return entry.state;
             }
             if (!entry.ready && pending != entry && !entry.queued)
@@ -140,12 +150,13 @@ namespace DCFApixels.WhimTex
         {
             if (disposed || document == null) { Dispose(); return; }
             if (queue.Count == 0) { StopUpdate(); return; }
-            if (pending != null || detector?.isPending == true || EditorApplication.timeSinceStartup < deferUntil) return;
+            if (pending != null || detector?.isPending == true) return;
             BeginCheck(true);
             while (queue.Count > 0)
             {
                 Entry entry = queue.Dequeue();
                 entry.queued = false;
+                if (entry.deferred || entry.coverage) continue;
                 if (!entries.TryGetValue(entry.layer, out Entry current) || current != entry ||
                     !GetKey(entry.layer, out ulong stamp, out int width, out int height))
                 { Invalidate(entry); continue; }
@@ -160,19 +171,15 @@ namespace DCFApixels.WhimTex
 
         private void Analyze(Entry entry)
         {
+            using var profile = WhimTexProfiler.Measure("layer.content_check", document, entry.layer);
+            using var gpu = profile.Gpu();
             RenderTexture rendered = null;
             try
             {
+                analyzing = true;
                 rendered = document.RenderLayerContent(entry.layer, entry.width, entry.height, renders);
                 if (rendered == null) { entry.ready = true; return; }
-                detector ??= new WhimTexAlphaPresence();
-                ulong generation = entry.generation;
-                pending = entry;
-                if (!detector.Begin(rendered, empty => Complete(entry, generation, empty)))
-                {
-                    if (pending == entry) pending = null;
-                    entry.ready = true;
-                }
+                Reduce(entry, rendered);
             }
             catch (Exception)
             {
@@ -183,8 +190,40 @@ namespace DCFApixels.WhimTex
             }
             finally
             {
+                analyzing = false;
                 if (rendered != null) ProfiledRenderTexture.ReleaseTemporary(rendered);
             }
+        }
+
+        private void Reduce(Entry entry, RenderTexture rendered)
+        {
+            detector ??= new WhimTexAlphaPresence();
+            ulong generation = entry.generation;
+            pending = entry;
+            if (!detector.Begin(rendered, empty => Complete(entry, generation, empty)))
+            {
+                if (pending == entry) pending = null;
+                entry.ready = true;
+            }
+        }
+
+        // Borrow the exact full-size, pre-clipping result while its owner still holds it.
+        // Reduction retains only its own final pixel, never the full render texture.
+        internal void AcceptRendered(Layer layer, RenderTexture rendered)
+        {
+            if (disposed || analyzing || rendered == null || pending != null || detector?.isPending == true ||
+                !entries.TryGetValue(layer, out var entry) || entry.deferred ||
+                layer.Behaviour is DrawingLayerBehaviour drawing && drawing.CanUseAlphaCoverage) return;
+            BeginCheck(true);
+            if (!GetKey(layer, out ulong stamp, out int width, out int height) ||
+                rendered.width != width || rendered.height != height) return;
+            if (entry.ready && entry.stamp == stamp && entry.width == width && entry.height == height) return;
+            Invalidate(entry);
+            entry.coverage = false;
+            entry.stamp = stamp; entry.width = width; entry.height = height;
+            using var profile = WhimTexProfiler.Measure("layer.content_check.reuse", document, layer);
+            using var gpu = profile.Gpu();
+            Reduce(entry, rendered);
         }
 
         private void Complete(Entry entry, ulong generation, bool? empty)

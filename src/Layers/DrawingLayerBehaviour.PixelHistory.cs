@@ -31,8 +31,11 @@ namespace DCFApixels.WhimTex
                     page.CopyHalf(paintSurface, true);
                     using (WhimTexProfiler.Measure("brush.history.computeSubmit"))
                     if (!BrushStrokeCompute.TryCommitTiles(paintSurface, pageBlocks, composite,
-                        advancedStroke, brushCompositeParameters.SelectionMask, pixels))
+                        advancedStroke, brushCompositeParameters.SelectionMask, pixels, alphaCoverage))
+                    {
+                        InvalidateAlphaCoverage();
                         foreach (var tile in pageBlocks) CommitBrushTile(composite, tile);
+                    }
                     page.CopyHalf(paintSurface, false);
                     ConvertStoredPage(page);
                     page.Queue();
@@ -116,6 +119,7 @@ namespace DCFApixels.WhimTex
         }
         private void RestoreHalfHistory()
         {
+            InvalidateAlphaCoverage();
             using var profile = WhimTexProfiler.Measure("brush.undo.rebuildHalf");
             DrawingPixelHistory.Find(pixels)?.RestoreCurrentHalf((block, _) =>
             {
@@ -149,6 +153,7 @@ namespace DCFApixels.WhimTex
                 using var copy = WhimTexProfiler.Measure("brush.undo.copyGpu");
                 Graphics.CopyTexture(storageTile, 0, 0, 0, 0, r.width, r.height, pixels, 0, 0, r.x, r.y);
                 Graphics.CopyTexture(halfTile, 0, 0, 0, 0, r.width, r.height, surface, 0, 0, r.x, r.y);
+                alphaCoverage?.RestoreTile(surface, r);
             }
             finally { UnityEngine.Object.DestroyImmediate(storageTile); UnityEngine.Object.DestroyImmediate(halfTile); }
         }

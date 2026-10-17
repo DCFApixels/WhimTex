@@ -127,6 +127,7 @@ namespace DCFApixels.WhimTex
                 Graphics.Blit(result, surface);
                 ApplyPaintWriteProtection();
                 paintSurfaceDirty = true;
+                InvalidateAlphaCoverage();
                 unchecked { paintSurfaceRevision++; }
                 SyncSurfaceToTexture();
             }

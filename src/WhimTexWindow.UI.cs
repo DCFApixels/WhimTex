@@ -1711,6 +1711,7 @@ namespace DCFApixels.WhimTex
 
         private void UpdateToolkitCanvasPresentation()
         {
+            using var profile = WhimTexProfiler.Measure("ui.canvas_presentation", activeDocument);
             if (toolkitCanvas == null || activeDocument == null)
                 return;
 
@@ -1980,6 +1981,7 @@ namespace DCFApixels.WhimTex
         private void PaintTowardsLayerPoint(Vector2 pointUv)
         {
             using var profile = WhimTexProfiler.Measure("brush.input_batch", activeDocument, paintingLayer?.Owner);
+            ulong beforePaint = paintingLayer.PaintSurfaceRevision;
             if (!paintingLayer.IsStrokePointInsideRepeatShape(pointUv, activeDocument.width, activeDocument.height))
             {
                 if (hasLastPaintingUv && paintingLayer.TryClipStrokeSegmentToRepeatShape(
@@ -1994,7 +1996,7 @@ namespace DCFApixels.WhimTex
                         paintingLayer.PaintSegment(lastPaintingUv, clippedUv, activeDocument.width, activeDocument.height, false,
                             GetPaintingParameters());
                     RememberPaintingPoint(clippedUv);
-                    RefreshCanvasDuringPainting();
+                    if (paintingLayer.PaintSurfaceRevision != beforePaint) RefreshCanvasDuringPainting();
                 }
                 hasLastPaintingUv = false;
                 return;
@@ -2028,7 +2030,9 @@ namespace DCFApixels.WhimTex
             }
             RememberPaintingPoint(pointUv);
             hasLastPaintingUv = true;
-            RefreshCanvasDuringPainting();
+            // Preserve every input sample and spacing/pressure update. A segment that
+            // emits no paint needs only the independent cursor repaint, not a new composite.
+            if (paintingLayer.PaintSurfaceRevision != beforePaint) RefreshCanvasDuringPainting();
         }
 
         private void BeginCanvasSmudge(DrawingLayerBehaviour layer, Vector2 point)
@@ -2137,6 +2141,7 @@ namespace DCFApixels.WhimTex
 
         private void UpdateCanvasCursor(Vector2 localPosition, bool alt)
         {
+            using var profile = WhimTexProfiler.Measure("ui.brush_cursor", activeDocument);
             canvasPointerPosition = localPosition;
             canvasPointerAlt = alt;
             canvasPointerInside = toolkitCanvas != null && toolkitCanvas.contentRect.Contains(localPosition);

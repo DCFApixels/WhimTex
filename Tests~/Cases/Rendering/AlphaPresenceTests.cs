@@ -27,12 +27,7 @@ public static class AlphaPresenceTests
         internal bool Begin(RenderTexture source, Action<bool?> completed)
             => (bool)type.GetMethod("Begin", Hidden).Invoke(instance, new object[] { source, completed });
         internal void Cancel() => type.GetMethod("Cancel", Hidden).Invoke(instance, null);
-        internal void CompleteDelayedRequest()
-        {
-            object operation = type.GetField("pending", Hidden).GetValue(instance);
-            operation.GetType().GetField("deadline", Hidden).SetValue(operation, EditorApplication.timeSinceStartup - 1d);
-            type.GetMethod("Update", Hidden).Invoke(instance, null);
-        }
+        internal void PollRequest() => type.GetMethod("Update", Hidden).Invoke(instance, null);
         internal bool ReadPixel(RenderTexture pixel)
             => (bool)type.GetMethod("ReadSynchronously", Hidden).Invoke(instance, new object[] { pixel });
         internal Material OwnedMaterial => (Material)type.GetField("material", Hidden).GetValue(instance);
@@ -221,9 +216,10 @@ public static class AlphaPresenceTests
                 bool? result = null;
                 context.True(detector.Begin(source.texture, value => { completed = true; result = value; }),
                     "Delayed readback fixture accepted");
-                if (detector.Pending) detector.CompleteDelayedRequest();
+                if (detector.Pending) detector.PollRequest();
+                await Drain(detector, token);
                 context.True(completed && result == true && !detector.Pending && !detector.Updating,
-                    "A delayed owned request completes with the actual pixel and releases its update subscription");
+                    "An asynchronously polled request completes with the actual pixel and releases its update subscription");
                 context.True(source.texture.IsCreated(), "Delayed completion preserves borrowed source ownership");
             }
 

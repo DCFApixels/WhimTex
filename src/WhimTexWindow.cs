@@ -439,6 +439,7 @@ namespace DCFApixels.WhimTex
 
         private void Update()
         {
+            using var profile = WhimTexProfiler.Measure("ui.window_update", activeDocument);
             // Utility-window focus changes can precede the native OnLostFocus message.
             if (vectorManipulator?.IsDragging == true && EditorWindow.focusedWindow != this)
                 vectorManipulator.Cancel();

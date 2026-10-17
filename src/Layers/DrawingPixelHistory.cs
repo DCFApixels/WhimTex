@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
+using Stopwatch = System.Diagnostics.Stopwatch;
 
 namespace DCFApixels.WhimTex
 {
@@ -149,6 +150,10 @@ namespace DCFApixels.WhimTex
             internal string path;
             internal long bytes;
             internal bool errorReported;
+            // Worker wall timings; read only after write.IsCompleted (task publication barrier).
+            // The main-thread profiler's store scope measures enqueueing, not this work.
+            internal long queuedAt, startedAt, finishedAt, sampleTicks, encodeTicks, hashTicks, fileBytes;
+            internal bool compressed;
         }
         internal sealed class Block
         {
@@ -179,17 +184,22 @@ namespace DCFApixels.WhimTex
             using var profile = WhimTexProfiler.Measure("brush.history.store");
             long size = 0;
             foreach (var b in blocks) size += b.beforeHalf.LongLength + b.afterHalf.LongLength + b.beforeStored.LongLength + b.afterStored.LongLength;
-            var page = new Page { blocks = blocks, bytes = size, path = Path.Combine(Root, step.id + "-" + pageIndex + ".bin") };
+            var page = new Page { blocks = blocks, bytes = size, path = Path.Combine(Root, step.id + "-" + pageIndex + ".bin"), queuedAt = Stopwatch.GetTimestamp() };
             step.payload[pageIndex] = page;
             Interlocked.Add(ref pendingBytes, size);
             page.write = Task.Run(() =>
             {
+                page.startedAt = Stopwatch.GetTimestamp();
                 string temporary = page.path + ".tmp";
                 using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
                 {
                     using var header = new BinaryWriter(file, System.Text.Encoding.UTF8, true);
+                    long stage = Stopwatch.GetTimestamp();
                     bool compress = ShouldCompress(blocks);
+                    page.sampleTicks = Stopwatch.GetTimestamp() - stage;
+                    page.compressed = compress;
                     header.Write(compress ? FastCheckedDeflate : FastCheckedRaw); header.Write(new byte[32]);
+                    stage = Stopwatch.GetTimestamp();
                     using (var zip = compress ? new DeflateStream(file, System.IO.Compression.CompressionLevel.Fastest, true) : null)
                     using (var writer = new BinaryWriter((Stream)zip ?? file, System.Text.Encoding.UTF8, true))
                     {
@@ -200,8 +210,12 @@ namespace DCFApixels.WhimTex
                             writer.Write(b.beforeHalf); writer.Write(b.afterHalf); writer.Write(b.beforeStored); writer.Write(b.afterStored);
                         }
                     }
+                    page.encodeTicks = Stopwatch.GetTimestamp() - stage;
+                    page.fileBytes = file.Length;
                     file.Position = 36;
+                    stage = Stopwatch.GetTimestamp();
                     byte[] hash = HashPage(file);
+                    page.hashTicks = Stopwatch.GetTimestamp() - stage;
                     file.Position = 4; header.Write(hash);
                 }
                 File.Move(temporary, page.path);
@@ -213,6 +227,7 @@ namespace DCFApixels.WhimTex
                     ReturnBuffer(block.beforeStored); ReturnBuffer(block.afterStored);
                 }
                 Interlocked.Add(ref pendingBytes, -size);
+                page.finishedAt = Stopwatch.GetTimestamp();
             });
             writing.Enqueue(page);
         }

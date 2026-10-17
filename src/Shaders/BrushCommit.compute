@@ -1,4 +1,7 @@
 #pragma kernel Commit
+#pragma kernel CommitTracked
+#pragma kernel ScanCoverage
+#pragma kernel ClearCoverage
 
 // The qualifier must match the ARGBHalf surface on every graphics backend.
 RWTexture2D<half4> _BrushSurface;
@@ -17,4 +20,58 @@ void Commit(uint3 thread : SV_DispatchThreadID)
     // atomics or inter-thread synchronization are needed for this final blend.
     float4 before = _BrushSurface[pixel];
     _BrushSurface[pixel] = CompositePendingBrush(before, uv);
+}
+
+// One uint per 256 x 256 source block. This metadata never changes paint pixels.
+RWStructuredBuffer<uint> _AlphaCoverage;
+int _CoverageColumns, _CoverageCount, _CoverageClearCount;
+float4 _CoverageClearTiles[16];
+groupshared uint groupPresent;
+
+[numthreads(64, 1, 1)]
+void ClearCoverage(uint3 thread : SV_DispatchThreadID)
+{
+    if (_CoverageClearCount < 0)
+    {
+        if (thread.x < (uint)_CoverageCount) _AlphaCoverage[thread.x] = 0;
+    }
+    else if (thread.x < (uint)_CoverageClearCount)
+        _AlphaCoverage[(uint)_CoverageClearTiles[thread.x].x] = 0;
+}
+
+void IncludeCoverage(uint2 pixel, float alpha, uint lane)
+{
+    if (lane == 0) groupPresent = 0;
+    GroupMemoryBarrierWithGroupSync();
+    // Match Half storage, the existing straight conversion cutoff, then FinishStage.
+    // The original Commit path and its pixel precision remain unchanged.
+    alpha = f16tof32(f32tof16(alpha));
+    if (alpha > .00001 && (asuint(alpha) & 0x7fffffffu) < 0x7f800000u) InterlockedOr(groupPresent, 1);
+    GroupMemoryBarrierWithGroupSync();
+    if (lane == 0 && groupPresent != 0)
+        InterlockedOr(_AlphaCoverage[(pixel.y / 256) * _CoverageColumns + pixel.x / 256], 1);
+}
+
+[numthreads(8, 8, 1)]
+void CommitTracked(uint3 thread : SV_DispatchThreadID, uint lane : SV_GroupIndex)
+{
+    uint2 pixel = (uint2)_BrushCommitRect.xy + thread.xy;
+    bool inside = all(thread.xy < (uint2)_BrushCommitRect.zw);
+    float4 result = 0;
+    if (inside)
+    {
+        result = CompositePendingBrush(_BrushSurface[pixel], (pixel + .5) * _BrushSurfaceSize.zw);
+        _BrushSurface[pixel] = result;
+    }
+    // All lanes must reach the barriers, including the tail of an NPOT block.
+    IncludeCoverage(pixel, result.a, lane);
+}
+
+[numthreads(8, 8, 1)]
+void ScanCoverage(uint3 thread : SV_DispatchThreadID, uint lane : SV_GroupIndex)
+{
+    uint2 pixel = (uint2)_BrushCommitRect.xy + thread.xy;
+    float alpha = 0;
+    if (all(thread.xy < (uint2)_BrushCommitRect.zw)) alpha = _BrushSurface[pixel].a;
+    IncludeCoverage(pixel, alpha, lane);
 }

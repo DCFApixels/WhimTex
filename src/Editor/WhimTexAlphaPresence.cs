@@ -43,8 +43,9 @@ namespace DCFApixels.WhimTex
                         operation.request = AsyncGPUReadback.Request(operation.pixel, 0, TextureFormat.RGBA32,
                             request => ReadbackCompleted(operation, request));
                         operation.requestIssued = true;
-                        operation.deadline = EditorApplication.timeSinceStartup + .25d;
                         operation.request.forcePlayerLoopUpdate = true;
+                        // Submit queued work even when no view is repainting; do not wait for the GPU.
+                        GL.Flush();
                         if (!operation.finished)
                         {
                             EditorApplication.update += Update;
@@ -177,13 +178,6 @@ namespace DCFApixels.WhimTex
                 operation.request.Update();
                 if (operation.finished) return;
                 if (operation.request.done) ReadbackCompleted(operation, operation.request);
-                else if (EditorApplication.timeSinceStartup >= operation.deadline)
-                {
-                    // A dormant Editor can leave submitted readbacks pending indefinitely.
-                    // Complete only our owned one-pixel request before releasing its texture.
-                    operation.request.WaitForCompletion();
-                    if (!operation.finished) ReadbackCompleted(operation, operation.request);
-                }
             }
             catch (Exception) { Finish(operation, null); }
         }
@@ -219,7 +213,6 @@ namespace DCFApixels.WhimTex
             internal AsyncGPUReadbackRequest request;
             internal Action<bool?> completed;
             internal bool requestIssued;
-            internal double deadline;
             internal bool cancelled;
             internal bool finished;
         }

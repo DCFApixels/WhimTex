@@ -124,6 +124,7 @@ namespace DCFApixels.WhimTex
                     smudgeLastCenter = center;
                     paintSurfaceDirty = true;
                     smudgeStrokeChanged = true;
+                    InvalidateAlphaCoverage();
                     unchecked { paintSurfaceRevision++; }
                 }
                 ApplyPaintWriteProtection();

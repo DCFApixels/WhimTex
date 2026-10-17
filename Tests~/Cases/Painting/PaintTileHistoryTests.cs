@@ -83,6 +83,7 @@ public static class PaintTileHistoryTests
             pixels.Apply(false, false); // Exactly one full-size upload per large invocation.
             Call(layer, "AdoptStoredTexture", pixels); document.layers.Add(layer); Call(document, "NormalizeModel");
             surface = (RenderTexture)Call(layer, "EnsurePaintSurface", size, size);
+            CoverageState(layer, size);
             settings = New("PaintToolSettings"); dynamics = Get(settings, "dynamics");
             Set(settings, "brushColor", hdr ? new Color(-.4f, 2f, .8f, 1f) : new Color(.7f, .3f, .1f, 1));
             Set(settings, "brushSize", 32f); Set(settings, "brushHardness", .3f); Set(settings, "brushSpacing", .25f);
@@ -126,6 +127,17 @@ public static class PaintTileHistoryTests
         var image = new Texture2D(rect.width, rect.height, TextureFormat.RGBAHalf, false, true);
         try { RenderTexture.active = source; image.ReadPixels(new Rect(rect.x, rect.y, rect.width, rect.height), 0, 0, false); return image.GetRawTextureData<byte>().ToArray(); }
         finally { RenderTexture.active = previous; Object.DestroyImmediate(image); }
+    }
+    static string CoverageState(DrawingLayerBehaviour layer, int size)
+    {
+        var args = new object[] { size, size, null };
+        if (!(bool)Call(layer, "TryGetAlphaContentState", args)) throw new Exception("Coverage compute unavailable in regression fixture");
+        var coverage = Get(layer, "alphaCoverage");
+        // Tests may wait for their own 4 KiB metadata; production queries never wait.
+        if ((bool)Get(coverage, "pending"))
+            ((UnityEngine.Rendering.AsyncGPUReadbackRequest)Get(coverage, "request")).WaitForCompletion();
+        Call(layer, "TryGetAlphaContentState", args);
+        return args[2].ToString();
     }
     static void Exact(TestContext t, byte[] a, byte[] b, string label)
     {
@@ -209,6 +221,7 @@ public static class PaintTileHistoryTests
                 var before = Probe((RenderTexture)Get(f.layer, "paintSurface"), rect); var stored = f.pixels.GetRawTextureData<byte>().ToArray();
                 var points = new[] { new Vector2(.4f, .4f), new Vector2(.9f, .9f) };
                 f.Stroke(points, mask); reference.Stroke(points, mask, false);
+                t.Equal("Present", CoverageState(f.layer, f.size), "Tracked masked stroke is present");
                 var after = Probe((RenderTexture)Get(f.layer, "paintSurface"), rect); var afterStored = f.pixels.GetRawTextureData<byte>().ToArray();
                 Exact(t, Probe((RenderTexture)Get(reference.layer, "paintSurface"), rect), after, "Raw history does not change compute result HDR=" + hdr);
                 Static("PaintHistoryStore", "FlushWrites");
@@ -267,6 +280,7 @@ public static class PaintTileHistoryTests
                 var points = new[] { new Vector2(.08f, .08f), new Vector2(.08f, .9f), new Vector2(.9f, .9f) };
                 f.Stroke(points, mask); reference.Stroke(points, mask, false);
                 Exact(t, Probe(reference.surface, rect), Probe(f.surface, rect), "Partial compute equals ordinary compute, HDR=" + hdr);
+                t.Equal("Present", CoverageState(f.layer, f.size), "Masked stroke updates occupancy with history enabled");
                 var after = Probe(f.surface, rect); var afterStored = f.pixels.GetRawTextureData<byte>().ToArray();
                 Exact(t, reference.pixels.GetRawTextureData<byte>().ToArray(), afterStored, "Partial straight conversion equals full conversion");
                 var gpuStored = UnityEngine.Rendering.AsyncGPUReadback.Request(f.pixels, 0);
@@ -278,9 +292,11 @@ public static class PaintTileHistoryTests
                 // Discard the journal's RAM metadata too: restore must read its files.
                 ((System.Collections.IDictionary)Type("PaintHistoryStore").GetField("steps", S).GetValue(null)).Clear();
                 Undo.PerformUndo();
+                t.Equal("Empty", CoverageState(f.layer, 768), "Undo restores empty block coverage");
                 Exact(t, beforeStored, f.pixels.GetRawTextureData<byte>().ToArray(), "Native Undo restores stored pixels");
                 Exact(t, before, Probe((RenderTexture)Get(f.layer, "paintSurface"), rect), "Native Undo restores exact Half surface");
                 Undo.PerformRedo();
+                t.Equal("Present", CoverageState(f.layer, 768), "Redo restores present block coverage");
                 using var edge = new Fixture(518, hdr);
                 var pattern = new Color[518 * 518];
                 for (int y = 0; y < 518; y++) for (int x = 0; x < 518; x++)
@@ -520,8 +536,10 @@ public static class PaintTileHistoryTests
             RejectDamagedPage(t, f);
             clock.Restart(); using (Phase("test.paint.undo")) Undo.PerformUndo(); report.undoMs = clock.Elapsed.TotalMilliseconds;
             Exact(t, before, Probe((RenderTexture)Get(f.layer, "paintSurface"), probe), "8K exact Half Undo probe");
+            t.Equal(textured ? "Present" : "Empty", CoverageState(f.layer, 8192), "8K Undo block coverage");
             clock.Restart(); using (Phase("test.paint.redo")) Undo.PerformRedo(); report.redoMs = clock.Elapsed.TotalMilliseconds;
             Exact(t, after, Probe((RenderTexture)Get(f.layer, "paintSurface"), probe), "8K exact Half Redo probe");
+            t.Equal("Present", CoverageState(f.layer, 8192), "8K Redo block coverage");
             if (mode == "small")
             {
                 report.repeatCommitMs = new double[3]; report.repeatDrainMs = new double[3];
