@@ -46,13 +46,19 @@ context.case('Eyedropper original assertions and branches', async () => {
     assert.ok(!screenWindow.includes('ReadPixels'), 'Screen samples still use the desktop reader, not texture readback');
     const cursorFactory = eye.split('private static Texture2D CreateScreenEyedropperCursor')[1].split('private sealed class CanvasEyedropperManipulator')[0];
     for (const check of [
-        'TextureFormat.RGBA32, false, !source.isDataSRGB', 'alphaIsTransparency = true',
-        'if (source.isReadable)', 'copy.SetPixels32(1, 1, source.width, source.height, source.GetPixels32())', 'Graphics.Blit(source, temporary)',
-        'copy.ReadPixels(', 'copy.Apply(false, false)', 'UnityEngine.Object.DestroyImmediate(copy)',
-        'GL.sRGBWrite = previousSrgb', 'RenderTexture.active = previous', 'RenderTexture.ReleaseTemporary(temporary)'
+        'if (source == null) return null', 'UnityEngine.Object.Instantiate(source)',
+        'copy.hideFlags = HideFlags.HideAndDontSave', 'return copy'
     ]) assert.ok(cursorFactory.includes(check), check);
-    assert.ok(!cursorFactory.includes('source.alphaIsTransparency ='), 'Never modify the built-in icon');
-    assert.equal((eye.match(/FindTexture\("EyeDropper.Large"\)/g) ?? []).length, 1, 'One icon copy per session');
+    assert.ok(!/Graphics\.Blit|ReadPixels|SetPixels|source\.alphaIsTransparency =/.test(cursorFactory), 'Use vector-derived pixels without readback, dilation or source mutation');
+    assert.ok(!eye.includes('EyeDropper.Large'), 'No built-in raster cursor dependency');
+    assert.ok(eye.includes('AssetDatabase.LoadAssetAtPath<Texture2D>("Packages/com.dcfapixels.whimtex/src/Editor/Icons/EyedropperCursor.png")'));
+    const vectorSource = read('Tools~/CursorSources/Eyedropper.svg');
+    const hotspot = ['x', 'y'].map(axis => Number(vectorSource.match(new RegExp(`data-hotspot-${axis}="(\\d+)"`))[1]));
+    assert.deepEqual(hotspot, [2, 26]);
+    assert.ok(eye.includes(`EyedropperCursorHotspot(Texture2D texture) => new Vector2(${hotspot[0]}f, ${hotspot[1]}f)`));
+    const meta = read('src/Editor/Icons/EyedropperCursor.png.meta');
+    for (const setting of ['textureType: 7', 'isReadable: 1', 'enableMipMap: 0', 'textureCompression: 0', 'filterMode: 0'])
+        assert.ok(meta.includes(setting), setting);
     assert.ok(screenWindow.includes('new ScreenEyedropperCapture(this, cursorTexture)'), 'Both cursor APIs share the owned copy');
     assert.ok(!screenWindow.includes('Texture2D cursorTexture = EditorGUIUtility.FindTexture'));
     assert.ok(!screenWindow.includes('contentRect.Contains'), 'No preview or popup bounds restriction after activation');
@@ -79,7 +85,7 @@ context.case('Eyedropper original assertions and branches', async () => {
     assert.ok(eye.includes('GetMethod("StealMouseCapture", InstanceFlags)'));
     assert.ok(eye.includes('GetMethod("SetEyeDropperOpen", InstanceFlags)'));
     assert.ok(eye.includes('GetMethod("SetCurrentViewCursor",'));
-    assert.ok(eye.includes('EditorGUIUtility.FindTexture("EyeDropper.Large")'));
+    assert.ok(eye.includes('cursorTexture = CreateEyedropperCursor()'));
     assert.ok(eye.includes('MouseCursor.CustomCursor : MouseCursor.ArrowPlus'));
     assert.ok(eye.includes('setOpen(false)'));
     assert.ok(eye.includes('InternalEditorUtility.ResetCursor()'));

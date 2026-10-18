@@ -12,7 +12,7 @@ const icons = path.join(root, 'src/Editor/Icons');
 await fs.mkdir(output, { recursive: true });
 
 const arrow = '<path fill="white" stroke="black" stroke-width="1" stroke-linejoin="miter" stroke-miterlimit="2" d="M .5 .5 H 7.5 L 3.5 3.5 .5 7.5 Z"/>';
-const directPointers = new Set(['VectorSelect', 'VectorNodes']);
+const directPointers = new Set(['VectorSelect', 'VectorNodes', 'Eyedropper']);
 const wrapSvg = markup => `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">${markup}</svg>`;
 const svg = (glyph, name) => wrapSvg(glyph + (directPointers.has(name) ? '' : arrow));
 const line = (d, width = 2, extra = '') =>
@@ -91,6 +91,13 @@ const cursorCode = await fs.readFile(path.join(root, 'src/WhimTexWindow.Cursors.
 const enumNames = cursorCode.match(/private enum CanvasCursorIcon\s*\{([^}]+)\}/)[1]
   .split(',').map(name => name.trim()).filter(name => name && name !== 'None');
 assert.deepEqual(new Set(enumNames), new Set(glyphs.keys()), 'Cursor enum and vector sources must match');
+const eyedropperSvg = await fs.readFile(path.join(root, 'Tools~/CursorSources/Eyedropper.svg'), 'utf8');
+const eyedropperHotspot = ['x', 'y'].map(axis => Number(eyedropperSvg.match(new RegExp(`data-hotspot-${axis}="(\\d+)"`))[1]));
+glyphs.set('Eyedropper', eyedropperSvg.replace(/^[\s\S]*?<title>Eyedropper<\/title>/, '').replace(/<\/svg>\s*$/, ''));
+const eyedropperCode = await fs.readFile(path.join(root, 'src/WhimTexWindow.Eyedropper.cs'), 'utf8');
+const runtimeHotspot = eyedropperCode.match(/EyedropperCursorHotspot\(Texture2D texture\) => new Vector2\((\d+)f, (\d+)f\)/);
+assert(runtimeHotspot, 'Eyedropper hotspot must be explicit');
+assert.deepEqual(runtimeHotspot.slice(1).map(Number), eyedropperHotspot, 'SVG and runtime eyedropper hotspots must match');
 const guids = new Set();
 for (const name of glyphs.keys()) {
   const meta = await fs.readFile(path.join(icons, `${name}Cursor.png.meta`), 'utf8');
@@ -125,7 +132,9 @@ for (const [name, glyph] of glyphs) {
   const { data, info } = await sharp(Buffer.from(sourceSvg)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   assert.equal(info.width, 32);
   assert.equal(info.height, 32);
-  if (directPointers.has(name)) assert.equal(data[3], 255, `${name}: visible pointer tip`);
+  const hotspot = name === 'Eyedropper' ? eyedropperHotspot : [0, 0];
+  const tip = (hotspot[1] * 32 + hotspot[0]) * 4;
+  if (directPointers.has(name)) assert.equal(data[tip + 3], 255, `${name}: visible pointer tip`);
   else assert.deepEqual([...data.subarray(0, 4)], [0, 0, 0, 255], `${name}: hotspot`);
   if (!directPointers.has(name))
     for (let i = 0; i < data.length; i += 4)
@@ -145,18 +154,49 @@ for (const [name, glyph] of glyphs) {
     if (!adjacent) isolatedPixels++;
   }
   assert.equal(isolatedPixels, 0, `${name}: isolated pixels`);
-  const previousPng = await fs.readFile(path.join(icons, `${name}Cursor.png`));
-  previousImages.set(name, previousPng);
+  const previousPng = await fs.readFile(path.join(icons, `${name}Cursor.png`)).catch(error => {
+    if (name !== 'Eyedropper' || error.code !== 'ENOENT') throw error;
+    return null;
+  });
+  if (previousPng) previousImages.set(name, previousPng);
   if (name === 'Fill' || name === 'Gradient') {
     const prior = await sharp(path.join(icons, `${name}Cursor.png`)).ensureAlpha().raw().toBuffer();
     assert(data.equals(prior), `${name}: existing approved cursor must not change`);
   }
   const png = await sharp(data, { raw: info }).png().toBuffer();
   images.set(name, png);
+  const visible = visiblePixels(data);
+  const minX = Math.min(...visible.map(p => p[0])), maxX = Math.max(...visible.map(p => p[0]));
+  const minY = Math.min(...visible.map(p => p[1])), maxY = Math.max(...visible.map(p => p[1]));
+  const visibleBounds = { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 };
+  if (name === 'Eyedropper') {
+    assert(visibleBounds.width <= 26 && visibleBounds.height <= 26, 'Eyedropper silhouette fits with a clear margin');
+    assert.deepEqual(hotspot, [minX, maxY], 'Eyedropper points at its visible lower-left extremity');
+    const definitions = eyedropperSvg.match(/<defs>[\s\S]*?<\/defs>/)[0];
+    const outline = await sharp(Buffer.from(wrapSvg(definitions + '<use href="#pipetteOutline"/>'))).ensureAlpha().raw().toBuffer();
+    let asymmetricOutlinePixels = 0;
+    for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
+      const axis = hotspot[0] + hotspot[1];
+      const reflectedX = axis - y, reflectedY = axis - x, a = (y * 32 + x) * 4;
+      const b = reflectedX < 0 || reflectedY < 0 || reflectedX >= 32 || reflectedY >= 32 ? -1 : (reflectedY * 32 + reflectedX) * 4;
+      const alphaA = outline[a + 3], alphaB = b < 0 ? 0 : outline[b + 3];
+      if ((alphaA >= 128) !== (alphaB >= 128)) asymmetricOutlinePixels++;
+    }
+    assert.equal(asymmetricOutlinePixels, 0, 'Eyedropper outer silhouette is diagonally symmetric');
+    for (const [x, y, rgb] of [[2, 26, 0], [2, 25, 0], [3, 26, 0], [3, 25, 255]]) {
+      const pixel = (y * 32 + x) * 4;
+      assert.deepEqual([...data.subarray(pixel, pixel + 4)], [rgb, rgb, rgb, 255], `Crisp eyedropper tip at ${x},${y}`);
+    }
+    assert(data[(19 * 32 + 9) * 4 + 3] <= 3, 'Empty glass remains transparent apart from diagonal edge antialiasing');
+    for (const [y, rgb] of [[20, 0], [21, 255]]) {
+      const pixel = (y * 32 + 8) * 4;
+      assert.deepEqual([...data.subarray(pixel, pixel + 4)], [rgb, rgb, rgb, 255], 'Pixel-aligned horizontal liquid level');
+    }
+  }
   const glyphPixels = directPointers.has(name) ? null : await sharp(Buffer.from(wrapSvg(glyph))).ensureAlpha().raw().toBuffer();
   const visibleGapPx = glyphPixels ? contourGap(glyphPixels) : null;
-  if (glyphPixels) {
-    assert(visibleGapPx >= 2, `${name}: retain a visible contour gap`);
+  if (glyphPixels || name === 'Eyedropper') {
+    if (glyphPixels) assert(visibleGapPx >= 2, `${name}: retain a visible contour gap`);
     const paddedSvg = wrapSvg(glyph).replace('width="32" height="32" viewBox="0 0 32 32"',
       'width="36" height="36" viewBox="-2 -2 36 36"');
     const padded = await sharp(Buffer.from(paddedSvg)).ensureAlpha().raw().toBuffer();
@@ -164,7 +204,7 @@ for (const [name, glyph] of glyphs) {
       if (x < 2 || x >= 34 || y < 2 || y >= 34)
         assert.equal(padded[(y * 36 + x) * 4 + 3], 0, `${name}: glyph outside texture`);
   }
-  reports.push({ name, width: 32, height: 32, hotspot: [0, 0], tipRgba: [...data.subarray(0, 4)],
+  reports.push({ name, width: 32, height: 32, visibleBounds, hotspot, tipRgba: [...data.subarray(tip, tip + 4)],
     iconNudgePx: [iconNudges.get(name) ?? 0, iconNudges.get(name) ?? 0], visibleGapPx, isolatedPixels });
 }
 const changed = [];
@@ -195,7 +235,9 @@ await sheet([...glyphs.keys()], 'tool-cursors-all-preview.png');
 await sheet(['ShapeRectangle', 'SelectionRectangle', 'SelectionEllipse', 'LassoPolygon', 'LassoFreehand', 'SelectionUv', 'Comment', 'VectorPen'], 'tool-cursors-preview.png');
 await sheet(['Comment'], 'comment-cursor-close-preview.png', 1);
 await sheet(['SelectionRectangle', 'SelectionEllipse', 'VectorSelect', 'VectorNodes'], 'selection-pointer-cursors-preview.png');
-if (changed.length) await sheet([...iconNudges.keys()], 'tool-cursor-spacing-before.png', 4, 208, previousImages);
+if (changed.some(name => iconNudges.has(name))) await sheet([...iconNudges.keys()], 'tool-cursor-spacing-before.png', 4, 208, previousImages);
 await sheet([...iconNudges.keys()], 'tool-cursor-spacing-after.png');
+await sheet(['Eyedropper', 'Fill', 'Gradient', 'VectorSelect'], 'eyedropper-cursor-preview.png');
+await sheet(['Eyedropper'], 'eyedropper-cursor-detail.png', 1);
 await fs.writeFile(path.join(output, 'tool-cursors-report.json'), JSON.stringify(reports, null, 2));
 console.log(JSON.stringify({ count: reports.length, changed, isolatedPixels: 0, approvedFillAndGradientUnchanged: true, preview: path.join(output, 'tool-cursors-all-preview.png') }));

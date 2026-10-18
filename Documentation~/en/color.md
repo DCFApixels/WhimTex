@@ -60,6 +60,7 @@ the picker stays open and retains its current color. If your Editor cannot show 
 
 Alt sampling in WhimTex also updates that window's open **primary brush color** picker, including numbers and markers.
 Layer, gradient and secondary-color pickers are unaffected. Without a matching picker, Alt still changes the primary brush color.
+Its white eyedropper cursor samples at the lower-left tip, without a separate arrow. History swatches use the same cursor.
 
 ### Reuse colors from History
 

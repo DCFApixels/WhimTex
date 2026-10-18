@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" data-hotspot-x="2" data-hotspot-y="26">
+  <title>Eyedropper</title>
+  <defs>
+    <path id="cap" d="M11 -3.5 Q11 -4 11.5 -4 H13.5 Q14 -4 14 -3.5 V-1.5 H18 A1.5 1.5 0 0 1 19.5 0 A1.5 1.5 0 0 1 18 1.5 H14 V3.5 Q14 4 13.5 4 H11.5 Q11 4 11 3.5 Z"/>
+    <path id="glassOpening" d="M6.87365 20.5 L12.23156 15.14210 L13.85790 16.76844 L10.12635 20.5 Z"/>
+    <g id="pipetteOutline">
+      <path d="M2 27 V22.05025 L12.07246 11.97780 L17.02220 16.92754 L6.94975 27 Z" fill="black"/>
+      <path d="M3 26 V21.75736 L12.07246 12.68488 L16.31512 16.92754 L7.24264 26 Z" fill="white"/>
+      <g transform="translate(2.5 26.5) rotate(-45) scale(1.5) translate(2.925 0) scale(.85)">
+        <use href="#cap" fill="black" stroke="black" stroke-width="1" vector-effect="non-scaling-stroke" stroke-linejoin="miter" stroke-miterlimit="2"/>
+        <use href="#cap" fill="white"/>
+      </g>
+    </g>
+    <mask id="emptyGlass" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
+      <rect width="32" height="32" fill="white"/>
+      <use href="#glassOpening" fill="black"/>
+    </mask>
+  </defs>
+  <use href="#pipetteOutline" mask="url(#emptyGlass)"/>
+  <use href="#glassOpening" fill="none" stroke="black" stroke-width="1" stroke-linejoin="miter"/>
+</svg>

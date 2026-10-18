@@ -32,72 +32,17 @@ namespace DCFApixels.WhimTex
             return new Rect(x, Mathf.Clamp(y, bounds.yMin, Mathf.Max(bounds.yMin, bounds.yMax - height)), width, height);
         }
 
-        internal static Texture2D CreateEyedropperCursor() => CreateScreenEyedropperCursor(EditorGUIUtility.FindTexture("EyeDropper.Large"));
-        internal static Vector2 EyedropperCursorHotspot(Texture2D texture) => new Vector2(3f, texture.height - 3f);
+        internal static Texture2D CreateEyedropperCursor() => CreateScreenEyedropperCursor(
+            AssetDatabase.LoadAssetAtPath<Texture2D>("Packages/com.dcfapixels.whimtex/src/Editor/Icons/EyedropperCursor.png"));
+        internal static Vector2 EyedropperCursorHotspot(Texture2D texture) => new Vector2(2f, 26f);
 
         private static Texture2D CreateScreenEyedropperCursor(Texture2D source)
         {
             if (source == null) return null;
-            var copy = new Texture2D(source.width + 2, source.height + 2, TextureFormat.RGBA32, false, !source.isDataSRGB)
-            {
-                name = "WhimTex Eyedropper Cursor",
-                hideFlags = HideFlags.HideAndDontSave,
-                alphaIsTransparency = true,
-                filterMode = FilterMode.Point,
-                wrapMode = TextureWrapMode.Clamp
-            };
-            RenderTexture previous = RenderTexture.active;
-            bool previousSrgb = GL.sRGBWrite;
-            RenderTexture temporary = null;
-            try
-            {
-                copy.SetPixels32(new Color32[copy.width * copy.height]);
-                if (source.isReadable)
-                    copy.SetPixels32(1, 1, source.width, source.height, source.GetPixels32());
-                else
-                {
-                    temporary = ProfiledRenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32,
-                        source.isDataSRGB ? RenderTextureReadWrite.sRGB : RenderTextureReadWrite.Linear);
-                    GL.sRGBWrite = source.isDataSRGB && QualitySettings.activeColorSpace == ColorSpace.Linear;
-                    Graphics.Blit(source, temporary);
-                    RenderTexture.active = temporary;
-                    copy.ReadPixels(new Rect(0, 0, source.width, source.height), 1, 1, false);
-                }
-                var pixels = copy.GetPixels32();
-                var outlined = new Color32[pixels.Length];
-                int width = copy.width, height = copy.height;
-                for (int y = 0; y < height; y++)
-                    for (int x = 0; x < width; x++)
-                    {
-                        int index = y * width + x;
-                        Color c = pixels[index];
-                        float surroundingAlpha = c.a;
-                        for (int dy = -1; dy <= 1; dy++)
-                            for (int dx = -1; dx <= 1; dx++)
-                            {
-                                int nx = x + dx, ny = y + dy;
-                                if (nx >= 0 && nx < width && ny >= 0 && ny < height)
-                                    surroundingAlpha = Mathf.Max(surroundingAlpha, pixels[ny * width + nx].a / 255f);
-                            }
-                        float alpha = c.a + (surroundingAlpha - c.a) * .9f * (1f - c.a);
-                        float scale = alpha > 0f ? c.a / alpha : 0f;
-                        outlined[index] = new Color(c.r * scale, c.g * scale, c.b * scale, alpha);
-                    }
-                copy.SetPixels32(outlined);
-                copy.Apply(false, false);
-                return copy;
-            }
-            catch
-            {
-                UnityEngine.Object.DestroyImmediate(copy);
-                throw;
-            }
-            finally
-            {
-                GL.sRGBWrite = previousSrgb;
-                RenderTexture.active = previous;
-                if (temporary != null) ProfiledRenderTexture.ReleaseTemporary(temporary);
-            }
+            var copy = UnityEngine.Object.Instantiate(source);
+            copy.name = "WhimTex Eyedropper Cursor";
+            copy.hideFlags = HideFlags.HideAndDontSave;
+            return copy;
         }
 
         private sealed class CanvasEyedropperManipulator : PointerManipulator
