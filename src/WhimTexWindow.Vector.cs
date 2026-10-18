@@ -375,13 +375,14 @@ namespace DCFApixels.WhimTex
             if (layer?.Behaviour is not TextLayerBehaviour source || activeDocument == null || WhimTexApi.IsLayerContentLocked(activeDocument, layer)) return;
             try
             {
-                var converted = TextToVector.Convert(source, activeDocument);
+                var converted = TextToVector.PrepareLayer(source, activeDocument);
                 ExecuteModelChange("Convert Text to Vector", () =>
                 {
-                    layer.SetBehaviour(converted);
-                });
-                SelectVectorShape(converted.shapes.Count > 0 ? converted.shapes[0] : null);
-                SetCanvasTool(CanvasTool.VectorNodes);
+                    TextToVector.ApplyPrepared(layer, converted);
+                }, completeUndo: true);
+                var vector = layer.Behaviour as VectorLayerBehaviour;
+                SelectVectorShape(vector?.shapes.Count > 0 ? vector.shapes[0] : null);
+                SetCanvasTool(layer.IsGroup ? CanvasTool.Transform : CanvasTool.VectorNodes);
             }
             catch (Exception error) { ShowNotification(new GUIContent(error.Message)); }
         }

@@ -16,14 +16,21 @@ namespace DCFApixels.WhimTex
         private float cachedScale;
         private float cachedPixelScale;
         private Vector2 cachedOrigin;
-        private Mesh mesh;
+        private List<Batch> cachedBatches;
+        private readonly List<Rect> characterFrames = new List<Rect>();
+        private Rect inkBounds, paintPixels, clipPixels;
+        private bool clipGlyphs;
+        private WhimTexGradientPalette palette;
+        internal int MaskBuildCount { get; private set; }
         private sealed class Batch
         {
             internal TextRasterFont font;
             internal Texture2D atlas;
             internal readonly List<Vector3> positions = new List<Vector3>();
             internal readonly List<Vector2> uv = new List<Vector2>();
+            internal readonly List<Vector4> paintUv = new List<Vector4>();
             internal readonly List<int> triangles = new List<int>();
+            internal Mesh mesh;
         }
         internal Rect Bounds { get; private set; }
         internal Rect SourceRect { get; private set; }
@@ -218,6 +225,7 @@ namespace DCFApixels.WhimTex
             int renderSmallSize = Mathf.Clamp(Mathf.RoundToInt(smallSize * actualScale), 1, 2048);
             Request(renderSize, renderSmallSize);
             var batches = new List<Batch>();
+            if (placements == null) { ReleaseMeshes(); characterFrames.Clear(); MaskBuildCount++; }
             for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++)
             {
                 var line = lines[lineIndex];
@@ -265,9 +273,19 @@ namespace DCFApixels.WhimTex
                             if (face.SyntheticBold != 0)
                                 throw new NotSupportedException("Text outlines: synthetic Bold has no original contour. Choose an installed bold font face.");
                             var file = face.SourceFile();
+                            float px = (offsetX + glyphX + extra + metrics.horizontalBearingX * horizontalScale / actualScale - SourceRect.xMin) * renderScale;
+                            float py = (baseline + (metrics.horizontalBearingY - metrics.height) / actualScale - SourceRect.yMin) * renderScale;
+                            if (edgeMode != TextEdgeMode.Antialiased) { px = Mathf.Round(px); py = Mathf.Round(py); }
+                            float gw = metrics.width * horizontalScale / actualScale * renderScale;
+                            float gh = metrics.height / actualScale * renderScale;
+                            float shearLow = face.SyntheticItalic ? .2f * (py - (baseline - SourceRect.yMin) * renderScale) * horizontalScale : 0;
+                            float shearHigh = face.SyntheticItalic ? .2f * (py + gh - (baseline - SourceRect.yMin) * renderScale) * horizontalScale : 0;
+                            var paintFrame = new Rect((SourceRect.xMin + (px + Mathf.Min(shearLow, shearHigh)) / renderScale) * pixelScale,
+                                (SourceRect.yMin + py / renderScale) * pixelScale,
+                                (gw + Mathf.Abs(shearHigh - shearLow)) / renderScale * pixelScale, gh / renderScale * pixelScale);
                             placements.Add(new TextGlyphPlacement(file.path, file.index, glyph.index,
                                 new Vector2(offsetX + glyphX + extra, baseline) * pixelScale,
-                                face.Size / actualScale * pixelScale, horizontalScale, face.SyntheticItalic));
+                                face.Size / actualScale * pixelScale, horizontalScale, face.SyntheticItalic, paintFrame, unicode));
                             continue;
                         }
                         var atlas = face.Asset.atlasTextures[glyph.atlasIndex];
@@ -290,6 +308,25 @@ namespace DCFApixels.WhimTex
                             batch.positions.Add(new Vector3(px - outputWidth * .5f, py - outputHeight * .5f, 0));
                             batch.uv.Add(new Vector2(n == 0 || n == 3 ? u0 : u1, n < 2 ? v1 : v0));
                         }
+                        float minX = float.PositiveInfinity, minY = float.PositiveInfinity, maxX = float.NegativeInfinity, maxY = float.NegativeInfinity;
+                        for (int n = 0; n < 4; n++)
+                        {
+                            var p = batch.positions[v + n];
+                            minX = Mathf.Min(minX, p.x); minY = Mathf.Min(minY, p.y);
+                            maxX = Mathf.Max(maxX, p.x); maxY = Mathf.Max(maxY, p.y);
+                        }
+                        var glyphSize = new Vector2(Mathf.Max(.0001f, maxX - minX), Mathf.Max(.0001f, maxY - minY));
+                        for (int n = 0; n < 4; n++)
+                        {
+                            var p = batch.positions[v + n];
+                            batch.paintUv.Add(new Vector4((p.x - minX) / glyphSize.x, (p.y - minY) / glyphSize.y, glyphSize.x, glyphSize.y));
+                        }
+                        var frame = new Rect((minX + outputWidth * .5f) / renderScale * pixelScale + SourceRect.xMin * pixelScale,
+                            (minY + outputHeight * .5f) / renderScale * pixelScale + SourceRect.yMin * pixelScale,
+                            glyphSize.x / renderScale * pixelScale, glyphSize.y / renderScale * pixelScale);
+                        inkBounds = characterFrames.Count == 0 ? frame : Rect.MinMaxRect(Mathf.Min(inkBounds.xMin, frame.xMin),
+                            Mathf.Min(inkBounds.yMin, frame.yMin), Mathf.Max(inkBounds.xMax, frame.xMax), Mathf.Max(inkBounds.yMax, frame.yMax));
+                        characterFrames.Add(frame);
                         batch.triangles.Add(v); batch.triangles.Add(v + 1); batch.triangles.Add(v + 2);
                         batch.triangles.Add(v); batch.triangles.Add(v + 2); batch.triangles.Add(v + 3);
                     }
@@ -320,7 +357,22 @@ namespace DCFApixels.WhimTex
                 key = null;
                 return null;
             }
-            mesh ??= new Mesh { name = "Text Glyphs", hideFlags = HideFlags.HideAndDontSave };
+            cachedBatches = batches;
+            if (characterFrames.Count == 0) inkBounds = new Rect(Bounds.position * pixelScale, Bounds.size * pixelScale);
+            paintPixels = new Rect((inkBounds.xMin / pixelScale - SourceRect.xMin) * renderScale,
+                (inkBounds.yMin / pixelScale - SourceRect.yMin) * renderScale,
+                Mathf.Max(.0001f, inkBounds.width / pixelScale * renderScale), Mathf.Max(.0001f, inkBounds.height / pixelScale * renderScale));
+            clipGlyphs = framed && layer.overflow != TextOverflowMode.None;
+            clipPixels = Rect.MinMaxRect((Bounds.xMin - SourceRect.center.x) * renderScale,
+                (Bounds.yMin - SourceRect.center.y) * renderScale, (Bounds.xMax - SourceRect.center.x) * renderScale,
+                (Bounds.yMax - SourceRect.center.y) * renderScale);
+            foreach (var batch in batches)
+            {
+                batch.mesh = new Mesh { name = "Text Glyphs", hideFlags = HideFlags.HideAndDontSave,
+                    indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+                batch.mesh.SetVertices(batch.positions); batch.mesh.SetUVs(0, batch.uv);
+                batch.mesh.SetUVs(1, batch.paintUv); batch.mesh.SetTriangles(batch.triangles, 0);
+            }
             var target = ProfiledRenderTexture.GetTemporary(outputWidth, outputHeight, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             RenderTexture previous = RenderTexture.active; bool srgb = GL.sRGBWrite;
             try
@@ -339,12 +391,11 @@ namespace DCFApixels.WhimTex
                     GL.LoadPixelMatrix(-outputWidth * .5f, outputWidth * .5f, -outputHeight * .5f, outputHeight * .5f);
                     foreach (var batch in batches)
                     {
-                        mesh.Clear(); mesh.SetVertices(batch.positions); mesh.SetUVs(0, batch.uv); mesh.SetTriangles(batch.triangles, 0);
                         material.SetTexture("_MainTex", batch.atlas);
                         material.SetVector("_TextBoldOffset", new Vector4(batch.font.SyntheticBold / (float)batch.atlas.width,
                             batch.font.SyntheticBold / (float)batch.atlas.height, 0, 0));
                         if (!material.SetPass(0)) throw new InvalidOperationException("Text glyph shader is unavailable.");
-                        Graphics.DrawMeshNow(mesh, Matrix4x4.identity);
+                        Graphics.DrawMeshNow(batch.mesh, Matrix4x4.identity);
                     }
                 }
                 finally { GL.PopMatrix(); }
@@ -367,10 +418,71 @@ namespace DCFApixels.WhimTex
 
         public void Dispose()
         {
+            ReleaseMeshes(); palette?.Dispose(); palette = null;
             font?.Dispose(); smallFont?.Dispose();
-            if (mesh != null) UnityEngine.Object.DestroyImmediate(mesh);
             if (mask != null) UnityEngine.Object.DestroyImmediate(mask);
-            font = smallFont = null; mesh = null; mask = null;
+            font = smallFont = null; mask = null;
+        }
+
+        private void ReleaseMeshes()
+        {
+            if (cachedBatches != null) foreach (var batch in cachedBatches)
+                if (batch.mesh != null) UnityEngine.Object.DestroyImmediate(batch.mesh);
+            cachedBatches = null;
+        }
+
+        internal Rect GradientFrame(int character) => character < 0 || characterFrames.Count == 0 ? inkBounds :
+            characterFrames[Mathf.Clamp(character, 0, characterFrames.Count - 1)];
+        internal int FindCharacter(Vector2 local)
+        {
+            for (int i = characterFrames.Count - 1; i >= 0; i--) if (characterFrames[i].Contains(local)) return i;
+            return -1;
+        }
+
+        internal void Paint(TextLayerBehaviour layer, RenderTexture output)
+        {
+            var material = WhimTexMaterials.Text;
+            if (!FigureFill.IsGradient(layer.fillMode))
+            {
+                material.SetColor("_TextColor", layer.fillMode == VectorFillMode.None ? Color.clear : HdrUtility.Decode(layer.color));
+                Graphics.Blit(mask, output, material, 1); return;
+            }
+            (palette ??= new WhimTexGradientPalette()).Bind(material, layer.gradient);
+            material.SetInt("_TextFillMode", (int)layer.fillMode);
+            material.SetVector("_TextAnchors", new Vector4(layer.gradientStart.x, layer.gradientStart.y, layer.gradientEnd.x, layer.gradientEnd.y));
+            material.SetFloat("_TextRepetitions", layer.gradientRepetitions);
+            material.SetVector("_TextCanvasSize", new Vector4(output.width, output.height, 0, 0));
+            material.SetVector("_TextPaintRect", new Vector4(paintPixels.x, paintPixels.y, paintPixels.width, paintPixels.height));
+            if (layer.gradientScope == TextGradientScope.Text) { Graphics.Blit(mask, output, material, 2); return; }
+            bool opaque = true;
+            foreach (var key in layer.gradient.AlphaKeys) opaque &= key.alpha == 1;
+            material.SetInt("_TextOpaqueGradient", opaque ? 1 : 0);
+            material.SetTexture("_TextCoverage", mask);
+            var previous = RenderTexture.active; bool srgb = GL.sRGBWrite;
+            var temporary = ProfiledRenderTexture.GetTemporary(output.width, output.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+            try
+            {
+                RenderTexture.active = temporary; GL.sRGBWrite = false; GL.Clear(false, true, Color.clear);
+                material.SetInt("_TextPixel", layer.edgeMode == TextEdgeMode.Pixel ? 1 : 0);
+                material.SetInt("_TextClip", clipGlyphs ? 1 : 0);
+                material.SetVector("_TextClipRect", new Vector4(clipPixels.xMin, clipPixels.yMin, clipPixels.xMax, clipPixels.yMax));
+                GL.PushMatrix();
+                try
+                {
+                    GL.LoadPixelMatrix(-output.width * .5f, output.width * .5f, -output.height * .5f, output.height * .5f);
+                    foreach (var batch in cachedBatches)
+                    {
+                        material.SetTexture("_MainTex", batch.atlas);
+                        material.SetVector("_TextBoldOffset", new Vector4(batch.font.SyntheticBold / (float)batch.atlas.width,
+                            batch.font.SyntheticBold / (float)batch.atlas.height, 0, 0));
+                        if (!material.SetPass(3)) throw new InvalidOperationException("Text gradient shader is unavailable.");
+                        Graphics.DrawMeshNow(batch.mesh, Matrix4x4.identity);
+                    }
+                }
+                finally { GL.PopMatrix(); }
+                Graphics.Blit(temporary, output, material, 4);
+            }
+            finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; ProfiledRenderTexture.ReleaseTemporary(temporary); }
         }
     }
 }

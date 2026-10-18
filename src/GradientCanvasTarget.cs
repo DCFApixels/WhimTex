@@ -9,6 +9,10 @@ namespace DCFApixels.WhimTex
         internal readonly GradientLayerBehaviour GradientLayer;
         private readonly ShapeLayerBehaviour shape;
         private readonly VectorShape figure;
+        private readonly TextLayerBehaviour text;
+        private readonly Rect textFrame;
+        private readonly Vector2 canvasSize;
+        private readonly int character;
         private readonly Vector2 metric;
         internal readonly GradientLayerBehaviour.GradientType gradientType;
         internal readonly bool IsStroke;
@@ -16,13 +20,27 @@ namespace DCFApixels.WhimTex
         internal bool IsFill => IsValid && GradientLayer == null;
         internal Layer Owner => Behaviour?.Owner;
         internal TextureTransform transform { get => Owner.transform; set => Owner.transform = value; }
-
-        internal GradientCanvasTarget(Layer layer, Vector2 canvasSize, bool stroke = false)
+        internal TextureTransform CanvasTransform
         {
+            get
+            {
+                var value = Owner.CanvasTransform;
+                if (text != null)
+                    value.TrySetMatrix(value.ToMatrix(canvasSize.x, canvasSize.y) *
+                        ProjectiveMatrix.Translate(.5 + textFrame.xMin / canvasSize.x, .5 + textFrame.yMin / canvasSize.y) *
+                        ProjectiveMatrix.Scale(textFrame.width / canvasSize.x, textFrame.height / canvasSize.y));
+                return value;
+            }
+        }
+
+        internal GradientCanvasTarget(Layer layer, Vector2 canvasSize, bool stroke = false, int character = 0)
+        {
+            this.canvasSize = canvasSize; this.character = character; textFrame = default;
             IsStroke = stroke;
             Behaviour = layer?.Behaviour;
             GradientLayer = Behaviour as GradientLayerBehaviour;
             shape = Behaviour as ShapeLayerBehaviour;
+            text = Behaviour as TextLayerBehaviour;
             var group = Behaviour as BooleanGroupLayerBehaviour;
             figure = group != null ? group.style :
                 Behaviour is VectorLayerBehaviour vector && vector.shapes?.Count == 1 ? vector.shapes[0] : null;
@@ -30,13 +48,18 @@ namespace DCFApixels.WhimTex
             gradientType = GradientLayer?.gradientType ?? GradientLayerBehaviour.GradientType.Horizontal;
             if (GradientLayer != null) { if (stroke) Behaviour = null; return; }
             var mode = shape != null ? (stroke ? shape.strokeMode : shape.fillMode) :
-                figure != null ? (stroke ? figure.strokeMode : figure.fillMode) : VectorFillMode.None;
+                figure != null ? (stroke ? figure.strokeMode : figure.fillMode) : text != null && !stroke ? text.fillMode : VectorFillMode.None;
             bool enabled = shape != null ? (stroke ? shape.stroke && shape.strokeWidth > 0 : shape.fill) :
-                figure != null && (!stroke || figure.stroke && figure.strokeWidth > 0);
+                figure != null && (!stroke || figure.stroke && figure.strokeWidth > 0) || text != null && !stroke && text.FontAvailable;
             if (!FigureFill.IsGradient(mode) || !enabled || group == null && figure != null && !figure.visible ||
                 group != null && group.appearance == BooleanGroupAppearance.Layers && BooleanGroupLayerBehaviour.ReadMode(layer) == VectorBooleanOperation.Combine ||
-                shape == null && figure == null)
+                shape == null && figure == null && text == null)
             { Behaviour = null; return; }
+            if (text != null)
+            {
+                textFrame = text.GetGradientFrame((int)canvasSize.x, (int)canvasSize.y, character);
+                metric = textFrame.size;
+            }
             gradientType = mode switch
             {
                 VectorFillMode.RadialGradient => GradientLayerBehaviour.GradientType.Radial,
@@ -49,23 +72,23 @@ namespace DCFApixels.WhimTex
 
         internal WhimTexGradient gradient
         {
-            get => GradientLayer != null ? GradientLayer.gradient : shape != null ? (IsStroke ? shape.strokeGradient : shape.gradient) : (IsStroke ? figure.strokeGradient : figure.gradient);
-            set { if (GradientLayer != null) GradientLayer.gradient = value; else if (shape != null) { if (IsStroke) shape.strokeGradient = value; else shape.gradient = value; } else { if (IsStroke) figure.strokeGradient = value; else figure.gradient = value; } }
+            get => text != null ? text.gradient : GradientLayer != null ? GradientLayer.gradient : shape != null ? (IsStroke ? shape.strokeGradient : shape.gradient) : (IsStroke ? figure.strokeGradient : figure.gradient);
+            set { if (text != null) text.gradient = value; else if (GradientLayer != null) GradientLayer.gradient = value; else if (shape != null) { if (IsStroke) shape.strokeGradient = value; else shape.gradient = value; } else { if (IsStroke) figure.strokeGradient = value; else figure.gradient = value; } }
         }
         internal Vector2 FillStart
         {
-            get => shape != null ? (IsStroke ? shape.strokeGradientStart : shape.gradientStart) : (IsStroke ? figure.strokeGradientStart : figure.gradientStart);
-            set { if (shape != null) { if (IsStroke) shape.strokeGradientStart = value; else shape.gradientStart = value; } else { if (IsStroke) figure.strokeGradientStart = value; else figure.gradientStart = value; } }
+            get => text != null ? text.gradientStart : shape != null ? (IsStroke ? shape.strokeGradientStart : shape.gradientStart) : (IsStroke ? figure.strokeGradientStart : figure.gradientStart);
+            set { if (text != null) text.gradientStart = value; else if (shape != null) { if (IsStroke) shape.strokeGradientStart = value; else shape.gradientStart = value; } else { if (IsStroke) figure.strokeGradientStart = value; else figure.gradientStart = value; } }
         }
         internal Vector2 FillEnd
         {
-            get => shape != null ? (IsStroke ? shape.strokeGradientEnd : shape.gradientEnd) : (IsStroke ? figure.strokeGradientEnd : figure.gradientEnd);
-            set { if (shape != null) { if (IsStroke) shape.strokeGradientEnd = value; else shape.gradientEnd = value; } else { if (IsStroke) figure.strokeGradientEnd = value; else figure.gradientEnd = value; } }
+            get => text != null ? text.gradientEnd : shape != null ? (IsStroke ? shape.strokeGradientEnd : shape.gradientEnd) : (IsStroke ? figure.strokeGradientEnd : figure.gradientEnd);
+            set { if (text != null) text.gradientEnd = value; else if (shape != null) { if (IsStroke) shape.strokeGradientEnd = value; else shape.gradientEnd = value; } else { if (IsStroke) figure.strokeGradientEnd = value; else figure.gradientEnd = value; } }
         }
         internal float circularRepetitions
         {
-            get => GradientLayer != null ? GradientLayer.circularRepetitions : shape != null ? (IsStroke ? shape.strokeGradientRepetitions : shape.gradientRepetitions) : (IsStroke ? figure.strokeGradientRepetitions : figure.gradientRepetitions);
-            set { if (GradientLayer != null) GradientLayer.circularRepetitions = value; else if (shape != null) { if (IsStroke) shape.strokeGradientRepetitions = value; else shape.gradientRepetitions = value; } else { if (IsStroke) figure.strokeGradientRepetitions = value; else figure.gradientRepetitions = value; } }
+            get => text != null ? text.gradientRepetitions : GradientLayer != null ? GradientLayer.circularRepetitions : shape != null ? (IsStroke ? shape.strokeGradientRepetitions : shape.gradientRepetitions) : (IsStroke ? figure.strokeGradientRepetitions : figure.gradientRepetitions);
+            set { if (text != null) text.gradientRepetitions = value; else if (GradientLayer != null) GradientLayer.circularRepetitions = value; else if (shape != null) { if (IsStroke) shape.strokeGradientRepetitions = value; else shape.gradientRepetitions = value; } else { if (IsStroke) figure.strokeGradientRepetitions = value; else figure.gradientRepetitions = value; } }
         }
         internal float circularStartAngle
         {
@@ -119,7 +142,7 @@ namespace DCFApixels.WhimTex
             }
             else { FillStart = originalStart; FillEnd = nextAnchor; }
         }
-        public bool Equals(GradientCanvasTarget other) => Behaviour == other.Behaviour && figure == other.figure && gradientType == other.gradientType && IsStroke == other.IsStroke;
+        public bool Equals(GradientCanvasTarget other) => Behaviour == other.Behaviour && figure == other.figure && gradientType == other.gradientType && IsStroke == other.IsStroke && (text == null || character == other.character && textFrame == other.textFrame);
         public override bool Equals(object obj) => obj is GradientCanvasTarget other && Equals(other);
         public override int GetHashCode() => HashCode.Combine(Behaviour, figure, gradientType, IsStroke);
         public static bool operator ==(GradientCanvasTarget a, GradientCanvasTarget b) => a.Equals(b);

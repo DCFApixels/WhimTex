@@ -194,6 +194,14 @@ See the [data contract](../JSON_FORMAT.md#vector-layers) for exact storage and A
 
 ## Convert Text
 
+With **Scope → Character** gradient fill, conversion creates an isolated group with a
+separate Vector layer for each visible letter. The common placement and FX stay on the
+group; each letter retains its gradient position and can be moved or edited independently.
+FX retain their original local coordinates, rather than switching to the ordinary group's canvas coordinates.
+Spaces and completely clipped letters create no layers. Inside a Boolean Group the container
+uses Combine/Layers, preserving its operand role. The conversion is one Undo step and rejects
+an exceeded layer limit before changing the source. Other fills keep the compound-figure behavior below.
+
 Select a Text layer and choose **Convert to Vector**. The letters become one editable
 figure with separate contours and holes. The current line layout, alignment, spacing,
 Horizontal Scale, Layout Offset and Frame Clip/Ellipsis are preserved, along with the

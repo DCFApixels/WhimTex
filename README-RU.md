@@ -143,6 +143,8 @@ https://github.com/DCFApixels/WhimTex.git
 
 ## Благодарности
 
+- **[LZ4](https://github.com/lz4/lz4)** — Yann Collet; переносимая адаптация на C#/Burst для истории рисования без потерь. [Приложенная лицензия BSD](ThirdPartyNotices.md#lz4).
+
 Спасибо авторам и разработчикам библиотек, на которых основана часть возможностей WhimTex:
 
 - **[Typography.OpenFont](https://github.com/LayoutFarm/Typography)** — WinterDev и участники проекта;

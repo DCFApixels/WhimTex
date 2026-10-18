@@ -6,6 +6,10 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Text-to-Vector conversion retains Character gradient fill as independent glyph layers inside an isolated group. The group preserves the original transform, layer identity and FX, including their local coordinate frame; clipped glyphs retain their original paint frame. Nested Boolean operands, Undo/Redo and layer-limit checks are supported.
+
+- Text supports the shared solid/gradient fill types with Text-wide or per-Character coordinates and canvas gradient handles. Character repeats one style per glyph; selecting a glyph only changes the handle frame. Existing edge modes and cached glyph coverage are preserved. Saved Character appearance retains float/HDR paint when the source font is missing.
+
 - New layers, omitted JSON settings and Reset Transform use Source tiling. Each source declares its behavior independently of render caches: geometry and procedural generators use Unbounded, finite raster/effect sources use Clip, and File follows its original texture's wrap modes. Explicit choices survive saving and Shape/Text-to-Vector conversion. Shape Clip now crops fill, stroke and Feather at its local frame.
 
 - Vector layers support Feather with Inside, Outside and Centered transitions along fill and actual stroke/dash boundaries. Width uses local reference pixels and scales with the figure; gradients reuse the prepared coverage. Step retains but ignores Feather, and zero keeps the existing rendering path. Settings are retained by Undo/Redo, JSON, clipboard and native documents.
@@ -43,6 +47,8 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- Paint Undo uses portable C#/Burst LZ4 blocks without byte shuffling or a native-library dependency. Compression remains in background Tasks with reusable buffers, exact Half/storage bytes and raw fallback for incompressible blocks.
 
 - Paint history hands native readback pages directly to background writers and reuses bounded page/codec buffers. This removes per-block managed payload arrays while preserving exact Half/storage Undo, masks and HDR. Sustained heavy strokes can still pause when the bounded queue fills.
 

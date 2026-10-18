@@ -15,6 +15,21 @@ profiler, and ReadScreenPixel on test-created windows. It does not authorize oth
 
 ## Inspect and select
 
+`text-character-conversion-v1` checks independent glyph paint frames, original source immutability,
+API conversion, shared FX/transform identity, owned Undo/Redo, JSON/native roundtrips, clipping,
+empty/single-glyph groups, Boolean operand preservation and atomic layer-limit failure.
+It uses detached models and owned transient FX, with a before/after preview under Temp/WhimTex.
+
+The opt-in [codec and spill-policy comparison](Cases/Painting/CodecComparison.md) captures real
+brush history blocks and compares lossless compression and bounded background history eviction.
+It requires explicit native-library and temporary-asset approval; it never changes production painting.
+
+`text-gradients` checks Text/Character coordinate oracles for every fill type and edge mode,
+unchanged opaque coverage, paint-only cache reuse, the canvas-handle coordinate adapter,
+API/JSON/native persistence, owned Undo/Redo, group/Target/thumbnail/export consumers and
+missing-font paint snapshots. It also runs the shared figure-fill shader regressions.
+The font catalog is temporarily isolated and restored; no user windows or assets are edited.
+
 `source-tiling` checks intrinsic Source policies, explicit-mode priority and JSON roundtrips,
 Reset defaults, File's independent U/V wraps, procedural Unbounded equivalence and Vector
 cache-wrap/rebuild independence. It also runs geometric Clip, Feather, Shape/Vector parity

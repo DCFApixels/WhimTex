@@ -143,6 +143,8 @@ https://github.com/DCFApixels/WhimTex.git
 
 ## 致谢
 
+- **[LZ4](https://github.com/lz4/lz4)** — Yann Collet；用于绘画历史无损压缩的可移植 C#/Burst 改编。[附带 BSD 许可证](ThirdPartyNotices.md#lz4)。
+
 感谢为 WhimTex 提供部分功能基础的库作者和维护者：
 
 - **[Typography.OpenFont](https://github.com/LayoutFarm/Typography)** — WinterDev 及贡献者；

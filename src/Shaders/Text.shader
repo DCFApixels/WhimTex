@@ -54,5 +54,41 @@ Shader "Hidden/WhimTex/Text"
             float4 frag(v2f_img i) : SV_Target { return float4(_TextColor.rgb, _TextColor.a * tex2D(_MainTex, i.uv).a); }
             ENDCG
         }
+        Pass
+        {
+            Blend Off
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex vert_img
+            #pragma fragment TextPaintWhole
+            #include "TextPaint.cginc"
+            ENDCG
+        }
+        Pass
+        {
+            Blend One OneMinusSrcAlpha
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex TextPaintVert
+            #pragma fragment TextPaintGlyph
+            #include "TextPaint.cginc"
+            ENDCG
+        }
+        Pass
+        {
+            Blend Off
+            CGPROGRAM
+            #pragma vertex vert_img
+            #pragma fragment frag
+            #include "UnityCG.cginc"
+            sampler2D _MainTex, _TextCoverage;
+            int _TextOpaqueGradient;
+            float4 frag(v2f_img i) : SV_Target
+            {
+                float4 c = tex2D(_MainTex, i.uv);
+                return c.a > 1e-12 ? float4(c.rgb / c.a, _TextOpaqueGradient ? tex2D(_TextCoverage, i.uv).a : c.a) : 0;
+            }
+            ENDCG
+        }
     }
 }

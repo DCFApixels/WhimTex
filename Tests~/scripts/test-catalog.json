@@ -2,6 +2,11 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "text-character-conversion": ["text-character-conversion-v1", "text-gradients-v1"],
+    "paint-spill-8k": ["paint-spill-measure-8192-wide-short", "paint-spill-measure-8192-wide-paced", "paint-spill-measure-8192-wide-burst", "paint-spill-measure-8192-hdr-short", "paint-spill-measure-8192-hdr-paced", "paint-spill-measure-8192-hdr-burst", "paint-spill-measure-8192-hdr-burst-repeat"],
+    "paint-codec-8k": ["paint-codec-measure-8192-thin", "paint-codec-measure-8192-wide", "paint-codec-measure-8192-detail", "paint-codec-measure-8192-hdr"],
+    "text-gradients": ["text-gradients-v1", "figure-fills-v1"],
+    "paint-codec-smoke": ["paint-codec-preflight", "paint-codec-corpus-512-wide", "paint-codec-measure-512-wide", "paint-spill-measure-512-wide"],
     "vector-feather": ["vector-feather-v1", "vector-feather-undo-v1", "vector-feather-api-v1", "vector-persistence-v1"],
     "paint-undo-continuation": [
       "paint-undo-continuation-small",
@@ -2309,6 +2314,1329 @@
     ]
   },
   "scenarios": [
+    {
+      "id": "paint-lz4-measure-512-wide",
+      "file": "Tests~/Cases/Painting/PaintCodecBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintCodecBenchmark.StartLz4",
+      "args": [
+        "$runId",
+        512,
+        "wide"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Compare production LZ4 and native LZ4 without shuffling on authenticated frozen blocks; exact cross-decoding in both directions. Writes lz4-results, preserving baseline codec-results.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintCodecBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-lz4-measure-8192-thin",
+      "file": "Tests~/Cases/Painting/PaintCodecBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintCodecBenchmark.StartLz4",
+      "args": [
+        "$runId",
+        8192,
+        "thin"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Compare production LZ4 and native LZ4 without shuffling on authenticated frozen blocks; exact cross-decoding in both directions. Writes lz4-results, preserving baseline codec-results.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintCodecBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-lz4-measure-8192-wide",
+      "file": "Tests~/Cases/Painting/PaintCodecBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintCodecBenchmark.StartLz4",
+      "args": [
+        "$runId",
+        8192,
+        "wide"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Compare production LZ4 and native LZ4 without shuffling on authenticated frozen blocks; exact cross-decoding in both directions. Writes lz4-results, preserving baseline codec-results.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintCodecBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-lz4-measure-8192-detail",
+      "file": "Tests~/Cases/Painting/PaintCodecBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintCodecBenchmark.StartLz4",
+      "args": [
+        "$runId",
+        8192,
+        "detail"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Compare production LZ4 and native LZ4 without shuffling on authenticated frozen blocks; exact cross-decoding in both directions. Writes lz4-results, preserving baseline codec-results.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintCodecBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-lz4-measure-8192-hdr",
+      "file": "Tests~/Cases/Painting/PaintCodecBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintCodecBenchmark.StartLz4",
+      "args": [
+        "$runId",
+        8192,
+        "hdr"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Compare production LZ4 and native LZ4 without shuffling on authenticated frozen blocks; exact cross-decoding in both directions. Writes lz4-results, preserving baseline codec-results.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintCodecBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-codec-fixture-stage",
+      "file": "Tests~/Framework/CodecFixture.cs",
+      "runner": "run_script",
+      "entry": "CodecFixture.Stage",
+      "args": [],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "assets",
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Explicit permission for temporary Editor fixture assets and installed native LZ4; no running codec/corpus tasks or compilation.",
+      "setup": "Stage canonical test sources or validate ownership before removing temporary fixture.",
+      "teardown": "Call AssetDatabase.Refresh separately and wait for native Editor compilation; no player or external compiler.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "Tests~/Cases/Painting/PaintCodecPreflight.cs"
+      ]
+    },
+    {
+      "id": "paint-codec-fixture-remove",
+      "file": "Tests~/Framework/CodecFixture.cs",
+      "runner": "run_script",
+      "entry": "CodecFixture.Remove",
+      "args": [],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "assets",
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Explicit permission for temporary Editor fixture assets and installed native LZ4; no running codec/corpus tasks or compilation.",
+      "setup": "Stage canonical test sources or validate ownership before removing temporary fixture.",
+      "teardown": "Call AssetDatabase.Refresh separately and wait for native Editor compilation; no player or external compiler.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "Tests~/Cases/Painting/PaintCodecPreflight.cs"
+      ]
+    },
+    {
+      "id": "paint-codec-measure-512-wide",
+      "file": "Tests~/Cases/Painting/PaintCodecBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintCodecBenchmark.Start",
+      "args": [
+        "$runId",
+        512,
+        "wide"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Replay actual stored 8K payloads on background workers; no changes to drawing pipeline or live history.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintCodecBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-codec-measure-8192-thin",
+      "file": "Tests~/Cases/Painting/PaintCodecBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintCodecBenchmark.Start",
+      "args": [
+        "$runId",
+        8192,
+        "thin"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Replay actual stored 8K payloads on background workers; no changes to drawing pipeline or live history.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintCodecBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-codec-measure-8192-wide",
+      "file": "Tests~/Cases/Painting/PaintCodecBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintCodecBenchmark.Start",
+      "args": [
+        "$runId",
+        8192,
+        "wide"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Replay actual stored 8K payloads on background workers; no changes to drawing pipeline or live history.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintCodecBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-codec-measure-8192-detail",
+      "file": "Tests~/Cases/Painting/PaintCodecBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintCodecBenchmark.Start",
+      "args": [
+        "$runId",
+        8192,
+        "detail"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Replay actual stored 8K payloads on background workers; no changes to drawing pipeline or live history.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintCodecBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-codec-measure-8192-hdr",
+      "file": "Tests~/Cases/Painting/PaintCodecBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintCodecBenchmark.Start",
+      "args": [
+        "$runId",
+        8192,
+        "hdr"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Replay actual stored 8K payloads on background workers; no changes to drawing pipeline or live history.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintCodecBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintCodecBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-spill-measure-512-wide",
+      "file": "Tests~/Cases/Painting/PaintSpillPolicyBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintSpillPolicyBenchmark.Start",
+      "args": [
+        "$runId",
+        512,
+        "wide"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Replay actual stored 8K payloads on background workers; no changes to drawing pipeline or live history.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/PaintCodecBenchmark.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs",
+        "src/Layers/DrawingPixelHistory.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintSpillPolicyBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintSpillPolicyBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintSpillPolicyBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-spill-measure-8192-wide-short",
+      "file": "Tests~/Cases/Painting/PaintSpillPolicyBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintSpillPolicyBenchmark.StartSchedule",
+      "args": [
+        "$runId",
+        8192,
+        "wide",
+        "short"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Replay actual stored 8K payloads on background workers; no changes to drawing pipeline or live history.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/PaintCodecBenchmark.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs",
+        "src/Layers/DrawingPixelHistory.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintSpillPolicyBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintSpillPolicyBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintSpillPolicyBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-spill-measure-8192-wide-paced",
+      "file": "Tests~/Cases/Painting/PaintSpillPolicyBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintSpillPolicyBenchmark.StartSchedule",
+      "args": [
+        "$runId",
+        8192,
+        "wide",
+        "paced"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Replay actual stored 8K payloads on background workers; no changes to drawing pipeline or live history.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/PaintCodecBenchmark.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs",
+        "src/Layers/DrawingPixelHistory.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintSpillPolicyBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintSpillPolicyBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintSpillPolicyBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-spill-measure-8192-wide-burst",
+      "file": "Tests~/Cases/Painting/PaintSpillPolicyBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintSpillPolicyBenchmark.StartSchedule",
+      "args": [
+        "$runId",
+        8192,
+        "wide",
+        "burst"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Replay actual stored 8K payloads on background workers; no changes to drawing pipeline or live history.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/PaintCodecBenchmark.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs",
+        "src/Layers/DrawingPixelHistory.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintSpillPolicyBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintSpillPolicyBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintSpillPolicyBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-spill-measure-8192-hdr-short",
+      "file": "Tests~/Cases/Painting/PaintSpillPolicyBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintSpillPolicyBenchmark.StartSchedule",
+      "args": [
+        "$runId",
+        8192,
+        "hdr",
+        "short"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Replay actual stored 8K payloads on background workers; no changes to drawing pipeline or live history.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/PaintCodecBenchmark.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs",
+        "src/Layers/DrawingPixelHistory.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintSpillPolicyBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintSpillPolicyBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintSpillPolicyBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-spill-measure-8192-hdr-paced",
+      "file": "Tests~/Cases/Painting/PaintSpillPolicyBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintSpillPolicyBenchmark.StartSchedule",
+      "args": [
+        "$runId",
+        8192,
+        "hdr",
+        "paced"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Replay actual stored 8K payloads on background workers; no changes to drawing pipeline or live history.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/PaintCodecBenchmark.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs",
+        "src/Layers/DrawingPixelHistory.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintSpillPolicyBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintSpillPolicyBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintSpillPolicyBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-spill-measure-8192-hdr-burst",
+      "file": "Tests~/Cases/Painting/PaintSpillPolicyBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintSpillPolicyBenchmark.StartRepeat",
+      "args": [
+        "$runId",
+        8192,
+        "hdr",
+        "burst",
+        0
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "First complete policy repetition on actual HDR history pages; run the -repeat case for the second repetition.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/PaintCodecBenchmark.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs",
+        "src/Layers/DrawingPixelHistory.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintSpillPolicyBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintSpillPolicyBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintSpillPolicyBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-spill-measure-8192-hdr-burst-repeat",
+      "file": "Tests~/Cases/Painting/PaintSpillPolicyBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintSpillPolicyBenchmark.StartRepeat",
+      "args": [
+        "$runId",
+        8192,
+        "hdr",
+        "burst",
+        1
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Authorized temporary Burst diagnostic assembly imported; matching completed authenticated corpus. Idle Editor and no simultaneous benchmark.",
+      "setup": "Second complete policy repetition on actual HDR history pages; together with the unsuffixed case supplies both repetitions.",
+      "teardown": "Cancel/drain owned workers and release bounded native allocations; retained reports in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/PaintCodecBenchmark.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "src/Layers/PaintHistoryCodec.cs",
+        "src/Layers/DrawingPixelHistory.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintSpillPolicyBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintSpillPolicyBenchmark.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintSpillPolicyBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-codec-corpus-512-wide",
+      "file": "Tests~/Cases/Painting/PaintCodecCorpusTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartCorpus",
+      "args": [
+        "$runId",
+        512,
+        "wide"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching graphical Editor; Burst enabled; 7 GB VRAM for 8K; 8 GiB free disk.",
+      "setup": "Detached 8K brush fixture and isolated journal; capture two actual strokes into authenticated corpus pages.",
+      "teardown": "Dispose owned fixture, delete owned journal records, restore user journal; retain corpus in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/PaintHistoryCodec.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupCorpus",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CleanupCorpus",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollCorpus",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-codec-corpus-8192-thin",
+      "file": "Tests~/Cases/Painting/PaintCodecCorpusTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartCorpus",
+      "args": [
+        "$runId",
+        8192,
+        "thin"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching graphical Editor; Burst enabled; 7 GB VRAM for 8K; 8 GiB free disk.",
+      "setup": "Detached 8K brush fixture and isolated journal; capture two actual strokes into authenticated corpus pages.",
+      "teardown": "Dispose owned fixture, delete owned journal records, restore user journal; retain corpus in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/PaintHistoryCodec.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupCorpus",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CleanupCorpus",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollCorpus",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-codec-corpus-8192-wide",
+      "file": "Tests~/Cases/Painting/PaintCodecCorpusTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartCorpus",
+      "args": [
+        "$runId",
+        8192,
+        "wide"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching graphical Editor; Burst enabled; 7 GB VRAM for 8K; 8 GiB free disk.",
+      "setup": "Detached 8K brush fixture and isolated journal; capture two actual strokes into authenticated corpus pages.",
+      "teardown": "Dispose owned fixture, delete owned journal records, restore user journal; retain corpus in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/PaintHistoryCodec.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupCorpus",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CleanupCorpus",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollCorpus",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-codec-corpus-8192-detail",
+      "file": "Tests~/Cases/Painting/PaintCodecCorpusTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartCorpus",
+      "args": [
+        "$runId",
+        8192,
+        "detail"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching graphical Editor; Burst enabled; 7 GB VRAM for 8K; 8 GiB free disk.",
+      "setup": "Detached 8K brush fixture and isolated journal; capture two actual strokes into authenticated corpus pages.",
+      "teardown": "Dispose owned fixture, delete owned journal records, restore user journal; retain corpus in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/PaintHistoryCodec.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupCorpus",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CleanupCorpus",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollCorpus",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-codec-corpus-8192-hdr",
+      "file": "Tests~/Cases/Painting/PaintCodecCorpusTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartCorpus",
+      "args": [
+        "$runId",
+        8192,
+        "hdr"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching graphical Editor; Burst enabled; 7 GB VRAM for 8K; 8 GiB free disk.",
+      "setup": "Detached 8K brush fixture and isolated journal; capture two actual strokes into authenticated corpus pages.",
+      "teardown": "Dispose owned fixture, delete owned journal records, restore user journal; retain corpus in Temp only.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/PaintHistoryCodec.cs"
+      ],
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupCorpus",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CleanupCorpus",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollCorpus",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 2000
+      }
+    },
+    {
+      "id": "paint-codec-preflight",
+      "file": "Tests~/Cases/Painting/PaintCodecHost.cs",
+      "runner": "run_script",
+      "entry": "PaintCodecHost.Check",
+      "args": [],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Connected matching graphical Editor; Burst enabled; explicit approval for installed native LZ4 diagnostic use.",
+      "setup": "Allocate bounded native codec workspaces and verify three codecs with/without byte planes.",
+      "teardown": "Dispose every owned workspace; no document or drawing-path changes.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/PaintHistoryCodec.cs",
+        "Tests~/Cases/Painting/PaintCodecKernels.cs",
+        "Tests~/Cases/Painting/PaintCodecPreflight.cs"
+      ]
+    },
     {
       "id": "brush-preview-cache",
       "file": "Tests~/Cases/Painting/BrushPreviewCacheTests.cs",
@@ -9193,6 +10521,24 @@
         "Tests~/Framework/TestApi.cs"
       ],
       "reviewFiles": []
+    },
+    {
+      "id": "text-character-conversion-v1", "file": "Tests~/Cases/Layers/TextCharacterConversionTests.cs",
+      "runner": "run_script", "entry": "TextCharacterConversionTests.Run", "args": [], "category": "regression", "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"], "groups": ["text", "vector", "gradient", "documents", "regression"],
+      "prerequisites": "Idle matching graphics-enabled Editor with a supported static outline font; conversion compiled. No concurrent Undo/font checks.",
+      "setup": "Owned transient models and FX: shared transform/FX, glyph anchor mapping, independent movement, Undo/Redo, JSON/native roundtrips, frame clipping, Boolean nesting, and layer-budget rejection.",
+      "teardown": "Destroy owned models/FX and restore render state; clear Undo only for owned documents. Retain PNG under Temp/WhimTex. No user windows or imported assets.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "text-gradients-v1", "file": "Tests~/Cases/Layers/TextGradientTests.cs",
+      "runner": "run_script", "entry": "TextGradientTests.Run", "args": [], "category": "regression", "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"], "groups": ["text", "gradient", "rendering", "documents", "regression"],
+      "prerequisites": "Idle graphics-enabled matching Editor, installed default font, current Text shader/model compiled. No other font-catalog or Undo checks running.",
+      "setup": "Detached document: all fill types and edge modes, per-glyph coordinate oracle, paint reuse, handle adapter, API/JSON/native/Undo, consumers and missing-font fallback.",
+      "teardown": "Restore font catalog and render state; clear Undo only for owned model; destroy owned resources. Retain preview in Temp/WhimTex. No user windows or imported assets.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"]
     },
     {
       "id": "text-edge-modes",

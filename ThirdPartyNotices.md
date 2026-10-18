@@ -3,9 +3,43 @@
 WhimTex's own MIT license does not replace the licenses of third-party components.
 FastNoiseLite, the Clipper2 clipping core, Typography.OpenFont and an adapted edtaa3 distance transform are bundled as source.
 The documentation theme is resolved separately at site build time.
+Paint history includes a portable C#/Burst adaptation of the LZ4 block algorithm.
 The Unity packages listed below are resolved by Package
 Manager and are not vendored into this repository; their installed packages supply their
 own licenses and any transitive third-party notices.
+
+## LZ4
+
+`src/Layers/PaintHistoryCodec.cs` adapts the independent-block format, fast hash search,
+match extension and length encoding from [LZ4 v1.9.4, lib/lz4.c](https://github.com/lz4/lz4/blob/v1.9.4/lib/lz4.c).
+The bounded C#/Burst adaptation uses Unity's portable memory APIs, a checked decoder and
+per-worker reusable buffers. It includes no native library, hardware-specific intrinsics,
+stream dictionaries, frame container or byte shuffling. Native LZ4 1.9.1 from an installed
+Unity package is used only as an explicitly authorized test oracle, not a product dependency.
+
+Copyright (C) 2011-2020, Yann Collet.
+
+BSD 2-Clause License
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
+OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## Typography.OpenFont
 

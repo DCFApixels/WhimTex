@@ -158,6 +158,13 @@ Repeat/Mirror 的边缘采样也可能不同，因为 Vector 使用已渲染的�
 
 ## 转换 Text
 
+使用 **Scope → Character** 渐变时，转换会生成隔离组，每个可见字形各有一个 Vector 图层。
+共同的位置和 FX 保留在组上；各字形保留渐变位置，可独立移动或编辑。
+FX 保留原文字图层的局部坐标，不切换为普通组的画布坐标。
+空格及完全被裁切的字形不生成图层。在 Boolean Group 内，容器采用 Combine/Layers，
+保持可用的布尔操作数。整个转换对应一步 Undo；超出图层上限会在替换文字前报错。
+其他填充继续使用下述复合图形方式。
+
 选中文字图层，选择 **Convert to Vector**。文字会变成一个可编辑图形，包含各个
 字形的轮廓和孔洞。当前分行、对齐、间距、Horizontal Scale、Layout Offset、
 Frame Clip/Ellipsis，以及图层位置和 FX 都会保留。之后可用节点工具调整字形。

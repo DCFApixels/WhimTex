@@ -143,6 +143,8 @@ The guide follows the editing workflow, from the first canvas to painting, effec
 
 ## Acknowledgements
 
+- **[LZ4](https://github.com/lz4/lz4)** — Yann Collet; portable C#/Burst adaptation for lossless paint history. [Included BSD license](ThirdPartyNotices.md#lz4).
+
 Thanks to the authors and maintainers of the libraries that help power WhimTex:
 
 - **[Typography.OpenFont](https://github.com/LayoutFarm/Typography)** — WinterDev and contributors;

@@ -72,7 +72,7 @@ namespace DCFApixels.WhimTex
                     if (layer.Behaviour is TextLayerBehaviour textSource)
                     {
                         // Prepare every glyph before replacing the source, including Frame overflow clipping.
-                        layer.SetBehaviour(TextToVector.Convert(textSource, document));
+                        TextToVector.ApplyPrepared(layer, TextToVector.PrepareLayer(textSource, document));
                     }
                     else
                     {

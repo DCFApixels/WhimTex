@@ -1220,6 +1220,11 @@
             "PassThrough",
             "Isolated"
           ]
+        },
+        "groupFxInLayerSpace": {
+          "type": "boolean",
+          "default": false,
+          "description": "On groups only, preserve a converted source layer's LayerToLocal FX coordinates instead of the ordinary group's canvas coordinates. Character Text-to-Vector sets this true; non-group layers ignore it. Retained by save and Undo."
         }
       },
       "required": [
@@ -5131,6 +5136,63 @@
             "maximum": 3.40282347E+38
           }
         },
+        "fillMode": {
+          "type": "string",
+          "enum": [
+            "None",
+            "Solid",
+            "LinearGradient",
+            "RadialGradient",
+            "SquareGradient",
+            "DiamondGradient",
+            "CircularGradient"
+          ],
+          "default": "Solid"
+        },
+        "gradientScope": {
+          "type": "string",
+          "enum": [
+            "Text",
+            "Character"
+          ],
+          "default": "Text",
+          "description": "Text normalizes one field over all glyph bounds; Character repeats shared anchors over each nonempty glyph rectangle, not advance or whitespace. Paint changes do not rebuild glyph coverage. Original Edge Mode remains in control."
+        },
+        "gradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WhimTexGradient"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gradientStart": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "gradientEnd": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "gradientRepetitions": {
+          "type": "number",
+          "minimum": 0.0001,
+          "default": 1
+        },
         "fallbackPng": {
           "type": [
             "string",
@@ -5175,6 +5237,41 @@
           "maximum": 16384,
           "default": 1,
           "description": "Pixel scale of the retained font fallback bitmap. Missing-font rendering rescales its placement by current pixelScale/reference without changing retained typography."
+        },
+        "fallbackInkBounds": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "fallbackPaint": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1048576,
+          "contentEncoding": "base64",
+          "description": "Optional missing-font Character paint snapshot. Deflate-compressed little-endian RGBA float32, bottom-up, exactly fallbackPaintWidth*fallbackPaintHeight*16 decoded bytes; at most 768 KiB compressed. Full float precision including HDR and alpha. Bound to fallbackPaintKey; cannot be repainted without glyphs."
+        },
+        "fallbackPaintKey": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fallbackPaintWidth": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2048
+        },
+        "fallbackPaintHeight": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2048
         },
         "recoveryId": {
           "type": [

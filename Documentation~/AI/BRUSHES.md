@@ -183,9 +183,10 @@ records one small object per pixel operation; a shared per-user disk store holds
 block's before/after Half and straight-storage bytes. Ctrl+Z/Redo share the normal action order.
 History survives script reload within the Editor session, but is not included in TIFF or restored
 after restarting the Editor. Normal Editor exit removes only that process's session journal.
-With Burst enabled, new pages use independent lossless byte blocks (literals and backward matches),
-with raw storage when packing would expand a block. Encoding and decoding use portable Burst;
-there is no color conversion or quantization in the codec. Without Burst, a sample of up to 64 KiB
+With Burst enabled, new pages use independent LZ4 blocks without byte shuffling,
+with raw storage when packing would expand a block. The C#/Burst implementation uses portable
+memory operations, a bounded 16 KiB match table and a checked decoder; no native library is required.
+There is no color conversion or quantization in the codec. Without Burst, a sample of up to 64 KiB
 selects Deflate for compressible pages and raw storage otherwise. The faster block format generally
 uses more disk space than Deflate; the existing disk quota still applies. Payload checksums and
 encoding headers are verified before restoring any block, then each page is decoded once into
@@ -214,7 +215,7 @@ A shared pool retains at most 64 MiB of idle native planes for subsequent readba
 before-images. Active writer planes are charged to the pending-write budget; a page being patched
 also owns its stored before-image (at most 8 MiB). No additional full-canvas CPU/GPU snapshot is introduced.
 Compression and disk writes remain background Tasks. Their exclusive codec workspaces are reused
-(at most four idle workspaces, approximately 6.3 MiB together). Contiguous native blocks are encoded
+(at most four idle workspaces, approximately 6.1 MiB together). Contiguous native blocks are encoded
 directly; atlas rows are gathered native-to-native into reusable block scratch. A reusable managed
 output buffer feeds the file API. Lossless bytes, raw fallback, checksums and the journal format are unchanged.
 Idle pools are released after all consumers join at script reload/quit. Raw journal pages trade disk

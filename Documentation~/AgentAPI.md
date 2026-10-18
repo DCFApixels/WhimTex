@@ -1772,6 +1772,23 @@ Post FX is window-local presentation state and never changes API rendering, samp
 
 ### Text settings
 
+Text also accepts `fillMode` (`None`, `Solid` default, `LinearGradient`, `RadialGradient`,
+`SquareGradient`, `DiamondGradient`, `CircularGradient`), `gradient`, `gradientStart` (default `[0,0]`),
+`gradientEnd` (`[1,0]`), `gradientRepetitions` (finite, at least 0.0001), and `gradientScope`
+(`Text` default, or `Character`). `color` is the retained Solid color, not a gradient multiplier.
+The palette contract is shared with figure fills. Text coordinates normalize the union of visible
+glyph rectangles; Character repeats shared anchors in each nonempty glyph rectangle, excluding advance/whitespace.
+Layout, hinting, Pixel coverage, clipping and transform order are unchanged. Paint edits reuse glyph coverage.
+Canvas handles operate on the selected letter's relative frame, without editing the layer transform.
+Text-to-Vector conversion retains Text-scope fill in one compound Vector. An active Character gradient
+converts the original shell to an isolated group with one independently styled Vector child per visible glyph.
+The common transform, ID, name, rendering settings and FX stay on the group; FX are not duplicated per glyph.
+The serialized `groupFxInLayerSpace` flag preserves the original `LayerToLocal` frame for those FX;
+ordinary groups retain their default canvas-space behavior. This conversion flag has no separate UI control.
+Inside a Boolean Group, the replacement is a nested Combine/Layers Boolean Group so it remains a valid operand.
+Whitespace and fully clipped glyphs create no children. All children and layer-budget checks are prepared before
+replacement. The document limit remains 1024 layers. Boolean operations still use their group styling.
+
 Create a layer with type `text`; patch `settings.text` with any of: `text` (up to 8192 characters),
 `fontFamily` (installed OS font name), `fontStyle` (`Normal`, `Bold`, `Italic`, `BoldAndItalic`),
 `casing` (`Normal`, `Lowercase`, `Uppercase`, `SmallCaps`),

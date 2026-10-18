@@ -87,6 +87,8 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                     if (!(type == typeof(WhimTexDocument) && f.Name == "layers") && !(type == typeof(DrawingLayerBehaviour) && f.Name == "pixels"))
                         properties[f.Name] = type == typeof(ShapeLayerBehaviour) && (f.Name == "rectangleCorners" || f.Name == "polygonCorners")
                             ? D(("type", "array"), ("minItems", f.Name == "rectangleCorners" ? 4 : 3), ("maxItems", f.Name == "rectangleCorners" ? 4 : 32), ("items", Schema(typeof(ShapeLayerBehaviour.Corner)))) :
+                            type == typeof(Layer) && f.Name == "groupFxInLayerSpace"
+                            ? D(("type", "boolean"), ("default", false), ("description", "On groups only, preserve a converted source layer's LayerToLocal FX coordinates instead of the ordinary group's canvas coordinates. Character Text-to-Vector sets this true; non-group layers ignore it. Retained by save and Undo.")) :
                             type == typeof(GradientLayerBehaviour) && f.Name == "circularStartAngle"
                             ? D(("type", "number"), ("default", 0), ("description", "Circular gradient start angle in counterclockwise degrees from the local left ray. Independent of transform and palette. One period spans 360/circularRepetitions degrees; default start angle preserves the existing field.")) :
                             (type == typeof(SDFLayerBehaviour) || type == typeof(OutlineLayerBehaviour)) && f.Name == "miterLimit"
@@ -198,6 +200,17 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                     ((Dictionary<string, object>)properties["transform"])["description"] = "Omitted transform.tiling defaults to Source for every layer. The source declares its stable policy: geometry and procedural generators use Unbounded; Drawing, Text, groups and image effects use Clip; File inherits its bound texture's U/V wrap modes. Never inferred from preview or render-cache textures. Explicit modes, including Clip, survive Compact writing and Shape/Text conversion.";
                     properties["booleanOperation"] = D(("type", "string"), ("enum", Enum.GetNames(typeof(VectorBooleanOperation))), ("default", "Union"),
                         ("description", "Operation when this layer is an operand of a Boolean Group. Bottom enabled operand is the base, so its operation is ignored. Retained outside Boolean Groups."));
+                }
+                if (type == typeof(TextLayerBehaviour))
+                {
+                    properties["fillMode"] = D(("type", "string"), ("enum", Enum.GetNames(typeof(VectorFillMode))), ("default", "Solid"));
+                    properties["gradientScope"] = D(("type", "string"), ("enum", Enum.GetNames(typeof(TextGradientScope))), ("default", "Text"),
+                        ("description", "Text normalizes one field over all glyph bounds; Character repeats shared anchors over each nonempty glyph rectangle, not advance or whitespace. Paint changes do not rebuild glyph coverage. Original Edge Mode remains in control."));
+                    properties["gradientRepetitions"] = D(("type", "number"), ("minimum", .0001), ("default", 1));
+                    properties["fallbackPaint"] = D(("type", new[] { "string", "null" }), ("maxLength", 1048576), ("contentEncoding", "base64"),
+                        ("description", "Optional missing-font Character paint snapshot. Deflate-compressed little-endian RGBA float32, bottom-up, exactly fallbackPaintWidth*fallbackPaintHeight*16 decoded bytes; at most 768 KiB compressed. Full float precision including HDR and alpha. Bound to fallbackPaintKey; cannot be repainted without glyphs."));
+                    foreach (string field in new[] { "fallbackPaintWidth", "fallbackPaintHeight" })
+                        properties[field] = D(("type", "integer"), ("minimum", 0), ("maximum", 2048));
                 }
                 if (type == typeof(TextureTransform))
                 {

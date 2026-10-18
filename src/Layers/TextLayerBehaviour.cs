@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
@@ -11,6 +13,7 @@ namespace DCFApixels.WhimTex
     public enum TextWrapping { Manual, Words, Characters }
     public enum TextOverflowMode { None, Clip, Ellipsis }
     public enum TextCasing { Normal, Lowercase, Uppercase, SmallCaps }
+    public enum TextGradientScope { Text, Character }
     public enum TextEdgeMode { [InspectorName("Hinted AA")] HintedAA = 0, Antialiased = 1, Pixel = 2 }
     [Serializable]
     public struct TextSpacing : IEquatable<TextSpacing>
@@ -46,6 +49,11 @@ namespace DCFApixels.WhimTex
         public bool justify;
         public bool autoSize;
         public Color color = Color.white;
+        public VectorFillMode fillMode = VectorFillMode.Solid;
+        public TextGradientScope gradientScope;
+        public WhimTexGradient gradient = new WhimTexGradient();
+        public Vector2 gradientStart = Vector2.zero, gradientEnd = Vector2.right;
+        public float gradientRepetitions = 1f;
 
         [SerializeField, HideInInspector] private string fallbackPng;
         [SerializeField, HideInInspector] private string fallbackKey;
@@ -54,9 +62,15 @@ namespace DCFApixels.WhimTex
         [SerializeField, HideInInspector] private int fallbackHeight;
         [SerializeField, HideInInspector] private Rect fallbackRect;
         [SerializeField, HideInInspector] private float fallbackPixelScale = 1f;
+        [SerializeField, HideInInspector] private Rect fallbackInkBounds;
+        [SerializeField, HideInInspector] private string fallbackPaint, fallbackPaintKey;
+        [SerializeField, HideInInspector] private int fallbackPaintWidth, fallbackPaintHeight;
         [NonSerialized] private TextLayerRenderer renderer;
         [NonSerialized] private Texture2D decodedFallback;
         [NonSerialized] private string decodedPng;
+        [NonSerialized] private Texture2D decodedPaint;
+        [NonSerialized] private string decodedPaintData;
+        [NonSerialized] private WhimTexGradientPalette fallbackPalette;
         [NonSerialized] private string loggedNotice;
         [NonSerialized] private VectorLayerBehaviour vectorGeometry;
         [NonSerialized] private string vectorKey;
@@ -128,12 +142,25 @@ namespace DCFApixels.WhimTex
             Mathf.Clamp(float.IsFinite(value.x) ? value.x : 0, -1000000, 1000000),
             Mathf.Clamp(float.IsFinite(value.y) ? value.y : 0, -1000000, 1000000));
         internal bool HasSavedAppearance => !string.IsNullOrEmpty(fallbackPng) && fallbackKey == LayoutKey(fallbackWidth, fallbackHeight);
-        internal string Notice => FontAvailable ? null : HasSavedAppearance
+        private bool CharacterGradient => FigureFill.IsGradient(fillMode) && gradientScope == TextGradientScope.Character;
+        private string FillKey => ((int)fillMode).ToString(CultureInfo.InvariantCulture) + ":" + JsonUtility.ToJson(gradient) + ":" +
+            gradientStart.x.ToString("R", CultureInfo.InvariantCulture) + ":" + gradientStart.y.ToString("R", CultureInfo.InvariantCulture) + ":" +
+            gradientEnd.x.ToString("R", CultureInfo.InvariantCulture) + ":" + gradientEnd.y.ToString("R", CultureInfo.InvariantCulture) + ":" +
+            gradientRepetitions.ToString("R", CultureInfo.InvariantCulture);
+        internal string Notice => FontAvailable ? null : HasSavedAppearance && CharacterGradient &&
+            (string.IsNullOrEmpty(fallbackPaint) || fallbackPaintKey != FillKey)
+            ? "The original font is unavailable and this character gradient has no matching saved appearance. Choose an installed font, Text scope or Solid fill."
+            : HasSavedAppearance
             ? "System font '" + ResolvedFont + "' is unavailable. The saved text appearance is retained; choose an installed font to edit its layout."
             : "System font '" + ResolvedFont + "' is unavailable and no matching saved appearance exists. Choose an installed font to display the text.";
 
         internal void Validate()
         {
+            if ((uint)fillMode > 6 || (uint)gradientScope > 1 || gradient == null ||
+                !float.IsFinite(gradientStart.x) || !float.IsFinite(gradientStart.y) ||
+                !float.IsFinite(gradientEnd.x) || !float.IsFinite(gradientEnd.y) ||
+                !float.IsFinite(gradientRepetitions) || gradientRepetitions < .0001f)
+                throw new ArgumentException("Invalid Text fill or gradient settings.");
             WhimTexDocument.ValidatePixelScale(fallbackPixelScale);
             if ((text?.Length ?? 0) > MaxCharacters) throw new ArgumentException("Text exceeds the 8192-character limit.");
             if (!float.IsFinite(fontSize) || fontSize < 1 || fontSize > 2048) throw new ArgumentException("Font Size must be 1..2048 pixels.");
@@ -236,27 +263,113 @@ namespace DCFApixels.WhimTex
             return new Vector2(Mathf.Lerp(first.x, first.y, (int)LayoutAlignment % 3 * .5f), first.z);
         }
 
+        internal Rect GetGradientFrame(int width, int height, int character = 0)
+        {
+            if (!FontAvailable) return ScaledFallbackRect();
+            (renderer ??= new TextLayerRenderer()).GetBounds(this, width, height);
+            return renderer.GradientFrame(gradientScope == TextGradientScope.Character ? character : -1);
+        }
+
+        internal int FindGradientCharacter(int width, int height, Vector2 local)
+        {
+            if (!FontAvailable) return -1;
+            GetGradientFrame(width, height);
+            return renderer.FindCharacter(local);
+        }
+
         internal void PrepareSavedAppearance(int width, int height)
         {
             Validate();
             if (!FontAvailable) return;
             string key = LayoutKey(width, height);
-            if (key == fallbackKey && fallbackFont == ResolvedFont && fallbackPixelScale == Owner.GetPixelScale() && !string.IsNullOrEmpty(fallbackPng)) return;
+            if (key == fallbackKey && fallbackFont == ResolvedFont && fallbackPixelScale == Owner.GetPixelScale() && !string.IsNullOrEmpty(fallbackPng) &&
+                (!CharacterGradient || fallbackPaintKey == FillKey && !string.IsNullOrEmpty(fallbackPaint))) return;
             Mask(width, height, 1);
             float longest = Mathf.Max(renderer.SourceRect.width, renderer.SourceRect.height);
             float scale = Mathf.Min(1, 2048f / longest);
-            byte[] png;
+            byte[] png, paint = null;
             do
             {
                 var mask = Mask(width, height, scale);
                 png = mask.EncodeToPNG();
+                if (CharacterGradient) paint = EncodePaint(mask.width, mask.height);
                 scale *= .5f;
-            } while (png.Length > 768 * 1024 && scale * longest >= 128);
-            if (png.Length > 768 * 1024) throw new InvalidOperationException("Saved text appearance exceeds the 768 KiB budget.");
+            } while ((png.Length > 768 * 1024 || (paint?.Length ?? 0) > 768 * 1024) && scale * longest >= 128);
+            if (png.Length > 768 * 1024 || (paint?.Length ?? 0) > 768 * 1024)
+                throw new InvalidOperationException("Saved text appearance exceeds its 768 KiB per-image budget.");
             fallbackPng = Convert.ToBase64String(png);
             fallbackKey = key; fallbackWidth = width; fallbackHeight = height; fallbackFont = ResolvedFont;
             fallbackRect = renderer.SourceRect;
             fallbackPixelScale = Owner.GetPixelScale();
+            fallbackInkBounds = renderer.GradientFrame(-1);
+            fallbackPaint = paint == null ? null : Convert.ToBase64String(paint);
+            fallbackPaintKey = paint == null ? null : FillKey;
+        }
+
+        private byte[] EncodePaint(int width, int height)
+        {
+            var active = RenderTexture.active; bool srgb = GL.sRGBWrite;
+            var target = ProfiledRenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+            var image = new Texture2D(width, height, TextureFormat.RGBAFloat, false, true);
+            try
+            {
+                GL.sRGBWrite = false; renderer.Paint(this, target);
+                RenderTexture.active = target; image.ReadPixels(new Rect(0, 0, width, height), 0, 0, false);
+                byte[] data = image.GetRawTextureData<byte>().ToArray();
+                if (!BitConverter.IsLittleEndian) for (int i = 0; i < data.Length; i += 4) Array.Reverse(data, i, 4);
+                using var output = new MemoryStream();
+                using (var encoder = new DeflateStream(output, System.IO.Compression.CompressionLevel.Optimal, true)) encoder.Write(data, 0, data.Length);
+                fallbackPaintWidth = width; fallbackPaintHeight = height;
+                return output.ToArray();
+            }
+            finally { UnityEngine.Object.DestroyImmediate(image); ProfiledRenderTexture.ReleaseTemporary(target); RenderTexture.active = active; GL.sRGBWrite = srgb; }
+        }
+
+        private bool PaintSavedAppearance(Texture2D mask, RenderTexture output)
+        {
+            var material = WhimTexMaterials.Text;
+            if (!FigureFill.IsGradient(fillMode))
+            {
+                material.SetColor("_TextColor", fillMode == VectorFillMode.None ? Color.clear : HdrUtility.Decode(color));
+                Graphics.Blit(mask, output, material, 1); return true;
+            }
+            if (gradientScope == TextGradientScope.Text)
+            {
+                (fallbackPalette ??= new WhimTexGradientPalette()).Bind(material, gradient);
+                material.SetInt("_TextFillMode", (int)fillMode);
+                material.SetVector("_TextAnchors", new Vector4(gradientStart.x, gradientStart.y, gradientEnd.x, gradientEnd.y));
+                material.SetFloat("_TextRepetitions", gradientRepetitions);
+                material.SetVector("_TextCanvasSize", new Vector4(output.width, output.height, 0, 0));
+                Rect ink = fallbackInkBounds.width > 0 && fallbackInkBounds.height > 0 ? fallbackInkBounds : fallbackRect;
+                material.SetVector("_TextPaintRect", new Vector4((ink.x - fallbackRect.x) / fallbackRect.width * output.width,
+                    (ink.y - fallbackRect.y) / fallbackRect.height * output.height,
+                    ink.width / fallbackRect.width * output.width, ink.height / fallbackRect.height * output.height));
+                Graphics.Blit(mask, output, material, 2); return true;
+            }
+            if (string.IsNullOrEmpty(fallbackPaint) || fallbackPaintKey != FillKey) return false;
+            if (decodedPaint == null || decodedPaintData != fallbackPaint)
+            {
+                if (fallbackPaint.Length > 1024 * 1024 || fallbackPaintWidth < 1 || fallbackPaintHeight < 1 ||
+                    fallbackPaintWidth > 2048 || fallbackPaintHeight > 2048) throw new InvalidOperationException("Invalid saved Text paint dimensions.");
+                var bytes = new byte[checked(fallbackPaintWidth * fallbackPaintHeight * 16)];
+                using var input = new MemoryStream(Convert.FromBase64String(fallbackPaint));
+                using var decoder = new DeflateStream(input, CompressionMode.Decompress);
+                int offset = 0;
+                while (offset < bytes.Length)
+                {
+                    int count = decoder.Read(bytes, offset, bytes.Length - offset);
+                    if (count == 0) throw new InvalidOperationException("Truncated saved Text paint.");
+                    offset += count;
+                }
+                if (decoder.ReadByte() >= 0) throw new InvalidOperationException("Oversized saved Text paint.");
+                if (!BitConverter.IsLittleEndian) for (int i = 0; i < bytes.Length; i += 4) Array.Reverse(bytes, i, 4);
+                if (decodedPaint != null) UnityEngine.Object.DestroyImmediate(decodedPaint);
+                decodedPaint = new Texture2D(fallbackPaintWidth, fallbackPaintHeight, TextureFormat.RGBAFloat, false, true)
+                    { name = "Saved Text Paint", hideFlags = HideFlags.HideAndDontSave, wrapMode = TextureWrapMode.Clamp };
+                decodedPaint.LoadRawTextureData(bytes); decodedPaint.Apply(false, false); decodedPaintData = fallbackPaint;
+            }
+            decodedPaint.filterMode = edgeMode == TextEdgeMode.Pixel ? FilterMode.Point : FilterMode.Bilinear;
+            Graphics.Blit(decodedPaint, output); return true;
         }
 
         private Rect ScaledFallbackRect()
@@ -277,9 +390,9 @@ namespace DCFApixels.WhimTex
             try
             {
                 Material material = WhimTexMaterials.Text;
-                material.SetColor("_TextColor", HdrUtility.Decode(color));
                 GL.sRGBWrite = false;
-                Graphics.Blit(mask, source, material, 1);
+                if (FontAvailable) renderer.Paint(this, source);
+                else if (!PaintSavedAppearance(mask, source)) return null;
                 Rect rect = FontAvailable ? renderer.SourceRect : ScaledFallbackRect();
                 var sourceToLocal = ProjectiveMatrix.Translate(.5 + rect.x / context.activeDocument.width, .5 + rect.y / context.activeDocument.height) *
                     ProjectiveMatrix.Scale(rect.width / context.activeDocument.width, rect.height / context.activeDocument.height);
@@ -295,6 +408,9 @@ namespace DCFApixels.WhimTex
         {
             vectorGeometry?.ReleaseTransientResources(); vectorGeometry = null; vectorKey = null;
             renderer?.Dispose(); renderer = null;
+            fallbackPalette?.Dispose(); fallbackPalette = null;
+            if (decodedPaint != null) UnityEngine.Object.DestroyImmediate(decodedPaint);
+            decodedPaint = null; decodedPaintData = null;
             if (decodedFallback != null) UnityEngine.Object.DestroyImmediate(decodedFallback);
             decodedFallback = null; decodedPng = null;
         }

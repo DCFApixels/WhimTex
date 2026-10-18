@@ -180,6 +180,16 @@ width, `0.5` halves it, and `2` doubles it. Wrapping, Auto Size and Ellipsis use
 added em spacing remains unchanged. Expanded glyphs are rasterized at higher density so their
 edges are not just enlarged from the original font bitmap; output texture limits still apply.
 
+**Fill** offers Solid, Linear, Radial, Square, Diamond and Circular, using the shared
+gradient editor. **Scope → Text** spans the bounds of all visible letters;
+**Character** repeats the same style inside each letter's own rectangle, excluding side spacing.
+Choose **Gradient Handles** to edit it on the canvas. In Character scope, click a letter
+away from the current handles to move the controls there; edits still affect every letter.
+Anchors are relative to the selected scope, not the canvas. Moving/reflowing text moves its fill with it.
+The edge modes below still control glyph smoothing; changing the palette does not soften the glyphs.
+If the font is missing, the saved Character appearance remains visible, but its fill controls
+require an installed font. Text scope can still recolor the saved mask.
+
 Choose **Edge Mode** in **Properties (Text)**:
 
 - **Hinted AA** (default) smooths edges and fits strokes to the pixel grid, helping small text stay readable. The letter shape can shift slightly.

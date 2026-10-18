@@ -16,6 +16,12 @@ namespace DCFApixels.WhimTex
             internal Vector2 start, end;
             internal float repetitions;
         }
+        internal FigureFillEditor(TextLayerBehaviour text, Action<string, Action> change, WhimTexUI.ValueBindings bindings)
+            : this(() => new Style { mode = text.fillMode, color = text.color, gradient = text.gradient,
+                    start = text.gradientStart, end = text.gradientEnd, repetitions = text.gradientRepetitions },
+                s => { text.fillMode = s.mode; text.color = s.color; text.gradient = s.gradient;
+                    text.gradientStart = s.start; text.gradientEnd = s.end; text.gradientRepetitions = s.repetitions; },
+                change, bindings, false) { }
         internal FigureFillEditor(ShapeLayerBehaviour shape, Action<string, Action> change, WhimTexUI.ValueBindings bindings, bool stroke = false)
             : this(() => stroke ? new Style { mode = shape.strokeMode, color = shape.strokeColor, gradient = shape.strokeGradient, start = shape.strokeGradientStart, end = shape.strokeGradientEnd, repetitions = shape.strokeGradientRepetitions } :
                 new Style { mode = shape.fillMode, color = shape.fillColor, gradient = shape.gradient, start = shape.gradientStart, end = shape.gradientEnd, repetitions = shape.gradientRepetitions },

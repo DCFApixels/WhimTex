@@ -8,8 +8,9 @@ namespace DCFApixels.WhimTex
     public sealed partial class WhimTexWindow
     {
         [NonSerialized] private bool editStrokeGradient;
+        [NonSerialized] private int textGradientCharacter;
         private GradientCanvasTarget GradientTarget(bool stroke) => new GradientCanvasTarget(GetSelectedLayer(),
-            activeDocument != null ? new Vector2(activeDocument.width, activeDocument.height) : Vector2.one, stroke);
+            activeDocument != null ? new Vector2(activeDocument.width, activeDocument.height) : Vector2.one, stroke, textGradientCharacter);
         private GradientCanvasTarget gradientCanvasLayer
         {
             get
@@ -111,7 +112,7 @@ namespace DCFApixels.WhimTex
             {
                 owner.activeDocument.RefreshTransformHierarchy();
                 owner.gradientCanvasLayer.UvEndpoints(out var ua, out var ub);
-                var t = owner.gradientCanvasLayer.Owner.CanvasTransform;
+                var t = owner.gradientCanvasLayer.CanvasTransform;
                 a = GradientCanvasGeometry.Point(ua, t, Size); b = GradientCanvasGeometry.Point(ub, t, Size);
                 a=View(a); b=View(b);
             }
@@ -126,9 +127,9 @@ namespace DCFApixels.WhimTex
                 if (IsCircular) return CircularProjection(p);
                 float screenTime=Mathf.Clamp01(Vector2.Dot(p-a,b-a)/Mathf.Max(.0001f,(b-a).sqrMagnitude));
                 var g=owner.gradientCanvasLayer;
-                if(g.Owner.CanvasTransform.storage==TransformStorage.TRS) return screenTime;
+                if(g.CanvasTransform.storage==TransformStorage.TRS) return screenTime;
                 g.UvEndpoints(out var ua,out var ub);
-                var m=g.Owner.CanvasTransform.matrix;
+                var m=g.CanvasTransform.matrix;
                 double wa=m.m20*ua.x+m.m21*ua.y+m.m22, wb=m.m20*ub.x+m.m21*ub.y+m.m22;
                 return (float)(screenTime*wa/(wb*(1-screenTime)+screenTime*wa));
             }
@@ -136,9 +137,9 @@ namespace DCFApixels.WhimTex
             {
                 if (IsCircular) return CircularPoint(time);
                 var g=owner.gradientCanvasLayer;
-                if(g.Owner.CanvasTransform.storage==TransformStorage.TRS) return Vector2.Lerp(a,b,time);
+                if(g.CanvasTransform.storage==TransformStorage.TRS) return Vector2.Lerp(a,b,time);
                 g.UvEndpoints(out var ua,out var ub);
-                return View(GradientCanvasGeometry.Point(Vector2.Lerp(ua,ub,time),g.Owner.CanvasTransform,Size));
+                return View(GradientCanvasGeometry.Point(Vector2.Lerp(ua,ub,time),g.CanvasTransform,Size));
             }
             private void Down(PointerDownEvent e)
             {
@@ -166,7 +167,7 @@ namespace DCFApixels.WhimTex
                     for(int i=0;i<keys.Length-1;i++)
                         if((p-MidpointPosition(g,i,a,b)).sqrMagnitude<=64){midpointHit=i;break;}
                 float time=Projection(p,a,b);
-                if(hit==-1 && midpointHit<0 && (p-KeyPosition(a,b,time)).sqrMagnitude>36) return;
+                if(hit==-1 && midpointHit<0 && (p-KeyPosition(a,b,time)).sqrMagnitude>36) { SelectTextCharacter(e); return; }
                 owner.Focus(); target.Focus();
                 midpointSelected=midpointHit>=0;
                 if(midpointSelected)hit=midpointHit;
@@ -205,8 +206,22 @@ namespace DCFApixels.WhimTex
             }
             private void CaptureGeometry()
             {
-                originalTransform=owner.activeDocument.GetCanvasTransform(layer.Behaviour); originalLocal=layer.transform;
+                owner.activeDocument.RefreshTransformHierarchy();
+                originalTransform=layer.CanvasTransform; originalLocal=layer.transform;
                 if(layer.IsFill){originalFillStart=layer.FillStart;originalFillEnd=layer.FillEnd;}
+            }
+            private void SelectTextCharacter(PointerDownEvent e)
+            {
+                if (owner.GetSelectedLayer()?.Behaviour is not TextLayerBehaviour text || text.gradientScope != TextGradientScope.Character) return;
+                var pixel = Document(e.localPosition);
+                var local = text.Owner.CanvasTransform.Unmap(new Vector2(pixel.x / Size.x, pixel.y / Size.y), Size);
+                int index = text.FindGradientCharacter((int)Size.x, (int)Size.y,
+                    new Vector2((local.x - .5f) * Size.x, (local.y - .5f) * Size.y));
+                if (index < 0) return;
+                owner.textGradientCharacter = index;
+                selected = -1; selectionLayer = default;
+                owner.gradientCanvasOverlay.MarkDirtyRepaint();
+                e.StopImmediatePropagation();
             }
             private void Move(PointerMoveEvent e)
             {

@@ -159,6 +159,9 @@ namespace DCFApixels.WhimTex
                     defaultsV2["ShapeLayerBehaviour"][entry.Name] = entry.Value;
                 defaultsV2["ShapeLayerBehaviour"]["gradient"] = defaultsV2["WhimTexGradient"].DeepClone();
                 defaultsV2["ShapeLayerBehaviour"]["strokeGradient"] = defaultsV2["WhimTexGradient"].DeepClone();
+                foreach (var entry in JObject.Parse(@"{""fillMode"":""Solid"",""gradientScope"":""Text"",""gradientStart"":[0,0],""gradientEnd"":[1,0],""gradientRepetitions"":1}").Properties())
+                    defaultsV2["TextLayerBehaviour"][entry.Name] = entry.Value;
+                defaultsV2["TextLayerBehaviour"]["gradient"] = defaultsV2["WhimTexGradient"].DeepClone();
             }
             return defaultsV2[TypeName(type)] as JObject;
         }

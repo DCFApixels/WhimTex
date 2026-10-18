@@ -368,15 +368,28 @@ different rasterizers do not promise pixel-identical antialiasing.
 
 `convertToVector` also accepts Text. The C# helper
 `TextToVector.Convert(TextLayerBehaviour source, WhimTexDocument document)` returns a
-detached `VectorLayerBehaviour`. As with Shape, callers replace the behaviour on the
-existing layer, retain the stored tiling (including `Source` and explicit `Clip`), then call
-`VectorLayerStructure.FitFrame(layer, width, height)`. The layer ID, name, FX, shared
-rendering settings and Boolean operation stay intact. Fitting preserves canvas placement;
-stored local geometry and transform values may change together. Text Frame Clip is
-already baked into the geometry before fitting, so it remains effective.
+detached `VectorLayerBehaviour`. For solid and whole-Text gradient fills, callers replace
+the behaviour on the existing layer, retain the stored tiling (including `Source` and
+explicit `Clip`), then call `VectorLayerStructure.FitFrame(layer, width, height)`.
+The layer ID, name, FX, shared rendering settings and Boolean operation stay intact.
+Fitting preserves canvas placement; stored local geometry and transform values may
+change together. Text Frame Clip is already baked into the geometry before fitting,
+so it remains effective.
 
-The result contains one compound figure with `fillRule:"NonZero"` for all glyphs and
-holes, using the text color as its solid fill. Layout comes from the shared
+For a Character gradient, the C# helper returns one independently painted figure per
+visible glyph; do not put that multi-figure payload directly on a persistent layer.
+The UI/API conversion prepares separate Vector child layers in an isolated group,
+retaining the original wrapper ID, transform and FX on the group. Inside a Boolean
+Group it uses a compatible nested Combine group with `appearance:"Layers"`. Each
+glyph keeps its original gradient frame before clipping; only its geometry is clipped.
+Preparation validates the document layer/depth limits before replacing the source.
+The group sets serialized `Layer.groupFxInLayerSpace:true` so `LayerToLocal` in the
+retained FX still uses the original layer transform. Ordinary groups default to false
+(canvas-space FX); non-group layers ignore this flag. The flag participates in the
+normal model/cache key, save and Undo paths and does not depend on cached textures.
+
+Other fills produce one compound figure with `fillRule:"NonZero"` for all glyphs and
+holes, preserving the solid color or whole-Text gradient. Layout comes from the shared
 `TextLayerRenderer`, including effective Auto Size, alignment, wrapping, spacing,
 casing, Horizontal Scale, Layout Offset and Frame overflow. Glyph indices and the
 actual resolved font face select the original outlines through Typography.OpenFont:
@@ -615,6 +628,27 @@ it leaves the source marked dirty. Prefer `ExportJson` to retain a pixel-bearing
 Empty placeholders can subsequently be saved normally. No URL download substitutes for saved pixels.
 
 ### Text and system fonts
+
+`TextLayerBehaviour` also stores `fillMode` (shared `VectorFillMode`, default `Solid`), `gradientScope`
+(`Text` default or `Character`), `gradient`, normalized `gradientStart:[0,0]`, `gradientEnd:[1,0]`,
+and `gradientRepetitions:1` (finite and at least 0.0001). `color` remains the inactive Solid color.
+Text uses the union of visible glyph rectangles; Character repeats the same relative style in each
+nonempty glyph rectangle, not its advance or whitespace. Glyph coverage/hinting and layout keys remain
+independent of paint. Every write mode retains inactive palette, anchors and scope. Missing-font Text
+scope repaints the saved mask with retained `fallbackInkBounds`. Character also saves optional
+`fallbackPaint`: base64 Deflate-compressed little-endian RGBA float32, bottom-up, with dimensions
+`fallbackPaintWidth/Height` in 1..2048 and exactly width*height*16 decoded bytes. Each retained image
+has a 768 KiB compressed budget; resolution can be reduced as with the existing mask fallback.
+`fallbackPaintKey` binds that snapshot to its style; it retains signed/HDR RGB without color quantization.
+Without glyphs, Character paint cannot be edited; a missing/mismatched snapshot gives a diagnostic,
+never a silently substituted Text-wide gradient. Text-to-Vector conversion retains Text-scope paint in one
+compound Vector. Active Character paint instead creates an isolated group on the original layer shell,
+with one Vector child per nonempty visible glyph and independent cloned palettes. The parent retains its
+ID, transform, rendering settings and FX; child FX are empty and child opacity is one. Glyph gradient anchors
+use the original raster-layout paint rectangle before Frame clipping, then rebase with the child's fitted
+geometry frame. Whitespace and fully clipped glyphs are skipped. Inside a Boolean Group the new container
+uses nested Boolean Combine with Layers appearance to remain a valid operand. The 1024-layer budget is
+checked before replacement. Boolean operations continue to ignore child paint.
 
 `TextLayerBehaviour` stores editable `text`, `fontFamily`, `fontStyle`, `fontSize`, `maxFontSize`, `spacing`, `characterHorizontalScale`,
 `alignment`, `casing`, `layoutMode`, `layoutOffset`, `frameSize`, `wrapping`, `overflow`, `justify`, `autoSize` and `color`. `layoutMode` is

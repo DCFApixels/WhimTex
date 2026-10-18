@@ -88,8 +88,15 @@ namespace DCFApixels.WhimTex
             var overflow = WhimTexUI.ConfigureField(new EnumField("Overflow", layer.overflow) { name = "textOverflow" });
             bindings.Track(overflow, () => (Enum)layer.overflow);
             overflow.RegisterValueChangedCallback(e => apply("Change Text Overflow", () => layer.overflow = (TextOverflowMode)e.newValue)); layout.Add(overflow);
-            var color = WhimTexUI.ConfigureField(WhimTexColorInputs.Bind(new WhimTexColorField("Color") { name = "textColor" }, bindings, () => layer.color));
-            color.RegisterValueChangedCallback(e => apply("Change Text Color", () => layer.color = e.newValue)); root.Add(color);
+            var fill = new Foldout { text = "Fill", name = "textFill", value = true }; root.Add(fill);
+            var options = new FigureFillEditor(layer, apply, bindings); fill.Add(options);
+            options.Q<WhimTexColorField>("figureFillColor").name = "textColor";
+            bindings.Add(() => options.SetEnabled(layer.FontAvailable || layer.gradientScope == TextGradientScope.Text || !FigureFill.IsGradient(layer.fillMode)));
+            var scope = WhimTexUI.ConfigureField(new EnumField("Scope", layer.gradientScope) { name = "textGradientScope",
+                tooltip = "Text: one gradient over the visible glyph bounds. Character: repeat the same gradient within each glyph's bounds." });
+            bindings.Track(scope, () => (Enum)layer.gradientScope); fill.Add(scope);
+            scope.RegisterValueChangedCallback(e => apply("Change Text Gradient Scope", () => layer.gradientScope = (TextGradientScope)e.newValue));
+            bindings.Add(() => scope.EnableInClassList("whimtex-hidden", !FigureFill.IsGradient(layer.fillMode)));
             bindings.Add(() =>
             {
                 string message = layer.Notice;

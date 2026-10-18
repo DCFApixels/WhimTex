@@ -7,7 +7,8 @@ namespace DCFApixels.WhimTex
     {
         private static void SetText(TextLayerBehaviour layer, JObject value)
         {
-            Keys(value, "text", "fontFamily", "fontStyle", "casing", "edgeMode", "fontSize", "maxFontSize", "spacing", "characterHorizontalScale", "alignment", "layoutMode", "layoutOffset", "frameSize", "wrapping", "overflow", "justify", "autoSize", "color");
+            Keys(value, "text", "fontFamily", "fontStyle", "casing", "edgeMode", "fontSize", "maxFontSize", "spacing", "characterHorizontalScale", "alignment", "layoutMode", "layoutOffset", "frameSize", "wrapping", "overflow", "justify", "autoSize", "color",
+                "fillMode", "gradientScope", "gradient", "gradientStart", "gradientEnd", "gradientRepetitions");
             if (value["text"] != null)
             {
                 Require(value["text"].Type == JTokenType.String, "text must be a string.");
@@ -38,6 +39,12 @@ namespace DCFApixels.WhimTex
             layer.autoSize = Bool(value, "autoSize", layer.autoSize);
             if (value["frameSize"] != null) layer.frameSize = Vector(value["frameSize"], "frameSize");
             if (value["layoutOffset"] != null) layer.layoutOffset = Vector(value["layoutOffset"], "layoutOffset");
+            layer.fillMode = Enum(value, "fillMode", layer.fillMode);
+            layer.gradientScope = Enum(value, "gradientScope", layer.gradientScope);
+            if (value["gradient"] != null) layer.gradient = ReadGradient(value["gradient"]);
+            if (value["gradientStart"] != null) layer.gradientStart = Vector(value["gradientStart"], "gradientStart");
+            if (value["gradientEnd"] != null) layer.gradientEnd = Vector(value["gradientEnd"], "gradientEnd");
+            layer.gradientRepetitions = Number(value, "gradientRepetitions", layer.gradientRepetitions, .0001f, float.MaxValue);
             layer.Validate();
             if (value["color"] != null) layer.color = Color(value["color"]);
             layer.SetAlignment(layer.alignment, layer.justify);
@@ -53,7 +60,10 @@ namespace DCFApixels.WhimTex
             ["layoutMode"] = layer.layoutMode.ToString(), ["frameSize"] = new JArray(layer.frameSize.x, layer.frameSize.y),
             ["layoutOffset"] = new JArray(layer.layoutOffset.x, layer.layoutOffset.y),
             ["wrapping"] = layer.wrapping.ToString(), ["overflow"] = layer.overflow.ToString(), ["justify"] = layer.justify, ["autoSize"] = layer.autoSize,
-            ["color"] = new JArray(layer.color.r, layer.color.g, layer.color.b, layer.color.a)
+            ["color"] = new JArray(layer.color.r, layer.color.g, layer.color.b, layer.color.a),
+            ["fillMode"] = layer.fillMode.ToString(), ["gradientScope"] = layer.gradientScope.ToString(),
+            ["gradient"] = GradientSnapshot(layer.gradient), ["gradientStart"] = Json(layer.gradientStart),
+            ["gradientEnd"] = Json(layer.gradientEnd), ["gradientRepetitions"] = layer.gradientRepetitions
         };
     }
 }

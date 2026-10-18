@@ -15,11 +15,17 @@ namespace DCFApixels.WhimTex
         internal readonly Vector2 origin;
         internal readonly float size, horizontalScale;
         internal readonly bool italic;
+        internal readonly Rect paintFrame;
+        internal readonly uint unicode;
         internal TextGlyphPlacement(string path, int faceIndex, uint glyphIndex, Vector2 origin,
             float size, float horizontalScale, bool italic)
+            : this(path, faceIndex, glyphIndex, origin, size, horizontalScale, italic, default, 0) { }
+        internal TextGlyphPlacement(string path, int faceIndex, uint glyphIndex, Vector2 origin,
+            float size, float horizontalScale, bool italic, Rect paintFrame, uint unicode)
         {
             this.path = path; this.faceIndex = faceIndex; this.glyphIndex = glyphIndex;
             this.origin = origin; this.size = size; this.horizontalScale = horizontalScale; this.italic = italic;
+            this.paintFrame = paintFrame; this.unicode = unicode;
         }
     }
 

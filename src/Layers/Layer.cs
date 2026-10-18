@@ -120,6 +120,8 @@ namespace DCFApixels.WhimTex
         [SerializeReference] public List<Layer> children;
         [SerializeField] private bool group;
         public GroupCompositing compositing;
+        // Converted Character text retains its original LayerToLocal FX frame.
+        [SerializeField, HideInInspector] internal bool groupFxInLayerSpace;
 
         public Layer() { }
         public Layer(LayerBehaviour behaviour)
@@ -456,7 +458,7 @@ namespace DCFApixels.WhimTex
                         if (fx[i] is ShaderFX)
                         {
                             material.SetFloat("_WhimTex_InputFilter", current.filterMode == FilterMode.Point ? 0f : 1f);
-                            if (!context.transformFxCoordinates)
+                            if (!context.transformFxCoordinates && !(IsGroup && groupFxInLayerSpace))
                                 ProjectiveMatrix.Identity.SetShader(material, "_WhimTex_LayerToLocalRow");
                             else if (Behaviour is DrawingLayerBehaviour drawing && drawing.HasBakedFxFrame)
                                 drawing.GetBakedFxInverse(context.activeDocument.width, context.activeDocument.height).SetShader(material, "_WhimTex_LayerToLocalRow");

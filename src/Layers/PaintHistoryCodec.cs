@@ -4,11 +4,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
+using System.Runtime.CompilerServices;
 
 namespace DCFApixels.WhimTex
 {
-    // Independent lossless blocks: literals and backward byte matches. No floating-point
-    // arithmetic, quantization, platform libraries, or persistent dictionaries.
+    // Independent LZ4 blocks, without byte shuffling or floating-point conversion.
+    // Portable Burst kernels; each background writer leases its own reusable workspace.
     [BurstCompile]
     internal sealed class PaintHistoryCodec : IDisposable
     {
@@ -44,7 +46,7 @@ namespace DCFApixels.WhimTex
             {
                 input = new(MaxBytes, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
                 output = new(packed.Length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-                table = new(16384, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+                table = new(4096, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
                 result = new(1, Allocator.Persistent);
             }
             catch { Dispose(); throw; }
@@ -118,51 +120,89 @@ namespace DCFApixels.WhimTex
         }
         [BurstCompile(CompileSynchronously = true, DisableSafetyChecks = true, OptimizeFor = OptimizeFor.Performance)]
         static bool Decode(ref DecodeJob job) => job.Execute();
+        // LZ4 block format and fast match search adapted from lz4.c v1.9.4.
+        // Copyright (C) 2011-2020, Yann Collet. BSD-2-Clause; see ThirdPartyNotices.md.
+        // Native-width reads use portable memcpy, including at unaligned pixel offsets.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static unsafe uint Read32(byte* p) { uint value; UnsafeUtility.MemCpy(&value, p, 4); return value; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static unsafe ulong Read64(byte* p) { ulong value; UnsafeUtility.MemCpy(&value, p, 8); return value; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static unsafe int Hash(byte* p) => (int)(unchecked((Read64(p) << 24) * 889523592379UL) >> 52);
+        static unsafe void Extra(byte* output, int count, ref int at)
+        {
+            while (count >= 255) { output[at++] = 255; count -= 255; }
+            output[at++] = (byte)count;
+        }
+        static unsafe int Extended(byte* input, int length, ref int at, int count, int maximum)
+        {
+            if (count == 15)
+            {
+                int next;
+                do
+                {
+                    if (at >= length) return -1;
+                    next = input[at++];
+                    if (count > maximum - next) return -1;
+                    count += next;
+                } while (next == 255);
+            }
+            return count;
+        }
         struct DecodeJob
         {
             [ReadOnly] public NativeArray<byte> input;
             public NativeArray<byte> output;
             public int length, size;
-            int Extended(ref int at, int count, int maximum)
+            public unsafe bool Execute()
             {
-                if (count == 15)
-                {
-                    int next;
-                    do
-                    {
-                        if (at >= length) return -1;
-                        next = input[at++];
-                        if (count > maximum - next) return -1;
-                        count += next;
-                    } while (next == 255);
-                }
-                return count;
-            }
-            public bool Execute()
-            {
+                if (length < 1 || length > input.Length || size < 1 || size > output.Length) return false;
+                byte* src = (byte*)input.GetUnsafeReadOnlyPtr();
+                byte* dst = (byte*)output.GetUnsafePtr();
                 int at = 0, written = 0;
                 while (at < length)
                 {
-                    int token = input[at++];
-                    int literal = Extended(ref at, token >> 4, size - written);
-                    if (literal < 0 || literal > length - at || literal > size - written) return false;
-                    NativeArray<byte>.Copy(input, at, output, written, literal);
+                    int token = src[at++];
+                    int literal = token >> 4;
+                    // Fixed-size copies let Burst inline common short sequences. The
+                    // extra bytes stay inside BOTH buffers and are overwritten before use.
+                    if (literal < 15 && at <= length - 16 && written <= size - 32)
+                        UnsafeUtility.MemCpy(dst + written, src + at, 16);
+                    else
+                    {
+                        literal = Extended(src, length, ref at, literal, size - written);
+                        if (literal < 0 || literal > length - at || literal > size - written) return false;
+                        if (literal > 0) UnsafeUtility.MemCpy(dst + written, src + at, literal);
+                    }
                     at += literal; written += literal;
                     if (at == length) return (token & 15) == 0 && written == size;
                     if (at > length - 2) return false;
-                    int distance = input[at] | input[at + 1] << 8; at += 2;
+                    int distance = src[at] | src[at + 1] << 8; at += 2;
                     if (distance < 1 || distance > written) return false;
-                    int match = Extended(ref at, token & 15, size - written - 4);
+                    if ((token & 15) < 15 && distance >= 8 && written <= size - 18)
+                    {
+                        // Sequential disjoint chunks also support distance 8..17:
+                        // later chunks may read bytes produced by the previous chunk.
+                        UnsafeUtility.MemCpy(dst + written, dst + written - distance, 8);
+                        UnsafeUtility.MemCpy(dst + written + 8, dst + written - distance + 8, 8);
+                        UnsafeUtility.MemCpy(dst + written + 16, dst + written - distance + 16, 2);
+                        written += (token & 15) + 4;
+                        continue;
+                    }
+                    int match = Extended(src, length, ref at, token & 15, size - written - 4);
                     if (match < 0 || match > size - written - 4) return false;
                     match += 4;
-                    // Grow the already decoded prefix with disjoint copies. This keeps
-                    // overlapping runs exact without a byte-by-byte dependency chain.
-                    int copied = 0;
-                    while (copied < match)
+                    if (distance == 1) UnsafeUtility.MemSet(dst + written, dst[written - 1], match);
+                    else
                     {
-                        int count = Math.Min(distance + copied, match - copied);
-                        NativeArray<byte>.Copy(output, written - distance, output, written + copied, count);
-                        copied += count;
+                        // Each memcpy is disjoint even when the LZ4 match overlaps itself.
+                        int copied = 0;
+                        while (copied < match)
+                        {
+                            int count = Math.Min(distance + copied, match - copied);
+                            UnsafeUtility.MemCpy(dst + written + copied, dst + written - distance, count);
+                            copied += count;
+                        }
                     }
                     written += match;
                 }
@@ -188,40 +228,54 @@ namespace DCFApixels.WhimTex
             public NativeArray<byte> output;
             public NativeArray<int> table, result;
             public int length;
-            uint Word(int at) => (uint)(input[at] | input[at + 1] << 8 | input[at + 2] << 16 | input[at + 3] << 24);
-            void Extra(int count, ref int at)
+            public unsafe void Execute()
             {
-                while (count >= 255) { output[at++] = 255; count -= 255; }
-                output[at++] = (byte)count;
-            }
-            public void Execute()
-            {
-                for (int t = 0; t < table.Length; t++) table[t] = -1;
-                int i = 0, literal = 0, target = 0, misses = 0;
-                // Leave five trailing literals and twelve bytes before the final match.
+                byte* src = (byte*)input.GetUnsafeReadOnlyPtr();
+                byte* dst = (byte*)output.GetUnsafePtr();
+                int* hashes = (int*)table.GetUnsafePtr();
+                UnsafeUtility.MemClear(hashes, 4096 * sizeof(int));
+                int i = 1, anchor = 0, target = 0;
+                if (length >= 13) hashes[Hash(src)] = 0;
                 while (i <= length - 12)
                 {
-                    uint word = Word(i); int key = (int)(unchecked(word * 2654435761u) >> 18);
-                    int match = table[key]; table[key] = i;
-                    if (match < 0 || i - match > 65535 || Word(match) != word)
-                    { i += 1 + (misses++ >> 6); continue; }
+                    int forward = i, step = 1, attempts = 64, match;
+                    int hash = Hash(src + forward);
+                    while (true)
+                    {
+                        i = forward; forward += step; step = attempts++ >> 6;
+                        if (forward > length - 12) goto LastLiterals;
+                        match = hashes[hash];
+                        int nextHash = Hash(src + forward);
+                        hashes[hash] = i; hash = nextHash;
+                        if (i - match <= 65535 && Read32(src + match) == Read32(src + i)) break;
+                    }
+                    // Extend backwards only into the unencoded literals, never a prior sequence.
+                    while (i > anchor && match > 0 && src[i - 1] == src[match - 1]) { i--; match--; }
+                    int literal = i - anchor, tokenAt = target++;
+                    dst[tokenAt] = (byte)(Math.Min(literal, 15) << 4);
+                    if (literal >= 15) Extra(dst, literal - 15, ref target);
+                    if (literal > 0) UnsafeUtility.MemCpy(dst + target, src + anchor, literal);
+                    target += literal;
+                    int distance = i - match;
+                    dst[target++] = (byte)distance; dst[target++] = (byte)(distance >> 8);
                     int end = i + 4, from = match + 4;
-                    while (end <= length - 9 && Word(from) == Word(end)) { from += 4; end += 4; }
-                    while (end < length - 5 && input[from] == input[end]) { from++; end++; }
-                    int count = i - literal, matchLength = end - i - 4;
-                    output[target++] = (byte)(Math.Min(count, 15) << 4 | Math.Min(matchLength, 15));
-                    if (count >= 15) Extra(count - 15, ref target);
-                    NativeArray<byte>.Copy(input, literal, output, target, count); target += count;
-                    int distance = i - match; output[target++] = (byte)distance; output[target++] = (byte)(distance >> 8);
-                    if (matchLength >= 15) Extra(matchLength - 15, ref target);
-                    i = literal = end; misses = 0;
-                    if (i >= 2) table[(int)(unchecked(Word(i - 2) * 2654435761u) >> 18)] = i - 2;
+                    // Five trailing literals and a final match starting >=12 bytes before EOF.
+                    while (end <= length - 13 && Read64(src + from) == Read64(src + end)) { from += 8; end += 8; }
+                    while (end < length - 5 && src[from] == src[end]) { from++; end++; }
+                    int matchLength = end - i - 4;
+                    dst[tokenAt] |= (byte)Math.Min(matchLength, 15);
+                    if (matchLength >= 15) Extra(dst, matchLength - 15, ref target);
+                    i = anchor = end;
+                    if (i <= length - 12) hashes[Hash(src + i - 2)] = i - 2;
                 }
-                int tail = length - literal; output[target++] = (byte)(Math.Min(tail, 15) << 4);
-                if (tail >= 15) Extra(tail - 15, ref target);
-                NativeArray<byte>.Copy(input, literal, output, target, tail); target += tail;
+            LastLiterals:
+                int tail = length - anchor;
+                dst[target++] = (byte)(Math.Min(tail, 15) << 4);
+                if (tail >= 15) Extra(dst, tail - 15, ref target);
+                UnsafeUtility.MemCpy(dst + target, src + anchor, tail); target += tail;
                 result[0] = target;
             }
         }
+
     }
 }

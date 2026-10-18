@@ -18,7 +18,7 @@ namespace DCFApixels.WhimTex
             private bool CircularClosed => Mathf.Abs(CircularSpan - 360f) < .001f;
 
             private Vector2 CircularCenterPoint => View(GradientCanvasGeometry.Point(
-                owner.gradientCanvasLayer.CircularCenter, owner.gradientCanvasLayer.Owner.CanvasTransform, Size));
+                owner.gradientCanvasLayer.CircularCenter, owner.gradientCanvasLayer.CanvasTransform, Size));
 
             private Vector2 CircularPoint(float time) => CircularPointAtAngle(
                 owner.gradientCanvasLayer.circularStartAngle + CircularSpan * time);
@@ -26,13 +26,13 @@ namespace DCFApixels.WhimTex
             private Vector2 CircularPointAtAngle(float angle)
             {
                 Vector2 uv = owner.gradientCanvasLayer.CircularUv(angle);
-                return View(GradientCanvasGeometry.Point(uv, owner.gradientCanvasLayer.Owner.CanvasTransform, Size));
+                return View(GradientCanvasGeometry.Point(uv, owner.gradientCanvasLayer.CanvasTransform, Size));
             }
 
             private float CircularAngle(Vector2 view)
             {
                 Vector2 pixel = Document(view);
-                Vector2 uv = owner.gradientCanvasLayer.Owner.CanvasTransform.Unmap(
+                Vector2 uv = owner.gradientCanvasLayer.CanvasTransform.Unmap(
                     new Vector2(pixel.x / Size.x, pixel.y / Size.y), Size);
                 return owner.gradientCanvasLayer.CircularAngle(uv);
             }
@@ -112,7 +112,7 @@ namespace DCFApixels.WhimTex
                         hit = CircularRotate;
                 }
                 float time = CircularProjection(p);
-                if (hit == -1 && mid < 0 && (p - CircularPoint(time)).sqrMagnitude > 36) return;
+                if (hit == -1 && mid < 0 && (p - CircularPoint(time)).sqrMagnitude > 36) { SelectTextCharacter(e); return; }
                 owner.Focus(); target.Focus();
                 midpointSelected = mid >= 0;
                 if (midpointSelected) hit = mid;
