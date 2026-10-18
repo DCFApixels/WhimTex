@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -6,6 +7,10 @@ namespace DCFApixels.WhimTex
     public sealed partial class WhimTexDocument
     {
         internal Layer PickLayerAtPixel(int x, int y, float threshold, bool insideGroups, Layer selectedLayer = null)
+            => PickLayerAtPixelWithGeometry(x, y, threshold, insideGroups, null, selectedLayer);
+
+        internal Layer PickLayerAtPixelWithGeometry(int x, int y, float threshold, bool insideGroups,
+            Func<Layer, bool> geometryHit, Layer selectedLayer = null)
         {
             if (x < 0 || y < 0 || x >= width || y >= height || layers == null) return null;
             threshold = float.IsNaN(threshold) || float.IsInfinity(threshold) ? .1f : Mathf.Clamp01(threshold);
@@ -26,6 +31,7 @@ namespace DCFApixels.WhimTex
             Texture2D sample = null;
             using var cache = new EffectRenderCache();
             var coverage = new Dictionary<Layer, float>();
+            var geometryCoverage = new Dictionary<Layer, float>();
             var stack = new HashSet<Layer>();
             try
             {
@@ -85,7 +91,10 @@ namespace DCFApixels.WhimTex
                         if (baseIndex < 0 || !IsPickable(container[baseIndex])) continue;
                         opacity *= Alpha(container, baseIndex) * Mathf.Clamp01(container[baseIndex].opacity);
                     }
-                    if (!MeetsPickThreshold(opacity, threshold) || !MeetsPickThreshold(Alpha(container, i) * opacity, threshold)) continue;
+                    if (!MeetsPickThreshold(opacity, threshold)) continue;
+                    float geometry = GeometryAlpha(layer);
+                    if (!MeetsPickThreshold(geometry * opacity, threshold) &&
+                        !MeetsPickThreshold(Alpha(container, i) * opacity, threshold)) continue;
                     if (layer.IsGroup && (insideGroups || enteredGroups?.Contains(layer) == true))
                     {
                         Layer child = Pick(layer.layers, opacity);
@@ -94,6 +103,35 @@ namespace DCFApixels.WhimTex
                     return layer;
                 }
                 return null;
+            }
+
+            float GeometryAlpha(Layer layer)
+            {
+                if (geometryHit == null) return 0f;
+                if (geometryCoverage.TryGetValue(layer, out float value)) return value;
+                value = 0f;
+                if (layer.Behaviour is VectorLayerBehaviour) value = geometryHit(layer) ? 1f : 0f;
+                else if (layer.IsGroup && (layer.Behaviour is not BooleanGroupLayerBehaviour ||
+                    insideGroups || enteredGroups?.Contains(layer) == true))
+                {
+                    var children = layer.layers;
+                    for (int i = 0; i < children.Count; i++)
+                    {
+                        var child = children[i];
+                        if (!IsPickable(child)) continue;
+                        float alpha = GeometryAlpha(child) * Mathf.Clamp01(child.opacity);
+                        if (alpha <= 0f) continue;
+                        if (child.clippingMask)
+                        {
+                            int baseIndex = FindClippingBaseIndex(children, i);
+                            if (baseIndex < 0 || !IsPickable(children[baseIndex])) continue;
+                            alpha *= Alpha(children, baseIndex) * Mathf.Clamp01(children[baseIndex].opacity);
+                        }
+                        value = Mathf.Max(value, alpha);
+                    }
+                }
+                geometryCoverage[layer] = value;
+                return value;
             }
         }
 

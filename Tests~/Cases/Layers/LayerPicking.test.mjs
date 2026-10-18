@@ -25,7 +25,7 @@ context.case("LayerPicking original assertion inputs and source contracts", asyn
       assert.match(source, /LayerPickAlphaThreshold = evt.newValue \* .01f/);
       assert.match(source, /LayerPickAlphaThreshold \* 100f/);
   }
-  assert.match(ui, /OnCanvasPointerDown\(PointerDownEvent evt\)\s*\{\s*canvasPointerControl = evt.ctrlKey;\s*if \(HandleLayerPickPointerDown\(evt\)\)/);
+  assert.match(ui, /OnCanvasPointerDown\(PointerDownEvent evt\)\s*\{\s*ObserveBrushPointer\([^;]+;\s*canvasPointerControl = evt.ctrlKey;\s*if \(HandleLayerPickPointerDown\(evt\)\)/);
   assert.equal((ui.match(/HandleLayerPickPointerDown\(evt\)/g) ?? []).length, 1);
   assert.match(window, /canvasTool != CanvasTool.None/);
   assert.match(window, /evt.button != 0 \|\| evt.altKey/);
@@ -49,6 +49,12 @@ context.case("LayerPicking original assertion inputs and source contracts", asyn
   assert.ok(!/MarkChanged\(|Undo\.|SetDirty\(/.test(renderer + window), 'Picking only changes window selection');
   assert.match(ui, /BindCanvasSettingsRow\(pickRow, CanvasTool.None\)/);
   assert.match(read('WhimTexWindow.Tools.cs'), /Layer Select \(V\)/);
+  assert.match(window, /PickLayerAtPixelWithGeometry/);
+  assert.match(window, /PickVectorGeometry/);
+  assert.match(window, /DrawSelectedVectorContours/);
+  assert.match(renderer, /GeometryAlpha\(layer\)/);
+  for (const name of ['WhimTexWindow.Tools.cs', 'WhimTexWindow.Vector.cs', 'WhimTexWindow.VectorTools.cs', 'WhimTexWindow.Cursors.cs'])
+    assert.ok(!read(name).includes('VectorSelect'), `${name}: removed tool has no implementation`);
 
 });
 await finish(context);

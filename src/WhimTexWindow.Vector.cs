@@ -128,7 +128,7 @@ namespace DCFApixels.WhimTex
             ShowNotification(new GUIContent("Wait for the vector mask rebuild, or cancel it, before saving."));
             return false;
         }
-        private static bool IsVectorTool(CanvasTool tool) => tool == CanvasTool.VectorPen || tool == CanvasTool.VectorSelect || tool == CanvasTool.VectorNodes || tool == CanvasTool.VectorBrush;
+        private static bool IsVectorTool(CanvasTool tool) => tool == CanvasTool.VectorPen || tool == CanvasTool.VectorNodes || tool == CanvasTool.VectorBrush;
         private static VectorShape CopyVectorShape(VectorShape shape) => shape.Clone();
 
         private void BuildVectorTools()
@@ -146,7 +146,6 @@ namespace DCFApixels.WhimTex
                 var button = CreateCanvasToolButton(name, tool, help);
                 vectorButtons.Add(tool, button); toolbar.Add(button);
             }
-            Add(CanvasTool.VectorSelect, "vectorSelectTool", "Vector Select. Select and drag a figure. Corner handles resize; the round handle rotates. Delete removes the figure.");
             Add(CanvasTool.VectorNodes, "vectorNodesTool", "Vector Nodes. Drag points or tangent handles. Shift selects more points; drag empty space to select points. Double-click an edge to insert a point. Alt-click deletes a point; Alt-drag breaks tangent symmetry.");
             Add(CanvasTool.VectorPen, "vectorPenTool", "Vector Pen. Click for corners; drag for curved nodes. Click the first point to close, Enter to finish an open path, Escape to cancel. Creates a Vector layer when needed.");
             Add(CanvasTool.VectorBrush, "vectorBrushTool", "Vector Brush. Left mouse adds to the active mask; right mouse erases. Enter or Finish Editing ends the figure; the next left stroke creates a new one. Edit Mask resumes a saved mask. [ and ] change size; Shift draws straight lines. Escape cancels the current stroke.");
@@ -167,7 +166,7 @@ namespace DCFApixels.WhimTex
 
         private void AddVectorSettings()
         {
-            foreach (CanvasTool tool in new[] { CanvasTool.VectorPen, CanvasTool.VectorSelect, CanvasTool.VectorNodes, CanvasTool.VectorBrush })
+            foreach (CanvasTool tool in new[] { CanvasTool.VectorPen, CanvasTool.VectorNodes, CanvasTool.VectorBrush })
             {
                 var row = CreateCanvasSettingsRow(); BindCanvasSettingsRow(row, tool);
                 if (tool == CanvasTool.VectorPen || tool == CanvasTool.VectorBrush)
@@ -392,10 +391,10 @@ namespace DCFApixels.WhimTex
 
         private static void DrawVectorToolIcon(Painter2D p, CanvasTool tool, Func<float, float, Vector2> point)
         {
-            if (tool == CanvasTool.VectorSelect || tool == CanvasTool.VectorNodes)
+            if (tool == CanvasTool.VectorNodes)
             {
                 p.BeginPath(); p.MoveTo(point(5, 3)); p.LineTo(point(18, 13)); p.LineTo(point(12, 14)); p.LineTo(point(9, 21)); p.ClosePath();
-                if (tool == CanvasTool.VectorSelect) p.Fill(); else p.Stroke();
+                p.Stroke();
             }
             else
             {

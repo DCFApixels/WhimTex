@@ -12,7 +12,7 @@ const icons = path.join(root, 'src/Editor/Icons');
 await fs.mkdir(output, { recursive: true });
 
 const arrow = '<path fill="white" stroke="black" stroke-width="1" stroke-linejoin="miter" stroke-miterlimit="2" d="M .5 .5 H 7.5 L 3.5 3.5 .5 7.5 Z"/>';
-const directPointers = new Set(['VectorSelect', 'VectorNodes', 'Eyedropper']);
+const directPointers = new Set(['VectorNodes', 'Eyedropper']);
 const wrapSvg = markup => `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">${markup}</svg>`;
 const svg = (glyph, name) => wrapSvg(glyph + (directPointers.has(name) ? '' : arrow));
 const line = (d, width = 2, extra = '') =>
@@ -78,7 +78,6 @@ const glyphs = new Map([
     '<path d="M8 9.5 H17 M8 12.5 H15" fill="none" stroke="black" stroke-width="1"/>', 2)],
   ['Text', local(filled('M4 3 H20 V7 H18 V5 H13 V19 H16 V21 H8 V19 H11 V5 H6 V7 H4 Z'))],
   ['VectorPen', local(line(bezier) + dot(3, 19) + dot(21, 5))],
-  ['VectorSelect', flatFilled(pointer)],
   ['VectorNodes', flatFilled(pointer + ' M3.2 5.2 L8.5 9.3 5.4 9.8 4.6 12.1 Z')],
   ['Crop', local(filled('M5 2 H8 V16 H22 V19 H5 Z M2 5 H19 V22 H16 V8 H2 Z'))],
   ['CanvasScale', local(line('M6 6 H16 V16 H6 Z M16 6 L21 1 M16 1 H21 V6 M6 16 L1 21 M1 16 V21 H6'))]
@@ -234,10 +233,10 @@ async function sheet(names, filename, columns = 4, cellHeight = 208, frames = im
 await sheet([...glyphs.keys()], 'tool-cursors-all-preview.png');
 await sheet(['ShapeRectangle', 'SelectionRectangle', 'SelectionEllipse', 'LassoPolygon', 'LassoFreehand', 'SelectionUv', 'Comment', 'VectorPen'], 'tool-cursors-preview.png');
 await sheet(['Comment'], 'comment-cursor-close-preview.png', 1);
-await sheet(['SelectionRectangle', 'SelectionEllipse', 'VectorSelect', 'VectorNodes'], 'selection-pointer-cursors-preview.png');
+await sheet(['SelectionRectangle', 'SelectionEllipse', 'VectorNodes'], 'selection-pointer-cursors-preview.png');
 if (changed.some(name => iconNudges.has(name))) await sheet([...iconNudges.keys()], 'tool-cursor-spacing-before.png', 4, 208, previousImages);
 await sheet([...iconNudges.keys()], 'tool-cursor-spacing-after.png');
-await sheet(['Eyedropper', 'Fill', 'Gradient', 'VectorSelect'], 'eyedropper-cursor-preview.png');
+await sheet(['Eyedropper', 'Fill', 'Gradient', 'VectorNodes'], 'eyedropper-cursor-preview.png');
 await sheet(['Eyedropper'], 'eyedropper-cursor-detail.png', 1);
 await fs.writeFile(path.join(output, 'tool-cursors-report.json'), JSON.stringify(reports, null, 2));
 console.log(JSON.stringify({ count: reports.length, changed, isolatedPixels: 0, approvedFillAndGradientUnchanged: true, preview: path.join(output, 'tool-cursors-all-preview.png') }));

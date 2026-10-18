@@ -389,6 +389,7 @@ namespace DCFApixels.WhimTex
 
         private void RefreshCanvasTransformTool()
         {
+            vectorManipulator?.RepaintOutline();
             gradientCanvasManipulator?.Validate();
             gradientCanvasOverlay?.MarkDirtyRepaint();
             canvasTransformManipulator?.ValidateSelection();
@@ -402,6 +403,7 @@ namespace DCFApixels.WhimTex
             if (!canvasRequested || canvasAt > requestedAt)
                 canvasAt = requestedAt;
             canvasRequested = true;
+            vectorManipulator?.RepaintOutline();
             canvasTransformOverlay.MarkDirtyRepaint();
         }
 

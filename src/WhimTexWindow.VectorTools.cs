@@ -21,14 +21,13 @@ namespace DCFApixels.WhimTex
             string originalJson;
             VectorContour pen;
             VectorPoint activePoint;
-            int pointer = -1, pointerButton, tangent, frameHandle = -1;
+            int pointer = -1, pointerButton, tangent;
             bool moved, marquee;
             Vector2 dimensions, start, startView, lastView;
-            Rect frame;
             ProjectiveMatrix preparedTransform;
-            ProjectiveMatrix gestureMatrix = ProjectiveMatrix.Identity;
             CanvasTool gestureTool;
             internal bool IsDragging => pointer >= 0 || pen != null;
+            internal void RepaintOutline() => overlay.MarkDirtyRepaint();
             internal VectorManipulator(WhimTexWindow owner)
             {
                 this.owner = owner;
@@ -123,8 +122,7 @@ namespace DCFApixels.WhimTex
                 Vector2 p = Local(evt.localPosition, evt.ctrlKey);
                 if (!Finite(p)) return;
                 owner.Focus(); target.Focus();
-                start = p; startView = lastView = evt.localPosition; moved = false; tangent = 0; frameHandle = -1; marquee = false;
-                gestureMatrix = ProjectiveMatrix.Identity;
+                start = p; startView = lastView = evt.localPosition; moved = false; tangent = 0; marquee = false;
                 gestureTool = owner.canvasTool;
                 if (gestureTool == CanvasTool.VectorBrush)
                 {
@@ -146,18 +144,13 @@ namespace DCFApixels.WhimTex
                 else
                 {
                     original = owner.SelectedVectorShape(behaviour);
-                    if (gestureTool == CanvasTool.VectorSelect && original != null)
-                    {
-                        frame = Bounds(original); frameHandle = HitFrame(evt.localPosition);
-                    }
                     VectorPoint hit = null;
                     if (gestureTool == CanvasTool.VectorNodes && original != null) hit = HitPoint(original, evt.localPosition, out tangent);
-                    if (hit == null && frameHandle < 0)
+                    if (hit == null)
                     {
                         VectorShape picked = Pick(evt.localPosition);
                         if (picked != null && (original == null || picked.id != original.id)) selectedPoints.Clear();
                         if (picked != null) { original = picked; owner.SelectVectorShape(picked); }
-                        else if (gestureTool == CanvasTool.VectorSelect) { owner.SelectVectorShape(null); original = null; }
                     }
                     if (original == null) { WhimTexUI.ConsumeEvent(evt); return; }
                     originalJson = JsonUtility.ToJson(original); candidate = CopyVectorShape(original);
@@ -179,7 +172,6 @@ namespace DCFApixels.WhimTex
                         marquee = true;
                         if (!evt.shiftKey) selectedPoints.Clear();
                     }
-                    frame = Bounds(original);
                 }
                 pointer = evt.pointerId; pointerButton = evt.button; target.CapturePointer(pointer);
                 if (gestureTool == CanvasTool.VectorBrush) owner.UpdateCanvasCursor(evt.localPosition, evt.altKey);
@@ -211,29 +203,11 @@ namespace DCFApixels.WhimTex
                 else if (!marquee && candidate != null)
                 {
                     Vector2 delta = p - start;
-                    if (shift && tangent == 0 && frameHandle < 0)
+                    if (shift && tangent == 0)
                     { if (Mathf.Abs(delta.x * dimensions.x) > Mathf.Abs(delta.y * dimensions.y)) delta.y = 0; else delta.x = 0; }
                     string pointId = activePoint?.id;
                     candidate = CopyVectorShape(original);
-                    if (gestureTool == CanvasTool.VectorSelect)
-                    {
-                        if (frameHandle >= 0 && frameHandle < 4)
-                        {
-                            Vector2 opposite = Corner(frame, (frameHandle + 2) % 4), before = Corner(frame, frameHandle) - opposite;
-                            Vector2 scale = new(Mathf.Abs(before.x) < 1e-8f ? 1 : (p.x - opposite.x) / before.x, Mathf.Abs(before.y) < 1e-8f ? 1 : (p.y - opposite.y) / before.y);
-                            if (shift) scale = Vector2.one * (Mathf.Abs(scale.x) > Mathf.Abs(scale.y) ? scale.x : scale.y);
-                            TransformPreview(q => opposite + Vector2.Scale(q - opposite, scale));
-                        }
-                        else if (frameHandle == 4)
-                        {
-                            Vector2 a = Vector2.Scale(start - frame.center, dimensions), b = Vector2.Scale(p - frame.center, dimensions);
-                            float angle = Vector2.SignedAngle(a, b); if (shift) angle = Mathf.Round(angle / 15) * 15;
-                            float c = Mathf.Cos(angle * Mathf.Deg2Rad), s = Mathf.Sin(angle * Mathf.Deg2Rad);
-                            TransformPreview(q => { var d = Vector2.Scale(q - frame.center, dimensions); return frame.center + new Vector2((c * d.x - s * d.y) / dimensions.x, (s * d.x + c * d.y) / dimensions.y); });
-                        }
-                        else TransformPreview(q => q + delta);
-                    }
-                    else if (tangent != 0 && pointId != null)
+                    if (tangent != 0 && pointId != null)
                     {
                         activePoint = FindPoint(candidate, pointId);
                         Vector2 value = p - activePoint.position;
@@ -275,15 +249,7 @@ namespace DCFApixels.WhimTex
             void FinishEdit(string action)
             {
                 if (Valid && candidate != null && original != null && JsonUtility.ToJson(original) == originalJson && behaviour.shapes.Contains(original))
-                {
-                    if (gestureTool == CanvasTool.VectorSelect)
-                    {
-                        var next = layer.transform;
-                        if (next.TrySetMatrix(next.ToMatrix(dimensions.x, dimensions.y) * gestureMatrix))
-                            owner.ExecuteModelChange("Transform Vector Figure", () => layer.transform = next);
-                    }
-                    else owner.CommitVectorShape(layer, candidate, action);
-                }
+                    owner.CommitVectorShape(layer, candidate, action);
                 candidate = null; original = null; activePoint = null;
             }
             internal void FinishPen(bool closed)
@@ -365,27 +331,6 @@ namespace DCFApixels.WhimTex
                 float u = 1 - t;
                 return u * u * u * a.position + 3 * u * u * t * (a.position + a.outTangent) + 3 * u * t * t * (b.position + b.inTangent) + t * t * t * b.position;
             }
-            static void Transform(VectorShape shape, Func<Vector2, Vector2> map)
-            {
-                foreach (var contour in shape.contours) foreach (var point in contour.points)
-                { Vector2 pos = map(point.position); point.inTangent = map(point.position + point.inTangent) - pos; point.outTangent = map(point.position + point.outTangent) - pos; point.position = pos; }
-                shape.gradientStart = map(shape.gradientStart); shape.gradientEnd = map(shape.gradientEnd);
-            }
-            void TransformPreview(Func<Vector2, Vector2> map)
-            {
-                Vector2 origin = map(Vector2.zero), x = map(Vector2.right) - origin, y = map(Vector2.up) - origin;
-                gestureMatrix = new ProjectiveMatrix { m00 = x.x, m10 = x.y, m01 = y.x, m11 = y.y, m02 = origin.x, m12 = origin.y, m22 = 1 };
-                Transform(candidate, map);
-            }
-            static Rect Bounds(VectorShape shape)
-            {
-                var bounds = VectorLayerStructure.Bounds(shape);
-                return float.IsFinite(bounds.xMin) ? bounds : new Rect();
-            }
-            static Vector2 Corner(Rect r, int i) => new(i == 0 || i == 3 ? r.xMin : r.xMax, i < 2 ? r.yMin : r.yMax);
-            Vector2 RotationHandle => View(new Vector2(frame.center.x, frame.yMax)) + (View(new Vector2(frame.center.x, frame.yMax)) - View(frame.center)).normalized * 24;
-            int HitFrame(Vector2 view)
-            { for (int i = 0; i < 4; i++) if (Vector2.Distance(view, View(Corner(frame, i))) < 7) return i; return Vector2.Distance(view, RotationHandle) < 7 ? 4 : -1; }
             VectorPoint HitPoint(VectorShape shape, Vector2 view, out int handle)
             {
                 handle = 0;
@@ -398,32 +343,7 @@ namespace DCFApixels.WhimTex
                 foreach (var contour in shape.contours) foreach (var point in contour.points) if (Vector2.Distance(View(point.position), view) < 7) return point;
                 return null;
             }
-            VectorShape Pick(Vector2 view)
-            {
-                for (int s = behaviour.shapes.Count - 1; s >= 0; s--)
-                {
-                    var shape = behaviour.shapes[s]; if (!shape.visible) continue;
-                    int crossings = 0, winding = 0;
-                    foreach (var contour in shape.contours)
-                    {
-                        int segments = contour.closed ? contour.points.Count : contour.points.Count - 1;
-                        for (int i = 0; i < segments; i++)
-                        {
-                            var a = contour.points[i]; var b = contour.points[(i + 1) % contour.points.Count]; Vector2 previous = View(a.position);
-                            for (int j = 1; j <= 24; j++)
-                            {
-                                Vector2 current = View(Cubic(a, b, j / 24f));
-                                if (EdgeDistance(view, previous, current, out _) < 6) return shape;
-                                if (contour.closed && (previous.y > view.y) != (current.y > view.y) && view.x < (current.x - previous.x) * (view.y - previous.y) / (current.y - previous.y) + previous.x)
-                                { crossings++; winding += current.y > previous.y ? 1 : -1; }
-                                previous = current;
-                            }
-                        }
-                    }
-                    if (shape.fillMode != VectorFillMode.None && (shape.fillRule == VectorFillRule.EvenOdd ? (crossings & 1) != 0 : winding != 0)) return shape;
-                }
-                return null;
-            }
+            VectorShape Pick(Vector2 view) => PickVectorGeometry(behaviour, view, View);
             static float EdgeDistance(Vector2 p, Vector2 a, Vector2 b, out float t)
             { Vector2 d = b - a; t = d.sqrMagnitude > 1e-12f ? Mathf.Clamp01(Vector2.Dot(p - a, d) / d.sqrMagnitude) : 0; return Vector2.Distance(p, a + d * t); }
             bool InsertAt(VectorShape shape, Vector2 view)
@@ -446,6 +366,11 @@ namespace DCFApixels.WhimTex
             }
             void Draw(MeshGenerationContext context)
             {
+                if (owner.canvasTool == CanvasTool.None || owner.canvasTool == CanvasTool.Transform)
+                {
+                    owner.DrawSelectedVectorContours(context.painter2D);
+                    return;
+                }
                 if (!IsVectorTool(owner.canvasTool) || owner.activeDocument == null) return;
                 if (candidate == null && brushBuilder == null && !Prepare(false)) return;
                 if (!Valid) return;
@@ -470,7 +395,7 @@ namespace DCFApixels.WhimTex
                     for (int i = 0; i < (contour.closed ? contour.points.Count : contour.points.Count - 1); i++)
                     { var a = contour.points[i]; var b = contour.points[(i + 1) % contour.points.Count]; p.BezierCurveTo(View(a.position + a.outTangent), View(b.position + b.inTangent), View(b.position)); }
                     if (contour.closed) p.ClosePath(); p.Stroke();
-                    if (!selected || owner.canvasTool == CanvasTool.VectorSelect || owner.canvasTool == CanvasTool.VectorBrush) continue;
+                    if (!selected || owner.canvasTool == CanvasTool.VectorBrush) continue;
                     foreach (var point in contour.points)
                     {
                         Vector2 pos = View(point.position); bool marked = selectedPoints.Contains(point.id);
@@ -482,15 +407,6 @@ namespace DCFApixels.WhimTex
                             }
                         Dot(p, pos, 3.5f, marked ? Color.cyan : Color.white);
                     }
-                }
-                if (selected && owner.canvasTool == CanvasTool.VectorSelect)
-                {
-                    Rect bounds = Bounds(shape); p.strokeColor = Color.cyan;
-                    Vector2 top = View(new Vector2(bounds.center.x, bounds.yMax));
-                    Vector2 rotate = top + (top - View(bounds.center)).normalized * 24;
-                    p.BeginPath(); p.MoveTo(View(Corner(bounds, 0))); for (int i = 1; i < 4; i++) p.LineTo(View(Corner(bounds, i))); p.ClosePath(); p.Stroke();
-                    for (int i = 0; i < 4; i++) Dot(p, View(Corner(bounds, i)), 3.5f, Color.white);
-                    p.BeginPath(); p.MoveTo(top); p.LineTo(rotate); p.Stroke(); Dot(p, rotate, 4, Color.white);
                 }
             }
             static void Dot(Painter2D p, Vector2 pos, float radius, Color color)

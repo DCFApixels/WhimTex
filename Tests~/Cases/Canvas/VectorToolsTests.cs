@@ -133,13 +133,13 @@ public static class VectorToolsTests
             // are disabled. Set the owned viewport explicitly before its first stroke.
             Call(canvas, "ZoomAt", canvas.contentRect.center, 1f);
             Call(canvas, "SetViewRotation", 0f, false);
-            await Tool("VectorSelect");
+            await Tool("None");
             window.Focus();
             for (int i = 0; i < 4; i++) await Tick();
             t.True(EditorWindow.focusedWindow == window, "Owned test window received focus before gestures");
             t.True(canvas.panel != null && canvas.contentRect.width > 300 && canvas.contentRect.height > 220,
                 "Owned attached canvas has usable layout");
-            foreach (string name in new[] { "vectorSelectTool", "vectorNodesTool", "vectorPenTool", "vectorBrushTool" })
+            foreach (string name in new[] { "vectorNodesTool", "vectorPenTool", "vectorBrushTool" })
                 t.True(window.rootVisualElement.Q<Button>(name) != null, name + " is available");
         }
 
@@ -554,15 +554,27 @@ public static class VectorToolsTests
     static async Task Geometry(Fixture f)
     {
         await f.Seed();
-        await f.Tool("VectorSelect");
+        await f.Tool("None");
+        await f.NoUndo(async () =>
+        {
+            Call(f.window, "SelectOnlyLayer", (object)null);
+            Vector2 edge = f.View(new Vector2(-.025f, .5f));
+            f.Pointer(EventType.MouseDown, edge); f.Pointer(EventType.MouseUp, edge);
+            f.t.Equal(f.layerId, (string)Read(f.window, "selectedLayerId"), "Layer Select picks the curve just outside its rendered pixels");
+            await f.Tick();
+        }, "Geometry-only layer selection");
+        await CaptureCommonOutline("select");
+        await f.Tool("Transform");
+        await CaptureCommonOutline("transform");
         TextureTransform transform = f.Layer.transform;
         string before = JsonUtility.ToJson(f.Vector);
         VectorShape source = f.Vector.shapes[0].Clone();
-        Vector2 start = Bounds(source).center, delta = new Vector2(.08f, .05f);
+        Vector2 start = Bounds(source).center + new Vector2(-.12f, .12f), delta = new Vector2(.08f, .05f);
+        Vector2 moveStart = f.View(start), moveEnd = f.View(start + delta);
         f.Fence();
-        f.Pointer(EventType.MouseDown, f.View(start)); f.Pointer(EventType.MouseDrag, f.View(start + delta));
+        f.Pointer(EventType.MouseDown, moveStart); f.Pointer(EventType.MouseDrag, moveEnd);
         f.t.Equal(before, JsonUtility.ToJson(f.Vector), "Figure move preview does not write the layer model");
-        f.Pointer(EventType.MouseUp, f.View(start + delta));
+        f.Pointer(EventType.MouseUp, moveEnd);
         CheckFrame(f, source, transform, p => p + delta, "Move changes the layer transform");
         f.t.Equal(before, JsonUtility.ToJson(f.Vector), "Whole-figure move leaves local geometry and style intact");
         await f.UndoRedo(before, JsonUtility.ToJson(f.Vector), transform, "Move figure", f.Layer.transform);
@@ -577,12 +589,13 @@ public static class VectorToolsTests
             f.Layer.transform.Map(f.Vector.shapes[0].contours[0].points[i].position, f.Size), "Node edit preserves other canvas anchors while fitting the frame");
         await f.UndoRedo(before, JsonUtility.ToJson(f.Vector), transform, "Move node", f.Layer.transform);
 
-        await f.Tool("VectorSelect");
+        await f.Tool("Transform");
         source = f.Vector.shapes[0].Clone(); before = JsonUtility.ToJson(f.Vector); transform = f.Layer.transform;
         Rect bounds = Bounds(source);
         Vector2 opposite = bounds.min, corner = bounds.max, next = corner + new Vector2(.06f, .04f);
         Vector2 scale = new Vector2((next.x - opposite.x) / bounds.width, (next.y - opposite.y) / bounds.height);
-        f.Fence(); f.Pointer(EventType.MouseDown, f.View(corner)); f.Pointer(EventType.MouseDrag, f.View(next)); f.Pointer(EventType.MouseUp, f.View(next));
+        Vector2 resizeStart = f.View(corner), resizeEnd = f.View(next);
+        f.Fence(); f.Pointer(EventType.MouseDown, resizeStart, EventModifiers.None); f.Pointer(EventType.MouseDrag, resizeEnd, EventModifiers.None); f.Pointer(EventType.MouseUp, resizeEnd, EventModifiers.None);
         CheckFrame(f, source, transform, p => opposite + Vector2.Scale(p - opposite, scale), "Resize changes the frame around the opposite corner");
         f.t.Equal(before, JsonUtility.ToJson(f.Vector), "Resize retains local Beziers and style");
         await f.UndoRedo(before, JsonUtility.ToJson(f.Vector), transform, "Resize figure", f.Layer.transform);
@@ -590,14 +603,17 @@ public static class VectorToolsTests
         source = f.Vector.shapes[0].Clone(); before = JsonUtility.ToJson(f.Vector); bounds = Bounds(source); transform = f.Layer.transform;
         Vector2 top = f.View(new Vector2(bounds.center.x, bounds.yMax));
         Vector2 handle = top + (top - f.View(bounds.center)).normalized * 24;
-        Vector2 arm = Vector2.Scale(f.Local(handle) - bounds.center, f.Size);
-        Vector2 target = bounds.center + new Vector2(-arm.y / f.Size.x, arm.x / f.Size.y);
+        Vector2 pivot = transform.pivotF;
+        Vector2 canvasPivot = transform.Map(pivot, f.Size);
+        Vector2 arm = Vector2.Scale(transform.Map(f.Local(handle), f.Size) - canvasPivot, f.Size);
+        Vector2 target = transform.Unmap(canvasPivot + new Vector2(-arm.y / f.Size.x, arm.x / f.Size.y), f.Size);
         f.t.True(f.canvas.contentRect.Contains(handle) && f.canvas.contentRect.Contains(f.View(target)), "Rotation gesture remains in the canvas");
-        f.Fence(); f.Pointer(EventType.MouseDown, handle); f.Pointer(EventType.MouseDrag, f.View(target)); f.Pointer(EventType.MouseUp, f.View(target));
+        Vector2 rotateEnd = f.View(target);
+        f.Fence(); f.Pointer(EventType.MouseDown, handle); f.Pointer(EventType.MouseDrag, rotateEnd); f.Pointer(EventType.MouseUp, rotateEnd);
         CheckFrame(f, source, transform, p =>
         {
-            Vector2 d = Vector2.Scale(p - bounds.center, f.Size);
-            return bounds.center + new Vector2(-d.y / f.Size.x, d.x / f.Size.y);
+            Vector2 d = Vector2.Scale(transform.Map(p, f.Size) - canvasPivot, f.Size);
+            return transform.Unmap(canvasPivot + new Vector2(-d.y / f.Size.x, d.x / f.Size.y), f.Size);
         }, "Rotate changes the layer frame");
         f.t.Equal(before, JsonUtility.ToJson(f.Vector), "Rotation retains local Beziers and style");
         await f.UndoRedo(before, JsonUtility.ToJson(f.Vector), transform, "Rotate figure", f.Layer.transform);
@@ -640,6 +656,19 @@ public static class VectorToolsTests
             f.t.True(probe.done.Task.IsCompleted,"Boolean Group inspector and result captured");await probe.done.Task;
         }
         finally{probe.RemoveFromHierarchy();}
+
+        async Task CaptureCommonOutline(string name)
+        {
+            var capture = new StrokeCapture { owner = f.window, path = "Temp/WhimTex/vector-common-" + name + ".png", pickingMode = PickingMode.Ignore };
+            f.window.rootVisualElement.Add(capture);
+            try
+            {
+                for (int i = 0; i < 40 && !capture.done.Task.IsCompleted; i++) { f.window.Repaint(); await f.Tick(); }
+                f.t.True(capture.done.Task.IsCompleted, "Common tool contour preview captured: " + name);
+                await capture.done.Task;
+            }
+            finally { capture.RemoveFromHierarchy(); }
+        }
     }
 
     static void CheckFrame(Fixture f,VectorShape source,TextureTransform previous,Func<Vector2,Vector2> map,string label)
@@ -653,7 +682,7 @@ public static class VectorToolsTests
     static async Task Cancellation(Fixture f)
     {
         await f.Seed(true);
-        foreach (string tool in new[] { "VectorSelect", "VectorNodes", "VectorPen", "VectorBrush" })
+        foreach (string tool in new[] { "VectorNodes", "VectorPen", "VectorBrush" })
         {
             await f.Tool(tool);
             string before = JsonUtility.ToJson(f.Vector);
@@ -689,7 +718,7 @@ public static class VectorToolsTests
         await f.NoUndo(async () =>
         {
             f.Click(new Vector2(.2f, .2f)); f.Click(new Vector2(.7f, .3f));
-            await f.Tool("VectorSelect"); f.Key(KeyCode.Return);
+            await f.Tool("None"); f.Key(KeyCode.Return);
             f.t.Equal(snapshot, JsonUtility.ToJson(f.Vector), "Switching tools cancels an unfinished pen path");
         }, "Tool change");
     }
@@ -1152,21 +1181,21 @@ public static class VectorToolsTests
         f.layerId=(string)Read(f.window,"selectedLayerId");
         f.t.Equal(1,f.Vector.shapes.Count,"One closed figure per new layer");
         f.t.True(f.Vector.shapes[0].contours[0].closed && f.Vector.shapes[0].fillMode == VectorFillMode.Solid, "Closed pen path retains its fill");
-        await f.Tool("VectorSelect");
+        await f.Tool("None");
         await f.NoUndo(async () =>
         {
             f.Click(new Vector2(1.5f, 1.5f));
-            f.t.True(Read(f.window, "vectorShapeId") == null, "Empty-space click clears figure selection");
+            f.t.True(Read(f.window, "selectedLayerId") == null, "Empty-space click clears layer selection");
             f.Click(new Vector2(.5f, .36f));
-            f.t.Equal(f.Vector.shapes[0].id, (string)Read(f.window, "vectorShapeId"), "Pointer picks the filled figure");
+            f.t.Equal(f.layerId, (string)Read(f.window, "selectedLayerId"), "Layer Select picks the filled figure");
             await f.Tick();
         }, "Selection-only clicks");
     }
 
     static async Task StaleLayer(Fixture f)
     {
-        await f.Seed(); await f.Tool("VectorSelect");
-        Vector2 start = f.View(new Vector2(.425f, .475f)), end = start + new Vector2(30, -15);
+        await f.Seed(); await f.Tool("VectorNodes");
+        Vector2 start = f.View(f.Vector.shapes[0].contours[0].points[0].position), end = start + new Vector2(30, -15);
         f.Pointer(EventType.MouseDown, start); f.Pointer(EventType.MouseDrag, end);
         f.t.True((bool)Property(f.Manipulator, "IsDragging"), "Existing layer has an active gesture before removal");
         Layer removed = f.Layer;

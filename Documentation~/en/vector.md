@@ -14,7 +14,7 @@ translations: "en/vector.md,ru/vector.md,zh/vector.md"
 A Vector layer holds one editable figure with its own transform. A figure may have
 several contours, including holes. Add a layer with **+ → Vector**, or draw a new
 figure with **Vector Pen** or **Vector Brush**. Each new figure gets its own layer.
-The toolbar also provides **Vector Select** and **Vector Nodes**.
+Use **Layer Select** to select figures and **Vector Nodes** to edit their points.
 
 ## Draw and edit
 
@@ -22,10 +22,13 @@ With **Vector Pen**, click to add a corner and drag to add a curved point. Click
 first point to close the path, press **Enter** to finish an open path, or **Escape**
 to cancel. Only closed contours have a fill; open paths can have a stroke.
 
-Use **Vector Select** to move a figure, resize it with the corner handles or rotate
-it with the round handle. These operations change the layer transform; its frame
-describes the figure rather than its stroke or FX. **Vector Nodes** moves individual points and tangent
-handles. Hold **Shift** for uniform resizing or 15-degree rotation steps.
+**Layer Select (V)** picks Vector figures by their geometry as well as visible pixels.
+Open paths can be selected near their curve; holes remain empty. Shift toggles layer
+selection; Ctrl or a repeated group click selects inside groups. Selected Vector
+contours are shown in Layer Select and **Transform (T)**, without node handles.
+Use Transform to move, resize or rotate a figure through its layer transform.
+Hold **Shift** for uniform resizing or 15-degree rotation steps.
+**Vector Nodes** moves individual points and tangent handles.
 With Nodes, **Shift** adds points to the selection; dragging empty space selects a
 rectangle of points. Double-click an edge to insert a point; **Alt-click** removes
 a point; **Alt-drag** breaks the linked handles. In the header, **Corner** lets the two handles move independently, **Aligned** keeps them

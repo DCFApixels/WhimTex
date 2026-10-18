@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
         {
             None, Brush, BlurBrush, Transform, Fill, Zoom, Pencil, RectangleSelect, PolygonSelect, Shape,
             GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush, SmudgeBrush, Text, Gradient, Crop, Comment,
-            VectorPen, VectorSelect, VectorNodes, VectorBrush
+            VectorPen, VectorNodes, VectorBrush
         }
 
         [NonSerialized] private CanvasTool canvasTool = CanvasTool.None;
@@ -225,7 +225,6 @@ namespace DCFApixels.WhimTex
                 case CanvasTool.Crop:
                 case CanvasTool.Comment:
                 case CanvasTool.VectorPen:
-                case CanvasTool.VectorSelect:
                 case CanvasTool.VectorNodes:
                 case CanvasTool.VectorBrush:
                 case CanvasTool.RectangleSelect:
@@ -258,7 +257,7 @@ namespace DCFApixels.WhimTex
             toolbar.AddToClassList("whimtex-tools");
             toolbar.EnableInClassList("whimtex-tools--light", !EditorGUIUtility.isProSkin);
             canvasNoneButton = CreateCanvasToolButton("noTool", CanvasTool.None,
-                "Layer Select (V). Click visible pixels to select a layer, or drag a guide to move it. Click a selected group again to select inside it. Shift toggles selection; Ctrl bypasses guides and selects nested layers directly. Click empty space to deselect.");
+                "Layer Select (V). Click visible pixels or Vector geometry to select a layer, or drag a guide to move it. Click a selected group again to select inside it. Shift toggles selection; Ctrl bypasses guides and selects nested layers directly. Click empty space to deselect. Use Transform (T) to move, scale or rotate.");
             canvasBrushButton = CreateCanvasToolButton("brushTool", CanvasTool.Brush,
                 "Brush (B). Paint on the selected Drawing layer. Choose Brush/Eraser in the header; RMB temporarily erases.");
             canvasBlurBrushButton = CreateCanvasToolButton("blurBrushTool", CanvasTool.BlurBrush,

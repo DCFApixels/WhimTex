@@ -107,11 +107,62 @@ public static class LayerPickingTests
             outlineLayer.enabled = false; Check(Pick(6, 16) == back, "hidden effect is ignored");
             document.layers.Remove(outlineLayer);
             front.enabled = true; front.transform = DCFApixels.WhimTex.TextureTransform.Default;
+            VectorGeometryPicking();
             document.layers.Clear(); Check(Pick() == null, "empty document");
             document.layers.Add(group); document.layers.Add(back);
             return;
         }
         finally { WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(document); }
+
+        void VectorGeometryPicking()
+        {
+            var pickGeometry = document.GetType().GetMethod("PickLayerAtPixelWithGeometry", BindingFlags.NonPublic | BindingFlags.Instance);
+            var hitGeometry = typeof(WhimTexWindow).GetMethod("PickVectorGeometry", BindingFlags.NonPublic | BindingFlags.Static);
+            var contour = new VectorContour();
+            foreach (var p in new[] { new Vector2(.1f, .1f), new Vector2(.9f, .1f), new Vector2(.9f, .9f), new Vector2(.1f, .9f) })
+                contour.points.Add(new VectorPoint(p));
+            var figure = new VectorShape { fillColor = Color.clear, contours = new List<VectorContour> { contour } };
+            var vector = new VectorLayerBehaviour { referenceSize = new Vector2(32, 32), shapes = new List<VectorShape> { figure } };
+            var vectorLayer = NewLayer(vector);
+            Vector2 point = new Vector2(50, 50);
+            Func<Vector2, Vector2> map = p => p * 100;
+            bool Hit(Layer layer) => layer == vectorLayer && hitGeometry.Invoke(null, new object[] { vector, point, map }) != null;
+            Layer GeometryPick(bool deep = false, Layer selected = null) => (Layer)pickGeometry.Invoke(document,
+                new object[] { 16, 16, .1f, deep, (Func<Layer, bool>)Hit, selected });
+            document.layers.Clear(); document.layers.Add(vectorLayer); document.layers.Add(back);
+            Check(Pick() == back, "Raster selection still ignores a transparent fill");
+            Check(GeometryPick() == vectorLayer, "Layer Select can pick transparent Vector fill by geometry");
+            var before = EditorJsonUtility.ToJson(document);
+            point = new Vector2(6, 50); Check(GeometryPick() == vectorLayer, "Contour has six view-point hit tolerance");
+            point = new Vector2(3, 50); Check(GeometryPick() == back, "Outside geometry and hit tolerance passes through");
+            point = new Vector2(50, 50);
+            var hole = contour.Clone(false);
+            foreach (var p in hole.points) p.position = Vector2.one * .5f + (p.position - Vector2.one * .5f) * .5f;
+            figure.contours.Add(hole);
+            Check(GeometryPick() == back, "Even-odd holes remain unselected");
+            figure.fillRule = VectorFillRule.NonZero;
+            Check(GeometryPick() == vectorLayer, "Nonzero winding uses contour orientation");
+            figure.contours.Remove(hole); figure.fillRule = VectorFillRule.EvenOdd;
+            contour.closed = false; figure.fillMode = VectorFillMode.None;
+            point = new Vector2(50, 11); Check(GeometryPick() == vectorLayer, "Unstroked open paths are selectable along their geometry");
+            point = new Vector2(11, 50); Check(GeometryPick() == back, "Open paths do not acquire a closing edge");
+            contour.closed = true; figure.fillMode = VectorFillMode.Solid; point = new Vector2(50, 50);
+            map = p => new Vector2(160 - 2 * p.y * 100, 20 + 2 * p.x * 100);
+            point = map(new Vector2(.5f, .5f)); Check(GeometryPick() == vectorLayer, "Geometry hit follows rotation, translation and zoom");
+            map = p => p * 100; point = new Vector2(50, 50);
+            document.layers.Insert(0, front); Check(GeometryPick() == front, "Raster foreground keeps stack priority"); document.layers.Remove(front);
+            vectorLayer.enabled = false; Check(GeometryPick() == back, "Hidden Vector is not selectable"); vectorLayer.enabled = true;
+            figure.visible = false; Check(GeometryPick() == back, "Hidden figure is not selectable"); figure.visible = true;
+            var group = NewLayer(new GroupLayerBehaviour()); group.children.Add(vectorLayer); document.layers[0] = group;
+            Check(GeometryPick() == group, "Geometry inside an ordinary group picks its group first");
+            Check(GeometryPick(selected: group) == vectorLayer && GeometryPick(true) == vectorLayer, "Repeated click and Ctrl enter geometry-only children");
+            group.opacity = .05f; Check(GeometryPick(true) == back, "Group opacity still gates geometry selection"); group.opacity = 1;
+            var clip = Fill(0); document.layers.Insert(1, clip); group.clippingMask = true;
+            Check(GeometryPick(true) == back, "Clipping base still gates geometry selection");
+            document.layers.Remove(clip); group.clippingMask = false;
+            document.layers[0] = vectorLayer;
+            Check(before == EditorJsonUtility.ToJson(document), "Geometry picking does not rewrite vector content or transforms");
+        }
         
     }
 }

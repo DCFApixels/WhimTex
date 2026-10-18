@@ -1779,8 +1779,6 @@ namespace DCFApixels.WhimTex
                 }
                 else if (canvasTool == CanvasTool.VectorPen)
                     toolkitCanvasViewFooter.text = "Click corner • Drag tangent • Click first point to close • Enter open path • Esc cancel";
-                else if (canvasTool == CanvasTool.VectorSelect)
-                    toolkitCanvasViewFooter.text = "Click figure • Drag move • Corners resize • Circle rotate • Shift constrain • Delete figure";
                 else if (canvasTool == CanvasTool.VectorNodes)
                     toolkitCanvasViewFooter.text = "Drag point / tangent • Shift select • Marquee points • Double-click edge insert • Alt-click delete • Esc cancel";
                 else if (canvasTool == CanvasTool.VectorBrush)

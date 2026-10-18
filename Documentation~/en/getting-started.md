@@ -52,7 +52,7 @@ Pan by holding the mouse wheel and dragging. Scroll to zoom; **Fit** shows the w
 
 Creation and selection tools show a small arrow with the active tool's symbol on the canvas.
 The arrow tip is the active point; Shape, Area Select and Lasso symbols follow the chosen mode.
-Vector Select and Vector Nodes use their filled and hollow pointer shapes; Layer Select keeps the OS cursor.
+Vector Nodes uses its hollow pointer shape; Layer Select keeps the OS cursor and also selects Vector geometry.
 Brushes keep their tip outlines; text editing, navigation and transform handles keep their action cursors.
 
 | Tool | Key | Use it to… |

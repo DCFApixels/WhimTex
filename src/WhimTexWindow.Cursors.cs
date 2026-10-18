@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
             None, Fill, Gradient,
             ShapeRectangle, ShapeEllipse, ShapePolygon, ShapeStar, ShapeLine, ShapeArc, ShapeSector,
             SelectionRectangle, SelectionEllipse, SelectionUv, LassoPolygon, LassoFreehand,
-            Comment, Text, VectorPen, VectorSelect, VectorNodes, Crop, CanvasScale
+            Comment, Text, VectorPen, VectorNodes, Crop, CanvasScale
         }
 
         private CanvasCursorIcon GetCanvasToolCursorIcon(MouseCursor nativeCursor)
@@ -38,7 +38,6 @@ namespace DCFApixels.WhimTex
                 case CanvasTool.Comment: return CanvasCursorIcon.Comment;
                 case CanvasTool.Text: return textEditingLayer == null ? CanvasCursorIcon.Text : CanvasCursorIcon.None;
                 case CanvasTool.VectorPen: return CanvasCursorIcon.VectorPen;
-                case CanvasTool.VectorSelect: return CanvasCursorIcon.VectorSelect;
                 case CanvasTool.VectorNodes: return CanvasCursorIcon.VectorNodes;
                 case CanvasTool.Crop:
                     return nativeCursor != MouseCursor.Arrow ? CanvasCursorIcon.None :

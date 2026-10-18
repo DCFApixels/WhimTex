@@ -22,7 +22,7 @@ namespace DCFApixels.WhimTex
             EnumControl(root, "Edge Mode", () => vector.edgeMode, value => vector.edgeMode = value);
             var tools = new VisualElement(); tools.AddToClassList("whimtex-vector-actions"); root.Add(tools);
             tools.Add(new Button(() => SetCanvasTool(CanvasTool.VectorPen)) { text = "Pen" });
-            tools.Add(new Button(() => SetCanvasTool(CanvasTool.VectorSelect)) { text = "Figures" });
+            tools.Add(new Button(() => SetCanvasTool(CanvasTool.Transform)) { text = "Transform" });
             tools.Add(new Button(() => SetCanvasTool(CanvasTool.VectorNodes)) { text = "Nodes" });
             tools.Add(new Button(() => SetCanvasTool(CanvasTool.VectorBrush)) { text = "Brush" });
 

@@ -52,7 +52,7 @@ https://github.com/DCFApixels/WhimTex.git
 
 创建和选区工具会在画布上显示小箭头及当前工具的图标。
 箭头尖端是操作位置；Shape、Area Select 和 Lasso 的图标随所选模式变化。
-Vector Select 和 Vector Nodes 使用工具按钮上的实心和空心箭头；Layer Select 保留操作系统光标。
+Vector Nodes 使用工具按钮上的空心箭头；Layer Select 保留操作系统光标，也可选择 Vector 几何轮廓。
 画笔保留笔尖轮廓，文字编辑、视图导航和变换控制柄保留各自的操作光标。
 
 | 工具 | 按键 | 用途 |

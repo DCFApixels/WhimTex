@@ -13,7 +13,7 @@ translations: "en/vector.md,ru/vector.md,zh/vector.md"
 
 一个 Vector 图层包含一个可编辑图形，并拥有独立变换。一个图形可以包含多个轮廓和孔洞。
 通过 **+ → Vector** 添加图层，或使用 **Vector Pen**、**Vector Brush** 绘制新图形；每个新图形各占一个图层。
-工具栏还提供 **Vector Select** 和 **Vector Nodes**。
+用 **Layer Select** 选择图形，用 **Vector Nodes** 编辑节点。
 
 ## 绘制与编辑
 
@@ -21,8 +21,10 @@ translations: "en/vector.md,ru/vector.md,zh/vector.md"
 单击第一个点可闭合路径，**Enter** 完成开放路径，**Escape** 取消创建。
 只有闭合轮廓参与填充；开放路径可以描边。
 
-用 **Vector Select** 移动图形，用角部手柄调整大小，用圆形手柄旋转。
-这些操作改变图层变换；框描述图形本身，不包含描边或 FX。
+**Layer Select (V)** 可按几何轮廓或可见像素选择 Vector。开放路径可在曲线附近选中，孔洞仍为空。
+Shift 切换图层选择，Ctrl 或再次单击组可选择组内图层。
+Layer Select 和 **Transform (T)** 显示所选 Vector 的轮廓，不显示节点手柄。
+使用 Transform 移动、缩放和旋转图形；这些操作改变图层变换。
 按 **Shift** 可等比缩放，或按 15 度步长旋转。
 **Vector Nodes** 可移动节点和切线手柄。按 **Shift** 增选节点，
 在空白处拖动可框选节点。双击边缘插入节点，**Alt-单击** 删除节点，**Alt-拖动** 解除手柄联动。
