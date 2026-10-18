@@ -443,6 +443,9 @@ public static class BrushLiveTrace
                 var texture = Get(layer, name) as RenderTexture;
                 if (texture != null) surfaceState.Add(new { name, texture.width, texture.height, format = texture.format.ToString(), filter = texture.filterMode.ToString(), texture.anisoLevel });
             }
+            if (Get(layer, "advancedStroke") is object strokeBuffer)
+                surfaceState.Add(new { name = "strokePages", bytes = Get(strokeBuffer, "Bytes"), touchedBytes = Get(strokeBuffer, "TouchedBytes"),
+                    pooledBytes = Property("PaintStrokeBuffer", "PooledBytes") });
             var largeTextures = new List<object>();
             foreach (var texture in Resources.FindObjectsOfTypeAll<RenderTexture>())
                 if (texture.width >= 4096 || texture.height >= 4096)

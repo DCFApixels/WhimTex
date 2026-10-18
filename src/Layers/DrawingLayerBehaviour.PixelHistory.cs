@@ -9,6 +9,9 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private PaintTileSet brushDirtyTiles;
         [NonSerialized] private string pixelUndoLabel;
         [NonSerialized] private bool partialStorageCurrent, restoredPixelUndo;
+        // Opt-in diagnostics on owned fixtures; normal layers keep the current layout.
+        [NonSerialized] internal int historyCaptureBlockSize = PaintTileSet.Size;
+        [NonSerialized] internal bool historySkipUnchanged;
         internal int LastPaintTileCount { get; private set; }
         internal long LastPaintTilePixels { get; private set; }
         internal UnityEngine.Object PixelUndoObject => DrawingPixelHistory.Find(pixels);
@@ -34,7 +37,8 @@ namespace DCFApixels.WhimTex
             {
                 int length = Math.Min(PaintTileTransfer.TilesPerPage, blocks.Length - start);
                 var pageBlocks = new RectInt[length]; Array.Copy(blocks, start, pageBlocks, 0, length);
-                var page = new PaintTileTransfer.Page(pixels, step, pageIndex, pageBlocks);
+                var page = new PaintTileTransfer.Page(pixels, step, pageIndex, pageBlocks,
+                    historyCaptureBlockSize, historySkipUnchanged);
                 try
                 {
                     page.CopyHalf(paintSurface, true);
@@ -95,6 +99,8 @@ namespace DCFApixels.WhimTex
         private void CommitBrushTile(Material material, RectInt tile)
         {
             if (BrushStrokeCompute.TryCommit(paintSurface, tile, material, advancedStroke, brushCompositeParameters.SelectionMask, pixels)) return;
+            advancedStroke.Bind(material, tile);
+            if (advancedStroke.Get(tile) == null) return;
             var result = HdrUtility.Temporary(tile.width, tile.height);
             try
             {
@@ -162,7 +168,10 @@ namespace DCFApixels.WhimTex
                 using var copy = WhimTexProfiler.Measure("brush.undo.copyGpu");
                 Graphics.CopyTexture(storageTile, 0, 0, 0, 0, r.width, r.height, pixels, 0, 0, r.x, r.y);
                 Graphics.CopyTexture(halfTile, 0, 0, 0, 0, r.width, r.height, surface, 0, 0, r.x, r.y);
-                alphaCoverage?.RestoreTile(surface, r);
+                if (r.x % PaintTileSet.Size != 0 || r.y % PaintTileSet.Size != 0 ||
+                    r.width != Math.Min(PaintTileSet.Size, pixels.width - r.x) || r.height != Math.Min(PaintTileSet.Size, pixels.height - r.y))
+                    alphaCoverage?.Invalidate(); // A partial history block cannot replace a whole occupancy flag.
+                else alphaCoverage?.RestoreTile(surface, r);
             }
             finally { UnityEngine.Object.DestroyImmediate(storageTile); UnityEngine.Object.DestroyImmediate(halfTile); }
         }

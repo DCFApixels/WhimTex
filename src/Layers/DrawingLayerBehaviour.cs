@@ -475,7 +475,7 @@ namespace DCFApixels.WhimTex
                 brushPreviewRevision = paintSurfaceRevision;
             }
             PaintBrushRenderer.Draw(
-                advancedStroke,
+                surface,
                 stamps,
                 parameters.Size,
                 parameters.Hardness,
@@ -491,8 +491,10 @@ namespace DCFApixels.WhimTex
                 colorRange == LayerColorRange.Standard,
                 // Selection clips the assembled change once, so overlapping dabs cannot harden it.
                 false, null, dynamics, parameters.StandardColorInputs,
-                stampBlend, blendRange == LayerBlendRange.HDR, strokeBase: paintSurface);
+                stampBlend, blendRange == LayerBlendRange.HDR, strokeBase: paintSurface, tiledStroke: advancedStroke);
             IncludeBrushBounds(PaintBrushRenderer.DrawBounds);
+            WhimTexProfiler.Event("brush.stroke_page_bytes", "counter", value: advancedStroke.Bytes);
+            WhimTexProfiler.Event("brush.stroke_pool_bytes", "counter", value: PaintStrokeBuffer.PooledBytes);
             WhimTexProfiler.Event("brush.dirty_bounds_pixels", "counter", value: (double)brushDirtyBounds.width * brushDirtyBounds.height);
         }
 
@@ -652,7 +654,16 @@ namespace DCFApixels.WhimTex
                 using (var blit = WhimTexProfiler.Measure("layer.drawing_convert_blit", layer: Owner))
                 using (blit.Gpu())
                 {
-                    if (tiles == null) Graphics.Blit(paintSurface, target, conversion);
+                    if (advancedStroke != null)
+                    {
+                        if (tiles == null)
+                        {
+                            conversion.SetFloat("_PendingBrush", 0);
+                            Graphics.Blit(paintSurface, target, conversion);
+                        }
+                        DrawBrushPreviewTiles(target, conversion, tiles ?? advancedStroke.touched);
+                    }
+                    else if (tiles == null) Graphics.Blit(paintSurface, target, conversion);
                     else DrawBrushPreviewTiles(target, conversion, tiles);
                 }
             }
@@ -1237,7 +1248,7 @@ namespace DCFApixels.WhimTex
                 bool wrapCanvas,
                 TextureTransform transform, bool standard, bool hdrStorage, Texture selectionMask = null, BrushDynamics dynamics = null,
                 bool standardColorInputs = false, bool stampBlend = false, bool hdrBlend = false,
-                ProjectiveMatrix? maskCanvasToSource = null, Texture strokeBase = null)
+                ProjectiveMatrix? maskCanvasToSource = null, Texture strokeBase = null, PaintStrokeBuffer tiledStroke = null)
             {
                 DrawBounds = default;
                 if (target != null) DrawTiles.Reset(target.width, target.height);
@@ -1390,15 +1401,15 @@ namespace DCFApixels.WhimTex
                                     {
                                         if (sequential)
                                         {
-                                            CopyStampBackdrop(target, material, ref snapshot);
-                                            EndBrushMesh(target, material);
+                                            if (tiledStroke == null) CopyStampBackdrop(target, material, ref snapshot);
+                                            EndBrushMesh(target, material, tiledStroke, true);
                                         }
                                     }
                                 }
                             }
                             finally
                             {
-                                if (!sequential) EndBrushMesh(target, material);
+                                if (!sequential) EndBrushMesh(target, material, tiledStroke);
                             }
                         }
                     }
@@ -1451,6 +1462,7 @@ namespace DCFApixels.WhimTex
                 }
                 if (max.x<=min.x || max.y<=min.y) return;
                 DrawTiles.IncludeUv(Rect.MinMaxRect(min.x, min.y, max.x, max.y));
+                meshDrawTiles.IncludeUv(Rect.MinMaxRect(min.x, min.y, max.x, max.y));
                 DrawBounds = DrawBounds.width <= 0f ? Rect.MinMaxRect(min.x, min.y, max.x, max.y)
                     : Rect.MinMaxRect(Mathf.Min(DrawBounds.xMin, min.x), Mathf.Min(DrawBounds.yMin, min.y),
                         Mathf.Max(DrawBounds.xMax, max.x), Mathf.Max(DrawBounds.yMax, max.y));

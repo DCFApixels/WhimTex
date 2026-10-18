@@ -353,7 +353,9 @@ public static class BrushBufferedStrokeTests
                 {
                     Call(f.Layer, "PaintPoint", points[dab], Size, Size, p);
                     Call(f.Layer, "ConfigureBrushComposite", full); full.SetFloat("_Mode", 1);
-                    Graphics.Blit((RenderTexture)Get(f.Layer, "paintSurface"), reference, full);
+                    var fullStroke = BrushFullAssemblyReference.MaterializeStroke(f.Layer);
+                    try { full.SetTexture("_BrushStroke", fullStroke); Graphics.Blit((RenderTexture)Get(f.Layer, "paintSurface"), reference, full); }
+                    finally { RenderTexture.ReleaseTemporary(fullStroke); }
                     var expected = Read(reference); var actual = f.Live();
                     for (int i = 0; i < expected.Length; i++) Near(t, expected[i], actual[i], "Region preview " + variant + "/" + dab + "/" + i, .001f);
                 }
@@ -420,7 +422,10 @@ public static class BrushBufferedStrokeTests
             Call(layer, "PaintPoint", new Vector2(.35f, .6f), width, height, parameters);
             Call(layer, "PaintPoint", new Vector2(.85f, .2f), width, height, parameters);
             Call(layer, "ConfigureBrushComposite", material);
-            var surface = (RenderTexture)Get(layer, "paintSurface"); Graphics.Blit(surface, reference, material, 1);
+            var surface = (RenderTexture)Get(layer, "paintSurface");
+            var fullStroke = BrushFullAssemblyReference.MaterializeStroke(layer);
+            try { material.SetTexture("_BrushStroke", fullStroke); Graphics.Blit(surface, reference, material, 1); }
+            finally { RenderTexture.ReleaseTemporary(fullStroke); }
             Color[] ReadAll(RenderTexture target)
             { RenderTexture.active = target; readback.ReadPixels(new Rect(0, 0, width, height), 0, 0, false); return readback.GetPixels(); }
             var expected = ReadAll(reference);

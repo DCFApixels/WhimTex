@@ -304,28 +304,12 @@ public static class BrushPipelineBenchmark
             Action render = control == "no-preview" ? () => { } : () => previewCurrent(layer, previewArgs);
             Action finish = () => end(layer, Array.Empty<object>());
             var draw = new Action[Updates];
-            using var replayCommands = new UnityEngine.Rendering.CommandBuffer();
-            var rendererType = typeof(DrawingLayerBehaviour).GetNestedType("PaintBrushRenderer", BindingFlags.NonPublic);
-            Mesh replayMesh = (Mesh)rendererType.GetField("brushMesh", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
-            Material replayMaterial = (Material)Product.GetType("DCFApixels.WhimTex.WhimTexMaterials")
-                .GetProperty("PaintBrush", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).GetValue(null);
             for (int i = 0; i < Updates; i++)
             {
                 int at = i;
-                draw[i] = control == "clear-only" ? () =>
-                {
-                    RenderTexture.active = (RenderTexture)Get(layer, "advancedStroke"); GL.Clear(false, true, Color.clear);
-                } : control == "replay-mesh" || control == "replay-bound" ? () =>
-                {
-                    if (control == "replay-bound") replayMaterial.SetTexture("_StrokeBase", surface);
-                    replayCommands.Clear();
-                    replayCommands.SetRenderTarget((RenderTexture)Get(layer, "advancedStroke"));
-                    replayCommands.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.Ortho(0, 1, 0, 1, -1, 1));
-                    replayCommands.DrawMesh(replayMesh, Matrix4x4.identity, replayMaterial, 0, 0);
-                    Graphics.ExecuteCommandBuffer(replayCommands);
-                    replayCommands.Clear();
-                    if (control == "replay-bound") replayMaterial.SetTexture("_StrokeBase", null);
-                } : () => drawCurrent(layer, batches[at]);
+                if (control == "clear-only" || control == "replay-mesh" || control == "replay-bound")
+                    throw new NotSupportedException("Full-target replay controls do not represent sparse storage. Use brush-tile-buffer diagnostics.");
+                draw[i] = () => drawCurrent(layer, batches[at]);
             }
             Action empty = () => { };
             int index = 0;
@@ -376,7 +360,7 @@ public static class BrushPipelineBenchmark
             Color color = (Color)Get(parameters, "Color"); color.a *= .35f;
             return new object[] { null, stamps, (float)diameter, .65f, false, Get(parameters, "Shape"), color, false,
                 side, side, new Vector2(.5f, .5f), false, transform, !hdr, !buffered && hdr,
-                selection, dynamics, Get(parameters, "StandardColorInputs"), stampBlend, hdr, null, null };
+                selection, dynamics, Get(parameters, "StandardColorInputs"), stampBlend, hdr, null, null, null };
         }
         void OldDraw(object[] args)
         {
@@ -395,9 +379,20 @@ public static class BrushPipelineBenchmark
         }
         void OldPreview()
         {
-            if (fullAssembly) configureComposite(layer, new object[] { oldConversion });
-            oldConversion.SetFloat("_Mode", 1); Graphics.Blit(surface, preview, oldConversion);
-            if (fullAssembly) ClearComposite(oldConversion);
+            RenderTexture materialized = null;
+            try
+            {
+                if (fullAssembly)
+                {
+                    configureComposite(layer, new object[] { oldConversion });
+                    materialized = BrushFullAssemblyReference.MaterializeStroke(layer);
+                    oldConversion.SetTexture("_BrushStroke", materialized);
+                }
+                oldConversion.SetFloat("_Mode", 1); Graphics.Blit(surface, preview, oldConversion);
+            }
+            finally { if (fullAssembly) ClearComposite(oldConversion); if (materialized != null) RenderTexture.ReleaseTemporary(materialized); }
+            // Historical full-assembly timings now include this test adapter. Use the
+            // paired tile-buffer diagnostic for accumulation performance comparisons.
         }
         static void ClearComposite(Material material)
         {
@@ -412,7 +407,9 @@ public static class BrushPipelineBenchmark
                 try
                 {
                     configureComposite(layer, new object[] { oldBlend });
-                    Graphics.Blit(surface, result, oldBlend, 1); Graphics.Blit(result, surface);
+                    var materialized = BrushFullAssemblyReference.MaterializeStroke(layer);
+                    try { oldBlend.SetTexture("_BrushStroke", materialized); Graphics.Blit(surface, result, oldBlend, 1); Graphics.Blit(result, surface); }
+                    finally { RenderTexture.ReleaseTemporary(materialized); }
                     releaseStroke(layer, Array.Empty<object>());
                 }
                 finally { ClearComposite(oldBlend); RenderTexture.ReleaseTemporary(result); }
@@ -441,7 +438,8 @@ public static class BrushPipelineBenchmark
             }
             long payload = (long)side * side * 8;
             var dirty = (RectInt)Get(layer, "brushDirtyBounds");
-            int tileLimit = (int)typeof(DrawingLayerBehaviour).GetField("BrushCompositeTileSize", BindingFlags.Static | BindingFlags.NonPublic).GetRawConstantValue();
+            int tileLimit = 256;
+            long strokePayload = Get(layer, "advancedStroke") is object strokeBuffer ? (long)Get(strokeBuffer, "Bytes") : 0;
             sample.commitScratchBytes = current ? surface.enableRandomWrite ? 0 : (long)Math.Min(tileLimit, dirty.width) * Math.Min(tileLimit, dirty.height) * 8 : fullAssembly ? payload : 0;
             sample.commitMs = Phase(finish, phases);
             Barrier(); sample.strokeMs = (Stopwatch.GetTimestamp() - start) * 1000d / Stopwatch.Frequency;
@@ -463,11 +461,13 @@ public static class BrushPipelineBenchmark
                 // cover AA, integer rounding and the backdrop guard; production buckets by 128.
                 int stampCapacity = Math.Min(side, ((diameter + 6 + 127) / 128) * 128);
                 long stampScratch = stampBlend || pressureOpacity ? (long)stampCapacity * stampCapacity * 8 : 0;
-                sample.activeRtPayloadBytes = (2 + persistent) * payload;
+                sample.activeRtPayloadBytes = current || fullAssembly ? 2 * payload + strokePayload : (2 + persistent) * payload;
                 sample.peakRtPayloadBytes = sample.activeRtPayloadBytes + Math.Max(sample.commitScratchBytes, stampScratch);
                 var textures = new List<TextureMemory>();
                 Add(surface, "surface"); Add(preview, "preview"); Add(stored, "storage"); Add(selection, "selection");
-                Add((Texture)Get(layer, "advancedStroke"), "stroke"); Add(oldBase, "oldBase"); Add(oldStroke, "oldStroke");
+                if (Get(layer, "advancedStroke") is object buffer)
+                    foreach (RenderTexture page in (System.Collections.IEnumerable)Get(buffer, "pages")) Add(page, "strokePage");
+                Add(oldBase, "oldBase"); Add(oldStroke, "oldStroke");
                 Add((Texture)Get(layer, "paintWriteBefore"), "writeBefore"); Add((Texture)Get(layer, "paintWriteScratch"), "writeScratch");
                 sample.textures = textures.ToArray();
                 void Add(Texture texture, string role)

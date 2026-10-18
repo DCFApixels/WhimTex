@@ -978,5 +978,11 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             Call(settings,"ReleasePresetTip");
         }
     }
+public static string RunFirstStamp() => WhimTex.Tests.TestContext.Run("Dynamic first stamp and correction", context =>
+    WhimTex.Tests.UnityA.UnityAScope.RunOwned(scope =>
+    {
+        scope.RestoreWindowFocus = false; T = context; Scope = scope;
+        try { FirstStampChecks(); } finally { T = null; Scope = null; }
+    }));
 public static string Run() => WhimTex.Tests.TestContext.Run("Run", context => WhimTex.Tests.UnityA.UnityAScope.RunOwned(scope => { scope.RestoreWindowFocus = false; T = context; Scope = scope; try { BodyRun(); } finally { T = null; Scope = null; } }));
 }

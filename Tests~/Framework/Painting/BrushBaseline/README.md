@@ -93,3 +93,11 @@ terminated. That harness has been removed. Reports whose `timing` does not state
 `No full-size readback` are superseded and must not be mixed with final results.
 This failure is not evidence of the brush pipeline exhausting VRAM: the native
 log explicitly reported that local/non-local GPU budgets were not exhausted.
+
+
+The 2026-10-18 atlas change re-audits only the two shared production renderer fingerprints.
+The optional tiled destination does not change the full-target branch's geometry or shader math;
+the new full-target-versus-atlas tests separately compare accumulation across seams and modes.
+Frozen reference shaders, inputs and expected render values were not regenerated.
+The historical full-assembly control now materializes sparse input as a test adapter. Its timings
+include that work; use `BrushTileBufferTests` for the current accumulation A/B comparison.

@@ -6,7 +6,7 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
-- Brush/Pencil track distinct source blocks for commit, partial CPU/GPU synchronization and pixel Undo. A session journal keeps exact Half working pixels and stored before/after values outside Unity's full-texture Undo records, while retaining normal Ctrl+Z/Redo order and script-reload continuity. Unsupported storage/copy configurations and other pixel tools keep their existing path; full-size working buffers remain.
+- Brush/Pencil track distinct source blocks for commit, partial CPU/GPU synchronization and pixel Undo. A session journal keeps exact Half working pixels and stored before/after values outside Unity's full-texture Undo records, while retaining normal Ctrl+Z/Redo order and script-reload continuity. Unsupported storage/copy configurations and other pixel tools keep their existing path; the Half source and straight preview remain full-size.
 
 - Polygonal Lasso offers Straight/Smooth contours, with centripetal Catmull–Rom curves through placed points and individually switchable corners via C or Corner. Smooth calculates a closed shape while displaying an open contour during editing; completing it reveals the closing segment without changing the visible curves. Preview, insertion hit testing and the final selection mask share the same sampled geometry. Editor validation is pending; tests were not run for this prototype.
 - Editable Text layers use installed system fonts, with inline canvas editing, Point and Frame layout, wrapping, justification, Auto Size, overflow controls, casing, spacing and horizontal scaling. Font selection includes search and previews; saved raster backups retain the appearance when a font is unavailable.
@@ -40,6 +40,10 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Paint Undo uses faster lossless block packing and decoding when Burst is enabled, reducing compression waits without changing Half, HDR or stored pixel values. A shared, demand-allocated snapshot queue can temporarily retain up to 1.5 GiB (less on smaller devices) to defer dense 8K readback. Sustained overload still waits at the cap; background transfer and writer budgets remain bounded. Faster packing can use more disk space under the existing Undo quota.
+
+- Brush/Pencil accumulate strokes in sparse 256×256 Half blocks packed into small atlas pages, with a shared idle pool capped at 64 MiB. The full-size Half source, compute commit, raster fallback, current preview, soft selection and exact pixel Undo remain. Sparse strokes need less GPU memory and avoid allocating a full-size stroke target; dense strokes and full-preview startup costs remain. Warm tile submission has some overhead compared with a single target, particularly for per-stamp blend modes.
+
 - Vector figures use Layer Select for geometry-aware picking and the ordinary Transform for movement, scaling and rotation. Selected contours remain visible in both tools. The separate figure-selection tool, its transform handlers and cursor asset are removed; node, pen and mask editing remain available.
 - Fill uses a cleaned white vector bucket icon with a loop handle, transparent paint separation and a solid droplet. The toolbar loads the SVG on supported Editors and aligns its placement to display pixels; the drawn fallback follows the same geometry. The canvas cursor pairs the bucket with a miniature right-angle arrowhead, both white with black outlines; its horizontal/vertical edges are pixel-aligned, diagonals remain antialiased and the hotspot is the arrow tip. The native-size cursor has no texture compression or mipmaps. Editor validation is pending.
 - Gradient creation uses a matching arrow-and-gradient cursor, with the active point on the arrow tip and pixel-aligned framing. Navigation and Gradient Handles retain their existing cursors. Editor validation is pending.
@@ -71,6 +75,8 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Completed paint-history writes release their worst-case disk reservation immediately. Rapid heavy strokes no longer keep charging already compressed pages as raw data and trigger premature synchronous history retirement. Background GPU transfers continue while Canvas View is idle.
 
 - Buffered Brush/Pencil preview refreshes only source blocks changed since its previous display, preserving Half precision, selection, blend and HDR. Inputs without new paint retain spacing/pressure progression without requesting a redundant canvas composition. The straight preview target is retained for the stroke and released on commit/cancel; FX processing is unchanged.
 - Selecting a gradient-filled Shape or Vector no longer automatically activates Gradient Handles. An explicitly active handles tool stays available across supported figures; Gradient layers keep automatic activation except during Gradient creation, Crop or Comment.

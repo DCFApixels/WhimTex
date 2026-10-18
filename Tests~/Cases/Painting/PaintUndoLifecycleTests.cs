@@ -107,6 +107,31 @@ public static partial class PaintTileHistoryTests
         }
         finally { Call(b, "Close"); }
     });
+    public static string RunReservationRelease() => TestContext.Run("Completed writes release raw reservations during sustained input", t =>
+    {
+        using var scope = new DiskScope();
+        Call(scope.disk, "SetLimits", (int?)1, (int?)50);
+        using var fixture = new Fixture(1536, true);
+        Set(fixture.settings, "brushSize", 1536f);
+        var rect = new RectInt(736, 736, 32, 32);
+        byte[] initial = Probe(fixture.surface, rect);
+        for (int i = 0; i < 20; i++)
+        {
+            fixture.Stroke(new[] { new Vector2(.5f, .5f) }, null);
+            Static("PaintHistoryStore", "FlushWrites"); // No maintenance or Editor update between strokes.
+            var cursor = Get(fixture.layer, "PixelUndoObject");
+            string revision = (string)Get(cursor, "Revision");
+            var step = Static("PaintHistoryStore", "Get", revision);
+            t.True((bool)Get(step, "reservationReleased"), "Worker released reservation " + i);
+            t.True(!File.Exists(Path.Combine((string)Static("PaintHistoryStore", "StepDirectory", revision), "reservation")), "Actual size charged " + i);
+            t.Equal("", (string)Get(cursor, "Boundary"), "No false quota retirement " + i);
+        }
+        byte[] final = Probe(fixture.surface, rect);
+        for (int i = 0; i < 20; i++) Undo.PerformUndo();
+        Exact(t, initial, Probe((RenderTexture)Get(fixture.layer, "paintSurface"), rect), "All twenty Undo steps remain");
+        for (int i = 0; i < 20; i++) Undo.PerformRedo();
+        Exact(t, final, Probe((RenderTexture)Get(fixture.layer, "paintSurface"), rect), "All twenty Redo steps remain exact");
+    });
     public static string RunRetention() => TestContext.Run("Bounded paint history preserves exact Half, masks, HDR and native Undo order", t =>
     {
         using var scope = new DiskScope(); var mask = Mask();

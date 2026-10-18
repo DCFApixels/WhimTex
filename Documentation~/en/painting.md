@@ -22,7 +22,8 @@ Brush and Pencil strokes use the normal Undo/Redo sequence alongside other edits
 survives script recompilation, but is not included in saved TIFF documents or a new Unity session.
 On supported devices, you can start the next stroke while the previous stroke's history finishes
 in the background. Undo and saving may wait for pending strokes; a long series of heavy strokes can
-also pause briefly when the queue fills. Pixel precision and Undo order stay unchanged.
+also pause when the queue fills. Pixel precision and Undo order stay unchanged.
+History continues processing when Canvas View is idle; no further stroke is needed to finish it.
 
 The document's [Pixel Scale](preview.md#crop-extend-or-scale-the-canvas) multiplies brush sizes without changing their entered values or presets. Size 3 with Pixel Scale 2 paints at 6 canvas pixels. Changing the multiplier affects new strokes; existing painted pixels remain in their source texture until the image is scaled.
 

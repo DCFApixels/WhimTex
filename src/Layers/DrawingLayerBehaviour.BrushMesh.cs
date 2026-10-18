@@ -21,6 +21,9 @@ namespace DCFApixels.WhimTex
             private static List<int> meshIndices;
             private static Vector3 meshColor;
             private static Vector4 meshStamp;
+            private static readonly PaintTileSet meshDrawTiles = new PaintTileSet();
+            private static MaterialPropertyBlock tileProperties;
+            private static RenderTexture tileBackdrop;
 
             static PaintBrushRenderer()
             {
@@ -49,6 +52,7 @@ namespace DCFApixels.WhimTex
                 meshPositions.Clear(); meshUv.Clear(); meshClipMin.Clear(); meshClipMax.Clear();
                 meshClips.Clear(); meshTiles.Clear(); meshColors.Clear(); meshStamps.Clear(); meshIndices.Clear();
                 meshContexts.Clear();
+                meshDrawTiles.Reset(DrawTiles.Width, DrawTiles.Height);
             }
 
             private static void AddBrushMeshVertex(float x, float y, float u, float v, PaintStamp stamp, int tileMode)
@@ -66,7 +70,7 @@ namespace DCFApixels.WhimTex
                 if (meshSequence) meshContexts.Add(stamp.dynamicContext.StampVertex);
             }
 
-            private static void EndBrushMesh(RenderTexture target, Material material)
+            private static void EndBrushMesh(RenderTexture target, Material material, PaintStrokeBuffer tiledStroke = null, bool sequential = false)
             {
                 if (meshPositions.Count == 0) return;
                 using (WhimTexProfiler.Measure("brush.mesh_upload"))
@@ -88,9 +92,55 @@ namespace DCFApixels.WhimTex
                 using var submit = WhimTexProfiler.Measure("brush.mesh_submit");
                 using var gpu = submit.Gpu();
                 brushCommands.Clear();
-                brushCommands.SetRenderTarget(target);
-                brushCommands.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.Ortho(0f, 1f, 0f, 1f, -1f, 1f));
-                brushCommands.DrawMesh(brushMesh, Matrix4x4.identity, material, 0, 0);
+                if (tiledStroke == null)
+                {
+                    brushCommands.SetRenderTarget(target);
+                    brushCommands.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.Ortho(0f, 1f, 0f, 1f, -1f, 1f));
+                    brushCommands.DrawMesh(brushMesh, Matrix4x4.identity, material, 0, 0);
+                }
+                else
+                {
+                    tileProperties ??= new MaterialPropertyBlock();
+                    if (sequential && tileBackdrop == null)
+                    {
+                        tileBackdrop = new RenderTexture(PaintStrokeBuffer.TileSize, PaintStrokeBuffer.TileSize, 0,
+                            RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear)
+                        { name = "WhimTex stroke tile backdrop", hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Point };
+                        tileBackdrop.Create();
+                    }
+                    for (int i = 0; i < meshDrawTiles.Count; i++)
+                    {
+                        var tile = meshDrawTiles[i];
+                        var block = tiledStroke.Ensure(tile);
+                        tileProperties.Clear();
+                        if (sequential)
+                        {
+                            if ((SystemInfo.copyTextureSupport & CopyTextureSupport.Basic) != 0)
+                            {
+                                var slot = tiledStroke.Slot(tile);
+                                brushCommands.CopyTexture(block, 0, 0, slot.x, slot.y, PaintStrokeBuffer.TileSize,
+                                    PaintStrokeBuffer.TileSize, tileBackdrop, 0, 0, 0, 0);
+                            }
+                            else
+                            {
+                                var slot = tiledStroke.Slot(tile);
+                                brushCommands.Blit(block, tileBackdrop, Vector2.one * (PaintStrokeBuffer.TileSize / (float)block.width),
+                                    new Vector2(slot.x, slot.y) / block.width);
+                            }
+                            tileProperties.SetTexture("_Backdrop", tileBackdrop);
+                            tileProperties.SetVector("_BackdropTransform", new Vector4(target.width / (float)PaintStrokeBuffer.TileSize,
+                                target.height / (float)PaintStrokeBuffer.TileSize, -tile.x / (float)PaintStrokeBuffer.TileSize, -tile.y / (float)PaintStrokeBuffer.TileSize));
+                        }
+                        brushCommands.SetRenderTarget(block);
+                        var viewport = tiledStroke.Slot(tile);
+                        brushCommands.SetViewport(new Rect(viewport.x, viewport.y, viewport.width, viewport.height));
+                        float x = tile.x / (float)target.width, y = tile.y / (float)target.height;
+                        brushCommands.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.Ortho(x,
+                            x + PaintStrokeBuffer.TileSize / (float)target.width, y,
+                            y + PaintStrokeBuffer.TileSize / (float)target.height, -1f, 1f));
+                        brushCommands.DrawMesh(brushMesh, Matrix4x4.identity, material, 0, 0, tileProperties);
+                    }
+                }
                 Graphics.ExecuteCommandBuffer(brushCommands);
                 brushCommands.Clear();
             }
@@ -150,6 +200,9 @@ namespace DCFApixels.WhimTex
                 meshHadSequence = false;
                 brushCommands?.Release();
                 brushCommands = null;
+                if (tileBackdrop != null) Object.DestroyImmediate(tileBackdrop);
+                tileBackdrop = null;
+                tileProperties = null;
                 meshPositions = meshClipMin = meshClipMax = meshClips = meshColors = null;
                 meshTiles = null;
                 meshStamps = null;

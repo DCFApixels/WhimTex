@@ -18,6 +18,7 @@ float _BrushGamma;
 float3 _BrushCanvasRow0, _BrushCanvasRow1, _BrushCanvasRow2;
 float4 _BrushWriteChannels;
 float4 _BrushDirtyRect;
+float4 _BrushStrokeMap;
 
 float BrushSelectionCoverage(float2 uv)
 {
@@ -37,7 +38,7 @@ float4 CompositePendingBrush(float4 before, float2 uv)
     [branch] if (any(uv < _BrushDirtyRect.xy) || any(uv > _BrushDirtyRect.zw)) return before;
     float selection = BrushSelectionCoverage(uv);
     if (selection <= 0.0) return before;
-    float4 stroke = BRUSH_SAMPLE(_BrushStroke, uv);
+    float4 stroke = BRUSH_SAMPLE(_BrushStroke, uv * _BrushStrokeMap.xy + _BrushStrokeMap.zw);
     float4 after = before;
     if (_BrushStampAccumulation > .5)
     {

@@ -236,7 +236,7 @@ without an explicit drain across three wide HDR strokes. Run prepare and verify 
 allowing several seconds of Editor updates between them; a single update no longer drains all pages.
 `paint-tile-history-queued` checks six
 overlapping 1536px strokes in SDR/HDR: the first three complete without CPU extraction or capacity
-waits, sustained overload stays within 256 MiB of owned GPU staging, and immediate Undo/Redo restores
+waits, the queued revisions stay within the shared staging budget, and immediate Undo/Redo restores
 every complete Half/storage revision exactly, including masks, eraser and tiny flow.
 `paint-tile-history-8k-textured` owns an opaque noise source to expose
 compression cost hidden by blank-canvas benchmarks. `paint-history-codecs` compares the available
@@ -1230,3 +1230,159 @@ the optimized kernel. Portable analytic/render/cache regressions remain independ
 Successful timing/manual producers can still return SKIP; a saved PNG, CSV or timing array
 does not establish historical equivalence or a performance acceptance threshold. Unavailable
 process-memory counters must be labelled unavailable, not interpreted as zero memory usage.
+
+
+<a id="stroke-tile-pool"></a>
+
+### Stroke atlas pool, 2026-10-18
+
+`brush-tile-buffer` compares unchanged full-target stamping with sparse accumulation using
+identical generated stamps, every pixel of a 513×517 image, weak alpha, SDR/HDR, masks,
+per-stamp blending, pressure, channel locks, erasing, wrapping and partial tile edges. It also
+checks concurrent stroke ownership and the global 64 MiB idle-pool bound. Full-assembly oracle
+shaders remain frozen/authenticated; a test-only adapter reconstructs their stroke input.
+`brush-buffered-compute-v1`, `brush-buffered-raster-v1`, `brush-preview-cache` and the focused
+`brush-first-stamp` pass assembly, downstream consumers and dynamic first-stamp correction.
+`paint-tile-history-small` passes byte-exact Half/storage Undo, hidden RGB, queued weak strokes,
+native history interleaving and TIFF synchronization. SDR/HDR `paint-tile-history-8k-frame[-hdr]`
+pass exact Undo/Redo for a full-canvas perimeter, including restored alpha coverage.
+
+`brush-tile-buffer-8192-{81,2048}-normal`, `...-8192-81-hdr` and `...-8192-2048-stamp`
+run a 48-input curved path across almost the full canvas, yielding Editor updates. They compare
+bounded 32² probes across tile corners and use only 1×1 timing fences, never full 8K readback.
+They open no windows, inject no input and touch no user document. The paired baseline keeps a
+full-size accumulator and old single-submission incremental preview. Stamp generation/reflection
+is included only on the new-path CPU side. GPU values are fenced queue latency, not isolated
+hardware timestamps or displayed frame rate.
+
+RTX 5060 / D3D12 / Unity 6000.7.0a6, Linear, paired results:
+
+| 8K workload | Stroke pages | Former accumulator | New / former accumulation wait, median | New / former first accumulation wait |
+| --- | ---: | ---: | ---: | ---: |
+| 81 px normal | 128 MiB | 512 MiB | 0.66 / 0.23 ms | 1.37 / 15.53 ms |
+| 2048 px normal | 448 MiB | 512 MiB | 1.42 / 0.48 ms | 4.34 / 17.35 ms |
+| 81 px HDR | 128 MiB | 512 MiB | 0.68 / 0.23 ms | 1.41 / 10.88 ms |
+| 2048 px per-stamp Multiply | 448 MiB | 512 MiB | 3.82 / 2.07 ms | 4.99 / 179.86 ms |
+
+These are individual runs, not a claim that every input is faster. A discarded prototype with
+one RenderTexture per block took about 2.43 ms median for the 81 px path; atlas pages reduced
+that overhead. Warm sparse submissions still cost more than a single full target.
+
+Paired fixtures retain extra reference textures. `...-isolated` cases use production resources
+only. Median accumulation waits were 0.63/0.94/0.67 ms for 81 px/2048 px/HDR; median preview waits
+were 0.24/0.88/0.28 ms. Their first preview waits were 27.49/22.73/22.76 ms. A paired HDR first
+preview reached 196.51 ms; it did not recur in the isolated run, so its cause is not attributed
+to sparse accumulation. The isolated first wide-brush accumulation still took 19.01 ms.
+Cold allocation variability remains; the Half source and straight preview are still 512 MiB each.
+
+All tested strokes returned their active pages and retained at most 64 MiB idle. Active storage
+is bounded by touched source blocks rounded to page capacity, not by the idle limit: a dense
+8K stroke can need 512 MiB. Sequential-backdrop scratch is another 256² Half (0.5 MiB). No
+source block is discarded based on alpha. These accumulation measurements exclude release and Undo;
+see the dense-release diagnostics below for the subsequent history changes.
+Local reports: `Temp/WhimTex/brush-tiles` and `Temp/WhimTex/test-runs`.
+
+The older `BrushPipelineBenchmark` full-assembly control includes the sparse-to-full test adapter;
+its timings must not be used as an accumulation A/B comparison. Full-target clear/replay controls
+are explicitly unsupported for sparse storage; use the paired tile-buffer cases above.
+
+## Dense stroke release and repeated input
+
+`paint-history-codec` checks byte-exact block roundtrips, arbitrary Half bit patterns,
+incompressible fallback, repeated runs, and malformed/truncated payload rejection.
+`paint-undo-reservation-release` uses an isolated 1 GiB Temp store and twenty 1536px HDR strokes
+without idle maintenance. Every writer releases its worst-case reservation; no history boundary
+is retired, and all twenty Undo/Redo steps remain exact.
+
+`paint-tile-history-8k-sweep[-hdr]` paints a serpentine 2048px stroke over all 1024 source blocks.
+It checks snapshot limits, mask/opacity, HDR and exact Half Undo/Redo probes. Its input is submitted
+synchronously: the following one-pixel fence can include queued drawing, so it is not a displayed
+frame-rate or pure next-input latency measurement. No full 8K synchronous readback is used.
+
+`paint-history-burst-512-paced` preflights the asynchronous fixture. The 8K `-paced` case makes
+three dense strokes across Editor updates; `-saturation` makes six with no explicit history drain
+between them. Both use an isolated Temp journal, no windows or OS input, and a one-pixel GPU fence
+before release. Snapshot and writer queues stay bounded; final ordered Undo/Redo checks all states.
+They require an idle Editor and `temp-files,user-state`; only owned objects/history are removed.
+Reports and stage captures are under `Temp/WhimTex/paint-tile-history`.
+
+Individual RTX 5060 / D3D12 / Unity 6000.7.0a6 observations, 2026-10-18:
+
+- The original user release took 6849 ms, including 5986 ms waiting for Deflate writers.
+  Portable Burst block packing reduced a subsequent similar user release to 1183 ms; those are
+  two user strokes, not identical benchmark inputs. The new format trades some compression ratio
+  for throughput and keeps the existing disk quota.
+- A 1536 MiB shared snapshot allowance lets one standard dense 8K release return without CPU
+  extraction. Repeated strokes can still saturate it: raising the bounded writer queue from
+  64 to 128 MiB on this 32-thread CPU reduced the six-stroke release sequence from
+  40/1462/2651/2855/2803/2824 ms to 36/863/1311/1387/1385/1254 ms. Peak owned snapshots were
+  1520 MiB in both runs; queued writer payload peaked at 48/120 MiB. Both completed exact Undo/Redo.
+- The rapid-series test exposed delayed disk-reservation accounting: earlier fifth/sixth releases
+  took about 71 seconds while unnecessary synchronous retirement ran. Successful page writers now
+  finalize their stroke reservation immediately; the quota is retried after draining before retirement.
+  The final six-stroke test completed without those minute-long stalls.
+- Background requests are submitted and updated without requiring a canvas repaint. A new snapshot
+  does not remove transfer/encoding work: the final saturation run still had about 7 seconds of
+  background tail while the Editor was idle. Actual quota exhaustion, saturation, Undo and save can
+  still wait. These diagnostics do not establish displayed FPS or other-device performance.
+
+The final dense HDR case also passed: 1536 MiB of snapshots, zero capacity waits, 55.6 ms for the
+synchronous submission/commit call, 1582 ms for an explicitly forced drain, and exact Undo/Redo.
+Its subsequent 141 ms one-pixel fence includes queued GPU work. The final small history and retention
+regressions passed, covering weak alpha, hidden RGB, mask, HDR, TIFF and actual history pruning.
+
+## Undo block-size comparison
+
+`paint-undo-block-size-correctness` compares fresh 64/128/256px histories against the 256px
+capture control on 518px SDR/HDR fixtures. It verifies every stored and Half byte through
+three Undo/Redo revisions, low flow, eraser, fractional/zero selection, hidden RGB, partial
+edge blocks, empty payloads and Half reconstruction. Each fixture has one fixed layout;
+old in-memory/disk blocks are neither converted nor mixed into the experiment.
+
+`paint-undo-block-512-64-skip-thin` preflights the asynchronous benchmark. The eight opt-in
+`paint-undo-block-8192-{256-all,256-skip,128-skip,64-skip}-{thin,wide}` cases compare two
+32px curved strokes or two 2048px serpentine strokes over most of a detached 8K canvas.
+The queue drains between strokes: these are not saturation or interactive FPS tests.
+Run serially with `temp-files,user-state`; no windows, OS input or user documents are used.
+GPU paint tiles stay 256px, transfer pages stay at most 1024px, and `paintSurface` stays Half.
+Only owned diagnostic layers select smaller history blocks; the UI default stays 256px.
+
+The `skip` cases omit a block only when both its Half before/after bytes and its straight
+stored before/after bytes match. Portable Burst compares raw words, retaining hidden RGB,
+signed zero and Half bit patterns. When Burst is enabled the test asserts it actually ran;
+a managed fallback cannot silently count as a Burst measurement. No alpha-only shortcut is used.
+
+Reports under `Temp/WhimTex/undo-block-size` separate release submission, background tail,
+comparison, extraction/CPU patching, worker compression/write and Undo/Redo. Compression
+includes stream writes; sums of concurrent worker times are not elapsed drain time. Tail
+depends on Editor update cadence as well as work. Raw history volume is cumulative data,
+not resident RAM: writer-queue peaks, staging and GPU readback bytes are separate metrics.
+The 8K checks use whole CPU-storage hashes and bounded Half probes; full byte-for-byte Half
+coverage belongs to the small regression. No full 8K synchronous GPU readback is performed.
+
+Final `burst-words-v2` measurements on 2026-10-18, Unity 6000.7.0a6 / RTX 5060 / D3D12,
+two strokes per row (CPU times are per-stroke means):
+
+| Brush / history | Raw MiB | Compare ms | Extract/patch ms | Writer queue peak MiB |
+| --- | ---: | ---: | ---: | ---: |
+| Thin / 256 control | 451.5 | 0 | 111.2 | 72 |
+| Thin / 256 skip | 441.0 | 35.2 | 90.7 | 70.5 |
+| Thin / 128 skip | 238.5 | 80.2 | 82.5 | 28.5 |
+| Thin / 64 skip | 141.2 | 106.2 | 153.9 | 15.7 |
+| Wide / 256 control | 1536 | 0 | 397.5 | 120 |
+| Wide / 128 skip | 1536 | 4.9 | 1371.0 | 72 |
+| Wide / 64 skip | 1536 | 13.4 | 2622.6 | 72 |
+
+All eight cases, the small exactness regression and the 512px preflight passed; whole stored
+hashes also matched between all layouts for each path. The initial `burst-words-v1` diagnostic
+with a non-blittable instrumentation field fell back to managed execution; its timings are
+excluded. The final guard rejects that failure. Earlier byte-span prototypes are excluded too.
+
+The smaller layouts reduce thin-stroke payload and queued RAM, but barely change compressed
+files (first stroke 16.1–16.9 MiB). GPU staging/readback remains 380 MiB thin / 1280 MiB wide.
+Wide strokes keep all blocks and gain no payload reduction; splitting the existing managed
+payload arrays greatly increases extraction cost. Small-block wide Undo/Redo also remained
+slower (about 3.2 s for 128 and 3.6 s for 64 versus 3.0 s control on this run). Therefore the
+experiment does not justify changing the normal 256px default yet. Shared page-backed payloads
+and batched restoration are candidates before adopting a smaller layout. CPU comparisons could
+instead move to GPU change tracking, but that is not implemented by this test.

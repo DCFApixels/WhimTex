@@ -30026,6 +30026,1277 @@
         "Tests~/Framework/Painting/BrushFullAssembly/Reference.cs"
       ],
       "reviewFiles": []
+    },
+    {
+      "file": "Tests~/Cases/Painting/BrushTileBufferTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 90000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphics-enabled Editor. No user stroke or profiler recording.",
+      "setup": "Detached textures and package renderer; no windows or user documents.",
+      "teardown": "Release owned textures, cancel fixture stroke, restore render state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "id": "brush-tile-buffer-8192-81-normal-isolated",
+      "entry": "BrushTileBufferTests.Start",
+      "args": [
+        "$runId",
+        8192,
+        81,
+        "normal",
+        false
+      ],
+      "workflow": "diagnostic",
+      "cancel": {
+        "entry": "BrushTileBufferTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "BrushTileBufferTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "BrushTileBufferTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/BrushTileBufferTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 90000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphics-enabled Editor. No user stroke or profiler recording.",
+      "setup": "Detached textures and package renderer; no windows or user documents.",
+      "teardown": "Release owned textures, cancel fixture stroke, restore render state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "id": "brush-tile-buffer-8192-2048-normal-isolated",
+      "entry": "BrushTileBufferTests.Start",
+      "args": [
+        "$runId",
+        8192,
+        2048,
+        "normal",
+        false
+      ],
+      "workflow": "diagnostic",
+      "cancel": {
+        "entry": "BrushTileBufferTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "BrushTileBufferTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "BrushTileBufferTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/BrushTileBufferTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 90000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphics-enabled Editor. No user stroke or profiler recording.",
+      "setup": "Detached textures and package renderer; no windows or user documents.",
+      "teardown": "Release owned textures, cancel fixture stroke, restore render state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "id": "brush-tile-buffer-8192-81-hdr-isolated",
+      "entry": "BrushTileBufferTests.Start",
+      "args": [
+        "$runId",
+        8192,
+        81,
+        "hdr",
+        false
+      ],
+      "workflow": "diagnostic",
+      "cancel": {
+        "entry": "BrushTileBufferTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "BrushTileBufferTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "BrushTileBufferTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "id": "brush-first-stamp",
+      "file": "Tests~/Cases/Painting/BrushHlslTests.cs",
+      "runner": "run_script",
+      "entry": "BrushHlslTests.RunFirstStamp",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle graphical Test6.6 Editor with current WhimTex package; review source and declared effects. Parent serializes verification.",
+      "setup": "Detached GPU models and dynamic tip programs; no windows, asset saves or input.",
+      "teardown": "Body using/finally and UnityAScope restore GPU state, focus, clipboard, touched prefs; destroy only owned resources; delete only owned GUID fixture and temporary outputs.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "file": "Tests~/Cases/Painting/BrushTileBufferTests.cs",
+      "runner": "run_script",
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphics-enabled Editor. No user stroke or profiler recording.",
+      "setup": "Detached textures and package renderer; no windows or user documents.",
+      "teardown": "Release owned textures, cancel fixture stroke, restore render state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "id": "brush-tile-buffer",
+      "entry": "BrushTileBufferTests.Run",
+      "args": []
+    },
+    {
+      "file": "Tests~/Cases/Painting/BrushTileBufferTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 90000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphics-enabled Editor. No user stroke or profiler recording.",
+      "setup": "Detached textures and package renderer; no windows or user documents.",
+      "teardown": "Release owned textures, cancel fixture stroke, restore render state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "id": "brush-tile-buffer-512-81-normal",
+      "entry": "BrushTileBufferTests.Start",
+      "args": [
+        "$runId",
+        512,
+        81,
+        "normal",
+        true
+      ],
+      "workflow": "diagnostic",
+      "cancel": {
+        "entry": "BrushTileBufferTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "BrushTileBufferTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "BrushTileBufferTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/BrushTileBufferTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 90000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphics-enabled Editor. No user stroke or profiler recording.",
+      "setup": "Detached textures and package renderer; no windows or user documents.",
+      "teardown": "Release owned textures, cancel fixture stroke, restore render state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "id": "brush-tile-buffer-8192-81-normal",
+      "entry": "BrushTileBufferTests.Start",
+      "args": [
+        "$runId",
+        8192,
+        81,
+        "normal",
+        true
+      ],
+      "workflow": "diagnostic",
+      "cancel": {
+        "entry": "BrushTileBufferTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "BrushTileBufferTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "BrushTileBufferTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/BrushTileBufferTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 90000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphics-enabled Editor. No user stroke or profiler recording.",
+      "setup": "Detached textures and package renderer; no windows or user documents.",
+      "teardown": "Release owned textures, cancel fixture stroke, restore render state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "id": "brush-tile-buffer-8192-2048-normal",
+      "entry": "BrushTileBufferTests.Start",
+      "args": [
+        "$runId",
+        8192,
+        2048,
+        "normal",
+        true
+      ],
+      "workflow": "diagnostic",
+      "cancel": {
+        "entry": "BrushTileBufferTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "BrushTileBufferTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "BrushTileBufferTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/BrushTileBufferTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 90000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphics-enabled Editor. No user stroke or profiler recording.",
+      "setup": "Detached textures and package renderer; no windows or user documents.",
+      "teardown": "Release owned textures, cancel fixture stroke, restore render state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "id": "brush-tile-buffer-8192-81-hdr",
+      "entry": "BrushTileBufferTests.Start",
+      "args": [
+        "$runId",
+        8192,
+        81,
+        "hdr",
+        true
+      ],
+      "workflow": "diagnostic",
+      "cancel": {
+        "entry": "BrushTileBufferTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "BrushTileBufferTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "BrushTileBufferTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/BrushTileBufferTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 90000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphics-enabled Editor. No user stroke or profiler recording.",
+      "setup": "Detached textures and package renderer; no windows or user documents.",
+      "teardown": "Release owned textures, cancel fixture stroke, restore render state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "id": "brush-tile-buffer-8192-2048-stamp",
+      "entry": "BrushTileBufferTests.Start",
+      "args": [
+        "$runId",
+        8192,
+        2048,
+        "stamp",
+        true
+      ],
+      "workflow": "diagnostic",
+      "cancel": {
+        "entry": "BrushTileBufferTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "BrushTileBufferTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "BrushTileBufferTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "id": "paint-release-writers",
+      "file": "Tests~/Cases/Painting/PaintReleaseTests.cs",
+      "runner": "run_script",
+      "entry": "PaintReleaseTests.InspectWriters",
+      "args": [],
+      "category": "diagnostic",
+      "timeoutMs": 30000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle connected Editor with a completed paint history step.",
+      "setup": "Read completed worker timings from package metadata only; no document mutation.",
+      "teardown": "Only a diagnostic report in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "paint-release-codecs",
+      "file": "Tests~/Cases/Painting/PaintReleaseTests.cs",
+      "runner": "run_script",
+      "entry": "PaintReleaseTests.BenchmarkCodecs",
+      "args": [],
+      "category": "diagnostic",
+      "timeoutMs": 30000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle connected Editor with a completed paint history step.",
+      "setup": "Read completed worker timings from package metadata only; no document mutation.",
+      "teardown": "Only a diagnostic report in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "paint-history-codec",
+      "file": "Tests~/Cases/Painting/PaintReleaseTests.cs",
+      "runner": "run_script",
+      "entry": "PaintReleaseTests.Roundtrip",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 30000,
+      "effects": [],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Connected Editor, no assets or documents required.",
+      "setup": "Bounded owned byte buffers; exact roundtrips and malformed payloads.",
+      "teardown": "Dispose all codec buffers.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "paint-tile-history-8k-sweep",
+      "file": "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.RunLarge",
+      "args": [
+        "sweep",
+        false
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical matching Editor; large cases require at least 7 GB VRAM. Run one large case per command.",
+      "setup": "Owned detached drawing documents. Compare block history, masks, low flow and HDR; exercise native Undo only for owned objects. No windows or user document mutations.",
+      "teardown": "Drain owned transfers/writes; clear Undo only on owned objects; destroy owned documents, textures and history cursors. Retain reports in Temp/WhimTex/paint-tile-history.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "paint-tile-history-8k-sweep-hdr",
+      "file": "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.RunLarge",
+      "args": [
+        "sweep",
+        true
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical matching Editor; large cases require at least 7 GB VRAM. Run one large case per command.",
+      "setup": "Owned detached drawing documents. Compare block history, masks, low flow and HDR; exercise native Undo only for owned objects. No windows or user document mutations.",
+      "teardown": "Drain owned transfers/writes; clear Undo only on owned objects; destroy owned documents, textures and history cursors. Retain reports in Temp/WhimTex/paint-tile-history.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "paint-history-burst-512-paced",
+      "file": "Tests~/Cases/Painting/PaintHistoryBurstTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartBurst",
+      "args": [
+        "$runId",
+        512,
+        true
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 120000,
+      "workflow": "diagnostic",
+      "cancel": { "entry": "PaintTileHistoryTests.CancelBurst", "args": [ "$runId" ] },
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching graphical Editor; 8K requires 7 GB VRAM. Run one case at a time.",
+      "setup": "Three paced or six rapid owned dense strokes across Editor updates, with an isolated Temp journal; no windows or user document changes.",
+      "teardown": "Drain owned transfers, clear only owned Undo and release fixtures.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupBurst",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollBurst",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "id": "paint-history-burst-8192-paced",
+      "file": "Tests~/Cases/Painting/PaintHistoryBurstTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartBurst",
+      "args": [
+        "$runId",
+        8192,
+        true
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 120000,
+      "workflow": "diagnostic",
+      "cancel": { "entry": "PaintTileHistoryTests.CancelBurst", "args": [ "$runId" ] },
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching graphical Editor; 8K requires 7 GB VRAM. Run one case at a time.",
+      "setup": "Three paced or six rapid owned dense strokes across Editor updates, with an isolated Temp journal; no windows or user document changes.",
+      "teardown": "Drain owned transfers, clear only owned Undo and release fixtures.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupBurst",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollBurst",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "id": "paint-history-burst-8192-saturation",
+      "file": "Tests~/Cases/Painting/PaintHistoryBurstTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartBurst",
+      "args": [
+        "$runId",
+        8192,
+        false
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 120000,
+      "workflow": "diagnostic",
+      "cancel": { "entry": "PaintTileHistoryTests.CancelBurst", "args": [ "$runId" ] },
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching graphical Editor; 8K requires 7 GB VRAM. Run one case at a time.",
+      "setup": "Three paced or six rapid owned dense strokes across Editor updates, with an isolated Temp journal; no windows or user document changes.",
+      "teardown": "Drain owned transfers, clear only owned Undo and release fixtures.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupBurst",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollBurst",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "id": "paint-undo-reservation-release",
+      "file": "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.RunReservationRelease",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical matching Editor; no active user stroke.",
+      "setup": "Twenty owned 1536px HDR strokes under an isolated 1 GiB quota. No idle maintenance between writes; all Undo and Redo steps remain.",
+      "teardown": "Destroy owned fixtures; restore original store, metadata and render state. No windows or user document edits.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "file": "Tests~/Cases/Painting/PaintUndoBlockSizeTests.cs",
+      "runner": "run_script",
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching Editor; 8K needs 7 GB VRAM. One case at a time.",
+      "setup": "Owned detached fixture and isolated Temp journal. Two identical-path strokes. Fixed 256 paint tiles and large transfer pages; no windows.",
+      "teardown": "Drain and destroy owned fixtures; restore user history store. Reports in Temp/WhimTex/undo-block-size.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "id": "paint-undo-block-size-correctness",
+      "entry": "PaintTileHistoryTests.CheckUndoBlocks",
+      "args": []
+    },
+    {
+      "file": "Tests~/Cases/Painting/PaintUndoBlockSizeTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 180000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching Editor; 8K needs 7 GB VRAM. One case at a time.",
+      "setup": "Owned detached fixture and isolated Temp journal. Two identical-path strokes. Fixed 256 paint tiles and large transfer pages; no windows.",
+      "teardown": "Drain and destroy owned fixtures; restore user history store. Reports in Temp/WhimTex/undo-block-size.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "id": "paint-undo-block-512-64-skip-thin",
+      "entry": "PaintTileHistoryTests.StartUndoBlocks",
+      "args": [
+        "$runId",
+        512,
+        64,
+        true,
+        false
+      ],
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollUndoBlocks",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/PaintUndoBlockSizeTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 180000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching Editor; 8K needs 7 GB VRAM. One case at a time.",
+      "setup": "Owned detached fixture and isolated Temp journal. Two identical-path strokes. Fixed 256 paint tiles and large transfer pages; no windows.",
+      "teardown": "Drain and destroy owned fixtures; restore user history store. Reports in Temp/WhimTex/undo-block-size.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "id": "paint-undo-block-8192-256-all-thin",
+      "entry": "PaintTileHistoryTests.StartUndoBlocks",
+      "args": [
+        "$runId",
+        8192,
+        256,
+        false,
+        false
+      ],
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollUndoBlocks",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/PaintUndoBlockSizeTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 180000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching Editor; 8K needs 7 GB VRAM. One case at a time.",
+      "setup": "Owned detached fixture and isolated Temp journal. Two identical-path strokes. Fixed 256 paint tiles and large transfer pages; no windows.",
+      "teardown": "Drain and destroy owned fixtures; restore user history store. Reports in Temp/WhimTex/undo-block-size.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "id": "paint-undo-block-8192-256-skip-thin",
+      "entry": "PaintTileHistoryTests.StartUndoBlocks",
+      "args": [
+        "$runId",
+        8192,
+        256,
+        true,
+        false
+      ],
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollUndoBlocks",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/PaintUndoBlockSizeTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 180000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching Editor; 8K needs 7 GB VRAM. One case at a time.",
+      "setup": "Owned detached fixture and isolated Temp journal. Two identical-path strokes. Fixed 256 paint tiles and large transfer pages; no windows.",
+      "teardown": "Drain and destroy owned fixtures; restore user history store. Reports in Temp/WhimTex/undo-block-size.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "id": "paint-undo-block-8192-128-skip-thin",
+      "entry": "PaintTileHistoryTests.StartUndoBlocks",
+      "args": [
+        "$runId",
+        8192,
+        128,
+        true,
+        false
+      ],
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollUndoBlocks",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/PaintUndoBlockSizeTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 180000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching Editor; 8K needs 7 GB VRAM. One case at a time.",
+      "setup": "Owned detached fixture and isolated Temp journal. Two identical-path strokes. Fixed 256 paint tiles and large transfer pages; no windows.",
+      "teardown": "Drain and destroy owned fixtures; restore user history store. Reports in Temp/WhimTex/undo-block-size.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "id": "paint-undo-block-8192-64-skip-thin",
+      "entry": "PaintTileHistoryTests.StartUndoBlocks",
+      "args": [
+        "$runId",
+        8192,
+        64,
+        true,
+        false
+      ],
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollUndoBlocks",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/PaintUndoBlockSizeTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 180000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching Editor; 8K needs 7 GB VRAM. One case at a time.",
+      "setup": "Owned detached fixture and isolated Temp journal. Two identical-path strokes. Fixed 256 paint tiles and large transfer pages; no windows.",
+      "teardown": "Drain and destroy owned fixtures; restore user history store. Reports in Temp/WhimTex/undo-block-size.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "id": "paint-undo-block-8192-256-all-wide",
+      "entry": "PaintTileHistoryTests.StartUndoBlocks",
+      "args": [
+        "$runId",
+        8192,
+        256,
+        false,
+        true
+      ],
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollUndoBlocks",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/PaintUndoBlockSizeTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 180000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching Editor; 8K needs 7 GB VRAM. One case at a time.",
+      "setup": "Owned detached fixture and isolated Temp journal. Two identical-path strokes. Fixed 256 paint tiles and large transfer pages; no windows.",
+      "teardown": "Drain and destroy owned fixtures; restore user history store. Reports in Temp/WhimTex/undo-block-size.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "id": "paint-undo-block-8192-256-skip-wide",
+      "entry": "PaintTileHistoryTests.StartUndoBlocks",
+      "args": [
+        "$runId",
+        8192,
+        256,
+        true,
+        true
+      ],
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollUndoBlocks",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/PaintUndoBlockSizeTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 180000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching Editor; 8K needs 7 GB VRAM. One case at a time.",
+      "setup": "Owned detached fixture and isolated Temp journal. Two identical-path strokes. Fixed 256 paint tiles and large transfer pages; no windows.",
+      "teardown": "Drain and destroy owned fixtures; restore user history store. Reports in Temp/WhimTex/undo-block-size.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "id": "paint-undo-block-8192-128-skip-wide",
+      "entry": "PaintTileHistoryTests.StartUndoBlocks",
+      "args": [
+        "$runId",
+        8192,
+        128,
+        true,
+        true
+      ],
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollUndoBlocks",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/PaintUndoBlockSizeTests.cs",
+      "runner": "run_script",
+      "category": "diagnostic",
+      "timeoutMs": 180000,
+      "workflow": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching Editor; 8K needs 7 GB VRAM. One case at a time.",
+      "setup": "Owned detached fixture and isolated Temp journal. Two identical-path strokes. Fixed 256 paint tiles and large transfer pages; no windows.",
+      "teardown": "Drain and destroy owned fixtures; restore user history store. Reports in Temp/WhimTex/undo-block-size.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "id": "paint-undo-block-8192-64-skip-wide",
+      "entry": "PaintTileHistoryTests.StartUndoBlocks",
+      "args": [
+        "$runId",
+        8192,
+        64,
+        true,
+        true
+      ],
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupUndoBlocks",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollUndoBlocks",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
     }
   ]
 }

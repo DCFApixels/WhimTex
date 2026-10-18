@@ -42,6 +42,18 @@ namespace DCFApixels.WhimTex
 
         private void DrawBrushPreviewTiles(RenderTexture target, Material material, PaintTileSet tiles)
         {
+            if (advancedStroke != null)
+            {
+                for (int i = 0; i < tiles.Count; i++)
+                {
+                    var tile = tiles[i];
+                    advancedStroke.Bind(material, tile);
+                    var uv = new Rect(tile.x / (float)target.width, tile.y / (float)target.height,
+                        tile.width / (float)target.width, tile.height / (float)target.height);
+                    DrawBrushRegion(paintSurface, target, material, 0, uv, uv);
+                }
+                return;
+            }
             material.SetTexture("_MainTex", paintSurface);
             RenderTexture.active = target;
             GL.PushMatrix();

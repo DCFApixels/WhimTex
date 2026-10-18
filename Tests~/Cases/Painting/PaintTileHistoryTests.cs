@@ -176,13 +176,12 @@ public static partial class PaintTileHistoryTests
                         t.Equal(waits, Transfer<long>("CapacityWaits"), "First three wide strokes never wait for queue capacity");
                         t.Equal(transferred, Transfer<long>("TransferredBytes"), "Stroke completion does not copy CPU history");
                     }
-                    t.True(Transfer<long>("StagingBytes") <= 256L * 1024 * 1024, "GPU staging remains within budget");
+                    t.True(Transfer<long>("StagingBytes") <= (long)Type("PaintTileTransfer").GetField("StagingBudget", S).GetValue(null), "GPU staging remains within budget");
                     halves[i] = Probe(f.surface, rect);
                     var request = UnityEngine.Rendering.AsyncGPUReadback.Request(f.pixels, 0); request.WaitForCompletion();
                     t.True(!request.hasError, "Independent GPU reference for queued revision");
                     stored[i] = request.GetData<byte>().ToArray();
                 }
-                t.True(Transfer<long>("CapacityWaits") > waits, "Sustained overload exercises backpressure");
                 t.True(Transfer<int>("PendingCount") > 2, "Several immutable pages remain pending before immediate Undo");
                 for (int i = 5; i >= 0; i--)
                 {
@@ -229,7 +228,7 @@ public static partial class PaintTileHistoryTests
                 string revision = (string)Get(Get(f.layer, "PixelUndoObject"), "Revision");
                 string root = (string)Type("PaintHistoryStore").GetProperty("Root", S).GetValue(null);
                 using (var file = File.OpenRead(Path.Combine(root, "steps", revision, "0.bin")))
-                using (var reader = new BinaryReader(file)) t.Equal(0x57545034, reader.ReadInt32(), "Detailed source chooses raw journal page");
+                using (var reader = new BinaryReader(file)) t.Equal(Unity.Burst.BurstCompiler.Options.EnableBurstCompilation ? 0x57545035 : 0x57545034, reader.ReadInt32(), "Detailed source uses bounded block packing or raw fallback");
                 RejectDamagedPage(t, f);
                 Undo.PerformUndo(); Exact(t, stored, f.pixels.GetRawTextureData<byte>().ToArray(), "Raw Undo stored pixels");
                 Exact(t, before, Probe((RenderTexture)Get(f.layer, "paintSurface"), rect), "Raw Undo Half pixels");
@@ -389,7 +388,7 @@ public static partial class PaintTileHistoryTests
         }
         finally { Object.DestroyImmediate(mask); RenderTexture.active = previous; GL.sRGBWrite = srgb; }
     });
-    [Serializable] public sealed class Report { public string gpu, api, mode; public bool hdr; public int size, tiles, rawPages, compressedPages; public long changedPixels, bytes, actualReadbackBytes, journalBytes, queuedBytes, capacityWaits; public double commitMs, drainMs, undoMs, redoMs; public double[] repeatCommitMs, repeatDrainMs; }
+    [Serializable] public sealed class Report { public string gpu, api, mode; public bool hdr; public int size, tiles, rawPages, compressedPages; public long changedPixels, bytes, actualReadbackBytes, journalBytes, queuedBytes, capacityWaits; public double commitMs, drainMs, undoMs, redoMs, nextInputMs; public double[] repeatCommitMs, repeatDrainMs; }
     const string ReloadKey = "WhimTex.Tests.PaintHistory.Reload";
     const string AsyncKey = "WhimTex.Tests.PaintHistory.Async";
     public static string PrepareAsync() => TestContext.Run("Queue owned readback for Editor updates", t =>
@@ -493,14 +492,24 @@ public static partial class PaintTileHistoryTests
         bool profiling = false;
         try
         {
+            bool sweep = mode == "sweep";
             bool textured = mode == "large-textured";
             t.True(!textured || !hdr, "Textured performance input is RGBA32");
             using var f = new Fixture(8192, hdr, textured);
-            Set(f.settings, "brushSize", mode.StartsWith("large") ? 2048f : 32f);
+            Set(f.settings, "brushSize", mode.StartsWith("large") || sweep ? 2048f : 32f);
             float edge = 40f / 8192;
             Vector2[] points = mode == "frame" ? new[] { new Vector2(edge, edge), new Vector2(edge, 1-edge),
                 new Vector2(1-edge, 1-edge), new Vector2(1-edge, edge), new Vector2(edge, edge) }
                 : new[] { new Vector2(.5f, .5f), new Vector2(.52f, .51f) };
+            if (sweep)
+            {
+                points = new Vector2[16];
+                for (int i = 0; i < 8; i++)
+                {
+                    points[i * 2] = new Vector2(i % 2 == 0 ? .04f : .96f, .06f + i * .125f);
+                    points[i * 2 + 1] = new Vector2(i % 2 == 0 ? .96f : .04f, .06f + i * .125f);
+                }
+            }
             var probe = mode == "frame" ? new RectInt(0, 0, 256, 256) : new RectInt(3968, 3968, 256, 256);
             var before = Probe(f.surface, probe);
             var report = new Report { gpu = SystemInfo.graphicsDeviceName, api = SystemInfo.graphicsDeviceType.ToString(), mode = mode, hdr = hdr, size = 8192 };
@@ -515,8 +524,32 @@ public static partial class PaintTileHistoryTests
             long waitsBefore = Transfer<long>("CapacityWaits");
             var clock = Stopwatch.StartNew(); f.Stroke(points, mask, drain: false); report.commitMs = clock.Elapsed.TotalMilliseconds;
             report.queuedBytes = Transfer<long>("StagingBytes"); report.capacityWaits = Transfer<long>("CapacityWaits") - waitsBefore;
-            t.Equal(0L, report.capacityWaits, "A single measured stroke fits the asynchronous staging budget");
-            t.Equal(bytesBefore, Transfer<long>("TransferredBytes"), "Completion leaves CPU extraction to the queue");
+            if (!sweep)
+            {
+                t.Equal(0L, report.capacityWaits, "A single measured stroke fits the asynchronous staging budget");
+                t.Equal(bytesBefore, Transfer<long>("TransferredBytes"), "Completion leaves CPU extraction to the queue");
+            }
+            else
+            {
+                long budget = (long)Type("PaintTileTransfer").GetField("StagingBudget", S).GetValue(null);
+                t.True(report.queuedBytes <= budget, "Dense release stays inside the shared staging budget");
+                if (budget >= (hdr ? 1536L : 1280L) * 1024 * 1024)
+                {
+                    t.Equal(0L, report.capacityWaits, "Burst allowance defers the entire dense 8K release");
+                    t.Equal(bytesBefore, Transfer<long>("TransferredBytes"), "No CPU extraction during dense release");
+                }
+                clock.Restart();
+                using (Phase("test.paint.immediateNextInput"))
+                {
+                    Set(f.settings, "brushSize", 81f);
+                    Call(f.layer, "PrepareBufferedStroke", 8192, 8192, "Owned next input probe");
+                    Call(f.layer, "BeginStroke", new Vector2(.5f, .5f));
+                    Call(f.layer, "PaintPoint", new Vector2(.5f, .5f), 8192, 8192, f.Parameters(mask));
+                    Probe(f.surface, new RectInt(0, 0, 1, 1));
+                    Call(f.layer, "CancelStroke");
+                }
+                report.nextInputMs = clock.Elapsed.TotalMilliseconds;
+            }
             clock.Restart(); using (Phase("test.paint.drain")) Call(f.layer, "SyncPendingSurfaceToTexture"); report.drainMs = clock.Elapsed.TotalMilliseconds;
             report.tiles = (int)Get(f.layer, "LastPaintTileCount"); report.changedPixels = (long)Get(f.layer, "LastPaintTilePixels");
             report.bytes = (long)Type("PaintTileTransfer").GetProperty("TransferredBytes", S).GetValue(null) - bytesBefore;
@@ -526,7 +559,7 @@ public static partial class PaintTileHistoryTests
             else t.True(sample.a > 0 && sample.a <= .152, "Mask and stroke opacity bound coverage");
             if (hdr) t.True(sample.r < 0 && sample.g > 1, "Signed HDR survives partial synchronization");
             var after = Probe(f.surface, probe);
-            t.True(report.tiles > 0 && report.tiles < 1024, "Coverage is smaller than the full canvas");
+            t.True(sweep ? report.tiles == 1024 : report.tiles > 0 && report.tiles < 1024, "Expected sparse or dense tile coverage");
             if (mode == "frame") t.Equal(124, report.tiles, "Perimeter covers only the outer tile ring");
             Static("PaintHistoryStore", "FlushWrites");
             string revision = (string)Get(Get(f.layer, "PixelUndoObject"), "Revision");

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.Burst;
 using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
@@ -9,11 +10,24 @@ namespace DCFApixels.WhimTex
 {
     // Immutable packed pages keep asynchronous readback independent of later strokes.
     [InitializeOnLoad]
+    [BurstCompile]
     internal static class PaintTileTransfer
     {
         internal const int TilesPerPage = 16;
         internal const int PageSize = 1024;
-        internal const long StagingBudget = 256L * 1024 * 1024;
+        internal const int MaximumHistoryBlocksPerPage = 256;
+        internal const long MinimumStagingBudget = 256L * 1024 * 1024;
+        internal const long MaximumStagingBudget = 1536L * 1024 * 1024;
+        // One shared burst allowance, allocated only for touched pages. Never one
+        // allowance per stroke/document/window: sustained input still has backpressure.
+        internal static readonly long StagingBudget = ComputeStagingBudget();
+        private static long ComputeStagingBudget()
+        {
+            if (!SystemInfo.supportsAsyncGPUReadback || SystemInfo.graphicsMemorySize <= 0 || SystemInfo.systemMemorySize <= 0)
+                return MinimumStagingBudget;
+            long available = Math.Min((long)SystemInfo.graphicsMemorySize / 4, (long)SystemInfo.systemMemorySize / 8) * 1024 * 1024;
+            return Math.Max(MinimumStagingBudget, Math.Min(MaximumStagingBudget, available));
+        }
         private static readonly Queue<Page> pending = new();
         private static readonly Queue<Page> awaitingReadback = new();
         private static int reading;
@@ -23,6 +37,7 @@ namespace DCFApixels.WhimTex
         internal static long CapacityWaits { get; private set; }
         internal static long TransferredBytes { get; private set; }
         internal static long ReadbackBytes { get; private set; }
+        internal static bool LastComparisonUsedBurst { get; private set; }
         private const CopyTextureSupport RequiredCopy = CopyTextureSupport.Basic | CopyTextureSupport.RTToTexture | CopyTextureSupport.TextureToRT;
         internal static bool Supported => (SystemInfo.copyTextureSupport & RequiredCopy) == RequiredCopy;
         internal static bool SupportsPixels(Texture2D texture) => Supported && texture != null && texture.isReadable && texture.mipmapCount == 1 &&
@@ -51,11 +66,16 @@ namespace DCFApixels.WhimTex
         }
         private static void StartReadbacks()
         {
+            bool submitted = false;
             while (reading < 2 && awaitingReadback.Count > 0)
             {
                 var page = awaitingReadback.Peek();
                 page.StartReadback(); awaitingReadback.Dequeue(); reading++;
+                submitted = true;
             }
+            // An idle Editor need not render a frame. Submit newly queued transfers
+            // without waiting so background completion does not require a repaint.
+            if (submitted && SystemInfo.supportsAsyncGPUReadback) GL.Flush();
         }
         private static void Process(bool wait, int maximum = int.MaxValue)
         {
@@ -79,6 +99,30 @@ namespace DCFApixels.WhimTex
         }
         internal static RectInt Slot(int index, RectInt source) => new RectInt(index % 4 * PaintTileSet.Size,
             index / 4 * PaintTileSet.Size, source.width, source.height);
+        struct BlockComparison
+        {
+            [ReadOnly] internal NativeArray<uint> oldHalf, newHalf, oldStored, newStored;
+            internal int halfStart, storedStart, cpuStart, pageWidth, cpuWidth, width, height, storedWords;
+            internal int accelerated;
+        }
+        [BurstDiscard] static void MarkManaged(ref int accelerated) => accelerated = 0;
+        [BurstCompile(CompileSynchronously = true, OptimizeFor = OptimizeFor.Performance)]
+        static bool BlocksEqual(ref BlockComparison c)
+        {
+            c.accelerated = 1; MarkManaged(ref c.accelerated);
+            // Compare raw words, not floats: hidden RGB and every Half bit are data.
+            for (int y = 0; y < c.height; y++)
+            {
+                int half = c.halfStart + y * c.pageWidth * 2;
+                for (int x = 0; x < c.width * 2; x++)
+                    if (c.oldHalf[half + x] != c.newHalf[half + x]) return false;
+                int source = c.storedStart + y * c.pageWidth * c.storedWords;
+                int cpu = c.cpuStart + y * c.cpuWidth * c.storedWords;
+                for (int x = 0; x < c.width * c.storedWords; x++)
+                    if (c.oldStored[cpu + x] != c.newStored[source + x]) return false;
+            }
+            return true;
+        }
         internal sealed class Page : IDisposable
         {
             internal readonly RectInt[] blocks;
@@ -90,12 +134,19 @@ namespace DCFApixels.WhimTex
             private readonly NativeArray<byte>[] data = new NativeArray<byte>[3];
             private readonly bool[] complete = new bool[3], failed = new bool[3];
             private bool queued;
-            private PaintHistoryStore.Block[] payload;
+            private List<PaintHistoryStore.Block> payload;
+            private readonly int captureSize, subdivisions;
+            private readonly bool skipUnchanged;
             private int captured;
             internal long StagingSize { get; }
             private readonly long payloadSize;
-            internal Page(Texture2D texture, PaintHistoryStore.Step step, int pageIndex, RectInt[] blocks)
+            internal Page(Texture2D texture, PaintHistoryStore.Step step, int pageIndex, RectInt[] blocks,
+                int captureSize = PaintTileSet.Size, bool skipUnchanged = false)
             {
+                if (captureSize != 64 && captureSize != 128 && captureSize != 256)
+                    throw new ArgumentOutOfRangeException(nameof(captureSize));
+                this.captureSize = captureSize; this.skipUnchanged = skipUnchanged;
+                subdivisions = PaintTileSet.Size / captureSize;
                 this.texture = texture; this.step = step; this.pageIndex = pageIndex; this.blocks = blocks;
                 bpp = HdrUtility.IsHdr(texture) ? 8 : 4;
                 int width = Math.Min(4, blocks.Length) * PaintTileSet.Size;
@@ -159,6 +210,7 @@ namespace DCFApixels.WhimTex
                         {
                             requests[i] = AsyncGPUReadback.RequestIntoNativeArray(ref data[i], source, 0,
                                 request => { failed[index] = request.hasError; complete[index] = true; });
+                            requests[i].forcePlayerLoopUpdate = true;
                             submitted++;
                         }
                         else { data[i].CopyFrom(Read(source, i == 2 && bpp == 4)); complete[i] = true; }
@@ -180,6 +232,7 @@ namespace DCFApixels.WhimTex
                     if (!complete[i])
                     {
                         if (wait) requests[i].WaitForCompletion();
+                        else requests[i].Update();
                         if (!requests[i].done) return false;
                         failed[i] = requests[i].hasError; complete[i] = true;
                     }
@@ -207,32 +260,63 @@ namespace DCFApixels.WhimTex
                     // Reserve room for a whole page before patching any CPU pixels.
                     // Normal Editor updates never wait for the journal writer.
                     if (!PaintHistoryStore.MakeRoom(payloadSize, wait)) return false;
-                    payload = new PaintHistoryStore.Block[blocks.Length];
+                    payload = new List<PaintHistoryStore.Block>(blocks.Length * subdivisions * subdivisions);
                 }
                 var cpu = texture.GetRawTextureData<byte>();
                 using (WhimTexProfiler.Measure("brush.history.extractAndPatchCpu"))
-                for (; captured < blocks.Length;)
+                for (; captured < blocks.Length * subdivisions * subdivisions;)
                 {
-                    int i = captured;
-                    var r = blocks[i]; var s = Slot(i, r);
-                    var block = new PaintHistoryStore.Block { rect = r,
-                        beforeHalf = Extract(data[0], s, 8), afterHalf = Extract(data[1], s, 8),
-                        beforeStored = PaintHistoryStore.ReadRows(cpu, texture.width, r, bpp), afterStored = Extract(data[2], s, bpp) };
-                    PaintHistoryStore.WriteRows(cpu, texture.width, r, bpp, block.afterStored);
-                    payload[i] = block;
-                    TransferredBytes += (long)r.width * r.height * (16 + bpp);
+                    int i = captured / (subdivisions * subdivisions), sub = captured % (subdivisions * subdivisions);
+                    var parent = blocks[i]; var slot = Slot(i, parent);
+                    int x = sub % subdivisions * captureSize, y = sub / subdivisions * captureSize;
+                    if (x < parent.width && y < parent.height)
+                    {
+                        var r = new RectInt(parent.x + x, parent.y + y, Math.Min(captureSize, parent.width - x), Math.Min(captureSize, parent.height - y));
+                        var s = new RectInt(slot.x + x, slot.y + y, r.width, r.height);
+                        long stage = System.Diagnostics.Stopwatch.GetTimestamp();
+                        bool unchanged = skipUnchanged && Unchanged(cpu, r, s);
+                        step.comparisonTicks += System.Diagnostics.Stopwatch.GetTimestamp() - stage;
+                        if (!unchanged)
+                        {
+                            stage = System.Diagnostics.Stopwatch.GetTimestamp();
+                            var block = new PaintHistoryStore.Block { rect = r,
+                                beforeHalf = Extract(data[0], s, 8), afterHalf = Extract(data[1], s, 8),
+                                beforeStored = PaintHistoryStore.ReadRows(cpu, texture.width, r, bpp), afterStored = Extract(data[2], s, bpp) };
+                            PaintHistoryStore.WriteRows(cpu, texture.width, r, bpp, block.afterStored);
+                            payload.Add(block);
+                            TransferredBytes += (long)r.width * r.height * (16 + bpp);
+                            step.extractionTicks += System.Diagnostics.Stopwatch.GetTimestamp() - stage;
+                        }
+                    }
                     captured++;
-                    if (captured < blocks.Length && System.Diagnostics.Stopwatch.GetTimestamp() >= deadline) return false;
+                    if (captured < blocks.Length * subdivisions * subdivisions && System.Diagnostics.Stopwatch.GetTimestamp() >= deadline) return false;
                 }
-                PaintHistoryStore.Store(step, pageIndex, payload);
+                PaintHistoryStore.Store(step, pageIndex, payload.ToArray());
                 EditorUtility.SetDirty(texture);
                 return true;
+            }
+            private bool Unchanged(NativeArray<byte> cpu, RectInt r, RectInt s)
+            {
+                var comparison = new BlockComparison
+                {
+                    oldHalf = data[0].Reinterpret<uint>(1), newHalf = data[1].Reinterpret<uint>(1),
+                    oldStored = cpu.Reinterpret<uint>(1), newStored = data[2].Reinterpret<uint>(1),
+                    halfStart = (s.y * before.width + s.x) * 2,
+                    storedStart = (s.y * before.width + s.x) * (bpp / 4),
+                    cpuStart = (r.y * texture.width + r.x) * (bpp / 4),
+                    pageWidth = before.width, cpuWidth = texture.width, width = r.width, height = r.height, storedWords = bpp / 4
+                };
+                bool equal = BlocksEqual(ref comparison);
+                LastComparisonUsedBurst = comparison.accelerated != 0;
+                return equal;
             }
             private byte[] Extract(NativeArray<byte> source, RectInt rect, int bpp)
             {
                 var result = PaintHistoryStore.RentBuffer(rect.width * rect.height * bpp);
-                for (int y = 0; y < rect.height; y++) NativeArray<byte>.Copy(source, ((rect.y + y) * before.width + rect.x) * bpp,
-                    result, y * rect.width * bpp, rect.width * bpp);
+                var from = source.AsReadOnlySpan(); var to = result.AsSpan();
+                int rowBytes = rect.width * bpp;
+                for (int y = 0; y < rect.height; y++)
+                    from.Slice(((rect.y + y) * before.width + rect.x) * bpp, rowBytes).CopyTo(to.Slice(y * rowBytes, rowBytes));
                 return result;
             }
             internal void Abandon() { if (!queued) Dispose(); }

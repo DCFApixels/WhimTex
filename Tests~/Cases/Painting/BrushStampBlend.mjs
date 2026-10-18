@@ -61,9 +61,9 @@ context.case('BrushStampBlend original assertions and branches', async () => {
     }
     const paint=read('src/Layers/DrawingLayerBehaviour.cs'), brush=read('src/Layers/DrawingLayerBehaviour.Brush.cs'), mesh=read('src/Layers/DrawingLayerBehaviour.BrushMesh.cs');
     assert.ok(paint.includes('EnsureAdvancedStroke(surface, stampBlend,'));
-    assert.ok(brush.includes('if (withBackdrop) Graphics.Blit(paintSurface, advancedStroke)'));
+    assert.ok(read('src/Layers/PaintStrokeBuffer.cs').includes('pressureOpacity ? 2 : 3'));
     assert.ok(paint.includes('if (sequential) BeginBrushMesh();'));
-    assert.match(paint, /CopyStampBackdrop\(target, material, ref snapshot\);\s*EndBrushMesh\(target, material\);/,
+    assert.match(paint, /CopyStampBackdrop\(target, material, ref snapshot\);\s*EndBrushMesh\(target, material, tiledStroke, true\);/,
       'Sequential feedback is captured before submitting each stamp');
     assert.ok(mesh.includes('backdrop.filterMode = FilterMode.Point'));
     assert.ok(mesh.includes('Graphics.CopyTexture(target, 0, 0, x, y, width, height, backdrop, 0, 0, 0, 0)'));

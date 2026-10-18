@@ -119,15 +119,32 @@ blend, clipping and FX. Canvas, Target inputs, previews and thumbnails use this 
 Commit uses the same assembly function. Standard painting remains bounded; HDR keeps signed and
 above-one RGB through accumulation and storage. Blur/Smudge retain their separate retouching paths.
 
-The immutable `paintSurface` and full-resolution stroke buffer remain separate. Submitted stamp
-geometry determines conservative source-pixel bounds, with a one-texel guard. During a buffered
-stroke, live rendering retains the source-resolution Half straight image. A separate set of
-256 × 256 damage tiles accumulates since its last refresh; each update draws those tiles in
-one submission from the immutable base plus the current stroke. Previously converted pixels
-are reused, never blended again. First use, a provisional-stroke reset or changed composite
-settings/mask requires full conversion. The target is released on commit/cancel. At 8K it keeps
-the 512 MiB target allocated for the stroke instead of borrowing it for each render;
-this reduces conversion traffic, not source/stroke memory. FX processing remains unchanged.
+The immutable `paintSurface` stays full-resolution RGBAHalf. Stroke accumulation uses logical
+256 × 256 blocks packed into private RGBAHalf atlas pages: at most 1024 × 1024 (8 MiB,
+16 blocks) per page, with 256/512 pages for small sources. Slots are allocated on first touch,
+without growing/resampling a texture. An absent slot means no pending change, not a proof
+that the source is empty. No alpha-based RGB deletion or approximate compression is used.
+Ordinary pages start clear; sequential blend/pressure blocks copy their source region.
+Stamp geometry retains global source/canvas coordinates and uses a per-slot viewport. Brush-tip
+filtering is unchanged. Assembly samples texel centers with Point filtering; it never filters
+between unrelated atlas slots. Source size, transforms, wrap, dynamics and selection coordinates
+remain logical, not atlas coordinates.
+
+Pages are exclusive to their active stroke. The shared Editor-process idle pool retains at most
+64 MiB across all windows and page sizes. An active stroke may use more: an 8K dense stroke can
+still need 512 MiB. Commit/cancel returns pages; excess pages are destroyed and the idle pool is
+cleared on assembly reload/quit. Pool reuse, compute, preview and immutable Undo snapshot copies
+remain ordered on the graphics queue. History never retains an atlas page or a mutable slot.
+The `brush.stroke_page_bytes` and `brush.stroke_pool_bytes` profiler counters distinguish the
+current stroke's page payload from retained idle payload.
+
+Live rendering retains the existing source-resolution Half straight image. A separate set of
+256 × 256 damage tiles accumulates since its last refresh; each update recomputes those tiles
+from the immutable base plus the corresponding stroke slot. Previously converted pixels are
+reused, never blended again. First use, a provisional-stroke reset or changed composite settings
+requires a full base conversion followed by touched blocks. The target is released on
+commit/cancel. At 8K this preview and the Half source still each occupy 512 MiB; their initial
+allocation/conversion cost is not removed by stroke tiling. FX processing remains unchanged.
 Input points still advance in order; segments producing no paint do not request another canvas
 composition, and multiple pending requests remain coalesced.
 Commit visits distinct 256 × 256 source blocks touched by stamp geometry, clipped to the stamp
@@ -158,7 +175,7 @@ Unsupported devices, unavailable kernels, failed UAV allocation and existing non
 surfaces retain the raster path: one 256 × 256 RGBAHalf scratch block (0.5 MiB) for tracked strokes,
 including partial edge tiles. Fallback is chosen before dispatch, never after a potentially
 partial write. Both paths apply selection once. The scratch bound does not include the
-full-resolution source/stroke, stamp backdrops or downstream document rendering.
+full-resolution source/preview, stroke pages, stamp backdrops or downstream document rendering.
 
 Interactive Brush/Pencil and API paint use a session pixel journal when readable, single-mip
 RGBA32/RGBAHalf storage and the required texture copies/render format are supported. Unity Undo
@@ -166,35 +183,47 @@ records one small object per pixel operation; a shared per-user disk store holds
 block's before/after Half and straight-storage bytes. Ctrl+Z/Redo share the normal action order.
 History survives script reload within the Editor session, but is not included in TIFF or restored
 after restarting the Editor. Normal Editor exit removes only that process's session journal.
-Each new page samples up to 64 KiB: Deflate is used when the sample compresses below one third
-of its original size; otherwise the page is stored raw to avoid expensive compression on detailed
-images. Both paths preserve exact bytes. Compressed-page checksums are verified before restoring
-any block; Undo then decodes each page once into reusable block buffers. Raw pages have the same
-integrity checks. Existing pages in the current Editor session remain readable.
+With Burst enabled, new pages use independent lossless byte blocks (literals and backward matches),
+with raw storage when packing would expand a block. Encoding and decoding use portable Burst;
+there is no color conversion or quantization in the codec. Without Burst, a sample of up to 64 KiB
+selects Deflate for compressible pages and raw storage otherwise. The faster block format generally
+uses more disk space than Deflate; the existing disk quota still applies. Payload checksums and
+encoding headers are verified before restoring any block, then each page is decoded once into
+reusable buffers. Existing pages in the current Editor session remain readable.
 
 The stored GPU image is updated immediately. Immutable packed pages feed ordered asynchronous
 readbacks into the existing CPU texture without a full-image `Apply`. Readbacks write directly
 into owned native buffers, avoiding an intermediate full-page managed copy. Each page packs up to
 sixteen blocks; a page of one to three blocks uses only its occupied columns. Immutable GPU staging
-is capped at 256 MiB; only two pages at a time allocate native
-readback buffers. Stroke completion queues pages and keeps the next stroke available without waiting
+has one shared burst budget across all documents/windows in this Editor: at most 1536 MiB,
+further limited to one quarter of reported graphics memory and one eighth of reported system memory,
+with a 256 MiB floor. Unknown memory sizes or unavailable async readback retain the 256 MiB budget.
+This is a ceiling, not a preallocation; pages are released as they are consumed. It fits a full
+8K snapshot (1280 MiB standard, 1536 MiB HDR) on sufficiently large devices. Only two pages at a time
+allocate native readback buffers (at most 48 MiB). Stroke completion keeps the next stroke available without waiting
 for readback or payload compression while staging fits that budget. GPU submission/allocation and a
 small revision manifest still run on completion; this is not a zero-cost or zero-I/O operation.
 Editor updates process the FIFO in approximately 4 ms slices, yielding between blocks, and never
-wait for pending journal writes. A page reserves space under the 64 MiB pending-write budget before
+wait for pending journal writes. A page reserves space under a 64–128 MiB pending-write budget before
 CPU patching; background compression/file writes release that space. GPU saturation, readback errors
 and devices without asynchronous readback can still stall. Exceeding the staging budget waits for
 the oldest page to finish, preserving exact revisions instead of dropping history. The same FIFO
 captures each stored before-image before patching the after-image, including overlapping strokes.
 A separate bounded pool can retain up to about 64 MiB of managed tile arrays for reuse. Raw journal
 pages trade disk space for lower latency.
+The writer budget is `clamp(logicalProcessorCount / 2, 2, 4) × 32 MiB`; larger CPUs can encode
+several independent pages concurrently without increasing the number of GPU readback pages.
+New readback batches are submitted without waiting, and their request state is updated while the
+Editor is idle. The last successful page writer converts its stroke's disk reservation to actual
+file usage immediately, without waiting for idle maintenance. If disk reservation initially fails,
+completion is drained and the quota is retried before any history is retired.
 Disk errors retain affected payloads in RAM and report the failure; this exceptional retention can
 exceed that budget. Further journaled strokes are refused until the failed history is cleared.
 Undo, CPU pixel consumers, save, resource release and script reload drain pending work. API paint
 returns after synchronization. Unchanged source pixels keep their original storage bytes, including
 hidden RGB. Devices without asynchronous readback use bounded synchronous page reads. Unsupported
 storage/copy configurations, Blur/Smudge/Healing and other native pixel operations retain their
-previous storage/Undo path. Full-size working surfaces and document rendering are not tiled storage.
+previous storage/Undo path. The source and preview surfaces and document rendering remain full-size; only stroke accumulation uses sparse storage.
 
 ### Shared paint-history storage and retention
 

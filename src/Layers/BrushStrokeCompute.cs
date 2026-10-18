@@ -48,15 +48,15 @@ namespace DCFApixels.WhimTex
         }
 
         internal static bool TryCommit(RenderTexture surface, RectInt bounds, Material composite,
-            Texture stroke, Texture selection, Texture original)
+            PaintStrokeBuffer stroke, Texture selection, Texture original)
             => TryCommit(surface, bounds, null, composite, stroke, selection, original);
 
         internal static bool TryCommitTiles(RenderTexture surface, RectInt[] tiles, Material composite,
-            Texture stroke, Texture selection, Texture original, PaintAlphaCoverage coverage = null)
+            PaintStrokeBuffer stroke, Texture selection, Texture original, PaintAlphaCoverage coverage = null)
             => TryCommit(surface, default, tiles, composite, stroke, selection, original, coverage);
 
         private static bool TryCommit(RenderTexture surface, RectInt bounds, RectInt[] tiles, Material composite,
-            Texture stroke, Texture selection, Texture original, PaintAlphaCoverage coverage = null)
+            PaintStrokeBuffer stroke, Texture selection, Texture original, PaintAlphaCoverage coverage = null)
         {
             // Existing surfaces without UAV access remain valid and use the raster fallback.
             if (surface == null || !surface.enableRandomWrite || !surface.IsCreated() ||
@@ -69,7 +69,6 @@ namespace DCFApixels.WhimTex
             foreach (int id in Floats) commands.SetComputeFloatParam(shader, id, composite.GetFloat(id));
             foreach (int id in Vectors) commands.SetComputeVectorParam(shader, id, composite.GetVector(id));
             // Bind even inactive resources for backends that validate all kernel declarations.
-            commands.SetComputeTextureParam(shader, kernel, Stroke, stroke);
             commands.SetComputeTextureParam(shader, kernel, Selection, selection != null ? selection : Texture2D.blackTexture);
             commands.SetComputeTextureParam(shader, kernel, Original, original != null ? original : Texture2D.blackTexture);
             commands.SetComputeTextureParam(shader, kernel, Surface, surface);
@@ -77,6 +76,10 @@ namespace DCFApixels.WhimTex
             for (int i = 0, count = tiles?.Length ?? 1; i < count; i++)
             {
                 var tile = tiles == null ? bounds : tiles[i];
+                var block = stroke.Get(tile);
+                if (block == null) continue;
+                commands.SetComputeTextureParam(shader, kernel, Stroke, block);
+                commands.SetComputeVectorParam(shader, PaintStrokeBuffer.MapId, stroke.Map(tile));
                 commands.SetComputeVectorParam(shader, Rect, new Vector4(tile.x, tile.y, tile.width, tile.height));
                 commands.DispatchCompute(shader, kernel, (tile.width + 7) / 8, (tile.height + 7) / 8, 1);
             }
