@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using Unity.Collections;
 using DCFApixels.WhimTex;
 using WhimTex.Tests;
 
@@ -44,6 +45,39 @@ public static class PaintReleaseTests
         Reject(new byte[] { 0, 0, 0, 0 }, 32);
         Reject(new byte[] { 3, 0, 0, 0, 0, 0, 0 }, 32); // Zero match offset.
         Reject(new byte[] { 2, 0, 0, 0, 240, 255 }, 32); // Oversized literal run.
+        var nativeWrite = type.GetMethod("WriteNative", F);
+        foreach (int rowBytes in new[] { 1, 24, 512, 2048 })
+        foreach (bool strided in new[] { false, true })
+        foreach (bool compress in new[] { false, true })
+        {
+            int rows = 256, stride = strided ? rowBytes + 32 : rowBytes, offset = 13;
+            using var page = new NativeArray<byte>(offset + stride * rows, Allocator.Persistent);
+            var writable = page;
+            var expected = new byte[rowBytes * rows]; random.NextBytes(expected);
+            for (int y = 0; y < rows; y++) for (int x = 0; x < rowBytes; x++)
+                writable[offset + y * stride + x] = expected[y * rowBytes + x];
+            using var stream = new MemoryStream();
+            using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, true))
+                nativeWrite.Invoke(codec, new object[] { writer, page, stride, offset, rowBytes, rows, compress });
+            stream.Position = 0;
+            if (compress)
+            {
+                using var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, true);
+                object[] args = { reader, null, expected.Length }; read.Invoke(codec, args);
+                t.True(expected.AsSpan().SequenceEqual((byte[])args[1]), "Exact direct/strided native source");
+                if (Unity.Burst.BurstCompiler.Options.EnableBurstCompilation)
+                    t.True((bool)type.GetProperty("LastUsedBurst", F).GetValue(codec), "Native codec actually uses Burst");
+            }
+            else t.True(expected.AsSpan().SequenceEqual(stream.ToArray()), "Exact native raw/Deflate input");
+        }
+        var borrow = type.GetMethod("Borrow", S);
+        var first = (IDisposable)borrow.Invoke(null, null); var second = (IDisposable)borrow.Invoke(null, null);
+        object firstValue = Field(first, "Value"), secondValue = Field(second, "Value");
+        t.True(!ReferenceEquals(firstValue, secondValue), "Concurrent leases never share work buffers");
+        first.Dispose();
+        using (var next = (IDisposable)borrow.Invoke(null, null))
+            t.True(ReferenceEquals(firstValue, Field(next, "Value")), "Completed workspace is reused");
+        second.Dispose();
         void Reject(byte[] payload, int size)
         {
             using var stream = new MemoryStream(payload); using var reader = new BinaryReader(stream);

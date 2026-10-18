@@ -15,7 +15,7 @@ namespace DCFApixels.WhimTex
 
         internal static void PatchVector(VectorLayerBehaviour vector, JObject patch, WhimTexDocument document)
         {
-            CheckKeys(patch, "shapes", "referenceSize", "edgeMode", "brushDraft");
+            CheckKeys(patch, "shapes", "referenceSize", "edgeMode", "feather", "featherPosition", "brushDraft");
             var data = VectorSnapshot(vector, document);
             foreach (var field in patch.Properties()) data[field.Name] = field.Value.DeepClone();
             // Read and validate a detached replacement before touching the current data.
@@ -25,6 +25,8 @@ namespace DCFApixels.WhimTex
             vector.shapes = replacement.shapes;
             vector.referenceSize = replacement.referenceSize;
             vector.edgeMode = replacement.edgeMode;
+            vector.feather = replacement.feather;
+            vector.featherPosition = replacement.featherPosition;
             vector.brushDraft = replacement.brushDraft;
         }
 

@@ -61,7 +61,9 @@ namespace DCFApixels.WhimTex
         internal TextureTransform GetPaintTransform(Layer layer)
         {
             RefreshTransformHierarchy();
-            return layer.PixelCanvasTransform;
+            var value = layer.PixelCanvasTransform;
+            value.tiling = layer.ResolveTiling(value.tiling);
+            return value;
         }
 
         internal bool SetCanvasTransform(Layer layer, TextureTransform value)

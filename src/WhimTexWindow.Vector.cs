@@ -316,7 +316,8 @@ namespace DCFApixels.WhimTex
                 var shapes = new List<VectorShape>(vector.shapes);
                 int slot = shapes.FindIndex(s => s.id == shape.id);
                 if (slot < 0) shapes.Add(shape); else shapes[slot] = shape;
-                new VectorLayerBehaviour { referenceSize = vector.referenceSize, edgeMode = vector.edgeMode, shapes = shapes }.Validate();
+                new VectorLayerBehaviour { referenceSize = vector.referenceSize, edgeMode = vector.edgeMode,
+                    feather = vector.feather, featherPosition = vector.featherPosition, shapes = shapes }.Validate();
                 if (activeDocument.IsBooleanOperand(layer))
                     foreach (var contour in shape.contours)
                         if (!contour.closed && contour.points.Count > 1) throw new InvalidOperationException("Boolean operands require closed contours.");
@@ -362,8 +363,6 @@ namespace DCFApixels.WhimTex
                 ExecuteModelChange("Convert Shape to Vector", () =>
                 {
                     layer.SetBehaviour(converted);
-                    // Shape generates outside its frame even with Clip. Preserve those pixels.
-                    if (layer.transform.tiling == TransformTilingMode.Clip) layer.transform.tiling = TransformTilingMode.Unbounded;
                 });
                 SelectVectorShape(converted.shapes.Count > 0 ? converted.shapes[0] : null);
                 SetCanvasTool(CanvasTool.VectorNodes);
@@ -380,8 +379,6 @@ namespace DCFApixels.WhimTex
                 ExecuteModelChange("Convert Text to Vector", () =>
                 {
                     layer.SetBehaviour(converted);
-                    // Text clips against its authored Frame, not the layer's unit rectangle.
-                    if (layer.transform.tiling == TransformTilingMode.Clip) layer.transform.tiling = TransformTilingMode.Unbounded;
                 });
                 SelectVectorShape(converted.shapes.Count > 0 ? converted.shapes[0] : null);
                 SetCanvasTool(CanvasTool.VectorNodes);

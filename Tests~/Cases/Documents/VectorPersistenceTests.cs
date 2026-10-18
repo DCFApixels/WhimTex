@@ -41,6 +41,7 @@ public static class VectorPersistenceTests
         return new VectorLayerBehaviour
         {
             referenceSize = new Vector2(320, 180), edgeMode = VectorEdgeMode.Step,
+            feather = 3.75f, featherPosition = VectorFeatherPosition.Outside,
             shapes = new List<VectorShape> { shape },
             brushDraft = new VectorBrushDraft { width = 3, height = 2, shapeId = shape.id,
                 coverage = new byte[] { 0, 1, 37, 128, 254, 255 }, tolerance = 2.25f, expansion = -3.5f }
@@ -86,6 +87,101 @@ public static class VectorPersistenceTests
         try { action(); } catch (WhimTexDocumentException) { rejected = true; }
         t.True(rejected, message);
     }
+
+    // Entry: VectorPersistenceTests.RunFeatherApi(). Same support as Run; no render or global Undo.
+    public static string RunFeatherApi() => TestContext.Run("Vector Feather API: partial patches and atomic invalid-value rejection", t =>
+    {
+        var document = ScriptableObject.CreateInstance<WhimTexDocument>();
+        document.hideFlags = HideFlags.HideAndDontSave;
+        try
+        {
+            document.width = 80; document.height = 64;
+            var vector = Sample();
+            var layer = new Layer(vector); document.layers.Add(layer);
+            typeof(WhimTexDocument).GetMethod("NormalizeModel", Flags).Invoke(document, null);
+            var aliases = new Dictionary<string, Layer> { { "figure", layer } };
+            var jsonObject = Assembly.Load("Newtonsoft.Json").GetType("Newtonsoft.Json.Linq.JObject", true);
+            object Operation(string patch) => Call(jsonObject, "Parse",
+                "{\"op\":\"set\",\"layer\":\"@figure\",\"settings\":{\"vector\":" + patch + "}}");
+            void Apply(object operation) => Call(typeof(WhimTexApi), "ApplyOperation", document, operation, aliases, false, null, null);
+            void Patch(string patch) => Apply(Operation(patch));
+            string Full() => WhimTexDocumentJson.Write(document,
+                new WhimTexJsonWriteOptions { Mode = WhimTexJsonWriteMode.Full }).Json;
+            T SnapshotValue<T>(string field)
+            {
+                object snapshot = Call(typeof(WhimTexDocumentJson), "VectorSnapshot", vector, document);
+                object token = snapshot.GetType().GetProperty("Item", new[] { typeof(string) }).GetValue(snapshot, new object[] { field });
+                t.True(token != null, "Vector API snapshot contains " + field);
+                return (T)token.GetType().GetMethod("ToObject", new[] { typeof(Type) }).Invoke(token, new object[] { typeof(T) });
+            }
+            var referenceSize = vector.referenceSize;
+            string originalShape = JsonUtility.ToJson(vector.shapes[0]);
+            string originalDraft = JsonUtility.ToJson(vector.brushDraft);
+            void SameUnrelated(string label)
+            {
+                t.True(ReferenceEquals(vector, layer.Behaviour), label + " keeps the behaviour shell");
+                t.Equal(referenceSize, vector.referenceSize, label + " keeps referenceSize");
+                t.Equal(originalShape, JsonUtility.ToJson(vector.shapes[0]), label + " keeps geometry, IDs and inactive paint");
+                t.Equal(originalDraft, JsonUtility.ToJson(vector.brushDraft), label + " keeps the original mask and rebuild settings");
+            }
+
+            Patch("{\"feather\":8.25}");
+            t.Equal(8.25f, vector.feather, "Width-only patch accepts a fractional reference-pixel width");
+            t.Equal(VectorFeatherPosition.Outside, vector.featherPosition, "Width-only patch retains the omitted position");
+            t.Equal(VectorEdgeMode.Step, vector.edgeMode, "Width-only patch retains Step");
+            t.Equal(8.25f, SnapshotValue<float>("feather"), "Snapshot exposes the stored width even under Step");
+            t.Equal("Outside", SnapshotValue<string>("featherPosition"), "Snapshot exposes the named position even under Step");
+            SameUnrelated("Width-only patch");
+
+            foreach (VectorFeatherPosition position in Enum.GetValues(typeof(VectorFeatherPosition)))
+            {
+                Patch("{\"featherPosition\":\"" + position + "\"}");
+                t.Equal(position, vector.featherPosition, "Position-only patch accepts " + position);
+                t.Equal(8.25f, vector.feather, "Position-only patch retains the omitted width");
+                t.Equal(VectorEdgeMode.Step, vector.edgeMode, "Position-only patch retains Step");
+                SameUnrelated("Position-only patch " + position);
+            }
+            foreach (float width in new[] { 0f, .125f, 8192f })
+            {
+                Patch("{\"feather\":" + width.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}");
+                t.Equal(width, vector.feather, "Finite width accepted, including exact endpoints: " + width);
+                t.Equal(VectorFeatherPosition.Centered, vector.featherPosition, "Width patch retains the selected Centered position");
+                SameUnrelated("Width patch " + width);
+            }
+            Patch("{\"edgeMode\":\"Antialiased\"}");
+            t.Equal(8192f, vector.feather, "Leaving Step retains the maximum width");
+            t.Equal(VectorFeatherPosition.Centered, vector.featherPosition, "Leaving Step retains the position");
+            Patch("{\"edgeMode\":\"Step\"}");
+            t.Equal(8192f, vector.feather, "Entering Step does not clear width");
+            t.Equal(VectorFeatherPosition.Centered, vector.featherPosition, "Entering Step does not clear position");
+            string beforeEmpty = Full(); Patch("{}");
+            t.Equal(beforeEmpty, Full(), "Empty partial patch preserves the complete model");
+
+            var invalid = new[]
+            {
+                (label: "NaN width", fields: "\"feather\":NaN,\"featherPosition\":\"Inside\""),
+                (label: "Infinite width", fields: "\"feather\":Infinity,\"featherPosition\":\"Inside\""),
+                (label: "Negative width", fields: "\"feather\":-0.125,\"featherPosition\":\"Inside\""),
+                (label: "Width above 8192", fields: "\"feather\":8192.125,\"featherPosition\":\"Inside\""),
+                (label: "Unknown position", fields: "\"feather\":1.25,\"featherPosition\":\"Unknown\""),
+                (label: "Numeric position", fields: "\"feather\":1.25,\"featherPosition\":3")
+            };
+            foreach (var value in invalid)
+            {
+                // Parse outside Reject: a parser error must not masquerade as validation of numeric NaN/Infinity.
+                object operation = Operation("{\"referenceSize\":[411,217],\"edgeMode\":\"Antialiased\"," + value.fields + "}");
+                string before = Full();
+                var shapes = vector.shapes; var draft = vector.brushDraft; var coverage = draft.coverage;
+                Reject(t, () => Apply(operation), value.label + " is rejected by the API");
+                t.Equal(before, Full(), value.label + " rejects the entire Vector patch without changing any serialized field");
+                t.True(ReferenceEquals(shapes, vector.shapes) && ReferenceEquals(draft, vector.brushDraft) &&
+                    ReferenceEquals(coverage, vector.brushDraft.coverage), value.label + " leaves model references intact");
+                SameUnrelated(value.label);
+            }
+        }
+        finally { Object.DestroyImmediate(document); }
+    });
+
     public static string Run() => TestContext.Run("Shape/Vector persistence: JSON modes, fragments, TIFF bytes and Unity snapshot", t =>
     {
         var owned = new List<Object>();
@@ -127,6 +223,7 @@ public static class VectorPersistenceTests
             string vectorSnapshot = JsonUtility.ToJson(vector);
             string unitySnapshot = EditorJsonUtility.ToJson(document);
             vector.referenceSize = new Vector2(91, 73);
+            vector.feather = 0; vector.featherPosition = VectorFeatherPosition.Inside;
             vector.shapes[0].name = "Changed after snapshot";
             vector.shapes[0].contours[0].points[0].outTangent = Vector2.zero;
             vector.brushDraft.coverage[0] = 255;

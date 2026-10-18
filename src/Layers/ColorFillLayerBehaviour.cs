@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
         public enum FillMode { Color, UV, Pattern }
         public FillMode mode = FillMode.Color;
         public FillPatternSettings pattern = new FillPatternSettings();
-        internal override void InitializeLayer(Layer layer) => layer.transform.tiling = TransformTilingMode.Unbounded;
+        public override TransformTilingMode SourceTiling => TransformTilingMode.Unbounded;
         [SerializeField] private Color storedColor = Color.white;
 
         public Color color
@@ -92,7 +92,7 @@ namespace DCFApixels.WhimTex
                 }
                 RenderTexture.active = source;
                 GL.Clear(true, true, LinearColor);
-                var renderedContext = context.applyTransform && transform.tiling == TransformTilingMode.Unbounded
+                var renderedContext = context.applyTransform && Owner.EffectiveTiling == TransformTilingMode.Unbounded
                     ? ProceduralUv.WithoutTransform(context) : context;
                 return ApplyTransformAndFx(source, renderedContext);
             }

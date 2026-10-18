@@ -103,7 +103,11 @@ namespace DCFApixels.WhimTex
             hash.Add(outerCorner); hash.Add(innerCorner);
         }
 
-        internal override void InitializeLayer(Layer layer) => layer.transform.scaleF = Vector2.one * .5f;
+        internal override void InitializeLayer(Layer layer)
+        {
+            layer.transform.scaleF = Vector2.one * .5f;
+        }
+        public override TransformTilingMode SourceTiling => TransformTilingMode.Unbounded;
         internal static float Limit(float value, float min, float max, float fallback) =>
             float.IsNaN(value) || float.IsInfinity(value) ? fallback : Mathf.Clamp(value, min, max);
 
@@ -147,6 +151,7 @@ namespace DCFApixels.WhimTex
             if (material == null || !material.shader.isSupported)
                 throw new InvalidOperationException("Shape shader is unavailable or unsupported on this graphics device.");
             TextureTransform applied = context.applyTransform ? Owner.RenderTransform : TextureTransform.Default;
+            applied.tiling = Owner.ResolveTiling(applied.tiling);
             float width = context.activeDocument.width, height = context.activeDocument.height;
             material.SetVector("_CanvasSize", new Vector4(width, height, 0f, 0f));
             Owner.SetRenderInverse(material,"_ShapeRow",context);

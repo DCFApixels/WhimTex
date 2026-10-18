@@ -23,7 +23,7 @@ public static class VectorShapeParityTests
         internal bool stroke, fill = true;
         internal Vector2 scale = Vector2.one * .55f;
         internal float pixelScale = 1;
-        internal TransformTilingMode tiling = TransformTilingMode.Clip;
+        internal TransformTilingMode tiling = TransformTilingMode.Unbounded;
         internal Action<ShapeLayerBehaviour> configure;
     }
 
@@ -47,6 +47,9 @@ public static class VectorShapeParityTests
     private static List<Case> Cases()
     {
         var result = new List<Case>();
+        foreach (Kind kind in new[] { Kind.Rectangle, Kind.Ellipse, Kind.Star })
+            result.Add(new Case { name = kind + "/explicit-clip", kind = kind, stroke = true,
+                tiling = TransformTilingMode.Clip });
         foreach (int width in new[] { 96, 128 })
         foreach (Kind kind in Enum.GetValues(typeof(Kind)))
         foreach (bool stroke in new[] { false, true })
@@ -155,13 +158,9 @@ public static class VectorShapeParityTests
             context.True(ReferenceEquals(layer.Behaviour, source), item.name + " conversion preparation keeps source attached");
             context.Equal(sourceSnapshot, JsonUtility.ToJson(source), item.name + " conversion preparation preserves source data");
             layer.SetBehaviour(converted);
-            // Match the actual main/UI/API conversion operation. Shape Clip is analytically
-            // unbounded, so its protruding bodies and strokes require Vector Unbounded.
-            if (layer.transform.tiling == TransformTilingMode.Clip) layer.transform.tiling = TransformTilingMode.Unbounded;
             TextureTransform expectedTransform = originalTransform;
-            if (expectedTransform.tiling == TransformTilingMode.Clip) expectedTransform.tiling = TransformTilingMode.Unbounded;
             context.Equal(id, layer.Id, item.name + " replacement keeps layer ID");
-            context.Equal(expectedTransform, layer.transform, item.name + " only Clip-to-Unbounded transform adaptation");
+            context.Equal(expectedTransform, layer.transform, item.name + " conversion retains transform and tiling");
             after = document.ComposeCanvas();
             context.True(RenderTexture.active == previous && GL.sRGBWrite == previousSrgb, item.name + " converted render restores state");
             context.Equal(before.width, after.width, item.name + " matching width");

@@ -14,11 +14,15 @@ public static partial class PaintTileHistoryTests
     const string BurstKey = "WhimTex.Tests.PaintHistoryBurst";
     static object[] BurstState => AppDomain.CurrentDomain.GetData(BurstKey) as object[];
     public static string StartBurst(string runId, int side, bool paced)
+        => StartBurstCore(runId, side, paced, false);
+    public static string StartBurstHdr(string runId, int side, bool paced)
+        => StartBurstCore(runId, side, paced, true);
+    static string StartBurstCore(string runId, int side, bool paced, bool hdr)
     {
         if (BurstState != null) return TestContext.Result("failed", 0, "A burst fixture already exists").ToJson();
         var state = new object[] { runId, TestContext.Result("running", 0, "Preparing owned history burst").ToJson(), null };
         AppDomain.CurrentDomain.SetData(BurstKey, state);
-        var run = new HistoryBurst(state, side, paced);
+        var run = new HistoryBurst(state, side, paced, hdr);
         state[2] = (Action)(() => run.Finish(new OperationCanceledException()));
         try { run.Prepare(); } catch (Exception error) { run.Finish(error); }
         return (string)state[1];
@@ -40,10 +44,11 @@ public static partial class PaintTileHistoryTests
     {
         readonly object[] state;
         readonly int side;
-        readonly bool paced;
+        readonly bool paced, hdr;
         readonly TestContext test = new();
         readonly List<object> frames = new();
         readonly List<byte[]> expected = new();
+        HistoryMemoryProbe memory;
         Fixture fixture;
         DiskScope diskScope;
         Texture2D mask;
@@ -56,7 +61,18 @@ public static partial class PaintTileHistoryTests
         double releaseMs, drainMs;
         RectInt ProbeRect => new RectInt(side / 2 - 16, side / 2 - 16, 32, 32);
         Vector2 Point(int i) => new Vector2((i / 2) % 2 == 0 ? (i % 2 == 0 ? .04f : .96f) : (i % 2 == 0 ? .96f : .04f), .06f + (i / 2) * .125f);
-        internal HistoryBurst(object[] state, int side, bool paced) { this.state = state; this.side = side; this.paced = paced; }
+        internal HistoryBurst(object[] state, int side, bool paced, bool hdr) { this.state = state; this.side = side; this.paced = paced; this.hdr = hdr; }
+        byte[] CaptureHalf()
+        {
+            var surface = (RenderTexture)Get(fixture.layer, "paintSurface");
+            if (!hdr) return Probe(surface, ProbeRect);
+            // Additional HDR probes cross tile boundaries along every serpentine row.
+            using var bytes = new MemoryStream();
+            bytes.Write(Probe(surface, ProbeRect));
+            for (int row = 0; row < 8; row++)
+                bytes.Write(Probe(surface, new RectInt(side / 2 - 8, Mathf.Clamp((int)(Point(row * 2).y * side) - 8, 0, side - 16), 16, 16)));
+            return bytes.ToArray();
+        }
         internal void Prepare()
         {
             test.True(side == 512 || side == 8192, "Bounded fixture size");
@@ -72,10 +88,12 @@ public static partial class PaintTileHistoryTests
             var previous = Type("WhimTexProfiler").GetProperty("Current", S).GetValue(null);
             if (previous != null) File.WriteAllText(path + "-previous-profile.json", Json(previous));
             diskScope = new DiskScope();
-            fixture = new Fixture(side, false); mask = Mask();
+            if (hdr) Call(diskScope.disk, "SetLimits", (int?)16, (int?)50);
+            fixture = new Fixture(side, hdr); mask = Mask();
             Set(fixture.settings, "brushSize", side / 4f);
             parameters = fixture.Parameters(mask);
-            expected.Add(Probe(fixture.surface, ProbeRect));
+            expected.Add(CaptureHalf());
+            memory = new HistoryMemoryProbe();
             Static("WhimTexProfiler", "Start", 131072, 120.0, null); profiling = true;
             started = last = Stopwatch.GetTimestamp();
             EditorApplication.update += Tick;
@@ -88,7 +106,7 @@ public static partial class PaintTileHistoryTests
         }
         void Step()
         {
-            if (Stopwatch.GetTimestamp() - started > Stopwatch.Frequency * 90) throw new TimeoutException("Owned burst exceeded 90 seconds");
+            if (Stopwatch.GetTimestamp() - started > Stopwatch.Frequency * (hdr ? 150 : 90)) throw new TimeoutException("Owned burst exceeded its time budget");
             long now = Stopwatch.GetTimestamp(); double interval = (now - last) * 1000.0 / Stopwatch.Frequency; last = now;
             long waitBefore = Transfer<long>("CapacityWaits");
             var clock = Stopwatch.StartNew();
@@ -117,7 +135,7 @@ public static partial class PaintTileHistoryTests
             }
             else if (phase == 1)
             {
-                expected.Add(Probe(fixture.surface, ProbeRect));
+                expected.Add(CaptureHalf());
                 if (stroke < StrokeCount) phase = 0;
                 else { phase = 2; drainAt = Stopwatch.GetTimestamp(); }
             }
@@ -135,15 +153,16 @@ public static partial class PaintTileHistoryTests
             }
             else if (phase == 3)
             {
-                Undo.PerformUndo(); Exact(test, expected[restore], Probe((RenderTexture)Get(fixture.layer, "paintSurface"), ProbeRect), "Burst ordered exact Undo " + restore);
+                Undo.PerformUndo(); Exact(test, expected[restore], CaptureHalf(), "Burst ordered exact Undo " + restore);
                 if (--restore < 0) { phase = 4; restore = 1; }
             }
             else
             {
-                Undo.PerformRedo(); Exact(test, expected[restore], Probe((RenderTexture)Get(fixture.layer, "paintSurface"), ProbeRect), "Burst ordered exact Redo " + restore);
+                Undo.PerformRedo(); Exact(test, expected[restore], CaptureHalf(), "Burst ordered exact Redo " + restore);
                 if (++restore == expected.Count) { Finish(null); return; }
             }
             long staging = Transfer<long>("StagingBytes"), queued = (long)Type("PaintHistoryStore").GetProperty("PendingBytes", S).GetValue(null);
+            if (phase <= 2) memory.Sample();
             maxStaging = Math.Max(maxStaging, staging); maxPending = Math.Max(maxPending, queued);
             test.True(staging <= (long)Type("PaintTileTransfer").GetField("StagingBudget", S).GetValue(null), "Shared snapshot cap across repeated strokes");
             test.True(queued <= (long)Type("PaintHistoryStore").GetField("PendingBudget", S).GetValue(null), "Writer payload stays bounded");
@@ -158,9 +177,13 @@ public static partial class PaintTileHistoryTests
                 if (profiling)
                 {
                     Static("WhimTexProfiler", "Stop", error == null ? "test_complete" : "test_failed"); profiling = false;
-                    File.WriteAllText(path + "-profile.json", Json(new { frequency = Stopwatch.Frequency, capture = Type("WhimTexProfiler").GetProperty("Current", S).GetValue(null) }));
+                    var capture = Type("WhimTexProfiler").GetProperty("Current", S).GetValue(null);
+                    var events = (Array)Get(capture, "events"); int count = (int)Get(capture, "count");
+                    var used = Array.CreateInstance(events.GetType().GetElementType(), count); Array.Copy(events, used, count);
+                    File.WriteAllText(path + "-profile.json", Json(new { frequency = Stopwatch.Frequency,
+                        capture = new { events = used, count, dropped = Get(capture, "dropped") } }));
                 }
-                if (path != null) File.WriteAllText(path + ".json", Json(new { side, paced, frames, maxStaging, maxPending, drainMs, processorCount = Environment.ProcessorCount,
+                if (path != null) File.WriteAllText(path + ".json", Json(new { side, paced, hdr, frames, memory, maxStaging, maxPending, drainMs, processorCount = Environment.ProcessorCount,
                     writerBudget = Type("PaintHistoryStore").GetField("PendingBudget", S).GetValue(null) }));
             }
             catch (Exception failure) { error ??= failure; }

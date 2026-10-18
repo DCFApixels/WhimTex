@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
+using System.Diagnostics;
 using Unity.Burst;
 using Unity.Collections;
 
@@ -14,6 +16,27 @@ namespace DCFApixels.WhimTex
         NativeArray<byte> input, output;
         NativeArray<int> table, result;
         readonly byte[] packed = new byte[MaxBytes + MaxBytes / 255 + 32];
+        static readonly Stack<PaintHistoryCodec> idle = new();
+        internal long InputCopyTicks, EncodeTicks, OutputCopyTicks, WriteTicks;
+        internal readonly struct Lease : IDisposable
+        {
+            internal readonly PaintHistoryCodec Value;
+            internal Lease(PaintHistoryCodec value) { Value = value; }
+            public void Dispose()
+            {
+                lock (idle) { if (idle.Count < 4) { idle.Push(Value); return; } }
+                Value.Dispose();
+            }
+        }
+        internal static Lease Borrow()
+        {
+            PaintHistoryCodec codec;
+            lock (idle) codec = idle.Count > 0 ? idle.Pop() : new PaintHistoryCodec();
+            codec.InputCopyTicks = codec.EncodeTicks = codec.OutputCopyTicks = codec.WriteTicks = 0;
+            return new Lease(codec);
+        }
+        internal static void ClearPool()
+        { lock (idle) while (idle.Count > 0) idle.Pop().Dispose(); }
 
         internal PaintHistoryCodec()
         {
@@ -31,12 +54,45 @@ namespace DCFApixels.WhimTex
         {
             if (bytes.Length < 1 || bytes.Length > MaxBytes) throw new InvalidDataException("Invalid paint payload size.");
             bytes.AsSpan().CopyTo(input.AsSpan());
-            var job = new EncodeJob { input = input, output = output, table = table, result = result, length = bytes.Length };
-            LastUsedBurst = Encode(ref job);
-            int count = result[0];
-            if (count >= bytes.Length) { writer.Write(-bytes.Length); writer.Write(bytes); return; }
-            output.AsReadOnlySpan().Slice(0, count).CopyTo(packed);
-            writer.Write(count); writer.Write(packed, 0, count);
+            WriteInput(writer, input.GetSubArray(0, bytes.Length), true);
+        }
+        // Atlas rows need gathering for the contiguous block codec. Gather native-to-native
+        // into the leased workspace; contiguous input is encoded directly without a copy.
+        internal void WriteNative(BinaryWriter writer, NativeArray<byte> source, int stride, int offset, int rowBytes, int rows, bool compress = true)
+        {
+            int length = checked(rowBytes * rows);
+            if (length < 1 || length > MaxBytes || rowBytes > stride || offset < 0 ||
+                offset + (long)(rows - 1) * stride + rowBytes > source.Length) throw new InvalidDataException("Invalid native paint block.");
+            long start = Stopwatch.GetTimestamp();
+            var bytes = source.GetSubArray(offset, length);
+            if (stride != rowBytes && rows > 1)
+            {
+                var from = source.AsReadOnlySpan(); var to = input.AsSpan();
+                for (int y = 0; y < rows; y++) from.Slice(offset + y * stride, rowBytes).CopyTo(to.Slice(y * rowBytes, rowBytes));
+                bytes = input.GetSubArray(0, length);
+            }
+            InputCopyTicks += Stopwatch.GetTimestamp() - start;
+            WriteInput(writer, bytes, compress);
+        }
+        void WriteInput(BinaryWriter writer, NativeArray<byte> bytes, bool compress)
+        {
+            long start = Stopwatch.GetTimestamp();
+            var job = new EncodeJob { input = bytes, output = output, table = table, result = result, length = bytes.Length };
+            if (compress)
+            {
+                LastUsedBurst = Encode(ref job);
+                EncodeTicks += Stopwatch.GetTimestamp() - start;
+            }
+            int count = compress ? result[0] : bytes.Length;
+            bool raw = count >= bytes.Length;
+            if (raw) count = bytes.Length;
+            start = Stopwatch.GetTimestamp();
+            (raw ? bytes : output).AsReadOnlySpan().Slice(0, count).CopyTo(packed);
+            OutputCopyTicks += Stopwatch.GetTimestamp() - start;
+            start = Stopwatch.GetTimestamp();
+            if (compress) writer.Write(raw ? -count : count);
+            writer.Write(packed, 0, count);
+            WriteTicks += Stopwatch.GetTimestamp() - start;
         }
         internal void Read(BinaryReader reader, ref byte[] target, int size)
         {

@@ -125,6 +125,7 @@ public static partial class PaintTileHistoryTests
         readonly List<string> storedHashes = new();
         readonly List<byte[][]> halfProbes = new();
         readonly List<object> cpuPhases = new();
+        HistoryMemoryProbe memory;
         Fixture fixture;
         DiskScope disk;
         Texture2D mask;
@@ -169,6 +170,7 @@ public static partial class PaintTileHistoryTests
             for (int i = 0; i < probes.Length; i++)
             { var p = points[i * (points.Length - 1) / probes.Length]; probes[i] = new RectInt(Mathf.Clamp((int)(p.x * side) - 8, 0, side - 16), Mathf.Clamp((int)(p.y * side) - 8, 0, side - 16), 16, 16); }
             Remember();
+            memory = new HistoryMemoryProbe();
             Static("WhimTexProfiler", "Start", 131072, 180.0, null); profiling = true;
             started = Stopwatch.GetTimestamp(); EditorApplication.update += Tick;
         }
@@ -181,6 +183,7 @@ public static partial class PaintTileHistoryTests
         void Advance()
         {
             if (Stopwatch.GetTimestamp() - started > Stopwatch.Frequency * 165) throw new TimeoutException("Block-size run exceeded 165 seconds");
+            if (phase < 2) memory.Sample();
             if (phase == 0)
             {
                 if (point == 0)
@@ -217,6 +220,10 @@ public static partial class PaintTileHistoryTests
                     double ms = 1000.0 / Stopwatch.Frequency;
                     writers.Add(new { blocks = Get(p, "blockCount"), raw = Get(p, "bytes"), packed = Get(p, "fileBytes"),
                         encodeMs = (long)Get(p, "encodeTicks") * ms, hashMs = (long)Get(p, "hashTicks") * ms,
+                        inputCopyMs = (Get(p, "inputCopyTicks") as long? ?? 0) * ms,
+                        compressionMs = (Get(p, "compressionTicks") as long? ?? 0) * ms,
+                        outputCopyMs = (Get(p, "outputCopyTicks") as long? ?? 0) * ms,
+                        fileWriteMs = (Get(p, "fileWriteTicks") as long? ?? 0) * ms,
                         queueMs = ((long)Get(p, "startedAt") - (long)Get(p, "queuedAt")) * ms,
                         workerMs = ((long)Get(p, "finishedAt") - (long)Get(p, "startedAt")) * ms });
                 }
@@ -284,7 +291,7 @@ public static partial class PaintTileHistoryTests
             try
             {
                 StopProfile();
-                if (path != null) File.WriteAllText(path + ".json", Json(new { implementation = "burst-words-v2", side, blockSize, skip, wide, strokes, storedHashes, undoMs, redoMs, cpuPhases,
+                if (path != null) File.WriteAllText(path + ".json", Json(new { implementation = "page-buffer-comparison", side, blockSize, skip, wide, strokes, memory, storedHashes, undoMs, redoMs, cpuPhases,
                     gpu = SystemInfo.graphicsDeviceName, api = SystemInfo.graphicsDeviceType.ToString(), error = error?.ToString() }));
             }
             catch (Exception e) { error ??= e; }

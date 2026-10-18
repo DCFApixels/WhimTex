@@ -125,11 +125,11 @@ namespace DCFApixels.WhimTex
                 "Rotate Left 90°", "Rotate 90° counterclockwise around the pivot in Canvas coordinates.");
             AddCanvasTransformAction(rotationGroup, CanvasTransformAction.RotateRight, LayerActionIcon.Kind.RotateRight,
                 "Rotate Right 90°", "Rotate 90° clockwise around the pivot in Canvas coordinates.");
-            EnumField tiling = CompactField(new EnumField("Tiling", TransformTilingMode.Clip), 100f);
+            EnumField tiling = CompactField(new EnumField("Tiling", TransformTilingMode.Source), 100f);
             tiling.tooltip = "Clip: transparent outside the frame. Repeat: tile. Mirror: reflected tiles. " +
-                "Source: inherit texture wrap modes. Clamp: extend edge pixels. " +
+                "Source: use the source's own tiling policy, independent of render caches. Clamp: extend edge pixels. " +
                 "Unbounded: continue procedural UVs; raster layers use Clip.";
-            toolkitHeaderBindings.Track(tiling, () => (Enum)(GetSelectedLayer()?.transform.tiling ?? TransformTilingMode.Clip));
+            toolkitHeaderBindings.Track(tiling, () => (Enum)(GetSelectedLayer()?.transform.tiling ?? TransformTilingMode.Source));
             toolkitHeaderBindings.Add(() => tiling.SetEnabled(SingleAvailable()));
             BindCanvasSettingsRow(row, CanvasTool.Transform);
             tiling.RegisterValueChangedCallback(evt =>
@@ -185,13 +185,12 @@ namespace DCFApixels.WhimTex
                     return;
                 FinishCanvasTransform();
                 FinishPaintingStroke();
-                TextureTransform value = selected.transform;
-                value.Reset();
+                TextureTransform value = TextureTransform.Default;
                 if (!value.Equals(selected.transform))
                     ApplyToolkitChange("Reset Layer Transform", () => selected.transform = value);
             });
             SetCanvasTransformActionIcon(reset, "Reset", LayerActionIcon.Kind.Reset);
-            reset.tooltip = "Reset\nReset position, scale, rotation and pivot; restore Tiling to Clip. Keep Filter unchanged.";
+            reset.tooltip = "Reset\nReset position, scale, rotation and pivot; restore Tiling to Source. Keep Filter unchanged.";
             toolkitHeaderBindings.Add(() => reset.SetEnabled(SingleAvailable() && GetSelectedLayer() is Layer selected &&
                 !selected.IsGroup && !selected.transform.Equals(TextureTransform.Default)));
             resetGroup.Add(reset);

@@ -393,9 +393,9 @@ namespace DCFApixels.WhimTex
             scale.tooltip = "Visual scale. One means 100 percent; negative values flip the image.";
             DoubleField rotation = ConfigureField(new DoubleField("Rotation"));
             rotation.tooltip = "Counterclockwise rotation in degrees; for a distorted layer, the local X axis at the pivot.";
-            EnumField tiling = ConfigureField(new EnumField("Tiling", TransformTilingMode.Clip));
+            EnumField tiling = ConfigureField(new EnumField("Tiling", TransformTilingMode.Source));
             tiling.tooltip = "Clip = transparent outside the frame; Repeat = tile; Mirror = reflected tiles; " +
-                "Source = source texture wrap modes; Clamp = extend edge pixels; " +
+                "Source = the layer source's intrinsic mode (File uses its source texture wrap modes); Clamp = extend edge pixels; " +
                 "Unbounded = continue procedural UVs (raster layers use Clip).";
             EnumField filter = ConfigureField(new EnumField("Filter", LayerFilterMode.Source));
             filter.tooltip = "Source = inherit the texture's Filter Mode (default); Point = sharp pixels; " +

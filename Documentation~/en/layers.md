@@ -339,6 +339,10 @@ Wide Inside/Centered feather can fade away thin strokes or small details; Outsid
 even after moving or rotating the figure. Use opaque Fill/Stroke colors for binary source alpha;
 color alpha, layer opacity, FX and later filtering can still soften the final image.
 You can also create a centered shape through **+ → Shape**.
+New Shape layers use **Tiling → Source**, which selects Unbounded, so Feather and outside strokes can
+extend beyond the figure's frame. **Clip** cuts the result at that local frame,
+including Feather, stroke ends and joins; it is separate from a layer clipping mask.
+**Reset Transform** restores Source for every layer; explicitly selected modes stay selected when saving.
 
 A Shape stays editable: it works with clipping masks, blending and FX, just like other layers.
 For example, put a Gradient above it and enable the gradient's clipping mask to color the figure.

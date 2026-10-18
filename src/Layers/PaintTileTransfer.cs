@@ -55,7 +55,11 @@ namespace DCFApixels.WhimTex
             catch (Exception error) { Debug.LogException(error); }
         }
         // SessionState keeps the cursor across reload; its journal must be durable first.
-        private static void DrainAll() { Drain(); PaintHistoryStore.FlushWrites(); PaintHistoryStore.FinishCheckpointWork(); }
+        private static void DrainAll()
+        {
+            Drain(); PaintHistoryStore.FlushWrites(); PaintHistoryStore.FinishCheckpointWork();
+            PaintHistoryStore.ReleaseNativePayloads(); PaintHistoryBuffers.Clear(); PaintHistoryCodec.ClearPool();
+        }
         private static void Quit() { DrainAll(); PaintHistoryStore.ClearSession(); }
         internal static void Drain() => Process(true);
         private static void MakeRoom(long bytes)
@@ -134,7 +138,7 @@ namespace DCFApixels.WhimTex
             private readonly NativeArray<byte>[] data = new NativeArray<byte>[3];
             private readonly bool[] complete = new bool[3], failed = new bool[3];
             private bool queued;
-            private List<PaintHistoryStore.Block> payload;
+            private PaintHistoryPayload payload;
             private readonly int captureSize, subdivisions;
             private readonly bool skipUnchanged;
             private int captured;
@@ -152,7 +156,9 @@ namespace DCFApixels.WhimTex
                 int width = Math.Min(4, blocks.Length) * PaintTileSet.Size;
                 int height = ((blocks.Length + 3) / 4) * PaintTileSet.Size;
                 StagingSize = (long)width * height * (16 + bpp);
-                foreach (var block in blocks) payloadSize += (long)block.width * block.height * (16 + 2 * bpp);
+                // Budget the actual resident planes, including atlas padding, not only
+                // changed pixels. Sparse or partial pages must never undercharge memory.
+                payloadSize = (long)width * height * (16 + 2 * bpp);
                 MakeRoom(StagingSize);
                 try
                 {
@@ -205,7 +211,7 @@ namespace DCFApixels.WhimTex
                     {
                         int index = i;
                         var source = i == 0 ? before : i == 1 ? after : stored;
-                        data[i] = new NativeArray<byte>(source.width * source.height * (i == 2 ? bpp : 8), Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+                        data[i] = PaintHistoryBuffers.Rent(source.width * source.height * (i == 2 ? bpp : 8));
                         if (SystemInfo.supportsAsyncGPUReadback)
                         {
                             requests[i] = AsyncGPUReadback.RequestIntoNativeArray(ref data[i], source, 0,
@@ -213,14 +219,14 @@ namespace DCFApixels.WhimTex
                             requests[i].forcePlayerLoopUpdate = true;
                             submitted++;
                         }
-                        else { data[i].CopyFrom(Read(source, i == 2 && bpp == 4)); complete[i] = true; }
+                        else { Read(source, i == 2 && bpp == 4, data[i]); complete[i] = true; }
                     }
                 }
                 catch
                 {
                     for (int i = 0; i < submitted; i++) if (!complete[i]) requests[i].WaitForCompletion();
                     for (int i = 0; i < data.Length; i++)
-                    { if (data[i].IsCreated) data[i].Dispose(); complete[i] = failed[i] = false; }
+                    { PaintHistoryBuffers.Return(ref data[i]); complete[i] = failed[i] = false; }
                     throw; // Retain queued GPU pages so a later update can retry safely.
                 }
             }
@@ -238,17 +244,17 @@ namespace DCFApixels.WhimTex
                     }
                     if (failed[i])
                     {
-                        data[i].CopyFrom(Read(i == 0 ? before : i == 1 ? after : stored, i == 2 && bpp == 4));
+                        Read(i == 0 ? before : i == 1 ? after : stored, i == 2 && bpp == 4, data[i]);
                         failed[i] = false;
                     }
                 }
                 return true;
             }
-            private static byte[] Read(RenderTexture source, bool standard)
+            private static void Read(RenderTexture source, bool standard, NativeArray<byte> target)
             {
                 var previous = RenderTexture.active;
                 var copy = new Texture2D(source.width, source.height, standard ? TextureFormat.RGBA32 : TextureFormat.RGBAHalf, false, true);
-                try { RenderTexture.active = source; copy.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0, false); return copy.GetRawTextureData<byte>().ToArray(); }
+                try { RenderTexture.active = source; copy.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0, false); target.CopyFrom(copy.GetRawTextureData<byte>()); }
                 finally { RenderTexture.active = previous; UnityEngine.Object.DestroyImmediate(copy); }
             }
             internal bool Apply(bool wait, long deadline)
@@ -260,7 +266,7 @@ namespace DCFApixels.WhimTex
                     // Reserve room for a whole page before patching any CPU pixels.
                     // Normal Editor updates never wait for the journal writer.
                     if (!PaintHistoryStore.MakeRoom(payloadSize, wait)) return false;
-                    payload = new List<PaintHistoryStore.Block>(blocks.Length * subdivisions * subdivisions);
+                    payload = new PaintHistoryPayload(before.width, before.width * before.height, bpp, blocks.Length * subdivisions * subdivisions);
                 }
                 var cpu = texture.GetRawTextureData<byte>();
                 using (WhimTexProfiler.Measure("brush.history.extractAndPatchCpu"))
@@ -279,11 +285,7 @@ namespace DCFApixels.WhimTex
                         if (!unchanged)
                         {
                             stage = System.Diagnostics.Stopwatch.GetTimestamp();
-                            var block = new PaintHistoryStore.Block { rect = r,
-                                beforeHalf = Extract(data[0], s, 8), afterHalf = Extract(data[1], s, 8),
-                                beforeStored = PaintHistoryStore.ReadRows(cpu, texture.width, r, bpp), afterStored = Extract(data[2], s, bpp) };
-                            PaintHistoryStore.WriteRows(cpu, texture.width, r, bpp, block.afterStored);
-                            payload.Add(block);
+                            payload.Add(cpu, texture.width, r, s, data[2]);
                             TransferredBytes += (long)r.width * r.height * (16 + bpp);
                             step.extractionTicks += System.Diagnostics.Stopwatch.GetTimestamp() - stage;
                         }
@@ -291,7 +293,17 @@ namespace DCFApixels.WhimTex
                     captured++;
                     if (captured < blocks.Length * subdivisions * subdivisions && System.Diagnostics.Stopwatch.GetTimestamp() >= deadline) return false;
                 }
-                PaintHistoryStore.Store(step, pageIndex, payload.ToArray());
+                payload.beforeHalf = data[0]; payload.afterHalf = data[1]; payload.afterStored = data[2];
+                try { PaintHistoryStore.Store(step, pageIndex, payload); }
+                catch
+                {
+                    payload.beforeHalf = payload.afterHalf = payload.afterStored = default;
+                    throw;
+                }
+                // Store now owns the planes until successful publication (or explicit
+                // cleanup after a failed write). Never return them while its Task reads.
+                for (int i = 0; i < data.Length; i++) data[i] = default;
+                payload = null;
                 EditorUtility.SetDirty(texture);
                 return true;
             }
@@ -310,19 +322,11 @@ namespace DCFApixels.WhimTex
                 LastComparisonUsedBurst = comparison.accelerated != 0;
                 return equal;
             }
-            private byte[] Extract(NativeArray<byte> source, RectInt rect, int bpp)
-            {
-                var result = PaintHistoryStore.RentBuffer(rect.width * rect.height * bpp);
-                var from = source.AsReadOnlySpan(); var to = result.AsSpan();
-                int rowBytes = rect.width * bpp;
-                for (int y = 0; y < rect.height; y++)
-                    from.Slice(((rect.y + y) * before.width + rect.x) * bpp, rowBytes).CopyTo(to.Slice(y * rowBytes, rowBytes));
-                return result;
-            }
             internal void Abandon() { if (!queued) Dispose(); }
             public void Dispose()
             {
-                for (int i = 0; i < data.Length; i++) if (data[i].IsCreated) data[i].Dispose();
+                for (int i = 0; i < data.Length; i++) PaintHistoryBuffers.Return(ref data[i]);
+                payload?.Dispose(); payload = null;
                 if (before != null) ProfiledRenderTexture.ReleaseTemporary(before);
                 if (after != null) ProfiledRenderTexture.ReleaseTemporary(after);
                 if (stored != null) ProfiledRenderTexture.ReleaseTemporary(stored);

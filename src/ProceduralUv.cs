@@ -6,7 +6,7 @@ namespace DCFApixels.WhimTex
     {
         internal static LayerRenderContext Prepare(Material material, Layer layer, in LayerRenderContext context)
         {
-            bool enabled = context.applyTransform && layer.transform.tiling == TransformTilingMode.Unbounded;
+            bool enabled = context.applyTransform && layer.EffectiveTiling == TransformTilingMode.Unbounded;
             material.SetInt("_UnboundedUv", enabled ? 1 : 0);
             if (!enabled) return context;
             layer.SetRenderInverse(material, "_UvRow", context);

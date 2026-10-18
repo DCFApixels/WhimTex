@@ -11,6 +11,8 @@ namespace DCFApixels.WhimTex
         public List<VectorShape> shapes = new List<VectorShape>();
         public Vector2 referenceSize = Vector2.one * 256;
         public VectorEdgeMode edgeMode;
+        public float feather;
+        public VectorFeatherPosition featherPosition = VectorFeatherPosition.Centered;
         // An absent draft must remain null across native serialization and Undo.
         [SerializeReference] public VectorBrushDraft brushDraft;
 
@@ -44,13 +46,15 @@ namespace DCFApixels.WhimTex
             preparedContours = next;
         }
 
-        internal override void InitializeLayer(Layer layer) => layer.transform.tiling = TransformTilingMode.Unbounded;
+        public override TransformTilingMode SourceTiling => TransformTilingMode.Unbounded;
 
         /// <summary>Validates without repairing, deleting, renumbering or clamping source data.</summary>
         public void Validate()
         {
             VectorGeometry.ValidateReferenceSize(referenceSize);
             if ((uint)edgeMode > 1) throw new InvalidOperationException("Unknown Vector edge mode.");
+            if (!VectorGeometry.Finite(feather) || feather < 0 || feather > 8192 || (uint)featherPosition > 2)
+                throw new InvalidOperationException("Vector Feather must be finite in [0,8192] and use a known position.");
             if (shapes == null || shapes.Count > VectorGeometry.MaxShapes) throw VectorGeometry.Limit("shape count");
             if (preparedContours != null)
             {
@@ -247,7 +251,11 @@ namespace DCFApixels.WhimTex
             hash.Add(referenceSize);
             if (preparedContours != null) foreach (var contour in preparedContours)
             { hash.Add(unchecked((int)contour.hash)); hash.Add(unchecked((int)(contour.hash >> 32))); }
-            if (!booleanOperand) hash.Add((int)edgeMode);
+            if (!booleanOperand)
+            {
+                hash.Add((int)edgeMode);
+                if (edgeMode != VectorEdgeMode.Step && feather > 0) { hash.Add(feather); hash.Add((int)featherPosition); }
+            }
             if (!geometryOnly) hash.Add((int)filterMode);
             hash.Add(shapes?.Count ?? -1);
             if (shapes != null) foreach (var shape in shapes)

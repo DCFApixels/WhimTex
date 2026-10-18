@@ -1727,7 +1727,9 @@
             "Mirror",
             "Clamp",
             "Unbounded"
-          ]
+          ],
+          "default": "Source",
+          "description": "New layers and Reset store Source. Intrinsic policy, independent of cache textures: geometry/procedural sources Unbounded; Drawing/Text/groups/image effects Clip; File bound texture U/V wrap modes. Explicit modes are preserved."
         }
       },
       "allOf": [
@@ -2087,6 +2089,23 @@
             "Step"
           ]
         },
+        "feather": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8192,
+          "default": 0,
+          "description": "Finite total soft transition width in vector reference pixels; scales with the vector geometry like stroke width. Smoothstep of signed distance to fill and actual stroke/dash boundaries, not a blur. Zero preserves the existing renderer. Step ignores Feather without clearing either stored setting."
+        },
+        "featherPosition": {
+          "type": "string",
+          "enum": [
+            "Inside",
+            "Outside",
+            "Centered"
+          ],
+          "default": "Centered",
+          "description": "Inside fades inward, Outside outward, Centered equally across the painted boundary. Layer-wide setting, not a VectorShape or Boolean Group style field. Retained when Feather is zero or Edge Mode is Step."
+        },
         "brushDraft": {
           "anyOf": [
             {
@@ -2178,7 +2197,7 @@
         "op",
         "layer"
       ],
-      "description": "Convert Shape or Text geometrically on the same layer shell. Both fit the geometry frame and change Clip tiling to Unbounded while preserving canvas placement; stored local geometry and transform values may change together. Unsupported Shape feather, stroke transforms/compositing or offset cusps fail before replacement. Text preserves layout as one NonZero compound figure from original unhinted font outlines, including Frame Clip/Ellipsis before frame fitting. Crossing glyphs may be flattened for clipping with 0.01px tolerance. Missing/unsupported source fonts or synthetic bold without a real bold face fail before replacement. Synthetic italic is supported. No raster tracing or variable-axis/color/bitmap-font support is promised."
+      "description": "Convert Shape or Text geometrically on the same layer shell. Both preserve the selected tiling, including Source and explicit Clip. Clip retains its frame; otherwise fitting preserves canvas placement while stored local geometry and transform values may change together. Unsupported Shape feather, stroke transforms/compositing or offset cusps fail before replacement. Text preserves layout as one NonZero compound figure from original unhinted font outlines, including Frame Clip/Ellipsis before frame fitting. Crossing glyphs may be flattened for clipping with 0.01px tolerance. Missing/unsupported source fonts or synthetic bold without a real bold face fail before replacement. Synthetic italic is supported. No raster tracing or variable-axis/color/bitmap-font support is promised."
     },
     "blend": {
       "type": "string",

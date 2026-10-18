@@ -6,6 +6,10 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- New layers, omitted JSON settings and Reset Transform use Source tiling. Each source declares its behavior independently of render caches: geometry and procedural generators use Unbounded, finite raster/effect sources use Clip, and File follows its original texture's wrap modes. Explicit choices survive saving and Shape/Text-to-Vector conversion. Shape Clip now crops fill, stroke and Feather at its local frame.
+
+- Vector layers support Feather with Inside, Outside and Centered transitions along fill and actual stroke/dash boundaries. Width uses local reference pixels and scales with the figure; gradients reuse the prepared coverage. Step retains but ignores Feather, and zero keeps the existing rendering path. Settings are retained by Undo/Redo, JSON, clipboard and native documents.
+
 - Brush/Pencil track distinct source blocks for commit, partial CPU/GPU synchronization and pixel Undo. A session journal keeps exact Half working pixels and stored before/after values outside Unity's full-texture Undo records, while retaining normal Ctrl+Z/Redo order and script-reload continuity. Unsupported storage/copy configurations and other pixel tools keep their existing path; the Half source and straight preview remain full-size.
 
 - Polygonal Lasso offers Straight/Smooth contours, with centripetal Catmull–Rom curves through placed points and individually switchable corners via C or Corner. Smooth calculates a closed shape while displaying an open contour during editing; completing it reveals the closing segment without changing the visible curves. Preview, insertion hit testing and the final selection mask share the same sampled geometry. Editor validation is pending; tests were not run for this prototype.
@@ -39,6 +43,8 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- Paint history hands native readback pages directly to background writers and reuses bounded page/codec buffers. This removes per-block managed payload arrays while preserving exact Half/storage Undo, masks and HDR. Sustained heavy strokes can still pause when the bounded queue fills.
 
 - Paint Undo uses faster lossless block packing and decoding when Burst is enabled, reducing compression waits without changing Half, HDR or stored pixel values. A shared, demand-allocated snapshot queue can temporarily retain up to 1.5 GiB (less on smaller devices) to defer dense 8K readback. Sustained overload still waits at the cap; background transfer and writer budgets remain bounded. Faster packing can use more disk space under the existing Undo quota.
 

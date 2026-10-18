@@ -1838,8 +1838,8 @@ document from agent writes until editing ends; it uses the ordinary document tra
 ### Vector settings
 
 Use `type:"vector"` to add a layer. Its `referenceSize` starts at the current document
-pixel dimensions. `settings.vector` accepts `shapes`, `referenceSize`, `edgeMode` and
-`brushDraft`. It uses the [document data fields](JSON_FORMAT.md#vector-layers), including
+pixel dimensions. `settings.vector` accepts `shapes`, `referenceSize`, `edgeMode`,
+`feather`, `featherPosition` and `brushDraft`. It uses the [document data fields](JSON_FORMAT.md#vector-layers), including
 stable shape/contour/point IDs, tangent offsets and named enums. Supplied top-level
 fields replace their values; omitted fields stay unchanged. Arrays replace whole arrays.
 The `shapes` array accepts at most one figure; its multiple contours and holes remain
@@ -1847,7 +1847,24 @@ part of that figure. Add another layer for another figure. Whole-figure placemen
 the layer's transform, independently of sibling figures.
 All vector styles remain stored while inactive. `inspect` returns the same data,
 including the figure's editable source-mask base64 coverage and local `frame` rectangle;
-`describe` returns `vectorDefaults`.
+`describe` returns `vectorDefaults` and `vectorFeatherPositions`.
+
+| Vector edge field | Contract |
+| --- | --- |
+| `feather` | Finite 0..8192 vector reference pixels; total soft transition width, default 0. Scales with geometry like the stroke, not fixed canvas pixels. |
+| `featherPosition` | Inside, Outside, Centered (default); transition lies inward, outward or equally across each painted boundary. |
+
+Both fields belong to `settings.vector`, not to `shapes[]` or `settings.booleanGroup`.
+Feather uses smoothstep signed distance to fill and actual stroked/dashed boundaries,
+including caps, joins and the two sides of an outline; it is not a blur pass. It
+changes coverage before layer FX and composition without blurring paint colors.
+Zero preserves the existing renderer. `edgeMode:"Step"` ignores Feather, retaining
+both values for later reuse. All write modes retain nondefault values while inactive;
+omitted fields in API patches remain unchanged. For example:
+
+```json
+{"op":"set","layer":"<layer-id-or-@alias>","settings":{"vector":{"feather":6,"featherPosition":"Outside"}}}
+```
 
 Each shape's `fillMode` accepts None, Solid, LinearGradient, RadialGradient,
 SquareGradient, DiamondGradient and CircularGradient. `gradient`, `gradientStart`,
@@ -1866,8 +1883,9 @@ document gradient object, as for fill; Shape patches use the API gradient contra
 
 `{"op":"convertToVector","layer":"<layer-id-or-@alias>"}` converts a Shape or Text
 geometrically on its existing layer shell, preserving the ID, name, FX and shared settings.
-For both source types, transform tiling `Clip` becomes `Unbounded` to retain geometry
-outside the original unit frame. Fitting the figure's frame preserves canvas placement,
+Shape conversion preserves transform tiling, including explicit `Clip`. Text conversion
+retains the stored tiling, including `Source` and explicit `Clip`.
+Fitting the figure's frame preserves canvas placement,
 but can change the stored local geometry and transform values together.
 
 Text conversion produces one compound Vector figure with `fillRule:"NonZero"`,
@@ -2522,7 +2540,7 @@ Transform patches support `position:[x,y]`, `scale:[x,y]`, `pivot:[u,v]`, `rotat
 - Rotation is counterclockwise degrees.
 - Pivot is bottom-left UV: `[0.5,0.5]` is the center.
 - Scale `[1,1]` means the full canvas-sized source rectangle; negative values mirror, zero is rejected.
-- Tiling is `Source`, `Clip`, `Repeat`, `Mirror`, `Clamp` or `Unbounded`. `Source` reads the source texture's U/V wrap modes. `Clamp` extends edge pixels. `Unbounded` continues Noise, Gradient, Color Fill and Shape calculations outside 0–1 UV; raster layers use Clip.
+- Tiling is `Source`, `Clip`, `Repeat`, `Mirror`, `Clamp` or `Unbounded`. New layers, omitted JSON and Reset store `Source`. `LayerBehaviour.SourceTiling` selects the intrinsic policy, never a preview/intermediate/cache texture's wrap metadata: Shape/Vector/Boolean Group/Noise/Gradient/Color Fill use `Unbounded`; Drawing/Text/ordinary groups/image effects use `Clip`; File uses its bound source texture's U/V wrap modes. Explicit modes override this policy and survive saving and Shape/Text-to-Vector conversion. `Inspect` exposes stored `transform.tiling` and resolved `effectiveTiling` separately; File also exposes `sourceWrap` U/V. `Clamp` extends edge pixels. `Unbounded` continues procedural/geometric sources; raster layers use Clip. Explicit Clip crops geometry, stroke and Feather at the local unit frame.
 - `reset` is applied before the other fields, Original Aspect after them.
 - Changing pivot through this API uses raw TRS semantics; it does not compensate position. In matrix mode it changes only the pivot.
 - `matrix:[m00,m01,m02,m10,m11,m12,m20,m21,m22]` sets a double-precision projective transform from source UV to canvas UV; divide the first two output coordinates by the third. It must be invertible with no horizon crossing the unit source rectangle.

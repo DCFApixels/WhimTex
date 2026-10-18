@@ -11,6 +11,7 @@ namespace DCFApixels.WhimTex
     public enum VectorStrokeJoin { Miter, Round, Bevel }
     public enum VectorStrokeCap { Butt, Round, Square }
     public enum VectorEdgeMode { Antialiased, Step }
+    public enum VectorFeatherPosition { Inside, Outside, Centered }
 
     /// <summary>Coordinates and handle offsets are layer-local, normalized, y-up.</summary>
     [Serializable]

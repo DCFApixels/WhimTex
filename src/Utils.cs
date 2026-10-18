@@ -131,7 +131,7 @@ namespace DCFApixels.WhimTex
             position = Vector2.zero,
             scale = Vector2.one,
             rotation = 0f,
-            tiling = TransformTilingMode.Clip
+            tiling = TransformTilingMode.Source
         };
 
         public Double2 pivot, position, scale;
@@ -152,7 +152,7 @@ namespace DCFApixels.WhimTex
         public bool IsIdentity()
         {
             return storage == TransformStorage.TRS && position.x == 0 && position.y == 0 && scale.x == 1 && scale.y == 1 && rotation == 0 &&
-                tiling == TransformTilingMode.Clip;
+                (tiling == TransformTilingMode.Clip || tiling == TransformTilingMode.Source);
         }
 
         public void Reset()

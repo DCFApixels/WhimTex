@@ -15,6 +15,11 @@ profiler, and ReadScreenPixel on test-created windows. It does not authorize oth
 
 ## Inspect and select
 
+`source-tiling` checks intrinsic Source policies, explicit-mode priority and JSON roundtrips,
+Reset defaults, File's independent U/V wraps, procedural Unbounded equivalence and Vector
+cache-wrap/rebuild independence. It also runs geometric Clip, Feather, Shape/Vector parity
+and persistence regressions. Models are detached; the current user document is not edited.
+
 `brush-preview-cache` compares incremental live conversion against full-source conversion on
 non-square, non-power-of-two images across disjoint dabs and partial edge tiles. It covers
 nearly transparent paint, HDR, soft/mutable selection, stamp blending, erasure, channel locks,
@@ -472,6 +477,13 @@ window, not the user's document texture. The earlier five-case pass predates the
 assertions. No test runner lock remains.
 
 ### Vector prototype
+
+The `vector-feather` profile checks Inside/Outside/Centered coverage against an
+independent edge profile, tiny widths, holes, dashed strokes, CPU/GPU parity,
+transforms, frame rebasing, clipping, Target input, thumbnails and export-sized
+rendering. It also checks native Undo/Redo, API patches and JSON/TIFF persistence.
+It uses detached documents; declared effects are `temp-files,user-state` for a
+comparison PNG and an owned Undo group. No user windows or assets are modified.
 
 `vector-clipper-reuse-v1` compares scoped reuse with fresh Clipper instances,
 including exact contour order/seams, mixed operations and fill rules, retained
@@ -1386,3 +1398,54 @@ slower (about 3.2 s for 128 and 3.6 s for 64 versus 3.0 s control on this run). 
 experiment does not justify changing the normal 256px default yet. Shared page-backed payloads
 and batched restoration are candidates before adopting a smaller layout. CPU comparisons could
 instead move to GPU change tracking, but that is not implemented by this test.
+
+## Native history pages
+
+The subsequent native-page change retains 256px production blocks, Half source/preview,
+compute assembly, Task workers and the existing memory limits. Completed readback planes
+move to the writer; only the stored before-image is copied before FIFO CPU patching.
+There are no managed payload arrays per captured block. Atlas rows still gather once into
+reusable native codec scratch; compressed output still copies to a reusable file-write buffer.
+The native idle pool is capped at 64 MiB; pending writers remain capped at 64–128 MiB and
+charge resident planes including padding. Workspaces are exclusive and reused, with at most
+four idle codecs (~6.3 MiB). Small-block omission now reduces file payload, not native page residency.
+
+`paint-history-native-pages` checks reuse without reallocation, zero active bytes after
+completion, bounded idle storage, an injected owned-file failure and exact HDR Undo/Redo
+from retained native planes. Explicit deletion releases that retained payload exactly once.
+`paint-history-native-no-burst` runs exact SDR/HDR raw-page recovery with the Burst option
+temporarily disabled and restored. `paint-history-codec` checks native contiguous/strided
+input, partial rows, raw fallback, malformed data and separate/reused workspace leases.
+
+The existing small history, queued history, raw history, subtile/mask exactness and retention
+regressions passed. `paint-history-burst-8192-saturation` and its `-hdr` variant perform six
+full-canvas strokes without draining between strokes, followed by ordered Undo/Redo.
+HDR uses nine Half probes across the canvas; these 8K probes are not a full GPU-byte comparison.
+Full Half/storage comparisons run separately on smaller fixtures. The native reload pair
+verifies a real domain reload, zero active/idle native planes after shutdown drain, and exact
+restored Half/storage and Undo/Redo. An Editor-process restart was not performed.
+
+Local comparison on 2026-10-18, Unity 6000.7.0a6 / RTX 5060 / D3D12 (two strokes per path):
+
+| Measurement | Before | Native pages |
+| --- | ---: | ---: |
+| Thin 8K CPU extraction/patch | 98–110 ms | 39 ms |
+| Wide 8K CPU extraction/patch | 376–377 ms | 132–133 ms |
+| Wide single release | 25–42 ms | 19–20 ms |
+| Saturated SDR releases 2–6 | 879–1517 ms | 532–969 ms |
+| Managed allocations during two wide strokes, all Editor threads | 134.1 MiB | 23.2 MiB |
+
+Whole stored CPU hashes matched the pre-change capture for both paths and both revisions.
+GPU staging/readback byte counts and compressed-file sizes were unchanged. Idle background
+tails fell from 2.0–2.1 s / 7.2–7.3 s to 0.25–0.29 s / 0.92–1.28 s for thin/wide paths, but
+these include Editor scheduling; the baseline was unusually slow relative to earlier runs.
+Do not interpret those ratios as an isolated codec speedup or presented frame rate.
+
+The six-stroke HDR run still paused for 1.05–1.59 s at saturated releases. Active native-page
+samples peaked at 160 MiB for SDR and 176 MiB for HDR; idle buffers stayed within 64 MiB.
+Managed heap samples fell, while Unity-native allocation samples increased as ownership moved
+to native pages. This does not establish a reduction of total process RAM. The direct per-thread
+GC counter returned zero on this Editor; allocation figures above instead use the available
+all-Editor profiler counter. Background worker sums still show compression dominating file
+Write calls; sums from concurrent Tasks must not be added to UI latency. Reports and raw paths:
+project `Temp/WhimTex/page-buffer-comparison/report.md` and `cases.json`.

@@ -200,17 +200,25 @@ further limited to one quarter of reported graphics memory and one eighth of rep
 with a 256 MiB floor. Unknown memory sizes or unavailable async readback retain the 256 MiB budget.
 This is a ceiling, not a preallocation; pages are released as they are consumed. It fits a full
 8K snapshot (1280 MiB standard, 1536 MiB HDR) on sufficiently large devices. Only two pages at a time
-allocate native readback buffers (at most 48 MiB). Stroke completion keeps the next stroke available without waiting
+perform native readback (at most 48 MiB). Completed native planes transfer ownership to the writer;
+they are not copied into separate managed arrays for every block. Stroke completion keeps the next stroke available without waiting
 for readback or payload compression while staging fits that budget. GPU submission/allocation and a
 small revision manifest still run on completion; this is not a zero-cost or zero-I/O operation.
 Editor updates process the FIFO in approximately 4 ms slices, yielding between blocks, and never
 wait for pending journal writes. A page reserves space under a 64–128 MiB pending-write budget before
-CPU patching; background compression/file writes release that space. GPU saturation, readback errors
+CPU patching, charging the full resident planes including unused atlas slots; background compression/file writes release that space. GPU saturation, readback errors
 and devices without asynchronous readback can still stall. Exceeding the staging budget waits for
 the oldest page to finish, preserving exact revisions instead of dropping history. The same FIFO
 captures each stored before-image before patching the after-image, including overlapping strokes.
-A separate bounded pool can retain up to about 64 MiB of managed tile arrays for reuse. Raw journal
-pages trade disk space for lower latency.
+A shared pool retains at most 64 MiB of idle native planes for subsequent readbacks and stored
+before-images. Active writer planes are charged to the pending-write budget; a page being patched
+also owns its stored before-image (at most 8 MiB). No additional full-canvas CPU/GPU snapshot is introduced.
+Compression and disk writes remain background Tasks. Their exclusive codec workspaces are reused
+(at most four idle workspaces, approximately 6.3 MiB together). Contiguous native blocks are encoded
+directly; atlas rows are gathered native-to-native into reusable block scratch. A reusable managed
+output buffer feeds the file API. Lossless bytes, raw fallback, checksums and the journal format are unchanged.
+Idle pools are released after all consumers join at script reload/quit. Raw journal pages trade disk
+space for lower latency.
 The writer budget is `clamp(logicalProcessorCount / 2, 2, 4) × 32 MiB`; larger CPUs can encode
 several independent pages concurrently without increasing the number of GPU readback pages.
 New readback batches are submitted without waiting, and their request state is updated while the

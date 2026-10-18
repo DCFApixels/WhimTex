@@ -101,7 +101,7 @@ namespace DCFApixels.WhimTex
         {
             for (int page = 0; page < step.pages; page++)
             {
-                if (!File.Exists(PaintHistoryStore.PagePath(step, page)) && step.payload[page]?.blocks == null) continue;
+                if (!File.Exists(PaintHistoryStore.PagePath(step, page)) && step.payload[page]?.native == null) continue;
                 string temporary = Path.Combine(PaintHistoryStore.Root, "checkpoint-" + Guid.NewGuid().ToString("N"));
                 long bytes = 65536 + PaintTileTransfer.TilesPerPage * (long)PaintTileSet.Size * PaintTileSet.Size * (8 + step.bytesPerPixel);
                 if (!PaintUndoDisk.Current.Reserve(temporary, bytes, out var reason, true)) throw new IOException(reason + " Half checkpoint compaction is pending.");
@@ -140,7 +140,7 @@ namespace DCFApixels.WhimTex
             for (int page = nextCheckpointPage; page < step.pages; page++)
             {
                 nextCheckpointPage = page;
-                if (File.Exists(PaintHistoryStore.PagePath(step, page)) || step.payload[page]?.blocks != null)
+                if (File.Exists(PaintHistoryStore.PagePath(step, page)) || step.payload[page]?.native != null)
                 { PaintHistoryStore.StartCheckpointWork(this, step, page, StateDirectory); return true; }
             }
             state.pending.RemoveAt(0); WriteState(state); PaintHistoryStore.DeleteStep(step);
@@ -158,7 +158,7 @@ namespace DCFApixels.WhimTex
                 var step = PaintHistoryStore.Get(state.pending[i]);
                 if (step.width != texture.width || step.height != texture.height || step.bytesPerPixel != (HdrUtility.IsHdr(texture) ? 8 : 4)) continue;
                 for (int page = 0; page < step.pages; page++)
-                    if (File.Exists(PaintHistoryStore.PagePath(step, page)) || step.payload[page]?.blocks != null)
+                    if (File.Exists(PaintHistoryStore.PagePath(step, page)) || step.payload[page]?.native != null)
                         PaintHistoryStore.VisitPageForRetention(step, page, b =>
                         { if (seen.Add(new Vector2Int(b.rect.x, b.rect.y))) visit(b); });
             }
@@ -238,10 +238,9 @@ namespace DCFApixels.WhimTex
             foreach (var page in step.payload)
             {
                 WaitForWrite(page);
-                if (page?.blocks == null) continue;
-                foreach (var block in page.blocks)
-                { ReturnBuffer(block.beforeHalf); ReturnBuffer(block.afterHalf); ReturnBuffer(block.beforeStored); ReturnBuffer(block.afterStored); }
-                Interlocked.Add(ref pendingBytes, -page.bytes); page.blocks = null;
+                if (page?.native == null) continue;
+                page.native.Dispose(); page.native = null;
+                Interlocked.Add(ref pendingBytes, -page.residentBytes);
             }
             PaintUndoDisk.Current.DeleteOwned(StepDirectory(step.id)); steps.Remove(step.id);
         }

@@ -186,7 +186,7 @@ namespace DCFApixels.WhimTex
                 else if (layer?.Behaviour is GradientLayerBehaviour gradient && CanExportGradient(gradient, requiresRasterization, document.width, document.height))
                 {
                     record.adjustment = true;
-                    record.mask = gradient.Owner.CanvasTransform.tiling == TransformTilingMode.Clip;
+                    record.mask = gradient.Owner.EffectiveTiling == TransformTilingMode.Clip;
                     Add(record, "GdFl", Gradient(gradient, document.width, document.height));
                     record.openPixels = () => GradientPixels(document, gradient, record.mask);
                     report.editableFillCount++;
@@ -234,8 +234,7 @@ namespace DCFApixels.WhimTex
         {
             if (requiresRasterization || layer.Owner.CanvasTransform.storage == TransformStorage.Projective || layer.gradient == null || layer.gradient.Mode == WhimTexGradientMode.Fixed ||
                 layer.gradient.WrapMode != WhimTexGradientWrapMode.Clamp ||
-                (layer.Owner.CanvasTransform.tiling != TransformTilingMode.Clip && layer.Owner.CanvasTransform.tiling != TransformTilingMode.Source &&
-                 layer.Owner.CanvasTransform.tiling != TransformTilingMode.Unbounded)) return false;
+                (layer.Owner.EffectiveTiling != TransformTilingMode.Clip && layer.Owner.EffectiveTiling != TransformTilingMode.Unbounded)) return false;
             foreach (var key in layer.gradient.ColorKeys)
                 if (key.color.r < 0 || key.color.g < 0 || key.color.b < 0 ||
                     key.color.r > 1 || key.color.g > 1 || key.color.b > 1) return false;
@@ -245,7 +244,7 @@ namespace DCFApixels.WhimTex
             if (!linear && (width != height || scale.x <= 0 || !Mathf.Approximately(scale.x, scale.y))) return false;
             return layer.gradientType != GradientLayerBehaviour.GradientType.Circular ||
                 (Mathf.Approximately(layer.circularStartAngle, 0f) && Mathf.Approximately(layer.circularRepetitions, 1f) && layer.circularWrapMode == GradientLayerBehaviour.WrapMode.Repeat &&
-                 layer.Owner.CanvasTransform.tiling != TransformTilingMode.Source);
+                 layer.Owner.EffectiveTiling != TransformTilingMode.Source);
         }
 
         private static void Add(PsdWriter.LayerRecord layer, string key, PsdWriter.Descriptor value) =>

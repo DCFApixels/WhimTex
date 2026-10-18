@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Buffers;
 using System.IO;
 using System.IO.Compression;
 using System.Security.Cryptography;
@@ -161,7 +160,7 @@ namespace DCFApixels.WhimTex
     internal static partial class PaintHistoryStore
     {
         // Enough immutable payloads to keep several writers busy on larger CPUs,
-        // without letting a rapid stroke sequence grow an unbounded managed queue.
+        // without letting a rapid stroke sequence grow an unbounded native queue.
         internal static readonly long PendingBudget = Math.Clamp(Environment.ProcessorCount / 2, 2, 4) * 32L * 1024 * 1024;
         private const int Magic = 0x57545031;
         private const int CheckedDeflate = 0x57545032;
@@ -170,9 +169,6 @@ namespace DCFApixels.WhimTex
         private const int FastCheckedBlocks = 0x57545035;
         private static readonly Dictionary<string, Step> steps = new();
         private static readonly Queue<Page> writing = new();
-        // At most ~64 MiB retained across all geometric buckets, separate from
-        // the 64–128 MiB budget for payloads whose writes are still in progress.
-        private static readonly ArrayPool<byte> buffers = ArrayPool<byte>.Create(PaintTileSet.Size * PaintTileSet.Size * 8, 64);
         private static long pendingBytes;
         internal static long PendingBytes => Interlocked.Read(ref pendingBytes);
         internal static string Root
@@ -195,7 +191,8 @@ namespace DCFApixels.WhimTex
         }
         internal sealed class Page
         {
-            internal Block[] blocks;
+            internal PaintHistoryPayload native;
+            internal long residentBytes;
             internal Task write;
             internal string path;
             internal long bytes;
@@ -204,6 +201,7 @@ namespace DCFApixels.WhimTex
             // Worker wall timings; read only after write.IsCompleted (task publication barrier).
             // The main-thread profiler's store scope measures enqueueing, not this work.
             internal long queuedAt, startedAt, finishedAt, sampleTicks, encodeTicks, hashTicks, fileBytes;
+            internal long inputCopyTicks, compressionTicks, outputCopyTicks, fileWriteTicks;
             internal bool compressed;
         }
         internal sealed class Block
@@ -253,48 +251,50 @@ namespace DCFApixels.WhimTex
                 (step.bytesPerPixel != 4 && step.bytesPerPixel != 8)) throw new InvalidDataException("Invalid paint history manifest.");
             step.payload = new Page[step.pages]; steps.Add(id, step); return step;
         }
-        internal static void Store(Step step, int pageIndex, Block[] blocks)
+        internal static void Store(Step step, int pageIndex, PaintHistoryPayload payload)
         {
             using var profile = WhimTexProfiler.Measure("brush.history.store");
-            long size = 0;
-            foreach (var b in blocks) size += b.beforeHalf.LongLength + b.afterHalf.LongLength + b.beforeStored.LongLength + b.afterStored.LongLength;
-            var page = new Page { blocks = blocks, blockCount = blocks.Length, bytes = size, path = PagePath(step, pageIndex), queuedAt = Stopwatch.GetTimestamp() };
+            long size = payload.ResidentBytes;
+            var page = new Page { native = payload, blockCount = payload.blocks.Count, bytes = payload.Bytes,
+                residentBytes = size, path = PagePath(step, pageIndex), queuedAt = Stopwatch.GetTimestamp() };
             step.payload[pageIndex] = page;
             long queuedBytes = Interlocked.Add(ref pendingBytes, size);
             step.peakPendingBytes = Math.Max(step.peakPendingBytes, queuedBytes);
             var disk = PaintUndoDisk.Current;
             string directory = StepDirectory(step.id);
-            page.write = Task.Run(() =>
+            try { page.write = Task.Run(() =>
             {
                 page.startedAt = Stopwatch.GetTimestamp();
                 string temporary = page.path + ".tmp";
+                using var workspace = PaintHistoryCodec.Borrow();
+                var codec = workspace.Value;
                 using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
                 {
                     using var header = new BinaryWriter(file, System.Text.Encoding.UTF8, true);
                     long stage = Stopwatch.GetTimestamp();
                     bool packed = Unity.Burst.BurstCompiler.Options.EnableBurstCompilation;
-                    bool compress = !packed && ShouldCompress(blocks);
+                    bool compress = !packed && ShouldCompress(payload);
                     page.sampleTicks = Stopwatch.GetTimestamp() - stage;
                     page.compressed = packed || compress;
                     header.Write(packed ? FastCheckedBlocks : compress ? FastCheckedDeflate : FastCheckedRaw); header.Write(new byte[32]);
                     stage = Stopwatch.GetTimestamp();
-                    using (var codec = packed ? new PaintHistoryCodec() : null)
                     using (var zip = compress ? new DeflateStream(file, System.IO.Compression.CompressionLevel.Fastest, true) : null)
                     using (var writer = new BinaryWriter((Stream)zip ?? file, System.Text.Encoding.UTF8, true))
                     {
-                        writer.Write(packed ? FastCheckedBlocks : Magic); writer.Write(blocks.Length);
-                        foreach (var b in blocks)
+                        writer.Write(packed ? FastCheckedBlocks : Magic); writer.Write(payload.blocks.Count);
+                        foreach (var b in payload.blocks)
                         {
                             writer.Write(b.rect.x); writer.Write(b.rect.y); writer.Write(b.rect.width); writer.Write(b.rect.height);
-                            if (packed)
-                            {
-                                codec.Write(writer, b.beforeHalf); codec.Write(writer, b.afterHalf);
-                                codec.Write(writer, b.beforeStored); codec.Write(writer, b.afterStored);
-                            }
-                            else { writer.Write(b.beforeHalf); writer.Write(b.afterHalf); writer.Write(b.beforeStored); writer.Write(b.afterStored); }
+                            Write(payload.beforeHalf, 8); Write(payload.afterHalf, 8);
+                            Write(payload.beforeStored, payload.bpp); Write(payload.afterStored, payload.bpp);
+                            void Write(NativeArray<byte> source, int bpp) => codec.WriteNative(writer, source,
+                                payload.width * bpp, (b.slot.y * payload.width + b.slot.x) * bpp,
+                                b.slot.width * bpp, b.slot.height, packed);
                         }
                     }
                     page.encodeTicks = Stopwatch.GetTimestamp() - stage;
+                    page.inputCopyTicks = codec.InputCopyTicks; page.compressionTicks = codec.EncodeTicks;
+                    page.outputCopyTicks = codec.OutputCopyTicks; page.fileWriteTicks = codec.WriteTicks;
                     page.fileBytes = file.Length;
                     file.Position = 36;
                     stage = Stopwatch.GetTimestamp();
@@ -303,24 +303,23 @@ namespace DCFApixels.WhimTex
                     file.Position = 4; header.Write(hash);
                 }
                 File.Move(temporary, page.path);
-                // Retain the in-memory payload on I/O failure; Undo can still use it.
-                page.blocks = null;
-                foreach (var block in blocks)
-                {
-                    ReturnBuffer(block.beforeHalf); ReturnBuffer(block.afterHalf);
-                    ReturnBuffer(block.beforeStored); ReturnBuffer(block.afterStored);
-                }
+                // An I/O failure keeps the immutable planes for exact Undo. Successful
+                // publication alone releases them for a later readback or writer.
+                page.native = null; payload.Dispose();
                 Interlocked.Add(ref pendingBytes, -size);
-                // Only the last successful writer completes the reservation. This
-                // lightweight accounting must not wait for an idle maintenance pass:
-                // sustained painting otherwise appears to fill the disk with raw data.
                 if (Interlocked.Increment(ref step.completedWrites) == step.pages)
                 {
                     disk.Complete(directory);
                     Volatile.Write(ref step.reservationReleased, true);
                 }
                 page.finishedAt = Stopwatch.GetTimestamp();
-            });
+            }); }
+            catch
+            {
+                // Task creation failed before ownership crossed the thread boundary.
+                step.payload[pageIndex] = null; Interlocked.Add(ref pendingBytes, -size);
+                throw;
+            }
             writing.Enqueue(page);
         }
         internal static bool MakeRoom(long bytes, bool wait)
@@ -339,24 +338,40 @@ namespace DCFApixels.WhimTex
             // they must not permanently prevent all subsequent CPU synchronization.
             return true;
         }
-        private static bool ShouldCompress(Block[] blocks)
+        private static bool ShouldCompress(PaintHistoryPayload payload)
         {
-            // Sample every channel payload and several rows of every tile, bounded to
-            // 64 KiB per page. Dense detail should not spend seconds in compression.
+            // Bounded sample from immutable page rows; no per-block payload arrays.
             using var sample = new MemoryStream();
-            int input = 0;
+            byte[] buffer = new byte[256]; int input = 0;
             using (var zip = new DeflateStream(sample, System.IO.Compression.CompressionLevel.Fastest, true))
-            foreach (var block in blocks)
+            foreach (var block in payload.blocks)
             {
-                Sample(block.beforeHalf); Sample(block.afterHalf); Sample(block.beforeStored); Sample(block.afterStored);
-                void Sample(byte[] bytes)
+                Sample(payload.beforeHalf, 8); Sample(payload.afterHalf, 8);
+                Sample(payload.beforeStored, payload.bpp); Sample(payload.afterStored, payload.bpp);
+                void Sample(NativeArray<byte> bytes, int bpp)
                 {
-                    int length = Math.Min(256, bytes.Length);
+                    int length = Math.Min(buffer.Length, block.slot.width * bpp);
                     for (int part = 0; part < 4; part++)
-                    { zip.Write(bytes, (bytes.Length - length) * part / 3, length); input += length; }
+                    {
+                        int row = block.slot.y + (block.slot.height - 1) * part / 3;
+                        bytes.AsReadOnlySpan().Slice((row * payload.width + block.slot.x) * bpp, length).CopyTo(buffer);
+                        zip.Write(buffer, 0, length); input += length;
+                    }
                 }
             }
             return sample.Length * 3 < input;
+        }
+        // Called only after transfers, writers and checkpoint readers have joined at
+        // domain shutdown. Faulted journal payloads cannot outlive their native owners.
+        internal static void ReleaseNativePayloads()
+        {
+            foreach (var step in steps.Values)
+            foreach (var page in step.payload)
+            {
+                if (page?.native == null) continue;
+                page.native.Dispose(); page.native = null;
+                Interlocked.Add(ref pendingBytes, -page.residentBytes);
+            }
         }
         internal static void FlushWrites()
         {
@@ -374,7 +389,7 @@ namespace DCFApixels.WhimTex
             if (page?.write == null) return;
             using var profile = WhimTexProfiler.Measure("brush.history.writeWait");
             try { page.write.GetAwaiter().GetResult(); }
-            catch (Exception error) when (page.blocks != null)
+            catch (Exception error) when (page.native != null)
             {
                 if (page.errorReported) return;
                 page.errorReported = true;
@@ -389,7 +404,7 @@ namespace DCFApixels.WhimTex
         internal static void ValidatePage(Step step, int i)
         {
             Page page = step.payload[i]; WaitForWrite(page);
-            if (page?.blocks != null) return;
+            if (page?.native != null) return;
             using var file = OpenPage(step, i);
             using var reader = new BinaryReader(file, System.Text.Encoding.UTF8, true);
             int format = reader.ReadInt32();
@@ -439,8 +454,8 @@ namespace DCFApixels.WhimTex
         {
             Page page = step.payload[i];
             WaitForWrite(page);
-            var retained = page?.blocks;
-            if (retained != null) { foreach (var b in retained) visit(b); return; }
+            var retained = page?.native;
+            if (retained != null) { retained.Visit(visit, scratch); return; }
             using var file = OpenPage(step, i);
             using var header = new BinaryReader(file, System.Text.Encoding.UTF8, true);
             int format = header.ReadInt32();
@@ -454,7 +469,8 @@ namespace DCFApixels.WhimTex
             int count = reader.ReadInt32();
             if (count < 0 || count > PaintTileTransfer.MaximumHistoryBlocksPerPage) throw new InvalidDataException("Invalid paint history page.");
             scratch ??= new Block();
-            using var codec = packed ? new PaintHistoryCodec() : null;
+            using var workspace = PaintHistoryCodec.Borrow();
+            var codec = workspace.Value;
             for (int j = 0; j < count; j++)
             {
                 var r = new RectInt(reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32());
@@ -492,27 +508,6 @@ namespace DCFApixels.WhimTex
                 offset += read;
             }
         }
-        internal static byte[] ReadRows(NativeArray<byte> source, int width, RectInt rect, int bpp)
-        {
-            var result = RentBuffer(rect.width * rect.height * bpp);
-            var from = source.AsReadOnlySpan(); var to = result.AsSpan();
-            int rowBytes = rect.width * bpp;
-            for (int y = 0; y < rect.height; y++)
-                from.Slice(((rect.y + y) * width + rect.x) * bpp, rowBytes).CopyTo(to.Slice(y * rowBytes, rowBytes));
-            return result;
-        }
-        internal static byte[] RentBuffer(int length)
-        {
-            // Full tiles use exact power-of-two buckets. Partial edge tiles retain
-            // exact lengths too, so all storage/upload consumers share one contract.
-            if (length < 16 || (length & (length - 1)) != 0) return new byte[length];
-            byte[] bytes = buffers.Rent(length);
-            if (bytes.Length == length) return bytes;
-            buffers.Return(bytes);
-            return new byte[length];
-        }
-        private static void ReturnBuffer(byte[] bytes)
-        { if (bytes.Length >= 16 && (bytes.Length & (bytes.Length - 1)) == 0) buffers.Return(bytes); }
         internal static void WriteRows(NativeArray<byte> target, int width, RectInt rect, int bpp, byte[] bytes)
         {
             var from = bytes.AsSpan(); var to = target.AsSpan();

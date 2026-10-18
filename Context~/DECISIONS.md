@@ -129,7 +129,7 @@
 - Контракт Text → Vector и прямого Text в Boolean Group: общая раскладка
   `TextLayerRenderer`, glyph.index и фактический face; исходные unhinted-кривые через
   Typography.OpenFont для TTF, OTF CFF и TTC. Конвертация создаёт одну compound-фигуру
-  с NonZero и сохраняет оболочку/ID/FX. Как у Shape, Clip меняется на Unbounded и
+  с NonZero и сохраняет оболочку/ID/FX. Для Text выбранный Tiling сохраняется, включая Source и Clip;
   FitFrame ребазирует локальную геометрию/трансформ с сохранением положения на холсте.
   Frame Clip/Ellipsis учитываются до FitFrame; пересекающие рамку глифы могут быть
   аппроксимированы для обрезки с допуском 0.01 px. Прямой Text-операнд сохраняет
@@ -320,7 +320,10 @@ TIFF-контейнер, precision/sRGB, атомарная запись, identi
 - Tiling: Source первым в списке; порядок отображения не должен менять сериализованные значения.
   Clip, Repeat, Mirror, растяжение края (Clamp), продолжение процедурных UV (Unbounded) различаются.
   Для источников без настоящего Unbounded допустим fallback; не обещать продолжение растра за UV.
-- Noise/Gradient создаются с Unbounded; Color Fill по умолчанию цветовой, UV — дополнительный режим.
+- Все новые слои и Reset хранят Source. LayerBehaviour.SourceTiling задаёт поведение без чтения кешей:
+  Shape/Vector/Boolean Group/Noise/Gradient/Color Fill — Unbounded; Drawing/Text/обычные группы/FX-слои — Clip;
+  File — Wrap Mode U/V исходной привязанной текстуры. Явные режимы имеют приоритет и сохраняются.
+  Color Fill по умолчанию цветовой, UV — дополнительный режим.
 - Color Fill также имеет Pattern: аналитическое поле расстояний для Triangles/Squares/Hexagons/Circles; Circle Layout Square/Dense. Roundness скругляет контур внутрь, Bulge отдельно меняет внутренний профиль. Seamless подгоняет периоды и суммарный трансформ слоя/группы к холсту (шаг поворота 90°, без скоса/перспективы), не переписывая исходные значения; приоритет над Tiling. FX после генерации могут нарушать бесшовность. Контракт API: fillMode + fillPattern.
 - Pattern Cell Color: Uniform/Random/Pattern; отдельная Palette, Seed и Variation для Random. Multiply/ReplaceRGB меняют только RGB, альфа остаётся от SDF. В зазорах цвет ближайшего контура. Seamless повторяет ID случайных ячеек и подгоняет регулярные цветовые периоды: 2×2 для квадратной сетки, 3 по X и пары строк для сот/плотных кругов; треугольники различаются ориентацией. Размер X/Y со связью пропорций; связь влияет только на UI-редактирование, API принимает точные размеры.
 - Live Quality по умолчанию 100%. HDR рядом с EV; footer-подсказки скрываются, когда места недостаточно.
@@ -603,6 +606,10 @@ Factory defaults новых слоёв и field initializers для отсутс
 
 ## Shape
 
+- Новые Shape и Vector хранят Tiling Source, включая создание инструментами/API
+  и JSON без transform.tiling; источник выбирает Unbounded. Явный Clip обрезает фигуру,
+  обводку и Feather по локальной рамке слоя. Все JSON-режимы и Shape/Text → Vector сохраняют выбранный Tiling.
+  Единицы Feather не меняются: Shape — пиксели документа, Vector — опорные пиксели фигуры.
 - Заливка Shape и Vector использует общий `VectorFillMode`: None=0, Solid=1,
   LinearGradient=2, RadialGradient=3, SquareGradient=4, DiamondGradient=5,
   CircularGradient=6. У Shape `fill` остаётся общим выключателем; `fillMode`
@@ -722,8 +729,8 @@ Factory defaults новых слоёв и field initializers для отсутс
   входа, не снимок зависшего потока. Windows-исключение для ProcDump явно разрешено
   пользователем; сам пакет использует переносимый журнал. Захват и тесты не запускались.
 - Shape → Vector использует геометрию Shape, не растр. Неподдерживаемый Feather и другие
-  случаи с потерей оформления отклоняются до замены. Clip переводится в Unbounded для
-  сохранения выступающих окончаний и обводок; остальные параметры слоя и FX сохраняются.
+  случаи с потерей оформления отклоняются до замены. Выбранный Tiling, включая Source и Clip,
+  сохраняется; Clip сохраняет исходную рамку. Остальные параметры слоя и FX сохраняются.
 - Контракт, лимиты и интерфейс — в [руководстве](../Documentation~/ru/vector.md).
   SVG, прямой векторный SDF и дальнейший дизайн не включены автоматически: [F08](Backlog/SVG_LAYER.md).
 - Boolean Group: снизу вверх, первый включённый ребёнок — основа, последующие применяют

@@ -99,7 +99,7 @@ const defs = {
     derivative: normalEnum('DerivativeFilter'), alphaMode: normalEnum('AlphaMode'), output: normalEnum('OutputMode'), encoding: normalEnum('OutputEncoding'),
     strength: number(0, 128), blackLevel: number(0, 1), whiteLevel: number(.0001, 16), gamma: number(.05, 8), smoothing: number(0, 64), mediumRadius: number(.5, 128), largeRadius: number(.5, 512),
     fineDetail: number(0, 8), mediumDetail: number(0, 8), largeDetail: number(0, 8), lightRemoval: number(0, 1), inverted: bool, flipX: bool, flipY: bool, ignoreTransparent: bool }),
-  transform: object({ reset: bool, originalAspect: bool, position: { ...transformVec, description: 'Parent-local offset in canvas-pixel units; default [0,0], X right, Y up.' }, scale: { ...transformVec, description: 'Each absolute component must be at least 0.00001.' }, pivot: transformVec, rotation: number(-360000, 360000), matrix: tuple(number(-1e15,1e15),9), tiling: enumeration('Utils.cs', 'TransformTilingMode') }),
+  transform: object({ reset: bool, originalAspect: bool, position: { ...transformVec, description: 'Parent-local offset in canvas-pixel units; default [0,0], X right, Y up.' }, scale: { ...transformVec, description: 'Each absolute component must be at least 0.00001.' }, pivot: transformVec, rotation: number(-360000, 360000), matrix: tuple(number(-1e15,1e15),9), tiling: { ...enumeration('Utils.cs', 'TransformTilingMode'), default: 'Source', description: 'New layers and Reset store Source. Intrinsic policy, independent of cache textures: geometry/procedural sources Unbounded; Drawing/Text/groups/image effects Clip; File bound texture U/V wrap modes. Explicit modes are preserved.' } }),
 
 };
 const seamless = defs.makeSeamless.properties;
@@ -194,6 +194,10 @@ defs.vector = object({
   shapes: { type: 'array', maxItems: 1, items: { $ref: 'document.schema.json#/$defs/VectorShape' } },
   referenceSize: tuple({ type: 'number', exclusiveMinimum: 0, maximum: 10000000 }, 2),
   edgeMode: enumeration('Layers/VectorModel.cs', 'VectorEdgeMode'),
+  feather: { ...number(0,8192), default: 0,
+    description: 'Finite total soft transition width in vector reference pixels; scales with the vector geometry like stroke width. Smoothstep of signed distance to fill and actual stroke/dash boundaries, not a blur. Zero preserves the existing renderer. Step ignores Feather without clearing either stored setting.' },
+  featherPosition: { ...enumeration('Layers/VectorModel.cs', 'VectorFeatherPosition'), default: 'Centered',
+    description: 'Inside fades inward, Outside outward, Centered equally across the painted boundary. Layer-wide setting, not a VectorShape or Boolean Group style field. Retained when Feather is zero or Edge Mode is Step.' },
   brushDraft: { anyOf: [{ $ref: 'document.schema.json#/$defs/VectorBrushDraft' }, { type: 'null' }] }
 });
 defs.vector.description = 'Partial settings.vector patch. One figure per layer; compound contours and holes stay in that figure. Supplied top-level fields replace their values; arrays replace whole arrays. Preserves omitted fields and original brush coverage/frame mapping. Shape/contour/point IDs are unique within the layer; aggregate limits are 8192 contours and 65536 points.';
@@ -208,7 +212,7 @@ defs.booleanGroup = object({
 });
 defs.booleanGroup.description = 'Partial settings.booleanGroup for type:booleanGroup. Isolated compositing only. Children must be Shape, Vector, editable Text or nested Boolean Groups with closed geometry; raster operands and open contours are rejected. Text uses original source-font outlines and retains editable settings.text; missing or unsupported outlines fail explicitly, without raster tracing. Child styles remain stored and are active only in Combine with appearance:Layers. Child FX remain ignored. Creating through the API uses defaults or the supplied style, without implicit child-style inheritance.';
 defs.convertToVector = object({ op: { const: 'convertToVector' }, layer: str(256) }, ['op', 'layer']);
-defs.convertToVector.description = 'Convert Shape or Text geometrically on the same layer shell. Both fit the geometry frame and change Clip tiling to Unbounded while preserving canvas placement; stored local geometry and transform values may change together. Unsupported Shape feather, stroke transforms/compositing or offset cusps fail before replacement. Text preserves layout as one NonZero compound figure from original unhinted font outlines, including Frame Clip/Ellipsis before frame fitting. Crossing glyphs may be flattened for clipping with 0.01px tolerance. Missing/unsupported source fonts or synthetic bold without a real bold face fail before replacement. Synthetic italic is supported. No raster tracing or variable-axis/color/bitmap-font support is promised.';
+defs.convertToVector.description = 'Convert Shape or Text geometrically on the same layer shell. Both preserve the selected tiling, including Source and explicit Clip. Clip retains its frame; otherwise fitting preserves canvas placement while stored local geometry and transform values may change together. Unsupported Shape feather, stroke transforms/compositing or offset cusps fail before replacement. Text preserves layout as one NonZero compound figure from original unhinted font outlines, including Frame Clip/Ellipsis before frame fitting. Crossing glyphs may be flattened for clipping with 0.01px tolerance. Missing/unsupported source fonts or synthetic bold without a real bold face fail before replacement. Synthetic italic is supported. No raster tracing or variable-axis/color/bitmap-font support is promised.';
 defs.blend = enumeration('Utils.cs', 'BlendMode');
 defs.pressureBinding = object({
   enabled: bool,

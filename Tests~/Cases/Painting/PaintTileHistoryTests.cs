@@ -11,6 +11,21 @@ using Object = UnityEngine.Object;
 // Detached, owned fixtures; no windows or input. Native Undo is scoped to owned objects.
 public static partial class PaintTileHistoryTests
 {
+    sealed class HistoryMemoryProbe
+    {
+        readonly long allocatedAt = GC.GetAllocatedBytesForCurrentThread();
+        public long managedPeak, unityAllocatedPeak, mainThreadAllocated, nativeActivePeak, nativeIdlePeak;
+        public void Sample()
+        {
+            managedPeak = Math.Max(managedPeak, GC.GetTotalMemory(false));
+            unityAllocatedPeak = Math.Max(unityAllocatedPeak, UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong());
+            mainThreadAllocated = GC.GetAllocatedBytesForCurrentThread() - allocatedAt;
+            var pool = typeof(DrawingLayerBehaviour).Assembly.GetType("DCFApixels.WhimTex.PaintHistoryBuffers");
+            if (pool == null) return;
+            nativeActivePeak = Math.Max(nativeActivePeak, (long)pool.GetProperty("ActiveBytes", S).GetValue(null));
+            nativeIdlePeak = Math.Max(nativeIdlePeak, (long)pool.GetProperty("IdleBytes", S).GetValue(null));
+        }
+    }
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
     const BindingFlags S = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
     static Type Type(string name) => typeof(DrawingLayerBehaviour).Assembly.GetType("DCFApixels.WhimTex." + name, true);
@@ -451,6 +466,18 @@ public static partial class PaintTileHistoryTests
             Call(f.layer, "SyncPendingSurfaceToTexture");
             File.WriteAllBytes(Path.Combine(directory, "after-stored.bin"), f.pixels.GetRawTextureData<byte>().ToArray());
             Undo.SetCurrentGroupName("WhimTex reload test " + token);
+            AppDomain.CurrentDomain.SetData(ReloadKey, token);
+            AssemblyReloadEvents.AssemblyReloadCallback beforeReload = null;
+            beforeReload = () =>
+            {
+                AssemblyReloadEvents.beforeAssemblyReload -= beforeReload;
+                // Transfer's earlier shutdown callback has joined its consumers and
+                // released the idle pools before this diagnostic observer executes.
+                File.WriteAllText(Path.Combine(directory, "native-pools-after-drain.txt"),
+                    Type("PaintHistoryBuffers").GetProperty("ActiveBytes", S).GetValue(null) + "," +
+                    Type("PaintHistoryBuffers").GetProperty("IdleBytes", S).GetValue(null));
+            };
+            AssemblyReloadEvents.beforeAssemblyReload += beforeReload;
             SessionState.SetString(ReloadKey, token); keep = true;
             t.True((Object)Get(f.layer, "PixelUndoObject") != null, "Owned cursor survives with the document");
         }
@@ -468,6 +495,8 @@ public static partial class PaintTileHistoryTests
         var rect = new RectInt(0, 0, 768, 768);
         try
         {
+            t.True(AppDomain.CurrentDomain.GetData(ReloadKey) == null, "Actual domain reload discarded the old marker");
+            t.Equal("0,0", File.ReadAllText(Path.Combine(directory, "native-pools-after-drain.txt")), "Reload joins consumers and releases active/idle native planes");
             t.Equal(File.ReadAllText(Path.Combine(directory, "session.txt")), (string)Type("PaintHistoryStore").GetProperty("Root", S).GetValue(null), "Assembly reload keeps the same session and checkpoint files");
             Exact(t, File.ReadAllBytes(Path.Combine(directory, "after-stored.bin")), pixels.GetRawTextureData<byte>().ToArray(), "Stored pixels survive reload");
             Exact(t, File.ReadAllBytes(Path.Combine(directory, "after-half.bin")), Probe((RenderTexture)Call(layer, "EnsurePaintSurface", 768, 768), rect), "Half precision rebuilt from disk after reload");

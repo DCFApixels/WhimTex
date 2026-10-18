@@ -70,6 +70,20 @@ Shape 在启用 **Fill** 时也提供相同的填充控件。
 在狭窄转角处，完整端帽可能越过原始边界。
 **Edge Mode → Step** 关闭几何抗锯齿；颜色、Opacity 和 FX 仍可产生半透明效果。
 
+### Feather
+
+新建图形默认使用 **Tiling → Source**，对 Vector 选择 Unbounded。**Clip** 将几何、描边与 Feather 裁切到
+图层的局部框，而不仅是文档画布边缘。
+
+在 **Properties (Vector)** 中调整 **Feather (px)**，可柔化填充与描边的边缘，
+包括虚线端部及描边的内外两侧。宽度以图形参考像素为单位，像描边宽度一样
+随图形缩放。**Feather Position** 决定过渡位置：**Inside** 向内渐隐，
+**Outside** 向外渐隐，**Centered** 在边界两侧均匀分布。
+较大的数值可能让细小结构变淡，或填上狭窄间隙。
+
+Feather 为 `0` 时保留普通清晰边缘。**Edge Mode → Step** 忽略 Feather，
+但保留设置；切回 Antialiased 后重新生效。Feather 柔化边界，不模糊填充或描边颜色。
+
 ### 虚线
 
 Shape 使用相同的虚线控件。缩放 Shape 时，描边宽度和虚线长度保持文档像素大小；
@@ -132,10 +146,9 @@ Expand 仍作用于整个可编辑源遮罩。过于复杂的笔触可能触及�
 Rectangle、Ellipse、Polygon、Star、Line、Arc 和 Sector 按几何轮廓转换，
 包括圆角和倒角。图层的位置和 FX 保留。
 
-转换会将 **Clip** 平铺模式改为 **Unbounded**，以保留伸出的线帽和外侧描边；
-Vector 的 Clip 模式会将它们裁剪到图层框内。其他平铺模式保持选中。
-图层框会适配图形并保持画布位置，因此局部坐标和变换数值可能一起改变。
-Repeat/Mirror/Source 的边缘采样也可能不同，因为 Vector 使用已渲染的图层图像。
+转换保留 Source 和所有显式选择的平铺模式。Clip 保留原有裁切框；
+其他模式会让图层框适配图形并保持画布位置，因此局部坐标和变换数值可能一起改变。
+Repeat/Mirror 的边缘采样也可能不同，因为 Vector 使用已渲染的图层图像。
 
 以下情况会在替换 Shape 前给出不支持提示：启用非零 Feather；
 非零宽度描边使用不均匀或投影变换；半透明描边覆盖填充；
@@ -148,8 +161,8 @@ Repeat/Mirror/Source 的边缘采样也可能不同，因为 Vector 使用已渲
 选中文字图层，选择 **Convert to Vector**。文字会变成一个可编辑图形，包含各个
 字形的轮廓和孔洞。当前分行、对齐、间距、Horizontal Scale、Layout Offset、
 Frame Clip/Ellipsis，以及图层位置和 FX 都会保留。之后可用节点工具调整字形。
-与 Shape 一样，转换会将 **Clip** 平铺模式改为 **Unbounded**，并让图层框适配图形。
-局部坐标和变换数值可能一起改变，但画布位置保持不变。文字的 Frame Clip 会在适配前完成。
+文字转换保留所选平铺模式，包括 Source 和显式 Clip。Clip 保留原有图层框；
+其他模式适配图形时，局部坐标和变换数值可能一起改变，但画布位置保持不变。文字的 Frame Clip 会在适配前完成。
 
 转换读取字体的原始曲线，不描摹文字位图。Hinted AA/Pixel 的像素网格修正不会
 保留，因此边缘可能略有变化。跨越 Clip 框的字形可能先用细小直线段近似，再裁剪。

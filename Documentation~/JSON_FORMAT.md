@@ -243,7 +243,7 @@ field contract.
 ## Vector layers
 
 Vector layers use `$type: "VectorLayerBehaviour"`, with `shapes`, `referenceSize`,
-`edgeMode` and optional `brushDraft`. Each authored layer has at most one figure.
+`edgeMode`, `feather`, `featherPosition` and optional `brushDraft`. Each authored layer has at most one figure.
 Multiple contours, including holes and disconnected parts, may form that one figure.
 The layer owns its transform; whole-figure transforms do not rewrite its control points.
 Shape, contour and point IDs are persistent;
@@ -259,6 +259,22 @@ edits, using the old width (or 1 when it is zero), in the same Undo operation.
 Each shape uses the shared [figure-fill contract](#figure-fills) and retains its fill rule, fill/gradient settings,
 stroke alignment, join, cap, miter limit and dash settings, including inactive values
 in every write mode.
+
+`feather` is a finite total soft transition width in vector reference pixels,
+0..8192 inclusive, default `0`. `featherPosition` is `Inside`, `Outside` or
+`Centered` (default). Inside fades inward from each painted boundary, Outside
+fades outward, and Centered distributes the transition equally across it.
+These are root Vector-layer settings, not per-figure fields or Boolean Group
+style settings. Feather scales with vector geometry like the stroke; it is not
+a fixed canvas-pixel blur. It evaluates smoothstep of signed distance to the fill
+and the actual stroked region, including dash ends, joins and both outline
+boundaries. It changes coverage before the layer's FX, opacity and composition,
+without blurring paint colors. `feather:0` preserves the existing rendering path.
+`edgeMode:"Step"` ignores Feather without clearing either stored setting.
+All JSON write modes, clipboard fragments and native TIFF retain both values
+while inactive; optimized modes may omit defaults, restored as `0` / `Centered`.
+Native TIFF includes these public fields through the automatic tagged-field
+serializer, without a separate Vector payload or migration.
 
 `brushDraft` retains `width`, `height`, `coverage`, `shapeId`, `tolerance`,
 `expansion` and `frame`. `frame` is `[x,y,width,height]` in normalized layer-local
@@ -328,17 +344,21 @@ splits it into an ordinary Group retaining the old layer ID, transform and FX,
 with one independently styled figure per child. It does not save or overwrite the
 source file. The resulting document must still satisfy the normal layer budget.
 `convertToVector` converts a Shape on the same layer shell,
-preserving its ID and FX. For appearance, conversion changes transform tiling from
-`Clip` to `Unbounded`: Shape's Clip does not clip geometric strokes, whereas Vector's
-Clip clips to the normalized layer frame. The geometry frame is fitted while
+preserving its ID, FX and transform tiling. Every layer defaults to `Source`, including
+omitted `transform` or `tiling` and Reset. The source declares its policy independently
+of preview/intermediate/cache textures: Shape, Vector, Boolean Group, Noise, Gradient
+and Color Fill use `Unbounded`; Drawing, Text, ordinary groups and image effects use
+`Clip`; File uses the bound source texture's U/V wrap modes. An explicit mode overrides
+that policy. Explicit `Clip` cuts geometry, strokes and Feather at the local frame.
+Every JSON writing mode retains explicit modes and stored `Source`. The geometry frame is fitted while
 preserving canvas placement and style; stored local coordinates/transform values
 may change together. The C# conversion helper is
 `ShapeToVector.Convert(ShapeLayerBehaviour, WhimTexDocument)` and returns a detached
-replacement behaviour; callers swapping it into a layer make the same Clip-to-Unbounded
-adjustment and call `VectorLayerStructure.FitFrame(layer, width, height)`.
+replacement behaviour; callers swapping it into a layer keep its tiling and call
+`VectorLayerStructure.FitFrame(layer, width, height)` (which retains Clip frames).
 Straight edges remain straight; analytic arcs become cubic
 curves, with elliptic offset arcs subdivided to a 0.01 canvas-pixel sampling tolerance.
-Repeat/Mirror/Source sample Vector's raster source and may differ at frame boundaries.
+Repeat/Mirror sample Vector's raster source and may differ at frame boundaries.
 Active feather, strokes under nonuniform/projective transforms, overlapping
 translucent fill/stroke replacement, and arc offsets that develop cusps or overlapping end caps produce an
 explicit unsupported diagnostic before replacement. Curve approximation and the
@@ -349,7 +369,7 @@ different rasterizers do not promise pixel-identical antialiasing.
 `convertToVector` also accepts Text. The C# helper
 `TextToVector.Convert(TextLayerBehaviour source, WhimTexDocument document)` returns a
 detached `VectorLayerBehaviour`. As with Shape, callers replace the behaviour on the
-existing layer, change transform tiling `Clip` to `Unbounded`, then call
+existing layer, retain the stored tiling (including `Source` and explicit `Clip`), then call
 `VectorLayerStructure.FitFrame(layer, width, height)`. The layer ID, name, FX, shared
 rendering settings and Boolean operation stay intact. Fitting preserves canvas placement;
 stored local geometry and transform values may change together. Text Frame Clip is

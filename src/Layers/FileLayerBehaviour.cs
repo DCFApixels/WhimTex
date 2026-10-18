@@ -7,6 +7,7 @@ namespace DCFApixels.WhimTex
     public sealed class FileLayerBehaviour : LayerBehaviour
     {
         public Texture2D sourceTexture;
+        public override TransformTilingMode SourceTiling => TransformTilingMode.Source;
         [SerializeField] private bool sourceAssigned;
         [SerializeField, HideInInspector] internal string portableAssetGuid;
         [SerializeField, HideInInspector] internal string portableAssetLocalId;

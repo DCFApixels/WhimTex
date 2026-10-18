@@ -2,6 +2,7 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "vector-feather": ["vector-feather-v1", "vector-feather-undo-v1", "vector-feather-api-v1", "vector-persistence-v1"],
     "paint-undo-continuation": [
       "paint-undo-continuation-small",
       "paint-undo-continuation-8k-control",
@@ -1616,8 +1617,12 @@
       "seamless-release-stress-2048-mode-3-v2",
       "seamless-release-stress-2048-mode-4-v2"
     ],
+    "source-tiling": ["source-tiling-v1", "geometric-tiling-v1", "vector-feather-v1", "vector-shape-parity-v1", "vector-persistence-v1"],
     "rendering": [
+      "source-tiling-v1",
+      "geometric-tiling-v1",
       "vector-geometry-v1",
+      "vector-feather-v1",
       "vector-rendering-v1",
       "vector-shape-parity-v1",
       "alpha-presence-v1",
@@ -7752,6 +7757,24 @@
       }
     },
     {
+      "id": "source-tiling-v1", "file": "Tests~/Cases/Rendering/SourceTilingTests.cs",
+      "runner": "run_script", "entry": "SourceTilingTests.Run", "args": [], "category": "regression", "timeoutMs": 60000,
+      "effects": [], "groups": ["rendering", "shape", "vector", "documents", "regression"],
+      "prerequisites": "Idle matching graphics-enabled Editor with intrinsic Source policies compiled.",
+      "setup": "Detached documents and textures: source policies, explicit modes, procedural equality, paint guards, Vector cache-wrap independence and File per-axis wraps.",
+      "teardown": "Destroy owned documents/textures/caches and restore render state. No user windows, imported assets or Undo.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "geometric-tiling-v1", "file": "Tests~/Cases/Rendering/GeometricTilingTests.cs",
+      "runner": "run_script", "entry": "GeometricTilingTests.Run", "args": [], "category": "regression",
+      "timeoutMs": 60000, "effects": ["temp-files"], "groups": ["rendering", "shape", "vector", "documents", "regression"],
+      "prerequisites": "Idle matching graphics-enabled Editor with current Shape shader and geometric creation/JSON paths compiled.",
+      "setup": "Detached document; constructor, tool placement, API/JSON defaults, explicit Clip roundtrips and render/consumer checks.",
+      "teardown": "Destroy owned objects, restore render state, retain comparison PNG in Temp/WhimTex. No user windows, assets or global Undo.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
       "id": "shape-strokes-v1", "file": "Tests~/Cases/Rendering/ShapeStrokeTests.cs",
       "runner": "run_script", "entry": "ShapeStrokeTests.Run", "args": [], "category": "regression",
       "timeoutMs": 60000, "effects": [], "groups": ["rendering", "shape", "regression"],
@@ -7837,6 +7860,44 @@
       "supportFiles": [
         "Tests~/Framework/TestApi.cs"
       ]
+    },
+    {
+      "id": "vector-feather-v1",
+      "file": "Tests~/Cases/Rendering/VectorFeatherTests.cs",
+      "runner": "run_script",
+      "entry": "VectorFeatherTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files"],
+      "groups": ["regression", "rendering"],
+      "prerequisites": "Idle graphics-enabled matching Editor with current Vector Feather sources compiled. No concurrent compilation.",
+      "setup": "Own one detached document and textures; original-contour distance, consumer, CPU/GPU parity and cache checks. No assets or user windows.",
+      "teardown": "Destroy owned documents/textures; restore active render target and sRGB state. Keep diagnostic preview in Temp/WhimTex.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "vector-feather-undo-v1",
+      "file": "Tests~/Cases/Rendering/VectorFeatherTests.cs",
+      "runner": "run_script", "entry": "VectorFeatherTests.RunUndo", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": ["user-state"],
+      "groups": ["regression", "rendering", "documents"],
+      "prerequisites": "Idle matching graphics Editor; no user edits or concurrent tests during owned Undo/Redo.",
+      "setup": "One detached document and one isolated native Undo group; render before/after Feather edits.",
+      "teardown": "Clear only owned document Undo and destroy owned transient resources. No user windows or assets.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "vector-feather-api-v1",
+      "file": "Tests~/Cases/Documents/VectorPersistenceTests.cs",
+      "runner": "run_script", "entry": "VectorPersistenceTests.RunFeatherApi", "args": [],
+      "category": "regression", "timeoutMs": 60000, "effects": [],
+      "groups": ["regression", "documents", "automation"],
+      "prerequisites": "Idle matching Editor with current Vector Feather model/API compiled.",
+      "setup": "Detached document; partial field patches and atomic rejection of invalid widths/positions.",
+      "teardown": "Destroy owned document. No assets, user windows, files or Undo.",
+      "result": {"kind": "structured"}, "supportFiles": ["Tests~/Framework/TestApi.cs"]
     },
     {
       "id": "vector-rendering-v1",
@@ -31297,6 +31358,114 @@
         ],
         "pollMs": 5000
       }
+    },
+    {
+      "file": "Tests~/Cases/Painting/PaintHistoryPageTests.cs",
+      "runner": "run_script",
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching Editor; 8K needs 7 GB VRAM. One case at a time.",
+      "setup": "Owned native pools and isolated Temp journal. Exact failed-write recovery and sequential reuse; no user documents.",
+      "teardown": "Destroy owned fixture, release failed payload and idle pool; restore original journal.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "id": "paint-history-native-pages",
+      "entry": "PaintTileHistoryTests.CheckHistoryPages",
+      "args": []
+    },
+    {
+      "id": "paint-history-burst-8192-saturation-hdr",
+      "file": "Tests~/Cases/Painting/PaintHistoryBurstTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartBurstHdr",
+      "args": [
+        "$runId",
+        8192,
+        false
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 180000,
+      "workflow": "diagnostic",
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelBurst",
+        "args": [
+          "$runId"
+        ]
+      },
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching graphical Editor; 8K requires 7 GB VRAM. Run one case at a time.",
+      "setup": "Six rapid owned masked HDR strokes, nine Half probes per revision and an isolated 16 GiB Temp journal; no windows or user documents.",
+      "teardown": "Drain owned transfers, clear only owned Undo and release fixtures.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupBurst",
+        "args": [
+          "$runId"
+        ]
+      },
+      "async": {
+        "entry": "PaintTileHistoryTests.PollBurst",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/PaintHistoryPageTests.cs",
+      "runner": "run_script",
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching Editor; 8K needs 7 GB VRAM. One case at a time.",
+      "setup": "Owned exact SDR/HDR raw-page regression with Burst disabled temporarily; isolated Temp journal.",
+      "teardown": "Drain writers and restore Burst option in finally; release only owned history.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "id": "paint-history-native-no-burst",
+      "entry": "PaintTileHistoryTests.CheckHistoryWithoutBurst",
+      "args": []
     }
   ]
 }

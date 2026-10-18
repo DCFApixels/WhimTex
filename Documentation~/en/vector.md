@@ -15,6 +15,8 @@ A Vector layer holds one editable figure with its own transform. A figure may ha
 several contours, including holes. Add a layer with **+ → Vector**, or draw a new
 figure with **Vector Pen** or **Vector Brush**. Each new figure gets its own layer.
 Use **Layer Select** to select figures and **Vector Nodes** to edit their points.
+New figures use **Tiling → Source**, which selects Unbounded for Vector. **Clip** instead cuts geometry, strokes and
+Feather at the layer's local frame, not just at the document canvas.
 
 ## Draw and edit
 
@@ -83,6 +85,19 @@ shifted path has a different length. Very narrow inward offsets can split or dis
 at tight corners, complete caps can cross the original boundary.
 **Edge Mode → Step** removes geometric antialiasing; colors,
 opacity and FX can still produce partial transparency.
+
+### Feather
+
+Use **Feather (px)** in **Properties (Vector)** to soften the fill and outline
+edges. It also softens dash ends and the inner and outer sides of a stroke.
+The width is measured in the figure's reference pixels and scales with the figure,
+like stroke width. **Feather Position** chooses where the transition lies:
+**Inside** fades inward, **Outside** outward, and **Centered** equally on both sides.
+Large values can fade thin details or close narrow gaps.
+
+Set Feather to `0` for the normal crisp edge. **Edge Mode → Step** ignores Feather
+but keeps the settings, so switching back to Antialiased restores them. Feather
+softens the boundary rather than blurring the fill or stroke colors.
 
 ### Dashes
 
@@ -165,10 +180,9 @@ Select a Shape and choose **Convert to Vector** in Properties or its context men
 Rectangle, Ellipse, Polygon, Star, Line, Arc and Sector use their geometric contours,
 including rounded/beveled corners. The layer keeps its placement and FX.
 
-Conversion changes **Clip** tiling to **Unbounded** to preserve protruding line caps
-and outer strokes: Vector's Clip would crop them to the layer frame. Other tiling
-modes stay selected. The frame is fitted to the figure while preserving placement;
-the local coordinates and transform values may change together. Repeat/Mirror/Source edge
+Conversion retains Source and every explicitly selected tiling mode. Clip keeps
+the original clipping frame; otherwise the frame is fitted to the figure while preserving placement;
+the local coordinates and transform values may change together. Repeat/Mirror edge
 sampling can differ because Vector samples its rendered source image.
 
 Conversion reports an unsupported setting before replacing the Shape when active
@@ -184,8 +198,8 @@ Select a Text layer and choose **Convert to Vector**. The letters become one edi
 figure with separate contours and holes. The current line layout, alignment, spacing,
 Horizontal Scale, Layout Offset and Frame Clip/Ellipsis are preserved, along with the
 layer's placement and FX. You can then reshape letters with the node tools.
-As with Shape, conversion changes **Clip** tiling to **Unbounded** and fits the figure
-frame. Local coordinates and transform values may change together while preserving
+Text conversion retains the selected tiling, including Source and explicit Clip.
+Unless Clip keeps the original frame, local coordinates and transform values may change together while preserving
 canvas placement. Text's Frame Clip is applied before this fitting step.
 
 Conversion uses the font's original curves. It does not trace the rendered text;

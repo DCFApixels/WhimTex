@@ -288,6 +288,8 @@ Shader "Hidden/WhimTex/Shape"
                 float strokeAlpha = strokeCoverage * saturate(ink.a);
                 float alpha = fillAlpha + strokeAlpha;
                 float3 rgb = (paint.rgb * fillAlpha + ink.rgb * strokeAlpha) / max(alpha, 1e-8);
+                // Keep derivatives above uniform across the crop boundary.
+                if (_ShapeTiling == 0 && (any(uv < 0) || any(uv > 1))) return 0;
                 return float4(rgb, alpha);
             }
             ENDCG

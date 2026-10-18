@@ -22,7 +22,8 @@ namespace DCFApixels.WhimTex
                         {
                             var shape = vector.shapes[i];
                             var child = new Layer(new VectorLayerBehaviour { referenceSize = vector.referenceSize,
-                                edgeMode = vector.edgeMode, shapes = new List<VectorShape> { shape },
+                                edgeMode = vector.edgeMode, feather = vector.feather, featherPosition = vector.featherPosition,
+                                shapes = new List<VectorShape> { shape },
                                 brushDraft = vector.brushDraft?.shapeId == shape.id ? vector.brushDraft : null })
                                 { layerName = shape.name, colorRange = LayerColorRange.HDR, blendRange = LayerBlendRange.HDR, filterMode = layer.filterMode };
                             child.transform = TextureTransform.Default;
@@ -44,7 +45,7 @@ namespace DCFApixels.WhimTex
         {
             if (layer?.Behaviour is not VectorLayerBehaviour vector || vector.shapes?.Count != 1) return;
             // Clipped/repeating sources have a meaningful image frame: do not change that crop.
-            if (layer.transform.tiling != TransformTilingMode.Unbounded) return;
+            if (layer.EffectiveTiling != TransformTilingMode.Unbounded) return;
             Rect bounds = Bounds(vector.shapes[0]);
             if (!VectorGeometry.Finite(bounds.min) || !VectorGeometry.Finite(bounds.max)) return;
             var size = bounds.size;

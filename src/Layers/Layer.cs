@@ -106,6 +106,7 @@ namespace DCFApixels.WhimTex
                 var value = PixelCanvasTransform;
                 if ((RequiresInput || Behaviour is ShaderProcessorLayerBehaviour) && transformCache?.parent != null)
                     value.matrix = transformCache.world * transformCache.parentInverse;
+                value.tiling = ResolveTiling(value.tiling);
                 return value;
             }
         }
@@ -267,6 +268,10 @@ namespace DCFApixels.WhimTex
         internal Texture SamplingSource => this?.Behaviour is FileLayerBehaviour file ? file.sourceTexture :
             this?.Behaviour is DrawingLayerBehaviour drawing ? drawing.StoredTexture : null;
 
+        public TransformTilingMode EffectiveTiling => ResolveTiling(transform.tiling);
+        internal TransformTilingMode ResolveTiling(TransformTilingMode requested) => requested == TransformTilingMode.Source
+            ? Behaviour?.SourceTiling ?? TransformTilingMode.Clip : requested;
+
         internal FilterMode ResolveFilterMode(Texture fallback = null)
         {
             switch (filterMode)
@@ -356,16 +361,18 @@ namespace DCFApixels.WhimTex
                             UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsSRGBFormat(t.graphicsFormat) ? 1f : 0f);
                         // Even identity transforms must use the independent filter/wrap settings.
                         TextureTransform applied = context.applyTransform ? RenderTransform : TextureTransform.Default;
+                        applied.tiling = ResolveTiling(applied.tiling);
                         Texture samplingSource = SamplingSource;
-                        if (samplingSource == null)
-                            samplingSource = source;
                         TextureWrapMode wrapU = TextureWrapMode.Clamp;
                         TextureWrapMode wrapV = TextureWrapMode.Clamp;
                         switch (applied.tiling)
                         {
                             case TransformTilingMode.Source:
-                                wrapU = samplingSource.wrapModeU;
-                                wrapV = samplingSource.wrapModeV;
+                                if (samplingSource != null)
+                                {
+                                    wrapU = samplingSource.wrapModeU;
+                                    wrapV = samplingSource.wrapModeV;
+                                }
                                 break;
                             case TransformTilingMode.Repeat:
                                 wrapU = wrapV = TextureWrapMode.Repeat;
@@ -505,6 +512,7 @@ namespace DCFApixels.WhimTex
         }
 
         internal virtual void InitializeLayer(Layer layer) { }
+        public virtual TransformTilingMode SourceTiling => TransformTilingMode.Clip;
         public string Id => Owner.Id;
         public string layerName { get => Owner.layerName; set => Owner.layerName = value; }
         public bool enabled { get => Owner.enabled; set => Owner.enabled = value; }

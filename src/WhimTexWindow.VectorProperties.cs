@@ -20,6 +20,15 @@ namespace DCFApixels.WhimTex
                 field.RegisterValueChangedCallback(e => Change("Change Vector " + label, () => write((T)e.newValue)));
             }
             EnumControl(root, "Edge Mode", () => vector.edgeMode, value => vector.edgeMode = value);
+            var featherSettings = new VisualElement(); root.Add(featherSettings);
+            var feather = WhimTexUI.ConfigureField(new FloatField("Feather (px)") { name = "vectorFeather",
+                tooltip = "Soften fill and stroke boundaries in layer reference pixels. Scales with the figure; does not blur its colors." });
+            featherSettings.Add(feather);
+            bindings.Track(feather, () => vector.feather);
+            feather.RegisterValueChangedCallback(e => Change("Change Vector Feather", () =>
+                vector.feather = ShapeLayerBehaviour.Limit(e.newValue, 0, 8192, vector.feather)));
+            EnumControl(featherSettings, "Feather Position", () => vector.featherPosition, value => vector.featherPosition = value);
+            bindings.Add(() => featherSettings.SetEnabled(vector.edgeMode != VectorEdgeMode.Step && !activeDocument.IsBooleanStyleSuppressed(layer)));
             var tools = new VisualElement(); tools.AddToClassList("whimtex-vector-actions"); root.Add(tools);
             tools.Add(new Button(() => SetCanvasTool(CanvasTool.VectorPen)) { text = "Pen" });
             tools.Add(new Button(() => SetCanvasTool(CanvasTool.Transform)) { text = "Transform" });

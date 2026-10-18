@@ -757,7 +757,8 @@
           }
         },
         "transform": {
-          "$ref": "#/$defs/TextureTransform"
+          "$ref": "#/$defs/TextureTransform",
+          "description": "Omitted transform.tiling defaults to Source for every layer. The source declares its stable policy: geometry and procedural generators use Unbounded; Drawing, Text, groups and image effects use Clip; File inherits its bound texture's U/V wrap modes. Never inferred from preview or render-cache textures. Explicit modes, including Clip, survive Compact writing and Shape/Text conversion."
         },
         "booleanOperation": {
           "type": "string",
@@ -1911,7 +1912,9 @@
             "Source",
             "Clamp",
             "Unbounded"
-          ]
+          ],
+          "default": "Source",
+          "description": "Source delegates to the layer source's intrinsic tiling policy, not render-cache texture metadata. Explicit modes override it. Reset restores Source."
         }
       }
     },
@@ -5238,7 +5241,7 @@
             256,
             256
           ],
-          "description": "Physical document pixel size at creation. Coordinates and tangent offsets are layer-local y-up; stroke widths and dash offsets use these reference pixels. Relative dash lengths multiply strokeWidth. All follow the layer transform."
+          "description": "Physical document pixel size at creation. Coordinates and tangent offsets are layer-local y-up; stroke widths, dash offsets and Feather use these reference pixels. Relative dash lengths multiply strokeWidth. All follow the layer transform."
         },
         "edgeMode": {
           "type": "string",
@@ -5246,6 +5249,23 @@
             "Antialiased",
             "Step"
           ]
+        },
+        "feather": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8192,
+          "default": 0,
+          "description": "Finite total soft transition width in vector reference pixels; scales with the vector geometry like stroke width. Smoothstep of signed distance to fill and actual stroke/dash boundaries, not a blur. Zero preserves the existing renderer. Step ignores Feather without clearing either stored setting."
+        },
+        "featherPosition": {
+          "type": "string",
+          "enum": [
+            "Inside",
+            "Outside",
+            "Centered"
+          ],
+          "default": "Centered",
+          "description": "Inside fades inward, Outside outward, Centered equally across the painted boundary. Layer-wide setting, not a VectorShape or Boolean Group style field. Retained when Feather is zero or Edge Mode is Step."
         },
         "brushDraft": {
           "anyOf": [

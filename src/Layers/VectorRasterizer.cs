@@ -131,6 +131,7 @@ namespace DCFApixels.WhimTex
             var viewport = new Paths64 { StrokeGeometry.ToPath(new List<Vector2>
                 { Vector2.zero, new Vector2(model.referenceSize.x, 0), model.referenceSize, new Vector2(0, model.referenceSize.y) }) };
             var row = new CoverageRow(width);
+            bool feathered = model.edgeMode != VectorEdgeMode.Step && model.feather > 0;
             int flattenedCount = 0, edgeCount = 0;
             long work = 0, coverageBytes = 0;
             for (int shapeIndex = 0; shapeIndex < model.shapes.Count; shapeIndex++)
@@ -138,7 +139,8 @@ namespace DCFApixels.WhimTex
                 var shape = model.shapes[shapeIndex];
                 if (!shape.visible || (shape.fillMode == VectorFillMode.None && (!shape.stroke || shape.strokeMode == VectorFillMode.None || shape.strokeWidth == 0))) continue;
                 var ready = model.PreparedContours?[shapeIndex];
-                float tolerance = FlattenTolerance(shape, model.referenceSize, toPixels, clipToUnit, prepared: ready);
+                float tolerance = FlattenTolerance(shape, model.referenceSize, toPixels, clipToUnit, prepared: ready,
+                    expansion: feathered ? model.feather : 0);
                 bool direct = ready != null && ready.fallbackContours == null;
                 var fillInput = direct ? ready.fillInput : new Paths64();
                 var closedPaths = direct ? ready.closedPaths : new List<List<Vector2>>();
@@ -174,6 +176,8 @@ namespace DCFApixels.WhimTex
                     strokes = StrokeGeometry.Outline(closedPaths, openPaths, interior, StrokeStyle.From(shape), tolerance);
                 }
                 var fills = shape.fillMode == VectorFillMode.None ? new Paths64() : interior;
+                using var feather = feathered ? new VectorFeatherRasterizer(fills, strokes, toPixels, model.referenceSize,
+                    width, height, model.feather, model.featherPosition, clipToUnit) : null;
                 if (clipToUnit)
                 {
                     if (fills.Count > 0) fills = StrokeGeometry.Resolve(fills, viewport, ClipType.Intersection);
@@ -181,6 +185,33 @@ namespace DCFApixels.WhimTex
                 }
                 var fill = new ScanPath(fills, toPixels, width, height, ref edgeCount);
                 var stroke = new ScanPath(strokes, toPixels, width, height, ref edgeCount);
+                if (feather != null)
+                {
+                    RectInt bounds = feather.Bounds;
+                    if (bounds.width <= 0 || bounds.height <= 0) continue;
+                    var fillEdges = fill.Snapshot(); var strokeEdges = stroke.Snapshot();
+                    if (prepared != null)
+                    {
+                        coverageBytes += (long)bounds.width * bounds.height * 16 * 2;
+                        if (coverageBytes > 128L * 1024 * 1024) throw new CoverageBudgetExceeded();
+                        var soft = new Coverage(shapeIndex, bounds.x, bounds.y, bounds.width, bounds.height); prepared.Add(soft);
+                        var mask = soft.texture.GetRawTextureData<Color>();
+                        VectorCoveragePreparation.Render(fillEdges, strokeEdges, mask, bounds.x, bounds.y, bounds.width, bounds.height, false, ref work);
+                        feather.Render(mask, bounds); soft.texture.Apply(false, false);
+                    }
+                    else
+                    {
+                        for (int y = bounds.y; y < bounds.yMax; y += 32)
+                        {
+                            var tile = new RectInt(bounds.x, y, bounds.width, Math.Min(32, bounds.yMax - y));
+                            using var mask = new NativeArray<Color>(tile.width * tile.height, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+                            VectorCoveragePreparation.Render(fillEdges, strokeEdges, mask, tile.x, tile.y, tile.width, tile.height, false, ref work);
+                            feather.Render(mask, tile);
+                            PaintFeather(shape, model, pixels, width, height, mask, tile, canvasToLocal);
+                        }
+                    }
+                    continue;
+                }
                 Coverage coverage = null;
                 if (prepared != null)
                 {
@@ -200,7 +231,7 @@ namespace DCFApixels.WhimTex
         }
 
         internal static float FlattenTolerance(VectorShape shape, Vector2 reference, ProjectiveMatrix m, bool clip, bool includeStroke = true,
-            PreparedShape prepared = null)
+            PreparedShape prepared = null, float expansion = 0)
         {
             double x0 = 0, y0 = 0, x1 = reference.x, y1 = reference.y;
             if (!clip)
@@ -218,7 +249,7 @@ namespace DCFApixels.WhimTex
                         Include(Vector2.Scale(p.position + p.outTangent, reference));
                     }
                 }
-                double expand = includeStroke && shape.stroke ? shape.strokeWidth * Math.Max(1, shape.miterLimit) : 0;
+                double expand = (includeStroke && shape.stroke ? shape.strokeWidth * Math.Max(1, shape.miterLimit) : 0) + expansion;
                 x0 -= expand; y0 -= expand; x1 += expand; y1 += expand;
             }
             void Include(Vector2 p) { x0 = Math.Min(x0, p.x); x1 = Math.Max(x1, p.x); y0 = Math.Min(y0, p.y); y1 = Math.Max(y1, p.y); }
@@ -406,6 +437,36 @@ namespace DCFApixels.WhimTex
                     Color result = outAlpha > 1e-12f ? (source + destination * back) / outAlpha : default;
                     result.a = outAlpha; pixels[y * width + x] = result;
                 }
+            }
+        }
+
+        private static void PaintFeather(VectorShape shape, VectorLayerBehaviour model, NativeArray<Color> pixels,
+            int width, int height, NativeArray<Color> mask, RectInt bounds, ProjectiveMatrix canvasToLocal)
+        {
+            Color solid = HdrUtility.Decode(shape.fillColor), solidInk = HdrUtility.Decode(shape.strokeColor);
+            var paint = new FigureFill(shape.gradientStart, shape.gradientEnd, model.referenceSize, shape.gradientRepetitions);
+            var strokePaint = new FigureFill(shape.strokeGradientStart, shape.strokeGradientEnd, model.referenceSize, shape.strokeGradientRepetitions);
+            bool gradientFill = FigureFill.IsGradient(shape.fillMode), gradientStroke = FigureFill.IsGradient(shape.strokeMode);
+            for (int y = bounds.y; y < bounds.yMax; y++) for (int x = bounds.x; x < bounds.xMax; x++)
+            {
+                Color coverage = mask[(y - bounds.y) * bounds.width + x - bounds.x];
+                float fc = coverage.r, sc = coverage.g;
+                if (fc == 0 && sc == 0) continue;
+                Color color = solid, ink = solidInk;
+                if (fc > 0 && gradientFill || sc > 0 && gradientStroke)
+                {
+                    if (!canvasToLocal.TryPoint(new Double2((x + .5) / width, (y + .5) / height), out var uv))
+                        throw new InvalidOperationException("Vector gradient sample crosses the projective horizon.");
+                    double px = uv.x * model.referenceSize.x, py = uv.y * model.referenceSize.y;
+                    if (fc > 0 && gradientFill) color = GradientColor(shape.gradient, paint.Coordinate(shape.fillMode, px, py));
+                    if (sc > 0 && gradientStroke) ink = GradientColor(shape.strokeGradient, strokePaint.Coordinate(shape.strokeMode, px, py));
+                }
+                float sa = ink.a * sc, fa = color.a * Mathf.Max(0, fc - ink.a * coverage.b);
+                float alpha = Mathf.Clamp01(sa + fa);
+                Color destination = pixels[y * width + x];
+                float back = destination.a * (1 - alpha), outAlpha = alpha + back;
+                Color result = outAlpha > 1e-12f ? (color * fa + ink * sa + destination * back) / outAlpha : default;
+                result.a = outAlpha; pixels[y * width + x] = result;
             }
         }
 

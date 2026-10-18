@@ -6,7 +6,7 @@ namespace DCFApixels.WhimTex
     [Serializable]
     public sealed class NoiseLayerBehaviour : LayerBehaviour
     {
-        internal override void InitializeLayer(Layer layer) => layer.transform.tiling = TransformTilingMode.Unbounded;
+        public override TransformTilingMode SourceTiling => TransformTilingMode.Unbounded;
         public enum NoiseType { OpenSimplex2, OpenSimplex2S, Cellular, Perlin, ValueCubic, Value, WhiteNoise, BlueNoise }
         public enum Field { Value, Curl, GradientVector, CellDirection }
         public enum VectorOutput { PackedVector, SignedVector }

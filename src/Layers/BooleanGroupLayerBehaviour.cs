@@ -21,11 +21,11 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private int preparedHash;
         [NonSerialized] private bool prepared;
         internal int GeometryBuildCount { get; private set; }
+        public override TransformTilingMode SourceTiling => TransformTilingMode.Unbounded;
         internal override bool IsGroup => true;
         internal override void InitializeLayer(Layer layer)
         {
             layer.compositing = GroupCompositing.Isolated;
-            layer.transform.tiling = TransformTilingMode.Unbounded;
         }
 
         public void Validate()

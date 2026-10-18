@@ -173,9 +173,13 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 }
                 if (type == typeof(VectorLayerBehaviour))
                 {
+                    properties["feather"] = D(("type", "number"), ("minimum", 0), ("maximum", 8192), ("default", 0),
+                        ("description", "Finite total soft transition width in vector reference pixels; scales with the vector geometry like stroke width. Smoothstep of signed distance to fill and actual stroke/dash boundaries, not a blur. Zero preserves the existing renderer. Step ignores Feather without clearing either stored setting."));
+                    properties["featherPosition"] = D(("type", "string"), ("enum", Enum.GetNames(typeof(VectorFeatherPosition))), ("default", "Centered"),
+                        ("description", "Inside fades inward, Outside outward, Centered equally across the painted boundary. Layer-wide setting, not a VectorShape or Boolean Group style field. Retained when Feather is zero or Edge Mode is Step."));
                     properties["referenceSize"] = D(("type", "array"), ("minItems", 2), ("maxItems", 2),
                         ("items", D(("type", "number"), ("exclusiveMinimum", 0), ("maximum", 10000000))),
-                        ("default", new[] { 256, 256 }), ("description", "Physical document pixel size at creation. Coordinates and tangent offsets are layer-local y-up; stroke widths and dash offsets use these reference pixels. Relative dash lengths multiply strokeWidth. All follow the layer transform."));
+                        ("default", new[] { 256, 256 }), ("description", "Physical document pixel size at creation. Coordinates and tangent offsets are layer-local y-up; stroke widths, dash offsets and Feather use these reference pixels. Relative dash lengths multiply strokeWidth. All follow the layer transform."));
                     ((Dictionary<string, object>)properties["brushDraft"])["description"] = "Last stroke's original coverage and editable rebuild controls. Retained in all write modes, Undo and TIFF until the next stroke replaces it.";
                     properties["shapes"] = D(("type", "array"), ("maxItems", 4096), ("items", D(("$ref", "#/$defs/VectorShape"))),
                         ("description", "One figure per authored layer; multiple contours, including holes, belong to that figure. Older arrays with several figures are accepted only for normalization into an ordinary group with one figure per child, retaining the original shell and shared transform/FX."));
@@ -190,8 +194,17 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                         ("description", "Common fill/stroke settings. Geometry comes from children; style.contours must be empty. No continuous inheritance from child appearance."));
                 }
                 if (type == typeof(Layer))
+                {
+                    ((Dictionary<string, object>)properties["transform"])["description"] = "Omitted transform.tiling defaults to Source for every layer. The source declares its stable policy: geometry and procedural generators use Unbounded; Drawing, Text, groups and image effects use Clip; File inherits its bound texture's U/V wrap modes. Never inferred from preview or render-cache textures. Explicit modes, including Clip, survive Compact writing and Shape/Text conversion.";
                     properties["booleanOperation"] = D(("type", "string"), ("enum", Enum.GetNames(typeof(VectorBooleanOperation))), ("default", "Union"),
                         ("description", "Operation when this layer is an operand of a Boolean Group. Bottom enabled operand is the base, so its operation is ignored. Retained outside Boolean Groups."));
+                }
+                if (type == typeof(TextureTransform))
+                {
+                    var tiling = (Dictionary<string, object>)properties["tiling"];
+                    tiling["default"] = "Source";
+                    tiling["description"] = "Source delegates to the layer source's intrinsic tiling policy, not render-cache texture metadata. Explicit modes override it. Reset restores Source.";
+                }
                 if (type == typeof(VectorPoint) || type == typeof(VectorContour) || type == typeof(VectorShape))
                     properties["id"] = D(("type", "string"), ("minLength", 1), ("maxLength", 256));
                 if (type == typeof(VectorShape))

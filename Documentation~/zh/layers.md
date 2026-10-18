@@ -301,6 +301,10 @@ Repetitions。选择 None 或关闭 Stroke 会保留这些设置。两种渐变�
 缩放 Shape 则保持描边宽度和虚线长度不变。Vector 的宽度和虚线会随图层一起缩放。
 圆点预设还会选择圆形描边端点，Line Caps 仍可独立设置。
 
+新建 Shape 默认使用 **Tiling → Source**，由源选择 Unbounded，柔化边缘与外描边可延伸到图形框之外。
+**Clip** 将结果裁切到图层的局部框，包括 Feather、描边端部和转角；这不同于图层剪贴蒙版。
+**Reset Transform** 为所有图层恢复 Source。保存文档时保留显式选择的模式。
+
 **Feather (px)** 柔化轮廓，而不模糊整张图像。**Feather Position** 可选择
 Inside（向内）、Outside（向外）或 Centered（两侧）；空心描边的两条边界也会柔化。
 数值是以画布像素为单位的完整过渡宽度，0 保留原有边缘。

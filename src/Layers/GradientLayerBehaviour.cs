@@ -6,7 +6,7 @@ namespace DCFApixels.WhimTex
     [Serializable]
     public sealed class GradientLayerBehaviour : LayerBehaviour
     {
-        internal override void InitializeLayer(Layer layer) => layer.transform.tiling = TransformTilingMode.Unbounded;
+        public override TransformTilingMode SourceTiling => TransformTilingMode.Unbounded;
         public GradientType gradientType = GradientType.Vertical;
         public WhimTexGradient gradient = GradientUtility.Create(GradientUtility.WhiteToBlack);
         internal static readonly Vector2 BaseCenter = new Vector2(0.5f, 0.5f);

@@ -23,9 +23,13 @@ namespace DCFApixels.WhimTex
         private const long MaxWork = 100000000;
 
         internal static void Render(Edge[] fill, Edge[] stroke, VectorRasterizer.Coverage coverage, bool step, ref long work)
+            => Render(fill, stroke, coverage.texture.GetRawTextureData<Color>(), coverage.x, coverage.y,
+                coverage.texture.width, coverage.texture.height, step, ref work);
+
+        internal static void Render(Edge[] fill, Edge[] stroke, NativeArray<Color> output, int originX, int originY,
+            int width, int height, bool step, ref long work)
         {
             using var measure = WhimTexProfiler.Measure("vector.mask");
-            int width = coverage.texture.width, height = coverage.texture.height;
             int bands = (height + RowsPerJob - 1) / RowsPerJob;
             // Temp allocations inside Execute are reclaimed at job completion, not by each
             // Dispose. Bound the entire scheduled batch, including list growth allocations.
@@ -40,8 +44,8 @@ namespace DCFApixels.WhimTex
             {
                 foreach (var edge in edges)
                 {
-                    double rows = Math.Max(0, Math.Min(coverage.y + height, Math.Ceiling(edge.y1)) -
-                        Math.Max(coverage.y, Math.Floor(edge.y0)));
+                    double rows = Math.Max(0, Math.Min(originY + height, Math.Ceiling(edge.y1)) -
+                        Math.Max(originY, Math.Floor(edge.y0)));
                     estimate += (long)rows * (step ? 1 : 8);
                     if (estimate > MaxWork) throw new VectorRasterizer.CoverageBudgetExceeded();
                 }
@@ -54,8 +58,8 @@ namespace DCFApixels.WhimTex
             {
                 int batch = Math.Min(BandsPerBatch, bands - first);
                 new CoverageJob { fillEdges = fillEdges, strokeEdges = strokeEdges,
-                    output = coverage.texture.GetRawTextureData<Color>(), counts = counts,
-                    width = width, height = height, originX = coverage.x, originY = coverage.y,
+                    output = output, counts = counts,
+                    width = width, height = height, originX = originX, originY = originY,
                     firstBand = first, samples = step ? 1 : 8 }.Schedule(batch, 1).Complete();
                 for (int i = 0; i < batch; i++)
                 {

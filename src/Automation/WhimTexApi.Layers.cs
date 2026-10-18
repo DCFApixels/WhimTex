@@ -78,8 +78,6 @@ namespace DCFApixels.WhimTex
                     {
                         layer.SetBehaviour(ShapeToVector.Convert((ShapeLayerBehaviour)layer.Behaviour, document));
                     }
-                    if (layer.transform.tiling == TransformTilingMode.Clip)
-                        layer.transform.tiling = TransformTilingMode.Unbounded;
                     VectorLayerStructure.FitFrame(layer, document.width, document.height);
                     break;
                 case "fx":
