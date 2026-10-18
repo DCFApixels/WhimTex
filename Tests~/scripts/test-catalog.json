@@ -3265,6 +3265,506 @@
       "reviewFiles": []
     },
     {
+      "id": "paint-undo-startup-small",
+      "file": "Tests~/Cases/Painting/PaintUndoContinuationTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartStartupIsolation",
+      "args": [
+        "$runId",
+        512,
+        "cleanup-pool"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle graphical Editor, no active user stroke; detached fixture only. 8K needs at least 7 GB reported graphics memory.",
+      "setup": "Owned transient document in the normal journal, 51 real strokes seeded across Editor updates, then four following strokes. Control splits only this fixture count metadata after 50. User settings unchanged; no windows or full-size readback. Startup isolation: cleanup-pool. Pool controls hold two owned Half temporary targets only until the first measured input; fenced controls split the first input at GPU completion boundaries.",
+      "teardown": "Cancel owned callbacks, restore original transfer callback, drain and destroy only owned fixture. Keep evidence in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "PaintTileHistoryTests.PollContinuation",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelContinuation",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupContinuation",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-startup-control",
+      "file": "Tests~/Cases/Painting/PaintUndoContinuationTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartStartupIsolation",
+      "args": [
+        "$runId",
+        8192,
+        "control"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle graphical Editor, no active user stroke; detached fixture only. 8K needs at least 7 GB reported graphics memory.",
+      "setup": "Owned transient document in the normal journal, 51 real strokes seeded across Editor updates, then four following strokes. Control splits only this fixture count metadata after 50. User settings unchanged; no windows or full-size readback. Startup isolation: control. Pool controls hold two owned Half temporary targets only until the first measured input; fenced controls split the first input at GPU completion boundaries.",
+      "teardown": "Cancel owned callbacks, restore original transfer callback, drain and destroy only owned fixture. Keep evidence in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "PaintTileHistoryTests.PollContinuation",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelContinuation",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupContinuation",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-startup-cleanup",
+      "file": "Tests~/Cases/Painting/PaintUndoContinuationTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartStartupIsolation",
+      "args": [
+        "$runId",
+        8192,
+        "cleanup"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle graphical Editor, no active user stroke; detached fixture only. 8K needs at least 7 GB reported graphics memory.",
+      "setup": "Owned transient document in the normal journal, 51 real strokes seeded across Editor updates, then four following strokes. Control splits only this fixture count metadata after 50. User settings unchanged; no windows or full-size readback. Startup isolation: cleanup. Pool controls hold two owned Half temporary targets only until the first measured input; fenced controls split the first input at GPU completion boundaries.",
+      "teardown": "Cancel owned callbacks, restore original transfer callback, drain and destroy only owned fixture. Keep evidence in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "PaintTileHistoryTests.PollContinuation",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelContinuation",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupContinuation",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-startup-idle",
+      "file": "Tests~/Cases/Painting/PaintUndoContinuationTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartStartupIsolation",
+      "args": [
+        "$runId",
+        8192,
+        "idle"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle graphical Editor, no active user stroke; detached fixture only. 8K needs at least 7 GB reported graphics memory.",
+      "setup": "Owned transient document in the normal journal, 51 real strokes seeded across Editor updates, then four following strokes. Control splits only this fixture count metadata after 50. User settings unchanged; no windows or full-size readback. Startup isolation: idle. Pool controls hold two owned Half temporary targets only until the first measured input; fenced controls split the first input at GPU completion boundaries.",
+      "teardown": "Cancel owned callbacks, restore original transfer callback, drain and destroy only owned fixture. Keep evidence in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "PaintTileHistoryTests.PollContinuation",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelContinuation",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupContinuation",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-startup-cleanup-wait",
+      "file": "Tests~/Cases/Painting/PaintUndoContinuationTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartStartupIsolation",
+      "args": [
+        "$runId",
+        8192,
+        "cleanup-wait"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle graphical Editor, no active user stroke; detached fixture only. 8K needs at least 7 GB reported graphics memory.",
+      "setup": "Owned transient document in the normal journal, 51 real strokes seeded across Editor updates, then four following strokes. Control splits only this fixture count metadata after 50. User settings unchanged; no windows or full-size readback. Startup isolation: cleanup-wait. Pool controls hold two owned Half temporary targets only until the first measured input; fenced controls split the first input at GPU completion boundaries.",
+      "teardown": "Cancel owned callbacks, restore original transfer callback, drain and destroy only owned fixture. Keep evidence in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "PaintTileHistoryTests.PollContinuation",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelContinuation",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupContinuation",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-startup-cleanup-pool",
+      "file": "Tests~/Cases/Painting/PaintUndoContinuationTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartStartupIsolation",
+      "args": [
+        "$runId",
+        8192,
+        "cleanup-pool"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle graphical Editor, no active user stroke; detached fixture only. 8K needs at least 7 GB reported graphics memory.",
+      "setup": "Owned transient document in the normal journal, 51 real strokes seeded across Editor updates, then four following strokes. Control splits only this fixture count metadata after 50. User settings unchanged; no windows or full-size readback. Startup isolation: cleanup-pool. Pool controls hold two owned Half temporary targets only until the first measured input; fenced controls split the first input at GPU completion boundaries.",
+      "teardown": "Cancel owned callbacks, restore original transfer callback, drain and destroy only owned fixture. Keep evidence in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "PaintTileHistoryTests.PollContinuation",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelContinuation",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupContinuation",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-startup-idle-pool",
+      "file": "Tests~/Cases/Painting/PaintUndoContinuationTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartStartupIsolation",
+      "args": [
+        "$runId",
+        8192,
+        "idle-pool"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle graphical Editor, no active user stroke; detached fixture only. 8K needs at least 7 GB reported graphics memory.",
+      "setup": "Owned transient document in the normal journal, 51 real strokes seeded across Editor updates, then four following strokes. Control splits only this fixture count metadata after 50. User settings unchanged; no windows or full-size readback. Startup isolation: idle-pool. Pool controls hold two owned Half temporary targets only until the first measured input; fenced controls split the first input at GPU completion boundaries.",
+      "teardown": "Cancel owned callbacks, restore original transfer callback, drain and destroy only owned fixture. Keep evidence in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "PaintTileHistoryTests.PollContinuation",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelContinuation",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupContinuation",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-startup-control-fenced",
+      "file": "Tests~/Cases/Painting/PaintUndoContinuationTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartStartupIsolation",
+      "args": [
+        "$runId",
+        8192,
+        "control-fenced"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle graphical Editor, no active user stroke; detached fixture only. 8K needs at least 7 GB reported graphics memory.",
+      "setup": "Owned transient document in the normal journal, 51 real strokes seeded across Editor updates, then four following strokes. Control splits only this fixture count metadata after 50. User settings unchanged; no windows or full-size readback. Startup isolation: control-fenced. Pool controls hold two owned Half temporary targets only until the first measured input; fenced controls split the first input at GPU completion boundaries.",
+      "teardown": "Cancel owned callbacks, restore original transfer callback, drain and destroy only owned fixture. Keep evidence in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "PaintTileHistoryTests.PollContinuation",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelContinuation",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupContinuation",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-startup-cleanup-fenced",
+      "file": "Tests~/Cases/Painting/PaintUndoContinuationTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartStartupIsolation",
+      "args": [
+        "$runId",
+        8192,
+        "cleanup-fenced"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle graphical Editor, no active user stroke; detached fixture only. 8K needs at least 7 GB reported graphics memory.",
+      "setup": "Owned transient document in the normal journal, 51 real strokes seeded across Editor updates, then four following strokes. Control splits only this fixture count metadata after 50. User settings unchanged; no windows or full-size readback. Startup isolation: cleanup-fenced. Pool controls hold two owned Half temporary targets only until the first measured input; fenced controls split the first input at GPU completion boundaries.",
+      "teardown": "Cancel owned callbacks, restore original transfer callback, drain and destroy only owned fixture. Keep evidence in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "PaintTileHistoryTests.PollContinuation",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelContinuation",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupContinuation",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-startup-idle-fenced",
+      "file": "Tests~/Cases/Painting/PaintUndoContinuationTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartStartupIsolation",
+      "args": [
+        "$runId",
+        8192,
+        "idle-fenced"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle graphical Editor, no active user stroke; detached fixture only. 8K needs at least 7 GB reported graphics memory.",
+      "setup": "Owned transient document in the normal journal, 51 real strokes seeded across Editor updates, then four following strokes. Control splits only this fixture count metadata after 50. User settings unchanged; no windows or full-size readback. Startup isolation: idle-fenced. Pool controls hold two owned Half temporary targets only until the first measured input; fenced controls split the first input at GPU completion boundaries.",
+      "teardown": "Cancel owned callbacks, restore original transfer callback, drain and destroy only owned fixture. Keep evidence in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "PaintTileHistoryTests.PollContinuation",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelContinuation",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupContinuation",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
       "id": "paint-undo-continuation-small",
       "file": "Tests~/Cases/Painting/PaintUndoContinuationTests.cs",
       "runner": "run_script",

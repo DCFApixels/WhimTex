@@ -164,6 +164,49 @@ same 29/31/33/34 staging-capacity waits in both branches while queuing 830/860/9
 the bounded staging queue was near its 256 MiB cap. That commit backpressure is separate from
 old-history compaction. Production drawing/retention code was not changed by this diagnostic.
 
+The subsequent `paint-undo-startup-*` diagnostics isolate the first-input difference.
+They use the same detached textured 8K fixture and 81px brush. `control` starts immediately;
+`idle` defers the first measured input for at least 2.6 seconds without retention; `cleanup`
+starts a real checkpoint worker; `cleanup-wait` waits for that worker before drawing.
+The `*-pool` controls hold two initialized, matching Half temporary textures through priming
+and release them immediately before the ordinary brush code borrows its targets. This adds
+1 GiB of held 8K targets during test setup, not a production memory-policy change.
+The `*-fenced` controls split completion before input, after the first dab, and after preview;
+extra fences change scheduling, so compare the stages rather than treating them as normal FPS.
+
+On 2026-10-18 / the same RTX 5060 and D3D12, observed first-input completion waits were:
+
+| Condition | Wait (ms) |
+| --- | ---: |
+| Immediate control | 22.8 |
+| Cleanup worker started after priming | 50.5 |
+| No cleanup, 2.69 s idle | 57.5 |
+| Cleanup worker already finished | 48.8 |
+| Cleanup, two prepared targets retained | 12.0 |
+| No cleanup, 2.85 s idle, two prepared targets retained | 11.1 |
+
+With split fences, waiting before the first dab was only 0.24/0.30 ms; waiting after the dab
+was 0.60/19.87 ms (control/cleanup), and waiting after the preview was 25.91/27.62 ms.
+Main-thread submission remained below 0.4 ms per paint/render stage. This localizes the
+additional startup cost to preparation/first use of the full-size stroke target, with an
+additional first-preview cost in both paths. The idle and retained-target controls show that
+an active checkpoint worker is not necessary to reproduce the large wait. Unity's temporary
+pool may discard unused targets after a few frames ([GetTemporary contract](https://docs.unity3d.com/6000.0/Documentation/ScriptReference/RenderTexture.GetTemporary.html)).
+Reallocation/initialization is the supported explanation; the test does not distinguish native
+allocation, residency and clear execution inside the graphics driver. It does not prove zero
+worker contention in every workload. Holding a gigabyte indefinitely is not the proposed fix.
+
+All six final controls passed their 96 rendered inputs, three Undo/Redo revisions and exact
+Half probe. The retained-target first wait also repeated at 11.9 ms in an earlier run whose
+final drain timed out; that earlier run alone is not a correctness PASS. Two initial 512px
+preflights stalled before measurements because detached asynchronous graphics commands did
+not progress without a repaint. Setup and final drain now use a 1×1 completion fence while
+still yielding between Editor updates; the measured input path is unchanged. The small
+preflight and original control/cleanup passed after the setup fix. Reports remain under
+`Temp/WhimTex/test-runs` and `paint-undo-continuation`; no production rendering code changed.
+Sparse storage/pool candidates and precision constraints are recorded in
+[F15.14](../Context~/Backlog/BRUSH_IMPROVEMENTS.md#sparse-paint-storage).
+
 An earlier, discarded single-call synchronous probe crashed the Editor during the 8K control:
 the D3D12 log reported failure to allocate an 8 MiB readback buffer (`8007000e`). Accumulation
 of native resources without real frame boundaries was suspected, not proven as the complete

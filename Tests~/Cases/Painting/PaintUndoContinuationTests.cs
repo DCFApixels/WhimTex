@@ -14,11 +14,15 @@ public static partial class PaintTileHistoryTests
     const string ContinuationKey = "WhimTex.Tests.PaintUndoContinuation";
     static object[] ContinuationState => AppDomain.CurrentDomain.GetData(ContinuationKey) as object[];
     public static string StartContinuation(string id, int size, int diameter, bool cleanup, bool textured)
+        => StartContinuationCore(id, size, diameter, cleanup, textured, "normal");
+    public static string StartStartupIsolation(string id, int size, string mode)
+        => StartContinuationCore(id, size, 81, mode.StartsWith("cleanup", StringComparison.Ordinal), true, mode);
+    static string StartContinuationCore(string id, int size, int diameter, bool cleanup, bool textured, string mode)
     {
         if (ContinuationState != null) return TestContext.Result("failed", 0, "Another continuation test exists").ToJson();
         var state = new object[] { id, TestContext.Result("running", 0, "Starting continuation test").ToJson(), null };
         AppDomain.CurrentDomain.SetData(ContinuationKey, state);
-        var run = new ContinuationRun(state, size, diameter, cleanup, textured);
+        var run = new ContinuationRun(state, size, diameter, cleanup, textured, mode);
         state[2] = (Action)(() => run.Finish(new OperationCanceledException("Owned diagnostic cancelled")));
         try { run.Start(); } catch (Exception error) { run.Finish(error); }
         return (string)state[1];
@@ -40,13 +44,14 @@ public static partial class PaintTileHistoryTests
     {
         public int stroke, point, pendingPages, collections;
         public bool workerRunning;
-        public double prepare, paint, render, gpuWait, housekeeping, total, interval;
+        public double prepare, paint, render, gpuWait, housekeeping, total, interval, beforeGpu, paintGpu;
     }
     sealed class ContinuationRun
     {
         readonly object[] state;
         readonly int size, diameter;
         readonly bool cleanup, textured;
+        readonly string mode;
         readonly TestContext test = new TestContext();
         readonly List<ContinuationFrame> frames = new();
         readonly List<object> ends = new();
@@ -55,22 +60,25 @@ public static partial class PaintTileHistoryTests
         Fixture f;
         Texture2D mask, fence;
         RenderTexture preview, fenceTarget;
+        RenderTexture heldStroke, heldPreview;
         IDisposable cache;
         Process process;
         object cursor, parameters;
         EditorApplication.CallbackFunction originalUpdate, measuredUpdate;
-        int seed, stroke, point, group, overlaps;
-        double next, last, housekeeping, maxHousekeeping, gapStart, peakGap;
+        int seed, stroke, point, group, overlaps, primeUpdates;
+        double next, last, housekeeping, maxHousekeeping, gapStart, peakGap, warmedAt, warmToFirstMs;
         long privateBaseline;
-        bool finished, warmed, primed, gap;
+        bool finished, warmed, primed, gap, primingWorkerStarted;
         string output;
         const int Strokes = 4, Points = 24;
         long PendingBytes => (long)Type("PaintHistoryStore").GetProperty("PendingBytes", S).GetValue(null);
-        internal ContinuationRun(object[] state, int size, int diameter, bool cleanup, bool textured)
-        { this.state = state; this.size = size; this.diameter = diameter; this.cleanup = cleanup; this.textured = textured; }
+        internal ContinuationRun(object[] state, int size, int diameter, bool cleanup, bool textured, string mode)
+        { this.state = state; this.size = size; this.diameter = diameter; this.cleanup = cleanup; this.textured = textured; this.mode = mode; }
         internal void Start()
         {
             test.True(size >= 512 && size <= 8192 && diameter >= 32 && diameter <= 2048, "Bounded workload");
+            test.True(Array.IndexOf(new[] { "normal", "control", "cleanup", "idle", "cleanup-wait", "cleanup-pool", "idle-pool",
+                "control-fenced", "cleanup-fenced", "idle-fenced" }, mode) >= 0, "Known startup isolation");
             test.True(size < 8192 || SystemInfo.graphicsMemorySize >= 7000, "8K graphics memory guard");
             test.True(!(bool)Static("PaintHistoryStore", "HasActiveStroke"), "No active user stroke");
             test.Equal(50, (int)Get(Call(Type("PaintUndoDisk").GetProperty("Current", S).GetValue(null), "ReadLimits"), "steps"), "Existing limit is 50; do not change user settings");
@@ -80,7 +88,8 @@ public static partial class PaintTileHistoryTests
             fenceTarget = RenderTexture.GetTemporary(1, 1, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
             string directory = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/WhimTex/paint-undo-continuation"));
             Directory.CreateDirectory(directory);
-            output = Path.Combine(directory, size + "-" + diameter + "-" + cleanup + "-" + textured + ".json");
+            output = Path.Combine(directory, size + "-" + diameter + "-" + cleanup + "-" + textured +
+                (mode == "normal" ? "" : "-" + mode) + ".json");
             // Wrap our own update callback only: preserve its production body and restore it on exit.
             originalUpdate = (EditorApplication.CallbackFunction)Delegate.CreateDelegate(typeof(EditorApplication.CallbackFunction),
                 Type("PaintTileTransfer").GetMethod("Update", S));
@@ -105,7 +114,8 @@ public static partial class PaintTileHistoryTests
         void Save(string phase)
         {
             if (output == null) return;
-            File.WriteAllText(output, Json(new { phase, size, diameter, cleanup, textured, seed, overlaps, frames, ends, maxHousekeeping,
+            File.WriteAllText(output, Json(new { phase, size, diameter, cleanup, textured, mode, seed, overlaps, frames, ends, maxHousekeeping,
+                primeUpdates, warmToFirstMs, primingWorkerStarted,
                 timing = "One bounded step per real Editor update, four following strokes. CPU stages and 1x1 GPU completion fence, not presented FPS. Control partitions only this fixture's count metadata after 50; user limits/store remain untouched." }));
             UnityEngine.Debug.LogFormat(LogType.Log, LogOption.NoStacktrace, null,
                 "WhimTex continuation diagnostic {0}: {1}; seeded={2}, measured={3}, frames={4}", state[0], phase, seed, stroke, frames.Count);
@@ -131,7 +141,12 @@ public static partial class PaintTileHistoryTests
         {
             var previous = RenderTexture.active; bool srgb = GL.sRGBWrite;
             try { Step(); } catch (Exception error) { Finish(error); }
-            finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
+            finally
+            {
+                RenderTexture.active = previous; GL.sRGBWrite = srgb;
+                // Pending readbacks must advance even when the detached fixture has no repainting window.
+                if (!finished) EditorApplication.QueuePlayerLoopUpdate();
+            }
         }
         void Step()
         {
@@ -143,7 +158,13 @@ public static partial class PaintTileHistoryTests
             double now = EditorApplication.timeSinceStartup;
             if (seed < 51)
             {
-                if (Transfer<int>("PendingCount") != 0 || PendingBytes != 0) return;
+                if (Transfer<int>("PendingCount") != 0)
+                {
+                    // Preparation only: submit queued graphics work without depending on an Editor window repaint.
+                    Fence();
+                    return;
+                }
+                if (PendingBytes != 0) return;
                 // The control retains the identical pixel revisions but puts subsequent operations
                 // in a second count bucket owned by this fixture. No global limit is changed.
                 if (seed == 50 && !cleanup) Set(cursor, "documentIdentity", Guid.NewGuid().ToString("N"));
@@ -156,18 +177,39 @@ public static partial class PaintTileHistoryTests
             }
             if (!warmed)
             {
-                if (Transfer<int>("PendingCount") != 0 || PendingBytes != 0) return;
+                if (Transfer<int>("PendingCount") != 0) { Fence(); return; }
+                if (PendingBytes != 0) return;
                 Set(f.settings, "brushSize", (float)diameter); parameters = f.Parameters(mask);
-                Render(); Fence(); warmed = true; Save("warm"); housekeeping = 0; return;
+                Render();
+                if (mode.EndsWith("-pool", StringComparison.Ordinal))
+                {
+                    heldStroke = (RenderTexture)Static("HdrUtility", "Temporary", size, size, false);
+                    heldPreview = (RenderTexture)Static("HdrUtility", "Temporary", size, size, false);
+                    RenderTexture.active = heldStroke; GL.Clear(false, true, Color.clear);
+                    RenderTexture.active = heldPreview; GL.Clear(false, true, Color.clear);
+                }
+                Fence(); warmed = true; Save("warm"); warmedAt = EditorApplication.timeSinceStartup; housekeeping = 0; return;
             }
             if (!primed)
             {
+                primeUpdates++;
                 if (cleanup)
                 {
-                    Static("PaintHistoryStore", "Maintenance", true);
-                    if (!WorkerRunning()) return;
+                    if (!primingWorkerStarted)
+                    {
+                        Static("PaintHistoryStore", "Maintenance", true);
+                        if (!WorkerRunning()) return;
+                        primingWorkerStarted = true;
+                    }
+                    if (mode == "cleanup-wait" && WorkerRunning()) return;
                 }
+                // Match the several-second priming gap needed to start real retention work,
+                // while leaving retention disabled for this fixture.
+                if (mode.StartsWith("idle", StringComparison.Ordinal) &&
+                    (primeUpdates < 6 || now - warmedAt < 2.6)) return;
                 primed = true; last = now;
+                warmToFirstMs = (EditorApplication.timeSinceStartup - warmedAt) * 1000;
+                ReleaseHeldPool();
             }
             if (gap)
             {
@@ -178,7 +220,9 @@ public static partial class PaintTileHistoryTests
             }
             if (stroke >= Strokes)
             {
-                if (Transfer<int>("PendingCount") != 0 || PendingBytes != 0) return;
+                // Measurements are finished; submit the final asynchronous capture without a window repaint.
+                if (Transfer<int>("PendingCount") != 0) { Fence(); return; }
+                if (PendingBytes != 0) return;
                 Verify(); Finish(null); return;
             }
             if (now < next) return;
@@ -200,6 +244,8 @@ public static partial class PaintTileHistoryTests
                 pendingPages = Transfer<int>("PendingCount"), housekeeping = housekeeping, interval = (now - last) * 1000 };
             if (sample.workerRunning) overlaps++;
             int gc = GC.CollectionCount(0); var timer = Stopwatch.StartNew();
+            if (point == 0 && mode.EndsWith("-fenced", StringComparison.Ordinal))
+            { Fence(); sample.beforeGpu = timer.Elapsed.TotalMilliseconds; timer.Restart(); }
             if (point == 0)
             {
                 Undo.IncrementCurrentGroup(); group = Undo.GetCurrentGroup();
@@ -209,15 +255,17 @@ public static partial class PaintTileHistoryTests
             if (point == 0) Call(f.layer, "PaintPoint", Point(0), size, size, parameters);
             else Call(f.layer, "PaintSegment", Point(point - 1), Point(point), size, size, false, parameters);
             sample.paint = timer.Elapsed.TotalMilliseconds; timer.Restart();
+            if (point == 0 && mode.EndsWith("-fenced", StringComparison.Ordinal))
+            { Fence(); sample.paintGpu = timer.Elapsed.TotalMilliseconds; timer.Restart(); }
             Render(); sample.render = timer.Elapsed.TotalMilliseconds; timer.Restart(); Fence();
             sample.gpuWait = timer.Elapsed.TotalMilliseconds;
-            sample.total = sample.prepare + sample.paint + sample.render + sample.gpuWait + sample.housekeeping;
+            sample.total = sample.prepare + sample.paint + sample.render + sample.gpuWait + sample.housekeeping + sample.beforeGpu + sample.paintGpu;
             sample.collections = GC.CollectionCount(0) - gc; frames.Add(sample);
             housekeeping = 0; point++; last = now; next = now + 1.0 / 60;
         }
         void Verify()
         {
-            test.True(!cleanup || overlaps > 0, "Actual checkpoint worker overlapped measured input");
+            test.True(!cleanup || (mode == "cleanup-wait" ? primingWorkerStarted : overlaps > 0), "Actual checkpoint worker ran in the intended phase");
             test.Equal(Points * Strokes, frames.Count, "Every input was rendered");
             test.Equal(f.historyLabel, Undo.GetCurrentGroupName(), "Do not undo an intervening user operation");
             // Probe the last stroke's first dab, not the unpainted middle of the curve.
@@ -240,6 +288,12 @@ public static partial class PaintTileHistoryTests
             { Undo.PerformRedo(); test.Equal(revisions[i], (string)Get(cursor, "Revision"), "Following Redo order"); }
             Exact(test, final, Probe((RenderTexture)Get(f.layer, "paintSurface"), rect), "Following-stroke exact Half roundtrip");
         }
+        void ReleaseHeldPool()
+        {
+            if (heldStroke != null) Static("ProfiledRenderTexture", "ReleaseTemporary", heldStroke);
+            if (heldPreview != null) Static("ProfiledRenderTexture", "ReleaseTemporary", heldPreview);
+            heldStroke = heldPreview = null;
+        }
         internal void Finish(Exception error)
         {
             if (finished) return; finished = true;
@@ -247,6 +301,7 @@ public static partial class PaintTileHistoryTests
             if (measuredUpdate != null) { EditorApplication.update -= measuredUpdate; EditorApplication.update += originalUpdate; }
             try
             {
+                ReleaseHeldPool();
                 if (f != null)
                 {
                     if (cursor != null) Static("PaintHistoryStore", "FinishCheckpointWork", cursor);

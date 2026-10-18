@@ -13,7 +13,8 @@ await fs.mkdir(output, { recursive: true });
 
 const arrow = '<path fill="white" stroke="black" stroke-width="1" stroke-linejoin="miter" stroke-miterlimit="2" d="M .5 .5 H 7.5 L 3.5 3.5 .5 7.5 Z"/>';
 const directPointers = new Set(['VectorSelect', 'VectorNodes']);
-const svg = (glyph, name) => `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">${glyph}${directPointers.has(name) ? '' : arrow}</svg>`;
+const wrapSvg = markup => `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">${markup}</svg>`;
+const svg = (glyph, name) => wrapSvg(glyph + (directPointers.has(name) ? '' : arrow));
 const line = (d, width = 2, extra = '') =>
   `<path d="${d}" fill="none" stroke="black" stroke-width="${width + 2}" stroke-linecap="round" stroke-linejoin="round" ${extra}/>` +
   `<path d="${d}" fill="none" stroke="white" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" ${extra}/>`;
@@ -52,6 +53,12 @@ const selectionCircle = Array.from({ length: 8 }, (_, i) => {
   return `M${polar(10, start)} A10 10 0 0 1 ${polar(10, end)} L${polar(8, end)} A8 8 0 0 0 ${polar(8, start)} Z`;
 }).join(' ');
 const pointer = 'M0 0 L13 10 7 11 4 18 Z';
+const iconNudges = new Map([
+  ['ShapeRectangle', -1], ['ShapeEllipse', -3], ['ShapePolygon', -3], ['ShapeStar', -4],
+  ['ShapeLine', -5], ['ShapeArc', -3], ['ShapeSector', -3], ['SelectionEllipse', -3],
+  ['SelectionUv', -1], ['LassoPolygon', -2], ['LassoFreehand', -2], ['Text', -1],
+  ['VectorPen', -5], ['Crop', -1], ['CanvasScale', -3]
+]);
 const glyphs = new Map([
   ['Fill', local(bucketOutline + bucket)],
   ['Gradient', gradient],
@@ -75,7 +82,10 @@ const glyphs = new Map([
   ['VectorNodes', flatFilled(pointer + ' M3.2 5.2 L8.5 9.3 5.4 9.8 4.6 12.1 Z')],
   ['Crop', local(filled('M5 2 H8 V16 H22 V19 H5 Z M2 5 H19 V22 H16 V8 H2 Z'))],
   ['CanvasScale', local(line('M6 6 H16 V16 H6 Z M16 6 L21 1 M16 1 H21 V6 M6 16 L1 21 M1 16 V21 H6'))]
-]);
+].map(([name, markup]) => {
+  const nudge = iconNudges.get(name) ?? 0;
+  return [name, nudge ? `<g transform="translate(${nudge} ${nudge})">${markup}</g>` : markup];
+}));
 
 const cursorCode = await fs.readFile(path.join(root, 'src/WhimTexWindow.Cursors.cs'), 'utf8');
 const enumNames = cursorCode.match(/private enum CanvasCursorIcon\s*\{([^}]+)\}/)[1]
@@ -92,7 +102,24 @@ for (const name of glyphs.keys()) {
 }
 
 const arrowPixels = await sharp(Buffer.from(svg(''))).ensureAlpha().raw().toBuffer();
-const images = new Map(), reports = [];
+const cursorUi = await fs.readFile(path.join(root, 'src/WhimTexWindow.UI.cs'), 'utf8');
+assert.match(cursorUi, /texture = nextCursorTexture, hotspot = Vector2\.zero/, 'Runtime hotspot must match the raster audit');
+const visiblePixels = data => {
+  const points = [];
+  for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++)
+    if (data[(y * 32 + x) * 4 + 3] >= 128) points.push([x, y]);
+  return points;
+};
+const arrowContour = visiblePixels(arrowPixels);
+const contourGap = data => {
+  let squaredGap = Infinity;
+  for (const [x, y] of visiblePixels(data)) for (const [ax, ay] of arrowContour) {
+    const dx = Math.max(0, Math.abs(x - ax) - 1), dy = Math.max(0, Math.abs(y - ay) - 1);
+    squaredGap = Math.min(squaredGap, dx * dx + dy * dy);
+  }
+  return Math.round(Math.sqrt(squaredGap) * 100) / 100;
+};
+const images = new Map(), previousImages = new Map(), reports = [];
 for (const [name, glyph] of glyphs) {
   const sourceSvg = svg(glyph, name);
   const { data, info } = await sharp(Buffer.from(sourceSvg)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -118,13 +145,27 @@ for (const [name, glyph] of glyphs) {
     if (!adjacent) isolatedPixels++;
   }
   assert.equal(isolatedPixels, 0, `${name}: isolated pixels`);
+  const previousPng = await fs.readFile(path.join(icons, `${name}Cursor.png`));
+  previousImages.set(name, previousPng);
   if (name === 'Fill' || name === 'Gradient') {
     const prior = await sharp(path.join(icons, `${name}Cursor.png`)).ensureAlpha().raw().toBuffer();
     assert(data.equals(prior), `${name}: existing approved cursor must not change`);
   }
   const png = await sharp(data, { raw: info }).png().toBuffer();
   images.set(name, png);
-  reports.push({ name, width: 32, height: 32, hotspot: [0, 0], isolatedPixels });
+  const glyphPixels = directPointers.has(name) ? null : await sharp(Buffer.from(wrapSvg(glyph))).ensureAlpha().raw().toBuffer();
+  const visibleGapPx = glyphPixels ? contourGap(glyphPixels) : null;
+  if (glyphPixels) {
+    assert(visibleGapPx >= 2, `${name}: retain a visible contour gap`);
+    const paddedSvg = wrapSvg(glyph).replace('width="32" height="32" viewBox="0 0 32 32"',
+      'width="36" height="36" viewBox="-2 -2 36 36"');
+    const padded = await sharp(Buffer.from(paddedSvg)).ensureAlpha().raw().toBuffer();
+    for (let y = 0; y < 36; y++) for (let x = 0; x < 36; x++)
+      if (x < 2 || x >= 34 || y < 2 || y >= 34)
+        assert.equal(padded[(y * 36 + x) * 4 + 3], 0, `${name}: glyph outside texture`);
+  }
+  reports.push({ name, width: 32, height: 32, hotspot: [0, 0], tipRgba: [...data.subarray(0, 4)],
+    iconNudgePx: [iconNudges.get(name) ?? 0, iconNudges.get(name) ?? 0], visibleGapPx, isolatedPixels });
 }
 const changed = [];
 for (const [name, png] of images) {
@@ -136,11 +177,11 @@ for (const [name, png] of images) {
 }
 for (const [name, glyph] of glyphs) await fs.writeFile(path.join(output, `${name}Cursor.svg`), svg(glyph, name));
 
-async function sheet(names, filename, columns = 4, cellHeight = 208) {
+async function sheet(names, filename, columns = 4, cellHeight = 208, frames = images) {
   const width = columns * 208, height = Math.ceil(names.length / columns) * cellHeight;
   let markup = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">`;
   for (let i = 0; i < names.length; i++) {
-    const name = names[i], png = images.get(name), x = i % columns * 208, y = Math.floor(i / columns) * cellHeight;
+    const name = names[i], png = frames.get(name), x = i % columns * 208, y = Math.floor(i / columns) * cellHeight;
     const enlarged = await sharp(png).resize(128, 128, { kernel: 'nearest' }).png().toBuffer();
     markup += `<rect x="${x}" y="${y}" width="208" height="${cellHeight}" fill="#252526"/><rect x="${x}" y="${y + 24}" width="104" height="42" fill="#ededed"/><text x="${x + 8}" y="${y + 17}" font-family="sans-serif" font-size="11" fill="white">${name}</text>`;
     for (const left of [x + 16, x + 120]) {
@@ -154,5 +195,7 @@ await sheet([...glyphs.keys()], 'tool-cursors-all-preview.png');
 await sheet(['ShapeRectangle', 'SelectionRectangle', 'SelectionEllipse', 'LassoPolygon', 'LassoFreehand', 'SelectionUv', 'Comment', 'VectorPen'], 'tool-cursors-preview.png');
 await sheet(['Comment'], 'comment-cursor-close-preview.png', 1);
 await sheet(['SelectionRectangle', 'SelectionEllipse', 'VectorSelect', 'VectorNodes'], 'selection-pointer-cursors-preview.png');
+if (changed.length) await sheet([...iconNudges.keys()], 'tool-cursor-spacing-before.png', 4, 208, previousImages);
+await sheet([...iconNudges.keys()], 'tool-cursor-spacing-after.png');
 await fs.writeFile(path.join(output, 'tool-cursors-report.json'), JSON.stringify(reports, null, 2));
 console.log(JSON.stringify({ count: reports.length, changed, isolatedPixels: 0, approvedFillAndGradientUnchanged: true, preview: path.join(output, 'tool-cursors-all-preview.png') }));
