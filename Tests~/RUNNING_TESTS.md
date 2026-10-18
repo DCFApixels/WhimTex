@@ -1339,7 +1339,13 @@ their Tasks complete. Worker wall intervals overlap; do not sum them as UI laten
 spans to `brush.history.commit` when attributing release pauses, excluding later Undo/Redo.
 Idle Editor cadence and Pipeline polling can lengthen the background tail; it is not disk latency.
 The current writer allowance scales up to 256 MiB on larger CPUs; GPU staging and the two-page
-readback limit remain unchanged. A four-page readback control did not reduce release pauses on
+readback limit remain unchanged. One completed FIFO head can additionally overlap the next read;
+burst reports assert that bound and record `reading` / `cpuHeads`. Vertical transfer strips make
+full tiles contiguous for direct codec input; partial blocks retain the row-gathering path.
+`paint-history-native-pages` checks raw copy sentinels, bounds rejection and exact CPU/before/after
+planes at both byte depths with Burst enabled and disabled. The queued, subtile, retention and
+boundary cases cover overlapping revisions, soft/zero masks, tiny alpha, hidden RGB and parameter Undo.
+A four-page readback control did not reduce release pauses on
 the tested 8K series and was discarded. These detached tests do not establish interactive FPS.
 
 Individual RTX 5060 / D3D12 / Unity 6000.7.0a6 observations, 2026-10-18:

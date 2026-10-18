@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Unity.Burst;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 
 namespace DCFApixels.WhimTex
@@ -21,7 +23,7 @@ namespace DCFApixels.WhimTex
 
         internal static NativeArray<byte> Rent(int length)
         {
-            if (length < 1 || length > PaintTileTransfer.PageSize * PaintTileTransfer.PageSize * 8)
+            if (length < 1 || length > PaintTileTransfer.MaximumPagePixels * 8)
                 throw new ArgumentOutOfRangeException(nameof(length));
             NativeArray<byte> result = default;
             lock (gate)
@@ -63,6 +65,7 @@ namespace DCFApixels.WhimTex
 
     // Readback planes are handed to the writer, not copied into four managed arrays
     // per tile. Only the old stored pixels need their own snapshot before FIFO patching.
+    [BurstCompile]
     internal sealed class PaintHistoryPayload : IDisposable
     {
         internal readonly struct Entry
@@ -74,6 +77,7 @@ namespace DCFApixels.WhimTex
         internal readonly List<Entry> blocks;
         internal NativeArray<byte> beforeHalf, afterHalf, beforeStored, afterStored;
         internal long Bytes { get; private set; }
+        internal static bool LastPatchUsedBurst { get; private set; }
         internal long ResidentBytes => (long)beforeHalf.Length + afterHalf.Length + beforeStored.Length + afterStored.Length;
         internal PaintHistoryPayload(int width, int pixels, int bpp, int capacity)
         {
@@ -82,19 +86,54 @@ namespace DCFApixels.WhimTex
         }
         internal void Add(NativeArray<byte> cpu, int cpuWidth, RectInt rect, RectInt slot, NativeArray<byte> stored)
         {
-            CopyRows(cpu, cpuWidth, rect, beforeStored, width, slot, bpp);
-            CopyRows(stored, width, slot, cpu, cpuWidth, rect, bpp);
+            // Validate the entire copy before mutating CPU storage. The three planes
+            // have separate owners and remain alive for this synchronous call.
+            ValidateRect(cpu.Length, cpuWidth, rect, bpp);
+            ValidateRect(beforeStored.Length, width, slot, bpp);
+            ValidateRect(stored.Length, width, slot, bpp);
+            if (rect.size != slot.size) throw new ArgumentException("Mismatched paint block dimensions.");
+            var patch = new Patch
+            {
+                cpu = cpu, before = beforeStored, after = stored,
+                cpuOffset = (rect.y * cpuWidth + rect.x) * bpp,
+                pageOffset = (slot.y * width + slot.x) * bpp,
+                cpuStride = cpuWidth * bpp, pageStride = width * bpp,
+                rowBytes = rect.width * bpp, rows = rect.height
+            };
+            LastPatchUsedBurst = PatchRows(ref patch);
             blocks.Add(new Entry(rect, slot));
             Bytes += (long)rect.width * rect.height * (16 + 2 * bpp);
         }
-        internal static void CopyRows(NativeArray<byte> source, int sourceWidth, RectInt fromRect,
-            NativeArray<byte> target, int targetWidth, RectInt toRect, int bpp)
+        static void ValidateRect(int length, int stridePixels, RectInt rect, int bpp)
         {
-            var from = source.AsReadOnlySpan(); var to = target.AsSpan();
-            int rowBytes = fromRect.width * bpp;
-            for (int y = 0; y < fromRect.height; y++)
-                from.Slice(((fromRect.y + y) * sourceWidth + fromRect.x) * bpp, rowBytes)
-                    .CopyTo(to.Slice(((toRect.y + y) * targetWidth + toRect.x) * bpp, rowBytes));
+            if ((bpp != 4 && bpp != 8) || stridePixels <= 0 || rect.x < 0 || rect.y < 0 || rect.width <= 0 || rect.height <= 0 ||
+                (long)rect.x + rect.width > stridePixels ||
+                (((long)rect.y + rect.height - 1) * stridePixels + rect.x + rect.width) * bpp > length)
+                throw new ArgumentException("Invalid paint block bounds.");
+        }
+        struct Patch
+        {
+            internal NativeArray<byte> cpu, before;
+            [ReadOnly] internal NativeArray<byte> after;
+            internal int cpuOffset, pageOffset, cpuStride, pageStride, rowBytes, rows;
+        }
+        [BurstDiscard] static void MarkManaged(ref bool accelerated) => accelerated = false;
+        [BurstCompile(CompileSynchronously = true, OptimizeFor = OptimizeFor.Performance)]
+        static unsafe bool PatchRows(ref Patch patch)
+        {
+            bool accelerated = true; MarkManaged(ref accelerated);
+            byte* cpu = (byte*)patch.cpu.GetUnsafePtr() + patch.cpuOffset;
+            byte* before = (byte*)patch.before.GetUnsafePtr() + patch.pageOffset;
+            byte* after = (byte*)patch.after.GetUnsafeReadOnlyPtr() + patch.pageOffset;
+            // Capture then replace each row while the CPU cache line is still hot.
+            // Raw copies retain hidden RGB, signed HDR and every Half bit.
+            for (int y = 0; y < patch.rows; y++)
+            {
+                UnsafeUtility.MemCpy(before, cpu, patch.rowBytes);
+                UnsafeUtility.MemCpy(cpu, after, patch.rowBytes);
+                cpu += patch.cpuStride; before += patch.pageStride; after += patch.pageStride;
+            }
+            return accelerated;
         }
         internal void Visit(Action<PaintHistoryStore.Block> visit, PaintHistoryStore.Block scratch)
         {

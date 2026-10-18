@@ -14,7 +14,10 @@ namespace DCFApixels.WhimTex
     internal static class PaintTileTransfer
     {
         internal const int TilesPerPage = 16;
-        internal const int PageSize = 1024;
+        internal const int MaximumPagePixels = TilesPerPage * PaintTileSet.Size * PaintTileSet.Size;
+        // Vertical packing makes full source tiles contiguous after readback, so
+        // writers can encode them directly. Smaller devices retain square pages.
+        private static readonly int PageColumns = SystemInfo.maxTextureSize >= TilesPerPage * PaintTileSet.Size ? 1 : 4;
         internal const int MaximumHistoryBlocksPerPage = 256;
         internal const long MinimumStagingBudget = 256L * 1024 * 1024;
         internal const long MaximumStagingBudget = 1536L * 1024 * 1024;
@@ -93,16 +96,24 @@ namespace DCFApixels.WhimTex
                 {
                     var page = pending.Peek();
                     if (!page.Ready(wait)) break;
+                    // The completed head no longer occupies a GPU readback slot.
+                    // Start its replacement before CPU patching or writer waits,
+                    // keeping at most two reads plus one CPU head resident.
+                    if (!page.readbackReleased)
+                    {
+                        page.readbackReleased = true; reading--;
+                        StartReadbacks();
+                    }
                     if (!page.Apply(wait, deadline)) break;
-                    pending.Dequeue(); reading--; StagingBytes -= page.StagingSize; page.Dispose();
+                    pending.Dequeue(); StagingBytes -= page.StagingSize; page.Dispose();
                     StartReadbacks();
                     if (System.Diagnostics.Stopwatch.GetTimestamp() >= deadline) break;
                 }
             }
             finally { draining = false; }
         }
-        internal static RectInt Slot(int index, RectInt source) => new RectInt(index % 4 * PaintTileSet.Size,
-            index / 4 * PaintTileSet.Size, source.width, source.height);
+        internal static RectInt Slot(int index, RectInt source) => new RectInt(index % PageColumns * PaintTileSet.Size,
+            index / PageColumns * PaintTileSet.Size, source.width, source.height);
         struct BlockComparison
         {
             [ReadOnly] internal NativeArray<uint> oldHalf, newHalf, oldStored, newStored;
@@ -138,6 +149,7 @@ namespace DCFApixels.WhimTex
             private readonly NativeArray<byte>[] data = new NativeArray<byte>[3];
             private readonly bool[] complete = new bool[3], failed = new bool[3];
             private bool queued;
+            internal bool readbackReleased;
             private PaintHistoryPayload payload;
             private readonly int captureSize, subdivisions;
             private readonly bool skipUnchanged;
@@ -153,8 +165,8 @@ namespace DCFApixels.WhimTex
                 subdivisions = PaintTileSet.Size / captureSize;
                 this.texture = texture; this.step = step; this.pageIndex = pageIndex; this.blocks = blocks;
                 bpp = HdrUtility.IsHdr(texture) ? 8 : 4;
-                int width = Math.Min(4, blocks.Length) * PaintTileSet.Size;
-                int height = ((blocks.Length + 3) / 4) * PaintTileSet.Size;
+                int width = Math.Min(PageColumns, blocks.Length) * PaintTileSet.Size;
+                int height = ((blocks.Length + PageColumns - 1) / PageColumns) * PaintTileSet.Size;
                 StagingSize = (long)width * height * (16 + bpp);
                 // Budget the actual resident planes, including atlas padding, not only
                 // changed pixels. Sparse or partial pages must never undercharge memory.

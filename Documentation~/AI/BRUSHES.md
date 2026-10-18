@@ -195,13 +195,19 @@ reusable buffers. Existing pages in the current Editor session remain readable.
 The stored GPU image is updated immediately. Immutable packed pages feed ordered asynchronous
 readbacks into the existing CPU texture without a full-image `Apply`. Readbacks write directly
 into owned native buffers, avoiding an intermediate full-page managed copy. Each page packs up to
-sixteen blocks; a page of one to three blocks uses only its occupied columns. Immutable GPU staging
+sixteen blocks. Devices supporting 4096px textures pack them in a 256px-wide vertical strip,
+so full 256px blocks are contiguous after readback and encode directly without gathering rows.
+The strip height follows the block count, avoiding unused tail slots. Devices with smaller limits
+retain up to four columns. This is only the immutable transfer layout; stroke tiles, pixels and
+the on-disk block format are unchanged. Immutable GPU staging
 has one shared burst budget across all documents/windows in this Editor: at most 1536 MiB,
 further limited to one quarter of reported graphics memory and one eighth of reported system memory,
 with a 256 MiB floor. Unknown memory sizes or unavailable async readback retain the 256 MiB budget.
 This is a ceiling, not a preallocation; pages are released as they are consumed. It fits a full
 8K snapshot (1280 MiB standard, 1536 MiB HDR) on sufficiently large devices. Only two pages at a time
-perform native readback (at most 48 MiB). Completed native planes transfer ownership to the writer;
+perform native readback (at most 48 MiB). A completed FIFO head releases its readback slot before
+CPU patching/writer admission, overlapping the next read with that work. At most one additional
+ready head remains resident (20 MiB standard / 24 MiB HDR). Completed native planes transfer ownership to the writer;
 they are not copied into separate managed arrays for every block. Stroke completion keeps the next stroke available without waiting
 for readback or payload compression while staging fits that budget. GPU submission/allocation and a
 small revision manifest still run on completion; this is not a zero-cost or zero-I/O operation.
@@ -211,12 +217,15 @@ CPU patching, charging the full resident planes including unused atlas slots; ba
 and devices without asynchronous readback can still stall. Exceeding the staging budget waits for
 the oldest page to finish, preserving exact revisions instead of dropping history. The same FIFO
 captures each stored before-image before patching the after-image, including overlapping strokes.
+The synchronous CPU copy validates all bounds, then captures and replaces each row in one Burst
+kernel while its cache lines are hot. The portable non-Burst path performs the same raw-byte copies;
+neither path converts colors or changes Half bits.
 A shared pool retains at most 64 MiB of idle native planes for subsequent readbacks and stored
 before-images. Active writer planes are charged to the pending-write budget; a page being patched
 also owns its stored before-image (at most 8 MiB). No additional full-canvas CPU/GPU snapshot is introduced.
 Compression and disk writes remain background Tasks. Their exclusive codec workspaces are reused
 (at most four idle workspaces, approximately 6.1 MiB together). Contiguous native blocks are encoded
-directly; atlas rows are gathered native-to-native into reusable block scratch. A reusable managed
+directly; partial-width blocks and square fallback pages gather rows native-to-native into reusable block scratch. A reusable managed
 output buffer feeds the file API. Lossless bytes, raw fallback, checksums and the journal format are unchanged.
 Idle pools are released after all consumers join at script reload/quit. Raw journal pages trade disk
 space for lower latency.

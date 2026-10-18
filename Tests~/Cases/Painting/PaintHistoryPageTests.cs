@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
 using WhimTex.Tests;
@@ -19,10 +20,52 @@ public static partial class PaintTileHistoryTests
         }
     }
     static long NativeBytes(string property) => (long)Type("PaintHistoryBuffers").GetProperty(property, S).GetValue(null);
+    static void CheckPatchRows(TestContext t)
+    {
+        bool previous = Unity.Burst.BurstCompiler.Options.EnableBurstCompilation;
+        try
+        {
+            foreach (bool accelerated in new[] { true, false })
+            foreach (int bpp in new[] { 4, 8 })
+            foreach (int width in new[] { 1, 63, 128, 256 })
+            {
+                Unity.Burst.BurstCompiler.Options.EnableBurstCompilation = accelerated;
+                using var cpu = new NativeArray<byte>(518 * 519 * bpp, Allocator.Persistent);
+                using var after = new NativeArray<byte>(300 * 260 * bpp, Allocator.Persistent);
+                var original = new byte[cpu.Length]; var source = new byte[after.Length];
+                new System.Random(931 + width).NextBytes(original); new System.Random(413 + bpp).NextBytes(source);
+                cpu.CopyFrom(original); after.CopyFrom(source);
+                using var payload = (IDisposable)Activator.CreateInstance(Type("PaintHistoryPayload"), F, null,
+                    new object[] { 300, 300 * 260, bpp, 1 }, null);
+                var before = (NativeArray<byte>)Get(payload, "beforeStored"); before.AsSpan().Fill(0xA5);
+                var expectedBefore = before.ToArray(); var expectedCpu = (byte[])original.Clone();
+                var rect = new RectInt(518 - width, 263, width, 256);
+                var slot = new RectInt(300 - width, 4, width, 256);
+                for (int y = 0; y < rect.height; y++)
+                {
+                    int ci = ((rect.y + y) * 518 + rect.x) * bpp, pi = ((slot.y + y) * 300 + slot.x) * bpp;
+                    Array.Copy(original, ci, expectedBefore, pi, width * bpp);
+                    Array.Copy(source, pi, expectedCpu, ci, width * bpp);
+                }
+                Call(payload, "Add", cpu, 518, rect, slot, after);
+                t.Equal(accelerated, (bool)Type("PaintHistoryPayload").GetProperty("LastPatchUsedBurst", S).GetValue(null), "Requested copy implementation used");
+                Exact(t, expectedCpu, cpu.ToArray(), "Raw CPU patch including untouched rows and columns");
+                Exact(t, expectedBefore, before.ToArray(), "Exact previous bytes and untouched atlas padding");
+                Exact(t, source, after.ToArray(), "Readback plane stays immutable");
+                bool refused = false;
+                try { Call(payload, "Add", cpu, 518, new RectInt(517, 518, 2, 2), slot, after); }
+                catch (System.Reflection.TargetInvocationException e) when (e.InnerException is ArgumentException) { refused = true; }
+                t.True(refused, "Out-of-bounds copy rejected before writes");
+                Exact(t, expectedCpu, cpu.ToArray(), "Rejected patch leaves CPU untouched");
+            }
+        }
+        finally { Unity.Burst.BurstCompiler.Options.EnableBurstCompilation = previous; }
+    }
     public static string CheckHistoryPages() => TestContext.Run("Native page ownership, reuse and failed-write Undo", t =>
     {
         using var disk = new DiskScope();
         t.Equal(0L, NativeBytes("ActiveBytes"), "No previous owned native consumers");
+        CheckPatchRows(t);
         Static("PaintHistoryBuffers", "Clear");
         long allocated = NativeBytes("AllocatedBytes"), reused = NativeBytes("ReusedBytes");
         var active = RenderTexture.active; bool srgb = GL.sRGBWrite;

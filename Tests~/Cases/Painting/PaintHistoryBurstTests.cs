@@ -164,12 +164,16 @@ public static partial class PaintTileHistoryTests
                 if (++restore == expected.Count) { Finish(null); return; }
             }
             long staging = Transfer<long>("StagingBytes"), queued = (long)Type("PaintHistoryStore").GetProperty("PendingBytes", S).GetValue(null);
+            int reading = (int)Type("PaintTileTransfer").GetField("reading", S).GetValue(null);
+            int awaiting = (int)Get(Type("PaintTileTransfer").GetField("awaitingReadback", S).GetValue(null), "Count");
+            int cpuHeads = Transfer<int>("PendingCount") - awaiting - reading;
+            test.True(reading >= 0 && reading <= 2 && cpuHeads >= 0 && cpuHeads <= 1, "At most two readbacks plus one FIFO CPU head");
             if (phase <= 2) memory.Sample();
             maxStaging = Math.Max(maxStaging, staging); maxPending = Math.Max(maxPending, queued);
             test.True(staging <= (long)Type("PaintTileTransfer").GetField("StagingBudget", S).GetValue(null), "Shared snapshot cap across repeated strokes");
             test.True(queued <= (long)Type("PaintHistoryStore").GetField("PendingBudget", S).GetValue(null), "Writer payload stays bounded");
             frames.Add(new { start = now, end = Stopwatch.GetTimestamp(), phase, stroke, point, intervalMs = interval, workMs = clock.Elapsed.TotalMilliseconds, releaseMs,
-                staging, queued, waits = Transfer<long>("CapacityWaits") - waitBefore }); releaseMs = 0;
+                staging, queued, reading, cpuHeads, waits = Transfer<long>("CapacityWaits") - waitBefore }); releaseMs = 0;
         }
         void CaptureWriters()
         {

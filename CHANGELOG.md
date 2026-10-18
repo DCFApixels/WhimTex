@@ -48,6 +48,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Paint-history transfers overlap the next GPU read with FIFO CPU processing. Raw row capture/patch uses Burst, and supported devices pack transfer pages vertically so full tiles feed the codec directly. Dense-stroke pauses are reduced while preserving Half/HDR pixels, masks and Undo order; bounded queues can still cause waits. One extra ready native page uses up to 24 MiB, with existing GPU staging and writer limits retained.
+
 - Paint-history background writers can use a shared, demand-allocated allowance of up to 256 MiB on larger CPUs, reducing writer backpressure during repeated dense strokes. GPU staging and readback limits remain unchanged; exact pixels and Undo order are preserved. Sustained input can still wait for GPU transfers and CPU patching.
 
 - Paint Undo uses portable C#/Burst LZ4 blocks without byte shuffling or a native-library dependency. Compression remains in background Tasks with reusable buffers, exact Half/storage bytes and raw fallback for incompressible blocks.
