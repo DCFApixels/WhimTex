@@ -303,6 +303,7 @@ namespace DCFApixels.WhimTex
 
         internal static void Reset()
         {
+            PaintUndoDisk.Current.SetLimits(8, 100);
             ResetCommentAuthorColor();
             ClearCommentAuthorName();
             EditorPrefs.DeleteKey(PressureCurveKey);

@@ -275,6 +275,7 @@ missing areas and unique details may need several attempts or manual touch-ups.
 ## Fill an area
 
 Choose **Fill** (`G`) and click the area you want to color.
+The bucket cursor's small arrowhead marks the exact click point; the bucket itself is offset to the lower right.
 
 | Option | When to use it |
 | :--- | :--- |

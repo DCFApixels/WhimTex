@@ -2,6 +2,13 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "paint-undo-continuation": [
+      "paint-undo-continuation-small",
+      "paint-undo-continuation-8k-control",
+      "paint-undo-continuation-8k-cleanup",
+      "paint-undo-continuation-8k-wide-control",
+      "paint-undo-continuation-8k-wide-cleanup"
+    ],
     "drawing-readback-format": [
       "drawing-readback-format-accuracy",
       "drawing-readback-format-512",
@@ -2286,6 +2293,9 @@
       "brush-compute-8192-2048-hdr"
     ],
     "paint-tile-history": [
+      "paint-undo-disk-lifecycle",
+      "paint-undo-retention",
+      "paint-undo-boundary",
       "paint-tile-history-small",
       "paint-tile-history-8k-frame",
       "paint-tile-history-8k-frame-hdr",
@@ -3235,6 +3245,334 @@
       "teardown": "Dispose streams; retain timings in Temp/WhimTex/paint-tile-history.",
       "result": { "kind": "structured" },
       "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "paint-undo-disk-lifecycle",
+      "file": "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.RunDiskLifecycle",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"],
+      "groups": ["painting"],
+      "prerequisites": "Idle matching Editor; no active user stroke. Existing Node.js on PATH for an owned child-process lifecycle check.",
+      "setup": "A GUID Temp store replaces the journal only during the synchronous invocation. Separate live session envelopes exercise quota races and settings; an owned Node child proves active-owner protection and cleanup after termination. No user settings are written.",
+      "teardown": "Restore the original journal and metadata; close owned sessions. Retain Temp evidence only.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Cases/Painting/PaintTileHistoryTests.cs", "Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "paint-undo-continuation-small",
+      "file": "Tests~/Cases/Painting/PaintUndoContinuationTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartContinuation",
+      "args": [
+        "$runId",
+        512,
+        81,
+        true,
+        false
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle graphical Editor, no active user stroke; detached fixture only. 8K needs at least 7 GB reported graphics memory.",
+      "setup": "Owned transient document in the normal journal, 51 real strokes seeded across Editor updates, then four following strokes. Control splits only this fixture count metadata after 50. User settings unchanged; no windows or full-size readback.",
+      "teardown": "Cancel owned callbacks, restore original transfer callback, drain and destroy only owned fixture. Keep evidence in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "PaintTileHistoryTests.PollContinuation",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelContinuation",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupContinuation",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-continuation-8k-control",
+      "file": "Tests~/Cases/Painting/PaintUndoContinuationTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartContinuation",
+      "args": [
+        "$runId",
+        8192,
+        81,
+        false,
+        true
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle graphical Editor, no active user stroke; detached fixture only. 8K needs at least 7 GB reported graphics memory.",
+      "setup": "Owned transient document in the normal journal, 51 real strokes seeded across Editor updates, then four following strokes. Control splits only this fixture count metadata after 50. User settings unchanged; no windows or full-size readback.",
+      "teardown": "Cancel owned callbacks, restore original transfer callback, drain and destroy only owned fixture. Keep evidence in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "PaintTileHistoryTests.PollContinuation",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelContinuation",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupContinuation",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-continuation-8k-cleanup",
+      "file": "Tests~/Cases/Painting/PaintUndoContinuationTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartContinuation",
+      "args": [
+        "$runId",
+        8192,
+        81,
+        true,
+        true
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle graphical Editor, no active user stroke; detached fixture only. 8K needs at least 7 GB reported graphics memory.",
+      "setup": "Owned transient document in the normal journal, 51 real strokes seeded across Editor updates, then four following strokes. Control splits only this fixture count metadata after 50. User settings unchanged; no windows or full-size readback.",
+      "teardown": "Cancel owned callbacks, restore original transfer callback, drain and destroy only owned fixture. Keep evidence in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "PaintTileHistoryTests.PollContinuation",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelContinuation",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupContinuation",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-continuation-8k-wide-control",
+      "file": "Tests~/Cases/Painting/PaintUndoContinuationTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartContinuation",
+      "args": [
+        "$runId",
+        8192,
+        2048,
+        false,
+        true
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle graphical Editor, no active user stroke; detached fixture only. 8K needs at least 7 GB reported graphics memory.",
+      "setup": "Owned transient document in the normal journal, 51 real strokes seeded across Editor updates, then four following strokes. Control splits only this fixture count metadata after 50. User settings unchanged; no windows or full-size readback.",
+      "teardown": "Cancel owned callbacks, restore original transfer callback, drain and destroy only owned fixture. Keep evidence in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "PaintTileHistoryTests.PollContinuation",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelContinuation",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupContinuation",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-continuation-8k-wide-cleanup",
+      "file": "Tests~/Cases/Painting/PaintUndoContinuationTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.StartContinuation",
+      "args": [
+        "$runId",
+        8192,
+        2048,
+        true,
+        true
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle graphical Editor, no active user stroke; detached fixture only. 8K needs at least 7 GB reported graphics memory.",
+      "setup": "Owned transient document in the normal journal, 51 real strokes seeded across Editor updates, then four following strokes. Control splits only this fixture count metadata after 50. User settings unchanged; no windows or full-size readback.",
+      "teardown": "Cancel owned callbacks, restore original transfer callback, drain and destroy only owned fixture. Keep evidence in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "PaintTileHistoryTests.PollContinuation",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "PaintTileHistoryTests.CancelContinuation",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "PaintTileHistoryTests.CleanupContinuation",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-boundary",
+      "file": "Tests~/Cases/Painting/PaintUndoMaintenanceTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.RunBoundary",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"],
+      "groups": ["painting"],
+      "prerequisites": "Idle graphical Editor, no user stroke.",
+      "setup": "Owned masked HDR drawing and parameter object; interleaved and mixed-group Undo across a two-stroke boundary.",
+      "teardown": "Destroy only owned objects and undo records; restore original journal and render state.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Cases/Painting/PaintTileHistoryTests.cs", "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs", "Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "paint-undo-maintenance-8k",
+      "file": "Tests~/Cases/Painting/PaintUndoMaintenanceTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.RunMaintenanceBenchmark",
+      "args": [8192, "bounded"],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"],
+      "groups": ["painting"],
+      "prerequisites": "Idle graphical Editor, no user stroke; detached fixture only.",
+      "setup": "Isolated journal and one 8K drawing: four perimeter strokes and 47 dabs, threshold 50 then reduction to five.",
+      "teardown": "Restore store and render state, remove only owned Undo and fixtures.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Cases/Painting/PaintTileHistoryTests.cs", "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs", "Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "paint-undo-retention",
+      "file": "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.RunRetention",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"],
+      "groups": ["painting", "rendering"],
+      "prerequisites": "Idle graphical matching Editor; no active user stroke.",
+      "setup": "GUID Temp journal, owned 513px SDR/HDR documents, low-alpha masked perimeter strokes, automatic count pruning and exact checkpoint reconstruction.",
+      "teardown": "Destroy owned fixtures; restore original store, metadata and render state. No windows or user document edits.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Cases/Painting/PaintTileHistoryTests.cs", "Tests~/Framework/TestApi.cs"],
       "reviewFiles": []
     },
     {

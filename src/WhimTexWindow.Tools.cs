@@ -471,8 +471,11 @@ namespace DCFApixels.WhimTex
             private bool hasReviewComments;
             private CanvasCropMode cropMode;
             private readonly Image healingVectorImage;
+            private readonly Image fillVectorImage;
             private Vector2 healingVectorOffset;
             private bool hasHealingVectorOffset;
+            private Vector2 fillVectorOffset;
+            private bool hasFillVectorOffset;
 
             internal CanvasToolIcon(CanvasTool tool, bool ellipse = false, CanvasCropMode cropMode = CanvasCropMode.Resize)
             {
@@ -502,7 +505,40 @@ namespace DCFApixels.WhimTex
                         RegisterCallback<AttachToPanelEvent>(_ => AlignHealingVectorImage());
                     }
                 }
+                else if (tool == CanvasTool.Fill)
+                {
+                    var vector = AssetDatabase.LoadAssetAtPath<VectorImage>(
+                        "Packages/com.dcfapixels.whimtex/src/Editor/Icons/Fill.svg");
+                    if (vector != null)
+                    {
+                        fillVectorImage = new Image
+                        {
+                            vectorImage = vector,
+                            scaleMode = ScaleMode.ScaleToFit,
+                            pickingMode = PickingMode.Ignore
+                        };
+                        fillVectorImage.AddToClassList("whimtex-tool-vector-image");
+                        Add(fillVectorImage);
+                        RegisterCallback<GeometryChangedEvent>(_ => AlignFillVectorImage());
+                        fillVectorImage.RegisterCallback<GeometryChangedEvent>(_ => AlignFillVectorImage());
+                        RegisterCallback<AttachToPanelEvent>(_ => AlignFillVectorImage());
+                    }
+                }
 #endif
+            }
+
+            private void AlignFillVectorImage()
+            {
+                if (fillVectorImage == null || panel == null || fillVectorImage.contentRect.width < 1f) return;
+                float pixelsPerPoint = EditorGUIUtility.pixelsPerPoint;
+                Vector2 pixels = fillVectorImage.LocalToWorld(Vector2.zero) * pixelsPerPoint;
+                Vector2 snapped = new Vector2(Mathf.Round(pixels.x), Mathf.Round(pixels.y));
+                Translate applied = fillVectorImage.resolvedStyle.translate;
+                Vector2 offset = new Vector2(applied.x.value, applied.y.value) + this.WorldToLocal(snapped / pixelsPerPoint)
+                    - this.WorldToLocal(pixels / pixelsPerPoint);
+                if (hasFillVectorOffset && (offset - fillVectorOffset).sqrMagnitude < .000001f) return;
+                fillVectorOffset = offset; hasFillVectorOffset = true;
+                fillVectorImage.style.translate = new Translate(offset.x, offset.y);
             }
 
             private void OnHealingVectorGeometryChanged(GeometryChangedEvent evt) => AlignHealingVectorImage();
@@ -558,7 +594,7 @@ namespace DCFApixels.WhimTex
             {
                 if (contentRect.width < 1f || contentRect.height < 1f)
                     return;
-                if (healingVectorImage != null)
+                if (healingVectorImage != null || fillVectorImage != null)
                     return;
                 Painter2D painter = context.painter2D;
                 painter.strokeColor = resolvedStyle.color;
@@ -778,30 +814,28 @@ namespace DCFApixels.WhimTex
             {
                 painter.lineCap = LineCap.Butt;
                 painter.BeginPath();
-                for (int i = 0; i < 12; i++)
+                for (int i = 0; i < 8; i++)
                 {
-                    float start = i * Mathf.PI / 6f;
-                    for (int j = 0; j <= 3; j++)
-                    {
-                        float angle = start + j * Mathf.PI / 27f;
-                        Vector2 point = P(12f + Mathf.Cos(angle) * 9f, 12f + Mathf.Sin(angle) * 8f);
-                        if (j == 0) painter.MoveTo(point); else painter.LineTo(point);
-                    }
+                    float start = i * 45f - 13f;
+                    float angle = start * Mathf.Deg2Rad;
+                    painter.MoveTo(P(12f + Mathf.Cos(angle) * 9f, 12f + Mathf.Sin(angle) * 9f));
+                    painter.Arc(P(12f, 12f), contentRect.width * 9f / 24f, start, start + 26f);
                 }
                 painter.Stroke();
             }
             private void DrawRectangleSelect(Painter2D painter)
             {
                 painter.lineCap = LineCap.Butt;
+                painter.lineJoin = LineJoin.Miter;
                 painter.BeginPath();
-                for (int i = 0; i < 4; i++)
-                {
-                    float a = 3f + i * 5f, b = Mathf.Min(a + 3f, 21f);
-                    painter.MoveTo(P(a, 4)); painter.LineTo(P(b, 4));
-                    painter.MoveTo(P(a, 20)); painter.LineTo(P(b, 20));
-                    painter.MoveTo(P(3, a + 1)); painter.LineTo(P(3, Mathf.Min(b + 1, 20)));
-                    painter.MoveTo(P(21, a + 1)); painter.LineTo(P(21, Mathf.Min(b + 1, 20)));
-                }
+                painter.MoveTo(P(3, 6)); painter.LineTo(P(3, 3)); painter.LineTo(P(6, 3));
+                painter.MoveTo(P(9, 3)); painter.LineTo(P(15, 3));
+                painter.MoveTo(P(18, 3)); painter.LineTo(P(21, 3)); painter.LineTo(P(21, 6));
+                painter.MoveTo(P(21, 9)); painter.LineTo(P(21, 15));
+                painter.MoveTo(P(21, 18)); painter.LineTo(P(21, 21)); painter.LineTo(P(18, 21));
+                painter.MoveTo(P(15, 21)); painter.LineTo(P(9, 21));
+                painter.MoveTo(P(6, 21)); painter.LineTo(P(3, 21)); painter.LineTo(P(3, 18));
+                painter.MoveTo(P(3, 15)); painter.LineTo(P(3, 9));
                 painter.Stroke();
             }
             private void DrawPolygonSelect(Painter2D painter)
@@ -846,30 +880,49 @@ namespace DCFApixels.WhimTex
 
             private void DrawBucket(Painter2D painter)
             {
-                Color ink = resolvedStyle.color;
-                painter.fillColor = new Color(ink.r, ink.g, ink.b, ink.a * 0.2f);
                 painter.BeginPath();
-                painter.MoveTo(P(4f, 11f));
-                painter.LineTo(P(11f, 4f));
-                painter.LineTo(P(18f, 11f));
-                painter.LineTo(P(11f, 18f));
+                painter.MoveTo(P(9.95f, 4.65f));
+                painter.BezierCurveTo(P(10.9f, 3.8f), P(12.28f, 3.86f), P(13.28f, 5));
+                painter.LineTo(P(20.96f, 13.76f));
+                painter.BezierCurveTo(P(21.72f, 14.63f), P(21.5f, 15.1f), P(20.33f, 15.04f));
+                painter.LineTo(P(18.66f, 15.01f)); painter.LineTo(P(12.91f, 20.06f));
+                painter.BezierCurveTo(P(10.85f, 22), P(8.72f, 22.24f), P(6.86f, 20.13f));
+                painter.LineTo(P(2.25f, 14.94f));
+                painter.BezierCurveTo(P(1, 13.57f), P(1.37f, 11.95f), P(2.4f, 11.04f));
                 painter.ClosePath();
-                painter.Fill();
-                painter.Stroke();
+                painter.MoveTo(P(11.41f, 5.93f));
+                painter.BezierCurveTo(P(11.65f, 5.88f), P(11.76f, 6.1f), P(11.9f, 6.27f));
+                painter.LineTo(P(18.27f, 13.32f));
+                painter.QuadraticCurveTo(P(18.37f, 13.44f), P(18.2f, 13.62f));
+                painter.LineTo(P(11.76f, 19.22f));
+                painter.BezierCurveTo(P(10.51f, 20.33f), P(8.91f, 19.98f), P(7.89f, 18.83f));
+                painter.LineTo(P(3.72f, 14.2f));
+                painter.BezierCurveTo(P(3.16f, 13.49f), P(3.18f, 12.81f), P(3.84f, 12.22f));
+                painter.LineTo(P(10.95f, 6.15f));
+                painter.QuadraticCurveTo(P(11.24f, 5.9f), P(11.41f, 5.93f));
+                painter.ClosePath(); painter.Fill(FillRule.OddEven);
                 painter.BeginPath();
-                painter.MoveTo(P(4f, 11f));
-                painter.LineTo(P(18f, 11f));
-                painter.MoveTo(P(11f, 8f));
-                painter.LineTo(P(7.5f, 3f));
-                painter.BezierCurveTo(P(5f, 0f), P(2f, 3f), P(4f, 6f));
-                painter.Stroke();
-                painter.fillColor = ink;
+                painter.MoveTo(P(5.2f, 13.2f)); painter.LineTo(P(16.34f, 13.2f));
+                painter.BezierCurveTo(P(16.84f, 13.2f), P(17.02f, 13.36f), P(16.64f, 13.72f));
+                painter.LineTo(P(11.35f, 18.27f));
+                painter.BezierCurveTo(P(10.33f, 19.15f), P(9.16f, 18.99f), P(8.28f, 18.02f));
+                painter.LineTo(P(4.9f, 14.2f));
+                painter.BezierCurveTo(P(4.38f, 13.6f), P(4.45f, 13.2f), P(5.2f, 13.2f));
+                painter.ClosePath(); painter.Fill();
                 painter.BeginPath();
-                painter.MoveTo(P(19f, 13f));
-                painter.BezierCurveTo(P(18f, 15f), P(16.5f, 17f), P(17f, 18.5f));
-                painter.BezierCurveTo(P(18f, 21f), P(22f, 19.5f), P(21f, 17.5f));
-                painter.ClosePath();
-                painter.Fill();
+                painter.MoveTo(P(20.16f, 16.44f));
+                painter.BezierCurveTo(P(20.34f, 16.09f), P(20.7f, 16.09f), P(20.88f, 16.44f));
+                painter.BezierCurveTo(P(21.49f, 17.57f), P(22.48f, 19.55f), P(22.48f, 20.59f));
+                painter.BezierCurveTo(P(22.48f, 21.75f), P(21.6f, 22.7f), P(20.5f, 22.7f));
+                painter.BezierCurveTo(P(19.36f, 22.7f), P(18.46f, 21.78f), P(18.46f, 20.61f));
+                painter.BezierCurveTo(P(18.46f, 19.55f), P(19.52f, 17.57f), P(20.16f, 16.44f));
+                painter.ClosePath(); painter.Fill();
+                painter.lineWidth = 1.8f * contentRect.width / 24;
+                painter.BeginPath();
+                painter.MoveTo(P(11.73f, 8.43f)); painter.LineTo(P(6.03f, 2.73f));
+                painter.BezierCurveTo(P(5.35f, 2.05f), P(4.23f, 2.05f), P(3.55f, 2.73f));
+                painter.BezierCurveTo(P(2.87f, 3.41f), P(2.87f, 4.53f), P(3.55f, 5.21f));
+                painter.LineTo(P(6.64f, 8.3f)); painter.Stroke();
             }
 
             private void DrawPointer(Painter2D painter)

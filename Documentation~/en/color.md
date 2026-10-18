@@ -184,6 +184,7 @@ retired fields and previous names are not migrated.
 ### Shape the gradient on canvas
 
 Choose **Gradient** beside **Fill**, pick a type and edit the gradient in the Canvas View header, then drag.
+Point with the small arrow tip; the gradient symbol sits to its lower right.
 Linear uses the drag's start and end; Radial, Angular, Diamond and Square use the start as their center.
 **Shift** constrains the angle to 45° increments, **Ctrl** disables snapping and **Escape** cancels.
 Each drag creates a separate editable Gradient layer; a click without dragging creates nothing.

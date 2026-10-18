@@ -162,10 +162,10 @@ full-resolution source/stroke, stamp backdrops or downstream document rendering.
 
 Interactive Brush/Pencil and API paint use a session pixel journal when readable, single-mip
 RGBA32/RGBAHalf storage and the required texture copies/render format are supported. Unity Undo
-records a small revision cursor; files under `Library/WhimTex/PaintUndo` hold each
+records one small object per pixel operation; a shared per-user disk store holds each
 block's before/after Half and straight-storage bytes. Ctrl+Z/Redo share the normal action order.
 History survives script reload within the Editor session, but is not included in TIFF or restored
-after restarting the Editor. Normal Editor exit removes that session's journal.
+after restarting the Editor. Normal Editor exit removes only that process's session journal.
 Each new page samples up to 64 KiB: Deflate is used when the sample compresses below one third
 of its original size; otherwise the page is stored raw to avoid expensive compression on detailed
 images. Both paths preserve exact bytes. Compressed-page checksums are verified before restoring
@@ -189,12 +189,69 @@ captures each stored before-image before patching the after-image, including ove
 A separate bounded pool can retain up to about 64 MiB of managed tile arrays for reuse. Raw journal
 pages trade disk space for lower latency.
 Disk errors retain affected payloads in RAM and report the failure; this exceptional retention can
-exceed that budget. Disk history currently has no size quota or per-document eviction.
+exceed that budget. Further journaled strokes are refused until the failed history is cleared.
 Undo, CPU pixel consumers, save, resource release and script reload drain pending work. API paint
 returns after synchronization. Unchanged source pixels keep their original storage bytes, including
 hidden RGB. Devices without asynchronous readback use bounded synchronous page reads. Unsupported
 storage/copy configurations, Blur/Smudge/Healing and other native pixel operations retain their
 previous storage/Undo path. Full-size working surfaces and document rendering are not tiled storage.
+
+### Shared paint-history storage and retention
+
+The disk home is `DCFApixels/WhimTex/PaintUndo` under Windows LocalApplicationData,
+macOS `~/Library/Caches`, or Linux's absolute `XDG_CACHE_HOME` (otherwise `~/.cache`).
+No administrator access or native platform library is required. All projects and Editor versions
+use the same home. A process-owned GUID session contains separate step directories and per-drawing
+checkpoints; multiple windows sharing one document share its history. This is disposable Undo,
+not document recovery or a substitute for saving TIFF.
+
+`limits.json` holds a global 8 GiB default quota and a 50-operation default per-document limit
+(Brush/Pencil pixel Undo plus Redo). A stroke counts once regardless of how many texture blocks
+it stores. Parameter-only edits remain subject to Unity Undo and do not consume this limit.
+Other pixel tools still using native texture Undo are outside this journal's count.
+Atomic per-field updates use a short cross-process file lock.
+Other User Settings already use Unity's per-user [EditorPrefs](https://docs.unity3d.com/ScriptReference/EditorPrefs.html);
+loaded preference caches and open controls refresh every two seconds. Project/workspace state is
+not promoted to a global document setting.
+
+Before modifying the Half source, commit reserves worst-case page bytes under the common quota,
+including pending writes. It reclaims its own oldest steps when necessary; active foreign sessions
+are never pruned. The store retains 512 MiB of free disk space and a shared 32 MiB compaction budget.
+If reservation still fails, the stroke is not applied and reports a storage error. Clearing history
+or increasing the limit can allow a retry; no stroke is silently committed without Undo.
+
+Retiring an applied step first records its new boundary, then streams exact compressed after-Half
+and after-storage blocks into a checkpoint. Pending source pages remain readable until replacement
+is complete. This preserves low-alpha precision after clearing history and rebuilding a surface;
+checkpoints count toward disk usage. Retention clears only the retired operation's native Undo
+object, leaving parameter changes intact even inside the same native group. Ordinary Undo/Redo
+therefore has no empty retired-stroke steps. Invalid stale cursors are still rejected atomically.
+A new branch deletes its own
+discarded future states. Idle maintenance enforces the operation count, trims excess usage and
+reclaims histories whose texture no longer exists.
+
+Routine checkpoint validation, decoding, compression and file publication run one page at a time
+on a worker. Original source pages remain readable until the main thread retires them; Half
+rebuilds prefer pending source tiles over checkpoint files being replaced. Editor maintenance
+uses a 4 ms scheduling budget between work units (not a hard real-time I/O guarantee) and does not
+wait for the worker. One reusable set of four tile arrays retains at most 2 MiB for checkpoint
+decoding, avoiding repeated large allocations during pruning. Loaded revision chains and session
+paths are reused. Disk accounting adjusts changed allocations instead of rescanning the entire
+session per file. Explicit clear, quota exhaustion and assembly shutdown may synchronize pending
+checkpoint work. Clearing and compaction preserve exact pixels; they do not replay brush commands.
+
+Reducing the quota below existing usage schedules reclamation; it cannot erase precise current
+images or another running Editor's history. Bounded compaction may temporarily exceed the new
+limit. If checkpoints and other active sessions alone exceed it, usage remains visible and new
+reservations fail until space is available. **Clear Paint Undo…** confirms removal of this Editor's
+paint history and abandoned sessions; it retains current-image checkpoints and other native Undo.
+
+Session manifests identify the machine, process ID and process start time. Cleanup at startup and
+periodically while idle removes only recognized, proven-dead sessions, including reused process
+IDs; access failures and unknown envelopes are preserved. Domain reload keeps the same process
+session. File operations reject symbolic links and paths outside the owned session. Limits and
+other preferences survive cleanup. Older package revisions' project-local journals are outside
+this store and quota; they are not swept as unowned directories.
 
 Sequential Stamp blending and pressure Opacity copy only the current stamp's padded backdrop
 region, remapping sampling coordinates to that scratch texture. Capacity grows in 128-pixel

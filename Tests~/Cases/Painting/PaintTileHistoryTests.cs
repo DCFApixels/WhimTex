@@ -9,7 +9,7 @@ using WhimTex.Tests;
 using Object = UnityEngine.Object;
 
 // Detached, owned fixtures; no windows or input. Native Undo is scoped to owned objects.
-public static class PaintTileHistoryTests
+public static partial class PaintTileHistoryTests
 {
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
     const BindingFlags S = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
@@ -66,6 +66,7 @@ public static class PaintTileHistoryTests
         internal readonly RenderTexture surface;
         internal readonly object settings, dynamics;
         internal readonly int size;
+        internal string historyLabel = "Owned pixel history test";
         internal Fixture(int size, bool hdr, bool textured = false)
         {
             this.size = size;
@@ -98,7 +99,7 @@ public static class PaintTileHistoryTests
         {
             Undo.IncrementCurrentGroup(); int group = Undo.GetCurrentGroup();
             using (Phase("test.paint.prepare"))
-            if (history) Call(layer, "PrepareBufferedStroke", size, size, "Owned pixel history test");
+            if (history) Call(layer, "PrepareBufferedStroke", size, size, historyLabel);
             using (Phase("test.paint.draw"))
             {
             Call(layer, "BeginStroke", points[0]); object p = Parameters(mask, erase);
@@ -227,7 +228,7 @@ public static class PaintTileHistoryTests
                 Static("PaintHistoryStore", "FlushWrites");
                 string revision = (string)Get(Get(f.layer, "PixelUndoObject"), "Revision");
                 string root = (string)Type("PaintHistoryStore").GetProperty("Root", S).GetValue(null);
-                using (var file = File.OpenRead(Path.Combine(root, revision + "-0.bin")))
+                using (var file = File.OpenRead(Path.Combine(root, "steps", revision, "0.bin")))
                 using (var reader = new BinaryReader(file)) t.Equal(0x57545034, reader.ReadInt32(), "Detailed source chooses raw journal page");
                 RejectDamagedPage(t, f);
                 Undo.PerformUndo(); Exact(t, stored, f.pixels.GetRawTextureData<byte>().ToArray(), "Raw Undo stored pixels");
@@ -245,7 +246,7 @@ public static class PaintTileHistoryTests
         var cursor = Get(fixture.layer, "PixelUndoObject"); string revision = (string)Get(cursor, "Revision");
         var step = Static("PaintHistoryStore", "Get", revision);
         string root = (string)Type("PaintHistoryStore").GetProperty("Root", S).GetValue(null);
-        string file = Path.Combine(root, revision + "-" + ((int)Get(step, "pages") - 1) + ".bin");
+        string file = Path.Combine(root, "steps", revision, ((int)Get(step, "pages") - 1) + ".bin");
         byte[] original = File.ReadAllBytes(file);
         var restore = cursor.GetType().GetMethod("Restore", F);
         var callback = Delegate.CreateDelegate(restore.GetParameters()[0].ParameterType,
@@ -438,8 +439,12 @@ public static class PaintTileHistoryTests
         try
         {
             string token = Guid.NewGuid().ToString("N"); f.document.name = "WhimTex paint history test " + token;
+            f.historyLabel = "WhimTex reload test " + token;
             string directory = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/WhimTex/paint-tile-history", token)); Directory.CreateDirectory(directory);
             var rect = new RectInt(0, 0, 768, 768);
+            f.Stroke(new[] { new Vector2(.2f, .2f) }, null);
+            Static("PaintHistoryStore", "FlushWrites"); Call(Get(f.layer, "PixelUndoObject"), "ClearHistory");
+            File.WriteAllText(Path.Combine(directory, "session.txt"), (string)Type("PaintHistoryStore").GetProperty("Root", S).GetValue(null));
             File.WriteAllBytes(Path.Combine(directory, "before-half.bin"), Probe(f.surface, rect));
             File.WriteAllBytes(Path.Combine(directory, "before-stored.bin"), f.pixels.GetRawTextureData<byte>().ToArray());
             Set(f.dynamics, "flow", .0001f); f.Stroke(new[] { new Vector2(.35f, .35f), new Vector2(.7f, .7f) }, null, drain: false);
@@ -464,6 +469,7 @@ public static class PaintTileHistoryTests
         var rect = new RectInt(0, 0, 768, 768);
         try
         {
+            t.Equal(File.ReadAllText(Path.Combine(directory, "session.txt")), (string)Type("PaintHistoryStore").GetProperty("Root", S).GetValue(null), "Assembly reload keeps the same session and checkpoint files");
             Exact(t, File.ReadAllBytes(Path.Combine(directory, "after-stored.bin")), pixels.GetRawTextureData<byte>().ToArray(), "Stored pixels survive reload");
             Exact(t, File.ReadAllBytes(Path.Combine(directory, "after-half.bin")), Probe((RenderTexture)Call(layer, "EnsurePaintSurface", 768, 768), rect), "Half precision rebuilt from disk after reload");
             t.Equal("WhimTex reload test " + token, Undo.GetCurrentGroupName(), "No other action has changed the Undo group");
@@ -528,7 +534,7 @@ public static class PaintTileHistoryTests
             int pages = (int)Get(Static("PaintHistoryStore", "Get", revision), "pages");
             for (int i = 0; i < pages; i++)
             {
-                using var file = File.OpenRead(Path.Combine(journalRoot, revision + "-" + i + ".bin"));
+                using var file = File.OpenRead(Path.Combine(journalRoot, "steps", revision, i + ".bin"));
                 report.journalBytes += file.Length;
                 using var reader = new BinaryReader(file);
                 if (reader.ReadInt32() == 0x57545034) report.rawPages++; else report.compressedPages++;
@@ -540,6 +546,12 @@ public static class PaintTileHistoryTests
             clock.Restart(); using (Phase("test.paint.redo")) Undo.PerformRedo(); report.redoMs = clock.Elapsed.TotalMilliseconds;
             Exact(t, after, Probe((RenderTexture)Get(f.layer, "paintSurface"), probe), "8K exact Half Redo probe");
             t.Equal("Present", CoverageState(f.layer, 8192), "8K Redo block coverage");
+            if (mode == "frame")
+            {
+                Call(Get(f.layer, "PixelUndoObject"), "ClearHistory");
+                Call(f.layer, "InvalidatePaintSurface");
+                Exact(t, after, Probe((RenderTexture)Call(f.layer, "EnsurePaintSurface", 8192, 8192), probe), "8K exact Half checkpoint after clearing the entire frame history");
+            }
             if (mode == "small")
             {
                 report.repeatCommitMs = new double[3]; report.repeatDrainMs = new double[3];

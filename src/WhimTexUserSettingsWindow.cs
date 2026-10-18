@@ -30,6 +30,8 @@ namespace DCFApixels.WhimTex
         private Label commentAuthorStatus;
         private ColorField commentAuthorColor;
         private Button resetCommentAuthorColor;
+        private IntegerField undoDiskLimit, paintUndoSteps;
+        private Label undoUsage;
 
         internal static void Open()
         {
@@ -260,6 +262,27 @@ namespace DCFApixels.WhimTex
             var folderNote = new Label("Shared across projects. Brushes and Shader FX use the Brushes and ShaderFX subfolders. Presets in the project are also available. Changing the path does not move files.");
             folderNote.AddToClassList("whimtex-user-settings-note");
             scroll.Add(folderNote);
+            AddHeading(scroll, "Paint Undo");
+            undoDiskLimit = new IntegerField("Undo Disk Limit (GiB)") { name = "undoDiskLimit", isDelayed = true,
+                tooltip = "Shared by all WhimTex projects and Editor versions for this user. Includes queued writes and exact Half checkpoints. Range: 1–1024 GiB." };
+            undoDiskLimit.AddToClassList("whimtex-user-settings-color");
+            undoDiskLimit.RegisterValueChangedCallback(e => ChangeUndoLimits(() => WhimTexUserSettings.SetUndoDiskGiB(e.newValue)));
+            scroll.Add(undoDiskLimit);
+            paintUndoSteps = new IntegerField("Paint Undo Steps") { name = "paintUndoSteps", isDelayed = true,
+                tooltip = "Maximum retained Brush/Pencil pixel operations per document, including Redo. One stroke is one step, regardless of tile count. Parameter edits use Unity Undo and do not count toward this limit. Default: 50. Range: 1–10000." };
+            paintUndoSteps.AddToClassList("whimtex-user-settings-color");
+            paintUndoSteps.RegisterValueChangedCallback(e => ChangeUndoLimits(() => WhimTexUserSettings.SetPaintUndoSteps(e.newValue)));
+            scroll.Add(paintUndoSteps);
+            undoUsage = new Label { name = "paintUndoUsage" };
+            undoUsage.AddToClassList("whimtex-user-settings-note"); scroll.Add(undoUsage);
+            var clearUndo = new Button(() =>
+            {
+                if (!EditorUtility.DisplayDialog("Clear Paint Undo",
+                    "Keep current images, but remove previous Brush/Pencil Undo and Redo in this Editor? Exact Half checkpoints remain. Abandoned sessions are also removed; other running Editors are untouched.", "Clear", "Cancel")) return;
+                ChangeUndoLimits(PaintHistoryStore.ClearCurrentEditor);
+            }) { name = "clearPaintUndo", text = "Clear Paint Undo…" };
+            clearUndo.AddToClassList("whimtex-user-settings-reset"); scroll.Add(clearUndo);
+            scroll.schedule.Execute(RefreshUndoUsage).Every(2000);
             AddHeading(scroll, "Reset Settings");
             var resetAll = new Button(() => WhimTexWindow.ConfirmResetEditorSettings(this))
             {
@@ -303,6 +326,7 @@ namespace DCFApixels.WhimTex
 
         private void RefreshValues()
         {
+            RefreshUndoUsage();
             commentAuthorColor?.SetValueWithoutNotify(WhimTexUserSettings.CommentAuthorColor);
             resetCommentAuthorColor?.SetEnabled(WhimTexUserSettings.HasCustomCommentAuthorColor);
             commentAuthorName?.SetValueWithoutNotify(WhimTexUserSettings.AssignedCommentAuthorName);
@@ -334,6 +358,28 @@ namespace DCFApixels.WhimTex
             checkerSize?.SetValueWithoutNotify(WhimTexUserSettings.CheckerSize);
             presetsFolder?.SetValueWithoutNotify(WhimTexUserSettings.PresetsFolder);
             vsCodeExecutable?.SetValueWithoutNotify(WhimTexUserSettings.VsCodeExecutable);
+        }
+        private void ChangeUndoLimits(System.Action change)
+        {
+            try { change(); }
+            catch (System.Exception error) { EditorUtility.DisplayDialog("Paint Undo", error.Message, "OK"); }
+            RefreshUndoUsage();
+        }
+        private void RefreshUndoUsage()
+        {
+            if (undoUsage == null) return;
+            try
+            {
+                var disk = PaintUndoDisk.Current;
+                var limits = disk.ReadLimits();
+                undoDiskLimit.SetValueWithoutNotify(limits.diskGiB); paintUndoSteps.SetValueWithoutNotify(limits.steps);
+                long total = disk.Usage(), own = PaintUndoDisk.Measure(disk.Root);
+                long baseline = PaintUndoDisk.Measure(System.IO.Path.Combine(disk.Root, "owners"));
+                undoUsage.text = $"Total {total / (double)PaintUndoDisk.GiB:0.00} / {limits.diskGiB} GiB · This Editor {own / (double)PaintUndoDisk.GiB:0.00} GiB\nHalf checkpoints {baseline / (double)PaintUndoDisk.GiB:0.00} GiB · 512 MiB free-space reserve";
+                if (PaintHistoryStore.LastMaintenanceError != null) undoUsage.text += "\n" + PaintHistoryStore.LastMaintenanceError;
+                undoUsage.tooltip = disk.Home;
+            }
+            catch (System.Exception error) { undoUsage.text = error.Message; }
         }
     }
 }

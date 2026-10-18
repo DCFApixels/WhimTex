@@ -50,6 +50,11 @@ shows the selected layer's controls. Drag a divider to make more room where you 
 Choose a tool on the left toolbar; its options appear above the canvas.
 Pan by holding the mouse wheel and dragging. Scroll to zoom; **Fit** shows the whole canvas.
 
+Creation and selection tools show a small arrow with the active tool's symbol on the canvas.
+The arrow tip is the active point; Shape, Area Select and Lasso symbols follow the chosen mode.
+Vector Select and Vector Nodes use their filled and hollow pointer shapes; Layer Select keeps the OS cursor.
+Brushes keep their tip outlines; text editing, navigation and transform handles keep their action cursors.
+
 | Tool | Key | Use it to… |
 | :--- | :---: | :--- |
 | Layer Select | `V` | Click visible pixels to select a layer. |
@@ -65,6 +70,17 @@ Pan by holding the mouse wheel and dragging. Scroll to zoom; **Fit** shows the w
 The **gear button to the right of Export** opens User Settings, where you can change the transparency checkerboard's colors
 and size, or enable **Clean Canvas View Background** to hide the background logo and shadow. At the bottom of this settings window,
 **Reset WhimTex Settings…** restores the workspace preferences after confirmation, without deleting your documents or preset files.
+
+**Paint Undo** sets the shared **Undo Disk Limit (GiB)** (8 by default) and **Paint Undo Steps**
+(50 per document by default, including Redo). Only Brush/Pencil pixel operations count;
+parameter edits use Unity Undo independently. These preferences apply to all projects for this user.
+Older Brush/Pencil steps are removed when needed; the current image stays unchanged.
+Automatic cleanup runs in small portions. Removed strokes do not leave empty Undo steps;
+parameter changes remain available independently.
+**Clear Paint Undo…** frees previous Brush/Pencil history in this Editor after confirmation and
+cleans abandoned sessions. Other running Editors keep their history. Some space remains necessary
+for the current images' precision. If the limit or free disk space cannot accommodate a new stroke,
+the stroke is not applied; increase the limit or free space before trying again.
 
 To keep a layer's settings in a separate window, use **layer ⋮ → Properties**.
 

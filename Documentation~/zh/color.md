@@ -181,6 +181,7 @@ foreground/background 关键点会变为黑色/白色。噪声渐变、不支持
 ### 在画布上调整渐变形状
 
 选择 **Fill** 旁的 **Gradient**，在 Canvas View 顶部选择类型并编辑渐变，然后拖动。
+以小箭头尖端定位，渐变图标位于其右下方。
 Linear 以拖动位置为起点和终点；Radial、Angular、Diamond 和 Square 以起点为中心。
 **Shift** 将角度约束为 45° 步长，**Ctrl** 禁用吸附，**Escape** 取消创建。
 每次拖动创建一个独立可编辑的 Gradient 图层；单击不创建图层。

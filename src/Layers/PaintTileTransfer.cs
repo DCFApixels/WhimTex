@@ -36,11 +36,11 @@ namespace DCFApixels.WhimTex
         }
         private static void Update()
         {
-            try { Process(false); }
+            try { Process(false); PaintHistoryStore.Maintenance(); }
             catch (Exception error) { Debug.LogException(error); }
         }
         // SessionState keeps the cursor across reload; its journal must be durable first.
-        private static void DrainAll() { Drain(); PaintHistoryStore.FlushWrites(); }
+        private static void DrainAll() { Drain(); PaintHistoryStore.FlushWrites(); PaintHistoryStore.FinishCheckpointWork(); }
         private static void Quit() { DrainAll(); PaintHistoryStore.ClearSession(); }
         internal static void Drain() => Process(true);
         private static void MakeRoom(long bytes)

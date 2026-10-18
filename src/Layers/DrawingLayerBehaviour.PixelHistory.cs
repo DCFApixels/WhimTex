@@ -12,6 +12,7 @@ namespace DCFApixels.WhimTex
         internal int LastPaintTileCount { get; private set; }
         internal long LastPaintTilePixels { get; private set; }
         internal UnityEngine.Object PixelUndoObject => DrawingPixelHistory.Find(pixels);
+        internal bool HasBufferedStroke => advancedStroke != null;
 
         private bool CommitPixelHistory(Material composite)
         {
@@ -19,7 +20,15 @@ namespace DCFApixels.WhimTex
             using var profile = WhimTexProfiler.Measure("brush.history.commit");
             RectInt[] blocks = brushDirtyTiles.ToArray();
             var history = DrawingPixelHistory.Find(pixels, true);
-            var step = history.Begin(blocks, pixelUndoLabel);
+            PaintHistoryStore.Step step;
+            try { step = history.Begin(blocks, pixelUndoLabel); }
+            catch
+            {
+                // Reservation fails before the immutable Half source is changed.
+                pixelUndoLabel = null; paintSurfaceDirty = brushBaseDirty;
+                ReleaseAdvancedStroke(); ReleasePaintWriteProtection();
+                throw;
+            }
             LastPaintTileCount = blocks.Length; LastPaintTilePixels = brushDirtyTiles.PixelCount;
             for (int start = 0, pageIndex = 0; start < blocks.Length; start += PaintTileTransfer.TilesPerPage, pageIndex++)
             {
@@ -111,11 +120,11 @@ namespace DCFApixels.WhimTex
             ReleaseAdvancedStroke();
             bool rebuilt = paintSurface == null;
             var surface = EnsurePaintSurface(pixels.width, pixels.height);
-            history.Restore((block, forward) => RestorePixelBlock(surface, block, forward));
+            bool changed = history.Restore((block, forward) => RestorePixelBlock(surface, block, forward));
             if (rebuilt) RestoreHalfHistory();
             paintSurfaceDirty = false; partialStorageCurrent = true; restoredPixelUndo = true;
             unchecked { paintSurfaceRevision++; }
-            return true;
+            return changed;
         }
         private void RestoreHalfHistory()
         {

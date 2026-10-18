@@ -13,16 +13,17 @@ using Stopwatch = System.Diagnostics.Stopwatch;
 
 namespace DCFApixels.WhimTex
 {
-    // Unity records this small cursor. Pixel payloads belong to the session journal.
-    internal sealed class DrawingPixelHistory : ScriptableObject
+    // Per-stroke Unity records select this cursor; pixel payloads belong to the session journal.
+    internal sealed partial class DrawingPixelHistory : ScriptableObject
     {
         [SerializeField] internal Texture2D texture;
         [SerializeField] private string revision = "";
         [SerializeField] private string identity;
+        [SerializeField] private List<DrawingPixelUndoRecord> undoRecords = new();
         [NonSerialized] private string applied;
         private static readonly Dictionary<UnityObjectID, DrawingPixelHistory> owners = new();
         internal string Revision => revision ?? "";
-        internal bool NeedsRestore => (applied ?? "") != Revision;
+        internal bool NeedsRestore { get { SynchronizeUndoRecords(); return (applied ?? "") != Revision; } }
         internal static DrawingPixelHistory Find(Texture2D texture, bool create = false)
         {
             if (texture == null) return null;
@@ -39,20 +40,61 @@ namespace DCFApixels.WhimTex
         private void OnEnable() { if (!string.IsNullOrEmpty(identity)) applied = SessionState.GetString(identity, Revision); }
         internal PaintHistoryStore.Step Begin(RectInt[] blocks, string label)
         {
-            var step = PaintHistoryStore.Begin(Revision, texture, blocks);
+            var step = PaintHistoryStore.Begin(Revision, texture, blocks, this);
+            var record = CreateInstance<DrawingPixelUndoRecord>();
+            record.hideFlags = HideFlags.HideAndDontSave; record.name = label;
+            record.before = Revision; record.after = step.id;
+            Undo.RegisterCompleteObjectUndo(record, label);
+            record.active = record.observed = true; EditorUtility.SetDirty(record);
+            undoRecords.Add(record);
             revision = step.id; applied = revision;
             SessionState.SetString(identity, applied);
             EditorUtility.SetDirty(this);
             return step;
         }
-        internal void Restore(Action<PaintHistoryStore.Block, bool> apply)
+        private void SynchronizeUndoRecords()
         {
-            if (!NeedsRestore) return;
+            // A native group may contain several strokes: Undo selects the earliest parent,
+            // Redo the latest child. Other objects in the group remain entirely Unity-owned.
+            string backward = null, forward = null;
+            foreach (var record in undoRecords)
+            {
+                if (record == null || record.observed == record.active) continue;
+                if (record.active) forward = record.after;
+                else backward ??= record.before;
+                record.observed = record.active;
+            }
+            if (backward != null || forward != null) revision = forward ?? backward;
+        }
+        internal void ForgetUndoRecord(string step)
+        {
+            for (int i = undoRecords.Count - 1; i >= 0; i--)
+            {
+                var record = undoRecords[i];
+                if (record != null && record.after != step) continue;
+                undoRecords.RemoveAt(i);
+                if (record == null) continue;
+                Undo.ClearUndo(record); DestroyImmediate(record);
+            }
+        }
+        private void OnDestroy()
+        {
+            foreach (var record in undoRecords)
+                if (record != null) { Undo.ClearUndo(record); DestroyImmediate(record); }
+            undoRecords.Clear();
+        }
+        internal bool Restore(Action<PaintHistoryStore.Block, bool> apply)
+        {
+            if (!NeedsRestore) return false;
             using var profile = WhimTexProfiler.Measure("brush.undo.restore");
             PaintTileTransfer.Drain();
             string from = applied ?? "", to = Revision;
-            var ancestors = new HashSet<string> { "" };
-            for (string p = from; p.Length != 0; p = PaintHistoryStore.Get(p).parent) ancestors.Add(p);
+            if (!TryPath(from, out var fromPath) || !TryPath(to, out var toPath))
+            {
+                revision = from; EditorUtility.SetDirty(this);
+                return false; // A retired native Undo marker must never restore only part of a stroke.
+            }
+            var ancestors = new HashSet<string>(fromPath) { Boundary };
             var forward = new List<PaintHistoryStore.Step>();
             string common = to;
             while (!ancestors.Contains(common)) { var s = PaintHistoryStore.Get(common); forward.Add(s); common = s.parent; }
@@ -70,6 +112,7 @@ namespace DCFApixels.WhimTex
                 for (int i = forward.Count - 1; i >= 0; i--) PaintHistoryStore.Visit(forward[i], b => apply(b, true));
             }
             applied = to; SessionState.SetString(identity, applied);
+            return true;
         }
         private void ValidateStep(PaintHistoryStore.Step step)
         {
@@ -82,12 +125,12 @@ namespace DCFApixels.WhimTex
         {
             // A reload may have discarded the runtime surface. Reapply Half blocks on
             // the current stored baseline, retaining low-alpha accumulation precision.
-            if (NeedsRestore || Revision.Length == 0 || !PaintTileTransfer.SupportsPixels(texture)) return;
+            if (NeedsRestore || !PaintTileTransfer.SupportsPixels(texture)) return;
             PaintTileTransfer.Drain();
             var seen = new HashSet<Vector2Int>();
-            for (string p = Revision; p.Length != 0;)
+            for (string p = Revision; p != Boundary && p.Length != 0;)
             {
-                var step = PaintHistoryStore.Get(p);
+                if (!PaintHistoryStore.TryGet(p, out var step)) break;
                 if (step.width != texture.width || step.height != texture.height ||
                     step.bytesPerPixel != (HdrUtility.IsHdr(texture) ? 8 : 4)) break;
                 PaintHistoryStore.Validate(step);
@@ -99,6 +142,10 @@ namespace DCFApixels.WhimTex
                 });
                 p = step.parent;
             }
+            VisitBaseline(b =>
+            {
+                if (seen.Add(new Vector2Int(b.rect.x, b.rect.y)) && MatchesStored(texture, b.rect, HdrUtility.IsHdr(texture) ? 8 : 4, b.afterStored)) apply(b, true);
+            });
         }
         private static bool MatchesStored(Texture2D texture, RectInt rect, int bpp, byte[] expected)
         {
@@ -111,7 +158,7 @@ namespace DCFApixels.WhimTex
         }
     }
 
-    internal static class PaintHistoryStore
+    internal static partial class PaintHistoryStore
     {
         internal const long PendingBudget = 64L * 1024 * 1024;
         private const int Magic = 0x57545031;
@@ -123,25 +170,22 @@ namespace DCFApixels.WhimTex
         // At most ~64 MiB retained across all geometric buckets, separate from
         // the 64 MiB budget for payloads whose writes are still in progress.
         private static readonly ArrayPool<byte> buffers = ArrayPool<byte>.Create(PaintTileSet.Size * PaintTileSet.Size * 8, 64);
-        private static string root;
         private static long pendingBytes;
         internal static long PendingBytes => Interlocked.Read(ref pendingBytes);
         internal static string Root
         {
             get
             {
-                if (root != null) return root;
-                string session = SessionState.GetString("WhimTex.PaintHistory.Session", "");
-                if (!Guid.TryParseExact(session, "N", out _)) { session = Guid.NewGuid().ToString("N"); SessionState.SetString("WhimTex.PaintHistory.Session", session); }
-                root = Path.GetFullPath(Path.Combine(Application.dataPath, "../Library/WhimTex/PaintUndo", session));
-                Directory.CreateDirectory(root); return root;
+                return PaintUndoDisk.Current.Root;
             }
         }
         [Serializable] internal sealed class Step
         {
-            public string id, parent;
+            public string id, parent, owner, document;
             public int width, height, bytesPerPixel, pages;
+            public long order;
             [NonSerialized] internal Page[] payload;
+            [NonSerialized] internal bool reservationReleased;
         }
         internal sealed class Page
         {
@@ -160,21 +204,41 @@ namespace DCFApixels.WhimTex
             internal RectInt rect;
             internal byte[] beforeHalf, afterHalf, beforeStored, afterStored;
         }
-        internal static Step Begin(string parent, Texture2D texture, RectInt[] blocks)
+        internal static Step Begin(string parent, Texture2D texture, RectInt[] blocks, DrawingPixelHistory history)
         {
+            EnsureLoaded();
+            foreach (var existing in steps.Values)
+                foreach (var page in existing.payload)
+                    if (page?.write?.IsFaulted == true)
+                        throw new IOException("Paint Undo could not write to disk. Clear Paint Undo after checking free disk space before starting another stroke.");
+            DiscardBranches(history);
             var step = new Step { id = Guid.NewGuid().ToString("N"), parent = parent ?? "",
                 width = texture.width, height = texture.height, bytesPerPixel = HdrUtility.IsHdr(texture) ? 8 : 4,
+                owner = history.Identity, document = history.DocumentIdentity, order = DateTime.UtcNow.Ticks,
                 pages = (blocks.Length + PaintTileTransfer.TilesPerPage - 1) / PaintTileTransfer.TilesPerPage };
+            long estimate = 1024 * 1024;
+            foreach (var block in blocks) estimate += (long)block.width * block.height * (16 + 2 * step.bytesPerPixel);
+            estimate += estimate / 100;
+            while (!PaintUndoDisk.Current.Reserve(StepDirectory(step.id), estimate, out string reason))
+            {
+                PaintTileTransfer.Drain(); FlushWrites();
+                if (!RetireOldest()) throw new IOException(reason + " The stroke was not applied. Increase Undo Disk Limit or clear history in WhimTex Settings.");
+            }
             step.payload = new Page[step.pages];
-            File.WriteAllText(Path.Combine(Root, step.id + ".json"), JsonUtility.ToJson(step));
-            steps.Add(step.id, step); return step;
+            try
+            {
+                PaintUndoDisk.AtomicText(Path.Combine(StepDirectory(step.id), "manifest.json"), JsonUtility.ToJson(step));
+                steps.Add(step.id, step); return step;
+            }
+            catch { PaintUndoDisk.Current.DeleteOwned(StepDirectory(step.id)); throw; }
         }
         internal static Step Get(string id)
         {
             if (steps.TryGetValue(id, out var step)) return step;
             if (!Guid.TryParseExact(id, "N", out _)) throw new InvalidDataException("Invalid paint history revision.");
-            step = JsonUtility.FromJson<Step>(File.ReadAllText(Path.Combine(Root, id + ".json")));
-            if (step == null || step.id != id || step.pages < 1 || step.pages > 4096 ||
+            step = JsonUtility.FromJson<Step>(File.ReadAllText(Path.Combine(StepDirectory(id), "manifest.json")));
+            if (step == null || step.id != id || !Guid.TryParseExact(step.owner, "N", out _) ||
+                !Guid.TryParseExact(step.document, "N", out _) || step.pages < 1 || step.pages > 4096 ||
                 step.width < 1 || step.width > 16384 || step.height < 1 || step.height > 16384 ||
                 (step.bytesPerPixel != 4 && step.bytesPerPixel != 8)) throw new InvalidDataException("Invalid paint history manifest.");
             step.payload = new Page[step.pages]; steps.Add(id, step); return step;
@@ -184,7 +248,7 @@ namespace DCFApixels.WhimTex
             using var profile = WhimTexProfiler.Measure("brush.history.store");
             long size = 0;
             foreach (var b in blocks) size += b.beforeHalf.LongLength + b.afterHalf.LongLength + b.beforeStored.LongLength + b.afterStored.LongLength;
-            var page = new Page { blocks = blocks, bytes = size, path = Path.Combine(Root, step.id + "-" + pageIndex + ".bin"), queuedAt = Stopwatch.GetTimestamp() };
+            var page = new Page { blocks = blocks, bytes = size, path = PagePath(step, pageIndex), queuedAt = Stopwatch.GetTimestamp() };
             step.payload[pageIndex] = page;
             Interlocked.Add(ref pendingBytes, size);
             page.write = Task.Run(() =>
@@ -273,12 +337,9 @@ namespace DCFApixels.WhimTex
         }
         internal static void ClearSession()
         {
-            // Only this session's generated journal is disposable; never follow an arbitrary path.
-            if (root == null) return;
-            string parent = Path.GetFullPath(Path.Combine(Application.dataPath, "../Library/WhimTex/PaintUndo"));
-            if (Path.GetDirectoryName(root) != parent || !Guid.TryParseExact(Path.GetFileName(root), "N", out _))
-                throw new InvalidOperationException("Invalid paint journal cleanup path.");
-            if (Directory.Exists(root)) Directory.Delete(root, true);
+            FinishCheckpointWork();
+            checkpointScratch = null;
+            PaintUndoDisk.Current.Close();
         }
         private static void WaitForWrite(Page page)
         {
@@ -295,29 +356,31 @@ namespace DCFApixels.WhimTex
         internal static void Validate(Step step)
         {
             for (int i = 0; i < step.pages; i++)
-            {
-                Page page = step.payload[i]; WaitForWrite(page);
-                if (page?.blocks != null) continue;
-                using var file = OpenPage(step, i);
-                using var reader = new BinaryReader(file, System.Text.Encoding.UTF8, true);
-                int format = reader.ReadInt32();
-                if (format != CheckedDeflate && format != FastCheckedDeflate && format != FastCheckedRaw)
-                { VisitPage(step, i, _ => { }); continue; } // Existing history in this Editor session.
-                byte[] expected = Read(reader, 32);
-                byte[] actual;
-                if (format != CheckedDeflate) actual = HashPage(file);
-                else { using var hash = SHA256.Create(); actual = hash.ComputeHash(file); }
-                for (int j = 0; j < actual.Length; j++)
-                    if (expected[j] != actual[j]) throw new InvalidDataException("Damaged paint history page; pixels were not restored.");
-                // The payload checksum does not include the format marker. Check its
-                // decoded header too, so a damaged raw/Deflate marker cannot pass validation.
-                file.Position = 36;
-                using var decoded = format == FastCheckedRaw ? null : new DeflateStream(file, CompressionMode.Decompress, true);
-                using var payload = new BinaryReader((Stream)decoded ?? file, System.Text.Encoding.UTF8, true);
-                if (payload.ReadInt32() != Magic) throw new InvalidDataException("Invalid paint history encoding.");
-                int count = payload.ReadInt32();
-                if (count < 1 || count > PaintTileTransfer.TilesPerPage) throw new InvalidDataException("Invalid paint history page.");
-            }
+                ValidatePage(step, i);
+        }
+        internal static void ValidatePage(Step step, int i)
+        {
+            Page page = step.payload[i]; WaitForWrite(page);
+            if (page?.blocks != null) return;
+            using var file = OpenPage(step, i);
+            using var reader = new BinaryReader(file, System.Text.Encoding.UTF8, true);
+            int format = reader.ReadInt32();
+            if (format != CheckedDeflate && format != FastCheckedDeflate && format != FastCheckedRaw)
+            { VisitPage(step, i, _ => { }); return; } // Existing history in this Editor session.
+            byte[] expected = Read(reader, 32);
+            byte[] actual;
+            if (format != CheckedDeflate) actual = HashPage(file);
+            else { using var hash = SHA256.Create(); actual = hash.ComputeHash(file); }
+            for (int j = 0; j < actual.Length; j++)
+                if (expected[j] != actual[j]) throw new InvalidDataException("Damaged paint history page; pixels were not restored.");
+            // The payload checksum does not include the format marker. Check its
+            // decoded header too, so a damaged raw/Deflate marker cannot pass validation.
+            file.Position = 36;
+            using var decoded = format == FastCheckedRaw ? null : new DeflateStream(file, CompressionMode.Decompress, true);
+            using var payload = new BinaryReader((Stream)decoded ?? file, System.Text.Encoding.UTF8, true);
+            if (payload.ReadInt32() != Magic) throw new InvalidDataException("Invalid paint history encoding.");
+            int count = payload.ReadInt32();
+            if (count < 1 || count > PaintTileTransfer.TilesPerPage) throw new InvalidDataException("Invalid paint history page.");
         }
         // Hash128 is Unity's portable data checksum. Fixed-size chunks make Append
         // deterministic even when a stream returns a partial read. Not an authenticity check.
@@ -333,7 +396,7 @@ namespace DCFApixels.WhimTex
             }
             return System.Text.Encoding.ASCII.GetBytes(hash.ToString());
         }
-        private static FileStream OpenPage(Step step, int index) => new FileStream(Path.Combine(Root, step.id + "-" + index + ".bin"),
+        private static FileStream OpenPage(Step step, int index) => new FileStream(PagePath(step, index),
             FileMode.Open, FileAccess.Read, FileShare.Read, 65536, FileOptions.SequentialScan);
         internal static void Visit(Step step, Action<Block> visit)
         {

@@ -100,6 +100,76 @@ checks reuse of exact FX output and rejection of reduced previews. `alpha-presen
 asynchronous completion while idle, cancellation and resource ownership. The detector submits
 pending GPU work through public `GL.Flush` without waiting for completion.
 
+`paint-undo-disk-lifecycle` uses a GUID Temp store and separate session envelopes to check shared
+limits, concurrent reservations, reload reopening, foreign-owner protection and scoped cleanup.
+An owned headless Node child is terminated to verify cleanup after a real process exit; the user
+Editor is never terminated. Unknown envelopes and reused process IDs are tested separately.
+`paint-undo-retention` uses an isolated store and owned 513px SDR/HDR documents to check count
+pruning, precise checkpoints, low-flow masked strokes, stale cursor rejection and new Undo after
+forced clear. A foreign reservation fills the quota to prove rejection before any Half mutation.
+Both restore the original store and metadata; no user settings or history are cleared.
+They require `temp-files,user-state` and belong to the `paint-tile-history` profile.
+
+`paint-undo-boundary` interleaves owned parameter changes and masked HDR strokes, including a
+native group containing both. It verifies each Undo/Redo across the retained boundary without
+empty pixel steps or skipped parameters, forced clear, and exact Half reconstruction/Undo while
+a background checkpoint is being prepared.
+`paint-undo-maintenance-8k` owns an isolated 8K document and store, makes 51 strokes (the first four
+span the canvas perimeter), and lowers the count limit from 50 to 5. It records total completion
+time separately from the longest main-thread maintenance call and its slowest measured stage;
+`(GC)` marks a collection during that call. Reports belong to `Temp/WhimTex/paint-undo-maintenance`.
+This is a synchronous diagnostic harness yielding between maintenance calls, not an interactive
+frame-rate benchmark. Neither case opens a window or changes the user's document/settings.
+
+The 2026-10-17 pre-change diagnostic measured 4,198 ms of blocking maintenance after stroke 51 and
+40,363 ms for 50 → 5. Its CLI timed out, but the completed measurements and owned-fixture cleanup
+were independently verified; it is timing evidence, not a runner PASS. After page-sized worker
+compaction, incremental disk accounting and reuse of decode buffers/loaded paths, two final diagnostic
+runs passed with longest main-thread calls of 14.3–15.1 ms at stroke 51 and 25.0–29.4 ms for 50 → 5.
+Total background completion was 1.03–1.09 s / 8.66–8.73 s; writing the new limit took 6.57–6.85 ms. These are individual runs on
+Unity 6000.7.0a6, RTX 5060, D3D12, not guaranteed maxima. Intermediate variants still incurred
+150–285 ms collection-related spikes; that prompted buffer/path reuse before final checks.
+The boundary, retention, disk lifecycle, small exact-history and 8K HDR perimeter suites passed;
+the separate reload pair also passed after a confirmed native assembly reload (event observed and
+old AppDomain marker gone). This does not claim Editor-process restart or other-platform coverage.
+
+The `paint-undo-continuation` diagnostic profile checks drawing while count-limit cleanup is
+already running: a small preflight, then paired 8K controls/cleanup with 81px and 2048px brushes.
+It seeds 51 strokes across real Editor updates (four perimeter strokes), starts a checkpoint
+worker, then draws strokes 52–55 along a near-full-canvas curve, rendering all 24 inputs per
+stroke. A 50 ms inter-stroke target deliberately overlaps pending history transfers. The
+control changes only its fixture's count-group identity after stroke 50; the pixel revision
+chain, global limits and user settings remain unchanged. The shared transfer update callback
+is temporarily timed and restored, and only this fixture's history files are removed on exit.
+No window, user document or input device is controlled. Keep the Editor otherwise idle.
+
+Reports under `Temp/WhimTex/paint-undo-continuation` separate preparation, painting, rendering,
+1×1 GPU completion waits, transfer/maintenance updates and commit capacity waits. These are
+per-input work measurements, not presented FPS. Raw intervals include Editor idle and Pipeline
+poll compilation; polling is limited to once per five seconds to reduce that interference.
+Main-thread housekeeping totals between inputs can include multiple update calls; the separate
+maximum reports one call. Actual worker overlap is asserted. Three Undo/Redo operations verify
+revision order and exact Half bytes in a bounded probe on the last stroke, with a check that
+Undo really changes that probe. This does not verify every pixel of the 8K image.
+
+On 2026-10-18, Unity 6000.7.0a6 / RTX 5060 / D3D12 completed the small case and paired 8K runs
+in both orders. Movement medians were 5.8–6.1 ms for 81px and 6.7–6.9 ms for 2048px; paired
+p95 values were 10.5–11.9 ms and 12.8–13.4 ms respectively. No sustained movement regression
+from cleanup was observed, including the inputs that actually overlapped its worker. However,
+the first measured input after starting cleanup waited about 48–53 ms for GPU completion versus
+24–27 ms in the control. Later starts varied in both branches; this experiment does not resolve
+the initial wait or prove all startup stalls absent. Preparation itself stayed below 0.3 ms.
+The broad stroke still spent 435–636 ms in commit, also without cleanup. A repeat counted the
+same 29/31/33/34 staging-capacity waits in both branches while queuing 830/860/900/935 MiB;
+the bounded staging queue was near its 256 MiB cap. That commit backpressure is separate from
+old-history compaction. Production drawing/retention code was not changed by this diagnostic.
+
+An earlier, discarded single-call synchronous probe crashed the Editor during the 8K control:
+the D3D12 log reported failure to allocate an 8 MiB readback buffer (`8007000e`). Accumulation
+of native resources without real frame boundaries was suspected, not proven as the complete
+driver cause. The replacement above yields between inputs/strokes, limits process-memory
+growth and duration, and persists phase progress. Do not restore the dense synchronous probe.
+
 `paint-tile-history-small` uses detached documents to check sparse coverage, queued low-flow strokes,
 exact Half/storage Undo/Redo, disk-only restoration, mixed native/model Undo, history branching,
 surface reconstruction, non-power-of-two edge blocks and unchanged hidden RGB. It checks the same
@@ -112,6 +182,8 @@ wall timings under `Temp/WhimTex/paint-tile-history`. Run large cases separately
 upload is fixture initialization; subsequent uploads/readbacks are bounded pages or tiles.
 The HDR perimeter case passed again with tracked alpha coverage, fractional selection and exact
 Half Undo/Redo; the ring still touched 124 of 1024 blocks.
+The perimeter cases also clear their own history and verify exact Half reconstruction from the
+remaining checkpoint, using only bounded probes on the 8K surface.
 These cases require `temp-files,user-state` for their owned files and Undo objects; no windows/input.
 
 `paint-tile-history-raw` adds full-image exact SDR/HDR checks on detailed 513px sources, including
@@ -127,6 +199,10 @@ every complete Half/storage revision exactly, including masks, eraser and tiny f
 compression cost hidden by blank-canvas benchmarks. `paint-history-codecs` compares the available
 portable compression streams on bounded synthetic buffers. Large cases preserve a previous stopped
 profiler capture to Temp before recording their own detailed phase profiles; an active capture is rejected.
+
+The reload fixture includes a cleared-history checkpoint followed by a new stroke, checking both
+the shared session path and exact Half/Undo/Redo after real assembly reload. A `recompile` reply of
+`up_to_date` is not a reload: require an actual compilation/reload event before verification.
 
 The two explicit `paint-tile-history-reload-prepare` / `paint-tile-history-reload-verify` entries
 bracket an actual normal Unity script recompile. Preparation intentionally leaves one unique owned

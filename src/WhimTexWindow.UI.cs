@@ -2184,7 +2184,10 @@ namespace DCFApixels.WhimTex
                 return;
             }
             toolkitCanvas?.SetToolCursor(canvasTool, visible, panning, transformCursor,
-                canvasZoomManipulator?.IsRotating ?? false);
+                canvasZoomManipulator?.IsRotating ?? false,
+                icon: !panning && canvasPointerInside && (!alt || IsAreaSelectionTool || canvasTool == CanvasTool.VectorNodes) &&
+                    !OwnsScreenEyedropper && activeDocument != null
+                    ? GetCanvasToolCursorIcon(transformCursor) : CanvasCursorIcon.None);
         }
 
         private void RefreshCanvasPointerCursor()
@@ -2437,7 +2440,8 @@ namespace DCFApixels.WhimTex
             private readonly VisualElement checker;
             private Texture2D checkerTexture;
             private Texture2D transparentCursorTexture;
-            private bool toolCursorHidden;
+            private readonly Dictionary<CanvasCursorIcon, Texture2D> toolCursorTextures = new Dictionary<CanvasCursorIcon, Texture2D>(24);
+            private Texture2D toolCursorTexture;
             private readonly Image image;
             private readonly VisualElement tiledImage;
             private readonly CanvasShadow canvasShadow;
@@ -2665,7 +2669,7 @@ namespace DCFApixels.WhimTex
                     size, size));
             }
 
-            public void SetToolCursor(CanvasTool tool, bool hide, bool panning, MouseCursor transformCursor = MouseCursor.Pan, bool rotating = false)
+            public void SetToolCursor(CanvasTool tool, bool hide, bool panning, MouseCursor transformCursor = MouseCursor.Pan, bool rotating = false, CanvasCursorIcon icon = CanvasCursorIcon.None)
             {
                 bool transforming = !panning && (tool == CanvasTool.Transform || tool == CanvasTool.Crop || tool == CanvasTool.GradientHandles || IsTemporaryCanvasTool(tool));
                 EnableInClassList("whimtex-canvas-cursor--pan", (panning && !rotating) || (transforming && transformCursor == MouseCursor.Pan));
@@ -2673,31 +2677,44 @@ namespace DCFApixels.WhimTex
                 EnableInClassList("whimtex-canvas-cursor--scale", transforming && transformCursor == MouseCursor.ScaleArrow);
                 EnableInClassList("whimtex-canvas-cursor--rotate", rotating || (transforming && transformCursor == MouseCursor.RotateArrow));
                 EnableInClassList("whimtex-canvas-cursor--move", transforming && transformCursor == MouseCursor.MoveArrow);
-                if (toolCursorHidden == hide) return;
-                toolCursorHidden = hide;
-                if (!hide)
+                Texture2D nextCursorTexture = null;
+                if (hide)
                 {
-                    style.cursor = StyleKeyword.Null;
-                    return;
-                }
-                if (transparentCursorTexture == null)
-                {
-                    transparentCursorTexture = new Texture2D(16, 16, TextureFormat.RGBA32, false)
+                    if (transparentCursorTexture == null)
                     {
-                        name = "WhimTex Transparent Cursor",
-                        hideFlags = HideFlags.HideAndDontSave,
-                        alphaIsTransparency = true
-                    };
-                    transparentCursorTexture.SetPixels32(new Color32[16 * 16]);
-                    transparentCursorTexture.Apply(false, false);
+                        transparentCursorTexture = new Texture2D(16, 16, TextureFormat.RGBA32, false)
+                        {
+                            name = "WhimTex Transparent Cursor",
+                            hideFlags = HideFlags.HideAndDontSave,
+                            alphaIsTransparency = true
+                        };
+                        transparentCursorTexture.SetPixels32(new Color32[16 * 16]);
+                        transparentCursorTexture.Apply(false, false);
+                    }
+                    nextCursorTexture = transparentCursorTexture;
                 }
-                style.cursor = new UnityEngine.UIElements.Cursor { texture = transparentCursorTexture, hotspot = Vector2.zero };
+                else if (icon != CanvasCursorIcon.None && !panning && !rotating)
+                {
+                    if (!toolCursorTextures.TryGetValue(icon, out nextCursorTexture))
+                    {
+                        nextCursorTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                            "Packages/com.dcfapixels.whimtex/src/Editor/Icons/" + icon + "Cursor.png");
+                        toolCursorTextures.Add(icon, nextCursorTexture);
+                    }
+                }
+                if (toolCursorTexture == nextCursorTexture) return;
+                toolCursorTexture = nextCursorTexture;
+                if (nextCursorTexture == null)
+                    style.cursor = StyleKeyword.Null;
+                else
+                    style.cursor = new UnityEngine.UIElements.Cursor { texture = nextCursorTexture, hotspot = Vector2.zero };
             }
 
             public void ReleaseToolCursor()
             {
                 style.cursor = StyleKeyword.Null;
-                toolCursorHidden = false;
+                toolCursorTexture = null;
+                toolCursorTextures.Clear();
                 if (transparentCursorTexture != null) UnityEngine.Object.DestroyImmediate(transparentCursorTexture);
                 transparentCursorTexture = null;
             }

@@ -240,7 +240,11 @@ namespace DCFApixels.WhimTex
             if (pixels == null)
                 SyncSurfaceToTexture();
             pixelUndoLabel = blockHistory && PaintTileTransfer.SupportsPixels(pixels) ? undoName : null;
-            if (pixelUndoLabel != null) Undo.RegisterCompleteObjectUndo(DrawingPixelHistory.Find(pixels, true), undoName);
+            if (pixelUndoLabel != null)
+            {
+                var history = DrawingPixelHistory.Find(pixels, true);
+                history.BindDocument(Owner);
+            }
             if (pixels != null && pixelUndoLabel == null)
             {
                 PaintTileTransfer.Drain();
