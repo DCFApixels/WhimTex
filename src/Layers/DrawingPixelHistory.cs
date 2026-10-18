@@ -161,7 +161,7 @@ namespace DCFApixels.WhimTex
     {
         // Enough immutable payloads to keep several writers busy on larger CPUs,
         // without letting a rapid stroke sequence grow an unbounded native queue.
-        internal static readonly long PendingBudget = Math.Clamp(Environment.ProcessorCount / 2, 2, 4) * 32L * 1024 * 1024;
+        internal static readonly long PendingBudget = Math.Clamp(Environment.ProcessorCount / 2, 2, 8) * 32L * 1024 * 1024;
         private const int Magic = 0x57545031;
         private const int CheckedDeflate = 0x57545032;
         private const int FastCheckedDeflate = 0x57545033;

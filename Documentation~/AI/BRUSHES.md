@@ -206,7 +206,7 @@ they are not copied into separate managed arrays for every block. Stroke complet
 for readback or payload compression while staging fits that budget. GPU submission/allocation and a
 small revision manifest still run on completion; this is not a zero-cost or zero-I/O operation.
 Editor updates process the FIFO in approximately 4 ms slices, yielding between blocks, and never
-wait for pending journal writes. A page reserves space under a 64–128 MiB pending-write budget before
+wait for pending journal writes. A page reserves space under a 64–256 MiB pending-write budget before
 CPU patching, charging the full resident planes including unused atlas slots; background compression/file writes release that space. GPU saturation, readback errors
 and devices without asynchronous readback can still stall. Exceeding the staging budget waits for
 the oldest page to finish, preserving exact revisions instead of dropping history. The same FIFO
@@ -220,8 +220,12 @@ directly; atlas rows are gathered native-to-native into reusable block scratch. 
 output buffer feeds the file API. Lossless bytes, raw fallback, checksums and the journal format are unchanged.
 Idle pools are released after all consumers join at script reload/quit. Raw journal pages trade disk
 space for lower latency.
-The writer budget is `clamp(logicalProcessorCount / 2, 2, 4) × 32 MiB`; larger CPUs can encode
-several independent pages concurrently without increasing the number of GPU readback pages.
+The writer budget is `clamp(logicalProcessorCount / 2, 2, 8) × 32 MiB`; larger CPUs can encode
+more independent pages concurrently without increasing the number of GPU readback pages.
+This raises the maximum resident writer allowance by 128 MiB on sufficiently large CPUs;
+it is demand-allocated and shared, not a new buffer per stroke. Exact page/revision identity and
+FIFO CPU patching preserve Undo order even when workers finish out of order. Sustained input can
+still exhaust the snapshot queue: more concurrency reduces writer waits, not GPU transfer volume.
 New readback batches are submitted without waiting, and their request state is updated while the
 Editor is idle. The last successful page writer converts its stroke's disk reservation to actual
 file usage immediately, without waiting for idle maintenance. If disk reservation initially fails,

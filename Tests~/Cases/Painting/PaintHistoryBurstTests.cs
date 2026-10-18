@@ -47,6 +47,7 @@ public static partial class PaintTileHistoryTests
         readonly bool paced, hdr;
         readonly TestContext test = new();
         readonly List<object> frames = new();
+        readonly List<object> writers = new();
         readonly List<byte[]> expected = new();
         HistoryMemoryProbe memory;
         Fixture fixture;
@@ -149,6 +150,7 @@ public static partial class PaintTileHistoryTests
                     test.True((bool)Get(step, "reservationReleased"), "Last writer releases raw reservation without idle maintenance");
                     test.True(!File.Exists(Path.Combine((string)Static("PaintHistoryStore", "StepDirectory", revision), "reservation")), "Completed stroke is charged by actual disk bytes");
                     drainMs = (Stopwatch.GetTimestamp() - drainAt) * 1000.0 / Stopwatch.Frequency; phase = 3; restore = StrokeCount - 1;
+                    CaptureWriters();
                 }
             }
             else if (phase == 3)
@@ -166,8 +168,30 @@ public static partial class PaintTileHistoryTests
             maxStaging = Math.Max(maxStaging, staging); maxPending = Math.Max(maxPending, queued);
             test.True(staging <= (long)Type("PaintTileTransfer").GetField("StagingBudget", S).GetValue(null), "Shared snapshot cap across repeated strokes");
             test.True(queued <= (long)Type("PaintHistoryStore").GetField("PendingBudget", S).GetValue(null), "Writer payload stays bounded");
-            frames.Add(new { phase, stroke, point, intervalMs = interval, workMs = clock.Elapsed.TotalMilliseconds, releaseMs,
+            frames.Add(new { start = now, end = Stopwatch.GetTimestamp(), phase, stroke, point, intervalMs = interval, workMs = clock.Elapsed.TotalMilliseconds, releaseMs,
                 staging, queued, waits = Transfer<long>("CapacityWaits") - waitBefore }); releaseMs = 0;
+        }
+        void CaptureWriters()
+        {
+            string owner = (string)Get(Get(fixture.layer, "PixelUndoObject"), "Identity");
+            double ms = 1000.0 / Stopwatch.Frequency;
+            foreach (System.Collections.DictionaryEntry entry in (System.Collections.IDictionary)Type("PaintHistoryStore").GetField("steps", S).GetValue(null))
+            {
+                var step = entry.Value;
+                if ((string)Get(step, "owner") != owner) continue;
+                int index = 0;
+                foreach (var p in (Array)Get(step, "payload"))
+                {
+                    // Read worker fields only after the completed Task publication barrier.
+                    ((System.Threading.Tasks.Task)Get(p, "write")).GetAwaiter().GetResult();
+                    writers.Add(new { revision = Get(step, "id"), order = Get(step, "order"), page = index++,
+                        queuedAt = Get(p, "queuedAt"), startedAt = Get(p, "startedAt"), finishedAt = Get(p, "finishedAt"),
+                        blocks = Get(p, "blockCount"), raw = Get(p, "bytes"), packed = Get(p, "fileBytes"),
+                        encodeMs = (long)Get(p, "encodeTicks") * ms, hashMs = (long)Get(p, "hashTicks") * ms,
+                        inputCopyMs = (long)Get(p, "inputCopyTicks") * ms, compressionMs = (long)Get(p, "compressionTicks") * ms,
+                        outputCopyMs = (long)Get(p, "outputCopyTicks") * ms, fileWriteMs = (long)Get(p, "fileWriteTicks") * ms });
+                }
+            }
         }
         internal void Finish(Exception error)
         {
@@ -183,7 +207,7 @@ public static partial class PaintTileHistoryTests
                     File.WriteAllText(path + "-profile.json", Json(new { frequency = Stopwatch.Frequency,
                         capture = new { events = used, count, dropped = Get(capture, "dropped") } }));
                 }
-                if (path != null) File.WriteAllText(path + ".json", Json(new { side, paced, hdr, frames, memory, maxStaging, maxPending, drainMs, processorCount = Environment.ProcessorCount,
+                if (path != null) File.WriteAllText(path + ".json", Json(new { side, paced, hdr, frames, writers, frequency = Stopwatch.Frequency, memory, maxStaging, maxPending, drainMs, processorCount = Environment.ProcessorCount,
                     writerBudget = Type("PaintHistoryStore").GetField("PendingBudget", S).GetValue(null) }));
             }
             catch (Exception failure) { error ??= failure; }

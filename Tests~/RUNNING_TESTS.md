@@ -1333,6 +1333,15 @@ before release. Snapshot and writer queues stay bounded; final ordered Undo/Redo
 They require an idle Editor and `temp-files,user-state`; only owned objects/history are removed.
 Reports and stage captures are under `Temp/WhimTex/paint-tile-history`.
 
+Burst reports also include frame start/end ticks and per-page worker timestamps, compression,
+input gathering, output copying, file writes and checksum times. Worker fields are read only after
+their Tasks complete. Worker wall intervals overlap; do not sum them as UI latency. Restrict profile
+spans to `brush.history.commit` when attributing release pauses, excluding later Undo/Redo.
+Idle Editor cadence and Pipeline polling can lengthen the background tail; it is not disk latency.
+The current writer allowance scales up to 256 MiB on larger CPUs; GPU staging and the two-page
+readback limit remain unchanged. A four-page readback control did not reduce release pauses on
+the tested 8K series and was discarded. These detached tests do not establish interactive FPS.
+
 Individual RTX 5060 / D3D12 / Unity 6000.7.0a6 observations, 2026-10-18:
 
 - The original user release took 6849 ms, including 5986 ms waiting for Deflate writers.
