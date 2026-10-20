@@ -101,6 +101,39 @@ namespace DCFApixels.WhimTex
 
         internal static float GetSizeShortcutStep(float size) => Mathf.Max(1f, Mathf.Floor(size * 0.1f));
 
+        internal string EncodePreferences()
+        {
+            RememberBrushTip();
+            var data = Newtonsoft.Json.Linq.JObject.Parse(JsonUtility.ToJson(this));
+            // Runtime textures/programs are restored from the existing GUID/local-ID,
+            // preset-path or clipboard-cache references, never from session object IDs.
+            void Strip(Newtonsoft.Json.Linq.JToken token)
+            {
+                if (token is Newtonsoft.Json.Linq.JObject obj)
+                    foreach (var property in obj.Properties())
+                    {
+                        if (property.Value is Newtonsoft.Json.Linq.JObject reference && reference["instanceID"] != null)
+                            property.Value = Newtonsoft.Json.Linq.JValue.CreateNull();
+                        else Strip(property.Value);
+                    }
+                else if (token is Newtonsoft.Json.Linq.JArray array) foreach (var item in array) Strip(item);
+            }
+            Strip(data);
+            return data.ToString(Newtonsoft.Json.Formatting.None);
+        }
+
+        internal static PaintToolSettings DecodePreferences(string json)
+        {
+            if (Newtonsoft.Json.Linq.JToken.Parse(json) is not Newtonsoft.Json.Linq.JObject)
+                throw new FormatException("Expected paint settings.");
+            var settings = new PaintToolSettings(); JsonUtility.FromJsonOverwrite(json, settings);
+            settings.dynamics ??= new BrushDynamics(); settings.dynamics.tip = null; settings.dynamics.Normalize();
+            settings.smoothing ??= new StrokeSmoothingSettings(); settings.smoothing.Normalize();
+            settings.hlslTextureReferences ??= new System.Collections.Generic.List<BrushParameterTextureReference>();
+            foreach (var parameter in settings.dynamics.hlslParameters) if (parameter != null) parameter.textureValue = null;
+            return settings;
+        }
+
         internal void ResetBrushTip()
         {
             ReleasePresetTip();

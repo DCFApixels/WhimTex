@@ -21,6 +21,7 @@ namespace DCFApixels.WhimTex
             {
                 areaSelectionManipulator?.Cancel();
                 lassoMode = mode;
+                SaveToolPreferences();
             }
             RefreshCanvasToolToolbar();
             toolkitHeaderBindings.Refresh();

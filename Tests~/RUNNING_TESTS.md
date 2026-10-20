@@ -15,6 +15,15 @@ profiler, and ReadScreenPixel on test-created windows. It does not authorize oth
 
 ## Inspect and select
 
+`tool-preferences-v1` uses unshown owned windows and an injected GUID-isolated EditorPrefs
+store. It checks close/recreate and cold reads, exact snapshots of all 26 tool-options sections, gradient/HDR
+and alpha data, GUID/local-ID brush restoration, queued writes, repeated nested multi-window
+edits, stale close, session reset, size/keyboard routing, missing-font identity and malformed
+sections, plus missing external preset/cache fallback without creating or deleting files.
+No user preferences/documents, assets, selection, clipboard or focus are changed.
+It deletes only its exact GUID preference keys. Native control dispatch and a complete
+Editor-process restart are separate checks, not actions performed by this case.
+
 `shader-fx-workflow-512` is the small preflight for `shader-fx-workflow-8k`.
 Both open one owned temporary window with actual FX preview elements, without mouse
 or keyboard automation. Two cycles compare hidden/visible previews, pan/zoom, and

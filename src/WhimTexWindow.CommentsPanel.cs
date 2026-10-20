@@ -43,6 +43,7 @@ namespace DCFApixels.WhimTex
             field.RegisterValueChangedCallback(_ =>
             {
                 commentFilter = CommentFilterValues[field.index];
+                SaveToolPreferences();
                 ApplyCommentFilter();
             });
             return field;

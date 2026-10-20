@@ -71,6 +71,13 @@ The **gear button to the right of Export** opens User Settings, where you can ch
 and size, or enable **Clean Canvas View Background** to hide the background logo and shadow. At the bottom of this settings window,
 **Reset WhimTex Settings…** restores the workspace preferences after confirmation, without deleting your documents or preset files.
 
+Tool options are remembered automatically when you close the window or restart Unity:
+painting and fill settings, Shape/Text/Gradient creation defaults, selection and lasso modes,
+vector brush options, Crop mode, guide snapping switches and UV overlay appearance.
+Each window owns its editing state; returning to an idle window picks up shared tool changes.
+Document properties, the current selection, unfinished paths/strokes and the Crop frame are
+not tool preferences. **Reset WhimTex Settings…** also resets all remembered tool options.
+
 **Paint Undo** sets the shared **Undo Disk Limit (GiB)** (8 by default) and **Paint Undo Steps**
 (50 per document by default, including Redo). Brush, Pencil, Smudge, Blur, Healing, fill and layer-clear pixel operations count;
 parameter edits use Unity Undo independently. These preferences apply to all projects for this user.

@@ -42,6 +42,7 @@ namespace DCFApixels.WhimTex
                 scale.SetValueWithoutNotify(brushStrokePreviewScale * 100f);
                 brushStrokePreviewDirty = true;
             });
+            TrackToolPreferenceChanges(scale);
             parent.Add(scale);
             brushStrokePreviewSchedule = brushStrokePreview.schedule.Execute(UpdateBrushStrokePreview).Every(75);
             brushStrokePreviewSchedule.Pause();

@@ -144,6 +144,7 @@ namespace DCFApixels.WhimTex
         {
             textManipulator?.Cancel();
             change(textToolSettings);
+            SaveToolPreferences();
             toolkitHeaderBindings.Refresh();
         }
 

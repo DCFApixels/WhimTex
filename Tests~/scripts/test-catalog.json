@@ -932,6 +932,7 @@
       "layer-drop-target-v1"
     ],
     "regressions": [
+      "tool-preferences-v1",
       "pixel-tool-history",
       "profiler-followup",
       "normal-specular-v1",
@@ -2111,6 +2112,7 @@
       "canvas-header-brush-layout"
     ],
     "canvas": [
+      "tool-preferences-v1",
       "vector-tools-geometry-v1",
       "vector-tools-cancel-v1",
       "vector-tools-brush-v1",
@@ -17541,6 +17543,23 @@
       "result": {"kind":"structured"},
       "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityAScope.cs"],
       "reviewFiles": []
+    },
+    {
+      "id": "tool-preferences-v1",
+      "file": "Tests~/Cases/Canvas/ToolPreferencesTests.cs",
+      "runner": "run_script",
+      "entry": "ToolPreferencesTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state"],
+      "groups": ["regression", "canvas", "settings"],
+      "prerequisites": "Idle matching Unity Editor. Serialized execution; no user stroke or settings edit in flight.",
+      "setup": "Unshown owned windows and transient settings; injected store reads/writes only a fresh GUID EditorPrefs namespace. Reuses an existing texture read-only. No user document, asset, selection, clipboard or focus manipulation.",
+      "teardown": "Destroys owned windows/sessions and deletes only the GUID-owned preference keys.",
+      "result": {"kind":"structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": ["src/WhimTexUserSettings.Tools.cs", "src/WhimTexWindow.ToolPreferences.cs", "src/PaintToolSettings.cs"]
     },
     {
       "id": "normal-specular-v1",

@@ -103,6 +103,7 @@ namespace DCFApixels.WhimTex
                 SetCanvasTool(CanvasTool.UvIslandSelect);
             }) { text = "Select UV Islands", tooltip = "Click inside an island to select its pixels. Shift adds, Alt subtracts. Switch to a brush to paint inside the selection." });
             fields.Add(new Button(() => { uvCachedChannel = -1; RefreshUvReference(); }) { text = "Refresh UV" });
+            TrackToolPreferenceChanges(fields);
             uvStatus = new HelpBox("Assign a Mesh to show its UV islands.", HelpBoxMessageType.Info);
             fields.Add(uvStatus);
         }

@@ -59,6 +59,8 @@
 
 ## UI and validation
 
+- Persistent tool defaults use `WhimTexUserSettings.ToolPreferenceSession`, registered in `WhimTexWindow.ToolPreferences.cs`. Reuse an existing setting/asset-reference codec instead of adding another EditorPrefs path. Tool settings rows use the common change observer; non-field actions and shortcuts request `SaveToolPreferences`. Keep document properties, selections, drafts, gesture state and runtime textures out of preferences. See [the tool-settings contract](Documentation~/ToolSettings.md).
+
 - FX are independent plugins over the shared effect contract. Adding a preset must not change layer generation/behavior, inspect its shader in layer code, or introduce layer-specific hidden outputs for that effect. Use ordinary input images and explicit parameters. Changes to layer behavior require an explicit user request; general FX infrastructure is not permission for preset-specific coupling.
 
 - Prefer compact Unity-style controls, restrained decoration, minimal help text and meaningful changes. Avoid fragile internal APIs for cosmetic features.

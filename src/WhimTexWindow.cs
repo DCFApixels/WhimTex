@@ -101,7 +101,7 @@ namespace DCFApixels.WhimTex
                 "Reset WhimTex Settings",
                 "Reset panel sizes, scrolling, selection, foldouts, RGBA channels and canvas tool state in all open " +
                 "WhimTex windows, and remove the saved Live Quality preference?\n\n" +
-                "Shared brush, color, fill, Canvas View appearance settings and the presets folder path will also be reset. Preset files will not be deleted. " +
+                "All shared tool settings, colors, Canvas View appearance and the presets folder path will also be reset. Preset files will not be deleted. " +
                 "Open documents (including unsaved work), layers, textures and Shader FX " +
                 "will be preserved. Unity settings and window docking will not change. " +
                 "This settings reset cannot be undone.",
@@ -117,9 +117,6 @@ namespace DCFApixels.WhimTex
             }
             Undo.FlushUndoRecordObjects();
             EditorPrefs.DeleteKey(PaintingCanvasScalePrefKey);
-            EditorPrefs.DeleteKey(PaintToolSettingsPrefKey);
-            EditorPrefs.DeleteKey(CanvasToolPrefKey);
-            EditorPrefs.DeleteKey(CanvasTransformReturnToolPrefKey);
             WhimTexColorInputs.Reset();
             WhimTexUserSettings.Reset();
             foreach (WhimTexWindow window in windows)
@@ -195,8 +192,7 @@ namespace DCFApixels.WhimTex
             RestoreSourceImage();
             RefreshDocumentTitle(true);
             canvasExposure = 0f;
-            LoadCanvasToolSettings();
-            LoadPaintToolSettings();
+            InitializeToolPreferences();
             EditorApplication.delayCall += RestoreBrushTipAfterReload;
             EditorApplication.projectChanged += RestoreBrushTipAfterReload;
             EditorApplication.projectChanged += CancelHealing;
@@ -259,6 +255,7 @@ namespace DCFApixels.WhimTex
             RestoreUnityShortcuts();
             FinishPaintingStroke();
             ResetAreaSelection();
+            toolPreferences?.Dispose(); toolPreferences = null;
             paintSettings?.ReleasePresetTip();
             WhimTexDocument.Changed -= OnDocumentChanged;
             WhimTexDocument.RenderResourcesChanged -= OnDocumentRenderResourcesChanged;
@@ -281,6 +278,10 @@ namespace DCFApixels.WhimTex
         {
             RecordAgentFocus();
             SuppressUnityShortcuts();
+            if (paintingLayer == null && shapeManipulator?.IsDragging != true && vectorManipulator?.IsDragging != true &&
+                cropManipulator?.IsDragging != true && areaSelectionManipulator?.HasGesture != true &&
+                textManipulator?.IsDragging != true && gradientCreationManipulator?.IsDragging != true)
+                toolPreferences?.Refresh();
             RestoreBrushTipAfterReload();
         }
 

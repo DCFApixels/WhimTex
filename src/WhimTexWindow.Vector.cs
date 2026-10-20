@@ -270,6 +270,7 @@ namespace DCFApixels.WhimTex
         private void SetVectorBrushSize(float size)
         {
             vectorBrushSize = ShapeLayerBehaviour.Limit(size, 1, 2048, 24);
+            SaveToolPreferences();
             toolkitCanvasViewHeader?.Q<FloatField>("vectorBrushSize")?.SetValueWithoutNotify(vectorBrushSize);
             vectorManipulator?.RefreshBrushSize();
             if (canvasTool == CanvasTool.VectorBrush) toolkitCanvas?.SetRoundCursorSize(vectorBrushSize);

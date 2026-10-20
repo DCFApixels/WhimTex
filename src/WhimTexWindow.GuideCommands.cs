@@ -42,6 +42,7 @@ namespace DCFApixels.WhimTex
             if (canvasGuidesHidden == hidden) return;
             canvasGuideManipulator?.Cancel();
             canvasGuidesHidden = hidden;
+            SaveToolPreferences();
             selectedCanvasGuide = -1;
             RefreshCanvasGuidesButton();
             RefreshCanvasGuides();
@@ -131,12 +132,13 @@ namespace DCFApixels.WhimTex
                 if (!Current()) return;
                 canvasGuideManipulator?.Cancel();
                 canvasGuidesLocked = !canvasGuidesLocked;
+                SaveToolPreferences();
                 selectedCanvasGuide = -1;
                 RefreshCanvasGuides();
             });
             menu.AddItem(new GUIContent("Snap to Guides"), canvasGuidesSnap, () =>
             {
-                if (Current()) canvasGuidesSnap = !canvasGuidesSnap;
+                if (Current()) { canvasGuidesSnap = !canvasGuidesSnap; SaveToolPreferences(); }
             });
             menu.AddSeparator("");
             if (!canvasGuidesLocked && canvasGuideUndo.Count > 0)

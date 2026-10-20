@@ -303,6 +303,7 @@ namespace DCFApixels.WhimTex
 
         internal static void Reset()
         {
+            ResetToolSettings();
             PaintUndoDisk.Current.SetLimits(8, 100);
             ResetCommentAuthorColor();
             ClearCommentAuthorName();

@@ -71,6 +71,12 @@ Vector Nodes 使用工具按钮上的空心箭头；Layer Select 保留操作系
 和尺寸，或启用 **Clean Canvas View Background** 来隐藏背景标志和阴影。在此设置窗口的底部，
 **Reset WhimTex Settings…** 会在确认后恢复工作区首选项，而不会删除你的文档或预设文件。
 
+关闭窗口或重启 Unity 后，工具选项会自动恢复：绘画和填充、Shape/Text/Gradient 的
+新建默认值、选区与套索模式、矢量画笔、Crop 模式、参考线吸附开关及 UV 线条外观。
+返回未进行手势操作的窗口时，会读取共享工具设置的最新变化。文档属性、当前选区、
+未完成的路径或笔触及 Crop 边框不属于工具首选项。**Reset WhimTex Settings…** 也会
+重置这些已保存的工具选项。
+
 **Paint Undo** 可设置共享的 **Undo Disk Limit (GiB)**（默认 8）与 **Paint Undo Steps**
 （每个文档默认 50 步，包括 Redo）。Brush、Pencil、Smudge、Blur、Healing、填充与图层清空的像素操作计入此限制；
 参数编辑由 Unity Undo 独立管理。这些设置适用于当前用户的所有项目。

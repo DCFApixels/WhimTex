@@ -6,6 +6,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- All tool defaults use a shared user-settings registry, restoring painting/fill, Shape/Text/Gradient, selection/lasso, vector brush, Crop mode, guide switches and UV appearance after reopening or restarting Unity. Queued saves flush before reload/quit; field-level merging prevents unchanged stale windows from overwriting other windows. Existing brush keys and stable asset references are reused, and Reset covers all tools without touching documents or presets.
+
 - Smudge, Blur, Healing, fill and Clear Drawing Layer now share Brush/Pencil’s disk-backed pixel history and texture-operation limit. In-place tools capture original Half tiles before their first write; Undo/Redo preserves exact Half/HDR and hidden RGB while parameter edits keep their ordinary Unity Undo order. Retouch outputs no longer rewrite unrelated tiles.
 - Profiler captures separate background history writers/checkpoints, queue delay and available encode/write/hash stages from main-thread wall time. Brush input batches and release link to canvas readiness and asynchronously observed GPU completion. The agent API adds worker/latency summaries, existing paint-pool payload metrics and optional GPU/allocation collection. Global process/pool sampling is throttled to 100 ms; unavailable measurements remain explicit.
 

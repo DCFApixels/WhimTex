@@ -64,6 +64,7 @@ namespace DCFApixels.WhimTex
         {
             gradientCreationManipulator?.Cancel();
             gradientCreationSettings.type = type;
+            SaveToolPreferences();
             gradientCreationToolIcon?.SetGradientType(type);
             if (canvasGradientButton != null) canvasGradientButton.tooltip = GetGradientCreationToolTooltip();
             toolkitHeaderBindings?.Refresh();
@@ -111,6 +112,7 @@ namespace DCFApixels.WhimTex
             {
                 gradientCreationManipulator?.Cancel();
                 gradientCreationSettings.gradient = e.newValue.Clone();
+                SaveToolPreferences();
             });
             toolkitCanvasViewHeader.Add(row);
         }

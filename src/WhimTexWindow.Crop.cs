@@ -22,6 +22,7 @@ namespace DCFApixels.WhimTex
             {
                 cropManipulator?.Reset();
                 canvasCropMode = mode;
+                SaveToolPreferences();
                 ResetCanvasCropFrame();
             }
             RefreshCanvasToolToolbar();

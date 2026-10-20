@@ -68,10 +68,10 @@ public static class UserSettingsCleanupTests
         string root = fixture.TempFolder();
         string folderKey = Key(Settings, "PresetsFolderKey");
         var windowType = typeof(WhimTexWindow);
-        string toolKey = Key(windowType, "CanvasToolPrefKey");
-        string returnKey = Key(windowType, "CanvasTransformReturnToolPrefKey");
+        string toolKey = Key(Settings, "ActiveToolKey");
+        string returnKey = Key(Settings, "ReturnToolKey");
         string scaleKey = Key(windowType, "PaintingCanvasScalePrefKey");
-        string paintKey = Key(windowType, "PaintToolSettingsPrefKey");
+        string paintKey = Key(Settings, "PaintSettingsKey");
         const string oldTool = "DCFApixels.WhimTex.PreviewTool";
         const string oldReturn = "DCFApixels.WhimTex.PreviewTransformReturnTool";
         const string oldScale = "DCFApixels.WhimTex.PaintingPreviewScale";
@@ -81,7 +81,7 @@ public static class UserSettingsCleanupTests
             Remember(Key(Settings, spec.Item1), spec.Item3);
             Remember("DCFApixels.WhimTex.Preview." + spec.Item2, spec.Item3);
         }
-        foreach (string key in new[] { toolKey, returnKey, paintKey, oldTool, oldReturn, oldPaint, folderKey,
+        foreach (string key in new[] { toolKey, returnKey, paintKey, Key(Settings, "ToolSettingsKey"), oldTool, oldReturn, oldPaint, folderKey,
             Key(Settings, "HealingStrokeColorKey") }) Remember(key, "string");
         Remember(scaleKey, "float"); Remember(oldScale, "float");
         foreach (string name in new[] { "checkerSize", "checkerLight", "checkerDark", "invalidPixels",
@@ -144,13 +144,16 @@ public static class UserSettingsCleanupTests
             Check((float)Read(paint, "brushSize") == 57f && (float)Read(paint, "blurFlow") == .23f,
                 "Current paint settings reload");
             Call(restored, "SavePaintToolSettings");
+            Call(Read(restored, "toolPreferences"), "Flush");
             string saved = EditorPrefs.GetString(paintKey);
             Check(saved.Contains("\"blurFlow\"") && !saved.Contains("\"blurOpacity\""), "Only current paint fields are written");
             foreach (string source in new[] { "{\"blurOpacity\":0.13}", "[" })
             {
+                Call(Read(restored, "toolPreferences"), "Dispose");
+                windowType.GetField("toolPreferences", F).SetValue(restored, null);
                 EditorPrefs.SetString(paintKey, source);
                 windowType.GetField("paintSettings", F).SetValue(restored, null);
-                Call(restored, "LoadPaintToolSettings");
+                Call(restored, "InitializeToolPreferences", new object[] { null });
                 Check((float)Read(Read(restored, "paintSettings"), "blurFlow") == 1f,
                     "No blurOpacity migration; malformed settings safely fall back");
             }

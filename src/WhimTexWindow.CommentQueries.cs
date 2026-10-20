@@ -107,6 +107,7 @@ namespace DCFApixels.WhimTex
         {
             commentFilter = CommentFilter.All; commentSearch = commentAuthor = commentFrom = commentTo = "";
             commentPeriod = "Any time";
+            SaveToolPreferences();
             commentSearchField?.SetValueWithoutNotify("");
         }
     }

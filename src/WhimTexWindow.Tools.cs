@@ -20,9 +20,6 @@ namespace DCFApixels.WhimTex
         private const KeyCode CanvasToolToggleKey = KeyCode.Q;
         [NonSerialized] private CanvasTool canvasTransformReturnTool = CanvasTool.None;
         [NonSerialized] private PaintToolSettings paintSettings = new PaintToolSettings();
-        private const string PaintToolSettingsPrefKey = "DCFApixels.WhimTex.Canvas.PaintToolSettings";
-        private const string CanvasToolPrefKey = "DCFApixels.WhimTex.Canvas.Tool";
-        private const string CanvasTransformReturnToolPrefKey = "DCFApixels.WhimTex.Canvas.TransformReturnTool";
         [NonSerialized] private bool conversionPromptOpen;
         [NonSerialized] private RenderTexture blurSampleTexture;
         [NonSerialized] private float paintingPressure = 1f;
@@ -73,42 +70,6 @@ namespace DCFApixels.WhimTex
                 ? tool : CanvasTool.None;
         }
 
-        private void LoadCanvasToolSettings()
-        {
-            gradientHandlesSelectedManually = false;
-            previousCanvasTool = null;
-            canvasToolToggleKeyHeld = false;
-            canvasTool = ParseCanvasTool(EditorPrefs.GetString(CanvasToolPrefKey, string.Empty));
-            lastBaseCanvasTool = canvasTool;
-            canvasTransformReturnTool = ParseCanvasTool(
-                EditorPrefs.GetString(CanvasTransformReturnToolPrefKey, string.Empty));
-            if (canvasTransformReturnTool == CanvasTool.Transform)
-                canvasTransformReturnTool = CanvasTool.None;
-        }
-
-        private void LoadPaintToolSettings()
-        {
-            paintSettings?.ReleasePresetTip();
-            paintSettings ??= new PaintToolSettings();
-            try
-            {
-                if (EditorPrefs.HasKey(PaintToolSettingsPrefKey))
-                {
-                    JsonUtility.FromJsonOverwrite(EditorPrefs.GetString(PaintToolSettingsPrefKey), paintSettings);
-                }
-            }
-            catch (ArgumentException)
-            {
-                paintSettings = new PaintToolSettings();
-            }
-            paintSettings.dynamics ??= new BrushDynamics();
-            paintSettings.dynamics.Normalize();
-            paintSettings.smoothing ??= new StrokeSmoothingSettings();
-            paintSettings.smoothing.Normalize();
-            paintSettings.dynamics.tip = null;
-            paintSettings.TryRestoreBrushTip();
-        }
-
         private void RestoreBrushTipAfterReload()
         {
             brushStrokePreviewDirty = true;
@@ -139,8 +100,7 @@ namespace DCFApixels.WhimTex
         private void SavePaintToolSettings()
         {
             brushStrokePreviewDirty = true;
-            paintSettings.RememberBrushTip();
-            EditorPrefs.SetString(PaintToolSettingsPrefKey, JsonUtility.ToJson(paintSettings));
+            SaveToolPreferences();
         }
 
         private PaintStrokeParameters GetPaintingParameters()
@@ -242,6 +202,7 @@ namespace DCFApixels.WhimTex
 
         private void BindCanvasSettingsRow(VisualElement row, CanvasTool tool)
         {
+            TrackToolPreferenceChanges(row);
             toolkitHeaderBindings.Add(() =>
             {
                 CanvasTool settings = canvasTool;

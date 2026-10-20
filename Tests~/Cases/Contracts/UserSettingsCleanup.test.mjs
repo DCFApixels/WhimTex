@@ -24,11 +24,16 @@ context.case("UserSettingsCleanup original assertion inputs and source contracts
   for (const suffix of ['CheckerLight', 'CheckerDark', 'InvalidPixels', 'CheckerSize', 'ShowManta', 'PostFxBackground', 'PostFxBackgroundMode'])
     assert(settings.includes('"DCFApixels.WhimTex.CanvasView.' + suffix + '"'), suffix);
   const tools = read('src/WhimTexWindow.Tools.cs');
+  const toolSettings = read('src/WhimTexUserSettings.Tools.cs');
   for (const suffix of ['Tool', 'TransformReturnTool', 'PaintToolSettings'])
-    assert(tools.includes('"DCFApixels.WhimTex.Canvas.' + suffix + '"'), suffix);
+    assert(toolSettings.includes('"DCFApixels.WhimTex.Canvas.' + suffix + '"'), suffix);
   assert(read('src/WhimTexWindow.cs').includes('"DCFApixels.WhimTex.Canvas.PaintingScale"'));
   assert.doesNotMatch(tools, /blurOpacity/);
-  assert.match(tools, /JsonUtility\.FromJsonOverwrite\(EditorPrefs\.GetString\(PaintToolSettingsPrefKey\), paintSettings\)/);
+  assert.match(tools, /SaveToolPreferences\(\)/);
+  assert.doesNotMatch(tools, /EditorPrefs\./);
+  assert.match(read('src/WhimTexWindow.ToolPreferences.cs'), /preferences\.Register\("paint"/);
+  assert.match(tools, /BindCanvasSettingsRow\([^]*?TrackToolPreferenceChanges\(row\)/);
+  assert.match(read('src/WhimTexWindow.ToolPreferences.cs'), /RegisterCallback<ChangeEvent<T>>[^]*?TrickleDown\.TrickleDown/);
   const folder = settings.split('internal static string DefaultPresetsFolder')[1].split('internal static bool TrySetPresetsFolder')[0];
   assert.match(folder, /Environment\.SpecialFolder\.LocalApplicationData/);
   assert.doesNotMatch(folder, /Directory\.|File\.|AssetDatabase\./);

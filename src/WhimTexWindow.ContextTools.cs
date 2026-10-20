@@ -191,12 +191,11 @@ namespace DCFApixels.WhimTex
                 if (tool == CanvasTool.Transform && lastBaseCanvasTool != CanvasTool.Transform)
                 {
                     canvasTransformReturnTool = lastBaseCanvasTool;
-                    EditorPrefs.SetString(CanvasTransformReturnToolPrefKey, canvasTransformReturnTool.ToString());
                 }
                 lastBaseCanvasTool = tool;
-                EditorPrefs.SetString(CanvasToolPrefKey, tool.ToString());
             }
             canvasTool = tool;
+            SaveToolPreferences();
             selectedCanvasGuide = -1;
             lineAnchorLayer = null;
             pointOverlay?.MarkDirtyRepaint();
