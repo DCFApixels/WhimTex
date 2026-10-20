@@ -240,6 +240,18 @@ Every request requires `apiVersion:1` and `action`. Check the returned envelope'
 documents, clear render caches, refresh assets or compile scripts. The explicit `benchmarkStart`
 action renders an isolated snapshot as described below; it does not alter the source document.
 
+The profiler window's automatic event/summary reads are cooperative main-thread work, with
+a 4 ms target per scheduled callback and an adaptive delay of at least 0.5 seconds between
+completed reads. Chunks, GC and final UI binding can exceed that target; it is not a frame-time
+guarantee. Expensive reads back off to target roughly 5% read CPU duty. Each read fixes its event
+count at the start; newly appended events and late completions are picked up by subsequent
+refreshes. The previous complete table remains visible until the next result is ready.
+Filters, clear/replacement and window disable cancel pending work. Public JSON `read`/`export`,
+manual Refresh, filtering and initial window population remain synchronous. Their fields,
+filtering, aggregation and paging contracts are unchanged.
+Reload backups have a separate 256 MiB serialized-size limit; a capture within the
+event-count limit can still exceed it. Export important large captures before script reload.
+
 | Action | Additional request fields | Behavior |
 | --- | --- | --- |
 | `start` | Optional `maxEvents` (256–262144, default 32768), `durationSeconds` (1–600, default 120), `documentId` (opaque string; omitted or null means all documents), `gpu` and `allocations` (both default true) | Starts a new capture, replacing the retained stopped capture; refuses an active capture or unfinished spans |

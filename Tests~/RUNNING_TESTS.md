@@ -1821,3 +1821,45 @@ not physical VRAM or proof that every spatial effect has bounded native-zoom cos
 `freeform-figure-v1` checks Shape/Vector Freeform fill and stroke CPU/GPU agreement, HDR/alpha,
 coverage reuse, Undo, TIFF document blocks/JSON, grouped/Target/clipping consumers and native 8K viewport regions.
 `freeform-gradient-canvas-v1` also exercises the shared figure point inspector and transformed fill/stroke gestures.
+
+### Profiler window load and lifecycle (2026-10-20)
+
+The opt-in `profiler-load` profile runs `profiler-load-lifecycle` and `profiler-load-long`.
+Both require an idle graphical Editor and a stopped capture; the previous capture is restored.
+The lifecycle case creates an unshown owned window and verifies deferred/synchronous read parity,
+filter/clear/replacement/close cancellation and late GPU revision refresh. The long diagnostic
+opens one owned profiler window, never sends mouse/keyboard input, and runs three 60-second
+brush/render workloads (512²): recording off, recording only, and recording with scheduled UI
+updates. Dense short spans stress the event history without requiring an expensive GPU workload.
+It then checks event/time limits, pending-worker completion and three clear/restart cycles.
+Its declared effects are `temp-files,user-state,windows`; timeout is 300 seconds. Cancellation
+awaits owned workers, cancels the owned stroke, releases resources, closes the window and restores
+capture/focus. Reports stay in project `Temp/WhimTex/profiler-load` and `test-runs`.
+
+The separate `profiler-load-before` / `profiler-load-after` diagnostics measure retained captures
+with 32,768 and 262,144 deterministic events, four filter/tree queries, and three timed reads.
+The after run requires authentic pre-change JSON results in `Temp/WhimTex/profiler-load`;
+it is deliberately excluded from the reusable profile. Never regenerate these references with
+the changed code to establish before/after parity. The recorded baseline here was captured against
+`35f33b06fe25db0ed9d285a4820ed51b1a8a12ec`. The current `profiler-load-lifecycle` provides an
+independent reusable correctness test without those retained files.
+
+| Measurement | 32,768 events | 262,144 events |
+| --- | ---: | ---: |
+| Full UI data read before | 328.16 ms | 2441.68 ms |
+| Full UI data read after | 45.94 ms | 303.67 ms |
+| Maximum automatic read slice | 13.63 ms | 12.93 ms |
+| Gen0 collections across three full UI reads, before → after | 1 → 0 | 13 → 1 |
+
+Those UI data reads use an unshown window and do not include on-screen layout/raster. The
+real-window minute measured a maximum scheduled callback of 27.39 ms. Median owned brush/render
+batch time was 1.315 / 2.005 / 1.945 ms for off / record / record+window; p95 was
+1.987 / 2.635 / 2.713 ms. These timings include the same reflection harness and short synthetic
+spans, not physical input-to-present or 8K drawing speed. Editor update gaps include throttling
+and task scheduling and must not be treated as presented frame times.
+
+Managed heap samples fluctuate with GC (about 168–561 MiB across the entire Editor); they do not
+establish whole-process RAM use or prove absence of long-term leaks. Event capacity and pending
+worker limits were checked separately. The attempted full 262K JSON reload snapshot exceeded
+the existing 256 MiB reader limit (278,911,734 bytes); max-size reload is not claimed as passing.
+Small current-format worker/latency snapshot roundtrip still passes `profiler-followup`.

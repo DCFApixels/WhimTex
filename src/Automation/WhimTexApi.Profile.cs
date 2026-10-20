@@ -13,7 +13,34 @@ namespace DCFApixels.WhimTex
         public static string ProfileFile(string requestPath) => Respond(() => Profile(Parse(ReadRequestFile(requestPath))));
         public static string ProfileJson(string requestJson) => Respond(() => Profile(Parse(requestJson)));
 
-        private static JObject Profile(JObject request)
+        internal static JObject ProfileForEditor(JObject request)
+        {
+            try
+            {
+                Require(!UnityEditor.EditorApplication.isCompiling && !UnityEditor.EditorApplication.isUpdating &&
+                    !UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode,
+                    "Use an idle Editor in Edit Mode.", "editor_busy");
+                return Profile(request);
+            }
+            catch (Exception error) { return Failure(error); }
+        }
+
+        internal static JObject BeginProfileReadForEditor(JObject request, out System.Collections.IEnumerator work)
+        {
+            System.Collections.IEnumerator pending = null;
+            try
+            {
+                Require(!UnityEditor.EditorApplication.isCompiling && !UnityEditor.EditorApplication.isUpdating &&
+                    !UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode,
+                    "Use an idle Editor in Edit Mode.", "editor_busy");
+                Require(Text(request, "action") == "read", "Deferred requests must read a capture.");
+                var result = Profile(request, iterator => pending = iterator);
+                work = pending; return result;
+            }
+            catch (Exception error) { work = null; return Failure(error); }
+        }
+
+        private static JObject Profile(JObject request, Action<System.Collections.IEnumerator> deferredRead = null)
         {
             Require(Int(request, "apiVersion", 0, 0, int.MaxValue) == ProtocolVersion, "apiVersion must be 1.");
             string action = Text(request, "action");
@@ -73,7 +100,10 @@ namespace DCFApixels.WhimTex
                         collapsed.Add((int)eventId);
                     }
                 }
-                ReadCapture(capture, result, offset, limit, operation, document, layer, phase, Text(request, "layer"), tree, collapsed, ProfileGroups(request));
+                var steps = ReadCaptureSteps(capture, result, offset, limit, operation, document, layer, phase,
+                    Text(request, "layer"), tree, collapsed, ProfileGroups(request)).GetEnumerator();
+                if (deferredRead != null) deferredRead(steps);
+                else using (steps) while (steps.MoveNext()) { }
             }
             if (action == "export")
             {
@@ -148,26 +178,100 @@ namespace DCFApixels.WhimTex
             return selected;
         }
 
-        private static bool ProfileMatches(WhimTexProfiler.Sample sample, long operation, string document,
+        private static bool ProfileMatches(in WhimTexProfiler.Sample sample, long operation, string document,
             string layer, string phase, string layerSearch) =>
             (operation == 0 || sample.operationId == operation) && (document == null || sample.documentId == document) &&
             (layer == null || sample.layerId == layer) && (phase == null || sample.phase.IndexOf(phase, StringComparison.OrdinalIgnoreCase) >= 0) &&
             (string.IsNullOrEmpty(layerSearch) || sample.layerId == layerSearch ||
                 sample.layerName != null && sample.layerName.IndexOf(layerSearch, StringComparison.OrdinalIgnoreCase) >= 0);
 
+        private sealed class ProfileReadAggregate
+        {
+            readonly WhimTexProfiler.Sample example;
+            readonly bool fxStage;
+            int count, completed, eligible, measured, gpuCount, gpuUnconfirmed, gpuPending, gpuUnavailable;
+            long allocations, selfAllocations;
+            double total, self, max, prepare, submit, gpuTotal, gpuMax;
+            bool fxMeasured;
+            internal ProfileReadAggregate(WhimTexProfiler.Sample sample, bool fxStage)
+            { example = sample; this.fxStage = fxStage; }
+            internal void Add(in WhimTexProfiler.Sample sample, double duration, double exclusive)
+            {
+                count++;
+                if (sample.kind == "span")
+                {
+                    eligible++;
+                    if (ProfileAllocationMeasured(sample))
+                    {
+                        measured++; allocations += sample.gcAllocationCount;
+                        selfAllocations += Math.Max(0, sample.gcAllocationCount - sample.gcChildAllocationCount);
+                    }
+                }
+                if (WhimTexProfiler.HasGpuDuration(sample))
+                {
+                    double ms = sample.gpuNanoseconds / 1000000d;
+                    gpuCount++; gpuTotal += ms; gpuMax = Math.Max(gpuMax, ms);
+                    if (sample.gpuStatus == "unconfirmed") gpuUnconfirmed++;
+                }
+                else if (sample.gpuStatus == "pending") gpuPending++;
+                else if (sample.fxTiming || sample.gpuStatus != null) gpuUnavailable++;
+                if (!sample.completed) return;
+                completed++; total += duration; self += exclusive; max = Math.Max(max, duration);
+                if (sample.fxTiming)
+                {
+                    fxMeasured = true;
+                    prepare += WhimTexProfiler.Milliseconds(sample.cpuPrepareTicks);
+                    submit += WhimTexProfiler.Milliseconds(sample.cpuSubmitTicks);
+                }
+            }
+            internal JObject Json()
+            {
+                var row = new JObject {
+                    ["phase"] = example.phase, ["kind"] = example.kind,
+                    ["group"] = WhimTexProfiler.GroupId(WhimTexProfiler.GroupFor(example.phase, example.kind)),
+                    ["documentId"] = fxStage ? example.documentId : null, ["layerId"] = fxStage ? example.layerId : null,
+                    ["layerName"] = fxStage ? example.layerName : null, ["fxIndex"] = fxStage ? example.fxIndex : -1,
+                    ["fxName"] = fxStage ? example.fxName : null,
+                    ["count"] = count, ["completedCount"] = completed, ["totalMs"] = total, ["selfMs"] = self, ["maxMs"] = max,
+                    ["cpuPrepareMs"] = Optional(fxMeasured, prepare), ["cpuSubmitMs"] = Optional(fxMeasured, submit),
+                    ["gpuTotalMs"] = Optional(gpuCount > 0, gpuTotal), ["gpuMaxMs"] = Optional(gpuCount > 0, gpuMax),
+                    ["gpuCount"] = gpuCount, ["gpuUnconfirmedCount"] = gpuUnconfirmed,
+                    ["gpuPendingCount"] = gpuPending, ["gpuUnavailableCount"] = gpuUnavailable };
+                ProfileAllocationMetrics(row, allocations, selfAllocations, measured, eligible);
+                return row;
+            }
+        }
+
         private static void ReadCapture(WhimTexProfiler.Capture capture, JObject result, int offset, int limit,
             long operation, string document, string layer, string phase, string layerSearch = null,
             bool tree = false, HashSet<int> collapsed = null, WhimTexProfiler.Group selectedGroups = WhimTexProfiler.Group.All)
         {
+            using var steps = ReadCaptureSteps(capture, result, offset, limit, operation, document, layer, phase,
+                layerSearch, tree, collapsed, selectedGroups).GetEnumerator();
+            while (steps.MoveNext()) { }
+        }
+
+        private static IEnumerable<int> ReadCaptureSteps(WhimTexProfiler.Capture capture, JObject result, int offset, int limit,
+            long operation, string document, string layer, string phase, string layerSearch = null,
+            bool tree = false, HashSet<int> collapsed = null, WhimTexProfiler.Group selectedGroups = WhimTexProfiler.Group.All)
+        {
+            int count = capture.count;
             var events = new JArray();
-            var groups = new Dictionary<(string phase, string kind, string document, string layer, int fx, string name), JObject>();
+            var groups = new Dictionary<(string phase, string kind, string document, string layer, int fx, string name), ProfileReadAggregate>();
             var groupCounts = new int[WhimTexProfiler.Groups.Length];
-            var matches = new bool[capture.count];
-            for (int i = 0; i < capture.count; i++)
+            var classifications = new Dictionary<(string phase, string kind), WhimTexProfiler.Group>();
+            var matches = new bool[count];
+            for (int i = 0; i < count; i++)
             {
+                if ((i & 255) == 0) yield return i;
                 var sample = capture.events[i];
                 if (!ProfileMatches(sample, operation, document, layer, phase, layerSearch)) continue;
-                var group = WhimTexProfiler.GroupFor(sample.phase, sample.kind);
+                var categoryKey = (sample.phase, sample.kind);
+                if (!classifications.TryGetValue(categoryKey, out var group))
+                {
+                    group = WhimTexProfiler.GroupFor(sample.phase, sample.kind);
+                    if (classifications.Count < 512) classifications.Add(categoryKey, group);
+                }
                 groupCounts[Array.IndexOf(WhimTexProfiler.Groups, group)]++;
                 matches[i] = (selectedGroups & group) != 0;
             }
@@ -175,21 +279,24 @@ namespace DCFApixels.WhimTex
             ProfileNode[] nodes = null;
             if (tree)
             {
-                nodes = new ProfileNode[capture.count];
-                for (int i = 0; i < capture.count; i++)
+                nodes = new ProfileNode[count];
+                for (int i = 0; i < count; i++)
                 {
+                    if ((i & 1023) == 0) yield return i;
                     if (matches[i])
                         nodes[i] = ProfileNode.Match | ProfileNode.Included;
                     if (collapsed?.Contains(i + 1) == true) nodes[i] |= ProfileNode.Collapsed;
                 }
-                for (int i = capture.count - 1; i >= 0; i--)
+                for (int i = count - 1; i >= 0; i--)
                 {
+                    if ((i & 1023) == 0) yield return i;
                     int parent = (int)capture.events[i].parentId - 1;
                     if (parent >= 0 && (nodes[i] & ProfileNode.Included) != 0)
                         nodes[parent] |= ProfileNode.Included | ProfileNode.Children;
                 }
-                for (int i = 0; i < capture.count; i++)
+                for (int i = 0; i < count; i++)
                 {
+                    if ((i & 1023) == 0) yield return i;
                     int parent = (int)capture.events[i].parentId - 1;
                     if (parent >= 0 && (nodes[parent] & (ProfileNode.Hidden | ProfileNode.Collapsed)) != 0)
                         nodes[i] |= ProfileNode.Hidden;
@@ -198,9 +305,10 @@ namespace DCFApixels.WhimTex
                 if (offset >= totalVisible) offset = totalVisible == 0 ? 0 : (totalVisible - 1) / limit * limit;
             }
             double rootMs = 0;
-            for (int i = 0; i < capture.count; i++)
+            for (int i = 0; i < count; i++)
             {
-                WhimTexProfiler.Sample sample = capture.events[i];
+                if ((i & 255) == 0) yield return i;
+                var sample = capture.events[i];
                 bool isMatch = matches[i];
                 bool isVisible = tree ? (nodes[i] & (ProfileNode.Included | ProfileNode.Hidden)) == ProfileNode.Included : isMatch;
                 if (!isMatch && !isVisible) continue;
@@ -261,49 +369,18 @@ namespace DCFApixels.WhimTex
                 bool fxStage = sample.phase.StartsWith("fx.", StringComparison.Ordinal);
                 var key = (sample.phase, sample.kind, fxStage ? sample.documentId : null,
                     fxStage ? sample.layerId : null, fxStage ? sample.fxIndex : -1, fxStage ? sample.fxName : null);
-                if (!groups.TryGetValue(key, out JObject group))
-                {
-                    groups.Add(key, group = new JObject { ["phase"] = sample.phase, ["kind"] = sample.kind,
-                        ["group"] = WhimTexProfiler.GroupId(WhimTexProfiler.GroupFor(sample.phase, sample.kind)),
-                        ["documentId"] = key.Item3, ["layerId"] = key.Item4, ["layerName"] = fxStage ? sample.layerName : null,
-                        ["fxIndex"] = key.Item5, ["fxName"] = key.Item6,
-                        ["cpuPrepareMs"] = JValue.CreateNull(), ["cpuSubmitMs"] = JValue.CreateNull(),
-                        ["gpuTotalMs"] = JValue.CreateNull(), ["gpuMaxMs"] = JValue.CreateNull(),
-                        ["gpuCount"] = 0, ["gpuUnconfirmedCount"] = 0, ["gpuPendingCount"] = 0, ["gpuUnavailableCount"] = 0,
-                        ["count"] = 0, ["completedCount"] = 0, ["totalMs"] = 0d, ["selfMs"] = 0d, ["maxMs"] = 0d });
-                    ProfileAllocationMetrics(group, 0, 0, 0, 0);
-                }
-                group["count"] = (int)group["count"] + 1;
-                if (sample.kind == "span")
-                {
-                    bool measured = ProfileAllocationMeasured(sample);
-                    ProfileAllocationMetrics(group,
-                        (group.Value<long?>("gcAllocationCount") ?? 0) + (measured ? sample.gcAllocationCount : 0),
-                        (group.Value<long?>("gcSelfAllocationCount") ?? 0) + (measured ? Math.Max(0, sample.gcAllocationCount - sample.gcChildAllocationCount) : 0),
-                        (int)group["measuredCalls"] + (measured ? 1 : 0), (int)group["eligibleCalls"] + 1);
-                }
-                if (WhimTexProfiler.HasGpuDuration(sample))
-                {
-                    double gpuMs = sample.gpuNanoseconds / 1000000.0;
-                    group["gpuCount"] = (int)group["gpuCount"] + 1;
-                    if (sample.gpuStatus == "unconfirmed") group["gpuUnconfirmedCount"] = (int)group["gpuUnconfirmedCount"] + 1;
-                    group["gpuTotalMs"] = (group.Value<double?>("gpuTotalMs") ?? 0) + gpuMs;
-                    group["gpuMaxMs"] = Math.Max(group.Value<double?>("gpuMaxMs") ?? 0, gpuMs);
-                }
-                else if (sample.gpuStatus == "pending") group["gpuPendingCount"] = (int)group["gpuPendingCount"] + 1;
-                else if (sample.fxTiming || sample.gpuStatus != null) group["gpuUnavailableCount"] = (int)group["gpuUnavailableCount"] + 1;
-                if (!sample.completed) continue;
-                if (sample.fxTiming)
-                {
-                    group["cpuPrepareMs"] = (group.Value<double?>("cpuPrepareMs") ?? 0) + WhimTexProfiler.Milliseconds(sample.cpuPrepareTicks);
-                    group["cpuSubmitMs"] = (group.Value<double?>("cpuSubmitMs") ?? 0) + WhimTexProfiler.Milliseconds(sample.cpuSubmitTicks);
-                }
-                group["completedCount"] = (int)group["completedCount"] + 1;
-                group["totalMs"] = (double)group["totalMs"] + duration;
-                group["selfMs"] = (double)group["selfMs"] + self;
-                group["maxMs"] = Math.Max((double)group["maxMs"], duration);
+                if (!groups.TryGetValue(key, out var group))
+                    groups.Add(key, group = new ProfileReadAggregate(sample, fxStage));
+                group.Add(sample, duration, self);
             }
-            result["events"] = events; result["summary"] = new JArray(groups.Values);
+            result["events"] = events;
+            var summaries = new JArray();
+            foreach (var group in groups.Values)
+            {
+                if ((summaries.Count & 63) == 0) yield return summaries.Count;
+                summaries.Add(group.Json());
+            }
+            result["summary"] = summaries;
             var catalog = new JArray();
             for (int i = 0; i < WhimTexProfiler.Groups.Length; i++)
             {

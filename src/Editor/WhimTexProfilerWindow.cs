@@ -66,7 +66,11 @@ namespace DCFApixels.WhimTex
         private Button inspectOperation;
         private Button allOperations;
         private IVisualElementScheduledItem automaticRefresh;
-        private double nextAutomaticRead;
+        private double nextAutomaticRead, nextAutomaticStatus;
+        private System.Collections.IEnumerator pendingRead;
+        private JObject pendingResponse;
+        private int pendingOffset, pendingGpuRevision;
+        private double pendingReadCost;
         private int loadedCount = -1, loadedOpen, loadedGpuRevision;
         private bool loadedRecording;
         private string gpuAvailability;
@@ -80,6 +84,7 @@ namespace DCFApixels.WhimTex
         public void CreateGUI()
         {
             automaticRefresh?.Pause();
+            CancelPendingRead();
             minSize = new Vector2(680, 620);
             var root = rootVisualElement;
             root.Clear();
@@ -275,19 +280,27 @@ namespace DCFApixels.WhimTex
             UpdateButtons();
             RefreshCapture();
             RefreshBenchmark();
-            automaticRefresh = root.schedule.Execute(AutoRefresh).Every(250);
+            automaticRefresh = root.schedule.Execute(AutoRefresh).Every(16);
         }
 
         private void OnDisable()
         {
             automaticRefresh?.Pause();
             automaticRefresh = null;
+            CancelPendingRead();
         }
 
         private void AutoRefresh()
         {
-            PollBenchmark();
             var live = WhimTexProfiler.Current;
+            if (pendingRead != null)
+            {
+                if (live?.id != captureId) CancelPendingRead();
+                else if (!AdvancePendingRead()) return;
+            }
+            if (EditorApplication.timeSinceStartup < nextAutomaticStatus) return;
+            nextAutomaticStatus = EditorApplication.timeSinceStartup + .25;
+            PollBenchmark();
             bool changedCapture = live?.id != captureId;
             bool changedRows = changedCapture || live != null &&
                 (loadedCount != live.count || loadedOpen != live.open || loadedGpuRevision != live.gpuRevision || loadedRecording != live.recording);
@@ -303,7 +316,7 @@ namespace DCFApixels.WhimTex
                 ResetRows();
             }
             if (changedRows && !string.IsNullOrEmpty(captureId) && EditorApplication.timeSinceStartup >= nextAutomaticRead)
-                ReadPageCore(offset, preserveView: true);
+                BeginAutomaticRead(offset);
             else RefreshComparison();
         }
 
@@ -364,13 +377,8 @@ namespace DCFApixels.WhimTex
 
         private void ReadPage(int requestedOffset) => ReadPageCore(requestedOffset, preserveView: false);
 
-        private void ReadPageCore(int requestedOffset, bool preserveView)
+        private JObject PageRequest(int requestedOffset)
         {
-            if (string.IsNullOrEmpty(captureId))
-            {
-                RefreshComparison();
-                return;
-            }
             string layer = (layerFilter ?? "").Trim();
             string phase = (phaseFilter ?? "").Trim();
             if (layer != appliedLayer || phase != appliedPhase || selectedGroups != appliedGroups)
@@ -391,21 +399,88 @@ namespace DCFApixels.WhimTex
             if (layer.Length > 0) request["layer"] = layer;
             if (phase.Length > 0) request["phase"] = phase;
             if (operationId.HasValue) request["operationId"] = operationId.Value;
-            if (!Call(request, out var response, quiet: preserveView)) return;
+            return request;
+        }
+
+        private void ReadPageCore(int requestedOffset, bool preserveView)
+        {
+            CancelPendingRead();
+            if (string.IsNullOrEmpty(captureId)) { RefreshComparison(); return; }
+            double started = EditorApplication.timeSinceStartup;
+            int revision = WhimTexProfiler.Current?.gpuRevision ?? -1;
+            if (!Call(PageRequest(requestedOffset), out var response, quiet: preserveView)) return;
+            ApplyPageResponse(response, requestedOffset, preserveView, revision);
+            ScheduleAutomaticRead(EditorApplication.timeSinceStartup - started);
+        }
+
+        private void BeginAutomaticRead(int requestedOffset)
+        {
+            CancelPendingRead();
+            pendingOffset = requestedOffset;
+            pendingGpuRevision = WhimTexProfiler.Current?.gpuRevision ?? -1;
+            pendingResponse = WhimTexApi.BeginProfileReadForEditor(PageRequest(requestedOffset), out pendingRead);
+            if (pendingRead == null)
+            {
+                ShowMessage(pendingResponse.Value<string>("error") ?? "Capture read unavailable.", true);
+                CancelPendingRead();
+                nextAutomaticRead = EditorApplication.timeSinceStartup + 1;
+                return;
+            }
+            pendingReadCost = 0;
+            AdvancePendingRead();
+        }
+
+        private bool AdvancePendingRead()
+        {
+            double started = EditorApplication.timeSinceStartup;
+            try
+            {
+                do
+                {
+                    if (!pendingRead.MoveNext())
+                    {
+                        ApplyPageResponse(pendingResponse, pendingOffset, true, pendingGpuRevision);
+                        double cost = pendingReadCost + EditorApplication.timeSinceStartup - started;
+                        CancelPendingRead(); ScheduleAutomaticRead(cost); return true;
+                    }
+                } while (EditorApplication.timeSinceStartup - started < .004);
+                pendingReadCost += EditorApplication.timeSinceStartup - started;
+                return false;
+            }
+            catch (Exception error)
+            {
+                CancelPendingRead(); ShowMessage(error.Message, true);
+                nextAutomaticRead = EditorApplication.timeSinceStartup + 1;
+                return true;
+            }
+        }
+
+        private void CancelPendingRead()
+        {
+            (pendingRead as IDisposable)?.Dispose(); pendingRead = null; pendingResponse = null;
+        }
+
+        private void ScheduleAutomaticRead(double cost)
+        {
+            // Keep read CPU work near 5% of elapsed time; the 4 ms slice target
+            // excludes an indivisible chunk and the final UI binding/layout.
+            nextAutomaticRead = EditorApplication.timeSinceStartup + Math.Max(.5, cost * 19);
+        }
+
+        private void ApplyPageResponse(JObject response, int requestedOffset, bool preserveView, int revision)
+        {
             long? selectedId = preserveView ? selectedEvent?.Value<long?>("id") : null;
             var eventScroll = eventList.Q<ScrollView>();
             var summaryScroll = summaryList.Q<ScrollView>();
             Vector2 eventPosition = eventScroll?.scrollOffset ?? Vector2.zero;
             Vector2 summaryPosition = summaryScroll?.scrollOffset ?? Vector2.zero;
             ApplyCapture(response);
-            var live = WhimTexProfiler.Current;
             loadedCount = response["capture"].Value<int>("eventCount");
             loadedOpen = openSpans;
             loadedRecording = recording;
-            loadedGpuRevision = live?.id == captureId ? live.gpuRevision : -1;
-            nextAutomaticRead = EditorApplication.timeSinceStartup + .5;
-            appliedLayer = layer;
-            appliedPhase = phase;
+            loadedGpuRevision = revision;
+            appliedLayer = (layerFilter ?? "").Trim();
+            appliedPhase = (phaseFilter ?? "").Trim();
             appliedGroups = selectedGroups;
             UpdateGroupControls(response["groups"] as JArray);
             offset = response.Value<int?>("offset") ?? requestedOffset;
@@ -566,7 +641,7 @@ namespace DCFApixels.WhimTex
             response = null;
             try
             {
-                response = JObject.Parse(WhimTexApi.ProfileJson(request.ToString(Formatting.None)));
+                response = WhimTexApi.ProfileForEditor(request);
                 if (response.Value<int?>("apiVersion") != 1)
                     throw new InvalidOperationException("Unsupported profiler API version.");
                 ApplyBaseline(response);
@@ -609,7 +684,7 @@ namespace DCFApixels.WhimTex
                 string document = capture.Value<string>("documentId");
                 status.text = $"{state} · {capture["eventCount"]}/{capture["capacity"]} events · " +
                     $"{Milliseconds(capture, "elapsedMs")} ms · {capture["droppedEvents"]} dropped · {capture["openSpans"]} open · GPU {capture["gpuAvailability"]}, {pendingGpu} pending";
-                status.tooltip = $"Capture {captureId}\nDocument {(string.IsNullOrEmpty(document) ? "all" : document)}\nActive status updates every 250 ms; idle baseline status every second. Changed results update at most twice per second. Refresh updates immediately.";
+                status.tooltip = $"Capture {captureId}\nDocument {(string.IsNullOrEmpty(document) ? "all" : document)}\nActive status updates every 250 ms; idle baseline status every second. Changed results update at most twice per second; automatic reads run in small slices and expensive reads back off. Refresh updates immediately.";
             }
             status.EnableInClassList("whimtex-profiler-recording", recording);
             ApplyMemory(capture);
@@ -689,6 +764,7 @@ namespace DCFApixels.WhimTex
 
         private void ResetRows()
         {
+            CancelPendingRead();
             InvalidateComparison();
             loadedCount = -1;
             collapsedEvents.Clear();

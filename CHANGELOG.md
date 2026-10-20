@@ -155,6 +155,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Large profiler captures no longer rebuild all per-event JSON aggregates in one automatic window refresh. Typed aggregation and direct editor responses reduce allocations; automatic reads run in short slices and back off for expensive captures. Filters, Clear, capture replacement and closing the window cancel unfinished reads without losing recorded events.
+
 - Open FX previews no longer replace a regional brush preview with a full-canvas buffer while painting. Ordinary Drawing layers keep an independent, incrementally updated inspector-sized cache; preview capture preserves pending canvas updates, HDR, masks and blend settings.
 
 - A physical Enter followed by a separate translated CR/LF character no longer inserts a second unindented newline in FX code. Key repeats and standalone newline input keep working.

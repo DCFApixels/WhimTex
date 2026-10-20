@@ -54,10 +54,14 @@ The choice survives Refresh and script reload. Unavailable values stay at the bo
 always compare total time, regardless of sorting. Sorting Summary does not reorder Events.
 Script recompilation automatically restores the capture and displays it again. Active recording stops
 before reload; unfinished stages show **Interrupted** without a fabricated duration.
+Very large captures can exceed the reload backup limit; export them before recompiling if you need to keep them.
 **Export Temp JSON** saves a report for analysis; export before starting another capture or closing
 the Editor. **Clear** discards the stopped capture. Recording stops automatically at its event or time
 limit. Status and changed results update automatically; **Refresh** also updates them immediately.
 Automatic updates preserve selection, filters, sorting, folded branches and scroll position.
+For large captures, automatic table updates take place in small steps and become less frequent.
+The last completed result stays visible while recording continues. **Refresh** requests the latest
+result immediately and can take longer on a large capture.
 
 The capture also covers brush batches and pixel readback, selection changes and mask uploads,
 transforms, canvas-frame edits, fill, Undo/Redo restoration, interface refresh, loading, saving and export.
