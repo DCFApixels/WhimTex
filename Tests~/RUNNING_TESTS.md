@@ -15,6 +15,48 @@ profiler, and ReadScreenPixel on test-created windows. It does not authorize oth
 
 ## Inspect and select
 
+`shader-fx-workflow-512` is the small preflight for `shader-fx-workflow-8k`.
+Both open one owned temporary window with actual FX preview elements, without mouse
+or keyboard automation. Two cycles compare hidden/visible previews, pan/zoom, and
+masked low-opacity HDR strokes (2048px at 8K). Owned preview schedules are paused
+and the actual update method is ticked with the normal 100ms gate so its work is
+included in stage timings. This checks rendering/lifetime, not native input or UI FPS.
+Reports under `Temp/WhimTex/fx-workflow/<runId>/report.json` retain per-update timing,
+preview captures, brush-buffer dimensions and effect-cache usage. Driver memory is
+Editor-wide. Strokes are cancelled; commit/Undo is outside this scenario. Performance
+observations require reading the report even when pixel, cache-budget and cleanup
+assertions pass. Inspector updates must preserve the canvas brush buffer; their own
+brush cache must stay within 512² ARGBFloat and be released with the stroke.
+`shader-fx-regional-v1` additionally compares complete inspector images against native
+source texels across HDR/standard colors, low alpha, masks, blending, rotation and
+repeat/mirror fallbacks, with both active and idle strokes. Incremental updates and
+forced rebuilds must agree; pending canvas damage must survive inspector capture.
+Point samples within 1/1024 source pixel of a texel boundary may select either exact
+adjacent texel because GPU quad interpolation and CPU double precision differ.
+
+`shader-processor-regional-v1` checks full/crop parity for local processors, transform
+fallbacks, processor chains, HDR/alpha, opacity/mapping/blending, pass-through and isolated
+groups, external-backdrop cache changes, cycles, clipping, Target, processor texture inputs,
+spatial texture dependencies, thumbnails, export and caller render state.
+`shader-processor-regional-8k` measures uncached updates on detached 8K documents with
+flat input and active 2048px masked HDR strokes. Capture the conservative full path first;
+the regional run requires its separately captured 32×32 samples under
+`Temp/WhimTex/regional-processor`. Reports distinguish full/regional planning. Only a
+separate 1×1 GPU completion read is timed; the first two of twelve updates are warm-up. This
+measures render/paint submission plus GPU completion, not UI frame rate or stroke finalization.
+
+`shader-fx-regional-v1` compares regional FX with full renders for Self, external Texture,
+disabled Layer, spatial dependency branches, mixed FX chains, groups and clipping.
+It checks complete 512px inspector inputs, arbitrary preview reads outside the canvas
+crop, processor backdrop dimensions and graphics-state restoration. It opens no windows.
+`shader-fx-regional-8k` is an opt-in diagnostic comparing mathematically equivalent
+local/spatial signatures, native 1024×768 views and reduced whole-canvas views. It also
+measures active 1024px masked low-opacity HDR strokes. Four bounded updates per case
+include one warm-up; timed GPU completion reads only a separate 1×1 texture. Pixel
+comparisons read at most 32×32. Reported texture sizes are per allocation, not total VRAM.
+The report is `Temp/WhimTex/regional-fx/benchmark.txt`. These cases do not drive the user's
+UI, finish strokes or change Undo history. Live inspector interaction remains a manual check.
+
 `normal-specular-v1` checks the catalog-linked Normal Lighting preset against an independent
 CPU diffuse/specular oracle with Packed Color and Linear Data, original disabled behavior,
 all output modes, transparent/partial/filled coverage, HDR, tint alpha, Roughness endpoints,
@@ -98,6 +140,12 @@ checks their pixel-local classification and compares migrated presets against th
 It uses detached documents and
 owned float textures without persistent assets or user windows. Deliberate negative cases emit compiler errors.
 The case verifies authoring/render behavior, not a sandbox against intentionally obscured HLSL.
+
+`shader-fx-texture-view-v1` compares independent full/cropped main and mask inputs at different
+resolutions, with point/bilinear filtering and fractional sample phases. It covers signed HDR,
+alpha, logical 8192×8192 coordinates using a small Half texture, complete-input size metadata,
+texture copies/returns/helper arguments, typed inspector previews and rejected view mutation.
+It adds no persistent assets or user windows; deliberate invalid HLSL emits diagnostics.
 
 The `freeform-gradient` profile checks point interpolation against an independent CPU oracle,
 signed HDR and alpha, shared-material point-count changes, thumbnails, group/Target rendering,

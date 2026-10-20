@@ -189,7 +189,7 @@ namespace DCFApixels.WhimTex
                     bindings ??= ShaderTextureBindings.Rent();
                     if (parameter.textureSource == ShaderFXTextureSource.Self && self != null)
                     {
-                        bindings.inputs.Add((parameter.PropertyId, self));
+                        bindings.inputs.Add((parameter, ShaderTextureView.ForContext(self, context)));
                         continue;
                     }
                     // Validate each distinct requested layer only once in this binding scope.
@@ -197,7 +197,7 @@ namespace DCFApixels.WhimTex
                     string request = parameter.textureSource == ShaderFXTextureSource.Layer ? parameter.textureLayerId ?? "" : "";
                     if (bindings.requests.TryGetValue(request, out var requested))
                     {
-                        bindings.inputs.Add((parameter.PropertyId, requested)); continue;
+                        bindings.inputs.Add((parameter, ShaderTextureView.ForContext(requested, context))); continue;
                     }
                     string key = parameter.textureSource == ShaderFXTextureSource.Layer && IsUsableShaderTexture(consumer, parameter.textureLayerId) ? parameter.textureLayerId : "";
                     if (!bindings.sources.TryGetValue(key, out var pixels))
@@ -208,7 +208,7 @@ namespace DCFApixels.WhimTex
                         bindings.sources.Add(key, pixels);
                     }
                     bindings.requests.Add(request, pixels);
-                    bindings.inputs.Add((parameter.PropertyId, pixels));
+                    bindings.inputs.Add((parameter, ShaderTextureView.ForContext(pixels, context)));
                 }
                 return bindings;
             }
@@ -235,7 +235,8 @@ namespace DCFApixels.WhimTex
         private static readonly Stack<ShaderTextureBindings> pool = new Stack<ShaderTextureBindings>();
         internal readonly Dictionary<string, RenderTexture> sources = new Dictionary<string, RenderTexture>();
         internal readonly Dictionary<string, RenderTexture> requests = new Dictionary<string, RenderTexture>();
-        internal readonly List<(int property, RenderTexture texture)> inputs = new List<(int, RenderTexture)>();
+        internal readonly List<(ShaderFXParameter parameter, ShaderTextureView view)> inputs =
+            new List<(ShaderFXParameter, ShaderTextureView)>();
         private Material material;
         private bool rented;
         internal static ShaderTextureBindings Rent()
@@ -246,14 +247,23 @@ namespace DCFApixels.WhimTex
         internal void Apply(Material target)
         {
             material = target;
-            foreach (var input in inputs) target.SetTexture(input.property, input.texture);
+            foreach (var input in inputs)
+            {
+                target.SetTexture(input.parameter.PropertyId, input.view.texture);
+                input.view.BindMetadata(target, input.parameter.TextureMapId, input.parameter.TextureSizeId);
+            }
         }
         public void Dispose()
         {
             if (!rented) return;
             rented = false;
             if (material != null)
-                foreach (var input in inputs) material.SetTexture(input.property, null);
+                foreach (var input in inputs)
+                {
+                    material.SetTexture(input.parameter.PropertyId, null);
+                    material.SetVector(input.parameter.TextureMapId, ShaderTextureView.Identity);
+                    material.SetVector(input.parameter.TextureSizeId, Vector4.zero);
+                }
             foreach (var texture in sources.Values) ProfiledRenderTexture.ReleaseTemporary(texture);
             sources.Clear(); requests.Clear(); inputs.Clear(); material = null;
             // Reentrant layer renders own distinct leases; bound idle storage is capped.

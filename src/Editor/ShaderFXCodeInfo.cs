@@ -50,7 +50,7 @@ namespace DCFApixels.WhimTex
             Text(textures, "Pixel-local reads accept only " + Code("PinnedUV") + ". Spatial FX and preview callbacks also accept " + Code("float2") +
                 ". Different texture resolutions use the same normalized coordinates.");
             Item(textures, Code("SampleInput(uv, tiling)") + " — spatial addressing: 0 Clamp, 1 Repeat, 2 Mirror, 3 Clip.");
-            Text(textures, Code("_MainTex") + " is the incoming sampler, not a reading method. " + Code("SampleTexture(_MainTex, uv)") +
+            Text(textures, Code("_MainTex") + " is the incoming " + Code("WhimTexTexture") + ". " + Code("SampleTexture(_MainTex, uv)") +
                 " is equivalent to " + Code("SampleInput(uv)") + " and remains pixel-local when " + Code("uv") + " is " + Code("PinnedUV") + ".");
             var bypassNote = Text(textures, "Low-level bypass paths: " + Code("tex2D") + ", " + Code(".Sample") + ", " + Code(".Load") +
                 ". Their use is not recommended; prefer " + Code("SampleInput") + " and " + Code("SampleTexture") + ".");
@@ -58,7 +58,7 @@ namespace DCFApixels.WhimTex
 
             var dimensions = Section(reference, "Coordinates & Size");
             Item(dimensions, Code("_InputSize") + " — render width, height, 1/width, 1/height.");
-            Item(dimensions, Code("_MainTex_TexelSize") + " — incoming texture metadata: 1/width, 1/height, width, height. Reading this metadata is not a texture sample.");
+            Item(dimensions, Code("_MainTex_TexelSize") + " — complete incoming image at the render scale: 1/width, 1/height, width, height, regardless of the stored region. Reading this metadata is not a texture sample.");
             Item(dimensions, Code("_CanvasSize") + " — full-resolution canvas dimensions in the same format.");
             Item(dimensions, Code("_RenderScale") + " — full-size canvas pixels per preview pixel; 1 at full resolution.");
             Item(dimensions, Code("_PixelScale") + " — document logical-pixel multiplier; 1 by default. Numeric " + Code("@param px") + " values are already multiplied once.");
@@ -66,7 +66,11 @@ namespace DCFApixels.WhimTex
 
             var parameters = Section(reference, "Parameters & Helpers");
             Item(parameters, "Declare controls with " + Code("// @param") + "; do not redeclare their generated uniforms. A " + Code("texture2D") +
-                " parameter generates a " + Code("sampler2D") + " and " + Code("_Name_TexelSize") + " (1/width, 1/height, width, height).");
+                " parameter generates a " + Code("WhimTexTexture") + " and " + Code("_Name_TexelSize") + " (1/width, 1/height, width, height).");
+            Item(textures, Code("float4 ReadMask(WhimTexTexture source, PinnedUV uv) { return SampleTexture(source, uv); }") +
+                "\nPass the texture view to your own helpers; its coordinate mapping travels with it.");
+            Text(textures, Code("_Mask.texelSize") + " describes the complete input at its render scale, even when only a region is stored. " +
+                Code("SampleTexture") + " maps image UV into that region automatically. Texture views are read-only: copy or pass them, but do not construct or modify them.");
             Item(parameters, Code("_Name_Sample(t)") + " — generated curve or gradient lookup. Curves return " + Code("float") +
                 "; gradients return " + Code("float4") + ". These lookups are independent of image-neighbor reads.");
             Item(parameters, Code("_Name_ToLocal(uv)") + " / " + Code("_Name_ToInput(uv)") + " — generated " + Code("transform2D") +

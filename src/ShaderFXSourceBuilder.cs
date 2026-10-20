@@ -15,7 +15,7 @@ namespace DCFApixels.WhimTex
         internal const string ColorLibraryInclude = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc\"\n";
         private const int MaximumCharacters = 2 * 1024 * 1024;
         internal const string RegionalColorMarker = "// WhimTex regional color input v1\n";
-        internal const string ViewportWrapperMarker = "// WhimTex viewport wrapper v2\n";
+        internal const string ViewportWrapperMarker = "// WhimTex viewport wrapper v3\n";
         // Conservative capability inference over expanded user code, including helpers.
         // Any explicit sampling, derivative or unresolved compiler input needs a full frame.
         private static readonly Regex SpatialInput = new Regex(
@@ -191,9 +191,14 @@ float4 SampleInput(float2 uv, float tiling)
             HashSet<string> names = new HashSet<string>(StringComparer.Ordinal)
             {
                 "_MainTex", "_MainTex_TexelSize", "_InputSize", "_CanvasSize", "_RenderScale", "_PixelScale",
-                "ApplyFX", "SampleInput", "SampleTexture", "PinnedUV", "LayerToLocal", "SpriteFXFragment", "vert_img", "v2f_img"
+                "ApplyFX", "SampleInput", "SampleTexture", "PinnedUV", "WhimTexTexture", "LayerToLocal", "SpriteFXFragment", "vert_img", "v2f_img"
             };
             BuildParameterDeclarations(effect.Parameters, properties, uniforms, names);
+            var textureViews = new StringBuilder();
+            ShaderFXTextureViews.Declare("_MainTex", properties, textureViews);
+            foreach (var parameter in effect.Parameters)
+                if (parameter.type == ShaderFXParameterType.Texture2D)
+                    ShaderFXTextureViews.Declare(parameter.name, properties, textureViews);
             string expanded = resolvedSource ?? builder.ResolveIncludes(effect.Code ?? string.Empty, assetPath);
             if (Regex.IsMatch(expanded, @"\b_WhimTex_[A-Za-z0-9_]*"))
                 throw new InvalidOperationException("The _WhimTex_ prefix is reserved for generated shader data.");
@@ -201,8 +206,11 @@ float4 SampleInput(float2 uv, float tiling)
             var entry = ShaderFXEntryPoint.Parse(contractSource);
             // Expand before lowering so helper functions in project/package includes receive
             // the same immutable-coordinate rules. Keep the ordinary include path untouched.
-            string lowered = contractSource.Contains("PinnedUV") ? ShaderFXEntryPoint.PreparePinnedUV(contractSource) : expanded;
-            string fragment = preview == null ? entry.Call("_WhimTex_Viewport.xy + input.uv * _WhimTex_Viewport.zw", "tex2D(_MainTex, input.uv)")
+            string lowered = contractSource.Contains("PinnedUV") || contractSource.Contains("WhimTexTexture") ? contractSource : expanded;
+            if (lowered.Contains("PinnedUV")) lowered = ShaderFXEntryPoint.PreparePinnedUV(lowered);
+            lowered = ShaderFXTextureViews.Prepare(lowered);
+            string imageUv = "_WhimTex_Viewport.xy + input.uv * _WhimTex_Viewport.zw";
+            string fragment = preview == null ? entry.Call(imageUv, "tex2D(_MainTex, " + imageUv + ")")
                 : previewCall ?? ShaderFXPreviewFunction.Call(expanded, preview.previewFunction, previewParameter, preview.type, preview.previewParameters, effect.Parameters);
             bool regional = false;
             if (preview == null)
@@ -222,6 +230,7 @@ float4 SampleInput(float2 uv, float tiling)
                 "float4 _WhimTex_Viewport;\nfloat4 _InputSize;\nfloat4 _CanvasSize;\nfloat _RenderScale;\nfloat _PixelScale;\n" + uniforms +
                 "float4 _WhimTex_LayerToLocalRow0, _WhimTex_LayerToLocalRow1, _WhimTex_LayerToLocalRow2;\n" +
                 "float2 LayerToLocal(float2 uv) { float3 p = float3(uv, 1); float w = dot(_WhimTex_LayerToLocalRow2.xyz, p); w = abs(w) < 1e-8 ? (w < 0 ? -1e-8 : 1e-8) : w; return float2(dot(_WhimTex_LayerToLocalRow0.xyz, p), dot(_WhimTex_LayerToLocalRow1.xyz, p)) / w; }\n" +
+                ShaderFXTextureViews.Types + textureViews +
                 ShaderFXEntryPoint.PinnedSource +
                 (preview != null || !entry.Restricted ? InputSamplingSource + ShaderFXEntryPoint.SpatialSamplingSource : "") +
                 LineDirective(1, assetPath) + lowered + "\n#line 1 \"SpriteFXWrapper\"\n" +

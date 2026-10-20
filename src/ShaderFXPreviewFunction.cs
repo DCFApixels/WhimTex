@@ -112,7 +112,7 @@ namespace DCFApixels.WhimTex
                 case ShaderFXParameterType.Vector3: return "float3";
                 case ShaderFXParameterType.Color:
                 case ShaderFXParameterType.Vector: return "float4";
-                case ShaderFXParameterType.Texture2D:
+                case ShaderFXParameterType.Texture2D: return "WhimTexTexture";
                 case ShaderFXParameterType.Gradient:
                 case ShaderFXParameterType.Curve: return "sampler2D";
                 case ShaderFXParameterType.Transform2D: return "float3x3";

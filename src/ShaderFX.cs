@@ -94,6 +94,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private string cachedName, cachedId;
         [NonSerialized] private string cachedPrefix;
         [NonSerialized] private int propertyId, gradientPropertyId, gradientWrapPropertyId, curvePropertyId;
+        [NonSerialized] private int textureMapId, textureSizeId;
         [NonSerialized] private int[] transformPropertyIds;
         [NonSerialized] internal RenderFingerprint.ObjectStamp textureFingerprint;
         [NonSerialized] internal RenderFingerprint.TextStamp nameFingerprint, idFingerprint, textureLayerFingerprint;
@@ -104,6 +105,8 @@ namespace DCFApixels.WhimTex
             cachedName = name; cachedId = id;
             cachedPrefix = "_WhimTex_" + name.TrimStart('_') + "_" + id + "_";
             propertyId = Shader.PropertyToID(name);
+            textureMapId = Shader.PropertyToID(ShaderFXTextureViews.Prefix(name) + "_UvMap");
+            textureSizeId = Shader.PropertyToID(ShaderFXTextureViews.Prefix(name) + "_Size");
             gradientPropertyId = Shader.PropertyToID(cachedPrefix + "Gradient");
             gradientWrapPropertyId = Shader.PropertyToID(cachedPrefix + "GradientWrap");
             curvePropertyId = Shader.PropertyToID(cachedPrefix + "Curve");
@@ -111,6 +114,8 @@ namespace DCFApixels.WhimTex
         }
         internal string InternalPrefix { get { PreparePropertyIds(); return cachedPrefix; } }
         internal int PropertyId { get { PreparePropertyIds(); return propertyId; } }
+        internal int TextureMapId { get { PreparePropertyIds(); return textureMapId; } }
+        internal int TextureSizeId { get { PreparePropertyIds(); return textureSizeId; } }
         internal int GradientPropertyId { get { PreparePropertyIds(); return gradientPropertyId; } }
         internal int GradientWrapPropertyId { get { PreparePropertyIds(); return gradientWrapPropertyId; } }
         internal int CurvePropertyId { get { PreparePropertyIds(); return curvePropertyId; } }
@@ -655,7 +660,7 @@ namespace DCFApixels.WhimTex
             foreach (var binding in plan)
             {
                 parameterBindings ??= new ShaderParameterBindings();
-                parameterBindings.Apply(material, binding.value, binding.declaration, new Vector2(context.activeDocument.width, context.activeDocument.height), context.pixelScale);
+                parameterBindings.Apply(material, binding.value, binding.declaration, new Vector2(context.activeDocument.width, context.activeDocument.height), context.pixelScale, textureViews: true);
             }
             var document = context.activeDocument;
             float inputWidth = document.RenderingViewport ? Mathf.Ceil(document.width / context.scaleMultiplier) : context.width;
@@ -669,6 +674,7 @@ namespace DCFApixels.WhimTex
                 1f / context.activeDocument.width, 1f / context.activeDocument.height));
             material.SetFloat("_RenderScale", context.scaleMultiplier);
             material.SetFloat("_PixelScale", context.pixelScale);
+            ShaderTextureView.ForContext(null, context).BindMetadata(material, ShaderTextureView.MainMapId, ShaderTextureView.MainSizeId);
             return material;
         }
 

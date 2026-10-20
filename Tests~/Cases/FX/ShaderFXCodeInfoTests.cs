@@ -75,7 +75,8 @@ public static class ShaderFXCodeInfoTests
             foreach (string token in new[] { "ApplyFX(float4 color)", "ApplyFX(PinnedUV uv, float4 color)",
                 "ApplyFX(float2 uv, float4 color)", "SampleInput(uv)", "SampleTexture(_Mask, uv)", "Layer, Self and None",
                 "_MainTex_TexelSize", "_InputSize", "_CanvasSize", "_RenderScale", "_PixelScale", "@param px",
-                "LayerToLocal", "_Name_Sample", "_Name_ToLocal", "#include", "FastNoiseLite", "bypass", "straight" })
+                "LayerToLocal", "_Name_Sample", "_Name_ToLocal", "#include", "FastNoiseLite", "bypass", "straight",
+                "WhimTexTexture", "_Mask.texelSize", "complete input", "ReadMask(WhimTexTexture source, PinnedUV uv)" })
                 t.True(plain.Contains(token), "Current contract is documented: " + token);
             t.True(plain.Contains("SampleTexture(_MainTex, uv)") && plain.Contains("is equivalent to SampleInput(uv)"), "Reference explains pinned incoming-sampler reads");
             t.True(plain.Contains("metadata is not a texture sample"), "Size metadata is distinguished from image reads");

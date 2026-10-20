@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
     // Authoring contract validation, not a sandbox for arbitrary HLSL.
     internal readonly struct ShaderFXEntryPoint
     {
-        internal const string WrapperMarker = "// WhimTex FX entry contract v1\n";
+        internal const string WrapperMarker = "// WhimTex FX entry contract v2\n";
         internal const string PixelLocalMarker = "// WhimTex pixel-local v1\n";
         internal const string UnverifiedMarker = "// WhimTex pixel-local unverified v1\n";
         internal const string BypassWarning = "Warning: Pixel-local declaration uses a bypass texture read, derivatives or an unverified compiler dependency. IsPixelLocal is false. Use SampleInput/SampleTexture with PinnedUV for pixel-local image reads.";
@@ -45,7 +45,8 @@ namespace DCFApixels.WhimTex
 
             // This reserved immutable hue LUT is not a document-image read.
             string checkedSource = Regex.Replace(clean, @"\btex2Dlod\s*\(\s*_WhimTexHueGradient\s*,", "WhimTexImmutableHueLookup(");
-            return new ShaderFXEntryPoint(kind, kind != Kind.Spatial && !Bypass.IsMatch(checkedSource));
+            bool textureInternals = Regex.IsMatch(checkedSource, @"\.\s*(?:pixels|uvMap)\b");
+            return new ShaderFXEntryPoint(kind, kind != Kind.Spatial && !Bypass.IsMatch(checkedSource) && !textureInternals);
         }
 
         internal string Call(string uv, string color) => kind == Kind.Color ? "ApplyFX(" + color + ")" :
@@ -210,11 +211,11 @@ PinnedUV _WhimTex_PinUV(float2 uv)
 {
     PinnedUV value; value.x = uv.x; value.y = uv.y; return value;
 }
-float4 SampleTexture(sampler2D source, PinnedUV uv) { return tex2D(source, float2(uv.x, uv.y)); }
+float4 SampleTexture(WhimTexTexture source, PinnedUV uv) { return tex2D(source, float2(uv.x, uv.y)); }
 float4 SampleInput(PinnedUV uv) { return SampleTexture(_MainTex, uv); }
 ";
         internal const string SpatialSamplingSource = @"
-float4 SampleTexture(sampler2D source, float2 uv) { return tex2D(source, uv); }
+float4 SampleTexture(WhimTexTexture source, float2 uv) { return tex2D(source, uv); }
 ";
     }
 }

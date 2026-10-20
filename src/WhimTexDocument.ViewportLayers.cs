@@ -12,7 +12,8 @@ namespace DCFApixels.WhimTex
         internal int ViewportFxLimit(Layer layer) => layer == viewportFxLimitLayer ? viewportFxLimitCount : int.MaxValue;
 
         // -1: generate and process the region. Otherwise render the complete source
-        // through the last spatial FX, then run the remaining color FX on the region.
+        // through the last spatial FX, then run the remaining local FX on the region.
+        // Texture-layer inputs recurse through the same decision independently.
         private int ViewportFullPrefix(Layer layer, bool applyFx = true)
         {
             int prefix = CanGenerateViewport(layer) ? -1 : 0;
@@ -20,16 +21,18 @@ namespace DCFApixels.WhimTex
                 for (int i = 0; i < layer.fx.Count; i++)
                 {
                     var fx = layer.fx[i];
-                    if (fx != null && fx.Active && !fx.IsUnavailable && !fx.SupportsRegionalColorInput) prefix = i + 1;
+                    if (fx != null && fx.Active && !fx.IsUnavailable &&
+                        !fx.IsPixelLocal && !fx.SupportsRegionalColorInput) prefix = i + 1;
                 }
             return prefix;
         }
 
-        private static bool CanGenerateViewport(Layer layer)
+        private bool CanGenerateViewport(Layer layer)
         {
             var tiling = layer.EffectiveTiling;
             switch (layer.Behaviour)
             {
+                case ShaderProcessorLayerBehaviour: return CanGenerateRegionalProcessor(layer);
                 case GroupLayerBehaviour: return true;
                 case BooleanGroupLayerBehaviour:
                 case VectorLayerBehaviour:

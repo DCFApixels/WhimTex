@@ -690,6 +690,22 @@ Reconstructing `float2(uv.x, uv.y)` is allowed for calculations, not for pixel-l
 `SampleTexture(_Mask, uv)` reads a declared `texture2D` parameter, including Texture, Layer,
 Self and None sources. Pixel-local signatures accept only `PinnedUV` in these reading functions;
 the spatial `float2` signature also allows displaced coordinates.
+`_MainTex` and declared `texture2D` parameters have the read-only HLSL type
+`WhimTexTexture`. Use that type for helper/preview arguments and texture return values,
+not `sampler2D`. `SampleTexture` maps whole-input UV to each texture's own stored region;
+call sites such as `SampleTexture(_Mask, uv)` do not change. `.texelSize` and
+`_Name_TexelSize` contain `(1/W, 1/H, W, H)` for the complete input at its render scale,
+even if only a crop is stored. Copies retain that metadata. Construction, casts, mutation
+and `out`/`inout` are invalid; `.pixels`/`.uvMap` access is an unconfirmed bypass.
+Gradient/curve lookup samplers and brush-tip texture parameters keep their existing types.
+Verified pixel-local FX use the visible canvas region. Each referenced layer independently
+renders its spatial FX prefix completely before cropping; locality does not propagate
+from a consumer to its dependencies. Inspector callbacks use a separate complete input
+reduced to at most 512 pixels, so they can sample outside the current canvas view.
+Save/export and agent renders still evaluate complete images.
+An untransformed Shader Processor can reuse the regional stack backdrop. A processor
+transform that moves/resamples the input or a spatial FX prefix requires the full
+backdrop. Pass-through groups inherit their external backdrop; isolated groups do not.
 Direct `tex2D`, resource `.Sample`/`.Load` and similar HLSL reads are bypass paths. Detected
 bypasses or derivatives prevent pixel-local confirmation and produce a warning rather than
 disabling an otherwise valid shader. This is an authoring contract, not a sandbox.

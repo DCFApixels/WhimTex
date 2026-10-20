@@ -57,7 +57,7 @@ float4 ApplyFX(PinnedUV uv, float4 color)
         t.True(mainTexture.IsPixelLocal, "Incoming sampler passed to SampleTexture remains pixel-local");
         t.True(!((string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(mainTexture)).Contains("IsPixelLocal is false"), "Safe MainTex sampling has no bypass warning");
         f.Pixel(f.Render(mainTexture, sample), sample, "SampleTexture MainTex matches SampleInput without changing HDR or alpha");
-        var throughSampler = f.Fx("float4 ReadHere(sampler2D source, PinnedUV coordinate) { return SampleTexture(source, coordinate); }\nfloat4 ApplyFX(PinnedUV uv, float4 color) { return ReadHere(_MainTex, uv); }");
+        var throughSampler = f.Fx("float4 ReadHere(WhimTexTexture source, PinnedUV coordinate) { return SampleTexture(source, coordinate); }\nfloat4 ApplyFX(PinnedUV uv, float4 color) { return ReadHere(_MainTex, uv); }");
         t.True(throughSampler.IsPixelLocal, "Passing MainTex to a pinned sampler helper is not a bypass");
         f.Pixel(f.Render(throughSampler, sample), sample, "Pinned sampler helper matches incoming texture reads");
         var mainSpatial = f.Fx("float4 ApplyFX(float2 uv, float4 color) { return SampleTexture(_MainTex, uv); }");
@@ -127,7 +127,7 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 
     const string MaskCode = @"
 // @param texture2D _Mask = self
-float ReadMask(sampler2D mask, PinnedUV coordinate) { return SampleTexture(mask,coordinate).r; }
+float ReadMask(WhimTexTexture mask, PinnedUV coordinate) { return SampleTexture(mask,coordinate).r; }
 float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); return color; }
 ";
 

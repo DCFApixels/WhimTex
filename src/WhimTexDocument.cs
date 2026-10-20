@@ -894,8 +894,7 @@ namespace DCFApixels.WhimTex
             {
                 if (layer?.Behaviour is ShaderProcessorLayerBehaviour)
                 {
-                    input = GetClearRenderTexture(outputWidth, outputHeight);
-                    CompositeLayers(container, ref input, outputWidth, outputHeight, scaleMultiplier, renderStack, firstIndex: index + 1);
+                    input = RenderBackdropBefore(layer, renderStack, outputWidth, outputHeight, scaleMultiplier);
                     // Effect inputs may read hidden source layers. A disabled stack processor
                     // is a bypass, not a hidden image to process again through that path.
                     if (!layer.enabled)
@@ -1231,9 +1230,8 @@ namespace DCFApixels.WhimTex
 
             if (candidate?.Behaviour is ShaderProcessorLayerBehaviour)
             {
-                if (TryFindLayer(candidate, out var siblings, out int processorIndex))
-                    for (int i = processorIndex + 1; i < siblings.Count; i++)
-                        if (LayerDependsOn(siblings[i], soughtLayer, visited, storedFx)) return true;
+                foreach (var inputLayer in ProcessorBackdropLayers(candidate, includeDisabled: true))
+                    if (LayerDependsOn(inputLayer, soughtLayer, visited, storedFx)) return true;
                 return false;
             }
 

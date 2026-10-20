@@ -243,7 +243,7 @@ namespace DCFApixels.WhimTex
             }
             if (!bound || boundStamp != currentStamp || boundDimensions != dimensions || boundPixelScale != pixelScale)
             {
-                foreach (var value in effect.Parameters) bindings.Apply(valuesMaterial, value, value, dimensions, pixelScale);
+                foreach (var value in effect.Parameters) bindings.Apply(valuesMaterial, value, value, dimensions, pixelScale, textureViews: true);
                 valuesMaterial.SetVector("_InputSize", new Vector4(1, 1, 1, 1));
                 valuesMaterial.SetVector("_CanvasSize", new Vector4(dimensions.x, dimensions.y, 1f / dimensions.x, 1f / dimensions.y));
                 valuesMaterial.SetFloat("_RenderScale", 1f); valuesMaterial.SetFloat("_PixelScale", pixelScale);
@@ -291,7 +291,8 @@ namespace DCFApixels.WhimTex
         private ShaderFXPreviewCache cache;
         private Material material;
         private RenderTexture result;
-        private bool hasFrame, needsInput;
+        private bool hasFrame, needsInput, inputDirty;
+        private double lastInputDraw;
         private ulong values;
         private int drawWidth, drawHeight;
         private int lastDrawEpoch = int.MinValue;
@@ -361,7 +362,8 @@ namespace DCFApixels.WhimTex
             int width = Mathf.Clamp(Mathf.CeilToInt(contentRect.width * EditorGUIUtility.pixelsPerPoint), 1, 1024);
             int height = Mathf.Clamp(Mathf.CeilToInt(contentRect.height * EditorGUIUtility.pixelsPerPoint), 1, 256);
             ulong stamp = cache.Stamp;
-            if (hasFrame && values == stamp && width == drawWidth && height == drawHeight && !effect.UsesUnityTimeInputs) return;
+            bool unchanged = hasFrame && values == stamp && width == drawWidth && height == drawHeight && !effect.UsesUnityTimeInputs;
+            if (unchanged && (!inputDirty || EditorApplication.timeSinceStartup - lastInputDraw < .1)) return;
             if (needsInput && document != null && layer != null && effect.Active && !effect.IsUnavailable &&
                 fxIndex >= 0 && fxIndex < layer.fx.Count && layer.fx[fxIndex] == effect && document.TryFindLayer(layer, out _, out _))
             {
@@ -378,11 +380,25 @@ namespace DCFApixels.WhimTex
 
         private void Capture(ShaderFX captured, Layer owner, int index, LayerRenderContext context, Material bound, RenderTexture input)
         {
-            if (lastDrawEpoch == ShaderFXPreviewCache.Epoch || captured != effect || document == null || context.activeDocument != document || owner != layer || index != fxIndex || !Prepare() || !needsInput) return;
+            if (captured != effect || document == null || context.activeDocument != document ||
+                owner != layer || index != fxIndex) return;
+            if (!document.CapturingInspectorFX)
+            {
+                // A canvas frame only invalidates the preview. Its input can be a crop,
+                // whereas a preview callback is free to sample anywhere in the image.
+                // Remember changes while hidden too, without compiling/drawing in Canvas.
+                if (cache == null || !cache.NeedsInput) return;
+                inputDirty = true;
+                cache.RequestUpdate();
+                return;
+            }
+            if (lastDrawEpoch == ShaderFXPreviewCache.Epoch || !Prepare() || !needsInput) return;
             try
             {
                 material.CopyPropertiesFromMaterial(bound);
                 Draw(input, context.pixelScale, cache.Stamp);
+                inputDirty = false;
+                lastInputDraw = EditorApplication.timeSinceStartup;
             }
             catch (Exception error) { tooltip = "Preview " + control.previewFunction + ": " + error.Message; }
             finally

@@ -36,7 +36,7 @@ namespace DCFApixels.WhimTex
                 result[hash] = new Word { text = text, kind = kind, metadata = metadata, next = previous };
             }
             foreach (string word in "break case cbuffer centroid class column_major const continue default discard do else extern false for groupshared if in inline inout interface namespace nointerpolation out precise register return row_major shared static struct switch true typedef uniform volatile while".Split(' ')) Add(word, Kind.Keyword);
-            foreach (string word in "Buffer ByteAddressBuffer InputPatch OutputPatch PinnedUV RWBuffer RWByteAddressBuffer RWStructuredBuffer RWTexture1D RWTexture2D RWTexture3D SamplerComparisonState SamplerState StructuredBuffer Texture1D Texture1DArray Texture2D Texture2DArray Texture2DMS Texture3D TextureCube TextureCubeArray matrix sampler sampler1D sampler2D sampler3D samplerCUBE string vector void".Split(' ')) Add(word, Kind.Type);
+            foreach (string word in "Buffer ByteAddressBuffer InputPatch OutputPatch PinnedUV WhimTexTexture RWBuffer RWByteAddressBuffer RWStructuredBuffer RWTexture1D RWTexture2D RWTexture3D SamplerComparisonState SamplerState StructuredBuffer Texture1D Texture1DArray Texture2D Texture2DArray Texture2DMS Texture3D TextureCube TextureCubeArray matrix sampler sampler1D sampler2D sampler3D samplerCUBE string vector void".Split(' ')) Add(word, Kind.Type);
             foreach (string scalar in "bool double fixed float half int min10float min12int min16float min16int min16uint uint dword".Split(' '))
             {
                 Add(scalar, Kind.Type);

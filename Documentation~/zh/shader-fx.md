@@ -14,6 +14,14 @@ next_page: "zh/preview.md"
 
 **Shader FX** 修改一个图层，**Shader Processor** 修改其下方合成的图像。两者都能使用预设或自定义 HLSL；调整现有预设不需要编写代码。
 
+在原始像素缩放和 **Live Quality 100%** 下，逐像素效果可保留细节，无需处理整个大画布。
+读取相邻像素的效果仍可能需要更多时间。FX 设置中的预览显示完整输入，
+即使 Canvas View 只显示其中一小部分。
+保持 Shader Processor 的 **Transform** 不改变图像位置和比例，也能降低大画布上逐像素效果的开销。
+移动或缩放 Processor 可能需要更多计算。
+
+普通笔触期间，打开的 FX 预览以较低分辨率更新，同时保留画布细节。重复或镜像图层的预览仍可能需要更多计算。
+
 ## 影响一个图层还是下方图像？
 
 **Shader FX** 属于单个图层，并更改该图层的图像。
@@ -257,6 +265,10 @@ Pixel-local FX 处理当前坐标，不读取图像中偏移的位置。
 sampler 的名称本身并不构成绕过路径。
 后者支持 Texture、Layer、Self、None 遮罩来源；pixel-local 签名要求使用 `PinnedUV`。
 直接 HLSL 纹理读取属于绕过接口的方式。检测到绕过读取或导数时会警告，并不再确认 pixel-local 属性。
+纹理输入使用只读的 `WhimTexTexture` 类型。`SampleTexture(_Mask, uv)` 等调用保持不变；
+自定义辅助函数和预览函数接收纹理时，请将参数声明为 `WhimTexTexture`。
+采样会自动换算到输入实际存储的区域；`_Mask.texelSize` 和 `_Mask_TexelSize`
+描述当前渲染比例下的完整输入尺寸。**Shader Inputs** 中提供了可插入代码的辅助函数示例。
 参见[签名、限制和遮罩示例](../ShaderFX.md#pixel-local-entry-points-and-texture-reads)。
 
 ## 在外部编辑器中编辑

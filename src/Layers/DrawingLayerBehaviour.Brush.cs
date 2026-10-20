@@ -266,6 +266,8 @@ namespace DCFApixels.WhimTex
         private void ResetAdvancedStroke(bool withBackdrop, bool pressureOpacity = false)
         {
             brushPreviewValid = false;
+            brushInspectorValid = false;
+            brushInspectorTiles?.Reset(advancedStroke.width, advancedStroke.height);
             brushPreviewTiles ??= new PaintTileSet();
             brushPreviewTiles.Reset(advancedStroke.width, advancedStroke.height);
             brushDirtyBounds = default;
@@ -367,6 +369,7 @@ namespace DCFApixels.WhimTex
         private void ReleaseAdvancedStroke()
         {
             ReleaseBrushPreview();
+            ReleaseBrushInspector();
             ClearFirstBrush();
             advancedStroke?.Dispose();
             advancedStroke = null;
@@ -380,6 +383,7 @@ namespace DCFApixels.WhimTex
             if (uv.width <= 0f || uv.height <= 0f || advancedStroke == null) return;
             brushDirtyTiles?.Union(PaintBrushRenderer.DrawTiles);
             brushPreviewTiles?.Union(PaintBrushRenderer.DrawTiles);
+            brushInspectorTiles?.Union(PaintBrushRenderer.DrawTiles);
             // One source texel guards bilinear sampling and rasterization at a quad boundary.
             int x = Mathf.Max(0, Mathf.FloorToInt(uv.xMin * advancedStroke.width) - 1);
             int y = Mathf.Max(0, Mathf.FloorToInt(uv.yMin * advancedStroke.height) - 1);

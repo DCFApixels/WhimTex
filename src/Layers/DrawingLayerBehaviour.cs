@@ -171,16 +171,18 @@ namespace DCFApixels.WhimTex
 
             if (advancedStroke != null)
             {
-                if (TryRenderBrushViewport(context, out var preview))
+                if (TryRenderBrushViewport(context, out var preview) || TryRenderBrushInspector(context, out preview))
                 {
                     try { Owner.ApplyFx(ref preview, context, preview.filterMode); return preview; }
                     catch { if (preview != null) ProfiledRenderTexture.ReleaseTemporary(preview); throw; }
                 }
-                // Full-input consumers, including FX, retain the source-resolution path.
-                return ApplyTransformAndFx(GetBrushPreviewSurface(), context);
+                // Full-input consumers retain the source-resolution path. An inspector
+                // fallback must not evict the canvas cache or consume its pending tiles.
+                if (!context.activeDocument.CapturingInspectorFX)
+                    return ApplyTransformAndFx(GetBrushPreviewSurface(), context);
             }
 
-            if (context.activeDocument.RenderingViewport)
+            if (advancedStroke == null && (context.activeDocument.RenderingViewport || context.activeDocument.CapturingInspectorFX))
                 return Owner.ApplyTransformAndFx(surface, context, premultipliedSource: true,
                     straightFallback: hasBakedPixelFrame || preserveStraightPaintRgb ? pixels : null,
                     decodeFallback: pixels != null && !HdrUtility.IsHdr(pixels));
@@ -482,8 +484,10 @@ namespace DCFApixels.WhimTex
             if (stamps.Count > 0)
             {
                 if (brushPreviewRevision != paintSurfaceRevision) brushPreviewValid = false;
+                if (brushInspectorRevision != paintSurfaceRevision) brushInspectorValid = false;
                 unchecked { paintSurfaceRevision++; }
                 brushPreviewRevision = paintSurfaceRevision;
+                brushInspectorRevision = paintSurfaceRevision;
             }
             PaintBrushRenderer.Draw(
                 surface,

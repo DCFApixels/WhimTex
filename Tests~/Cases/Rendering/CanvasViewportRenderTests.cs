@@ -131,7 +131,7 @@ public static class CanvasViewportRenderTests
         const int w=1031,h=773;
         var doc=ScriptableObject.CreateInstance<WhimTexDocument>();doc.hideFlags=HideFlags.HideAndDontSave;doc.width=w;doc.height=h;
         var cache=(IDisposable)Activator.CreateInstance(Type("EffectRenderCache"),true);
-        var fx=Fx(doc,"float4 ApplyFX(float2 uv,float4 color){return color*float4(.5,.75,1,1);}");
+        var fx=Fx(doc,"float4 ApplyFX(PinnedUV uv,float4 color){return SampleInput(uv)*float4(.5,.75,1,1);}");
         var mask=new Texture2D(4,4,TextureFormat.RGBA32,false,true){wrapMode=TextureWrapMode.Clamp};
         var masks=new Color[16];for(int i=0;i<16;i++)masks[i]=new Color(i/15f,0,0,1);mask.SetPixels(masks);mask.Apply();
         try
@@ -255,7 +255,9 @@ public static class CanvasViewportRenderTests
             var second=(RenderTexture)Call(doc,"RenderCanvasViewport",view,cache,false,null);RenderTexture.ReleaseTemporary(second);
             t.True(held!=null && ReferenceEquals(held,Entry()),"Unchanged region reuses retained FX entry across frames");
             var sourceField=typeof(ShaderFX).GetField("appliedSource",F);var codeField=typeof(ShaderFX).GetField("code",F);
-            sourceField.SetValue(point,((string)sourceField.GetValue(point)).Replace("// WhimTex viewport wrapper v2", "// stale generated wrapper"));
+            string marker=(string)Type("ShaderFXSourceBuilder").GetField("ViewportWrapperMarker",F).GetRawConstantValue();
+            t.True(((string)sourceField.GetValue(point)).Contains(marker),"Applied source has the current wrapper marker");
+            sourceField.SetValue(point,((string)sourceField.GetValue(point)).Replace(marker, "// stale generated wrapper\n"));
             string draft=(string)codeField.GetValue(point);codeField.SetValue(point,"Pending, deliberately uncompiled source");
             Call(point,"RestoreDocumentShader");
             t.Equal("Pending, deliberately uncompiled source",(string)codeField.GetValue(point),"Wrapper restoration preserves pending code");

@@ -14,6 +14,15 @@ next_page: "en/preview.md"
 
 Use **Shader FX** to change one layer or **Shader Processor** to process the image below it. Both support ready-made presets and your own HLSL. No code is needed to use a preset.
 
+At native zoom and 100% **Live Quality**, pixel-local effects retain pixel detail
+without processing the whole large canvas. Effects that read neighboring pixels can
+still be more expensive. Previews in the FX settings show the complete input, even
+when Canvas View shows only a small part of it.
+Keeping a Shader Processor's **Transform** neutral also makes its pixel-local effects
+cheaper on large canvases. Moving or scaling the Processor can require more work.
+
+During ordinary brush strokes, open FX previews update at reduced resolution and preserve canvas detail. Repeated or mirrored layers can still cost more to preview.
+
 ## Affect one layer or the image below?
 
 **Shader FX** belongs to one layer and changes that layer's image.
@@ -271,6 +280,11 @@ the sampler name itself does not make a read a bypass.
 The latter also supports masks from Texture, Layer, Self or None; pixel-local signatures require
 `PinnedUV`. Direct HLSL texture reads are bypass paths, and detected bypasses or derivatives
 produce a warning and prevent confirmation of pixel locality.
+Texture inputs use the read-only `WhimTexTexture` type. Keep calls such as
+`SampleTexture(_Mask, uv)`; use `WhimTexTexture` for texture arguments in your own
+helper and preview functions. Sampling automatically accounts for the input's stored
+region, while `_Mask.texelSize` and `_Mask_TexelSize` describe the complete input at
+its render scale. **Shader Inputs** includes a helper example that you can insert into the code.
 See the [signatures, restrictions and mask example](../ShaderFX.md#pixel-local-entry-points-and-texture-reads).
 
 ## Editing in an external editor

@@ -932,6 +932,7 @@
       "shader-fx-code-syntax-v1",
       "shader-fx-code-reference-v1",
       "shader-fx-code-info-v1",
+      "shader-fx-texture-view-v1",
       "shader-fx-pixel-local-v1",
       "document-comments-v1",
       "comment-author-v1",
@@ -1398,7 +1399,9 @@
       "fault-release-workflow-v2",
       "slider-field-v1",
       "layer-opacity-slider-v1",
-      "layer-drop-target-v1"
+      "layer-drop-target-v1",
+      "shader-fx-regional-v1",
+      "shader-processor-regional-v1"
     ],
     "source-guards": [
       "agent-command-inventory-v2",
@@ -1722,6 +1725,7 @@
       "shader-fx-code-syntax-v1",
       "shader-fx-code-reference-v1",
       "shader-fx-code-info-v1",
+      "shader-fx-texture-view-v1",
       "shader-fx-pixel-local-v1",
       "fx-preparation-regression",
       "hlsl-only-fx-v1",
@@ -1800,7 +1804,9 @@
       "normal-map-v2",
       "normal-normalize-v2",
       "polar-coordinates-unity-v2",
-      "portable-includes-v2"
+      "portable-includes-v2",
+      "shader-fx-regional-v1",
+      "shader-processor-regional-v1"
     ],
     "export": [
       "psd-writer-v2",
@@ -2389,6 +2395,177 @@
     ]
   },
   "scenarios": [
+    {
+      "id": "shader-fx-workflow-512",
+      "file": "Tests~/Cases/FX/ShaderFXWorkflowTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXRegionalTests.WorkflowStart",
+      "args": ["$runId", 512],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "windows", "user-state"],
+      "groups": ["fx", "rendering"],
+      "prerequisites": "Idle graphical Editor. Creates an owned temporary window; no mouse or keyboard automation.",
+      "setup": "Two cycles of pan/zoom and masked HDR painting with hidden/visible real FX preview elements. Only owned preview schedules are manually ticked for stage timing.",
+      "teardown": "Detach previews, close owned window, cancel owned strokes and release cache/textures. Restore caller state.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Cases/FX/ShaderFXRegionalTests.cs", "Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/AsyncD.cs", "Tests~/Framework/Unity/MigrationD.cs"],
+      "async": {"entry": "ShaderFXRegionalTests.WorkflowPoll", "args": ["$runId"], "pollMs": 5000},
+      "cancel": {"entry": "ShaderFXRegionalTests.WorkflowCancel", "args": ["$runId"]},
+      "cleanup": {"entry": "ShaderFXRegionalTests.WorkflowCleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "shader-fx-workflow-8k",
+      "file": "Tests~/Cases/FX/ShaderFXWorkflowTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXRegionalTests.WorkflowStart",
+      "args": ["$runId", 8192],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "windows", "user-state"],
+      "groups": ["fx", "rendering"],
+      "prerequisites": "Idle graphical Editor with about 8 GiB VRAM. Creates an owned temporary window; no mouse or keyboard automation.",
+      "setup": "Two cycles of pan/zoom and 2048px masked HDR painting with hidden/visible real FX preview elements. Only owned preview schedules are manually ticked for stage timing.",
+      "teardown": "Detach previews, close owned window, cancel owned strokes and release cache/textures. Restore caller state.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Cases/FX/ShaderFXRegionalTests.cs", "Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/AsyncD.cs", "Tests~/Framework/Unity/MigrationD.cs"],
+      "async": {"entry": "ShaderFXRegionalTests.WorkflowPoll", "args": ["$runId"], "pollMs": 5000},
+      "cancel": {"entry": "ShaderFXRegionalTests.WorkflowCancel", "args": ["$runId"]},
+      "cleanup": {"entry": "ShaderFXRegionalTests.WorkflowCleanup", "args": ["$runId"]}
+    },
+    {
+      "id": "shader-processor-regional-8k",
+      "file": "Tests~/Cases/FX/ShaderFXRegionalTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXRegionalTests.ProcessorBenchmark",
+      "args": [],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor with about 8 GiB VRAM. First capture the conservative full path, then enable regional processor generation and compare with the retained Temp samples.",
+      "setup": "Detached 8K documents; twelve bounded updates per case, including two warm-ups, with a separate 1x1 GPU fence and untimed 32x32 readback. Never finishes strokes.",
+      "teardown": "Release owned textures, caches and documents; restore graphics state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "shader-processor-regional-v1",
+      "file": "Tests~/Cases/FX/ShaderFXRegionalTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXRegionalTests.Processors",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor with current package scripts.",
+      "setup": "Detached processors, groups, texture dependencies and HDR sources; compare full/crop output and inspect cache refresh.",
+      "teardown": "Release owned textures, caches and documents; restore graphics state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "shader-fx-texture-view-v1",
+      "file": "Tests~/Cases/FX/ShaderFXTextureViewTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXTextureViewTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "fx",
+        "shader-fx",
+        "regression"
+      ],
+      "prerequisites": "Idle graphical Editor with current package scripts.",
+      "setup": "Detached document and transient textures/shaders; logical 8K sampling without full-canvas allocations.",
+      "teardown": "Destroy owned textures and FX; restore RenderTexture.active and GL.sRGBWrite.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/ShaderTextureView.cs",
+        "src/ShaderFXTextureViews.cs",
+        "src/ShaderFXSourceBuilder.cs",
+        "src/ShaderFXEntryPoint.cs",
+        "src/ShaderFX.TextureLayers.cs",
+        "src/ShaderFX.cs",
+        "src/ShaderParameterBindings.cs"
+      ]
+    },
+    {
+      "id": "shader-fx-regional-v1",
+      "file": "Tests~/Cases/FX/ShaderFXRegionalTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXRegionalTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor with current package scripts.",
+      "setup": "Detached documents; compare full/cropped FX, dependency planning and complete inspector inputs without opening windows.",
+      "teardown": "Release owned textures, caches and documents; restore graphics state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "shader-fx-regional-8k",
+      "file": "Tests~/Cases/FX/ShaderFXRegionalTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXRegionalTests.Benchmark",
+      "args": [],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor; benchmark requires an 8 GiB GPU and no other active rendering workload.",
+      "setup": "Detached documents and bounded render comparisons; benchmark uses only a separate 1x1 GPU completion readback.",
+      "teardown": "Release owned textures, caches and documents; restore graphics state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
     {
       "id": "freeform-figure-v1",
       "file": "Tests~/Cases/Color/FreeformFigureTests.cs",

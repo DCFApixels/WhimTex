@@ -264,6 +264,10 @@ namespace DCFApixels.WhimTex
         internal void SetRenderInverse(Material material, string prefix, in LayerRenderContext context)
         {
             if (!context.applyTransform) { ProjectiveMatrix.Identity.SetShader(material, prefix); return; }
+            // This input is already in the same regional frame as the output.
+            // FX coordinates still use the layer's complete canvas transform.
+            if (context.activeDocument.RenderingViewport && context.activeDocument.CanGenerateRegionalProcessor(this))
+            { ProjectiveMatrix.Identity.SetShader(material, prefix); return; }
             if (context.activeDocument.RenderingViewport)
             {
                 RenderTransform.ToMatrix(context.activeDocument.width, context.activeDocument.height).TryInverse(out var viewportInverse);

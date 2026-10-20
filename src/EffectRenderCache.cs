@@ -113,13 +113,11 @@ namespace DCFApixels.WhimTex
                     VisitRequired(input);
                 }
             }
-            else if (layer?.Behaviour is ShaderProcessorLayerBehaviour &&
-                document.TryFindLayer(layer, out var processorContainer, out int processorIndex))
+            else if (layer?.Behaviour is ShaderProcessorLayerBehaviour)
             {
                 RequireEntry(layer, "processor");
                 RequireEntry(layer, "effect");
-                for (int i = processorIndex + 1; i < processorContainer.Count; i++)
-                    VisitRequired(processorContainer[i]);
+                foreach (var input in document.ProcessorBackdropLayers(layer)) VisitRequired(input);
             }
             else if (CanCacheLayer(layer))
                 RequireEntry(layer, "effect");
@@ -232,12 +230,10 @@ namespace DCFApixels.WhimTex
                     if (dependency == 0) return stamps[layer] = 0;
                     dependencies = Mix(dependencies, dependency);
                 }
-                if (layer?.Behaviour is ShaderProcessorLayerBehaviour &&
-                    document.TryFindLayer(layer, out var container, out int index))
-                    for (int i = index + 1; i < container.Count; i++)
+                if (layer?.Behaviour is ShaderProcessorLayerBehaviour)
+                    foreach (var input in document.ProcessorBackdropLayers(layer))
                     {
-                        if (container[i]?.enabled != true || container[i].Behaviour is PendingLayerBehaviour) continue;
-                        ulong dependency = DependencyStamp(layer, container[i], "processor input");
+                        ulong dependency = DependencyStamp(layer, input, "processor input");
                         if (dependency == 0) return stamps[layer] = 0;
                         dependencies = Mix(dependencies, dependency);
                     }

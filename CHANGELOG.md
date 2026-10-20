@@ -6,6 +6,10 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- FX texture inputs use read-only `WhimTexTexture` views carrying independent UV mappings and complete-input dimensions. `SampleTexture` keeps its call syntax and handles full or cropped inputs; texture-valued helper and preview arguments now use `WhimTexTexture` instead of `sampler2D`. Shader Inputs and the authoring guides document the contract.
+- Verified pixel-local FX now process the visible canvas region, including main, Self and Layer texture reads. Spatial prefixes and texture-layer dependencies keep complete input only on their own branches. Active brush previews stay regional through local FX. Inspector callbacks request separate complete inputs reduced to 512 pixels, including stack-processor backdrops, and no longer consume canvas crops.
+- Shader Processor with a neutral transform reuses the regional stack backdrop for local FX. Moved processors and spatial FX retain full-input rendering. Pass-through external backgrounds are included in standalone processor inputs, cache invalidation and texture-dependency cycle checks.
+
 - Normal Map/Lighting adds optional Specular with color, independent intensity, Roughness and a Specular Only output. It defaults off, preserving the original lighting; the orthographic highlight follows Light Direction and retains input coverage and HDR intensity.
 
 - `WHIMTEX_DEEP_DEBUG` adds a read-only RGBA curve graph below the gradient editor strip, with independent channel toggles, signed/HDR range and exact Fixed-mode jumps. Graph sampling is cached and excluded from ordinary builds.
@@ -147,6 +151,8 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Open FX previews no longer replace a regional brush preview with a full-canvas buffer while painting. Ordinary Drawing layers keep an independent, incrementally updated inspector-sized cache; preview capture preserves pending canvas updates, HDR, masks and blend settings.
 
 - A physical Enter followed by a separate translated CR/LF character no longer inserts a second unindented newline in FX code. Key repeats and standalone newline input keep working.
 

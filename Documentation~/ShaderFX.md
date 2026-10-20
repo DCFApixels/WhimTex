@@ -26,25 +26,50 @@ Canvas View chooses evaluation per layer and FX chain. It does not reduce every 
 to a 512px preview when one effect is present. Native zoom with 100% Live Quality uses
 source-pixel spacing; the visible region has a small overscan margin.
 
-On shader generation, a conservative analysis checks `ApplyFX` and helper/preview
-functions, including project/package includes. Effects that consume only the supplied
-color, coordinates and ordinary parameters can use regional input. Hue & Saturation is one such
-effect. Explicit input sampling, texture parameters, derivatives, unresolved includes
-or uncertain macro dependencies require complete input. Unused spatial helpers also
-keep the complete-input path, so input-dependent inspector previews remain complete. The reserved immutable hue
-lookup is independent of document pixels and remains safe for regional evaluation.
+Verified pixel-local FX can read regional main, Self and Layer inputs through
+`WhimTexTexture`. Ordinary Texture parameters retain their own complete images.
+The earlier conservative analysis also permits effects using only the supplied color,
+coordinates and ordinary parameters, including Hue & Saturation. Unconfirmed image
+reads, derivatives or compiler dependencies keep the complete-input path.
 This is a capability check, not a general HLSL optimizer or a neighborhood-radius inference.
 
 For a complete-input stage, only its layer/dependency branch renders at the current
 sampling step. The prefix through the last spatial FX is cropped before subsequent
-color FX and normal composition. At native zoom that prefix is full resolution and
+local FX and normal composition. A local FX before a spatial FX still belongs to that
+complete prefix. Each texture-layer dependency makes the same decision independently:
+a local mask consumer does not make a spatial mask generator local. At native zoom that prefix is full resolution and
 can consume substantial memory/time for large spatial effects. Bounded halo rendering
 is not implemented. Groups, clipping and stack processors retain their input semantics.
 
+A Shader Processor with an identity local transform and Clip/Unbounded source tiling
+can reuse the already composed regional backdrop. Its FX use the same per-stage plan:
+spatial stages or a non-identity processor transform require the complete backdrop,
+then local suffix stages return to the viewport. Parent group transforms do not move
+an identity processor's input a second time; FX-local coordinates still include the parent.
+Pass-through external backdrops participate in rendering, dependency-cycle validation
+and cache invalidation. Isolated or clipping-isolated groups stop that inheritance.
+
 `ApplyFX` receives canvas UV, `_CanvasSize` remains the document size, and `_InputSize`
 describes the complete input at `_RenderScale`, even when the supplied color comes from
-a region. Layer-local coordinates and `_PixelScale` retain their meanings. Existing
-`SampleInput` code uses the complete-input path, with no changes to its authoring API.
+a region. Layer-local coordinates and `_PixelScale` retain their meanings.
+`SampleInput(PinnedUV)` can use a region; spatial `SampleInput(float2)` keeps complete input.
+
+Inspector callbacks receive a separate complete input, reduced to at most 512 pixels
+on its longest side. They may sample arbitrary UVs, including positions outside the
+current canvas view. Canvas rendering invalidates their input but never supplies its
+crop as the whole image. Refreshes are coalesced, input-only refreshes are limited to
+10 Hz, and temporary input textures are not retained. Stack-processor backdrops use
+the same reduced preview dimensions. Preview size does not change the canvas or export.
+For Drawing layers with Clip/Unbounded tiling and a valid projected quad, an active
+stroke is assembled directly into a separate inspector-sized cache (at most 4 MiB
+ARGBFloat for 512²). It updates only newly touched tiles; transform, filter, mask and
+compositing-setting changes invalidate it. This cache never replaces the canvas brush
+buffer or consumes its pending damage, and is released when the stroke ends or is
+cancelled. Without an active stroke, the inspector samples the Half source directly.
+Repeat/Mirror/Clamp and unsupported projected quads retain source-resolution assembly
+during a stroke, using a temporary buffer without evicting the canvas cache. Thus the
+callback limit is not a universal limit on intermediate allocations. The
+`shader-fx-regional-v1` and `shader-fx-workflow-8k` cases cover accuracy and cache isolation.
 
 Region cache entries include the view transform and cannot replace full-image entries,
 thumbnails or alpha-content checks. Active strokes and dependent branches bypass the
@@ -195,7 +220,7 @@ You may build a `float2` from its components for procedural calculations; this d
 another `PinnedUV` or grant permission to use that `float2` for pixel-local image sampling.
 
 **`SampleInput` and `SampleTexture` are WhimTex's primary texture-reading API.**
-`_MainTex` is the incoming sampler, not a bypass by itself. `SampleTexture(_MainTex, uv)`
+`_MainTex` is the incoming `WhimTexTexture`, not a bypass by itself. `SampleTexture(_MainTex, uv)`
 is equivalent to `SampleInput(uv)` and retains the pixel-local contract when `uv` is `PinnedUV`.
 `_MainTex_TexelSize` is size metadata, not an image read. Direct texture sampling operations
 remain bypass paths, including when mixed with approved helper calls.
@@ -206,6 +231,36 @@ In the two pixel-local signatures these functions accept only `PinnedUV`; a colo
 has no pinned coordinate to pass. The spatial signature also accepts `float2`, and retains
 the existing `SampleInput(float2, tiling)` addressing overload. Preview callbacks retain their
 existing `float2` interface and may use the spatial reading overloads.
+
+`_MainTex` and declared `texture2D` parameters are read-only **`WhimTexTexture`** values.
+Each value carries its sampler, its own mapping from whole-image UV to the stored region,
+and the complete input's texel size. `SampleTexture` applies that mapping automatically;
+UV 0–1 still addresses the whole input, even when its physical texture stores only a crop.
+Different inputs may have different regions and resolutions. A regular Texture source
+uses the full 0–1 region.
+
+Use `WhimTexTexture`, rather than `sampler2D`, for helper and preview arguments that receive
+these inputs. Copies, helper parameters and return values retain the mapping:
+
+```hlsl
+float4 ReadMask(WhimTexTexture source, PinnedUV uv)
+{
+    return SampleTexture(source, uv);
+}
+```
+
+`source.texelSize` and `_Name_TexelSize` are `(1/W, 1/H, W, H)` for the **complete input
+at its render scale**, not the physical crop dimensions. `_InputSize` remains
+`(W, H, 1/W, 1/H)` for the main input; `_CanvasSize` describes the document.
+Do not construct, cast, mutate or pass a texture view as `out`/`inout`. Accessing its
+internal `.pixels` sampler or `.uvMap` mapping prevents pixel-local confirmation.
+Direct `tex2D`/`tex2Dlod`/`tex2Dbias`/`tex2Dgrad`/`tex2Dproj` calls accept a texture view
+and apply its mapping, but remain bypass paths for classification.
+
+The renderer supplies regional inputs to verified pixel-local stages and complete
+inputs to spatial stages. Inspector callbacks have their own complete reduced inputs.
+A cropped input must cover every sampled coordinate,
+including filtering support; the view does not supply missing neighboring pixels.
 
 ```hlsl
 // @param texture2D _Mask = self
@@ -766,8 +821,8 @@ float4 PreviewMask(float2 uv) { float a = SampleInput(uv).a; return float4(a, a,
 Every entry returns straight linear `float4` RGBA and takes `float2 uv` first, bottom-left
 `(0,0)` to top-right `(1,1)`. Inline entries may optionally take a second argument matching
 the parameter's shader representation: `float` for float/enum, `bool` for bool, `float2`
-for float2/point, `float3` for float3/normal, and `float4` for float4/color. Textures,
-gradients and curves use `sampler2D`; transform2D uses its input-to-local `float3x3`.
+for float2/point, `float3` for float3/normal, and `float4` for float4/color. Texture
+parameters use `WhimTexTexture`; gradients and curves use `sampler2D`; transform2D uses its input-to-local `float3x3`.
 For gradients and curves, prefer UV-only entries with the normal named `_Name_Sample` helper
 to retain the library's sampling/wrap behavior. Entries must not be overloaded; argument
 names are arbitrary, but UV must precede value. Without explicit bindings, standalone entries take UV only.

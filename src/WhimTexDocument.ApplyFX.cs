@@ -74,6 +74,9 @@ namespace DCFApixels.WhimTex
 
         internal Texture2D RasterizeFXPrefix(Layer layer, int count) => RasterizeFXPrefixCore(layer, count, true, 0);
 
+        [NonSerialized] private bool capturingInspectorFX;
+        internal bool CapturingInspectorFX => capturingInspectorFX;
+
         internal void CaptureInspectorFXPrefix(Layer layer, int count) => RasterizeFXPrefixCore(layer, count, false, 512);
 
         private Texture2D RasterizeFXPrefixCore(Layer layer, int count, bool readback, int previewSize)
@@ -92,11 +95,21 @@ namespace DCFApixels.WhimTex
             RenderTexture rendered = null;
             var oldCache = effectCache;
             bool oldQuality = interactiveEffects;
+            bool oldViewport = renderingViewport, oldCapture = capturingInspectorFX;
+            bool oldDiagnostics = collectingErrors, oldPublishing = publishingLayerPreview, oldSrgb = GL.sRGBWrite;
+            var oldLimitLayer = viewportFxLimitLayer;
+            int oldLimitCount = viewportFxLimitCount;
             using var originalFiles = UseOriginalFilePixels(new[] { layer });
             try
             {
                 effectCache = null;
                 interactiveEffects = false;
+                renderingViewport = false;
+                viewportFxLimitLayer = null;
+                capturingInspectorFX = previewSize > 0;
+                publishingLayerPreview = false;
+                collectingErrors = false;
+                GL.sRGBWrite = false;
                 var context = new LayerRenderContext(this, null, renderWidth, renderHeight, renderScale, transformFxCoordinates: !layer.IsGroup);
                 for (int i = 0; i < count; i++)
                     if (layer.fx[i] is ShaderFX fx && fx.Active && fx.GetMaterial(context) == null)
@@ -104,7 +117,7 @@ namespace DCFApixels.WhimTex
 
                 if (layer.Behaviour is ShaderProcessorLayerBehaviour)
                 {
-                    RenderTexture input = RenderBackdropBefore(layer, new HashSet<Layer> { layer });
+                    RenderTexture input = RenderBackdropBefore(layer, new HashSet<Layer> { layer }, renderWidth, renderHeight, renderScale);
                     try { rendered = layer.Render(new LayerRenderContext(this, input, renderWidth, renderHeight, renderScale, applyFx: false)); }
                     finally { ProfiledRenderTexture.ReleaseTemporary(input); }
                 }
@@ -126,21 +139,28 @@ namespace DCFApixels.WhimTex
                 if (rendered != null) ProfiledRenderTexture.ReleaseTemporary(rendered);
                 effectCache = oldCache;
                 interactiveEffects = oldQuality;
+                renderingViewport = oldViewport;
+                capturingInspectorFX = oldCapture;
+                collectingErrors = oldDiagnostics;
+                publishingLayerPreview = oldPublishing;
+                viewportFxLimitLayer = oldLimitLayer;
+                viewportFxLimitCount = oldLimitCount;
+                GL.sRGBWrite = oldSrgb;
             }
         }
 
         // Reconstruct the accumulator at this exact stack position. Pass-through groups
         // inherit their external backdrop; isolated/clipped groups start transparent.
-        private RenderTexture RenderBackdropBefore(Layer layer, HashSet<Layer> stack)
+        private RenderTexture RenderBackdropBefore(Layer layer, HashSet<Layer> stack, int w, int h, float scale)
         {
             TryFindLayer(layer, out var container, out int index);
             Layer parent = layer.transformCache?.parent;
             RenderTexture input = parent != null && parent.IsPassThrough && !IsGroupIsolatedByClipping(parent)
-                ? RenderBackdropBefore(parent, stack) : GetClearRenderTexture(width, height);
+                ? RenderBackdropBefore(parent, stack, w, h, scale) : GetClearRenderTexture(w, h);
             bool added = parent != null && stack.Add(parent);
             try
             {
-                CompositeLayers(container, ref input, width, height, 1f, stack, firstIndex: index + 1);
+                CompositeLayers(container, ref input, w, h, scale, stack, firstIndex: index + 1);
                 return input;
             }
             catch { ProfiledRenderTexture.ReleaseTemporary(input); throw; }

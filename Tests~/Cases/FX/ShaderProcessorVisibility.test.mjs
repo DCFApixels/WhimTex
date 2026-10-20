@@ -9,7 +9,10 @@ context.case("ShaderProcessorVisibility original assertion inputs and source con
   const activeDocument = read('WhimTexDocument.cs');
   const standalone = activeDocument.slice(activeDocument.indexOf('private RenderTexture RenderStandaloneUncached('), activeDocument.indexOf('private RenderTexture RenderEffectInput('));
   const branch = standalone.slice(standalone.indexOf('if (layer?.Behaviour is ShaderProcessorLayerBehaviour)'), standalone.indexOf('if (layer?.Behaviour is TargetedLayerBehaviour effect)'));
-  assert.match(branch,/CompositeLayers\(container,[\s\S]*firstIndex: index \+ 1\)/);
+  assert.match(branch,/RenderBackdropBefore\(layer, renderStack, outputWidth, outputHeight, scaleMultiplier\)/);
+  const backdrop = read('WhimTexDocument.ApplyFX.cs');
+  assert.match(backdrop,/RenderBackdropBefore\(parent, stack, w, h, scale\)/);
+  assert.match(backdrop,/CompositeLayers\(container,[\s\S]*firstIndex: index \+ 1\)/);
   assert.match(branch,/if \(!layer.enabled\)\s*\{\s*RenderTexture bypass = input;\s*input = null;\s*return bypass;/);
   assert.ok(standalone.indexOf('return bypass;') < standalone.indexOf('layer.Render(context)'));
   assert.ok(standalone.indexOf('return bypass;') < standalone.indexOf('FinishStage(raw'));
