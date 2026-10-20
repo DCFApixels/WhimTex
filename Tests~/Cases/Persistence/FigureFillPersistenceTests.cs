@@ -47,7 +47,7 @@ public static class FigureFillPersistenceTests
     {
         t.Equal(mode, actualMode, label + " mode"); t.Equal(color, actualColor, label + " inactive solid color");
         t.Equal(start, actualStart, label + " start"); t.Equal(end, actualEnd, label + " end");
-        t.Equal(repetitions, actualRepetitions, label + " retained circular repetitions");
+        t.Equal(repetitions, actualRepetitions, label + " retained angular repetitions");
         t.Equal(JsonUtility.ToJson(gradient), JsonUtility.ToJson(actualGradient),
             label + " HDR/alpha stops, midpoints, mode, wrap, smoothness and color space");
         if (independent) t.True(!ReferenceEquals(gradient, actualGradient), label + " owns its palette");
@@ -128,22 +128,83 @@ public static class FigureFillPersistenceTests
         var owned = new List<Object>();
         try
         {
+            t.Equal(3, (int)GradientLayerBehaviour.GradientType.Angular, "Angular retains its native Gradient enum value");
+            t.Equal(6, (int)VectorFillMode.AngularGradient, "Angular retains its native figure enum value");
+            var angularDocument = ScriptableObject.CreateInstance<WhimTexDocument>(); owned.Add(angularDocument);
+            angularDocument.hideFlags = HideFlags.HideAndDontSave;
+            var angular = new GradientLayerBehaviour { gradientType = GradientLayerBehaviour.GradientType.Angular,
+                circularStartAngle = 37, circularRepetitions = 2.5f, circularWrapMode = GradientLayerBehaviour.WrapMode.PingPong,
+                gradient = Palette(2) };
+            angularDocument.layers.Add(new Layer(angular));
+            typeof(WhimTexDocument).GetMethod("NormalizeModel", Flags).Invoke(angularDocument, null);
+            void SameAngular(WhimTexDocument copy)
+            {
+                var actual = (GradientLayerBehaviour)copy.layers[0].Behaviour;
+                t.Equal(GradientLayerBehaviour.GradientType.Angular, actual.gradientType, "Angular layer type survives storage");
+                t.Equal(angular.circularStartAngle, actual.circularStartAngle, "Angular start angle survives storage");
+                t.Equal(angular.circularRepetitions, actual.circularRepetitions, "Angular repetitions survive storage");
+                t.Equal(angular.circularWrapMode, actual.circularWrapMode, "Angular wrapping survives storage");
+                t.True(actual.gradient.Equals(angular.gradient), "Angular HDR palette survives storage");
+            }
+            foreach (WhimTexJsonWriteMode mode in Enum.GetValues(typeof(WhimTexJsonWriteMode)))
+            {
+                string json = WhimTexDocumentJson.Write(angularDocument, new WhimTexJsonWriteOptions { Mode = mode }).Json;
+                t.True(json.Contains("\"Angular\""), "JSON uses the canonical Angular type name");
+                using var restored = WhimTexDocumentJson.Read(json, false);
+                SameAngular(restored.Document);
+            }
+            using (var angularContainer = new WhimTexDocumentContainer())
+            {
+                byte[] bytes = (byte[])Call(Serializer, "Serialize", angularDocument, angularContainer);
+                SameAngular(Decode(bytes, angularContainer, owned, t));
+            }
+            t.Equal("Linear,Radial,Angular,Square,Freeform", string.Join(",", Enum.GetNames(typeof(GradientLayerBehaviour.GradientType))), "Canonical gradient type set");
+            t.Equal(GradientLayerBehaviour.GradientType.Linear, new GradientLayerBehaviour().gradientType, "Linear is the layer default");
+            foreach (GradientLayerBehaviour.GradientType kind in Enum.GetValues(typeof(GradientLayerBehaviour.GradientType)))
+            {
+                angular.gradientType = kind;
+                foreach (WhimTexJsonWriteMode mode in Enum.GetValues(typeof(WhimTexJsonWriteMode)))
+                {
+                    string json = WhimTexDocumentJson.Write(angularDocument, new WhimTexJsonWriteOptions { Mode = mode }).Json;
+                    using var copy = WhimTexDocumentJson.Read(json, false);
+                    t.Equal(kind, ((GradientLayerBehaviour)copy.Document.layers[0].Behaviour).gradientType, "Gradient type JSON roundtrip " + kind + "/" + mode);
+                }
+                using var typeContainer = new WhimTexDocumentContainer();
+                byte[] bytes = (byte[])Call(Serializer, "Serialize", angularDocument, typeContainer);
+                t.Equal(kind, ((GradientLayerBehaviour)Decode(bytes, typeContainer, owned, t).layers[0].Behaviour).gradientType, "Gradient type native roundtrip " + kind);
+            }
+            angular.gradientType = GradientLayerBehaviour.GradientType.Linear;
+            string current = WhimTexDocumentJson.Write(angularDocument, new WhimTexJsonWriteOptions { Mode = WhimTexJsonWriteMode.Full }).Json;
+            string missingType = System.Text.RegularExpressions.Regex.Replace(current, @"""gradientType""\s*:\s*""Linear""\s*,", "");
+            t.True(missingType != current, "Missing-type fixture removes the explicit type");
+            Reject(t, () => { using var rejected = WhimTexDocumentJson.Read(missingType, false); }, "Missing type cannot reinterpret the former compact default");
+            foreach (string removed in new[] { "Vertical", "Horizontal", "Diamond" })
+            {
+                string invalid = System.Text.RegularExpressions.Regex.Replace(current, @"(""gradientType""\s*:\s*)""Linear""", "$1\"" + removed + "\"");
+                t.True(invalid != current, "Retired type test changes the type field");
+                Reject(t, () => { using var rejected = WhimTexDocumentJson.Read(invalid, false); }, "Removed type rejected: " + removed);
+            }
+            var text = new TextLayerBehaviour();
+            Call(typeof(WhimTexApi), "SetText", text, JsonObject("{\"fillMode\":\"AngularGradient\"}"));
+            t.Equal(VectorFillMode.AngularGradient, text.fillMode, "Text API accepts AngularGradient");
+            t.Equal("AngularGradient", (string)ApiJson.FromObject(Call(typeof(WhimTexApi), "TextSnapshot", text))["fillMode"], "Text API reports AngularGradient");
             var document = ScriptableObject.CreateInstance<WhimTexDocument>(); owned.Add(document);
             document.hideFlags = HideFlags.HideAndDontSave; document.width = 320; document.height = 180;
             var vector = new VectorLayerBehaviour { referenceSize = new Vector2(320, 180) };
-            string[] names = { "None", "Solid", "LinearGradient", "RadialGradient", "SquareGradient", "DiamondGradient", "CircularGradient" };
+            string[] names = { "None", "Solid", "LinearGradient", "RadialGradient", "AngularGradient", "SquareGradient" };
+            var fillModes = names.Select(name => (VectorFillMode)Enum.Parse(typeof(VectorFillMode),name)).ToArray();
             for (int mode = 0; mode < names.Length; mode++)
             {
-                t.Equal(names[mode], ((VectorFillMode)mode).ToString(), "Stable fill enum " + mode);
+                t.Equal(names[mode], fillModes[mode].ToString(), "Stable fill enum " + mode);
                 for (int gate = 0; gate < 2; gate++)
                 {
                     var shape = new ShapeLayerBehaviour
                     {
-                        fill = gate == 1, fillMode = (VectorFillMode)mode, fillColor = new Color(2.25f, -.2f, .4f, .3f),
+                        fill = gate == 1, fillMode = fillModes[mode], fillColor = new Color(2.25f, -.2f, .4f, .3f),
                         gradient = Palette(mode * 2 + gate), gradientStart = new Vector2(-.125f, .25f),
                         gradientEnd = gate == 0 ? new Vector2(-.125f, .25f) : new Vector2(.85f, 1.2f),
                         gradientRepetitions = gate == 0 ? .0001f : mode + 1.25f,
-                        stroke = gate == 1, strokeMode = (VectorFillMode)(names.Length - 1 - mode), strokePosition = ShapeLayerBehaviour.StrokePosition.Outside,
+                        stroke = gate == 1, strokeMode = fillModes[names.Length - 1 - mode], strokePosition = ShapeLayerBehaviour.StrokePosition.Outside,
                         strokeColor = new Color(.1f, 3f, -.3f, .6f), strokeGradient = Palette(mode * 2 + gate + 3),
                         strokeGradientStart = new Vector2(.2f, -.4f),
                         strokeGradientEnd = gate == 0 ? new Vector2(.2f, -.4f) : new Vector2(1.1f, .7f),
@@ -207,7 +268,7 @@ public static class FigureFillPersistenceTests
             // Exercise the actual package API parsers/snapshots without opening or saving a user document.
             var apiShape = (ShapeLayerBehaviour)document.layers[0].Behaviour;
             var before = ApiJson.FromObject(Call(typeof(WhimTexApi), "ShapeSnapshot", apiShape));
-            Call(typeof(WhimTexApi), "SetShape", apiShape, JsonObject("{\"fill\":true,\"fillMode\":\"CircularGradient\"}"));
+            Call(typeof(WhimTexApi), "SetShape", apiShape, JsonObject("{\"fill\":true,\"fillMode\":\"AngularGradient\"}"));
             var after = ApiJson.FromObject(Call(typeof(WhimTexApi), "ShapeSnapshot", apiShape));
             foreach (string field in new[] { "fillColor", "gradient", "gradientStart", "gradientEnd", "gradientRepetitions",
                 "stroke", "strokeMode", "strokeColor", "strokeGradient", "strokeGradientStart", "strokeGradientEnd", "strokeGradientRepetitions" })
@@ -318,7 +379,7 @@ public static class FigureFillPersistenceTests
                     kind == "BooleanGroup" ? json["layers"][names.Length * 2]["behaviour"]["style"] : json["layers"][0]["behaviour"];
                 string modeField = stroke ? "strokeMode" : "fillMode", paletteField = stroke ? "strokeGradient" : "gradient";
                 string repetitionsField = paletteField + "Repetitions";
-                node[modeField] = "CircularGradient";
+                node[modeField] = "AngularGradient";
                 if (stroke) node["stroke"] = false; // A disabled gate must not hide malformed stored settings.
                 if (invalid == "mode-name") node[modeField] = "UnknownGradient";
                 if (invalid == "mode-number") node[modeField] = 6;
@@ -336,7 +397,7 @@ public static class FigureFillPersistenceTests
             // Inactive fields are retained, but malformed values must still fail storage validation.
             foreach (string kind in new[] { "Shape", "Vector", "BooleanGroup" })
             foreach (bool stroke in new[] { false, true })
-            foreach (VectorFillMode mode in new[] { VectorFillMode.None, VectorFillMode.Solid, VectorFillMode.LinearGradient, VectorFillMode.CircularGradient })
+            foreach (VectorFillMode mode in new[] { VectorFillMode.None, VectorFillMode.Solid, VectorFillMode.LinearGradient, VectorFillMode.AngularGradient })
             foreach (float invalid in new[] { 0f, -1f, .00001f, float.NaN, float.PositiveInfinity, float.NegativeInfinity })
             {
                 var invalidDocument = ScriptableObject.CreateInstance<WhimTexDocument>(); owned.Add(invalidDocument);

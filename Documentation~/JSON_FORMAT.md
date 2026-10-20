@@ -41,30 +41,60 @@ Comments do not contribute to image pixels. See [TIFF comments](TIFF_FORMAT.md#o
 for validation limits and anchor behavior. JSON insertion/paste imports layers only;
 opening a full document retains its comments.
 
+## Freeform gradients
+
+`GradientLayerBehaviour.gradientType` accepts `Freeform` (enum ID 6). Its independent
+`freeform.points` list contains 1–64 `{position:[x,y], color:[r,g,b,a], influence:number}` entries.
+Positions are local layer UV coordinates, with (0,0) at the bottom left; finite values
+outside 0–1 are permitted within -10000..10000. Influence is 0.01–4 (default 0.35),
+displayed as 1–400%. Its guide is circular in local UV space and follows the layer transform.
+It controls relative spread, not a hard clipping radius; scaling every influence equally leaves the blend unchanged.
+RGB is straight, encoded color with signed HDR support; alpha is 0–1. Evaluation decodes
+RGB into linear working space and mixes RGBA with normalized inverse fourth-power
+distance weights. A small squared-distance floor keeps coincident points finite; equal-position
+points mix at their common anchor. Transparent points retain their RGB.
+
+All JSON modes and native TIFF retain Freeform points even while a different gradient type
+is selected, and retain the ordinary `gradient` palette while Freeform is selected.
+Points are evaluated directly at requested source coordinates, including a viewport region;
+there is no per-point canvas-sized texture.
+
+Shape and Vector/Boolean Group styles also accept `fillMode:"Freeform"` or
+`strokeMode:"Freeform"` (`VectorFillMode` ID 7). The independent fields `freeform`
+and `strokeFreeform` have the same point contract in normalized layer-local coordinates,
+before the layer/parent transform. Both are retained in inactive modes; active Freeform
+data must be non-null even when its painting gate is disabled. Shape-to-Vector conversion
+clones both point sets. Palette anchors and repetitions do not affect Freeform.
+Text excludes this mode; SVG export is unchanged.
+The live API accepts `settings.gradientType` and `settings.freeform` (see [AgentAPI](AgentAPI.md#freeform-gradient-settings)).
+
 ## Figure fills
 
 The ordinary `GradientLayerBehaviour` stores `circularStartAngle` (default 0), in
-counterclockwise degrees from the local left ray. For Circular, one period spans
+counterclockwise degrees from the local left ray. For Angular, one period spans
 `360/circularRepetitions` degrees; Repeat/PingPong wrapping remains unchanged.
 The angle rotates the field without changing transform or palette keys; it is
-retained by native storage/Undo and included in JSON when Circular is active.
+retained by native storage/Undo and included in JSON when Angular is active.
 Shifted angular fields rasterize on PSD export. This is separate from figure-fill geometry.
 
+Gradient layer `gradientType` is required in every JSON mode, including Compact: `Linear`, `Radial`, `Angular`, `Square` or `Freeform`. Removed type names and omitted types are rejected rather than converted. The Linear direction comes from its transform and canvas handles.
+
 Shape and Vector share `VectorFillMode`: `None=0`, `Solid=1`, `LinearGradient=2`,
-`RadialGradient=3`, `SquareGradient=4`, `DiamondGradient=5`, `CircularGradient=6`.
+`RadialGradient=3`, `SquareGradient=4`, `AngularGradient=6`, `Freeform=7`.
 JSON uses these exact names, never numeric enum values. `ShapeLayerBehaviour` and
 each `VectorShape` store `fillMode` (default `Solid`), `fillColor` (white),
 `gradient` (a new black-to-white `WhimTexGradient`, Perceptual/Clamp),
 `gradientStart` (`[0,0]`), `gradientEnd` (`[1,0]`) and `gradientRepetitions` (`1`). Shape also retains its
 `fill` boolean (default true) as the overall body-fill gate. None suppresses fill;
-Solid uses `fillColor`; gradient modes use the palette. Stroke is independent.
+Solid uses `fillColor`; the four palette gradient modes use `gradient`; Freeform uses
+`freeform` as described above. Stroke is independent.
 
 Anchors are finite normalized layer-local coordinates, Y up, and can lie outside
 0..1. Geometry is evaluated in reference pixels: multiply local coordinates by
 the current canvas width/height for Shape, **before** the layer Transform, or by
 `referenceSize` for Vector. Thus a non-square reference frame affects distances
 and angles before the layer transform is applied. `gradientStart` is the start
-of a linear gradient and the center of every other gradient; `gradientEnd` sets
+of a linear gradient and the center of the other palette gradients; `gradientEnd` sets
 the radius and orientation.
 
 Let `d = end - start`, `r = length(d)` in reference pixels, and let `q` be the
@@ -76,14 +106,13 @@ point's offset from start, rotated so the start-to-end ray is +X, then divided b
 | `LinearGradient` | `q.x` |
 | `RadialGradient` | `length(q)` |
 | `SquareGradient` | `max(abs(q.x), abs(q.y))` |
-| `DiamondGradient` | `abs(q.x) + abs(q.y)` |
-| `CircularGradient` | Positive counterclockwise angle from +X divided by one turn, multiplied by `gradientRepetitions`; seam on the start-to-end ray |
+| `AngularGradient` | Positive counterclockwise angle from +X divided by one turn, multiplied by `gradientRepetitions`; seam on the start-to-end ray |
 
 Equal anchors produce `t=0` everywhere for every gradient type. The palette's
-existing `wrapMode` handles clamping/repetition after the circular multiplier.
+existing `wrapMode` handles clamping/repetition after the angular multiplier.
 `gradientRepetitions` is a finite float of at least `0.0001`, default `1`; one
-circular period spans `360 / gradientRepetitions` degrees. It affects only
-CircularGradient and is retained and validated in every mode, including disabled
+angular period spans `360 / gradientRepetitions` degrees. It affects only
+AngularGradient and is retained and validated in every mode, including disabled
 fills. The existing anchor ray sets the start angle; there is no separate angle field.
 All modes retain color and alpha stops, HDR values, midpoints, interpolation,
 smoothness and color space. A gradient mode requires a non-null palette, even when
@@ -98,7 +127,7 @@ Shape, Vector and Boolean Group (`style`) also store an independent stroke paint
 | `strokeColor` | Opaque black; used by Solid |
 | `strokeGradient` | A separate black-to-white Perceptual/Clamp `WhimTexGradient`; the same HDR, alpha, midpoint, interpolation, smoothness, color-space and wrap behavior as fill |
 | `strokeGradientStart`, `strokeGradientEnd` | `[0,0]`, `[1,0]`; finite normalized layer-local anchors using the same geometry and reference-pixel metric as fill |
-| `strokeGradientRepetitions` | `1`; finite float of at least `0.0001`. CircularGradient only, before palette wrapping; one period spans `360 / strokeGradientRepetitions` degrees |
+| `strokeGradientRepetitions` | `1`; finite float of at least `0.0001`. AngularGradient only, before palette wrapping; one period spans `360 / strokeGradientRepetitions` degrees |
 
 Stroke never borrows the fill palette, anchors or repetitions. Its gradient modes
 require a non-null `strokeGradient` even with `stroke:false`; modes, anchors and
@@ -131,7 +160,7 @@ The scalar CPU fallback retains its original flattening and scan conversion and 
 as the coverage regression oracle. Preparation and paint edits do not reduce raster
 resolution, relax curve tolerances or simplify the resolved contours.
 
-Changing fill/stroke gradient anchors, active paint type, circular repetitions,
+Changing fill/stroke gradient anchors, active paint type, angular repetitions,
 palette colors, alpha, interpolation or wrapping reuses that coverage. GPU paint
 evaluates the local gradient coordinates and samples the shared interval-based
 `WhimTexGradientPalette`, with independent fill/stroke palettes. Solid colors and
@@ -533,8 +562,15 @@ are fixed-length numeric arrays; transform `Double2` values use objects with `x`
 Writers use the field's current component count. JSON permits shorter float-vector arrays,
 filling added components with zero; tagged TIFF values must exactly match the current field type.
 Scalars, integer-vector conversions, narrowing and shortened colors/quaternions remain invalid.
-Shader FX have `$type: "ShaderFX"`, source `code`, `parameters`, `active` and optional
-`$name`. Shared FX use `$id`/`$ref`; these IDs are distinct from layer IDs.
+`Layer.fx` is a `List<ShaderFX>`. A model entry contains document-owned HLSL effect data with
+`$type: "ShaderFX"`, source `code`, `parameters`, `active` and optional `$name`. Each effect
+has independent values and enabled state; a shared preset source does not share mutable settings.
+
+JSON `fx` items may only be `ShaderFX` model objects, `null`, or internal `{"$ref":"..."}`
+references resolving to a `ShaderFX` model object in the same document. Optional `$id` on a
+model object supplies that internal serialization identity; it is separate from a layer ID.
+An internal `$ref` refers to that model instance, not an external preset asset. An item with
+`$asset` is invalid even when its expected type is ShaderFX and the asset exists.
 
 ### Canvas frame changes
 
@@ -733,10 +769,20 @@ See the [shared field contract](AgentAPI.md#layer-settings) for all mode semanti
 
 ### Asset references
 
-An external Texture, Material or mesh reference is an object containing `$asset` with `guid`, `path`,
+An external texture or mesh reference is an object containing `$asset` with `guid`, `path`,
 string `localId` and expected `type`. Resolve the GUID first; if the GUID is absent from AssetDatabase,
 try the path. The local ID and type must still match. If unresolved, open with warnings and a null
 reference; retain its identity when saving again, including across Unity serialization.
+
+This missing-asset behavior applies only to supported asset fields, such as texture parameters.
+External Material, Shader and ShaderFX `.asset` references in `fx` are unsupported input, even
+if their assets still exist or their identities cannot be resolved. Reject the document or clipboard
+payload before accepting it, with
+`External FX references are no longer supported. Use a marked .hlsl preset or inline HLSL code.`
+This is a structural error, not a missing-asset warning. Do not silently drop the entry,
+convert it to inline HLSL, migrate it or overwrite the source document. Marked HLSL source links
+and external texture parameters remain supported; see [FX ownership](ShaderFX.md#document-owned-hlsl-effects).
+
 ### Failed or unavailable Shader FX
 
 Shader FX source is embedded with project includes expanded. Engine includes remain engine dependencies.

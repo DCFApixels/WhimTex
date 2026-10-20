@@ -21,7 +21,10 @@
 
 `WhimTexDocument` уже является SO-моделью в памяти, но `Layer` сейчас сериализуемый
 класс, не отдельный ScriptableObject. `ShaderFX` является ScriptableObject;
-список FX принадлежит слою. Поэтому наличие SO у документа само по себе не даёт
+типизированный список `Layer.fx` (`List<ShaderFX>`) принадлежит слою, а каждый FX —
+документу с независимыми значениями. Связь с HLSL-пресетом не делает значения общими;
+внешние Material/Shader/ShaderFX `.asset` исключены [контрактом FX](../DECISIONS.md#fxhlsl-и-кисти).
+Поэтому наличие SO у документа само по себе не даёт
 мультиредактирование внутренних слоёв через `hasMultipleDifferentValues`.
 
 Обсуждались `SerializedObject`/`SerializedProperty`, привязка полей и перенос

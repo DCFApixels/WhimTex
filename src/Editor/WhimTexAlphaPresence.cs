@@ -147,7 +147,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 RenderTexture.active = pixel;
-                readbackPixel.ReadPixels(new Rect(0f, 0f, 1f, 1f), 0, 0, false);
+                WhimTexProfiler.ReadPixels(readbackPixel, new Rect(0f, 0f, 1f, 1f), 0, 0, false);
                 return readbackPixel.GetRawTextureData<Color32>()[0].r == 0;
             }
             finally { RenderTexture.active = previousActive; }

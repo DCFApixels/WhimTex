@@ -13,14 +13,9 @@ Shader "Hidden/WhimTex/Transform"
         Cull Off
         Blend Off
 
-        Pass
-        {
-            CGPROGRAM
-            #pragma vertex vert_img
-            #pragma fragment frag
-            #pragma target 3.5
+        CGINCLUDE
             #include "UnityCG.cginc"
-        #include "HdrColor.cginc"
+            #include "HdrColor.cginc"
 
             #if defined(SHADER_API_D3D11) || defined(SHADER_API_METAL) || defined(SHADER_API_VULKAN)
                 #define TRANSFORM_NATIVE_SAMPLERS
@@ -48,6 +43,8 @@ Shader "Hidden/WhimTex/Transform"
             // Unity FilterMode: Point = 0, Bilinear = 1, Trilinear = 2.
             int _FilterMode;
             int _SourceMipCount;
+            float _PremultipliedSource, _StraightFallback;
+            sampler2D _OriginalStraight;
 
             float AddressPixel(float pixel, float size, int wrapMode)
             {
@@ -64,16 +61,37 @@ Shader "Hidden/WhimTex/Transform"
                 return clamp(pixel, 0.0, size - 1.0);
             }
 
+            float4 StraightPixel(float4 color, float2 pixel, float2 size)
+            {
+                // Convert individual source texels before interpolation, matching the
+                // full straight-source path without allocating its full-canvas target.
+                if (color.a <= .00001)
+                {
+                    color = _StraightFallback > .5 ? float4(tex2Dlod(_OriginalStraight, float4((pixel + .5) / size, 0, 0)).rgb, 0) : 0;
+                    #if defined(UNITY_COLORSPACE_GAMMA)
+                    if (_StraightFallback > 1.5) color.rgb = SpriteDecode(color.rgb);
+                    #endif
+                }
+                else color.rgb /= color.a;
+                if ((asuint(color.r) & 0x7fffffffu) < 0x7f800000u) color.r = clamp(color.r, -65504, 65504);
+                if ((asuint(color.g) & 0x7fffffffu) < 0x7f800000u) color.g = clamp(color.g, -65504, 65504);
+                if ((asuint(color.b) & 0x7fffffffu) < 0x7f800000u) color.b = clamp(color.b, -65504, 65504);
+                return color;
+            }
+
+
             float4 FetchPixel(float2 pixel, float2 size, float mip)
             {
                 pixel = float2(AddressPixel(pixel.x, size.x, _WrapModeU),
                     AddressPixel(pixel.y, size.y, _WrapModeV));
                 #if defined(TRANSFORM_NATIVE_SAMPLERS)
-                    return _MainTex.Load(int3((int2)pixel, (int)mip));
+                    float4 color = _MainTex.Load(int3((int2)pixel, (int)mip));
                 #else
                     // Integer mip and texel centers bypass the source sampler's filtering.
-                    return tex2Dlod(_MainTex, float4((pixel + 0.5) / size, 0, mip));
+                    float4 color = tex2Dlod(_MainTex, float4((pixel + 0.5) / size, 0, mip));
                 #endif
+                if (_PremultipliedSource > .5) color = StraightPixel(color, pixel, size);
+                return color;
             }
 
             float4 SampleMip(float2 uv, float mip)
@@ -110,7 +128,7 @@ Shader "Hidden/WhimTex/Transform"
                 #if defined(TRANSFORM_NATIVE_SAMPLERS)
                     // Common wrap modes stay on hardware filtering (one sampling instruction).
                     // Only mixed U/V modes need the per-texel path below.
-                    if (_WrapModeU == _WrapModeV)
+                    if (_WrapModeU == _WrapModeV && _PremultipliedSource < .5)
                     {
                         int wrapMode = _WrapModeU;
                         if (wrapMode == 3)
@@ -142,6 +160,57 @@ Shader "Hidden/WhimTex/Transform"
                 return lerp(lower, SampleMip(uv, min(lowerMip + 1.0, (float)(_SourceMipCount - 1))), frac(mip));
             }
 
+            // A footprint belongs to its lower-left source tile. Four page bindings
+            // cover every bilinear tap, including page boundaries and absent tiles.
+            sampler2D _PreviewStroke10, _PreviewStroke01, _PreviewStroke11;
+            float4 _PreviewMap10, _PreviewMap01, _PreviewMap11;
+            float4 _PreviewTile, _PreviewPresent;
+            float _HdrBlend;
+            float4 SamplePreviewStroke(float2 uv);
+            #define BRUSH_SAMPLE_STROKE(uv) SamplePreviewStroke(uv)
+            #include "BrushComposite.cginc"
+            float4 SamplePreviewStroke(float2 uv)
+            {
+                float2 pixel = floor(uv * _MainTex_TexelSize.zw);
+                bool right = pixel.x >= _PreviewTile.z;
+                bool top = pixel.y >= _PreviewTile.w;
+                if (right && top) return tex2Dlod(_PreviewStroke11, float4(uv * _PreviewMap11.xy + _PreviewMap11.zw, 0, 0));
+                if (right) return tex2Dlod(_PreviewStroke10, float4(uv * _PreviewMap10.xy + _PreviewMap10.zw, 0, 0));
+                if (top) return tex2Dlod(_PreviewStroke01, float4(uv * _PreviewMap01.xy + _PreviewMap01.zw, 0, 0));
+                return tex2Dlod(_BrushStroke, float4(uv * _BrushStrokeMap.xy + _BrushStrokeMap.zw, 0, 0));
+            }
+            float4 FetchBrushPixel(float2 pixel)
+            {
+                float2 size = _MainTex_TexelSize.zw;
+                pixel = clamp(pixel, 0, size - 1);
+                float2 uv = (pixel + .5) / size;
+                #if defined(TRANSFORM_NATIVE_SAMPLERS)
+                    float4 color = _MainTex.Load(int3((int2)pixel, 0));
+                #else
+                    float4 color = tex2Dlod(_MainTex, float4(uv, 0, 0));
+                #endif
+                bool right = pixel.x >= _PreviewTile.z, top = pixel.y >= _PreviewTile.w;
+                float present = right ? (top ? _PreviewPresent.w : _PreviewPresent.y) : (top ? _PreviewPresent.z : _PreviewPresent.x);
+                if (present > .5) color = CompositePendingBrush(color, uv);
+                return StraightPixel(color, pixel, size);
+            }
+            float4 fragBrush(v2f_img input) : SV_Target
+            {
+                float3 p = float3(input.uv, 1);
+                float w = dot(_TransformRow2, p);
+                if (w < 1e-8) discard;
+                float2 uv = float2(dot(_TransformRow0, p), dot(_TransformRow1, p)) / w;
+                if (any(uv < 0) || any(uv > 1)) discard;
+                float2 pixel = uv * _MainTex_TexelSize.zw - (_FilterMode == 0 ? 0 : .5);
+                float2 first = floor(pixel);
+                float2 owner = clamp(first, 0, _MainTex_TexelSize.zw - 1);
+                if (any(owner < _PreviewTile.xy) || any(owner >= _PreviewTile.zw)) discard;
+                if (_FilterMode == 0) return FetchBrushPixel(first);
+                float2 blend = frac(pixel);
+                return lerp(lerp(FetchBrushPixel(first), FetchBrushPixel(first + float2(1,0)), blend.x),
+                    lerp(FetchBrushPixel(first + float2(0,1)), FetchBrushPixel(first + 1), blend.x), blend.y);
+            }
+
             float4 frag(v2f_img input) : SV_Target
             {
                 float3 p = float3(input.uv, 1);
@@ -160,6 +229,21 @@ Shader "Hidden/WhimTex/Transform"
                 #endif
                 return color;
             }
+        ENDCG
+        Pass
+        {
+            CGPROGRAM
+            #pragma vertex vert_img
+            #pragma fragment frag
+            #pragma target 3.5
+            ENDCG
+        }
+        Pass
+        {
+            CGPROGRAM
+            #pragma vertex vert_img
+            #pragma fragment fragBrush
+            #pragma target 3.5
             ENDCG
         }
     }

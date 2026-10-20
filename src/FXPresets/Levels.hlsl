@@ -40,7 +40,7 @@ float MapLevels(float value)
     return lerp(_OutBlack, _OutWhite, mapped);
 }
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(float4 color)
 {
 	float4 result = color;
     float3 rgb = max(color.rgb, 0.0);

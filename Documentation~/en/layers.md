@@ -180,8 +180,7 @@ width, `0.5` halves it, and `2` doubles it. Wrapping, Auto Size and Ellipsis use
 added em spacing remains unchanged. Expanded glyphs are rasterized at higher density so their
 edges are not just enlarged from the original font bitmap; output texture limits still apply.
 
-**Fill** offers Solid, Linear, Radial, Square, Diamond and Circular, using the shared
-gradient editor. **Scope → Text** spans the bounds of all visible letters;
+**Fill → Type** uses the same icon row as Shape and Vector: None, Solid, Linear, Radial, Angular and Square. Solid is a filled square; None is an outlined square with a diagonal. The selected icon is highlighted, and hovering shows its name. Colors use the shared gradient editor. **Scope → Text** spans the bounds of all visible letters;
 **Character** repeats the same style inside each letter's own rectangle, excluding side spacing.
 Choose **Gradient Handles** to edit it on the canvas. In Character scope, click a letter
 away from the current handles to move the controls there; edits still affect every letter.
@@ -298,15 +297,16 @@ Press `Escape` before releasing to cancel.
 Use **Transform** to move, resize or rotate an existing figure. In **Properties (Shape)**,
 change its type, colors, polygon sides or star points and inner radius.
 
-Enable **Fill**, then choose **Type**: Solid for one color, or Linear, Radial, Square,
-Diamond or Circular for a gradient. None leaves the body empty. Click **Gradient**
+Type selectors for Fill and Stroke use the same icon row as Gradient layers. Solid is a filled square; None is an outlined square with a diagonal. The selected type is highlighted, and hovering shows its name.
+
+Enable **Fill**, then choose **Type**: Solid for one color, or Linear, Radial, Angular or Square for a gradient. None leaves the body empty. Click **Gradient**
 to edit its colors and transparency; adjust Start/End or Center and the radius/direction
 point to place it. Turning Fill off hides these controls and keeps your settings.
 See [fill controls](vector.md#fill-and-stroke) for the shapes of each gradient and
-Circular's counterclockwise direction and seam.
+Angular's counterclockwise direction and seam.
 
 **Stroke → Type** offers the same solid and gradient choices with its own palette,
-points and circular Repetitions. None or turning Stroke off preserves those settings.
+points and angular Repetitions. None or turning Stroke off preserves those settings.
 With **Gradient Handles**, choose Fill or Stroke when both gradients are active;
 dragging the selected gradient's points keeps the figure in place.
 

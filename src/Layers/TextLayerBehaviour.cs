@@ -156,7 +156,7 @@ namespace DCFApixels.WhimTex
 
         internal void Validate()
         {
-            if ((uint)fillMode > 6 || (uint)gradientScope > 1 || gradient == null ||
+            if (!Enum.IsDefined(typeof(VectorFillMode), fillMode) || fillMode == VectorFillMode.Freeform || (uint)gradientScope > 1 || gradient == null ||
                 !float.IsFinite(gradientStart.x) || !float.IsFinite(gradientStart.y) ||
                 !float.IsFinite(gradientEnd.x) || !float.IsFinite(gradientEnd.y) ||
                 !float.IsFinite(gradientRepetitions) || gradientRepetitions < .0001f)
@@ -314,7 +314,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 GL.sRGBWrite = false; renderer.Paint(this, target);
-                RenderTexture.active = target; image.ReadPixels(new Rect(0, 0, width, height), 0, 0, false);
+                RenderTexture.active = target; WhimTexProfiler.ReadPixels(image, new Rect(0, 0, width, height), 0, 0, false);
                 byte[] data = image.GetRawTextureData<byte>().ToArray();
                 if (!BitConverter.IsLittleEndian) for (int i = 0; i < data.Length; i += 4) Array.Reverse(data, i, 4);
                 using var output = new MemoryStream();

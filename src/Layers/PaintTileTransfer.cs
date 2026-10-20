@@ -266,7 +266,7 @@ namespace DCFApixels.WhimTex
             {
                 var previous = RenderTexture.active;
                 var copy = new Texture2D(source.width, source.height, standard ? TextureFormat.RGBA32 : TextureFormat.RGBAHalf, false, true);
-                try { RenderTexture.active = source; copy.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0, false); target.CopyFrom(copy.GetRawTextureData<byte>()); }
+                try { RenderTexture.active = source; WhimTexProfiler.ReadPixels(copy, new Rect(0, 0, source.width, source.height), 0, 0, false); target.CopyFrom(copy.GetRawTextureData<byte>()); }
                 finally { RenderTexture.active = previous; UnityEngine.Object.DestroyImmediate(copy); }
             }
             internal bool Apply(bool wait, long deadline)

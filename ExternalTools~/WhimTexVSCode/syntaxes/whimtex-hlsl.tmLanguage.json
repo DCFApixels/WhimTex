@@ -3,7 +3,7 @@
   "injectionSelector": "L:comment.line.double-slash.hlsl",
   "patterns": [
     {
-      "begin": "(?<=//)\\s*(@(?:whimtex-effect|param|if|endif|group|endgroup|header|control|helpbox))\\b",
+      "begin": "(?<=//)\\s*(@(?:whimtex-effect|param|preview|if|endif|enableif|endenableif|group|endgroup|foldout|endfoldout|tabs|endtabs|tab|endtab|header|control|helpbox))\\b",
       "beginCaptures": {
         "1": {
           "name": "keyword.control.directive.whimtex"
@@ -42,6 +42,10 @@
           ]
         },
         {
+          "name": "support.function.whimtex",
+          "match": "\\bpreview(?=\\s*\\()"
+        },
+        {
           "include": "#string"
         },
         {
@@ -78,7 +82,7 @@
         },
         {
           "name": "keyword.operator.whimtex",
-          "match": "==|!=|->|\\.\\.|[=~]"
+          "match": "==|!=|->|\\.\\.|[=~%]"
         },
         {
           "name": "punctuation.separator.whimtex",

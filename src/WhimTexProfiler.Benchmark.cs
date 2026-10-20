@@ -328,7 +328,7 @@ namespace DCFApixels.WhimTex
                 if (layer.fx != null) foreach (var value in layer.fx)
                 {
                     if (value == null) continue;
-                    if (!(value is ShaderFX fx)) throw new WhimTexDocumentException("Arbitrary Material FX cannot provide controlled benchmark inputs.");
+                    var fx = value;
                     if (fx.LastApplyFailed || fx.HasPendingChanges || !fx.HasAppliedShader)
                         throw new WhimTexDocumentException("Apply or fix Shader FX before benchmarking: " + fx.name);
                     if (fx.UsesUnityTimeInputs) throw new WhimTexDocumentException("Time-dependent Shader FX cannot be benchmarked repeatably: " + fx.name);
@@ -440,7 +440,7 @@ namespace DCFApixels.WhimTex
                     if (a.fx != null) for (int f = 0; f < a.fx.Count; f++)
                     {
                         if (a.fx[f] == null) continue;
-                        if (!(a.fx[f] is ShaderFX effect)) throw new WhimTexDocumentException("Arbitrary Material FX cannot be benchmarked safely.");
+                        var effect = a.fx[f];
                         var key = UnityObjectID.FromObject(effect);
                         if (!effects.TryGetValue(key, out var owned))
                         {
@@ -553,7 +553,7 @@ namespace DCFApixels.WhimTex
                         Graphics.Blit(source, surface);
                         result = new Texture2D(source.width, source.height, TextureFormat.RGBAFloat, source.mipmapCount > 1, true);
                         RenderTexture.active = surface;
-                        result.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0, false);
+                        WhimTexProfiler.ReadPixels(result, new Rect(0, 0, source.width, source.height), 0, 0, false);
                         result.Apply(source.mipmapCount > 1, false);
                     }
                     finally { RenderTexture.ReleaseTemporary(surface); }
@@ -592,7 +592,7 @@ namespace DCFApixels.WhimTex
                         source.colorRange == LayerColorRange.HDR ? TextureFormat.RGBAHalf : TextureFormat.RGBA32,
                         false, source.colorRange == LayerColorRange.HDR) { hideFlags = HideFlags.HideAndDontSave };
                     RenderTexture.active = straight;
-                    pixels.ReadPixels(new Rect(0, 0, straight.width, straight.height), 0, 0, false);
+                    WhimTexProfiler.ReadPixels(pixels, new Rect(0, 0, straight.width, straight.height), 0, 0, false);
                     pixels.Apply(false, false);
                 }
                 finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; RenderTexture.ReleaseTemporary(straight); }

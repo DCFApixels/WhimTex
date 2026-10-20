@@ -22,7 +22,7 @@ namespace DCFApixels.WhimTex
                 if (presetId != null && id != presetId) continue;
                 if (!string.IsNullOrEmpty(query) && entry.menuPath.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0) continue;
                 var item = new JObject { ["id"] = id, ["path"] = entry.path, ["name"] = entry.menuPath,
-                    ["kind"] = entry.assetPreset ? "asset" : "hlsl", ["error"] = entry.error };
+                    ["kind"] = "hlsl", ["error"] = entry.error };
                 if (presetId != null && !entry.HasError)
                 {
                     ShaderFX effect = null;
@@ -49,12 +49,6 @@ namespace DCFApixels.WhimTex
         {
             Require(!entry.HasError, entry.error ?? "Invalid preset.", "invalid_preset");
             if (execute) return ShaderFX.FromCatalog(owner, entry);
-            if (entry.assetPreset)
-            {
-                var asset = AssetDatabase.LoadAssetAtPath<ShaderFX>(entry.path);
-                Require(asset != null, "Preset asset no longer exists.", "preset_not_found");
-                return asset.CloneForDocument(owner);
-            }
             string source = ShaderFXCatalog.ReadSource(entry.path);
             var parameters = ShaderFXMetadata.Parse(source, true, out _);
             return ShaderFX.CreateAgentDraft(owner, source, parameters, entry.path);
@@ -115,8 +109,8 @@ namespace DCFApixels.WhimTex
                         Require(sourceLayer != null, "Copy source layer not found.", "layer_not_found");
                         Require(op != "copy" || spec["sourceIndex"] != null && sourceLayer.fx.Count > 0, "copy requires an existing sourceIndex.");
                         int sourceIndex = op == "copy" ? Int(spec, "sourceIndex", -1, 0, sourceLayer.fx.Count - 1) : at;
-                        Require(sourceLayer.fx[sourceIndex] is ShaderFX, "This operation requires a Shader FX, not a Material.");
-                        // Copy-on-write never changes a shared external ShaderFX asset or another layer's values.
+                        Require(sourceLayer.fx[sourceIndex] != null, "The HLSL effect is missing.");
+                        // Copy-on-write never changes another layer's parameter values.
                         effect = ((ShaderFX)sourceLayer.fx[sourceIndex]).CloneForDocument(document);
                     }
                     else
@@ -196,6 +190,9 @@ namespace DCFApixels.WhimTex
                         value.vectorValue = Vector4.zero;
                         for (int i=0;i<components;i++) value.vectorValue[i] = Number(spec["value"][i], "component", -1000000, 1000000);
                         if (value.type == ShaderFXParameterType.Normal) value.vectorValue = ShaderFXParameter.NormalizeNormal(value.vectorValue);
+                        if (target.IsInterval)
+                            Require(ShaderFXParameter.IsValidInterval(value.vectorValue, target.minimum, target.maximum, target.cyclicRange),
+                                target.cyclicRange ? "Cyclic endpoints must be within the limits, or one period apart with at least one endpoint within the limits: " + target.name : "Interval must satisfy min <= x <= y <= max: " + target.name);
                         break;
                     case ShaderFXParameterType.Vector:
                         Require(spec["value"] is JArray vector && vector.Count == 4, "Vector value must have four components.");

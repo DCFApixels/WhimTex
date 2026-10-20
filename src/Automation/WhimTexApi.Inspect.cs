@@ -11,6 +11,15 @@ namespace DCFApixels.WhimTex
 {
     public static partial class WhimTexApi
     {
+
+        private static JObject FreeformSnapshot(FreeformGradient data)
+        {
+            if (data == null) return null;
+            var points = new JArray();
+            if (data.points != null) foreach (var point in data.points)
+                points.Add(new JObject { ["position"] = Json(point.position), ["color"] = Json(point.color), ["influence"] = point.influence });
+            return new JObject { ["points"] = points };
+        }
         public static string Inspect(string assetPath) => Respond(() =>
         {
             string path = DocumentPath(assetPath);
@@ -369,7 +378,12 @@ namespace DCFApixels.WhimTex
                         entry["resolvedFont"] = text.ResolvedFont;
                         if (text.Notice != null) entry["warnings"] = new JArray(text.Notice);
                     }
-                    if (layer?.Behaviour is GradientLayerBehaviour gradient) entry["gradientKeys"] = GradientSnapshot(gradient.gradient);
+                    if (layer?.Behaviour is GradientLayerBehaviour gradient)
+                    {
+                        entry["gradientType"] = gradient.gradientType.ToString();
+                        entry["gradientKeys"] = GradientSnapshot(gradient.gradient);
+                        entry["freeform"] = FreeformSnapshot(gradient.freeform);
+                    }
                     layers.Add(entry);
                     if (layer?.AsGroup() is Layer group) Collect(group.layers, layer.Id);
                 }

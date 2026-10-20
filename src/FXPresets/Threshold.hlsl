@@ -7,7 +7,7 @@
 // @param color _LowColor = (0, 0, 0, 1) // RGB below the threshold; color alpha is ignored.
 // @param color _HighColor = (1, 1, 1, 1) // RGB above the threshold; color alpha is ignored.
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(float4 color)
 {
     float v = dot(color.rgb, float3(0.2126, 0.7152, 0.0722));
     if (_SourceChannel == 1.0) v = color.r;

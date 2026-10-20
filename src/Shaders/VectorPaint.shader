@@ -7,6 +7,8 @@ Shader "Hidden/WhimTex/VectorPaint"
         CGINCLUDE
         #include "UnityCG.cginc"
         #include "GradientPalette.cginc"
+        #define WHIMTEX_FREEFORM_STROKE
+        #include "FreeformGradient.cginc"
         #include "FigureGradient.cginc"
         sampler2D _MainTex, _StrokeGradientPalette;
         float4 _StrokeGradientPalette_TexelSize, _StrokeGradientIntervals[129], _StrokeGradientStart;
@@ -27,8 +29,10 @@ Shader "Hidden/WhimTex/VectorPaint"
             float3 canvas = float3(i.uv, 1);
             float2 uv = float2(dot(_LocalRow0, canvas), dot(_LocalRow1, canvas)) / dot(_LocalRow2, canvas);
             float4 paint = _FillColor, ink = _StrokeColor;
-            if (coverage.x > 0 && _FillMode >= 2) paint = SampleGradientPalette(Coordinate(uv, _FillAnchors, _FillMode, _Repetitions.x));
-            if (coverage.y > 0 && _StrokeMode >= 2)
+            if (coverage.x > 0 && _FillMode == 7) paint = FreeformColor(uv);
+            if (coverage.y > 0 && _StrokeMode == 7) ink = StrokeFreeformColor(uv);
+            if (coverage.x > 0 && _FillMode >= 2 && _FillMode < 7) paint = SampleGradientPalette(Coordinate(uv, _FillAnchors, _FillMode, _Repetitions.x));
+            if (coverage.y > 0 && _StrokeMode >= 2 && _StrokeMode < 7)
                 ink = SampleGradientPaletteAt(Coordinate(uv, _StrokeAnchors, _StrokeMode, _Repetitions.y),
                     _StrokeGradientPalette, _StrokeGradientPalette_TexelSize, _StrokeGradientIntervals,
                     _StrokeGradientIntervalCount, _StrokeGradientStart, _StrokeGradientWrapMode);

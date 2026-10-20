@@ -40,13 +40,17 @@ on one line, and **Mirrored** also keeps their lengths equal.
 
 Select the figure's layer in **Layers**, then edit its appearance in **Properties (Vector)**.
 Use the layer list to rename, hide, reorder, duplicate or delete figures. **Fill → Type** offers
-None, Solid, Linear, Radial, Square, Diamond and Circular. **Fill Rule** controls how
+None, Solid, Linear, Radial, Angular, Square and Freeform. **Fill Rule** controls how
 overlapping contours and holes fill. Shape offers the same fill controls while its
 **Fill** toggle is enabled.
 
-Choose **Linear** for a straight transition between **Start** and **End**. **Radial**,
-**Square** and **Diamond** spread colors from **Center**; **Radius / Direction** sets
-their size and, for Square/Diamond, orientation. **Circular** runs counterclockwise
+Type selectors for Fill and Stroke use the same icon row as Gradient layers. Solid is a filled square; None is an outlined square with a diagonal. The selected type is highlighted, and hovering shows its name.
+
+**Freeform** mixes independently positioned color points with per-point opacity and influence.
+Edit them with **Gradient Handles** or the point fields; see [Freeform controls](color.md#freeform-gradient-points).
+
+Choose **Linear** for a straight transition between **Start** and **End**. **Radial** and **Square** spread colors from **Center**; **Radius / Direction** sets
+their size and, for Square, orientation. **Angular** runs counterclockwise
 around Center, beginning and ending along the ray through **Direction**. Different
 first and last colors make the seam visible. The coordinates are normalized within
 the layer: `[0,0]` is bottom left, `[1,1]` top right. Coincident points use the first
@@ -58,11 +62,10 @@ Fill off and on. Gradients follow the layer transform. Their proportions use the
 current canvas size for Shape and the creation reference size for Vector, so
 changing the canvas dimensions can change Shape's gradient proportions.
 
-Enable **Stroke**, then choose its **Type**: None, Solid, Linear, Radial, Square,
-Diamond or Circular. Stroke has its own color or gradient, points and circular
+Enable **Stroke**, then choose its **Type**: None, Solid, Linear, Radial, Angular, Square or Freeform. Stroke has its own color or gradient, points and angular
 **Repetitions**. Its gradient controls work like Fill's; changing one keeps the
 other's appearance. None or turning Stroke off hides the outline and keeps its
-settings for later. Circular Repetitions controls how many periods fit around the
+settings for later. Angular Repetitions controls how many periods fit around the
 center; the palette's wrap setting controls what happens beyond the first period.
 
 Use **Gradient Handles** to place the active gradient on the canvas. When both

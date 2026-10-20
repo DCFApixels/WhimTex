@@ -10,4 +10,6 @@ float3 SpriteDecode(float3 color)
     float3 value = abs(color);
     return sign(color) * lerp(value / 12.92, pow((value + .055) / 1.055, 2.4), step(.04045, value));
 }
+#include "HueGradient.cginc"
+float3 WhimTexHueLinear(float hue) { return SpriteDecode(WhimTexHue(hue)); }
 #endif

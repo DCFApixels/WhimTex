@@ -62,7 +62,7 @@ public static class BrushLiveTrace
 
     [Serializable] sealed class Frame
     {
-        public int index, stamps, gc0, stroke, pendingPages;
+        public int index, stamps, gc0, stroke, pendingPages, canvasWidth, canvasHeight;
         public long at;
         public double intervalMs, paintMs, renderMs, updateMs, dirtyPixels;
         public float x, y;
@@ -93,6 +93,8 @@ public static class BrushLiveTrace
         WhimTexDocument doc;
         DrawingLayerBehaviour layer;
         Texture2D pixels;
+        ShaderFX viewportFx;
+        TextLayerBehaviour viewportText;
         RenderTexture preview, conversion;
         object cache, parameters, capture;
         MethodInfo segment, render;
@@ -115,7 +117,7 @@ public static class BrushLiveTrace
         public void Prepare()
         {
             test.True(side >= 512 && side <= 8192 && diameter >= 16 && diameter <= 2048, "Bounded workload");
-            test.True(Post || mode == "full" || mode == "stamps" || mode == "convert" || mode == "idle" || mode == "unprofiled" || mode == "ui" || mode == "ui-unprofiled" || mode == "ui-direct" || mode == "ui-raw" || mode == "ui-warm" || mode == "ui-convert" || mode == "ui-stamps" || mode == "ui-hidden" || mode == "ui-copy" || mode == "ui-clear" || mode == "ui-current" || mode == "ui-nouav" || mode == "ui-native", "Known control");
+            test.True(Post || mode == "full" || mode == "stamps" || mode == "convert" || mode == "idle" || mode == "unprofiled" || mode == "ui" || mode == "ui-unprofiled" || mode == "ui-direct" || mode == "ui-raw" || mode == "ui-warm" || mode == "ui-convert" || mode == "ui-stamps" || mode == "ui-hidden" || mode == "ui-copy" || mode == "ui-clear" || mode == "ui-current" || mode == "ui-current-zoom" || mode == "ui-current-zoom-large" || mode == "ui-current-zoom-large-fx" || mode == "ui-current-fx" || mode == "ui-nouav" || mode == "ui-native", "Known control");
             test.True(side < 8192 || SystemInfo.graphicsMemorySize >= 7000, "8K fixture memory guard");
             test.True(!(bool)Property("WhimTexProfiler", "Recording"), "Do not interrupt user recording");
             test.True((int)Property("PaintTileTransfer", "PendingCount") == 0, "No preceding history work contaminates in-stroke capture");
@@ -145,6 +147,20 @@ public static class BrushLiveTrace
                 for (int i = 0; i < raw.Length; i++) raw[i] = default;
                 pixels.Apply(false, false); // One full upload; subsequent samples never read back the 8K surface.
                 Call(layer, "AdoptStoredTexture", pixels); doc.layers.Add(layer); Call(doc, "NormalizeModel");
+                if (mode.EndsWith("-fx", StringComparison.Ordinal))
+                {
+                    string source = File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/HueSaturation.hlsl");
+                    var create = typeof(ShaderFX).GetMethod("CreateAgentDraft", S, null,
+                        new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>), typeof(string) }, null);
+                    viewportFx = (ShaderFX)create.Invoke(null, new object[] { doc, source, new List<ShaderFXParameter>(), null });
+                    Call(viewportFx, "ApplyAgentDraft");
+                    foreach (var value in (IEnumerable<ShaderFXParameter>)Get(viewportFx, "Parameters"))
+                        if (value.name == "_MasterHue") value.floatValue = 35;
+                    layer.Owner.fx.Add(viewportFx);
+                    viewportText = new TextLayerBehaviour { text = "Native 8K pixels", fontFamily = "Arial", fontSize = 64 };
+                    doc.layers.Insert(0, new Layer(viewportText)); Call(doc, "NormalizeModel");
+                    test.True((bool)Get(viewportFx, "SupportsRegionalColorInput"), "HSV uses regional color input");
+                }
                 var surface = (RenderTexture)Call(layer, "EnsurePaintSurface", side, side);
                 if (mode == "ui-nouav")
                 {
@@ -160,7 +176,7 @@ public static class BrushLiveTrace
                 Set(settings, "brushSize", (float)diameter); Set(settings, "brushSpacing", .15f);
                 Set(settings, "brushHardness", .65f); Set(settings, "brushColor", new Color(.8f, .5f, .2f, 1f));
                 Set(dynamics, "opacity", 1f); Set(dynamics, "flow", .35f);
-                if (mode == "ui-current" || Post)
+                if (mode.StartsWith("ui-current", StringComparison.Ordinal) || Post)
                 {
                     // Explicit snapshot of the reported ordinary brush, independent of saved preferences.
                     Set(settings, "brushHardness", 0f); Set(settings, "brushSpacing", .225f);
@@ -189,7 +205,7 @@ public static class BrushLiveTrace
                     Call(ui, "SetDocument", doc); Call(ui, "SelectOnlyLayer", layer.Id);
                     Set(ui, "canvasTool", Enum.Parse(Get(ui, "canvasTool").GetType(), "Brush"));
                     Call(Get(ui, "paintSettings"), "ReleasePresetTip"); Set(ui, "paintSettings", settings);
-                    ui.ShowUtility(); ui.position = new Rect(120, 90, 950, 750); ui.CreateGUI();
+                    ui.ShowUtility(); ui.position = mode.StartsWith("ui-current-zoom-large", StringComparison.Ordinal) ? new Rect(10, 10, 1600, 1000) : new Rect(120, 90, 950, 750); ui.CreateGUI();
                     // Isolation control on this fixture only: keep an explicitly disposed
                     // detector so Get returns Unknown and does not recreate background work.
                     if (mode.Contains("-noempty"))
@@ -321,6 +337,7 @@ public static class BrushLiveTrace
                     }
                     if (!mode.EndsWith("unprofiled", StringComparison.Ordinal))
                     { capture = Static("WhimTexProfiler", "Start", 65536, 85d, null); profiling = true; }
+                    if (mode.StartsWith("ui-current-zoom", StringComparison.Ordinal)) { var canvas = Get(ui, "toolkitCanvas"); Call(canvas, "ZoomAt", ((VisualElement)canvas).contentRect.center, 1f); }
                     phase = 1; next = now + .5; return;
                 }
                 if (phase == 2)
@@ -380,7 +397,7 @@ public static class BrushLiveTrace
                 if (now >= nextRender)
                 {
                     f.rendered = mode != "stamps" && mode != "ui-stamps"; Marker(renderMarker, true);
-                    try { Render(); } finally { Marker(renderMarker, false); }
+                    try { Render(); if (ui != null && Get(ui, "canvasTexture") is Texture target) { f.canvasWidth=target.width; f.canvasHeight=target.height; } } finally { Marker(renderMarker, false); }
                     nextRender = now + 1d / 30d;
                 }
                 long rendered = Stopwatch.GetTimestamp();
@@ -460,7 +477,7 @@ public static class BrushLiveTrace
                     foreach (string field in new[] { "bytes", "queuedAt", "startedAt", "finishedAt", "sampleTicks", "encodeTicks", "hashTicks", "fileBytes", "compressed" }) metrics[field] = Get(page, field);
                     historyWorkers.Add(metrics);
                 }
-            File.WriteAllText(report + ".json", Json(new { side, diameter, mode, showWindow, steps = Steps, inputHz = 60, previewHz = 30, previewSize = 512,
+            File.WriteAllText(report + ".json", Json(new { side, diameter, mode, showWindow, steps = Steps, inputHz = 60, previewHz = 30, legacyPreviewSize = 512,
                 frequency = Stopwatch.Frequency, firstCommitAt, historySamples, historyEvents, historyWorkers,
                 unity = Application.unityVersion, device = SystemInfo.graphicsDeviceName, backend = SystemInfo.graphicsDeviceType.ToString(),
                 parameterState, surfaceState, largeTextures, memorySamples, graphicsDriverBytes = UnityEngine.Profiling.Profiler.GetAllocatedMemoryForGraphicsDriver(), layer.colorRange, layer.blendRange,
@@ -481,6 +498,44 @@ public static class BrushLiveTrace
             }
             finally { Object.DestroyImmediate(image); }
             test.True(File.Exists(report + ".json"), "Timing report saved");
+            if (mode.StartsWith("ui-current-zoom", StringComparison.Ordinal)) CheckViewportNavigation();
+        }
+        void CheckViewportNavigation()
+        {
+            // Outside timing: exercise only the owned diagnostic window through its API.
+            var canvas = Get(ui, "toolkitCanvas");
+            object original = Get(ui, "canvasRenderRegion");
+            test.True(original != null, "Native view uses a region");
+            var output = (RenderTexture)Get(ui, "canvasTexture");
+            test.True(output.width < side && output.height < side, "Native view avoids a full 8K render");
+            Set(ui, "canvasRequested", false); Call(ui, "RequestCanvasViewRender");
+            test.True(!(bool)Get(ui, "canvasRequested"), "Unchanged viewport does not request another render");
+            Call(canvas, "Pan", new Vector2(128, 96));
+            test.True((bool)Get(ui, "canvasRequested"), "Panning requests fresh visible pixels");
+            Call(ui, "UpdateCanvasRender");
+            test.True(!original.Equals(Get(ui, "canvasRenderRegion")), "Panning changes the sampled region");
+            foreach(float angle in new[]{0f,45f,90f})
+            {
+                Call(canvas,"SetViewRotation",angle,false);Call(ui,"UpdateCanvasRender");
+                var region=(RectInt)Get(Get(ui,"canvasRenderRegion"),"pixels");
+                Rect full=(Rect)Get(canvas,"ImageRect"), view=((VisualElement)canvas).contentRect;
+                var surface=(VisualElement)Get(canvas,"image");
+                Vector2 center=new Vector2(full.x+(region.x+region.width*.5f)/side*full.width,
+                    full.yMax-(region.y+region.height*.5f)/side*full.height);
+                Vector2 delta=center-view.center;float rad=angle*Mathf.Deg2Rad;
+                center=view.center+new Vector2(Mathf.Cos(rad)*delta.x-Mathf.Sin(rad)*delta.y,Mathf.Sin(rad)*delta.x+Mathf.Cos(rad)*delta.y);
+                test.Near(center.x,surface.style.left.value.value+surface.style.width.value.value*.5f,.01,"Rotated region x alignment");
+                test.Near(center.y,surface.style.top.value.value+surface.style.height.value.value*.5f,.01,"Rotated region y alignment");
+                test.Near(region.width/(float)side*full.width,surface.style.width.value.value,.01,"Region uses canvas pixel scale");
+            }
+            Call(canvas,"SetCanvasFramePreview",new RectInt(-32,-32,side+64,side+64));
+            test.True(Call(ui,"PlanCanvasRegion")==null,"Crop frame preview retains the full-frame path");
+            Call(canvas,"SetCanvasFramePreview",new object[]{null});
+            Set(ui,"tiledCanvas",true);
+            test.True(Call(ui,"PlanCanvasRegion")==null,"Tiled preview retains the full-frame path");
+            Set(ui,"tiledCanvas",false);Set(ui,"postFxEnabled",true);
+            test.True(Call(ui,"PlanCanvasRegion")==null,"Post FX retain the full-frame path");
+            Set(ui,"postFxEnabled",false);
         }
         void CollectGpu(ProfilerRecorder recorder, List<object> values)
         {
@@ -541,6 +596,8 @@ public static class BrushLiveTrace
                     if (doc != null) Undo.ClearUndo(doc);
                 }
                 process?.Dispose();
+                if (viewportText != null) Call(viewportText, "ReleaseTransientResources");
+                if (viewportFx != null) Object.DestroyImmediate(viewportFx);
                 if (window != null) { window.SetPreview(null); window.Close(); window = null; }
                 if (ui != null)
                 {

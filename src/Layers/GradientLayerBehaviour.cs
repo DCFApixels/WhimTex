@@ -7,8 +7,10 @@ namespace DCFApixels.WhimTex
     public sealed class GradientLayerBehaviour : LayerBehaviour
     {
         public override TransformTilingMode SourceTiling => TransformTilingMode.Unbounded;
-        public GradientType gradientType = GradientType.Vertical;
+        public GradientType gradientType = GradientType.Linear;
         public WhimTexGradient gradient = GradientUtility.Create(GradientUtility.WhiteToBlack);
+        public FreeformGradient freeform = new FreeformGradient();
+        [NonSerialized] internal int selectedFreeformPoint;
         internal static readonly Vector2 BaseCenter = new Vector2(0.5f, 0.5f);
         internal const float BaseRadius = 0.5f;
         public float circularRepetitions = 1f;
@@ -46,8 +48,13 @@ namespace DCFApixels.WhimTex
             RenderTexture source = null;
             try
             {
-                palette ??= new WhimTexGradientPalette();
-                palette.Bind(material, gradient ?? GradientUtility.WhiteToBlack);
+                if (gradientType == GradientType.Freeform)
+                    (freeform ?? throw new InvalidOperationException("Freeform gradient data is missing.")).Bind(material);
+                else
+                {
+                    palette ??= new WhimTexGradientPalette();
+                    palette.Bind(material, gradient ?? GradientUtility.WhiteToBlack);
+                }
                 material.SetInt("_GradientType", (int)gradientType);
                 material.SetInt("_GradientWrapMode", (int)(gradient?.WrapMode ?? WhimTexGradientWrapMode.Clamp));
                 material.SetVector("_GradientOutputSize", new Vector4(context.width, context.height, 0f, 0f));
@@ -81,13 +88,11 @@ namespace DCFApixels.WhimTex
         {
             switch (gradientType)
             {
-                case GradientType.Vertical:
-                    return v;
-                case GradientType.Horizontal:
+                case GradientType.Linear:
                     return u;
                 case GradientType.Radial:
                     return DistanceToGradientTime(Vector2.Distance(new Vector2(u, v), BaseCenter));
-                case GradientType.Circular:
+                case GradientType.Angular:
                 {
                     Vector2 direction = new Vector2(u - BaseCenter.x, v - BaseCenter.y);
                     float angle = Mathf.Atan2(direction.y, direction.x);
@@ -99,8 +104,6 @@ namespace DCFApixels.WhimTex
                         ? Mathf.PingPong(repeated, 1f)
                         : repeated - Mathf.Floor(repeated);
                 }
-                case GradientType.Diamond:
-                    return DistanceToGradientTime(Mathf.Abs(u - BaseCenter.x) + Mathf.Abs(v - BaseCenter.y));
                 case GradientType.Square:
                     return DistanceToGradientTime(Mathf.Max(Mathf.Abs(u - BaseCenter.x), Mathf.Abs(v - BaseCenter.y)));
                 default:
@@ -144,7 +147,9 @@ namespace DCFApixels.WhimTex
                 {
                     float u = (x + 0.5f) / width;
                     float v = (y + 0.5f) / height;
-                    pixels[y * width + x] = HdrUtility.Decode(evaluatedGradient.EvaluateEncoded(GetGradientCoord(u, v)));
+                    pixels[y * width + x] = gradientType == GradientType.Freeform
+                        ? freeform.Evaluate(new Vector2(u, v))
+                        : HdrUtility.Decode(evaluatedGradient.EvaluateEncoded(GetGradientCoord(u, v)));
                 }
             }
 
@@ -161,18 +166,18 @@ namespace DCFApixels.WhimTex
                 hash = hash * 31 + circularRepetitions.GetHashCode();
                 hash = hash * 31 + circularStartAngle.GetHashCode();
                 hash = hash * 31 + circularWrapMode.GetHashCode();
+                if (gradientType == GradientType.Freeform) hash = hash * 31 + (freeform?.ContentHash() ?? 0);
                 return hash;
             }
         }
 
         public enum GradientType
         {
-            Vertical,
-            Horizontal,
-            Radial,
-            Circular,
-            Diamond,
-            Square
+            Linear = 1,
+            Radial = 2,
+            Angular = 3,
+            Square = 5,
+            Freeform = 6
         }
 
         public enum WrapMode

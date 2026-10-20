@@ -85,10 +85,24 @@ function stripTooltip(text) {
   return text.trimEnd();
 }
 
+function previewBinding(text) {
+  const parts = text.split(',').map(p => p.trim());
+  if (parts.length > 129) fail('A preview may reference at most 128 parameters.');
+  if (parts.some(p => !identifier.test(p)))
+    fail('Preview expects a function name followed by optional comma-separated @param names, not expressions or empty arguments.');
+  return { previewFunction: parts[0], previewParameters: parts.slice(1) };
+}
+
 function modifiers(text) {
-  let hidden = false, seed = false, pixelUnits = false, label = null;
+  let hidden = false, seed = false, pixelUnits = false, label = null, preview = null;
   for (;;) {
     text = text.trimStart();
+    if (/^preview\b/.test(text)) {
+      if (preview !== null) fail('The preview modifier may be specified only once.');
+      const match = text.match(/^preview\s*\(([^()]*)\)(?=\s|$)/);
+      if (!match) fail('Expected preview(FunctionName, optional parameter names).');
+      preview = previewBinding(match[1]); text = text.slice(match[0].length); continue;
+    }
     if (/^px(?:\s|$)/.test(text)) {
       if (pixelUnits) fail('The px modifier may be specified only once.');
       pixelUnits = true; text = text.slice(2); continue;
@@ -119,11 +133,11 @@ function modifiers(text) {
     if (!label.trim()) fail('The label modifier must contain non-empty text.');
     text = text.slice(end + 1);
   }
-  return { text, hidden, seed, pixelUnits };
+  return { text, hidden, seed, pixelUnits, ...(preview || {previewFunction: null, previewParameters: []}) };
 }
 
 function parseParameter(body) {
-  const { text: modified, hidden, seed, pixelUnits } = modifiers(body);
+  const { text: modified, hidden, seed, pixelUnits, previewFunction, previewParameters } = modifiers(body);
   const text = stripTooltip(modified);
   const head = text.match(/^([A-Za-z0-9]+)\s+([A-Za-z_][A-Za-z0-9_]*)(.*)$/);
   if (!head || !types.has(head[1])) fail('Expected a supported @param type and parameter name.');
@@ -144,21 +158,32 @@ function parseParameter(body) {
       options.set(option[1], n); values.add(n);
     }
     if (match[1] !== undefined && !options.has(match[1].trim())) number(match[1]);
-    return { type, name, hidden, pixelUnits };
+    return { type, name, hidden, pixelUnits, previewFunction, previewParameters };
   }
-  let range;
+  let range, cyclicRange = false;
   const rangeStart = rest.indexOf('[');
   if (rangeStart >= 0) {
-    const match = rest.slice(rangeStart).match(/^\[\s*(.*?)\s*\.\.\s*(.*?)\s*\]$/);
-    if (!match) fail('Expected a range [min .. max].');
-    range = match.slice(1); rest = rest.slice(0, rangeStart).trim();
+    const match = rest.slice(rangeStart).match(/^\[\s*(.*?)\s*(\.\.|%)\s*(.*?)\s*\]$/);
+    if (!match) fail('Expected a range [min .. max] or [min % max].');
+    range = [match[1], match[3]]; cyclicRange = match[2] === '%'; rest = rest.slice(0, rangeStart).trim();
   }
   if (rest) {
     if (!rest.startsWith('=') || !rest.slice(1).trim() || /[\[\];~]/.test(rest))
       fail('Expected = value followed by an optional range, without a semicolon.');
     value = rest.slice(1).trim();
   }
-  if (range && type !== 'float') fail('Ranges apply only to float parameters.');
+  if (range && type !== 'float' && type !== 'float2') fail('Ranges apply only to float and float2 parameters.');
+  if (range && type === 'float2') {
+    const [min, max] = range.map(p => number(p));
+    if (min >= max) fail('A float2 interval needs two hard finite limits with min < max.');
+    const [x, y] = value === undefined ? [min, max] : tuple(value, 2);
+    const [fx, fy, fmin, fmax] = [x, y, min, max].map(Math.fround);
+    const period = Math.fround(fmax - fmin);
+    const full = cyclicRange && fy > fx && (fx >= fmin && fx <= fmax || fy >= fmin && fy <= fmax) &&
+      Math.abs(fy - fx - period) <= Math.max(Math.abs(fx), Math.abs(fy), Math.abs(period)) / 16777216;
+    if (!full && (x < min || x > max || y < min || y > max || (!cyclicRange && x > y)))
+      fail(cyclicRange ? 'Cyclic endpoints must be within the limits, or one period apart with at least one endpoint within the limits.' : 'A float2 interval default must satisfy min <= x <= y <= max.');
+  }
   if (type === 'float') {
     const initial = value === undefined ? undefined : number(value);
     if (range) {
@@ -171,6 +196,8 @@ function parseParameter(body) {
       if (min > max) fail('Minimum exceeds maximum.');
       if (soft.some(Boolean) && !(min !== undefined && max !== undefined && min < max))
         fail('Soft ranges require two finite values with min < max; put ~ before the number.');
+      if (cyclicRange && (soft.some(Boolean) || min === undefined || max === undefined || min >= max))
+        fail('A % range needs two hard finite limits with min < max.');
       if (initial !== undefined && ((!soft[0] && initial < min) || (!soft[1] && initial > max)))
         fail('Default is outside the declared hard range.');
     } else if (seed) fail('seed requires two finite bounds.');
@@ -199,7 +226,7 @@ function parseParameter(body) {
       }
     }
   }
-  return { type, name, hidden, seed, pixelUnits };
+  return { type, name, hidden, seed, pixelUnits, cyclicRange, previewFunction, previewParameters };
 }
 
 // Match Unity's line-oriented metadata scanner, ignoring commented-out examples.
@@ -229,9 +256,18 @@ function directiveLines(source) {
 }
 
 function validate(source) {
-  const diagnostics = [], names = new Map(), declarations = [], groups = [], conditions = [];
+  const diagnostics = [], names = new Map(), declarations = [], containers = [], stack = [], conditions = [], conditionStack = [], previews = [];
   const directives = directiveLines(source);
-  let group = null, condition = null, headers = 0, helpBoxes = 0, control = null, controlCount = 0;
+  let condition = null, headers = 0, helpBoxes = 0, control = null, controlCount = 0, previewCount = 0;
+  const parent = () => stack[stack.length - 1];
+  const nearestGroup = () => {
+    for (let i = stack.length - 1; i >= 0; i--)
+      if (stack[i].kind === 'group' || stack[i].kind === 'foldout') return stack[i];
+  };
+  const countRow = row => {
+    for (const container of stack) container.parameters.push(row);
+    for (const scope of conditionStack) scope.hasRow = true;
+  };
   const report = (d, message, warning = false) => diagnostics.push({ line: d.line, start: d.start, end: d.length, message, warning });
   for (const d of directives) {
     const { name, body } = d;
@@ -252,44 +288,85 @@ function validate(source) {
           if (!body || body.split('/').some(p => !p.trim())) fail('Effect category/name must not contain empty segments.');
           break;
         case 'param': {
-          const p = { ...parseParameter(body), d, group, condition };
+          if (parent()?.kind === 'tabs') fail('Declare parameters inside a @tab page, not directly inside @tabs.');
+          const p = { ...parseParameter(body), d, container: parent(), condition,
+            enableIf: conditionStack.filter(c => c.kind === 'enableif') };
           const existing = names.get(p.name);
           if (existing && existing.some(other => !compatible(other.type, p.type)))
             fail(`Conflicting storage types for ${p.name}.`);
           if (existing && existing.some(other => other.pixelUnits !== p.pixelUnits))
             fail(`Conflicting pixel units for ${p.name}.`);
+          if (existing && existing.some(other => Boolean(other.cyclicRange) !== Boolean(p.cyclicRange)))
+            fail(`Conflicting cyclic range declarations for ${p.name}.`);
           if (!existing) names.set(p.name, [p]); else existing.push(p);
           declarations.push(p);
-          if (group) group.parameters.push(p);
+          if (p.previewFunction) previews.push(p);
+          countRow(p);
           if (declarations.length > 128) report(d, 'At most 128 parameter controls are supported.');
           headers = 0; helpBoxes = 0;
           break;
         }
-        case 'if': {
-          if (condition) fail('Nested @if blocks are not supported.');
-          const match = body.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=)\s*(\S+)$/);
-          if (!match) fail('Expected @if _Parameter == number or @if _Parameter != number.');
-          number(match[3]); condition = { name: match[1], d }; conditions.push(condition); break;
+        case 'preview': {
+          if (parent()?.kind === 'tabs') fail('Declare previews inside a @tab page, not directly inside @tabs.');
+          const match = body.match(/^\(([^()]*)\)$/);
+          if (!match) fail('Expected // @preview(FunctionName, optional parameter names).');
+          previews.push({ ...previewBinding(match[1]), d });
+          if (++previewCount > 128) fail('At most 128 standalone previews are supported.');
+          countRow({hidden: false});
+          headers = 0; helpBoxes = 0;
+          break;
         }
-        case 'endif':
-          if (body) fail('@endif takes no arguments.');
-          if (!condition) fail('@endif has no matching @if.');
-          condition = null; headers = 0; helpBoxes = 0; break;
-        case 'group': {
-          if (group) fail('Nested @group blocks are not supported.');
-          if (condition) fail('@group must be outside conditional blocks.');
+        case 'if': case 'enableif': {
+          if (name === 'if' && condition) fail('Nested @if blocks are not supported.');
+          if (conditionStack.length >= 16) fail('At most 16 condition levels are supported.');
+          const match = body.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=)\s*(\S+)$/);
+          if (!match) fail(`Expected @${name} _Parameter == number or @${name} _Parameter != number.`);
+          const scope = { kind: name, name: match[1], d, notEqual: match[2] === '!=', value: number(match[3]) };
+          conditions.push(scope); conditionStack.push(scope);
+          if (name === 'if') condition = scope;
+          break;
+        }
+        case 'endif': case 'endenableif': {
+          if (body) fail(`@${name} takes no arguments.`);
+          const kind = name.slice(3);
+          if (!conditionStack.length) fail(`@${name} has no matching @${kind}.`);
+          if (conditionStack[conditionStack.length - 1].kind !== kind)
+            fail(`@${name} does not match the innermost open condition.`);
+          conditionStack.pop();
+          if (kind === 'if') condition = null;
+          headers = 0; helpBoxes = 0; break;
+        }
+        case 'group': case 'foldout': case 'tabs': case 'tab': {
+          if (conditionStack.length) fail(`@${name} must be outside conditional blocks.`);
+          if (stack.length >= 16) fail('At most 16 layout levels are supported.');
+          if (name === 'tab') {
+            if (parent()?.kind !== 'tabs') fail('@tab must be directly inside @tabs.');
+          } else if (parent()?.kind === 'tabs') fail(`Place @${name} inside a @tab page, not directly inside @tabs.`);
+          if (name === 'tabs' && stack.some(c => c.kind === 'tabs')) fail('Nested @tabs blocks are not supported.');
+          if (name === 'group' && nearestGroup()?.kind === 'group') fail('Nested @group blocks are not supported.');
           const match = body.match(/^\((.*)\)$/);
-          if (body && (!match || !match[1].trim())) fail('Expected @group, @group(Title), or @group(Title; _Parameter).');
+          if (body && (!match || !match[1].trim()))
+            fail(`Invalid @${name} declaration: omit parentheses for an untitled container, or provide a non-empty title.`);
           const parts = match ? match[1].split(';').map(p => p.trim()) : [];
           if (parts.length > 2 || parts.length && !parts[0] || parts.length === 2 && !identifier.test(parts[1]))
             fail('Expected a non-empty title and a valid parameter name after the semicolon.');
-          group = { d, header: parts[1], parameters: [] }; groups.push(group); break;
+          if (name === 'tabs' && parts.length > 1)
+            fail(`@${name} accepts only a title, not a linked parameter.`);
+          if ((name === 'foldout' || name === 'tab') && !parts[0]) fail(`@${name} requires a title.`);
+          if (name === 'tab') {
+            if (parent().pages.has(parts[0])) fail(`Duplicate tab title ${parts[0]}.`);
+            parent().pages.add(parts[0]);
+          }
+          const container = { d, kind: name, header: parts[1], parameters: [], pages: new Set() };
+          containers.push(container); stack.push(container); break;
         }
-        case 'endgroup':
-          if (body) fail('@endgroup takes no arguments.');
-          if (!group) fail('@endgroup has no matching @group.');
-          if (condition) fail('Conditional block must end before @endgroup.');
-          group = null; headers = 0; helpBoxes = 0; break;
+        case 'endgroup': case 'endfoldout': case 'endtabs': case 'endtab': {
+          if (body) fail(`@${name} takes no arguments.`);
+          const kind = name.slice(3);
+          if (parent()?.kind !== kind) fail(`@${name} has no matching open @${kind} at this level.`);
+          if (conditionStack.length) fail(`Conditional block must end before @${name}.`);
+          stack.pop(); headers = 0; helpBoxes = 0; break;
+        }
         case 'header': case 'helpbox': {
           const match = body.match(/^\((.*)\)$/);
           if (!match || !match[1].trim()) fail(`Expected @${name}(non-empty text).`);
@@ -300,27 +377,32 @@ function validate(source) {
       }
     } catch (error) { report(d, error.message); }
   }
-  if (condition) report(condition.d, '@if has no matching @endif.');
-  if (group) report(group.d, '@group has no matching @endgroup.');
-  for (const g of groups) {
-    if (!g.parameters.length) report(g.d, '@group must contain at least one parameter.');
-    else if (!g.parameters.some(p => !p.hidden)) report(g.d, '@group must contain at least one visible parameter.');
+  for (const c of conditionStack) report(c.d, `@${c.kind} has no matching @end${c.kind}.`);
+  for (const c of stack) report(c.d, `@${c.kind} has no matching @end${c.kind}.`);
+  for (const g of containers) {
+    if (g.kind === 'tabs' && !g.pages.size) report(g.d, '@tabs must contain at least one @tab page.');
+    if (!g.parameters.some(p => !p.hidden)) report(g.d, `@${g.kind} must contain at least one visible parameter or standalone preview.`);
     if (g.header) {
       const controls = names.get(g.header);
-      if (!controls) report(g.d, `Group header parameter ${g.header} is not declared in the group.`);
-      else if (controls.length !== 1) report(g.d, `Group header parameter ${g.header} must be declared once.`);
-      else if (controls[0].group !== g || controls[0].condition)
-        report(g.d, `Group header parameter ${g.header} must be unconditional and inside the group.`);
+      if (!controls) report(g.d, `@${g.kind} header parameter ${g.header} is not declared in the container.`);
+      else if (controls.length !== 1) report(g.d, `@${g.kind} header parameter ${g.header} must be declared once.`);
+      else if (controls[0].container !== g || controls[0].condition || controls[0].enableIf.length)
+        report(g.d, `@${g.kind} header parameter ${g.header} must be unconditional and directly inside its own container.`);
+      else if (g.kind === 'tab' && controls[0].type !== 'bool')
+        report(g.d, `@tab header parameter ${g.header} must be bool.`);
     }
   }
   for (const c of conditions) {
     // Like Unity, conditions attached to no declarations have no dependencies.
-    if (!declarations.some(p => p.condition === c)) continue;
+    if (!c.hasRow) continue;
     const controls = names.get(c.name);
-    if (!controls) report(c.d, `@if refers to undeclared parameter ${c.name}.`);
-    else if (!scalar(controls[0].type)) report(c.d, '@if can reference only float, bool or enum parameters.');
-    else if (controls.some(p => p.condition)) report(c.d, '@if must reference an unconditional parameter.');
+    if (!controls) report(c.d, `@${c.kind} refers to undeclared parameter ${c.name}.`);
+    else if (!scalar(controls[0].type)) report(c.d, `@${c.kind} can reference only float, bool or enum parameters.`);
+    else if (controls.some(p => p.condition)) report(c.d, `@${c.kind} must reference a parameter outside @if blocks.`);
   }
+  for (const preview of previews)
+    for (const parameter of preview.previewParameters)
+      if (!names.has(parameter)) report(preview.d, `Preview ${preview.previewFunction} references undeclared @param ${parameter}.`, true);
   if (control) {
     const fields = names.get(control.name);
     if (!fields) report(control.d, `@control refers to undeclared parameter ${control.name}.`, true);

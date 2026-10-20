@@ -10,6 +10,41 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private bool interactiveEffects;
         internal bool InteractiveEffects => interactiveEffects;
 
+        [NonSerialized] private bool renderingViewport;
+        [NonSerialized] private ProjectiveMatrix viewportToCanvas, canvasToViewport;
+        internal bool RenderingViewport => renderingViewport;
+        internal ProjectiveMatrix ViewportToCanvas => viewportToCanvas;
+        internal ProjectiveMatrix CanvasToViewport => canvasToViewport;
+
+        internal bool SupportsViewportRendering() => true;
+
+        internal RenderTexture RenderCanvasViewport(CanvasRenderRegion region, EffectRenderCache cache,
+            bool interactive, DrawingLayerBehaviour painting)
+        {
+            if (!SupportsViewportRendering()) throw new InvalidOperationException("This document requires full-frame rendering.");
+            using var profile = WhimTexProfiler.Measure("document.canvas_viewport", this);
+            var oldCache = effectCache;
+            bool oldInteractive = interactiveEffects, oldPublishing = publishingLayerPreview, oldViewport = renderingViewport;
+            var oldToCanvas = viewportToCanvas; var oldToViewport = canvasToViewport;
+            try
+            {
+                effectCache = cache; interactiveEffects = interactive; publishingLayerPreview = false;
+                cache.BeginFrame(this, painting);
+                // Region output must never masquerade as a complete layer thumbnail or alpha census.
+                lastLayerPreviewCache = null;
+                renderingViewport = true;
+                viewportToCanvas = ProjectiveMatrix.Translate((double)region.pixels.x / width, (double)region.pixels.y / height) *
+                    ProjectiveMatrix.Scale((double)region.pixels.width / width, (double)region.pixels.height / height);
+                viewportToCanvas.TryInverse(out canvasToViewport);
+                return RenderCanvasCore(region.width, region.height, region.step);
+            }
+            finally
+            {
+                effectCache = oldCache; interactiveEffects = oldInteractive; publishingLayerPreview = oldPublishing;
+                renderingViewport = oldViewport; viewportToCanvas = oldToCanvas; canvasToViewport = oldToViewport;
+            }
+        }
+
         internal RenderTexture RenderQuilting(MakeSeamlessLayerBehaviour layer, in LayerRenderContext context,
             float band, float feather, Vector4 channels)
         {
@@ -80,7 +115,18 @@ namespace DCFApixels.WhimTex
                 WhimTexProfiler.Reason("cache.bypass", effectCache == null ? "cache.not_attached" : "dependency.uncacheable", this, layer);
                 return render();
             }
-            string key = layer.Id + "/" + kind + (collectingErrors ? "/debug" : "");
+            // A region and a complete image must never share cache entries. Pan/zoom
+            // also changes pixels even when document parameters remain identical.
+            if (renderingViewport)
+            {
+                stamp = RenderFingerprint.Double(stamp, viewportToCanvas.m00);
+                stamp = RenderFingerprint.Double(stamp, viewportToCanvas.m11);
+                stamp = RenderFingerprint.Double(stamp, viewportToCanvas.m02);
+                stamp = RenderFingerprint.Double(stamp, viewportToCanvas.m12);
+            }
+            string key = layer.Id + "/" + kind + (renderingViewport ? "/viewport" : "") +
+                (viewportFxLimitLayer != null ? "/prefix/" + viewportFxLimitLayer.Id + "/" + viewportFxLimitCount : "") +
+                (collectingErrors ? "/debug" : "");
             bool cacheHit = effectCache.TryGet(key, stamp, w, h, scale, interactiveEffects, !alphaOnly,
                 out var cached, out var errors, out bool packedAlpha);
             // Interactive rendering is only an approximation when the dependency

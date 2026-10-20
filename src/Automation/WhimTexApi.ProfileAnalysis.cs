@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
         private sealed class ProfileAggregate
         {
             internal WhimTexProfiler.Sample example;
-            internal int count, completed, gpuCount, gpuPending, gpuUnavailable;
+            internal int count, completed, gpuCount, gpuUnconfirmed, gpuPending, gpuUnavailable;
             internal double total, self, max, prepare, submit, gpu;
             internal bool fx;
             internal long gcAllocationCount, gcSelfAllocationCount;
@@ -20,7 +20,8 @@ namespace DCFApixels.WhimTex
             {
                 if (count++ == 0) example = sample;
                 fx |= sample.fxTiming;
-                if (sample.gpuStatus == "ready") { gpuCount++; gpu += sample.gpuNanoseconds / 1000000d; }
+                if (WhimTexProfiler.HasGpuDuration(sample))
+                { gpuCount++; if (sample.gpuStatus == "unconfirmed") gpuUnconfirmed++; gpu += sample.gpuNanoseconds / 1000000d; }
                 else if (sample.gpuStatus == "pending") gpuPending++;
                 else if (sample.fxTiming || sample.gpuStatus != null) gpuUnavailable++;
                 if (!sample.completed) return;
@@ -47,7 +48,7 @@ namespace DCFApixels.WhimTex
                     ["meanMs"] = Optional(completed > 0, completed == 0 ? 0 : total / completed), ["maxMs"] = Optional(completed > 0, max),
                     ["cpuPrepareMs"] = Optional(fx && completed > 0, prepare), ["cpuSubmitMs"] = Optional(fx && completed > 0, submit),
                     ["gpuMs"] = Optional(gpuCount > 0, gpu), ["gpuMeanMs"] = Optional(gpuCount > 0, gpuCount == 0 ? 0 : gpu / gpuCount),
-                    ["gpuCount"] = gpuCount, ["gpuPendingCount"] = gpuPending, ["gpuUnavailableCount"] = gpuUnavailable,
+                    ["gpuCount"] = gpuCount, ["gpuUnconfirmedCount"] = gpuUnconfirmed, ["gpuPendingCount"] = gpuPending, ["gpuUnavailableCount"] = gpuUnavailable,
                     ["eventId"] = example.id, ["layerName"] = example.layerName, ["fxName"] = example.fxName
                 };
                 AllocationMetrics(row);
@@ -166,6 +167,8 @@ namespace DCFApixels.WhimTex
             if (data.legacy > 0) warnings.Add("Legacy post-hoc phase timings are excluded from this analysis.");
             if (data.stages.Values.Any(s => s.gpuPending > 0)) warnings.Add("GPU results are pending; GPU totals are partial.");
             if (data.stages.Values.Any(s => s.gpuUnavailable > 0)) warnings.Add("Some GPU timings are unavailable; null does not mean zero.");
+            if (source.graphicsJobs == true || data.stages.Values.Any(s => s.gpuUnconfirmed > 0))
+                warnings.Add(WhimTexProfiler.GpuUnconfirmedWarning);
             if (data.stages.Values.Any(s => s.measuredCalls < s.count)) warnings.Add("Stage allocation counts are partial or unavailable; inspect measuredCalls/eligibleCalls. Null does not mean zero.");
             if (data.roots.Count == 0 && data.spans > 0) warnings.Add("No completed roots match these filters; rootWallMs is not the selected child work total.");
             return warnings;
@@ -195,6 +198,7 @@ namespace DCFApixels.WhimTex
                 {
                     row["cpuPrepareMs"] = stage.prepare; row["cpuSubmitMs"] = stage.submit;
                     row["gpuMs"] = Optional(stage.gpuCount > 0, stage.gpu); row["gpuCount"] = stage.gpuCount;
+                    row["gpuUnconfirmedCount"] = stage.gpuUnconfirmed;
                     row["gpuPendingCount"] = stage.gpuPending; row["gpuUnavailableCount"] = stage.gpuUnavailable;
                 }
                 hotspots.Add(row);
@@ -219,6 +223,7 @@ namespace DCFApixels.WhimTex
             result["gpuHotspots"] = new JArray(gpuStages.Take(top).Select(s => {
                 var row = ProfileStageIdentity(s); row["eventId"] = s.example.id;
                 row["gpuMs"] = s.gpu; row["gpuMeanMs"] = s.gpu / s.gpuCount; row["gpuCount"] = s.gpuCount;
+                row["gpuUnconfirmedCount"] = s.gpuUnconfirmed;
                 row["calls"] = s.count; row["partial"] = s.gpuCount != s.count; return row;
             }));
             result["cache"] = new JObject { ["hits"] = data.hits, ["misses"] = data.misses, ["bypasses"] = data.bypasses,
@@ -251,6 +256,7 @@ namespace DCFApixels.WhimTex
                 row["countChanged"] = (a?.count ?? 0) != (b?.count ?? 0);
                 bool gpuComparable = a != null && b != null && a.gpuCount == a.count && b.gpuCount == b.count && a.count > 0 && b.count > 0;
                 row["gpuComparable"] = gpuComparable;
+                row["gpuUnconfirmed"] = (a?.gpuUnconfirmed ?? 0) + (b?.gpuUnconfirmed ?? 0) > 0;
                 bool allocationComparable = a != null && b != null && a.count > 0 && b.count > 0 &&
                     a.measuredCalls == a.count && b.measuredCalls == b.count;
                 row["allocationComparable"] = allocationComparable;

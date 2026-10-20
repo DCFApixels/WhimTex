@@ -109,7 +109,11 @@ Unity-атрибуты `FormerlySerializedAs` и `MovedFrom` в текущем p
   забытым переименованием в FX. Разделение подтверждено, а не оставлено спорным.
 - Layer/Brush/PostFx Preview действительно обозначают предварительный просмотр.
   Это не всеобщая замена Preview на CanvasView.
-- Native `.asset` для FX-пресета — актуальный формат Unity-ассета, не старый формат документа `.asset`.
+- FX-пресеты — только помеченные `.hlsl`; native ShaderFX `.asset` и внешние Material/Shader FX
+  исключены из [контракта FX](../Documentation~/ShaderFX.md#document-owned-hlsl-effects).
+  Старые внешние FX-ссылки в JSON/TIFF отклоняются с диагностикой, без миграции и перезаписи.
+  `Code → Embed Copy` связанного `.hlsl` сохраняется для отключения связи и локальной правки кода;
+  удалено только одноимённое меню карточки внешнего ShaderFX asset.
 - In-place сохранение значений FX при редактировании того же параметра, header/control/helpbox,
   текущие scalar/vector presentation-переходы и JSON-синтаксис коротких массивов не являются alias старых файлов.
 - GUID/path fallback, includes и generic unknown-type/field diagnostics сохранены. Это устойчивость

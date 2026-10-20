@@ -69,18 +69,20 @@ namespace DCFApixels.WhimTex
             {
                 if (shape == null) throw new InvalidOperationException("Vector shapes cannot contain null.");
                 ValidateId(shape.id, ids);
-                if ((uint)shape.fillMode > (uint)VectorFillMode.CircularGradient || (uint)shape.strokeMode > (uint)VectorFillMode.CircularGradient || (uint)shape.fillRule > 1 || (uint)shape.strokePosition > 2 ||
+                if ((uint)shape.fillMode > (uint)VectorFillMode.Freeform || (uint)shape.strokeMode > (uint)VectorFillMode.Freeform || (uint)shape.fillRule > 1 || (uint)shape.strokePosition > 2 ||
                     (uint)shape.join > 2 || (uint)shape.cap > 2) throw new InvalidOperationException("Unknown Vector style enum value.");
                 ValidateColor(shape.fillColor); ValidateColor(shape.strokeColor);
+                FigureFill.ValidateFreeform(shape.fillMode, shape.freeform);
+                FigureFill.ValidateFreeform(shape.strokeMode, shape.strokeFreeform);
                 ValidateCoordinate(shape.gradientStart); ValidateCoordinate(shape.gradientEnd);
                 ValidateCoordinate(shape.strokeGradientStart); ValidateCoordinate(shape.strokeGradientEnd);
                 if (!VectorGeometry.Finite(shape.strokeGradientRepetitions) || shape.strokeGradientRepetitions < .0001f)
                     throw new InvalidOperationException("Vector strokeGradientRepetitions must be finite and at least 0.0001.");
-                if (shape.strokeGradient == null && FigureFill.IsGradient(shape.strokeMode))
+                if (shape.strokeGradient == null && FigureFill.IsPaletteGradient(shape.strokeMode))
                     throw new InvalidOperationException("Vector gradient strokes require a gradient.");
                 if (!VectorGeometry.Finite(shape.gradientRepetitions) || shape.gradientRepetitions < .0001f)
                     throw new InvalidOperationException("Vector gradientRepetitions must be finite and at least 0.0001.");
-                if (shape.gradient == null && shape.fillMode >= VectorFillMode.LinearGradient)
+                if (shape.gradient == null && FigureFill.IsPaletteGradient(shape.fillMode))
                     throw new InvalidOperationException("Vector gradient fills require a gradient.");
                 if (!VectorGeometry.Finite(shape.strokeWidth) || shape.strokeWidth < 0 || shape.strokeWidth > VectorGeometry.MaxCoordinate ||
                     !VectorGeometry.Finite(shape.miterLimit) || shape.miterLimit < 1 || shape.miterLimit > 10000 ||
@@ -153,6 +155,8 @@ namespace DCFApixels.WhimTex
                 bool sampleExtension = context.applyTransform && applied.tiling != TransformTilingMode.Clip && applied.tiling != TransformTilingMode.Unbounded;
                 var matrix = context.applyTransform && !sampleExtension
                     ? applied.ToMatrix(context.activeDocument.width, context.activeDocument.height) : ProjectiveMatrix.Identity;
+                if (context.applyTransform && !sampleExtension && context.activeDocument.RenderingViewport)
+                    matrix = context.activeDocument.CanvasToViewport * matrix;
                 bool clip = sampleExtension || (context.applyTransform && applied.tiling == TransformTilingMode.Clip);
                 ulong hash = ComputeContentHash();
                 Texture output = cpuFallback ? raster : painted;
@@ -267,6 +271,7 @@ namespace DCFApixels.WhimTex
                     hash.Add((int)shape.fillMode);
                     hash.Add(shape.fillColor); hash.Add(shape.gradient?.GetHashCode() ?? 0); hash.Add(shape.gradientStart); hash.Add(shape.gradientEnd);
                     hash.Add(shape.gradientRepetitions);
+                    hash.Add(shape.freeform?.ContentHash() ?? 0); hash.Add(shape.strokeFreeform?.ContentHash() ?? 0);
                     hash.Add((int)shape.strokeMode); hash.Add(shape.strokeGradient?.GetHashCode() ?? 0);
                     hash.Add(shape.strokeGradientStart); hash.Add(shape.strokeGradientEnd); hash.Add(shape.strokeGradientRepetitions);
                     hash.Add(shape.strokeColor);

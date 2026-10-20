@@ -121,6 +121,7 @@ public static class ProfilerComparisonUiTests
                 CheckSerialization(t, window);
                 CheckRecycledRows(t, window);
                 CheckAllocationRows(t, window);
+                CheckGpuConfidence(t, window);
                 t.Equal("", SessionState.GetString(ReloadKey, ""), "UI checks do not create a current reload snapshot");
                 t.Equal("", SessionState.GetString(BaselineKey, ""), "UI checks do not create a baseline reload snapshot");
             }
@@ -400,6 +401,55 @@ public static class ProfilerComparisonUiTests
         t.Equal("9007199254740993", row.Q<Label>("comparison-before").text, "Large count is formatted without floating-point loss");
         Set(window, "comparisonSort", 0); list.bindItem(row, 0);
         t.Equal(row.Q<Label>("comparison-before").text, row.Q<Label>("comparison-before").tooltip, "Switching back to time resets allocation tooltip");
+        Refresh(window);
+    }
+
+    static void CheckGpuConfidence(TestContext t, EditorWindow window)
+    {
+        const string yellow = "whimtex-profiler-gpu-unconfirmed";
+        var root = window.rootVisualElement;
+        var captured = Raw(@"{""graphicsJobs"":true,""renderingThreadingMode"":""NativeGraphicsJobsSplitThreading""}");
+        Invoke(window, "ApplyGpuEnvironment", captured, null);
+        t.True(root.Q<Label>("gpu-environment").text.StartsWith("Graphics Jobs:"), "Actual Graphics Jobs state is always visible");
+        t.True(!root.Q("gpu-warning").ClassListContains(HiddenClass), "Historical Graphics Jobs capture keeps warning visible");
+        t.True(root.Q<HelpBox>("gpu-warning").text.Contains("current capture"), "Warning identifies the retained capture");
+        Invoke(window, "ApplyGpuEnvironment", null, captured);
+        t.True(root.Q<HelpBox>("gpu-warning").text.Contains("baseline"), "Historical baseline also keeps warning visible");
+
+        var eventList = (ListView)Get(window, "eventList"); eventList.itemsSource.Clear();
+        eventList.itemsSource.Add(Raw(@"{""id"":1,""operationId"":1,""phase"":""fx.render"",""kind"":""span"",""gpuStatus"":""unconfirmed"",""gpuMs"":2}"));
+        eventList.itemsSource.Add(Raw(@"{""id"":2,""operationId"":2,""phase"":""fx.render"",""kind"":""span"",""gpuStatus"":""ready"",""gpuMs"":3}"));
+        var eventRow = eventList.makeItem(); eventList.bindItem(eventRow, 0);
+        t.Equal("2", eventRow.Q<Label>("gpu").text, "Event duration has no extra word or marker");
+        t.True(eventRow.Q<Label>("gpu").ClassListContains(yellow), "Unconfirmed event has colored background");
+        t.True(eventRow.Q<Label>("gpu").tooltip.Contains("restart Unity"), "Tooltip explains the supported comparison");
+        eventList.bindItem(eventRow, 1);
+        t.True(!eventRow.Q<Label>("gpu").ClassListContains(yellow), "Recycled confirmed event removes warning style");
+
+        var summary = (ListView)Get(window, "summaryList"); summary.itemsSource.Clear();
+        summary.itemsSource.Add(Raw(@"{""phase"":""fx.render"",""kind"":""span"",""count"":1,""gpuTotalMs"":2,""gpuCount"":1,""gpuUnconfirmedCount"":1}"));
+        summary.itemsSource.Add(Raw(@"{""phase"":""fx.render"",""kind"":""span"",""count"":1,""gpuTotalMs"":3,""gpuCount"":1,""gpuUnconfirmedCount"":0}"));
+        var summaryRow = summary.makeItem(); summary.bindItem(summaryRow, 0);
+        t.Equal("2", summaryRow.Q<Label>("gpu").text, "Summary keeps a compact number");
+        t.True(summaryRow.Q<Label>("gpu").ClassListContains(yellow), "Summary marks the unconfirmed subset");
+        summary.bindItem(summaryRow, 1);
+        t.True(!summaryRow.Q<Label>("gpu").ClassListContains(yellow), "Recycled confirmed Summary clears warning style");
+
+        var comparison = Comparisons(window); comparison.itemsSource.Clear();
+        comparison.itemsSource.Add(Raw(@"{""phase"":""fx.render"",""kind"":""span"",""status"":""matched"",""gpuComparable"":true,""gpuUnconfirmed"":true,
+            ""before"":{""count"":1,""gpuMs"":2,""gpuCount"":1,""gpuUnconfirmedCount"":1},
+            ""after"":{""count"":1,""gpuMs"":3,""gpuCount"":1,""gpuUnconfirmedCount"":0},
+            ""delta"":{""gpuMs"":1},""percent"":{""gpuMs"":50}}"));
+        Set(window, "comparisonSort", 4);
+        var comparisonRow = comparison.makeItem(); comparison.bindItem(comparisonRow, 0);
+        t.True(comparisonRow.Q<Label>("comparison-before").ClassListContains(yellow), "Unconfirmed baseline value marked");
+        t.True(!comparisonRow.Q<Label>("comparison-after").ClassListContains(yellow), "Confirmed current value is not marked");
+        t.Equal("+1", comparisonRow.Q<Label>("comparison-delta").text, "Numeric GPU delta remains visible");
+        t.True(comparisonRow.Q<Label>("comparison-delta").ClassListContains(yellow) &&
+            comparisonRow.Q<Label>("comparison-percent").ClassListContains(yellow), "Derived GPU differences inherit uncertainty");
+        Set(window, "comparisonSort", 0); comparison.bindItem(comparisonRow, 0);
+        foreach (string cell in new[] { "comparison-before", "comparison-after", "comparison-delta", "comparison-percent" })
+            t.True(!comparisonRow.Q<Label>(cell).ClassListContains(yellow), "CPU metric clears GPU-only warning style: " + cell);
         Refresh(window);
     }
 }

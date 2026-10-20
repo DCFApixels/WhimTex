@@ -422,10 +422,17 @@ not accept FX changes; lock the existing layer for a separate FX edit instead.
 
 Each `fx` entry has `op` (`add` by default, `replace`, `remove`) and an optional FX `index`.
 Add appends by default, or inserts at the specified index. Replace/remove require an explicit index
-from the layer's `fx` snapshot. Indices refer to the entire FX list, including Material references,
+from the layer's `fx` snapshot. Indices refer to the document-owned HLSL FX list,
 and each operation uses the list after the preceding operation. Unmentioned entries stay unchanged.
-Replace copies the new code into a fresh embedded FX; it never edits a shared external asset.
+Replace copies the new code into a fresh document-owned inline FX with independent values.
 Remove accepts only op/index. Add/replace accept `code`; define parameters with HLSL `@param` declarations.
+
+Non-null `Layer.fx` entries are `ShaderFX` instances; persistent JSON also permits internal `$ref`
+references to these document models, but never `$asset` FX items. External Material, Shader and ShaderFX `.asset`
+references are unsupported; old JSON/TIFF containing them is rejected with a diagnostic, without
+migration or source-document rewrite. Internal Materials and compiled Unity Shaders still execute
+the HLSL. Catalog discovery and linked project/package versus embedded user-library presets are
+described in [FX edits and presets](AgentAPI.md#fx-edits-and-presets).
 
 - Code: 1..65,536 characters of HLSL with `float4 ApplyFX(float2 uv, float4 color)`.
 - `color` and `SampleInput(uv)` are straight RGBA in linear working space. Return straight RGBA;

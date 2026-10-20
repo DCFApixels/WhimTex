@@ -16,14 +16,15 @@ namespace DCFApixels.WhimTex
         }
         private static Snapshot snapshot;
 
-        internal static ShaderFXParameterControl GroupControl(ShaderFXParameter parameter, int groupId) =>
-            parameter.controls.Find(c => c.inGroup && c.groupId == groupId);
+        internal static ShaderFXParameterControl ContainerControl(ShaderFXParameter parameter, int groupId) =>
+            parameter.controls.Find(c => c.containers != null && Array.Exists(c.containers,
+                scope => scope.id == groupId && (scope.kind == ShaderFXContainerKind.Group || scope.kind == ShaderFXContainerKind.Foldout || scope.kind == ShaderFXContainerKind.Tab)));
 
         internal static List<ShaderFXParameter> Parameters(IReadOnlyList<ShaderFXParameter> parameters, int groupId)
         {
             var result = new List<ShaderFXParameter>();
             foreach (var parameter in parameters)
-                if (parameter != null && GroupControl(parameter, groupId) != null) result.Add(parameter);
+                if (parameter != null && ContainerControl(parameter, groupId) != null) result.Add(parameter);
             return result;
         }
 
@@ -41,12 +42,12 @@ namespace DCFApixels.WhimTex
         }
 
         private static string Label(ShaderFXParameter parameter, int groupId) =>
-            GroupControl(parameter, groupId)?.label ?? UnityEditor.ObjectNames.NicifyVariableName(parameter.name);
+            ContainerControl(parameter, groupId)?.label ?? UnityEditor.ObjectNames.NicifyVariableName(parameter.name);
 
         private static bool Compatible(ShaderFXParameter target, int targetGroup, ShaderFXParameter value, int valueGroup)
         {
             if (target.type != value.type) return false;
-            var a = GroupControl(target, targetGroup); var b = GroupControl(value, valueGroup);
+            var a = ContainerControl(target, targetGroup); var b = ContainerControl(value, valueGroup);
             if (a.type != b.type) return false;
             if (a.type != ShaderFXParameterType.Enum) return true;
             if (a.optionNames.Length != b.optionNames.Length) return false;
@@ -81,6 +82,7 @@ namespace DCFApixels.WhimTex
                 var next = target.Copy();
                 ShaderFXMetadata.CopyValue(value, next);
                 if (next.type == ShaderFXParameterType.Float) next.floatValue = target.Clamp(next.floatValue);
+                next.vectorValue = target.ClampInterval(next.vectorValue);
                 prepared.Add(next);
             }
             values = prepared;

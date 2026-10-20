@@ -72,8 +72,20 @@ namespace DCFApixels.WhimTex
             finally { if (undoGroup >= 0) Undo.IncrementCurrentGroup(); }
         }
 
-        internal Texture2D RasterizeFXPrefix(Layer layer, int count)
+        internal Texture2D RasterizeFXPrefix(Layer layer, int count) => RasterizeFXPrefixCore(layer, count, true, 0);
+
+        internal void CaptureInspectorFXPrefix(Layer layer, int count) => RasterizeFXPrefixCore(layer, count, false, 512);
+
+        private Texture2D RasterizeFXPrefixCore(Layer layer, int count, bool readback, int previewSize)
         {
+            int renderWidth = width, renderHeight = height;
+            if (previewSize > 0)
+            {
+                float reduction = Mathf.Min(1f, previewSize / (float)Mathf.Max(width, height));
+                renderWidth = Mathf.Max(1, Mathf.RoundToInt(width * reduction));
+                renderHeight = Mathf.Max(1, Mathf.RoundToInt(height * reduction));
+            }
+            float renderScale = width / (float)renderWidth;
             RefreshTransformHierarchy();
             TryFindLayer(layer, out var container, out int index);
             RenderTexture previous = RenderTexture.active;
@@ -85,7 +97,7 @@ namespace DCFApixels.WhimTex
             {
                 effectCache = null;
                 interactiveEffects = false;
-                var context = new LayerRenderContext(this, null, width, height, 1f, transformFxCoordinates: !layer.IsGroup);
+                var context = new LayerRenderContext(this, null, renderWidth, renderHeight, renderScale, transformFxCoordinates: !layer.IsGroup);
                 for (int i = 0; i < count; i++)
                     if (layer.fx[i] is ShaderFX fx && fx.Active && fx.GetMaterial(context) == null)
                         throw new InvalidOperationException($"Apply the code for '{fx.name}' successfully before baking it.");
@@ -93,20 +105,20 @@ namespace DCFApixels.WhimTex
                 if (layer.Behaviour is ShaderProcessorLayerBehaviour)
                 {
                     RenderTexture input = RenderBackdropBefore(layer, new HashSet<Layer> { layer });
-                    try { rendered = layer.Render(new LayerRenderContext(this, input, width, height, 1f, applyFx: false)); }
+                    try { rendered = layer.Render(new LayerRenderContext(this, input, renderWidth, renderHeight, renderScale, applyFx: false)); }
                     finally { ProfiledRenderTexture.ReleaseTemporary(input); }
                 }
                 else if (layer.IsGroup)
                 {
-                    rendered = GetClearRenderTexture(width, height);
-                    RenderGroupGeometry(layer, ref rendered, width, height, 1f, new HashSet<Layer> { layer });
+                    rendered = GetClearRenderTexture(renderWidth, renderHeight);
+                    RenderGroupGeometry(layer, ref rendered, renderWidth, renderHeight, renderScale, new HashSet<Layer> { layer });
                 }
                 else
-                    rendered = RenderStandaloneUncached(container, index, width, height, 1f, new HashSet<Layer>(),
+                    rendered = RenderStandaloneUncached(container, index, renderWidth, renderHeight, renderScale, new HashSet<Layer>(),
                         applyFx: false, includeDisabled: true, applyClipping: false, finishLayer: false);
-                if (rendered == null) rendered = GetClearRenderTexture(width, height);
+                if (rendered == null) rendered = GetClearRenderTexture(renderWidth, renderHeight);
                 layer.ApplyFx(ref rendered, context, layer.ResolveFilterMode(), count);
-                return HdrUtility.ReadLinear(rendered);
+                return readback ? HdrUtility.ReadLinear(rendered) : null;
             }
             finally
             {

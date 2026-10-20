@@ -53,8 +53,7 @@ public static class ShaderFXTiffCatalogTests
             {
                 string entryPath = (string)Field(entry, "path");
                 bool user = (bool)Field(entry, "user");
-                bool assetPreset = (bool)Field(entry, "assetPreset");
-                if (!user && !assetPreset && entryPath != null && entryPath.EndsWith("/Levels.hlsl", StringComparison.OrdinalIgnoreCase))
+                if (!user && entryPath != null && entryPath.EndsWith("/Levels.hlsl", StringComparison.OrdinalIgnoreCase))
                 {
                     selected = entry;
                     break;

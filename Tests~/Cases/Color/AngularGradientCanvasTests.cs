@@ -8,14 +8,14 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using DCFApixels.WhimTex;
 
-public static class CircularGradientCanvasTests
+public static class AngularGradientCanvasTests
 {
     const BindingFlags F = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
     static object Get(object o, string n) => o.GetType().GetField(n, F).GetValue(o);
     static object Call(object o, string n, params object[] args) => o.GetType().GetMethods(F)
         .Single(m => m.Name == n && m.GetParameters().Length == args.Length).Invoke(o, args);
     static void Check(bool ok, string message) => UnityBRun.Check(ok, message);
-    public static string Start(string id) => UnityBRun.Start(id, "Circular gradient canvas", Run);
+    public static string Start(string id) => UnityBRun.Start(id, "Angular gradient canvas", Run);
     public static string Poll(string id) => UnityBRun.Poll(id);
     public static Task<string> Cancel(string id) => UnityBRun.Cancel(id);
     public static string Cleanup(string id) => UnityBRun.Cleanup(id);
@@ -49,7 +49,7 @@ public static class CircularGradientCanvasTests
         {
             var document = UnityBRun.Create<WhimTexDocument>();
             document.hideFlags = HideFlags.HideAndDontSave; document.width = document.height = 128;
-            var gradient = new GradientLayerBehaviour { gradientType = GradientLayerBehaviour.GradientType.Circular };
+            var gradient = new GradientLayerBehaviour { gradientType = GradientLayerBehaviour.GradientType.Angular };
             gradient.gradient = new WhimTexGradient { Mode = WhimTexGradientMode.Linear };
             gradient.gradient.SetKeys(new[]{new GradientColorKey(Color.red,0),new GradientColorKey(Color.green,.4f),new GradientColorKey(Color.blue,1)},
                 new[]{new GradientAlphaKey(1,0),new GradientAlphaKey(1,1)});
@@ -67,11 +67,11 @@ public static class CircularGradientCanvasTests
             for(int i=0;i<3;i++) await UnityBRun.NextUpdate();
             var canvas=(VisualElement)Get(window,"toolkitCanvas");
             var manip=Get(window,"gradientCanvasManipulator");
-            Check((bool)window.GetType().GetProperty("IsGradientCanvasEnabled",F).GetValue(window),"Circular tool available");
+            Check((bool)window.GetType().GetProperty("IsGradientCanvasEnabled",F).GetValue(window),"Angular tool available");
             Check(string.IsNullOrEmpty(((VisualElement)Get(window,"gradientCanvasOverlay")).tooltip),"No tooltip on canvas handles");
-            Vector2 Point(float t) => (Vector2)Call(manip,"CircularPoint",t);
-            Vector2 Angle(float a) => (Vector2)Call(manip,"CircularPointAtAngle",a);
-            Vector2 Center() => (Vector2)manip.GetType().GetProperty("CircularCenterPoint",F).GetValue(manip);
+            Vector2 Point(float t) => (Vector2)Call(manip,"AngularPoint",t);
+            Vector2 Angle(float a) => (Vector2)Call(manip,"AngularPointAtAngle",a);
+            Vector2 Center() => (Vector2)manip.GetType().GetProperty("AngularCenterPoint",F).GetValue(manip);
             void Drag(Vector2 a,Vector2 b,bool release=true,bool control=false)
             {
                 Pointer(canvas,a,EventType.MouseDown,control:control);
@@ -100,7 +100,12 @@ public static class CircularGradientCanvasTests
                 }
                 finally {capture.RemoveFromHierarchy();}
             }
-            await Preview("circular-closed.png");
+            await Preview("angular-closed.png");
+            Check((MouseCursor)Call(manip,"GetCursor",Point(0))==MouseCursor.Pan,"Joined angular endpoints have a hand cursor");
+            Check((MouseCursor)Call(manip,"GetCursor",Center())==MouseCursor.Pan,"Angular center handle has a hand cursor");
+            Check((MouseCursor)Call(manip,"GetCursor",Point(.2f))==MouseCursor.Pan,"Angular midpoint has a hand cursor");
+            Check((MouseCursor)Call(manip,"GetCursor",Vector2.Lerp(Center(),Point(0),.5f))==MouseCursor.Pan,"Rotation ray has a hand cursor");
+            Check((MouseCursor)Call(manip,"GetCursor",Point(.8f))==MouseCursor.ArrowPlus,"Empty angular arc offers a plus cursor");
             string palette=JsonUtility.ToJson(Current().gradient);
             // Each half has a separate hit target even though both endpoints coincide.
             foreach(bool first in new[]{true,false})
@@ -115,7 +120,7 @@ public static class CircularGradientCanvasTests
             Drag(Point(0),Angle(-60));
             Check(Mathf.Abs(Current().circularRepetitions-1.2f)<.001f && Mathf.Abs(Current().circularStartAngle)<.001f,"Clockwise drag opens end boundary");
             Check(palette==JsonUtility.ToJson(Current().gradient),"Separating handles preserves color/alpha keys");
-            await Preview("circular-open.png");
+            await Preview("angular-open.png");
             Undo.PerformUndo();await UnityBRun.NextUpdate();
             Check(Current().circularRepetitions==1 && Current().circularStartAngle==0,"Native Undo restores closed circle");
             Undo.PerformRedo();await UnityBRun.NextUpdate();
@@ -162,6 +167,7 @@ public static class CircularGradientCanvasTests
             Check(Mathf.Abs(Current().gradient.GetMidpoint(false,0)-.6f)<.001f,"Midpoint moves on the circle");
             Pointer(canvas,Point(.8f),EventType.MouseDown);Pointer(canvas,Point(.8f),EventType.MouseUp);
             Check(Current().gradient.ColorKeys.Length==4 && Mathf.Abs(Current().gradient.ColorKeys[2].time-.8f)<.001f,"Click arc adds a key");
+            Check(canvas.ClassListContains("whimtex-canvas-cursor--pan")&&!canvas.ClassListContains("whimtex-canvas-cursor--add"),"Adding an angular key immediately changes plus to hand");
             foreach(WhimTexJsonWriteMode mode in Enum.GetValues(typeof(WhimTexJsonWriteMode)))
             {
                 string json=WhimTexDocumentJson.Write(document,new WhimTexJsonWriteOptions {Mode=mode}).Json;
@@ -172,7 +178,7 @@ public static class CircularGradientCanvasTests
             }
             Current().transform.scale=new Vector2(-.55f,.4f);
             Call(document,"RefreshTransformHierarchy");
-            Check((bool)Call(manip,"CircularFirstHalf",Point(0)+(Angle(Current().circularStartAngle+.1f)-Point(0)).normalized*4),"Split hit testing follows mirrored geometry");
+            Check((bool)Call(manip,"AngularFirstHalf",Point(0)+(Angle(Current().circularStartAngle+.1f)-Point(0)).normalized*4),"Split hit testing follows mirrored geometry");
             Current().circularRepetitions=.5f;
             float before=Current().circularRepetitions;
             Drag(Point(0),Angle(Current().circularStartAngle+20),control:true);

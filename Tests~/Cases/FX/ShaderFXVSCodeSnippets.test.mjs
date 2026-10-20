@@ -25,7 +25,7 @@ try {
     assert.deepEqual(manifest.contributes.configurationDefaults, {
       '[hlsl]': { 'editor.tabCompletion': 'onlySnippets' }
     });
-    assert.deepEqual(Object.values(snippets).map(s => s.prefix), ['@if', '@group']);
+    assert.deepEqual(Object.values(snippets).map(s => s.prefix), ['@if', '@enableif', '@group', '@foldout', '@tabs', '@tab']);
   });
 
   context.case('conditional snippet supplies comparison choices, ordered placeholders and matching end', async () => {
@@ -34,6 +34,19 @@ try {
     for (const op of ['==', '!=']) {
       const source = '// @param enum _Mode = 1 {Off: 0, On: 1}\n// ' + defaults(snippet).replace('==', op);
       assert.deepEqual(validate(source), []);
+    }
+  });
+
+  context.case('enableif snippet supplies comparisons and composes with visibility and enabled blocks', async () => {
+    const snippet = snippets['WhimTex enabled block'];
+    assert.deepEqual(snippet.body, ['@enableif ${1:_Enabled} ${2|==,!=|} ${3:1}', '// $0', '// @endenableif']);
+    const drivers = '// @param bool _Enabled = true\n// @param enum _Mode {Off: 0, On: 1}\n';
+    for (const op of ['==', '!=']) {
+      const body = '// ' + defaults(snippet).replace('==', op).replace('// \n', '// @preview(P)\n');
+      assert.deepEqual(validate(drivers + body), []);
+      assert.deepEqual(validate(drivers + '// @if _Mode == 1\n' + body + '\n// @endif'), []);
+      assert.deepEqual(validate(drivers + '// @enableif _Mode == 1\n' + body + '\n// @endenableif'), []);
+      assert.deepEqual(validate(drivers + body.replace('// @preview(P)', '// @if _Mode == 1\n// @preview(P)\n// @endif')), []);
     }
   });
 
@@ -47,12 +60,14 @@ try {
   });
 
   context.case('native suffix replacement preserves comment markers, spacing and surrounding code', async () => {
+    const ends = { '@if': ['@endif'], '@enableif': ['@endenableif'], '@group': ['@endgroup'], '@foldout': ['@endfoldout'],
+      '@tabs': ['@endtab', '@endtabs'], '@tab': ['@endtab'] };
     for (const snippet of Object.values(snippets)) {
       for (const prefix of ['//', '// ', '    // ', '\t//']) {
         const line = prefix + snippet.prefix;
         const expanded = line.slice(0, -snippet.prefix.length) + defaults(snippet);
         assert.equal(expanded.split('\n')[0], prefix + defaults(snippet).split('\n')[0]);
-        assert.equal((expanded.match(/@endif|@endgroup/g) || []).length, 1);
+        assert.deepEqual(expanded.match(/@end(?:if|enableif|group|foldout|tabs|tab)\b/g) || [], ends[snippet.prefix]);
         assert.match(expanded, /^\s*\/\/\s*@/);
       }
     }

@@ -72,7 +72,9 @@ namespace DCFApixels.WhimTex
                 return context.activeDocument.RenderCombinedLayerStyles(Owner, context);
             }
             var hash = new HashCode();
-            hash.Add(context.width); hash.Add(context.height); hash.Add(context.activeDocument.width); hash.Add(context.activeDocument.height);
+            int gridWidth = context.activeDocument.RenderingViewport ? Mathf.RoundToInt(context.activeDocument.width / context.scaleMultiplier) : context.width;
+            int gridHeight = context.activeDocument.RenderingViewport ? Mathf.RoundToInt(context.activeDocument.height / context.scaleMultiplier) : context.height;
+            hash.Add(gridWidth); hash.Add(gridHeight); hash.Add(context.activeDocument.width); hash.Add(context.activeDocument.height);
             hash.Add(context.activeDocument.GetPixelScale()); hash.Add(context.applyTransform);
             HashMatrix(Owner.RenderTransform.ToMatrix(context.activeDocument.width, context.activeDocument.height), ref hash);
             hash.Add(referenceSize); hash.Add(edgeMode); hash.Add(appearance);
@@ -83,7 +85,7 @@ namespace DCFApixels.WhimTex
                 Validate();
                 using var measure = WhimTexProfiler.Measure("vector.boolean", context.activeDocument, Owner);
                 GeometryBuildCount++;
-                ProjectiveMatrix output = ProjectiveMatrix.Scale(context.width, context.height) *
+                ProjectiveMatrix output = ProjectiveMatrix.Scale(gridWidth, gridHeight) *
                     (context.applyTransform ? Owner.RenderTransform.ToMatrix(context.activeDocument.width, context.activeDocument.height) : ProjectiveMatrix.Identity);
                 int count = 0;
                 var parts = Combine(Owner.layers, ProjectiveMatrix.Identity, output, context.activeDocument, ref count);

@@ -25,14 +25,13 @@ namespace DCFApixels.WhimTex
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings)
         {
 
-            EnumField gradientType = WhimTexUI.ConfigureField(
-                new EnumField("Gradient Type", layer.gradientType));
-            bindings.Track(gradientType, () => (Enum)layer.gradientType);
+            var gradientType = WhimTexUI.ConfigureField(new GradientTypeField("Gradient Type") { name = "gradientLayerType" });
+            bindings.Track(gradientType, () => layer.gradientType);
             gradientType.RegisterValueChangedCallback(evt =>
             {
                 applyChange(
                     "Change Gradient Type",
-                    () => layer.gradientType = (GradientLayerBehaviour.GradientType)evt.newValue);
+                    () => layer.gradientType = evt.newValue);
             });
             root.Add(gradientType);
 
@@ -40,19 +39,22 @@ namespace DCFApixels.WhimTex
             gradient.RegisterValueChangedCallback(evt =>
                 applyChange("Change Gradient", () => layer.gradient = GradientUtility.Create(evt.newValue)));
             root.Add(gradient);
+            var freeformSettings = new VisualElement();
+            FreeformGradientEditor.Build(freeformSettings, layer, activeDocument, applyChange, bindings);
+            root.Add(freeformSettings);
 
-            VisualElement circularSettings = new VisualElement();
+            VisualElement angularSettings = new VisualElement();
             FloatField startAngle = WhimTexUI.ConfigureField(new FloatField("Start Angle"));
             bindings.Track(startAngle, () => layer.circularStartAngle);
             startAngle.RegisterValueChangedCallback(evt => applyChange(
-                "Rotate Circular Gradient", () => layer.circularStartAngle = Mathf.Repeat(evt.newValue, 360f)));
-            circularSettings.Add(startAngle);
+                "Rotate Angular Gradient", () => layer.circularStartAngle = Mathf.Repeat(evt.newValue, 360f)));
+            angularSettings.Add(startAngle);
             FloatField repetitions = WhimTexUI.ConfigureField(new FloatField("Repetitions"));
             bindings.Track(repetitions, () => layer.circularRepetitions);
             repetitions.RegisterValueChangedCallback(evt => applyChange(
                 "Change Gradient Repetitions",
                 () => layer.circularRepetitions = Mathf.Max(float.Epsilon, evt.newValue)));
-            circularSettings.Add(repetitions);
+            angularSettings.Add(repetitions);
 
             EnumField wrapMode = WhimTexUI.ConfigureField(
                 new EnumField("Wrap Mode", layer.circularWrapMode));
@@ -60,12 +62,13 @@ namespace DCFApixels.WhimTex
             wrapMode.RegisterValueChangedCallback(evt => applyChange(
                 "Change Gradient Wrap Mode",
                 () => layer.circularWrapMode = (GradientLayerBehaviour.WrapMode)evt.newValue));
-            circularSettings.Add(wrapMode);
-            root.Add(circularSettings);
+            angularSettings.Add(wrapMode);
+            root.Add(angularSettings);
             bindings.Add(() =>
             {
-                bool circular = layer.gradientType == GradientLayerBehaviour.GradientType.Circular;
-                circularSettings.style.display = circular ? DisplayStyle.Flex : DisplayStyle.None;
+                bool angular = layer.gradientType == GradientLayerBehaviour.GradientType.Angular;
+                gradient.style.display = layer.gradientType == GradientLayerBehaviour.GradientType.Freeform ? DisplayStyle.None : DisplayStyle.Flex;
+                angularSettings.style.display = angular ? DisplayStyle.Flex : DisplayStyle.None;
             });
         }
     }

@@ -27,13 +27,45 @@ namespace DCFApixels.WhimTex
         static string gpuAvailability = "idle";
 
         internal static string GpuAvailability => gpuAvailability;
+        internal static string GpuSupportStatus => GpuUnsupportedReason(SystemInfo.supportsGpuRecorder, SystemInfo.renderingThreadingMode);
+        static string GpuCollectionStatus => GpuSupportStatus == "unsupported_graphics_jobs" ? null : GpuSupportStatus;
+        internal const string GpuUnconfirmedWarning = "GPU results recorded with active Graphics Jobs are unconfirmed: Unity does not support GPU profiling in this mode. Disable Graphics Jobs, restart Unity and repeat the capture for a supported comparison.";
+
+        internal static bool HasGpuDuration(Sample sample) => sample.gpuStatus == "ready" || sample.gpuStatus == "unconfirmed";
+
+        internal static bool? GraphicsJobsActive(RenderingThreadingMode threading) => threading switch
+        {
+            RenderingThreadingMode.Direct or RenderingThreadingMode.SingleThreaded or RenderingThreadingMode.MultiThreaded => false,
+            RenderingThreadingMode.LegacyJobified or RenderingThreadingMode.NativeGraphicsJobs or
+                RenderingThreadingMode.NativeGraphicsJobsWithoutRenderThread or RenderingThreadingMode.NativeGraphicsJobsSplitThreading => true,
+            _ => null
+        };
+
+        static string GpuUnsupportedReason(bool supported, RenderingThreadingMode threading)
+        {
+            if (!supported) return "unsupported";
+            // The configured Player setting can differ from the running device until restart.
+            // Inspect the actual device, not PlayerSettings.graphicsJobs or a successful empty query.
+            switch (threading)
+            {
+                case RenderingThreadingMode.Direct:
+                case RenderingThreadingMode.SingleThreaded:
+                case RenderingThreadingMode.MultiThreaded: return null;
+                case RenderingThreadingMode.LegacyJobified:
+                case RenderingThreadingMode.NativeGraphicsJobs:
+                case RenderingThreadingMode.NativeGraphicsJobsWithoutRenderThread:
+                case RenderingThreadingMode.NativeGraphicsJobsSplitThreading: return "unsupported_graphics_jobs";
+                default: return "unsupported_threading";
+            }
+        }
 
         internal static void PrepareGpuCapture(Capture owner)
         {
             gpuCapture = owner;
             try
             {
-                if (!SystemInfo.supportsGpuRecorder) { gpuAvailability = "unsupported"; return; }
+                string unsupported = GpuCollectionStatus;
+                if (unsupported != null) { gpuAvailability = unsupported; gpuReady = false; return; }
                 if (gpuEnabled) return;
                 if (!gpuActivation.Valid)
                 {
@@ -64,7 +96,8 @@ namespace DCFApixels.WhimTex
             internal int sample, generation;
             internal readonly List<ProfilerRecorderSample> samples = new List<ProfilerRecorderSample>(8);
             internal long endedAt;
-            internal bool busy, ended, retired;
+            internal bool busy, ended, retired, invalidatedByReadback;
+            internal bool unconfirmed;
         }
 
         internal readonly struct GpuScope : IDisposable
@@ -80,6 +113,7 @@ namespace DCFApixels.WhimTex
                 catch (Exception error) { GpuError(slot, error); }
                 slot.ended = true;
                 slot.endedAt = Stopwatch.GetTimestamp();
+                if (slot.busy && slot.invalidatedByReadback) CompleteGpu(slot, "invalidated_by_readback", retire: true);
             }
         }
 
@@ -92,8 +126,13 @@ namespace DCFApixels.WhimTex
             GpuSlot slot = null;
             try
             {
-                if (!SystemInfo.supportsGpuRecorder)
-                { owner.events[sample].gpuStatus = "unsupported"; return default; }
+                string unsupported = GpuCollectionStatus;
+                if (unsupported != null)
+                {
+                    owner.events[sample].gpuStatus = unsupported;
+                    owner.events[sample].gpuDetail = "GPU profiling is unavailable for the current device or rendering threading mode.";
+                    return default;
+                }
                 if (!ReferenceEquals(gpuCapture, owner)) PrepareGpuCapture(owner);
                 if (!gpuReady) { owner.events[sample].gpuStatus = gpuAvailability; return default; }
                 int index = gpuSlots.FindIndex(s => !s.busy && !s.retired);
@@ -111,6 +150,9 @@ namespace DCFApixels.WhimTex
                 }
                 else slot = gpuSlots[index];
                 slot.owner = owner; slot.sample = sample; slot.busy = true; slot.ended = false;
+                slot.invalidatedByReadback = false;
+                slot.unconfirmed = GraphicsJobsActive(SystemInfo.renderingThreadingMode) == true;
+                if (slot.unconfirmed) owner.events[sample].gpuDetail = GpuUnconfirmedWarning;
                 unchecked { slot.generation++; }
                 if (slot.generation == 0) slot.generation = 1;
                 owner.events[sample].gpuStatus = "pending";
@@ -169,7 +211,8 @@ namespace DCFApixels.WhimTex
                 try
                 {
                     for (int i = 0; i < gpuActivation.Count; i++)
-                        if (gpuActivation.GetSample(i).Count > 0) { gpuReady = true; gpuAvailability = "ready"; break; }
+                        if (gpuActivation.GetSample(i).Count > 0)
+                        { gpuReady = true; gpuAvailability = gpuCapture?.graphicsJobs == true ? "unconfirmed" : "ready"; break; }
                     if (!gpuReady)
                     {
                         if (Milliseconds(now - gpuStartedAt) >= GpuTimeoutSeconds * 1000) gpuAvailability = "timeout";
@@ -188,19 +231,20 @@ namespace DCFApixels.WhimTex
                 if (!slot.busy || !slot.ended) continue;
                 try
                 {
-                    for (int i = 0; i < slot.recorder.Count; i++)
+                    slot.recorder.CopyTo(slot.samples, false);
+                    long nanoseconds = 0, count = 0;
+                    bool invalid = false;
+                    foreach (ProfilerRecorderSample result in slot.samples)
                     {
-                        ProfilerRecorderSample result = slot.recorder.GetSample(i);
                         if (result.Count == 0) continue;
-                        if (result.Count != 1 || result.Value < 0)
-                            CompleteGpu(slot, "ambiguous", retire: true);
-                        else
-                        {
-                            if (slot.owner != null) slot.owner.events[slot.sample].gpuNanoseconds = result.Value;
-                            CompleteGpu(slot, "ready");
-                        }
-                        break;
+                        // Inspect the complete snapshot, not merely its first populated frame.
+                        // A recorder sample counts invocations; Count == 1 alone does not prove
+                        // that Unity supplied a usable timestamp (zero intervals occur in Editor).
+                        invalid |= result.Count != 1 || result.Value <= 0 || count != 0;
+                        count = result.Count;
+                        nanoseconds = result.Value;
                     }
+                    if (count != 0) AcceptGpuResult(slot, nanoseconds, invalid ? -1 : count);
                     if (slot.busy && Milliseconds(now - slot.endedAt) >= GpuTimeoutSeconds * 1000)
                         CompleteGpu(slot, "timeout", retire: true);
                 }
@@ -211,6 +255,50 @@ namespace DCFApixels.WhimTex
                 StopGpuRecorders();
                 gpuCapture = null; gpuEnabled = gpuReady = false; gpuAvailability = "idle";
             }
+        }
+
+        static void AcceptGpuResult(GpuSlot slot, long nanoseconds, long count)
+        {
+            if (!slot.busy) return;
+            if (slot.invalidatedByReadback) { CompleteGpu(slot, "invalidated_by_readback", retire: true); return; }
+            if (count != 1 || nanoseconds <= 0)
+            {
+                if (slot.owner != null)
+                {
+                    slot.owner.events[slot.sample].gpuNanoseconds = 0;
+                    slot.owner.events[slot.sample].gpuDetail =
+                        "Native GPU timestamp is zero, invalid or contains multiple invocations; no duration attributed.";
+                }
+                CompleteGpu(slot, "ambiguous", retire: true);
+                return;
+            }
+            if (slot.owner != null) slot.owner.events[slot.sample].gpuNanoseconds = nanoseconds;
+            if (slot.unconfirmed && slot.owner != null) slot.owner.events[slot.sample].gpuDetail = GpuUnconfirmedWarning;
+            CompleteGpu(slot, slot.unconfirmed ? "unconfirmed" : "ready");
+        }
+
+        internal static void BeforeSynchronousReadback()
+        {
+            if (!gpuEnabled) return;
+            // ReadPixels can invalidate pending native GPU timestamps, including positive
+            // truncated intervals. Do not replace it or stall rendering to rescue telemetry.
+            foreach (GpuSlot slot in gpuSlots) if (slot.busy) InvalidateGpuReadback(slot);
+        }
+
+        internal static void ReadPixels(Texture2D destination, Rect source, int x, int y, bool recalculateMipMaps = true)
+        {
+            BeforeSynchronousReadback();
+            destination.ReadPixels(source, x, y, recalculateMipMaps);
+        }
+
+        static void InvalidateGpuReadback(GpuSlot slot)
+        {
+            if (!slot.busy) return;
+            slot.invalidatedByReadback = true;
+            if (slot.owner != null) slot.owner.events[slot.sample].gpuDetail =
+                "Synchronous ReadPixels occurred before this GPU query completed; the native timestamp may be truncated. CPU wall timing remains available.";
+            // An open scope must still submit its EndSample before its identity is retired.
+            if (slot.ended) CompleteGpu(slot, "invalidated_by_readback", retire: true);
         }
 
         static void GpuError(GpuSlot slot, Exception error)

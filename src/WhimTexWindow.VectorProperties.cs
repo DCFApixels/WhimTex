@@ -93,15 +93,15 @@ namespace DCFApixels.WhimTex
             brush.Add(new Button(() => Change("Finalize Vector Brush Figure", () => { vector.brushDraft = null; Rebuild(); })) { text = "Release Mask", tooltip = "Keep the editable vector figure and discard only its procedural source mask." });
         }
 
-        private static void BuildVectorStyle(VisualElement root, VectorShape shape, Action<string, Action> apply, WhimTexUI.ValueBindings bindings)
+        private void BuildVectorStyle(VisualElement root, VectorShape shape, Action<string, Action> apply, WhimTexUI.ValueBindings bindings)
         {
             var fill = new Foldout { text = "Fill", value = true }; root.Add(fill);
-            fill.Add(new FigureFillEditor(shape, apply, bindings));
+            fill.Add(new FigureFillEditor(shape, apply, bindings, document: activeDocument));
             var stroke = new Foldout { text = "Stroke", value = true }; root.Add(stroke);
             var enabled = WhimTexUI.ConfigureField(new Toggle("Enabled")); stroke.Add(enabled); bindings.Track(enabled, () => shape.stroke);
             enabled.RegisterValueChangedCallback(e => apply("Toggle Stroke", () => shape.stroke = e.newValue));
             var options = new VisualElement(); stroke.Add(options); bindings.Add(() => options.SetEnabled(shape.stroke));
-            options.Add(new FigureFillEditor(shape, apply, bindings, stroke: true));
+            options.Add(new FigureFillEditor(shape, apply, bindings, stroke: true, document: activeDocument));
             var width = WhimTexUI.ConfigureField(new FloatField("Width (px)") { isDelayed = true }); options.Add(width);
             bindings.Track(width, () => shape.strokeWidth);
             width.RegisterValueChangedCallback(e => apply("Change Stroke Width", () =>

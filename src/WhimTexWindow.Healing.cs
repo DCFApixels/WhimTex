@@ -201,7 +201,7 @@ namespace DCFApixels.WhimTex
                         Graphics.Blit(source, cropped, new Vector2(bounds.width / (float)width, bounds.height / (float)height),
                             new Vector2(bounds.x / (float)width, bounds.y / (float)height));
                         RenderTexture.active = cropped;
-                        readback.ReadPixels(new Rect(0, 0, bounds.width, bounds.height), 0, 0, false);
+                        WhimTexProfiler.ReadPixels(readback, new Rect(0, 0, bounds.width, bounds.height), 0, 0, false);
                         return readback.GetPixels();
                     }
                     finally { source.wrapMode = wrap; source.filterMode = filter; }

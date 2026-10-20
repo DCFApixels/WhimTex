@@ -69,7 +69,7 @@ public static class ShaderFX0125PresetTests
         // GUID asset folder already created by fixture.
         try
         {
-            foreach (string name in new[] { "ColorFilter", "Negative", "Mask", "GradientMap", "HSV" })
+            foreach (string name in new[] { "ColorFilter", "Negative", "Mask", "GradientMap" })
             {
                 WhimTexDocument doc = null, loaded = null;
                 ShaderFX fx = null;

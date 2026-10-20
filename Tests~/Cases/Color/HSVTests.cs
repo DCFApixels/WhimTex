@@ -13,7 +13,7 @@ public static class HSVTests
         float Encode(float x) => x <= .0031308f ? x * 12.92f : 1.055f * Mathf.Pow(x, 1f / 2.4f) - .055f;
         float Decode(float x) => x <= .04045f ? x / 12.92f : Mathf.Pow((x + .055f) / 1.055f, 2.4f);
         const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-        const string path = "Packages/com.dcfapixels.whimtex/src/FXPresets/HSV.hlsl";
+        const string path = "Packages/com.dcfapixels.whimtex/src/FXPresets/HueSaturation.hlsl";
 
         var owner = UnityBRun.Create<WhimTexDocument>();
         owner.hideFlags = HideFlags.HideAndDontSave;
@@ -32,11 +32,11 @@ public static class HSVTests
             target = UnityBRun.Track(new RenderTexture(8,2,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear)); target.Create();
             output = UnityBRun.Track(new Texture2D(8,2,TextureFormat.RGBAFloat,false,true));
             var context = Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), owner, null, 8, 2, 1f, true, true, null);
-            foreach (var settings in new[] { new Vector4(0,1,1,1), new Vector4(120,1,1,1), new Vector4(-120,1,1,1), new Vector4(180,0,1,1), new Vector4(37,2,.5f,1), new Vector4(-180,.5f,2,.5f), new Vector4(70,2,0,1), new Vector4(120,2,2,0) })
+            foreach (var settings in new[] { new Vector4(0,1,0,1), new Vector4(120,1,0,1), new Vector4(-120,1,0,1), new Vector4(180,0,0,1), new Vector4(37,2,-25,1), new Vector4(-180,.5f,50,.5f), new Vector4(70,2,-100,1), new Vector4(0,1,100,1), new Vector4(120,2,50,0) })
             {
-                values.Find(p => p.name == "_Hue").floatValue = settings.x;
-                values.Find(p => p.name == "_Saturation").floatValue = settings.y;
-                values.Find(p => p.name == "_Value").floatValue = settings.z;
+                values.Find(p => p.name == "_MasterHue").floatValue = settings.x;
+                values.Find(p => p.name == "_MasterSaturation").floatValue = settings.y;
+                values.Find(p => p.name == "_MasterLightness").floatValue = settings.z;
                 values.Find(p => p.name == "_Opacity").floatValue = settings.w;
                 var material=(Material)typeof(ShaderFX).GetMethod("GetMaterial",flags).Invoke(fx,new[]{context});
                 GL.sRGBWrite=false; Graphics.Blit(input,target,material); RenderTexture.active=target;
@@ -44,12 +44,19 @@ public static class HSVTests
                 for(int x=0;x<8;x++)
                 {
                     var c=colors[x]; var expected=c;
-                    if(settings.w!=0 && !(settings.x==0 && settings.y==1 && settings.z==1))
+                    if(c.a>0 && settings.w!=0 && !(settings.x==0 && settings.y==1 && settings.z==0))
                     {
                         var encoded=new Color(Encode(Mathf.Max(c.r,0)),Encode(Mathf.Max(c.g,0)),Encode(Mathf.Max(c.b,0)));
                         Color.RGBToHSV(encoded,out float h,out float s,out float v);
-                        var corrected=Color.HSVToRGB(Mathf.Repeat(h+settings.x/360,1),Mathf.Clamp01(s*settings.y),v*settings.z,true);
-                        corrected=new Color(Decode(corrected.r),Decode(corrected.g),Decode(corrected.b));
+                        var corrected=settings.x==0 ? encoded : Color.HSVToRGB(Mathf.Repeat(h+settings.x/360,1),s,v,true);
+                        float gray=.2126f*corrected.r+.7152f*corrected.g+.0722f*corrected.b;
+                        float lift=Mathf.Clamp(settings.z/100,-1,1);
+                        for(int channel=0;channel<3;channel++)
+                        {
+                            float value=Mathf.Max(0,gray+(corrected[channel]-gray)*Mathf.Max(settings.y,0));
+                            value=lift<0 ? value*(1+lift) : Mathf.Lerp(value,1,lift);
+                            corrected[channel]=Mathf.Min(65504,Decode(value));
+                        }
                         expected=Color.Lerp(c,corrected,settings.w); expected.a=c.a;
                     }
                     var actual=output.GetPixel(x,0);
@@ -68,6 +75,6 @@ public static class HSVTests
             UnityEngine.Object.DestroyImmediate(owner);
         }
     }
-    public static string Main() => UnityBRun.Run("HSVSmoke.Main", () => ExecuteMain());
+    public static string Main() => UnityBRun.Run("HueSaturationSmoke.Main", () => ExecuteMain());
 }
 

@@ -23,7 +23,7 @@ public static class PsdExportTests
             var fill = new DCFApixels.WhimTex.ColorFillLayerBehaviour { layerName = "Color", color = new Color(1, 0, 0.25f, 0.6f) };
             fill.transform.scale = new Vector2(0.7f, 0.8f);
             fill.transform.rotation = 20;
-            var gradient = new DCFApixels.WhimTex.GradientLayerBehaviour { layerName = "Gradient", gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Horizontal };
+            var gradient = new DCFApixels.WhimTex.GradientLayerBehaviour { layerName = "Gradient", gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Linear };
             gradient.transform.rotation = 15;
             gradient.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic;
             gradient.gradient.ColorSpace = ColorSpace.Gamma;

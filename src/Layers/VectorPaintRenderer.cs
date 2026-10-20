@@ -38,8 +38,10 @@ namespace DCFApixels.WhimTex
                     material.SetVector("_FillAnchors", new Vector4(shape.gradientStart.x, shape.gradientStart.y, shape.gradientEnd.x, shape.gradientEnd.y));
                     material.SetVector("_StrokeAnchors", new Vector4(shape.strokeGradientStart.x, shape.strokeGradientStart.y, shape.strokeGradientEnd.x, shape.strokeGradientEnd.y));
                     material.SetVector("_Repetitions", new Vector4(shape.gradientRepetitions, shape.strokeGradientRepetitions, 0, 0));
-                    if (FigureFill.IsGradient(shape.fillMode)) entry.fillPalette.Bind(material, shape.gradient);
-                    if (FigureFill.IsGradient(shape.strokeMode)) entry.strokePalette.Bind(material, shape.strokeGradient, true);
+                    if (shape.fillMode == VectorFillMode.Freeform) shape.freeform.Bind(material);
+                    if (shape.strokeMode == VectorFillMode.Freeform) shape.strokeFreeform.Bind(material, stroke: true);
+                    if (FigureFill.IsPaletteGradient(shape.fillMode)) entry.fillPalette.Bind(material, shape.gradient);
+                    if (FigureFill.IsPaletteGradient(shape.strokeMode)) entry.strokePalette.Bind(material, shape.strokeGradient, true);
                     Graphics.Blit(entry.texture, single ? target : accumulation, material, single ? 2 : 0);
                 }
                 if (!single) Graphics.Blit(accumulation, target, material, 1);

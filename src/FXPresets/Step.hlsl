@@ -19,7 +19,7 @@
 // @endif
 // @endgroup
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(float4 color)
 {
     float4 stepped = color;
     if (_Mode < 0.5)

@@ -91,7 +91,7 @@ public static class ProjectiveTransformTests
     static void Gradient(TextureTransform transform)
     {
         var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());doc.hideFlags=HideFlags.HideAndDontSave;doc.width=doc.height=64;
-        var g=new GradientLayerBehaviour {gradientType=GradientLayerBehaviour.GradientType.Horizontal};
+        var g=new GradientLayerBehaviour {gradientType=GradientLayerBehaviour.GradientType.Linear};
         g.gradient.Mode=WhimTexGradientMode.Linear;g.gradient.Smoothness=0;
         g.gradient.SetKeys(new[]{new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,1)},
             new[]{new GradientAlphaKey(0,0),new GradientAlphaKey(1,1)});

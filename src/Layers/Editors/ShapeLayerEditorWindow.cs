@@ -54,10 +54,10 @@ namespace DCFApixels.WhimTex
             var thickness = Pixels("Thickness (px)", () => layer.arcThickness, value => layer.arcThickness = value,
                 "Arc body thickness in canvas pixels, independent of the outline. Transform controls the centerline ellipse.");
             var fillToggle = Toggle("Fill", () => layer.fill, value => layer.fill = value);
-            var fillOptions = new FigureFillEditor(layer, apply, bindings);
+            var fillOptions = new FigureFillEditor(layer, apply, bindings, document: activeDocument);
             root.Add(fillOptions); bindings.Add(() => fillOptions.EnableInClassList("whimtex-hidden", !layer.fill));
             var strokeToggle = Toggle("Stroke", () => layer.stroke, value => layer.stroke = value);
-            var strokeColor = new FigureFillEditor(layer, apply, bindings, stroke: true);
+            var strokeColor = new FigureFillEditor(layer, apply, bindings, stroke: true, document: activeDocument);
             root.Add(strokeColor); bindings.Add(() => strokeColor.EnableInClassList("whimtex-hidden", !layer.stroke));
             var width = Pixels("Stroke Width (px)", () => layer.strokeWidth, value => layer.strokeWidth = value,
                 "Outline width in canvas pixels. Resizing the shape keeps this width.");

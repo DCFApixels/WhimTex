@@ -20,7 +20,7 @@ namespace DCFApixels.WhimTex
         {
             if (string.IsNullOrWhiteSpace(menuPath) || menuPath.IndexOfAny(new[] { '\r', '\n' }) >= 0)
                 throw new FormatException("Choose a non-empty effect name.");
-            var values = ShaderFXMetadata.Parse(code, false, out _);
+            var values = ShaderFXMetadata.ParseWithPreviews(code, false, out _, out var previews);
             ShaderFXMetadata.PreserveValues(values, parameters);
             var result = new StringBuilder("// @" + marker + " " + menuPath + "\n");
             string mainControl = ShaderFXMetadata.ReadControl(code, out _);
@@ -28,8 +28,8 @@ namespace DCFApixels.WhimTex
             var rows = new System.Collections.Generic.List<(int order, string text, ShaderFXParameterControl control)>();
             foreach (var p in values)
             {
-                int defaultIndex = p.controls.FindIndex(c => c.type != ShaderFXParameterType.Bool && CanDeclareDefault(c, p.floatValue));
-                if (defaultIndex < 0) defaultIndex = p.controls.FindIndex(c => CanDeclareDefault(c, p.floatValue));
+                int defaultIndex = p.controls.FindIndex(c => c.type != ShaderFXParameterType.Bool && CanDeclareDefault(c, p));
+                if (defaultIndex < 0) defaultIndex = p.controls.FindIndex(c => CanDeclareDefault(c, p));
                 if (defaultIndex < 0)
                     throw new FormatException("No control can represent the current preset default for " + p.name + ".");
                 for (int i = 0; i < p.controls.Count; i++)
@@ -38,6 +38,7 @@ namespace DCFApixels.WhimTex
                     var row = p.Copy(); row.type = control.type;
                     row.hasMinimum = control.hasMinimum; row.hasMaximum = control.hasMaximum;
                     row.softMinimum = control.softMinimum; row.softMaximum = control.softMaximum;
+                    row.cyclicRange = control.cyclicRange;
                     row.minimum = control.minimum; row.maximum = control.maximum;
                     string declaration;
                     if (control.type == ShaderFXParameterType.Enum)
@@ -47,10 +48,11 @@ namespace DCFApixels.WhimTex
                         declaration = "// @param enum " + p.name + " = " + Number(p.floatValue) + " { " + string.Join(", ", options) + " }";
                     }
                     else declaration = Declaration(row);
-                    if (control.hidden || control.seed || !string.IsNullOrWhiteSpace(control.label))
+                    if (control.hidden || control.seed || !string.IsNullOrWhiteSpace(control.label) || !string.IsNullOrEmpty(control.previewFunction))
                     {
                         string modifiers = control.hidden ? "hidden " : string.Empty;
                         if (control.seed) modifiers += "seed ";
+                        if (!string.IsNullOrEmpty(control.previewFunction)) modifiers += "preview(" + ShaderFXPreviewFunction.Declaration(control) + ") ";
                         if (!string.IsNullOrWhiteSpace(control.label))
                             modifiers += "label(\"" + control.label.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\") ";
                         declaration = declaration.Insert("// @param ".Length, modifiers);
@@ -66,33 +68,48 @@ namespace DCFApixels.WhimTex
                     rows.Add((control.order, declaration, control));
                 }
             }
+            foreach (var preview in previews)
+            {
+                string text = "// @preview(" + ShaderFXPreviewFunction.Declaration(preview) + ")";
+                if (preview.helpBoxes != null && preview.helpBoxes.Length > 0)
+                    text = "// @helpbox(" + string.Join(")\n// @helpbox(", preview.helpBoxes) + ")\n" + text;
+                if (preview.headers != null && preview.headers.Length > 0)
+                    text = "// @header(" + string.Join(")\n// @header(", preview.headers) + ")\n" + text;
+                rows.Add((preview.order, text, preview));
+            }
             rows.Sort((a, b) => a.order.CompareTo(b.order));
-            int activeGroupId = -1;
+            var activeContainers = Array.Empty<ShaderFXLayoutContainer>();
             foreach (var row in rows)
             {
-                int groupId = row.control.inGroup ? row.control.groupId : -1;
-                if (groupId != activeGroupId)
+                var path = row.control.containers ?? Array.Empty<ShaderFXLayoutContainer>();
+                int shared = 0;
+                while (shared < activeContainers.Length && shared < path.Length && activeContainers[shared].Equals(path[shared])) shared++;
+                for (int i = activeContainers.Length - 1; i >= shared; i--)
+                    result.AppendLine("// @end" + activeContainers[i].kind.ToString().ToLowerInvariant());
+                for (int i = shared; i < path.Length; i++)
                 {
-                    if (activeGroupId >= 0) result.AppendLine("// @endgroup");
-                    if (groupId >= 0)
-                    {
-                        var control = row.control;
-                        string arguments = control.groupTitle ?? string.Empty;
-                        if (!string.IsNullOrEmpty(control.groupHeaderParameter))
-                            arguments += "; " + control.groupHeaderParameter;
-                        result.AppendLine(string.IsNullOrEmpty(arguments) ? "// @group" : "// @group(" + arguments + ")");
-                    }
-                    activeGroupId = groupId;
+                    var container = path[i];
+                    string arguments = container.title ?? string.Empty;
+                    if (!string.IsNullOrEmpty(container.headerParameter)) arguments += "; " + container.headerParameter;
+                    string directive = "// @" + container.kind.ToString().ToLowerInvariant();
+                    result.AppendLine(string.IsNullOrEmpty(arguments) ? directive : directive + "(" + arguments + ")");
                 }
+                activeContainers = path;
                 if (!string.IsNullOrEmpty(row.control.visibleIfParameter))
                 {
                     string op = row.control.visibleIfNotEqual ? "!=" : "==";
                     result.AppendLine("// @if " + row.control.visibleIfParameter + " " + op + " " + Number(row.control.visibleIfValue));
                 }
+                if (row.control.enableIf != null)
+                    foreach (var condition in row.control.enableIf)
+                        result.AppendLine("// @enableif " + condition.parameter + " " + (condition.notEqual ? "!=" : "==") + " " + Number(condition.value));
                 result.AppendLine(row.text);
+                if (row.control.enableIf != null)
+                    for (int i = row.control.enableIf.Length - 1; i >= 0; i--) result.AppendLine("// @endenableif");
                 if (!string.IsNullOrEmpty(row.control.visibleIfParameter)) result.AppendLine("// @endif");
             }
-            if (activeGroupId >= 0) result.AppendLine("// @endgroup");
+            for (int i = activeContainers.Length - 1; i >= 0; i--)
+                result.AppendLine("// @end" + activeContainers[i].kind.ToString().ToLowerInvariant());
             result.AppendLine();
             using var reader = new StringReader(code ?? "");
             bool block = false;
@@ -102,7 +119,7 @@ namespace DCFApixels.WhimTex
             while ((line = reader.ReadLine()) != null)
             {
                 lineNumber++;
-                bool metadata = !block && ((lineNumber == 1 && Regex.IsMatch(line.TrimStart('\uFEFF'), @"^//\s*@" + Regex.Escape(marker) + @"\s+")) || Regex.IsMatch(line.TrimStart('\uFEFF'), @"^\s*//\s*@(?:control\b|param\b|\s*(?:header|helpbox|group|endgroup)\b|if\b|endif\b)"));
+                bool metadata = !block && ((lineNumber == 1 && Regex.IsMatch(line.TrimStart('\uFEFF'), @"^//\s*@" + Regex.Escape(marker) + @"\s+")) || Regex.IsMatch(line.TrimStart('\uFEFF'), @"^\s*//\s*@(?:control\b|param\b|preview\b|\s*(?:header|helpbox|group|endgroup|foldout|endfoldout|tabs|endtabs|tab|endtab)\b|if\b|endif\b|enableif\b|endenableif\b)"));
                 ShaderFXSourceBuilder.MaskComments(line, ref block);
                 if (!metadata) body.AppendLine(line);
             }
@@ -114,8 +131,11 @@ namespace DCFApixels.WhimTex
             return source;
         }
 
-        private static bool CanDeclareDefault(ShaderFXParameterControl control, float value)
+        private static bool CanDeclareDefault(ShaderFXParameterControl control, ShaderFXParameter parameter)
         {
+            float value = parameter.floatValue;
+            if (control.type == ShaderFXParameterType.Vector2 && control.hasMinimum && control.hasMaximum)
+                return ShaderFXParameter.IsValidInterval(parameter.vectorValue, control.minimum, control.maximum, control.cyclicRange);
             if (control.type == ShaderFXParameterType.Bool) return value == 0f || value == 1f;
             if (control.type != ShaderFXParameterType.Float) return true;
             return !(control.hasMinimum && !control.softMinimum && value < control.minimum ||
@@ -153,7 +173,7 @@ namespace DCFApixels.WhimTex
                 case ShaderFXParameterType.Float:
                 case ShaderFXParameterType.Enum:
                     return prefix + "float " + p.name + " = " + Number(p.floatValue) +
-                        (p.hasMinimum || p.hasMaximum ? " [" + (p.softMinimum ? "~" : "") + (p.hasMinimum ? Number(p.minimum) : "") + " .. " + (p.softMaximum ? "~" : "") + (p.hasMaximum ? Number(p.maximum) : "") + "]" : "");
+                        (p.hasMinimum || p.hasMaximum ? " [" + (p.softMinimum ? "~" : "") + (p.hasMinimum ? Number(p.minimum) : "") + (p.cyclicRange ? " % " : " .. ") + (p.softMaximum ? "~" : "") + (p.hasMaximum ? Number(p.maximum) : "") + "]" : "");
                 case ShaderFXParameterType.Color:
                     var c = p.colorValue;
                     return prefix + "color " + p.name + " = (" + Number(c.r) + ", " + Number(c.g) + ", " + Number(c.b) + ", " + Number(c.a) + ")";
@@ -163,7 +183,8 @@ namespace DCFApixels.WhimTex
                 case ShaderFXParameterType.Normal:
                     var n = p.type == ShaderFXParameterType.Normal ? (UnityEngine.Vector4)ShaderFXParameter.NormalizeNormal(p.vectorValue) : p.vectorValue;
                     string kind = p.type == ShaderFXParameterType.Normal ? "normal" : p.type == ShaderFXParameterType.Point ? "point" : p.type == ShaderFXParameterType.Vector2 ? "float2" : "float3";
-                    return prefix + kind + " " + p.name + " = (" + Number(n.x) + ", " + Number(n.y) + (p.type == ShaderFXParameterType.Vector2 || p.type == ShaderFXParameterType.Point ? "" : ", " + Number(n.z)) + ")";
+                    return prefix + kind + " " + p.name + " = (" + Number(n.x) + ", " + Number(n.y) + (p.type == ShaderFXParameterType.Vector2 || p.type == ShaderFXParameterType.Point ? "" : ", " + Number(n.z)) + ")" +
+                        (p.IsInterval ? " [" + Number(p.minimum) + (p.cyclicRange ? " % " : " .. ") + Number(p.maximum) + "]" : "");
                 case ShaderFXParameterType.Vector:
                     var v = p.vectorValue;
                     return prefix + "float4 " + p.name + " = (" + Number(v.x) + ", " + Number(v.y) + ", " + Number(v.z) + ", " + Number(v.w) + ")";

@@ -6,6 +6,54 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Normal Map/Lighting adds optional Specular with color, independent intensity, Roughness and a Specular Only output. It defaults off, preserving the original lighting; the orthographic highlight follows Light Direction and retains input coverage and HDR intensity.
+
+- `WHIMTEX_DEEP_DEBUG` adds a read-only RGBA curve graph below the gradient editor strip, with independent channel toggles, signed/HDR range and exact Fixed-mode jumps. Graph sampling is cached and excluded from ordinary builds.
+
+- Distortion/Height to Distortion generates unnormalized height-gradient maps with Signed RG and Packed RG outputs, Scharr/Sobel/central differences, radius, channel, edge and axis controls. Both outputs work with Displacement Map using the documented neutral/strength settings; signed and steep vectors remain available in HDR.
+
+- Unity 6000.7+ FX Code subtly highlights the focused caret row and its line number, following scrolling without obscuring native text selection or changing editing/Undo behavior.
+
+- Unity 6000.7+ FX Code shows native-positioned line numbers in a fixed left gutter: vertical scrolling follows text, horizontal scrolling leaves numbers in place. Empty/trailing lines, CRLF, external draft updates and Undo/Redo stay synchronized; only visible numbers are drawn, with UI & Input profiling.
+
+- FX Code keeps long lines unwrapped and shows a native horizontal scrollbar on overflow, alongside vertical scrolling.
+
+- Unity 6000.7+ inline FX code highlights HLSL and WhimTex metadata through native glyph postprocessing, without rich-text markup, source rewrites or a text-generator change. Token caching skips unchanged contents; viewport coloring refreshes newly visible lines on scroll. Caret, selection and Undo/Redo remain native. UI & Input profiling separates draft changes, atomic edits, tokenization and glyph coloring.
+
+- FX code auto-indents Enter using the current leading whitespace plus one level after `{`; existing brace pairs split around an indented interior line. Leading `}` aligns with its matching opener, ignoring braces in comments/quoted strings. Selection replacement, line endings and Undo/Redo are preserved.
+
+- The FX code field uses four-space soft tabs: Tab advances to the next tab stop or indents selected lines, and Shift+Tab outdents them without leaving the field. Each action supports Undo/Redo with caret/selection restoration; new ApplyFX bodies use the same indentation rule.
+
+- Gradient's toolbar button offers Linear, Radial, Angular, Square and Freeform subtypes through the shared hold/drag picker. Distinct gradient icons show the selected type and stay synchronized with the header. Freeform has a matching three-spot cursor; dragging previews and creates three triangular points sampled from the current palette, preserving HDR/alpha, then immediately opens point editing. Drag previews show all three point colors. Gradient layer Properties and the tool header use a shared single-selection icon row instead of type dropdowns, with larger glyphs sized to match other text and transform actions. Shape/Vector fill and stroke selectors use the same icons, with matching Solid and None squares; the shared text fill selector retains its supported types.
+- Angular gradient creation uses the drag only for its center and direction, retaining the creation guide while restoring a canvas-sized square on release. Drag length no longer changes its scale.
+- Angular is the consistent gradient type name in layer settings, figure/text fills and strokes, canvas handles and JSON/agent contracts. Native type IDs and stored angle/repetition/wrapping fields are unchanged.
+
+- Editable Shader Inputs fragments highlight individually and show a hand cursor on hover without tooltips. Linked sources show an Embed Copy hint rather than implying that their read-only code can be edited.
+
+- Shader Inputs highlighted code supports double-click insertion at the remembered code caret or selection, including texture-reading snippets. Full ApplyFX declarations replace only the function header, preserving its body and argument names. Editing retains code focus and supports Undo/Redo without compiling automatically.
+
+- FX Code shows the compiled shader's Pixel Local status above the code text area, distinguishing changed drafts and unavailable shaders. Shader Inputs uses separated sections, bulleted declarations and highlighted identifiers. The code-compilation button is now Compile; Apply and Apply All retain their pixel-baking behavior.
+
+- HLSL FX accept color-only, immutable `PinnedUV` and spatial `float2` ApplyFX signatures. `SampleInput` and `SampleTexture` are the primary image-reading helpers, including Texture/Layer/Self/None masks. Pinned coordinates reject writes, arithmetic and numeric conversions; detected low-level bypass reads or derivatives retain compilation but prevent pixel-local confirmation. Public `ShaderFX.IsPixelLocal` and `Layer.AreActiveFxPixelLocal()` expose the applied contract.
+- Thirteen built-in FX now declare their pixel-local behavior without changing calculations: eleven color-only presets plus Posterize and Normal Lighting using `PinnedUV`. New inline FX use a color-only template; spatial presets retain `float2`.
+- Pixel-local classification accepts `SampleTexture(_MainTex, uv)` with `PinnedUV` and texture-size metadata instead of treating the sampler name itself as a bypass. Direct sampling, including mixed helper/direct reads, remains unconfirmed; Shader Inputs explains the distinction.
+
+- Gradient layers offer Freeform color points with direct canvas creation and dragging, per-point HDR color, opacity and influence, and a draggable influence guide. Point edits support Undo/Redo, TIFF/JSON storage and the shared agent API; zoomed previews evaluate the visible region at its requested resolution.
+- Shape and Vector fills/strokes, including Boolean Group styles, support independent Freeform points with the shared canvas handles and inspector. HDR, Undo/Redo, native TIFF/JSON, Shape-to-Vector conversion and agent editing retain the point fields; Text remains unchanged.
+- Individual HLSL tab headers share group-header Copy/Paste/Reset actions for their full page, including hidden, disabled and nested values, with batch Undo. `@tab(Title; _Enabled)` adds an independent bool checkbox before the tab label without switching pages or duplicating its body field; preset export, saved layout and the external HLSL validator retain the binding.
+- HLSL `@enableif` / `@endenableif` conditions keep inspector controls visible but unavailable, independently of `@if` visibility. Nested availability conditions use AND and retain values, previews and preset/JSON metadata. HSV shows disabled Range settings instead of hiding them.
+- HSV presents Master and Range 1–4 as separate tabs without an overall heading or nested parameter groups. Each Range has an Enabled checkbox before its tab label; Saturation Selection and Output remain shared below the tabs.
+- HLSL inspector metadata adds collapsible `@foldout(Title; _Parameter)` sections and window-style `@tabs` / `@tab(Title)` pages alongside existing groups. Tabs may have an optional shared heading; linked header controls remain independent from navigation. Inspector choices are remembered locally without changing shader values, and preset export retains the layout.
+- FX previews support explicit ordered `@param` bindings with `preview(Function, _A, _B)` and standalone `@preview(...)`, with exact UV-first signature checks. Function-only declarations retain their existing behavior. HSV reuses shared explicitly bound functions for its master, range selection and correction previews.
+- HLSL `[min % max]` ranges support cyclic float2 intervals with wrapping handles, whole-range dragging and inline previews. HSV hue tracks show one 0°–360° turn. Scalar float uses ordinary slider dragging but repeats out-of-range numeric entry instead of clamping it.
+
+- Bounded HLSL `float2` parameters use a native MinMaxSlider with synchronized X/Y endpoints and inline shader previews. HSV uses hue and saturation-selection intervals instead of separate Center/Width and cutoff/feather controls, without compatibility aliases or migration.
+
+- FX HLSL supports standalone `@preview(Function)` images and inline `preview(Function)` controls: Slider track backgrounds and compact right-side previews for other fields. Typed optional values leave real FX parameters unchanged. HSV includes reference-color and range-selection slider previews.
+- Shaders can share a globally bound, in-memory float Hue lookup. FX and HLSL brushes expose `WhimTexHue` and `WhimTexHueLinear`; HSV inspector previews reuse it without changing image-processing formulas.
+- FX preview sliders use compact outlined triangular markers and fixed track heights. Preview surfaces share source expansion, matching compiled callbacks, parameter fingerprints and parameter preparation; unchanged surfaces skip redraws, and all shared graphics resources are released with the inspector.
+- FX inspector previews refresh on parameter changes and Undo/Redo at the next Editor update, coalescing rapid edits and drawing each surface at most once per update. The 100 ms poll remains a fallback rather than delaying interactive edits.
+
 - Text-to-Vector conversion retains Character gradient fill as independent glyph layers inside an isolated group. The group preserves the original transform, layer identity and FX, including their local coordinate frame; clipped glyphs retain their original paint frame. Nested Boolean operands, Undo/Redo and layer-limit checks are supported.
 
 - Text supports the shared solid/gradient fill types with Text-wide or per-Character coordinates and canvas gradient handles. Character repeats one style per glyph; selecting a glyph only changes the handle frame. Existing edge modes and cached glyph coverage are preserved. Saved Character appearance retains float/HDR paint when the source font is missing.
@@ -14,7 +62,7 @@ All notable changes to WhimTex are documented in this file.
 
 - Vector layers support Feather with Inside, Outside and Centered transitions along fill and actual stroke/dash boundaries. Width uses local reference pixels and scales with the figure; gradients reuse the prepared coverage. Step retains but ignores Feather, and zero keeps the existing rendering path. Settings are retained by Undo/Redo, JSON, clipboard and native documents.
 
-- Brush/Pencil track distinct source blocks for commit, partial CPU/GPU synchronization and pixel Undo. A session journal keeps exact Half working pixels and stored before/after values outside Unity's full-texture Undo records, while retaining normal Ctrl+Z/Redo order and script-reload continuity. Unsupported storage/copy configurations and other pixel tools keep their existing path; the Half source and straight preview remain full-size.
+- Brush/Pencil track distinct source blocks for commit, partial CPU/GPU synchronization and pixel Undo. A session journal keeps exact Half working pixels and stored before/after values outside Unity's full-texture Undo records, while retaining normal Ctrl+Z/Redo order and script-reload continuity. Unsupported storage/copy configurations and other pixel tools keep their existing path; the Half source remains full-size.
 
 - Polygonal Lasso offers Straight/Smooth contours, with centripetal Catmull–Rom curves through placed points and individually switchable corners via C or Corner. Smooth calculates a closed shape while displaying an open contour during editing; completing it reveals the closing segment without changing the visible curves. Preview, insertion hit testing and the final selection mask share the same sampled geometry. Editor validation is pending; tests were not run for this prototype.
 - Editable Text layers use installed system fonts, with inline canvas editing, Point and Frame layout, wrapping, justification, Auto Size, overflow controls, casing, spacing and horizontal scaling. Font selection includes search and previews; saved raster backups retain the appearance when a font is unavailable.
@@ -24,8 +72,8 @@ All notable changes to WhimTex are documented in this file.
 - Vector Brush fits cubic Bezier contours to a painted mask, with Circle, Square and Diamond tips and a cursor matching the tip, size and canvas view. Left strokes add to the active figure; right strokes erase. Enter or Finish Editing ends the figure so the next stroke creates a new layer; Edit Mask resumes a retained mask from the toolbar or Properties. Shift-drag locks screen-horizontal/vertical lines; Shift-click connects the previous endpoint within that figure. Compact controls and `[` / `]` size shortcuts follow the other brushes. Each figure retains its Original Mask for later Tolerance and Expand adjustments, including after save/reopen; manual node editing or Release Mask discards that source. Mask growth preserves old pixels without resampling and rejects strokes beyond its size limit.
 - Boolean Group combines independently editable Shape, Vector, Text and nested Boolean operands using Union, Subtract, Intersect or Xor with a common fill and stroke. Combine retains separate figures and can use either group or child appearance. Child styling remains stored; child FX, blending, opacity and Mapping are not applied within the geometry group.
 - Shape and Vector share stroke controls with Miter/Round/Bevel joins, Butt/Round/Square caps and Inside/Center/Outside alignment. Dashes have visual presets, a live preview, an always-visible pattern string and synchronized Dash/Gap fields; lengths are multiples of stroke width, and Add Pair copies the preceding pair.
-- Shape, Vector and Boolean Group have independent solid or gradient fills and strokes. Linear, Radial, Square, Diamond and Circular use the shared WhimTex gradient engine and canvas handles; Fill/Stroke selection chooses which gradient to edit without moving the figure.
-- Circular gradient handles support an editable arc, a separate rotation ray, split-color 0%/100% endpoints and a faint circle-completion guide. Ctrl snaps arc edits to integer Repetitions. Gradient layers also have a drag-to-create tool; palettes offer edit-all-colors, reverse and `.grd` preset import.
+- Shape, Vector and Boolean Group have independent solid or gradient fills and strokes. Linear, Radial, Angular, Square and Freeform use the shared WhimTex gradient engine and canvas handles; Fill/Stroke selection chooses which gradient to edit without moving the figure.
+- Angular gradient handles support an editable arc, a separate rotation ray, split-color 0%/100% endpoints and a faint circle-completion guide. Ctrl snaps arc edits to integer Repetitions. Gradient layers also have a drag-to-create tool; palettes offer edit-all-colors, reverse and `.grd` preset import.
 - SDF and Outline add antialiased Sharp, Bevel, Diamond, Square and MTSDF modes alongside the existing Round AA default. MTSDF also offers Multi Channel Data: corner-preserving distances in RGB and true signed contour distance in alpha.
 - Experimental SDF/Outline choices include AAEDT + 8SED, Contour AA, Corner Fit AA, Spring Simulation, RBF Your SDF and RBF Dual Contouring. Applicable sharp modes expose Unrestricted and Guarded Sharp policies; SDF Sharp/MTSDF also offer experimental Contour Merge. These prototypes do not guarantee recovery of detail lost in a low-resolution raster.
 - WhimTex Profiler records editor operations with Unity profiler markers, layer names, nested event trees, duration bars, group filters and sortable summaries. Resizable sections, automatic result updates and script-reload restoration retain the capture and viewing state.
@@ -40,13 +88,21 @@ All notable changes to WhimTex are documented in this file.
 - Canvas View gains zoom-adaptive rulers, scrollbars and paired guide creation from the ruler intersection. Transform actions center the pivot or image, flip and rotate selected layers around the shared pivot.
 - Named shader parameter groups offer header-only Copy/Paste/Reset menus, with Reset separated by a line. Compatible groups can share values, including hidden fields and linked header controls; Paste and Reset support batch Undo.
 - FX block menus offer Reset to restore declared parameter defaults without changing code, the preset link or enabled state.
-- Color/Selective HSV is a separate FX with whole-image Master controls, four feathered hue overrides, saturation protection and source range-mask outputs. Neutral ranges can preserve selected colors while Master desaturates the rest.
+- Color/Hue & Saturation replaces HSV, with whole-image Master controls, four feathered hue overrides and source range-mask outputs. Saturation scales distance from weighted gray instead of HSV S; Lightness replaces Value with -100…100 darkening/lightening and neutral 0. Source Saturation (HSV) retains the original selection metric. Master opens first, all Ranges start disabled, and the no-range fast path is retained. Slider previews share the correction math. The source GUID is retained; Value parameters are not aliased to Lightness.
 - The seed modifier adds bounded integer Random actions to numeric FX/brush parameters, with Undo, preset export and agent randomizeSeeds support.
 - Noise adds Curl, Gradient Vector and Cell Direction fields with packed/signed vector output, Normalize and Strength. Applicable fields share Fractal and Domain Warp controls; Warp has an independent Seed and a Z scale multiplier in 3D. Layer controls, JSON and agent APIs expose the same settings.
 - Levels adds separate RGB, R, G, B and Alpha curves. Threshold offers Luminance/R/G/B/Alpha source selection and Transition Width; Halftone's Fixed Shape samples one source color per rotated cell.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- Unified gradient types across layers, figure fills/strokes, creation tools and agent contracts: Linear replaces separate horizontal/vertical types; Square remains and Diamond is removed. Retired gradient names are rejected without migration; portable JSON always writes an explicit gradient type. The canvas cursor distinguishes all five creation subtypes.
+
+- HLSL FX reuse parameter matching and shader property IDs, fingerprint mutable render data without routine JSON serialization, and reuse bounded texture-input binding storage. Direct edits, applied-value fallbacks, Undo/Redo, texture dimensions and FX rendering order are preserved.
+
+- Layer FX use only document-owned HLSL `ShaderFX` instances with independent values and enabled state (`Layer.fx` is now `List<ShaderFX>`). Marked project/package `.hlsl` presets stay linked to their source; user-library presets keep embedded snapshots, and inline HLSL remains supported. Reference FX, external Material/Shader/ShaderFX `.asset` fields, shared-asset editing and the external ShaderFX asset card's Embed Copy action, the Material render branch, `.asset` catalog entries and ShaderFX asset creation are removed. **Code → Embed Copy** for a linked `.hlsl` remains: detach the source and edit code in the document while keeping values. Internal Unity Materials and Shader compilation remain execution resources.
+
+- Canvas View adapts rendering to zoom and the visible area, retaining source-pixel detail when zoomed in without recomposing an entire 8K canvas. Pan, rotation and painting quality share the region path; idle Drawing avoids a full-size straight-color conversion. Active Brush/Pencil previews also cache only the visible output, resolving native source/stroke texels and soft masks before filtering, including atlas borders; dirty footprints update incrementally. FX chains choose regional or complete input per layer, while full-frame-only preview modes retain complete rendering. Save/export, thumbnails and Live Update remain complete images.
 
 - Paint-history transfers overlap the next GPU read with FIFO CPU processing. Raw row capture/patch uses Burst, and supported devices pack transfer pages vertically so full tiles feed the codec directly. Dense-stroke pauses are reduced while preserving Half/HDR pixels, masks and Undo order; bounded queues can still cause waits. One extra ready native page uses up to 24 MiB, with existing GPU staging and writer limits retained.
 
@@ -92,6 +148,25 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- A physical Enter followed by a separate translated CR/LF character no longer inserts a second unindented newline in FX code. Key repeats and standalone newline input keep working.
+
+- Shader Inputs double-click actions use Unity's ClickEvent detector rather than unreliable mouse-up click counts, preserving insertion and signature replacement with ordinary pointer events.
+
+- The Gradient creation tool gives every type a square transform in canvas pixels. Switching a newly created Linear gradient to Radial now produces a circle instead of inheriting the canvas height.
+- Bounded MinMax preview sliders keep both half-triangle handles visible and pickable at their limits, including full and empty ranges. Preview-only containers no longer clip the handles; small endpoint gutters prevent overlap with the unchanged numeric fields.
+
+- Profiler GPU collection rejects zero/negative native timestamps and multiple populated recorder samples instead of accepting a zero-cost or first-frame duration. Unavailable results retain a diagnostic and retire their marker identity; rendering behavior is unchanged.
+- Profiler GPU collection continues with Graphics Jobs, but returned durations and derived GPU comparisons are explicitly unconfirmed. Yellow numeric backgrounds and tooltips distinguish them without repeating labels; the window shows the actual Graphics Jobs state and recommends restarting with it disabled for supported comparisons. Capture, baseline, reload and agent/export data retain the recorded mode and confidence; project settings are not changed by the profiler.
+- Synchronous WhimTex pixel readbacks invalidate pending GPU intervals rather than admitting truncated positive timestamps. Open scopes retain balanced marker ends; completed GPU values and CPU wall timings remain available. Rendering/readback behavior is unchanged.
+
+- Cyclic Range handles stop at zero width when narrowing and at a full circle when widening, retaining their meeting angle instead of resetting to the track limits. Full-cycle anchors survive refresh, preset export and Undo/Redo. Reversing after either stop responds immediately; both half-markers remain visible at the edges and when endpoints coincide.
+
+- FX Slider and ordinary/cyclic Range numeric inputs use the standard fixed 50-pixel width and native spacing, rather than wider or content-sized fields.
+
+- Canvas View now selects regional/full-input rendering per layer and FX chain. HSV keeps native zoom detail alongside text; spatial FX preserve complete branch input without reducing the entire canvas to 512 px. View-aware caches, live-stroke cache bypass and generated-wrapper refresh preserve detail after script reload. Masks/HDR and render consumers are covered by regression tests and automatic 8K brush traces.
+
+- FX preview sliders align their track endpoints and numeric inputs across hard and soft ranges. Hue no longer has a longer track than neighboring Saturation/Value controls; long numeric values and inspector resizing retain column alignment.
+
 - Completed paint-history writes release their worst-case disk reservation immediately. Rapid heavy strokes no longer keep charging already compressed pages as raw data and trigger premature synchronous history retirement. Background GPU transfers continue while Canvas View is idle.
 
 - Buffered Brush/Pencil preview refreshes only source blocks changed since its previous display, preserving Half precision, selection, blend and HDR. Inputs without new paint retain spacing/pressure progression without requesting a redundant canvas composition. The straight preview target is retained for the stroke and released on commit/cancel; FX processing is unchanged.
@@ -108,6 +183,7 @@ All notable changes to WhimTex are documented in this file.
 
 ### Upgrade notes
 
+- Breaking: old external Material, Shader or ShaderFX `.asset` FX references in JSON/TIFF are explicitly rejected, including unresolved references. There is no migration, silent omission or document rewrite. Keep originals and use a matching older checkout; marked HLSL source links and texture parameter references remain supported.
 - This is unreleased development after 0.13.0, without a backward-compatibility guarantee for that release's documents, presets, public APIs or user settings. Keep originals and use a matching older checkout for unsupported files; do not overwrite them assuming an automatic migration.
 - Current document JSON, TIFF container and tagged model formats use version 2. Previous document versions and retired names such as `swizzle` and `modifiers` are unsupported; use `channelMapping` and `fx`. The shared version number is not a compatibility promise between development revisions. Update integrations for the renamed document/window types and `grainColor`/`grainSize` settings; see the [current JSON contract](Documentation~/JSON_FORMAT.md).
 - Former non-antialiased SDF choices are replaced by the current mode set. Round AA remains the default algorithm; Corner Mode defaults to Unrestricted on Sharp, MTSDF, Corner Fit, Spring and both RBF modes. Choose Guarded Sharp for the additional artifact checks, and review experimental output on the intended source and resolution. MTSDF Multi Channel Data uses alpha as distance, not transparency: use Overwrite blending and linear RGBA export when preserving its channels. See the [output and encoding rules](Documentation~/en/effects.md#outline-and-sdf).

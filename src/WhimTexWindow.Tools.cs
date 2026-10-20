@@ -311,7 +311,9 @@ namespace DCFApixels.WhimTex
             toolbar.Add(canvasHealingButton);
             toolbar.Add(canvasFillButton);
             canvasGradientButton = CreateCanvasToolButton("gradientTool", CanvasTool.Gradient,
-                "Gradient. Drag to create an editable Gradient layer. Shift constrains the angle; Ctrl disables snapping; Escape cancels. Gradient Handles edits an existing gradient.");
+                GetGradientCreationToolTooltip());
+            gradientPicker = new GradientPickerManipulator(this);
+            canvasGradientButton.AddManipulator(gradientPicker);
             toolbar.Add(canvasGradientButton);
             canvasZoomButton = CreateCanvasToolButton("zoomTool", CanvasTool.Zoom,
                 "Zoom (Z). Click to zoom in, drag a rectangle to frame an area, or Alt-click to zoom out. MMB-drag pans the canvas.");
@@ -357,6 +359,8 @@ namespace DCFApixels.WhimTex
                 button.Add(marqueeToolIcon = new CanvasToolIcon(tool, marqueeShape == MarqueeShape.Ellipse));
             else if (tool == CanvasTool.Crop)
                 button.Add(cropToolIcon = new CanvasToolIcon(tool, cropMode: canvasCropMode));
+            else if (tool == CanvasTool.Gradient)
+                button.Add(gradientCreationToolIcon = new CanvasToolIcon(tool, gradientType: gradientCreationSettings?.type ?? GradientCreationType.Linear));
             else if (tool == CanvasTool.Comment)
                 button.Add(commentToolIcon = new CanvasToolIcon(tool));
             else if (tool == CanvasTool.PolygonSelect)
@@ -367,7 +371,7 @@ namespace DCFApixels.WhimTex
             }
             else
                 button.Add(new CanvasToolIcon(tool));
-            if (tool == CanvasTool.Shape || tool == CanvasTool.RectangleSelect || tool == CanvasTool.Crop || tool == CanvasTool.PolygonSelect)
+            if (tool == CanvasTool.Shape || tool == CanvasTool.RectangleSelect || tool == CanvasTool.Crop || tool == CanvasTool.PolygonSelect || tool == CanvasTool.Gradient)
                 button.Add(new ToolDropdownMarker());
             return button;
         }
@@ -402,6 +406,8 @@ namespace DCFApixels.WhimTex
             CanvasTool displayedTool = canvasTool;
             Layer selected = hasLayers ? GetSelectedLayer() : null;
             shapeToolIcon?.SetKind(shapeToolSettings?.kind ?? ShapeLayerBehaviour.ShapeKind.Rectangle);
+            gradientCreationToolIcon?.SetGradientType(gradientCreationSettings?.type ?? GradientCreationType.Linear);
+            if (canvasGradientButton != null) canvasGradientButton.tooltip = GetGradientCreationToolTooltip();
             marqueeToolIcon?.SetEllipse(marqueeShape == MarqueeShape.Ellipse);
             cropToolIcon?.SetCropMode(canvasCropMode);
             if (canvasCropButton != null) canvasCropButton.tooltip = GetCanvasCropToolTooltip();
@@ -469,6 +475,9 @@ namespace DCFApixels.WhimTex
             private bool hasComments;
             private bool hasReviewComments;
             private CanvasCropMode cropMode;
+            private GradientCreationType gradientType;
+            private readonly bool largeGradient;
+            private readonly VectorFillMode? flatFill;
             private readonly Image healingVectorImage;
             private readonly Image fillVectorImage;
             private Vector2 healingVectorOffset;
@@ -476,11 +485,15 @@ namespace DCFApixels.WhimTex
             private Vector2 fillVectorOffset;
             private bool hasFillVectorOffset;
 
-            internal CanvasToolIcon(CanvasTool tool, bool ellipse = false, CanvasCropMode cropMode = CanvasCropMode.Resize)
+            internal CanvasToolIcon(CanvasTool tool, bool ellipse = false, CanvasCropMode cropMode = CanvasCropMode.Resize,
+                GradientCreationType gradientType = GradientCreationType.Linear, bool largeGradient = false, VectorFillMode? flatFill = null)
             {
                 this.tool = tool;
                 this.ellipse = ellipse;
                 this.cropMode = cropMode;
+                this.gradientType = gradientType;
+                this.largeGradient = largeGradient;
+                this.flatFill = flatFill;
                 pickingMode = PickingMode.Ignore;
                 AddToClassList("whimtex-tool-icon");
                 generateVisualContent += Draw;
@@ -581,6 +594,13 @@ namespace DCFApixels.WhimTex
                 MarkDirtyRepaint();
             }
 
+            internal void SetGradientType(GradientCreationType value)
+            {
+                if (gradientType == value) return;
+                gradientType = value;
+                MarkDirtyRepaint();
+            }
+
             internal void SetCommentsState(bool value, bool review)
             {
                 if (hasComments == value && hasReviewComments == review) return;
@@ -623,7 +643,7 @@ namespace DCFApixels.WhimTex
                 else if (tool == CanvasTool.Fill)
                     DrawBucket(painter);
                 else if (tool == CanvasTool.Gradient)
-                    DrawGradient(painter);
+                    DrawGradient(context);
                 else if (tool == CanvasTool.Zoom)
                     DrawMagnifier(painter);
                 else if (tool == CanvasTool.Pencil)
@@ -749,13 +769,15 @@ namespace DCFApixels.WhimTex
                 painter.Fill();
             }
 
-            private void DrawGradient(Painter2D painter)
+            private void DrawGradient(MeshGenerationContext context)
             {
+                var painter = context.painter2D;
                 Color tint = resolvedStyle.color;
                 float pixelsPerPoint = EditorGUIUtility.pixelsPerPoint;
                 Vector2 halfStroke = Vector2.one * (painter.lineWidth * .5f);
-                Vector2 pixelMin = this.LocalToWorld(P(4, 6) - halfStroke) * pixelsPerPoint;
-                Vector2 pixelMax = this.LocalToWorld(P(20, 19) + halfStroke) * pixelsPerPoint;
+                float inset = largeGradient ? 2 : 4;
+                Vector2 pixelMin = this.LocalToWorld(P(inset, inset) - halfStroke) * pixelsPerPoint;
+                Vector2 pixelMax = this.LocalToWorld(P(24 - inset, 24 - inset) + halfStroke) * pixelsPerPoint;
                 pixelMin = new Vector2(Mathf.Round(pixelMin.x), Mathf.Round(pixelMin.y));
                 pixelMax = new Vector2(Mathf.Round(pixelMax.x), Mathf.Round(pixelMax.y));
                 Vector2 outerMin = this.WorldToLocal(pixelMin / pixelsPerPoint);
@@ -766,16 +788,76 @@ namespace DCFApixels.WhimTex
                 painter.fillColor = tint;
                 painter.BeginPath();
                 TraceRectangle(painter, outerMin, outerMax);
+                if (flatFill == VectorFillMode.Solid) { painter.Fill(); return; }
                 TraceRectangle(painter, innerMin, innerMax);
                 painter.Fill(FillRule.OddEven);
+                if (flatFill == VectorFillMode.None)
+                {
+                    painter.strokeColor = tint;
+                    painter.lineWidth = 1.5f / pixelsPerPoint;
+                    painter.BeginPath();
+                    painter.MoveTo(new Vector2(innerMin.x, innerMax.y));
+                    painter.LineTo(new Vector2(innerMax.x, innerMin.y));
+                    painter.Stroke();
+                    return;
+                }
 
-                painter.fillColor = Color.white;
-                painter.fillGradient = FillGradient.MakeLinearGradient(
-                    new Color(.95f, .95f, .95f, tint.a), new Color(.1f, .1f, .1f, tint.a),
-                    innerMin, new Vector2(innerMax.x, innerMin.y), AddressMode.Clamp);
+                Color light = new Color(.95f, .95f, .95f, tint.a), dark = new Color(.1f, .1f, .1f, tint.a);
+                Vector2 center = (innerMin + innerMax) * .5f, extent = (innerMax - innerMin) * .5f;
+                bool linear = gradientType == GradientCreationType.Linear;
+                bool radial = gradientType == GradientCreationType.Radial;
+                painter.fillColor = linear || radial ? Color.white : dark;
+                if (linear)
+                    painter.fillGradient = FillGradient.MakeLinearGradient(light, dark, innerMin, new Vector2(innerMax.x, innerMin.y), AddressMode.Clamp);
+                else if (radial)
+                    painter.fillGradient = FillGradient.MakeRadialGradient(light, dark, center, extent.x, center, AddressMode.Clamp);
                 painter.BeginPath();
                 TraceRectangle(painter, innerMin, innerMax);
                 painter.Fill();
+                if (linear || radial) return;
+                if (gradientType == GradientCreationType.Freeform)
+                {
+                    const int steps = 16, stride = steps + 1;
+                    var field = context.Allocate(stride * stride, steps * steps * 6);
+                    for (int y = 0; y <= steps; y++) for (int x = 0; x <= steps; x++)
+                    {
+                        Vector2 uv = new Vector2(x / (float)steps, y / (float)steps);
+                        float distance = Mathf.Min(Vector2.Distance(uv, new Vector2(.22f, .72f)),
+                            Mathf.Min(Vector2.Distance(uv, new Vector2(.78f, .72f)), Vector2.Distance(uv, new Vector2(.5f, .22f))));
+                        Vector2 position = innerMin + Vector2.Scale(uv, innerMax - innerMin);
+                        field.SetNextVertex(new Vertex { position = new Vector3(position.x, position.y, Vertex.nearZ),
+                            tint = Color.Lerp(light, dark, Mathf.SmoothStep(0, 1, distance / .4f)) });
+                    }
+                    for (int y = 0; y < steps; y++) for (int x = 0; x < steps; x++)
+                    {
+                        int i = y * stride + x;
+                        field.SetNextIndex((ushort)i); field.SetNextIndex((ushort)(i + 1)); field.SetNextIndex((ushort)(i + stride));
+                        field.SetNextIndex((ushort)(i + 1)); field.SetNextIndex((ushort)(i + stride + 1)); field.SetNextIndex((ushort)(i + stride));
+                    }
+                    return;
+                }
+
+                bool angular = gradientType == GradientCreationType.Angular;
+                int segments = angular ? 64 : 4;
+                var mesh = context.Allocate(segments * 3, segments * 3);
+                for (int i = 0; i < segments; i++)
+                {
+                    Vector2 Edge(int step)
+                    {
+                        float angle = step * Mathf.PI * 2f / segments + (gradientType == GradientCreationType.Square ? Mathf.PI * .25f : 0f);
+                        Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                        direction /= Mathf.Max(Mathf.Abs(direction.x), Mathf.Abs(direction.y));
+                        return center + Vector2.Scale(direction, extent);
+                    }
+                    Color a = angular ? Color.Lerp(light, dark, i / (float)segments) : dark;
+                    Color b = angular ? Color.Lerp(light, dark, (i + 1f) / segments) : dark;
+                    void VertexAt(Vector2 position, Color color) => mesh.SetNextVertex(new Vertex
+                    { position = new Vector3(position.x, position.y, Vertex.nearZ), tint = color });
+                    VertexAt(center, angular ? Color.Lerp(a, b, .5f) : light);
+                    VertexAt(Edge(i), a);
+                    VertexAt(Edge(i + 1), b);
+                    mesh.SetNextIndex((ushort)(i * 3)); mesh.SetNextIndex((ushort)(i * 3 + 1)); mesh.SetNextIndex((ushort)(i * 3 + 2));
+                }
             }
 
             private static void TraceRectangle(Painter2D painter, Vector2 min, Vector2 max)

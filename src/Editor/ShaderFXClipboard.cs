@@ -9,8 +9,7 @@ namespace DCFApixels.WhimTex
     internal static class ShaderFXClipboard
     {
         internal static event Action Changed;
-        private static UnityEngine.Object snapshot;
-        private static ShaderFX ownedEffect;
+        private static ShaderFX snapshot;
         private static WeakReference<WhimTexDocument> sourceDocument;
         private static string marker;
         private static uint imageRevision;
@@ -21,7 +20,7 @@ namespace DCFApixels.WhimTex
             EditorApplication.quitting += Clear;
         }
 
-        internal static UnityEngine.Object Current
+        internal static ShaderFX Current
         {
             get
             {
@@ -36,15 +35,10 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        internal static void Copy(WhimTexDocument document, UnityEngine.Object value)
+        internal static void Copy(WhimTexDocument document, ShaderFX value)
         {
-            ShaderFX nextOwned = value is ShaderFX effect ? effect.CloneForClipboard() : null;
-            UnityEngine.Object next = nextOwned != null ? nextOwned : value is Material ? value : null;
-            if (next == null)
-            {
-                if (nextOwned != null) UnityEngine.Object.DestroyImmediate(nextOwned);
-                return;
-            }
+            if (value == null) return;
+            ShaderFX next = value.CloneForClipboard();
 
             string nextMarker = "WhimTex FX: " + Guid.NewGuid().ToString("N");
             try
@@ -53,24 +47,22 @@ namespace DCFApixels.WhimTex
             }
             catch
             {
-                if (nextOwned != null) UnityEngine.Object.DestroyImmediate(nextOwned);
+                if (next != null) UnityEngine.Object.DestroyImmediate(next);
                 throw;
             }
 
             Clear();
             snapshot = next;
-            ownedEffect = nextOwned;
             sourceDocument = document != null ? new WeakReference<WhimTexDocument>(document) : null;
             marker = nextMarker;
             imageRevision = ImageClipboard.Revision;
             Changed?.Invoke();
         }
 
-        internal static UnityEngine.Object CreatePasteValue(WhimTexDocument destination)
+        internal static ShaderFX CreatePasteValue(WhimTexDocument destination)
         {
-            UnityEngine.Object value = Current;
-            if (value is not ShaderFX source)
-                return value;
+            ShaderFX source = Current;
+            if (source == null) return null;
 
             ShaderFX copy = source.CloneForDocument(destination);
             copy.DetachCatalog();
@@ -83,9 +75,8 @@ namespace DCFApixels.WhimTex
 
         internal static void Clear()
         {
-            if (ownedEffect != null) UnityEngine.Object.DestroyImmediate(ownedEffect);
+            if (snapshot != null) UnityEngine.Object.DestroyImmediate(snapshot);
             snapshot = null;
-            ownedEffect = null;
             sourceDocument = null;
             marker = null;
             Changed?.Invoke();

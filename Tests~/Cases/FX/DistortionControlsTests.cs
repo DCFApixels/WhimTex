@@ -104,6 +104,9 @@ public static class DistortionControlsTests
                 string path = (string)entry.GetType().GetField("menuPath", F).GetValue(entry);
                 if (!path.StartsWith("Distortion/", StringComparison.Ordinal)) continue;
                 string name = path.Substring("Distortion/".Length);
+                // This generator outputs a vector field, not the input image warped by it.
+                // Its neutral output and header are covered by height-to-distortion-v1.
+                if (name == "Height to Distortion") continue;
                 t.True(bindings.ContainsKey(name), "Every built-in distortion must declare a tested strength binding: " + name);
                 var fx = Own((ShaderFX)typeof(ShaderFX).GetMethod("FromCatalog", F).Invoke(null, new object[] { doc, entry }));
                 effects.Add(name, fx);
@@ -114,7 +117,7 @@ public static class DistortionControlsTests
                 t.Equal(1, parameter.controls.Count, "Header points to one scalar control");
                 t.Equal(ShaderFXParameterType.Float, parameter.controls[0].type, "Header is a numeric strength control");
                 defaults.Add(name, parameter.floatValue);
-                var header = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { fx, true }, null);
+                var header = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { fx, true, null, null, -1 }, null);
                 try
                 {
                     t.Equal(1, header.Query<FloatField>().ToList().Count, "Actual FX header has one numeric field");
@@ -175,7 +178,7 @@ public static class DistortionControlsTests
             t.Equal(ShaderFXParameterType.Transform2D, inputParameter.type, "Input is a complete source frame");
             t.Equal(ShaderFXTransform.Default, inputParameter.transformValue, "Default input is neutral");
             t.True(P(polar, "_Center") == null, "The provisional point is replaced, not kept as a second source control");
-            var body = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { polar, false }, null);
+            var body = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { polar, false, null, null, -1 }, null);
             try
             {
                 var folds = body.Query<Foldout>().ToList();

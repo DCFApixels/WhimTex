@@ -67,6 +67,7 @@ namespace DCFApixels.WhimTex
     internal sealed class ShaderFXParameterViewSource : ShaderParameterViewSource
     {
         private readonly ShaderFX effect;
+        internal ShaderFX Effect => effect;
         private int undoGroup;
         internal ShaderFXParameterViewSource(ShaderFX effect) => this.effect = effect;
         internal override IReadOnlyList<ShaderFXParameter> Parameters => effect != null ? effect.Parameters : Array.Empty<ShaderFXParameter>();

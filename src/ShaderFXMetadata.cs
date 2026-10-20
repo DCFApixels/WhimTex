@@ -12,11 +12,12 @@ namespace DCFApixels.WhimTex
     internal static class ShaderFXMetadata
     {
         private static readonly Regex Header = new Regex(@"^//\s*@whimtex-effect\s+([^\r\n]+?)\s*$");
-        private static readonly Regex Parameter = new Regex(@"^\s*//\s*@param\s+(float|bool|float2|float3|float4|normal|point|color|texture2D|transform2D|gradient|curve)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^\[\];~]+?))?\s*(?:\[\s*(.*?)\s*\.\.\s*(.*?)\s*\])?\s*$");
-        private static readonly Regex If = new Regex(@"^\s*//\s*@if\s+([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=)\s*([^\s]+)\s*$");
+        private static readonly Regex Parameter = new Regex(@"^\s*//\s*@param\s+(float|bool|float2|float3|float4|normal|point|color|texture2D|transform2D|gradient|curve)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^\[\];~]+?))?\s*(?:\[\s*(.*?)\s*(?<separator>\.\.|%)\s*(.*?)\s*\])?\s*$");
+        private static readonly Regex If = new Regex(@"^\s*//\s*@(?:if|enableif)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=)\s*([^\s]+)\s*$");
         private static readonly Regex EndIf = new Regex(@"^\s*//\s*@endif\s*$");
-        private static readonly Regex GroupStart = new Regex(@"^\s*//\s*@group(?:\s*\((.*)\))?\s*$");
-        private static readonly Regex GroupEnd = new Regex(@"^\s*//\s*@endgroup\s*$");
+        private static readonly Regex EndEnableIf = new Regex(@"^\s*//\s*@endenableif\s*$");
+        private static readonly Regex ContainerStart = new Regex(@"^\s*//\s*@(?<kind>group|foldout|tabs|tab)(?:\s*\((.*)\))?\s*$");
+        private static readonly Regex ContainerEnd = new Regex(@"^\s*//\s*@end(?<kind>group|foldout|tabs|tab)\s*$");
         private static readonly Regex ParameterPrefix = new Regex(@"^\s*//\s*@param\b");
 
         private sealed class GroupDefinition
@@ -27,6 +28,28 @@ namespace DCFApixels.WhimTex
             internal int visibleParameterCount;
             internal string title;
             internal string headerParameter;
+            internal ShaderFXContainerKind kind;
+            internal int tabCount;
+            internal readonly HashSet<string> tabNames = new HashSet<string>(StringComparer.Ordinal);
+            internal ShaderFXLayoutContainer Layout => new ShaderFXLayoutContainer
+                { id = id, kind = kind, title = title, headerParameter = headerParameter };
+        }
+
+        private static ShaderFXLayoutContainer[] ContainerPath(List<GroupDefinition> stack)
+        {
+            if (stack.Count == 0) return Array.Empty<ShaderFXLayoutContainer>();
+            var path = new ShaderFXLayoutContainer[stack.Count];
+            for (int i = 0; i < path.Length; i++) path[i] = stack[i].Layout;
+            return path;
+        }
+
+        private static void CountContainerRow(List<GroupDefinition> stack, bool visible)
+        {
+            foreach (var container in stack)
+            {
+                container.parameterCount++;
+                if (visible) container.visibleParameterCount++;
+            }
         }
 
         internal static bool TryHeader(string firstLine, out string menuPath)
@@ -83,7 +106,12 @@ namespace DCFApixels.WhimTex
         }
 
         internal static List<ShaderFXParameter> Parse(string source, bool requireHeader, out string menuPath)
+            => ParseWithPreviews(source, requireHeader, out menuPath, out _);
+
+        internal static List<ShaderFXParameter> ParseWithPreviews(string source, bool requireHeader, out string menuPath,
+            out List<ShaderFXParameterControl> previews)
         {
+            previews = new List<ShaderFXParameterControl>();
             var result = new List<ShaderFXParameter>();
             var names = new Dictionary<string, ShaderFXParameter>(StringComparer.Ordinal);
             using var reader = new StringReader(source ?? "");
@@ -101,10 +129,12 @@ namespace DCFApixels.WhimTex
             string visibleIfParameter = null;
             bool visibleIfNotEqual = false;
             float visibleIfValue = 0f;
-            int ifLine = 0;
+            var enableConditions = new List<ShaderFXEnableCondition>();
+            var conditionScopes = new List<(bool enable, int line)>();
             var pendingHeaders = new List<string>();
             var pendingHelpBoxes = new List<string>();
             var groups = new List<GroupDefinition>();
+            var containers = new List<GroupDefinition>();
             GroupDefinition activeGroup = null;
             do
             {
@@ -112,44 +142,76 @@ namespace DCFApixels.WhimTex
                 bool declaration = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@param\b");
                 bool sectionHeader = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@\s*header\b");
                 bool helpBox = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@\s*helpbox\b");
-                bool groupStart = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@group\b");
-                bool groupEnd = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@endgroup\b");
+                bool groupStart = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@(?:group|foldout|tabs|tab)\b");
+                bool groupEnd = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@end(?:group|foldout|tabs|tab)\b");
                 bool ifDirective = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@if\b");
                 bool endifDirective = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@endif\b");
+                bool enableifDirective = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@enableif\b");
+                bool endenableifDirective = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@endenableif\b");
+                bool previewDirective = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@preview\b");
                 if (line != null) ShaderFXSourceBuilder.MaskComments(line, ref blockComment);
-                if (ifDirective)
+                if (ifDirective || enableifDirective)
                 {
-                    if (visibleIfParameter != null) throw new FormatException($"Line {lineNumber}: nested @if blocks are not supported.");
+                    if (ifDirective && visibleIfParameter != null) throw new FormatException($"Line {lineNumber}: nested @if blocks are not supported.");
+                    if (conditionScopes.Count >= 16) throw new FormatException($"Line {lineNumber}: at most 16 condition levels are supported.");
+                    string directive = enableifDirective ? "enableif" : "if";
                     Match condition = If.Match(line);
-                    if (!condition.Success || !float.TryParse(condition.Groups[3].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out visibleIfValue) ||
-                        float.IsNaN(visibleIfValue) || float.IsInfinity(visibleIfValue))
-                        throw new FormatException($"Line {lineNumber}: expected // @if _Parameter == number or // @if _Parameter != number.");
-                    visibleIfParameter = condition.Groups[1].Value;
-                    visibleIfNotEqual = condition.Groups[2].Value == "!=";
-                    ifLine = lineNumber;
+                    if (!condition.Success || !float.TryParse(condition.Groups[3].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out float value) ||
+                        float.IsNaN(value) || float.IsInfinity(value))
+                        throw new FormatException($"Line {lineNumber}: expected // @{directive} _Parameter == number or // @{directive} _Parameter != number.");
+                    if (enableifDirective)
+                        enableConditions.Add(new ShaderFXEnableCondition { parameter = condition.Groups[1].Value,
+                            notEqual = condition.Groups[2].Value == "!=", value = value });
+                    else
+                    {
+                        visibleIfParameter = condition.Groups[1].Value;
+                        visibleIfNotEqual = condition.Groups[2].Value == "!=";
+                        visibleIfValue = value;
+                    }
+                    conditionScopes.Add((enableifDirective, lineNumber));
                     continue;
                 }
-                if (endifDirective)
+                if (endifDirective || endenableifDirective)
                 {
-                    if (!EndIf.IsMatch(line)) throw new FormatException($"Line {lineNumber}: expected // @endif with no arguments.");
-                    if (visibleIfParameter == null) throw new FormatException($"Line {lineNumber}: @endif has no matching @if.");
-                    visibleIfParameter = null;
-                    visibleIfNotEqual = false;
-                    visibleIfValue = 0f;
-                    ifLine = 0;
+                    string directive = endenableifDirective ? "endenableif" : "endif";
+                    if (!(endenableifDirective ? EndEnableIf : EndIf).IsMatch(line))
+                        throw new FormatException($"Line {lineNumber}: expected // @{directive} with no arguments.");
+                    if (conditionScopes.Count == 0 || conditionScopes[conditionScopes.Count - 1].enable != endenableifDirective)
+                        throw new FormatException($"Line {lineNumber}: @{directive} does not match the innermost open condition.");
+                    conditionScopes.RemoveAt(conditionScopes.Count - 1);
+                    if (endenableifDirective) enableConditions.RemoveAt(enableConditions.Count - 1);
+                    else
+                    {
+                        visibleIfParameter = null;
+                        visibleIfNotEqual = false;
+                        visibleIfValue = 0f;
+                    }
                     pendingHeaders.Clear();
                     pendingHelpBoxes.Clear();
                     continue;
                 }
                 if (groupStart)
                 {
-                    if (!GroupStart.IsMatch(line)) throw new FormatException($"Line {lineNumber}: expected // @group, // @group(Title), or // @group(Title; _Parameter).");
-                    if (activeGroup != null) throw new FormatException($"Line {lineNumber}: nested @group blocks are not supported.");
-                    if (visibleIfParameter != null) throw new FormatException($"Line {lineNumber}: @group must be declared outside conditional blocks.");
-                    Match groupMatch = GroupStart.Match(line);
+                    Match groupMatch = ContainerStart.Match(line);
+                    if (!groupMatch.Success) throw new FormatException($"Line {lineNumber}: invalid layout container declaration.");
+                    string directive = groupMatch.Groups["kind"].Value;
+                    var kind = (ShaderFXContainerKind)Enum.Parse(typeof(ShaderFXContainerKind), directive, true);
+                    if (conditionScopes.Count > 0) throw new FormatException($"Line {lineNumber}: @{directive} must be declared outside conditional blocks.");
+                    if (containers.Count >= 16) throw new FormatException($"Line {lineNumber}: at most 16 layout levels are supported.");
+                    var parent = containers.Count == 0 ? null : containers[containers.Count - 1];
+                    if (kind == ShaderFXContainerKind.Tab)
+                    {
+                        if (parent?.kind != ShaderFXContainerKind.Tabs) throw new FormatException($"Line {lineNumber}: @tab must be directly inside @tabs.");
+                    }
+                    else if (parent?.kind == ShaderFXContainerKind.Tabs)
+                        throw new FormatException($"Line {lineNumber}: place @{directive} inside a @tab page, not directly inside @tabs.");
+                    if (kind == ShaderFXContainerKind.Tabs && containers.Exists(c => c.kind == kind))
+                        throw new FormatException($"Line {lineNumber}: nested @tabs blocks are not supported.");
+                    if (kind == ShaderFXContainerKind.Group && activeGroup?.kind == kind)
+                        throw new FormatException($"Line {lineNumber}: nested @group blocks are not supported.");
                     string arguments = groupMatch.Groups[1].Success ? groupMatch.Groups[1].Value.Trim() : null;
                     if (groupMatch.Groups[1].Success && string.IsNullOrEmpty(arguments))
-                        throw new FormatException($"Line {lineNumber}: use // @group for an untitled group, or provide a non-empty title in parentheses.");
+                        throw new FormatException($"Line {lineNumber}: omit parentheses for an untitled container, or provide a non-empty title.");
                     string title = null, headerParameter = null;
                     if (!string.IsNullOrEmpty(arguments))
                     {
@@ -159,20 +221,38 @@ namespace DCFApixels.WhimTex
                             throw new FormatException($"Line {lineNumber}: group title must be non-empty and cannot contain ';'.");
                         if (separator >= 0)
                         {
+                            if (kind == ShaderFXContainerKind.Tabs)
+                                throw new FormatException($"Line {lineNumber}: @{directive} accepts only a title, not a linked parameter.");
                             string option = arguments.Substring(separator + 1).Trim();
                             headerParameter = ParseGroupParameter(option, lineNumber);
                         }
                     }
-                    activeGroup = new GroupDefinition { id = groups.Count, line = lineNumber, title = title, headerParameter = headerParameter };
-                    groups.Add(activeGroup);
+                    if ((kind == ShaderFXContainerKind.Foldout || kind == ShaderFXContainerKind.Tab) && string.IsNullOrEmpty(title))
+                        throw new FormatException($"Line {lineNumber}: @{directive} requires a title.");
+                    if (kind == ShaderFXContainerKind.Tab)
+                    {
+                        if (!parent.tabNames.Add(title)) throw new FormatException($"Line {lineNumber}: duplicate tab title {title}.");
+                        parent.tabCount++;
+                    }
+                    var definition = new GroupDefinition { id = groups.Count, line = lineNumber, title = title, headerParameter = headerParameter, kind = kind };
+                    groups.Add(definition);
+                    containers.Add(definition);
+                    if (kind == ShaderFXContainerKind.Group || kind == ShaderFXContainerKind.Foldout) activeGroup = definition;
                     continue;
                 }
                 if (groupEnd)
                 {
-                    if (!GroupEnd.IsMatch(line)) throw new FormatException($"Line {lineNumber}: expected // @endgroup with no arguments.");
-                    if (activeGroup == null) throw new FormatException($"Line {lineNumber}: @endgroup has no matching @group.");
-                    if (visibleIfParameter != null) throw new FormatException($"Line {lineNumber}: conditional block must end before @endgroup.");
+                    Match end = ContainerEnd.Match(line);
+                    if (!end.Success) throw new FormatException($"Line {lineNumber}: expected a container end directive with no arguments.");
+                    string directive = end.Groups["kind"].Value;
+                    if (containers.Count == 0 || !string.Equals(containers[containers.Count - 1].kind.ToString(), directive, StringComparison.OrdinalIgnoreCase))
+                        throw new FormatException($"Line {lineNumber}: @end{directive} has no matching open @{directive} at this level.");
+                    if (conditionScopes.Count > 0) throw new FormatException($"Line {lineNumber}: conditional block must end before @end{directive}.");
+                    containers.RemoveAt(containers.Count - 1);
                     activeGroup = null;
+                    for (int i = containers.Count - 1; i >= 0; i--)
+                        if (containers[i].kind == ShaderFXContainerKind.Group || containers[i].kind == ShaderFXContainerKind.Foldout)
+                        { activeGroup = containers[i]; break; }
                     pendingHeaders.Clear();
                     pendingHelpBoxes.Clear();
                     continue;
@@ -195,21 +275,43 @@ namespace DCFApixels.WhimTex
                     pendingHelpBoxes.Add(message.Groups[1].Value.Trim());
                     continue;
                 }
+                if (previewDirective)
+                {
+                    if (containers.Count > 0 && containers[containers.Count - 1].kind == ShaderFXContainerKind.Tabs)
+                        throw new FormatException($"Line {lineNumber}: declare previews inside a @tab page.");
+                    Match preview = Regex.Match(line, @"^\s*//\s*@preview\s*\(([^()]*)\)\s*$");
+                    if (!preview.Success) throw new FormatException($"Line {lineNumber}: expected // @preview(FunctionName, optional parameter names).");
+                    ShaderFXPreviewFunction.Parse(preview.Groups[1].Value, out string previewFunction, out string[] previewParameters);
+                    if (previews.Count >= 128) throw new FormatException($"Line {lineNumber}: at most 128 standalone previews are supported.");
+                    previews.Add(new ShaderFXParameterControl { previewFunction = previewFunction, previewParameters = previewParameters, order = lineNumber,
+                        headers = pendingHeaders.ToArray(), helpBoxes = pendingHelpBoxes.ToArray(),
+                        inGroup = activeGroup != null, groupId = activeGroup?.id ?? 0,
+                        groupTitle = activeGroup?.title, groupHeaderParameter = activeGroup?.headerParameter,
+                        containers = ContainerPath(containers),
+                        enableIf = enableConditions.ToArray(),
+                        visibleIfParameter = visibleIfParameter, visibleIfNotEqual = visibleIfNotEqual, visibleIfValue = visibleIfValue });
+                    pendingHeaders.Clear(); pendingHelpBoxes.Clear();
+                    CountContainerRow(containers, true);
+                    continue;
+                }
                 if (!declaration) continue;
+                if (containers.Count > 0 && containers[containers.Count - 1].kind == ShaderFXContainerKind.Tabs)
+                    throw new FormatException($"Line {lineNumber}: declare parameters inside a @tab page.");
                 try
                 {
                     string parameterLine = line;
-                    ParseParameterModifiers(ref parameterLine, out bool hidden, out bool seed, out bool pixelUnits, out string displayLabel);
+                    ParseParameterModifiers(ref parameterLine, out bool hidden, out bool seed, out bool pixelUnits, out string displayLabel, out string previewFunction, out string[] previewParameters);
                     string tooltip = ExtractTooltip(ref parameterLine);
                     Match enumMatch = Regex.Match(parameterLine, @"^\s*//\s*@param\s+enum\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^{}]+?))?\s*\{([^{}]+)\}\s*$");
                     Match match = Parameter.Match(enumMatch.Success ? "// @param float " + enumMatch.Groups[1].Value : parameterLine);
-                    if (!match.Success) throw new FormatException("Expected @param type name = value [min .. max], without a semicolon.");
+                    if (!match.Success) throw new FormatException("Expected @param type name = value [min .. max] or [min % max], without a semicolon.");
                     string kind = match.Groups[1].Value;
                     string name = match.Groups[2].Value;
                     var p = new ShaderFXParameter { name = name, floatValue = 0f, colorValue = Color.clear, pixelUnits = pixelUnits };
                     string value = match.Groups[3].Value.Trim();
                     bool explicitDefault = match.Groups[3].Success;
                     bool bounded = match.Groups[4].Success;
+                    p.cyclicRange = bounded && match.Groups["separator"].Value == "%";
                     switch (kind)
                     {
                         case "curve":
@@ -244,6 +346,8 @@ namespace DCFApixels.WhimTex
                                 if (p.hasMinimum && p.hasMaximum && p.minimum > p.maximum) throw new FormatException("Minimum exceeds maximum.");
                                 if (p.HasSoftRange && (!p.hasMinimum || !p.hasMaximum || p.minimum >= p.maximum))
                                     throw new FormatException("A range with soft boundaries requires two finite values with min < max. Put ~ before each soft value: [min .. ~max].");
+                                if (p.cyclicRange && (p.HasSoftRange || !p.hasMinimum || !p.hasMaximum || p.minimum >= p.maximum))
+                                    throw new FormatException("A % range needs two hard finite limits with min < max.");
                             }
                             // A default outside a hard bound is an authoring mistake; a soft bound only shapes the slider.
                             if (explicitDefault && (p.hasMinimum && !p.softMinimum && p.floatValue < p.minimum ||
@@ -265,6 +369,16 @@ namespace DCFApixels.WhimTex
                                 for (int i=0;i<count;i++) p.vectorValue[i] = Number(values[i]);
                             }
                             if (kind == "normal") p.vectorValue = ShaderFXParameter.NormalizeNormal(p.vectorValue);
+                            if (kind == "float2" && bounded)
+                            {
+                                p.hasMinimum = p.hasMaximum = true;
+                                p.minimum = Number(match.Groups[4].Value.Trim());
+                                p.maximum = Number(match.Groups[5].Value.Trim());
+                                if (p.minimum >= p.maximum) throw new FormatException("A float2 interval needs two hard finite limits with min < max.");
+                                if (!explicitDefault) p.vectorValue = new Vector4(p.minimum, p.maximum, 0, 0);
+                                if (!ShaderFXParameter.IsValidInterval(p.vectorValue, p.minimum, p.maximum, p.cyclicRange))
+                                    throw new FormatException(p.cyclicRange ? "Cyclic endpoints must be within the limits, or one period apart with at least one endpoint within the limits." : "A float2 interval default must satisfy min <= x <= y <= max.");
+                            }
                             break;
                         case "float4":
                         case "color":
@@ -319,10 +433,10 @@ namespace DCFApixels.WhimTex
                             }
                             break;
                     }
-                    if (kind != "float" && bounded) throw new FormatException("Ranges apply only to float parameters.");
+                    if (kind != "float" && kind != "float2" && bounded) throw new FormatException("Ranges apply only to float and float2 parameters.");
                     if (pixelUnits && (enumMatch.Success || seed || kind != "float" && kind != "float2" && kind != "float3" && kind != "float4"))
                         throw new FormatException("The px modifier applies only to numeric float, float2, float3 or float4 lengths, without seed.");
-                    var control = new ShaderFXParameterControl { type = p.type, order = lineNumber, tooltip = tooltip, label = displayLabel,
+                    var control = new ShaderFXParameterControl { type = p.type, order = lineNumber, tooltip = tooltip, label = displayLabel, previewFunction = previewFunction, previewParameters = previewParameters,
                         headers = pendingHeaders.ToArray(),
                         helpBoxes = pendingHelpBoxes.ToArray(),
                         hidden = hidden, seed = seed,
@@ -330,15 +444,13 @@ namespace DCFApixels.WhimTex
                         groupId = activeGroup?.id ?? 0,
                         groupTitle = activeGroup?.title,
                         groupHeaderParameter = activeGroup?.headerParameter,
-                        hasMinimum = p.hasMinimum, hasMaximum = p.hasMaximum, softMinimum = p.softMinimum, softMaximum = p.softMaximum, minimum = p.minimum, maximum = p.maximum,
+                        containers = ContainerPath(containers),
+                        enableIf = enableConditions.ToArray(),
+                        hasMinimum = p.hasMinimum, hasMaximum = p.hasMaximum, softMinimum = p.softMinimum, softMaximum = p.softMaximum, cyclicRange = p.cyclicRange, minimum = p.minimum, maximum = p.maximum,
                         visibleIfParameter = visibleIfParameter, visibleIfNotEqual = visibleIfNotEqual, visibleIfValue = visibleIfValue };
                     pendingHeaders.Clear();
                     pendingHelpBoxes.Clear();
-                    if (activeGroup != null)
-                    {
-                        activeGroup.parameterCount++;
-                        if (!hidden) activeGroup.visibleParameterCount++;
-                    }
+                    CountContainerRow(containers, !hidden);
                     if (enumMatch.Success)
                     {
                         control.type = ShaderFXParameterType.Enum;
@@ -369,6 +481,7 @@ namespace DCFApixels.WhimTex
                     {
                         if (!Compatible(existing.type, p.type)) throw new FormatException("Conflicting storage types for " + name);
                         if (existing.pixelUnits != p.pixelUnits) throw new FormatException("Conflicting pixel units for " + name);
+                        if (existing.cyclicRange != p.cyclicRange) throw new FormatException("Conflicting cyclic range declarations for " + name);
                         existing.controls.Add(control);
                         if (IsScalar(p.type)) existing.type = ShaderFXParameterType.Float;
                         if (explicitDefault) CopyValue(p, existing);
@@ -379,43 +492,62 @@ namespace DCFApixels.WhimTex
                 }
                 catch (FormatException error) { throw new FormatException($"Line {lineNumber}: {error.Message}"); }
             } while ((line = reader.ReadLine()) != null);
-            if (visibleIfParameter != null) throw new FormatException($"Line {ifLine}: @if has no matching @endif.");
-            if (activeGroup != null) throw new FormatException($"Line {activeGroup.line}: @group has no matching @endgroup.");
+            if (conditionScopes.Count > 0)
+            {
+                var scope = conditionScopes[conditionScopes.Count - 1];
+                string directive = scope.enable ? "enableif" : "if";
+                throw new FormatException($"Line {scope.line}: @{directive} has no matching @end{directive}.");
+            }
+            if (containers.Count > 0) throw new FormatException($"Line {containers[containers.Count - 1].line}: unclosed @{containers[containers.Count - 1].kind.ToString().ToLowerInvariant()} container.");
             foreach (var group in groups)
             {
-                if (group.parameterCount == 0) throw new FormatException($"Line {group.line}: @group must contain at least one parameter.");
-                if (group.visibleParameterCount == 0) throw new FormatException($"Line {group.line}: @group must contain at least one visible parameter.");
+                string directive = group.kind.ToString().ToLowerInvariant();
+                if (group.kind == ShaderFXContainerKind.Tabs && group.tabCount == 0)
+                    throw new FormatException($"Line {group.line}: @tabs must contain at least one @tab page.");
+                if (group.parameterCount == 0) throw new FormatException($"Line {group.line}: @{directive} must contain at least one parameter or preview.");
+                if (group.visibleParameterCount == 0) throw new FormatException($"Line {group.line}: @{directive} must contain at least one visible parameter or preview.");
                 if (string.IsNullOrEmpty(group.headerParameter)) continue;
                 if (!names.TryGetValue(group.headerParameter, out ShaderFXParameter headerParameter))
-                    throw new FormatException($"Line {group.line}: group header parameter {group.headerParameter} is not declared in the group.");
+                    throw new FormatException($"Line {group.line}: @{directive} header parameter {group.headerParameter} is not declared in the container.");
                 if (headerParameter.controls.Count != 1)
-                    throw new FormatException($"Line {group.line}: group header parameter {group.headerParameter} must be declared once.");
+                    throw new FormatException($"Line {group.line}: @{directive} header parameter {group.headerParameter} must be declared once.");
                 ShaderFXParameterControl headerControl = headerParameter.controls[0];
-                if (!headerControl.inGroup || headerControl.groupId != group.id ||
-                    !string.IsNullOrEmpty(headerControl.visibleIfParameter))
-                    throw new FormatException($"Line {group.line}: group header parameter {group.headerParameter} must be unconditional and declared inside the group.");
+                if (headerControl.containers.Length == 0 || headerControl.containers[headerControl.containers.Length - 1].id != group.id ||
+                    !string.IsNullOrEmpty(headerControl.visibleIfParameter) || headerControl.enableIf.Length > 0)
+                    throw new FormatException($"Line {group.line}: @{directive} header parameter {group.headerParameter} must be unconditional and directly inside its own container.");
+                if (group.kind == ShaderFXContainerKind.Tab && headerControl.type != ShaderFXParameterType.Bool)
+                    throw new FormatException($"Line {group.line}: @tab header parameter {group.headerParameter} must be bool.");
             }
-            foreach (var parameter in result)
-                foreach (var control in parameter.controls)
-                    if (!string.IsNullOrEmpty(control.visibleIfParameter))
-                    {
-                        ShaderFXParameter driver = result.Find(p => p.name == control.visibleIfParameter);
-                        if (driver == null)
-                            throw new FormatException($"Line {control.order}: @if references undeclared parameter {control.visibleIfParameter}.");
-                        if (!IsScalar(driver.type))
-                            throw new FormatException($"Line {control.order}: @if parameter {control.visibleIfParameter} must be float, bool or enum.");
-                        if (driver.controls.Exists(c => !string.IsNullOrEmpty(c.visibleIfParameter)))
-                            throw new FormatException($"Line {control.order}: @if parameter {control.visibleIfParameter} must be declared outside conditional blocks.");
-                    }
+            var conditions = new List<ShaderFXParameterControl>(previews);
+            foreach (var parameter in result) conditions.AddRange(parameter.controls);
+            foreach (var control in conditions)
+            {
+                if (!string.IsNullOrEmpty(control.visibleIfParameter))
+                    ValidateCondition(names, control.visibleIfParameter, "if", control.order);
+                foreach (var condition in control.enableIf)
+                    ValidateCondition(names, condition.parameter, "enableif", control.order);
+            }
             return result;
         }
 
-        private static void ParseParameterModifiers(ref string line, out bool hidden, out bool seed, out bool pixelUnits, out string label)
+        private static void ValidateCondition(Dictionary<string, ShaderFXParameter> names, string name, string directive, int line)
+        {
+            if (!names.TryGetValue(name, out var driver))
+                throw new FormatException($"Line {line}: @{directive} references undeclared parameter {name}.");
+            if (!IsScalar(driver.type))
+                throw new FormatException($"Line {line}: @{directive} parameter {name} must be float, bool or enum.");
+            if (driver.controls.Exists(c => !string.IsNullOrEmpty(c.visibleIfParameter)))
+                throw new FormatException($"Line {line}: @{directive} parameter {name} must be declared outside visibility conditions.");
+        }
+
+        private static void ParseParameterModifiers(ref string line, out bool hidden, out bool seed, out bool pixelUnits, out string label, out string previewFunction, out string[] previewParameters)
         {
             hidden = false;
             seed = false;
             pixelUnits = false;
             label = null;
+            previewFunction = null;
+            previewParameters = Array.Empty<string>();
             Match prefix = ParameterPrefix.Match(line);
             if (!prefix.Success) return;
 
@@ -424,6 +556,16 @@ namespace DCFApixels.WhimTex
             {
                 while (position < line.Length && char.IsWhiteSpace(line[position])) position++;
                 if (position >= line.Length) break;
+
+                if (Regex.IsMatch(line.Substring(position), @"^preview\b"))
+                {
+                    if (previewFunction != null) throw new FormatException("The preview modifier may be specified only once.");
+                    Match preview = Regex.Match(line.Substring(position), @"^preview\s*\(([^()]*)\)(?=\s|$)");
+                    if (!preview.Success) throw new FormatException("Expected preview(FunctionName, optional parameter names).");
+                    ShaderFXPreviewFunction.Parse(preview.Groups[1].Value, out previewFunction, out previewParameters);
+                    position += preview.Length;
+                    continue;
+                }
 
                 if (line.IndexOf("px", position, StringComparison.Ordinal) == position &&
                     (position + 2 == line.Length || char.IsWhiteSpace(line[position + 2])))
@@ -605,7 +747,7 @@ namespace DCFApixels.WhimTex
                 p.id = match.id;
                 p.floatValue = match.floatValue;
                 p.colorValue = match.colorValue;
-                p.vectorValue = match.vectorValue;
+                p.vectorValue = p.ClampInterval(match.vectorValue);
                 p.textureValue = match.textureValue;
                 p.textureSource = match.textureSource;
                 p.textureLayerId = match.textureLayerId;

@@ -1,27 +1,32 @@
 # F17. Selective HSV FX
 
 - Назначение: корректировать всё изображение через Master и задавать исключения для нескольких диапазонов Hue с плавными границами.
-- Статус: реализовано 2026-10-12 отдельным built-in FX; профильные GPU, metadata, preset export и JSON проверки прошли в Unity Test6.6. Ниже сохранён дизайн действующего контракта; будущий custom UI не реализован.
-- Источники истины: [HSV](../../src/FXPresets/HSV.hlsl), [Hue-анализ Edge Outline](../../src/FXPresets/EdgeOutline.hlsl), [метаданные FX](../../Documentation~/ShaderFX.md#parameter-declarations), [цветовой include](../../src/Shaders/HdrColor.cginc), [F13 — редакторы FX](FX_CUSTOM_EDITORS.md).
+- Статус: реализовано; текущий FX — Hue & Saturation с Master и диапазонами. Ниже сохранён исходный HSV-дизайн как история, а не действующее ограничение; текущий контракт — по ссылке ниже.
+- Источники истины: [HSV](../../src/FXPresets/HueSaturation.hlsl), [Hue-анализ Edge Outline](../../src/FXPresets/EdgeOutline.hlsl), [метаданные FX](../../Documentation~/ShaderFX.md#parameter-declarations), [цветовой include](../../src/Shaders/HdrColor.cginc), [F13 — редакторы FX](FX_CUSTOM_EDITORS.md).
 
 ## Выполнено
 
-Добавлен [Color/Selective HSV](../../src/FXPresets/SelectiveHSV.hlsl), обычный Shader FX
-с Master Hue/Saturation/Value, четырьмя диапазонами-исключениями, linked Enabled и
+Оставлен единственный [Color/Hue & Saturation](../../src/FXPresets/HueSaturation.hlsl), обычный Shader FX
+с Master Hue/Saturation/Lightness, четырьмя диапазонами-исключениями, linked Enabled и
 Opacity, условной видимостью и шестью Output. Все диапазоны по умолчанию выключены.
-Действующие правила описаны в [shader-контракте](../../Documentation~/ShaderFX.md#selective-hsv-preset)
+Действующие правила описаны в [shader-контракте](../../Documentation~/ShaderFX.md#hsv-preset)
 и руководствах EN/RU/ZH. `selective-hsv` проверяет цветовой круг, маски, saturation gate,
 пересечения, знаковые Hue-сдвиги, HDR/alpha, повторное использование shader и сохранение
 скрытых значений. In-memory smoke охватывает Canvas/group/Target/Shader Processor,
 clipping, thumbnail и источник пикселей PSD. Master Saturation = 0 и нейтральный синий Range сохраняют исходные
-синие цвета, обесцвечивая остальные. Большая UI/интеграционная матрица остаётся в D02.
+синие цвета, обесцвечивая остальные. Без включённых Range работает быстрый общий путь.
+Saturation теперь масштабирует удалённость от взвешенного серого, Lightness имеет диапазон -100…100 с нейтральным нулём.
+Source Saturation (HSV) сохраняет исходную метрику только для выбора масок. Сохранён GUID пресета; Value не превращается в Lightness через алиас.
+Большая UI/интеграционная матрица остаётся в D02.
+
+## Исходный дизайн HSV — история
 
 ## Проблема → решение
 
 Обычный HSV меняет всё изображение. Маска отдельным FX позволяет ограничивать
 действие, но не даёт компактной настройки нескольких цветовых диапазонов с
-разной коррекцией. Реализован отдельный `Color/Selective HSV`: shader FX,
-не Effect Layer и не новый режим, усложняющий обычный HSV.
+разной коррекцией. Первоначально это был отдельный Selective HSV; теперь его возможности
+объединены в единственный `Color/HSV`, без второго упрощённого пресета.
 
 Пример задачи: сдвинуть синие к бирюзовым, сделать зелёные темнее и красные менее
 насыщенными в одном FX. Цветовые зоны определяются исходным Hue, а не уже

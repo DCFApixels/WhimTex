@@ -24,7 +24,7 @@ public static class VectorRenderingTests
         bool srgb = GL.sRGBWrite;
         var sentinel = new RenderTexture(8, 8, 0) { hideFlags = HideFlags.HideAndDontSave };
         sentinel.Create();
-        Material fxMaterial = null;
+        ShaderFX fxEffect = null;
         const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
         void Render(Action<Texture2D> inspect)
         {
@@ -163,13 +163,11 @@ public static class VectorRenderingTests
             group.children.Insert(0, clipLayer);
             Render(t => { context.Near(1, t.GetPixel(48,32).b, .001, "vector clipping uses underlying coverage"); context.Near(0, t.GetPixel(2,2).a, .001, "clipping removes outside source"); });
 
-            // Exercise a real material FX finishing pass without compiling a generated test shader.
-            // Existing channel shader: blue -> grayscale; primary endpoints are color-space invariant.
-            Shader fxShader = Shader.Find("Hidden/WhimTex/DisplayChannels");
-            context.True(fxShader != null && fxShader.isSupported, "test FX shader available");
-            fxMaterial = new Material(fxShader) { hideFlags = HideFlags.HideAndDontSave };
-            fxMaterial.SetVector("_Channels", new Vector4(0,0,1,1));
-            clipLayer.fx.Add(fxMaterial);
+            fxEffect = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", BindingFlags.Static | BindingFlags.NonPublic, null,
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
+                .Invoke(null, new object[] { document, "float4 ApplyFX(float2 uv,float4 color){return float4(color.bbb,color.a);}", new List<ShaderFXParameter>() });
+            typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fxEffect, null);
+            clipLayer.fx.Add(fxEffect);
             Render(t => { Color c = t.GetPixel(48,32); context.True(c.r > .99f && c.g > .99f && c.b > .99f, "vector FX runs before ordinary clipping"); });
             clipLayer.fx.Clear();
 
@@ -203,7 +201,7 @@ public static class VectorRenderingTests
         {
             RenderTexture.active = previous; GL.sRGBWrite = srgb;
             Object.DestroyImmediate(document); sentinel.Release(); Object.DestroyImmediate(sentinel);
-            if (fxMaterial != null) Object.DestroyImmediate(fxMaterial);
+            if (fxEffect != null) Object.DestroyImmediate(fxEffect);
         }
     });
 

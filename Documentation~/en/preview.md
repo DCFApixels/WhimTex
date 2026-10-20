@@ -68,10 +68,19 @@ Brush wall timings include waits/submission; selected draw/composite batches als
 
 For FX, expand **fx.block** to see each effect by name. **Prep ms** shows CPU preparation;
 **GPU ms** shows the device interval for the block or effect. Details also show CPU command-submission time.
-After Record, wait for **GPU ready** before testing a one-shot action. GPU results arrive several frames later:
+After Record, wait for **GPU ready** (or **GPU unconfirmed** with Graphics Jobs) before testing a one-shot action. GPU results arrive several frames later:
 **…** means pending, **—** unavailable, **\*** a partial summary. They update automatically even after Stop; export becomes
 available when pending queries finish. Wall times include waits; CPU/GPU and nested timings overlap and must
 not be added together. See the [profiler reference](../AgentAPI.md#profiler-captures) for interpretation.
+Zero or ambiguous native GPU timestamps show **—**, not zero-cost work. GPU intervals can include
+idle time; small differences need repeated comparisons under the same conditions.
+With active Graphics Jobs, GPU collection continues, but returned timings have a yellow background:
+Unity does not support GPU profiling in this mode, so these results are unconfirmed. Hover for details;
+the warning is not repeated beside each number. The header shows actual Graphics Jobs On/Off and a
+restart notice if the configured setting differs. Captures and baselines retain their recorded mode.
+For a supported comparison, disable Graphics Jobs, restart Unity and repeat. The profiler never changes project settings.
+Synchronous pixel readback can truncate pending GPU timestamps. Affected rows show **—** with
+`invalidated_by_readback` in Details; CPU timings and already completed GPU values remain available.
 
 To compare two runs, stop the first capture and click **Set baseline**, then record and stop the second.
 Choose **Allocations** or **Self allocations** in Comparison's **Metric** selector to compare main-thread
@@ -386,8 +395,10 @@ Lower it in the footer if painting on a large image feels slow.
 Drag the **Live Quality** value horizontally, or double-click it to enter an exact percentage; `Enter`, `Tab` or leaving the field confirms it, and `Escape` cancels.
 Save and export still use full resolution.
 
-Ordinary non-painting preview is limited to 512 pixels. **Live Quality 100%** does not remove that limit.
-Select **Pencil** without painting for full-resolution preview, and enable **Tiled** when checking seams.
+Canvas View adjusts detail to zoom and the visible area. At 100% zoom or closer, the visible fragment uses source pixels instead of enlarging a 512-pixel preview. Adding a layer FX such as HSV keeps this detail, including text on other layers. **Live Quality** can reduce detail during a stroke; releasing the stroke restores normal view quality.
+
+The same visible-area preview works during Brush/Pencil strokes, including soft selections and HDR; panning while painting reveals the retained offscreen stroke.
+Effects that need pixels outside the view may take more time to update, but do not reduce the detail of the whole canvas. **Post FX**, **Tiled** and crop-frame previews retain the complete reduced preview. In these modes select **Pencil** without painting for full-resolution preview, and enable **Tiled** when checking seams.
 Patch Quilting can select different patches at reduced resolution; verify this full-resolution view before export.
 
 ## See your paint on a model

@@ -10,7 +10,6 @@ float FigureGradientCoordinate(float2 uv, float2 size, float4 anchors, int mode,
     if (mode == 2) return p.x;
     if (mode == 3) return length(delta) / sqrt(squared);
     if (mode == 4) return max(abs(p.x), abs(p.y));
-    if (mode == 5) return abs(p.x) + abs(p.y);
     return all(p == 0) ? 0 : frac(atan2(p.y, p.x) / (2 * UNITY_PI)) * repetitions;
 }
 #endif

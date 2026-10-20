@@ -57,17 +57,19 @@ namespace DCFApixels.WhimTex
                 if (value is ShapeLayerBehaviour shape)
                 {
                     shape.ValidateGradientRepetitions();
+                    FigureFill.ValidateFreeform(shape.fillMode, shape.freeform);
+                    FigureFill.ValidateFreeform(shape.strokeMode, shape.strokeFreeform);
                     if (!Enum.IsDefined(typeof(VectorFillMode), shape.fillMode))
                         throw new InvalidOperationException("Shape fillMode must be a defined VectorFillMode.");
                     if (!VectorGeometry.Finite(shape.gradientStart) || !VectorGeometry.Finite(shape.gradientEnd))
                         throw new InvalidOperationException("Shape gradient anchors must be finite.");
-                    if (shape.gradient == null && shape.fillMode >= VectorFillMode.LinearGradient)
+                    if (shape.gradient == null && FigureFill.IsPaletteGradient(shape.fillMode))
                         throw new InvalidOperationException("Shape gradient fills require a gradient.");
                     if (!Enum.IsDefined(typeof(VectorFillMode), shape.strokeMode))
                         throw new InvalidOperationException("Shape strokeMode must be a defined VectorFillMode.");
                     if (!VectorGeometry.Finite(shape.strokeGradientStart) || !VectorGeometry.Finite(shape.strokeGradientEnd))
                         throw new InvalidOperationException("Shape stroke gradient anchors must be finite.");
-                    if (shape.strokeGradient == null && shape.strokeMode >= VectorFillMode.LinearGradient)
+                    if (shape.strokeGradient == null && FigureFill.IsPaletteGradient(shape.strokeMode))
                         throw new InvalidOperationException("Shape gradient strokes require a gradient.");
                 }
                 if (value is VectorBrushDraft draft) draft.Validate();

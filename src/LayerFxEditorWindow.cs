@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
-using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -20,7 +19,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private bool refreshRequested;
         [NonSerialized] private WhimTexDocument boundDocument;
         [NonSerialized] private string boundLayerId;
-        private readonly List<UnityEngine.Object> displayedFx = new List<UnityEngine.Object>();
+        private readonly List<ShaderFX> displayedFx = new List<ShaderFX>();
 
         public static void Open(Layer layer, WhimTexDocument activeDocument)
         {
@@ -100,10 +99,10 @@ namespace DCFApixels.WhimTex
 
             WhimTexUI.AddHelpBox(
                 root,
-                "Materials and Shader FX are applied in list order after the layer transform. Select an entry and click Edit to open its Inspector.",
+                "HLSL effects are applied in list order after the layer transform. Select an entry and click Edit to open its Inspector.",
                 HelpBoxMessageType.Info);
 
-            layer.fx ??= new List<UnityEngine.Object>();
+            layer.fx ??= new List<ShaderFX>();
             fxList = new ListView(layer.fx, 22f, MakeFxField, BindFxField)
             {
                 selectionType = SelectionType.Single,
@@ -141,7 +140,6 @@ namespace DCFApixels.WhimTex
             buttons.AddToClassList("whimtex-layer-fx-buttons");
             buttons.style.justifyContent = Justify.FlexEnd;
             buttons.style.marginTop = 6f;
-            buttons.Add(WhimTexUI.CreateButton("Add", AddFx, 64f));
             buttons.Add(WhimTexUI.CreateButton("New Shader FX", CreateShaderFX));
             buttons.Add(WhimTexUI.CreateButton("Preset ▾", () => ShaderFXCatalog.ShowMenu(entry =>
             {
@@ -157,49 +155,17 @@ namespace DCFApixels.WhimTex
 
         private VisualElement MakeFxField()
         {
-            ObjectField field = new ObjectField
-            {
-                objectType = typeof(UnityEngine.Object),
-                allowSceneObjects = false
-            };
+            Label field = new Label();
             field.style.flexGrow = 1f;
-            field.RegisterValueChangedCallback(evt =>
-            {
-                if (!(field.userData is int index) ||
-                    layer == null ||
-                    index < 0 ||
-                    index >= layer.fx.Count)
-                {
-                    return;
-                }
-
-                if (evt.newValue != null && !(evt.newValue is Material) && !(evt.newValue is ShaderFX))
-                {
-                    field.SetValueWithoutNotify(layer.fx[index]);
-                    return;
-                }
-                ApplyChange("Edit Layer FX", () => layer.fx[index] = evt.newValue);
-                RememberFxItems();
-            });
             return field;
         }
 
         private void BindFxField(VisualElement element, int index)
         {
-            ObjectField field = (ObjectField)element;
+            Label field = (Label)element;
             field.userData = index;
-            field.SetValueWithoutNotify(index >= 0 && index < layer.fx.Count
-                ? layer.fx[index]
-                : null);
-        }
-
-        private void AddFx()
-        {
-            if (!ResolveLayer())
-                return;
-            ApplyChange("Add Layer FX", () => layer.fx.Add(null));
-            RefreshFxItems();
-            fxList?.SetSelection(layer.fx.Count - 1);
+            field.text = index >= 0 && index < layer.fx.Count && layer.fx[index] != null
+                ? layer.fx[index].name : "Missing HLSL FX";
         }
 
         private void CreateShaderFX()
@@ -295,7 +261,7 @@ namespace DCFApixels.WhimTex
                 return false;
             }
             layer = resolved;
-            layer.fx ??= new List<UnityEngine.Object>();
+            layer.fx ??= new List<ShaderFX>();
             return true;
         }
 

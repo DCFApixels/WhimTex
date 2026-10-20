@@ -20,6 +20,26 @@ container.
 This page describes the current format implemented by the package. It is an implementation
 reference, not a promise that arbitrary image editors will preserve the document payload.
 
+## HLSL effect ownership and unsupported references
+
+The editable model's `Layer.fx` is a `List<ShaderFX>` of document-owned HLSL effects. Each
+instance has independent parameter values and enabled state. Project/package presets may link
+to marked `.hlsl` sources; user-library presets keep embedded snapshots, and inline HLSL remains
+supported. Shared source code does not share mutable FX settings. Compiled Unity Shaders and
+internal Materials are execution resources, not external FX entries.
+
+For a linked `.hlsl` preset, **Code → Embed Copy** detaches the source link and keeps editable
+code and values in the document. It does not reintroduce external ShaderFX asset references.
+
+Old TIFF models containing external Material, Shader or ShaderFX `.asset` references in `fx`
+are rejected, including unresolved references, with
+`External FX references are no longer supported. Use a marked .hlsl preset or inline HLSL code.`
+They are not treated as
+missing optional assets or converted to HLSL. There is no automatic migration or document rewrite;
+keep originals and use a matching older checkout. The same boundary applies to
+[document/clipboard JSON](JSON_FORMAT.md#asset-references). It does not remove external texture
+parameters or marked HLSL source links.
+
 ## Optional comments
 
 Canvas annotations are stored in the optional `comments` block, separate from the main

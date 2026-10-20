@@ -78,6 +78,28 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        internal ulong ContentFingerprint()
+        {
+            ulong hash = RenderFingerprint.Mix(14695981039346656037UL, (ulong)mode);
+            hash = RenderFingerprint.Mix(hash, (ulong)wrapMode);
+            hash = RenderFingerprint.Mix(hash, (ulong)colorSpace);
+            hash = RenderFingerprint.Float(hash, smoothness);
+            hash = RenderFingerprint.Mix(hash, (ulong)colors.Length);
+            foreach (var key in colors)
+            {
+                hash = RenderFingerprint.Float(hash, key.color.r); hash = RenderFingerprint.Float(hash, key.color.g);
+                hash = RenderFingerprint.Float(hash, key.color.b); hash = RenderFingerprint.Float(hash, key.color.a);
+                hash = RenderFingerprint.Float(hash, key.time); hash = RenderFingerprint.Float(hash, key.midpoint);
+            }
+            hash = RenderFingerprint.Mix(hash, (ulong)alphas.Length);
+            foreach (var key in alphas)
+            {
+                hash = RenderFingerprint.Float(hash, key.alpha); hash = RenderFingerprint.Float(hash, key.time);
+                hash = RenderFingerprint.Float(hash, key.midpoint);
+            }
+            return hash;
+        }
+
         public WhimTexGradientMode Mode
         {
             get => mode;

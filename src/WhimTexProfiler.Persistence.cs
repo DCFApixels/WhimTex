@@ -79,6 +79,7 @@ namespace DCFApixels.WhimTex
                 id = source.id, stopReason = source.stopReason, events = retained,
                 start = source.start, end = source.end, count = source.count, dropped = source.dropped,
                 documentId = source.documentId, unityVersion = source.unityVersion, recording = false, open = 0,
+                renderingThreadingMode = source.renderingThreadingMode, graphicsJobs = source.graphicsJobs,
                 memory = source.memory?.Copy(), causeTrackingLimited = source.causeTrackingLimited
             } };
             using (var writer = new StreamWriter(stream, new System.Text.UTF8Encoding(false), 4096, true))

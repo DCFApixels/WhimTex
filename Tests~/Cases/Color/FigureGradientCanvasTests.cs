@@ -48,9 +48,9 @@ public static class FigureGradientCanvasTests
             for (int i = 0; i < 6; i++) await UnityBRun.NextUpdate();
             var canvas = (VisualElement)Get(window, "toolkitCanvas"); var manip = Get(window, "gradientCanvasManipulator");
             bool Available() => (bool)window.GetType().GetProperty("IsGradientCanvasAvailable", F).GetValue(window);
-            Vector2 Point(float t) => (Vector2)Call(manip, "CircularPoint", t);
-            Vector2 Angle(float a) => (Vector2)Call(manip, "CircularPointAtAngle", a);
-            Vector2 Center() => (Vector2)manip.GetType().GetProperty("CircularCenterPoint", F).GetValue(manip);
+            Vector2 Point(float t) => (Vector2)Call(manip, "AngularPoint", t);
+            Vector2 Angle(float a) => (Vector2)Call(manip, "AngularPointAtAngle", a);
+            Vector2 Center() => (Vector2)manip.GetType().GetProperty("AngularCenterPoint", F).GetValue(manip);
             void Endpoints(out Vector2 a, out Vector2 b)
             { object[] args = { null, null }; Call(manip, "Points", args); a = (Vector2)args[0]; b = (Vector2)args[1]; }
             void Drag(Vector2 a, Vector2 b, bool release = true, bool ctrl = false)
@@ -126,7 +126,7 @@ public static class FigureGradientCanvasTests
                 document.layers.Remove(otherFigure);
                 document.layers.Remove(gradientLayer);
                 for (int i = 0; i < 4; i++) await UnityBRun.NextUpdate();
-                foreach (var mode in new[] { VectorFillMode.LinearGradient, VectorFillMode.RadialGradient, VectorFillMode.SquareGradient, VectorFillMode.DiamondGradient })
+                foreach (var mode in new[] { VectorFillMode.LinearGradient, VectorFillMode.RadialGradient, VectorFillMode.SquareGradient })
                 {
                     Write("fillMode", mode); Write("gradientStart", new Vector2(.3f, .4f)); Write("gradientEnd", new Vector2(.7f, .6f));
                     Call(window, "RefreshToolkitInterface", true);
@@ -134,6 +134,9 @@ public static class FigureGradientCanvasTests
                     Check(Available(), "Fill handles available for " + mode);
                     string transform = JsonUtility.ToJson(Current().transform);
                     Endpoints(out var a, out var b); Vector2 d = (b - a).normalized, offset = new Vector2(-d.y, d.x) * 18;
+                    Check((MouseCursor)Call(manip,"GetCursor",a)==MouseCursor.Pan,"Fill key has a hand cursor: "+mode);
+                    Check((MouseCursor)Call(manip,"GetCursor",b+offset)==MouseCursor.Pan,"Fill endpoint handle has a hand cursor: "+mode);
+                    Check((MouseCursor)Call(manip,"GetCursor",(Vector2)Call(manip,"KeyPosition",a,b,.8f))==MouseCursor.ArrowPlus,"Fill insertion area has a plus cursor: "+mode);
                     Vector2 delta = new Vector2(17, -11); var start = Read<Vector2>("gradientStart"); var end = Read<Vector2>("gradientEnd");
                     Drag(b + offset, b + offset + delta);
                     Endpoints(out var nextA, out var nextB);
@@ -149,28 +152,28 @@ public static class FigureGradientCanvasTests
                     else Check((Read<Vector2>("gradientEnd")-Read<Vector2>("gradientStart")-(end-start)).sqrMagnitude<1e-8f,"Nonlinear center preserves local radius/direction");
                     Escape(); Check(Read<Vector2>("gradientStart")==start && Read<Vector2>("gradientEnd")==end,"Escape restores fill anchors exactly");
                 }
-                Write("fillMode", VectorFillMode.CircularGradient); Write("gradientStart", new Vector2(.5f,.5f)); Write("gradientEnd", new Vector2(.85f,.5f));
+                Write("fillMode", VectorFillMode.AngularGradient); Write("gradientStart", new Vector2(.5f,.5f)); Write("gradientEnd", new Vector2(.85f,.5f));
                 Call(window,"RefreshToolkitInterface",true);
                 var selectedTool=Get(window,"canvasTool");Call(window,"ChangeCanvasTool",Enum.Parse(selectedTool.GetType(),"GradientHandles"));
                 string beforeTransform=JsonUtility.ToJson(Current().transform);
                 var initialStart=Read<Vector2>("gradientStart");var initialEnd=Read<Vector2>("gradientEnd");
                 string beforeGradient=JsonUtility.ToJson(Read<WhimTexGradient>("gradient"));
                 Drag(Point(0),Angle(20),ctrl:true);
-                Check(Read<float>("gradientRepetitions")==2,"Circular fill end snaps to integer repetitions");
+                Check(Read<float>("gradientRepetitions")==2,"Angular fill end snaps to integer repetitions");
                 Check((Read<Vector2>("gradientEnd")-initialEnd).sqrMagnitude<1e-8f,"End boundary leaves starting ray fixed");
-                Check(JsonUtility.ToJson(Current().transform)==beforeTransform,"Circular fill leaves figure transform untouched");
+                Check(JsonUtility.ToJson(Current().transform)==beforeTransform,"Angular fill leaves figure transform untouched");
                 Undo.PerformUndo();await UnityBRun.NextUpdate();
-                Check(Read<float>("gradientRepetitions")==1 && Read<Vector2>("gradientEnd")==initialEnd,"Circular range Undo");
+                Check(Read<float>("gradientRepetitions")==1 && Read<Vector2>("gradientEnd")==initialEnd,"Angular range Undo");
                 Drag(Point(0),Angle(340),false,true);
-                Check(Read<float>("gradientRepetitions")==2,"Circular fill start snaps to integer repetitions");
-                Check(Vector2.Distance(Point(1),Angle(180))<.03f,"Circular fill opposite endpoint remains fixed");
-                Escape();Check(Read<Vector2>("gradientEnd")==initialEnd && Read<float>("gradientRepetitions")==1,"Circular Escape restores exact direction and range");
+                Check(Read<float>("gradientRepetitions")==2,"Angular fill start snaps to integer repetitions");
+                Check(Vector2.Distance(Point(1),Angle(180))<.03f,"Angular fill opposite endpoint remains fixed");
+                Escape();Check(Read<Vector2>("gradientEnd")==initialEnd && Read<float>("gradientRepetitions")==1,"Angular Escape restores exact direction and range");
                 Drag(Vector2.Lerp(Center(),Point(0),.5f),Vector2.Lerp(Center(),Angle(215),.5f));
                 Check(Read<float>("gradientRepetitions")==1 && (Read<Vector2>("gradientEnd")-initialEnd).sqrMagnitude>.001f,"Ray rotates fill without opening it");
                 var center=Center();Drag(center,center+new Vector2(15,9));
-                Check(Vector2.Distance(Center(),center+new Vector2(15,9))<.03f,"Circular center translates fill independently");
+                Check(Vector2.Distance(Center(),center+new Vector2(15,9))<.03f,"Angular center translates fill independently");
                 Drag(Point(.4f),Point(.48f));
-                Check(Mathf.Abs(Read<WhimTexGradient>("gradient").ColorKeys[1].time-.48f)<.001f,"Circular fill color key follows arc");
+                Check(Mathf.Abs(Read<WhimTexGradient>("gradient").ColorKeys[1].time-.48f)<.001f,"Angular fill color key follows arc");
                 Drag(Point(0),Angle(215-60));
                 Call(window,"RefreshToolkitInterface",true);
                 for(int i=0;i<5;i++)await UnityBRun.NextUpdate();
@@ -196,10 +199,10 @@ public static class FigureGradientCanvasTests
                     var keyEnd=(Vector2)Call(manip,"KeyPosition",na,nb,.6f);
                     Drag(keyStart,keyEnd);
                     Check(Mathf.Abs(Read<WhimTexGradient>("gradient").ColorKeys[1].time-.6f)<.001f,"Perspective palette projection");
-                    Write("fillMode",VectorFillMode.CircularGradient);Write("gradientStart",new Vector2(.5f,.5f));Write("gradientEnd",new Vector2(.85f,.5f));Write("gradientRepetitions",1f);
+                    Write("fillMode",VectorFillMode.AngularGradient);Write("gradientStart",new Vector2(.5f,.5f));Write("gradientEnd",new Vector2(.85f,.5f));Write("gradientRepetitions",1f);
                     Call(window,"RefreshToolkitInterface",true);
                     Drag(Point(0),Angle(20),ctrl:true);
-                    Check(Read<float>("gradientRepetitions")==2,"Perspective circular endpoint and Ctrl");
+                    Check(Read<float>("gradientRepetitions")==2,"Perspective angular endpoint and Ctrl");
                     Check(JsonUtility.ToJson(Current().transform)==geometry,"Perspective fill editing leaves geometry unchanged");
                     // Restore the interior key for the next fixture, keeping endpoints independent.
                     Write("gradient",palette.Clone());
@@ -208,7 +211,7 @@ public static class FigureGradientCanvasTests
                 }
                 Current().transform=savedTransform;
                 Write("fillMode",VectorFillMode.Solid);Call(window,"RefreshToolkitInterface",true);Check(!Available(),"Solid fill hides gradient handles");
-                Write("fillMode",VectorFillMode.CircularGradient);
+                Write("fillMode",VectorFillMode.AngularGradient);
                 if(kind=="boolean")
                 {
                     Check(Children()==originalChildren,"Group fill edits preserve all child geometry and appearance");
@@ -243,20 +246,22 @@ public static class FigureGradientCanvasTests
                 Check(channel!=null && channel.enabledInHierarchy,"Both gradient targets can be chosen");
                 channel.value="Stroke";
                 Call(window,"ChangeCanvasTool",Enum.Parse(Get(window,"canvasTool").GetType(),"GradientHandles"));
-                foreach(var mode in new[]{VectorFillMode.LinearGradient,VectorFillMode.RadialGradient,VectorFillMode.SquareGradient,VectorFillMode.DiamondGradient})
+                foreach(var mode in new[]{VectorFillMode.LinearGradient,VectorFillMode.RadialGradient,VectorFillMode.SquareGradient})
                 {
                     Write("strokeMode",mode); Write("strokeGradientStart",new Vector2(.3f,.4f)); Write("strokeGradientEnd",new Vector2(.7f,.6f));
                     Call(window,"RefreshToolkitInterface",true);
                     Endpoints(out var a,out var b);var d=(b-a).normalized;var offset=new Vector2(-d.y,d.x)*18;
+                    Check((MouseCursor)Call(manip,"GetCursor",a)==MouseCursor.Pan,"Stroke key has a hand cursor: "+mode);
+                    Check((MouseCursor)Call(manip,"GetCursor",b+offset)==MouseCursor.Pan,"Stroke endpoint handle has a hand cursor: "+mode);
                     Vector2 end=Read<Vector2>("strokeGradientEnd"),delta=new Vector2(19,-9);
                     Drag(b+offset,b+offset+delta);Endpoints(out _,out var moved);
                     Check(Vector2.Distance(moved,b+delta)<.04f,"Stroke endpoint follows canvas pointer: "+mode);
                     Undo.PerformUndo();await UnityBRun.NextUpdate();
                     Check(Read<Vector2>("strokeGradientEnd")==end,"Stroke anchor Undo");
                 }
-                Write("strokeMode",VectorFillMode.CircularGradient);Write("strokeGradientStart",new Vector2(.5f,.5f));Write("strokeGradientEnd",new Vector2(.85f,.5f));
+                Write("strokeMode",VectorFillMode.AngularGradient);Write("strokeGradientStart",new Vector2(.5f,.5f));Write("strokeGradientEnd",new Vector2(.85f,.5f));
                 Call(window,"RefreshToolkitInterface",true);
-                Drag(Point(0),Angle(20),ctrl:true);Check(Read<float>("strokeGradientRepetitions")==2,"Stroke circular Ctrl snaps range");
+                Drag(Point(0),Angle(20),ctrl:true);Check(Read<float>("strokeGradientRepetitions")==2,"Stroke angular Ctrl snaps range");
                 Drag(Center(),Center()+new Vector2(12,8),false);Escape();
                 Check(Read<Vector2>("strokeGradientStart")==new Vector2(.5f,.5f),"Stroke center Escape");
                 Drag(Point(.4f),Point(.48f));Check(Mathf.Abs(Read<WhimTexGradient>("strokeGradient").ColorKeys[1].time-.48f)<.001f,"Stroke key follows arc");

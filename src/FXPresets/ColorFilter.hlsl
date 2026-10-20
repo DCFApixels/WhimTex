@@ -6,7 +6,7 @@
 // @param bool _PreserveLuminosity = true // Preserve luminance; a black tint falls back to the source color.
 // @endgroup
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(float4 color)
 {
 	float density = _Opacity * _FilterColor.a;
     if (density == 0.0) return color;

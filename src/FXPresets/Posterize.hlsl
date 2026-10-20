@@ -13,12 +13,12 @@
 // @endgroup
 #include "Packages/com.dcfapixels.whimtex/src/Shaders/Dither.cginc"
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     float steps = max(floor(_Levels + 0.5), 2.0) - 1.0;
     float gamma = max(_Gamma, 0.1);
     float3 c = pow(saturate(color.rgb), gamma);
-    float threshold = lerp(0.5, DitherThreshold(floor(uv * _CanvasSize.xy / _PixelScale), _Dither), saturate(_Amount));
+    float threshold = lerp(0.5, DitherThreshold(floor(float2(uv.x, uv.y) * _CanvasSize.xy / _PixelScale), _Dither), saturate(_Amount));
     // The clamp keeps a Halftone threshold of exactly 1.0 from pushing a channel above 1.0.
 	float4 result = color;
 	result.rgb = pow(min(floor(c * steps + threshold), steps) / steps, 1.0 / gamma);

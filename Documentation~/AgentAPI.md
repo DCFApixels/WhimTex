@@ -571,7 +571,7 @@ runs cold before warm; shared global caches can warm during the cold series.
 Snapshot creation freezes model, Drawing pixels and texture dependencies without flushing the source's
 Drawing surface or clearing its caches. Readable textures retain pixels/mips; non-readable textures
 are copied to linear RGBAFloat with generated mips. Fonts/meshes remain shared asset references.
-Known time-dependent Shader FX and arbitrary Material FX are rejected. Other shader globals and
+Known time-dependent HLSL FX are rejected. Other shader globals and
 Editor/GPU load remain uncontrolled. Metadata records content SHA-256, dimensions, quality,
 Unity/device/CPU and method caveats; compare equivalent inputs and environments.
 The snapshot is bounded to 256 layers, nesting 32 and 128 MiB source-payload budget; this is not a
@@ -605,23 +605,52 @@ boundaries remain unmeasured. Preparation/CPU jobs/readback are not reclassified
 its device interval can include submission gaps while the CPU prepares those commands.
 
 Before a capture's first GPU measurement, `gpuAvailability` is `warming_up`: empty markers check
-that the Editor actually returns GPU timestamps. Wait for `ready` in `status` before a one-shot render
+that the Editor actually returns GPU timestamps. Wait for `ready` (or `unconfirmed` with Graphics Jobs) in `status` before a one-shot render
 if its first GPU timing matters. No document is rendered/replayed to warm up instrumentation. Calls
 during warmup retain CPU timings and `gpuStatus:warming_up`; they are not replayed later. Hardware/API
 support alone does not guarantee the current Editor delivers counters. Native recording stays attached
 during capture and stops after outstanding work drains; it does not enable the Unity Profiler window.
+The actual `SystemInfo.renderingThreadingMode` is checked before warmup and before each query.
+Unity does not support GPU profiling with Graphics Jobs. WhimTex still attempts collection in
+`LegacyJobified` and all native Graphics Jobs modes; returned positive single-invocation intervals
+have `gpuStatus:unconfirmed`, not `ready`. This is not an estimate with a known error bound.
+Capture metadata retains actual `graphicsJobs` (boolean or null if unknown), `renderingThreadingMode`
+and `gpuWarning`, independently of the current Editor and including baseline, export and reload snapshots.
+The window shows actual Graphics Jobs On/Off even without a capture, plus a configured-setting/restart
+notice if it differs. Unconfirmed numeric cells have a yellow background and explanatory tooltip in
+Events, Summary and GPU Comparison, including derived deltas; there is no repeated word beside values.
+Repeat captures with Graphics Jobs disabled and Unity restarted for a supported comparison.
+Unknown future threading modes report `unsupported_threading`; absent device support remains `unsupported`.
+CPU recording continues. The profiler never changes project settings.
 
-`gpuStatus` is `pending` until the result arrives several Editor frames later, then `ready` or an explicit
-unavailable reason (`unsupported`, `warming_up`, `capacity`, `timeout`, `ambiguous`, `error`, `interrupted`).
+`gpuStatus` is `pending` until the result arrives several Editor frames later, then `ready`, `unconfirmed` or an explicit
+unavailable reason (`unsupported`, `unsupported_threading`, `invalidated_by_readback`, `warming_up`, `capacity`, `timeout`, `ambiguous`, `error`, `interrupted`).
 `not_submitted` means no FX commands were submitted; `not_measured` covers other/older events.
-`gpuMs` is null unless ready; `gpuDetail` contains a diagnostic when available. A bounded pool permits
+`gpuMs` is null unless ready or unconfirmed; `gpuDetail` contains a diagnostic when available. Collection accepts
+only positive single-invocation native intervals: zero/negative values or multiple populated samples
+in the recorder snapshot are `ambiguous`, not zero-cost work. The marker is retired and the reason
+is retained in `gpuDetail`. A positive interval is still an elapsed device interval, not independent
+validation of driver timestamps or pure shader execution. Compare repeated paired runs, include an
+identical-material control, and retain unavailable results rather than treating them as speedups.
+Synchronous `Texture2D.ReadPixels` in WhimTex invalidates pending GPU queries before reading, including
+queries from already-submitted operations and enclosing open GPU scopes. They report
+`invalidated_by_readback`, never a truncated positive duration; completed earlier values are retained.
+Open scopes still submit their matching EndSample before retiring. CPU wall/transfer timings remain
+available. Pixel output, mipmap flags and render state are unchanged; no extra readback/wait is introduced.
+Unrelated Editor/extensions can also affect native counters; these guards do not independently certify
+every positive driver timestamp. The live diagnostic uses an explicit AsyncGPUReadback control.
+A bounded pool permits
 128 outstanding invocation markers. Each marker belongs to exactly one invocation until consumed;
 frame totals are never divided among FX. Missing results time out after 10 seconds; their markers are
 retired until script reload to prevent late-result misattribution. CPU recording continues if GPU capacity is exhausted.
 
-Summary rows expose `gpuTotalMs`, `gpuMaxMs`, `gpuCount`,
-`gpuPendingCount`, `gpuUnavailableCount`. GPU aggregates include only ready samples; no ready samples
-means null, not zero. FX additionally exposes `cpuPrepareMs` and `cpuSubmitMs`.
+Summary rows expose `gpuTotalMs`, `gpuMaxMs`, `gpuCount`, `gpuUnconfirmedCount`,
+`gpuPendingCount`, `gpuUnavailableCount`. GPU aggregates include ready and unconfirmed samples;
+`gpuUnconfirmedCount` is a subset of `gpuCount`, separate from missing coverage. No measured samples
+means null, not zero. Compact hotspots and Comparison metrics carry the same unconfirmed count;
+Comparison rows additionally expose `gpuUnconfirmed`. `gpuComparable` still describes complete numeric
+coverage, not timing confidence. GPU deltas remain visible with a warning if either side is unconfirmed.
+FX additionally exposes `cpuPrepareMs` and `cpuSubmitMs`.
 The UI marks partial GPU totals with `*`, pending with `…`, unavailable with `—`.
 The window automatically displays arriving GPU results. Stop does not discard pending queries; export requires
 `pendingGpuSamples:0` (otherwise `capture_gpu_pending`). Clear/new capture abandons old queries safely.
@@ -1089,11 +1118,15 @@ do not prove that a result layer/message still exists or has not subsequently ch
 
 ### FX edits and presets
 
-`whimtex_fx_catalog` accepts an optional `query` category/name substring. It discovers presets
-in Assets, installed packages and the user preset library. Each result has `id`, `path`, `name`,
+`whimtex_fx_catalog` accepts an optional `query` category/name substring. It discovers only `.hlsl`
+presets whose first physical line is `// @whimtex-effect Category/Name`, in Assets, installed
+packages and the user preset library. ShaderFX `.asset`, Material and standalone ShaderLab
+sources are not catalog entries. Each result has `id`, `path`, `name`,
 `kind` and `error`. Pass an exact returned `presetId` to obtain `effect` with code and parameter
 types, current defaults, hard/soft bounds and enum options. Use IDs, not display names; invalid
 presets remain visible with an error. This command does not insert anything into a document.
+Project/package HLSL presets retain a source link; user-library presets are embedded snapshots.
+All resulting FX instances are document-owned, with independent values and enabled state.
 
 `{"op":"fx","layer":"ID-or-@alias","edits":[...]}` supports:
 
@@ -1138,12 +1171,18 @@ operation, 32 FX per layer, 128 parameters per effect, 65,536 characters of raw 
 The reservation/lock `fx` format in [LiveAgentAPI](LiveAgentAPI.md#inline-shader-fx)
 accepts inline code with `@param` defaults. It does not accept this name/value object or
 inspection's parameter records. Finish pending jobs before using `whimtex_assistant_execute`
-for shared FX value edits. See [HLSL declarations](ShaderFX.md#parameter-declarations)
+for FX value edits. See [HLSL declarations](ShaderFX.md#parameter-declarations)
 for the corresponding source syntax.
 
-Set/copy use independent document-owned values rather than modifying a shared external asset.
-Project/package HLSL presets retain their source link; user-library files are embedded. Shader FX
-supports all edits; Material entries support remove/move/baking, not parameter editing or copying.
+`Layer.fx` is a `List<ShaderFX>`; these edits operate on document-owned HLSL FX with independent
+values. JSON list items are `ShaderFX` models, `null`, or internal `$ref` references to those
+models, never `$asset`; see the [JSON model contract](JSON_FORMAT.md#envelope-and-model).
+There is no external Material/Shader/ShaderFX `.asset` source mode or
+Material render branch. Compiled Unity Shaders and internal Materials remain HLSL execution
+resources. Old external FX references in JSON/TIFF are rejected with a clear diagnostic before
+editing, without migration, silent omission or document rewrite. Supported HLSL source links
+and texture asset parameters are unaffected. In the editor, **Code → Embed Copy** remains available
+to detach a linked `.hlsl` source and edit its code in the document while keeping values.
 
 Prefer `presetId` for existing built-in/project effects, with parameter overrides for the desired look.
 Do not copy their unchanged HLSL into `code`: that creates an independent inline effect and loses
@@ -1437,6 +1476,7 @@ Current Sharp/MTSDF quality prototype: closed raster contours use line fits over
 | File | `source` (already imported Texture2D path in Assets or Packages) |
 | Color | `color` (`[r,g,b,a]`, encoded RGB -107..107, alpha 0..1), `fillMode` (`Color`, `UV`, `Pattern`), `fillPattern` (partial settings below) |
 | Drawing | `brush` (partial brush settings below) |
+| Gradient | `gradientType` (`Linear`, `Radial`, `Angular`, `Square`, `Freeform`), `gradient` (ordinary palette), `freeform` (point settings below) |
 | Outline | `color`, `metric` (`EuclideanAntialiased` default; ten modes below), `miterLimit` (float, 1..64, default 4; Sharp/CornerFit/Spring), `sourceChannel` (`Alpha` default, `Red`, `Green`, `Blue`, `Luminance`), `outlineWidth`, `outlineSoftness` (0..16384), `outlinePosition` (`Outside`, `Inside`, `Center`), `outlineOffset` (-16384..16384), `fillCenter` (bool), `fillColor` (`[r,g,b,a]`) |
 | SDF | `metric` (`EuclideanAntialiased` default; ten modes below), `miterLimit` (float, 1..64, default 4; Sharp/CornerFit/Spring), `contourMergeDistance` (finite float, 0..2 inclusive, default 0/off; experimental, Sharp/MTSDF only, current render px), `sourceChannel` (`Alpha`, `Red`, `Green`, `Blue`, `Luminance`), `threshold` (integer 0..255), `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`), `encoding` (`Gradient` default, `LinearData`, `MultiChannelData`), `inverted` (bool; Gradient/LinearData), `maxDistance` (0..16384; zero = automatic), `sourceOffset` ([x,y], each -16384..16384 px), `sourceEdges` (`Transparent`, `Clamp`, `Repeat`, `Mirror`), `contourOffset` (-16384..16384 px; positive expands; Gradient/LinearData only), `insideDistance`/`outsideDistance` (Signed Gradient/LinearData only, 0..16384; 0 inherits maxDistance/auto), `profile` (FX curve string syntax, at most 4096 characters; default `linear`; Gradient/LinearData only) |
 | Normal Map | `normalMap`: partial settings object described below |
@@ -1736,6 +1776,45 @@ layer deletion, duplication, merging and conversion to Drawing; see [shared edit
 Changing gradient geometry is not exposed by these batch operations.
 Use `enabled:false` when hiding a layer is preferable to deleting it.
 
+### Freeform gradient settings
+
+Gradient layers accept `gradientType:"Freeform"` with `freeform.points`. For example, use
+the following `settings` in an `add` or `set` operation:
+
+```json
+{
+  "gradientType": "Freeform",
+  "freeform": {
+    "points": [
+      { "position": [0.25, 0.3], "color": [1.5, 0.2, 0.1, 1], "influence": 0.35 },
+      { "position": [0.75, 0.7], "color": [0.1, 0.3, 1.2, 0.4], "influence": 0.5 }
+    ]
+  }
+}
+```
+
+There must be 1..64 points. Each point requires `position` (two finite local UV values,
+bottom-left origin, each -10000..10000) and `color` (straight encoded RGB, each -107..107,
+with alpha 0..1). Optional `influence` defaults to 0.35 and accepts 0.01..4. Larger influence
+increases that point's relative weight; it does not impose a hard radius cutoff. Colors
+are decoded and blended in linear space, retaining signed HDR and independent alpha.
+Use the layer's HDR rendering range when the output must retain values outside 0..1.
+
+Providing `freeform` replaces its complete point list; omitting it preserves the stored list.
+Switching `gradientType` preserves both Freeform points and the ordinary `gradient` palette.
+The canvas Gradient creation tool also offers Freeform: a drag creates three equilateral-triangle points sampled from the current palette at 0, 0.5 and 1, preserving encoded HDR RGB and alpha, then activates point editing. This UI initialization does not change the API default point set; API callers specify `freeform.points` explicitly when matching a particular palette.
+Inspect returns `gradientType` and `freeform.points` alongside `gradientKeys`, including
+inactive settings. Live and file-based shared editing operations use this same contract.
+For Shape, use `settings.shape` with `fillMode:"Freeform"` and `freeform`, or
+`strokeMode:"Freeform"` and `strokeFreeform`. Each point field replaces that complete list;
+omitted fields stay intact. Inspect includes both point fields under `settings.shape`.
+Vector `settings.vector.shapes` and Boolean Group `settings.booleanGroup.style` use the
+same paint fields, following their existing whole-array/whole-style replacement rules.
+For example: `{"shape":{"fillMode":"Freeform","freeform":{"points":[{"position":[0.5,0.5],"color":[2,0.1,0.2,0.8],"influence":0.35}]}}}`.
+Both inactive palettes and point sets are retained. Text does not accept Freeform.
+SVG is unchanged. See
+[document JSON storage](JSON_FORMAT.md#freeform-gradients) for serialization and interpolation.
+
 ### Resize a document
 
 `{"op":"resize","width":256,"height":128,"preserveLayout":true}` is a document-level
@@ -1773,7 +1852,7 @@ Post FX is window-local presentation state and never changes API rendering, samp
 ### Text settings
 
 Text also accepts `fillMode` (`None`, `Solid` default, `LinearGradient`, `RadialGradient`,
-`SquareGradient`, `DiamondGradient`, `CircularGradient`), `gradient`, `gradientStart` (default `[0,0]`),
+`SquareGradient`, `AngularGradient`), `gradient`, `gradientStart` (default `[0,0]`),
 `gradientEnd` (`[1,0]`), `gradientRepetitions` (finite, at least 0.0001), and `gradientScope`
 (`Text` default, or `Character`). `color` is the retained Solid color, not a gradient multiplier.
 The palette contract is shared with figure fills. Text coordinates normalize the union of visible
@@ -1884,7 +1963,7 @@ omitted fields in API patches remain unchanged. For example:
 ```
 
 Each shape's `fillMode` accepts None, Solid, LinearGradient, RadialGradient,
-SquareGradient, DiamondGradient and CircularGradient. `gradient`, `gradientStart`,
+SquareGradient, AngularGradient. `gradient`, `gradientStart`,
 `gradientEnd` and `gradientRepetitions` use the shared [figure-fill geometry](JSON_FORMAT.md#figure-fills)
 in `referenceSize` pixels. A supplied `shapes` array replaces every figure and its
 style; include inactive settings when constructing that replacement.
@@ -1923,7 +2002,7 @@ group's `referenceSize` metric: `style.gradientStart`/`style.gradientEnd` for Fi
 or `style.strokeGradientStart`/`style.strokeGradientEnd` for Stroke. The canvas
 toolbar's Fill/Stroke popup (`gradientHandleChannel`) selects the available gradient
 automatically and is disabled when only one is valid; with both active it chooses
-which paint to edit. Palettes and circular
+which paint to edit. Palettes and angular
 repetitions belong to the chosen paint. Handles leave group/child transforms and
 the other paint unchanged. Combine with `appearance:Layers` exposes child paint
 handles while retaining the inactive group style. The shared inspector controls
@@ -1989,15 +2068,16 @@ and `shapeKinds`; `inspect` includes all parameters. One layer contains one edit
 | :--- | :--- |
 | `kind` | Rectangle (default), Ellipse, Polygon, Star, Line, Arc, Sector |
 | `fill`, `fillColor` | Boolean (default true), RGBA color (default white) |
-| `fillMode` | None, Solid (default), LinearGradient, RadialGradient, SquareGradient, DiamondGradient, CircularGradient; `fill` remains the overall gate |
+| `fillMode` | None, Solid (default), LinearGradient, RadialGradient, SquareGradient, AngularGradient, Freeform; `fill` remains the overall gate |
 | `gradient` | Complete gradient palette, using the existing gradient object or color-stop array contract; default black-to-white Perceptual/Clamp. A supplied value replaces the palette |
+| `freeform`, `strokeFreeform` | Independent Freeform point lists; see [point fields](#freeform-gradient-settings). Retained when inactive. |
 | `gradientStart`, `gradientEnd` | Two finite normalized layer-local coordinates, Y up; defaults `[0,0]` / `[1,0]`; API components -1000000..1000000, allowed outside 0..1 |
-| `gradientRepetitions` | Finite float, minimum `0.0001`, default `1`; CircularGradient only. One period spans `360 / gradientRepetitions` degrees from the start-to-end ray before palette wrapping. Retained and validated in every mode, including disabled fills |
+| `gradientRepetitions` | Finite float, minimum `0.0001`, default `1`; AngularGradient only. One period spans `360 / gradientRepetitions` degrees from the start-to-end ray before palette wrapping. Retained and validated in every mode, including disabled fills |
 | `stroke`, `strokeColor` | Boolean (default false), RGBA color (default black) |
-| `strokeMode` | None, Solid (default), LinearGradient, RadialGradient, SquareGradient, DiamondGradient, CircularGradient; `stroke` remains the enable gate; None suppresses paint without clearing settings |
+| `strokeMode` | None, Solid (default), LinearGradient, RadialGradient, SquareGradient, AngularGradient, Freeform; `stroke` remains the enable gate; None suppresses paint without clearing settings |
 | `strokeGradient` | Complete independent palette using the API gradient object or color-stop array; default black-to-white Perceptual/Clamp. A supplied value replaces only this palette |
 | `strokeGradientStart`, `strokeGradientEnd` | Two finite normalized layer-local coordinates, Y up; defaults `[0,0]` / `[1,0]`; allowed outside 0..1 within the finite float range |
-| `strokeGradientRepetitions` | Finite float, minimum `0.0001`, default `1`; CircularGradient only, before palette wrapping. Retained and validated even with stroke disabled or another mode selected |
+| `strokeGradientRepetitions` | Finite float, minimum `0.0001`, default `1`; AngularGradient only, before palette wrapping. Retained and validated even with stroke disabled or another mode selected |
 | `strokeWidth` | 0–8192 canvas pixels; default 2; outline width, independent of body thickness |
 | `arcThickness` | 0–8192 canvas pixels; default 8; Arc body thickness; Transform sets the centerline ellipse |
 | `strokePosition` | Inside (default), Center, Outside; relative to the body contour, including Arc. Shape's C# values remain Inside=0, Center=1, Outside=2; Vector uses different values |
@@ -2021,9 +2101,9 @@ and `shapeKinds`; `inspect` includes all parameters. One layer contains one edit
 Shape and Vector share [figure-fill geometry](JSON_FORMAT.md#figure-fills). Shape
 measures the gradient in current canvas width/height before layer Transform;
 Vector uses `referenceSize`. Start is the center for nonlinear gradients, and End
-sets radius and orientation. Circular advances counterclockwise from the start-to-end
+sets radius and orientation. Angular advances counterclockwise from the start-to-end
 ray, with its seam on that ray. Equal anchors yield `t=0`. Palette `wrapMode` controls
-repetition after the circular-only `gradientRepetitions` multiplier. Partial Shape updates preserve omitted
+repetition after the angular-only `gradientRepetitions` multiplier. Partial Shape updates preserve omitted
 fill and stroke fields, including their independent inactive palettes, anchors and
 repetitions; inspect/describe expose them. FullOptimized and Compact preserve both
 inactive paint styles as well as Full JSON. Changing stroke settings does not

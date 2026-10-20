@@ -25,7 +25,7 @@ float AdjustTone(float value, float brightnessGain, float contrastGain)
     return low <= high ? mapped : 1.0 - mapped;
 }
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(float4 color)
 {
     if (_Brightness == 0.0 && _Contrast == 0.0) return color;
     float brightnessGain = 1.0 + abs(_Brightness) / 50.0;

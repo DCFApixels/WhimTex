@@ -166,7 +166,7 @@ Paragraph 只作用于显式换行，不作用于自动换行；四个值均参�
 `2` 加宽一倍。换行、Auto Size 和 Ellipsis 使用调整后的宽度；附加的 em 间距保持不变。
 加宽字符会以更高密度栅格化，避免直接放大原字体位图的模糊边缘；纹理尺寸限制仍然适用。
 
-**Fill** 支持 Solid、Linear、Radial、Square、Diamond 和 Circular，使用共用渐变编辑器。
+**Fill → Type** 使用与 Shape 和 Vector 相同的图标行：None、Solid、Linear、Radial、Angular 和 Square。Solid 是实心方块，None 是带斜线的空心方块。当前图标高亮显示，悬停可查看名称。颜色使用共用渐变编辑器。
 **Scope → Text** 覆盖整段文字的可见字形范围；**Character** 在每个字形的矩形内重复
 同一套渐变，不包含左右字距。选择 **Gradient Handles** 在画布上编辑。
 Character 模式下，点击远离当前控制点的另一个字形可移动控制器；修改仍应用于所有字形。
@@ -272,12 +272,14 @@ Seamless 优先于图层 Tiling，只保证生成图案的周期性；后续任�
 使用 **Transform** 来移动、缩放或旋转已有的图形。在 **Properties (Shape)** 中，
 可以更改其类型、颜色、多边形边数或星形角数和内半径。
 
-启用 **Fill** 后选择 **Type**：Solid 使用单色；Linear、Radial、Square、Diamond
-和 Circular 使用渐变；None 不填充主体。点击 **Gradient** 调整颜色和透明度，
-再用起止点或中心与半径/方向点定位渐变。关闭 Fill 会隐藏这些控件并保留设置。
-各渐变的形状以及 Circular 的逆时针方向和接缝见[填充控件](vector.md#填充与描边)。
+Fill 和 Stroke 的类型使用与 Gradient 图层相同的图标行。Solid 显示为实心方块，None 显示为带斜线的空心方块。当前类型高亮显示，悬停可查看名称。
 
-**Stroke → Type** 提供相同的单色和渐变选项，拥有独立色带、控制点及 Circular 的
+启用 **Fill** 后选择 **Type**：Solid 使用单色；Linear、Radial、Angular
+和 Square 使用渐变；None 不填充主体。点击 **Gradient** 调整颜色和透明度，
+再用起止点或中心与半径/方向点定位渐变。关闭 Fill 会隐藏这些控件并保留设置。
+各渐变的形状以及 Angular 的逆时针方向和接缝见[填充控件](vector.md#填充与描边)。
+
+**Stroke → Type** 提供相同的单色和渐变选项，拥有独立色带、控制点及 Angular 的
 Repetitions。选择 None 或关闭 Stroke 会保留这些设置。两种渐变同时启用时，
 在 **Gradient Handles** 中选择 Fill 或 Stroke；拖动所选渐变的控制点不会移动图形。
 

@@ -50,15 +50,56 @@ Find settings for [color correction](#levels-contrast-and-color-balance), [masks
 
 ## Parameter controls
 
-Use **⋮ → Reset** or right-click the FX header and choose **Reset** to restore all parameter defaults, including hidden fields and transforms. Code, the preset link and enabled state stay unchanged. Reset can be undone; for a shared FX asset it affects every use of that asset.
+Use **⋮ → Reset** or right-click the FX header and choose **Reset** to restore all parameter defaults, including hidden fields and transforms. Code, the preset link and enabled state stay unchanged. Reset affects only this effect and can be undone.
 
-Right-click a named parameter-group header for **Copy**, **Paste** and **Reset**, with a separator before Reset. Paste transfers values between compatible groups, including Selective HSV ranges. Hidden fields and the header checkbox are included. Reset affects only that group; Paste and Reset can be undone. The group body and unnamed groups have no group menu.
+Right-click a named group/foldout header or an individual tab for **Copy**, **Paste** and **Reset**, with a separator before Reset. Paste transfers values between compatible groups or pages, including Hue & Saturation ranges. Hidden and disabled fields, nested settings and any header checkbox are included. Reset affects only that group or page, not neighboring tabs or shared fields; Paste and Reset can be undone. Bodies, unnamed groups and the overall tabs heading have no parameter-set menu.
 
-The unlabeled checkbox in each Shader FX header enables or bypasses that effect without removing its settings. External FX references share this state; use **Embed** for an independent copy.
+The unlabeled checkbox in each Shader FX header enables or bypasses that effect without removing its settings. Each effect has its own values and enabled state, even when several effects use the same HLSL preset.
 
 Hover over a parameter to read its description, if the effect's author supplied one.
 
+### Groups, foldouts and tabs
+
+An effect can organize settings into non-collapsible bordered groups, collapsible sections and tab pages. Click a foldout's arrow to show or hide its settings, or click a tab to view that page. These choices only change which controls you see: values in collapsed sections and other pages still affect the image. A checkbox beside a section title changes its parameter independently; the author can use it to show dependent settings or enable part of the effect.
+
+For custom HLSL, use `@group` / `@endgroup`, `@foldout(Title)` / `@endfoldout`, and `@tabs` containing `@tab(Page title)` / `@endtab`, closed by `@endtabs`. Foldouts require a title. Tabs can have an overall title with `@tabs(Title)`; plain `@tabs` leaves no blank heading row. See the [layout syntax and examples](../ShaderFX.md#layout-containers).
+
+A tab can have its own checkbox before the label: `@tab(Range 1; _Enabled)`. Declare the bool directly inside that page. Clicking the checkbox changes its value without selecting the tab; clicking the tab leaves the checkbox unchanged. The effect decides what that value enables.
+
+Dependent fields and previews can stay visible but gray while their section is disabled. In custom HLSL, wrap those rows in `// @enableif _Enabled == 1` and `// @endenableif`; `@if` hides rows instead. Enabling the section restores editing with the saved values. These conditions only change controls; HLSL determines how values affect the image. See [condition syntax](../ShaderFX.md#parameter-declarations).
+
+### Parameter previews
+
+Changing a parameter refreshes previews on the next Editor update, without a 100 ms wait.
+Rapid changes are combined, and each preview redraws at most once per Editor update.
+Periodic refresh remains a fallback for changes made outside normal controls.
+
+An author can reuse one preview function with different parameter sets. In Hue & Saturation,
+range previews stay linked to their own Hue Range and Feather, and correction tracks use
+the current settings of that same range; switching another range does not redirect them.
+
+Effects can show an author-defined preview: a colored Slider track, a small rectangle to the
+right of another field, or a separate image between settings. Slider thumbs and numeric input
+keep their normal behavior. Hue & Saturation previews use a red reference sample and the other current
+settings; they are a guide, not the result for every image color. Inspector colors are limited
+to SDR, without limiting HDR values in the effect. See the [HLSL preview syntax](../ShaderFX.md#inspector-previews).
+
+Preview tracks use a compact triangular marker, half inside and half outside the lower edge.
+Track and marker sizes stay the same for ordinary and soft-range sliders.
+Numeric fields use the standard slider size, including both endpoints of range controls.
+
+Hue & Saturation also shows the current hue range and feather on Hue Range tracks; Feather itself has no preview,
+and the saturation gate on Source Saturation (HSV). Range correction tracks use the range's
+center color as a reference, without the final averaging of overlaps. Both presets share one
+baked rainbow lookup; the effect's image-processing formulas are unchanged.
+
 ### Numbers and limits
+
+Interval sliders have two handles and synchronized, unlabeled numeric fields: left is the lower
+endpoint (X), right the upper (Y). Drag a handle to resize the interval or drag the middle to move it as a whole.
+Endpoints may coincide but cannot cross or leave the track. Shader previews sit beneath both handles.
+The slightly larger half-triangle handles extend outward, with their vertical edges on the interval endpoints.
+Both handles stay visible and draggable at the limits, including full and empty ranges, without overlapping numeric fields.
 
 Numeric FX header fields have a **↔** handle: drag left or right to change the value. Shift gives finer adjustment; Ctrl makes it faster.
 
@@ -128,15 +169,17 @@ The frame edits the effect, not the layer transform. Its purpose depends on the 
 it may place an image, change a pattern's scale, or define a local area. It is not automatically a mask,
 but **UV Transform** with **Input Tiling → Clip** leaves pixels outside the frame transparent.
 
-## Order, copying and shared effects
+<a id="order-copying-and-shared-effects"></a>
+
+## Order, copying and HLSL sources
 
 Effect order matters. Drag an FX header to reorder effects, or drop it onto another layer's row to move it there. **Move Up** and **Move Down** in the header context menu also change the order.
 
-**+ Reference** selects a Shader FX asset whose settings are shared everywhere it is used.
-**⋮ → Embed Copy** in the effect header creates an independent copy in the document without changing the external asset. The same menu contains **Move Up**, **Move Down** and **Remove**.
-Use **⋮ → Copy FX**, then **Paste FX As New** on another row to insert an independent copy after it. Shader FX code and parameters are copied; layer-texture links stay within the same document and are cleared when pasted into another document. Material rows copy the Material reference.
-Project HLSL effects receive code changes from their source `.hlsl` file.
-To edit the code independently in the document, click **Embed Copy** under **Code**. Parameters appear below the header; **Code** contains the editor, **Apply**, **Save Preset…** and **Shader inputs**. Diagnostics appear when there is something to report.
+Every FX belongs to the document and has independent parameter values and enabled state. Use **⋮ → Copy FX**, then **Paste FX As New** on another row to insert an independent copy after it. Layer-texture links stay within the same document and are cleared when pasted into another document. The menu also contains **Move Up**, **Move Down** and **Remove**.
+
+Project/package presets receive code changes from their source `.hlsl` file; their parameter values remain independent. Use **Open HLSL Source** to edit that source. To edit this effect independently, choose **Code → Embed Copy**: it disconnects the `.hlsl` link, keeps the current code and values in the document, and enables local code editing. Later source-file changes no longer update this effect. User-library presets already keep a snapshot in the document. For custom code, add **+ Shader FX**, write inline HLSL and click **Compile**. Parameters appear below the header; **Code** provides the applicable code controls, **Save Preset…** and **Shader Inputs**. Diagnostics appear when there is something to report.
+
+Only marked `.hlsl` presets and inline HLSL are supported. External Material, Shader and Shader FX `.asset` references cannot be added. Older JSON/TIFF documents containing external FX references are rejected with a diagnostic; there is no automatic migration or document rewrite. Keep the originals and use a matching older checkout to open them.
 
 ## Save your own preset
 
@@ -165,7 +208,7 @@ Baking turns the current result into Drawing pixels. Choose the command by scope
 
 | Command | Action |
 | :--- | :--- |
-| **Code → Apply** | Compile HLSL; keep the effect editable. Does not bake pixels. |
+| **Code → Compile** | Compile HLSL; keep the effect editable. Does not bake pixels. |
 | **⋮ → Apply** in an FX header/menu | Bake that FX and every preceding FX, in stack order. Later effects remain editable. |
 | **Apply All** beside the add-FX buttons | Bake the entire FX stack. |
 
@@ -177,9 +220,9 @@ Shader Processor also supports Apply. It captures its current input, including t
 
 ## Create your own effect
 
-If you have shader code, use **+ Shader FX**, paste it into the editor and click **Apply**.
+If you have shader code, use **+ Shader FX**, paste it into the editor and click **Compile**.
 The code and settings stay with the document; no separate file is required.
-If Apply reports a problem, see [FX errors and warnings](#compilation-warnings).
+If compilation reports a problem, see [FX errors and warnings](#compilation-warnings).
 
 Custom HLSL effects and brushes can use the built-in noise library for grain,
 organic masks and distortion. See the [noise functions and example](../AI/README.md#built-in-noise-library).
@@ -187,15 +230,58 @@ organic masks and distortion. See the [noise functions and example](../AI/README
 Writing an effect is optional. The [shader authoring reference](../ShaderFX.md)
 is for creating code and reusable libraries.
 
+### Pixel-local effects
+
+Open **Code** to see **Pixel Local** above the code text area: **Yes**, **No**, **Not compiled** or **Unavailable** describe the compiled shader.
+Draft edits do not change that answer until **Compile**; a note identifies a changed draft.
+**Shader Inputs** groups the authoring reference into sections, uses bullets for declarations and API entries, and highlights function and parameter names.
+Double-click highlighted code to insert it at the last code caret or replace the selected text,
+including `SampleInput` and `SampleTexture` examples. Editable fragments brighten slightly
+and show a hand cursor on hover, without tooltips. A full `ApplyFX` declaration instead
+replaces the function header while keeping its body and argument names. The code field
+keeps focus; Undo/Redo is available. Click **Compile** to use the edited draft. Linked
+presets must first be made editable with **Embed Copy**.
+
+In the code field, **Tab** inserts spaces to the next four-column stop; with a selection it
+indents the selected lines. **Shift+Tab** removes one level of indentation. Both keep focus
+in the code and support Undo/Redo. New `ApplyFX` bodies start with a four-space indent.
+**Enter** keeps the current indent and adds a level after `{`. Between `{}` it opens an
+indented interior line. Typing `}` at the start of a line aligns it with the opening brace;
+braces in comments and quoted strings do not affect indentation. These edits support Undo/Redo.
+
+In Unity 6000.7+, **Code** colors HLSL types, keywords, literals, comments, directives,
+function names and WhimTex metadata. Coloring does not edit the source or compile it;
+caret, text selection and Undo/Redo keep working normally. Selected text retains the
+standard selection color. Older Editors show plain text.
+Long code lines stay on one visual line; a horizontal scrollbar appears for overflow.
+In Unity 6000.7+, line numbers on the left scroll vertically with the code but stay fixed
+when scrolling horizontally. Blank lines are numbered too.
+While editing, the current line has a subtle background and its number is slightly brighter;
+text selection remains visible above the highlight.
+
+A pixel-local FX processes the current coordinate without reading displaced points of an image.
+Authors can use `ApplyFX(float4 color)` for color calculations or
+`ApplyFX(PinnedUV uv, float4 color)` to read textures at that same coordinate.
+`PinnedUV` can be read and copied, but not modified or used in arithmetic.
+Use `ApplyFX(float2 uv, float4 color)` for effects that move texture coordinates.
+
+`SampleInput(uv)` and `SampleTexture(_Mask, uv)` are WhimTex's primary texture-reading functions.
+`SampleTexture(_MainTex, uv)` is also pixel-local with `PinnedUV`, equivalent to `SampleInput(uv)`;
+the sampler name itself does not make a read a bypass.
+The latter also supports masks from Texture, Layer, Self or None; pixel-local signatures require
+`PinnedUV`. Direct HLSL texture reads are bypass paths, and detected bypasses or derivatives
+produce a warning and prevent confirmation of pixel locality.
+See the [signatures, restrictions and mask example](../ShaderFX.md#pixel-local-entry-points-and-texture-reads).
+
 ## Editing in an external editor
 
-- **Open Code** opens a working file in Unity's selected script editor. Saving updates the draft in WhimTex; click **Apply** to compile it.
-- **Open in VS Code** also installs WhimTex directive highlighting, completions and checks automatically in an isolated profile. Saving this working file requests **Apply** in Unity, without returning to the WhimTex window. The language mode remains **HLSL**; the bundled extension supports Restricted Mode.
+- **Open Code** opens a working file in Unity's selected script editor. Saving updates the draft in WhimTex; click **Compile** to compile it.
+- **Open in VS Code** also installs WhimTex directive highlighting, completions and checks automatically in an isolated profile. Saving this working file requests **Compile** in Unity, without returning to the WhimTex window. The language mode remains **HLSL**; the bundled extension supports Restricted Mode.
 - If the VS Code button is missing, set **User Settings → External Code Editor → VS Code Command**. WhimTex checks Unity's registered editors and PATH before this fallback.
 
 The VS Code extension highlights types, modifiers, parameter names, values and ranges as well as directive names. It checks defaults, tooltips, linked controls, conditions and groups; shader compilation errors still come from Unity. After an extension update, reopen code through **Open in VS Code**; an already-running window may need **Developer: Reload Window**.
 
-Type `// @if` or `// @group`, then press **Tab** to create a block with its closing directive. Tab moves through the condition or group title, then into the body. The compact spelling `//@if` / `//@group` also works. If your VS Code settings disable Tab completion, select the snippet with **Ctrl+Space** instead.
+Type `// @if`, `// @enableif`, `// @group`, `// @foldout`, `// @tabs` or `// @tab` and press **Tab** to insert a block with matching end directives. Tab moves through its placeholders and into the body. The tabs snippet includes a first page; enter `(Title)` in its first placeholder if you want an overall title. Compact spellings such as `//@enableif` work too. If your VS Code settings disable Tab completion, choose the snippet through **Ctrl+Space**.
 
 External working files are temporary, not backups. Inactive copies unused for more than **24 hours** are automatically removed. Save your document in WhimTex to keep the code; saving in the code editor alone does not save the document. After restarting Unity or reloading scripts, reopen code from WhimTex to reconnect it.
 
@@ -209,7 +295,7 @@ headers identify problems even with the panels collapsed. Hover for the reason; 
 | Message | What happens | What to do |
 | :--- | :--- | :--- |
 | Warning | The FX still runs. | Read the warning and decide whether the result is suitable. For example, [Unity time inputs](shader-controls.md#coordinates-and-time) can give inconsistent previews. |
-| Error | The FX is skipped, not disabled or deleted. Its code and settings remain editable; no older compiled version is used. | Fix the problem and click **Apply**. |
+| Error | The FX is skipped, not disabled or deleted. Its code and settings remain editable; no older compiled version is used. | Fix the problem and click **Compile**. |
 
 Indicators clear when no issues remain. TIFF saving requires all FX drafts to be applied and errors fixed.
 JSON can save and reopen broken FX without losing their code or parameter values; it does not store Drawing pixels.
@@ -230,34 +316,49 @@ Color Balance groups Shadows, Midtones and Highlights in one block. **RGB Offset
 
 **Profile** in Bevel Emboss maps the selected height channel to relief height. **Mapping** in Gradient Map redistributes brightness before choosing a gradient color. Both curves start linear.
 
-### HSV correction
-**Color → HSV** adjusts hue, saturation and brightness. **Hue** shifts the hue in degrees;
-**Saturation** and **Value** are multipliers: 1 is neutral, 0 removes saturation or makes the image black.
+<a id="hsv-correction"></a>
+
+### Hue & Saturation correction
+
+**Color → Hue & Saturation** adjusts hue, saturation and lightness. **Hue** shifts the hue in degrees.
+**Saturation** scales color away from weighted gray: 0 removes color, 1 is unchanged, above 1 intensifies it.
+**Lightness** goes from −100 (black) through 0 (unchanged) to +100 (white); it is not a brightness multiplier.
 **Opacity** in the FX header mixes the correction with the original. Gray pixels stay gray when changing hue or saturation.
-Alpha is preserved and HDR brightness is supported. HSV correction treats negative RGB channels as zero;
+Alpha is preserved and HDR brightness is supported. Active correction treats negative RGB channels as zero;
 neutral settings and Opacity 0 leave the original unchanged.
 
-### Selective HSV
+### Hue ranges
 
-**Color → Selective HSV** combines whole-image correction in **Master** with up to four hue
-ranges that override it. Hue shifts the source hue; Saturation and Value multiply source
-saturation and brightness. Their neutral values are 0, 1 and 1.
+Master opens by default. Master and Range 1–4 have separate tabs without an overall heading or nested parameter groups.
+Each Range has an Enabled checkbox before its tab label. Source Saturation (HSV) and
+Output stay below the tabs and are available on every page. Switching tabs does not enable a Range.
+
+**Color → Hue & Saturation** combines whole-image correction in **Master** with up to four hue
+ranges that override it. Hue shifts the source hue; Saturation changes its distance from gray,
+and Lightness moves it toward black or white. Their neutral values are 0, 1 and 0.
 
 To remove all color except blue, set **Master → Saturation** to 0. Enable **Range 3**, keep
-**Center** at 240° and **Saturation** at 1, then adjust **Width** and **Feather**. The blue core
+**Hue Range** at 210°–270° and **Saturation** at 1, then adjust the endpoints and **Feather**. The blue core
 keeps its original color; Feather fades it into the desaturated surroundings.
 
-All ranges start disabled. Enable a Range and set its Center/Width/Feather in degrees, then
-adjust Hue/Saturation/Value. These settings replace Master inside the range; they are not
-applied after it. Disabled ranges retain their values and hide their controls.
+All ranges start disabled. Enable a Range and set its Hue Range endpoints/Feather in degrees, then
+adjust Hue/Saturation/Lightness. These settings replace Master inside the range; they are not
+applied after it. Disabled ranges retain their values and show gray controls that cannot be edited;
+their tab-header Enabled checkboxes remain available.
 Ranges select the original hue, before any correction. Overlaps average range corrections;
-Master is not part of that average. **Min Saturation** and **Saturation Feather** restrict
+Master is not part of that average. **Source Saturation (HSV)** sets the cutoff (X) and full-strength point (Y) for
 range selection in weakly colored areas, which still receive Master correction. Gray pixels
-also use Master. Width 360 covers all hues; Width and Feather both zero select nothing.
+also use Master. Hue Range shows one 0°–360° turn. Handles wrap across the edges:
+330° → 30° selects through red. Drag the selected region to move the whole range.
+Handles stop where they meet: at zero width when narrowing and at a full circle when widening, without jumping to 0°/360°. Reversing direction responds immediately, and both handles stay visible at the track edges.
+At the full-circle stop, both fields show the meeting angle and the whole track stays selected. At the zero-width stop, no part of the track is selected; with zero Feather it selects nothing. Entering 0° → 360° also selects all hues.
+In repeating numeric fields, values outside the range wrap: 370° becomes 10°, −10° becomes 350°.
 
 Use **Output → All Ranges Mask** or an individual range mask to inspect the selection. Mask
 brightness includes source transparency and does not change with Master. **Result** preserves alpha and HDR brightness;
 the header **Opacity** blends any selected output with the original.
+With all ranges disabled, the effect uses the faster whole-image calculation.
+Lightness can lift black to white; positive values also draw HDR highlights toward reference white.
 
 ### Negative
 **Color → Negative** blends the source RGB toward its inverse (`1 - RGB`) with **Amount**.
@@ -325,6 +426,8 @@ especially with Scharr.
 
 Both effects use **Base Color alpha** to blend transparent lighting (0) into the filled, shaded surface (1). Intermediate values crossfade with alpha-aware mixing. RGB tints the surface; **Ambient** fades in with it. **Output** selects Both, Highlight Only or Shadow Only for the transparent component and has no effect at Base Color alpha = 1. Light Color/Shadow Color alpha controls that component's strength. Overall opacity and blending belong to the layer. Both effects default to Base Color alpha 0. Re-add the preset to update an older embedded copy.
 
+**Normal Map → Lighting** also has an optional **Specular** block, disabled by default. Enable it to add a reflective highlight using the same **Light Direction**. **Specular Color** sets its tint (alpha scales strength), **Specular Intensity** controls strength independently of the diffuse light, and **Roughness** widens the highlight as it increases. Zero Roughness uses a finite sharpness limit. Both and Highlight Only include the enabled highlight; Shadow Only excludes it. The additional **Specular Only** output omits the surface and diffuse light even when Base Color alpha is 1; with Specular disabled it is transparent. Specular follows input alpha, adds light without darkening the diffuse result and retains intensities above 1 in HDR. The orthographic viewer faces +Z, so frontal light can illuminate an entire flat region rather than only the rim. Bevel Emboss is unchanged.
+
 ### Normal map normalization
 **Normal Map → Normalize** restores unit-length normals while preserving alpha.
 Use it after processing an RGB normal map if its vectors have changed length.
@@ -362,6 +465,25 @@ they do not extend a procedural source beyond the raster.
 `Classic` Spherize, Twirl and Polar Coordinates do not mask at the frame edge, so distortion continues outside it.
 `Sphere` is the exception: it creates a circular mask with a crisp, antialiased edge. Strong settings
 in unmasked modes can reveal areas beyond the input image, where its edge pixels are extended. RGB and alpha are distorted together.
+
+### Height to Distortion
+
+Add **Distortion → Height to Distortion** to a height-map layer to generate a displacement
+field. **Height Map** defaults to Self; **Channel** selects luminance, R, G, B or Alpha.
+Use linear height data. **Strength** in the header scales the field; negative values reverse
+it and zero produces a neutral map. **Filter** offers Scharr (default), Sobel and Central
+Difference. **Radius** sets the sampling distance in pixels; **Edges** offers Clamp, Repeat
+and Mirror. **Flip X/Y** reverse individual directions. Positive vectors point toward
+increasing height; vector length is not normalized, so steep slopes remain stronger.
+
+In **Output**, **Packed RG** (default) has neutral `(0.5, 0.5)`; **Signed RG** has neutral
+`(0, 0)`. Assign this layer to **Displacement Map**, choose **VectorRG**, and set **Neutral**
+to 0.5 or 0 respectively. For the same displacement, Signed needs half the X/Y strengths
+used with Packed. The map layer may be hidden.
+
+Choose **Color Range → HDR** on the map layer to retain negative and above-one values;
+Packed does not clip strong vectors either. For external signed/HDR maps use linear EXR:
+ordinary color-image exports do not preserve raw signed data.
 
 ### Polar coordinates
 

@@ -48,7 +48,7 @@ namespace DCFApixels.WhimTex
             JObject result = Success();
             result["capture"] = CaptureInfo(capture);
             result["baseline"] = CaptureInfo(WhimTexProfiler.Baseline);
-            result["timing"] = "durationMs/selfMs are main-thread wall elapsed, including waits. FX cpuPrepareMs and cpuSubmitMs separate preparation from command submission. gpuMs is an asynchronous GPU marker interval, not CPU time; null unless gpuStatus is ready. CPU and GPU overlap: do not add them.";
+            result["timing"] = "durationMs/selfMs are main-thread wall elapsed, including waits. FX cpuPrepareMs and cpuSubmitMs separate preparation from command submission. gpuMs is an asynchronous GPU marker interval, not CPU time; null unless gpuStatus is ready or unconfirmed. Graphics Jobs results are unconfirmed, not an estimate with a known error bound. CPU and GPU overlap: do not add them.";
             result["lifetime"] = "Automatically retained across script reload within this Editor session; active recording stops at reload. Export before closing the Editor. No document edits, forced renders or cache clears.";
             if (action == "read")
             {
@@ -114,6 +114,9 @@ namespace DCFApixels.WhimTex
                 ["elapsedMs"] = WhimTexProfiler.Milliseconds(end - capture.start), ["openSpans"] = capture.open,
                 ["pendingGpuSamples"] = WhimTexProfiler.PendingGpu(capture),
                 ["gpuAvailability"] = capture.recording ? WhimTexProfiler.GpuAvailability : "stopped",
+                ["graphicsJobs"] = capture.graphicsJobs.HasValue ? new JValue(capture.graphicsJobs.Value) : JValue.CreateNull(),
+                ["renderingThreadingMode"] = capture.renderingThreadingMode,
+                ["gpuWarning"] = capture.graphicsJobs == true ? WhimTexProfiler.GpuUnconfirmedWarning : null,
                 ["documentId"] = capture.documentId,
                 ["truncated"] = capture.stopReason == "event_limit" || capture.stopReason == "document_limit",
                 ["unityVersion"] = capture.unityVersion ?? UnityEngine.Application.unityVersion,
@@ -228,7 +231,7 @@ namespace DCFApixels.WhimTex
                         ["fxName"] = sample.fxName,
                         ["cpuPrepareMs"] = sample.fxTiming && sample.completed ? new JValue(WhimTexProfiler.Milliseconds(sample.cpuPrepareTicks)) : JValue.CreateNull(),
                         ["cpuSubmitMs"] = sample.fxTiming && sample.completed ? new JValue(WhimTexProfiler.Milliseconds(sample.cpuSubmitTicks)) : JValue.CreateNull(),
-                        ["gpuMs"] = sample.gpuStatus == "ready" ? new JValue(sample.gpuNanoseconds / 1000000.0) : JValue.CreateNull(),
+                        ["gpuMs"] = WhimTexProfiler.HasGpuDuration(sample) ? new JValue(sample.gpuNanoseconds / 1000000.0) : JValue.CreateNull(),
                         ["gpuStatus"] = sample.gpuStatus ?? (sample.fxTiming ? "not_submitted" : "not_measured"),
                         ["gpuDetail"] = sample.gpuDetail,
                         ["group"] = WhimTexProfiler.GroupId(WhimTexProfiler.GroupFor(sample.phase, sample.kind)),
@@ -252,7 +255,7 @@ namespace DCFApixels.WhimTex
                         ["fxIndex"] = key.Item5, ["fxName"] = key.Item6,
                         ["cpuPrepareMs"] = JValue.CreateNull(), ["cpuSubmitMs"] = JValue.CreateNull(),
                         ["gpuTotalMs"] = JValue.CreateNull(), ["gpuMaxMs"] = JValue.CreateNull(),
-                        ["gpuCount"] = 0, ["gpuPendingCount"] = 0, ["gpuUnavailableCount"] = 0,
+                        ["gpuCount"] = 0, ["gpuUnconfirmedCount"] = 0, ["gpuPendingCount"] = 0, ["gpuUnavailableCount"] = 0,
                         ["count"] = 0, ["completedCount"] = 0, ["totalMs"] = 0d, ["selfMs"] = 0d, ["maxMs"] = 0d });
                     ProfileAllocationMetrics(group, 0, 0, 0, 0);
                 }
@@ -265,10 +268,11 @@ namespace DCFApixels.WhimTex
                         (group.Value<long?>("gcSelfAllocationCount") ?? 0) + (measured ? Math.Max(0, sample.gcAllocationCount - sample.gcChildAllocationCount) : 0),
                         (int)group["measuredCalls"] + (measured ? 1 : 0), (int)group["eligibleCalls"] + 1);
                 }
-                if (sample.gpuStatus == "ready")
+                if (WhimTexProfiler.HasGpuDuration(sample))
                 {
                     double gpuMs = sample.gpuNanoseconds / 1000000.0;
                     group["gpuCount"] = (int)group["gpuCount"] + 1;
+                    if (sample.gpuStatus == "unconfirmed") group["gpuUnconfirmedCount"] = (int)group["gpuUnconfirmedCount"] + 1;
                     group["gpuTotalMs"] = (group.Value<double?>("gpuTotalMs") ?? 0) + gpuMs;
                     group["gpuMaxMs"] = Math.Max(group.Value<double?>("gpuMaxMs") ?? 0, gpuMs);
                 }
@@ -298,7 +302,7 @@ namespace DCFApixels.WhimTex
             result["totalVisible"] = visible;
             result["nextOffset"] = (long)offset + events.Count < visible ? new JValue(offset + events.Count) : JValue.CreateNull();
             result["rootWallMs"] = rootMs;
-            result["accounting"] = "Only root spans contribute to rootWallMs. Summary inclusive times overlap: do not sum rows. Stage managed allocations are main-thread counts, inclusive/self, including instrumentation; no stage byte amounts. Aggregates sum valid measured calls only: inspect measuredCalls, eligibleCalls and partial; eligibleCalls includes open/interrupted spans. Nested inclusive counts overlap. FX rows group by document/layer/index/name. GPU block intervals include input renders and may include GPU idle gaps; individual FX GPU intervals cover its blit and FinishStage, not input preparation. GPU aggregates include ready samples only: inspect gpuCount/pending/unavailable counts. CPU preparation includes dependency renders/waits, not pure worker CPU consumption. Open spans have null CPU timing. changeId links renders to the latest model change, not a completed UI gesture or GPU presentation.";
+            result["accounting"] = "Only root spans contribute to rootWallMs. Summary inclusive times overlap: do not sum rows. Stage managed allocations are main-thread counts, inclusive/self, including instrumentation; no stage byte amounts. Aggregates sum valid measured calls only: inspect measuredCalls, eligibleCalls and partial; eligibleCalls includes open/interrupted spans. Nested inclusive counts overlap. FX rows group by document/layer/index/name. GPU block intervals include input renders and may include GPU idle gaps; individual FX GPU intervals cover its blit and FinishStage, not input preparation. GPU aggregates include ready and unconfirmed samples: gpuUnconfirmedCount is a subset of gpuCount, not missing coverage; inspect pending/unavailable counts separately. Graphics Jobs results and comparisons containing them are unconfirmed. CPU preparation includes dependency renders/waits, not pure worker CPU consumption. Open spans have null CPU timing. changeId links renders to the latest model change, not a completed UI gesture or GPU presentation.";
         }
     }
 }

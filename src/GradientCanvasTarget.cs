@@ -45,13 +45,13 @@ namespace DCFApixels.WhimTex
             figure = group != null ? group.style :
                 Behaviour is VectorLayerBehaviour vector && vector.shapes?.Count == 1 ? vector.shapes[0] : null;
             metric = group != null ? group.referenceSize : Behaviour is VectorLayerBehaviour v ? v.referenceSize : canvasSize;
-            gradientType = GradientLayer?.gradientType ?? GradientLayerBehaviour.GradientType.Horizontal;
+            gradientType = GradientLayer?.gradientType ?? GradientLayerBehaviour.GradientType.Linear;
             if (GradientLayer != null) { if (stroke) Behaviour = null; return; }
             var mode = shape != null ? (stroke ? shape.strokeMode : shape.fillMode) :
                 figure != null ? (stroke ? figure.strokeMode : figure.fillMode) : text != null && !stroke ? text.fillMode : VectorFillMode.None;
             bool enabled = shape != null ? (stroke ? shape.stroke && shape.strokeWidth > 0 : shape.fill) :
                 figure != null && (!stroke || figure.stroke && figure.strokeWidth > 0) || text != null && !stroke && text.FontAvailable;
-            if (!FigureFill.IsGradient(mode) || !enabled || group == null && figure != null && !figure.visible ||
+            if (!FigureFill.IsGradient(mode) || text != null && mode == VectorFillMode.Freeform || !enabled || group == null && figure != null && !figure.visible ||
                 group != null && group.appearance == BooleanGroupAppearance.Layers && BooleanGroupLayerBehaviour.ReadMode(layer) == VectorBooleanOperation.Combine ||
                 shape == null && figure == null && text == null)
             { Behaviour = null; return; }
@@ -64,9 +64,9 @@ namespace DCFApixels.WhimTex
             {
                 VectorFillMode.RadialGradient => GradientLayerBehaviour.GradientType.Radial,
                 VectorFillMode.SquareGradient => GradientLayerBehaviour.GradientType.Square,
-                VectorFillMode.DiamondGradient => GradientLayerBehaviour.GradientType.Diamond,
-                VectorFillMode.CircularGradient => GradientLayerBehaviour.GradientType.Circular,
-                _ => GradientLayerBehaviour.GradientType.Horizontal
+                VectorFillMode.Freeform => GradientLayerBehaviour.GradientType.Freeform,
+                VectorFillMode.AngularGradient => GradientLayerBehaviour.GradientType.Angular,
+                _ => GradientLayerBehaviour.GradientType.Linear
             };
         }
 
@@ -74,6 +74,16 @@ namespace DCFApixels.WhimTex
         {
             get => text != null ? text.gradient : GradientLayer != null ? GradientLayer.gradient : shape != null ? (IsStroke ? shape.strokeGradient : shape.gradient) : (IsStroke ? figure.strokeGradient : figure.gradient);
             set { if (text != null) text.gradient = value; else if (GradientLayer != null) GradientLayer.gradient = value; else if (shape != null) { if (IsStroke) shape.strokeGradient = value; else shape.gradient = value; } else { if (IsStroke) figure.strokeGradient = value; else figure.gradient = value; } }
+        }
+        internal FreeformGradient freeform
+        {
+            get => GradientLayer != null ? GradientLayer.freeform : shape != null ? (IsStroke ? shape.strokeFreeform : shape.freeform) : figure != null ? (IsStroke ? figure.strokeFreeform : figure.freeform) : null;
+            set { if (GradientLayer != null) GradientLayer.freeform = value; else if (shape != null) { if (IsStroke) shape.strokeFreeform = value; else shape.freeform = value; } else if (figure != null) { if (IsStroke) figure.strokeFreeform = value; else figure.freeform = value; } }
+        }
+        internal int selectedFreeformPoint
+        {
+            get => GradientLayer != null ? GradientLayer.selectedFreeformPoint : shape != null ? (IsStroke ? shape.selectedStrokeFreeformPoint : shape.selectedFreeformPoint) : figure != null ? (IsStroke ? figure.selectedStrokeFreeformPoint : figure.selectedFreeformPoint) : 0;
+            set { if (GradientLayer != null) GradientLayer.selectedFreeformPoint = value; else if (shape != null) { if (IsStroke) shape.selectedStrokeFreeformPoint = value; else shape.selectedFreeformPoint = value; } else if (figure != null) { if (IsStroke) figure.selectedStrokeFreeformPoint = value; else figure.selectedFreeformPoint = value; } }
         }
         internal Vector2 FillStart
         {
@@ -101,20 +111,20 @@ namespace DCFApixels.WhimTex
             set
             {
                 if (GradientLayer != null) GradientLayer.circularStartAngle = value;
-                else FillEnd = CircularUv(value);
+                else FillEnd = AngularUv(value);
             }
         }
-        internal Vector2 CircularCenter => IsFill ? FillStart : GradientLayerBehaviour.BaseCenter;
-        internal Vector2 CircularUv(float angle)
+        internal Vector2 AngularCenter => IsFill ? FillStart : GradientLayerBehaviour.BaseCenter;
+        internal Vector2 AngularUv(float angle)
         {
             Vector2 units = IsFill ? metric : Vector2.one;
             float radius = IsFill ? Vector2.Scale(FillEnd - FillStart, metric).magnitude : GradientLayerBehaviour.BaseRadius;
             Vector2 axis = GradientCanvasGeometry.Rotate(Vector2.left * radius, angle);
-            return CircularCenter + new Vector2(axis.x / units.x, axis.y / units.y);
+            return AngularCenter + new Vector2(axis.x / units.x, axis.y / units.y);
         }
-        internal float CircularAngle(Vector2 uv)
+        internal float AngularAngle(Vector2 uv)
         {
-            Vector2 d = Vector2.Scale(uv - CircularCenter, IsFill ? metric : Vector2.one);
+            Vector2 d = Vector2.Scale(uv - AngularCenter, IsFill ? metric : Vector2.one);
             return Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg - 180f;
         }
         internal void UvEndpoints(out Vector2 a, out Vector2 b)
@@ -138,7 +148,7 @@ namespace DCFApixels.WhimTex
             if (first)
             {
                 FillStart = nextAnchor;
-                FillEnd = gradientType == GradientLayerBehaviour.GradientType.Horizontal ? originalEnd : originalEnd + nextAnchor - originalStart;
+                FillEnd = gradientType == GradientLayerBehaviour.GradientType.Linear ? originalEnd : originalEnd + nextAnchor - originalStart;
             }
             else { FillStart = originalStart; FillEnd = nextAnchor; }
         }

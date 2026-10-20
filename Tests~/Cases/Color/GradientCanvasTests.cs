@@ -31,8 +31,8 @@ public static class GradientCanvasTests
             var args=new object[]{g,size,null,null}; ends.Invoke(null,args); a=(Vector2)args[2];b=(Vector2)args[3];
         }
         foreach(var size in new[]{new Vector2(512,512),new Vector2(1024,256)})
-        foreach(var kind in new[]{GradientLayerBehaviour.GradientType.Horizontal,GradientLayerBehaviour.GradientType.Vertical,
-            GradientLayerBehaviour.GradientType.Radial,GradientLayerBehaviour.GradientType.Diamond,GradientLayerBehaviour.GradientType.Square})
+        foreach(var kind in new[]{GradientLayerBehaviour.GradientType.Linear,
+            GradientLayerBehaviour.GradientType.Radial,GradientLayerBehaviour.GradientType.Square})
         foreach(float angle in new[]{0f,37f,-125f})
         foreach(bool first in new[]{true,false})
         {
@@ -42,7 +42,7 @@ public static class GradientCanvasTests
             Vector2 delta=new Vector2(43,-27);
             move.Invoke(null,new object[]{g,size,a,b,first,delta});
             Points(g,size,out var nextA,out var nextB);
-            bool linear=kind==GradientLayerBehaviour.GradientType.Horizontal || kind==GradientLayerBehaviour.GradientType.Vertical;
+            bool linear=kind==GradientLayerBehaviour.GradientType.Linear;
             if(first)
             {
                 Check(Vector2.Distance(nextA,a+delta)<.003f,kind+" start handle");
@@ -76,11 +76,11 @@ public static class GradientCanvasTests
             }
             selection.SetValue(window,null);
             Check(!(bool)visible.GetValue(window),"Hidden without selected layer");
-            selection.SetValue(window,g.Id);g.gradientType=GradientLayerBehaviour.GradientType.Circular;
+            selection.SetValue(window,g.Id);g.gradientType=GradientLayerBehaviour.GradientType.Angular;
             tool.SetValue(window,Enum.Parse(tool.FieldType,"GradientHandles"));
-            Check((bool)visible.GetValue(window),"Circular has canvas handles");
-            var circular=typeof(GradientLayerBehaviour).Assembly.GetType("DCFApixels.WhimTex.CircularGradientGeometry");
-            var boundary=circular.GetMethod("MoveBoundary",flags);
+            Check((bool)visible.GetValue(window),"Angular has canvas handles");
+            var angular=typeof(GradientLayerBehaviour).Assembly.GetType("DCFApixels.WhimTex.AngularGradientGeometry");
+            var boundary=angular.GetMethod("MoveBoundary",flags);
             foreach(float origin in new[]{0f,83f,359f})
             foreach(bool first in new[]{false,true})
             {
@@ -103,7 +103,7 @@ public static class GradientCanvasTests
                     Check(Mathf.Abs(Mathf.DeltaAngle(origin,fixedAngle))<.001f,"Ctrl preserves opposite endpoint");
                 }
             }
-            var project=circular.GetMethod("Project",flags);
+            var project=angular.GetMethod("Project",flags);
             Check((float)project.Invoke(null,new object[]{-1f,360f,1f})>.99f,"End key does not jump to zero across seam");
             Check((float)project.Invoke(null,new object[]{1f,360f,0f})<.01f,"Start key stays on start side of seam");
             g.circularStartAngle=90;g.circularRepetitions=1;

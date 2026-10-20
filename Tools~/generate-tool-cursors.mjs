@@ -36,6 +36,23 @@ const bucketOutline = bucket.replace(/#ffffff/g, '#000000').replace(/<path\b[^>]
     p.replace('<path', '<path stroke="#000000" stroke-width="2" stroke-linejoin="round"'));
 const gradient = '<defs><linearGradient id="gradient"><stop stop-color="#f2f2f2"/><stop offset="1" stop-color="#1a1a1a"/></linearGradient></defs>' +
   '<rect x="6" y="6" width="20" height="16" fill="black"/><rect x="7" y="7" width="18" height="14" fill="white"/><rect x="8" y="8" width="16" height="12" fill="url(#gradient)"/>';
+// Sample the field at final cursor pixel centers; its frame and pointer stay crisp.
+const gradientField = kind => {
+  let field = '<rect x="6" y="6" width="20" height="16" fill="black"/><rect x="7" y="7" width="18" height="14" fill="white"/>';
+  for (let y = 8; y < 20; y++) for (let x = 8; x < 24; x++) {
+    const dx = x + .5 - 16, dy = 14 - y - .5;
+    const u = (x + .5 - 8) / 16, v = (y + .5 - 8) / 12;
+    const distance = Math.min(Math.hypot(u - .22, v - .72), Math.hypot(u - .78, v - .72), Math.hypot(u - .5, v - .22));
+    const fade = Math.min(1, distance / .4);
+    const t = kind === 'Freeform' ? fade * fade * (3 - 2 * fade) :
+      kind === 'Radial' ? Math.hypot(dx, dy) / 6 :
+      kind === 'Square' ? Math.max(Math.abs(dx), Math.abs(dy)) / 6 :
+        (Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI);
+    const value = Math.round(242 + (26 - 242) * Math.min(1, Math.max(0, t)));
+    field += `<rect x="${x}" y="${y}" width="1" height="1" fill="rgb(${value},${value},${value})"/>`;
+  }
+  return field;
+};
 const circle = 'M21 12 A9 9 0 1 1 3 12 A9 9 0 1 1 21 12 Z';
 const arc = 'M16.5 4.2058 A9 9 0 1 1 3.5428 8.9218';
 const lassoTail = 'M15 16 C16 18 19 18 17 21';
@@ -62,6 +79,7 @@ const iconNudges = new Map([
 const glyphs = new Map([
   ['Fill', local(bucketOutline + bucket)],
   ['Gradient', gradient],
+  ...['Radial', 'Angular', 'Square', 'Freeform'].map(kind => ['Gradient' + kind, gradientField(kind)]),
   ['ShapeRectangle', local(line('M4 4 H20 V20 H4 Z'))],
   ['ShapeEllipse', local(line(circle))],
   ['ShapePolygon', local(line(polygon(5)))],
@@ -238,5 +256,6 @@ if (changed.some(name => iconNudges.has(name))) await sheet([...iconNudges.keys(
 await sheet([...iconNudges.keys()], 'tool-cursor-spacing-after.png');
 await sheet(['Eyedropper', 'Fill', 'Gradient', 'VectorNodes'], 'eyedropper-cursor-preview.png');
 await sheet(['Eyedropper'], 'eyedropper-cursor-detail.png', 1);
+await sheet(['Gradient', 'GradientRadial', 'GradientAngular', 'GradientSquare', 'GradientFreeform'], 'gradient-cursors-preview.png', 5);
 await fs.writeFile(path.join(output, 'tool-cursors-report.json'), JSON.stringify(reports, null, 2));
 console.log(JSON.stringify({ count: reports.length, changed, isolatedPixels: 0, approvedFillAndGradientUnchanged: true, preview: path.join(output, 'tool-cursors-all-preview.png') }));

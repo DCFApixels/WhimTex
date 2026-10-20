@@ -115,7 +115,7 @@ namespace DCFApixels.WhimTex
         {
             if (token == null) return;
             Require(token is JArray array && array.Count <= 16, "fx must be an array of at most 16 operations.");
-            layer.fx = layer.fx == null ? new List<Object>() : new List<Object>(layer.fx);
+            layer.fx = layer.fx == null ? new List<ShaderFX>() : new List<ShaderFX>(layer.fx);
             foreach (var item in (JArray)token)
             {
                 JObject spec = Obj(item, "fx operation");
@@ -184,6 +184,7 @@ namespace DCFApixels.WhimTex
                             ["seedMinimum"] = seed != null ? (JToken)new JValue(Math.Ceiling(seed.minimum)) : JValue.CreateNull(),
                             ["seedMaximum"] = seed != null ? (JToken)new JValue(Math.Floor(seed.maximum)) : JValue.CreateNull(),
                             ["softMinimum"] = p.softMinimum, ["softMaximum"] = p.softMaximum,
+                            ["cyclicRange"] = p.cyclicRange,
                             ["options"] = p.type == ShaderFXParameterType.Enum ? new JArray(p.controls.SelectMany(c => c.optionNames.Zip(c.optionValues, (n, v) => new JObject { ["name"] = n, ["value"] = v }))) : null,
                             ["minimum"] = p.hasMinimum ? (JToken)new JValue(p.minimum) : JValue.CreateNull(),
                             ["maximum"] = p.hasMaximum ? (JToken)new JValue(p.maximum) : JValue.CreateNull() });
@@ -191,7 +192,7 @@ namespace DCFApixels.WhimTex
                     entry["parameters"] = parameters;
                     entry["catalogPath"] = fx.CatalogPath;
                 }
-                else entry["type"] = fxEntry is Material ? "material" : "empty";
+                else entry["type"] = "empty";
                 result.Add(entry);
             }
             return result;
@@ -258,7 +259,7 @@ namespace DCFApixels.WhimTex
                 {
                     ApplyLiveEditSettings(job.document, target, changes);
                     if (target?.Behaviour is DrawingLayerBehaviour drawing) drawing.SetColorRange(target.colorRange);
-                    target.fx = new List<Object>(candidate.fx);
+                    target.fx = new List<ShaderFX>(candidate.fx);
                     foreach (var fx in created) job.document.AdoptAgentShaderFX(fx, "Complete Agent Edit");
                     RecordLiveWork(job, request);
                 });

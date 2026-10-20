@@ -5,17 +5,145 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class DrawingLayerBehaviour
     {
-        // Stroke-local derived straight image; never a new source of paint or Undo.
-        // Retains the temporary target formerly allocated for each live render.
+        // Stroke-local derived straight image; output-sized for viewport rendering,
+        // source-sized only for full-input consumers. Never a source of paint or Undo.
         [NonSerialized] private RenderTexture brushPreviewSurface;
         [NonSerialized] private PaintTileSet brushPreviewTiles;
         [NonSerialized] private bool brushPreviewValid;
         [NonSerialized] private ulong brushPreviewRevision;
         [NonSerialized] private BrushPreviewSettings brushPreviewSettings;
+        [NonSerialized] private bool brushPreviewRegional;
+        [NonSerialized] private ProjectiveMatrix brushPreviewToView;
+        [NonSerialized] private FilterMode brushPreviewFilter;
+        [NonSerialized] private PaintTileSet brushPreviewFootprints;
+
+        private bool TryRenderBrushViewport(in LayerRenderContext context, out RenderTexture result)
+        {
+            result = null;
+            var doc = context.activeDocument;
+            var tiling = Owner.ResolveTiling(Owner.RenderTransform.tiling);
+            var material = WhimTexMaterials.Transform;
+            if (!doc.RenderingViewport || !context.applyTransform ||
+                (tiling != TransformTilingMode.Clip && tiling != TransformTilingMode.Unbounded) ||
+                material == null || material.passCount < 2) return false;
+            var toView = doc.CanvasToViewport * Owner.RenderTransform.ToMatrix(doc.width, doc.height);
+            if (!toView.ValidUnitQuad()) return false;
+
+            if (!brushPreviewRegional || brushPreviewSurface == null || !brushPreviewSurface.IsCreated() ||
+                brushPreviewSurface.width != context.width || brushPreviewSurface.height != context.height)
+            {
+                ReleaseBrushPreview();
+                // Cache output pixels, not the 8K source. Float retains intermediate
+                // diagnostics/HDR until the ordinary document finishing pass.
+                brushPreviewSurface = ProfiledRenderTexture.GetTemporary(context.width, context.height, 0,
+                    RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                brushPreviewRegional = true;
+            }
+            var filter = ResolveFilterMode();
+            var settings = new BrushPreviewSettings(this);
+            bool full = !brushPreviewValid || brushPreviewRevision != paintSurfaceRevision ||
+                !settings.Equals(brushPreviewSettings) || !toView.Equals(brushPreviewToView) || filter != brushPreviewFilter;
+            if (full || brushPreviewTiles.Count > 0)
+            {
+                using var profile = WhimTexProfiler.Measure("layer.drawing_preview_region", doc, Owner);
+                using var gpu = profile.Gpu();
+                var previous = RenderTexture.active;
+                bool srgb = GL.sRGBWrite;
+                brushPreviewValid = false;
+                try
+                {
+                    GL.sRGBWrite = false;
+                    Owner.ConfigureSourceTransform(material, paintSurface, context, premultipliedSource: true,
+                        straightFallback: hasBakedPixelFrame || preserveStraightPaintRgb ? pixels : null,
+                        decodeFallback: pixels != null && !HdrUtility.IsHdr(pixels));
+                    ConfigureBrushComposite(material);
+                    if (full) Graphics.Blit(paintSurface, brushPreviewSurface, material, 0);
+                    brushPreviewFootprints ??= new PaintTileSet();
+                    brushPreviewFootprints.Reset(paintSurface.width, paintSurface.height);
+                    var dirty = full ? advancedStroke.touched : brushPreviewTiles;
+                    for (int i = 0; i < dirty.Count; i++)
+                    {
+                        var tile = dirty[i];
+                        // A bilinear footprint starting in the preceding tile can read
+                        // this tile. Include those owners even if they contain no stroke.
+                        if (filter != FilterMode.Point)
+                            tile = new RectInt(tile.x - 1, tile.y - 1, tile.width + 1, tile.height + 1);
+                        brushPreviewFootprints.Include(tile);
+                    }
+                    int submitted = 0;
+                    for (int i = 0; i < brushPreviewFootprints.Count; i++)
+                    {
+                        var tile = brushPreviewFootprints[i];
+                        if (!TryBrushPreviewRect(tile, toView, filter, out var rect)) continue;
+                        var present = new Vector4(
+                            BindBrushPreviewPage(material, tile, "_BrushStroke", "_BrushStrokeMap"),
+                            BindBrushPreviewPage(material, new RectInt(tile.x + PaintTileSet.Size, tile.y, 1, 1), "_PreviewStroke10", "_PreviewMap10"),
+                            BindBrushPreviewPage(material, new RectInt(tile.x, tile.y + PaintTileSet.Size, 1, 1), "_PreviewStroke01", "_PreviewMap01"),
+                            BindBrushPreviewPage(material, new RectInt(tile.x + PaintTileSet.Size, tile.y + PaintTileSet.Size, 1, 1), "_PreviewStroke11", "_PreviewMap11"));
+                        material.SetVector("_PreviewPresent", present);
+                        material.SetVector("_PreviewTile", new Vector4(tile.xMin, tile.yMin, tile.xMax, tile.yMax));
+                        DrawBrushRegion(paintSurface, brushPreviewSurface, material, 1, rect, rect);
+                        submitted++;
+                    }
+                    brushPreviewTiles.Clear();
+                    brushPreviewSettings = settings; brushPreviewRevision = paintSurfaceRevision;
+                    brushPreviewToView = toView; brushPreviewFilter = filter; brushPreviewValid = true;
+                    WhimTexProfiler.Event("layer.drawing_preview_region_tiles", "counter", value: submitted);
+                }
+                finally
+                {
+                    ClearBrushComposite(material);
+                    material.SetTexture("_PreviewStroke10", null); material.SetTexture("_PreviewStroke01", null);
+                    material.SetTexture("_PreviewStroke11", null); material.SetTexture("_OriginalStraight", null);
+                    material.SetTexture("_MainTex", null);
+                    RenderTexture.active = previous; GL.sRGBWrite = srgb;
+                }
+            }
+            else WhimTexProfiler.Event("layer.drawing_preview_reuse", "counter", value: 1);
+            // FinishStage owns its input. Keep the cached raw image private so repeated
+            // renders and diagnostics cannot mutate it or release it out from under us.
+            var output = ProfiledRenderTexture.GetTemporary(context.width, context.height, 0,
+                RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+            output.filterMode = filter;
+            output.wrapMode = TextureWrapMode.Clamp;
+            try
+            {
+                Graphics.Blit(brushPreviewSurface, output);
+                result = doc.FinishStage(output);
+                return true;
+            }
+            catch { ProfiledRenderTexture.ReleaseTemporary(output); throw; }
+        }
+
+        private float BindBrushPreviewPage(Material material, RectInt tile, string textureName, string mapName)
+        {
+            var page = tile.x < paintSurface.width && tile.y < paintSurface.height ? advancedStroke.Get(tile) : null;
+            material.SetTexture(textureName, page != null ? page : Texture2D.blackTexture);
+            if (page != null) material.SetVector(mapName, advancedStroke.Map(tile));
+            return page != null ? 1 : 0;
+        }
+
+        private bool TryBrushPreviewRect(RectInt tile, ProjectiveMatrix toView, FilterMode filter, out Rect rect)
+        {
+            double offset = filter == FilterMode.Point ? 0 : .5;
+            double x0 = tile.x == 0 ? 0 : (tile.xMin + offset) / paintSurface.width;
+            double y0 = tile.y == 0 ? 0 : (tile.yMin + offset) / paintSurface.height;
+            double x1 = Math.Min(1, (tile.xMax + offset) / paintSurface.width);
+            double y1 = Math.Min(1, (tile.yMax + offset) / paintSurface.height);
+            var a = toView.Point(new Double2(x0, y0)); var b = toView.Point(new Double2(x1, y0));
+            var c = toView.Point(new Double2(x1, y1)); var d = toView.Point(new Double2(x0, y1));
+            float w = brushPreviewSurface.width, h = brushPreviewSurface.height;
+            float left = Mathf.Clamp(Mathf.Floor((float)Math.Min(Math.Min(a.x,b.x),Math.Min(c.x,d.x)) * w) - 1, 0, w);
+            float bottom = Mathf.Clamp(Mathf.Floor((float)Math.Min(Math.Min(a.y,b.y),Math.Min(c.y,d.y)) * h) - 1, 0, h);
+            float right = Mathf.Clamp(Mathf.Ceil((float)Math.Max(Math.Max(a.x,b.x),Math.Max(c.x,d.x)) * w) + 1, 0, w);
+            float top = Mathf.Clamp(Mathf.Ceil((float)Math.Max(Math.Max(a.y,b.y),Math.Max(c.y,d.y)) * h) + 1, 0, h);
+            rect = new Rect(left / w, bottom / h, (right - left) / w, (top - bottom) / h);
+            return rect.width > 0 && rect.height > 0;
+        }
 
         private RenderTexture GetBrushPreviewSurface()
         {
-            if (brushPreviewSurface == null || !brushPreviewSurface.IsCreated())
+            if (brushPreviewRegional || brushPreviewSurface == null || !brushPreviewSurface.IsCreated())
             {
                 ReleaseBrushPreview();
                 brushPreviewSurface = HdrUtility.Temporary(paintSurface.width, paintSurface.height);
@@ -82,6 +210,7 @@ namespace DCFApixels.WhimTex
         {
             if (brushPreviewSurface != null) ProfiledRenderTexture.ReleaseTemporary(brushPreviewSurface);
             brushPreviewSurface = null;
+            brushPreviewRegional = false;
             brushPreviewValid = false;
             brushPreviewSettings = default;
             brushPreviewTiles?.Clear();

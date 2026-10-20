@@ -88,6 +88,7 @@ namespace DCFApixels.WhimTex
             bottom.Add(NavigationCorner());
             canvasNavigation.Add(bottom);
             toolkitCanvas.ViewChanged += RefreshCanvasNavigation;
+            toolkitCanvas.ViewChanged += RequestCanvasViewRender;
             toolkitCanvas.RegisterCallback<PointerMoveEvent>(evt =>
             {
                 Vector2 point = toolkitCanvas.WorldToLocal(evt.position);

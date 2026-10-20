@@ -7,7 +7,7 @@ document files, Copy as JSON and agent serialization. Read the [authoring guide]
 | Example | What to learn |
 | --- | --- |
 | [Neon ring](neon-ring.json) | Shape and targeted Blur inside a group. |
-| [Shock wave](shock-wave.json) | Radial/circular gradients, one-dimensional Blue Noise and inline FX. |
+| [Shock wave](shock-wave.json) | Radial/angular gradients, one-dimensional Blue Noise and inline FX. |
 | [Car wheel](car-wheel.json) | Editable ellipses and a five-point star. |
 | [Forked lightning](forked-lightning.json) | Procedural sprite with HLSL parameters, transparency and separate glow. |
 | [Heart](heart.json) | Clipping, SDF rim light, Outline and blurred highlights. |

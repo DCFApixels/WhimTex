@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEditor;
-using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -13,7 +12,7 @@ namespace DCFApixels.WhimTex
         private readonly WhimTexDocument owner;
         private readonly Action<string, Action> applyChange;
         private readonly VisualElement entries = new VisualElement();
-        private readonly List<UnityEngine.Object> displayed = new List<UnityEngine.Object>();
+        private readonly List<ShaderFX> displayed = new List<ShaderFX>();
         private readonly List<Action> refreshActivity = new List<Action>();
         private readonly Button applyAll;
         private VisualElement activeLayerDropMarker;
@@ -31,7 +30,6 @@ namespace DCFApixels.WhimTex
             toolbar.AddToClassList("whimtex-layer-fx-toolbar");
             toolbar.Add(new Button(() => Change("Add Shader FX", () => owner.AddEmbeddedShaderFX(layer))) { text = "+ Shader FX" });
             toolbar.Add(new Button(() => ShaderFXCatalog.ShowMenu(entry => Change("Add Catalog FX", () => owner.AddCatalogShaderFX(layer, entry)))) { text = "+ Preset ▾", tooltip = "Effects from the project and your user ShaderFX preset folder." });
-            toolbar.Add(new Button(() => Change("Add FX Reference", () => layer.fx.Add(null))) { text = "+ Reference" });
             applyAll = new Button(() => ApplyThrough(layer.fx.Count - 1)) { text = "Apply All" };
             toolbar.Add(applyAll);
             Add(toolbar);
@@ -62,8 +60,8 @@ namespace DCFApixels.WhimTex
 
         private void AddEntry(int index)
         {
-            UnityEngine.Object fxEntry = layer.fx[index];
-            ShaderFX effect = fxEntry as ShaderFX;
+            ShaderFX fxEntry = layer.fx[index];
+            ShaderFX effect = fxEntry;
             VisualElement card = new VisualElement();
             card.AddToClassList("whimtex-layer-fx-entry");
             if (effect != null) card.AddToClassList("whimtex-layer-fx-entry--shader");
@@ -83,7 +81,6 @@ namespace DCFApixels.WhimTex
             toolbar.AddToClassList("whimtex-layer-fx-toolbar");
             toolbar.AddToClassList("whimtex-layer-fx-entry-toolbar");
             toolbar.AddToClassList("whimtex-layer-fx-header");
-            bool embedded = effect != null && effect.EmbeddedOwner == owner;
             if (effect != null)
             {
                 var foldoutButton = new Button { text = foldout.value ? "▾" : "▸", tooltip = "Collapse or expand this FX" };
@@ -94,7 +91,7 @@ namespace DCFApixels.WhimTex
                     foldout.schedule.Execute(() => foldoutButton.text = foldout.value ? "▾" : "▸"));
                 toolbar.Add(foldoutButton);
 
-                var active = new Toggle { tooltip = embedded ? "Enable or disable this FX" : "Enable or disable this shared FX asset" };
+                var active = new Toggle { tooltip = "Enable or disable this FX" };
                 active.AddToClassList("whimtex-fx-visibility-toggle");
                 Label activeLabel = active.Q<Label>();
                 if (activeLabel != null) activeLabel.AddToClassList("whimtex-fx-hidden-label");
@@ -126,34 +123,12 @@ namespace DCFApixels.WhimTex
                 });
             }
             toolbar.tooltip = "Drag the header to reorder this FX or move it to another layer";
-            if (embedded)
-            {
-                Label name = new Label($"{index + 1}. {effect.name}");
-                name.AddToClassList("whimtex-layer-fx-name");
-                toolbar.Add(name);
-            }
-            else
-            {
-                ObjectField reference = new ObjectField
-                {
-                    objectType = typeof(UnityEngine.Object), allowSceneObjects = false
-                };
-                reference.AddToClassList("whimtex-layer-fx-name");
-                reference.SetValueWithoutNotify(fxEntry);
-                reference.RegisterValueChangedCallback(evt =>
-                {
-                    if (evt.newValue != null && !(evt.newValue is Material) && !(evt.newValue is ShaderFX))
-                    {
-                        reference.SetValueWithoutNotify(layer.fx[index]);
-                        return;
-                    }
-                    Change("Change FX Reference", () => layer.fx[index] = evt.newValue);
-                });
-                toolbar.Add(reference);
-            }
+            Label name = new Label($"{index + 1}. {(effect != null ? effect.name : "Missing HLSL FX")}");
+            name.AddToClassList("whimtex-layer-fx-name");
+            toolbar.Add(name);
             if (effect != null)
             {
-                var control = new ShaderFXParameterView(effect, true);
+                var control = new ShaderFXParameterView(effect, true, owner, layer, index);
                 control.AddToClassList("whimtex-fx-effect-control");
                 toolbar.Add(control);
                 refreshActivity.Add(control.Refresh);
@@ -161,7 +136,7 @@ namespace DCFApixels.WhimTex
             var actions = new Button(() =>
             {
                 var menu = new GenericMenu();
-                if (effect != null || fxEntry is Material)
+                if (effect != null)
                     menu.AddItem(new GUIContent("Copy FX"), false, () => ShaderFXClipboard.Copy(owner, fxEntry));
                 else
                     menu.AddDisabledItem(new GUIContent("Copy FX"));
@@ -180,12 +155,10 @@ namespace DCFApixels.WhimTex
                 else menu.AddDisabledItem(new GUIContent("Move Up"));
                 if (index + 1 < layer.fx.Count) menu.AddItem(new GUIContent("Move Down"), false, () => Move(index, 1));
                 else menu.AddDisabledItem(new GUIContent("Move Down"));
-                if (effect != null && !embedded)
-                    menu.AddItem(new GUIContent("Embed Copy"), false, () => Change("Embed Shader FX", () => owner.EmbedShaderFX(layer, index)));
                 menu.AddSeparator(string.Empty);
                 menu.AddItem(new GUIContent("Remove"), false, () => Change("Remove FX", () => layer.fx.RemoveAt(index)));
                 menu.ShowAsContext();
-            }) { tooltip = "Copy, paste, apply, reset, reorder, embed or remove this effect" };
+            }) { tooltip = "Copy, paste, apply, reset, reorder or remove this effect" };
             actions.AddToClassList("whimtex-layer-menu-button");
             actions.EnableInClassList("whimtex-layer-menu-button--light", !EditorGUIUtility.isProSkin);
             for (int i = 0; i < 3; i++)
@@ -203,13 +176,7 @@ namespace DCFApixels.WhimTex
             VisualElement body = new VisualElement();
             if (effect != null)
             {
-                if (!embedded)
-                {
-                    var shared = new Label("Shared asset") { tooltip = "Edits affect every document using this asset. Use ⋮ → Embed Copy for an independent copy." };
-                    shared.AddToClassList("whimtex-fx-note");
-                    body.Add(shared);
-                }
-                body.Add(ShaderFXEditor.CreateInlineView(effect));
+                body.Add(ShaderFXEditor.CreateInlineView(effect, owner, layer, index));
             }
             if (foldout != null)
             {
@@ -224,7 +191,7 @@ namespace DCFApixels.WhimTex
             var fxEntry = layer.fx[index];
             var effect = fxEntry as ShaderFX;
             bool canEdit = owner != null && !WhimTexApi.IsLayerContentLocked(owner, layer);
-            if (effect != null || fxEntry is Material)
+            if (effect != null)
                 menu.AppendAction("Copy FX", _ => ShaderFXClipboard.Copy(owner, fxEntry));
             else
                 menu.AppendAction("Copy FX", _ => { }, DropdownMenuAction.Status.Disabled);
@@ -240,9 +207,6 @@ namespace DCFApixels.WhimTex
                 canEdit && index > 0 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
             menu.AppendAction("Move Down", _ => Move(index, 1),
                 canEdit && index + 1 < layer.fx.Count ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-            if (effect != null && effect.EmbeddedOwner != owner)
-                menu.AppendAction("Embed Copy", _ => Change("Embed Shader FX", () => owner.EmbedShaderFX(layer, index)),
-                    canEdit ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
             menu.AppendSeparator();
             menu.AppendAction("Remove", _ => Change("Remove FX", () => layer.fx.RemoveAt(index)),
                 canEdit ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
@@ -300,7 +264,7 @@ namespace DCFApixels.WhimTex
             {
                 Change("Paste FX", () =>
                 {
-                    UnityEngine.Object pasted = ShaderFXClipboard.CreatePasteValue(owner);
+                    ShaderFX pasted = ShaderFXClipboard.CreatePasteValue(owner);
                     if (pasted == null)
                         return;
                     int destinationIndex = Mathf.Clamp(insertionIndex, 0, layer.fx.Count);
@@ -324,7 +288,7 @@ namespace DCFApixels.WhimTex
                 return;
             Change("Reorder FX", () =>
             {
-                UnityEngine.Object fxEntry = layer.fx[sourceIndex];
+                ShaderFX fxEntry = layer.fx[sourceIndex];
                 layer.fx.RemoveAt(sourceIndex);
                 layer.fx.Insert(targetIndex, fxEntry);
             });
@@ -403,14 +367,14 @@ namespace DCFApixels.WhimTex
             if (!CanMoveToLayer(destination) || sourceIndex < 0 || sourceIndex >= layer.fx.Count)
                 return;
 
-            UnityEngine.Object fxEntry = layer.fx[sourceIndex];
+            ShaderFX fxEntry = layer.fx[sourceIndex];
             Change("Move FX to Layer", () =>
             {
                 if (!CanMoveToLayer(destination) || sourceIndex >= layer.fx.Count ||
                     !ReferenceEquals(layer.fx[sourceIndex], fxEntry))
                     return;
                 layer.fx.RemoveAt(sourceIndex);
-                destination.fx ??= new List<UnityEngine.Object>();
+                destination.fx ??= new List<ShaderFX>();
                 destination.fx.Add(fxEntry);
             });
         }
@@ -497,7 +461,7 @@ namespace DCFApixels.WhimTex
                 if (evt.button != 0 || pointerId != -1 || !canReorder())
                     return;
                 for (VisualElement element = evt.target as VisualElement; element != null && element != target; element = element.parent)
-                    if (element is Button || element is Toggle || element is ObjectField || element.ClassListContains("whimtex-fx-effect-control"))
+                    if (element is Button || element is Toggle || element.ClassListContains("whimtex-fx-effect-control"))
                         return;
                 pointerId = evt.pointerId;
                 pointerDownPosition = new Vector2(evt.position.x, evt.position.y);

@@ -169,10 +169,21 @@ namespace DCFApixels.WhimTex
             // This is an owned transient surface, never the imported source texture.
             surface.filterMode = ResolveFilterMode();
 
-            // During a stroke, reuse the source-resolution conversion and refresh only
-            // new damage. Transform/FX still receive the complete, exact source image.
             if (advancedStroke != null)
+            {
+                if (TryRenderBrushViewport(context, out var preview))
+                {
+                    try { Owner.ApplyFx(ref preview, context, preview.filterMode); return preview; }
+                    catch { if (preview != null) ProfiledRenderTexture.ReleaseTemporary(preview); throw; }
+                }
+                // Full-input consumers, including FX, retain the source-resolution path.
                 return ApplyTransformAndFx(GetBrushPreviewSurface(), context);
+            }
+
+            if (context.activeDocument.RenderingViewport)
+                return Owner.ApplyTransformAndFx(surface, context, premultipliedSource: true,
+                    straightFallback: hasBakedPixelFrame || preserveStraightPaintRgb ? pixels : null,
+                    decodeFallback: pixels != null && !HdrUtility.IsHdr(pixels));
 
             // Unpremultiply at source resolution. Resampling to the output size before
             // the transform loses details that a magnified/cropped layer still needs.
@@ -617,7 +628,7 @@ namespace DCFApixels.WhimTex
 
                 RenderTexture.active = straight;
                 using (WhimTexProfiler.Measure("transfer.texture_readback", layer: Owner))
-                    pixels.ReadPixels(new Rect(0f, 0f, straight.width, straight.height), 0, 0, false);
+                    WhimTexProfiler.ReadPixels(pixels, new Rect(0f, 0f, straight.width, straight.height), 0, 0, false);
                 using (WhimTexProfiler.Measure("transfer.texture_upload", layer: Owner))
                     pixels.Apply(false, false);
                 paintSurfaceDirty = false;

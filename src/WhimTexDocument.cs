@@ -115,17 +115,6 @@ namespace DCFApixels.WhimTex
             return effect;
         }
 
-        internal void EmbedShaderFX(Layer layer, int index)
-        {
-            if (!(layer.fx[index] is ShaderFX source))
-                return;
-            ShaderFX copy = source.CloneForDocument(this);
-            Undo.RegisterCreatedObjectUndo(copy, "Embed Shader FX");
-            Undo.RecordObject(this, "Embed Shader FX");
-            embeddedShaderFX.Add(copy);
-            layer.fx[index] = copy;
-        }
-
         internal void AddCatalogShaderFX(Layer layer, ShaderFXCatalog.Entry entry)
         {
             ShaderFX effect;
@@ -639,7 +628,7 @@ namespace DCFApixels.WhimTex
                 // Readback/upload include CPU work and synchronization; GPU timestamp intervals
                 // cannot isolate transfer-engine time, so retain wall timing for these calls.
                 using (WhimTexProfiler.Measure("transfer.texture_readback"))
-                    texture.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0, false);
+                    WhimTexProfiler.ReadPixels(texture, new Rect(0, 0, source.width, source.height), 0, 0, false);
                 if (uploadToGpu)
                     using (WhimTexProfiler.Measure("transfer.texture_upload"))
                         texture.Apply(false, false);
@@ -821,11 +810,9 @@ namespace DCFApixels.WhimTex
                 {
                     content = CachedEffectRender(group, "group-composite", w, h, scale, false, () =>
                     {
-                        RenderTexture result = GetClearRenderTexture(w, h);
+                        RenderTexture result = RenderGroupPixels(group, w, h, scale, stack, included);
                         try
                         {
-                            RenderGroupGeometry(group, ref result, w, h, scale, stack, included);
-                            group.ApplyFx(ref result, new LayerRenderContext(this, null, w, h, scale, false, true));
                             result = FinishStage(result, group.colorRange == LayerColorRange.Standard, group.channelMapping);
                             return result;
                         }
@@ -844,10 +831,11 @@ namespace DCFApixels.WhimTex
                         using var copy = WhimTexProfiler.Measure("render.backdrop_copy", this, group);
                         using (copy.Gpu()) Graphics.Blit(accumulator, content);
                     }
-                    RenderGroupGeometry(group, ref content, w, h, scale, stack, included, localAccumulator: !passThrough);
-                    if (!passThrough)
+                    if (passThrough) RenderGroupGeometry(group, ref content, w, h, scale, stack, included, localAccumulator: false);
+                    else
                     {
-                        group.ApplyFx(ref content, new LayerRenderContext(this, null, w, h, scale, false, true));
+                        ProfiledRenderTexture.ReleaseTemporary(content); content = null;
+                        content = RenderGroupPixels(group, w, h, scale, stack, included);
                         content = FinishStage(content, group.colorRange == LayerColorRange.Standard, group.channelMapping);
                     }
                 }
@@ -881,6 +869,22 @@ namespace DCFApixels.WhimTex
                 return RenderGroupEffectInput(group, outputWidth, outputHeight, scaleMultiplier, renderStack,
                     preserveColor: false, includeDisabled: includeDisabled);
 
+            int prefix = renderingViewport ? ViewportFullPrefix(layer, applyFx) : -1;
+            if (prefix >= 0)
+            {
+                RenderTexture region = RenderViewportPrefix(layer, outputWidth, outputHeight, scaleMultiplier, prefix,
+                    applyFx, applyTransform, (w, h) => RenderStandaloneUncached(container, index, w, h,
+                        scaleMultiplier, renderStack, applyTransform, applyFx, includeDisabled, false, false));
+                try
+                {
+                    if (finishLayer) region = FinishStage(region, layer.colorRange == LayerColorRange.Standard,
+                        applyFx ? layer.channelMapping : default);
+                    if (applyClipping && region != null && layer.clippingMask)
+                        ApplyClippingCoverage(ref region, container, index, outputWidth, outputHeight, scaleMultiplier, renderStack);
+                    return region;
+                }
+                catch { if (region != null) ProfiledRenderTexture.ReleaseTemporary(region); throw; }
+            }
             renderStack ??= new HashSet<Layer>();
             if (!renderStack.Add(layer))
                 return null;
@@ -1041,14 +1045,13 @@ namespace DCFApixels.WhimTex
             if (!renderStack.Add(group)) return null;
 
             RenderTexture previous = RenderTexture.active;
-            RenderTexture mask = GetClearRenderTexture(outputWidth, outputHeight);
+            RenderTexture mask = null;
             RenderTexture scaled = null;
             try
             {
                 // Render only the group's own content against transparency, never its external backdrop.
                 // This also respects nested opacity and alpha-replacing blend modes.
-                RenderGroupGeometry(group, ref mask, outputWidth, outputHeight, scaleMultiplier, renderStack);
-                group.ApplyFx(ref mask, new LayerRenderContext(this, null, outputWidth, outputHeight, scaleMultiplier, false, true));
+                mask = RenderGroupPixels(group, outputWidth, outputHeight, scaleMultiplier, renderStack);
                 if (preserveColor || !group.channelMapping.IsIdentity)
                     mask = FinishStage(mask, group.colorRange == LayerColorRange.Standard, group.channelMapping);
                 if (group.clippingMask && TryFindLayer(group, out var container, out int index))

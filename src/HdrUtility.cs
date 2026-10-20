@@ -84,7 +84,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 RenderTexture.active = source;
-                result.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0, false);
+                WhimTexProfiler.ReadPixels(result, new Rect(0, 0, source.width, source.height), 0, 0, false);
                 if (upload) result.Apply(false, false);
                 return result;
             }

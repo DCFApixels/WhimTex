@@ -8,11 +8,13 @@ namespace DCFApixels.WhimTex
     {
         private static void SetShape(ShapeLayerBehaviour layer, JObject value)
         {
-            Keys(value, "kind", "fill", "fillColor", "fillMode", "gradient", "gradientStart", "gradientEnd", "gradientRepetitions",
+            Keys(value, "freeform", "strokeFreeform", "kind", "fill", "fillColor", "fillMode", "gradient", "gradientStart", "gradientEnd", "gradientRepetitions",
                 "stroke", "strokeMode", "strokeGradient", "strokeGradientStart", "strokeGradientEnd", "strokeGradientRepetitions",
                 "strokeColor", "strokeWidth", "arcThickness", "strokePosition",
                 "strokeJoin", "strokeCap", "miterLimit", "dashPattern", "dashOffset", "lineCap", "edgeMode",
                 "feather", "featherPosition", "rectangleCorners", "polygonCorners", "outerCorner", "innerCorner", "linkCorners", "sides", "innerRadius", "startAngle", "sweepAngle");
+            if (value["freeform"] != null) layer.freeform = ReadFreeform(value["freeform"]);
+            if (value["strokeFreeform"] != null) layer.strokeFreeform = ReadFreeform(value["strokeFreeform"]);
             layer.kind = Enum(value, "kind", layer.kind);
             layer.fill = Bool(value, "fill", layer.fill);
             layer.fillMode = Enum(value, "fillMode", layer.fillMode);
@@ -106,6 +108,7 @@ namespace DCFApixels.WhimTex
             ["fillMode"] = layer.fillMode.ToString(), ["gradient"] = layer.gradient == null ? null : GradientSnapshot(layer.gradient),
             ["gradientStart"] = Json(layer.gradientStart), ["gradientEnd"] = Json(layer.gradientEnd),
             ["gradientRepetitions"] = layer.gradientRepetitions,
+            ["freeform"] = FreeformSnapshot(layer.freeform), ["strokeFreeform"] = FreeformSnapshot(layer.strokeFreeform),
             ["stroke"] = layer.stroke, ["strokeColor"] = Json(layer.strokeColor), ["strokeWidth"] = layer.strokeWidth,
             ["strokeMode"] = layer.strokeMode.ToString(), ["strokeGradient"] = layer.strokeGradient == null ? null : GradientSnapshot(layer.strokeGradient),
             ["strokeGradientStart"] = Json(layer.strokeGradientStart), ["strokeGradientEnd"] = Json(layer.strokeGradientEnd),

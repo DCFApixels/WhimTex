@@ -11,6 +11,8 @@ Shader "Hidden/WhimTex/Shape"
             #pragma target 3.5
             #include "UnityCG.cginc"
             #include "GradientPalette.cginc"
+            #define WHIMTEX_FREEFORM_STROKE
+            #include "FreeformGradient.cginc"
             int _FigureFillMode;
             float4 _FigureFillAnchors;
             float _FigureFillRepetitions;
@@ -21,6 +23,8 @@ Shader "Hidden/WhimTex/Shape"
             float4 _StrokeGradientPalette_TexelSize, _StrokeGradientIntervals[129], _StrokeGradientStart;
             int _StrokeGradientWrapMode, _StrokeGradientIntervalCount;
             float2 _CanvasSize, _ShapeScale;
+            float4 _ShapePixelGrid;
+            float2 _ShapeOutputSize;
             float3 _ShapeRow0, _ShapeRow1, _ShapeRow2;
             int _ShapeKind, _ShapeTiling, _ShapeSegmentCount, _ShapeLineCap, _ShapeEdgeMode;
             float4 _ShapeSegments[128], _ShapeCurves[128];
@@ -233,7 +237,14 @@ Shader "Hidden/WhimTex/Shape"
             float4 frag(v2f_img input) : SV_Target
             {
                 if (any(abs(_ShapeScale) < 1e-6)) return 0;
-                float2 sampleUV = _ShapeEdgeMode == 1 ? (floor(input.uv * _CanvasSize) + .5) / _CanvasSize : input.uv;
+                float2 sampleUV = input.uv;
+                if (_ShapeEdgeMode == 1)
+                {
+                    // Reconstruct the output pixel center before mapping to the document
+                    // grid: interpolated UV roundoff must not pick a neighboring pixel.
+                    float2 pixel = (floor(input.uv * _ShapeOutputSize) + .5) * (_ShapePixelGrid.xy / _ShapeOutputSize) + _ShapePixelGrid.zw;
+                    sampleUV = (floor(pixel) + .5 - _ShapePixelGrid.zw) / _ShapePixelGrid.xy;
+                }
                 float3 q=float3(sampleUV,1);
                 float w=dot(_ShapeRow2,q);
                 if(w<1e-8)return 0;
@@ -277,10 +288,11 @@ Shader "Hidden/WhimTex/Shape"
                     float occupied = min(fill, strokeCoverage);
                     fillCoverage = max(0, fillCoverage - occupied * _ShapeStyle.x);
                 }
-                float4 paint = _ShapeFill;
-                if (_ShapeStyle.x > 0 && _FigureFillMode >= 2) paint = SampleGradientPalette(FigureFillCoordinate(uv, _FigureFillAnchors, _FigureFillMode, _FigureFillRepetitions));
-                float4 ink = _ShapeStroke;
-                if (_ShapeStyle.y > 0 && _FigureStrokeMode >= 2)
+                float4 paint = _ShapeFill, ink = _ShapeStroke;
+                if (_ShapeStyle.x > 0 && _FigureFillMode == 7) paint = FreeformColor(uv);
+                if (_ShapeStyle.y > 0 && _FigureStrokeMode == 7) ink = StrokeFreeformColor(uv);
+                if (_ShapeStyle.x > 0 && _FigureFillMode >= 2 && _FigureFillMode < 7) paint = SampleGradientPalette(FigureFillCoordinate(uv, _FigureFillAnchors, _FigureFillMode, _FigureFillRepetitions));
+                if (_ShapeStyle.y > 0 && _FigureStrokeMode >= 2 && _FigureStrokeMode < 7)
                     ink = SampleGradientPaletteAt(FigureFillCoordinate(uv, _FigureStrokeAnchors, _FigureStrokeMode, _FigureStrokeRepetitions),
                         _StrokeGradientPalette, _StrokeGradientPalette_TexelSize, _StrokeGradientIntervals,
                         _StrokeGradientIntervalCount, _StrokeGradientStart, _StrokeGradientWrapMode);

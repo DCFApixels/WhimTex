@@ -8,6 +8,17 @@ namespace DCFApixels.WhimTex
         private void CompositeProcessor(ShaderProcessorLayerBehaviour layer, ref RenderTexture accumulator,
             int width, int height, float scale, HashSet<Layer> stack)
         {
+            if (renderingViewport && TryFindLayer(layer, out var container, out int index))
+            {
+                var region = RenderStandalone(container, index, width, height, scale, stack);
+                try
+                {
+                    if (region != null) BlendInto(ref accumulator, region,
+                        layer.blendMode == BlendMode.Normal ? (BlendMode)101 : layer.blendMode, layer.opacity, layer.blendRange);
+                }
+                finally { if (region != null) ProfiledRenderTexture.ReleaseTemporary(region); }
+                return;
+            }
             if (!stack.Add(layer)) return;
             RenderTexture processed = null;
             try

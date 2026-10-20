@@ -66,7 +66,6 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
             if (typeof(UnityEngine.Object).IsAssignableFrom(type) && type != typeof(WhimTexDocument) && type != typeof(ShaderFX))
             {
                 var variants = new List<object> { D(("type", "null")), asset };
-                if (type.IsAssignableFrom(typeof(ShaderFX))) { variants.Add(Schema(typeof(ShaderFX))); variants.Add(reference); }
                 return D(("anyOf", variants));
             }
             if (type.IsAbstract && typeof(LayerBehaviour).IsAssignableFrom(type))
@@ -78,6 +77,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
             {
                 var properties = new Dictionary<string, object>();
                 definitions[name] = D(("type", "object"), ("additionalProperties", false), ("properties", properties));
+                if (type == typeof(GradientLayerBehaviour)) ((Dictionary<string, object>)definitions[name])["required"] = new[] { "gradientType" };
                 if (type == typeof(Layer)) ((Dictionary<string, object>)definitions[name])["required"] = new[] { "id", "behaviour" };
                 properties["$type"] = D(("const", name));
                 if (type == typeof(ShaderFX))
@@ -85,12 +85,22 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 if (type == typeof(DrawingLayerBehaviour)) properties["contentOmitted"] = D(("const", true));
                 foreach (FieldInfo f in (FieldInfo[])fields.Invoke(null, new object[] { type }))
                     if (!(type == typeof(WhimTexDocument) && f.Name == "layers") && !(type == typeof(DrawingLayerBehaviour) && f.Name == "pixels"))
-                        properties[f.Name] = type == typeof(ShapeLayerBehaviour) && (f.Name == "rectangleCorners" || f.Name == "polygonCorners")
+                        properties[f.Name] = type == typeof(FreeformGradient) && f.Name == "points"
+                            ? D(("type", "array"), ("minItems", 1), ("maxItems", FreeformGradient.MaxPoints), ("items", Schema(typeof(FreeformGradientPoint)))) :
+                            type == typeof(FreeformGradientPoint) && f.Name == "influence"
+                            ? D(("type", "number"), ("minimum", FreeformGradient.MinInfluence), ("maximum", FreeformGradient.MaxInfluence), ("default", .35),
+                                ("description", "Relative influence in local layer coordinates; 0.35 is displayed as 35%. Smooth inverse-distance mixing has no hard boundary.")) :
+                            type == typeof(FreeformGradientPoint) && f.Name == "position"
+                            ? D(("type", "array"), ("minItems", 2), ("maxItems", 2), ("items", D(("type", "number"), ("minimum", -10000), ("maximum", 10000)))) :
+                            type == typeof(FreeformGradientPoint) && f.Name == "color"
+                            ? D(("type", "array"), ("minItems", 4), ("maxItems", 4), ("prefixItems", new object[] { Number(typeof(float)), Number(typeof(float)), Number(typeof(float)), D(("type", "number"), ("minimum", 0), ("maximum", 1)) }), ("items", false),
+                                ("description", "Straight encoded RGBA; signed HDR RGB is retained. Mixing decodes RGB into linear working space; alpha uses the same weights.")) :
+                            type == typeof(ShapeLayerBehaviour) && (f.Name == "rectangleCorners" || f.Name == "polygonCorners")
                             ? D(("type", "array"), ("minItems", f.Name == "rectangleCorners" ? 4 : 3), ("maxItems", f.Name == "rectangleCorners" ? 4 : 32), ("items", Schema(typeof(ShapeLayerBehaviour.Corner)))) :
                             type == typeof(Layer) && f.Name == "groupFxInLayerSpace"
                             ? D(("type", "boolean"), ("default", false), ("description", "On groups only, preserve a converted source layer's LayerToLocal FX coordinates instead of the ordinary group's canvas coordinates. Character Text-to-Vector sets this true; non-group layers ignore it. Retained by save and Undo.")) :
                             type == typeof(GradientLayerBehaviour) && f.Name == "circularStartAngle"
-                            ? D(("type", "number"), ("default", 0), ("description", "Circular gradient start angle in counterclockwise degrees from the local left ray. Independent of transform and palette. One period spans 360/circularRepetitions degrees; default start angle preserves the existing field.")) :
+                            ? D(("type", "number"), ("default", 0), ("description", "Angular gradient start angle in counterclockwise degrees from the local left ray. Independent of transform and palette. One period spans 360/circularRepetitions degrees; default start angle preserves the existing field.")) :
                             (type == typeof(SDFLayerBehaviour) || type == typeof(OutlineLayerBehaviour)) && f.Name == "miterLimit"
                             ? D(("type", "number"), ("minimum", 1), ("maximum", 64),
 ("description", "Range 1..64, default 4. Finite dimensionless miter-length limit relative to the contour offset. Used by Sharp, CornerFit and Spring; excessive joins are beveled. Rbf retains but ignores this value. Same field on SDF and Outline. CornerFit/Spring apply it only to AA-verified corners with bounded local endpoint influence; it does not validate uncertain corners. In Sharp, values above 4 cannot override the separate raster angular-safety cap; unsupported or very acute corners can round.")) :
@@ -124,12 +134,28 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                                 ("description", "Per-source-axis physical pixel metric accumulated by Scale, including nested rotations and quarter turns. Perspective uses the Jacobian at the source centre. Crop and Orientation retain it. Multiplies sourceCanvasSize only for pixel-sized Pattern/Grain parameters; source buffers and dimensionless Noise retain their original basis.")) :
                             type == typeof(ShaderFXParameter) && f.Name == "pixelUnits"
                             ? D(("type", "boolean"), ("default", false), ("description", "Numeric @param px declaration; the retained logical value is multiplied by document pixelScale once when uploaded.")) :
+                            type == typeof(ShaderFXParameterControl) && f.Name == "enableIf"
+                            ? D(("type", "array"), ("default", Array.Empty<object>()), ("maxItems", 16),
+                                ("items", Schema(typeof(ShaderFXEnableCondition))),
+                                ("description", "Enclosing @enableif scalar comparisons, combined with AND. Inspector controls remain visible and become disabled when any condition fails; stored values and shader evaluation are unchanged.")) :
+                            type == typeof(ShaderFXParameterControl) && f.Name == "containers"
+                            ? D(("type", "array"), ("default", Array.Empty<object>()), ("maxItems", 16),
+                                ("items", Schema(typeof(ShaderFXLayoutContainer))),
+                                ("description", "Outer-to-inner HLSL inspector layout path: Group, Foldout, Tabs, Tab. Derived from metadata, independent of shader values. Selected tabs and foldout expansion are editor-local and not stored here.")) :
+                            type == typeof(ShaderFXParameterControl) && f.Name == "previewParameters"
+                            ? D(("type", "array"), ("default", Array.Empty<string>()), ("maxItems", 128),
+                                ("items", D(("type", "string"), ("pattern", "^[A-Za-z_][A-Za-z0-9_]*$"))),
+                                ("description", "Ordered @param names explicitly passed after float2 uv to previewFunction. Empty retains the UV-only/optional-own-value signature. Referenced types must match exactly.")) :
+                            (type == typeof(ShaderFXParameter) || type == typeof(ShaderFXParameterControl)) && f.Name == "cyclicRange"
+                            ? D(("type", "boolean"), ("default", false), ("description", "Derived from [min % max] HLSL metadata. Float2 endpoints may cross the seam; float numeric edits repeat while slider dragging stays bounded. Two hard finite limits with min < max are required.")) :
                             type == typeof(Layer) && f.Name == "sourceCanvasSize"
                             ? D(("type", "array"), ("minItems", 2), ("maxItems", 2), ("default", new[] { 0, 0 }),
                                 ("items", D(("type", "integer"), ("minimum", 0), ("maximum", 16384))),
                                 ("anyOf", new[] { D(("const", new[] { 0, 0 })), D(("items", D(("type", "integer"), ("minimum", 1), ("maximum", 16384)))) }),
                                 ("description", "Source reference canvas dimensions retained by Crop. [0,0] uses the current canvas; otherwise both dimensions must be positive and their product at most 16,777,216. Keeps Noise, ordinary Pattern and uninitialized Drawing sources at their original pixel scale. Not a source-image resolution, crop rectangle or rendering cache.")) :
                             type == typeof(Layer) && f.Name == "id" ? D(("type", "string"), ("minLength", 1)) : Schema(f.FieldType);
+                if (type == typeof(Layer))
+                    ((Dictionary<string, object>)properties["fx"])["description"] = "Document-owned HLSL effects only: inline code or marked .hlsl presets. Internal $ref identities are supported; external Material, Shader and ShaderFX asset references are rejected.";
                 if (type == typeof(ShapeLayerBehaviour) || type == typeof(VectorShape))
                 {
                     var paintConstraints = new List<object>();
@@ -140,19 +166,23 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                         string start = palette + "Start", end = palette + "End", repetitions = palette + "Repetitions";
                         ((Dictionary<string, object>)properties[mode])["default"] = "Solid";
                         ((Dictionary<string, object>)properties[mode])["description"] = stroke
-                            ? "Independent stroke paint: None disables painting without clearing settings; Solid uses strokeColor; five gradient modes use strokeGradient. The stroke boolean remains an additional gate. Every JSON mode retains inactive stroke settings."
-                            : "Shared figure fill: None=0, Solid=1, LinearGradient=2, RadialGradient=3, SquareGradient=4, DiamondGradient=5, CircularGradient=6. Shape fill is an additional overall gate. Full, FullOptimized and Compact retain inactive fill settings.";
-                        ((Dictionary<string, object>)properties[palette])["description"] = "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the circular-only " + repetitions + " multiplier.";
+                            ? "Independent stroke paint: None disables painting without clearing settings; Solid uses strokeColor; four gradient modes use strokeGradient; Freeform uses strokeFreeform. The stroke boolean remains an additional gate. Every JSON mode retains inactive stroke settings."
+                            : "Shared figure fill: None=0, Solid=1, LinearGradient=2, RadialGradient=3, SquareGradient=4, AngularGradient=6, Freeform=7. Freeform uses the independent freeform point field. Shape fill is an additional overall gate. Full, FullOptimized and Compact retain inactive fill settings.";
+                        ((Dictionary<string, object>)properties[palette])["description"] = "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the angular-only " + repetitions + " multiplier.";
                         ((Dictionary<string, object>)properties[start])["default"] = new[] { 0, 0 };
                         ((Dictionary<string, object>)properties[start])["description"] = "Finite normalized layer-local y-up anchor, allowed outside 0..1. Linear start; center for other gradients. Pixel metric: Shape current canvas dimensions before layer Transform; Vector and Boolean Group referenceSize. Changing this anchor does not change the layer transform or the other paint.";
                         ((Dictionary<string, object>)properties[end])["default"] = new[] { 1, 0 };
-                        ((Dictionary<string, object>)properties[end])["description"] = "Finite normalized layer-local endpoint. Sets radius and orientation from " + start + " in reference pixels. Radial uses length, Square max(abs(rotated coordinates)), Diamond sum of absolute rotated coordinates. Circular is the positive CCW angle from this ray divided by one turn and multiplied by " + repetitions + ", with its seam on the ray. Equal anchors yield t=0 for every gradient type.";
+                        ((Dictionary<string, object>)properties[end])["description"] = "Finite normalized layer-local endpoint. Sets radius and orientation from " + start + " in reference pixels. Radial uses length, Square max(abs(rotated coordinates)). Angular is the positive CCW angle from this ray divided by one turn and multiplied by " + repetitions + ", with its seam on the ray. Equal anchors yield t=0 for every gradient type.";
                         properties[repetitions] = D(("type", "number"), ("minimum", .0001), ("maximum", float.MaxValue), ("default", 1),
-                            ("description", "Finite circular-gradient repetitions, at least 0.0001; default 1. CircularGradient only: one period spans 360/" + repetitions + " degrees before palette wrapping. Retained and validated in every paint mode, including disabled painting."));
+                            ("description", "Finite angular-gradient repetitions, at least 0.0001; default 1. AngularGradient only: one period spans 360/" + repetitions + " degrees before palette wrapping. Retained and validated in every paint mode, including disabled painting."));
                         var invalidPalette = D(("required", new[] { mode, palette }),
-                            ("properties", D((mode, D(("enum", new[] { "LinearGradient", "RadialGradient", "SquareGradient", "DiamondGradient", "CircularGradient" }))),
+                            ("properties", D((mode, D(("enum", new[] { "LinearGradient", "RadialGradient", "SquareGradient", "AngularGradient" }))),
                                 (palette, D(("type", "null"))))));
                         paintConstraints.Add(D(("not", invalidPalette)));
+                        string freeform = stroke ? "strokeFreeform" : "freeform";
+                        paintConstraints.Add(D(("not", D(("required", new[] { mode, freeform }),
+                            ("properties", D((mode, D(("const", "Freeform"))), (freeform, D(("type", "null")))))))));
+                        ((Dictionary<string, object>)properties[freeform])["description"] = "Independent Freeform points in normalized layer-local coordinates. Retained in inactive modes; required non-null when Freeform is active, including disabled painting.";
                     }
                     ((Dictionary<string, object>)definitions[name])["allOf"] = paintConstraints;
                 }
@@ -203,7 +233,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 }
                 if (type == typeof(TextLayerBehaviour))
                 {
-                    properties["fillMode"] = D(("type", "string"), ("enum", Enum.GetNames(typeof(VectorFillMode))), ("default", "Solid"));
+                    properties["fillMode"] = D(("type", "string"), ("enum", Enum.GetNames(typeof(VectorFillMode)).Where(n => n != "Freeform").ToArray()), ("default", "Solid"));
                     properties["gradientScope"] = D(("type", "string"), ("enum", Enum.GetNames(typeof(TextGradientScope))), ("default", "Text"),
                         ("description", "Text normalizes one field over all glyph bounds; Character repeats shared anchors over each nonempty glyph rectangle, not advance or whitespace. Paint changes do not rebuild glyph coverage. Original Edge Mode remains in control."));
                     properties["gradientRepetitions"] = D(("type", "number"), ("minimum", .0001), ("default", 1));
@@ -360,6 +390,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 }
             }
             object modelRef = D(("$ref", "#/$defs/" + name));
+            if (type == typeof(ShaderFX)) return D(("anyOf", new[] { modelRef, reference, D(("type", "null")) }));
             return !type.IsValueType && type != typeof(WhimTexDocument) && type != typeof(Layer) &&
                 type != typeof(WhimTexComment) && type != typeof(WhimTexCommentMessage) && type != typeof(WhimTexCommentAttachment) && type != typeof(WhimTexAgentReceipt)
                 ? D(("anyOf", new[] { modelRef, D(("type", "null")) })) : modelRef;

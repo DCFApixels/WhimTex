@@ -159,9 +159,26 @@ namespace DCFApixels.WhimTex
                     defaultsV2["ShapeLayerBehaviour"][entry.Name] = entry.Value;
                 defaultsV2["ShapeLayerBehaviour"]["gradient"] = defaultsV2["WhimTexGradient"].DeepClone();
                 defaultsV2["ShapeLayerBehaviour"]["strokeGradient"] = defaultsV2["WhimTexGradient"].DeepClone();
-                foreach (var entry in JObject.Parse(@"{""fillMode"":""Solid"",""gradientScope"":""Text"",""gradientStart"":[0,0],""gradientEnd"":[1,0],""gradientRepetitions"":1}").Properties())
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV2.PreviewControlData).Properties())
+                    defaultsV2["ShaderFXParameterControl"][entry.Name] = entry.Value;
+                defaultsV2["ShaderFXParameterControl"]["containers"] = new JArray();
+                defaultsV2["ShaderFXParameterControl"]["enableIf"] = new JArray();
+                foreach (var modelName in new[] { "ShaderFXParameter", "ShaderFXParameterControl" })
+                    foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV2.CyclicRangeData).Properties())
+                        defaultsV2[modelName][entry.Name] = entry.Value.DeepClone();
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV2.TextFillData).Properties())
                     defaultsV2["TextLayerBehaviour"][entry.Name] = entry.Value;
                 defaultsV2["TextLayerBehaviour"]["gradient"] = defaultsV2["WhimTexGradient"].DeepClone();
+                defaultsV2["GradientLayerBehaviour"]["freeform"] = JObject.Parse(@"{""points"":[
+                    {""position"":[0.25,0.3],""color"":[0.95,0.35,0.2,1],""influence"":0.35},
+                    {""position"":[0.75,0.3],""color"":[0.2,0.5,0.95,1],""influence"":0.35},
+                    {""position"":[0.5,0.75],""color"":[0.7,0.25,0.85,1],""influence"":0.35}]}");
+                foreach (string model in new[] { "ShapeLayerBehaviour", "VectorShape" })
+                {
+                    defaultsV2[model]["freeform"] = defaultsV2["GradientLayerBehaviour"]["freeform"].DeepClone();
+                    defaultsV2[model]["strokeFreeform"] = defaultsV2["GradientLayerBehaviour"]["freeform"].DeepClone();
+                }
+                defaultsV2["FreeformGradientPoint"] = JObject.Parse(@"{""position"":[0.5,0.5],""color"":[1,1,1,1],""influence"":0.35}");
             }
             return defaultsV2[TypeName(type)] as JObject;
         }
@@ -169,6 +186,7 @@ namespace DCFApixels.WhimTex
         private static bool IsDefault(Type type, string field, JToken value)
         {
             if (field == "id" || field == "behaviour" || field == "behaviourId" || field == "children" || field == "fx") return false;
+            if (type == typeof(GradientLayerBehaviour) && field == "gradientType") return false;
             return DefaultsFor(type)?[field] is JToken baseline && JToken.DeepEquals(value, baseline);
         }
 
@@ -176,7 +194,7 @@ namespace DCFApixels.WhimTex
         {
             if (value is TargetedLayerBehaviour targeted && field == "targetLayerId") return targeted.inputMode == EffectInputMode.Specific;
             if (value is GradientLayerBehaviour gradient && (field == "circularRepetitions" || field == "circularWrapMode" || field == "circularStartAngle"))
-                return gradient.gradientType == GradientLayerBehaviour.GradientType.Circular;
+                return gradient.gradientType == GradientLayerBehaviour.GradientType.Angular;
             if (value is BlurLayerBehaviour blur)
             {
                 if (field == "radius") return blur.mode == BlurType.Gaussian;

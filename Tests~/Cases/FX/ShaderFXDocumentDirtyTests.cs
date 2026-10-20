@@ -43,7 +43,7 @@ public static class ShaderFXDocumentDirtyTests
     static object Entry(string file)
     {
         foreach (object entry in (IEnumerable)Invoke(Type("ShaderFXCatalog"), null, "GetEntries"))
-            if (!(bool)Get(entry, "user") && !(bool)Get(entry, "assetPreset") &&
+            if (!(bool)Get(entry, "user") &&
                 ((string)Get(entry, "path")).EndsWith("/" + file, StringComparison.Ordinal)) return entry;
         throw new Exception("Missing built-in preset: " + file);
     }

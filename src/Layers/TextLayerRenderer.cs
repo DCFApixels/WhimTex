@@ -405,7 +405,7 @@ namespace DCFApixels.WhimTex
                     mask = new Texture2D(outputWidth, outputHeight, TextureFormat.RGBA32, false, true)
                     { name = "Text Mask", hideFlags = HideFlags.HideAndDontSave, wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
                 }
-                mask.ReadPixels(new Rect(0, 0, outputWidth, outputHeight), 0, 0, false); mask.Apply(false, false);
+                WhimTexProfiler.ReadPixels(mask, new Rect(0, 0, outputWidth, outputHeight), 0, 0, false); mask.Apply(false, false);
                 mask.filterMode = edgeMode == TextEdgeMode.Pixel ? FilterMode.Point : FilterMode.Bilinear;
                 Bounds = new Rect(Bounds.position * pixelScale, Bounds.size * pixelScale);
                 SourceRect = new Rect(SourceRect.position * pixelScale, SourceRect.size * pixelScale);

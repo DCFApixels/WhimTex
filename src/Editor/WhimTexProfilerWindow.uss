@@ -14,6 +14,7 @@
     --profile-miss: #e4b86c;
     --profile-other: #a6adb8;
     --profile-error: #ef9191;
+    --profile-unconfirmed: #574a26;
     --profile-accent: var(--profile-other);
     --profile-scrollbar-width: 14px;
     flex-grow: 1;
@@ -35,6 +36,7 @@
     --profile-miss: #845500;
     --profile-other: #555d6b;
     --profile-error: #a32f36;
+    --profile-unconfirmed: #efd89b;
 }
 .whimtex-profiler-tone-rendering { --profile-accent: var(--profile-rendering); }
 .whimtex-profiler-tone-ui { --profile-accent: var(--profile-ui); }
@@ -244,6 +246,8 @@
 .whimtex-profiler-count-changed { -unity-font-style: bold; }
 .whimtex-profiler-delta-decrease { color: var(--profile-hit); }
 .whimtex-profiler-delta-increase { color: var(--profile-error); }
+.whimtex-profiler-gpu-unconfirmed { background-color: var(--profile-unconfirmed); border-radius: 2px; }
+.whimtex-profiler-gpu-environment { white-space: normal; color: var(--profile-muted); font-size: 10px; margin: 0 4px 3px; }
 .whimtex-profiler-diagnostics { flex-shrink: 0; margin-bottom: 3px; }
 .whimtex-profiler-diagnostics-scroll {
     max-height: 180px;

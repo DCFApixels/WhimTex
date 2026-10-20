@@ -2,6 +2,47 @@ using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
+    internal readonly struct CanvasRenderRegion : System.IEquatable<CanvasRenderRegion>
+    {
+        internal readonly RectInt pixels;
+        internal readonly int step;
+        internal int width => Mathf.Max(1, Mathf.CeilToInt(pixels.width / (float)step));
+        internal int height => Mathf.Max(1, Mathf.CeilToInt(pixels.height / (float)step));
+        internal CanvasRenderRegion(RectInt pixels, int step) { this.pixels = pixels; this.step = step; }
+        public bool Equals(CanvasRenderRegion other) => pixels == other.pixels && step == other.step;
+        public override bool Equals(object value) => value is CanvasRenderRegion other && Equals(other);
+        public override int GetHashCode() => System.HashCode.Combine(pixels, step);
+
+        internal static CanvasRenderRegion Plan(Rect view, Rect image, int width, int height,
+            float pixelsPerPoint, float quality, int maxTextureSize)
+        {
+            if (width < 1 || height < 1 || maxTextureSize < 1 || !(image.width > 0) || !(image.height > 0) ||
+                !float.IsFinite(image.width + image.height + image.x + image.y + view.x + view.y + view.width + view.height))
+                throw new System.ArgumentException("Canvas viewport dimensions must be finite and positive.");
+            float density = image.width / width * Mathf.Max(1, pixelsPerPoint) * Mathf.Clamp(quality, .125f, 1f);
+            int step = 1;
+            while (step < 16384 && density * step < .75f) step *= 2;
+            float left = Mathf.Clamp((view.xMin - image.xMin) / image.width * width, 0, width);
+            float right = Mathf.Clamp((view.xMax - image.xMin) / image.width * width, 0, width);
+            float bottom = Mathf.Clamp((image.yMax - view.yMax) / image.height * height, 0, height);
+            float top = Mathf.Clamp((image.yMax - view.yMin) / image.height * height, 0, height);
+            for (;;)
+            {
+                int grid = step * 32;
+                int x = Mathf.Max(0, Mathf.FloorToInt(left / grid) * grid - grid);
+                int y = Mathf.Max(0, Mathf.FloorToInt(bottom / grid) * grid - grid);
+                int xMax = Mathf.Min(width,
+                    Mathf.CeilToInt(right / grid) * grid + grid);
+                int yMax = Mathf.Min(height,
+                    Mathf.CeilToInt(top / grid) * grid + grid);
+                var region = new CanvasRenderRegion(new RectInt(x, y, Mathf.Max(step, xMax - x), Mathf.Max(step, yMax - y)), step);
+                if (region.width <= maxTextureSize && region.height <= maxTextureSize && (long)region.width * region.height <= 16 * 1024 * 1024)
+                    return region;
+                step *= 2;
+            }
+        }
+    }
+
     internal sealed class CanvasViewport
     {
         internal const float MinimumScale = 1f / 1024f;

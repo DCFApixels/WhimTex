@@ -240,7 +240,7 @@ namespace DCFApixels.WhimTex
                 workspace.Prepare(aw, ah, rows, candidates, count);
                 Graphics.Blit(source, analysis);
                 RenderTexture.active = analysis;
-                workspace.readback.ReadPixels(new Rect(0, 0, aw, ah), 0, 0, false);
+                WhimTexProfiler.ReadPixels(workspace.readback, new Rect(0, 0, aw, ah), 0, 0, false);
                 // Borrow texture storage; never dispose it independently of the texture.
                 var pixels = workspace.readback.GetPixelData<float4>(0);
                 var map = workspace.map.GetSubArray(0, rows * 3);

@@ -1,20 +1,16 @@
-// @whimtex-effect Color/HSV
-// @control(_Opacity)
-// @group
-// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.
-// @param float _Hue = 0 [-180 .. 180] // Hue shift in degrees; 0 leaves the hue unchanged.
-// @param float _Saturation = 1 [0 .. ~4] // Saturation multiplier; 0 removes color, 1 is unchanged.
-// @param float _Value = 1 [0 .. ~4] // HSV brightness multiplier; 1 is unchanged. HDR values remain supported.
-// @endgroup
+// Frozen compact HSV reference before unifying the catalog preset.
+// @param hidden float _Opacity = 1 [0 .. 1]
+// @param float _Hue = 0 [-180 .. 180]
+// @param float _Saturation = 1 [0 .. ~4]
+// @param float _Value = 1 [0 .. ~4]
 
 #include "Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc"
 
 float4 ApplyFX(float2 uv, float4 color)
 {
-	float amount = saturate(_Opacity);
+    float amount = saturate(_Opacity);
     if (amount == 0.0 || (_Hue == 0.0 && _Saturation == 1.0 && _Value == 1.0))
         return color;
-
     float3 rgb = SpriteEncode(max(color.rgb, 0.0));
     float v = max(rgb.r, max(rgb.g, rgb.b));
     float delta = v - min(rgb.r, min(rgb.g, rgb.b));

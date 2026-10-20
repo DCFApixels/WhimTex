@@ -14,7 +14,7 @@ public static class VectorPaintCacheTests
     const int Width = 96, Height = 80;
     static readonly VectorFillMode[] GradientModes = {
         VectorFillMode.LinearGradient, VectorFillMode.RadialGradient,
-        VectorFillMode.SquareGradient, VectorFillMode.DiamondGradient, VectorFillMode.CircularGradient
+        VectorFillMode.SquareGradient, VectorFillMode.AngularGradient
     };
 
     public static string Run() => TestContext.Run("Vector GPU paint preserves coverage and Boolean geometry caches", t =>
@@ -59,8 +59,8 @@ public static class VectorPaintCacheTests
             shape.strokeGradientEnd = new Vector2(.63f, .83f); Check("stroke end");
             foreach (var mode in GradientModes) { shape.fillMode = mode; Check("fill mode " + mode); }
             foreach (var mode in GradientModes) { shape.strokeMode = mode; Check("stroke mode " + mode); }
-            shape.gradientRepetitions = 2.25f; Check("fill circular repetitions");
-            shape.strokeGradientRepetitions = 1.75f; Check("stroke circular repetitions");
+            shape.gradientRepetitions = 2.25f; Check("fill angular repetitions");
+            shape.strokeGradientRepetitions = 1.75f; Check("stroke angular repetitions");
             foreach (var wrap in new[] { WhimTexGradientWrapMode.Repeat, WhimTexGradientWrapMode.Mirror })
             {
                 shape.gradient.WrapMode = wrap; Check("fill wrap " + wrap);
@@ -92,7 +92,7 @@ public static class VectorPaintCacheTests
     {
         using var fixture = new Fixture();
         var model = Vector(Rect(.203f, .207f, .797f, .793f));
-        model.shapes[0].fillMode = VectorFillMode.CircularGradient;
+        model.shapes[0].fillMode = VectorFillMode.AngularGradient;
         model.shapes[0].gradient = Ramp();
         fixture.Add(model);
         var expected = fixture.Render(t);
@@ -201,7 +201,7 @@ public static class VectorPaintCacheTests
         model.style.gradientEnd = new Vector2(.7f, .9f); Repaint("Boolean fill end");
         model.style.strokeGradientStart = new Vector2(.03f, .22f); Repaint("Boolean stroke anchor");
         model.style.fillMode = VectorFillMode.RadialGradient; Repaint("Boolean fill mode");
-        model.style.strokeMode = VectorFillMode.DiamondGradient; Repaint("Boolean stroke mode");
+        model.style.strokeMode = VectorFillMode.SquareGradient; Repaint("Boolean stroke mode");
         model.style.gradient = Ramp(true); Repaint("Boolean fill palette");
         SetRamp(model.style.strokeGradient, Color.green, Color.blue, .2f, .6f); Repaint("Boolean stroke palette/alpha");
         model.style.fillMode = VectorFillMode.Solid; model.style.fillColor = new Color(1, 0, 0, .25f);
@@ -223,7 +223,7 @@ public static class VectorPaintCacheTests
             bottomModel.shapes[0].strokePosition = VectorStrokePosition.Outside;
         });
         Ignored("child stroke paint", () => {
-            bottomModel.shapes[0].strokeMode = VectorFillMode.CircularGradient;
+            bottomModel.shapes[0].strokeMode = VectorFillMode.AngularGradient;
             bottomModel.shapes[0].strokeGradient = Ramp(true);
             bottomModel.shapes[0].strokeGradientEnd = new Vector2(.3f, .8f);
         });
@@ -341,8 +341,7 @@ public static class VectorPaintCacheTests
                 case VectorFillMode.LinearGradient: q = along; break;
                 case VectorFillMode.RadialGradient: q = Math.Sqrt((dx * dx + dy * dy) / length2); break;
                 case VectorFillMode.SquareGradient: q = Math.Max(Math.Abs(along), Math.Abs(across)); break;
-                case VectorFillMode.DiamondGradient: q = Math.Abs(along) + Math.Abs(across); break;
-                case VectorFillMode.CircularGradient:
+                                case VectorFillMode.AngularGradient:
                     double turn = Math.Atan2(across, along) / (Math.PI * 2);
                     q = (turn - Math.Floor(turn)) * (stroke ? shape.strokeGradientRepetitions : shape.gradientRepetitions); break;
             }

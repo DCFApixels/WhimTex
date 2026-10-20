@@ -36,6 +36,8 @@ namespace DCFApixels.WhimTex
         internal sealed class Capture
         {
             internal string id, stopReason, unityVersion;
+            internal string renderingThreadingMode;
+            internal bool? graphicsJobs;
             internal Sample[] events;
             internal long start, end, deadline;
             internal int count, dropped, open, gpuRevision;
@@ -93,7 +95,9 @@ namespace DCFApixels.WhimTex
             long now = Stopwatch.GetTimestamp();
             capture = new Capture { id = Guid.NewGuid().ToString("N"), events = new Sample[capacity],
                 start = now, deadline = now + (long)(seconds * Stopwatch.Frequency), recording = true, documentId = documentId,
-                unityVersion = UnityEngine.Application.unityVersion };
+                unityVersion = UnityEngine.Application.unityVersion,
+                renderingThreadingMode = UnityEngine.SystemInfo.renderingThreadingMode.ToString(),
+                graphicsJobs = GraphicsJobsActive(UnityEngine.SystemInfo.renderingThreadingMode) };
             current = -1; suppressed = 0; nextChange = 0; changes.Clear(); documentIds.Clear();
             ResetMemory(); ResetCauses();
             capture.memory = new MemoryTotals();
@@ -132,6 +136,7 @@ namespace DCFApixels.WhimTex
             var frozen = new Capture { id = capture.id, events = copy, count = capture.count, start = capture.start,
                 end = capture.end, stopReason = capture.stopReason, documentId = capture.documentId,
                 dropped = capture.dropped, unityVersion = capture.unityVersion ?? UnityEngine.Application.unityVersion,
+                renderingThreadingMode = capture.renderingThreadingMode, graphicsJobs = capture.graphicsJobs,
                 memory = capture.memory?.Copy() };
             frozen.causeTrackingLimited = capture.causeTrackingLimited;
             DiscardBaselineBackup();

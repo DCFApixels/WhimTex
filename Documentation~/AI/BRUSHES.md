@@ -114,8 +114,8 @@ Selection is not multiplied into each stamp. Repeated dabs within one stroke the
 a soft selection edge; separate committed strokes can still build coverage. Write RGBA protection
 is applied to that assembled change, retaining locked channels and hidden source RGB.
 
-Live assembly runs at the Drawing source resolution before its transform, layer/group opacity,
-blend, clipping and FX. Canvas, Target inputs, previews and thumbnails use this same source.
+Live assembly evaluates native Drawing texels before filtering, layer/group opacity,
+blend, clipping and FX. Canvas, Target inputs, previews and thumbnails use the same assembly rules.
 Commit uses the same assembly function. Standard painting remains bounded; HDR keeps signed and
 above-one RGB through accumulation and storage. Blur/Smudge retain their separate retouching paths.
 
@@ -138,13 +138,23 @@ remain ordered on the graphics queue. History never retains an atlas page or a m
 The `brush.stroke_page_bytes` and `brush.stroke_pool_bytes` profiler counters distinguish the
 current stroke's page payload from retained idle payload.
 
-Live rendering retains the existing source-resolution Half straight image. A separate set of
-256 × 256 damage tiles accumulates since its last refresh; each update recomputes those tiles
-from the immutable base plus the corresponding stroke slot. Previously converted pixels are
-reused, never blended again. First use, a provisional-stroke reset or changed composite settings
-requires a full base conversion followed by touched blocks. The target is released on
-commit/cancel. At 8K this preview and the Half source still each occupy 512 MiB; their initial
-allocation/conversion cost is not removed by stroke tiling. FX processing remains unchanged.
+For supported FX-free Canvas View, the straight brush cache has the viewport output dimensions,
+not the source dimensions. The shared transform shader resolves native Half base/stroke texels,
+selection, blend and protected channels before Point/Bilinear filtering. Each bilinear footprint
+binds its source tile and three neighboring atlas pages; missing slots preserve the base. This
+avoids interpolating unrelated atlas slots or applying the selection repeatedly. Output is cached
+as linear Float to retain intermediate HDR/diagnostics, then uses the ordinary finishing pass.
+At 8K, a 512 x 512 fit preview takes 4 MiB instead of a 512 MiB source-sized Half preview; a 1216 x 960
+native viewport takes 17.81 MiB. These are cache payloads, not total VRAM usage.
+
+Damage tracks source tiles since the last preview. Only projected footprints intersecting the view
+are updated; bilinear neighbor footprints are included. Pan/zoom, transform/filter changes, mutable
+masks, composite settings and provisional resets invalidate the cached result. The native paint
+source and pending stroke pages retain offscreen pixels; moving the view reconstructs its cache
+without changing the stroke. Full-input consumers, FX and repeat/mirror/clamp raster tiling retain
+the source-resolution Half preview path. Switching consumers rebuilds the appropriate cache;
+enabled full-frame Live Update can therefore still require full-source conversion. Commit/cancel
+releases either cache. No source pixels, compute commit or Undo payloads are changed by this preview.
 Input points still advance in order; segments producing no paint do not request another canvas
 composition, and multiple pending requests remain coalesced.
 Commit visits distinct 256 × 256 source blocks touched by stamp geometry, clipped to the stamp
@@ -175,7 +185,7 @@ Unsupported devices, unavailable kernels, failed UAV allocation and existing non
 surfaces retain the raster path: one 256 × 256 RGBAHalf scratch block (0.5 MiB) for tracked strokes,
 including partial edge tiles. Fallback is chosen before dispatch, never after a potentially
 partial write. Both paths apply selection once. The scratch bound does not include the
-full-resolution source/preview, stroke pages, stamp backdrops or downstream document rendering.
+full-resolution source, preview cache, stroke pages, stamp backdrops or downstream document rendering.
 
 Interactive Brush/Pencil and API paint use a session pixel journal when readable, single-mip
 RGBA32/RGBAHalf storage and the required texture copies/render format are supported. Unity Undo
@@ -245,7 +255,23 @@ Undo, CPU pixel consumers, save, resource release and script reload drain pendin
 returns after synchronization. Unchanged source pixels keep their original storage bytes, including
 hidden RGB. Devices without asynchronous readback use bounded synchronous page reads. Unsupported
 storage/copy configurations, Blur/Smudge/Healing and other native pixel operations retain their
-previous storage/Undo path. The source and preview surfaces and document rendering remain full-size; only stroke accumulation uses sparse storage.
+previous storage/Undo path. The paint source remains full-size; stroke accumulation uses sparse storage.
+
+Canvas View composes a pixel-aligned visible region, choosing source and FX evaluation per layer. Its power-of-two
+sampling step follows zoom, display density and painting Live Quality, with a small overscan margin;
+at native zoom and 100% quality the step is one source pixel. The region is capped by texture limits
+and a 16-megapixel output budget. Pan/zoom/rotation request a new render only when this region or step
+changes. Idle Drawing reads the Half source directly, converting individual texels to straight color
+before filtering and preserving the original hidden RGB fallback. No full-size straight conversion
+is required for this view. The paint buffer, compute commit, storage and Undo remain unchanged.
+
+Pointwise FX, including HSV, run on the region with canvas UV and complete-input pixel dimensions.
+Spatial/unknown FX and unsupported generators render their own complete input through the last
+spatial stage at the current sampling step, then crop for subsequent color FX and composition.
+This does not lower other layers to a 512px canvas. Post FX, tiled-canvas and crop-frame previews
+keep full-frame rendering. Region results do not publish layer thumbnails or emptiness metadata.
+Save/export, agent renders and sampling tools still request complete images; enabled Live Update
+publishes a separate complete preview, never the cropped viewport.
 
 ### Shared paint-history storage and retention
 

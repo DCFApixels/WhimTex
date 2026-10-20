@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
         private readonly FloatField number;
         private readonly FieldMouseDragger<float> labelDragger;
 
-        internal WhimTexSoftRangeField(string label, float minimum, float maximum, bool softMinimum, bool softMaximum) : base(label, new VisualElement())
+        internal WhimTexSoftRangeField(string label, float minimum, float maximum, bool softMinimum, bool softMaximum, bool repeat = false) : base(label, new VisualElement())
         {
             WhimTexUI.ApplyWindowStyles(this);
             AddToClassList("whimtex-soft-range");
@@ -34,8 +34,12 @@ namespace DCFApixels.WhimTex
                 else
                 {
                     float next = e.newValue;
-                    if (!softMinimum) next = Mathf.Max(minimum, next);
-                    if (!softMaximum) next = Mathf.Min(maximum, next);
+                    if (repeat) next = ShaderFXParameter.RepeatRange(next, minimum, maximum);
+                    else
+                    {
+                        if (!softMinimum) next = Mathf.Max(minimum, next);
+                        if (!softMaximum) next = Mathf.Min(maximum, next);
+                    }
                     value = next;
                     number.SetValueWithoutNotify(value);
                 }

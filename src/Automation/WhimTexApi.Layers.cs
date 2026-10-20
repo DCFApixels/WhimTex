@@ -203,7 +203,7 @@ namespace DCFApixels.WhimTex
         {
             Keys(settings, "name", "enabled", "clippingMask", "opacity", "blend", "filter", "source", "colorRange", "blendRange", "channelMapping", "compositing", "color", "brush",
                 "fillMode", "fillPattern", "metric", "sharpMode", "miterLimit", "contourMergeDistance", "outlineWidth", "outlineSoftness", "outlinePosition", "outlineOffset", "fillCenter", "fillColor", "sourceChannel", "threshold",
-                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "encoding", "gradient", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape", "vector", "booleanGroup", "booleanOperation", "text");
+                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "encoding", "gradient", "gradientType", "freeform", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape", "vector", "booleanGroup", "booleanOperation", "text");
             foreach (var property in settings.Properties())
             {
                 string key = property.Name;
@@ -228,6 +228,7 @@ namespace DCFApixels.WhimTex
                     (key == "sourceChannel" || key == "outlineWidth" || key == "outlineSoftness" || key == "outlinePosition" ||
                      key == "outlineOffset" || key == "fillCenter" || key == "fillColor") && layer?.Behaviour is OutlineLayerBehaviour ||
                     (key == "sourceChannel" || key == "threshold" || key == "distancePosition" || key == "inverted" || key == "maxDistance" || key == "sourceOffset" || key == "sourceEdges" || key == "contourOffset" || key == "contourMergeDistance" || key == "insideDistance" || key == "outsideDistance" || key == "profile" || key == "encoding") && layer?.Behaviour is SDFLayerBehaviour ||
+                    (key == "gradientType" || key == "freeform") && layer?.Behaviour is GradientLayerBehaviour ||
                     key == "gradient" && (layer?.Behaviour is GradientLayerBehaviour || layer?.Behaviour is SDFLayerBehaviour));
                 Require(valid, key + " is not supported by " + TypeName(layer) + " layers.");
             }
@@ -340,7 +341,32 @@ namespace DCFApixels.WhimTex
                     "MultiChannelData requires metric MTSDF.");
                 if (settings["gradient"] != null) sdf.gradient = ReadGradient(settings["gradient"]);
             }
-            if (layer?.Behaviour is GradientLayerBehaviour gradient && settings["gradient"] != null) gradient.gradient = ReadGradient(settings["gradient"]);
+            if (layer?.Behaviour is GradientLayerBehaviour gradient)
+            {
+                gradient.gradientType = Enum(settings, "gradientType", gradient.gradientType);
+                if (settings["gradient"] != null) gradient.gradient = ReadGradient(settings["gradient"]);
+                if (settings["freeform"] != null) gradient.freeform = ReadFreeform(settings["freeform"]);
+            }
+        }
+
+        private static FreeformGradient ReadFreeform(JToken token)
+        {
+            var data = Obj(token, "freeform"); Keys(data, "points");
+            Require(data["points"] is JArray points && points.Count >= 1 && points.Count <= FreeformGradient.MaxPoints,
+                "freeform.points must contain 1..64 points.");
+            var result = new FreeformGradient(); result.points.Clear();
+            foreach (var item in (JArray)data["points"])
+            {
+                var point = Obj(item, "freeform point"); Keys(point, "position", "color", "influence");
+                Require(point["position"] is JArray position && position.Count == 2, "Point position must contain x and y.");
+                var xy = (JArray)point["position"];
+                var numbers = new JObject { ["x"] = xy[0].DeepClone(), ["y"] = xy[1].DeepClone() };
+                var uv = new Vector2(Number(numbers, "x", 0, -10000, 10000), Number(numbers, "y", 0, -10000, 10000));
+                Require(point["color"] != null, "Point color is required.");
+                result.points.Add(new FreeformGradientPoint(uv, AgentJson.Color(point["color"]),
+                    Number(point, "influence", .35f, FreeformGradient.MinInfluence, FreeformGradient.MaxInfluence)));
+            }
+            result.Validate(); return result;
         }
 
         internal static WhimTexGradient ReadGradient(JToken token, WhimTexGradientMode defaultMode = WhimTexGradientMode.Perceptual, float maximumColor = 107f)

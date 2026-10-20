@@ -12,7 +12,77 @@ namespace DCFApixels.WhimTex
     internal sealed class ShaderFXSourceBuilder
     {
         internal const string NoiseLibraryInclude = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ThirdParty/FastNoiseLite.hlsl\"\n";
+        internal const string ColorLibraryInclude = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc\"\n";
         private const int MaximumCharacters = 2 * 1024 * 1024;
+        internal const string RegionalColorMarker = "// WhimTex regional color input v1\n";
+        internal const string ViewportWrapperMarker = "// WhimTex viewport wrapper v2\n";
+        // Conservative capability inference over expanded user code, including helpers.
+        // Any explicit sampling, derivative or unresolved compiler input needs a full frame.
+        private static readonly Regex SpatialInput = new Regex(
+            @"\b(SampleInput|_MainTex\w*|_ScreenParams|_ProjectionParams|UNITY\w*|Unity\w*|ddx\w*|ddy\w*|fwidth\w*|tex\w*|\w*Buffer\w*|\w*Texture\w*)\b|\.\s*(Load|Sample\w*|Gather\w*)\s*\(|##|#\s*(include\w*|pragma|line)\b",
+            RegexOptions.CultureInvariant);
+
+        private static bool HasRegionalColorInput(string expanded, IReadOnlyList<ShaderFXParameter> parameters)
+        {
+            foreach (var parameter in parameters)
+                if (parameter?.type == ShaderFXParameterType.Texture2D) return false;
+            bool block = false;
+            var clean = new StringBuilder();
+            using var reader = new StringReader(expanded);
+            string line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                // Include expansion emits source locations; they do not consume pixels.
+                if (line.TrimStart().StartsWith("#line ", StringComparison.Ordinal)) continue;
+                clean.AppendLine(MaskComments(line, ref block));
+            }
+            string source = clean.ToString();
+            var functions = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            var remaining = new StringBuilder();
+            var signature = new Regex(@"\b\w+\s+(\w+)\s*\([^;{}]*\)\s*(?::[^;{}]+)?\{", RegexOptions.CultureInvariant);
+            int position = 0;
+            while (position < source.Length)
+            {
+                var match = signature.Match(source, position);
+                if (!match.Success) break;
+                int end = match.Index + match.Length, depth = 1;
+                while (end < source.Length && depth > 0)
+                {
+                    char c = source[end++];
+                    if (c == '{') depth++; else if (c == '}') depth--;
+                }
+                if (depth != 0) return false;
+                remaining.Append(source, position, match.Index - position);
+                string name = match.Groups[1].Value;
+                if (!functions.TryGetValue(name, out var overloads)) functions[name] = overloads = new List<string>();
+                overloads.Add(source.Substring(match.Index, end - match.Index));
+                position = end;
+            }
+            remaining.Append(source, position, source.Length - position);
+            // Declarations do not read pixels. Macro expansions/global initializers can.
+            foreach (string declaration in remaining.ToString().Split('\n'))
+            {
+                if ((declaration.Contains("#") || declaration.Contains("=")) && SpatialInput.IsMatch(declaration)) return false;
+                if (declaration.TrimStart().StartsWith("#define", StringComparison.Ordinal))
+                    foreach (Match identifier in Regex.Matches(declaration, @"\b[A-Za-z_]\w*\b"))
+                        if (functions.ContainsKey(identifier.Value)) return false;
+            }
+            if (!functions.ContainsKey("ApplyFX")) return false;
+            // Include preview callbacks and inactive helpers conservatively: an inspector
+            // consuming SampleInput must not receive a cropped image as its whole input.
+            foreach (var overloads in functions.Values)
+            {
+                foreach (var body in overloads)
+                {
+                    // Only this reserved immutable lookup is independent of document
+                    // texture input. Other reads, even in an overload, remain spatial.
+                    string checkedBody = Regex.Replace(body, @"\btex2Dlod\s*\(\s*_WhimTexHueGradient\s*,",
+                        "WhimTexImmutableHueLookup(");
+                    if (SpatialInput.IsMatch(checkedBody)) return false;
+                }
+            }
+            return true;
+        }
         private const string InputSamplingSource = @"
 float _WhimTex_InputFilter;
 float4 SampleInput(float2 uv) { return tex2D(_MainTex, uv); }
@@ -103,32 +173,59 @@ float4 SampleInput(float2 uv, float tiling)
                 ") are allowed, but WhimTex does not control their updates. Results may differ between Canvas, thumbnails and export. Result caching is disabled; use an explicit parameter for predictable behavior.";
         }
 
-        internal static string Build(ShaderFX effect, string assetPath)
+        internal static string Build(ShaderFX effect, string assetPath) => BuildCore(effect, assetPath, null, null);
+
+        internal static string BuildPreview(ShaderFX effect, ShaderFXParameterControl preview, ShaderFXParameter parameter)
+            => BuildCore(effect, effect.SourcePath, preview, parameter);
+
+        internal static string BuildResolvedPreview(ShaderFX effect, ShaderFXParameterControl preview, string expanded, string call)
+            => BuildCore(effect, effect.SourcePath, preview, null, expanded, call);
+
+        private static string BuildCore(ShaderFX effect, string assetPath, ShaderFXParameterControl preview, ShaderFXParameter previewParameter,
+            string resolvedSource = null, string previewCall = null)
         {
+            WhimTexHueGradient.Ensure();
             ShaderFXSourceBuilder builder = new ShaderFXSourceBuilder();
             StringBuilder properties = new StringBuilder();
             StringBuilder uniforms = new StringBuilder();
             HashSet<string> names = new HashSet<string>(StringComparer.Ordinal)
             {
                 "_MainTex", "_MainTex_TexelSize", "_InputSize", "_CanvasSize", "_RenderScale", "_PixelScale",
-                "ApplyFX", "SampleInput", "LayerToLocal", "SpriteFXFragment", "vert_img", "v2f_img"
+                "ApplyFX", "SampleInput", "SampleTexture", "PinnedUV", "LayerToLocal", "SpriteFXFragment", "vert_img", "v2f_img"
             };
             BuildParameterDeclarations(effect.Parameters, properties, uniforms, names);
-            string expanded = builder.ResolveIncludes(effect.Code ?? string.Empty, assetPath);
+            string expanded = resolvedSource ?? builder.ResolveIncludes(effect.Code ?? string.Empty, assetPath);
             if (Regex.IsMatch(expanded, @"\b_WhimTex_[A-Za-z0-9_]*"))
                 throw new InvalidOperationException("The _WhimTex_ prefix is reserved for generated shader data.");
-            return "Shader \"Hidden/WhimTex/ShaderFX/" + effect.ShaderKey + "\"\n{\n" +
-                "Properties {\n_MainTex (\"Input\", 2D) = \"white\" {}\n" +
+            string contractSource = ExportIncludes(expanded, assetPath);
+            var entry = ShaderFXEntryPoint.Parse(contractSource);
+            // Expand before lowering so helper functions in project/package includes receive
+            // the same immutable-coordinate rules. Keep the ordinary include path untouched.
+            string lowered = contractSource.Contains("PinnedUV") ? ShaderFXEntryPoint.PreparePinnedUV(contractSource) : expanded;
+            string fragment = preview == null ? entry.Call("_WhimTex_Viewport.xy + input.uv * _WhimTex_Viewport.zw", "tex2D(_MainTex, input.uv)")
+                : previewCall ?? ShaderFXPreviewFunction.Call(expanded, preview.previewFunction, previewParameter, preview.type, preview.previewParameters, effect.Parameters);
+            bool regional = false;
+            if (preview == null)
+            {
+                try { regional = HasRegionalColorInput(ExportIncludes(expanded, assetPath), effect.Parameters); }
+                catch (IOException) { } // Unknown dependencies keep the complete-input path.
+                catch (InvalidOperationException) { }
+            }
+            return ViewportWrapperMarker + entry.Marker + "Shader \"Hidden/WhimTex/ShaderFX/" + effect.ShaderKey + (preview == null ? "" : "/Preview/" + preview.previewFunction) + "\"\n{\n" +
+                (regional ? RegionalColorMarker : "") +
+                "Properties {\n_MainTex (\"Input\", 2D) = \"white\" {}\n[HideInInspector] _WhimTex_Viewport (\"Viewport\", Vector) = (0,0,1,1)\n" +
                 "[HideInInspector] _WhimTex_InputFilter (\"Input Filter\", Float) = 1\n" + properties + "}\n" +
                 "SubShader { Cull Off ZWrite Off ZTest Always Blend Off\nPass {\nCGPROGRAM\n" +
                 "#pragma vertex vert_img\n#pragma fragment SpriteFXFragment\n#pragma target 3.5\n" +
-                "#include \"UnityCG.cginc\"\n" + NoiseLibraryInclude + "sampler2D _MainTex;\nfloat4 _MainTex_TexelSize;\n" +
-                "float4 _InputSize;\nfloat4 _CanvasSize;\nfloat _RenderScale;\nfloat _PixelScale;\n" + uniforms +
+                (preview == null ? "" : "#define WHIMTEX_PREVIEW 1\nfloat4 _WhimTex_PreviewRange;\n") +
+                "#include \"UnityCG.cginc\"\n" + NoiseLibraryInclude + ColorLibraryInclude + "sampler2D _MainTex;\nfloat4 _MainTex_TexelSize;\n" +
+                "float4 _WhimTex_Viewport;\nfloat4 _InputSize;\nfloat4 _CanvasSize;\nfloat _RenderScale;\nfloat _PixelScale;\n" + uniforms +
                 "float4 _WhimTex_LayerToLocalRow0, _WhimTex_LayerToLocalRow1, _WhimTex_LayerToLocalRow2;\n" +
                 "float2 LayerToLocal(float2 uv) { float3 p = float3(uv, 1); float w = dot(_WhimTex_LayerToLocalRow2.xyz, p); w = abs(w) < 1e-8 ? (w < 0 ? -1e-8 : 1e-8) : w; return float2(dot(_WhimTex_LayerToLocalRow0.xyz, p), dot(_WhimTex_LayerToLocalRow1.xyz, p)) / w; }\n" +
-                InputSamplingSource +
-                LineDirective(1, assetPath) + expanded + "\n#line 1 \"SpriteFXWrapper\"\n" +
-                "float4 SpriteFXFragment(v2f_img input) : SV_Target { return ApplyFX(input.uv, SampleInput(input.uv)); }\n" +
+                ShaderFXEntryPoint.PinnedSource +
+                (preview != null || !entry.Restricted ? InputSamplingSource + ShaderFXEntryPoint.SpatialSamplingSource : "") +
+                LineDirective(1, assetPath) + lowered + "\n#line 1 \"SpriteFXWrapper\"\n" +
+                "float4 SpriteFXFragment(v2f_img input) : SV_Target { return " + fragment + "; }\n" +
                 "ENDCG\n}\n}\nFallback Off\n}\n";
         }
 
@@ -138,6 +235,8 @@ float4 SampleInput(float2 uv, float tiling)
             foreach (ShaderFXParameter parameter in parameters)
             {
                 if (parameter == null || string.IsNullOrEmpty(parameter.name) || !Identifier.IsMatch(parameter.name) ||
+                    parameter.name == "_WhimTexHueGradient" || parameter.name == "_WhimTexHueGradient_TexelSize" ||
+                    parameter.name == "WhimTexHue" || parameter.name == "WhimTexHueLinear" ||
                     !generatedNames && parameter.name.StartsWith("_WhimTex_", StringComparison.Ordinal) || !names.Add(parameter.name))
                     throw new InvalidOperationException($"Invalid, duplicate or reserved parameter name: '{parameter?.name}'. Use an HLSL identifier such as _Amount.");
                 string name = parameter.name;

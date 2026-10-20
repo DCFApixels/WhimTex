@@ -191,7 +191,7 @@ namespace DCFApixels.WhimTex
                     record.openPixels = () => GradientPixels(document, gradient, record.mask);
                     report.editableFillCount++;
                     if (!gradient.Owner.CanvasTransform.IsIdentity() ||
-                        (gradient.gradientType != GradientLayerBehaviour.GradientType.Horizontal && gradient.gradientType != GradientLayerBehaviour.GradientType.Vertical))
+                        (gradient.gradientType != GradientLayerBehaviour.GradientType.Linear))
                         report.Note(layer, "Gradient geometry/interpolation is editable but may differ, especially on a non-square canvas.");
                 }
                 else if (layer?.Behaviour is OutlineLayerBehaviour outline && CanExportOutline(outline, requiresRasterization))
@@ -238,11 +238,11 @@ namespace DCFApixels.WhimTex
             foreach (var key in layer.gradient.ColorKeys)
                 if (key.color.r < 0 || key.color.g < 0 || key.color.b < 0 ||
                     key.color.r > 1 || key.color.g > 1 || key.color.b > 1) return false;
-            bool linear = layer.gradientType == GradientLayerBehaviour.GradientType.Horizontal || layer.gradientType == GradientLayerBehaviour.GradientType.Vertical;
+            bool linear = layer.gradientType == GradientLayerBehaviour.GradientType.Linear;
             Vector2 scale = layer.Owner.CanvasTransform.scaleF;
             if (Mathf.Abs(scale.x) < 0.00001f || Mathf.Abs(scale.y) < 0.00001f) return false;
             if (!linear && (width != height || scale.x <= 0 || !Mathf.Approximately(scale.x, scale.y))) return false;
-            return layer.gradientType != GradientLayerBehaviour.GradientType.Circular ||
+            return layer.gradientType != GradientLayerBehaviour.GradientType.Angular ||
                 (Mathf.Approximately(layer.circularStartAngle, 0f) && Mathf.Approximately(layer.circularRepetitions, 1f) && layer.circularWrapMode == GradientLayerBehaviour.WrapMode.Repeat &&
                  layer.Owner.EffectiveTiling != TransformTilingMode.Source);
         }
@@ -284,10 +284,8 @@ namespace DCFApixels.WhimTex
             double angle = 0, scale = 100;
             switch (layer.gradientType)
             {
-                case GradientLayerBehaviour.GradientType.Horizontal: type = "Lnr "; break;
-                case GradientLayerBehaviour.GradientType.Vertical: type = "Lnr "; angle = 90; break;
-                case GradientLayerBehaviour.GradientType.Circular: type = "Angl"; angle = 180; break;
-                case GradientLayerBehaviour.GradientType.Diamond: type = "Dmnd"; break;
+                case GradientLayerBehaviour.GradientType.Linear: type = "Lnr "; break;
+                case GradientLayerBehaviour.GradientType.Angular: type = "Angl"; angle = 180; break;
                 case GradientLayerBehaviour.GradientType.Square: type = "Dmnd"; angle = 45; break;
                 default: type = "Rdl "; break;
             }
@@ -302,11 +300,10 @@ namespace DCFApixels.WhimTex
             angle += transform.rotationF;
             if (type == "Lnr ")
             {
-                bool horizontal = layer.gradientType == GradientLayerBehaviour.GradientType.Horizontal;
-                float axisScale = horizontal ? transform.scaleF.x : transform.scaleF.y;
+                float axisScale = transform.scaleF.x;
                 if (axisScale < 0) angle += 180;
                 double projectedCanvas = Math.Abs(width * Math.Cos(angle * Math.PI / 180)) + Math.Abs(height * Math.Sin(angle * Math.PI / 180));
-                scale = (horizontal ? width : height) * Math.Abs(axisScale) / projectedCanvas * 100;
+                scale = width * Math.Abs(axisScale) / projectedCanvas * 100;
             }
             else
             {

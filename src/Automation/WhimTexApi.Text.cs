@@ -40,6 +40,7 @@ namespace DCFApixels.WhimTex
             if (value["frameSize"] != null) layer.frameSize = Vector(value["frameSize"], "frameSize");
             if (value["layoutOffset"] != null) layer.layoutOffset = Vector(value["layoutOffset"], "layoutOffset");
             layer.fillMode = Enum(value, "fillMode", layer.fillMode);
+            Require(layer.fillMode != VectorFillMode.Freeform, "Text does not support Freeform gradients.");
             layer.gradientScope = Enum(value, "gradientScope", layer.gradientScope);
             if (value["gradient"] != null) layer.gradient = ReadGradient(value["gradient"]);
             if (value["gradientStart"] != null) layer.gradientStart = Vector(value["gradientStart"], "gradientStart");

@@ -12,20 +12,53 @@ search_exclude: true
 For browser AI generation, start with the [JSON layers and HLSL authoring guide](AI/README.md).
 It is self-contained and includes clipboard-ready examples.
 
-Use **+ Shader FX** in a layer's settings, write `ApplyFX`, and click **Apply**.
-Code and parameters can live inside the document. For an effect on the already-composited
+Use **+ Shader FX** in a layer's settings, write `ApplyFX`, and click **Compile**.
+Code and parameters belong to the document. For an effect on the already-composited
 stack below a position, add a **Shader Processor** layer instead.
 
 [FastNoiseLite](AI/README.md#built-in-noise-library) is automatically included in FX and
 HLSL brush tips. Prefer its spatial-noise functions when suitable; custom algorithms remain valid.
 No explicit include or copied library source is needed.
 
+## Canvas viewport evaluation
+
+Canvas View chooses evaluation per layer and FX chain. It does not reduce every layer
+to a 512px preview when one effect is present. Native zoom with 100% Live Quality uses
+source-pixel spacing; the visible region has a small overscan margin.
+
+On shader generation, a conservative analysis checks `ApplyFX` and helper/preview
+functions, including project/package includes. Effects that consume only the supplied
+color, coordinates and ordinary parameters can use regional input. Hue & Saturation is one such
+effect. Explicit input sampling, texture parameters, derivatives, unresolved includes
+or uncertain macro dependencies require complete input. Unused spatial helpers also
+keep the complete-input path, so input-dependent inspector previews remain complete. The reserved immutable hue
+lookup is independent of document pixels and remains safe for regional evaluation.
+This is a capability check, not a general HLSL optimizer or a neighborhood-radius inference.
+
+For a complete-input stage, only its layer/dependency branch renders at the current
+sampling step. The prefix through the last spatial FX is cropped before subsequent
+color FX and normal composition. At native zoom that prefix is full resolution and
+can consume substantial memory/time for large spatial effects. Bounded halo rendering
+is not implemented. Groups, clipping and stack processors retain their input semantics.
+
+`ApplyFX` receives canvas UV, `_CanvasSize` remains the document size, and `_InputSize`
+describes the complete input at `_RenderScale`, even when the supplied color comes from
+a region. Layer-local coordinates and `_PixelScale` retain their meanings. Existing
+`SampleInput` code uses the complete-input path, with no changes to its authoring API.
+
+Region cache entries include the view transform and cannot replace full-image entries,
+thumbnails or alpha-content checks. Active strokes and dependent branches bypass the
+reusable FX cache. Generated shader resources refresh after script reload without
+applying pending code edits or marking the document changed. Save/export and agent
+renders remain complete-image operations; Post FX/Tiled/Crop view modes keep their
+existing complete preview.
+
 ## Shader FX: a first snippet, parameters and reusable code
 
 Parameters are authored only with `// @param` in HLSL. Saved manual uniforms are not
 converted into declarations; there is no manual parameter authoring mode or migration.
 
-Declare the parameter in the code, then click **Apply**:
+Declare the parameter in the code, then click **Compile**:
 
 ```hlsl
 // @param float _Amount = 1 [0 .. 1]
@@ -37,16 +70,16 @@ float4 ApplyFX(float2 uv, float4 color)
 ```
 
 Parameter declarations generate uniforms and editor controls automatically; the supported types are described below.
-The FX block's **Reset** menu action copies defaults from its current `@param` declarations into existing values, including hidden controls, textures, gradients, curves and transforms. Parameter IDs, controls, code, catalog linkage and enabled state are retained; no shader compilation is needed. It records one FX Undo and uses the normal value-change notification. Reset is disabled for locked FX, missing declarations or a draft whose declaration schema no longer matches the current parameters. Material references have no `@param` defaults and cannot use this action. Shared Shader FX assets retain their existing shared-edit behavior.
-Code and declarations stay drafts until **Apply**, including an Apply request from saving the working file in the bundled VS Code integration. A failed Apply skips the FX, including any previously compiled version, until successful recompilation. Code, values and enabled state remain editable. Yellow indicators in Layers, the FX section and the effect header expose errors and warnings even when collapsed. Warnings do not disable a successfully compiled FX. JSON loading/saving retains broken effects and reports diagnostics without aborting the document; TIFF save validation is unchanged.
+The FX block's **Reset** menu action copies defaults from its current `@param` declarations into existing values, including hidden controls, textures, gradients, curves and transforms. Parameter IDs, controls, code, catalog linkage and enabled state are retained; no shader compilation is needed. It records one FX Undo and uses the normal value-change notification. Reset is disabled for locked FX, missing declarations or a draft whose declaration schema no longer matches the current parameters. It affects only this document-owned FX instance.
+Code and declarations stay drafts until **Compile**, including a compilation request from saving the working file in the bundled VS Code integration. A failed compilation skips the FX, including any previously compiled version, until successful recompilation. Code, values and enabled state remain editable. Yellow indicators in Layers, the FX section and the effect header expose errors and warnings even when collapsed. Warnings do not disable a successfully compiled FX. JSON loading/saving retains broken effects and reports diagnostics without aborting the document; TIFF save validation is unchanged.
 
 FX compilation, declaration validation, source/include failures and catalog reloads share one
 diagnostic list with `Error`, `Warning` and `Info` severity, message and optional source location.
-Normal Apply and transient agent compilation use the same collector. Diagnostics, UI indicators,
+Normal compilation and transient agent compilation use the same collector. Diagnostics, UI indicators,
 agent responses and WhimTex Console entries use those records; the API does not reclassify display text.
 Console uses Error for errors and Warning for warnings, deduplicated by source path and formatted
 diagnostic until scripts reload. Suppression affects only Console, never UI/API diagnostics.
-Fixing all issues clears the indicators; a successful Apply with warnings keeps them visible.
+Fixing all issues clears the indicators; a successful compilation with warnings keeps them visible.
 
 `LayerToLocal(uv)` converts canvas UV to local layer UV, including parent transforms and perspective. Use it for procedural shapes that should follow the layer. It does not clamp or wrap UV; `SampleInput` still expects canvas UV.
 
@@ -54,7 +87,7 @@ Fixing all issues clears the indicators; a successful Apply with warnings keeps 
 come later. Built-in inputs include `_MainTex`, `_MainTex_TexelSize`, `_InputSize`,
 `_CanvasSize` (width, height, 1/width, 1/height) and `_RenderScale`. Do not redeclare generated uniforms.
 
-`SampleInput(uv, tiling)` selects input addressing: `0` Clamp, `1` Repeat, `2` Mirror,
+For the spatial `float2` signature, `SampleInput(uv, tiling)` selects input addressing: `0` Clamp, `1` Repeat, `2` Mirror,
 `3` Clip (transparent outside UV 0–1). Repeat interpolates across both image seams with
 the input's Point/Bilinear filter; intermediate FX textures have no mipmaps, so Trilinear
 uses the same base-level interpolation. This helper does not change the source texture.
@@ -68,22 +101,188 @@ Distortion presets use `_Tiling`; UV Transform uses `_InputTiling`. Previous par
 names and old linked-preset layouts are not migrated. Detached source is not rewritten.
 The original one-argument helper is unchanged. `Unbounded` is not a raster addressing mode.
 Unity time inputs such as `_Time`, `_SinTime`, `_CosTime`, `_TimeParameters` and
-`unity_DeltaTime` are allowed: their use does not block compilation or Apply. WhimTex does not
+`unity_DeltaTime` are allowed: their use does not block compilation. WhimTex does not
 control their updates, so results may differ between Canvas, thumbnails and export.
-Apply adds a warning to Diagnostics and disables reusable result caching for the FX.
+Compilation adds a warning to Diagnostics and disables reusable result caching for the FX.
 Agent compilation returns the same warning in `diagnostics` and `warnings`, not `errors`.
 The warning uses the same diagnostic and Console mechanism as other FX warnings; there is no
-time-specific reporting path. Repeated Apply, agent preflight and rendering do not repeat it;
+time-specific reporting path. Repeated compilation, agent preflight and rendering do not repeat it;
 Diagnostics and API warnings remain available every time. Use an explicit parameter for
 predictable time-dependent behavior. This is the current warning-only policy, not a legacy exception.
 
 Standard `#include` supports project/package paths and relative paths. Relative paths start in
-the document/FX asset folder, or Assets before the first save. After library edits, click Apply again;
+the document or linked HLSL source folder, or Assets before the first save. After library edits, click Compile again;
 after Save As to another folder, check relative paths. Libraries must suit the fragment-shader environment.
 
-**+ Reference** links an external FX shared by its users; **Embed** makes an independent document-owned
-copy. Save As and layer duplication copy embedded FX independently. FX run in order after Transform;
-changing parameter values does not regenerate shaders.
+### Pixel-local entry points and texture reads
+
+The Pixel Local row above the code text area, inside Code, reflects the compiled shader, not pending edits, with
+Yes/No/Not compiled/Unavailable states. Compile compiles and uses the FX; it does not bake pixels.
+Apply and Apply All in the FX stack remain baking commands. Shader Inputs is a sectioned,
+highlighted reference for entry points, texture reads, coordinates, parameters and libraries.
+Enumerated declarations and API entries use bullets with aligned wrapped descriptions.
+Double-click a highlighted code fragment to insert it at the code field's last caret,
+replacing any saved selection; this includes `SampleInput` and `SampleTexture` snippets.
+Editable fragments show a stronger background and a hand cursor on hover, without tooltips.
+Double-click a full `float4 ApplyFX(...)` declaration to replace the single definition's
+header, keeping its body and existing argument names. Without a definition it inserts
+the declaration at the caret; multiple definitions are left unchanged. The field keeps
+focus and selection history, and each action supports Undo/Redo. These are draft edits,
+not compilation: click Compile when ready. Linked preset code remains read-only until
+Embed Copy; Shader Inputs explains this when the source is linked. Changing a signature
+may require adjusting its body before compiling.
+
+The code field uses four-space soft tabs. Tab inserts spaces to the next four-column stop
+at a caret, or indents every selected line by one level. Shift+Tab removes one leading tab
+or up to four leading spaces from the current/selected lines. A selection ending at the
+start of the next line does not include that line. Focus stays in the field; each action
+is one Undo/Redo step. New ApplyFX bodies use the same four-space indentation. Existing
+source is not reformatted automatically, and line endings are preserved.
+Long code lines do not wrap visually; a native horizontal scrollbar appears when needed.
+Vertical scrolling remains available, and scrolling does not insert line breaks into source.
+On Unity 6000.7+, a left-hand line-number gutter follows native text coordinates vertically
+and stays fixed during horizontal scrolling. It includes empty/trailing lines, counts CRLF
+once, updates on silent source changes and Undo/Redo, and draws only visible numbers.
+The gutter is non-focusable and does not intercept text editing; `ui.code.lines` profiles
+its drawing under UI & Input.
+While the code field has focus, the caret's logical line has a subtle background and a
+higher-contrast line number. The background sits behind native text selection, spans the
+visible width and follows vertical scrolling. Caret/selection/focus events invalidate only
+the decorations; moving the caret does not retokenize or rewrite the source.
+Enter carries the current indentation to the new line and adds one level after an opening
+brace. Between an existing brace pair it creates an indented interior line and aligns the
+closing brace. Typing `}` after only leading whitespace aligns it with its matching opener,
+or removes one indentation level when no opener is available. Inline closing braces do not
+reindent their line. Braces inside comments and quoted strings are ignored; this lightweight
+editing rule does not evaluate preprocessor branches. Enter/brace edits replace selections
+and remain single Undo/Redo steps. A physical Enter and its separate translated newline
+character produce one newline, while held-key repeats still insert subsequent lines.
+
+On Unity 6000.7+, the inline FX field highlights HLSL keywords/types, numeric and quoted
+literals, comments, preprocessor directives, function calls, `_` parameter names and
+WhimTex `// @...` metadata. This is lexical coloring, not validation or symbol resolution;
+Compile remains authoritative. Older supported Editors retain the plain code field.
+`TextElement.PostProcessTextVertices` changes only glyph RGB, preserving positions, UVs,
+alpha and native selected-text tint. No rich-text tags, overlay, generator switch or
+source rewrite is used. A reusable UTF-16 token buffer is rebuilt only when contents
+change, including Undo/Redo and external draft updates; caret-only repaints reuse it.
+Glyph coloring is limited to the native field's visible vertical viewport plus a
+conservative font-size margin. Scrolling/resizing invalidates glyph coloring without
+rewriting the source or retokenizing unchanged contents; newly exposed lines are recolored.
+Tokenization still scans the source for correct multiline-comment state, and enumeration
+walks the prefix when scrolled down. This is not a virtualized full IDE.
+WhimTex Profiler's **UI & Input** group exposes `ui.code.change` (native draft change
+handler), `ui.code.edit` (atomic editor commands), `ui.code.tokenize` (changed contents)
+and `ui.code.color` (glyph callback, inclusive of tokenization). These are main-thread
+wall-time stages, not GPU timings or the complete deferred UI Toolkit layout/render cost.
+
+An effect defines exactly one of these `float4` entry points. Argument names are arbitrary;
+`in` and `const` qualifiers are accepted, but `out`, `inout`, extra arguments and overloaded
+`ApplyFX` definitions are not supported.
+
+```hlsl
+float4 ApplyFX(float4 color)                         // Color-only pixel-local contract.
+float4 ApplyFX(PinnedUV uv, float4 color)            // Pixel-local coordinates and texture reads.
+float4 ApplyFX(float2 uv, float4 color)              // General spatial coordinates and reads.
+```
+
+Pixel-local means that image reads refer to the corresponding current coordinate, not an
+arbitrarily displaced image location. `PinnedUV` is a reserved, immutable coordinate type,
+not a numeric vector. Read `.x`/`.y`, copy it or pass it to a helper accepting `PinnedUV`.
+Arithmetic, component writes, reassignment, constructors, component initializers, casts and
+`out`/`inout` use are rejected. Helpers in resolved project/package includes obey the same rules.
+You may build a `float2` from its components for procedural calculations; this does not create
+another `PinnedUV` or grant permission to use that `float2` for pixel-local image sampling.
+
+**`SampleInput` and `SampleTexture` are WhimTex's primary texture-reading API.**
+`_MainTex` is the incoming sampler, not a bypass by itself. `SampleTexture(_MainTex, uv)`
+is equivalent to `SampleInput(uv)` and retains the pixel-local contract when `uv` is `PinnedUV`.
+`_MainTex_TexelSize` is size metadata, not an image read. Direct texture sampling operations
+remain bypass paths, including when mixed with approved helper calls.
+`SampleInput(uv)` reads the current FX input, including previous FX. `SampleTexture(_Mask, uv)`
+reads a declared `texture2D` parameter at the corresponding normalized coordinate, including
+Texture, Layer, Self and None sources. Different resolutions do not change coordinate meaning.
+In the two pixel-local signatures these functions accept only `PinnedUV`; a color-only effect
+has no pinned coordinate to pass. The spatial signature also accepts `float2`, and retains
+the existing `SampleInput(float2, tiling)` addressing overload. Preview callbacks retain their
+existing `float2` interface and may use the spatial reading overloads.
+
+```hlsl
+// @param texture2D _Mask = self
+float4 ApplyFX(PinnedUV uv, float4 color)
+{
+    color.a *= SampleTexture(_Mask, uv).r;
+    return color;
+}
+```
+
+Direct `tex2D`, resource `.Sample`/`.Load` and similar low-level reads are bypass paths,
+not the primary API. Detected bypass reads, derivatives and unresolved compiler dependencies
+leave the shader usable but prevent confirmation of pixel locality and produce a shared warning.
+This is an authoring contract, not a sandbox against deliberately hidden HLSL bypasses.
+Generated curve/gradient lookups and the reserved hue lookup are independent of image-neighbor reads.
+The transformable Mask preset keeps its spatial signature because it permits displaced mask coordinates.
+
+Built-in Brightness Contrast, Color Balance, Color Filter, Gain, Gradient Map, Hue & Saturation,
+Levels, Negative, Normalize, Step and Threshold use the color-only entry point. Posterize uses
+`PinnedUV` for its procedural dither position, and Normal Lighting uses it with `SampleTexture`
+for the normal input. Their calculations and output are unchanged. New inline FX start with
+the color-only tint template; existing document-owned code is not rewritten.
+
+`ShaderFX.IsPixelLocal` is a public read-only bool describing the applied, successfully compiled
+shader, not pending code edits. It is false before compilation, after failed compilation, for spatial signatures
+and for unconfirmed declarations. It does not depend on Active. `Layer.AreActiveFxPixelLocal()`
+checks this layer's active non-null FX; an empty chain returns true, disabled FX are ignored,
+and an active unavailable/unconfirmed FX returns false. Child layers and source generation are not checked.
+The value is derived from the compiled source contract and is reconstructed with the shader;
+it is not an editable user setting or a serialized promise independent of the source.
+
+### Document-owned HLSL effects
+
+`Layer.fx` is a `List<ShaderFX>`. Every FX instance is owned by the document, with independent parameter
+values and enabled state. Source modes are a linked, marked project/package `.hlsl` preset, an
+embedded snapshot of a marked user-library `.hlsl` preset, or inline HLSL. A shared HLSL source
+does not share mutable FX values. Save As, layer duplication and FX copying preserve independent
+instances. FX run in order after Transform; changing values does not regenerate shaders.
+
+There is no **+ Reference**, external Material/Shader/ShaderFX `.asset` ObjectField or shared-asset
+editing. The **Embed Copy** menu action on an external ShaderFX asset card is removed; the
+**Code → Embed Copy** button for a linked `.hlsl` preset remains. It detaches the HLSL source
+and makes the code editable inside the document, preserving values and the original include base.
+ShaderFX `.asset` catalog entries and its `CreateAssetMenu` workflow are removed.
+External Material and Shader objects cannot serve as FX entries; the separate Material
+render branch is removed. Unity Shader compilation and internal Materials remain execution resources
+for HLSL effects, not a user-facing FX source mode. Texture asset parameters remain supported.
+
+JSON and TIFF containing old external FX references are rejected, including unresolved references,
+with `External FX references are no longer supported. Use a marked .hlsl preset or inline HLSL code.`
+They are not skipped as missing assets, migrated, converted to
+inline HLSL or rewritten. Keep originals and use a matching older checkout when needed. This does
+not prohibit current HLSL source links or external texture parameters.
+
+### CPU preparation and cache identity
+
+Parameter preparation caches the draft-to-applied matching plan and shader property IDs, not mutable
+values. On use it checks declaration references, order, names and types; incompatible draft parameters
+still fall back to their applied values, and duplicate draft declarations retain first-match priority.
+Dimensions, pixel scale and all current values are uploaded for each render context.
+
+Render fingerprints read numeric data directly, including double-precision transforms, gradient keys,
+midpoints, sampling settings and curve tangents/weights/wraps. Immutable strings reuse their content
+hash until replaced. Direct edits and Undo/Redo do not require an explicit revision notification;
+texture update counts and layer dependencies remain part of the enclosing render-cache stamp.
+
+Texture inputs reuse the matching plan and bounded, reentrant binding leases. Repeated layer requests
+are validated once within that lease only; graph validity is not retained across renders. Temporary
+textures are unbound before release, Self is borrowed, and None retains the render-sized clear input
+(including its texel-size semantics). LUT formats, sampling, shader formulas and FX pass order are unchanged.
+
+The bounded `fx-preparation-before` / `fx-preparation-after` diagnostics report warmed CPU-stage
+median/p95 timings and separate main-thread allocation counts, with retained pre-change float pixels.
+They are not cold shader compilation, GPU timing or presented FPS. The timing harness uses reflection
+at internal API boundaries; those calls contribute a common overhead/allocation to preparation and
+texture-input samples. Fingerprint uses a direct delegate. Tests preserve the existing profiler capture;
+allocation counting uses the same public GC.Alloc recorder semantics as WhimTex Profiler.
 
 ## Distortion header controls
 
@@ -96,6 +295,7 @@ All built-in Distortion presets expose a scalar through `@control`:
 | Radial Shear | `_Strength` | Existing signed shear strength; Offset remains at zero. |
 | Polar Coordinates | `_Amount` | Hidden float, default 1, hard range 0–1; sample `lerp(uv, mappedUV, _Amount)`. |
 | Displacement Map | `_Amount` | Hidden float, default 1, range `[0 .. ~2]`; multiply the final strength mask before displacement and parallax tracing. |
+| Height to Distortion | `_Strength` | Raw height-gradient multiplier, default 8; zero generates a neutral field rather than returning the input. |
 
 New Amount parameters return the original RGBA at zero and preserve the previous full
 mapping at their default 1. They change coordinates, not output opacity. Displacement Map
@@ -118,6 +318,40 @@ Linked preset refresh matches parameters by their current names and types. Old A
 Source Center and one-frame layouts are not converted to Input/Output. Detached presets
 keep their embedded source.
 
+## Height to Distortion preset
+
+`Distortion/Height to Distortion` generates a field; it does not distort the source image.
+`_HeightMap` defaults to Self and accepts the ordinary texture/layer inputs. `_Channel`
+selects luminance (0), R (1), G (2), B (3) or Alpha (4). Height is read as linear data,
+without height clamping, color conversion or multiplication by source alpha.
+`_Filter` selects Scharr (0, default), Sobel (1) or CentralDifference (2).
+`_Radius` is a pixel-unit sampling distance (default 1, minimum 0.5 before Pixel Scale);
+the stencil is divided by its coefficient sum and effective radius to compute height
+change per canvas pixel, not normalized to unit vector length. The positive gradient
+points toward increasing height in canvas +X/+Y. `_Strength` scales it, including negative
+values; `_FlipX`/`_FlipY` independently reverse components.
+
+`_Edges` is Clamp (0), Repeat (1) or Mirror (2). Repeat interpolates across the map seam,
+including when the assigned texture uses Clamp. Stencil reads intentionally use explicit
+LOD 0 through `tex2Dlod`: wrapped texel-centre coordinates must not influence automatic
+mip/anisotropic footprint selection. This is a spatial FX, not pixel-local.
+
+For `g = gradient(height) * _Strength * axisSigns`, `_Output` has two values:
+
+| Output | RG | Displacement Map / VectorRG |
+| --- | --- | --- |
+| PackedRG (0, default) | `0.5 + 0.5 * g` | Neutral 0.5; X/Y strengths S. |
+| SignedRG (1) | `g` | Neutral 0; X/Y strengths S/2 for the same offset. |
+
+B is 0 and alpha is 1. Neither output clamps RG, so PackedRG may also exceed 0–1.
+Keep the map layer's Color Range at HDR for signed/out-of-range values. Flat heights and
+zero Strength output exact neutral values. The factor of two above comes from the existing
+consumer: `(RG - Neutral) * 2 * float2(StrengthX, StrengthY) * Amount / CanvasSize`.
+The generator does not change that consumer's behavior. Assign the map layer as the
+Displacement Map input; it can remain hidden. The source and map can have different sizes.
+Both modes are linear numeric data. For external signed/HDR storage use linear EXR;
+PNG/TGA/PSD retain their normal color-encoding/clamping rules, not a new raw-data export mode.
+
 ## Edge Outline preset
 
 The metadata groups controls into Detection, Contour and Output, linking `_Detection`,
@@ -135,7 +369,7 @@ A horizontal/vertical pair seeds a boundary when the difference reaches `_Thresh
 (floored to 0.00001) and both pixels have alpha above 0.00001. Invisible RGB and alpha-only
 silhouettes do not seed boundaries.
 
-`_Detection = 2` (Hue) uses HSV hue in display-encoded, nonnegative RGB, matching the HSV
+`_Detection = 2` (Hue) uses HSV hue in display-encoded, nonnegative RGB, matching the Hue & Saturation
 preset and retaining HDR values. The shortest circular hue difference (0–180 degrees)
 must reach `_HueThreshold` (default 15, floored to 0.001 degrees). Both endpoints must
 reach `_MinSaturation` (default 0.1, range 0–1); undefined hues are always excluded,
@@ -174,22 +408,32 @@ Zero Thickness or zero tint alpha removes the contour. Sampling stops at the can
 it does not add a frame or wrap to the opposite edge. Earlier FX, group input and Shader
 Processor input follow the ordinary effect input contract.
 
-## Selective HSV preset
+<a id="hsv-preset"></a>
 
-`Color/Selective HSV` is a separate Shader FX, not an HSV mode or Effect Layer. Master exposes
-`_MasterHue`, `_MasterSaturation` and `_MasterValue` for the whole image, including gray pixels.
-Four ranges each expose Enabled, Center/Width/Feather in degrees, signed Hue shift and
-Saturation/Value multipliers. All ranges start disabled. Disabled ranges hide their controls
-but retain values. Center wraps at 360°;
-Width is the full-strength span, and Feather adds a smooth transition on each side, limited
-at the opposite hue. Width 360 selects all hues; Width and Feather both zero select nothing.
+## Hue & Saturation preset
+
+The inspector has an untitled tabs block: Master and Range 1–4 each have their own page.
+Fields sit directly inside each page without nested groups. Each Range has an Enabled checkbox before its tab label.
+Source Saturation (HSV) and Output remain shared below the tabs; changing pages does not enable or disable ranges.
+
+`Color/Hue & Saturation` replaces the HSV preset. It opens on Master with all four ranges disabled; Master exposes
+`_MasterHue`, `_MasterSaturation` and `_MasterLightness` for the whole image, including gray pixels.
+Four ranges each expose Enabled, float2 Hue Range endpoints and Feather in degrees, signed Hue shift and
+Saturation and Lightness. Neutral values are Hue 0, Saturation 1 and Lightness 0.
+All ranges start disabled. Disabled ranges keep their controls visible
+but gray and unavailable for editing, retaining their values. The four range bodies use `@enableif`;
+their Enabled checkbox fields remain editable. Hue uses one 0°…360° turn and cyclic `[0 % 360]` endpoints: `(330, 30)` crosses red.
+The forward cyclic endpoint distance is the full-strength span, and Feather adds a smooth transition on each side,
+limited at the opposite hue. `(0, 360)` selects all hues; coincident endpoints
+with zero Feather select nothing.
 
 Every range measures the original display-encoded hue, before Master or any range correction.
 Range settings describe corrections relative to the source, not additional changes after Master.
-For each Hue/Saturation/Value correction offset, let `wi` be source hue weights, `g` the shared
-Min Saturation/Saturation Feather gate, `Z = max(1, sum(wi))`, and `q = g * saturate(sum(wi))`.
+For each Hue/Saturation/Lightness correction offset, let `wi` be source hue weights, `g` the shared
+`_SaturationRange` cutoff/full-strength gate, `Z = max(1, sum(wi))`, and `q = g * saturate(sum(wi))`.
 The effective offset is `(1 - q) * masterOffset + g * sum(wi * rangeOffset_i) / Z`;
-Hue offsets are degrees, and multiplier offsets are `multiplier - 1`. Master never participates
+Hue offsets are degrees, Saturation offsets are `multiplier - 1`, and Lightness offsets are signed percentages.
+Master never participates
 in the overlap average. A neutral full-weight range therefore preserves original colors even
 when Master desaturates everything. Feather/gating blend back toward Master. Two enabled ranges
 still average signed offsets; a neutral overlapping range can weaken the other range.
@@ -197,11 +441,29 @@ Gray, black and near-undefined hues never select a range, but still receive Mast
 Transparent Result pixels retain their hidden RGB exactly. An effectively neutral Result returns
 the exact incoming RGBA; active correction supports HDR and preserves alpha.
 
+Correction order is Hue shift, Saturation, then Lightness, in display-encoded nonnegative RGB.
+Hue retains the previous HSV rotation. Saturation instead scales distance from weighted gray:
+`Y = dot(rgb, (0.2126, 0.7152, 0.0722)); rgb = max(Y + (rgb - Y) * max(S, 0), 0)`.
+Saturation has default 1 and a soft upper slider limit of 4; it is not the HSV S multiplier.
+The weighted-gray operation is not a perceptually uniform or strictly luminance-preserving color model.
+Lightness has hard limits -100…100 and default 0. With `L = Lightness / 100`, negative values
+use `rgb *= 1 + L`; positive values use `lerp(rgb, 1, L)`. Thus -100 reaches black and +100
+reaches reference white, including HDR input; positive Lightness can reduce highlights above white.
+Decode back to linear and cap corrected RGB at 65504. Neutral/transparent bypasses remain exact.
+The shared Source Saturation (HSV) control still measures the unmodified source HSV S for selection only.
+
 Output offers Result, All Ranges Mask and one mask per range. Mask RGB is coverage times source
 alpha; Master never changes these source selection masks. At full Opacity mask alpha is 1.
 The hidden `_Opacity` header control blends the selected
 output with the original RGBA; zero preserves the input even in mask modes. Settings use
 ordinary uniforms and never trigger compilation variants.
+With all Enabled controls off, a uniform branch bypasses hue-range weights, saturation selection
+and overlap normalization, using only the same Hue/Saturation/Lightness correction for Master. Neutral and transparent
+Result pixels retain the input exactly; disabled-range mask outputs stay black with opaque mask alpha
+at full Opacity. The renamed `HueSaturation.hlsl` retains its source asset GUID; no second HSV preset is provided.
+The former `_MasterValue` / `_RangeNValue` controls are replaced by `_MasterLightness` /
+`_RangeNLightness`, not reinterpreted as percentages or migrated through aliases.
+Linked presets receive the requested new Saturation behavior when refreshed; independent embedded code is unchanged.
 
 ## Texture inputs and lighting
 
@@ -211,13 +473,32 @@ Normal Lighting and Bevel Emboss share `SurfaceLighting.cginc`. `_BaseColor.a` b
 
 Lighting/Bevel Emboss is a regular FX over a `texture2D _HeightMap = self` input. It works on any layer, without raw SDF access or layer-specific outputs. Height Channel selects luminance, R, G, B or alpha; RGB channels are multiplied by image alpha before the 0–1 input is mapped through Profile. Depth controls relief strength/sign; Smoothing is the normal sampling radius in document pixels. Output selects Both, Highlight Only or Shadow Only. Output RGB is the light/shadow tint; straight alpha is lighting strength times tint alpha, independent of host alpha. Flat areas are transparent. Choose compositing through the layer blend mode; use separate light/shadow layers for independent modes. SDF bevel width comes from the visible height gradient and Max Distance, not an FX width parameter. The former raw-distance helpers are no longer provided; re-add the preset to replace an older embedded version.
 
+Normal Lighting alone adds `_SpecularEnabled=false`, `_SpecularColor=(1,1,1,1)`,
+`_SpecularIntensity=1`, `_Roughness=0.25` and `_Output=3` (SpecularOnly). The original
+shared lighting function and Bevel Emboss are unchanged. With Specular disabled, modes
+0–2 return the original result; mode 3 returns transparent black, regardless of Base Color.
+With Specular enabled, modes 0/1 add the highlight, mode 2 excludes it and mode 3 outputs
+only the highlight. `ApplyFX(PinnedUV, color)` remains pixel-local with both normal encodings.
+
+The highlight uses Blinn–Phong with fixed orthographic `V=(0,0,1)`, normalized N/L,
+`H=normalize(L+V)` and `p=max(2/max(saturate(Roughness),0.01)^2-2,1)`.
+Its strength is `pow(saturate(dot(N,H)),p)*saturate(dot(N,L))*max(SpecularIntensity,0)*saturate(SpecularColor.a)`;
+back-facing N and a degenerate H return zero. Intensity is independent of diffuse
+Intensity, Ambient and Light Color; no energy-conservation or environment-light model is implied.
+Let `s` be this strength and `c=saturate(input.a)`. Specular premultiplied RGB is
+`SpecularColor.rgb*s*c`, alpha is `saturate(s)*c`. Add its RGB to original premultiplied
+lighting RGB, combine alpha as `a+specularAlpha*(1-a)` and return straight RGBA.
+This preserves filled-surface coverage and HDR energy without darkening diffuse lighting,
+while transparent output has usable highlight coverage. The specular lobe does not subtract
+flat-normal lighting: a front-lit planar surface may reflect across its entire area.
+
 ### Texture sources
 
 `// @param texture2D _Source = self` samples the image immediately before this FX, including earlier effects but excluding this and later effects. It reuses the existing input texture without recursively rendering the layer. On groups it reads the composed group input. `// @param texture2D _Source = none` samples transparent black. Both defaults survive HLSL preset export and copying; Self stores no layer ID. Without a default, the existing Texture mode uses white when no asset is assigned. The UI offers Texture, Layer, None and Self. Live FX parameter values also accept the strings `"self"` and `"none"`.
 
 ### Layer-backed texture parameters
 
-The `texture2D` declaration and `tex2D` sampling syntax are unchanged. In the editor, choose Texture or Layer. Layer references store a same-document layer ID and resolve the standalone rendered result, including transforms and FX, without its lower backdrop. Disabled sources are allowed as with SDF Target; a disabled Shader Processor retains its bypass semantics. Groups supply full-color contents. Missing or cyclic sources bind transparent pixels.
+Declare `texture2D` and read it through `SampleTexture(_Source, uv)`. Direct `tex2D` is a bypass path, not the primary authoring API. In the editor, choose Texture or Layer. Layer references store a same-document layer ID and resolve the standalone rendered result, including transforms and FX, without its lower backdrop. Disabled sources are allowed as with SDF Target; a disabled Shader Processor retains its bypass semantics. Groups supply full-color contents. Missing or cyclic sources bind transparent pixels.
 
 Layer inputs use the shared effect-render cache for deterministic sources. Shader FX and Shader Processor
 results are cached when their inputs and serialized parameters are unchanged; the cache also tracks
@@ -231,28 +512,28 @@ when pasting into another document; they are not the JSON export path.
 
 ## External code editors
 
-For document-owned code, **Open Code** opens a working `.hlsl` file through Unity's selected external script editor. Saving synchronizes the draft; **Apply** in WhimTex compiles it. **Open in VS Code** uses a project-local isolated profile and installs the bundled extension automatically. Detection checks Unity's registered editors, then PATH, then **User Settings → External Code Editor → VS Code Command**.
+For document-owned code, **Open Code** opens a working `.hlsl` file through Unity's selected external script editor. Saving synchronizes the draft; **Compile** in WhimTex compiles it. **Open in VS Code** uses a project-local isolated profile and installs the bundled extension automatically. Detection checks Unity's registered editors, then PATH, then **User Settings → External Code Editor → VS Code Command**.
 
-The extension augments the existing **HLSL** language mode with highlighting for directives, types, modifiers, parameter names, values, enum options and ranges. Validation checks declaration defaults, finite numbers, hard/soft bounds, tuples, hex colors, two-color gradients, curve keys, transform matrices, texture-reference syntax, compatible repeated controls, conditions, groups and seed modifiers; trailing tooltips and block-commented examples are handled separately. It supports Restricted Mode without disabling Workspace Trust. It does not resolve Unity assets/includes or compile HLSL; Unity remains the authority for generated shader identifiers and compilation.
+The extension augments the existing **HLSL** language mode with highlighting for directives, types, modifiers, parameter names, values, enum options and ranges. Validation checks declaration defaults, finite numbers, hard/soft bounds, tuples, hex colors, two-color gradients, curve keys, transform matrices, texture-reference syntax, compatible repeated controls, conditions, groups, foldouts, tabs and seed modifiers; trailing tooltips and block-commented examples are handled separately. Layout diagnostics include title/header rules, page placement, matching ends, nested tabs and the 16-level limit. It supports Restricted Mode without disabling Workspace Trust. It does not resolve Unity assets/includes or compile HLSL; Unity remains the authority for generated shader identifiers and compilation.
 
 WhimTex checks the bundled VSIX content when opening code, so a changed bundle can be installed without changing the package version. After reinstalling into an already-running VS Code window, use **Developer: Reload Window** to activate the update.
 
-The bundled HLSL snippets expand `// @if` and `// @group` with **Tab**, adding `@endif` or `@endgroup`. The compact `//@if` / `//@group` spelling also works. Tab visits the parameter, comparison and value for a condition, or the title for a group, then the body. Group titles may include `; _Parameter` for a header control. The extension contributes the HLSL default `editor.tabCompletion: onlySnippets`; it does not write user settings. Explicit overrides can disable direct Tab expansion; the snippets remain available through **Ctrl+Space** or **Insert Snippet** after `// `.
+The bundled HLSL snippets expand `// @if`, `// @enableif`, `// @group`, `// @foldout`, `// @tabs` and `// @tab` with **Tab**, adding matching end directives. Compact spellings such as `//@foldout` also work. Tab visits each placeholder, then the body. Group/foldout titles may include `; _Parameter` for a header control. The tabs snippet starts with no overall title: optionally enter `(Title)` in its first placeholder, then name the first page. Add further pages with the tab snippet inside that tabs block. The extension contributes the HLSL default `editor.tabCompletion: onlySnippets`; it does not write user settings. Explicit overrides can disable direct Tab expansion; the snippets remain available through **Ctrl+Space** or **Insert Snippet** after `// `.
 
-Working files and their last synchronized baselines live in `Library/WhimTex/ExternalCode`. The VS Code save handler writes a neighboring `.apply` request for these files. Unity polls active sessions every 0.35 seconds, imports the saved draft and calls Apply, including when the code is unchanged. Ordinary external writes synchronize after two stable observations and do not request Apply. FX locks defer synchronization; conflicting document/file changes ask which version to keep. A failed Apply preserves source and parameter values but skips the FX, including any older compiled version, and reports diagnostics until a successful Apply.
+Working files and their last synchronized baselines live in `Library/WhimTex/ExternalCode`. The VS Code save handler writes a neighboring `.apply` request for these files. Unity polls active sessions every 0.35 seconds, imports the saved draft and calls the internal `Apply` method, including when the code is unchanged. Ordinary external writes synchronize after two stable observations and do not request compilation. FX locks defer synchronization; conflicting document/file changes ask which version to keep. A failed compilation preserves source and parameter values but skips the FX, including any older compiled version, and reports diagnostics until a successful compilation.
 
 Working copies are disposable cache, not backups, standalone presets or the saved document. Applying code does **not** save the TIFF or JSON document; save it in WhimTex separately. Sessions are in-memory: after a script reload, reopen the code from WhimTex to reconnect.
 
 At Editor startup/domain reload and then hourly, cleanup removes inactive working-file sets unused for more than **24 hours**, including their `.baseline` and `.hlsl.apply` companions. Reopening code refreshes its baseline timestamp without changing its content; a newer timestamp on any member preserves the whole set. Connected sessions are excluded and periodically refreshed, including before reload/quit. Only generated 32-character lowercase-hex names with the known suffixes are eligible; cleanup is non-recursive and skips linked files/directories. The VS Code profile/extensions and unrelated files are untouched. Saved-document state is deliberately not checked: code absent from the saved document may be lost after expiry. A surviving working copy can still be reused when reconnecting, but recovery is not guaranteed.
 
-Catalog-linked code uses **Open HLSL Source** to edit the shared source. Choose **Embed Copy** to edit an independent document-owned copy instead. Relative includes resolve from the document/source context, not the working-copy directory.
+Catalog-linked code uses **Open HLSL Source** to edit its shared HLSL source; values stay local to each FX. To edit the existing effect's code independently, choose **Code → Embed Copy**. This stops following the `.hlsl` file and enables document-local code editing while preserving values and the original include base. Custom algorithms can also be authored as a new inline **+ Shader FX**. Relative includes resolve from the document/source context, not the working-copy directory.
 
 ## HLSL catalog
 
 Add a `.hlsl` file anywhere in Assets or an installed package. Its **first physical line** must be
 `// @whimtex-effect Category/Name`. UTF-8 BOM is allowed, but no preceding blank line, indentation,
 license comment or other text. Unmarked HLSL files are not catalog effects. Discovery reads headers only,
-without parsing parameters, loading ShaderFX assets or hashing shader dependencies. Project headers
+without parsing parameters, loading FX instances or hashing shader dependencies. Project headers
 are updated by import notifications and reconciled once against AssetDatabase after a script reload,
 on the next catalog request.
 Full validation and loading happen when a preset is selected; invalid source reports an error without adding an FX.
@@ -267,13 +548,14 @@ float4 ApplyFX(float2 uv, float4 color)
 }
 ```
 
-Use **FX → + Preset ▾** to add an independent instance. The source is referenced by asset GUID;
+Use **FX → + Preset ▾** to add an independent document-owned instance. The HLSL source is referenced by asset GUID;
 keep its `.meta` when moving files. Source/include changes refresh loaded, unlocked instances.
-Missing or invalid source retains the last applied shader and reports diagnostics. **Apply** retries/reloads;
-**Embed Copy** disconnects the source and enables local code editing, retaining the original include base.
-Included files remain external dependencies even after embedding.
-Standalone Shader FX assets also appear in the catalog and are copied, not shared.
-**+ Reference** also accepts existing Material and Shader FX assets. ShaderLab shaders are not auto-enrolled by this HLSL catalog.
+Missing or invalid source retains the last applied shader and reports diagnostics. **Compile** retries/reloads.
+**Code → Embed Copy** detaches the source link and enables local code editing; later source-file
+changes no longer update this FX. Values and the original include base are retained.
+Included files remain external dependencies after detaching unless expanded into a snapshot/export.
+Only marked `.hlsl` files enter the catalog; ShaderFX `.asset`, Material and standalone ShaderLab
+sources are unsupported. No assets are created merely by adding an effect.
 
 The user library's `ShaderFX` subfolder is also scanned recursively when opening the catalog.
 The same first-line marker is required. These external presets are embedded copies, not GUID-linked
@@ -312,7 +594,11 @@ Only one control is selected. Multiple directives produce soft warnings and the 
 
 ### Parameter declarations
 
-Use `// @if _Mode == 1` or `// @if _Mode != 1` before one or more `// @param` lines, then close the block with `// @endif`, to show controls conditionally. Conditions accept only numeric values and `==`/`!=`; the referenced parameter must be an unconditional `float`, `bool` or `enum`. Nested blocks are not supported. This changes the editor UI only: hidden values remain stored and continue to affect the shader. Preset export preserves the condition blocks.
+Use `// @if _Mode == 1` or `// @if _Mode != 1` before one or more `// @param` lines, then close the block with `// @endif`, to show controls conditionally. Use `// @enableif _Enabled == 1` or `// @enableif _Enabled != 1`, closed by `// @endenableif`, to keep rows visible while disabling editing when the condition is false. Fields, their headers/help boxes and standalone previews follow the enclosing conditions. All enclosing enable conditions must be true; a true inner condition cannot re-enable a disabled ancestor, including a read-only view.
+
+Both kinds compare a `float`, `bool` or `enum` parameter with a finite numeric literal using `==`/`!=`; bool conditions use 0/1, not true/false. Drivers may be declared later or inside `@enableif`, but cannot themselves have any declaration under `@if`. Unknown and vector drivers are invalid when a block contains an actual parameter or standalone preview, including nested rows and hidden declarations. Empty blocks create no driver dependencies; headings/help boxes alone are not rows. Comparison syntax and finite literals are still validated in empty blocks.
+
+`@enableif` may nest within itself and with `@if` in either order, to a combined maximum of 16 condition levels. A second active `@if` remains invalid even through an intervening `@enableif`. Each end directive takes no arguments and must close the innermost condition of the same kind. These directives change only the editor UI: values remain stored and uploaded, and rendering behavior comes from HLSL. Preset export preserves both kinds of condition blocks.
 
 ```hlsl
 // @param enum _Mode = 0 { Basic: 0, Advanced: 1 }
@@ -322,9 +608,27 @@ Use `// @if _Mode == 1` or `// @if _Mode != 1` before one or more `// @param` li
 // @endif
 ```
 
+```hlsl
+// @param bool _Enabled = false
+// @enableif _Enabled == 1
+// @header(Details)
+// @helpbox(Enable this section to edit its settings.)
+// @param float _Strength = 0.5 [0 .. 1]
+// @enableif _Strength != 0
+// @preview(PreviewStrength, _Strength)
+// @endenableif
+// @endenableif
+```
+
+Each `ShaderFXParameterControl`, including a standalone preview, carries an outer-to-inner
+`ShaderFXEnableCondition[] enableIf` array, empty outside enabled blocks. Each public
+`ShaderFXEnableCondition` struct has `string parameter`, `bool notEqual` and `float value`
+fields. Visibility continues to use the existing `visibleIfParameter`, `visibleIfNotEqual`
+and `visibleIfValue` fields; preview-only rows carry the same condition metadata as fields.
+
 Use `// @header(Lighting)` before a `// @param` declaration to add a bold, non-collapsible heading above that control. Use `// @helpbox(Your hint text.)` to show an informational help box above the parameter instead. Both are UI metadata, not uniforms, and are preserved when exporting FX and brush presets. Headings and help boxes without a following parameter are ignored. Previous-name migration directives are not supported.
 
-Built-in Color Filter, Negative, Mask, Gradient Map and HSV use `_Opacity`, without old-name aliases.
+Built-in Color Filter, Negative, Mask, Gradient Map and Hue & Saturation use `_Opacity`, without old-name aliases.
 
 ```hlsl
 // @header(Lighting)
@@ -333,7 +637,11 @@ Built-in Color Filter, Negative, Mask, Gradient Map and HSV use `_Opacity`, with
 // @param float _Intensity = 1 [0 .. ~4]
 ```
 
-Use `@group` and `@endgroup` to visually contain several controls in a bordered block. An optional title appears in its header. Add `; _Parameter` to link a parameter declared unconditionally inside that group to the header. A bool is drawn as an unlabeled checkbox to the left of the title; it only edits the bool value and does not itself show or hide the group body. Use `@if` to control dependent rows and use the bool uniform in HLSL to enable or disable the effect. Supported compact values (enum, float, color, float2, float3, and float4) are drawn on the right without a separate label: the group title labels the value. Dragging the title of a float field changes its value and respects its hard/soft bounds. The linked control is omitted from the group body even when declared `hidden`; `hidden` does not prevent an explicitly linked, supported control from appearing in the header. Unlinked hidden controls remain invisible, while unsupported or multi-row controls stay in the body and do not alter the header. If all body rows are hidden by `@if`, the body collapses and the group is displayed as a header only. Groups cannot be nested; `@if` blocks may be used inside a group.
+### Layout containers
+
+Use `@group` and `@endgroup` to visually contain several controls in a non-collapsible bordered block. An optional title appears in its header. `@foldout(Title)` / `@endfoldout` adds a collapsible body and requires a title. Both accept `; _Parameter` to bind a header field. Declare that parameter exactly once across the source, outside both `@if` and `@enableif` and directly inside its own group/foldout, rather than inside a descendant container.
+
+A bool is drawn as an unlabeled checkbox to the left of the title. It edits only the bool value, independently of collapse or tab selection. Use `@if` to hide dependent rows or `@enableif` to leave them visible and disabled; use the uniform in HLSL to enable or disable the effect. Supported compact values (enum, float, color, float2, float3, and float4) are drawn on the right without a separate label: the container title labels the value. Dragging the title of a float field changes its value and respects its hard/soft bounds. The linked control is omitted from the body even when declared `hidden`; a supported hidden header field is promoted into the header. Unlinked hidden controls remain invisible, while unsupported or multi-row controls stay in the body and do not alter the header. If all body rows are hidden by `@if`, the body occupies no space and only the header remains; `@enableif` retains the body's space.
 
 ```hlsl
 // @group(Tint; _EnableTint)
@@ -345,7 +653,44 @@ Use `@group` and `@endgroup` to visually contain several controls in a bordered 
 
 For example, `// @group(Quality; _Quality)` with `// @param hidden enum _Quality = 1 {Low: 0, High: 1}` puts the dropdown next to the group title without a duplicate row. Use `// @group(Advanced)` for a titled group without a linked field, or plain `// @group` for a box without a header.
 
-Right-click a named group header for **Copy**, **Paste**, a separator and **Reset**. The group body and unnamed groups have no group menu. Actions include the linked header value and hidden/conditional parameters; repeated controls for one uniform are handled once. Copy stores a session-local snapshot of values, not code or metadata. Paste requires the same number of parameters, matching names (or unique UI labels), compatible types and identical enum options. Destination float hard bounds still apply; layer texture references can only be pasted within their source document. Reset restores only this group's defaults from the current HLSL declarations. Paste and Reset each form one Undo operation and retain destination parameter identities, code and the compiled shader. These actions use the shared FX/brush parameter view.
+Right-click a named group/foldout header or an individual tab for **Copy**, **Paste**, a separator and **Reset**. Bodies, unnamed groups and the overall tabs heading have no parameter-set menu. Actions include the linked header value, hidden/conditional/disabled parameters and nested containers of that group or page; repeated controls for one uniform are handled once. Copy stores a session-local snapshot of values, not code or metadata. Paste requires the same number of parameters, matching names (or unique UI labels), compatible types and identical enum options, including when transferring between a group and a tab. Destination float hard bounds still apply; layer texture references can only be pasted within their source document. Reset restores only that group's or page's defaults from the current HLSL declarations, not sibling pages or shared fields outside the page. Paste and Reset each form one Undo operation and retain destination parameter identities, code, compiled shader and current tab selection. These actions use the shared FX/brush parameter view.
+
+Use `@tabs` or `@tabs(Title)` for pages, each opened by `@tab(Page title)` and closed with `@endtab`; close the whole block with `@endtabs`. The overall title is optional; page titles must be non-empty and unique within that tabs block (case-sensitive, after trimming). Empty parentheses are invalid; omit them for untitled tabs. An individual page can use `@tab(Page title; _Enabled)` to place a bool checkbox before its label. Declare that bool exactly once, unconditionally and directly inside the page, not inside a nested group/foldout; hidden bools are promoted, and no duplicate body row is drawn. Other parameter types are rejected for tab headers. Editing the checkbox does not select its page, and selecting a page does not change the bool. It does not automatically disable the page or its fields; use `@enableif` or `@if` for dependent rows and the uniform in HLSL for the actual effect. The overall `@tabs` heading accepts no header binding. Parameters and standalone previews must be inside pages, never directly under `@tabs`; groups/foldouts also belong inside pages.
+
+```hlsl
+// @tabs
+// @tab(Color)
+// @foldout(Tint; _EnableTint)
+// @param hidden bool _EnableTint = true
+// @enableif _EnableTint == 1
+// @param color _Tint = (1, 1, 1, 1)
+// @endenableif
+// @endfoldout
+// @endtab
+// @tab(Shape)
+// @group(Size)
+// @param float _Radius = 0.5 [0 .. 1]
+// @endgroup
+// @endtab
+// @endtabs
+```
+
+Groups and foldouts may nest in pages and in each other, with one existing restriction: opening a group is rejected when the nearest active group/foldout is a group. Thus `group → group` is invalid, while `group → foldout → group` is valid. Tabs may be placed inside a group/foldout, but no tabs block may contain another tabs block, even through intervening pages or containers. The maximum layout depth is 16, counting groups, foldouts, tabs blocks and pages.
+
+Every container/page must contain at least one non-hidden parameter declaration or standalone preview, directly or in its descendants. Hidden declarations alone are insufficient, including a hidden header binding; `@header` and `@helpbox` do not count as rows. A row with `@if` or `@enableif` still counts even when its condition currently hides or disables it. All container/page starts and ends must be outside both condition kinds. Conditions may control rows inside groups, foldouts and pages, but must end before their container closes. End directives take no arguments and must match the innermost open container/page.
+
+Tabs are content-width window-style tabs, with the active tab joined to the content panel. Untitled `@tabs` reserve no blank heading row. They have no close, new or reorder actions. Folding and page selection change layout only: all parameter values are still uploaded and the effect still runs regardless of the visible page or collapsed body. `@if` controls row visibility; `@enableif` controls whether visible rows can be edited. Per-FX foldout/tab choices are UI-local `SessionState`, keyed by the FX's stable `ShaderKey` and container kind/id/title. Choices survive UI rebuilds and script reloads during the current Editor session, but not a full Editor relaunch. They are not shader values, document settings or Undo operations.
+
+Each C# `ShaderFXParameterControl`, including a standalone preview, exposes a `ShaderFXLayoutContainer[] containers` path ordered from outermost to innermost, empty outside layout containers. Each entry contains:
+
+| Field | Meaning |
+| --- | --- |
+| `kind` | `ShaderFXContainerKind.Group`, `Foldout`, `Tabs` or `Tab`. |
+| `id` | Source-order container identity shared by controls in that container. |
+| `title` | Container/page title, absent for untitled groups/tabs. |
+| `headerParameter` | Linked header name for a group/foldout or bool checkbox for a tab page; absent for an overall tabs block. |
+
+The older flat fields `inGroup`, `groupId`, `groupTitle` and `groupHeaderParameter` remain a summary of the nearest group/foldout. They do not describe the complete layout or tab ancestry; use `containers` to reconstruct that path. These declarations describe UI layout without introducing additional parameter uniforms.
 
 Use `label(...)` inline to override a parameter's generated UI label without changing its shader identifier: `// @param label(Tint Strength) float _Strength = 1`. The `hidden` and `label(...)` modifiers can appear in either order. Quote labels that contain parentheses; labels are preserved on preset export.
 
@@ -393,6 +738,142 @@ and `[0 .. ~0]` are errors. The old prefix syntax `~[0 .. 2]` is not accepted.
 Initializers remain optional. Repeated controls keep their own range behavior.
 Preset export preserves both boundary flags and the current value.
 This is editor metadata only: explicit `clamp`, `saturate` or other bounds in HLSL still apply.
+
+### Inspector previews
+
+Use `preview(FunctionName)` inside a parameter declaration to draw a preview within its control.
+For Slider (including soft-range sliders), it fills the track beneath the thumb. Other fields show
+a small rectangle to their right; their native controls are not replaced. Use a standalone
+`// @preview(FunctionName)` for a separate image at that position in the inspector.
+Both forms respect groups and conditions; neither creates another shader parameter.
+
+Hard- and soft-range Slider previews use the native Slider's fixed 50-pixel numeric field size and matching
+horizontal spacing. Track endpoints stay aligned when numeric text or inspector width changes.
+Ordinary/cyclic float2 endpoint fields share those same fixed dimensions, independent of content.
+
+```hlsl
+// @param preview(PreviewAmount) float _Amount = 0.5 [0 .. 1]
+// @param preview(PreviewTint) color _Tint = (1, 0.5, 0, 1)
+// @preview(PreviewMask)
+
+#ifdef WHIMTEX_PREVIEW
+float4 PreviewAmount(float2 uv, float value) { return float4(value, _Amount, uv.y, 1); }
+float4 PreviewTint(float2 uv, float4 value) { return value; }
+float4 PreviewMask(float2 uv) { float a = SampleInput(uv).a; return float4(a, a, a, 1); }
+#endif
+```
+
+Every entry returns straight linear `float4` RGBA and takes `float2 uv` first, bottom-left
+`(0,0)` to top-right `(1,1)`. Inline entries may optionally take a second argument matching
+the parameter's shader representation: `float` for float/enum, `bool` for bool, `float2`
+for float2/point, `float3` for float3/normal, and `float4` for float4/color. Textures,
+gradients and curves use `sampler2D`; transform2D uses its input-to-local `float3x3`.
+For gradients and curves, prefer UV-only entries with the normal named `_Name_Sample` helper
+to retain the library's sampling/wrap behavior. Entries must not be overloaded; argument
+names are arbitrary, but UV must precede value. Without explicit bindings, standalone entries take UV only.
+
+Both forms also accept an explicit ordered list of parameter names:
+
+```hlsl
+// @param preview(PreviewRange, _HueRange, _Feather) float2 _HueRange = (330, 30) [0 % 360]
+// @param float _Feather = 15 [0 .. 180]
+// @preview(PreviewRange, _HueRange, _Feather)
+
+#ifdef WHIMTEX_PREVIEW
+float4 PreviewRange(float2 uv, float2 range, float feather)
+{
+    float edge = saturate(feather / 180.0);
+    return float4(uv.x, range.x / 360.0, edge, 1);
+}
+#endif
+```
+
+After `float2 uv`, the function must take exactly the listed arguments, in that order and
+with their exact shader types from the table above. No implicit own `value` is appended.
+Names refer only to `// @param` declarations, not arbitrary uniforms, literals or expressions.
+Forward references, hidden/conditional parameters and repeated names are supported.
+The attached control's type does not constrain explicitly listed arguments. Without a list,
+the existing UV-only/optional-own-value signatures remain unchanged.
+
+For an inline scalar Slider, a listed reference to its own float parameter receives the
+track candidate, in whichever argument position it appears. Other references receive actual
+current values. Standalone previews receive actual values for every reference. Both forms
+retain ordinary global uniform/helper access. Unknown names or signature mismatches are local
+preview diagnostics, not production-FX failures. Metadata syntax itself must still be valid.
+Preset exports and native/portable roundtrips retain the ordered bindings; serialized controls
+store them as `previewParameters`, separate from `previewFunction`.
+
+For scalar Slider, `value` varies over the displayed track range, independently of the actual
+uniform. For a bounded float2 interval it is the actual selected pair; `uv.x` spans the whole
+track from its lower to upper limit. At other fields it is the selected value. Numeric `px` values use the same pixel
+multiplier as the shader. All ordinary FX uniforms, texture parameters, gradient/curve
+helpers and transform helpers remain available by name. Rendering never substitutes
+candidate values into uniforms or edits the document, so native editing and Undo are unchanged.
+
+Each preview has a small display texture. Attached surfaces of the same FX share expanded
+source, compiled programs with identical callback expressions, and prepared parameter bindings
+(including gradient/curve lookups). Typed callbacks referring to different uniforms remain separate.
+The parameter fingerprint is computed at most once per Editor update; unchanged, nonanimated
+surfaces do not redraw. Canvas dimensions and pixel scale also invalidate prepared bindings.
+FX change notifications and Undo/Redo queue a refresh for the next Editor update, without
+waiting for the 100 ms polling interval. Bursts coalesce per FX; every surface draws at most
+once per Editor update, including periodic polls and live input captures. Changes during a
+refresh remain queued for the next update. The 100 ms poll stays as a fallback for unnotified
+direct edits and other external changes; it is not the normal interactive update path.
+Shared resources are released when the last surface detaches or before script reload/quitting;
+live incoming textures are never retained. `WHIMTEX_PREVIEW` is
+defined only there: guard preview-only code as above to keep its compilation errors separate
+from the production FX. A missing or incompatible entry shows a diagnostic on that preview;
+it does not disable the effect. Syntax errors in shared, unguarded HLSL still affect the FX.
+
+In an attached layer's FX inspector, image-dependent previews use the incoming image before
+that exact FX, including earlier effects and resolved layer/self texture inputs. The initial
+on-demand source is limited to 512 pixels on its longest axis; this is an inspector preview,
+not a full-resolution classification oracle or a histogram analysis stage. Without a layer
+context (including a standalone asset inspector), incoming/self/layer images are transparent;
+assigned texture assets and ordinary parameters remain available. Hidden/offscreen previews
+release their resources on detach and do not render while hidden. Values and dimensions
+invalidate the display without recompiling; HLSL or reapplied includes rebuild its shader.
+
+Preview sliders retain native dragging, keyboard control and numeric input. Their track is
+10 logical pixels high in a fixed 20-pixel Slider; a 12×10 triangular marker straddles its
+bottom edge. Preview texture dimensions cannot change the track or marker layout.
+
+The built-in Hue & Saturation Master uses these previews with a red reference sample. Hue
+previews a shift, Saturation previews weighted-gray scaling, and Lightness previews darkening/lightening
+with the other current settings. Preview and image correction share the same Saturation/Lightness helper.
+Hue & Saturation shares explicitly bound master/range correction functions across its controls,
+and its Hue Range tracks share one selection function bound to that range and its Feather.
+Its Hue Range tracks show the current selection on the source hue
+spectrum, including Feather and a small coverage band. Feather itself has no preview. Source Saturation (HSV) shows the current
+saturation gate. These are UV-only current-state previews, not candidate-value ramps.
+Range correction tracks use that range's center hue as their reference; they describe its
+own correction, not the final average of overlapping ranges. Display
+colors are limited to the inspector's SDR range; numeric soft limits and HDR effect output
+are not changed. Histogram data preparation and new interactive controls are outside this feature.
+
+### Shared hue lookup
+
+`_WhimTexHueGradient` is a global 1536×1, RGBAFloat, bilinearly filtered, repeating texture,
+baked once in memory per Editor domain and restored after script reload. The payload is 24 KiB;
+there are no mipmaps or saved texture assets. `_WhimTexHueGradient_TexelSize` follows Unity's
+`(1/width, 1/height, width, height)` convention. Do not put either name in shader Properties:
+a material property would shadow the global binding. The names and `WhimTexHue` helpers are
+reserved, not FX parameters.
+
+FX and Static/Dynamic HLSL brush wrappers automatically include the helpers. Other shaders
+can include `Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc`, or declare the global
+sampler explicitly. `WhimTexHue(hue)` accepts turns (0..1, repeating outside this range) and
+returns the RGB components of HSV `(hue, 1, 1)` without sRGB decoding; use it for HSV math.
+`WhimTexHueLinear(hue)` decodes this result for direct linear-color output.
+
+```hlsl
+float4 PreviewRainbow(float2 uv) { return float4(WhimTexHueLinear(uv.x), 1); }
+```
+
+The half-texel offset in the helper preserves hue 0 at the first texel and interpolation
+across the repeating seam. Hue & Saturation inspector previews use this lookup. Production hue rotation remains analytical;
+the shared lookup is not an alternate image-processing algorithm.
 
 ### Seed parameters
 
@@ -524,7 +1005,80 @@ HLSL brush tips share these declarations, metadata and fields. Their texture sou
 to Texture/None, point coordinates use tip UV, and Edit on Canvas is unavailable. See the
 [brush parameter contract](AI/BRUSHES.md#declared-parameters) for context-specific rules.
 
-`float2` and `float3` expose two and three raw components. `point` is a `float2` in normalized canvas UV (bottom-left `(0, 0)`, top-right `(1, 1)`) and defaults to `(0.5, 0.5)`. Coordinates and tuple defaults may lie outside the canvas. The hand button (**Edit on Canvas**) beside the numeric field activates a draggable point handle. Point dragging uses the shared screen-space snapping radius for canvas edges and enabled, visible guides (including their intersections). Ctrl, or Command on macOS, bypasses snapping without restricting coordinates. `normal` generates a normalized `float3`, defaults to `(0, 0, 1)`, and uses that direction when given a zero vector. These types accept optional tuple defaults without ranges. Live API values are arrays with the corresponding component count.
+Unbounded `float2` and `float3` expose two and three raw components. `point` is a `float2` in normalized canvas UV (bottom-left `(0, 0)`, top-right `(1, 1)`) and defaults to `(0.5, 0.5)`. Coordinates and tuple defaults may lie outside the canvas. The hand button (**Edit on Canvas**) beside the numeric field activates a draggable point handle. Point dragging uses the shared screen-space snapping radius for canvas edges and enabled, visible guides (including their intersections). Ctrl, or Command on macOS, bypasses snapping without restricting coordinates. `normal` generates a normalized `float3`, defaults to `(0, 0, 1)`, and uses that direction when given a zero vector. These types accept optional tuple defaults; only `float2` also supports a range. Live API values are arrays with the corresponding component count.
+
+### Float2 intervals
+
+```hlsl
+// @param preview(PreviewRange) float2 _Range = (0.2, 0.8) [0 .. 1]
+#ifdef WHIMTEX_PREVIEW
+float4 PreviewRange(float2 uv, float2 value)
+{
+    float selected = step(value.x, uv.x) * step(uv.x, value.y);
+    return float4(selected.xxx, 1);
+}
+#endif
+```
+
+Two finite hard limits with `min < max` select the native MinMaxSlider. X is the lower
+endpoint, Y the upper; drag either handle or move the whole interval, or edit the synchronized
+unlabeled numeric fields (lower X on the left, upper Y on the right). Removed label space is
+given to the slider. Endpoints may coincide but cannot cross or leave the limits. Omitted defaults
+select the whole interval. Soft (`~`) or missing limits are rejected for float2, as are
+out-of-range or reversed defaults/API values. Ordinary unbounded float2 remains a vector field.
+Limits and preview survive preset export; retained values clamp to newly edited hard limits.
+Inline preview decorates the native track and its two handles without replacing native input.
+Interval markers are enlarged 8×12 half triangles extending outward from the selected interval,
+with vertical edges anchored to the endpoints; scalar sliders retain 12×10 full triangles.
+Bounded interval handles remain visible and pickable at both hard limits, including full/empty ranges.
+Only preview containers allow handle overflow; the rounded preview track remains clipped. Endpoint gutters
+keep the outward halves clear of the unchanged numeric fields.
+
+Replacing `..` with `%` declares a cyclic range:
+
+```hlsl
+// @param preview(PreviewHueRange) float2 _HueRange = (330, 30) [0 % 360]
+// @param float _Angle = 20 [0 % 360]
+```
+
+For float2, X is the start and Y the end of the forward arc; X > Y crosses the seam.
+The track shows one period, with both selected pieces highlighted for a wrapped arc.
+Captured dragging continues beyond either track edge without warping the OS pointer;
+handles retain their start/end identity. Dragging the selection moves both endpoints and
+preserves its width. When narrowing, a handle stops at the other endpoint (zero width).
+When widening, it stops at a full cycle at the other endpoint, without resetting either marker to the track limits. Dragging can wrap at
+the track seam but cannot cross either zero/full-width stop. After hitting either stop,
+reversing direction moves immediately. Both half-markers remain visible and pickable, including at coincident endpoints
+and the outer track edges; only the preview track clips its image.
+Full-cycle values store endpoints one positive period apart, with at least one endpoint inside
+the limits: `(-330, 30)` and `(330, 690)` both cover a full `[0 % 360]` cycle and retain the
+fixed endpoint. The UI wraps these coordinates for markers and numeric fields, so both show
+the meeting angle while the whole track stays selected. This winding is part of the value,
+not transient UI state; refresh, preset export and Undo retain it. `(min, max)` is also full;
+equal stored endpoints and `(max, min)` are zero-width. Moving a full cycle moves its anchor
+while retaining full width; moving an empty arc retains zero width.
+Arrow keys move the focused endpoint; Ctrl/Command moves the whole arc, Shift increases the
+step and Alt reduces it. Escape cancels an active drag.
+Numeric endpoint edits wrap outside the limits without sorting. In-range endpoints, including
+the exact maximum, are retained. Editing a numeric endpoint constructs a new arc from the
+displayed angles. API/default endpoints must be within the limits except for the anchored
+full-cycle representation above; reversed endpoints are valid only for `%`. Defaults omitted
+from a cyclic declaration select the full cycle.
+The shader receives the actual start/end float2, not a hidden center/width conversion.
+
+For float, `%` keeps ordinary clamped slider dragging, but manual numeric entry repeats:
+`370` becomes `10`, `-10` becomes `350` in `[0 % 360]`. Both `%` types require two finite
+hard limits with min < max; missing/soft limits are rejected. Exact limits remain selectable.
+Scalar default/API values remain bounded. Percent syntax and cyclic flags survive preset/native roundtrips;
+JSON derives the flags from HLSL metadata. Linked declarations must agree on `%` versus `..`.
+Live FX parameter snapshots expose `cyclicRange` for both types.
+
+Hue & Saturation uses `_SaturationRange` in `[0 .. 1]` (cutoff/full strength) and `_Range1` through
+`_Range4` in `[0 % 360]` (cyclic hue endpoints in degrees). `(330, 30)` crosses red;
+`(0, 360)` selects all hues. Preview tracks show one hue turn and correction references use
+the cyclic midpoint. Feather remains a separate per-side falloff. Previous Center/Width and saturation
+cutoff/feather uniforms are removed without aliases or migration. Levels retains independent
+soft-bound controls because its HDR values and reversible output are not ordered bounded intervals.
 
 For `normal`, **Edit on Canvas** shows a fixed-screen-radius handle at the canvas center. The center points toward the camera; the radius edge points along the canvas. Dragging outside the radius clamps the projected direction. Clicking the handle without dragging switches the Z hemisphere: **+** faces the camera, **−** faces away. X points right and Y up in canvas coordinates; rotating the preview rotates the handle without changing the value. Changing values does not recompile the shader.
 
@@ -533,7 +1087,7 @@ Labels are derived from names: `_NoiseScale` becomes **Noise Scale**. `float4` i
 
 These declarations also work in the inline code editor without a catalog header. They define the
 parameter schema for the effect. Existing matching name/type
-values and IDs survive Apply; removed declarations disappear. Renaming in place without changing
+values and IDs survive compilation; removed declarations disappear. Renaming in place without changing
 the type or layout retains identity. When simultaneously restructuring and renaming declarations,
 unmatched parameters are treated as new rather than guessing their correspondence.
 Do not separately declare generated uniforms/helpers. `_WhimTex_` is reserved for generated data.
@@ -594,6 +1148,6 @@ and retains the original layers in a hidden Source Layers folder.
 
 ## Baking implementation
 
-The stack's **Apply All** and **⋮ → Apply** bake rendered pixels; they are distinct from compiling code with **Code → Apply**. A per-FX bake consumes the inclusive prefix, preserving the remaining stack. The result is Drawing with unchanged logical Transform; serialized pixel-frame compensation prevents double-transforming the snapshot, and converted groups retain their FX coordinate frame. Painting uses the pixel frame, while Transform editing uses the logical frame. The snapshot is canvas-sized linear half-float, before layer opacity/blending/channelMapping/clipping.
+The stack's **Apply All** and **⋮ → Apply** bake rendered pixels; they are distinct from compiling code with **Code → Compile**. A per-FX bake consumes the inclusive prefix, preserving the remaining stack. The result is Drawing with unchanged logical Transform; serialized pixel-frame compensation prevents double-transforming the snapshot, and converted groups retain their FX coordinate frame. Painting uses the pixel frame, while Transform editing uses the logical frame. The snapshot is canvas-sized linear half-float, before layer opacity/blending/channelMapping/clipping.
 
 Shader Processor baking reconstructs its stack-position backdrop, inheriting external input through Pass Through ancestors and starting transparent inside isolated/clipped groups. Its Normal becomes Overwrite; Drawing stores `processorSnapshot` and `processorNormalBlend` to retain premultiplied before/after opacity interpolation instead of ordinary straight-RGBA Overwrite. Other blend modes retain their ordinary behavior. Processor snapshots remain clipping boundaries so existing orphan clipping layers do not acquire a new base; explicitly enabling clipping on the Drawing opts into ordinary clipping semantics. The lower layers are unchanged, but their future edits no longer regenerate the snapshot. Flags survive repeated Apply, native clipboard, TIFF and Undo/Redo.

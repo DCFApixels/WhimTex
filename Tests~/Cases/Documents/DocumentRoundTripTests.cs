@@ -106,7 +106,7 @@ Check(System.Math.Abs(sourcePreview.GetPixel(4, 4).a - loadedPreview.GetPixel(4,
 
 // --- object identity: one effect, one instance ---
 phase = "identity";
-var fx = (System.Collections.Generic.List<UnityEngine.Object>)loaded.layers[1].fx;
+var fx = loaded.layers[1].fx;
 Check(fx != null && fx.Count == 1 && fx[0] is DCFApixels.WhimTex.ShaderFX, "embedded effect survives on its layer");
 var embeddedList = (System.Collections.Generic.IList<DCFApixels.WhimTex.ShaderFX>)Field(loaded, "embeddedShaderFX");
 Check(embeddedList != null && embeddedList.Count == 1, "embedded effect list survives, got " + (embeddedList == null ? "-" : embeddedList.Count.ToString()));

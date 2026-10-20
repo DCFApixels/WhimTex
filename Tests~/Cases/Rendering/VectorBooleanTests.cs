@@ -30,7 +30,7 @@ public static class VectorBooleanTests
     {
         var doc=NewDoc();doc.hideFlags=HideFlags.HideAndDontSave;doc.width=96;doc.height=80;doc.outputPrecision=WhimTexOutputPrecision.Float32;
         var previous=RenderTexture.active;bool srgb=GL.sRGBWrite;
-        Material ignored=null;
+        ShaderFX ignored=null;
         try
         {
             var model=new BooleanGroupLayerBehaviour { referenceSize=new Vector2(96,80) };
@@ -56,7 +56,10 @@ public static class VectorBooleanTests
             var baseline=Pixels(doc);string savedStyle=JsonUtility.ToJson(((VectorLayerBehaviour)bottom.Behaviour).shapes[0]);
             bottom.opacity=0;bottom.clippingMask=true;bottom.blendMode=BlendMode.None;
             var bottomStyle=((VectorLayerBehaviour)bottom.Behaviour).shapes[0];bottomStyle.stroke=true;bottomStyle.strokeWidth=30;
-            ignored=new Material(Shader.Find("Hidden/WhimTex/Blend")){hideFlags=HideFlags.HideAndDontSave};bottom.fx.Add(ignored);
+            ignored=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft",Hidden|BindingFlags.Static,null,
+                new[]{typeof(WhimTexDocument),typeof(string),typeof(List<ShaderFXParameter>)},null)
+                .Invoke(null,new object[]{doc,"float4 ApplyFX(float2 uv,float4 color){return 0;}",new List<ShaderFXParameter>()});
+            typeof(ShaderFX).GetMethod("ApplyAgentDraft",Hidden).Invoke(ignored,null);bottom.fx.Add(ignored);
             Same(t,baseline,Pixels(doc),"Child appearance/FX not rendered");
             bottom.fx.Clear();bottom.opacity=1;bottom.clippingMask=false;bottom.blendMode=BlendMode.Normal;bottomStyle.stroke=false;bottomStyle.strokeWidth=2;
             t.Equal(savedStyle,JsonUtility.ToJson(bottomStyle),"Preserved style data except explicit test edits");
@@ -85,7 +88,7 @@ public static class VectorBooleanTests
             var open=Figure(.1f,.1f,.9f,.9f,Color.white);((VectorLayerBehaviour)open.Behaviour).shapes[0].contours[0].closed=false;
             group.children.Add(open);bool rejected=false;try{model.Validate();}catch(InvalidOperationException){rejected=true;}t.True(rejected,"Open operand explicit rejection");group.children.Remove(open);
             group.children.Add(new Layer(new ColorFillLayerBehaviour()));rejected=false;try{model.Validate();}catch(InvalidOperationException){rejected=true;}t.True(rejected,"Raster operand explicit rejection");group.children.RemoveAt(group.children.Count-1);
-            foreach(var mode in new[]{VectorFillMode.LinearGradient,VectorFillMode.RadialGradient,VectorFillMode.SquareGradient,VectorFillMode.DiamondGradient,VectorFillMode.CircularGradient})
+            foreach(var mode in new[]{VectorFillMode.LinearGradient,VectorFillMode.RadialGradient,VectorFillMode.SquareGradient,VectorFillMode.AngularGradient})
             {model.style.fillMode=mode;model.style.stroke=true;model.style.strokeWidth=2;model.style.cap=VectorStrokeCap.Round;model.style.dashPattern=new List<float>{.1f,2};model.style.dashPatternRelative=true;Pixels(doc);t.True(true,"Gradient and dashes "+mode);}
             model.style.fillMode=VectorFillMode.Solid;model.style.stroke=false;
             var output=doc.ComposeCanvas();var png=new Texture2D(96,80,TextureFormat.RGBA32,false);

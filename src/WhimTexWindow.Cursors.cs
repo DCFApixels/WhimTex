@@ -6,7 +6,7 @@ namespace DCFApixels.WhimTex
     {
         private enum CanvasCursorIcon
         {
-            None, Fill, Gradient,
+            None, Fill, Gradient, GradientRadial, GradientAngular, GradientSquare, GradientFreeform,
             ShapeRectangle, ShapeEllipse, ShapePolygon, ShapeStar, ShapeLine, ShapeArc, ShapeSector,
             SelectionRectangle, SelectionEllipse, SelectionUv, LassoPolygon, LassoFreehand,
             Comment, Text, VectorPen, VectorNodes, Crop, CanvasScale
@@ -18,7 +18,15 @@ namespace DCFApixels.WhimTex
             {
                 case CanvasTool.None: return CanvasCursorIcon.None;
                 case CanvasTool.Fill: return CanvasCursorIcon.Fill;
-                case CanvasTool.Gradient: return CanvasCursorIcon.Gradient;
+                case CanvasTool.Gradient:
+                    return (gradientCreationSettings?.type ?? GradientCreationType.Linear) switch
+                    {
+                        GradientCreationType.Radial => CanvasCursorIcon.GradientRadial,
+                        GradientCreationType.Angular => CanvasCursorIcon.GradientAngular,
+                        GradientCreationType.Square => CanvasCursorIcon.GradientSquare,
+                        GradientCreationType.Freeform => CanvasCursorIcon.GradientFreeform,
+                        _ => CanvasCursorIcon.Gradient
+                    };
                 case CanvasTool.Shape:
                     switch (shapeToolSettings?.kind ?? ShapeLayerBehaviour.ShapeKind.Rectangle)
                     {

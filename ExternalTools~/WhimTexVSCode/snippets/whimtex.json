@@ -8,6 +8,15 @@
     ],
     "description": "After //: conditional parameters with a matching @endif."
   },
+  "WhimTex enabled block": {
+    "prefix": "@enableif",
+    "body": [
+      "@enableif ${1:_Enabled} ${2|==,!=|} ${3:1}",
+      "// $0",
+      "// @endenableif"
+    ],
+    "description": "After //: keep rows visible and disable editing when the condition is false."
+  },
   "WhimTex parameter group": {
     "prefix": "@group",
     "body": [
@@ -16,5 +25,34 @@
       "// @endgroup"
     ],
     "description": "After //: a parameter group with a matching @endgroup."
+  },
+  "WhimTex parameter foldout": {
+    "prefix": "@foldout",
+    "body": [
+      "@foldout(${1:Title})",
+      "// $0",
+      "// @endfoldout"
+    ],
+    "description": "After //: a collapsible parameter group. Add ; _Parameter to its title for a header control."
+  },
+  "WhimTex parameter tabs": {
+    "prefix": "@tabs",
+    "body": [
+      "@tabs${1:}",
+      "// @tab(${2:Page title})",
+      "// $0",
+      "// @endtab",
+      "// @endtabs"
+    ],
+    "description": "After //: tabs with one page. Optionally enter (Title) in the first placeholder; add controls inside the page."
+  },
+  "WhimTex parameter tab page": {
+    "prefix": "@tab",
+    "body": [
+      "@tab(${1:Page title})",
+      "// $0",
+      "// @endtab"
+    ],
+    "description": "After // inside @tabs: a page with a unique title and @endtab. Add ; _Enabled for a bool checkbox before the label."
   }
 }

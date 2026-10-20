@@ -69,6 +69,9 @@ namespace DCFApixels.WhimTex
             window.channelSource = owner is WhimTexGradientSession session ? session.channelSource :
                 WhimTexColorChannels.FindSource(null, WhimTexColorPicker.DocumentFor(owner));
             window.minSize = new Vector2(380, 400);
+#if WHIMTEX_DEEP_DEBUG
+            window.minSize += new Vector2(0, 110);
+#endif
             window.Refresh();
             window.ShowUtility();
             return window;
@@ -205,6 +208,9 @@ namespace DCFApixels.WhimTex
             reverse.Add(reverseIcon);
             stripRow.Add(strip); stripRow.Add(allColors); stripRow.Add(reverse);
             rootVisualElement.Add(stripRow);
+#if WHIMTEX_DEEP_DEBUG
+            BuildDebugCurves();
+#endif
             color = new ColorField("Color") { hdr = false, showAlpha = false, UseCanvasChannels = true, ReadCanvasChannels = () => channelSource?.Invoke() ?? -1 };
             color.OpenPickerOverride = OpenKeyColor;
             color.RegisterValueChangedCallback(e => Edit(() =>
@@ -485,6 +491,9 @@ namespace DCFApixels.WhimTex
             location.SetValueWithoutNotify((midpointSelected ? gradient.GetMidpoint(alphaTrack, selected) : Time) * 100);
             RefreshColorHistory();
             strip.MarkDirtyRepaint();
+#if WHIMTEX_DEEP_DEBUG
+            RefreshDebugCurves();
+#endif
             if (newPresetImage != null) newPresetImage.image = preview;
             if (preview != null && ReferenceEquals(previewSource, gradient) && previewRevision == gradient.Revision && previewExposure == exposure)
             { image.image = preview; return; }

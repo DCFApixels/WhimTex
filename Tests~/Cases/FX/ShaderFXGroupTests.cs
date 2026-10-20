@@ -192,7 +192,7 @@ public static class ShaderFXGroupTests
             foreach (string presetName in new[]
             {
                 "ChromaticAberration", "ColorBalance", "ColorFilter", "CRT", "DigitalGlitch", "DisplacementMap",
-                "Gain", "GradientMap", "Halftone", "HSV", "Levels", "Mask", "Negative", "Normalize",
+                "Gain", "GradientMap", "Halftone", "HueSaturation", "Levels", "Mask", "Negative", "Normalize",
                 "NormalLighting", "Pixelate", "Posterize", "RadialShear", "BevelEmboss", "Spherize", "Step",
                 "Threshold", "PolarCoordinates", "Twirl", "UVTransform", "VHS"
             })
@@ -234,11 +234,11 @@ public static class ShaderFXGroupTests
             }
             CheckCondition("ColorBalance", "_Shadows", "_ShadowRange");
             CheckCondition("ColorBalance", "_Highlights", "_HighlightRange");
-            foreach (var presetName in new[] {"ColorFilter", "HSV"})
+            foreach (var presetName in new[] {"ColorFilter", "HueSaturation"})
             {
                 var presetControls = PresetParameters(presetName);
                 Check(Control(presetControls, "_Opacity").hidden, presetName + " keeps opacity as the shared control");
-                foreach (var parameterName in presetName == "ColorFilter" ? new[] {"_FilterColor", "_PreserveLuminosity"} : new[] {"_Hue", "_Saturation", "_Value"})
+                foreach (var parameterName in presetName == "ColorFilter" ? new[] {"_FilterColor", "_PreserveLuminosity"} : new[] {"_MasterHue", "_MasterSaturation", "_MasterLightness"})
                     Check(string.IsNullOrEmpty(Control(presetControls, parameterName).visibleIfParameter), presetName + " keeps " + parameterName + " editable at zero opacity");
             }
             Check(string.IsNullOrEmpty(Control(PresetParameters("Twirl"), "_Area").visibleIfParameter),

@@ -73,7 +73,7 @@ namespace DCFApixels.WhimTex
                 result = new Texture2D(width, outputHeight, TextureFormat.RGBA32, false)
                     { name = target.name + " Preview", hideFlags = HideFlags.HideAndDontSave };
                 if (projectThumbnail) result.SetPixels32(new Color32[width * outputHeight]);
-                result.ReadPixels(new Rect(0, 0, width, height), 0, (outputHeight - height) / 2);
+                WhimTexProfiler.ReadPixels(result, new Rect(0, 0, width, height), 0, (outputHeight - height) / 2);
                 if (projectThumbnail)
                 {
                     var pixels = result.GetPixels();

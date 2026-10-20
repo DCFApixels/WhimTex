@@ -155,9 +155,9 @@ try
         if (mode == DCFApixels.WhimTex.WhimTexGradientMode.Fixed) CompareFixedBoundaries();
     }
     layer.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic;
-    layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Circular;
+    layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Angular;
     layer.circularWrapMode = DCFApixels.WhimTex.GradientLayerBehaviour.WrapMode.PingPong;
-    Compare("Circular exact center and ping-pong");
+    Compare("Angular exact center and ping-pong");
     layer.circularRepetitions = 0; Compare("Zero repetitions");
     layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Radial;
     layer.gradient = null; Compare("Null fallback");

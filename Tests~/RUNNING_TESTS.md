@@ -15,6 +15,274 @@ profiler, and ReadScreenPixel on test-created windows. It does not authorize oth
 
 ## Inspect and select
 
+`normal-specular-v1` checks the catalog-linked Normal Lighting preset against an independent
+CPU diffuse/specular oracle with Packed Color and Linear Data, original disabled behavior,
+all output modes, transparent/partial/filled coverage, HDR, tint alpha, Roughness endpoints,
+Flip Y and frontal/opposite/degenerate directions. Owned documents cover group/Target input,
+clipping, thumbnails, group export, external disabled-layer normals and JSON render parity.
+It retains a small actual-render preview under GUID-owned `Temp/WhimTex/normal-specular`.
+No user windows/documents or project settings are changed. Native pointer interaction and
+every graphics backend are not covered.
+
+`gradient-debug-curves-v1` creates an unshown gradient editor and checks graph/code presence
+against the active target's `WHIMTEX_DEEP_DEBUG` symbol. With the symbol enabled it checks
+RGBA button presence and visibility callbacks, unpremultiplied signed/HDR values, exposure independence, reused
+sampling buffers, interpolation updates, Fixed discontinuities and wrap endpoints. It never
+shows or focuses a window, changes a user document, or toggles project defines. Actual on-screen
+appearance and native pointer dispatch remain manual checks. Run once without the symbol and again with it for both branches.
+
+`height-to-distortion-v1` compiles the catalog preset and compares GPU output against an
+independent CPU derivative/bilinear oracle: all three filters, five channels, three edge
+modes, fractional radii and a differently sized Clamp texture. It checks exact flat/zero
+neutral maps, signed/large unclamped vectors, affine packing, axis/sign controls and
+Displacement Map parity. Owned documents cover Self/external disabled-layer inputs,
+groups, Target, clipping, thumbnails, group export and JSON. A small actual-render preview
+is retained in a GUID folder under `Temp/WhimTex/height-to-distortion`. No user windows or
+documents are changed. Float arithmetic checks are stricter than existing Half-stage
+rounding tolerances. Point filtering, mipmapped imports and every graphics backend are
+not covered by this case.
+
+`shader-fx-code-lines-v1` requires Unity 6000.7+. An owned window checks actual gutter draw
+submissions against public native cursor baselines, font matching, fixed horizontal position,
+fractional vertical scrolling, a 1102-line file, blank/trailing CRLF lines, native Enter,
+Undo/Redo, silent field updates and code focus. It also checks actual current-row fill/tint
+submissions, background ordering behind native selection, caret-only and focus changes,
+and row alignment/width under scrolling. It does not capture the user's screen or
+validate every font/skin visually; the ordinary code-reference case checks editing behavior.
+
+`shader-fx-code-syntax-v1` requires Unity 6000.7+. It checks lexical categories, malformed
+comments/quotes, CRLF and cache reuse, then observes actual generated glyph RGB, positions,
+UVs and alpha through the public callback. An owned window checks UTF-16 offsets after a
+surrogate pair, caret and reversed selection preservation. Code is not compiled. The
+scrolling check exposes previously uncolored tail glyphs without changing their source.
+The ordinary code-reference case separately checks editing and Undo/Redo with highlighting installed.
+
+Opt-in `shader-fx-code-typing-v1` measures real textEdition KeyDown selection replacement
+in an owned 640x480 field: 100/1000 lines, 8 warmups + 32 samples, repeated reverse order.
+It types near the start of the source and compares the same native generator with the callback disabled/enabled, preserving user
+captures and baselines. Input dispatch includes draft/Undo handlers; callback time includes
+tokenization. Neither is the full deferred UI Toolkit layout/render time or GPU time.
+Retain a pre-change run before implementation; raw arrays and generator/callback counts are
+GUID-scoped under `Temp/WhimTex/code-typing`. A PASS means the workload ran and changed exact
+source/caret, not that it met a performance threshold. No physical input or user document edits.
+
+`shader-fx-code-reference-v1` checks Shader Inputs double-click callbacks through public
+UI Toolkit pointer/link/click events in an owned bound inspector: caret/selection insertion,
+signature-only replacement, argument-name preservation, focus, disabled/read-only guards
+and owned Undo/Redo. Two native down/up cycles exercise rich-text hit testing and Unity's
+ClickEvent detector with mouse-up click counts fixed at one. Native hover checks fragment
+highlighting, hand-cursor class, unchanged text, no rebuild within one link and tooltip
+suppression. It does not compile edited snippets, change user documents or inject physical
+input. Manual interaction, the displayed OS cursor and every skin remain separate checks.
+The same owned inspector checks four-space Tab stops, selected-line indentation and Shift+Tab
+outdent, forward/reversed selections, excluded trailing lines, existing tabs, CRLF, empty and
+read-only input, focus and single-step Undo/Redo. The default ApplyFX body uses the same indent.
+Keyboard events target the public textEdition element, not the retargeted field wrapper.
+Enter/KeypadEnter and `}` cases cover carried/nested indentation, existing brace pairs,
+matching openers, comments/quoted text and escapes, tabs/CRLF, replaced selections, AltGr,
+read-only input and Undo/Redo. A physical down + translated CR/LF + key-up sequence must
+insert only one newline; repeated key-downs and standalone newline characters remain usable.
+
+`shader-fx-code-info-v1` checks the compiled Pixel Local row above the code area, changed drafts,
+failed/recovered compilation, disabled FX and Compile button naming on unattached controls.
+It checks the sectioned/bulleted Shader Inputs reference and rich-text identifiers, not on-screen geometry
+or every skin. The case owns its transient document, shaders and serialized object; it does not
+open a window or change a user document. One deliberate malformed signature produces a diagnostic.
+
+`shader-fx-pixel-local-v1` checks all three ApplyFX signatures, immutable PinnedUV values and helper/include
+arguments, deliberate arithmetic/write/cast/signature failures, primary SampleInput/SampleTexture reads,
+including pinned `_MainTex` helper reads versus direct sampling bypasses and texture-size metadata,
+Texture/Self/None/Layer masks, unequal source resolutions, active-chain queries, pending/failed Apply,
+native/JSON/preset restoration, preview compilation and bypass warnings. It also compiles all built-in FX,
+checks their pixel-local classification and compares migrated presets against their original spatial forms.
+It uses detached documents and
+owned float textures without persistent assets or user windows. Deliberate negative cases emit compiler errors.
+The case verifies authoring/render behavior, not a sandbox against intentionally obscured HLSL.
+
+The `freeform-gradient` profile checks point interpolation against an independent CPU oracle,
+signed HDR and alpha, shared-material point-count changes, thumbnails, group/Target rendering,
+export, current TIFF/JSON roundtrips and Undo/Redo. Its temporary owned window exercises point
+creation, dragging, influence, Escape, property fields and transformed parents through public
+UI Toolkit events. The included viewport case compares full and cropped rendering, including
+Freeform. These cases do not manipulate user documents or physical mouse/keyboard input.
+
+`profiler-gpu-result-v1` checks supported actual threading modes, positive/zero/negative/multiple-invocation
+timestamps, Graphics Jobs confidence tagging, open/ended readback invalidation, immutable completion and guarded production readback sites.
+It uses managed synthetic slots without native
+recorders and never replaces the retained user capture. `profiler-fx-v1` separately checks live delivery,
+render parity and pending/stop/reload behavior with owned documents and a temporary window.
+Its parity readback uses AsyncGPUReadback so it does not invalidate the measured render intervals;
+the production encoded-copy path still exercises ReadPixels and must report invalidation explicitly.
+`profiler-analysis-v1` also checks unconfirmed numeric aggregation/comparison, compact agent warnings and
+recorded threading metadata through baseline/reload snapshots. `profiler-comparison-ui-v1` checks yellow
+GPU-only numeric backgrounds, compact values, recycled row cleanup and historical capture/baseline warnings.
+These synthetic confidence checks do not validate timestamp accuracy with active Graphics Jobs.
+
+`hsv-master-timing-v1` and the opt-in `profiler-gpu-audit-*-v1` diagnostics compare two catalog-linked
+Hue & Saturation instances at 512/1024/2048, active and neutral. One forces the full range path with
+an enabled empty interval; the other disables every Range and uses the Master fast path.
+The outputs must match. Older HSV timing reports/retained fixtures describe the former math,
+not the current weighted-gray Saturation and Lightness implementation.
+They alternate 16 AB/BA pairs after two warmups, using 64 independent same-input ARGBFloat blits
+per interval. CPU preparation uses 128 warmed direct-delegate calls. Native intervals divided
+by 64 are batch-normalized elapsed device times, not isolated shader instructions or FPS.
+The audit keeps fresh single-use reference recorders alongside the ordinary bounded pool:
+`split` brackets immediate blits; `single` puts reference boundaries and blits in one diagnostic
+command buffer; `same` renders exactly the same HSV material under both labels; `repaint` submits
+from an owned window Repaint instead of Editor update. None changes the production renderer.
+Each audit owns 216 reference marker identities until script reload and disposes their recorders.
+Raw profiler exports and timing arrays are retained under GUID-owned `Temp/WhimTex/hsv-master-timing`
+folders. Reports are never overwritten. The retained capture, user documents and focus are preserved.
+An audit PASS means the diagnostic completed, not that all native timestamps are trustworthy.
+Keep invalid results in the report. For comparisons retain only complete pairs whose two native
+intervals are positive/single-invocation and agree with their independent references within 5%;
+this is a diagnostic cross-check, not a production timing floor or proof against shared driver errors.
+Repeated positive timestamp anomalies still require independent GPU-level verification.
+
+The bounded `profiler-gpu-probe-*` diagnostics add drained-queue wall timing (submission plus completion
+wait/readback, not pure GPU time), format/size sweeps, 0/1/8/64/128-pass scaling and never-reset reference
+recorders. `sync` isolates no readback, pooled-only ReadPixels, AsyncGPUReadback completion, pre-only,
+post-only and single-buffer readback. Their raw ReadPixels calls intentionally bypass the production
+guard to reproduce native counter failure; an audit PASS does not certify those timestamps. They own
+180–252 fresh reference identities depending on profile; recorders are disposed, identities last until reload.
+The legacy Recorder control uses the same Unity backend and is not an independent hardware clock.
+Normal timing refuses unsupported actual Graphics Jobs modes rather than treating delivered counters as valid.
+These diagnostics never change project settings or restart the Editor.
+
+`shader-fx-group-menu` checks group and tab Copy/Paste/Reset, nested/hidden/disabled
+values, linked tab checkboxes, destination bounds/identity, clipboard rejection and
+owned Undo/Redo on transient documents and unattached controls. `shader-fx-containers-v1`
+also checks tab-checkbox geometry, native keyboard independence, export and JSON layout.
+Neither fixture simulates physical mouse input. Shared metadata cases reject missing,
+repeated, conditional, misplaced and non-bool tab header bindings in Unity and Node.
+
+`fx-enableif` checks availability metadata and strict condition nesting, independent
+visibility, disabled parameter rows/headers/previews, inherited blocking, preset/native/JSON
+roundtrips, the real Selective HSV preset and external-validator parity. The dedicated case
+uses transient models and unattached controls; it does not verify manual pointer input or
+on-screen dimming. Existing rendered FX tests verify unchanged color processing separately.
+
+`fx-containers` checks Group/Foldout/Tabs/Tab metadata and malformed nesting, optional
+tab headings, inline and standalone previews, preset export and independently owned
+layout arrays. Its bounded utility window checks content-width tab headers, native
+keyboard submission, independent linked checkboxes and restored session presentation.
+It leaves user documents/assets untouched and clears only the owned FX Undo/session keys.
+Manual pointer interaction, every skin and script-reload continuity remain separate checks.
+
+`fx-preparation-regression` checks direct parameter/list/name/type/ID edits, applied fallbacks,
+duplicate priority, mutable gradient/curve/projective data, nested texture leases, Self ownership,
+render-sized None inputs, current context dimensions and owned Undo/Redo. It uses only detached
+objects, clears Undo only on its own FX and does not edit user documents or assets.
+The opt-in `fx-preparation-before` and `fx-preparation-after` diagnostics run the same four warmed
+CPU workloads (8/64 scalars, 32 mixed parameters, 12 Self textures), each with 11 timing batches.
+They save retained float pixels and primitive timing arrays under `Temp/WhimTex/fx-preparation`;
+existing reports are never overwritten. After requires the genuine pre-change `before-v2.json`
+and compares seven float renders bit-for-bit, including Self/None/Layer/Texture input modes.
+Stage medians/p95 are microseconds per call, not GPU execution, total render latency or FPS.
+Allocation counting is separate and includes the reflection harness at material/input boundaries;
+it must not be presented as exact production allocation counts. Fingerprints use direct delegates.
+Compilation/JIT warm-up and output readback are outside timing. Existing profiler captures are retained.
+
+`fx-empty-input-timing` is an opt-in diagnostic for the empty texture-input path only.
+It compares a frozen pre-change implementation with the current production method,
+using both typed delegates and the original reflective harness. It alternates 32 pairs
+of 2048 calls for 0/8/64 nontexture parameters with an active 32px RT, writes GUID-owned
+primitive arrays under `Temp/WhimTex/fx-preparation` and never edits production or assets.
+Frozen nonempty dependencies reject execution; this is not a full old-renderer oracle.
+Repeat separate runs to assess timing variability; no GPU or FPS claims follow from it.
+
+`hlsl-only-fx-v1` checks the typed HLSL stack, HLSL-only catalog/clipboard signatures,
+removal of Reference controls, group/clipping/Target/preview/export consumers, JSON/native
+roundtrips and explicit rejection of external FX references before asset resolution.
+It uses detached documents and in-memory payloads; no Unity assets, files, user windows or
+clipboard content are changed. Render-consumer comparisons use primary-color endpoints,
+not a general HDR/export color-space equivalence oracle.
+
+`shader-fx-preview-v1` checks standalone/inline metadata, exact optional value types and
+UV-first ordering, explicit positional @param bindings (including forward/hidden references,
+all mapped value types, local diagnostics, native/portable/preset roundtrips and program sharing),
+candidate/uniform separation, all 20 Hue & Saturation preview shader entries,
+independent pixel expectations for every Saturation/Lightness track and the shared float Hue LUT with negative/repeated hue sampling.
+It uses transient objects and writes a small generated image under Temp/WhimTex/fx-preview.
+`shader-fx-preview-ui-v1` owns a temporary utility window, checks rendered hard/soft Slider
+backgrounds, fixed track/triangle dimensions, matching track endpoints and numeric columns
+at wide/narrow widths and with long values, shared program/binding reuse,
+unchanged redraw suppression and compact right-side fallbacks, then closes it and restores focus.
+These bounded tests do not verify manual dragging, complex live group/Target inputs, every
+resource-valued signature, script-reload continuity or every graphics backend.
+
+`shader-fx-preview-updates-v1` pauses all periodic preview schedules, submits 32 notified edits
+and checks the next actual Editor update: one redraw per surface and one shared parameter rebind.
+It mixes implicit and explicitly bound callbacks, and also checks same-update suppression, latest uniform pixels, event-driven Undo/Redo, unchanged
+notification suppression, resumed polling for an unnotified edit and detaching a queued surface.
+The fixture owns its utility window and FX, clears Undo only for that FX and restores focus.
+These are scheduling/correctness checks, not a system-load benchmark or a measured millisecond latency guarantee.
+
+`shader-fx-interval-v1` checks bounded float2 parsing and invalid defaults, API bounds/order,
+preset export, native MinMaxSlider/Vector2Field selection, synchronized endpoint fields,
+owned Undo/Redo, wide/narrow track/triangle geometry and actual float2 values in GPU previews.
+It also checks public panel picking across both half-handles at each limit and full/empty ranges,
+rejecting ancestor clipping or numeric-field overlap at wide and narrow widths.
+It owns a temporary utility window and transient FX; cleanup restores focus and clears Undo
+only for that FX. It does not claim manual pointer-drag or every backend coverage.
+
+`shader-fx-cyclic-range-v1` checks percent-range flags, preserved wrapped order, full/empty
+semantics, scalar numeric repetition, preset/native roundtrips, embedded previews, paired
+numeric fields, synthetic public pointer dragging across both edges and whole-range moves,
+zero/full-width stops at the original opposite endpoint (no global min/max reset), wrapped numeric
+and marker positions, anchored-full preset/reapply/native roundtrips, immediate reversal after large overshoots, Escape cancellation,
+and visibility/picking of both handles at full-range endpoints,
+keyboard movement, owned Undo/Redo, one-turn Selective HSV preview colors and wide/narrow layout.
+It owns a utility window and transient FX. It does not simulate physical mouse input or claim
+all input-device/backend coverage. Ordinary scalar track/numeric widths remain unchanged;
+range tracks remove the extra left/right inset rather than widening other controls.
+The `fx-cyclic-range` profile combines this case with ordinary intervals, scalar preview layout
+and Selective HSV rendering/persistence.
+
+`canvas-viewport` compares regional composition with crops of complete renders for raster/HDR,
+idle and active masked Drawing, Text, Shape (including Step), all gradient types, Noise, UV fill,
+Vector, Boolean and transformed clipping groups. It checks full-frame isolation, zoom planning,
+per-FX full-input prefixes/regional suffixes and a native-detail 64px text render with HSV on an owned 8K document. The PNG is saved under
+`Temp/WhimTex/viewport`. GPU filtering tolerances are explicit; procedural edges compare visible
+premultiplied values, raster cases also compare hidden straight RGB.
+
+`canvas-viewport-8k` runs the ordinary 81px and 2048px brush curve at fit zoom and native zoom in
+owned temporary windows. It requires window permission. Per-frame canvas dimensions accompany
+CPU/GPU timings; the legacy 512px request is not the actual viewport size. Native-zoom cases also
+check pan/rotation alignment, avoiding redundant requests and full-frame fallbacks after timing.
+On 2026-10-18 D3D12, the test window used 512² at fit and 576² at native zoom, not 8192².
+CPU median paint submission remained about 0.25–0.53 ms and preview submission changed from
+1.18–1.28 ms to 1.28–1.38 ms; these are stage times, not presented FPS. Intermittent Editor/Pipeline
+gaps and GPU interval variability remain in both controls. At this earlier stage, Half source/preview surfaces and sparse
+stroke pages retained their previous sizes. This does not verify every backend or the excluded FX path.
+The separate `canvas-viewport-8k-large` profile repeats the native-zoom cases in a 1600×1000 window.
+Its 2026-10-18 visible render was 1216×960: median CPU paint submission was 0.47/0.29 ms for
+81/2048px brushes and preview submission was 1.09/1.22 ms (p95 1.57/1.75 ms). These results
+show no sustained slowdown in this workload; isolated Editor/GPU waits remain possible.
+
+The subsequent regional brush-cache implementation was checked on the same 8K workload:
+
+| View / brush | Brush cache before → after | CPU preview p50 before → after | GPU layer generation p50 before → after |
+| --- | --- | --- | --- |
+| Fit 512² / 81 px | 512 → 4 MiB | 1.282 → 1.229 ms | 0.071 → 0.035 ms |
+| Fit 512² / 2048 px | 512 → 4 MiB | 1.367 → 1.197 ms | 0.244 → 0.053 ms |
+| Native 1216×960 / 81 px | 512 → 17.81 MiB | 1.094 → 1.229 ms | 0.091 → 0.082 ms |
+| Native 1216×960 / 2048 px | 512 → 17.81 MiB | 1.226 → 1.189 ms | 0.196 → 0.098 ms |
+
+The smaller native window used a 576², 5.06 MiB cache. Six 8K traces passed; CPU stamp
+submission medians stayed 0.26–0.51 ms. The 81px large-window CPU render increased by 0.135 ms
+in this sample, while GPU generation decreased. These single-run comparisons do not establish
+noise-free speedups or presented FPS; Editor/Pipeline gaps remain. Memory above is the cache's
+logical payload: Unity's temporary pool may retain released textures, and the 512 MiB Half paint
+source, stored pixels, stroke atlas and Undo are excluded. FX/full-input consumers keep the old path.
+
+`canvas-viewport` additionally compares the regional brush output against independently CPU-filtered
+full native texels on a non-power-of-two 1031×773 source crossing atlas pages. It covers signed HDR,
+low alpha, soft masks, multiply/stamp blending, erasure, channel locks, Point/Bilinear filtering and
+transforms. Dirty-cache updates match forced rebuilds exactly. Raw full-render comparisons remain
+for ordinary cases; transformed extreme-HDR sampling uses the independent oracle to avoid treating
+hardware interpolation-weight quantization as a seam. Half/output rounding tolerances are explicit.
+
 `text-character-conversion-v1` checks independent glyph paint frames, original source immutability,
 API conversion, shared FX/transform identity, owned Undo/Redo, JSON/native roundtrips, clipping,
 empty/single-glyph groups, Boolean operand preservation and atomic layer-limit failure.
@@ -687,15 +955,15 @@ metadata. Schema validation does not decode/validate mask byte counts; native
 
 ### Runner selection
 
-`figure-gradient-canvas-v1` exercises shared handles on all five Shape/Vector/Boolean Group gradient fills:
-anchor movement under parent transforms, unchanged figure transforms, circular range/Ctrl,
+`figure-gradient-canvas-v1` exercises shared handles on all four Shape/Vector/Boolean Group palette gradient fills:
+anchor movement under parent transforms, unchanged figure transforms, angular range/Ctrl,
 palette keys, Undo/Escape and Boolean appearance gating. It requires
 `windows,user-state,temp-files`; actual Shape/Vector/Boolean Group canvas previews remain in a GUID diagnostic directory.
 It also checks every Boolean mode and Combine Group/Layers handle availability, preserving child geometry and appearance.
-`figure-fills-v1` checks CPU/GPU circular repetitions and palette wrapping;
+`figure-fills-v1` checks CPU/GPU angular repetitions and palette wrapping;
 `figure-fill-persistence-v1` checks repetitions in JSON, API, conversion, native payload and TIFF.
 
-`gradient-circular-canvas-v1` checks split endpoint colors, both opening directions,
+`gradient-angular-canvas-v1` checks split endpoint colors, both opening directions,
 closing, rotation/translation, color keys/midpoints, Undo/Redo, Escape, mirrored hit testing
 and JSON roundtrips in an owned window. It requires `windows,user-state,temp-files` and
 retains closed/open canvas captures under `Temp/WhimTex/diagnostics/<GUID>/`.
@@ -1479,3 +1747,29 @@ GC counter returned zero on this Editor; allocation figures above instead use th
 all-Editor profiler counter. Background worker sums still show compression dominating file
 Write calls; sums from concurrent Tasks must not be added to UI latency. Reports and raw paths:
 project `Temp/WhimTex/page-buffer-comparison/report.md` and `cases.json`.
+
+### Per-layer / per-FX viewport checks (2026-10-19)
+
+`canvas-viewport-render-v1` now includes color FX with canvas UV/input dimensions, spatial
+helper reads, mixed FX order, group/clipping/processor input, cache retention across frames
+and pan, and generated-wrapper restoration without applying pending source. Active brush
+comparisons include a color FX, masks, low alpha, signed HDR, blending and erasure.
+572 assertions passed. `hlsl-only-fx-v1` passed 73 assertions covering group/Target,
+thumbnail/export and document round trips. These are detached fixtures, not user documents.
+
+`canvas-viewport-fx-8k` runs four automatic brush curves: 81/2048 px, fit/native view,
+with HSV (Hue 35) on Drawing and separate 64px Text. All four passed on D3D12.
+Native output was 1216×960, fit output 512²; brush caches were 17.81/4 MiB ARGBFloat.
+The Half paint surface remains 8192² (512 MiB logical payload), and source/atlas/Undo
+memory is separate. CPU paint medians were 0.26–0.51 ms; canvas submission 1.68–1.80 ms
+(p95 2.21–2.74 ms). Native no-FX, single-layer controls were 1.12–1.16 ms canvas submission:
+the extra FX and text have a measurable cost, while ordinary stamp submission remains similar.
+The initial regional implementation unnecessarily serialized/cached the changing Drawing
+layer (5.53–6.26 ms canvas medians); bypassing this cache removed that overhead.
+HSV GPU intervals were about 0.09 ms at native view and 0.025–0.027 ms at fit view.
+These are stage timings, not presented FPS; graphics-memory figures are texture payloads,
+not physical VRAM or proof that every spatial effect has bounded native-zoom cost.
+
+`freeform-figure-v1` checks Shape/Vector Freeform fill and stroke CPU/GPU agreement, HDR/alpha,
+coverage reuse, Undo, TIFF document blocks/JSON, grouped/Target/clipping consumers and native 8K viewport regions.
+`freeform-gradient-canvas-v1` also exercises the shared figure point inspector and transformed fill/stroke gestures.

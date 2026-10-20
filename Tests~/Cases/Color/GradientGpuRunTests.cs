@@ -115,9 +115,9 @@ try
     }
     layer.gradient.Smoothness = 1;
     layer.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic;
-    layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Circular;
+    layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Angular;
     layer.circularWrapMode = DCFApixels.WhimTex.GradientLayerBehaviour.WrapMode.PingPong;
-    Compare("Circular exact center and ping-pong");
+    Compare("Angular exact center and ping-pong");
     foreach(var wrap in new[]{DCFApixels.WhimTex.GradientLayerBehaviour.WrapMode.Repeat, DCFApixels.WhimTex.GradientLayerBehaviour.WrapMode.PingPong})
     foreach(float angle in new[]{0f,37f,90f,-123f,359f})
     foreach(float repeats in new[]{.5f,1f,1.2f,3.2f})

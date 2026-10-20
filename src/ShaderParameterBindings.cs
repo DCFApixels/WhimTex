@@ -6,28 +6,28 @@ namespace DCFApixels.WhimTex
 {
     internal sealed class ShaderParameterBindings : IDisposable
     {
-        private readonly Dictionary<string, WhimTexGradientTexture> gradients = new Dictionary<string, WhimTexGradientTexture>();
-        private readonly Dictionary<string, WhimTexCurveTexture> curves = new Dictionary<string, WhimTexCurveTexture>();
+        private readonly Dictionary<int, WhimTexGradientTexture> gradients = new Dictionary<int, WhimTexGradientTexture>();
+        private readonly Dictionary<int, WhimTexCurveTexture> curves = new Dictionary<int, WhimTexCurveTexture>();
         private Texture2D transparent;
 
         internal void Apply(Material material, ShaderFXParameter value, ShaderFXParameter declaration, Vector2 dimensions, float pixelScale = 1f)
         {
-            string prefix = declaration.type == ShaderFXParameterType.Gradient || declaration.type == ShaderFXParameterType.Curve
-                ? declaration.InternalPrefix : null;
             switch (declaration.type)
             {
                 case ShaderFXParameterType.Gradient:
-                    if (!gradients.TryGetValue(prefix, out var gradient))
-                        gradients.Add(prefix, gradient = new WhimTexGradientTexture());
+                    int gradientId = declaration.GradientPropertyId;
+                    if (!gradients.TryGetValue(gradientId, out var gradient))
+                        gradients.Add(gradientId, gradient = new WhimTexGradientTexture());
                     value.gradientValue ??= new WhimTexGradient();
-                    material.SetTexture(prefix + "Gradient", gradient.GetTexture(value.gradientValue));
-                    material.SetFloat(prefix + "GradientWrap", (float)value.gradientValue.WrapMode);
+                    material.SetTexture(gradientId, gradient.GetTexture(value.gradientValue));
+                    material.SetFloat(declaration.GradientWrapPropertyId, (float)value.gradientValue.WrapMode);
                     break;
                 case ShaderFXParameterType.Curve:
-                    if (!curves.TryGetValue(prefix, out var curve))
-                        curves.Add(prefix, curve = new WhimTexCurveTexture());
+                    int curveId = declaration.CurvePropertyId;
+                    if (!curves.TryGetValue(curveId, out var curve))
+                        curves.Add(curveId, curve = new WhimTexCurveTexture());
                     value.curveValue ??= WhimTexCurveTexture.Default();
-                    material.SetTexture(prefix + "Curve", curve.GetTexture(value.curveValue));
+                    material.SetTexture(curveId, curve.GetTexture(value.curveValue));
                     break;
                 case ShaderFXParameterType.Texture2D when value.textureSource == ShaderFXTextureSource.None:
                     if (transparent == null)
@@ -36,7 +36,7 @@ namespace DCFApixels.WhimTex
                         transparent.SetPixel(0, 0, Color.clear);
                         transparent.Apply(false, true);
                     }
-                    material.SetTexture(declaration.name, transparent);
+                    material.SetTexture(declaration.PropertyId, transparent);
                     break;
                 default:
                     value.SetValue(material, declaration, dimensions, pixelScale);

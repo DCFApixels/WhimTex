@@ -3,7 +3,7 @@
 
 #include "Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc"
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(float4 color)
 {
     float3 channels = _PackedColor > 0.5 ? SpriteEncode(color.rgb) : color.rgb;
     float3 normal = channels * 2.0 - 1.0;

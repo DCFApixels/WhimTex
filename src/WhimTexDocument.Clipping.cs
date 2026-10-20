@@ -51,9 +51,7 @@ namespace DCFApixels.WhimTex
             RenderTexture content = null;
             try
             {
-                content = GetClearRenderTexture(w, h);
-                RenderGroupGeometry(group, ref content, w, h, scale, stack, included);
-                group.ApplyFx(ref content, new LayerRenderContext(this, null, w, h, scale, false, true));
+                content = RenderGroupPixels(group, w, h, scale, stack, included);
                 content = FinishStage(content, group.colorRange == LayerColorRange.Standard, group.channelMapping);
                 RenderTexture result = content;
                 content = null;

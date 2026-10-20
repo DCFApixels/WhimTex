@@ -3,6 +3,85 @@
   "title": "WhimTex live API field definitions",
   "description": "Reusable field shapes for live API patches and brush authoring. Not a document or clipboard envelope; use document.schema.json for stored layers.",
   "$defs": {
+    "gradientType": {
+      "type": "string",
+      "enum": [
+        "Linear",
+        "Radial",
+        "Angular",
+        "Square",
+        "Freeform"
+      ]
+    },
+    "freeform": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "points": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "position": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": -10000,
+                  "maximum": 10000
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "color": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -107,
+                    "maximum": 107
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -107,
+                    "maximum": 107
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -107,
+                    "maximum": 107
+                  },
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                ],
+                "items": false,
+                "minItems": 4,
+                "maxItems": 4
+              },
+              "influence": {
+                "type": "number",
+                "minimum": 0.01,
+                "maximum": 4,
+                "default": 0.35,
+                "description": "Relative influence in local layer coordinates, displayed as percent. Smooth decay with no hard boundary."
+              }
+            },
+            "required": [
+              "position",
+              "color"
+            ]
+          }
+        }
+      },
+      "required": [
+        "points"
+      ]
+    },
     "text": {
       "type": "object",
       "additionalProperties": false,
@@ -200,8 +279,7 @@
             "LinearGradient",
             "RadialGradient",
             "SquareGradient",
-            "DiamondGradient",
-            "CircularGradient"
+            "AngularGradient"
           ],
           "default": "Solid"
         },
@@ -1000,6 +1078,12 @@
           "minItems": 4,
           "maxItems": 4
         },
+        "freeform": {
+          "$ref": "#/$defs/freeform"
+        },
+        "strokeFreeform": {
+          "$ref": "#/$defs/freeform"
+        },
         "fillMode": {
           "type": "string",
           "enum": [
@@ -1008,15 +1092,15 @@
             "LinearGradient",
             "RadialGradient",
             "SquareGradient",
-            "DiamondGradient",
-            "CircularGradient"
+            "AngularGradient",
+            "Freeform"
           ],
           "default": "Solid",
-          "description": "Shared Shape/Vector fill mode. None disables fill; Solid uses fillColor; the five gradient modes use gradient. Inactive settings are retained in every JSON write mode."
+          "description": "Shared Shape/Vector fill mode. None disables fill; Solid uses fillColor; the four palette modes use gradient; Freeform uses freeform. Inactive settings are retained in every JSON write mode."
         },
         "gradient": {
           "$ref": "#/$defs/gradient",
-          "description": "Replaces the complete palette; default black-to-white Perceptual/Clamp. Uses existing wrapMode after the circular-only gradientRepetitions multiplier."
+          "description": "Replaces the complete palette; default black-to-white Perceptual/Clamp. Uses existing wrapMode after the angular-only gradientRepetitions multiplier."
         },
         "gradientStart": {
           "type": "array",
@@ -1046,14 +1130,14 @@
             1,
             0
           ],
-          "description": "Normalized endpoint setting radius and orientation in reference pixels. Square uses max(abs(rotated coordinates)); Diamond uses sumabs. Circular advances CCW from the start-to-end ray, which is its seam. Equal anchors give t=0 for every gradient type."
+          "description": "Normalized endpoint setting radius and orientation in reference pixels. Square uses max(abs(rotated coordinates)). Angular advances CCW from the start-to-end ray, which is its seam. Equal anchors give t=0 for every gradient type."
         },
         "gradientRepetitions": {
           "type": "number",
           "minimum": 0.0001,
           "maximum": 3.40282347e+38,
           "default": 1,
-          "description": "Finite circular-gradient repetitions, at least 0.0001; default 1. CircularGradient only: one period spans 360/gradientRepetitions degrees from the gradientStart-to-gradientEnd ray, before palette wrapping. Retained and validated in every fill mode, including disabled fills."
+          "description": "Finite angular-gradient repetitions, at least 0.0001; default 1. AngularGradient only: one period spans 360/gradientRepetitions degrees from the gradientStart-to-gradientEnd ray, before palette wrapping. Retained and validated in every fill mode, including disabled fills."
         },
         "stroke": {
           "type": "boolean"
@@ -1099,15 +1183,15 @@
             "LinearGradient",
             "RadialGradient",
             "SquareGradient",
-            "DiamondGradient",
-            "CircularGradient"
+            "AngularGradient",
+            "Freeform"
           ],
           "default": "Solid",
-          "description": "Independent stroke paint. None disables paint without clearing settings; Solid uses strokeColor; the five gradient modes use strokeGradient. stroke remains an additional gate. Inactive settings are retained in every JSON write mode."
+          "description": "Independent stroke paint. None disables paint without clearing settings; Solid uses strokeColor; the four palette modes use strokeGradient; Freeform uses strokeFreeform. stroke remains an additional gate. Inactive settings are retained in every JSON write mode."
         },
         "strokeGradient": {
           "$ref": "#/$defs/gradient",
-          "description": "Replaces only the complete stroke palette; default black-to-white Perceptual/Clamp. Independent HDR/alpha stops, midpoints, interpolation, smoothness, colorSpace and wrapMode. Wrapping follows the circular-only strokeGradientRepetitions multiplier."
+          "description": "Replaces only the complete stroke palette; default black-to-white Perceptual/Clamp. Independent HDR/alpha stops, midpoints, interpolation, smoothness, colorSpace and wrapMode. Wrapping follows the angular-only strokeGradientRepetitions multiplier."
         },
         "strokeGradientStart": {
           "type": "array",
@@ -1137,14 +1221,14 @@
             1,
             0
           ],
-          "description": "Finite local endpoint setting radius and orientation from strokeGradientStart. Same five gradient geometries as fill. Circular advances CCW from this ray, with its seam on the ray. Equal anchors give t=0."
+          "description": "Finite local endpoint setting radius and orientation from strokeGradientStart. Same four gradient geometries as fill. Angular advances CCW from this ray, with its seam on the ray. Equal anchors give t=0."
         },
         "strokeGradientRepetitions": {
           "type": "number",
           "minimum": 0.0001,
           "maximum": 3.40282347e+38,
           "default": 1,
-          "description": "Finite circular stroke repetitions, at least 0.0001. One period spans 360/strokeGradientRepetitions degrees before palette wrapping. Retained and validated with stroke false and in every strokeMode; affects CircularGradient only."
+          "description": "Finite angular stroke repetitions, at least 0.0001. One period spans 360/strokeGradientRepetitions degrees before palette wrapping. Retained and validated with stroke false and in every strokeMode; affects AngularGradient only."
         },
         "arcThickness": {
           "type": "number",

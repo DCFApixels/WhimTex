@@ -24,6 +24,8 @@ namespace DCFApixels.WhimTex
         public Color fillColor = Color.white;
         public VectorFillMode fillMode = VectorFillMode.Solid;
         public WhimTexGradient gradient = new WhimTexGradient();
+        public FreeformGradient freeform = new FreeformGradient();
+        [NonSerialized] internal int selectedFreeformPoint;
         public Vector2 gradientStart = Vector2.zero, gradientEnd = Vector2.right;
         public float gradientRepetitions = 1f;
         public bool fill = true;
@@ -31,6 +33,8 @@ namespace DCFApixels.WhimTex
         public Color strokeColor = Color.black;
         public VectorFillMode strokeMode = VectorFillMode.Solid;
         public WhimTexGradient strokeGradient = new WhimTexGradient();
+        public FreeformGradient strokeFreeform = new FreeformGradient();
+        [NonSerialized] internal int selectedStrokeFreeformPoint;
         public Vector2 strokeGradientStart = Vector2.zero, strokeGradientEnd = Vector2.right;
         public float strokeGradientRepetitions = 1f;
         public float strokeWidth = 2f;
@@ -67,6 +71,7 @@ namespace DCFApixels.WhimTex
             hash.Add(kind); hash.Add(fillColor); hash.Add(fill); hash.Add(stroke); hash.Add(strokeColor);
             hash.Add(fillMode); hash.Add(gradient?.GetHashCode() ?? 0); hash.Add(gradientStart); hash.Add(gradientEnd);
             hash.Add(gradientRepetitions);
+            hash.Add(freeform?.ContentHash() ?? 0); hash.Add(strokeFreeform?.ContentHash() ?? 0);
             hash.Add(strokeMode); hash.Add(strokeGradient?.GetHashCode() ?? 0);
             hash.Add(strokeGradientStart); hash.Add(strokeGradientEnd); hash.Add(strokeGradientRepetitions);
             hash.Add(strokeWidth); hash.Add(arcThickness); hash.Add(strokePosition); hash.Add(lineCap); hash.Add(edgeMode);
@@ -154,6 +159,11 @@ namespace DCFApixels.WhimTex
             applied.tiling = Owner.ResolveTiling(applied.tiling);
             float width = context.activeDocument.width, height = context.activeDocument.height;
             material.SetVector("_CanvasSize", new Vector4(width, height, 0f, 0f));
+            var canvasMap = context.applyTransform && context.activeDocument.RenderingViewport
+                ? context.activeDocument.ViewportToCanvas : ProjectiveMatrix.Identity;
+            material.SetVector("_ShapePixelGrid", new Vector4((float)canvasMap.m00 * width,
+                (float)canvasMap.m11 * height, (float)canvasMap.m02 * width, (float)canvasMap.m12 * height));
+            material.SetVector("_ShapeOutputSize", new Vector4(context.width, context.height, 0, 0));
             Owner.SetRenderInverse(material,"_ShapeRow",context);
             applied.GetDisplay(new Vector2(width,height),out _,out var displayScale,out _);
             material.SetVector("_ShapeScale",(Vector2)displayScale);
@@ -166,7 +176,8 @@ namespace DCFApixels.WhimTex
             material.SetInt("_FigureFillMode", (int)fillMode);
             material.SetVector("_FigureFillAnchors", new Vector4(gradientStart.x, gradientStart.y, gradientEnd.x, gradientEnd.y));
             material.SetFloat("_FigureFillRepetitions", gradientRepetitions);
-            if (fill && FigureFill.IsGradient(fillMode))
+            if (fill && fillMode == VectorFillMode.Freeform) freeform.Bind(material);
+            if (fill && FigureFill.IsPaletteGradient(fillMode))
             {
                 fillPalette ??= new WhimTexGradientPalette();
                 fillPalette.Bind(material, gradient);
@@ -175,7 +186,8 @@ namespace DCFApixels.WhimTex
             material.SetInt("_FigureStrokeMode", (int)strokeMode);
             material.SetVector("_FigureStrokeAnchors", new Vector4(strokeGradientStart.x, strokeGradientStart.y, strokeGradientEnd.x, strokeGradientEnd.y));
             material.SetFloat("_FigureStrokeRepetitions", strokeGradientRepetitions);
-            if (stroke && FigureFill.IsGradient(strokeMode))
+            if (stroke && strokeMode == VectorFillMode.Freeform) strokeFreeform.Bind(material, stroke: true);
+            if (stroke && FigureFill.IsPaletteGradient(strokeMode))
             {
                 strokePalette ??= new WhimTexGradientPalette();
                 strokePalette.Bind(material, strokeGradient, stroke: true);

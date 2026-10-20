@@ -1,5 +1,693 @@
 [
   {
+    "name": "layout: tab bool header",
+    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @param bool _Enabled = true\n// @param float _Value\n// @endtab\n// @endtabs",
+    "valid": true
+  },
+  {
+    "name": "layout: tab hidden bool header with disabled body",
+    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @param hidden bool _Enabled = false\n// @enableif _Enabled == 1\n// @param float _Value\n// @endenableif\n// @endtab\n// @endtabs",
+    "valid": true
+  },
+  {
+    "name": "layout: tab header must belong directly to page",
+    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @foldout(Details)\n// @param bool _Enabled\n// @endfoldout\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: tab header cannot belong to another page",
+    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @param float _Value\n// @endtab\n// @tab(Other)\n// @param bool _Enabled\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: tab header cannot be conditional",
+    "source": "// @param bool _Show\n// @tabs\n// @tab(Page; _Enabled)\n// @enableif _Show == 1\n// @param bool _Enabled\n// @endenableif\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: tab header cannot be repeated",
+    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @param bool _Enabled\n// @param bool _Enabled\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: tab header must exist",
+    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @param float _Value\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: hidden tab header still needs visible content",
+    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @param hidden bool _Enabled\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "enableif: float equality",
+    "source": "// @param float _Amount\n// @enableif _Amount == +1e-2\n// @param float _Value\n// @endenableif",
+    "valid": true
+  },
+  {
+    "name": "enableif: bool inequality",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled != 0\n// @header(Details)\n// @helpbox(Hint)\n// @param float _Value\n// @endenableif",
+    "valid": true
+  },
+  {
+    "name": "enableif: forward fractional enum driver",
+    "source": "// @enableif _Mode != .5\n// @param float _Value\n// @endenableif\n// @param enum _Mode {A: 0, B: .5}",
+    "valid": true
+  },
+  {
+    "name": "enableif: nested enabled blocks",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @enableif _Enabled != 0\n// @param float _Value\n// @endenableif\n// @endenableif",
+    "valid": true
+  },
+  {
+    "name": "enableif: inside visibility block",
+    "source": "// @param bool _Enabled = true\n// @if _Enabled == 1\n// @enableif _Enabled != 0\n// @param float _Value\n// @endenableif\n// @endif",
+    "valid": true
+  },
+  {
+    "name": "enableif: around visibility block",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @if _Enabled != 0\n// @param float _Value\n// @endif\n// @endenableif",
+    "valid": true
+  },
+  {
+    "name": "enableif: preview-only page with unconditional header",
+    "source": "// @tabs\n// @tab(Page)\n// @group(Range; _Enabled)\n// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @preview(P)\n// @endenableif\n// @endgroup\n// @endtab\n// @endtabs",
+    "valid": true
+  },
+  {
+    "name": "enableif: driver declared under enableif",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @param bool _Driver\n// @endenableif\n// @enableif _Driver == 1\n// @param float _Value\n// @endenableif",
+    "valid": true
+  },
+  {
+    "name": "enableif: visibility driver declared under enableif",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @param bool _Driver\n// @endenableif\n// @if _Driver == 1\n// @param float _Value\n// @endif",
+    "valid": true
+  },
+  {
+    "name": "enableif: self driver under enableif",
+    "source": "// @enableif _Enabled == 1\n// @param bool _Enabled = true\n// @endenableif",
+    "valid": true
+  },
+  {
+    "name": "enableif: empty missing driver has no dependency",
+    "source": "// @enableif _Missing == 1\n// @endenableif",
+    "valid": true
+  },
+  {
+    "name": "enableif: empty vector driver has no dependency",
+    "source": "// @param float2 _Vector\n// @enableif _Vector == 1\n// @endenableif",
+    "valid": true
+  },
+  {
+    "name": "enableif: header and helpbox alone have no driver dependency",
+    "source": "// @enableif _Missing == 1\n// @header(Details)\n// @helpbox(Hint)\n// @endenableif",
+    "valid": true
+  },
+  {
+    "name": "enableif: empty mixed blocks have no dependencies",
+    "source": "// @enableif _Missing == 1\n// @if _Other == 1\n// @endif\n// @endenableif",
+    "valid": true
+  },
+  {
+    "name": "enableif: 16 condition levels",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @preview(P)\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif",
+    "valid": true
+  },
+  {
+    "name": "enableif: 17 condition levels",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @preview(P)\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: missing closing directive",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @param float _Value",
+    "valid": false
+  },
+  {
+    "name": "enableif: unmatched closing directive",
+    "source": "// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: closing directive rejects arguments",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @param float _Value\n// @endenableif(extra)",
+    "valid": false
+  },
+  {
+    "name": "enableif: if cannot close enableif",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @param float _Value\n// @endif",
+    "valid": false
+  },
+  {
+    "name": "enableif: enableif cannot close if",
+    "source": "// @param bool _Enabled = true\n// @if _Enabled == 1\n// @param float _Value\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: mixed blocks cannot cross",
+    "source": "// @param bool _Enabled = true\n// @if _Enabled == 1\n// @enableif _Enabled == 1\n// @param float _Value\n// @endif\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: enableif does not permit nested if",
+    "source": "// @param bool _Enabled = true\n// @if _Enabled == 1\n// @enableif _Enabled == 1\n// @if _Enabled == 1\n// @param float _Value\n// @endif\n// @endenableif\n// @endif",
+    "valid": false
+  },
+  {
+    "name": "enableif: invalid operator",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled >= 1\n// @param float _Value\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: non-numeric bool",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == true\n// @param float _Value\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: nonfinite comparison",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == NaN\n// @param float _Value\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: overflow comparison",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1e50\n// @param float _Value\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: infinite comparison",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == Infinity\n// @param float _Value\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: missing driver on a field",
+    "source": "// @enableif _Missing == 1\n// @param float _Value\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: missing driver on a hidden field",
+    "source": "// @enableif _Missing == 1\n// @param hidden float _Value\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: missing driver on a preview",
+    "source": "// @enableif _Missing == 1\n// @preview(P)\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: outer missing driver reaches nested preview",
+    "source": "// @param bool _Enabled = true\n// @enableif _Missing == 1\n// @enableif _Enabled == 1\n// @preview(P)\n// @endenableif\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: vector driver on a field",
+    "source": "// @param float2 _Vector\n// @enableif _Vector == 1\n// @param float _Value\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: vector driver on a preview",
+    "source": "// @param float2 _Vector\n// @enableif _Vector == 1\n// @preview(P)\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: driver declared under if",
+    "source": "// @param bool _Enabled = true\n// @if _Enabled == 1\n// @param bool _Driver\n// @endif\n// @enableif _Driver == 1\n// @preview(P)\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: group header must be unconditional",
+    "source": "// @param bool _Enabled = true\n// @group(Title; _Header)\n// @enableif _Enabled == 1\n// @param hidden bool _Header\n// @param float _Value\n// @endenableif\n// @endgroup",
+    "valid": false
+  },
+  {
+    "name": "enableif: group cannot open inside condition",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @group(Title)\n// @param float _Value\n// @endgroup\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: group cannot close inside condition",
+    "source": "// @param bool _Enabled = true\n// @group(Title)\n// @enableif _Enabled == 1\n// @param float _Value\n// @endgroup\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: foldout header must be unconditional",
+    "source": "// @param bool _Enabled = true\n// @foldout(Title; _Header)\n// @enableif _Enabled == 1\n// @param hidden bool _Header\n// @param float _Value\n// @endenableif\n// @endfoldout",
+    "valid": false
+  },
+  {
+    "name": "enableif: foldout cannot open inside condition",
+    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @foldout(Title)\n// @param float _Value\n// @endfoldout\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "enableif: foldout cannot close inside condition",
+    "source": "// @param bool _Enabled = true\n// @foldout(Title)\n// @enableif _Enabled == 1\n// @param float _Value\n// @endfoldout\n// @endenableif",
+    "valid": false
+  },
+  {
+    "name": "layout: untitled group remains valid",
+    "source": "// @group\n// @param float _Value\n// @endgroup",
+    "valid": true
+  },
+  {
+    "name": "layout: foldout with title",
+    "source": "// @foldout(Advanced)\n// @param float _Value\n// @endfoldout",
+    "valid": true
+  },
+  {
+    "name": "layout: foldout with hidden header",
+    "source": "// @foldout(Advanced; _Enabled)\n// @param hidden bool _Enabled = true\n// @param float _Value\n// @endfoldout",
+    "valid": true
+  },
+  {
+    "name": "layout: foldouts nested with groups",
+    "source": "// @group(Outer)\n// @foldout(Middle)\n// @group(Inner)\n// @foldout(Details)\n// @preview(P)\n// @endfoldout\n// @endgroup\n// @endfoldout\n// @endgroup",
+    "valid": true
+  },
+  {
+    "name": "layout: untitled tabs with two pages",
+    "source": "// @tabs\n// @tab(Color)\n// @param color _Tint\n// @endtab\n// @tab(Shape)\n// @preview(P, _Tint)\n// @endtab\n// @endtabs",
+    "valid": true
+  },
+  {
+    "name": "layout: titled tabs with nested layout",
+    "source": "// @tabs(Settings)\n// @tab(Page one)\n// @group(Tint)\n// @foldout(Advanced)\n// @param float _Value\n// @endfoldout\n// @endgroup\n// @endtab\n// @endtabs",
+    "valid": true
+  },
+  {
+    "name": "layout: tabs inside foldout",
+    "source": "// @foldout(Outer)\n// @tabs\n// @tab(Page)\n// @param float _Value\n// @endtab\n// @endtabs\n// @endfoldout",
+    "valid": true
+  },
+  {
+    "name": "layout: tabs inside group",
+    "source": "// @group(Outer)\n// @tabs\n// @tab(Page)\n// @param float _Value\n// @endtab\n// @endtabs\n// @endgroup",
+    "valid": true
+  },
+  {
+    "name": "layout: conditional page rows",
+    "source": "// @param bool _Enabled\n// @tabs\n// @tab(Page)\n// @if _Enabled == 1\n// @preview(P, _Enabled)\n// @param float _Value\n// @endif\n// @endtab\n// @endtabs",
+    "valid": true
+  },
+  {
+    "name": "layout: foldout header direct while body nested",
+    "source": "// @foldout(Outer; _Enabled)\n// @param hidden bool _Enabled\n// @group(Inner)\n// @param float _Value\n// @endgroup\n// @endfoldout",
+    "valid": true
+  },
+  {
+    "name": "layout: same page name in separate tabs blocks",
+    "source": "// @tabs\n// @tab(Page)\n// @preview(P)\n// @endtab\n// @endtabs\n// @tabs(Other)\n// @tab(Page)\n// @preview(P)\n// @endtab\n// @endtabs",
+    "valid": true
+  },
+  {
+    "name": "layout: page names are case sensitive",
+    "source": "// @tabs\n// @tab(Page)\n// @preview(P)\n// @endtab\n// @tab(page)\n// @preview(P)\n// @endtab\n// @endtabs",
+    "valid": true
+  },
+  {
+    "name": "layout: group directly inside group rejected",
+    "source": "// @group(Outer)\n// @param float _Outer\n// @group(Inner)\n// @param float _Inner\n// @endgroup\n// @endgroup",
+    "valid": false
+  },
+  {
+    "name": "layout: nearest group restored after foldout closes",
+    "source": "// @group(Outer)\n// @foldout(First)\n// @preview(P)\n// @endfoldout\n// @group(Second)\n// @preview(P)\n// @endgroup\n// @endgroup",
+    "valid": false
+  },
+  {
+    "name": "layout: group through tabs still has nearest group",
+    "source": "// @group(Outer)\n// @tabs\n// @tab(Page)\n// @group(Inner)\n// @preview(P)\n// @endgroup\n// @endtab\n// @endtabs\n// @endgroup",
+    "valid": false
+  },
+  {
+    "name": "layout: foldout title required",
+    "source": "// @foldout\n// @param float _Value\n// @endfoldout",
+    "valid": false
+  },
+  {
+    "name": "layout: empty foldout title",
+    "source": "// @foldout( )\n// @param float _Value\n// @endfoldout",
+    "valid": false
+  },
+  {
+    "name": "layout: foldout header without title",
+    "source": "// @foldout(; _Value)\n// @param float _Value\n// @endfoldout",
+    "valid": false
+  },
+  {
+    "name": "layout: malformed foldout header",
+    "source": "// @foldout(Title; _A; _B)\n// @param float _A\n// @param float _B\n// @endfoldout",
+    "valid": false
+  },
+  {
+    "name": "layout: foldout header missing",
+    "source": "// @foldout(Title; _Missing)\n// @param float _Value\n// @endfoldout",
+    "valid": false
+  },
+  {
+    "name": "layout: foldout header outside",
+    "source": "// @param bool _Enabled\n// @foldout(Title; _Enabled)\n// @preview(P)\n// @endfoldout",
+    "valid": false
+  },
+  {
+    "name": "layout: foldout header duplicated across pages",
+    "source": "// @tabs\n// @tab(One)\n// @foldout(Title; _Enabled)\n// @param bool _Enabled\n// @param float _Value\n// @endfoldout\n// @endtab\n// @tab(Two)\n// @param bool _Enabled\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: foldout header conditional",
+    "source": "// @param bool _Mode\n// @foldout(Title; _Enabled)\n// @if _Mode == 1\n// @param bool _Enabled\n// @endif\n// @endfoldout",
+    "valid": false
+  },
+  {
+    "name": "layout: foldout header in child group",
+    "source": "// @foldout(Outer; _Enabled)\n// @group(Inner)\n// @param bool _Enabled\n// @endgroup\n// @endfoldout",
+    "valid": false
+  },
+  {
+    "name": "layout: group header in child foldout",
+    "source": "// @group(Outer; _Enabled)\n// @foldout(Inner)\n// @param bool _Enabled\n// @endfoldout\n// @endgroup",
+    "valid": false
+  },
+  {
+    "name": "layout: empty foldout",
+    "source": "// @foldout(Title)\n// @endfoldout",
+    "valid": false
+  },
+  {
+    "name": "layout: hidden only foldout",
+    "source": "// @foldout(Title; _Enabled)\n// @param hidden bool _Enabled\n// @endfoldout",
+    "valid": false
+  },
+  {
+    "name": "layout: hidden inline preview is not a visible row",
+    "source": "// @foldout(Title)\n// @param hidden preview(P) float _Value\n// @endfoldout",
+    "valid": false
+  },
+  {
+    "name": "layout: missing foldout end",
+    "source": "// @foldout(Title)\n// @preview(P)",
+    "valid": false
+  },
+  {
+    "name": "layout: empty tabs parentheses",
+    "source": "// @tabs()\n// @tab(Page)\n// @preview(P)\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: tabs cannot have header binding",
+    "source": "// @tabs(Title; _Value)\n// @tab(Page)\n// @param float _Value\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: tabs require pages",
+    "source": "// @tabs\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: parameter directly under tabs",
+    "source": "// @tabs\n// @param float _Value\n// @tab(Page)\n// @preview(P)\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: hidden parameter directly under tabs",
+    "source": "// @tabs\n// @param hidden float _Value\n// @tab(Page)\n// @preview(P)\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: preview directly under tabs",
+    "source": "// @tabs\n// @preview(P)\n// @tab(Page)\n// @param float _Value\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: group directly under tabs",
+    "source": "// @tabs\n// @group(Title)\n// @preview(P)\n// @endgroup\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: foldout directly under tabs",
+    "source": "// @tabs\n// @foldout(Title)\n// @preview(P)\n// @endfoldout\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: tab outside tabs",
+    "source": "// @tab(Page)\n// @preview(P)\n// @endtab",
+    "valid": false
+  },
+  {
+    "name": "layout: tab inside group instead of tabs",
+    "source": "// @group(Title)\n// @tab(Page)\n// @preview(P)\n// @endtab\n// @endgroup",
+    "valid": false
+  },
+  {
+    "name": "layout: tab title required",
+    "source": "// @tabs\n// @tab\n// @preview(P)\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: empty tab title",
+    "source": "// @tabs\n// @tab( )\n// @preview(P)\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: duplicate trimmed tab titles",
+    "source": "// @tabs\n// @tab(Page)\n// @preview(P)\n// @endtab\n// @tab( Page )\n// @preview(P)\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: tab header cannot be float",
+    "source": "// @tabs\n// @tab(Page; _Value)\n// @param float _Value\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: empty page beside populated page",
+    "source": "// @tabs\n// @tab(Empty)\n// @endtab\n// @tab(Other)\n// @preview(P)\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: hidden only page",
+    "source": "// @tabs\n// @tab(Page)\n// @param hidden float _Value\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: headings alone do not fill page",
+    "source": "// @tabs\n// @tab(Page)\n// @header(Heading)\n// @helpbox(Hint)\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: nested tabs inside page",
+    "source": "// @tabs\n// @tab(Outer)\n// @tabs\n// @tab(Inner)\n// @preview(P)\n// @endtab\n// @endtabs\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: nested tabs through foldout",
+    "source": "// @tabs\n// @tab(Outer)\n// @foldout(Details)\n// @tabs\n// @tab(Inner)\n// @preview(P)\n// @endtab\n// @endtabs\n// @endfoldout\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: nested pages without closing previous page",
+    "source": "// @tabs\n// @tab(Outer)\n// @tab(Inner)\n// @preview(P)\n// @endtab\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "layout: mismatched container end",
+    "source": "// @foldout(Title)\n// @preview(P)\n// @endgroup",
+    "valid": false
+  },
+  {
+    "name": "layout: endtabs before endtab",
+    "source": "// @tabs\n// @tab(Page)\n// @preview(P)\n// @endtabs\n// @endtab",
+    "valid": false
+  },
+  {
+    "name": "layout: missing tab and tabs ends",
+    "source": "// @tabs\n// @tab(Page)\n// @preview(P)",
+    "valid": false
+  },
+  {
+    "name": "layout: 16 foldout levels",
+    "source": "// @foldout(Level 0)\n// @foldout(Level 1)\n// @foldout(Level 2)\n// @foldout(Level 3)\n// @foldout(Level 4)\n// @foldout(Level 5)\n// @foldout(Level 6)\n// @foldout(Level 7)\n// @foldout(Level 8)\n// @foldout(Level 9)\n// @foldout(Level 10)\n// @foldout(Level 11)\n// @foldout(Level 12)\n// @foldout(Level 13)\n// @foldout(Level 14)\n// @foldout(Level 15)\n// @preview(P)\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout",
+    "valid": true
+  },
+  {
+    "name": "layout: 17 foldout levels",
+    "source": "// @foldout(Level 0)\n// @foldout(Level 1)\n// @foldout(Level 2)\n// @foldout(Level 3)\n// @foldout(Level 4)\n// @foldout(Level 5)\n// @foldout(Level 6)\n// @foldout(Level 7)\n// @foldout(Level 8)\n// @foldout(Level 9)\n// @foldout(Level 10)\n// @foldout(Level 11)\n// @foldout(Level 12)\n// @foldout(Level 13)\n// @foldout(Level 14)\n// @foldout(Level 15)\n// @foldout(Level 16)\n// @preview(P)\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout",
+    "valid": false
+  },
+  {
+    "name": "layout: tabs and page count toward 16 levels",
+    "source": "// @tabs\n// @tab(Page)\n// @foldout(Level 0)\n// @foldout(Level 1)\n// @foldout(Level 2)\n// @foldout(Level 3)\n// @foldout(Level 4)\n// @foldout(Level 5)\n// @foldout(Level 6)\n// @foldout(Level 7)\n// @foldout(Level 8)\n// @foldout(Level 9)\n// @foldout(Level 10)\n// @foldout(Level 11)\n// @foldout(Level 12)\n// @foldout(Level 13)\n// @preview(P)\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endtab\n// @endtabs",
+    "valid": true
+  },
+  {
+    "name": "layout: tabs and page exceed 16 levels",
+    "source": "// @tabs\n// @tab(Page)\n// @foldout(Level 0)\n// @foldout(Level 1)\n// @foldout(Level 2)\n// @foldout(Level 3)\n// @foldout(Level 4)\n// @foldout(Level 5)\n// @foldout(Level 6)\n// @foldout(Level 7)\n// @foldout(Level 8)\n// @foldout(Level 9)\n// @foldout(Level 10)\n// @foldout(Level 11)\n// @foldout(Level 12)\n// @foldout(Level 13)\n// @foldout(Level 14)\n// @preview(P)\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endfoldout\n// @endtab\n// @endtabs",
+    "valid": false
+  },
+  {
+    "name": "inline explicit preview forward references",
+    "source": "// @param preview(P, _B, _A) float _A\n// @param hidden color _B",
+    "valid": true
+  },
+  {
+    "name": "standalone explicit preview",
+    "source": "// @preview(P, _A, _B)\n// @param float _A\n// @param float2 _B",
+    "valid": true
+  },
+  {
+    "name": "preview repeated arguments",
+    "source": "// @param preview(P, _A, _A) float _A",
+    "valid": true
+  },
+  {
+    "name": "unresolved preview is a local diagnostic",
+    "source": "// @preview(P, _Missing)",
+    "valid": true
+  },
+  {
+    "name": "preview empty argument",
+    "source": "// @param preview(P, , _A) float _A",
+    "valid": false
+  },
+  {
+    "name": "preview trailing comma",
+    "source": "// @preview(P, _A,)\n// @param float _A",
+    "valid": false
+  },
+  {
+    "name": "preview argument expression",
+    "source": "// @param preview(P, _A.x) float2 _A",
+    "valid": false
+  },
+  {
+    "name": "preview literal argument",
+    "source": "// @param preview(P, 1) float _A",
+    "valid": false
+  },
+  {
+    "name": "preview nested expression",
+    "source": "// @param preview(P, abs(_A)) float _A",
+    "valid": false
+  },
+  {
+    "name": "preview no function",
+    "source": "// @param preview(, _A) float _A",
+    "valid": false
+  },
+  {
+    "name": "cyclic full anchored at end",
+    "source": "// @param float2 _R = (-330, 30) [0 % 360]",
+    "valid": true
+  },
+  {
+    "name": "cyclic full anchored at start",
+    "source": "// @param float2 _R = (330, 690) [0 % 360]",
+    "valid": true
+  },
+  {
+    "name": "cyclic full fractional anchor",
+    "source": "// @param float2 _R = (-329.9, 30.1) [0 % 360]",
+    "valid": true
+  },
+  {
+    "name": "cyclic multiple turns invalid",
+    "source": "// @param float2 _R = (30, 750) [0 % 360]",
+    "valid": false
+  },
+  {
+    "name": "cyclic unanchored full invalid",
+    "source": "// @param float2 _R = (390, 750) [0 % 360]",
+    "valid": false
+  },
+  {
+    "name": "ordinary anchored full invalid",
+    "source": "// @param float2 _R = (330, 690) [0 .. 360]",
+    "valid": false
+  },
+  {
+    "name": "cyclic interval wrapped",
+    "source": "// @param float2 _R = (330, 30) [0 % 360]",
+    "valid": true
+  },
+  {
+    "name": "cyclic interval default full",
+    "source": "// @param float2 _R [0 % 360]",
+    "valid": true
+  },
+  {
+    "name": "cyclic interval empty",
+    "source": "// @param float2 _R = (30, 30) [0 % 360]",
+    "valid": true
+  },
+  {
+    "name": "cyclic scalar",
+    "source": "// @param float _R = 360 [0 % 360]",
+    "valid": true
+  },
+  {
+    "name": "cyclic scalar soft",
+    "source": "// @param float _R [0 % ~360]",
+    "valid": false
+  },
+  {
+    "name": "cyclic scalar missing",
+    "source": "// @param float _R [ % 360]",
+    "valid": false
+  },
+  {
+    "name": "cyclic scalar equal limits",
+    "source": "// @param float _R [1 % 1]",
+    "valid": false
+  },
+  {
+    "name": "cyclic interval out of bounds",
+    "source": "// @param float2 _R = (330, -30) [0 % 360]",
+    "valid": false
+  },
+  {
+    "name": "cyclic interval equal limits",
+    "source": "// @param float2 _R [1 % 1]",
+    "valid": false
+  },
+  {
+    "name": "cyclic interval soft",
+    "source": "// @param float2 _R [0 % ~360]",
+    "valid": false
+  },
+  {
+    "name": "cyclic interval point invalid",
+    "source": "// @param point _R [0 % 360]",
+    "valid": false
+  },
+  {
+    "name": "cyclic interval float3 invalid",
+    "source": "// @param float3 _R [0 % 360]",
+    "valid": false
+  },
+  {
+    "name": "cyclic interval reversed limits",
+    "source": "// @param float2 _R [360 % 0]",
+    "valid": false
+  },
+  {
+    "name": "cyclic interval missing",
+    "source": "// @param float2 _R [0 % ]",
+    "valid": false
+  },
+  {
+    "name": "cyclic conflict",
+    "source": "// @param float2 _R [0 % 360]\n// @param float2 _R [0 .. 360]",
+    "valid": false
+  },
+  { "name": "float2 interval", "source": "// @param preview(P) float2 _Range = (0.2, 0.8) [0 .. 1]", "valid": true },
+  { "name": "defaultless float2 interval", "source": "// @param float2 _Range [-180 .. 540]", "valid": true },
+  { "name": "coincident interval endpoints", "source": "// @param float2 _Range = (0.5, 0.5) [0 .. 1]", "valid": true },
+  { "name": "reversed float2 endpoints", "source": "// @param float2 _Range = (0.8, 0.2) [0 .. 1]", "valid": false },
+  { "name": "out-of-bound float2 endpoint", "source": "// @param float2 _Range = (-1, 0.2) [0 .. 1]", "valid": false },
+  { "name": "soft float2 limit", "source": "// @param float2 _Range [0 .. ~1]", "valid": false },
+  { "name": "missing float2 limit", "source": "// @param float2 _Range [ .. 1]", "valid": false },
+  { "name": "equal float2 limits", "source": "// @param float2 _Range [1 .. 1]", "valid": false },
+  {
     "name": "seed fractional bounds and modifiers",
     "source": "// @param label(Seed) seed hidden float _Seed = 2.5 [~2.1 .. ~3.8]",
     "valid": true

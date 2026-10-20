@@ -114,7 +114,7 @@ public static class VectorPaintBenchmark
     }
     static VectorShape Figure()
     {
-        var s=new VectorShape{fillMode=VectorFillMode.CircularGradient,gradientStart=new Vector2(.43f,.47f),gradientEnd=new Vector2(.8f,.6f),gradientRepetitions=1.7f,
+        var s=new VectorShape{fillMode=VectorFillMode.AngularGradient,gradientStart=new Vector2(.43f,.47f),gradientEnd=new Vector2(.8f,.6f),gradientRepetitions=1.7f,
             stroke=true,strokeWidth=14,strokeMode=VectorFillMode.LinearGradient,strokeGradientStart=new Vector2(.2f,.3f),strokeGradientEnd=new Vector2(.8f,.6f),
             join=VectorStrokeJoin.Round,cap=VectorStrokeCap.Round,dashPatternRelative=true,dashPattern=new List<float>{1,1.3f},strokePosition=VectorStrokePosition.Inside};
         s.gradient.WrapMode=WhimTexGradientWrapMode.Mirror;s.gradient.Mode=WhimTexGradientMode.Perceptual;

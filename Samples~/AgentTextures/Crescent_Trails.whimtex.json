@@ -228,7 +228,7 @@
           "filterMode": "Source",
           "behaviour": {
             "$type": "GradientLayerBehaviour",
-            "gradientType": "Circular",
+            "gradientType": "Angular",
             "gradient": {
               "colors": [
                 {
@@ -322,7 +322,7 @@
           "filterMode": "Source",
           "behaviour": {
             "$type": "GradientLayerBehaviour",
-            "gradientType": "Horizontal",
+            "gradientType": "Linear",
             "gradient": {
               "colors": [
                 {
@@ -872,7 +872,7 @@
               "filterMode": "Source",
               "behaviour": {
                 "$type": "GradientLayerBehaviour",
-                "gradientType": "Horizontal",
+                "gradientType": "Linear",
                 "gradient": {
                   "colors": [
                     {
@@ -1020,7 +1020,7 @@
               "filterMode": "Source",
               "behaviour": {
                 "$type": "GradientLayerBehaviour",
-                "gradientType": "Horizontal",
+                "gradientType": "Linear",
                 "gradient": {
                   "colors": [
                     {

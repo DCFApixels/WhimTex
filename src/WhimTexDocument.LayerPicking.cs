@@ -63,7 +63,7 @@ namespace DCFApixels.WhimTex
                     if (rendered != null)
                     {
                         RenderTexture.active = rendered;
-                        sample.ReadPixels(new Rect(x, y, 1, 1), 0, 0, false);
+                        WhimTexProfiler.ReadPixels(sample, new Rect(x, y, 1, 1), 0, 0, false);
                         value = sample.GetPixel(0, 0).a;
                         value = float.IsNaN(value) || float.IsInfinity(value) ? 0f : Mathf.Clamp01(value);
                     }

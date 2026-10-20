@@ -17,6 +17,7 @@ Shader "Hidden/WhimTex/Gradient"
             float2 _GradientOutputSize;
             float _GradientStartTurn;
             int _GradientType, _GradientPingPong;
+            #include "FreeformGradient.cginc"
 
             float Coordinate(float2 uv)
             {
@@ -24,7 +25,6 @@ Shader "Hidden/WhimTex/Gradient"
                 // side of the angular seam, especially on odd-sized canvases.
                 float2 pixel = _UnboundedUv != 0 ? uv * _GradientOutputSize : floor(uv * _GradientOutputSize) + .5;
                 uv = pixel / _GradientOutputSize;
-                if (_GradientType == 0) return uv.y;
                 if (_GradientType == 1) return uv.x;
                 float2 p = (pixel - _GradientShape.xy * _GradientOutputSize) / _GradientOutputSize;
                 if (_GradientType == 3)
@@ -36,14 +36,15 @@ Shader "Hidden/WhimTex/Gradient"
                     float t = turn * _GradientShape.w;
                     return _GradientPingPong != 0 ? 1 - abs(frac(t * .5) * 2 - 1) : frac(t);
                 }
-                float distance = _GradientType == 2 ? length(p) :
-                    _GradientType == 4 ? abs(p.x) + abs(p.y) : max(abs(p.x), abs(p.y));
+                float distance = _GradientType == 2 ? length(p) : max(abs(p.x), abs(p.y));
                 return _GradientShape.z <= 0 ? 0 : distance / _GradientShape.z;
             }
 
             float4 frag(v2f_img input) : SV_Target
             {
-                return SampleGradientPalette(Coordinate(ProceduralSourceUv(input.uv)));
+                float2 uv = ProceduralSourceUv(input.uv);
+                if (_GradientType == 6) return FreeformColor(uv);
+                return SampleGradientPalette(Coordinate(uv));
             }
             ENDCG
         }

@@ -22,11 +22,17 @@ namespace DCFApixels.WhimTex
                 throw Unsupported("Feather is not supported by Vector; set Feather to zero first");
             bool stroked = source.stroke && source.strokeMode != VectorFillMode.None && Limit(source.strokeWidth, 0, 8192, 2) > 0;
             bool translucentStroke = source.strokeColor.a < 1;
-            if (FigureFill.IsGradient(source.strokeMode))
+            if (FigureFill.IsPaletteGradient(source.strokeMode))
             {
                 translucentStroke = false;
                 if (source.strokeGradient != null) foreach (var key in source.strokeGradient.AlphaKeys)
                     if (key.alpha < 1) { translucentStroke = true; break; }
+            }
+            if (source.strokeMode == VectorFillMode.Freeform)
+            {
+                translucentStroke = false;
+                if (source.strokeFreeform != null) foreach (var point in source.strokeFreeform.points)
+                    if (point.color.a < 1) { translucentStroke = true; break; }
             }
             if (stroked && source.fill && source.fillMode != VectorFillMode.None && source.strokePosition != StrokePosition.Outside && translucentStroke)
                 throw Unsupported("overlapping translucent Stroke replaces Shape fill, but Vector blends over it");
@@ -49,6 +55,7 @@ namespace DCFApixels.WhimTex
                 fillColor = source.fillColor, stroke = source.stroke, strokeColor = source.strokeColor,
                 gradient = source.gradient?.Clone(), gradientStart = source.gradientStart, gradientEnd = source.gradientEnd,
                 gradientRepetitions = source.gradientRepetitions,
+                freeform = source.freeform?.Clone(), strokeFreeform = source.strokeFreeform?.Clone(),
                 strokeMode = source.strokeMode, strokeGradient = source.strokeGradient?.Clone(),
                 strokeGradientStart = source.strokeGradientStart, strokeGradientEnd = source.strokeGradientEnd,
                 strokeGradientRepetitions = source.strokeGradientRepetitions,

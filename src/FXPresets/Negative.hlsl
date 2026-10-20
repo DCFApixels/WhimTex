@@ -5,7 +5,7 @@
 // @param bool _InvertAlpha = false // Also invert alpha instead of preserving it.
 // @endgroup
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(float4 color)
 {
     float amount = saturate(_Opacity);
     color.rgb = lerp(color.rgb, 1.0 - color.rgb, amount);

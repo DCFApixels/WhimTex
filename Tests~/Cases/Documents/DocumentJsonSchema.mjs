@@ -78,14 +78,41 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const layerBooleanLiteral = defaultsSource.match(/internal const string LayerBooleanData = @"((?:[^"]|"")*)";/);
     assert(layerBooleanLiteral, 'Boolean operand defaults are frozen');
     Object.assign(defaults.Layer, JSON.parse(layerBooleanLiteral[1].replaceAll('""', '"')));
-    const fillModes = ['None', 'Solid', 'LinearGradient', 'RadialGradient', 'SquareGradient', 'DiamondGradient', 'CircularGradient'];
+    const previewLiteral = defaultsSource.match(/internal const string PreviewControlData = @"((?:[^"]|"")*)";/);
+    assert(previewLiteral, 'Preview metadata defaults are explicit');
+    Object.assign(defaults.ShaderFXParameterControl, JSON.parse(previewLiteral[1].replaceAll('""', '"')));
+    const cyclicLiteral = defaultsSource.match(/internal const string CyclicRangeData = @"((?:[^"]|"")*)";/);
+    assert(cyclicLiteral, 'Cyclic metadata defaults are explicit');
+    for (const type of ['ShaderFXParameter', 'ShaderFXParameterControl'])
+      Object.assign(defaults[type], JSON.parse(cyclicLiteral[1].replaceAll('""', '"')));
+    const textFillLiteral = defaultsSource.match(/internal const string TextFillData = @"((?:[^"]|"")*)";/);
+    assert(textFillLiteral, 'Text fill defaults match the runtime JSON reader');
+    Object.assign(defaults.TextLayerBehaviour, JSON.parse(textFillLiteral[1].replaceAll('""', '"')));
+    defaults.TextLayerBehaviour.gradient = structuredClone(defaults.WhimTexGradient);
+    const valueDefaultsSource = fs.readFileSync(path.join(root, 'src/WhimTexDocumentJson.Values.cs'), 'utf8');
+    const freeformLiteral = valueDefaultsSource.match(/defaultsV2\["GradientLayerBehaviour"\]\["freeform"\] = JObject.Parse\(@"((?:[^"]|"")*)"\);/);
+    const pointLiteral = valueDefaultsSource.match(/defaultsV2\["FreeformGradientPoint"\] = JObject.Parse\(@"((?:[^"]|"")*)"\);/);
+    assert(freeformLiteral && pointLiteral, 'Freeform defaults are frozen independently of runtime constructors');
+    defaults.FreeformGradient = JSON.parse(freeformLiteral[1].replaceAll('""', '"'));
+    defaults.FreeformGradientPoint = JSON.parse(pointLiteral[1].replaceAll('""', '"'));
+    defaults.GradientLayerBehaviour.freeform = structuredClone(defaults.FreeformGradient);
+    for (const type of ['ShapeLayerBehaviour', 'VectorShape']) {
+      defaults[type].freeform = structuredClone(defaults.FreeformGradient);
+      defaults[type].strokeFreeform = structuredClone(defaults.FreeformGradient);
+      validate({ fillMode: 'Freeform', freeform: defaults.FreeformGradient, strokeMode: 'Freeform', strokeFreeform: defaults.FreeformGradient }, schema.$defs[type]);
+      for (const fields of [{ fillMode: 'Freeform', freeform: null }, { strokeMode: 'Freeform', strokeFreeform: null },
+        { freeform: { points: [] } }, { strokeFreeform: { points: [{ position: [0, 0], color: [1, 0, 0, 1], influence: 0 }] } }])
+        assert.throws(() => validate(fields, schema.$defs[type]));
+    }
+    assert.throws(() => validate({ fillMode: 'Freeform' }, schema.$defs.TextLayerBehaviour), 'Text excludes Freeform');
+    const fillModes = ['None', 'Solid', 'LinearGradient', 'RadialGradient', 'SquareGradient', 'AngularGradient', 'Freeform'];
     for (const type of ['ShapeLayerBehaviour', 'VectorShape']) {
       const rule = schema.$defs[type];
       assert.deepEqual(rule.properties.fillMode.enum, fillModes, `${type}: complete shared fill enum`);
       assert.equal(defaults[type].fillMode, 'Solid', `${type}: Solid default`);
       assert.deepEqual(defaults[type].gradientStart, [0, 0]);
       assert.deepEqual(defaults[type].gradientEnd, [1, 0]);
-      assert.equal(defaults[type].gradientRepetitions, 1, `${type}: circular repetitions default`);
+      assert.equal(defaults[type].gradientRepetitions, 1, `${type}: angular repetitions default`);
       assert.equal(rule.properties.gradientRepetitions.default, 1);
       assert.equal(rule.properties.gradientRepetitions.minimum, .0001);
       for (const fillMode of fillModes) {
@@ -160,6 +187,9 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const layerFx = fields => ({ format: 'whimtex.document', version: 2,
       layers: [{ id: 'fx', behaviour: { $type: 'ColorFillLayerBehaviour' }, ...fields }] });
     validate(layerFx({ fx: [] }), schema);
+    validate(layerFx({ fx: [{ $type: 'ShaderFX', $id: 'owned', code: 'float4 ApplyFX(float2 uv,float4 c){return c;}' }, { $ref: 'owned' }, null] }), schema);
+    for (const type of ['UnityEngine.Material', 'UnityEngine.Shader', 'DCFApixels.WhimTex.ShaderFX'])
+      assert.throws(() => validate(layerFx({ fx: [{ $asset: { guid: 'missing', path: 'Assets/RemovedFX.asset', localId: '0', type } }] }), schema), 'Only HLSL model entries and internal identities are allowed');
     assert.throws(() => validate(layerFx({ modifiers: [] }), schema));
     for (const fields of [{ fx: [], modifiers: [] }, { fx: null, modifiers: [] }, { modifiers: null, fx: [] }])
       assert.throws(() => validate(layerFx(fields), schema));

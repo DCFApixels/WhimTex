@@ -36,7 +36,15 @@ JSON, TIFF-контейнер и tagged model имеют версию **2**; в�
   редактировании существующего объявления — authoring-логика, не файловый алиас старого имени.
 - Общий HLSL uniform — `_RenderScale`, без алиаса `_PreviewScale`.
 - Applied snapshot и неприменённый черновик остаются раздельными. Reader не меняет внешние
-  HLSL/native presets. ShaderFX preset `.asset` поддерживается; документ `.asset` — нет.
+  HLSL-пресеты. `Layer.fx` — `List<ShaderFX>`: принадлежащие документу HLSL-экземпляры с
+  независимыми значениями; проектные `.hlsl` связаны с исходником, пользовательские — embedded snapshots.
+  `Code → Embed Copy` отключает HLSL-связь и делает код редактируемым внутри документа.
+  ShaderFX preset `.asset`, внешние Material/Shader FX и документы `.asset` не поддерживаются.
+  JSON-элементы `fx` — модели `ShaderFX`, `null` или внутренние `$ref`, но не `$asset`.
+  Старые внешние FX-ссылки в JSON/TIFF явно отклоняются, включая неразрешимые:
+  `External FX references are no longer supported. Use a marked .hlsl preset or inline HLSL code.`
+  Миграций, пропуска таких FX и перезаписи исходных документов нет; подробности — в
+  [контракте FX](../Documentation~/ShaderFX.md#document-owned-hlsl-effects).
 - Drawing brush settings обслуживают API-рисование по слою, `PaintToolSettings` —
   интерактивное окно. Это действующие разные контексты, не забытая совместимость.
 - [Замороженные образцы](../Tests~/Fixtures/Compatibility0125/README.md) не переписываются:

@@ -63,7 +63,7 @@ public static class TextCharacterConversionTests
         {
             int row = 0;
             foreach (var mode in new[] { VectorFillMode.LinearGradient, VectorFillMode.RadialGradient,
-                VectorFillMode.SquareGradient, VectorFillMode.DiamondGradient, VectorFillMode.CircularGradient })
+                VectorFillMode.SquareGradient, VectorFillMode.AngularGradient })
             {
                 var doc = Document(); var source = Source(); source.fillMode = mode;
                 var fx = ScriptableObject.CreateInstance<ShaderFX>(); fx.hideFlags = HideFlags.HideAndDontSave;

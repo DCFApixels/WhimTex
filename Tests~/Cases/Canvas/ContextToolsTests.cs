@@ -812,10 +812,10 @@ static System.Threading.CancellationToken Cancellation;
                 Check(!Property(manipulator, "IsDragging") && !canvas.HasPointerCapture(PointerId.mousePointerId), "Escape releases capture");
                 Escape(); IsTool("GradientHandles", "Second Escape exits temporary tool");
             }
-            first.gradientType = GradientLayerBehaviour.GradientType.Circular; Refresh();
+            first.gradientType = GradientLayerBehaviour.GradientType.Angular; Refresh();
             IsTool("Brush", "Unsupported gradient context returns base");
-            Check(!Visible("gradientHandlesTool"), "Circular gradient has no handles tool");
-            first.gradientType = GradientLayerBehaviour.GradientType.Horizontal;
+            Check(!Visible("gradientHandlesTool"), "Angular gradient has no handles tool");
+            first.gradientType = GradientLayerBehaviour.GradientType.Linear;
             Select(second.Owner); Select(first.Owner); SetTool("Brush");
             window.CreateGUI(); Refresh();
             IsTool("Brush", "View rebuild preserves manual tool selection");

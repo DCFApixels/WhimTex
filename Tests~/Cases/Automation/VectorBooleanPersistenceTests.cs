@@ -82,7 +82,7 @@ public static class VectorBooleanPersistenceTests
     static WhimTexDocument Fixture(List<Object> owned)
     {
         var document = NewDocument(owned);
-        var common = StyledFigure("Common style"); common.fillMode = VectorFillMode.CircularGradient; common.stroke = true;
+        var common = StyledFigure("Common style"); common.fillMode = VectorFillMode.AngularGradient; common.stroke = true;
         var group = new Layer(new BooleanGroupLayerBehaviour { style = common,
             referenceSize = new Vector2(96, 80), edgeMode = VectorEdgeMode.Step, appearance = BooleanGroupAppearance.Layers }) { layerName = "Boolean root", opacity = .8f };
         group.transform.positionF = new Vector2(3, -2);

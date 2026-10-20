@@ -414,7 +414,7 @@
           "filterMode": "Source",
           "behaviour": {
             "$type": "GradientLayerBehaviour",
-            "gradientType": "Circular",
+            "gradientType": "Angular",
             "gradient": {
               "colors": [
                 {

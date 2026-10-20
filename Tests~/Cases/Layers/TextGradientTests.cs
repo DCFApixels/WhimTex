@@ -46,7 +46,7 @@ public static class TextGradientTests
                 text.gradient = gradient.Clone();
                 foreach (TextGradientScope scope in Enum.GetValues(typeof(TextGradientScope)))
                 foreach (var mode in new[] { VectorFillMode.LinearGradient, VectorFillMode.RadialGradient, VectorFillMode.SquareGradient,
-                    VectorFillMode.DiamondGradient, VectorFillMode.CircularGradient })
+                    VectorFillMode.AngularGradient })
                 {
                     text.fillMode = mode; text.gradientScope = scope;
                     text.gradientStart = new Vector2(.2f, .3f); text.gradientEnd = new Vector2(.8f, .7f);
@@ -63,7 +63,7 @@ public static class TextGradientTests
                         Rect frame = frames[character];
                         if (!frame.Contains(local)) continue;
                         float time = Coordinate(mode, local, frame, text.gradientStart, text.gradientEnd);
-                        if (mode == VectorFillMode.CircularGradient && Mathf.Min(time, 1 - time) < .00005f) continue;
+                        if (mode == VectorFillMode.AngularGradient && Mathf.Min(time, 1 - time) < .00005f) continue;
                         var expected = gradient.Evaluate(time);
                         maxColor = Mathf.Max(maxColor, Mathf.Abs(expected.r - painted[i].r), Mathf.Abs(expected.b - painted[i].b));
                         checkedPixels++;
@@ -202,7 +202,6 @@ public static class TextGradientTests
         if (mode == VectorFillMode.LinearGradient) return along;
         if (mode == VectorFillMode.RadialGradient) return d.magnitude / Mathf.Sqrt(squared);
         if (mode == VectorFillMode.SquareGradient) return Mathf.Max(Mathf.Abs(along), Mathf.Abs(across));
-        if (mode == VectorFillMode.DiamondGradient) return Mathf.Abs(along) + Mathf.Abs(across);
         return Mathf.Repeat(Mathf.Atan2(across, along) / (2 * Mathf.PI), 1);
     }
     static void Same(TestContext t, Color[] a, Color[] b, float tolerance, string message)

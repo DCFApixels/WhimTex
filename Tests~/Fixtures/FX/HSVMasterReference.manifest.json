@@ -1,0 +1,8 @@
+{
+  "file": "HSVMasterReference.hlsl",
+  "sha256": "b8af94a1579bfefa0dd581a2ba95004666363c3dae67aae46997161eb3baf9bf",
+  "hashEncoding": "UTF-8 text with LF line endings",
+  "origin": "Compact production HSV ApplyFX captured before catalog unification on 2026-10-19.",
+  "changes": "Catalog marker and preview-only declarations removed; parameter names and rendering formula retained.",
+  "purpose": "Test-only independent reference, never a discoverable production preset or regenerated output golden."
+}

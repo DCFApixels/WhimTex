@@ -165,7 +165,7 @@ namespace DCFApixels.WhimTex
                 ShaderFXSourceBuilder.BuildParameterDeclarations(aliases, properties, uniforms, new HashSet<string>(StringComparer.Ordinal), true);
                 string wrapped = "Shader \"Hidden/WhimTex/BrushTip\" { Properties {\n" + properties +
                     "} SubShader { Pass { ZTest Always Cull Off ZWrite Off\nHLSLPROGRAM\n#pragma vertex vert_img\n#pragma fragment WhimTexBrushFragment\n#pragma target 3.5\n#include \"UnityCG.cginc\"\n" +
-                    ShaderFXSourceBuilder.NoiseLibraryInclude + uniforms + AliasSource(source, declarations) +
+                    ShaderFXSourceBuilder.NoiseLibraryInclude + ShaderFXSourceBuilder.ColorLibraryInclude + uniforms + AliasSource(source, declarations) +
                     "\nfloat4 WhimTexBrushFragment(v2f_img i) : SV_Target { float4 c=BrushTip(i.uv); return float4(clamp(c.rgb,-65504,65504),saturate(c.a)); }\nENDHLSL\n} } }";
                 Compile(wrapped, source, false, declarations);
                 compiledParameters = aliases;
@@ -180,7 +180,7 @@ namespace DCFApixels.WhimTex
                 RenderTexture.active=target;
                 result=new Texture2D(resolution,resolution,TextureFormat.RGBAHalf,false,true)
                     {name="HLSL Brush Tip",hideFlags=HideFlags.HideAndDontSave,filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp};
-                result.ReadPixels(new Rect(0,0,resolution,resolution),0,0); result.Apply(false,false);
+                WhimTexProfiler.ReadPixels(result, new Rect(0,0,resolution,resolution),0,0); result.Apply(false,false);
                 var ready=result; result=null; return ready;
             }
             finally
@@ -211,7 +211,7 @@ namespace DCFApixels.WhimTex
                     .Replace("#pragma multi_compile_local __ BRUSH_DYNAMICS BRUSH_TEXTURE", "#define BRUSH_TEXTURE 1")
                     .Replace("#include \"HdrColor.cginc\"", "#include \"" + root + "HdrColor.cginc\"")
                     .Replace("#include \"ColorBlend.cginc\"", "#include \"" + root + "ColorBlend.cginc\"")
-                    .Replace("// WHIMTEX_BRUSH_PROGRAM", "#define BRUSH_HLSL 1\n" + ShaderFXSourceBuilder.NoiseLibraryInclude +
+                    .Replace("// WHIMTEX_BRUSH_PROGRAM", "#define BRUSH_HLSL 1\n" + ShaderFXSourceBuilder.NoiseLibraryInclude + ShaderFXSourceBuilder.ColorLibraryInclude +
                         File.ReadAllText(PresetLibraryPaths.PhysicalPath(root + "BrushContexts.cginc")) + uniforms + body +
                         "\n#define WHIMTEX_BRUSH_CALL " + signature.Call + "\n")
                     .Replace("// WHIMTEX_BRUSH_CAPABILITIES", (signature.Sequence ? "#define BRUSH_SEQUENCE 1\n" : "") +
@@ -257,6 +257,7 @@ namespace DCFApixels.WhimTex
 
         private void ApplyValues(List<ShaderFXParameter> declarations, Vector2 dimensions)
         {
+            WhimTexHueGradient.Ensure();
             parameterBindings ??= new ShaderParameterBindings();
             for (int i = 0; i < declarations.Count; i++)
             {

@@ -43,7 +43,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 RenderTexture.active=analysis;
-                readback.ReadPixels(new Rect(0,0,analysis.width,analysis.height),0,0,false);
+                WhimTexProfiler.ReadPixels(readback, new Rect(0,0,analysis.width,analysis.height),0,0,false);
                 pending=new Build {pixels=readback.GetPixelData<float4>(0),values=values,knots=knots,ranks=ranks,z=z,planes=planes,
                     statistics=statistics,quantiles=quantiles.values,width=analysis.width,height=analysis.height,mirror=mirror}.Schedule(4,1);
                 pending=new Pack{planes=planes,packed=packed}.Schedule(TableSize*2,64,pending);

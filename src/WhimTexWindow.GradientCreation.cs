@@ -8,7 +8,13 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexWindow
     {
-        private enum GradientCreationType { Linear, Radial, Angular, Diamond, Square }
+        private enum GradientCreationType { Linear, Radial, Angular, Square, Freeform }
+        private const float FreeformCreationHeight = .8660254f;
+        private static Vector2 FreeformCreationApex(Vector2 start, Vector2 end)
+        {
+            Vector2 delta = end - start;
+            return (start + end) * .5f + new Vector2(-delta.y, delta.x) * FreeformCreationHeight;
+        }
         [Serializable]
         private sealed class GradientCreationSettings
         {
@@ -17,6 +23,70 @@ namespace DCFApixels.WhimTex
         }
         [SerializeField] private GradientCreationSettings gradientCreationSettings = new GradientCreationSettings();
         private GradientCreationManipulator gradientCreationManipulator;
+        private GradientPickerManipulator gradientPicker;
+        private CanvasToolIcon gradientCreationToolIcon;
+
+        internal static VisualElement CreateGradientTypeIcon(GradientLayerBehaviour.GradientType type) =>
+            new CanvasToolIcon(CanvasTool.Gradient, gradientType: ToGradientCreationType(type), largeGradient: true);
+
+        internal static VisualElement CreateFigureFillTypeIcon(VectorFillMode type) => type switch
+        {
+            VectorFillMode.None or VectorFillMode.Solid => new CanvasToolIcon(CanvasTool.Gradient, largeGradient: true, flatFill: type),
+            VectorFillMode.LinearGradient => CreateGradientTypeIcon(GradientLayerBehaviour.GradientType.Linear),
+            VectorFillMode.RadialGradient => CreateGradientTypeIcon(GradientLayerBehaviour.GradientType.Radial),
+            VectorFillMode.AngularGradient => CreateGradientTypeIcon(GradientLayerBehaviour.GradientType.Angular),
+            VectorFillMode.SquareGradient => CreateGradientTypeIcon(GradientLayerBehaviour.GradientType.Square),
+            VectorFillMode.Freeform => CreateGradientTypeIcon(GradientLayerBehaviour.GradientType.Freeform),
+            _ => throw new ArgumentOutOfRangeException(nameof(type))
+        };
+
+        private static GradientCreationType ToGradientCreationType(GradientLayerBehaviour.GradientType type) => type switch
+        {
+            GradientLayerBehaviour.GradientType.Linear => GradientCreationType.Linear,
+            GradientLayerBehaviour.GradientType.Radial => GradientCreationType.Radial,
+            GradientLayerBehaviour.GradientType.Angular => GradientCreationType.Angular,
+            GradientLayerBehaviour.GradientType.Square => GradientCreationType.Square,
+            GradientLayerBehaviour.GradientType.Freeform => GradientCreationType.Freeform,
+            _ => throw new ArgumentOutOfRangeException(nameof(type))
+        };
+
+        private static GradientLayerBehaviour.GradientType ToGradientLayerType(GradientCreationType type) => type switch
+        {
+            GradientCreationType.Linear => GradientLayerBehaviour.GradientType.Linear,
+            GradientCreationType.Radial => GradientLayerBehaviour.GradientType.Radial,
+            GradientCreationType.Angular => GradientLayerBehaviour.GradientType.Angular,
+            GradientCreationType.Square => GradientLayerBehaviour.GradientType.Square,
+            GradientCreationType.Freeform => GradientLayerBehaviour.GradientType.Freeform,
+            _ => throw new ArgumentOutOfRangeException(nameof(type))
+        };
+
+        private void SetGradientCreationType(GradientCreationType type)
+        {
+            gradientCreationManipulator?.Cancel();
+            gradientCreationSettings.type = type;
+            gradientCreationToolIcon?.SetGradientType(type);
+            if (canvasGradientButton != null) canvasGradientButton.tooltip = GetGradientCreationToolTooltip();
+            toolkitHeaderBindings?.Refresh();
+            RefreshCanvasPointerCursor();
+        }
+
+        private string GetGradientCreationToolTooltip() =>
+            "Gradient: " + (gradientCreationSettings?.type ?? GradientCreationType.Linear) +
+            ". Hold or drag this button to choose a type, then release over its icon. " +
+            "Drag on the canvas to create an editable Gradient layer. Shift constrains the angle; Ctrl disables snapping; Escape cancels.";
+
+        private sealed class GradientPickerManipulator : ToolSubtypePickerManipulator
+        {
+            internal GradientPickerManipulator(WhimTexWindow owner)
+                : base(owner, Enum.GetValues(typeof(GradientCreationType)).Length) { }
+            protected override string MenuName => "gradientPicker";
+            protected override string ItemName(int index) => "gradient" + (GradientCreationType)index;
+            protected override string ItemTooltip(int index) => "Gradient: " + (GradientCreationType)index;
+            protected override bool IsSelected(int index) => owner.gradientCreationSettings.type == (GradientCreationType)index;
+            protected override VisualElement ItemIcon(int index) => new CanvasToolIcon(CanvasTool.Gradient, gradientType: (GradientCreationType)index);
+            protected override void Select(int index) => owner.SetGradientCreationType((GradientCreationType)index);
+            protected override void Activate() => owner.SetCanvasTool(CanvasTool.Gradient);
+        }
 
         private void BuildGradientCreationTool()
         {
@@ -30,14 +100,10 @@ namespace DCFApixels.WhimTex
         {
             gradientCreationSettings ??= new GradientCreationSettings();
             var row = CreateCanvasSettingsRow(); BindCanvasSettingsRow(row, CanvasTool.Gradient);
-            var type = new EnumField("Type", gradientCreationSettings.type) { name = "gradientToolType" };
+            var type = new GradientTypeField("Type") { name = "gradientToolType" };
             type.AddToClassList("whimtex-view-field"); row.Add(type);
-            toolkitHeaderBindings.Track(type, () => (Enum)gradientCreationSettings.type);
-            type.RegisterValueChangedCallback(e =>
-            {
-                gradientCreationManipulator?.Cancel();
-                gradientCreationSettings.type = (GradientCreationType)e.newValue;
-            });
+            toolkitHeaderBindings.Track(type, () => ToGradientLayerType(gradientCreationSettings.type));
+            type.RegisterValueChangedCallback(e => SetGradientCreationType(ToGradientCreationType(e.newValue)));
             var ramp = new WhimTexGradientValueField("Gradient") { name = "gradientToolRamp" };
             ramp.AddToClassList("whimtex-gradient-tool-ramp"); row.Add(ramp);
             toolkitHeaderBindings.Track(ramp, () => gradientCreationSettings.gradient);
@@ -59,17 +125,27 @@ namespace DCFApixels.WhimTex
             var behaviour = new GradientLayerBehaviour
             {
                 gradient = gradientCreationSettings.gradient.Clone(),
-                gradientType = type == GradientCreationType.Linear ? GradientLayerBehaviour.GradientType.Horizontal :
-                    type == GradientCreationType.Angular ? GradientLayerBehaviour.GradientType.Circular :
-                    type == GradientCreationType.Diamond ? GradientLayerBehaviour.GradientType.Diamond :
-                    type == GradientCreationType.Square ? GradientLayerBehaviour.GradientType.Square : GradientLayerBehaviour.GradientType.Radial
+                gradientType = ToGradientLayerType(type)
             };
             var layer = new Layer(behaviour);
             bool linear = type == GradientCreationType.Linear;
-            layer.transform.position = (linear ? (start + end) * .5f : start) - size * .5f;
+            bool freeform = type == GradientCreationType.Freeform;
+            Vector2 center = linear || freeform ? (start + end) * .5f : start;
+            if (freeform)
+            {
+                center = (center + FreeformCreationApex(start, end)) * .5f;
+                float bottom = (1 - FreeformCreationHeight) * .5f;
+                behaviour.freeform.points = new List<FreeformGradientPoint>
+                {
+                    new FreeformGradientPoint(new Vector2(0, bottom), behaviour.gradient.EvaluateEncoded(0)),
+                    new FreeformGradientPoint(new Vector2(.5f, 1 - bottom), behaviour.gradient.EvaluateEncoded(.5f)),
+                    new FreeformGradientPoint(new Vector2(1, bottom), behaviour.gradient.EvaluateEncoded(1))
+                };
+            }
+            layer.transform.position = center - size * .5f;
             layer.transform.rotation = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg + (type == GradientCreationType.Angular ? 180 : 0);
-            layer.transform.scale = linear ? new Double2(delta.magnitude / size.x, 1) :
-                new Double2(delta.magnitude * 2 / size.x, delta.magnitude * 2 / size.y);
+            float side = type == GradientCreationType.Angular ? Mathf.Min(size.x, size.y) : delta.magnitude * (linear || freeform ? 1 : 2);
+            layer.transform.scale = new Double2(side / size.x, side / size.y);
             foreach (var key in behaviour.gradient.ColorKeys)
                 if (key.color.r < 0 || key.color.g < 0 || key.color.b < 0 || key.color.maxColorComponent > 1)
                 { layer.colorRange = LayerColorRange.HDR; layer.blendRange = LayerBlendRange.HDR; }
@@ -87,6 +163,7 @@ namespace DCFApixels.WhimTex
                 Undo.CollapseUndoOperations(undo);
             }
             finally { Undo.IncrementCurrentGroup(); }
+            if (freeform && canvasTool != CanvasTool.GradientHandles) SetCanvasTool(CanvasTool.GradientHandles);
         }
 
         private sealed class GradientCreationManipulator : PointerManipulator
@@ -195,9 +272,13 @@ namespace DCFApixels.WhimTex
             {
                 if (!IsDragging || !Valid || !TextPointFinite(end)) return;
                 Vector2 a = View(start), b = View(end);
+                bool freeform = owner.gradientCreationSettings.type == GradientCreationType.Freeform;
+                Vector2 apex = freeform ? View(FreeformCreationApex(start, end)) : default;
                 var painter = context.painter2D;
                 painter.lineWidth = 3; painter.strokeColor = Color.black;
-                painter.BeginPath(); painter.MoveTo(a); painter.LineTo(b); painter.Stroke();
+                painter.BeginPath(); painter.MoveTo(a); painter.LineTo(b);
+                if (freeform) { painter.LineTo(apex); painter.ClosePath(); }
+                painter.Stroke();
                 painter.lineWidth = 1; painter.strokeColor = Color.white;
                 painter.Stroke();
                 void Endpoint(Vector2 point)
@@ -205,7 +286,14 @@ namespace DCFApixels.WhimTex
                     painter.fillColor = Color.white; painter.BeginPath();
                     painter.Arc(point, 3, Angle.Degrees(0), Angle.Degrees(360)); painter.Fill();
                 }
-                Endpoint(a); Endpoint(b);
+                if (freeform)
+                {
+                    var palette = owner.gradientCreationSettings.gradient;
+                    DrawFreeformPoint(painter, a, palette.EvaluateEncoded(0));
+                    DrawFreeformPoint(painter, apex, palette.EvaluateEncoded(.5f));
+                    DrawFreeformPoint(painter, b, palette.EvaluateEncoded(1));
+                }
+                else { Endpoint(a); Endpoint(b); }
             }
         }
     }

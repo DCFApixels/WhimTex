@@ -161,7 +161,13 @@ Use **HDR** beside the selected color when extra brightness is needed. Drag a ke
 away from its track to delete it; each track keeps at least one key. Right-click a gradient field
 to **Copy** or **Paste** an independent copy. SDF and Noise palettes start with **Perceptual** interpolation.
 
+With `WHIMTEX_DEEP_DEBUG` enabled, an RGBA curve graph appears below the gradient strip.
+**R / G / B / A** independently show or hide curves. The graph shows unpremultiplied samples
+in the gradient's stored Linear/Gamma space; its vertical scale includes negative and HDR values.
+**Preview EV** and channel buttons do not change these samples or the gradient.
+
 ### Save and reuse gradients
+
 
 In **Presets**, click the **New** swatch to save the current gradient without naming it.
 Click a swatch to apply it; right-click for **Copy** or **Delete**. Presets are
@@ -185,11 +191,22 @@ retired fields and previous names are not migrated.
 ### Shape the gradient on canvas
 
 Choose **Gradient** beside **Fill**, pick a type and edit the gradient in the Canvas View header, then drag.
+Hold or drag the toolbar button to open its subtype list, then release over **Linear**, **Radial**, **Angular**, **Square** or **Freeform**. Each has its own gradient icon; the button shows the current type and stays synchronized with **Type** in the header. A quick click activates the remembered type.
 Point with the small arrow tip; the gradient symbol sits to its lower right.
-Linear uses the drag's start and end; Radial, Angular, Diamond and Square use the start as their center.
+The canvas cursor shows the selected gradient type and updates immediately when you change it.
+
+The tool header's **Type** and the layer Properties' **Gradient Type** use the same row of five icons. Click one to switch type; the selected icon is highlighted, and hovering shows its name.
+
+Linear replaces separate horizontal and vertical types: drag its endpoints or rotate the layer for any direction.
+
+Linear uses the drag's start and end; Radial, Angular and Square use the start as their center.
+**Freeform** creates three points in a triangle: the drag places two corners and previews the third. All three preview points show their palette colors while dragging. Their colors and opacity come from the start, middle and end of the current palette, including HDR. Releasing immediately activates point editing.
 **Shift** constrains the angle to 45° increments, **Ctrl** disables snapping and **Escape** cancels.
 Each drag creates a separate editable Gradient layer; a click without dragging creates nothing.
-The creation settings do not change existing layers. Choose **Gradient Handles** to edit a created layer.
+Every type starts with a square transform in canvas pixels, so switching to Radial produces a circle even on a rectangular canvas.
+For **Angular**, the creation line sets the center and direction only. Releasing restores a unit square, independent of the drag length: Scale is 1 × 1 on a square canvas; on a rectangular canvas the square fits its shorter side.
+The creation settings do not change existing layers. Choose **Gradient Handles** to edit a created layer; Freeform opens these handles automatically after creation.
+All canvas gradient handles show a hand over draggable points and handles, and an arrow with a plus where a click adds a color key. Fill and stroke gradients follow the same rule.
 
 Select a Gradient layer to activate **Gradient Handles**, the contextual hand tool. Square handles change its geometry;
 colored points move color keys. Click the line to add a key, or double-click a point to open WhimTex's
@@ -199,7 +216,7 @@ Delete a selected color key with Delete while the preview has focus, or drag it 
 At least one color key remains.
 Position, size and rotation are controlled by the layer transform; there are no separate Center or Radius settings.
 Radial, diamond and square gradients share position, scale and rotation controls.
-For **Circular**, drag the center to move the gradient, or the start ray to rotate it without opening the circle.
+For **Angular**, drag the center to move the gradient, or the start ray to rotate it without opening the circle.
 When the arc is open, a thinner, fainter line completes the circle as a visual guide.
 A full circle has one split-color handle: its halves are the independent 0% and 100% keys.
 Double-click a half to edit its color. Drag clockwise to separate the end, counterclockwise to separate the start;
@@ -210,13 +227,36 @@ Click the arc to add a color key; intermediate keys and midpoint diamonds move a
 With Repetitions below 1, only the visible portion of the period is shown; the start handle rotates it and the period length remains editable in Properties.
 Handles have no tooltips. Select a basic tool to hide the handles, or press Escape when not dragging to return to your last basic tool. The contextual hand button restores the handles. Selecting another Gradient layer activates them automatically, except while the Gradient creation, Crop or Comment tool is active.
 
-The same **Gradient Handles** tool edits Linear, Radial, Square, Diamond and Circular fills on **Shape** and **Vector** layers. Select a gradient-filled figure, then click its contextual hand button; selecting the figure does not activate handles automatically. The handles change only the fill, not the figure's shape or transform. Linear endpoints move independently; moving the center of another fill moves its direction/radius handle with it. Color keys and midpoint diamonds work as above.
+The same **Gradient Handles** tool edits Linear, Radial, Angular and Square fills on **Shape** and **Vector** layers. Select a gradient-filled figure, then click its contextual hand button; selecting the figure does not activate handles automatically. The handles change only the fill, not the figure's shape or transform. Linear endpoints move independently; moving the center of another fill moves its direction/radius handle with it. Color keys and midpoint diamonds work as above.
 
-Circular fills use the same split endpoint handle, opening/closing gestures, faint completion arc and Ctrl snapping. The start ray rotates the fill; **Center**, **Direction** and **Repetitions** in Properties follow the handles. Outside the first period, the palette's **Clamp/Repeat/Mirror** setting applies. A child whose appearance is replaced by a Boolean Group's style does not show fill handles; Combine with layer appearance keeps them available.
+Angular fills use the same split endpoint handle, opening/closing gestures, faint completion arc and Ctrl snapping. The start ray rotates the fill; **Center**, **Direction** and **Repetitions** in Properties follow the handles. Outside the first period, the palette's **Clamp/Repeat/Mirror** setting applies. A child whose appearance is replaced by a Boolean Group's style does not show fill handles; Combine with layer appearance keeps them available.
 
-**Boolean Group** also provides these handles for its common fill, including Circular. Select the group to edit its gradient without moving the group or its operands. In **Combine → Appearance: Layers**, the group handles are hidden; select a child to edit its own fill instead.
+**Boolean Group** also provides these handles for its common fill, including Angular. Select the group to edit its gradient without moving the group or its operands. In **Combine → Appearance: Layers**, the group handles are hidden; select a child to edit its own fill instead.
 
 New Color Fill, Gradient and Noise layers use **Unbounded** tiling by default.
+
+### Freeform gradient points
+
+On a **Gradient** layer, choose **Gradient Type → Freeform** in Properties.
+For **Shape** and **Vector**, choose **Freeform** in **Fill → Type** or **Stroke → Type**.
+Fill and stroke keep separate sets of points. Enable **Gradient Handles** manually for a figure;
+the toolbar's **Fill / Stroke** selector chooses which set to edit.
+Use **Gradient Handles** to place colors anywhere on the layer:
+
+- Click an empty spot on the canvas to add a point. Keep the button held to move it immediately.
+- Drag a colored point to move it; double-click it to edit its color and alpha.
+- The cursor shows a plus where a new point can be added, and a hand over a point or its influence handle.
+- Drag the selected point's square influence handle, or change **Influence (%)** in Properties.
+  A larger value gives that color more space relative to the other points. The outline is a guide, not a hard cutoff.
+- **Point** selects a point by number. **Position**, **Color** and **Opacity** edit that point.
+- Press **Delete** with the canvas focused, or use **Delete Point**, to remove it. One point must remain; up to 64 are supported.
+- **Escape** cancels a drag, including a point just added. Undo/Redo includes the whole gesture.
+
+Colors blend smoothly in linear space and support HDR and transparency. HDR colors also need
+the layer's **Rendering → Color Range** set to **HDR** to remain brighter than white in the result.
+Changing Gradient Type preserves both the Freeform points and the ordinary gradient palette.
+Freeform is available for Gradient layers and Shape/Vector paints, including Boolean Group styling.
+Text and SVG export are unchanged.
 
 ### How Rounded smoothing behaves
 

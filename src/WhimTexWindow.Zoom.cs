@@ -135,6 +135,7 @@ namespace DCFApixels.WhimTex
             cropManipulator?.CancelGesture();
             canvasGuideManipulator?.Cancel();
             shapePicker?.Cancel();
+            gradientPicker?.Cancel();
             marqueePicker?.Cancel();
             cropPicker?.Cancel();
             shapeManipulator?.Cancel();

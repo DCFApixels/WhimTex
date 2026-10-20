@@ -49,7 +49,7 @@ public static class ProfilerAnalysisTests
         Set(s, "documentId", "doc-a"); Set(s, "layerId", layer); Set(s, "layerName", name); Set(s, "fxIndex", gpu == null ? -1 : 0);
         Set(s, "start", Ticks(1)); Set(s, "end", Ticks(1 + duration)); Set(s, "completed", complete); Set(s, "interrupted", !complete);
         Set(s, "fxTiming", gpu != null); Set(s, "fxName", gpu == null ? null : "FX"); Set(s, "gpuStatus", gpu);
-        if (gpu == "ready") Set(s, "gpuNanoseconds", 2000000L);
+        if (gpu == "ready" || gpu == "unconfirmed") Set(s, "gpuNanoseconds", 2000000L);
         return s;
     }
     static object Capture(params object[] samples)
@@ -122,6 +122,44 @@ public static class ProfilerAnalysisTests
             t.Equal("matched", (string)self["rows"].First()["phase"], "Self counts sort independently from inclusive");
             t.Equal("matched", (string)Call("compare", ",\"sort\":\"gcAllocationCount\",\"offset\":1,\"limit\":1")["comparison"]["rows"].Single()["phase"], "Allocation sorting precedes paging");
             t.Equal(1, Call("compare", ",\"sort\":\"gcSelfAllocationCount\",\"phase\":\"matched\"")["comparison"]["rows"].Count(), "Allocation comparison respects filters");
+        }
+        finally { Current.SetValue(null, savedCurrent); Baseline.SetValue(null, savedBaseline); }
+    }
+
+    static void CheckUnconfirmedGpu(TestContext t)
+    {
+        object savedCurrent = Current.GetValue(null), savedBaseline = Baseline.GetValue(null);
+        try
+        {
+            var jobs = Capture(Sample(1, "fx.render", 2, gpu: "unconfirmed"));
+            Set(jobs, "graphicsJobs", (bool?)true); Set(jobs, "renderingThreadingMode", "NativeGraphicsJobsSplitThreading");
+            Current.SetValue(null, jobs);
+            var read = Call("read");
+            t.True((bool)read["capture"]["graphicsJobs"], "Stopped capture records actual Graphics Jobs independently of the current Editor");
+            t.Equal("NativeGraphicsJobsSplitThreading", (string)read["capture"]["renderingThreadingMode"], "Actual threading mode exposed");
+            t.True(((string)read["capture"]["gpuWarning"]).Contains("restart Unity"), "Capture carries timing warning");
+            t.Near(2, (double)read["events"].Single()["gpuMs"], 0, "Unconfirmed event retains native duration");
+            t.Equal("unconfirmed", (string)read["events"].Single()["gpuStatus"], "Event confidence explicit");
+            t.Near(2, (double)read["summary"].Single()["gpuTotalMs"], 0, "Unconfirmed duration participates in Summary");
+            t.Equal(1, (int)read["summary"].Single()["gpuUnconfirmedCount"], "Unconfirmed subset count exposed");
+            t.Equal(0, (int)read["summary"].Single()["gpuUnavailableCount"], "Unconfirmed is not unavailable");
+            var brief = Call("summary")["brief"];
+            t.Equal(1, (int)brief["gpuHotspots"].Single()["gpuUnconfirmedCount"], "Agent GPU hotspots retain confidence");
+            t.True(brief["warnings"].Any(x => x.ToString().Contains("Graphics Jobs")), "Compact summary warning");
+            Invoke("PinBaseline");
+            t.Equal((bool?)true, (bool?)Get(Baseline.GetValue(null), "graphicsJobs"), "Baseline preserves device context");
+            Current.SetValue(null, Capture(Sample(1, "fx.render", 2, gpu: "ready")));
+            var comparison = Call("compare")["comparison"];
+            var row = Row(comparison, "fx.render");
+            t.True((bool)row["gpuComparable"] && (bool)row["gpuUnconfirmed"], "Numeric comparison remains available but explicitly unconfirmed");
+            t.Near(0, (double)row["delta"]["gpuMs"], 0, "Unconfirmed delta is not silently discarded");
+            t.True(comparison["warnings"].Any(x => x.ToString().Contains("Baseline:") && x.ToString().Contains("Graphics Jobs")), "Historical baseline warning survives a supported current capture");
+            using var stream = new System.IO.MemoryStream();
+            Invoke("WriteSnapshot", stream, jobs); stream.Position = 0;
+            object restored = Invoke("ReadSnapshot", stream);
+            t.Equal((bool?)true, (bool?)Get(restored, "graphicsJobs"), "Reload preserves capture confidence context");
+            t.Equal("NativeGraphicsJobsSplitThreading", (string)Get(restored, "renderingThreadingMode"), "Reload preserves actual mode");
+            t.Equal("unconfirmed", (string)Get(((Array)Get(restored, "events")).GetValue(0), "gpuStatus"), "Reload preserves per-event confidence");
         }
         finally { Current.SetValue(null, savedCurrent); Baseline.SetValue(null, savedBaseline); }
     }
@@ -231,6 +269,7 @@ public static class ProfilerAnalysisTests
                 Current.SetValue(null, second);
 
                 CheckAllocationComparison(t);
+                CheckUnconfirmedGpu(t);
 
                 // Exercise the actual baseline save/restore functions with an isolated token and owned Temp file.
                 Invoke("SaveBaselineForReload"); string ownToken = SessionState.GetString(BaselineKey, "");

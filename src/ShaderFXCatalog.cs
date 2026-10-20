@@ -13,14 +13,14 @@ namespace DCFApixels.WhimTex
         internal sealed class Entry
         {
             [SerializeField] internal string guid, path, menuPath, error;
-            [SerializeField] internal bool user, assetPreset;
+            [SerializeField] internal bool user;
             internal bool HasError => !string.IsNullOrEmpty(error);
         }
 
         [Serializable]
         private sealed class Snapshot { public List<Entry> entries = new List<Entry>(); }
         // SessionState survives domain reloads but is discarded when the Editor closes.
-        private const string SessionKey = "WhimTex.ShaderFXCatalog.Headers.v1";
+        private const string SessionKey = "WhimTex.ShaderFXCatalog.Headers.v2";
 
         internal static string Folder => Path.GetFullPath(Path.Combine(WhimTexUserSettings.PresetsFolder, "ShaderFX"));
 
@@ -91,13 +91,6 @@ namespace DCFApixels.WhimTex
                 catch (IOException) { }
                 catch (UnauthorizedAccessException) { }
             }
-            else if (path.EndsWith(".asset", StringComparison.OrdinalIgnoreCase))
-            {
-                // Do not instantiate assets here: ShaderFX.OnEnable can restore GPU shaders.
-                if (AssetDatabase.GetMainAssetTypeAtPath(path) == typeof(ShaderFX))
-                    entries[path] = new Entry { path = path, guid = AssetDatabase.AssetPathToGUID(path),
-                        menuPath = "Shader FX/" + Path.GetFileNameWithoutExtension(path), assetPreset = true };
-            }
         }
 
         internal static IReadOnlyList<Entry> GetEntries()
@@ -109,7 +102,6 @@ namespace DCFApixels.WhimTex
                 userFiles.Clear();
                 foreach (string path in AssetDatabase.GetAllAssetPaths())
                     if (path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase)) Inspect(path);
-                foreach (string guid in AssetDatabase.FindAssets("t:ShaderFX")) Inspect(AssetDatabase.GUIDToAssetPath(guid));
                 SaveHeaders();
             }
             // User files are outside AssetDatabase. Refresh on opening the menu, not every repaint.
@@ -178,7 +170,7 @@ namespace DCFApixels.WhimTex
             {
                 foreach (string path in batch)
                 {
-                    if (!string.IsNullOrEmpty(path) && (IsHlsl(path) || IsInclude(path) || IsAsset(path)))
+                    if (!string.IsNullOrEmpty(path) && (IsHlsl(path) || IsInclude(path)))
                         changed.Add(path);
                 }
             }
@@ -201,7 +193,7 @@ namespace DCFApixels.WhimTex
             bool shaderSourceChanged = false;
             foreach (string path in changed)
             {
-                if (initialized && (IsHlsl(path) || IsAsset(path)))
+                if (initialized && IsHlsl(path))
                 {
                     entries.TryGetValue(path, out Entry previous);
                     Inspect(path);
@@ -257,12 +249,11 @@ namespace DCFApixels.WhimTex
                 string.Equals(a.path, b.path, StringComparison.Ordinal) &&
                 string.Equals(a.menuPath, b.menuPath, StringComparison.Ordinal) &&
                 string.Equals(a.error, b.error, StringComparison.Ordinal) &&
-                a.user == b.user && a.assetPreset == b.assetPreset;
+                a.user == b.user;
         }
 
         private static bool IsHlsl(string path) => path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase);
         private static bool IsInclude(string path) => path.EndsWith(".cginc", StringComparison.OrdinalIgnoreCase);
-        private static bool IsAsset(string path) => path.EndsWith(".asset", StringComparison.OrdinalIgnoreCase);
         private static string NormalizePath(string path) => path.Replace('\\', '/');
     }
 

@@ -33,7 +33,7 @@ composition, independently of the exported editable layer representation.
 | Gradient without FX | Editable color/opacity stops, type, angle, scale and offset where compatible. Clip boundaries become a mask. |
 | Compatible Outline | Separate layer in its original stack position, with Fill 0% and an editable stroke effect. Its pixels hold a snapshot of the input alpha. |
 | SDF / other procedural cases | Raster layer with the original transform and FX applied. |
-| Shader / Material FX | Baked into the owning layer. No shader code is embedded. |
+| HLSL Shader FX | Baked into the owning layer. No shader code is embedded. |
 
 Layer opacity remains a separate property. Names support Unicode; stacking order and hierarchy are retained.
 Source File textures are embedded as rendered pixels, not external links or embedded source documents.

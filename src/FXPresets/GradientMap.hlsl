@@ -10,7 +10,7 @@
 
 #include "Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc"
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(float4 color)
 {
     float luminance = saturate(dot(max(color.rgb, 0.0), float3(0.2126, 0.7152, 0.0722)));
     float brightness = SpriteEncode(float3(luminance, luminance, luminance)).r;

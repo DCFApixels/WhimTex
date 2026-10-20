@@ -50,15 +50,53 @@ Repeat 或 Mirror 则用重复图像填充边框外的区域。
 
 ## 参数控件
 
-使用 **⋮ → Reset**，或右键点击 FX 标题并选择 **Reset**，可恢复所有参数的默认值，包括隐藏字段和变换。代码、预设链接和启用状态保持不变。重置可以撤销；对于共享 FX 资源，重置会影响所有使用该资源的位置。
+使用 **⋮ → Reset**，或右键点击 FX 标题并选择 **Reset**，可恢复所有参数的默认值，包括隐藏字段和变换。代码、预设链接和启用状态保持不变。重置仅影响当前效果，且可以撤销。
 
-右键点击有名称的参数组标题，可使用 **Copy**、**Paste** 和 **Reset**；Reset 前有分隔线。Paste 可在兼容的参数组之间传递值，例如 Selective HSV 的各个范围。隐藏字段和标题复选框也会复制和重置。Reset 只影响当前组；粘贴和重置均可撤销。组的内容区域和无名称的组没有此菜单。
+右键点击有名称的组、折叠区域标题或单个标签页，可使用 **Copy**、**Paste** 和 **Reset**；Reset 前有分隔线。Paste 可在兼容的组或页面之间传递值，例如 Hue & Saturation 的各个范围。隐藏和禁用字段、嵌套设置及标题复选框也会复制和重置。Reset 只影响当前组或页面，不改变相邻页面和共享字段；粘贴和重置均可撤销。内容区域、无名称的组和标签页总标题没有此菜单。
 
-Shader FX 标题栏中的无标签复选框可启用或跳过效果，并保留其设置。外部 FX 引用共享此状态；使用 **Embed** 创建独立副本。
+Shader FX 标题栏中的无标签复选框可启用或跳过效果，并保留其设置。即使多个效果使用同一个 HLSL 预设，每个效果也有独立的参数值和启用状态。
 
 将鼠标悬停在参数上，可以查看效果作者提供的说明（如果有）。
 
+### 分组、折叠区域与标签页
+
+效果作者可以将设置放入不可折叠的边框组、可折叠区域或标签页。点击区域旁的箭头可展开或折叠设置，点击标签可查看对应页面。这些操作只改变控件的显示：折叠区域和其他页面中的参数仍会影响图像。区域标题旁的复选框单独修改一个参数；作者可以用它控制相关设置的显示或启用部分效果。
+
+编写 HLSL 时，使用 `@group` / `@endgroup`、`@foldout(Title)` / `@endfoldout`，以及包含 `@tab(Page title)` / `@endtab` 页面的 `@tabs`，最后用 `@endtabs` 结束。foldout 必须有标题。需要总标题时可写为 `@tabs(Title)`；直接使用 `@tabs` 不会留下空白标题行。参阅[布局语法与示例](../ShaderFX.md#layout-containers)。
+
+可用 `@tab(Range 1; _Enabled)` 在标签名称左侧添加复选框。bool 参数须直接声明在该页面内。点击复选框只修改值，不切换页面；选择页面也不会改变复选框。该值启用什么行为由效果本身决定。
+
+区域关闭时，相关字段和预览可以保持可见并呈灰色。在自定义 HLSL 中，用 `// @enableif _Enabled == 1` 和 `// @endenableif` 包围这些行；`@if` 则控制隐藏。重新启用区域后，可继续编辑保留的值。这些条件只改变控件状态，图像效果由 HLSL 决定。参阅[条件语法](../ShaderFX.md#parameter-declarations)。
+
+### 参数预览
+
+修改参数后，预览在下一次编辑器更新时刷新，无需等待 100 毫秒。
+连续修改会合并，每个预览在一次编辑器更新中最多重绘一次。
+周期刷新仍作为直接修改等未发出通知时的备用机制。
+
+作者可以让同一个预览函数使用不同的参数组合。Hue & Saturation 中，每个范围的预览
+始终使用该范围自己的 Hue Range、Feather 和校正设置；修改其他范围不会改变其绑定。
+
+效果作者可以添加预览：Slider 滑轨中的颜色、其他字段右侧的小矩形，或设置之间的独立图像。
+滑块和数值输入仍按原有方式工作。Hue & Saturation 使用红色参考样本，并结合其他当前设置显示变化；
+它只是提示，不代表图像中每一种颜色的最终结果。预览显示范围为 SDR，不限制效果的 HDR 数值。
+参阅 [HLSL 预览语法](../ShaderFX.md#inspector-previews)。
+
+预览滑轨使用小三角形滑块，一半位于滑轨内，一半伸出下边缘。
+普通范围和软范围滑块的滑轨与标记尺寸保持一致。
+
+数值输入框采用标准滑块字段的尺寸，包括范围控件的两个端点。
+Hue & Saturation 的 Hue Range 滑轨显示当前色相范围及羽化边缘；Feather 本身不显示预览。Source Saturation (HSV)
+显示低饱和度排除范围。范围校正使用中心颜色作为参考，不显示重叠范围的最终平均结果。
+两个预设共用烘焙的彩虹查找纹理；图像处理公式保持不变。
+
 ### 数值与范围
+
+区间滑块有两个手柄及同步的无标签数值字段：左侧为下端点（X），右侧为上端点（Y）。
+拖动手柄调整端点，拖动中间部分移动整个区间。端点可以重合，但不能交叉或越界。
+着色器预览位于两个手柄下方的滑轨中。
+半三角形手柄略微放大并向区间外侧延伸，竖直边对齐区间端点。
+到达极限值时两个手柄仍保持可见和可拖动，包括完整与空区间，并且不会与数值字段重叠。
 
 FX 标题栏中的数值字段前有 **↔** 手柄：左右拖动可调整数值，按住 Shift 可精细调整，按住 Ctrl 可加快调整。
 
@@ -124,15 +162,17 @@ Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已
 它可能用于放置图像、更改图案的缩放，或定义局部区域。边框本身不是遮罩，
 但使用 **Input Tiling → Clip** 的 **UV Transform** 会让边框外透明。
 
-## 顺序、复制与共享效果
+<a id="顺序复制与共享效果"></a>
+
+## 顺序、复制与 HLSL 源码
 
 效果顺序会影响结果。拖动 FX 标题可以调整顺序，也可将其拖到其他图层行上以移动到该图层。标题的右键菜单也提供 **Move Up** 和 **Move Down**。
 
-**+ Reference** 用于选择 Shader FX 资源，所有使用它的位置共享设置。
-效果标题栏中的 **⋮ → Embed Copy** 会在文档内创建独立副本，不修改外部资源。同一菜单还包含 **Move Up**、**Move Down** 和 **Remove**。
-选择 **⋮ → Copy FX**，然后在另一行选择 **Paste FX As New**，即可在该行后插入独立副本。Shader FX 的代码和参数会一并复制；在同一文档内粘贴时保留图层纹理引用，粘贴到其他文档时会清除这些引用。Material 行复制的是同一个材质资源引用。
-项目 HLSL 效果的代码会随源 `.hlsl` 文件更新。要在文档内独立编辑代码，
-请点击 **Code** 中的 **Embed Copy**。参数显示在标题下方；**Code** 包含代码编辑器、**Apply**、**Save Preset…** 和 **Shader inputs** 参考。存在消息时才显示诊断。
+每个 FX 都属于文档，参数值和启用状态相互独立。选择 **⋮ → Copy FX**，然后在另一行选择 **Paste FX As New**，即可在该行后插入独立副本。同一文档内粘贴时保留图层纹理引用，粘贴到其他文档时会清除这些引用。菜单还包含 **Move Up**、**Move Down** 和 **Remove**。
+
+项目和包内预设的代码会随源 `.hlsl` 文件更新，参数值仍各自独立。使用 **Open HLSL Source** 编辑源文件。要独立编辑当前效果的代码，点击 **Code → Embed Copy**：它会断开 `.hlsl` 链接，在文档中保留当前代码和参数值，并允许本地编辑代码。此后源文件的修改不会再更新该效果。用户库预设已经在文档中保留快照。要编写自己的代码，添加 **+ Shader FX**，输入 inline HLSL 并点击 **Compile**。参数显示在标题下方；**Code** 提供适用的代码操作、**Save Preset…** 和 **Shader Inputs** 参考。存在消息时才显示诊断。
+
+仅支持带标记的 `.hlsl` 预设和 inline HLSL，不能添加外部 Material、Shader 或 Shader FX `.asset` 引用。包含外部 FX 引用的旧 JSON/TIFF 会被拒绝并给出诊断，不会自动迁移或重写文档。请保留原件，并使用匹配的旧 checkout 打开。
 
 ## 保存你自己的预设
 
@@ -159,7 +199,7 @@ Clamp 循环、Smoothness 100% 和居中的中点。其他设置必须在导出�
 
 | 命令 | 操作 |
 | :--- | :--- |
-| **Code → Apply** | 编译 HLSL，保持效果可编辑，不烘焙像素。 |
+| **Code → Compile** | 编译 HLSL，保持效果可编辑，不烘焙像素。 |
 | FX 标题/菜单中的 **⋮ → Apply** | 按堆栈顺序烘焙该 FX 及其前面的所有 FX，后续效果保持可编辑。 |
 | 添加 FX 按钮旁的 **Apply All** | 烘焙整个 FX 堆栈。 |
 
@@ -171,9 +211,9 @@ Shader Processor 也支持 Apply。它捕获当前输入，包括 Pass Through �
 
 ## 创建你自己的效果
 
-如果你有着色器代码，请使用 **+ Shader FX**，将其粘贴到编辑器中并点击 **Apply**。
+如果你有着色器代码，请使用 **+ Shader FX**，将其粘贴到编辑器中并点击 **Compile**。
 代码和设置会随文档一起保存；不需要单独的文件。
-如果 Apply 报告问题，参见 [FX 错误与警告](#编译错误)。
+如果编译报告问题，参见 [FX 错误与警告](#编译错误)。
 
 HLSL 效果与画笔可以使用内置噪声库制作颗粒、有机遮罩和扭曲。
 参见[噪声函数与示例](../AI/README.md#built-in-noise-library)。
@@ -181,15 +221,53 @@ HLSL 效果与画笔可以使用内置噪声库制作颗粒、有机遮罩和扭
 编写效果是可选的。[着色器编写参考](../ShaderFX.md)
 用于创建代码和可复用库。
 
+### Pixel-local 效果
+
+打开 **Code**，可在代码文本框上方的 **Pixel Local** 一行查看已编译着色器的状态：**Yes**、**No**、**Not compiled** 或 **Unavailable**。
+草稿修改不会改变该结果，直到点击 **Compile**；旁边会标明草稿已修改。
+**Shader Inputs** 将编写参考分为几个小节，以项目符号列出声明和 API 项，并突出显示函数和参数名称。
+双击突出显示的代码可在上次代码光标位置插入内容，或替换所选文本；`SampleInput` 和
+`SampleTexture` 示例也支持此操作。可插入的代码片段在悬停时会略微高亮，并显示手形光标，不弹出提示。
+完整的 `ApplyFX` 声明会改为替换函数头，保留函数体和
+参数名称。焦点保留在代码字段中，并支持 Undo/Redo。点击 **Compile** 后才会使用修改后的
+草稿。链接预设须先通过 **Embed Copy** 启用本地编辑。
+
+在代码字段中，**Tab** 插入空格至下一个四列制表位；选中文本时则缩进所选行。
+**Shift+Tab** 减少一级缩进。焦点保留在代码中，并支持 Undo/Redo。
+新 `ApplyFX` 函数体使用四个空格缩进。
+**Enter** 保留当前缩进，并在 `{` 后增加一级。在 `{}` 之间会创建带缩进的内部行。
+在行首输入 `}` 时会与对应的左花括号对齐；注释和字符串中的花括号不影响缩进。
+这些编辑支持 Undo/Redo。
+
+在 Unity 6000.7+ 中，**Code** 会为 HLSL 类型、关键字、字面量、注释、指令、函数名及
+WhimTex 元数据着色。高亮不会修改源码或触发编译；光标、文本选择与 Undo/Redo 保持原有行为。
+选中的文字保留标准选择颜色。较早版本的编辑器仍显示纯文本。
+较长的代码行不自动换行，超出字段宽度时会出现水平滚动条。
+在 Unity 6000.7+ 中，左侧行号（包括空行）随代码垂直滚动，但不会随水平滚动移动。
+编辑时，光标所在行带有淡淡的背景，行号稍亮；文本选择仍显示在高亮背景之上。
+
+Pixel-local FX 处理当前坐标，不读取图像中偏移的位置。
+作者可用 `ApplyFX(float4 color)` 计算颜色，或用
+`ApplyFX(PinnedUV uv, float4 color)` 在同一坐标读取纹理。
+`PinnedUV` 可读取和复制，但不可修改或参与算术运算。
+需要移动纹理坐标的效果使用 `ApplyFX(float2 uv, float4 color)`。
+
+`SampleInput(uv)` 和 `SampleTexture(_Mask, uv)` 是 WhimTex 读取纹理的主要接口。
+当 `uv` 为 `PinnedUV` 时，`SampleTexture(_MainTex, uv)` 也保持 pixel-local，等同于 `SampleInput(uv)`；
+sampler 的名称本身并不构成绕过路径。
+后者支持 Texture、Layer、Self、None 遮罩来源；pixel-local 签名要求使用 `PinnedUV`。
+直接 HLSL 纹理读取属于绕过接口的方式。检测到绕过读取或导数时会警告，并不再确认 pixel-local 属性。
+参见[签名、限制和遮罩示例](../ShaderFX.md#pixel-local-entry-points-and-texture-reads)。
+
 ## 在外部编辑器中编辑
 
-- **Open Code** 在 Unity 所选的脚本编辑器中打开工作文件。保存会更新 WhimTex 中的草稿；点击 **Apply** 编译。
-- **Open in VS Code** 使用独立配置，自动安装 WhimTex 指令高亮、补全和检查。保存工作文件会向 Unity 请求 **Apply**，无需返回 WhimTex 窗口。语言模式仍为 **HLSL**，内置扩展支持 Restricted Mode。
+- **Open Code** 在 Unity 所选的脚本编辑器中打开工作文件。保存会更新 WhimTex 中的草稿；点击 **Compile** 编译。
+- **Open in VS Code** 使用独立配置，自动安装 WhimTex 指令高亮、补全和检查。保存工作文件会向 Unity 请求 **Compile**，无需返回 WhimTex 窗口。语言模式仍为 **HLSL**，内置扩展支持 Restricted Mode。
 - 若没有 VS Code 按钮，可设置 **User Settings → External Code Editor → VS Code Command**。WhimTex 先检查 Unity 注册的编辑器和 PATH，再使用此备用路径。
 
 扩展不仅高亮指令名称，也区分类型、修饰符、参数名、数值和范围。它检查默认值、提示注释、关联控件、条件和分组；着色器编译错误仍由 Unity 检查。更新后通过 **Open in VS Code** 重新打开代码；已经运行的窗口可能需要执行 **Developer: Reload Window**。
 
-输入 `// @if` 或 `// @group` 后按 **Tab**，即可插入带结束指令的代码块。Tab 依次跳转到条件各部分或分组标题，最后进入块内。无空格的 `//@if` / `//@group` 也支持。如果 VS Code 设置禁用了 Tab 补全，可通过 **Ctrl+Space** 选择代码片段。
+输入 `// @if`、`// @enableif`、`// @group`、`// @foldout`、`// @tabs` 或 `// @tab` 后按 **Tab**，即可插入带配对结束指令的代码块。Tab 依次跳转到各占位字段，最后进入块内。tabs 模板包含第一个页面；如需总标题，可在第一个占位字段输入 `(Title)`。无空格的写法（如 `//@enableif`）也支持。如果 VS Code 设置禁用了 Tab 补全，可通过 **Ctrl+Space** 选择代码片段。
 
 外部编辑器的工作文件只是临时缓存，并非备份。超过 **24 小时**未使用且没有活动会话的副本会自动删除。请在 WhimTex 中保存文档以保留代码；仅在代码编辑器中保存不会保存文档。重启 Unity 或重新加载脚本后，请从 WhimTex 再次打开代码以恢复同步。
 
@@ -203,7 +281,7 @@ HLSL 效果与画笔可以使用内置噪声库制作颗粒、有机遮罩和扭
 | 消息 | 结果 | 操作 |
 | :--- | :--- | :--- |
 | Warning | FX 继续运行。 | 阅读警告，判断结果是否适用。例如，[Unity 时间输入](shader-controls.md#坐标与时间)可能让不同预览不一致。 |
-| Error | 跳过 FX，但不会禁用或删除它。代码和设置仍可编辑，不会使用旧的已编译版本。 | 修复问题后点击 **Apply**。 |
+| Error | 跳过 FX，但不会禁用或删除它。代码和设置仍可编辑，不会使用旧的已编译版本。 | 修复问题后点击 **Compile**。 |
 
 所有问题解决后指示标记消失。保存 TIFF 前，需要应用所有 FX 草稿并修复错误。
 JSON 可以保存和重新打开有错误的 FX，保留代码和参数值，但不包含 Drawing 像素。
@@ -224,26 +302,40 @@ Color Balance 将 Shadows、Midtones 和 Highlights 放在同一块中。**RGB O
 
 Bevel Emboss 的 **Profile** 将选定的高度通道映射为浮雕高度。Gradient Map 的 **Mapping** 在选择渐变颜色前重新分配亮度。两条曲线默认为线性。
 
-### HSV 校正
-**Color → HSV** 调整色相、饱和度和明度。**Hue** 以度数偏移色相；**Saturation** 和 **Value**
-是倍率：1 不变，0 去除饱和度或使图像变黑。标题栏中的 **Opacity** 与原图混合。
+<a id="hsv-校正"></a>
+
+### Hue & Saturation 校正
+
+**Color → Hue & Saturation** 调整色相、饱和度和明度。**Hue** 以度数偏移色相。
+**Saturation** 调整颜色与加权灰色的距离：0 去色，1 不变，大于 1 增强颜色。
+**Lightness** 从 −100（黑色）经过 0（不变）到 +100（白色），不是亮度倍率。标题栏中的 **Opacity** 与原图混合。
 调整色相或饱和度不会给灰色像素着色。保留透明度，支持 HDR 明度。
 校正时将负 RGB 通道视为零；中性设置和 Opacity 0 完全保留原图。
 
-### Selective HSV
+### 色相范围
 
-**Color → Selective HSV** 在 **Master** 中调整整张图像，并用最多四个色相范围覆盖该校正。
-Hue 偏移原始色相；Saturation 和 Value 乘以原始饱和度和明度。中性值分别为 0、1、1。
+默认打开 Master。Master 和 Range 1–4 分别位于独立标签页中，没有整体标题或嵌套参数组。
+每个 Range 标签名称左侧都有 Enabled 复选框。Source Saturation (HSV) 和 Output 位于标签页下方，在所有页面都可用。
+切换标签页不会启用范围。
+
+**Color → Hue & Saturation** 在 **Master** 中调整整张图像，并用最多四个色相范围覆盖该校正。
+Hue 偏移原始色相；Saturation 调整与灰色的距离；Lightness 向黑色或白色调整。中性值分别为 0、1、0。
 
 若要只保留蓝色，将 **Master → Saturation** 设为 0，启用 **Range 3**，保持
-**Center = 240°**、**Saturation = 1**，再调整 **Width** 和 **Feather**。
+**Hue Range = 210°–270°**、**Saturation = 1**，再调整端点和 **Feather**。
 蓝色范围中心保留原色，Feather 使其逐渐过渡到灰色区域。
+所有 Range 关闭时自动使用精简的全图计算，不需要切换预设。Lightness 可提亮纯黑；正值也会使 HDR 高光趋向参考白色。
 
-所有范围默认关闭。启用 Range，设置以度数表示的 Center/Width/Feather，再调整
-Hue/Saturation/Value。这些值覆盖 Master，而非在 Master 的结果上再次校正。
-禁用范围会隐藏字段，但保留值。范围依据校正前的原始色相选择；重叠时只平均范围的校正量，
-Master 不参与平均。**Min Saturation** 和 **Saturation Feather** 限制低饱和度区域的范围选择，
-这些区域和灰色像素仍接受 Master 校正。Width 360 覆盖整个色相环；Width 和 Feather 都为零时不选择任何颜色。
+所有范围默认关闭。启用 Range，设置以度数表示的 Hue Range 端点及 Feather，再调整
+Hue/Saturation/Lightness。这些值覆盖 Master，而非在 Master 的结果上再次校正。
+禁用范围会保留值，字段保持可见并呈灰色，无法编辑；标签标题中的 Enabled 复选框仍可使用。
+范围依据校正前的原始色相选择；重叠时只平均范围的校正量，
+Master 不参与平均。**Source Saturation (HSV)** 设置饱和度排除阈值（X）和达到完整强度的位置（Y）；
+低于区间的区域和灰色像素仍接受 Master 校正。Hue Range 滑轨只显示 0°–360° 的一圈色相。
+手柄越过边缘后会从另一侧继续；330° → 30° 跨过红色。拖动选中区域可整体移动范围。
+缩小范围时，手柄在零宽度处停止；扩大范围时，在完整一圈处停止。手柄停在相遇位置，不会跳到 0°/360°。到达边界后反向拖动会立即响应，滑轨两端的手柄始终可见。
+达到完整一圈时，两个数值框均显示相遇角度，整条滑轨保持选中；达到零宽度时，滑轨不再显示选中区域，Feather 为零时不选择任何颜色。输入 0° → 360° 也可覆盖所有色相。
+循环数值字段会折返超出范围的输入：370° 变为 10°，−10° 变为 350°。
 
 在 **Output** 选择 **All Ranges Mask** 或单个范围的遮罩检查选择区域；遮罩亮度包含原图透明度，不受 Master 影响。
 **Result** 保持 Alpha 并支持 HDR 明度；标题栏中的 **Opacity** 将所选输出与原图混合。
@@ -309,6 +401,8 @@ Thickness 为零时不绘制轮廓。
 
 两个效果均通过 **Base Color 的透明度** 在透明光影（0）和完整受光表面（1）之间平滑混合，中间值采用考虑透明度的混合。RGB 设置表面颜色，**Ambient** 随填充逐渐显现。**Output** 为透明光影选择 Both、Highlight Only 或 Shadow Only；Base Color 透明度为 1 时无影响。Light Color/Shadow Color 的透明度控制该部分的强度。整体不透明度与混合模式由图层控制。两个效果的 Base Color 默认透明度均为 0。旧的嵌入版本需重新添加预设。
 
+**Normal Map → Lighting** 还提供默认关闭的 **Specular** 区块，使用相同的 **Light Direction** 添加镜面高光。**Specular Color** 设置颜色（透明度缩放强度），**Specular Intensity** 独立控制强度，**Roughness** 越大，高光越宽；零值采用有限的锐度上限。Both 和 Highlight Only 包含启用的高光，Shadow Only 不包含。新增的 **Specular Only** 只输出镜面高光，即使 Base Color 透明度为 1 也不输出表面或漫反射；关闭 Specular 时结果透明。高光遵循输入透明度，以加光方式保留漫反射，并在 HDR 中保留大于 1 的强度。正交观察方向为 +Z，因此正面光可在整个平坦区域产生高光，而不仅是边缘。Bevel Emboss 保持不变。
+
 ### 法线贴图归一化
 **Normal Map → Normalize** 恢复法线的单位长度，同时保留透明度。
 处理 RGB 法线贴图后，如果向量长度发生变化，可以使用此效果。
@@ -344,6 +438,22 @@ Twirl 使用 **Angle**，Displacement Map 和 Polar Coordinates 使用 **Amount*
 `Classic` Spherize、Twirl 和 Polar Coordinates 在边框处不会遮罩，扭曲会继续延伸到框外。
 `Sphere` 是例外：它会创建带清晰抗锯齿边缘的圆形遮罩。未遮罩模式下，较强设置可能显示输入图像外的区域，
 此时会延伸输入图像的边缘像素。RGB 和透明度一起扭曲。
+
+### Height to Distortion
+
+将 **Distortion → Height to Distortion** 添加到高度图图层以生成位移场。
+**Height Map** 默认为 Self；**Channel** 可选亮度、R、G、B 或 Alpha。使用线性高度数据。
+标题栏的 **Strength** 缩放位移场，负值反转方向，零生成中性贴图。**Filter** 提供默认的
+Scharr、Sobel 和 Central Difference；**Radius** 设置像素采样距离，**Edges** 提供 Clamp、
+Repeat 和 Mirror。**Flip X/Y** 分别反转两个轴。向量指向高度增加的方向，不进行单位长度归一化，
+因此较陡的斜坡仍产生较强的位移。
+
+**Output → Packed RG** 为默认模式，中性值为 `(0.5, 0.5)`；**Signed RG** 的中性值为 `(0, 0)`。
+将该图层指定为 **Displacement Map** 的贴图，选择 **VectorRG**，并将 **Neutral** 分别设为 0.5 或 0。
+为获得相同位移，Signed 的 Strength X/Y 应为 Packed 的一半。贴图图层可以隐藏。
+
+将贴图图层的 **Color Range** 设为 **HDR**，保留负数和大于一的数值；Packed 也不会裁剪强向量。
+外部保存 signed/HDR 贴图时使用线性 EXR；普通彩色图像导出不会保留原始 signed 数据。
 
 ### 极坐标
 

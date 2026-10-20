@@ -423,8 +423,8 @@ namespace DCFApixels.WhimTex
                         if (!canvasToLocal.TryPoint(new Double2((x + .5) / width, (y + .5) / height), out var uv))
                             throw new InvalidOperationException("Vector gradient sample crosses the projective horizon.");
                         double px = uv.x * model.referenceSize.x, py = uv.y * model.referenceSize.y;
-                        if (fc > 0 && gradientFill) color = GradientColor(shape.gradient, paint.Coordinate(shape.fillMode, px, py));
-                        if (sc > 0 && gradientStroke) ink = GradientColor(shape.strokeGradient, strokePaint.Coordinate(shape.strokeMode, px, py));
+                        if (fc > 0 && gradientFill) color = shape.fillMode == VectorFillMode.Freeform ? shape.freeform.Evaluate(new Vector2((float)uv.x, (float)uv.y)) : GradientColor(shape.gradient, paint.Coordinate(shape.fillMode, px, py));
+                        if (sc > 0 && gradientStroke) ink = shape.strokeMode == VectorFillMode.Freeform ? shape.strokeFreeform.Evaluate(new Vector2((float)uv.x, (float)uv.y)) : GradientColor(shape.strokeGradient, strokePaint.Coordinate(shape.strokeMode, px, py));
                     }
                     // Integrate paint order with the actual fill/stroke overlap coverage. Multiplying
                     // independently averaged coverages would produce dark fringes along shared edges.
@@ -458,8 +458,8 @@ namespace DCFApixels.WhimTex
                     if (!canvasToLocal.TryPoint(new Double2((x + .5) / width, (y + .5) / height), out var uv))
                         throw new InvalidOperationException("Vector gradient sample crosses the projective horizon.");
                     double px = uv.x * model.referenceSize.x, py = uv.y * model.referenceSize.y;
-                    if (fc > 0 && gradientFill) color = GradientColor(shape.gradient, paint.Coordinate(shape.fillMode, px, py));
-                    if (sc > 0 && gradientStroke) ink = GradientColor(shape.strokeGradient, strokePaint.Coordinate(shape.strokeMode, px, py));
+                    if (fc > 0 && gradientFill) color = shape.fillMode == VectorFillMode.Freeform ? shape.freeform.Evaluate(new Vector2((float)uv.x, (float)uv.y)) : GradientColor(shape.gradient, paint.Coordinate(shape.fillMode, px, py));
+                    if (sc > 0 && gradientStroke) ink = shape.strokeMode == VectorFillMode.Freeform ? shape.strokeFreeform.Evaluate(new Vector2((float)uv.x, (float)uv.y)) : GradientColor(shape.strokeGradient, strokePaint.Coordinate(shape.strokeMode, px, py));
                 }
                 float sa = ink.a * sc, fa = color.a * Mathf.Max(0, fc - ink.a * coverage.b);
                 float alpha = Mathf.Clamp01(sa + fa);

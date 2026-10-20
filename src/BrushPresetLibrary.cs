@@ -186,7 +186,7 @@ namespace DCFApixels.WhimTex
                 copy = new Texture2D(tip.width, tip.height, preset.srgb ? TextureFormat.RGBA32 : TextureFormat.RGBAHalf, false, !preset.srgb)
                     { hideFlags = HideFlags.HideAndDontSave };
                 RenderTexture.active = target;
-                copy.ReadPixels(new Rect(0, 0, tip.width, tip.height), 0, 0, false);
+                WhimTexProfiler.ReadPixels(copy, new Rect(0, 0, tip.width, tip.height), 0, 0, false);
                 return copy.GetRawTextureData<byte>().ToArray();
             }
             finally

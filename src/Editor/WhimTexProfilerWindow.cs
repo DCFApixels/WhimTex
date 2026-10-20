@@ -45,6 +45,8 @@ namespace DCFApixels.WhimTex
         private ListView eventList;
         private ListView summaryList;
         private Label status;
+        private Label gpuEnvironment;
+        private HelpBox gpuWarning;
         private Label page;
         private Label operation;
         private Label rootWall;
@@ -123,6 +125,11 @@ namespace DCFApixels.WhimTex
             status = new Label();
             status.AddToClassList("whimtex-profiler-status");
             root.Add(status);
+            gpuEnvironment = new Label { name = "gpu-environment" };
+            gpuEnvironment.AddToClassList("whimtex-profiler-gpu-environment");
+            root.Add(gpuEnvironment);
+            gpuWarning = new HelpBox(WhimTexProfiler.GpuUnconfirmedWarning, HelpBoxMessageType.Warning) { name = "gpu-warning" };
+            root.Add(gpuWarning);
             CreateBaselineControls(root);
             CreateDiagnosticsPanel(root);
             var filters = Row(root, true);
@@ -590,6 +597,7 @@ namespace DCFApixels.WhimTex
             openSpans = capture?.Value<int?>("openSpans") ?? 0;
             pendingGpu = capture?.Value<int?>("pendingGpuSamples") ?? 0;
             gpuAvailability = capture?.Value<string>("gpuAvailability") ?? "stopped";
+            ApplyGpuEnvironment(capture, response["baseline"] as JObject);
             if (string.IsNullOrEmpty(captureId))
             {
                 status.text = "No retained capture. Recording is off.";
@@ -606,6 +614,32 @@ namespace DCFApixels.WhimTex
             status.EnableInClassList("whimtex-profiler-recording", recording);
             ApplyMemory(capture);
             UpdateButtons();
+        }
+
+        private void ApplyGpuEnvironment(JObject capture, JObject baseline)
+        {
+            var threading = SystemInfo.renderingThreadingMode;
+            bool? active = WhimTexProfiler.GraphicsJobsActive(threading);
+            bool configured = PlayerSettings.graphicsJobs;
+            gpuEnvironment.text = "Graphics Jobs: " + (active.HasValue ? active.Value ? "On (active)" : "Off (active)" : "Unknown") +
+                " · " + threading + (active.HasValue && active.Value != configured
+                    ? " · Configured " + (configured ? "On" : "Off") + " (restart required)" : "");
+            gpuEnvironment.tooltip = "Actual running render device; changing Player Settings takes effect after restarting Unity.\n" +
+                "Capture: " + (capture?.Value<string>("renderingThreadingMode") ?? "not recorded") +
+                "\nBaseline: " + (baseline?.Value<string>("renderingThreadingMode") ?? "not recorded");
+            bool capturedJobs = capture?.Value<bool?>("graphicsJobs") == true;
+            bool baselineJobs = baseline?.Value<bool?>("graphicsJobs") == true;
+            gpuWarning.text = WhimTexProfiler.GpuUnconfirmedWarning +
+                (capturedJobs || baselineJobs ? " Recorded with Graphics Jobs: " +
+                    (capturedJobs && baselineJobs ? "current capture and baseline." : capturedJobs ? "current capture." : "baseline.") : "");
+            gpuWarning.EnableInClassList("whimtex-profiler-hidden", active != true && !capturedJobs && !baselineJobs);
+        }
+
+        private static void MarkUnconfirmedGpu(Label cell, bool unconfirmed)
+        {
+            cell.EnableInClassList("whimtex-profiler-gpu-unconfirmed", unconfirmed);
+            if (unconfirmed && !cell.tooltip.Contains(WhimTexProfiler.GpuUnconfirmedWarning))
+                cell.tooltip += "\n" + WhimTexProfiler.GpuUnconfirmedWarning;
         }
 
         private void SelectEvent(IEnumerable<object> selection)
@@ -762,6 +796,7 @@ namespace DCFApixels.WhimTex
             SetCell(row, "prepare", Milliseconds(item, "cpuPrepareMs"));
             SetCell(row, "gpu", item.Value<string>("gpuStatus") == "pending" ? "…" : Milliseconds(item, "gpuMs"));
             row.Q<Label>("gpu").tooltip = "GPU: " + item.Value<string>("gpuStatus") + ". Delayed results update automatically.\n" + (item.Value<string>("gpuDetail") ?? "");
+            MarkUnconfirmedGpu(row.Q<Label>("gpu"), item.Value<string>("gpuStatus") == "unconfirmed");
             row.EnableInClassList("whimtex-profiler-root-event", depth == 0);
             row.tooltip = $"Event {item["id"]} · operation {item["operationId"]} · depth {depth}\n" +
                 "Group: " + item.Value<string>("group") + "\n" +
@@ -836,7 +871,8 @@ namespace DCFApixels.WhimTex
             bool partialGpu = (item.Value<int?>("gpuPendingCount") ?? 0) + (item.Value<int?>("gpuUnavailableCount") ?? 0) > 0;
             SetCell(row, "gpu", item.Value<double?>("gpuTotalMs").HasValue ? Milliseconds(item, "gpuTotalMs") + (partialGpu ? "*" : "") :
                 item.Value<int?>("gpuPendingCount") > 0 ? "…" : "—");
-            row.Q<Label>("gpu").tooltip = $"GPU: {item["gpuCount"]} ready, {item["gpuPendingCount"]} pending, {item["gpuUnavailableCount"]} unavailable. Max {Milliseconds(item, "gpuMaxMs")} ms. Only ready samples contribute.";
+            row.Q<Label>("gpu").tooltip = $"GPU: {item["gpuCount"]} measured ({item.Value<int?>("gpuUnconfirmedCount") ?? 0} unconfirmed), {item["gpuPendingCount"]} pending, {item["gpuUnavailableCount"]} unavailable. Max {Milliseconds(item, "gpuMaxMs")} ms.";
+            MarkUnconfirmedGpu(row.Q<Label>("gpu"), item.Value<int?>("gpuUnconfirmedCount") > 0);
             BindSummaryAllocations(row, item, "allocations", "gcAllocationCount", "Includes nested stages.");
             BindSummaryAllocations(row, item, "self-allocations", "gcSelfAllocationCount", "Excludes nested stages.");
             row.tooltip = $"Group: {item["group"]}. {item["completedCount"]} completed of {item["count"]}. Timings include completed events only; rows may overlap.";

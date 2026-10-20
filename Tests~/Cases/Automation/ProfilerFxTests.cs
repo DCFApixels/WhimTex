@@ -7,6 +7,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using AsyncGPUReadback = UnityEngine.Rendering.AsyncGPUReadback;
 using DCFApixels.WhimTex;
 using WhimTex.Tests;
 using Json = ProfilerTests.Json;
@@ -25,6 +26,8 @@ public static class ProfilerFxTests
 
     public static string Start(string id)
     {
+        string unsupported = (string)Profiler.GetProperty("GpuSupportStatus", Hidden)?.GetValue(null);
+        if (unsupported != null) return TestContext.Result("skipped", 0, "Live GPU delivery requires a supported actual threading mode: " + unsupported).ToJson();
         var status = Call("status")["capture"];
         if (status.Type != "Null" && ((bool)status["recording"] || (int)status["openSpans"] != 0 || (int)status["pendingGpuSamples"] != 0))
             return TestContext.Result("skipped", 0, "Requires an idle profiler; retained stopped capture is preserved.").ToJson();
@@ -98,8 +101,27 @@ public static class ProfilerFxTests
         {
             var active = RenderTexture.active; bool srgb = GL.sRGBWrite;
             Texture2D result = null;
-            try { result = document.ComposeCanvas(); return result.GetPixels(); }
-            finally { if (result != null) UnityEngine.Object.DestroyImmediate(result); RenderTexture.active = active; GL.sRGBWrite = srgb; }
+            RenderTexture target = null;
+            try
+            {
+                typeof(WhimTexDocument).GetMethod("NormalizeModel", Instance).Invoke(document, null);
+                target = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderCanvas", Instance).Invoke(document, new object[] { 128 });
+                var readback = AsyncGPUReadback.Request(target, 0, TextureFormat.RGBAHalf);
+                readback.WaitForCompletion(); t.True(!readback.hasError, "Owned parity readback succeeds without ReadPixels");
+                result = new Texture2D(target.width, target.height, TextureFormat.RGBAHalf, false, true);
+                result.LoadRawTextureData(readback.GetData<byte>());
+                return result.GetPixels();
+            }
+            finally
+            {
+                if (result != null) UnityEngine.Object.DestroyImmediate(result);
+                if (target != null)
+                {
+                    Profiler.GetMethod("ReleaseTexture", Hidden).Invoke(null, new object[] { target });
+                    RenderTexture.ReleaseTemporary(target);
+                }
+                RenderTexture.active = active; GL.sRGBWrite = srgb;
+            }
         }
         public void Begin()
         {
@@ -112,7 +134,7 @@ public static class ProfilerFxTests
                 var tint = Fx("Tint", "float4 ApplyFX(float2 uv,float4 color){color.rgb *= .7; return color;}");
                 var disabled = Fx("Disabled", "float4 ApplyFX(float2 uv,float4 color){return 0;}"); disabled.Active = false;
                 layer.fx.Add(tint); layer.fx.Add(disabled);
-                layer.fx.Add(Own(new Material((Shader)typeof(ShaderFX).GetField("compiledShader", Instance).GetValue(tint)) { name = "Material FX" }));
+                layer.fx.Add(Fx("Second HLSL FX", "float4 ApplyFX(float2 uv,float4 color){color.rgb *= .7; return color;}"));
                 Layer dependency = new ColorFillLayerBehaviour { mode = ColorFillLayerBehaviour.FillMode.UV };
                 dependency.layerName = "FX input"; dependency.enabled = false;
                 dependency.fx.Add(Fx("Input tint", "float4 ApplyFX(float2 uv,float4 color){return color * .8;}"));
@@ -146,8 +168,8 @@ public static class ProfilerFxTests
             Set(capture, "recording", true);
             Activate(() =>
             {
-                t.True(Render().SequenceEqual(baseline), "Composite/group/Target pixels exactly equal with profiling on/off");
                 ExerciseEncode();
+                t.True(Render().SequenceEqual(baseline), "Composite/group/Target pixels exactly equal with profiling on/off");
             });
             Set(capture, "end", Stopwatch.GetTimestamp()); Set(capture, "stopReason", "test");
             t.Equal(0, (int)Field(capture, "open"), "CPU scopes close including dependencies");
@@ -263,13 +285,21 @@ public static class ProfilerFxTests
                     string state = (string)sample["gpuStatus"];
                     t.True(state != "pending" && state != "not_measured", "Non-FX measurement reaches terminal state: " + phase);
                     t.Equal(state == "ready", sample["gpuMs"].Type != "Null", "No fake non-FX GPU values");
-                    if (SystemInfo.supportsGpuRecorder) t.Equal("ready", state, "Actual device measurement for " + phase);
+                    if (phase == "transfer.encode") t.Equal("invalidated_by_readback", state, "Production encoded readback invalidates its pending interval");
+                    else if (SystemInfo.supportsGpuRecorder) t.True(state == "ready" || state == "invalidated_by_readback",
+                        "Actual device measurement or explicit external readback invalidation for " + phase);
                 }
             }
             var effects = rows.Where(e => (string)e["phase"] == "fx.render").ToArray();
+            foreach (var child in rows.Where(e => (string)e["gpuStatus"] == "ready" && (long)e["parentId"] != 0))
+            {
+                var parent = rows.FirstOrDefault(e => (long)e["id"] == (long)child["parentId"]);
+                if (parent != null && (string)parent["gpuStatus"] == "ready")
+                    t.True((double)child["gpuMs"] <= (double)parent["gpuMs"] + .001, "Nested GPU interval fits its parent within timestamp resolution");
+            }
             t.True(effects.Length >= 4 * batch, "Individual FX recorded in child, group and input dependency");
             t.True(effects.All(e => (string)e["fxName"] != "Disabled"), "Inactive FX never measured");
-            t.True(effects.Any(e => (string)e["fxName"] == "Material FX"), "Plain material FX measured");
+            t.True(effects.Any(e => (string)e["fxName"] == "Second HLSL FX"), "Each HLSL FX measured independently");
             t.True(effects.Any(e => (string)e["fxName"] == "Input tint" && (string)e["layerName"] == "FX input"), "Dependency FX has its own name/layer");
             foreach (var effect in rows.Where(e => (string)e["phase"] == "fx.render" || (string)e["phase"] == "fx.block"))
             {
@@ -283,7 +313,8 @@ public static class ProfilerFxTests
                 t.True(state != "pending", "GPU sample reaches a terminal state");
                 t.Equal(state == "ready", effect["gpuMs"].Type != "Null", "Unavailable GPU is null, not zero or CPU elapsed");
                 if (state == "ready") t.True((double)effect["gpuMs"] > 0, "Actual nonzero GPU timing");
-                if (SystemInfo.supportsGpuRecorder) t.Equal("ready", state, "Supported Editor must return actual GPU sample: " + effect["gpuDetail"]);
+                if (SystemInfo.supportsGpuRecorder) t.True(state == "ready" || state == "invalidated_by_readback",
+                    "Supported Editor returns timing or honest external readback invalidation: " + effect["gpuDetail"]);
             }
             var summary = report["summary"].Where(e => (string)e["phase"] == "fx.render").ToArray();
             t.True(summary.Length >= 4, "Summary does not merge different effect slots/layers");

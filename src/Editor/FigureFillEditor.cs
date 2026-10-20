@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -13,6 +12,7 @@ namespace DCFApixels.WhimTex
             internal VectorFillMode mode;
             internal Color color;
             internal WhimTexGradient gradient;
+            internal FreeformGradient freeform;
             internal Vector2 start, end;
             internal float repetitions;
         }
@@ -22,26 +22,36 @@ namespace DCFApixels.WhimTex
                 s => { text.fillMode = s.mode; text.color = s.color; text.gradient = s.gradient;
                     text.gradientStart = s.start; text.gradientEnd = s.end; text.gradientRepetitions = s.repetitions; },
                 change, bindings, false) { }
-        internal FigureFillEditor(ShapeLayerBehaviour shape, Action<string, Action> change, WhimTexUI.ValueBindings bindings, bool stroke = false)
-            : this(() => stroke ? new Style { mode = shape.strokeMode, color = shape.strokeColor, gradient = shape.strokeGradient, start = shape.strokeGradientStart, end = shape.strokeGradientEnd, repetitions = shape.strokeGradientRepetitions } :
-                new Style { mode = shape.fillMode, color = shape.fillColor, gradient = shape.gradient, start = shape.gradientStart, end = shape.gradientEnd, repetitions = shape.gradientRepetitions },
-                s => { if (stroke) { shape.strokeMode = s.mode; shape.strokeColor = s.color; shape.strokeGradient = s.gradient; shape.strokeGradientStart = s.start; shape.strokeGradientEnd = s.end; shape.strokeGradientRepetitions = s.repetitions; }
-                    else { shape.fillMode = s.mode; shape.fillColor = s.color; shape.gradient = s.gradient; shape.gradientStart = s.start; shape.gradientEnd = s.end; shape.gradientRepetitions = s.repetitions; } }, change, bindings, stroke) { }
-        internal FigureFillEditor(VectorShape shape, Action<string, Action> change, WhimTexUI.ValueBindings bindings, bool stroke = false)
-            : this(() => stroke ? new Style { mode = shape.strokeMode, color = shape.strokeColor, gradient = shape.strokeGradient, start = shape.strokeGradientStart, end = shape.strokeGradientEnd, repetitions = shape.strokeGradientRepetitions } :
-                new Style { mode = shape.fillMode, color = shape.fillColor, gradient = shape.gradient, start = shape.gradientStart, end = shape.gradientEnd, repetitions = shape.gradientRepetitions },
-                s => { if (stroke) { shape.strokeMode = s.mode; shape.strokeColor = s.color; shape.strokeGradient = s.gradient; shape.strokeGradientStart = s.start; shape.strokeGradientEnd = s.end; shape.strokeGradientRepetitions = s.repetitions; }
-                    else { shape.fillMode = s.mode; shape.fillColor = s.color; shape.gradient = s.gradient; shape.gradientStart = s.start; shape.gradientEnd = s.end; shape.gradientRepetitions = s.repetitions; } }, change, bindings, stroke) { }
-        private FigureFillEditor(Func<Style> read, Action<Style> write, Action<string, Action> change, WhimTexUI.ValueBindings bindings, bool stroke)
+        internal FigureFillEditor(ShapeLayerBehaviour shape, Action<string, Action> change, WhimTexUI.ValueBindings bindings, bool stroke = false, WhimTexDocument document = null)
+            : this(() => stroke ? new Style { mode = shape.strokeMode, color = shape.strokeColor, gradient = shape.strokeGradient, freeform = shape.strokeFreeform, start = shape.strokeGradientStart, end = shape.strokeGradientEnd, repetitions = shape.strokeGradientRepetitions } :
+                new Style { mode = shape.fillMode, color = shape.fillColor, gradient = shape.gradient, freeform = shape.freeform, start = shape.gradientStart, end = shape.gradientEnd, repetitions = shape.gradientRepetitions },
+                s => { if (stroke) { shape.strokeMode = s.mode; shape.strokeColor = s.color; shape.strokeGradient = s.gradient; shape.strokeFreeform = s.freeform; shape.strokeGradientStart = s.start; shape.strokeGradientEnd = s.end; shape.strokeGradientRepetitions = s.repetitions; }
+                    else { shape.fillMode = s.mode; shape.fillColor = s.color; shape.gradient = s.gradient; shape.freeform = s.freeform; shape.gradientStart = s.start; shape.gradientEnd = s.end; shape.gradientRepetitions = s.repetitions; } }, change, bindings, stroke, document,
+                () => stroke ? shape.selectedStrokeFreeformPoint : shape.selectedFreeformPoint,
+                value => { if (stroke) shape.selectedStrokeFreeformPoint = value; else shape.selectedFreeformPoint = value; }) { }
+        internal FigureFillEditor(VectorShape shape, Action<string, Action> change, WhimTexUI.ValueBindings bindings, bool stroke = false, WhimTexDocument document = null)
+            : this(() => stroke ? new Style { mode = shape.strokeMode, color = shape.strokeColor, gradient = shape.strokeGradient, freeform = shape.strokeFreeform, start = shape.strokeGradientStart, end = shape.strokeGradientEnd, repetitions = shape.strokeGradientRepetitions } :
+                new Style { mode = shape.fillMode, color = shape.fillColor, gradient = shape.gradient, freeform = shape.freeform, start = shape.gradientStart, end = shape.gradientEnd, repetitions = shape.gradientRepetitions },
+                s => { if (stroke) { shape.strokeMode = s.mode; shape.strokeColor = s.color; shape.strokeGradient = s.gradient; shape.strokeFreeform = s.freeform; shape.strokeGradientStart = s.start; shape.strokeGradientEnd = s.end; shape.strokeGradientRepetitions = s.repetitions; }
+                    else { shape.fillMode = s.mode; shape.fillColor = s.color; shape.gradient = s.gradient; shape.freeform = s.freeform; shape.gradientStart = s.start; shape.gradientEnd = s.end; shape.gradientRepetitions = s.repetitions; } }, change, bindings, stroke, document,
+                () => stroke ? shape.selectedStrokeFreeformPoint : shape.selectedFreeformPoint,
+                value => { if (stroke) shape.selectedStrokeFreeformPoint = value; else shape.selectedFreeformPoint = value; }) { }
+        private FigureFillEditor(Func<Style> read, Action<Style> write, Action<string, Action> change, WhimTexUI.ValueBindings bindings, bool stroke, WhimTexDocument document = null, Func<int> selection = null, Action<int> select = null)
         {
             string channel = stroke ? "Stroke" : "Fill", prefix = "figure" + channel;
             name = prefix + "Options";
-            var choices = new List<string> { "None", "Solid", "Linear", "Radial", "Square", "Diamond", "Circular" };
-            var type = WhimTexUI.ConfigureField(new PopupField<string>("Type", choices, Mathf.Clamp((int)read().mode, 0, 6)) { name = prefix + "Type" });
-            Add(type); bindings.Track(type, () => choices[Mathf.Clamp((int)read().mode, 0, 6)]);
-            type.RegisterValueChangedCallback(e => change("Change " + channel + " Type", () => { var s = read(); s.mode = (VectorFillMode)choices.IndexOf(e.newValue); write(s); }));
+            var type = WhimTexUI.ConfigureField(new FigureFillTypeField("Type", selection != null) { name = prefix + "Type" });
+            Add(type); bindings.Track(type, () => read().mode);
+            type.RegisterValueChangedCallback(e => change("Change " + channel + " Type", () => { var s = read(); s.mode = e.newValue; write(s); }));
             var color = WhimTexUI.ConfigureField(WhimTexColorInputs.Bind(new WhimTexColorField("Color") { name = prefix + "Color" }, bindings, () => read().color));
             Add(color); color.RegisterValueChangedCallback(e => change("Change " + channel + " Color", () => { var s = read(); s.color = e.newValue; write(s); }));
+            if (selection != null)
+            {
+                var freeform = new VisualElement { name = prefix + "Freeform" }; Add(freeform);
+                FreeformGradientEditor.Build(freeform, () => read().freeform,
+                    value => { var s = read(); s.freeform = value; write(s); }, selection, select,
+                    () => read().mode == VectorFillMode.Freeform, document, change, bindings);
+            }
             var settings = new VisualElement(); Add(settings);
             var gradient = WhimTexUI.ConfigureField(WhimTexColorInputs.Bind(new WhimTexGradientValueField("Gradient") { name = prefix + "Gradient" }, bindings, () => read().gradient));
             settings.Add(gradient);
@@ -50,7 +60,7 @@ namespace DCFApixels.WhimTex
             var end = WhimTexUI.ConfigureField(new Vector2Field("End") { name = prefix + "End" });
             settings.Add(start); settings.Add(end);
             start.tooltip = "Layer-local normalized coordinates: (0,0) bottom left, (1,1) top right.";
-            end.tooltip = "Linear: end. Radial: radius endpoint. Square/Diamond: radius and orientation. Circular: starting ray.";
+            end.tooltip = "Linear: end. Radial: radius endpoint. Square: radius and orientation. Angular: starting ray.";
             bindings.Track(start, () => read().start); bindings.Track(end, () => read().end);
             void Position(ChangeEvent<Vector2> e, bool first)
             {
@@ -71,10 +81,10 @@ namespace DCFApixels.WhimTex
             {
                 var mode = read().mode;
                 color.EnableInClassList("whimtex-hidden", mode != VectorFillMode.Solid);
-                settings.EnableInClassList("whimtex-hidden", !FigureFill.IsGradient(mode));
-                repetitions.EnableInClassList("whimtex-hidden", mode != VectorFillMode.CircularGradient);
+                settings.EnableInClassList("whimtex-hidden", !FigureFill.IsPaletteGradient(mode));
+                repetitions.EnableInClassList("whimtex-hidden", mode != VectorFillMode.AngularGradient);
                 start.label = mode == VectorFillMode.LinearGradient ? "Start" : "Center";
-                end.label = mode == VectorFillMode.CircularGradient ? "Direction" : mode == VectorFillMode.LinearGradient ? "End" : "Radius / Direction";
+                end.label = mode == VectorFillMode.AngularGradient ? "Direction" : mode == VectorFillMode.LinearGradient ? "End" : "Radius / Direction";
             });
         }
     }

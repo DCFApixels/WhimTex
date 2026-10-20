@@ -5,7 +5,7 @@ using UnityEngine;
 namespace DCFApixels.WhimTex
 {
     public enum VectorTangentMode { Corner, Aligned, Mirrored }
-    public enum VectorFillMode { None, Solid, LinearGradient, RadialGradient, SquareGradient, DiamondGradient, CircularGradient }
+    public enum VectorFillMode { None = 0, Solid = 1, LinearGradient = 2, RadialGradient = 3, SquareGradient = 4, AngularGradient = 6, Freeform = 7 }
     public enum VectorFillRule { EvenOdd, NonZero }
     public enum VectorStrokePosition { Center, Inside, Outside }
     public enum VectorStrokeJoin { Miter, Round, Bevel }
@@ -59,6 +59,8 @@ namespace DCFApixels.WhimTex
         public VectorFillMode fillMode = VectorFillMode.Solid;
         public Color fillColor = Color.white;
         public WhimTexGradient gradient = new WhimTexGradient();
+        public FreeformGradient freeform = new FreeformGradient();
+        [NonSerialized] internal int selectedFreeformPoint;
         public Vector2 gradientStart = Vector2.zero, gradientEnd = Vector2.right;
         public float gradientRepetitions = 1f;
         public VectorFillRule fillRule;
@@ -66,6 +68,8 @@ namespace DCFApixels.WhimTex
         public Color strokeColor = Color.black;
         public VectorFillMode strokeMode = VectorFillMode.Solid;
         public WhimTexGradient strokeGradient = new WhimTexGradient();
+        public FreeformGradient strokeFreeform = new FreeformGradient();
+        [NonSerialized] internal int selectedStrokeFreeformPoint;
         public Vector2 strokeGradientStart = Vector2.zero, strokeGradientEnd = Vector2.right;
         public float strokeGradientRepetitions = 1f;
         public float strokeWidth = 2;
@@ -97,6 +101,8 @@ namespace DCFApixels.WhimTex
             if (!preserveIds) copy.id = Guid.NewGuid().ToString("N");
             copy.gradient = gradient?.Clone();
             copy.strokeGradient = strokeGradient?.Clone();
+            copy.freeform = freeform?.Clone();
+            copy.strokeFreeform = strokeFreeform?.Clone();
             copy.dashPattern = dashPattern == null ? null : new List<float>(dashPattern);
             copy.contours = contours == null ? null : new List<VectorContour>(contours.Count);
             if (contours != null) foreach (var contour in contours) copy.contours.Add(contour?.Clone(preserveIds));
@@ -107,6 +113,7 @@ namespace DCFApixels.WhimTex
         internal void CopyAppearanceFrom(VectorShape source)
         {
             fillMode = source.fillMode; fillColor = source.fillColor; gradient = source.gradient;
+            freeform = source.freeform; strokeFreeform = source.strokeFreeform;
             gradientStart = source.gradientStart; gradientEnd = source.gradientEnd; gradientRepetitions = source.gradientRepetitions;
             stroke = source.stroke; strokeColor = source.strokeColor; strokeMode = source.strokeMode; strokeGradient = source.strokeGradient;
             strokeGradientStart = source.strokeGradientStart; strokeGradientEnd = source.strokeGradientEnd;

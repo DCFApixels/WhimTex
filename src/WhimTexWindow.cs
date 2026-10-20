@@ -28,7 +28,7 @@ namespace DCFApixels.WhimTex
         private static readonly Color GroupDropHighlightColor = new Color(0.20f, 0.58f, 0.95f, 0.22f);
         private static readonly GUIContent LiveCanvasQualityContent = new GUIContent(
             "Live Quality",
-            "Resolution scale used while painting. Lower values make effect-heavy canvas updates faster. Outside painting, Canvas View is limited to 512 pixels, even at 100%. Select Pencil for full resolution; save and export always use full resolution.");
+            "Resolution scale used while painting. Canvas View adapts to zoom and the visible region, up to source pixels at 100%. FX and full-frame preview modes retain their existing reduced preview. Save and export always use full resolution.");
         private static readonly GUIContent PrimaryBrushColorContent = new GUIContent(
             string.Empty,
             "Foreground brush color. Press X to swap it with the background color.");
@@ -55,6 +55,7 @@ namespace DCFApixels.WhimTex
         [SerializeField] private float layerSettingsPaneHeight = DefaultLayerSettingsPaneHeight;
 
         [NonSerialized] private RenderTexture canvasTexture;
+        [NonSerialized] private CanvasRenderRegion? canvasRenderRegion;
         [NonSerialized] private bool canvasRequested;
         [NonSerialized] private double canvasAt;
         [SerializeField] private bool temporaryDocumentDirty;
@@ -349,7 +350,7 @@ namespace DCFApixels.WhimTex
             activeCommentChoice?.Close();
             if (!IsVectorMaskRebuilding) vectorManipulator?.Cancel();
             commentManipulator?.Cancel();
-            cropPicker?.Cancel(); shapePicker?.Cancel(); marqueePicker?.Cancel(); lassoPicker?.Cancel();
+            cropPicker?.Cancel(); shapePicker?.Cancel(); marqueePicker?.Cancel(); lassoPicker?.Cancel(); gradientPicker?.Cancel();
             cropManipulator?.CancelGesture();
             canvasToolToggleKeyHeld = false;
             if (healingPointer >= 0) CancelHealing();
@@ -1219,16 +1220,27 @@ namespace DCFApixels.WhimTex
             try
             {
                 bool interactive = EffectsAreInteractive;
-                int maxSize = canvasTool == CanvasTool.Pencil
-                    ? Mathf.Max(activeDocument.width, activeDocument.height)
-                    : paintingLayer != null ? GetPaintingCanvasMaxSize() : CanvasMaxSize;
                 canvasEffectCache ??= new EffectRenderCache();
-                canvasTexture = activeDocument.RenderCanvasWithCache(maxSize, canvasEffectCache, interactive, paintingLayer);
+                canvasRenderRegion = PlanCanvasRegion();
+                if (canvasRenderRegion is CanvasRenderRegion region)
+                {
+                    // Live output needs a complete frame. Render it first so the final
+                    // numeric-error mask still belongs to the visible canvas region.
+                    PublishLiveOutput();
+                    canvasTexture = activeDocument.RenderCanvasViewport(region, canvasEffectCache, interactive, paintingLayer);
+                }
+                else
+                {
+                    int maxSize = canvasTool == CanvasTool.Pencil
+                        ? Mathf.Max(activeDocument.width, activeDocument.height)
+                        : paintingLayer != null ? GetPaintingCanvasMaxSize() : CanvasMaxSize;
+                    canvasTexture = activeDocument.RenderCanvasWithCache(maxSize, canvasEffectCache, interactive, paintingLayer);
+                }
                 effectRefinementPending = interactive;
                 ApplyCanvasTextureFilter();
-                PublishLiveOutput();
                 RenderPostFx();
                 UpdateChannelCanvas();
+                if (!canvasRenderRegion.HasValue) PublishLiveOutput();
             }
             catch (Exception exception)
             {
@@ -1245,6 +1257,22 @@ namespace DCFApixels.WhimTex
                 Mathf.RoundToInt(CanvasMaxSize * paintingCanvasScale),
                 Mathf.RoundToInt(CanvasMaxSize * MinimumPaintingCanvasScale),
                 CanvasMaxSize);
+        }
+
+        private CanvasRenderRegion? PlanCanvasRegion()
+        {
+            if (activeDocument == null || toolkitCanvas == null || tiledCanvas || postFxEnabled ||
+                toolkitCanvas.HasCanvasFramePreview || !(toolkitCanvas.ImageRect.width > 0) || !(toolkitCanvas.ImageRect.height > 0) || !(toolkitCanvas.contentRect.width > 0) ||
+                !activeDocument.SupportsViewportRendering()) return null;
+            float quality = paintingLayer != null && canvasTool != CanvasTool.Pencil ? paintingCanvasScale : 1;
+            return CanvasRenderRegion.Plan(toolkitCanvas.VisibleCanvasBounds, toolkitCanvas.ImageRect,
+                activeDocument.width, activeDocument.height, EditorGUIUtility.pixelsPerPoint, quality, SystemInfo.maxTextureSize);
+        }
+
+        private void RequestCanvasViewRender()
+        {
+            var next = PlanCanvasRegion();
+            if (!Nullable.Equals(next, canvasRenderRegion)) RequestCanvasRender(true);
         }
 
         private static float ClampPaintingCanvasScale(float value)

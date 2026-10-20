@@ -56,7 +56,7 @@ namespace DCFApixels.WhimTex
             visiting.Clear();
             unused.Clear();
             foreach (Entry entry in entries.Values)
-                if (!requiredEntries.Contains(entry.key)) unused.Add(entry);
+                if (!IsRequired(entry.key)) unused.Add(entry);
             foreach (Entry entry in unused) Remove(entry, "unused");
             unused.Clear();
             TrimToBudget(0);
@@ -87,6 +87,7 @@ namespace DCFApixels.WhimTex
         private void VisitRequired(Layer layer)
         {
             if (layer == null || !visiting.Add(layer)) return;
+            RequireEntry(layer, "viewport-source");
             if (layer?.AsGroup() is Layer group)
             {
                 VisitVisible(group.layers);
@@ -116,6 +117,7 @@ namespace DCFApixels.WhimTex
                 document.TryFindLayer(layer, out var processorContainer, out int processorIndex))
             {
                 RequireEntry(layer, "processor");
+                RequireEntry(layer, "effect");
                 for (int i = processorIndex + 1; i < processorContainer.Count; i++)
                     VisitRequired(processorContainer[i]);
             }
@@ -136,6 +138,18 @@ namespace DCFApixels.WhimTex
         }
 
         internal bool NeedsColor(Layer group) => colorSources.Contains(group);
+
+        private bool IsRequired(string key)
+        {
+            if (requiredEntries.Contains(key)) return true;
+            int variant = key.IndexOf("/viewport", StringComparison.Ordinal);
+            // viewport-source is a render kind, not a viewport cache suffix.
+            if (variant >= 0 && key.IndexOf("/viewport-source", StringComparison.Ordinal) == variant)
+                variant = key.IndexOf("/viewport", variant + 1, StringComparison.Ordinal);
+            int prefix = key.IndexOf("/prefix/", StringComparison.Ordinal);
+            if (prefix >= 0 && (variant < 0 || prefix < variant)) variant = prefix;
+            return variant >= 0 && requiredEntries.Contains(key.Substring(0, variant));
+        }
 
         private void RequireEntry(Layer layer, string kind)
         {
@@ -182,7 +196,7 @@ namespace DCFApixels.WhimTex
             return hash == 0 ? 1 : hash;
         }
 
-        private static bool CanCacheFx(UnityEngine.Object fxEntry)
+        private static bool CanCacheFx(ShaderFX fxEntry)
         {
             return fxEntry is ShaderFX fx && (!fx.Active || !fx.UsesUnityTimeInputs);
         }
@@ -191,15 +205,49 @@ namespace DCFApixels.WhimTex
         {
             if (layer == null) return 1;
             if (stamps.TryGetValue(layer, out ulong ready)) return ready;
+            // Live stroke pixels change every input batch. Avoid serializing/hashing
+            // their entire Drawing state and retaining a single-frame FX cache.
+            if (layer.Behaviour is DrawingLayerBehaviour live &&
+                (live == liveDrawing || live.HasBufferedStroke)) return stamps[layer] = 0;
             if (!visiting.Add(layer)) return 0;
             try
             {
-                // Unity time inputs and arbitrary Materials bypass reusable caching.
+                // Unity time inputs bypass reusable caching.
                 // Thumbnail snapshots may explicitly capture their current result.
                 if (!snapshotShaders && layer.fx != null)
                     foreach (var fxEntry in layer.fx)
                         if (fxEntry != null && !CanCacheFx(fxEntry)) return stamps[layer] = 0;
-                ulong hash = Mix(14695981039346656037UL, layer.transformCache?.version ?? 0);
+                ulong dependencies = 14695981039346656037UL;
+                if (layer?.AsGroup() is Layer group && group.layers != null)
+                    foreach (Layer child in group.layers)
+                    {
+                        if (child?.enabled != true || child.Behaviour is PendingLayerBehaviour) continue;
+                        ulong dependency = DependencyStamp(layer, child, "group child");
+                        if (dependency == 0) return stamps[layer] = 0;
+                        dependencies = Mix(dependencies, dependency);
+                    }
+                if (layer?.Behaviour is TargetedLayerBehaviour effect)
+                {
+                    ulong dependency = InputStamp(effect);
+                    if (dependency == 0) return stamps[layer] = 0;
+                    dependencies = Mix(dependencies, dependency);
+                }
+                if (layer?.Behaviour is ShaderProcessorLayerBehaviour &&
+                    document.TryFindLayer(layer, out var container, out int index))
+                    for (int i = index + 1; i < container.Count; i++)
+                    {
+                        if (container[i]?.enabled != true || container[i].Behaviour is PendingLayerBehaviour) continue;
+                        ulong dependency = DependencyStamp(layer, container[i], "processor input");
+                        if (dependency == 0) return stamps[layer] = 0;
+                        dependencies = Mix(dependencies, dependency);
+                    }
+                if (layer.clippingMask)
+                {
+                    ulong dependency = DependencyStamp(layer, document.GetClippingBase(layer), "clipping base");
+                    if (dependency == 0) return stamps[layer] = 0;
+                    dependencies = Mix(dependencies, dependency);
+                }
+                ulong hash = Mix(Mix(14695981039346656037UL, layer.transformCache?.version ?? 0), dependencies);
                 string settings = JsonUtility.ToJson(layer);
                 WhimTexProfiler.ObserveSettings(document, layer, settings);
                 foreach (char c in settings) hash = Mix(hash, c);
@@ -225,18 +273,6 @@ namespace DCFApixels.WhimTex
                                 hash = Mix(hash, dependency);
                             }
                         }
-                        if (snapshotShaders && fxEntry is Material material)
-                        {
-                            hash = Mix(hash, unchecked((ulong)(material.shader != null ? UnityEditor.EditorUtility.GetDirtyCount(material.shader) : 0)));
-                            foreach (string property in material.GetTexturePropertyNames())
-                            {
-                                Texture input = material.GetTexture(property);
-                                if (input != null)
-                                {
-                                    hash = MixTexture(hash, input);
-                                }
-                            }
-                        }
                     }
                 Texture texture = layer.SamplingSource;
                 bool paintSource = layer.Behaviour is DrawingLayerBehaviour sourceDrawing && sourceDrawing.HasPaintSurface;
@@ -256,35 +292,6 @@ namespace DCFApixels.WhimTex
                 }
                 if (layer.Behaviour is DrawingLayerBehaviour drawing)
                     hash = Mix(hash, drawing.PaintSurfaceRevision);
-                if (layer?.AsGroup() is Layer group && group.layers != null)
-                    foreach (Layer child in group.layers)
-                    {
-                        if (child?.enabled != true || child.Behaviour is PendingLayerBehaviour) continue;
-                        ulong dependency = DependencyStamp(layer, child, "group child");
-                        if (dependency == 0) return stamps[layer] = 0;
-                        hash = Mix(hash, dependency);
-                    }
-                if (layer?.Behaviour is TargetedLayerBehaviour effect)
-                {
-                    ulong dependency = InputStamp(effect);
-                    if (dependency == 0) return stamps[layer] = 0;
-                    hash = Mix(hash, dependency);
-                }
-                if (layer?.Behaviour is ShaderProcessorLayerBehaviour &&
-                    document.TryFindLayer(layer, out var container, out int index))
-                    for (int i = index + 1; i < container.Count; i++)
-                    {
-                        if (container[i]?.enabled != true || container[i].Behaviour is PendingLayerBehaviour) continue;
-                        ulong dependency = DependencyStamp(layer, container[i], "processor input");
-                        if (dependency == 0) return stamps[layer] = 0;
-                        hash = Mix(hash, dependency);
-                    }
-                if (layer.clippingMask)
-                {
-                    ulong dependency = DependencyStamp(layer, document.GetClippingBase(layer), "clipping base");
-                    if (dependency == 0) return stamps[layer] = 0;
-                    hash = Mix(hash, dependency);
-                }
                 return stamps[layer] = hash == 0 ? 1 : hash;
             }
             finally { visiting.Remove(layer); }

@@ -341,6 +341,8 @@ namespace DCFApixels.WhimTex
             private void WriteReference(UnityEngine.Object value)
             {
                 if (value == null) { _writer.Write(TagNull); return; }
+                if (value is ShaderFX external && external.EmbeddedOwner == null && UnityEditor.AssetDatabase.Contains(value))
+                    throw new WhimTexDocumentException(ShaderFX.HlslOnlyMessage);
                 if (ReferenceEquals(value, _owner) || !UnityEditor.AssetDatabase.Contains(value) || value is ShaderFX fx && fx.EmbeddedOwner != null)
                 {
                     // A document-owned object must not be lost: it is stored inline as an object graph.
@@ -765,7 +767,9 @@ namespace DCFApixels.WhimTex
                     case TagBounds: return new Bounds(new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle()),
                         new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle()));
                     case TagCurve: return ReadCurve();
-                    case TagReference: return ReadReference();
+                    case TagReference:
+                        if (declared == typeof(ShaderFX)) throw new WhimTexDocumentException(ShaderFX.HlslOnlyMessage);
+                        return ReadReference();
                     case TagTexture: return ReadTexture();
                     case TagEnum: return ReadEnum(declared);
                     case TagList: return ReadList(declared);
@@ -804,6 +808,12 @@ namespace DCFApixels.WhimTex
                 Type type = ResolveReadType(typeName);
                 if (type == null) return null;
                 if (!type.IsEnum) throw new WhimTexDocumentException("Invalid enum type: " + typeName);
+                if (type == typeof(GradientLayerBehaviour.GradientType) || type == typeof(VectorFillMode))
+                {
+                    if (!Enum.IsDefined(type, name))
+                        throw new WhimTexDocumentException("Unsupported gradient type: " + name + ". This document requires a matching editor version.");
+                    return Enum.Parse(type, name);
+                }
                 return Enum.IsDefined(type, name) ? Enum.Parse(type, name) : Enum.ToObject(type, number);
             }
 

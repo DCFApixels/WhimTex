@@ -39,7 +39,7 @@ float4 ApplyFX(float2 uv, float4 color)
     float2 halfTexel = 0.5 * _Mask_TexelSize.xy;
     maskUV = clamp(maskUV, halfTexel, 1.0 - halfTexel);
 
-    float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(tex2D(_Mask, maskUV)))));
+    float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(SampleTexture(_Mask, maskUV)))));
     if (_Invert > 0.5) mask = 1.0 - mask;
 	float multiplier = mask;
     float4 channelMask = float4(_ApplyRed, _ApplyGreen, _ApplyBlue, _ApplyAlpha);

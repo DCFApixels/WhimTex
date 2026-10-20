@@ -270,9 +270,11 @@ FX instance ID, slot key, ожидаемые type/key, resolved input ID либ�
 новым одноимённым объектом автоматически: Repair/Resolve missing inputs — явное действие.
 Link records входят в сохранение, Undo и clipboard remap наравне с field bindings.
 
-Для Material references возможно отдельное явное сопоставление Input ID→существующий
-uniform. Оно не объявляет переменные и не мутирует общий Material asset. В MVP —
-только Shader FX; неподдерживаемые объекты списка FX не обещать подключать автоматически.
+Привязки FX проектировать только для принадлежащих документу HLSL `ShaderFX`:
+`Layer.fx` — `List<ShaderFX>`, значения каждого экземпляра независимы. Внешние
+Material/Shader/ShaderFX `.asset` исключены из [контракта FX](../DECISIONS.md#fxhlsl-и-кисти),
+поэтому отдельное сопоставление Inputs с Material references не планируется.
+Внутренний Material остаётся получателем uniforms при исполнении HLSL.
 
 ## 7. UI и действия пользователя
 

@@ -52,7 +52,7 @@ namespace DCFApixels.WhimTex
             return BuildView((ShaderFX)target, serializedObject);
         }
 
-        internal static VisualElement CreateInlineView(ShaderFX effect)
+        internal static VisualElement CreateInlineView(ShaderFX effect, WhimTexDocument document = null, Layer layer = null, int fxIndex = -1)
         {
             VisualElement host = new VisualElement();
             SerializedObject data = null;
@@ -61,7 +61,7 @@ namespace DCFApixels.WhimTex
                 if (evt.target != host || data != null || effect == null)
                     return;
                 data = new SerializedObject(effect);
-                host.Add(BuildView(effect, data));
+                host.Add(BuildView(effect, data, document, layer, fxIndex));
             });
             host.RegisterCallback<DetachFromPanelEvent>(evt =>
             {
@@ -75,14 +75,17 @@ namespace DCFApixels.WhimTex
             return host;
         }
 
-        private static VisualElement BuildView(ShaderFX effect, SerializedObject serializedObject)
+        private static VisualElement BuildView(ShaderFX effect, SerializedObject serializedObject,
+            WhimTexDocument document = null, Layer layer = null, int fxIndex = -1)
         {
             VisualElement root = new VisualElement { focusable = true };
             WhimTexUI.ApplyWindowStyles(root);
             root.AddToClassList("whimtex-shader-fx");
             ShaderFXCodeField code = new ShaderFXCodeField(effect);
-            var codeFoldout = new Foldout { text = "Code", value = false,
+            var codeFoldout = new Foldout { text = "Code", name = "shaderFXCodeFoldout", value = false,
                 tooltip = "Edit HLSL and declarations here. Parameter values update live without recompiling." };
+            var codeInfo = new ShaderFXCodeInfo(code);
+            codeFoldout.Add(codeInfo.PixelLocalStatus);
             codeFoldout.Add(code);
             root.Add(codeFoldout);
             var externalCodeButtons = new VisualElement();
@@ -114,7 +117,7 @@ namespace DCFApixels.WhimTex
 
             HelpBox status = new HelpBox(string.Empty, HelpBoxMessageType.Info);
             root.Add(status);
-            Button apply = new Button { text = "Apply", tooltip = "Compile the code and parameter declarations; re-read included libraries. Embedded FX save with the document." };
+            Button apply = new Button { text = "Compile", name = "shaderFXCompile", tooltip = "Compile and use the current HLSL code and declarations; re-read included libraries. Does not bake the FX into the layer." };
             var codeActions = new VisualElement();
             codeActions.AddToClassList("whimtex-layer-fx-toolbar");
             codeActions.Add(apply);
@@ -150,7 +153,7 @@ namespace DCFApixels.WhimTex
             diagnostics.AddToClassList("whimtex-shader-fx-diagnostics");
             root.Add(diagnostics);
             // Controls are owned by the HLSL @param declarations.
-            var declaredParameters = new ShaderFXParameterView(effect);
+            var declaredParameters = new ShaderFXParameterView(effect, false, document, layer, fxIndex);
             detach.clicked += () => { Undo.RecordObject(effect, "Embed FX Source"); effect.DetachCatalog(); EditorUtility.SetDirty(effect); effect.NotifyValuesChanged(); RefreshStatus(); };
             apply.clicked += () =>
             {
@@ -163,22 +166,7 @@ namespace DCFApixels.WhimTex
                 RefreshStatus();
             };
             root.Add(declaredParameters);
-            Foldout reference = new Foldout { text = "Shader inputs", value = false };
-            var inputHelp = new Label(
-                "Implement float4 ApplyFX(float2 uv, float4 color).\n" +
-                "Declare parameters with // @param; do not redeclare generated uniforms.\n" +
-                "Use #include with Assets/Packages paths or paths relative to the containing asset (Assets before the first save). UnityCG.cginc is already included.\n\n" +
-                "uv: normalized coordinates; color: straight RGBA at uv.\n" +
-                "SampleInput(uv), _MainTex and _MainTex_TexelSize: incoming texture.\n" +
-                "_InputSize: render width, height, 1/width, 1/height.\n" +
-                "_CanvasSize: full-resolution canvas size in the same format.\n" +
-                "_RenderScale: full-size pixels per preview pixel (1 for export).\n" +
-                "_PixelScale: document's logical-pixel multiplier (1 by default). Numeric @param px values are already multiplied once.\n" +
-                "Texture parameters: sampler2D with <name>_TexelSize; sample with tex2D(name, uv).\n" +
-                "Return straight RGBA. The layer's blend mode and opacity are applied afterwards.");
-            inputHelp.AddToClassList("whimtex-fx-reference");
-            reference.Add(inputHelp);
-            codeFoldout.Add(reference);
+            codeFoldout.Add(codeInfo);
 
             void RefreshStatus()
             {
@@ -191,18 +179,19 @@ namespace DCFApixels.WhimTex
                 declaredParameters.EnableInClassList("whimtex-shader-fx-hidden", false);
                 declaredParameters.Refresh();
                 bool pendingChanges = effect.HasPendingChanges;
+                codeInfo.Refresh(effect, pendingChanges);
                 status.messageType = effect.DiagnosticSeverity == ShaderFXDiagnosticSeverity.Error ? HelpBoxMessageType.Error :
                     effect.DiagnosticSeverity == ShaderFXDiagnosticSeverity.Warning ? HelpBoxMessageType.Warning : HelpBoxMessageType.Info;
                 status.EnableInClassList("whimtex-shader-fx-hidden", !effect.LastApplyFailed && !pendingChanges && effect.DiagnosticNotice == null);
                 status.text = effect.LastApplyFailed
-                    ? "Apply failed. This FX is skipped until it compiles successfully."
-                    : pendingChanges ? "Unapplied code or parameter declarations. Click Apply when ready."
-                    : effect.DiagnosticNotice != null ? "Applied with warnings. This FX remains active."
-                    : "Applied. Values update without recompiling. Click Apply again after editing an included library.";
+                    ? "Compilation failed. This FX is skipped until it compiles successfully."
+                    : pendingChanges ? "Uncompiled code or parameter declarations. Click Compile when ready."
+                    : effect.DiagnosticNotice != null ? "Compiled with warnings. This FX remains active."
+                    : "Compiled. Values update without recompiling. Click Compile again after editing an included library.";
                 diagnostics.SetValueWithoutNotify(effect.Diagnostics);
                 diagnostics.EnableInClassList("whimtex-shader-fx-hidden",
                     !effect.LastApplyFailed && (string.IsNullOrWhiteSpace(effect.Diagnostics) || effect.Diagnostics == "Applied successfully."));
-                codeFoldout.text = pendingChanges ? "Code • unapplied" : "Code";
+                codeFoldout.text = pendingChanges ? "Code • uncompiled" : "Code";
                 apply.SetEnabled(effect != null);
             }
 

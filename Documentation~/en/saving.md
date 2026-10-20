@@ -95,7 +95,10 @@ If a dimension is omitted, opening uses 512 for that axis; pasting keeps the des
 Without either dimension, paste does not ask to resize. Standard exports write both dimensions.
 
 Use unquoted numbers and booleans and exact enum names. Invalid types/numbers report the field path;
-missing assets and broken FX are warnings rather than structural errors.
+missing supported assets and broken HLSL FX are warnings rather than structural errors.
+Older JSON/TIFF containing external Material, Shader or Shader FX `.asset` references is rejected
+with a diagnostic. There is no automatic migration or document rewrite; keep originals and use
+a matching older checkout. Marked HLSL preset links and texture parameters remain supported.
 See the [JSON format reference](../JSON_FORMAT.md) for field rules and limits.
 
 ## What remains editable in PSD?

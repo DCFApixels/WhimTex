@@ -17,7 +17,7 @@ public static class ShaderFXGroupMenuTests
     static int Group(ShaderFX effect, string name) => Values(effect).Find(p => p.name == name).controls[0].groupId;
     static DropdownMenu Menu(object view, int group)
     {
-        var menu = new DropdownMenu(); Call(view, "BuildGroupMenu", menu, group); return menu;
+        var menu = new DropdownMenu(); Call(view, "BuildContainerMenu", menu, group); return menu;
     }
     static DropdownMenuAction Action(DropdownMenu menu, string name)
     {
@@ -36,7 +36,15 @@ public static class ShaderFXGroupMenuTests
         "// @param label(Frame) transform2D " + prefix + "Frame = (0.5,0.5,1,1,0)\n" +
         "// @param label(Source) texture2D " + prefix + "Source = none\n// @endgroup\n";
 
-    public static string Run() => TestContext.Run("FX named group Copy/Paste/Reset and Undo", t =>
+    static string TabDeclarations(string prefix, string title, string maximum, bool header) =>
+        "// @tab(" + title + (header ? "; " + prefix + "Enabled" : "") + ")\n" +
+        "// @param label(Enabled) bool " + prefix + "Enabled = false\n" +
+        "// @enableif " + prefix + "Enabled == 1\n" +
+        "// @param label(Amount) float " + prefix + "Amount = 0.1 [0 .. " + maximum + "]\n// @endenableif\n" +
+        "// @foldout(Details)\n// @param label(Detail) float " + prefix + "Detail = 0.3\n" +
+        "// @param hidden label(Secret) float " + prefix + "Secret = 0.2\n// @endfoldout\n// @endtab\n";
+
+    public static string Run() => TestContext.Run("FX group/tab Copy/Paste/Reset and Undo", t =>
     {
         var clipboardType = Type("ShaderParameterGroupClipboard");
         var snapshotField = clipboardType.GetField("snapshot", F);
@@ -50,6 +58,7 @@ public static class ShaderFXGroupMenuTests
             string code = Declarations("_A", "First", "1") + Declarations("_B", "Second", "0.5") +
                 "// @group\n// @param float _Plain = 42\n// @endgroup\n" +
                 "// @group(Different)\n// @param bool _Different = false\n// @endgroup\n" +
+                "// @tabs\n" + TabDeclarations("_TabA", "One", "1", false) + TabDeclarations("_TabB", "Two", "0.5", true) + "// @endtabs\n" +
                 "float4 ApplyFX(float2 uv, float4 color) { return color * _AAmount; }";
             ShaderFX Create(WhimTexDocument owner)
             {
@@ -66,7 +75,7 @@ public static class ShaderFXGroupMenuTests
             ShaderFXParameter P(string name) => Values(effect).Find(p => p.name == name);
             int first = Group(effect, "_AEnabled"), second = Group(effect, "_BEnabled"), plain = Group(effect, "_Plain");
             var groups = view.Query<VisualElement>(className: "whimtex-fx-parameter-group").ToList();
-            t.Equal(4, groups.Count, "Named and unnamed groups keep the existing layout");
+            t.Equal(6, groups.Count, "Named/unnamed groups and two nested tab foldouts keep their layout");
             t.True(groups[2].Q(className: "whimtex-fx-parameter-group-header") == null, "Unnamed group has no header");
             t.Equal(0, Menu(view, plain).MenuItems().Count, "Unnamed group cannot produce group actions");
             var menu = Menu(view, first);
@@ -112,20 +121,62 @@ public static class ShaderFXGroupMenuTests
             Undo.PerformRedo(); Undo.ClearUndo(effect);
             t.True(ReferenceEquals(shader, typeof(ShaderFX).GetField("compiledShader", F).GetValue(effect)), "Group value edits reuse the compiled shader");
             t.Equal(DropdownMenuAction.Status.Disabled, Action(Menu(view, Group(effect, "_Different")), "Paste").status, "Incompatible groups reject Paste");
-            string clipboard = GUIUtility.systemCopyBuffer; Call(view, "CopyGroup", plain);
+            string clipboard = GUIUtility.systemCopyBuffer; Call(view, "CopyContainer", plain);
             t.Equal(clipboard, GUIUtility.systemCopyBuffer, "Unnamed Copy is guarded even from a stale callback");
-            P("_Plain").floatValue = 99; Call(view, "ResetGroup", plain); t.Equal(99f, P("_Plain").floatValue, "Unnamed Reset is guarded");
+            P("_Plain").floatValue = 99; Call(view, "ResetContainer", plain); t.Equal(99f, P("_Plain").floatValue, "Unnamed Reset is guarded");
             P("_BSecret").floatValue = .9f; GUIUtility.systemCopyBuffer = "Changed while menu was open"; paste.Execute();
             t.Equal(.9f, P("_BSecret").floatValue, "Stale Paste rechecks the clipboard before editing");
 
             var layer = new Layer(new ColorFillLayerBehaviour()); typeof(Layer).GetMethod("AssignNewId", F).Invoke(layer, null); document.layers.Add(layer);
             P("_ASource").textureSource = ShaderFXTextureSource.Layer; P("_ASource").textureLayerId = layer.Id;
-            Call(view, "CopyGroup", first);
+            Call(view, "CopyContainer", first);
             t.Equal(DropdownMenuAction.Status.Normal, Action(Menu(view, second), "Paste").status, "Same-document texture references can paste");
             t.Equal(DropdownMenuAction.Status.Disabled, Action(Menu(otherView, Group(other, "_BEnabled")), "Paste").status, "Layer references cannot bind unrelated documents");
+
+            int Tab(string name) => P(name).controls[0].containers.Single(c => c.kind == ShaderFXContainerKind.Tab).id;
+            int tabA = Tab("_TabAEnabled"), tabB = Tab("_TabBEnabled");
+            var tabs = view.Query<Button>(className: "whimtex-fx-tab").ToList();
+            var pages = view.Query<VisualElement>(className: "whimtex-fx-tab-page").ToList();
+            var toggle = tabs[1].parent.Q<Toggle>(className: "whimtex-fx-tab-toggle");
+            t.True(toggle != null && !toggle.value, "Tab header promotes a non-hidden bool to a checkbox");
+            t.Equal("Two", tabs[1].text, "Tab retains its native label alongside the checkbox");
+            t.Equal(0, pages[1].Query<Toggle>().ToList().Count(field => field.label == "Enabled"), "Linked checkbox has no duplicate body field");
+            t.Equal(1, pages[0].Query<Toggle>().ToList().Count(field => field.label == "Enabled"), "Unlinked Enabled remains an ordinary body field");
+            Undo.ClearUndo(effect);
+            P("_TabBEnabled").floatValue = 0; Call(view, "Refresh");
+            var tabDefaults = Values(effect).Where(p => p.name.StartsWith("_TabB")).ToDictionary(p => p.name, p => JsonUtility.ToJson(p));
+            P("_TabAAmount").floatValue = .8f; P("_TabADetail").floatValue = .9f; P("_TabASecret").floatValue = .7f;
+            var tabUnrelated = Values(effect).Where(p => !p.name.StartsWith("_TabB")).ToDictionary(p => p.name, p => JsonUtility.ToJson(p));
+            t.Equal("Copy,Paste,Reset", string.Join(",", Menu(view, tabA).MenuItems().OfType<DropdownMenuAction>().Select(a => a.name)), "Tabs have the same actions as groups");
+            t.True(Menu(view, tabA).MenuItems()[2] is DropdownMenuSeparator, "Tab Reset has the same separator");
+            Action(Menu(view, tabA), "Copy").Execute();
+            var tabPaste = Action(Menu(view, tabB), "Paste");
+            t.Equal(DropdownMenuAction.Status.Normal, tabPaste.status, "Compatible tabs with different header layouts can paste");
+            Undo.IncrementCurrentGroup(); tabPaste.Execute(); Undo.FlushUndoRecordObjects();
+            t.Equal(.5f, P("_TabBAmount").floatValue, "Tab paste includes disabled values and respects destination bounds");
+            t.Equal(.9f, P("_TabBDetail").floatValue, "Tab paste includes nested foldout values");
+            t.Equal(.7f, P("_TabBSecret").floatValue, "Tab paste includes hidden descendants");
+            t.Equal(0f, P("_TabBEnabled").floatValue, "Tab paste includes the linked Enabled value");
+            foreach (var p in Values(effect)) t.Equal(ids[p.name], p.id, "Tab paste preserves identity: " + p.name);
+            foreach (var p in Values(effect).Where(p => !p.name.StartsWith("_TabB")))
+                t.Equal(tabUnrelated[p.name], JsonUtility.ToJson(p), "Tab paste leaves other tabs/global fields untouched: " + p.name);
+            Undo.PerformUndo();
+            foreach (var p in Values(effect).Where(p => p.name.StartsWith("_TabB")))
+                t.Equal(tabDefaults[p.name], JsonUtility.ToJson(p), "One Undo restores tab values: " + p.name);
+            Undo.PerformRedo(); t.Equal(.7f, P("_TabBSecret").floatValue, "One Redo restores pasted tab values");
+            Undo.ClearUndo(effect);
+            Undo.IncrementCurrentGroup(); Action(Menu(view, tabB), "Reset").Execute(); Undo.FlushUndoRecordObjects();
+            foreach (var p in Values(effect).Where(p => p.name.StartsWith("_TabB")))
+                t.Equal(tabDefaults[p.name], JsonUtility.ToJson(p), "Tab Reset restores all declared defaults: " + p.name);
+            foreach (var p in Values(effect).Where(p => !p.name.StartsWith("_TabB")))
+                t.Equal(tabUnrelated[p.name], JsonUtility.ToJson(p), "Tab Reset leaves other scopes untouched: " + p.name);
+            Undo.PerformUndo(); t.Equal(.7f, P("_TabBSecret").floatValue, "One Undo reverses tab Reset");
+            Undo.PerformRedo(); Undo.ClearUndo(effect);
+            t.Equal(DropdownMenuAction.Status.Disabled, Action(Menu(view, first), "Paste").status, "A tab cannot paste into an incompatible group");
+            t.Equal(0, Menu(view, P("_TabAEnabled").controls[0].containers[0].id).MenuItems().Count, "Whole tabs block has no page-value menu");
             typeof(ShaderFX).GetMethod("SetDraftCode", F).Invoke(effect, new object[] { "// @param broken _AAmount" });
             t.Equal(DropdownMenuAction.Status.Disabled, Action(Menu(view, first), "Reset").status, "Malformed metadata disables group Reset");
-            string before = JsonUtility.ToJson(effect); Call(view, "ResetGroup", first);
+            string before = JsonUtility.ToJson(effect); Call(view, "ResetContainer", first);
             t.Equal(before, JsonUtility.ToJson(effect), "Rejected Reset makes no partial changes");
         }
         finally

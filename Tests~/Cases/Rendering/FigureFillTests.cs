@@ -11,7 +11,7 @@ public static class FigureFillTests
 {
     const BindingFlags Hidden = BindingFlags.NonPublic | BindingFlags.Instance;
     static readonly VectorFillMode[] Modes = { VectorFillMode.LinearGradient, VectorFillMode.RadialGradient,
-        VectorFillMode.SquareGradient, VectorFillMode.DiamondGradient, VectorFillMode.CircularGradient };
+        VectorFillMode.SquareGradient, VectorFillMode.AngularGradient };
     public static string Run() => TestContext.Run("Shared Shape/Vector gradient fills", t =>
     {
         var doc = ScriptableObject.CreateInstance<WhimTexDocument>(); doc.hideFlags = HideFlags.HideAndDontSave;
@@ -62,7 +62,7 @@ public static class FigureFillTests
                 Object.DestroyImmediate(a);a=null;Object.DestroyImmediate(b);b=null;
             }
             layer.SetBehaviour(shape); shape.gradient = Ramp(); shape.gradient.ColorSpace = ColorSpace.Linear;
-            shape.fillMode=VectorFillMode.CircularGradient;
+            shape.fillMode=VectorFillMode.AngularGradient;
             foreach(float repetitions in new[]{.5f,2f,3.25f})
             foreach(WhimTexGradientWrapMode wrap in Enum.GetValues(typeof(WhimTexGradientWrapMode)))
             {
@@ -70,11 +70,11 @@ public static class FigureFillTests
                 layer.SetBehaviour(ShapeToVector.Convert(shape,doc));b=doc.ComposeCanvas();
                 for(int y=3;y<doc.height-2;y+=7)for(int x=3;x<doc.width-2;x+=7)
                 {
-                    double coordinate=Coordinate(VectorFillMode.CircularGradient,new Vector2((x+.5f)/doc.width,(y+.5f)/doc.height),
+                    double coordinate=Coordinate(VectorFillMode.AngularGradient,new Vector2((x+.5f)/doc.width,(y+.5f)/doc.height),
                         shape.gradientStart,shape.gradientEnd,new Vector2(doc.width,doc.height))*repetitions;
                     Color expected=shape.gradient.Evaluate((float)coordinate);
-                    Near(t,expected,a.GetPixel(x,y),.012f,"Circular repetitions GPU "+repetitions+"/"+wrap);
-                    Near(t,expected,b.GetPixel(x,y),.003f,"Circular repetitions CPU "+repetitions+"/"+wrap);
+                    Near(t,expected,a.GetPixel(x,y),.012f,"Angular repetitions GPU "+repetitions+"/"+wrap);
+                    Near(t,expected,b.GetPixel(x,y),.003f,"Angular repetitions CPU "+repetitions+"/"+wrap);
                 }
                 Object.DestroyImmediate(a);a=null;Object.DestroyImmediate(b);b=null;
             }
@@ -104,7 +104,7 @@ public static class FigureFillTests
                 Object.DestroyImmediate(a); a=null; Object.DestroyImmediate(b); b=null;
             }
             layer.SetBehaviour(shape); layer.transform = TextureTransform.Default; layer.transform.scaleF=Vector2.one*.7f;
-            shape.kind = ShapeLayerBehaviour.ShapeKind.Ellipse; shape.fillMode=VectorFillMode.DiamondGradient; shape.feather=6;
+            shape.kind = ShapeLayerBehaviour.ShapeKind.Ellipse; shape.fillMode=VectorFillMode.SquareGradient; shape.feather=6;
             a=doc.ComposeCanvas(); var baseline=a.GetPixels();
             var thumb=shape.GetPreviewTexture(40); t.True(thumb != null,"Gradient thumbnail exists");
             b=doc.ComposeCanvas(); Equal(t,baseline,b.GetPixels(),"Thumbnail preserves full render"); Object.DestroyImmediate(b); b=null;
@@ -174,7 +174,7 @@ public static class FigureFillTests
                 {
                     if(!((x<10 || x>70) && y>14 && y<46 || (y<10 || y>50) && x>14 && x<66))continue;
                     double q=Coordinate(mode,new Vector2((x+.5f)/80,(y+.5f)/60),shape.strokeGradientStart,shape.strokeGradientEnd,new Vector2(80,60));
-                    if(mode==VectorFillMode.CircularGradient)q*=shape.strokeGradientRepetitions;
+                    if(mode==VectorFillMode.AngularGradient)q*=shape.strokeGradientRepetitions;
                     var expected=shape.strokeGradient.Evaluate((float)q);
                     Near(t,expected,a.GetPixel(x,y),.015f,"Stroke GPU oracle "+mode+"/"+wrap+"/"+interpolation);
                     Near(t,expected,b.GetPixel(x,y),.003f,"Stroke CPU oracle "+mode+"/"+wrap+"/"+interpolation+" at "+x+","+y+" width="+vector.shapes[0].strokeWidth+" contours="+vector.shapes[0].contours.Count);
@@ -224,7 +224,6 @@ public static class FigureFillTests
             case VectorFillMode.LinearGradient:return u;
             case VectorFillMode.RadialGradient:return Math.Sqrt((x*x+y*y)/r2);
             case VectorFillMode.SquareGradient:return Math.Max(Math.Abs(u),Math.Abs(v));
-            case VectorFillMode.DiamondGradient:return Math.Abs(u)+Math.Abs(v);
             default:double a=Math.Atan2(v,u)/(2*Math.PI);return a-Math.Floor(a);
         }
     }
@@ -244,7 +243,7 @@ public static class FigureFillTests
     {t.Equal(a.Length,b.Length,label);for(int i=0;i<a.Length;i++)Near(t,a[i],b[i],.003f,label);}
     static void Preview()
     {
-        var output=new Texture2D(640,256,TextureFormat.RGBA32,false,true);
+        var output=new Texture2D(Modes.Length*128,256,TextureFormat.RGBA32,false,true);
         try
         {
             for(int col=0;col<Modes.Length;col++)

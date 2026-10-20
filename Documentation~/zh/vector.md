@@ -34,12 +34,16 @@ Layer Select 和 **Transform (T)** 显示所选 Vector 的轮廓，不显示节�
 
 在 **Layers** 中选择图形的图层，然后在 **Properties (Vector)** 中调整外观。
 通过图层列表更名、隐藏、排序、复制或删除图形。**Fill → Type** 提供 None、Solid、
-Linear、Radial、Square、Diamond 和 Circular。**Fill Rule** 决定重叠轮廓与孔洞的填充方式。
+Linear、Radial、Angular、Square 和 Freeform。**Fill Rule** 决定重叠轮廓与孔洞的填充方式。
 Shape 在启用 **Fill** 时也提供相同的填充控件。
 
-**Linear** 在 **Start** 和 **End** 之间生成直线过渡。**Radial**、**Square** 和
-**Diamond** 从 **Center** 向外展开；**Radius / Direction** 确定大小，
-也决定 Square/Diamond 的旋转方向。**Circular** 从指向 **Direction** 的射线出发，
+Fill 和 Stroke 的类型使用与 Gradient 图层相同的图标行。Solid 显示为实心方块，None 显示为带斜线的空心方块。当前类型高亮显示，悬停可查看名称。
+
+**Freeform** 混合自由定位的颜色点，每个点都有独立的透明度和影响范围。
+可通过 **Gradient Handles** 或点属性编辑，详见 [Freeform 控件](color.md#freeform-自由渐变点)。
+
+**Linear** 在 **Start** 和 **End** 之间生成直线过渡。**Radial** 和 **Square** 从 **Center** 向外展开；**Radius / Direction** 确定大小，
+也决定 Square 的旋转方向。**Angular** 从指向 **Direction** 的射线出发，
 绕 Center 逆时针变化一周，在同一射线上形成接缝。首尾颜色不同时，接缝会可见。
 坐标相对于图层归一化：`[0,0]` 为左下角，`[1,1]` 为右上角。
 两点重合时，整个填充使用渐变的起始颜色。
@@ -48,8 +52,7 @@ Shape 在启用 **Fill** 时也提供相同的填充控件。
 会保留调好的色带和坐标。渐变随图层 Transform 变化；其比例依据 Shape 的当前画布尺寸，
 或 Vector 创建时的参考尺寸。因此，改变画布尺寸可能改变 Shape 渐变的比例。
 
-启用 **Stroke**，在 **Type** 中选择 None、Solid、Linear、Radial、Square、Diamond
-或 Circular。描边有独立的颜色或渐变、控制点和 Circular 的 **Repetitions**。
+启用 **Stroke**，在 **Type** 中选择 None、Solid、Linear、Radial、Angular、Square 或 Freeform。描边有独立的颜色或渐变、控制点和 Angular 的 **Repetitions**。
 其渐变控件与 Fill 相同，修改一方不会改变另一方。选择 None 或关闭 Stroke
 会隐藏描边并保留设置。Repetitions 决定绕中心的周期数，色带的 Wrap 决定超出首个周期后的行为。
 

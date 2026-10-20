@@ -97,7 +97,7 @@ namespace DCFApixels.WhimTex
         [CliCommand("whimtex_fx_compile", "Compile a Shader FX preset or raw ApplyFX HLSL in Unity and return diagnostics without changing a document.", MainThreadRequired = true)]
         public static JObject CompileFX(
             [CliArg("presetPath", "Project-relative Assets/... or Packages/... .hlsl path, or absolute path inside the configured Shader FX preset folder")] string presetPath = null,
-            [CliArg("source", "Raw HLSL implementing float4 ApplyFX(float2 uv, float4 color)")] string source = null,
+            [CliArg("source", "Raw HLSL defining float4 ApplyFX with color only, PinnedUV and color, or float2 and color")] string source = null,
             [CliArg("includeBasePath", "Optional project-relative or absolute Assets/Packages directory, configured user preset directory, or HLSL file; establishes the base for relative includes")] string includeBasePath = null)
             => JObject.Parse(WhimTexApi.CompileFX(presetPath, source, includeBasePath));
 

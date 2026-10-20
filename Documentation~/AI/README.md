@@ -118,7 +118,16 @@ They can carry their own FX; FX process the combined children before group opaci
 For targeted effects, use `behaviour.inputMode` and `behaviour.targetLayerId` with IDs from
 this tree. `Previous`, `Specific` and `AllBelow` have their usual stack semantics;
 include required sources and clipping bases when copying a selection. Do not use `@aliases`.
-Shared FX `$id`/`$ref` identities are separate from layer IDs.
+Every FX model instance owns its parameter values and enabled state in the document. Reuse a marked
+HLSL preset source or write inline HLSL; supply independent FX models for separate effects.
+JSON `fx` items may only be `ShaderFX` model objects, `null`, or internal `$ref` references to
+`ShaderFX` models in this document. `$id`/`$ref` are serialization identities, separate from layer
+IDs; a `$ref` refers to the same model instance. `$asset` is not allowed as an FX list item.
+External Material, Shader and ShaderFX `.asset` FX references are unsupported in JSON/TIFF
+and are explicitly rejected, even when unresolved, with
+`External FX references are no longer supported. Use a marked .hlsl preset or inline HLSL code.`
+There is no migration or source-document rewrite.
+This restriction does not affect texture asset parameters or same-document layer bindings.
 
 Native vector/color values follow the schema: Unity vectors and RGBA colors are numeric arrays,
 while transform `Double2` values are objects with `x` and `y`.
@@ -266,13 +275,19 @@ See the [shared SDF/Outline field contract](../AgentAPI.md#layer-settings) for m
 but use native behaviour fields here, not live patch wrappers.
 For document gradients use the schema's native `WhimTexGradient` model;
 the standalone clipboard format below is a separate value contract.
+Gradient layers additionally support `gradientType:"Freeform"` and `freeform.points`
+with local `position`, straight encoded HDR `color` and relative `influence`.
+See [Freeform document fields](../JSON_FORMAT.md#freeform-gradients) and
+[shared editing settings](../AgentAPI.md#freeform-gradient-settings).
+Shape and Vector/Boolean Group styles support `fillMode:"Freeform"` with `freeform`,
+and `strokeMode:"Freeform"` with independent `strokeFreeform` points. Text excludes Freeform.
 Shape and Vector figures share `fillMode`: None, Solid, LinearGradient, RadialGradient,
-SquareGradient, DiamondGradient and CircularGradient. Use native `gradient`,
+SquareGradient, AngularGradient. Use native `gradient`,
 `gradientStart`, `gradientEnd` and `gradientRepetitions` fields; Shape's `fill` boolean remains the overall
 gate. Anchors are normalized layer-local coordinates. Shape measures them in current
-canvas pixels before Transform; Vector uses `referenceSize`. Circular advances
+canvas pixels before Transform; Vector uses `referenceSize`. Angular advances
 counterclockwise from the start-to-end ray, with a seam there. `gradientRepetitions`
-is a finite float of at least `0.0001`, default `1`, applied only to CircularGradient
+is a finite float of at least `0.0001`, default `1`, applied only to AngularGradient
 before palette wrapping; one period spans `360 / gradientRepetitions` degrees.
 Equal anchors give `t=0`. See the complete
 [figure-fill contract](../JSON_FORMAT.md#figure-fills). Independent stroke paint uses
@@ -348,7 +363,7 @@ Unknown fields, wrong types and broken internal references reject the paste with
 Clipboard FX requires trust confirmation before compilation. A compilation failure does not reject
 the tree: paste offers a warning, keeps the source, parameter values and enabled state, and skips
 the unavailable effect during rendering, just like opening a JSON document. Canceling that warning
-inserts nothing. Repair the code and Apply to resume the effect. Broken internal references still fail.
+inserts nothing. Repair the code and Compile to resume the effect. Broken internal references still fail.
 
 **Copy as JSON** exports selected layers using the same format and the FullOptimized default.
 Include their dependencies in the selection. Ordinary Ctrl+C remains unchanged.
@@ -472,6 +487,71 @@ Use a GUID without hyphens as the filename; files are limited to 64 KiB. No disp
 
 ## HLSL interface — shader-only or inside JSON
 
+FX inspector previews use `// @preview(Function)` for an independent image, or
+`// @param preview(Function) float _Amount = 0.5 [0 .. 1]` for a Slider track.
+Other inline fields show a small right-side rectangle. Functions return linear straight
+`float4` RGBA, take `float2 uv` first and optionally the declared parameter's shader value
+second (standalone previews take UV only). Alternatively, `preview(Function, _A, _B)` or
+`// @preview(Function, _A, _B)` explicitly passes declared `@param` values after UV in that
+order, with exact shader types and no extra own value. Forward/hidden references are allowed;
+unknown names and signature mismatches produce a local preview diagnostic. A listed own float
+on a Slider uses its track candidate; other references and standalone entries use actual values.
+All normal uniforms/helpers remain available;
+the Slider candidate never overwrites the selected uniform. Guard preview-only functions
+with `#ifdef WHIMTEX_PREVIEW`. See [preview types, inputs and limits](../ShaderFX.md#inspector-previews).
+
+All FX and HLSL brush wrappers also expose the global baked Hue LUT:
+`WhimTexHue(h)` returns HSV `(h,1,1)` RGB components, while `WhimTexHueLinear(h)` returns
+linear color. Hue is measured in turns and repeats. The 1536×1 float texture is globally bound
+as `_WhimTexHueGradient`, with `_WhimTexHueGradient_TexelSize`; do not shadow these with
+material Properties or `@param`. See [shared hue lookup](../ShaderFX.md#shared-hue-lookup).
+
+### FX conditional controls
+
+Wrap rows in `// @if _Mode == 1` / `// @endif` to hide them when false, or
+`// @enableif _Enabled == 1` / `// @endenableif` to leave them visible but disabled.
+Both accept `==` or `!=` against a finite numeric literal and a declared float/bool/enum
+driver; bool comparisons use 0/1. Drivers may be forward references or declared under
+`@enableif`, but no driver declaration may be under `@if`. Unknown/vector drivers are
+invalid when an actual parameter or standalone preview uses the condition; empty blocks
+and headings/help boxes alone add no driver dependencies. Literal syntax is always validated.
+
+Enabled blocks can nest with themselves and with one active `@if` in either order;
+combined condition depth is at most 16. Nested `@if` is still forbidden. Close the
+innermost condition with its own end directive, without arguments. All enclosing enabled
+conditions must pass; an inner condition cannot override a disabled or read-only ancestor.
+Fields, attached headings/help boxes and previews follow the same conditions. Values,
+uniform uploads and HLSL behavior do not change. Preset exports preserve the blocks.
+`ShaderFXParameterControl.enableIf` is an outer-to-inner `ShaderFXEnableCondition[]`, empty
+outside enabled blocks; each struct contains `string parameter`, `bool notEqual`, `float value`.
+Standalone previews carry the same metadata. See [parameter declarations](../ShaderFX.md#parameter-declarations).
+
+### FX layout metadata
+
+Keep `// @group`, `// @group(Title)` or `// @group(Title; _HeaderParameter)` paired with `// @endgroup` for non-collapsible bordered groups. Add `// @foldout(Title)` or `// @foldout(Title; _HeaderParameter)`, paired with `// @endfoldout`, for collapsible content; the foldout title is required. A header parameter must be declared exactly once in the source, outside both `@if` and `@enableif` and directly inside its own group/foldout. Supported hidden header fields are promoted into the header. Header checkboxes edit values independently of folding and tab selection; use `@if` for dependent row visibility, `@enableif` for editing availability and HLSL for the effect behavior.
+
+Use `// @tabs` or `// @tabs(Title)` around `// @tab(Page title)` / `// @endtab` pages, then `// @endtabs`. Page titles are required, non-empty and unique within one tabs block after trimming, with case-sensitive comparison. A page accepts `// @tab(Page title; _Enabled)` for a bool checkbox left of its label. Declare that bool exactly once, unconditionally and directly in that page; hidden bools are promoted and the body row is omitted. Other types are invalid. The checkbox changes only its value, without switching pages; page selection leaves it unchanged. Use `@enableif`/`@if` for dependent rows. The overall `@tabs` heading accepts no header binding. Put all parameters and standalone previews inside pages, never directly under `@tabs`. Empty `@tabs()` is invalid; omit parentheses to omit the overall title. Individual tab headers share group-header Copy/Paste/Reset actions for all values in that page, including hidden/disabled fields and descendants; sibling pages and shared fields are excluded.
+
+```hlsl
+// @tabs
+// @tab(Color)
+// @foldout(Tint; _Enabled)
+// @param hidden bool _Enabled = true
+// @enableif _Enabled == 1
+// @param color _Tint = (1, 1, 1, 1)
+// @endenableif
+// @endfoldout
+// @endtab
+// @tab(Shape)
+// @param float _Radius = 0.5 [0 .. 1]
+// @endtab
+// @endtabs
+```
+
+Groups/foldouts can nest inside pages and in one another, except that a group cannot open when the nearest active group/foldout is another group. `group → foldout → group` is allowed. Nested tabs are forbidden anywhere, including through a foldout. Maximum depth is 16 containers, counting pages. All container/page starts and ends must be outside both `@if` and `@enableif`; conditions may wrap rows inside containers/pages. Close the innermost container first; end directives take no arguments. Every container/page needs at least one non-hidden parameter declaration or standalone preview in its subtree; hidden declarations alone, even header bindings, do not satisfy this rule.
+
+This is layout only: all values are still uploaded and the effect runs regardless of collapse or selected page; `@if` controls row visibility and `@enableif` controls editing availability. Tabs use content-width window-style tabs with the active tab joined to its content, no blank heading row for untitled `@tabs`, and no close/new/reorder controls. Per-FX choices live in UI-local `SessionState`, keyed by stable FX `ShaderKey` and container kind/id/title, outside shader values and Undo. They survive reloads in the current Editor session, not a full Editor relaunch. C# controls carry an outer-to-inner `ShaderFXLayoutContainer[] containers` path with `kind`, `id`, `title`, `headerParameter`. Flat `inGroup`, `groupId`, `groupTitle`, `groupHeaderParameter` retain only the nearest group/foldout summary. See the [full layout contract](../ShaderFX.md#layout-containers).
+
 ### Built-in noise library
 
 FastNoiseLite v1.1.1, the same library used by Noise layers, is included automatically
@@ -553,19 +633,30 @@ available rather than duplicating its code; see [the shader reference](../Shader
 `_Opacity` (0–1, default 1; FX header control) blends the complete selected output with
 the original input. Zero leaves the image unchanged, including in Outline Only.
 
-### Selective HSV and seeds
+### HSV and seeds
 
-`Color/Selective HSV` is a separate FX. `_MasterHue`, `_MasterSaturation` and `_MasterValue`
+`Color/Hue & Saturation` replaces HSV. `_MasterHue`, `_MasterSaturation` and `_MasterLightness`
 correct the whole image; four `_Range1`…`_Range4` groups override Master inside selected hues.
-Each range has Enabled, Center/Width/Feather (degrees), signed Hue and Saturation/Value
-multipliers relative to the source, not to Master's output. All ranges start disabled.
+Each range has Enabled, a float2 Hue Range and Feather (degrees), signed Hue, Saturation
+and Lightness relative to the source, not to Master's output. Saturation scales distance from
+weighted gray (0 removes color, 1 is unchanged, above 1 boosts it); Lightness uses -100…100
+with neutral 0, reaching black/white at its endpoints. It is not HSV Value or a brightness multiplier.
+Master and Range 1–4 retain five
+tabs in an untitled block, with Enabled checkboxes in the tab headers. Master opens first. All ranges start
+disabled; `@enableif` keeps their body controls visible and gray while preserving values.
+Source Saturation (HSV) and Output remain shared below the tabs; selection still measures the original HSV saturation.
+With no enabled ranges, Master uses only the correction without selection/overlap work.
+Use the `_Master*` names for whole-image correction; there is no second HSV preset and no Value-to-Lightness alias.
+Hue ranges use `[0 % 360]`: `[330, 30]` crosses red, `[0, 360]` selects the full circle,
+and equal stored endpoints have zero width. Anchored full cycles such as `[-330, 30]` retain
+one positive turn in storage while both handles display their meeting angle. The preview track shows one hue turn.
 Ranges use source hue; overlaps average only range correction offsets. Feather and the shared
-Min Saturation/Saturation Feather blend overrides back toward Master. Gray pixels use Master.
+`_SaturationRange` cutoff/full-strength endpoints blend overrides back toward Master. Gray pixels use Master.
 To desaturate everything except blue, set `_MasterSaturation` to 0, `_Range3Enabled` to true,
-`_Range3Center` to 240 and `_Range3Saturation` to 1, then adjust Width/Feather.
+`_Range3` to `[210, 270]` and `_Range3Saturation` to 1, then adjust endpoints/Feather.
 Output selects Result or source range masks (unaffected by Master), and `_Opacity` blends
 that output with the input. See the
-[preset contract](../ShaderFX.md#selective-hsv-preset) for boundary and alpha rules.
+[preset contract](../ShaderFX.md#hsv-preset) for boundary and alpha rules.
 
 Declare an explicitly randomizable seed as `// @param seed float _Seed = 0 [0 .. ~10000]`.
 It remains an ordinary uniform. Random chooses an integer within both declared bounds;
@@ -587,12 +678,32 @@ float4 ApplyFX(float2 uv, float4 color)
 }
 ```
 
+The supported signatures are `float4 ApplyFX(float4 color)`,
+`float4 ApplyFX(PinnedUV uv, float4 color)` and `float4 ApplyFX(float2 uv, float4 color)`.
+Define exactly one; parameter names may vary, and `const`/`in` are optional. The first two
+declare a pixel-local contract: image reads use the corresponding current coordinate.
+`PinnedUV` exposes read-only `.x`/`.y`, can be copied or passed to PinnedUV helpers, and does
+not support arithmetic, mutation, numeric casts or construction from arbitrary coordinates.
+Reconstructing `float2(uv.x, uv.y)` is allowed for calculations, not for pixel-local image reads.
+
+**`SampleInput` and `SampleTexture` are the primary WhimTex API for reading textures.**
+`SampleTexture(_Mask, uv)` reads a declared `texture2D` parameter, including Texture, Layer,
+Self and None sources. Pixel-local signatures accept only `PinnedUV` in these reading functions;
+the spatial `float2` signature also allows displaced coordinates.
+Direct `tex2D`, resource `.Sample`/`.Load` and similar HLSL reads are bypass paths. Detected
+bypasses or derivatives prevent pixel-local confirmation and produce a warning rather than
+disabling an otherwise valid shader. This is an authoring contract, not a sandbox.
+`ShaderFX.IsPixelLocal` describes the applied usable shader, not pending edits;
+`Layer.AreActiveFxPixelLocal()` checks active non-null FX on that layer only, with an empty chain true.
+Unavailable/unconfirmed active FX return false; disabled FX are ignored.
+See [pixel-local rules and mask example](../ShaderFX.md#pixel-local-entry-points-and-texture-reads).
+
 `color` is the incoming straight (not premultiplied) RGBA. `SampleInput(uv)` reads that same
 input at another UV, including earlier FX. Return straight RGBA in linear working space.
 Shader Processor receives the lower composite; a regular layer's FX receives that layer's image.
 To generate an image from scratch, use a Color layer with FX replacing its color.
 
-`SampleInput(uv, tiling)` addresses the input as Clamp (0), Repeat (1), Mirror (2), or
+With the spatial signature, `SampleInput(uv, tiling)` addresses the input as Clamp (0), Repeat (1), Mirror (2), or
 Clip (3; transparent outside UV 0–1). Repeat filters across opposite edges and respects
 the current input's Point/Bilinear filtering without changing texture import settings.
 Expose tiling through a normal enum `@param`. The one-argument function is unchanged.
@@ -677,7 +788,9 @@ All parameter types allow omitting `= value`. The last explicit default for a va
 exists, scalar/vector/color defaults are zero. Repeated `float`/`bool`/`enum` controls share one float
 uniform. Other repeated types must match exactly. Control ranges do not clamp values set through
 another control. Preset export saves the current value once.
-`float2`, `float3` and `float4` are raw vectors with two, three and four components. `point` is a `float2` position in normalized canvas UV: bottom-left `(0, 0)`, top-right `(1, 1)`. Coordinates and tuple defaults may lie outside these bounds. Its hand button (**Edit on Canvas**) activates a handle that can also be dragged outside the canvas. Its default is `(0.5, 0.5)`; an explicit tuple is optional and ranges are not accepted. `normal` generates a normalized `float3`; its default and zero-vector fallback are `(0, 0, 1)`. It also offers an on-canvas direction handle; no range is accepted. Defaults are optional. Unknown parameter types are rejected.
+Unbounded `float2`, `float3` and `float4` are raw vectors with two, three and four components. `point` is a `float2` position in normalized canvas UV: bottom-left `(0, 0)`, top-right `(1, 1)`. Coordinates and tuple defaults may lie outside these bounds. Its hand button (**Edit on Canvas**) activates a handle that can also be dragged outside the canvas. Its default is `(0.5, 0.5)`; an explicit tuple is optional and ranges are not accepted. `normal` generates a normalized `float3`; its default and zero-vector fallback are `(0, 0, 1)`. It also offers an on-canvas direction handle; no range is accepted. Defaults are optional. Unknown parameter types are rejected.
+
+`// @param preview(PreviewRange) float2 _Range = (0.2, 0.8) [0 .. 1]` is an ordered interval using a native MinMaxSlider and X/Y fields. It requires two hard finite limits with min < max and min <= X <= Y <= max; omitted defaults select the whole interval. `[0 % 360]` instead permits wrapped start/end pairs such as `(330, 30)` and wraps dragged endpoints across track edges. `(0, 360)` is full; equal stored endpoints are empty before Feather. Full cycles can also retain their meeting angle with endpoints one positive period apart: `(-330, 30)` or `(330, 690)`. At least one endpoint must be within the limits; all nonfull pairs must have both endpoints within them. The UI wraps full-cycle coordinates to the displayed angles but retains their winding in storage and shader values, so the handles stop where they meet rather than resetting to the limits. A scalar `float` also accepts `%`: ordinary slider dragging, repeating manual input (`370` → `10`, `-10` → `350`). Missing/soft `%` limits are rejected. Inline preview accepts `float2 uv` followed by optional `float2 value`: UV spans the whole track, value contains both actual endpoints. No extra JSON type is needed: values remain two-number arrays. Live FX snapshots expose `cyclicRange`. See [float2 intervals](../ShaderFX.md#float2-intervals).
 
 FX use ordinary input images and explicit parameters, not hidden layer-specific data. Lighting/Bevel Emboss reads a height texture (Self by default) and shares lighting with Normal Map/Lighting. Base Color alpha blends transparent lighting (0) into the shaded surface (1); Output selects Both/Highlight Only/Shadow Only for the transparent part. SDF inputs use the selected layer output; use Gradient or LinearData for a scalar height map. MultiChannelData remains an ordinary RGBA texture input, with distance data in alpha; it does not introduce a typed SDF parameter or hidden field access. See [shader reference](../ShaderFX.md) for the complete contract.
 

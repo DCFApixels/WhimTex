@@ -103,6 +103,7 @@ namespace DCFApixels.WhimTex
                     strokeMode = shape.strokeMode, strokeGradient = shape.strokeGradient?.Clone(),
                     strokeGradientStart = shape.strokeGradientStart, strokeGradientEnd = shape.strokeGradientEnd,
                     strokeGradientRepetitions = shape.strokeGradientRepetitions,
+                    freeform = shape.freeform?.Clone(), strokeFreeform = shape.strokeFreeform?.Clone(),
                     stroke = shape.stroke, strokeColor = shape.strokeColor, strokeWidth = shape.strokeWidth,
                     strokePosition = shape.strokePosition == ShapeLayerBehaviour.StrokePosition.Inside ? VectorStrokePosition.Inside :
                         shape.strokePosition == ShapeLayerBehaviour.StrokePosition.Outside ? VectorStrokePosition.Outside : VectorStrokePosition.Center,

@@ -696,50 +696,7 @@
           "items": {
             "anyOf": [
               {
-                "type": "null"
-              },
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "$asset"
-                ],
-                "properties": {
-                  "$asset": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "guid": {
-                        "type": "string"
-                      },
-                      "path": {
-                        "type": "string"
-                      },
-                      "localId": {
-                        "type": "string"
-                      },
-                      "type": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "guid",
-                      "path",
-                      "localId",
-                      "type"
-                    ]
-                  }
-                }
-              },
-              {
-                "anyOf": [
-                  {
-                    "$ref": "#/$defs/ShaderFX"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "$ref": "#/$defs/ShaderFX"
               },
               {
                 "type": "object",
@@ -752,9 +709,13 @@
                     "type": "string"
                   }
                 }
+              },
+              {
+                "type": "null"
               }
             ]
-          }
+          },
+          "description": "Document-owned HLSL effects only: inline code or marked .hlsl presets. Internal $ref identities are supported; external Material, Shader and ShaderFX asset references are rejected."
         },
         "transform": {
           "$ref": "#/$defs/TextureTransform",
@@ -1540,6 +1501,11 @@
         "softMaximum": {
           "type": "boolean"
         },
+        "cyclicRange": {
+          "type": "boolean",
+          "default": false,
+          "description": "Derived from [min % max] HLSL metadata. Float2 endpoints may cross the seam; float numeric edits repeat while slider dragging stays bounded. Two hard finite limits with min < max are required."
+        },
         "pixelUnits": {
           "type": "boolean",
           "default": false,
@@ -1745,6 +1711,22 @@
             "null"
           ]
         },
+        "previewFunction": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "previewParameters": {
+          "type": "array",
+          "default": [],
+          "maxItems": 128,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "description": "Ordered @param names explicitly passed after float2 uv to previewFunction. Empty retains the UV-only/optional-own-value signature. Referenced types must match exactly."
+        },
         "headers": {
           "type": [
             "array",
@@ -1795,6 +1777,15 @@
             "null"
           ]
         },
+        "containers": {
+          "type": "array",
+          "default": [],
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/ShaderFXLayoutContainer"
+          },
+          "description": "Outer-to-inner HLSL inspector layout path: Group, Foldout, Tabs, Tab. Derived from metadata, independent of shader values. Selected tabs and foldout expansion are editor-local and not stored here."
+        },
         "type": {
           "type": "string",
           "enum": [
@@ -1829,6 +1820,11 @@
         },
         "softMaximum": {
           "type": "boolean"
+        },
+        "cyclicRange": {
+          "type": "boolean",
+          "default": false,
+          "description": "Derived from [min % max] HLSL metadata. Float2 endpoints may cross the seam; float numeric edits repeat while slider dragging stays bounded. Two hard finite limits with min < max are required."
         },
         "minimum": {
           "type": "number",
@@ -1873,6 +1869,73 @@
           "type": "boolean"
         },
         "visibleIfValue": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "enableIf": {
+          "type": "array",
+          "default": [],
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/ShaderFXEnableCondition"
+          },
+          "description": "Enclosing @enableif scalar comparisons, combined with AND. Inspector controls remain visible and become disabled when any condition fails; stored values and shader evaluation are unchanged."
+        }
+      }
+    },
+    "ShaderFXLayoutContainer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderFXLayoutContainer"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "Group",
+            "Foldout",
+            "Tabs",
+            "Tab"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "headerParameter": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ShaderFXEnableCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderFXEnableCondition"
+        },
+        "parameter": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notEqual": {
+          "type": "boolean"
+        },
+        "value": {
           "type": "number",
           "minimum": -3.40282347E+38,
           "maximum": 3.40282347E+38
@@ -2116,11 +2179,11 @@
             "LinearGradient",
             "RadialGradient",
             "SquareGradient",
-            "DiamondGradient",
-            "CircularGradient"
+            "AngularGradient",
+            "Freeform"
           ],
           "default": "Solid",
-          "description": "Shared figure fill: None=0, Solid=1, LinearGradient=2, RadialGradient=3, SquareGradient=4, DiamondGradient=5, CircularGradient=6. Shape fill is an additional overall gate. Full, FullOptimized and Compact retain inactive fill settings."
+          "description": "Shared figure fill: None=0, Solid=1, LinearGradient=2, RadialGradient=3, SquareGradient=4, AngularGradient=6, Freeform=7. Freeform uses the independent freeform point field. Shape fill is an additional overall gate. Full, FullOptimized and Compact retain inactive fill settings."
         },
         "fillColor": {
           "type": "array",
@@ -2158,7 +2221,18 @@
               "type": "null"
             }
           ],
-          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the circular-only gradientRepetitions multiplier."
+          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the angular-only gradientRepetitions multiplier."
+        },
+        "freeform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FreeformGradient"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Independent Freeform points in normalized layer-local coordinates. Retained in inactive modes; required non-null when Freeform is active, including disabled painting."
         },
         "gradientStart": {
           "type": "array",
@@ -2188,14 +2262,14 @@
             1,
             0
           ],
-          "description": "Finite normalized layer-local endpoint. Sets radius and orientation from gradientStart in reference pixels. Radial uses length, Square max(abs(rotated coordinates)), Diamond sum of absolute rotated coordinates. Circular is the positive CCW angle from this ray divided by one turn and multiplied by gradientRepetitions, with its seam on the ray. Equal anchors yield t=0 for every gradient type."
+          "description": "Finite normalized layer-local endpoint. Sets radius and orientation from gradientStart in reference pixels. Radial uses length, Square max(abs(rotated coordinates)). Angular is the positive CCW angle from this ray divided by one turn and multiplied by gradientRepetitions, with its seam on the ray. Equal anchors yield t=0 for every gradient type."
         },
         "gradientRepetitions": {
           "type": "number",
           "minimum": 0.0001,
           "maximum": 3.40282347E+38,
           "default": 1,
-          "description": "Finite circular-gradient repetitions, at least 0.0001; default 1. CircularGradient only: one period spans 360/gradientRepetitions degrees before palette wrapping. Retained and validated in every paint mode, including disabled painting."
+          "description": "Finite angular-gradient repetitions, at least 0.0001; default 1. AngularGradient only: one period spans 360/gradientRepetitions degrees before palette wrapping. Retained and validated in every paint mode, including disabled painting."
         },
         "fillRule": {
           "type": "string",
@@ -2242,11 +2316,11 @@
             "LinearGradient",
             "RadialGradient",
             "SquareGradient",
-            "DiamondGradient",
-            "CircularGradient"
+            "AngularGradient",
+            "Freeform"
           ],
           "default": "Solid",
-          "description": "Independent stroke paint: None disables painting without clearing settings; Solid uses strokeColor; five gradient modes use strokeGradient. The stroke boolean remains an additional gate. Every JSON mode retains inactive stroke settings."
+          "description": "Independent stroke paint: None disables painting without clearing settings; Solid uses strokeColor; four gradient modes use strokeGradient; Freeform uses strokeFreeform. The stroke boolean remains an additional gate. Every JSON mode retains inactive stroke settings."
         },
         "strokeGradient": {
           "anyOf": [
@@ -2257,7 +2331,18 @@
               "type": "null"
             }
           ],
-          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the circular-only strokeGradientRepetitions multiplier."
+          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the angular-only strokeGradientRepetitions multiplier."
+        },
+        "strokeFreeform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FreeformGradient"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Independent Freeform points in normalized layer-local coordinates. Retained in inactive modes; required non-null when Freeform is active, including disabled painting."
         },
         "strokeGradientStart": {
           "type": "array",
@@ -2287,14 +2372,14 @@
             1,
             0
           ],
-          "description": "Finite normalized layer-local endpoint. Sets radius and orientation from strokeGradientStart in reference pixels. Radial uses length, Square max(abs(rotated coordinates)), Diamond sum of absolute rotated coordinates. Circular is the positive CCW angle from this ray divided by one turn and multiplied by strokeGradientRepetitions, with its seam on the ray. Equal anchors yield t=0 for every gradient type."
+          "description": "Finite normalized layer-local endpoint. Sets radius and orientation from strokeGradientStart in reference pixels. Radial uses length, Square max(abs(rotated coordinates)). Angular is the positive CCW angle from this ray divided by one turn and multiplied by strokeGradientRepetitions, with its seam on the ray. Equal anchors yield t=0 for every gradient type."
         },
         "strokeGradientRepetitions": {
           "type": "number",
           "minimum": 0.0001,
           "maximum": 3.40282347E+38,
           "default": 1,
-          "description": "Finite circular-gradient repetitions, at least 0.0001; default 1. CircularGradient only: one period spans 360/strokeGradientRepetitions degrees before palette wrapping. Retained and validated in every paint mode, including disabled painting."
+          "description": "Finite angular-gradient repetitions, at least 0.0001; default 1. AngularGradient only: one period spans 360/strokeGradientRepetitions degrees before palette wrapping. Retained and validated in every paint mode, including disabled painting."
         },
         "strokeWidth": {
           "type": "number",
@@ -2367,11 +2452,26 @@
                   "LinearGradient",
                   "RadialGradient",
                   "SquareGradient",
-                  "DiamondGradient",
-                  "CircularGradient"
+                  "AngularGradient"
                 ]
               },
               "gradient": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "fillMode",
+              "freeform"
+            ],
+            "properties": {
+              "fillMode": {
+                "const": "Freeform"
+              },
+              "freeform": {
                 "type": "null"
               }
             }
@@ -2389,11 +2489,26 @@
                   "LinearGradient",
                   "RadialGradient",
                   "SquareGradient",
-                  "DiamondGradient",
-                  "CircularGradient"
+                  "AngularGradient"
                 ]
               },
               "strokeGradient": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "strokeMode",
+              "strokeFreeform"
+            ],
+            "properties": {
+              "strokeMode": {
+                "const": "Freeform"
+              },
+              "strokeFreeform": {
                 "type": "null"
               }
             }
@@ -2474,6 +2589,78 @@
             "Aligned",
             "Mirrored"
           ]
+        }
+      }
+    },
+    "FreeformGradient": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "FreeformGradient"
+        },
+        "points": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/FreeformGradientPoint"
+          }
+        }
+      }
+    },
+    "FreeformGradientPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "FreeformGradientPoint"
+        },
+        "position": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -10000,
+            "maximum": 10000
+          }
+        },
+        "color": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "prefixItems": [
+            {
+              "type": "number",
+              "minimum": -3.40282347E+38,
+              "maximum": 3.40282347E+38
+            },
+            {
+              "type": "number",
+              "minimum": -3.40282347E+38,
+              "maximum": 3.40282347E+38
+            },
+            {
+              "type": "number",
+              "minimum": -3.40282347E+38,
+              "maximum": 3.40282347E+38
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          ],
+          "items": false,
+          "description": "Straight encoded RGBA; signed HDR RGB is retained. Mixing decodes RGB into linear working space; alpha uses the same weights."
+        },
+        "influence": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 4.0,
+          "default": 0.35,
+          "description": "Relative influence in local layer coordinates; 0.35 is displayed as 35%. Smooth inverse-distance mixing has no hard boundary."
         }
       }
     },
@@ -3394,18 +3581,27 @@
         "gradientType": {
           "type": "string",
           "enum": [
-            "Vertical",
-            "Horizontal",
+            "Linear",
             "Radial",
-            "Circular",
-            "Diamond",
-            "Square"
+            "Angular",
+            "Square",
+            "Freeform"
           ]
         },
         "gradient": {
           "anyOf": [
             {
               "$ref": "#/$defs/WhimTexGradient"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "freeform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FreeformGradient"
             },
             {
               "type": "null"
@@ -3420,7 +3616,7 @@
         "circularStartAngle": {
           "type": "number",
           "default": 0,
-          "description": "Circular gradient start angle in counterclockwise degrees from the local left ray. Independent of transform and palette. One period spans 360/circularRepetitions degrees; default start angle preserves the existing field."
+          "description": "Angular gradient start angle in counterclockwise degrees from the local left ray. Independent of transform and palette. One period spans 360/circularRepetitions degrees; default start angle preserves the existing field."
         },
         "circularWrapMode": {
           "type": "string",
@@ -3435,7 +3631,10 @@
             "null"
           ]
         }
-      }
+      },
+      "required": [
+        "gradientType"
+      ]
     },
     "GroupLayerBehaviour": {
       "type": "object",
@@ -4567,11 +4766,11 @@
             "LinearGradient",
             "RadialGradient",
             "SquareGradient",
-            "DiamondGradient",
-            "CircularGradient"
+            "AngularGradient",
+            "Freeform"
           ],
           "default": "Solid",
-          "description": "Shared figure fill: None=0, Solid=1, LinearGradient=2, RadialGradient=3, SquareGradient=4, DiamondGradient=5, CircularGradient=6. Shape fill is an additional overall gate. Full, FullOptimized and Compact retain inactive fill settings."
+          "description": "Shared figure fill: None=0, Solid=1, LinearGradient=2, RadialGradient=3, SquareGradient=4, AngularGradient=6, Freeform=7. Freeform uses the independent freeform point field. Shape fill is an additional overall gate. Full, FullOptimized and Compact retain inactive fill settings."
         },
         "gradient": {
           "anyOf": [
@@ -4582,7 +4781,18 @@
               "type": "null"
             }
           ],
-          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the circular-only gradientRepetitions multiplier."
+          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the angular-only gradientRepetitions multiplier."
+        },
+        "freeform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FreeformGradient"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Independent Freeform points in normalized layer-local coordinates. Retained in inactive modes; required non-null when Freeform is active, including disabled painting."
         },
         "gradientStart": {
           "type": "array",
@@ -4612,14 +4822,14 @@
             1,
             0
           ],
-          "description": "Finite normalized layer-local endpoint. Sets radius and orientation from gradientStart in reference pixels. Radial uses length, Square max(abs(rotated coordinates)), Diamond sum of absolute rotated coordinates. Circular is the positive CCW angle from this ray divided by one turn and multiplied by gradientRepetitions, with its seam on the ray. Equal anchors yield t=0 for every gradient type."
+          "description": "Finite normalized layer-local endpoint. Sets radius and orientation from gradientStart in reference pixels. Radial uses length, Square max(abs(rotated coordinates)). Angular is the positive CCW angle from this ray divided by one turn and multiplied by gradientRepetitions, with its seam on the ray. Equal anchors yield t=0 for every gradient type."
         },
         "gradientRepetitions": {
           "type": "number",
           "minimum": 0.0001,
           "maximum": 3.40282347E+38,
           "default": 1,
-          "description": "Finite circular-gradient repetitions, at least 0.0001; default 1. CircularGradient only: one period spans 360/gradientRepetitions degrees before palette wrapping. Retained and validated in every paint mode, including disabled painting."
+          "description": "Finite angular-gradient repetitions, at least 0.0001; default 1. AngularGradient only: one period spans 360/gradientRepetitions degrees before palette wrapping. Retained and validated in every paint mode, including disabled painting."
         },
         "fill": {
           "type": "boolean"
@@ -4645,11 +4855,11 @@
             "LinearGradient",
             "RadialGradient",
             "SquareGradient",
-            "DiamondGradient",
-            "CircularGradient"
+            "AngularGradient",
+            "Freeform"
           ],
           "default": "Solid",
-          "description": "Independent stroke paint: None disables painting without clearing settings; Solid uses strokeColor; five gradient modes use strokeGradient. The stroke boolean remains an additional gate. Every JSON mode retains inactive stroke settings."
+          "description": "Independent stroke paint: None disables painting without clearing settings; Solid uses strokeColor; four gradient modes use strokeGradient; Freeform uses strokeFreeform. The stroke boolean remains an additional gate. Every JSON mode retains inactive stroke settings."
         },
         "strokeGradient": {
           "anyOf": [
@@ -4660,7 +4870,18 @@
               "type": "null"
             }
           ],
-          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the circular-only strokeGradientRepetitions multiplier."
+          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the angular-only strokeGradientRepetitions multiplier."
+        },
+        "strokeFreeform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FreeformGradient"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Independent Freeform points in normalized layer-local coordinates. Retained in inactive modes; required non-null when Freeform is active, including disabled painting."
         },
         "strokeGradientStart": {
           "type": "array",
@@ -4690,14 +4911,14 @@
             1,
             0
           ],
-          "description": "Finite normalized layer-local endpoint. Sets radius and orientation from strokeGradientStart in reference pixels. Radial uses length, Square max(abs(rotated coordinates)), Diamond sum of absolute rotated coordinates. Circular is the positive CCW angle from this ray divided by one turn and multiplied by strokeGradientRepetitions, with its seam on the ray. Equal anchors yield t=0 for every gradient type."
+          "description": "Finite normalized layer-local endpoint. Sets radius and orientation from strokeGradientStart in reference pixels. Radial uses length, Square max(abs(rotated coordinates)). Angular is the positive CCW angle from this ray divided by one turn and multiplied by strokeGradientRepetitions, with its seam on the ray. Equal anchors yield t=0 for every gradient type."
         },
         "strokeGradientRepetitions": {
           "type": "number",
           "minimum": 0.0001,
           "maximum": 3.40282347E+38,
           "default": 1,
-          "description": "Finite circular-gradient repetitions, at least 0.0001; default 1. CircularGradient only: one period spans 360/strokeGradientRepetitions degrees before palette wrapping. Retained and validated in every paint mode, including disabled painting."
+          "description": "Finite angular-gradient repetitions, at least 0.0001; default 1. AngularGradient only: one period spans 360/strokeGradientRepetitions degrees before palette wrapping. Retained and validated in every paint mode, including disabled painting."
         },
         "strokeWidth": {
           "type": "number",
@@ -4861,11 +5082,26 @@
                   "LinearGradient",
                   "RadialGradient",
                   "SquareGradient",
-                  "DiamondGradient",
-                  "CircularGradient"
+                  "AngularGradient"
                 ]
               },
               "gradient": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "fillMode",
+              "freeform"
+            ],
+            "properties": {
+              "fillMode": {
+                "const": "Freeform"
+              },
+              "freeform": {
                 "type": "null"
               }
             }
@@ -4883,11 +5119,26 @@
                   "LinearGradient",
                   "RadialGradient",
                   "SquareGradient",
-                  "DiamondGradient",
-                  "CircularGradient"
+                  "AngularGradient"
                 ]
               },
               "strokeGradient": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "strokeMode",
+              "strokeFreeform"
+            ],
+            "properties": {
+              "strokeMode": {
+                "const": "Freeform"
+              },
+              "strokeFreeform": {
                 "type": "null"
               }
             }
@@ -5144,8 +5395,7 @@
             "LinearGradient",
             "RadialGradient",
             "SquareGradient",
-            "DiamondGradient",
-            "CircularGradient"
+            "AngularGradient"
           ],
           "default": "Solid"
         },

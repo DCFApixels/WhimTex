@@ -304,6 +304,19 @@ namespace DCFApixels.WhimTex
                         throw new WhimTexDocumentException("Unsupported Boolean operation: " + layer.Id);
                     if (layer?.Behaviour is BooleanGroupLayerBehaviour booleanGroup) ValidateVectorStorage(booleanGroup);
                     if (layer?.Behaviour is TextLayerBehaviour text) text.Validate();
+                    if (layer?.Behaviour is ShapeLayerBehaviour shape)
+                    {
+                        FigureFill.ValidateFreeform(shape.fillMode, shape.freeform);
+                        FigureFill.ValidateFreeform(shape.strokeMode, shape.strokeFreeform);
+                    }
+                    if (layer?.Behaviour is GradientLayerBehaviour gradient)
+                    {
+                        if (!Enum.IsDefined(typeof(GradientLayerBehaviour.GradientType), gradient.gradientType))
+                            throw new WhimTexDocumentException("Unsupported gradient type: " + gradient.gradientType);
+                        if (gradient.gradientType == GradientLayerBehaviour.GradientType.Freeform && gradient.freeform == null)
+                            throw new WhimTexDocumentException("Freeform gradient data is missing: " + layer.Id);
+                        gradient.freeform?.Validate();
+                    }
                     if (layer?.Behaviour is SDFLayerBehaviour sdf)
                     {
                         if (!Enum.IsDefined(typeof(DistanceMetric), sdf.metric) || !Enum.IsDefined(typeof(SharpDistanceMode), sdf.sharpMode) || !float.IsFinite(sdf.miterLimit) || sdf.miterLimit < 1 || sdf.miterLimit > 64)
@@ -391,7 +404,7 @@ namespace DCFApixels.WhimTex
                 {
                     if (value is ShaderFXParameter parameter && parameter.controls?.Count > 0 &&
                         (field.Name == "controls" || field.Name == "hasMinimum" || field.Name == "hasMaximum" ||
-                         field.Name == "softMinimum" || field.Name == "softMaximum" || field.Name == "minimum" || field.Name == "maximum")) continue;
+                         field.Name == "softMinimum" || field.Name == "softMaximum" || field.Name == "cyclicRange" || field.Name == "minimum" || field.Name == "maximum")) continue;
                     if (value is WhimTexDocument && field.Name == "layers") continue;
                     if (value is DrawingLayerBehaviour && field.Name == "pixels")
                     {
@@ -453,6 +466,8 @@ namespace DCFApixels.WhimTex
                     if (primitive != null) return primitive;
                     if (value is ShaderFX fx)
                     {
+                        if (AssetDatabase.Contains(fx) && fx.EmbeddedOwner == null)
+                            throw new WhimTexDocumentException(ShaderFX.HlslOnlyMessage);
                         if (effects.TryGetValue(fx, out string reference)) return new JObject { ["$ref"] = reference };
                         reference = "fx" + effects.Count;
                         effects.Add(fx, reference);
@@ -541,6 +556,7 @@ namespace DCFApixels.WhimTex
                         throw JsonError(metadataValue, "Expected a string.");
                 if (node["$asset"] is JObject asset)
                 {
+                    if (declared == typeof(ShaderFX)) throw new WhimTexDocumentException(ShaderFX.HlslOnlyMessage);
                     CheckKeys(node, "$asset");
                     if (!typeof(Object).IsAssignableFrom(declared)) throw new WhimTexDocumentException("Unexpected asset reference.");
                     Object resolved = ResolveAsset(asset, declared);
@@ -595,6 +611,8 @@ namespace DCFApixels.WhimTex
                         throw JsonError(property.Value, "Drawing pixels are not supported in JSON.");
                     if (!fields.ContainsKey(property.Name)) throw new WhimTexDocumentException("Unknown field: " + property.Path);
                 }
+                if (type == typeof(GradientLayerBehaviour) && node["gradientType"] == null)
+                    throw JsonError(node, "gradientType is required; specify Linear, Radial, Angular, Square or Freeform.");
                 JObject defaults = DefaultsFor(type);
                 foreach (var field in fields.Values)
                 {
@@ -613,6 +631,7 @@ namespace DCFApixels.WhimTex
                 if (result is ShapeLayerBehaviour.Corner corner && (corner.amount < 0 || corner.amount > 1))
                     throw JsonError(node["amount"] ?? node, "Corner amount must be between 0 and 1.");
                 if (result is TextLayerBehaviour text && text.Notice != null) Warnings.Add(text.Notice);
+                if (result is FreeformGradient freeform) freeform.Validate();
                 if (result is Layer layer && layer.Behaviour is BooleanGroupLayerBehaviour)
                 {
                     if (node["compositing"] != null && layer.compositing != GroupCompositing.Isolated)

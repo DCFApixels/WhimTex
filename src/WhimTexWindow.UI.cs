@@ -1734,7 +1734,7 @@ namespace DCFApixels.WhimTex
             toolkitCanvas.SetDocument(channelCanvasTexture != null ? (Texture)channelCanvasTexture : CanvasPresentationSource,
                 activeDocument.width, activeDocument.height,
                 IsCanvasBrushEnabled || IsCanvasBlurBrushEnabled || IsCanvasSmudgeBrushEnabled ? drawing : null, transforming,
-                IsCanvasPaintTool || canvasTool == CanvasTool.HealingBrush ? paintSettings : null);
+                IsCanvasPaintTool || canvasTool == CanvasTool.HealingBrush ? paintSettings : null, canvasRenderRegion?.pixels);
             toolkitCanvas.SetRoundCursorSize(canvasTool == CanvasTool.VectorBrush ? vectorBrushSize :
                 EffectivePaintSize(canvasTool == CanvasTool.HealingBrush ? paintSettings.healingSize :
                 canvasTool == CanvasTool.BlurBrush ? paintSettings.blurSize : canvasTool == CanvasTool.SmudgeBrush ? paintSettings.smudgeSize : paintSettings.brushSize));
@@ -2170,6 +2170,8 @@ namespace DCFApixels.WhimTex
                 : MouseCursor.Pan;
             if (!panning && canvasTool == CanvasTool.Crop)
                 transformCursor = cropManipulator?.GetCursor(localPosition) ?? MouseCursor.Arrow;
+            if (!panning && !alt && canvasPointerInside && IsGradientCanvasEnabled)
+                transformCursor = gradientCanvasManipulator?.GetCursor(localPosition) ?? MouseCursor.Arrow;
             if (!panning && !alt && canvasPointerInside && canvasTool == CanvasTool.Text &&
                 (!canvasPointerControl || textManipulator?.IsDragging == true) && textManipulator != null && textManipulator.TryGetCursor(localPosition, out var textCursor))
             {
@@ -2232,9 +2234,9 @@ namespace DCFApixels.WhimTex
                 return;
             }
 
-            if (evt.keyCode == KeyCode.Escape && (cropPicker?.IsPressed == true || shapePicker?.IsPressed == true || marqueePicker?.IsPressed == true || lassoPicker?.IsPressed == true))
+            if (evt.keyCode == KeyCode.Escape && (cropPicker?.IsPressed == true || shapePicker?.IsPressed == true || marqueePicker?.IsPressed == true || lassoPicker?.IsPressed == true || gradientPicker?.IsPressed == true))
             {
-                cropPicker?.Cancel(); shapePicker?.Cancel(); marqueePicker?.Cancel(); lassoPicker?.Cancel();
+                cropPicker?.Cancel(); shapePicker?.Cancel(); marqueePicker?.Cancel(); lassoPicker?.Cancel(); gradientPicker?.Cancel();
                 WhimTexUI.ConsumeEvent(evt);
                 return;
             }
@@ -2461,6 +2463,8 @@ namespace DCFApixels.WhimTex
             private Rect presentationRect;
             private Rect displayedImageRect;
             private RectInt? canvasFramePreview;
+            private RectInt? renderedRegion;
+            public bool HasCanvasFramePreview => canvasFramePreview.HasValue;
             private float presentedRotation;
 
             public Rect ImageRect { get; private set; }
@@ -2675,6 +2679,7 @@ namespace DCFApixels.WhimTex
                 EnableInClassList("whimtex-canvas-cursor--scale", transforming && transformCursor == MouseCursor.ScaleArrow);
                 EnableInClassList("whimtex-canvas-cursor--rotate", rotating || (transforming && transformCursor == MouseCursor.RotateArrow));
                 EnableInClassList("whimtex-canvas-cursor--move", transforming && transformCursor == MouseCursor.MoveArrow);
+                EnableInClassList("whimtex-canvas-cursor--add", transforming && transformCursor == MouseCursor.ArrowPlus);
                 Texture2D nextCursorTexture = null;
                 if (hide)
                 {
@@ -2750,8 +2755,10 @@ namespace DCFApixels.WhimTex
                 UpdatePencilCursor();
             }
 
-            public void SetDocument(Texture nextTexture, int width, int height, DrawingLayerBehaviour layer, bool transforming = false, PaintToolSettings brush = null)
+            public void SetDocument(Texture nextTexture, int width, int height, DrawingLayerBehaviour layer, bool transforming = false, PaintToolSettings brush = null, RectInt? region = null)
             {
+                bool regionChanged = renderedRegion != region;
+                renderedRegion = region;
                 transformMode = transforming;
                 texture = nextTexture;
                 if (texture is RenderTexture) texture.wrapMode = tiled ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
@@ -2765,7 +2772,7 @@ namespace DCFApixels.WhimTex
                 image.image = texture;
                 image.MarkDirtyRepaint();
                 tiledImage.MarkDirtyRepaint();
-                UpdateImageLayout();
+                UpdateImageLayout(regionChanged);
                 UpdatePencilCursor();
                 overlay.MarkDirtyRepaint();
             }
@@ -2854,7 +2861,12 @@ namespace DCFApixels.WhimTex
                 presentedRotation = viewport.Rotation;
                 PositionSurface(checker, presentationRect, !tiled);
                 PositionSurface(canvasShadow, CanvasShadow.BoundsFor(displayedRect), true);
-                PositionSurface(image, displayedRect, true);
+                Rect imagePixels = renderedRegion is RectInt region
+                    ? new Rect(nextRect.x + region.x / (float)documentWidth * nextRect.width,
+                        nextRect.yMax - region.yMax / (float)documentHeight * nextRect.height,
+                        region.width / (float)documentWidth * nextRect.width, region.height / (float)documentHeight * nextRect.height)
+                    : displayedRect;
+                PositionSurface(image, imagePixels, true);
                 PositionElement(tiledImage, contentRect);
                 PositionElement(overlay, contentRect);
                 UpdatePencilCursor();

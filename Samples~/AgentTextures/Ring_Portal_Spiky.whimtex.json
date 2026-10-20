@@ -747,24 +747,24 @@
                   "y": 1.0
                 },
                 "rotation": 0.0,
-                "storage": "TRS",
+                "storage": "Projective",
                 "matrix": {
                   "m00": 0.0,
-                  "m01": 0.0,
+                  "m01": 1.0,
                   "m02": 0.0,
-                  "m10": 0.0,
+                  "m10": 1.0,
                   "m11": 0.0,
                   "m12": 0.0,
                   "m20": 0.0,
                   "m21": 0.0,
-                  "m22": 0.0
+                  "m22": 1.0
                 },
                 "tiling": "Unbounded"
               },
               "filterMode": "Source",
               "behaviour": {
                 "$type": "GradientLayerBehaviour",
-                "gradientType": "Vertical",
+                "gradientType": "Linear",
                 "gradient": {
                   "colors": [
                     {
@@ -920,24 +920,24 @@
                   "y": 1.0
                 },
                 "rotation": 0.0,
-                "storage": "TRS",
+                "storage": "Projective",
                 "matrix": {
                   "m00": 0.0,
-                  "m01": 0.0,
+                  "m01": 1.0,
                   "m02": 0.0,
-                  "m10": 0.0,
+                  "m10": 1.0,
                   "m11": 0.0,
                   "m12": 0.0,
                   "m20": 0.0,
                   "m21": 0.0,
-                  "m22": 0.0
+                  "m22": 1.0
                 },
                 "tiling": "Unbounded"
               },
               "filterMode": "Source",
               "behaviour": {
                 "$type": "GradientLayerBehaviour",
-                "gradientType": "Vertical",
+                "gradientType": "Linear",
                 "gradient": {
                   "colors": [
                     {

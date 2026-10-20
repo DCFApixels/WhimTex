@@ -345,6 +345,11 @@ namespace DCFApixels.WhimTex
                 row.Q<Label>("comparison-before").tooltip = AllocationSampleText(before) + " " + scope;
                 row.Q<Label>("comparison-after").tooltip = AllocationSampleText(after) + " " + scope;
             }
+            MarkUnconfirmedGpu(row.Q<Label>("comparison-before"), gpu && before?.Value<int?>("gpuUnconfirmedCount") > 0);
+            MarkUnconfirmedGpu(row.Q<Label>("comparison-after"), gpu && after?.Value<int?>("gpuUnconfirmedCount") > 0);
+            bool unconfirmedDelta = gpu && comparable && item.Value<bool?>("gpuUnconfirmed") == true;
+            MarkUnconfirmedGpu(row.Q<Label>("comparison-delta"), unconfirmedDelta);
+            MarkUnconfirmedGpu(row.Q<Label>("comparison-percent"), unconfirmedDelta);
         }
 
         private static bool IsAllocationMetric(string key) => key == "gcAllocationCount" || key == "gcSelfAllocationCount";
@@ -368,7 +373,7 @@ namespace DCFApixels.WhimTex
         }
 
         private static string GpuSampleText(JObject metrics) => metrics == null ? "No matching stage." :
-            $"GPU: {metrics["gpuCount"]} ready, {metrics["gpuPendingCount"]} pending, {metrics["gpuUnavailableCount"]} unavailable. * marks a partial total; unavailable is not zero.";
+            $"GPU: {metrics["gpuCount"]} measured ({metrics.Value<int?>("gpuUnconfirmedCount") ?? 0} unconfirmed), {metrics["gpuPendingCount"]} pending, {metrics["gpuUnavailableCount"]} unavailable. * marks a partial total; unavailable is not zero.";
 
         private static string AllocationSampleText(JObject metrics) => metrics == null ? "No matching stage." :
             $"Main-thread managed allocation count, not bytes. Measured calls: {metrics.Value<int?>("measuredCalls") ?? 0} / {metrics.Value<int?>("eligibleCalls") ?? 0}. * marks a partial sum; unavailable is not zero.";

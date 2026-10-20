@@ -38,7 +38,11 @@ float4 CompositePendingBrush(float4 before, float2 uv)
     [branch] if (any(uv < _BrushDirtyRect.xy) || any(uv > _BrushDirtyRect.zw)) return before;
     float selection = BrushSelectionCoverage(uv);
     if (selection <= 0.0) return before;
+    #if defined(BRUSH_SAMPLE_STROKE)
+    float4 stroke = BRUSH_SAMPLE_STROKE(uv);
+    #else
     float4 stroke = BRUSH_SAMPLE(_BrushStroke, uv * _BrushStrokeMap.xy + _BrushStrokeMap.zw);
+    #endif
     float4 after = before;
     if (_BrushStampAccumulation > .5)
     {

@@ -18,7 +18,7 @@
 // @param label(Preserve Luma) bool _PreserveLuma = true // Keep the original luminance while adjusting color; alpha is always unchanged.
 // @endgroup
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(float4 color)
 {
     if (_Opacity == 0.0) return color;
     float3 weights = float3(0.2126, 0.7152, 0.0722);
