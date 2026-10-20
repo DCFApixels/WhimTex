@@ -18,7 +18,7 @@ If you try to paint on another layer type, the editor offers to convert it first
 
 A small cross marks the brush center when its outline becomes large relative to Canvas View.
 
-Brush and Pencil strokes use the normal Undo/Redo sequence alongside other edits. Their history
+Brush, Pencil, Smudge, Blur, Healing, fill and Clear Drawing Layer share the normal Undo/Redo sequence alongside parameter edits. Their pixel operations share the Paint Undo Steps limit. Their history
 survives script recompilation, but is not included in saved TIFF documents or a new Unity session.
 On supported devices, you can start the next stroke while the previous stroke's history finishes
 in the background. Undo and saving may wait for pending strokes; a long series of heavy strokes can

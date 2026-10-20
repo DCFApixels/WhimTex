@@ -24,6 +24,8 @@ and hints for the active tool.
 
 ## Profiler
 
+Background history writes appear as **worker** events with their own duration. Their time overlaps UI work and must not be added to the main-thread total. **input.canvas_ready** measures how long brush input waits for the updated canvas; **input.gpu_observed** includes waiting for GPU completion when available. It does not measure when the monitor displays the result. Several input events may share one canvas update.
+
 In **Capture settings**, leave **Document ID** empty to record all documents; for one document, paste the returned
 `profilerDocumentId` string unchanged.
 

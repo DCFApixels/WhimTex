@@ -188,6 +188,7 @@ namespace DCFApixels.WhimTex
             [NonSerialized] internal int completedWrites;
             [NonSerialized] internal long peakPendingBytes;
             [NonSerialized] internal long comparisonTicks, extractionTicks;
+            [NonSerialized] internal WhimTexProfiler.WorkContext profiling;
         }
         internal sealed class Page
         {
@@ -218,6 +219,7 @@ namespace DCFApixels.WhimTex
                         throw new IOException("Paint Undo could not write to disk. Clear Paint Undo after checking free disk space before starting another stroke.");
             DiscardBranches(history);
             var step = new Step { id = Guid.NewGuid().ToString("N"), parent = parent ?? "",
+                profiling = WhimTexProfiler.CaptureWorkContext(),
                 width = texture.width, height = texture.height, bytesPerPixel = HdrUtility.IsHdr(texture) ? 8 : 4,
                 owner = history.Identity, document = history.DocumentIdentity, order = DateTime.UtcNow.Ticks,
                 pages = (blocks.Length + PaintTileTransfer.TilesPerPage - 1) / PaintTileTransfer.TilesPerPage };
@@ -262,8 +264,10 @@ namespace DCFApixels.WhimTex
             step.peakPendingBytes = Math.Max(step.peakPendingBytes, queuedBytes);
             var disk = PaintUndoDisk.Current;
             string directory = StepDirectory(step.id);
+            var ticket = WhimTexProfiler.QueueWorker("storage.pixel_history.write", step.profiling);
             try { page.write = Task.Run(() =>
             {
+                using var worker = ticket == null ? default : ticket.Start();
                 page.startedAt = Stopwatch.GetTimestamp();
                 string temporary = page.path + ".tmp";
                 using var workspace = PaintHistoryCodec.Borrow();
@@ -313,9 +317,11 @@ namespace DCFApixels.WhimTex
                     Volatile.Write(ref step.reservationReleased, true);
                 }
                 page.finishedAt = Stopwatch.GetTimestamp();
+                ticket?.Stages(page.compressionTicks, page.fileWriteTicks, page.hashTicks);
             }); }
             catch
             {
+                ticket?.Cancel();
                 // Task creation failed before ownership crossed the thread boundary.
                 step.payload[pageIndex] = null; Interlocked.Add(ref pendingBytes, -size);
                 throw;

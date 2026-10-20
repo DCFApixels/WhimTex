@@ -72,12 +72,12 @@ and size, or enable **Clean Canvas View Background** to hide the background logo
 **Reset WhimTex Settings…** restores the workspace preferences after confirmation, without deleting your documents or preset files.
 
 **Paint Undo** sets the shared **Undo Disk Limit (GiB)** (8 by default) and **Paint Undo Steps**
-(50 per document by default, including Redo). Only Brush/Pencil pixel operations count;
+(50 per document by default, including Redo). Brush, Pencil, Smudge, Blur, Healing, fill and layer-clear pixel operations count;
 parameter edits use Unity Undo independently. These preferences apply to all projects for this user.
-Older Brush/Pencil steps are removed when needed; the current image stays unchanged.
+Older pixel steps are removed when needed; the current image stays unchanged.
 Automatic cleanup runs in small portions. Removed strokes do not leave empty Undo steps;
 parameter changes remain available independently.
-**Clear Paint Undo…** frees previous Brush/Pencil history in this Editor after confirmation and
+**Clear Paint Undo…** frees previous pixel history in this Editor after confirmation and
 cleans abandoned sessions. Other running Editors keep their history. Some space remains necessary
 for the current images' precision. If the limit or free disk space cannot accommodate a new stroke,
 the stroke is not applied; increase the limit or free space before trying again.

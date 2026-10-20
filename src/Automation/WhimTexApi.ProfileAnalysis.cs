@@ -234,6 +234,26 @@ namespace DCFApixels.WhimTex
             result["warnings"] = new JArray(ProfileWarnings(source, data));
             result["memory"] = ProfileMemory(source);
             result["causes"] = ProfileCauseSummary(source, data, top);
+            var asyncEvents = source.events.Take(source.count).Where(s => data.matchedEventIds.Contains(s.id) &&
+                (s.kind == "worker" || s.kind == "latency")).ToArray();
+            result["workerHotspots"] = new JArray(asyncEvents.Where(s => s.kind == "worker" && s.completed)
+                .OrderByDescending(s => s.end - s.start).Take(top).Select(s => new JObject {
+                    ["eventId"] = s.id, ["originId"] = s.originId, ["inputId"] = s.inputId,
+                    ["phase"] = s.phase, ["threadId"] = s.threadId,
+                    ["durationMs"] = WhimTexProfiler.Milliseconds(s.end - s.start),
+                    ["queueMs"] = WhimTexProfiler.Milliseconds(s.queuedTicks), ["allocatedBytes"] = s.workerAllocatedBytes >= 0 ? new JValue(s.workerAllocatedBytes) : JValue.CreateNull(),
+                    ["encodeMs"] = Optional(s.workerStagesMeasured, WhimTexProfiler.Milliseconds(s.workerEncodeTicks)),
+                    ["writeMs"] = Optional(s.workerStagesMeasured, WhimTexProfiler.Milliseconds(s.workerWriteTicks)),
+                    ["hashMs"] = Optional(s.workerStagesMeasured, WhimTexProfiler.Milliseconds(s.workerHashTicks))
+                }));
+            result["inputLatencies"] = new JArray(asyncEvents.Where(s => s.kind == "latency")
+                .OrderByDescending(s => s.completed ? s.end - s.start : 0).Take(top).Select(s => new JObject {
+                    ["eventId"] = s.id, ["phase"] = s.phase, ["status"] = s.asyncStatus,
+                    ["durationMs"] = Optional(s.completed, WhimTexProfiler.Milliseconds(s.end - s.start)),
+                    ["latestInputDurationMs"] = Optional(s.completed, WhimTexProfiler.Milliseconds(s.end - s.latestInputTicks)),
+                    ["coalescedInputs"] = s.coalescedInputs, ["completionPollIntervalMs"] = s.completionPollIntervalMs
+                }));
+            result["asyncAccounting"] = "Worker wall time excludes queue time and overlaps main-thread waits. Worker/latency events are excluded from rootWallMs and CPU hotspots. Canvas latency starts at brush input or the first render request for other changes. GPU completion is observed by polling a fence; it is not physical presentation latency. Missing completion is not zero.";
             result["accounting"] = "Hotspots rank by self wall time; allocationHotspots rank by self managed allocation count on the main thread, including instrumentation. Stage counts are not bytes. Allocation aggregates sum valid measured calls only: inspect measuredCalls, eligibleCalls and partial; eligibleCalls includes open/interrupted spans. Nested inclusive counts/times and CPU/GPU overlap; do not sum them. Cache counts are lookup attempts, not renders. Reasons are last-change context, not a causal proof. Use eventId with read to inspect details.";
             return result;
         }

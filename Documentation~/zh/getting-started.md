@@ -72,11 +72,11 @@ Vector Nodes 使用工具按钮上的空心箭头；Layer Select 保留操作系
 **Reset WhimTex Settings…** 会在确认后恢复工作区首选项，而不会删除你的文档或预设文件。
 
 **Paint Undo** 可设置共享的 **Undo Disk Limit (GiB)**（默认 8）与 **Paint Undo Steps**
-（每个文档默认 50 步，包括 Redo）。仅 Brush/Pencil 像素操作计入此限制；
+（每个文档默认 50 步，包括 Redo）。Brush、Pencil、Smudge、Blur、Healing、填充与图层清空的像素操作计入此限制；
 参数编辑由 Unity Undo 独立管理。这些设置适用于当前用户的所有项目。
-需要时会移除较早的 Brush/Pencil 步骤，但不会改变当前图像。
+需要时会移除较早的像素操作步骤，但不会改变当前图像。
 自动清理分成小批次执行。已移除的笔画不会留下空的 Undo 步骤；参数编辑的历史独立保留。
-**Clear Paint Undo…** 经确认后清除此编辑器的旧 Brush/Pencil 历史及已结束会话的文件，
+**Clear Paint Undo…** 经确认后清除此编辑器的旧像素操作历史及已结束会话的文件，
 其他正在运行的编辑器不受影响。为保持当前图像的精度，仍需保留部分空间。
 若限额或剩余磁盘空间不足以保存新笔触，该笔触不会应用；请提高限额或释放空间后重试。
 

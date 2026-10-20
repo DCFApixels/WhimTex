@@ -283,15 +283,15 @@ checkpoints; multiple windows sharing one document share its history. This is di
 not document recovery or a substitute for saving TIFF.
 
 `limits.json` holds a global 8 GiB default quota and a 50-operation default per-document limit
-(Brush/Pencil pixel Undo plus Redo). A stroke counts once regardless of how many texture blocks
+(Brush, Pencil, Smudge, Blur, Healing, fill and layer-clear pixel Undo plus Redo). A stroke counts once regardless of how many texture blocks
 it stores. Parameter-only edits remain subject to Unity Undo and do not consume this limit.
-Other pixel tools still using native texture Undo are outside this journal's count.
+Texture layout/format changes still use native object Undo; they are outside this journal’s count.
 Atomic per-field updates use a short cross-process file lock.
 Other User Settings already use Unity's per-user [EditorPrefs](https://docs.unity3d.com/ScriptReference/EditorPrefs.html);
 loaded preference caches and open controls refresh every two seconds. Project/workspace state is
 not promoted to a global document setting.
 
-Before modifying the Half source, commit reserves worst-case page bytes under the common quota,
+Buffered brush commit reserves before modifying its Half source. In-place retouch tools capture each affected native tile once in the shared Half atlas pool; a failed reservation restores those tiles. Full-screen retouch/write-protection outputs publish only captured tiles, avoiding resampling unrelated Half pixels. Explicit fill replacement retains hidden zero-alpha RGB. Both paths reserve worst-case page bytes under the common quota,
 including pending writes. It reclaims its own oldest steps when necessary; active foreign sessions
 are never pruned. The store retains 512 MiB of free disk space and a shared 32 MiB compaction budget.
 If reservation still fails, the stroke is not applied and reports a storage error. Clearing history

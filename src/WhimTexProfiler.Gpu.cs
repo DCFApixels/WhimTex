@@ -61,6 +61,7 @@ namespace DCFApixels.WhimTex
 
         internal static void PrepareGpuCapture(Capture owner)
         {
+            if (!owner.collectGpu) return;
             gpuCapture = owner;
             try
             {
@@ -120,6 +121,7 @@ namespace DCFApixels.WhimTex
         static GpuScope BeginGpu(Capture owner, int sample)
         {
             if (owner?.events == null || (uint)sample >= (uint)owner.events.Length) return default;
+            if (!owner.collectGpu) { owner.events[sample].gpuStatus = "disabled"; return default; }
             // A copied CPU Scope must not start another query for the same invocation or replace
             // an unavailable result with a later, unrelated interval.
             if (owner.events[sample].gpuStatus != null) return default;

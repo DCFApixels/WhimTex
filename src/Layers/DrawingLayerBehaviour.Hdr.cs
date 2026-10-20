@@ -50,10 +50,37 @@ namespace DCFApixels.WhimTex
             PaintTileTransfer.Drain();
             EnsureHdrStorage();
             InitializeCanvas(width, height);
-            Undo.RegisterCompleteObjectUndo(pixels, undoName);
-            HdrUtility.WritePixels(pixels, output);
-            EditorUtility.SetDirty(pixels);
-            ReleasePaintSurface();
+            if (output.Length != pixels.width * pixels.height)
+                throw new System.ArgumentException("Pixel replacement must match the Drawing source dimensions.", nameof(output));
+            PrepareStroke(width, height, undoName);
+            if (pixelUndoLabel == null)
+            {
+                HdrUtility.WritePixels(pixels, output);
+                EditorUtility.SetDirty(pixels);
+                ReleasePaintSurface();
+                return;
+            }
+            var replacement = new Texture2D(pixels.width, pixels.height, pixels.format, false, !pixels.isDataSRGB)
+                { hideFlags = HideFlags.HideAndDontSave };
+            var previous = RenderTexture.active;
+            bool srgb = GL.sRGBWrite;
+            try
+            {
+                // Keep old stored bytes intact until the ordered transfer patches them.
+                // An explicit replacement also owns zero-alpha RGB; do not unpremultiply it.
+                HdrUtility.WritePixels(replacement, output);
+                CapturePixelEdit(new RectInt(0, 0, pixels.width, pixels.height));
+                GL.sRGBWrite = false;
+                var conversion = WhimTexMaterials.AlphaConversion;
+                conversion.SetFloat("_Mode", 0);
+                conversion.SetFloat("_DecodeSource", HdrUtility.IsHdr(pixels) ? 0 : 1);
+                Graphics.Blit(replacement, paintSurface, conversion);
+                paintSurfaceDirty = true;
+                InvalidateAlphaCoverage();
+                unchecked { paintSurfaceRevision++; }
+                CommitPixelEdit(replacement);
+            }
+            finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; Object.DestroyImmediate(replacement); }
         }
     }
 }

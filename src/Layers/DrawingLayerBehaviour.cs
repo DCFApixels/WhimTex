@@ -243,7 +243,7 @@ namespace DCFApixels.WhimTex
             SyncSurfaceToTexture();
         }
 
-        internal void PrepareStroke(int width, int height, string undoName) => PrepareStrokeStorage(width, height, undoName, false);
+        internal void PrepareStroke(int width, int height, string undoName) => PrepareStrokeStorage(width, height, undoName, true);
         internal void PrepareBufferedStroke(int width, int height, string undoName) => PrepareStrokeStorage(width, height, undoName, true);
         private void PrepareStrokeStorage(int width, int height, string undoName, bool blockHistory)
         {
@@ -299,6 +299,7 @@ namespace DCFApixels.WhimTex
         internal void EndStroke()
         {
             CommitBrushStroke();
+            CommitPixelEdit();
             ReleasePaintWriteProtection();
             ReleaseAdvancedStroke();
             ReleaseSmudgeStroke();
@@ -568,6 +569,8 @@ namespace DCFApixels.WhimTex
             if (surface == null)
                 return;
 
+            CapturePixelEdit(new RectInt(0, 0, surface.width, surface.height));
+            paintSurfaceDirty = true;
             RenderTexture previous = RenderTexture.active;
             try
             {
@@ -595,6 +598,7 @@ namespace DCFApixels.WhimTex
         internal void SyncSurfaceToTexture()
         {
             CommitBrushStroke();
+            CommitPixelEdit();
             PaintTileTransfer.Drain();
             if (partialStorageCurrent && !paintSurfaceDirty) return;
             ClearFirstBrush();
@@ -1171,6 +1175,7 @@ namespace DCFApixels.WhimTex
 
         private void ReleasePaintSurface()
         {
+            ReleasePixelEdit();
             alphaCoverage?.Dispose(); alphaCoverage = null;
             unchecked { paintSurfaceRevision++; }
             PaintTileTransfer.Drain();

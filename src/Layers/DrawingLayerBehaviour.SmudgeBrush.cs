@@ -274,6 +274,7 @@ namespace DCFApixels.WhimTex
                     int right = Mathf.Clamp(Mathf.CeilToInt(max.x * target.width) + 1, 0, target.width);
                     int top = Mathf.Clamp(Mathf.CeilToInt(max.y * target.height) + 1, 0, target.height);
                     if (right <= left || top <= bottom) continue;
+                    if (target == paintSurface) CapturePixelEdit(new RectInt(left, bottom, right - left, top - bottom));
                     RenderTexture.active = null;
                     if ((SystemInfo.copyTextureSupport & CopyTextureSupport.Basic) != 0)
                         Graphics.CopyTexture(target, 0, 0, left, bottom, right - left, top - bottom, backdrop, 0, 0, left, bottom);

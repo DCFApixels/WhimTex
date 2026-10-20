@@ -51,7 +51,7 @@ namespace DCFApixels.WhimTex
                     (strokeWriteChannels & 2) != 0 ? 1 : 0, (strokeWriteChannels & 4) != 0 ? 1 : 0,
                     (strokeWriteChannels & 8) != 0 ? 1 : 0));
                 Graphics.Blit(paintSurface, paintWriteScratch, material, 0);
-                Graphics.Blit(paintWriteScratch, paintSurface);
+                ApplyPixelEditOutput(paintWriteScratch);
             }
             finally
             {

@@ -220,6 +220,8 @@ namespace DCFApixels.WhimTex
             RenderTexture image = smudgeTransport.Image;
             RectInt region = SmudgeTransportRegion(toSource, image, center, width, height);
             if (region.width <= 0 || region.height <= 0) return;
+            // Pure deformation reconstructs directly into paintSurface.
+            if (image == surface) CapturePixelEdit(region);
             if (smudgeMixing > 0) EnsureSmudgeCarry(smudge, surface, center, width, height);
             else SmudgeCarrySize(toSource, image.width, image.height, center, smudgeDiameter, width, height);
             smudgeTransport.Configure(toCanvas, toSource, smudgeToSource, selection, center, delta, smudgeDiameter,
@@ -231,12 +233,16 @@ namespace DCFApixels.WhimTex
                 smudgeTransport.Deposit(region, smudge, smudgeCarry);
             }
             if (smudgeSample == null)
+            {
+                CapturePixelEdit(region);
                 smudgeTransport.CopyRegion(image, region, surface, region.x, region.y);
+            }
             else
             {
                 RectInt targetRegion = SmudgeTransportRegion(smudgeToSource, surface, center, width, height);
                 if (targetRegion.width > 0 && targetRegion.height > 0)
                 {
+                    CapturePixelEdit(targetRegion);
                     smudgeTransport.CopyRegion(surface, targetRegion, smudgeBackdrop, targetRegion.x, targetRegion.y);
                     var material = WhimTexMaterials.SmudgeTransport;
                     material.SetTexture("_MainTex", image); material.SetTexture("_Backdrop", smudgeBackdrop);

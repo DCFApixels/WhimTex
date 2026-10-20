@@ -15,7 +15,13 @@ namespace DCFApixels.WhimTex
         [Newtonsoft.Json.JsonObject(Newtonsoft.Json.MemberSerialization.Fields)]
         internal struct Sample
         {
-            internal long id, parentId, operationId, changeId;
+            internal long id, parentId, operationId, changeId, inputId;
+            internal long originId, queuedTicks, workerAllocatedBytes, workerEncodeTicks, workerWriteTicks, workerHashTicks;
+            internal long latestInputTicks;
+            internal int threadId, coalescedInputs;
+            internal string asyncStatus;
+            internal bool workerStagesMeasured;
+            internal double completionPollIntervalMs;
             internal int fxIndex, depth;
             internal string documentId, layerId, layerName, phase, kind, detail;
             internal string fxName, gpuStatus, gpuDetail;
@@ -43,6 +49,8 @@ namespace DCFApixels.WhimTex
             internal int count, dropped, open, gpuRevision;
             internal string documentId;
             internal bool recording;
+            internal bool collectGpu = true, collectAllocations = true;
+            internal long nextProcessMemorySample;
             internal bool causeTrackingLimited;
             internal MemoryTotals memory;
         }
@@ -63,7 +71,7 @@ namespace DCFApixels.WhimTex
         static long nextChange;
         internal static bool Recording => capture?.recording == true && instrumentationSuspended == 0 && Thread.CurrentThread.ManagedThreadId == mainThread;
         internal static double Milliseconds(long ticks) => ticks * 1000.0 / Stopwatch.Frequency;
-        internal static Capture Current { get { CheckDeadline(); return capture; } }
+        internal static Capture Current { get { PollAsync(); CheckDeadline(); return capture; } }
 
         static WhimTexProfiler()
         {
@@ -85,6 +93,9 @@ namespace DCFApixels.WhimTex
         }
 
         internal static Capture Start(int capacity = 32768, double seconds = 120, string documentId = null)
+            => StartConfigured(capacity, seconds, documentId, true, true);
+
+        internal static Capture StartConfigured(int capacity, double seconds, string documentId, bool gpu, bool allocations)
         {
             if (Thread.CurrentThread.ManagedThreadId != mainThread) throw new InvalidOperationException("Profiling control requires the main thread.");
             if (capture?.recording == true || capture?.open > 0) throw new InvalidOperationException("A capture is already active or has unfinished scopes.");
@@ -95,6 +106,7 @@ namespace DCFApixels.WhimTex
             long now = Stopwatch.GetTimestamp();
             capture = new Capture { id = Guid.NewGuid().ToString("N"), events = new Sample[capacity],
                 start = now, deadline = now + (long)(seconds * Stopwatch.Frequency), recording = true, documentId = documentId,
+                collectGpu = gpu, collectAllocations = allocations,
                 unityVersion = UnityEngine.Application.unityVersion,
                 renderingThreadingMode = UnityEngine.SystemInfo.renderingThreadingMode.ToString(),
                 graphicsJobs = GraphicsJobsActive(UnityEngine.SystemInfo.renderingThreadingMode) };
@@ -102,8 +114,8 @@ namespace DCFApixels.WhimTex
             ResetMemory(); ResetCauses();
             capture.memory = new MemoryTotals();
             SampleProcessMemory(capture);
-            PrepareGpuCapture(capture);
-            PrepareAllocations(capture);
+            if (gpu) PrepareGpuCapture(capture);
+            if (allocations) PrepareAllocations(capture);
             return capture;
         }
 
@@ -112,7 +124,9 @@ namespace DCFApixels.WhimTex
             if (capture?.recording != true) return;
             SampleEditorAllocations(capture);
             capture.recording = false; capture.end = Stopwatch.GetTimestamp(); capture.stopReason = reason;
-            SampleProcessMemory(capture);
+            StopPendingInputs(capture);
+            PollAsync();
+            SampleProcessMemory(capture, true);
             // The capture keeps scalar totals and recorded links, not live cache owners
             // or before-state snapshots after recording has ended.
             ResetMemory(); ResetCauses();
@@ -138,6 +152,7 @@ namespace DCFApixels.WhimTex
                 dropped = capture.dropped, unityVersion = capture.unityVersion ?? UnityEngine.Application.unityVersion,
                 renderingThreadingMode = capture.renderingThreadingMode, graphicsJobs = capture.graphicsJobs,
                 memory = capture.memory?.Copy() };
+            frozen.collectGpu = capture.collectGpu; frozen.collectAllocations = capture.collectAllocations;
             frozen.causeTrackingLimited = capture.causeTrackingLimited;
             DiscardBaselineBackup();
             Baseline = frozen;
@@ -149,7 +164,7 @@ namespace DCFApixels.WhimTex
             Baseline = null;
         }
 
-        static void Update() { CheckDeadline(); PollGpu(); PollAllocations(); }
+        static void Update() { PollAsync(); CheckDeadline(); PollGpu(); PollAllocations(); }
 
         static void CheckDeadline()
         {
@@ -178,6 +193,7 @@ namespace DCFApixels.WhimTex
             return new Sample { id = slot + 1L, parentId = parent.id,
                 operationId = current < 0 ? slot + 1L : parent.operationId,
                 changeId = change.id, changeEventId = change.eventId,
+                inputId = ActiveInputId(doc),
                 changeReason = change.reason, changeOrigin = change.origin,
                 changedLayerId = change.layerId, changedLayerName = change.layerName,
                 documentId = doc, layerId = layerId ?? (doc == parent.documentId ? parent.layerId : null),
@@ -225,8 +241,9 @@ namespace DCFApixels.WhimTex
                 owner = capture; parent = current;
                 owner.memory ??= new MemoryTotals();
                 owner.events[slot] = CreateSample(slot, phase, "span", detail, doc, layer?.Id, fxIndex, layer?.layerName);
+                owner.events[slot].threadId = mainThread;
                 owner.events[slot].fxTiming = phase == "fx.block" || phase == "fx.render";
-                owner.events[slot].allocationCountMeasured = ReadAllocationCount(owner,
+                owner.events[slot].allocationCountMeasured = owner.collectAllocations && ReadAllocationCount(owner,
                     out owner.events[slot].gcCountStart, out owner.events[slot].gcCountEpoch);
                 current = slot; owner.open++;
             }
@@ -245,7 +262,9 @@ namespace DCFApixels.WhimTex
                 long end = Stopwatch.GetTimestamp();
                 ref Sample sample = ref owner.events[slot];
                 sample.end = end; sample.completed = true;
-                sample.allocationCountMeasured &= ReadAllocationCount(owner, out long gcCount, out long gcEpoch) && gcEpoch == sample.gcCountEpoch;
+                long gcCount = 0, gcEpoch = 0;
+                sample.allocationCountMeasured = sample.allocationCountMeasured &&
+                    ReadAllocationCount(owner, out gcCount, out gcEpoch) && gcEpoch == sample.gcCountEpoch;
                 sample.gcAllocationCount = sample.allocationCountMeasured ? Math.Max(0, gcCount - sample.gcCountStart) : 0;
                 owner.open--;
                 if (parent < 0 && owner.memory != null)

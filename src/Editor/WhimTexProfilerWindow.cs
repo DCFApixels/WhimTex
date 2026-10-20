@@ -1023,7 +1023,7 @@ namespace DCFApixels.WhimTex
         private static string LayerName(JObject item) => string.IsNullOrEmpty(item.Value<string>("layerId")) ? "—" :
             string.IsNullOrEmpty(item.Value<string>("layerName")) ? "Unnamed layer" : item.Value<string>("layerName");
 
-        private static bool IsTimed(JObject item) => item.Value<string>("kind") == "span" || item.Value<string>("kind") == "phase";
+        private static bool IsTimed(JObject item) => item.Value<string>("kind") is "span" or "phase" or "worker" or "latency";
 
         private static void DurationCell(VisualElement row)
         {

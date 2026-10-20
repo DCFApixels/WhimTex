@@ -46,7 +46,16 @@ namespace DCFApixels.WhimTex
             checkpointWork = work;
             // Only immutable page bytes and paths cross this boundary. Unity objects are used
             // only on the main thread; original pages stay readable throughout preparation.
-            work.prepare = Task.Run(() => PrepareCheckpoint(work));
+            var ticket = WhimTexProfiler.QueueWorker("storage.pixel_history.checkpoint", step.profiling);
+            try
+            {
+                work.prepare = Task.Run(() =>
+                {
+                    using var worker = ticket == null ? default : ticket.Start();
+                    PrepareCheckpoint(work);
+                });
+            }
+            catch { ticket?.Cancel(); checkpointWork = null; throw; }
         }
         private static void PrepareCheckpoint(CheckpointWork work)
         {

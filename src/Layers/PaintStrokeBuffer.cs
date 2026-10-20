@@ -114,6 +114,30 @@ namespace DCFApixels.WhimTex
             material.SetVector(MapId, Map(tile));
         }
 
+        // Retouch tools mutate their working surface in place. Capture each native
+        // tile once, before its first write, using the same bounded atlas pool.
+        internal void Capture(RectInt tile)
+        {
+            if (Get(tile) != null) return;
+            var previous = RenderTexture.active;
+            try
+            {
+                var page = Ensure(tile);
+                var slot = Slot(tile);
+                RenderTexture.active = null;
+                Graphics.CopyTexture(source, 0, 0, tile.x, tile.y, tile.width, tile.height,
+                    page, 0, 0, slot.x, slot.y);
+            }
+            finally { RenderTexture.active = previous; }
+        }
+
+        internal void CopyCaptured(RectInt tile, RenderTexture destination, int x, int y)
+        {
+            var slot = Slot(tile);
+            Graphics.CopyTexture(Get(tile), 0, 0, slot.x, slot.y, tile.width, tile.height,
+                destination, 0, 0, x, y);
+        }
+
         public void Dispose()
         {
             for (int i = 0; i < touched.Count; i++) slots[Index(touched[i])] = -1;

@@ -6,6 +6,9 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Smudge, Blur, Healing, fill and Clear Drawing Layer now share Brush/Pencil’s disk-backed pixel history and texture-operation limit. In-place tools capture original Half tiles before their first write; Undo/Redo preserves exact Half/HDR and hidden RGB while parameter edits keep their ordinary Unity Undo order. Retouch outputs no longer rewrite unrelated tiles.
+- Profiler captures separate background history writers/checkpoints, queue delay and available encode/write/hash stages from main-thread wall time. Brush input batches and release link to canvas readiness and asynchronously observed GPU completion. The agent API adds worker/latency summaries, existing paint-pool payload metrics and optional GPU/allocation collection. Global process/pool sampling is throttled to 100 ms; unavailable measurements remain explicit.
+
 - FX texture inputs use read-only `WhimTexTexture` views carrying independent UV mappings and complete-input dimensions. `SampleTexture` keeps its call syntax and handles full or cropped inputs; texture-valued helper and preview arguments now use `WhimTexTexture` instead of `sampler2D`. Shader Inputs and the authoring guides document the contract.
 - Verified pixel-local FX now process the visible canvas region, including main, Self and Layer texture reads. Spatial prefixes and texture-layer dependencies keep complete input only on their own branches. Active brush previews stay regional through local FX. Inspector callbacks request separate complete inputs reduced to 512 pixels, including stack-processor backdrops, and no longer consume canvas crops.
 - Shader Processor with a neutral transform reuses the regional stack backdrop for local FX. Moved processors and spatial FX retain full-input rendering. Pass-through external backgrounds are included in standalone processor inputs, cache invalidation and texture-dependency cycle checks.

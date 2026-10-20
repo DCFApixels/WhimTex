@@ -23,6 +23,8 @@ next_page: "zh/color.md"
 
 ## Profiler
 
+历史记录的后台写入显示为 **worker** 事件，并有独立耗时。它可与界面工作同时执行，因此不能加到主线程总时间中。**input.canvas_ready** 表示从画笔输入到更新画布就绪的延迟；可用时，**input.gpu_observed** 还包含等待 GPU 完成的时间。这不代表显示器实际显示图像的时刻。多个输入事件可能合并为一次画布更新。
+
 在 **Capture settings** 中将 **Document ID** 留空可记录所有文档；如需只记录一个文档，请原样粘贴返回的
 `profilerDocumentId` 字符串。
 

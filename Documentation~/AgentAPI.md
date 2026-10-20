@@ -201,6 +201,33 @@ The existing `whimtex_assistant_live` remains the open-window API.
 
 ## Profiler captures
 
+Captures now include separate `worker` and `latency` events. Worker `durationMs` excludes
+`queueMs`; `originId` links to the scheduling span and `inputId` links to the originating input
+when available. `threadId` identifies the recorded thread. Journal writers also provide
+`workerEncodeMs`, `workerWriteMs` and `workerHashMs`; unavailable submeasurements are null.
+`workerAllocatedBytes` is optional: some Editor runtimes do not support a meaningful per-thread
+byte counter, and disabling allocations also makes it unavailable. Worker time is never added
+to `rootWallMs` or subtracted from main-thread self time. `summary.brief` exposes separate
+`workerHotspots` and `inputLatencies`.
+
+`input.canvas_ready` starts at an accepted brush batch/release, or at the first canvas render
+request for other edits. It ends after the updated canvas is assigned for presentation.
+`input.gpu_observed` uses a public graphics fence and reports an observed completion upper bound,
+not monitor presentation or a GPU execution duration. Check `asyncStatus` and
+`completionPollIntervalMs`; unsupported/timeout/interrupted observations remain incomplete.
+`coalescedInputs` counts accepted inputs sharing an update, and `latestInputDurationMs` measures
+from the most recent one. No forced render, readback or GPU wait is introduced by recording.
+Worker and fence completions may finish after Stop; wait for `openSpans:0` before exporting.
+Pending workers are bounded to 256, input documents and GPU completion probes to 64 each.
+
+`memory.paintBuffers` samples all WhimTex documents, including pools created before recording:
+native active/idle bytes, pending writer payload, GPU transfer pages and active/pooled Half
+atlases. These are overlapping payload views, not physical VRAM. Writer pending bytes are
+already included in active native buffers. Process and pool totals are sampled at most every
+100 ms plus capture start/stop; short-lived peaks may be missed. Texture resource events retain
+their existing immediate accounting. Use `gpu:false` and/or `allocations:false` on Start to
+compare recording overhead without changing rendering.
+
 Open **Window → Analysis → WhimTex Profiler**, or call `DCFApixels.WhimTex.WhimTexApi.ProfileJson(requestJson)`
 on the Editor main thread. The optional Pipeline command accepts the same JSON in a file:
 
@@ -215,7 +242,7 @@ action renders an isolated snapshot as described below; it does not alter the so
 
 | Action | Additional request fields | Behavior |
 | --- | --- | --- |
-| `start` | Optional `maxEvents` (256–262144, default 32768), `durationSeconds` (1–600, default 120), `documentId` (opaque string; omitted or null means all documents) | Starts a new capture, replacing the retained stopped capture; refuses an active capture or unfinished spans |
+| `start` | Optional `maxEvents` (256–262144, default 32768), `durationSeconds` (1–600, default 120), `documentId` (opaque string; omitted or null means all documents), `gpu` and `allocations` (both default true) | Starts a new capture, replacing the retained stopped capture; refuses an active capture or unfinished spans |
 | `status` | Optional `captureId` | Returns current capture status; validates the ID when supplied |
 | `stop` | Required `captureId` | Stops recording; already open spans may still finish |
 | `read` | Optional `captureId`, `offset` (default 0), `limit` (1–2000, default 200), `operationId`, `documentId`, `layerId`, `layer`, `phase`, `groups`, `tree` (default false), `collapsedIds` | Pages matching events (or visible tree rows) and summarizes all matching retained events; validates the ID when supplied |

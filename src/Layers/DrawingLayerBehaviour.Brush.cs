@@ -253,6 +253,7 @@ namespace DCFApixels.WhimTex
         // The GPU source remains unchanged until commit.
         internal void CancelStroke()
         {
+            RestorePixelEditBefore();
             pixelUndoLabel = null;
             if (advancedStroke != null)
             {

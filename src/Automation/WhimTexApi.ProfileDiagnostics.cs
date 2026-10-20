@@ -25,6 +25,14 @@ namespace DCFApixels.WhimTex
                 ["processUsedBytes"] = m.processUsedBytes, ["processReservedBytes"] = m.processReservedBytes,
                 ["peakProcessUsedBytes"] = m.peakProcessUsedBytes,
                 ["nativeCacheBytes"] = m.nativeCacheBytes, ["peakNativeCacheBytes"] = m.peakNativeCacheBytes,
+                ["paintBuffers"] = new JObject {
+                    ["nativeActiveBytes"] = m.paintNativeActiveBytes, ["nativeIdleBytes"] = m.paintNativeIdleBytes,
+                    ["writerPendingBytes"] = m.paintWriterPendingBytes, ["gpuStagingBytes"] = m.paintGpuStagingBytes,
+                    ["atlasActiveBytes"] = m.paintAtlasActiveBytes, ["atlasPooledBytes"] = m.paintAtlasPooledBytes,
+                    ["peakNativeActiveBytes"] = m.peakPaintNativeActiveBytes, ["peakGpuPayloadBytes"] = m.peakPaintGpuPayloadBytes,
+                    ["scope"] = "all_whimtex_documents", ["sampleIntervalMs"] = 100,
+                    ["accounting"] = "Sampled existing pools, including allocations before recording. Writer pending bytes overlap native active bytes; GPU payload overlaps tracked textures. Do not sum these views. Payload is not physical VRAM or OS resident memory; peaks may miss short-lived allocations."
+                },
                 ["trackingLimited"] = m.trackingLimited,
                 ["coverage"] = "Managed allocated bytes cover the capture interval across all Editor threads, including unrelated Editor work and instrumentation. Neither document nor display filters limit this total; it is allocation traffic, not live heap or per-stage bytes. Bounded Unity ProfilerRecorder overflow makes the affected measurement unavailable, not zero. Stage allocation counts cover main-thread scopes, inclusive/self, including instrumentation; inspect measuredCalls, eligibleCalls and partial on aggregates. Texture payload estimates cover observed WhimTex RT checkouts, effect caches, drawing surfaces and field uploads; excludes driver overhead, unobserved pre-existing resources and the Unity pool after return. Native cache payload separate. Resource totals describe the whole retained capture, not display filters. Process figures are sampled Unity-wide allocation/reservation, not document memory or OS resident size."
             };

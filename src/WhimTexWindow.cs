@@ -653,6 +653,7 @@ namespace DCFApixels.WhimTex
             if (finishedLayer == null)
                 return;
 
+            WhimTexProfiler.ActionInput(activeDocument, "brush.release");
             using var profile = WhimTexProfiler.Measure("brush.commit", activeDocument, finishedLayer.Owner);
             bool pixelsChanged = canvasTool != CanvasTool.SmudgeBrush || finishedLayer.SmudgeStrokeChanged;
             finishedLayer.EndStroke();
@@ -1179,6 +1180,7 @@ namespace DCFApixels.WhimTex
         private void ProfileCanvasRequest(string reason)
         {
             if (!WhimTexProfiler.Recording) { profilerRenderRequests.Clear(); return; }
+            WhimTexProfiler.CanvasRequested(activeDocument, reason);
             string capture = WhimTexProfiler.Current.id, document = WhimTexProfiler.DocumentId(activeDocument);
             if (capture != profilerRequestCapture || document != profilerRequestDocument)
             {
@@ -1249,6 +1251,7 @@ namespace DCFApixels.WhimTex
                 ReleaseChannelCanvas();
             }
             UpdateToolkitCanvasPresentation();
+            if (canvasError == null) WhimTexProfiler.CanvasReady(activeDocument);
         }
 
         private int GetPaintingCanvasMaxSize()

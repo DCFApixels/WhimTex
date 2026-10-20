@@ -23,7 +23,7 @@ namespace DCFApixels.WhimTex
                 return ProfileAnalysis(request, action);
             switch (action)
             {
-                case "start": Keys(request, "apiVersion", "action", "maxEvents", "durationSeconds", "documentId"); break;
+                case "start": Keys(request, "apiVersion", "action", "maxEvents", "durationSeconds", "documentId", "gpu", "allocations"); break;
                 case "read": Keys(request, "apiVersion", "action", "captureId", "offset", "limit", "operationId", "layerId", "layer", "phase", "documentId", "tree", "collapsedIds", "groups"); break;
                 case "export": Keys(request, "apiVersion", "action", "captureId", "outputPath"); break;
                 case "status": case "stop": case "clear": Keys(request, "apiVersion", "action", "captureId"); break;
@@ -36,8 +36,9 @@ namespace DCFApixels.WhimTex
             if (action == "start")
             {
                 Require(capture == null || !capture.recording && capture.open == 0, "A capture is already active.", "capture_active");
-                capture = WhimTexProfiler.Start(Int(request, "maxEvents", 32768, 256, 262144),
-                    Number(request, "durationSeconds", 120, 1, 600), ProfileDocumentId(request));
+                capture = WhimTexProfiler.StartConfigured(Int(request, "maxEvents", 32768, 256, 262144),
+                    Number(request, "durationSeconds", 120, 1, 600), ProfileDocumentId(request),
+                    Bool(request, "gpu", true), Bool(request, "allocations", true));
             }
             if (action == "stop") WhimTexProfiler.Stop();
             if (action == "clear")
@@ -48,7 +49,7 @@ namespace DCFApixels.WhimTex
             JObject result = Success();
             result["capture"] = CaptureInfo(capture);
             result["baseline"] = CaptureInfo(WhimTexProfiler.Baseline);
-            result["timing"] = "durationMs/selfMs are main-thread wall elapsed, including waits. FX cpuPrepareMs and cpuSubmitMs separate preparation from command submission. gpuMs is an asynchronous GPU marker interval, not CPU time; null unless gpuStatus is ready or unconfirmed. Graphics Jobs results are unconfirmed, not an estimate with a known error bound. CPU and GPU overlap: do not add them.";
+            result["timing"] = "span durationMs/selfMs are main-thread wall elapsed, including waits. worker durationMs covers its thread, excluding queueMs; worker time overlaps main-thread waits and is not added to rootWallMs. latency events measure first input/render request to canvas readiness or observed GPU fence completion, not monitor presentation. latestInputDurationMs covers the most recent coalesced input. GPU fence completion is an upper bound with completionPollIntervalMs polling uncertainty. FX cpuPrepareMs/cpuSubmitMs and GPU marker gpuMs retain their separate meanings; CPU/GPU/worker intervals overlap and must not be added.";
             result["lifetime"] = "Automatically retained across script reload within this Editor session; active recording stops at reload. Export before closing the Editor. No document edits, forced renders or cache clears.";
             if (action == "read")
             {
@@ -110,10 +111,11 @@ namespace DCFApixels.WhimTex
             long end = capture.recording ? Stopwatch.GetTimestamp() : capture.end;
             return new JObject {
                 ["captureId"] = capture.id, ["recording"] = capture.recording, ["stopReason"] = capture.stopReason,
+                ["collectGpu"] = capture.collectGpu, ["collectAllocations"] = capture.collectAllocations,
                 ["capacity"] = capture.events.Length, ["eventCount"] = capture.count, ["droppedEvents"] = capture.dropped,
                 ["elapsedMs"] = WhimTexProfiler.Milliseconds(end - capture.start), ["openSpans"] = capture.open,
                 ["pendingGpuSamples"] = WhimTexProfiler.PendingGpu(capture),
-                ["gpuAvailability"] = capture.recording ? WhimTexProfiler.GpuAvailability : "stopped",
+                ["gpuAvailability"] = capture.recording ? capture.collectGpu ? WhimTexProfiler.GpuAvailability : "disabled" : "stopped",
                 ["graphicsJobs"] = capture.graphicsJobs.HasValue ? new JValue(capture.graphicsJobs.Value) : JValue.CreateNull(),
                 ["renderingThreadingMode"] = capture.renderingThreadingMode,
                 ["gpuWarning"] = capture.graphicsJobs == true ? WhimTexProfiler.GpuUnconfirmedWarning : null,
@@ -212,6 +214,18 @@ namespace DCFApixels.WhimTex
                     var root = capture.events[(int)sample.operationId - 1];
                     events.Add(new JObject {
                         ["id"] = sample.id, ["parentId"] = sample.parentId, ["operationId"] = sample.operationId,
+                        ["originId"] = sample.originId, ["inputId"] = sample.inputId,
+                        ["threadId"] = sample.threadId, ["asyncStatus"] = sample.asyncStatus,
+                        ["queueMs"] = sample.kind == "worker" && sample.completed ? new JValue(WhimTexProfiler.Milliseconds(sample.queuedTicks)) : JValue.CreateNull(),
+                        ["workerAllocatedBytes"] = sample.kind == "worker" && sample.completed && sample.workerAllocatedBytes >= 0 ? new JValue(sample.workerAllocatedBytes) : JValue.CreateNull(),
+                        ["workerAllocationAvailable"] = sample.kind == "worker" && sample.completed && sample.workerAllocatedBytes >= 0,
+                        ["workerEncodeMs"] = sample.workerStagesMeasured && sample.completed ? new JValue(WhimTexProfiler.Milliseconds(sample.workerEncodeTicks)) : JValue.CreateNull(),
+                        ["workerWriteMs"] = sample.workerStagesMeasured && sample.completed ? new JValue(WhimTexProfiler.Milliseconds(sample.workerWriteTicks)) : JValue.CreateNull(),
+                        ["workerHashMs"] = sample.workerStagesMeasured && sample.completed ? new JValue(WhimTexProfiler.Milliseconds(sample.workerHashTicks)) : JValue.CreateNull(),
+                        ["coalescedInputs"] = sample.coalescedInputs,
+                        ["latestInputDurationMs"] = sample.kind == "latency" && sample.completed ?
+                            new JValue(WhimTexProfiler.Milliseconds(sample.end - sample.latestInputTicks)) : JValue.CreateNull(),
+                        ["completionPollIntervalMs"] = sample.completionPollIntervalMs,
                         ["changeId"] = sample.changeId, ["documentId"] = sample.documentId, ["layerId"] = sample.layerId,
                         ["changeEventId"] = sample.changeEventId, ["changeReason"] = sample.changeReason,
                         ["changeOrigin"] = sample.changeOrigin, ["changedLayerId"] = sample.changedLayerId,

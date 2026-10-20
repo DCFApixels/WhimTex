@@ -15,6 +15,8 @@ namespace DCFApixels.WhimTex
             internal long acquiredBytes, releasedBytes, observedBytes, acquireCount, releaseCount;
             internal long processUsedBytes, processReservedBytes, peakProcessUsedBytes;
             internal long nativeCacheBytes, peakNativeCacheBytes;
+            internal long paintNativeActiveBytes, paintNativeIdleBytes, paintWriterPendingBytes, paintGpuStagingBytes;
+            internal long paintAtlasActiveBytes, paintAtlasPooledBytes, peakPaintNativeActiveBytes, peakPaintGpuPayloadBytes;
             internal bool trackingLimited;
             internal bool editorManagedAllocationAvailable, editorManagedAllocationLimited, allocationCountLimited;
             internal MemoryTotals Copy() => (MemoryTotals)MemberwiseClone();
@@ -113,14 +115,27 @@ namespace DCFApixels.WhimTex
             if (capture?.recording == true) ReadAllocationCount(capture, out _, out _);
         }
 
-        internal static void SampleProcessMemory(Capture owner)
+        internal static void SampleProcessMemory(Capture owner, bool force = false)
         {
             if (owner?.memory == null) return;
+            long now = StopwatchTimestamp();
+            if (!force && now < owner.nextProcessMemorySample) return;
+            owner.nextProcessMemorySample = now + System.Diagnostics.Stopwatch.Frequency / 10;
             var memory = owner.memory;
             memory.processUsedBytes = UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong();
             memory.processReservedBytes = UnityEngine.Profiling.Profiler.GetTotalReservedMemoryLong();
             memory.peakProcessUsedBytes = Math.Max(memory.peakProcessUsedBytes, memory.processUsedBytes);
+            memory.paintNativeActiveBytes = PaintHistoryBuffers.ActiveBytes;
+            memory.paintNativeIdleBytes = PaintHistoryBuffers.IdleBytes;
+            memory.paintWriterPendingBytes = PaintHistoryStore.PendingBytes;
+            memory.paintGpuStagingBytes = PaintTileTransfer.StagingBytes;
+            memory.paintAtlasActiveBytes = PaintStrokeBuffer.ActiveBytes;
+            memory.paintAtlasPooledBytes = PaintStrokeBuffer.PooledBytes;
+            memory.peakPaintNativeActiveBytes = Math.Max(memory.peakPaintNativeActiveBytes, memory.paintNativeActiveBytes);
+            memory.peakPaintGpuPayloadBytes = Math.Max(memory.peakPaintGpuPayloadBytes,
+                memory.paintGpuStagingBytes + memory.paintAtlasActiveBytes + memory.paintAtlasPooledBytes);
         }
+        static long StopwatchTimestamp() => System.Diagnostics.Stopwatch.GetTimestamp();
 
         internal static long TexturePayloadBytes(Texture texture)
         {

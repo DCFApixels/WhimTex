@@ -45,6 +45,12 @@ namespace DCFApixels.WhimTex
                 PaintBrushRenderer.Draw(mask, segmentStamps, size, hardness, false, PencilShape.Circle, Color.white,
                     false, outputWidth, outputHeight, patternCenter, tiled, Owner.PixelCanvasTransform,
                     false, false, null, null, false, false, false);
+                for (int i = 0; i < PaintBrushRenderer.DrawTiles.Count; i++)
+                {
+                    var tile = PaintBrushRenderer.DrawTiles[i];
+                    CapturePixelEditUv(new Rect(tile.x / (float)outputWidth, tile.y / (float)outputHeight,
+                        tile.width / (float)outputWidth, tile.height / (float)outputHeight));
+                }
 
                 source = ProfiledRenderTexture.GetTemporary(surface.descriptor);
                 Graphics.Blit(sample != null ? sample : surface, source);
@@ -72,7 +78,7 @@ namespace DCFApixels.WhimTex
                 composite.SetTexture("_MaskTex", mask);
                 composite.SetFloat("_Strength", strength);
                 Graphics.Blit(surface, output, composite);
-                Graphics.Blit(output, surface);
+                ApplyPixelEditOutput(output);
                 ApplyPaintWriteProtection();
                 paintSurfaceDirty = true;
                 InvalidateAlphaCoverage();

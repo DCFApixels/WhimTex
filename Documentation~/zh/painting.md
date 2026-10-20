@@ -18,7 +18,7 @@ next_page: "zh/selection.md"
 
 当画笔轮廓相对于画布视图过大时，中心会显示一个小十字标记。
 
-Brush 和 Pencil 笔触与其他修改共用普通 Undo/Redo 顺序。笔触历史可保留到脚本重新编译之后，
+Brush、Pencil、Smudge、Blur、Healing、填充和 Clear Drawing Layer 与参数修改共用普通 Undo/Redo 顺序；这些像素操作共同计入 Paint Undo Steps 限制。像素历史可保留到脚本重新编译之后，
 但不会写入保存的 TIFF 文档，也不会延续到新的 Unity 会话。
 在支持的设备上，上一笔的历史记录仍在后台处理时，就可以开始下一笔。
 Undo 和保存可能需要等待尚未完成的笔触；连续绘制大量复杂笔触时，队列满后也可能暂停。

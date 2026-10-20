@@ -9,13 +9,136 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private PaintTileSet brushDirtyTiles;
         [NonSerialized] private string pixelUndoLabel;
         [NonSerialized] private bool partialStorageCurrent, restoredPixelUndo;
+        [NonSerialized] private PaintStrokeBuffer pixelEditBefore;
+        [NonSerialized] private bool pixelEditWasDirty;
         // Opt-in diagnostics on owned fixtures; normal layers keep the current layout.
         [NonSerialized] internal int historyCaptureBlockSize = PaintTileSet.Size;
         [NonSerialized] internal bool historySkipUnchanged;
         internal int LastPaintTileCount { get; private set; }
         internal long LastPaintTilePixels { get; private set; }
         internal UnityEngine.Object PixelUndoObject => DrawingPixelHistory.Find(pixels);
-        internal bool HasBufferedStroke => advancedStroke != null;
+        internal bool HasBufferedStroke => advancedStroke != null || pixelEditBefore != null;
+
+        private void CapturePixelEdit(RectInt bounds)
+        {
+            if (pixelUndoLabel == null || paintSurface == null) return;
+            int left = Mathf.Clamp(bounds.xMin, 0, paintSurface.width), bottom = Mathf.Clamp(bounds.yMin, 0, paintSurface.height);
+            int right = Mathf.Clamp(bounds.xMax, 0, paintSurface.width), top = Mathf.Clamp(bounds.yMax, 0, paintSurface.height);
+            if (right <= left || top <= bottom) return;
+            using var profile = WhimTexProfiler.Measure("pixels.history.capture", layer: Owner);
+            if (pixelEditBefore == null)
+            {
+                pixelEditBefore = new PaintStrokeBuffer(paintSurface);
+                pixelEditWasDirty = paintSurfaceDirty;
+            }
+            int size = PaintTileSet.Size;
+            for (int y = bottom / size * size; y < top; y += size)
+            for (int x = left / size * size; x < right; x += size)
+                pixelEditBefore.Capture(new RectInt(x, y, Math.Min(size, paintSurface.width - x), Math.Min(size, paintSurface.height - y)));
+        }
+
+        private void CapturePixelEditUv(Rect bounds)
+        {
+            CapturePixelEdit(new RectInt(Mathf.FloorToInt(bounds.xMin * paintSurface.width) - 1,
+                Mathf.FloorToInt(bounds.yMin * paintSurface.height) - 1,
+                Mathf.CeilToInt(bounds.xMax * paintSurface.width) - Mathf.FloorToInt(bounds.xMin * paintSurface.width) + 2,
+                Mathf.CeilToInt(bounds.yMax * paintSurface.height) - Mathf.FloorToInt(bounds.yMin * paintSurface.height) + 2));
+        }
+
+        private void ReleasePixelEdit()
+        {
+            pixelEditBefore?.Dispose(); pixelEditBefore = null;
+        }
+
+        private void ApplyPixelEditOutput(RenderTexture output)
+        {
+            if (pixelEditBefore == null) { Graphics.Blit(output, paintSurface); return; }
+            // Full-screen retouch shaders may round untouched Half texels during a
+            // filtered blit. Publish only captured tiles, with no resampling.
+            var previous = RenderTexture.active;
+            try
+            {
+                RenderTexture.active = null;
+                for (int i = 0; i < pixelEditBefore.touched.Count; i++)
+                {
+                    var r = pixelEditBefore.touched[i];
+                    Graphics.CopyTexture(output, 0, 0, r.x, r.y, r.width, r.height, paintSurface, 0, 0, r.x, r.y);
+                }
+            }
+            finally { RenderTexture.active = previous; }
+        }
+
+        private void RestorePixelEditBefore()
+        {
+            if (pixelEditBefore == null) return;
+            var previous = RenderTexture.active;
+            try
+            {
+                RenderTexture.active = null;
+                for (int i = 0; i < pixelEditBefore.touched.Count; i++)
+                {
+                    var tile = pixelEditBefore.touched[i];
+                    pixelEditBefore.CopyCaptured(tile, paintSurface, tile.x, tile.y);
+                }
+                paintSurfaceDirty = pixelEditWasDirty;
+                InvalidateAlphaCoverage();
+                unchecked { paintSurfaceRevision++; }
+            }
+            finally { RenderTexture.active = previous; ReleasePixelEdit(); }
+        }
+
+        private bool CommitPixelEdit(Texture2D storedReplacement = null)
+        {
+            if (pixelEditBefore == null) return false;
+            using var profile = WhimTexProfiler.Measure("pixels.history.commit", layer: Owner);
+            var blocks = pixelEditBefore.touched.ToArray();
+            var history = DrawingPixelHistory.Find(pixels, true);
+            PaintHistoryStore.Step step;
+            try { step = history.Begin(blocks, pixelUndoLabel); }
+            catch
+            {
+                RestorePixelEditBefore(); pixelUndoLabel = null;
+                ReleasePaintWriteProtection(); ReleaseSmudgeStroke();
+                throw;
+            }
+            var previous = RenderTexture.active;
+            bool srgb = GL.sRGBWrite;
+            try
+            {
+                GL.sRGBWrite = false;
+                LastPaintTileCount = blocks.Length; LastPaintTilePixels = pixelEditBefore.touched.PixelCount;
+                for (int start = 0, pageIndex = 0; start < blocks.Length; start += PaintTileTransfer.TilesPerPage, pageIndex++)
+                {
+                    int count = Math.Min(PaintTileTransfer.TilesPerPage, blocks.Length - start);
+                    var pageBlocks = new RectInt[count]; Array.Copy(blocks, start, pageBlocks, 0, count);
+                    var page = new PaintTileTransfer.Page(pixels, step, pageIndex, pageBlocks,
+                        historyCaptureBlockSize, historySkipUnchanged);
+                    try
+                    {
+                        RenderTexture.active = null;
+                        for (int i = 0; i < count; i++)
+                        {
+                            var tile = pageBlocks[i]; var slot = PaintTileTransfer.Slot(i, tile);
+                            pixelEditBefore.CopyCaptured(tile, page.before, slot.x, slot.y);
+                        }
+                        page.CopyHalf(paintSurface, false);
+                        if (storedReplacement == null) ConvertStoredPage(page);
+                        else
+                            for (int i = 0; i < count; i++)
+                            {
+                                var tile = pageBlocks[i]; var slot = PaintTileTransfer.Slot(i, tile);
+                                Graphics.CopyTexture(storedReplacement, 0, 0, tile.x, tile.y, tile.width, tile.height,
+                                    page.stored, 0, 0, slot.x, slot.y);
+                            }
+                        page.Queue();
+                    }
+                    catch { page.Abandon(); throw; }
+                }
+                partialStorageCurrent = true; paintSurfaceDirty = false; pixelUndoLabel = null;
+                return true;
+            }
+            finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; ReleasePixelEdit(); }
+        }
 
         private bool CommitPixelHistory(Material composite)
         {
@@ -115,6 +238,7 @@ namespace DCFApixels.WhimTex
         // consumers and persistence explicitly drain through SyncPendingSurfaceToTexture.
         internal void FinishStrokeStorage()
         {
+            CommitPixelEdit();
             if (!partialStorageCurrent || paintSurfaceDirty) SyncSurfaceToTexture();
         }
         internal bool ReconcilePixelUndo()

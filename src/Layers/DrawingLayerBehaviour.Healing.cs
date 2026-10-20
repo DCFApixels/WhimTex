@@ -113,6 +113,24 @@ namespace DCFApixels.WhimTex
             if (material == null || !material.shader.isSupported)
                 throw new InvalidOperationException("Healing Brush shader is unavailable.");
             RenderTexture surface = EnsurePaintSurface(canvasWidth, canvasHeight);
+            if (!tiled && sourceToCanvas.TryInverse(out var inverse))
+            {
+                Vector2 min = new Vector2(float.PositiveInfinity, float.PositiveInfinity), max = -min;
+                double minW = double.PositiveInfinity, maxW = double.NegativeInfinity;
+                for (int i = 0; i < 4; i++)
+                {
+                    var point = new Vector2(((i & 1) == 0 ? region.xMin : region.xMax) / (float)canvasWidth,
+                        ((i & 2) == 0 ? region.yMin : region.yMax) / (float)canvasHeight);
+                    double w = inverse.m20 * point.x + inverse.m21 * point.y + inverse.m22;
+                    minW = Math.Min(minW, w); maxW = Math.Max(maxW, w);
+                    Vector2 source = inverse.Point(point);
+                    min = Vector2.Min(min, source); max = Vector2.Max(max, source);
+                }
+                if (minW <= 0 && maxW >= 0 || !float.IsFinite(min.x + min.y + max.x + max.y))
+                    CapturePixelEdit(new RectInt(0, 0, surface.width, surface.height));
+                else CapturePixelEditUv(Rect.MinMaxRect(min.x, min.y, max.x, max.y));
+            }
+            else CapturePixelEdit(new RectInt(0, 0, surface.width, surface.height));
             RenderTexture result = ProfiledRenderTexture.GetTemporary(surface.descriptor);
             RenderTexture previous = RenderTexture.active;
             try
@@ -124,12 +142,12 @@ namespace DCFApixels.WhimTex
                 material.SetFloat("_WrapPatch", tiled ? 1 : 0);
                 sourceToCanvas.SetShader(material, "_SourceToCanvas");
                 Graphics.Blit(surface, result, material);
-                Graphics.Blit(result, surface);
+                ApplyPixelEditOutput(result);
                 ApplyPaintWriteProtection();
                 paintSurfaceDirty = true;
                 InvalidateAlphaCoverage();
                 unchecked { paintSurfaceRevision++; }
-                SyncSurfaceToTexture();
+                FinishStrokeStorage();
             }
             finally
             {

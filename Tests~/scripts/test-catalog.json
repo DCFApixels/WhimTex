@@ -2,6 +2,9 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "pixel-tool-history": ["pixel-tool-history"],
+    "pixel-tool-history-8k": ["pixel-tool-history-8k", "pixel-tool-history-8k-hdr"],
+    "profiler-followup": ["profiler-followup", "profiler-overhead", "profiler-gpu-overhead"],
     "freeform-gradient": [
       "freeform-figure-v1",
       "freeform-gradient-v1",
@@ -390,6 +393,8 @@
       "reference-fixtures"
     ],
     "verify": [
+      "pixel-tool-history",
+      "profiler-followup",
       "document-comments-v1",
       "comment-author-v1",
       "comment-tool-v1",
@@ -926,6 +931,8 @@
       "layer-drop-target-v1"
     ],
     "regressions": [
+      "pixel-tool-history",
+      "profiler-followup",
       "normal-specular-v1",
       "height-to-distortion-v1",
       "shader-fx-code-lines-v1",
@@ -1684,6 +1691,8 @@
     ],
     "source-tiling": ["source-tiling-v1", "geometric-tiling-v1", "vector-feather-v1", "vector-shape-parity-v1", "vector-persistence-v1"],
     "rendering": [
+      "pixel-tool-history",
+      "profiler-followup",
       "source-tiling-v1",
       "geometric-tiling-v1",
       "vector-geometry-v1",
@@ -1817,6 +1826,7 @@
       "psd-reader-roundtrip-v2"
     ],
     "automation": [
+      "profiler-followup",
       "profiler-v1",
       "profiler-coverage-v1",
       "profiler-analysis-v1",
@@ -2018,6 +2028,7 @@
       "procedural-clipboard-unity-v2"
     ],
     "painting": [
+      "pixel-tool-history",
       "brush-buffered-stroke-v1",
       "vector-brush-v1",
       "selection-edges-v1",
@@ -5495,6 +5506,108 @@
       "teardown": "Destroy owned fixtures; restore original store, metadata and render state. No windows or user document edits.",
       "result": {"kind":"structured"},
       "supportFiles": ["Tests~/Cases/Painting/PaintTileHistoryTests.cs", "Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "profiler-gpu-overhead",
+      "file": "Tests~/Cases/Automation/ProfilerFollowupTests.cs",
+      "runner": "run_script",
+      "entry": "ProfilerFollowupTests.GpuOverhead",
+      "args": [],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"],
+      "groups": ["automation", "rendering"],
+      "prerequisites": "Idle profiler and graphical Editor delivering GPU timestamps. Unsupported delivery is explicitly skipped.",
+      "setup": "Owned 256px RT, identical eight-blit batches over separate Editor updates; warm real GPU marker delivery.",
+      "teardown": "Drain owned GPU markers, restore previous capture and destroy RT; no windows or input control.",
+      "result": {"kind":"structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "profiler-followup",
+      "file": "Tests~/Cases/Automation/ProfilerFollowupTests.cs",
+      "runner": "run_script",
+      "entry": "ProfilerFollowupTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["user-state"],
+      "groups": ["automation", "rendering"],
+      "prerequisites": "No active profiler capture; graphical Editor.",
+      "setup": "Owned tiny RT, transient document, worker tickets and bounded captures. No windows or input automation.",
+      "teardown": "Finish owned scopes, restore previous stopped capture and destroy owned resources.",
+      "result": {"kind":"structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "profiler-overhead",
+      "file": "Tests~/Cases/Automation/ProfilerFollowupTests.cs",
+      "runner": "run_script",
+      "entry": "ProfilerFollowupTests.Overhead",
+      "args": [],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"],
+      "groups": ["automation"],
+      "prerequisites": "No active profiler capture.",
+      "setup": "Identical short CPU operations with capture off, CPU, allocations and GPU collection configured.",
+      "teardown": "Restore previous stopped capture; retain measurement with its limits in Temp/WhimTex.",
+      "result": {"kind":"structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "pixel-tool-history-8k",
+      "file": "Tests~/Cases/Painting/PixelToolHistoryTests.cs",
+      "runner": "run_script",
+      "entry": "PixelToolHistoryTests.RunLarge",
+      "args": [false],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"],
+      "groups": ["painting", "rendering"],
+      "prerequisites": "Idle graphical Editor with 7 GB reported VRAM; run one large test at a time.",
+      "setup": "One owned 8K Drawing; sparse Smudge native tiles and small probes only.",
+      "teardown": "Drain owned transfers and destroy fixture; retain timing evidence in Temp/WhimTex.",
+      "result": {"kind":"structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "pixel-tool-history-8k-hdr",
+      "file": "Tests~/Cases/Painting/PixelToolHistoryTests.cs",
+      "runner": "run_script",
+      "entry": "PixelToolHistoryTests.RunLarge",
+      "args": [true],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"],
+      "groups": ["painting", "rendering"],
+      "prerequisites": "Idle graphical Editor with 7 GB reported VRAM; run one large test at a time.",
+      "setup": "One owned 8K HDR Drawing; sparse Smudge native tiles and small probes only.",
+      "teardown": "Drain owned transfers and destroy fixture; retain timing evidence in Temp/WhimTex.",
+      "result": {"kind":"structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "pixel-tool-history",
+      "file": "Tests~/Cases/Painting/PixelToolHistoryTests.cs",
+      "runner": "run_script",
+      "entry": "PixelToolHistoryTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"],
+      "groups": ["painting", "rendering"],
+      "prerequisites": "Idle graphical Editor; no active stroke or user Undo during the case.",
+      "setup": "Owned transient SDR/HDR drawings, mixed Brush/Smudge/Blur/Healing/fill/clear and parameter history.",
+      "teardown": "Drain owned transfers, clear only owned Undo and destroy owned fixtures.",
+      "result": {"kind":"structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
       "reviewFiles": []
     },
     {

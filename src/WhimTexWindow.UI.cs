@@ -1889,10 +1889,11 @@ namespace DCFApixels.WhimTex
 
         private bool TryBeginCanvasStroke(Vector2 position, bool shift)
         {
-            using var profile = WhimTexProfiler.Measure("brush.begin", activeDocument, GetSelectedLayer());
             DrawingLayerBehaviour layer = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
             if (layer == null ||
                 !TryMapCanvasToLayerUv(position, toolkitCanvas.ImageRect, layer, out Vector2 startUv, allowOutside: true)) return false;
+            WhimTexProfiler.ActionInput(activeDocument, "brush.input");
+            using var profile = WhimTexProfiler.Measure("brush.begin", activeDocument, layer.Owner);
             paintingLayer = layer;
             if (canvasTool == CanvasTool.Brush && !paintSettings.dynamics.DynamicTip) paintSettings.dynamics.seed = Environment.TickCount;
             bool connect = shift && ReferenceEquals(lineAnchorLayer, layer) &&
@@ -1978,6 +1979,7 @@ namespace DCFApixels.WhimTex
 
         private void PaintTowardsLayerPoint(Vector2 pointUv)
         {
+            WhimTexProfiler.ActionInput(activeDocument, "brush.input_batch");
             using var profile = WhimTexProfiler.Measure("brush.input_batch", activeDocument, paintingLayer?.Owner);
             ulong beforePaint = paintingLayer.PaintSurfaceRevision;
             if (!paintingLayer.IsStrokePointInsideRepeatShape(pointUv, activeDocument.width, activeDocument.height))
