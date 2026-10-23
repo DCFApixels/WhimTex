@@ -13,6 +13,13 @@ fast-start contract below. Read `Documentation~/LiveAgentAPI.md` for completion,
 begin options and recovery; read `Documentation~/AgentAPI.md` for layer parameters and shared
 editing operations. Batch, Headless Live and Assistant have different persistence/retry contracts.
 
+For custom FX, `whimtex_fx_compile` returns `compiled`, diagnostics and `locality` (`pixelLocal`,
+`spatial` or `unverified`, with reason codes and source locations). Document FX inspection exposes
+the same locality for the applied shader, even while `pendingChanges` is true. An unavailable or
+uncompiled FX has `locality:null`; do not mistake it for a working spatial shader. Use reasons to
+locate unsupported reads before revising code. A local FX can still have spatial dependencies.
+See [the locality contract](../../Documentation~/AgentAPI.md#applied-shader-locality).
+
 ## Choose the workflow before reserving
 
 - Known layer settings, linked preset insertion and parameter-only FX changes: use the shared

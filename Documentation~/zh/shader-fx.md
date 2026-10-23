@@ -314,6 +314,18 @@ Color Balance 将 Shadows、Midtones 和 Highlights 放在同一块中。**RGB O
 
 Bevel Emboss 的 **Profile** 将选定的高度通道映射为浮雕高度。Gradient Map 的 **Mapping** 在选择渐变颜色前重新分配亮度。两条曲线默认为线性。
 
+### Chroma Key
+
+**Color → Chroma Key** 移除接近 **Key Color** 的背景，并保留柔和的过渡。
+**Tolerance** 完全移除相近颜色，**Softness** 控制到保留颜色的过渡；Softness 为零时使用硬阈值。
+**Distance → Chroma** 比较色度，受亮度的影响较小；黑、白或灰色背景应选择 **RGB**。
+
+**Despill** 抑制背景色污染而不改变 alpha；**Spill Range** 将颜色匹配范围扩展到抠像过渡之外。
+Despill 默认关闭，不能恢复前景细节，也无法区分与背景同色的物体。
+**Output → Matte** 将最终覆盖率显示为不透明灰度图，并计入原始 alpha。
+标题栏的 **Opacity** 混合所选结果与输入；零保持输入不变。
+原始 HDR 颜色被保留，但颜色匹配使用限制在 SDR 范围内的副本。
+
 <a id="hsv-校正"></a>
 
 ### Hue & Saturation 校正
@@ -450,6 +462,24 @@ Twirl 使用 **Angle**，Displacement Map 和 Polar Coordinates 使用 **Amount*
 `Classic` Spherize、Twirl 和 Polar Coordinates 在边框处不会遮罩，扭曲会继续延伸到框外。
 `Sphere` 是例外：它会创建带清晰抗锯齿边缘的圆形遮罩。未遮罩模式下，较强设置可能显示输入图像外的区域，
 此时会延伸输入图像的边缘像素。RGB 和透明度一起扭曲。
+
+### Domain Warp
+
+**Distortion → Domain Warp** 生成 RG 位移贴图，而不是直接扭曲输入图像。
+**Warp Type** 提供 OpenSimplex2、OpenSimplex2Reduced 和 BasicGrid；**Seed**、**Scale**、
+**Offset** 在画布 UV 坐标中调整图案。Scale 增加细节频率，Offset 移动图案而不向输出添加恒定位移。
+不自动校正宽高比，也不自动产生无缝重复。
+
+**Fractal** 提供 None、Progressive 和 Independent。**Octaves** 四舍五入为整数；
+**Lacunarity** 和 **Gain** 控制各层的频率与振幅。Progressive 使用先前已扭曲的坐标，
+Independent 保持原始采样坐标。标题栏的 **Strength** 控制振幅；零输出中性贴图，不返回输入图像。
+负值反转振幅，在 Progressive 中也可能改变图案。**Flip X/Y** 仅反转最终分量，不改变图案。
+
+默认 **Packed RG** 输出 `0.5 + 0.5 * displacement`，**Signed RG** 输出原始向量。
+两种模式都不归一化或裁剪。将贴图图层指定给 **Displacement Map**，选择 **VectorRG**，
+Packed 的 **Neutral** 设为 0.5，Signed 设为 0。例如 Packed 的 Strength X/Y 为 16 时，
+Signed 应设为 8 才能得到相同位移。贴图图层使用 **Color Range → HDR** 保留负值和强向量；
+外部保存使用线性 EXR。贴图图层可以隐藏。
 
 ### Height to Distortion
 

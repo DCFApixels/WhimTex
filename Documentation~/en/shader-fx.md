@@ -330,6 +330,20 @@ Color Balance groups Shadows, Midtones and Highlights in one block. **RGB Offset
 
 **Profile** in Bevel Emboss maps the selected height channel to relief height. **Mapping** in Gradient Map redistributes brightness before choosing a gradient color. Both curves start linear.
 
+### Chroma Key
+
+**Color → Chroma Key** removes a background matching **Key Color** while keeping soft
+edges. **Tolerance** removes close colors completely; **Softness** controls the transition
+to untouched colors. Zero Softness gives a hard threshold. **Distance → Chroma** compares
+color differences with less sensitivity to brightness; choose **RGB** for black, white or gray.
+
+**Despill** suppresses the background tint near the selected color without changing alpha.
+**Spill Range** extends its color range beyond the key transition. Despill defaults to zero;
+it does not reconstruct foreground details or distinguish an object with the same color as
+its background. **Output → Matte** shows final coverage as opaque grayscale, including the
+original alpha. Header **Opacity** blends the selected output with the input; zero is unchanged.
+Original HDR colors are retained, while color matching analyzes a clamped SDR copy.
+
 <a id="hsv-correction"></a>
 
 ### Hue & Saturation correction
@@ -479,6 +493,27 @@ they do not extend a procedural source beyond the raster.
 `Classic` Spherize, Twirl and Polar Coordinates do not mask at the frame edge, so distortion continues outside it.
 `Sphere` is the exception: it creates a circular mask with a crisp, antialiased edge. Strong settings
 in unmasked modes can reveal areas beyond the input image, where its edge pixels are extended. RGB and alpha are distorted together.
+
+### Domain Warp
+
+**Distortion → Domain Warp** generates an RG displacement map rather than distorting the
+incoming image. **Warp Type** selects OpenSimplex2, OpenSimplex2Reduced or BasicGrid;
+**Seed**, **Scale** and **Offset** change its pattern in canvas UV coordinates. Scale increases
+pattern frequency, and Offset moves the pattern without adding a constant displacement.
+There is no automatic aspect correction or seamless repeat.
+
+**Fractal** selects None, Progressive or Independent. **Octaves** is rounded to an integer;
+**Lacunarity** and **Gain** control frequency and amplitude per octave. Progressive uses
+previously warped coordinates; Independent keeps the original sampling coordinates.
+Header **Strength** controls warp amplitude: zero gives a neutral map, not the input image.
+Negative Strength reverses amplitude; in Progressive it can also change the pattern.
+**Flip X/Y** reverse the final components without changing the pattern.
+
+**Packed RG** (default) encodes `0.5 + 0.5 * displacement`; **Signed RG** outputs the raw
+vector. Neither mode normalizes or clamps it. Assign the map layer to **Displacement Map**,
+select **VectorRG**, and use **Neutral** 0.5 for Packed or 0 for Signed. For example, Packed
+Strength X/Y of 16 matches Signed Strength X/Y of 8. Keep the map layer at **Color Range → HDR**
+for signed or strong vectors; use linear EXR for external storage. The map layer can be hidden.
 
 ### Height to Distortion
 

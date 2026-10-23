@@ -373,6 +373,50 @@ Linked preset refresh matches parameters by their current names and types. Old A
 Source Center and one-frame layouts are not converted to Input/Output. Detached presets
 keep their embedded source.
 
+## Chroma Key preset
+
+`Color/Chroma Key` is a color-only, pixel-local HLSL preset. `_KeyColor` is uploaded by the
+ordinary color-parameter path; both it and input RGB are display-encoded with `SpriteEncode`
+and clamped only for matching. `_Distance=0` compares Cb/Cr, where
+`Y=dot(rgb,(0.2126,0.7152,0.0722))`, `Cb=(B-Y)/1.8556`, `Cr=(R-Y)/1.5748`;
+the Euclidean distance is divided by sqrt(2). `_Distance=1` uses RGB distance / sqrt(3).
+Use RGB to distinguish neutral background colors by brightness.
+
+`keep=smoothstep(_Tolerance,_Tolerance+_Softness,distance)` multiplies original alpha.
+Zero softness explicitly removes `distance <= tolerance`; tolerance 1 removes everything.
+Default tolerance/softness are 0.1/0.05. `_Despill=0` preserves linear RGB; nonzero despill
+subtracts positive chroma projected onto the zero-luma key direction, weighted by similarity
+up to `_Tolerance+_Softness+_SpillRange`. Subtraction is limited before any RGB becomes
+negative, without clamping HDR. Neutral keys, negative input RGB and fully transparent
+input skip despill. Despill never changes matte.
+
+`_Output=0` returns Result; 1 returns opaque grayscale of final alpha. `_Opacity=1` mixes
+the entire selected RGBA output with the input; zero returns input immediately. This is
+single-color keying, not foreground recovery or spatial edge filtering. No renderer or
+layer-specific support is involved.
+
+## Domain Warp preset
+
+`Distortion/Domain Warp` is an ordinary spatial HLSL preset using the bundled FastNoiseLite
+2D `fnlDomainWarp2D`. It generates data independently of input color and alpha. Coordinates
+are `uv + _Offset` in canvas UV, with `_Scale` as frequency (default 4), `_Seed=1337` and
+`_Strength=1` as domain-warp amplitude. There is no aspect correction or periodic wrapping.
+`_WarpType` is OpenSimplex2 (0), OpenSimplex2Reduced (1) or BasicGrid (2).
+`_Fractal` is None (0), Progressive (4) or Independent (5); active fractals use rounded
+`_Octaves` (1–8, default 3), `_Lacunarity=2` and `_Gain=0.5`. None uses one octave regardless
+of hidden values. Native fractal amplitude weighting is retained; the output vector is
+never normalized to unit length. In Progressive, changing signed amplitude can also
+change the positions sampled by later octaves.
+
+The field is `(warpedPosition-originalPosition)*axisSigns`. `_FlipX` and `_FlipY` only change
+the final signs. `_Output=0` (PackedRG, default) stores `0.5+0.5*field`; 1 (SignedRG) stores
+`field`. B=0, A=1; zero Strength gives exact neutral values. Neither output clamps values.
+Use HDR Color Range for signed/out-of-range data and linear EXR for external storage.
+Displacement Map VectorRG uses Neutral 0.5 for Packed, or 0 with half the X/Y strengths for
+Signed, because the existing consumer multiplies `(RG-Neutral)` by two. No changes to the
+Noise layer, Displacement Map or renderer are required. Ordinary FX catalog IDs, parameters,
+JSON and agent operations apply to both presets.
+
 ## Height to Distortion preset
 
 `Distortion/Height to Distortion` generates a field; it does not distort the source image.

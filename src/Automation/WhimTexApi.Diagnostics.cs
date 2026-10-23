@@ -58,6 +58,7 @@ namespace DCFApixels.WhimTex
             var errors = new JArray();
             var warnings = new JArray();
             var diagnostics = new JArray();
+            JObject locality = null;
             ShaderFX effect = null;
             IReadOnlyList<ShaderFXDiagnostic> messages = Array.Empty<ShaderFXDiagnostic>();
             bool compiled = false;
@@ -81,7 +82,11 @@ namespace DCFApixels.WhimTex
                     messages = effect.DiagnosticMessages;
                     if (messages.Count == 0) messages = ShaderFXDiagnostics.Failure(error, sourcePath);
                 }
-                if (compiled) messages = effect.DiagnosticMessages;
+                if (compiled)
+                {
+                    messages = effect.DiagnosticMessages;
+                    locality = FxLocalitySnapshot(effect);
+                }
             }
             catch (Exception error)
             {
@@ -100,6 +105,7 @@ namespace DCFApixels.WhimTex
                     diagnostics, warnings, errors);
             }
             result["compiled"] = compiled;
+            result["locality"] = locality;
             result["diagnostics"] = diagnostics;
             result["warnings"] = warnings;
             result["errors"] = errors;
@@ -226,6 +232,22 @@ namespace DCFApixels.WhimTex
             entry["diagnosticMessages"] = messages;
             entry["warnings"] = warnings;
             entry["errors"] = errors;
+            entry["locality"] = FxLocalitySnapshot(effect);
+        }
+
+        private static JObject FxLocalitySnapshot(ShaderFX effect)
+        {
+            string status = effect.AppliedLocalityStatus;
+            if (status == null) return null;
+            var reasons = new JArray();
+            foreach (var reason in effect.AppliedLocalityReasons)
+            {
+                var item = new JObject { ["code"] = reason.code, ["message"] = reason.message };
+                if (!string.IsNullOrEmpty(reason.file)) item["file"] = reason.file;
+                if (reason.line > 0) item["line"] = reason.line;
+                reasons.Add(item);
+            }
+            return new JObject { ["status"] = status, ["reasons"] = reasons };
         }
 
         /// <summary>Reads TIFF container metadata without creating a document or materializing Drawing pixels.</summary>

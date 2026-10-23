@@ -15,6 +15,10 @@ profiler, and ReadScreenPixel on test-created windows. It does not authorize oth
 
 ## Inspect and select
 
+`shader-fx-diagnostics` also checks compile/inspection locality parity, reason codes and source
+locations, include line mapping, pending drafts, failed Apply/recovery, disabled FX, serialized
+applied snapshots and revision stability. It uses only owned transient effects and documents.
+
 `tool-preferences-v1` uses unshown owned windows and an injected GUID-isolated EditorPrefs
 store. It checks close/recreate and cold reads, exact snapshots of all 26 tool-options sections, gradient/HDR
 and alpha data, GUID/local-ID brush restoration, queued writes, repeated nested multi-window

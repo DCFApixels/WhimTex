@@ -6,6 +6,10 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- FX compilation and document inspection expose applied shader locality (`pixelLocal`, `spatial`, `unverified`) with structured reasons and source locations. Pending drafts retain the applied result; failed or uncompiled FX return no locality. Derived diagnostics do not change document revisions.
+
+- Color/Chroma Key adds color-based soft background removal, Chroma/RGB distance, independent Despill and a Matte output as a pixel-local HLSL preset. Distortion/Domain Warp generates raw 2D displacement with three warp types and optional Progressive/Independent fractals; Signed RG and Packed RG retain vector magnitude and work with the existing Displacement Map. Both use the ordinary FX pipeline without renderer changes.
+
 - All tool defaults use a shared user-settings registry, restoring painting/fill, Shape/Text/Gradient, selection/lasso, vector brush, Crop mode, guide switches and UV appearance after reopening or restarting Unity. Queued saves flush before reload/quit; field-level merging prevents unchanged stale windows from overwriting other windows. Existing brush keys and stable asset references are reused, and Reset covers all tools without touching documents or presets.
 
 - Smudge, Blur, Healing, fill and Clear Drawing Layer now share Brush/Pencil’s disk-backed pixel history and texture-operation limit. In-place tools capture original Half tiles before their first write; Undo/Redo preserves exact Half/HDR and hidden RGB while parameter edits keep their ordinary Unity Undo order. Retouch outputs no longer rewrite unrelated tiles.

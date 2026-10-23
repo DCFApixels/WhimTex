@@ -173,16 +173,19 @@ float4 SampleInput(float2 uv, float tiling)
                 ") are allowed, but WhimTex does not control their updates. Results may differ between Canvas, thumbnails and export. Result caching is disabled; use an explicit parameter for predictable behavior.";
         }
 
-        internal static string Build(ShaderFX effect, string assetPath) => BuildCore(effect, assetPath, null, null);
+        internal static string Build(ShaderFX effect, string assetPath) => BuildCore(effect, assetPath, null, null, out _);
+
+        internal static string BuildWithLocality(ShaderFX effect, string assetPath, out ShaderFXLocalityReason[] reasons)
+            => BuildCore(effect, assetPath, null, null, out reasons);
 
         internal static string BuildPreview(ShaderFX effect, ShaderFXParameterControl preview, ShaderFXParameter parameter)
-            => BuildCore(effect, effect.SourcePath, preview, parameter);
+            => BuildCore(effect, effect.SourcePath, preview, parameter, out _);
 
         internal static string BuildResolvedPreview(ShaderFX effect, ShaderFXParameterControl preview, string expanded, string call)
-            => BuildCore(effect, effect.SourcePath, preview, null, expanded, call);
+            => BuildCore(effect, effect.SourcePath, preview, null, out _, expanded, call);
 
         private static string BuildCore(ShaderFX effect, string assetPath, ShaderFXParameterControl preview, ShaderFXParameter previewParameter,
-            string resolvedSource = null, string previewCall = null)
+            out ShaderFXLocalityReason[] reasons, string resolvedSource = null, string previewCall = null)
         {
             WhimTexHueGradient.Ensure();
             ShaderFXSourceBuilder builder = new ShaderFXSourceBuilder();
@@ -202,8 +205,9 @@ float4 SampleInput(float2 uv, float tiling)
             string expanded = resolvedSource ?? builder.ResolveIncludes(effect.Code ?? string.Empty, assetPath);
             if (Regex.IsMatch(expanded, @"\b_WhimTex_[A-Za-z0-9_]*"))
                 throw new InvalidOperationException("The _WhimTex_ prefix is reserved for generated shader data.");
-            string contractSource = ExportIncludes(expanded, assetPath);
-            var entry = ShaderFXEntryPoint.Parse(contractSource);
+            string contractSource = ExpandExportIncludes(expanded, assetPath, true);
+            var entry = ShaderFXEntryPoint.ParseWithSource(contractSource, assetPath);
+            reasons = entry.reasons;
             // Expand before lowering so helper functions in project/package includes receive
             // the same immutable-coordinate rules. Keep the ordinary include path untouched.
             string lowered = contractSource.Contains("PinnedUV") || contractSource.Contains("WhimTexTexture") ? contractSource : expanded;
@@ -376,7 +380,9 @@ float4 SampleInput(float2 uv, float tiling)
             return result.ToString();
         }
 
-        internal static string ExportIncludes(string source, string sourcePath)
+        internal static string ExportIncludes(string source, string sourcePath) => ExpandExportIncludes(source, sourcePath, false);
+
+        private static string ExpandExportIncludes(string source, string sourcePath, bool lineDirectives)
         {
             var builder = new ShaderFXSourceBuilder();
             var active = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -390,8 +396,10 @@ float4 SampleInput(float2 uv, float tiling)
                 using var reader = new StringReader(text);
                 bool block = false;
                 string line;
+                int lineNumber = 0;
                 while ((line = reader.ReadLine()) != null)
                 {
+                    lineNumber++;
                     var include = Include.Match(MaskComments(line, ref block));
                     if (include.Success)
                     {
@@ -401,7 +409,9 @@ float4 SampleInput(float2 uv, float tiling)
                         if (File.Exists(physical))
                         {
                             if (new FileInfo(physical).Length > MaximumCharacters) throw new IOException("Included HLSL exceeds 2 MiB.");
+                            if (lineDirectives) result.Append(LineDirective(1, resolved));
                             result.AppendLine(Expand(File.ReadAllText(physical), resolved, depth + 1));
+                            if (lineDirectives) result.Append(LineDirective(lineNumber + 1, path));
                             continue;
                         }
                         if (requested.StartsWith(".", StringComparison.Ordinal) || requested.StartsWith("Assets/", StringComparison.Ordinal) || requested.StartsWith("Packages/", StringComparison.Ordinal))

@@ -1,7 +1,7 @@
 # Векторные шумы и карты искажения
 
 - Назначение: сохранить дизайн расширения Noise и способы использования шумов для distortion-карт.
-- Статус: F03, основное расширение перенесено в «Выполнено»; отдельный вывод Domain Warp остаётся открытой неподтверждённой идеей. Ограничения проверок перечислены ниже.
+- Статус: F03 выполнено. Прямой вывод Domain Warp добавлен 2026-10-23 отдельным HLSL FX, без нового Field в Noise и без изменений renderer. Ограничения проверок перечислены ниже.
 - Источники истины: [NoiseLayerBehaviour](../../src/Layers/NoiseLayerBehaviour.cs), [Noise shader](../../src/Shaders/Noise.shader), [векторные ядра](../../src/Shaders/NoiseVector.cginc), [Displacement Map](../../src/FXPresets/DisplacementMap.hlsl), [HDR-контракт](../../Documentation~/HDR.md).
 
 Обсуждение было отложено 2026-10-08 и возобновлено 2026-10-10. Цель: получать осмысленные направления для
@@ -9,14 +9,25 @@
 
 ## Прямой вывод Domain Warp
 
-Дополнительная идея, не принятое расширение Field: выводить собственный вектор
-Domain Warp как `warpedPosition - originalPosition`. Он уже вычисляется внутри
-генератора, но отдельный вывод карты пока не реализован. Это ещё один согласованный
-источник смещений, не три независимо рассчитанных цветовых канала.
+Реализован [Distortion/Domain Warp](../../src/FXPresets/DomainWarp.hlsl) — отдельный
+HLSL FX по уточнённому запросу пользователя. Он выводит `warpedPosition - originalPosition`
+из встроенного FastNoiseLite, а не цветной шум и не нормализованное направление.
+Обычный Noise не менялся. [Контракт](../../Documentation~/ShaderFX.md#domain-warp-preset).
 
-Перед реализацией оценить художественную пользу отдельного вывода и согласовать
-новый Field, кодирование и набор параметров. Основное расширение Noise ниже
-завершено; эта идея не входит в его выполненный объём.
+- OpenSimplex2, OpenSimplex2Reduced, BasicGrid; Fractal None/Progressive/Independent.
+- Seed, Scale, Offset, Strength, Octaves/Lacunarity/Gain и итоговые Flip X/Y.
+- Signed RG хранит вектор напрямую; Packed RG — `0.5 + 0.5 * vector`, без clamp.
+  Нулевая Strength даёт нейтральную карту. Это 2D-поле в canvas UV, без 3D,
+  Seamless или автоматической коррекции пропорций.
+- Для Displacement Map: Packed — Neutral 0.5; Signed — Neutral 0 и вдвое меньшие
+  Strength X/Y для того же смещения. HDR Color Range сохраняет отрицательные
+  и выходящие за 0–1 значения; внешние карты хранить линейно, например в EXR.
+- В Unity проверены native GPU для всех девяти сочетаний типа/fractal,
+  детерминизм/Seed, нулевой Strength, сильные векторы без нормализации,
+  упаковка/Flip и одинаковый результат Signed/Packed через настоящий Displacement Map.
+- Проверены группа, clipping, Target, агентский preview, источник экспорта и JSON
+  roundtrip. Полный TIFF save/reopen, ручной Undo/Redo и другие GPU не проверялись.
+  Это адресная проверка пресетов, не новый полный прогон `noise-fields`.
 
 ## Выполнено
 
@@ -161,12 +172,12 @@ Strength либо позже явно разделить signed/packed encoding;
 Адресный набор `NoiseVectorTests` проверяет вывод, математические тождества,
 Warp Seed/Z и roundtrip. При дальнейших изменениях проверять также Seamless, HDR,
 группы и вход Shader Processor. Проверки UI сами по себе не подтверждают рендер.
-Дополнительный Field для прямого вывода Domain Warp требует отдельного согласования.
+Прямой Domain Warp реализован отдельным FX; дополнительный Field в Noise не добавлялся.
 
 ### Проверка реализации 2026-10-10
 
 - Field Value/Curl/Gradient Vector/Cell Direction реализованы по контракту выше;
-  прямой вывод Domain Warp остаётся идеей.
+  на дату этого прогона прямой вывод Domain Warp ещё оставался идеей.
 - Адресный профиль `noise-fields`: 12/12 сценариев прошли. API/UI, JSON Full/FullOptimized/Compact и бинарная
   модель, 2D/3D signed/packed, Normalize/Strength, все разрешённые основы и Fractal,
   Weighted Strength, Warp Seed/Z, Seamless, HDR-группы/Shader Processor,

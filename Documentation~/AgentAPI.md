@@ -65,7 +65,7 @@ Import/save commands do import the specific image or document asset they write.
 | `whimtex_document_render` | `assetPath`, `outputPath`, optional `maxSize=1024`, `overwrite=false` | Absolute PNG path and dimensions |
 | `whimtex_storage_inspect` | `assetPath` (`.tiff`) | Metadata-only block catalog, sizes and disk revision |
 | `whimtex_document_validate` | `assetPath`, optional `render=false` | Structure, limits, references and Shader FX validation; no save |
-| `whimtex_fx_compile` | Exactly one of `presetPath` or `source`; optional `includeBasePath` | Compile a preset or raw HLSL in Unity; return diagnostics without editing a document |
+| `whimtex_fx_compile` | Exactly one of `presetPath` or `source`; optional `includeBasePath` | Compile a preset or raw HLSL in Unity; return diagnostics and verified locality without editing a document |
 | `whimtex_fx_catalog` | Optional `query`, `presetId` | Discover installed presets; inspect defaults, bounds and enum choices |
 | `whimtex_assistant_execute` | Absolute `requestPath` | Revision-checked shared operations in an open window; one Undo step, no save |
 | `whimtex_render_probe` | Absolute `requestPath` | Render composite/layer/FX stages and channels; report linear ranges |
@@ -91,8 +91,9 @@ document. Supply exactly one input:
 
 - `presetPath` for a `.hlsl` file inside `Assets`, `Packages` or the configured Shader FX user-preset
   folder. Presets must start with a valid `// @whimtex-effect Category/Name` header.
-- `source` for a raw HLSL string implementing WhimTex's `float4 ApplyFX(float2 uv, float4 color)`
-  function. It may include `// @param` declarations and does not need the preset header. Raw source
+- `source` for raw HLSL defining exactly one supported entry point: `float4 ApplyFX(float4 color)`,
+  `float4 ApplyFX(PinnedUV uv, float4 color)`, or `float4 ApplyFX(float2 uv, float4 color)`.
+  It may include `// @param` declarations and does not need the preset header. Raw source
   with relative `#include` paths must also supply `includeBasePath`, pointing to a base directory in
   `Assets` or `Packages`, or to an existing HLSL file whose directory is used as the base. Absolute
   directories inside `Assets`, a package, or the configured user-preset folder are also accepted. If
@@ -112,6 +113,56 @@ Compiler messages, declaration/source/include errors, catalog reload failures an
 use the same FX diagnostic records as the UI and Console. Console suppression never removes API records.
 Document `Validate` exposes these records per FX as `diagnosticMessages`, `warnings` and `errors`,
 alongside the human-readable `diagnostics` text, and includes FX warnings in the document warning list.
+
+#### Applied shader locality
+
+`whimtex_fx_compile` also returns `locality`, captured after successful compilation. The same object
+is returned for each Shader FX in document inspection (file, Headless Live and Assistant), FX operation
+snapshots, and document validation. Its status describes the **applied, usable shader**, not the current
+code draft. `pendingChanges:true` means the displayed source/settings may differ from that shader.
+A failed Apply makes the FX unavailable: `locality` is then `null`, even if an older shader is retained
+internally. Uncompiled FX and `compiled:false` results also have `locality:null`. Disabling an otherwise
+usable FX does not erase its classification; check `enabled` separately.
+
+```json
+{
+  "compiled": true,
+  "locality": {
+    "status": "unverified",
+    "reasons": [
+      {
+        "code": "direct_texture_read",
+        "message": "Direct texture access 'tex2D' bypasses the PinnedUV sampling contract.",
+        "file": "Assets/WhimTexAgentInput.hlsl",
+        "line": 4
+      }
+    ]
+  }
+}
+```
+
+| `locality.status` | Meaning |
+| --- | --- |
+| `pixelLocal` | The authoring contract is verified; `reasons` is empty. |
+| `spatial` | The entry point accepts arbitrary coordinates; it does not guarantee locality. |
+| `unverified` | A restricted entry point uses constructs outside the verified contract; rendering takes the conservative full-input path. |
+
+`reasons` contains stable `code` values and readable `message` text. `file` and one-based `line` are
+included when known, including expanded project/package includes. Raw source without a base path uses
+the diagnostic label `Assets/WhimTexAgentInput.hlsl`; this is not a created file. Locations belong to
+the applied source snapshot and can differ from a subsequently edited draft or include.
+
+Current reason codes are `spatial_entry_point` (the `float2` entry signature), `direct_texture_read`
+(direct sampling/load/gather), `derivative` (neighbor-fragment derivatives), `texture_internals`
+(direct access to texture-view storage/mapping), and `unverified_dependency` (compiler/engine dependencies,
+buffer access or preprocessor constructs outside the checked contract). Reasons explain the conservative
+analysis; they are not GPU compiler errors or proof that every reported construct executes at runtime.
+The analysis shares the renderer's `IsPixelLocal` contract, rather than inferring locality from shader
+compiler optimization. A `spatial` or `unverified` shader can compile and render successfully.
+
+This reports the FX's own contract, not its entire dependency/render plan. A pixel-local FX may use an
+input produced by a spatial layer or effect. Inspector preview functions have a separate render path;
+the locality result does not promise that their arbitrary-coordinate reads can use cropped inputs.
 
 ```powershell
 unity command whimtex_fx_compile --presetPath 'Packages/com.dcfapixels.whimtex/src/FXPresets/Halftone.hlsl' --project-path 'D:/Projects/MyGame' --format json

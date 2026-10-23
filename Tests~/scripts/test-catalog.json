@@ -20095,7 +20095,9 @@
       "supportFiles": [
         "Tests~/Framework/TestApi.cs"
       ],
-      "reviewFiles": []
+      "reviewFiles": [
+        "Tests~/Fixtures/FX/PinnedUVHelper.hlsl"
+      ]
     },
     {
       "id": "shader-fx-time-warning",

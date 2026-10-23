@@ -466,6 +466,13 @@ Inspection exposes each FX's code, parameters, diagnostics and pending-change st
 Each Shader FX also exposes structured `diagnosticMessages`, `warnings` and `errors` with the same
 severity/message/location as normal Apply and Console. The `diagnostics` text remains available;
 Console deduplication never hides records from inspection.
+Each Shader FX includes `locality: {status, reasons}` for its **applied, usable shader**: `pixelLocal`,
+`spatial` or `unverified`. Reasons have stable codes, readable messages and source locations when known.
+Pending edits do not replace this result; a failed Apply or an uncompiled FX returns `locality:null`.
+Read `pendingChanges` and `lastApplyFailed` alongside it. Disabled FX retain their classification.
+The same result is available from `whimtex_fx_compile` before modifying a document. See the
+[locality contract and reason codes](AgentAPI.md#applied-shader-locality); classification does not
+describe the full render plan of dependent layers or inspector previews.
 Parameters also expose stable `id`, nullable `minimum`/`maximum`, and structured Transform2D values.
 `catalogPath` identifies a linked HLSL source when present; inline replacement does not modify that source.
 Groups support FX directly. FX process the combined children before group opacity and blending and automatically isolate a Pass Through group using Normal blending.

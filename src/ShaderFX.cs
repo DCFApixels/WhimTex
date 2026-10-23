@@ -251,6 +251,7 @@ namespace DCFApixels.WhimTex
         [SerializeField, HideInInspector] private Shader compiledShader;
         [SerializeField, HideInInspector] private string appliedCode;
         [SerializeField, HideInInspector] private string appliedSource;
+        [SerializeField, HideInInspector] private ShaderFXLocalityReason[] appliedLocalityReasons = Array.Empty<ShaderFXLocalityReason>();
         [SerializeField, HideInInspector] private List<ShaderFXParameter> appliedParameters = new List<ShaderFXParameter>();
         [SerializeField, HideInInspector] private string diagnostics = "Not compiled yet. Click Compile to use this effect.";
         [SerializeField, HideInInspector] private bool lastApplyFailed;
@@ -302,6 +303,11 @@ namespace DCFApixels.WhimTex
         public bool IsPixelLocal => !IsUnavailable && appliedSource != null &&
             appliedSource.StartsWith(ShaderFXSourceBuilder.ViewportWrapperMarker + ShaderFXEntryPoint.WrapperMarker +
                 ShaderFXEntryPoint.PixelLocalMarker, StringComparison.Ordinal);
+
+        internal string AppliedLocalityStatus => IsUnavailable || appliedSource == null ? null :
+            IsPixelLocal ? "pixelLocal" : appliedSource.StartsWith(ShaderFXSourceBuilder.ViewportWrapperMarker +
+                ShaderFXEntryPoint.WrapperMarker + ShaderFXEntryPoint.UnverifiedMarker, StringComparison.Ordinal) ? "unverified" : "spatial";
+        internal IReadOnlyList<ShaderFXLocalityReason> AppliedLocalityReasons => appliedLocalityReasons ?? Array.Empty<ShaderFXLocalityReason>();
 
         internal bool TryPrepareDocumentEffect(out string warning)
         {
@@ -376,7 +382,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 PrepareParameterDeclarations();
-                string source = ShaderFXSourceBuilder.Build(this, SourcePath);
+                string source = ShaderFXSourceBuilder.BuildWithLocality(this, SourcePath, out var localityReasons);
                 candidate = ShaderUtil.CreateShaderAsset(source, true);
                 if (candidate == null) throw new InvalidOperationException("Unity could not create the shader.");
                 candidate.hideFlags = HideFlags.HideAndDontSave;
@@ -389,6 +395,7 @@ namespace DCFApixels.WhimTex
                 candidate = null;
                 appliedCode = code;
                 appliedSource = source;
+                appliedLocalityReasons = localityReasons;
                 appliedParameters = new List<ShaderFXParameter>();
                 foreach (var parameter in parameters) appliedParameters.Add(parameter.Copy());
                 ReleaseMaterial();
@@ -697,7 +704,7 @@ namespace DCFApixels.WhimTex
                 string path = AssetDatabase.GetAssetPath(storage);
                 if (!string.IsNullOrEmpty(path) && !AssetDatabase.IsOpenForEdit(storage))
                     throw new InvalidOperationException("The Shader FX asset is read-only. Make it editable before applying.");
-                string source = ShaderFXSourceBuilder.Build(this, SourcePath);
+                string source = ShaderFXSourceBuilder.BuildWithLocality(this, SourcePath, out var localityReasons);
                 candidate = ShaderUtil.CreateShaderAsset(source, true);
                 if (candidate == null)
                     throw new InvalidOperationException("Unity could not create the shader.");
@@ -739,6 +746,7 @@ namespace DCFApixels.WhimTex
                 }
                 appliedCode = code;
                 appliedSource = source;
+                appliedLocalityReasons = localityReasons;
                 appliedParameters = snapshot;
                 SetDiagnostics(messages, false);
                 ReleaseMaterial();

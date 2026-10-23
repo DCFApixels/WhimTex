@@ -58,7 +58,7 @@ namespace DCFApixels.WhimTex
             result["diagnostics"] = new JObject {
                 ["storage"] = "whimtex_storage_inspect / WhimTexApi.InspectStorage(assetPath): metadata-only TIFF block inspection",
                 ["validate"] = "whimtex_document_validate / WhimTexApi.Validate(assetPath, render): structure, limits, references and Shader FX",
-                ["shaderFxCompile"] = "whimtex_fx_compile / WhimTexApi.CompileFX(presetPath, source, includeBasePath): compile exactly one marked preset or raw WhimTex ApplyFX HLSL in a transient Unity shader; return warnings/errors without changing a document",
+                ["shaderFxCompile"] = "whimtex_fx_compile / WhimTexApi.CompileFX(presetPath, source, includeBasePath): compile exactly one marked preset or raw WhimTex ApplyFX HLSL in a transient Unity shader; return warnings/errors and locality (pixelLocal/spatial/unverified with reasons, null on failure) without changing a document",
                 ["status"] = "whimtex_document_status / WhimTexApi.Status(assetPath): disk revision, importer, dirty, lock and staged recovery state",
                 ["compare"] = "whimtex_document_compare / WhimTexApi.Compare(leftPath, rightPath, render, maxSize): model, TIFF block and optional rendered-pixel comparison",
                 ["recover"] = "whimtex_document_recover / WhimTexApi.Recover(sourcePath, destinationPath): validate and copy a staged TIFF to a new asset",
@@ -226,6 +226,7 @@ namespace DCFApixels.WhimTex
             var fields = model["MonoBehaviour"] as JObject ?? model;
             fields.Remove("compiledShader"); fields.Remove("appliedCode");
             fields.Remove("appliedSource"); fields.Remove("appliedParameters");
+            fields.Remove("appliedLocalityReasons");
             fields.Remove("diagnostics"); fields.Remove("lastApplyFailed");
             fields.Remove("shaderCreationRecorded"); fields.Remove("embeddedOwner");
             // Newly discovered declarations receive UI identity IDs on load. API edits
