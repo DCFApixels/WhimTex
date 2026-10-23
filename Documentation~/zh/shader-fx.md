@@ -254,16 +254,17 @@ WhimTex 元数据着色。高亮不会修改源码或触发编译；光标、文
 在 Unity 6000.7+ 中，左侧行号（包括空行）随代码垂直滚动，但不会随水平滚动移动。
 编辑时，光标所在行带有淡淡的背景，行号稍亮；文本选择仍显示在高亮背景之上。
 
-Pixel-local FX 处理当前坐标，不读取图像中偏移的位置。
-作者可用 `ApplyFX(float4 color)` 计算颜色，或用
-`ApplyFX(PinnedUV uv, float4 color)` 在同一坐标读取纹理。
-`PinnedUV` 可读取和复制，但不可修改或参与算术运算。
-需要移动纹理坐标的效果使用 `ApplyFX(float2 uv, float4 color)`。
+Pixel-local FX 在当前坐标读取纹理。仅处理颜色时使用 `ApplyFX(float4 color)`；
+需要 UV 时使用 `ApplyFX(PinnedUV uv, float4 color)`。
+`PinnedUV` 可参与算术并转换为 `float2`，但自身不可修改，也不能由数值坐标构造。
+同类型复制保留绑定；算术和分量重排会失去绑定。使用 PinnedUV 采样属于局部读取，
+使用数值坐标或 tiling 则属于空间读取，辅助函数也遵循此规则。
+仅用 UV 计算颜色不会失去局部性。
 
 `SampleInput(uv)` 和 `SampleTexture(_Mask, uv)` 是 WhimTex 读取纹理的主要接口。
 当 `uv` 为 `PinnedUV` 时，`SampleTexture(_MainTex, uv)` 也保持 pixel-local，等同于 `SampleInput(uv)`；
 sampler 的名称本身并不构成绕过路径。
-后者支持 Texture、Layer、Self、None 遮罩来源；pixel-local 签名要求使用 `PinnedUV`。
+后者支持 Texture、Layer、Self、None 遮罩来源；pixel-local 读取要求使用 `PinnedUV`。
 直接 HLSL 纹理读取属于绕过接口的方式。检测到绕过读取或导数时会警告，并不再确认 pixel-local 属性。
 纹理输入使用只读的 `WhimTexTexture` 类型。`SampleTexture(_Mask, uv)` 等调用保持不变；
 自定义辅助函数和预览函数接收纹理时，请将参数声明为 `WhimTexTexture`。

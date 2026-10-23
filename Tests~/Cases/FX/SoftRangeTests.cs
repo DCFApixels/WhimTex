@@ -29,7 +29,7 @@ public static class SoftRangeTests
         var metadata=assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata");
         List<ShaderFXParameter> Parse(string text)=>(List<ShaderFXParameter>)metadata.GetMethod("Parse",flags).Invoke(null,new object[]{text,false,null});
         void Check(bool ok,string message){ context.True(ok, message); }
-        const string code="// @param float _Strength = 1 [0 .. 2]\n// @param float _Strength [~0 .. ~2] // Soft control\nfloat4 ApplyFX(float2 uv,float4 color){return _Strength;}";
+        const string code="// @param float _Strength = 1 [0 .. 2]\n// @param float _Strength [~0 .. ~2] // Soft control\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return _Strength;}";
         var parsed=Parse(code);
         Check(parsed.Count==1 && !parsed[0].controls[0].softMaximum && parsed[0].controls[1].softMaximum,"Per-control range metadata");
         Check(Parse("// @param float _X = 5 [~0 .. ~2]")[0].floatValue==5,"Out-of-range default");

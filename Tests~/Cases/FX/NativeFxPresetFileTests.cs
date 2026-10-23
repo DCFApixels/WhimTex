@@ -27,7 +27,7 @@ public static class NativeFxPresetFileTests
         try
         {
             fx = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<ShaderFX>());
-            string code = "// @param float _Gain = 0.8 [0.8 .. 1]\nfloat4 ApplyFX(float2 uv,float4 color){ return color * _Gain; }";
+            string code = "// @param float _Gain = 0.8 [0.8 .. 1]\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv; return color * _Gain; }";
             var parsed = (List<ShaderFXParameter>)typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata", true)
                 .GetMethod("Parse", F).Invoke(null, new object[] { code, false, null });
             var p = parsed[0]; p.floatValue = .625f;
@@ -60,7 +60,7 @@ public static class NativeFxPresetFileTests
             Check(Convert.ToBase64String(File.ReadAllBytes(path)) == Convert.ToBase64String(original), "Read does not rewrite preset file");
             Check(!EditorUtility.IsDirty(fx), "Read does not dirty preset");
             // An unapplied source edit must not resurrect a deliberately removed declaration.
-            string edited = "float4 ApplyFX(float2 uv,float4 color){ return color; }";
+            string edited = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv; return color; }";
             Set(fx, "code", edited);
             Check(typeof(ShaderFX).GetMethod("NormalizeFileParameters", F) == null, "No manual-parameter file adapter");
             Check((string)Get(fx, "code") == edited, "Unapplied source remains unchanged");

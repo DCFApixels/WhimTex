@@ -18,7 +18,7 @@ translations: "en/shader-controls.md,ru/shader-controls.md,zh/shader-controls.md
 // @param float _Amount = 1 [0 .. 1]
 // @param color _Tint = #FFAA66
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     return float4(lerp(color.rgb, color.rgb * _Tint.rgb, _Amount), color.a);
 }

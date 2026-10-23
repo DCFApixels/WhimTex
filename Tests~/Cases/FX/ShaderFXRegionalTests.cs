@@ -19,7 +19,7 @@ public static partial class ShaderFXRegionalTests
     static object Call(object target, string name, params object[] args) => target.GetType().GetMethod(name, F).Invoke(target, args);
     static object Region(RectInt rect, int step = 1) => Activator.CreateInstance(T("CanvasRenderRegion"), F, null, new object[] { rect, step }, null);
     const string Local = "// @param texture2D _Map\nfloat4 ApplyFX(PinnedUV uv,float4 color){return float4(color.rgb*SampleTexture(_Map,uv).rgb,color.a);}";
-    const string Spatial = "float4 ApplyFX(float2 uv,float4 color){return SampleInput(uv+float2(19.0/_InputSize.x,0));}";
+    const string Spatial = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return SampleInput(uv+float2(19.0/_InputSize.x,0));}";
 
     public static string Run() => TestContext.Run("Regional FX dependencies, complete inspector inputs and render isolation", t =>
     {

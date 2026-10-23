@@ -18,7 +18,7 @@ public static class ShaderFXCyclicRangeTests
 // @param preview(P) float2 _Ordinary = (0.2, 0.8) [0 .. 1]
 float4 P(float2 uv, float2 value) { return float4(value / 360, uv.x, 1); }
 float4 S(float2 uv, float value) { return float4(uv.x, value / 360, 0, 1); }
-float4 ApplyFX(float2 uv, float4 color) { return color; }
+float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }
 ";
     static Type T(string name) => typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex." + name, true);
     static List<ShaderFXParameter> Parse(string source) => (List<ShaderFXParameter>)T("ShaderFXMetadata").GetMethod("Parse", F).Invoke(null, new object[] { source, false, null });

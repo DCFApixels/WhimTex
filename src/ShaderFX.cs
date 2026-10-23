@@ -562,7 +562,8 @@ namespace DCFApixels.WhimTex
         private void RefreshGeneratedWrapper()
         {
             if (!HasAppliedShader || lastApplyFailed || AssetDatabase.Contains(this) ||
-                appliedSource == null || appliedSource.Contains(ShaderFXSourceBuilder.ViewportWrapperMarker)) return;
+                appliedSource == null || (appliedSource.StartsWith(ShaderFXSourceBuilder.ViewportWrapperMarker, StringComparison.Ordinal) &&
+                appliedSource.Contains(ShaderFXEntryPoint.WrapperMarker))) return;
             // Rebuild derived resources after a package/script reload without applying
             // pending edits, changing user values, marking a document dirty or adding Undo.
             var draft = code; var values = parameters; var shader = compiledShader;

@@ -16,7 +16,7 @@ public static class DocumentJsonTests
                 "{\"id\":\"shape\",\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\",\"rectangleCorners\":[{\"amount\":0.1},{\"amount\":0.2},{\"amount\":0.3},{\"amount\":0.4}]},\"opacity\":0.3}]}",
             "{\"format\":\"whimtex.document\",\"version\":2,\"document\":{\"width\":32,\"height\":16,\"outputSrgb\":false},\"layers\":[" +
                 "{\"id\":\"gradient\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\"," +
-                "\"code\":\"float4 ApplyFX(float2 uv,float4 color){return float4(uv.x,uv.y,uv.x*uv.y,0.7);}\"}]}]}"
+                "\"code\":\"float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return float4(uv.x,uv.y,uv.x*uv.y,0.7);}\"}]}]}"
         };
         if (start < 0 || start >= recipes.Length || count <= 0) throw new ArgumentOutOfRangeException("start/count");
         int checkedCount = 0;

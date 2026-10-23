@@ -143,7 +143,7 @@ public static class DistortionControlsTests
             var displacement = effects["Displacement Map"];
             Set(displacement, "_MapChannel", 1); Set(displacement, "_Direction", 0);
             Set(displacement, "_ViewAngle", 0); Set(displacement, "_ViewElevation", 60);
-            var constantOffset = Create("// @param float2 _Offset\nfloat4 ApplyFX(float2 uv, float4 color) { return SampleInput(uv + _Offset * _CanvasSize.zw); }");
+            var constantOffset = Create("// @param float2 _Offset\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return SampleInput(uv + _Offset * _CanvasSize.zw); }");
             foreach (int mode in new[] { 0, 1, 2 })
             {
                 Set(displacement, "_Mode", mode); Set(displacement, "_Tiling", 0); Set(displacement, "_MaskSource", 0);
@@ -271,7 +271,7 @@ public static class DistortionControlsTests
             t.Equal(P(polar, "_Output").transformValue, P(polarCopy, "_Output").transformValue, "Preset export preserves the output frame");
             Same(Render(polar), Render(polarCopy), "Polar frame preset export render parity");
 
-            var source = Create("float4 ApplyFX(float2 uv, float4 color) { return float4(uv, frac(uv.x * 5 + uv.y * 3), 1); }");
+            var source = Create("float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(uv, frac(uv.x * 5 + uv.y * 3), 1); }");
             foreach (var pair in effects)
             {
                 var fx = pair.Value;

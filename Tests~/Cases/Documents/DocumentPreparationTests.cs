@@ -241,7 +241,7 @@ public static class DocumentPreparationTests
             // Save As resolves includes without method expansion or edits to source code.
             File.WriteAllText(folder + "/Shared.hlsl", "float4 Tint(float4 c) { return c; }\n");
             var includeDoc = Document(); var includeFx = Effect(includeDoc);
-            Set(includeFx, "code", "#include \"./Shared.hlsl\"\nfloat4 ApplyFX(float2 uv, float4 color) { return Tint(color); }");
+            Set(includeFx, "code", "#include \"./Shared.hlsl\"\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return Tint(color); }");
             Call(Type("WhimTexDocumentService"), null, "Bind", includeDoc, folder + "/Source.tiff");
             Call(typeof(ShaderFX), includeFx, "ApplyAgentDraft");
             string originalCode = (string)typeof(ShaderFX).GetField("code", Any).GetValue(includeFx);

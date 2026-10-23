@@ -38,7 +38,7 @@ public static class ShaderFXVectorsTests
         List<ShaderFXParameter> Parameters(ShaderFX effect) => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(effect);
         int checks=0;
         void Check(bool ok,string text) { context.True(ok, text); }
-        string code="// @param float2 _Offset = (0.2, 0.3)\n// @param float3 _Vector = (0.4, 0.5, 0.6)\n// @param normal _Normal = (0, 0, 4)\n// @param point _Point = (0.2, 0.37)\nfloat4 ApplyFX(float2 uv,float4 color){return float4(_Offset.x + _Point.x * .1,_Vector.y,_Normal.z,_Point.y * .2 + .3);}";
+        string code="// @param float2 _Offset = (0.2, 0.3)\n// @param float3 _Vector = (0.4, 0.5, 0.6)\n// @param normal _Normal = (0, 0, 4)\n// @param point _Point = (0.2, 0.37)\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return float4(_Offset.x + _Point.x * .1,_Vector.y,_Normal.z,_Point.y * .2 + .3);}";
         var values=Parse(code);
         Check(values.Count==4,"count");
         Check(values[0].type==ShaderFXParameterType.Vector2 && values[1].type==ShaderFXParameterType.Vector3,"types");
@@ -110,10 +110,10 @@ public static class ShaderFXVectorsTests
             At(compileResult, "errors").GetType().FullName == "Newtonsoft.Json.Linq.JArray",
             "FX compile diagnostic response shape");
         var rawCompile = ParseJson(WhimTexApi.CompileFX(source:
-            "// @param color _Tint = (1, 1, 1, 1)\nfloat4 ApplyFX(float2 uv, float4 color) { return color * _Tint; }"));
+            "// @param color _Tint = (1, 1, 1, 1)\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _Tint; }"));
         Check(Flag(rawCompile, "success") && Flag(rawCompile, "compiled"), "Raw FX source compilation: " + rawCompile.ToString());
         var relativeIncludeCompile = ParseJson(WhimTexApi.CompileFX(
-            source: "#include \"./Dither.cginc\"\nfloat4 ApplyFX(float2 uv, float4 color) { return color * DitherThreshold(uv * _CanvasSize.xy, 1); }",
+            source: "#include \"./Dither.cginc\"\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * DitherThreshold(uv * _CanvasSize.xy, 1); }",
             includeBasePath: "Packages/com.dcfapixels.whimtex/src/Shaders"));
         Check(Flag(relativeIncludeCompile, "success") && Flag(relativeIncludeCompile, "compiled"),
             "Raw FX relative include compilation: " + relativeIncludeCompile.ToString());

@@ -48,7 +48,7 @@ public static class GroupFXTests
         }
         try
         {
-            string code = "float4 ApplyFX(float2 uv, float4 color) { return float4(color.b, color.r, color.g, color.a); }";
+            string code = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(color.b, color.r, color.g, color.a); }";
             fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,
                 new object[] { doc, code, new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fx, null);

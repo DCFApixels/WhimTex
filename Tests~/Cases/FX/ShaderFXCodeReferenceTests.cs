@@ -206,8 +206,8 @@ public static class ShaderFXCodeReferenceTests
                 Undo.PerformRedo(); t.Equal(pinned, Current(), "Signature Redo");
                 Click("float4 ApplyFX(float4 color)");
                 t.Equal(Source.Replace("float2 coords, ", ""), Current(), "Color-only header retains color argument name");
-                Click("float4 ApplyFX(float2 uv, float4 color)");
-                t.True(Current().Contains("float4 ApplyFX(float2 uv, float4 tint)"), "Missing UV name uses default without renaming color");
+                Click("float4 ApplyFX(PinnedUV uv, float4 color)");
+                t.True(Current().Contains("float4 ApplyFX(PinnedUV uv, float4 tint)"), "Missing UV name uses default without renaming color");
                 t.True(Current().EndsWith("{\n    return tint;\n}\n", StringComparison.Ordinal), "Body remains untouched after switches");
 
                 SetCode("// empty draft\n"); code.textSelection.SelectRange(15, 15);

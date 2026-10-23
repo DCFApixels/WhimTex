@@ -39,8 +39,8 @@ public static class UnifiedLightingTests
         {
             var normal=FX(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/NormalLighting.hlsl"));
             var bevel=FX(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/BevelEmboss.hlsl"));
-            var ramp=FX("float4 ApplyFX(float2 uv,float4 c){float h=.25+.5*uv.x;return float4(h,h,h,1);}");
-            var packed=FX("float4 ApplyFX(float2 uv,float4 c){return float4(normalize(float3(-3.0/128,0,1))*.5+.5,1);}");
+            var ramp=FX("float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;float h=.25+.5*uv.x;return float4(h,h,h,1);}");
+            var packed=FX("float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(normalize(float3(-3.0/128,0,1))*.5+.5,1);}");
             Layer host=new ColorFillLayerBehaviour();doc.layers.Add(host);
             P(normal,"_PackedColor").floatValue=0;
             foreach(var fx in new[]{normal,bevel})

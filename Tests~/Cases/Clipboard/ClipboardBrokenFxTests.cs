@@ -14,7 +14,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
 static System.Threading.CancellationToken Cancellation;
 
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
-    const string Good = "// @param float _Amount = 1\n// @param texture2D _Map\nfloat4 ApplyFX(float2 uv,float4 color){return color;}";
+    const string Good = "// @param float _Amount = 1\n// @param texture2D _Map\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return color;}";
     static int checks;
     static void Check(bool ok, string message) { T.True(ok, message); }
     static object Call(object obj, string method, params object[] args) => obj.GetType().GetMethod(method, F).Invoke(obj, args);
@@ -29,7 +29,7 @@ static System.Threading.CancellationToken Cancellation;
         "{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[0.2,0.4,0.6,1]},\"fx\":[" +
         "{\"$type\":\"ShaderFX\",\"$name\":\"Clipboard failure fixture\",\"active\":" + (active ? "true" : "false") + ",\"code\":" + Quote(code) +
         ",\"parameters\":[{\"name\":\"_Amount\",\"type\":\"Float\",\"floatValue\":0.37},{\"name\":\"_Map\",\"type\":\"Texture2D\",\"textureSource\":\"Layer\",\"textureLayerId\":\"source\"}]}," +
-        "{\"$type\":\"ShaderFX\",\"code\":\"float4 ApplyFX(float2 uv,float4 color){return float4(color.rgb * 0.5,color.a);}\"}]}]}," +
+        "{\"$type\":\"ShaderFX\",\"code\":\"float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return float4(color.rgb * 0.5,color.a);}\"}]}]}," +
         "{\"id\":\"source\",\"enabled\":false,\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}";
     static Color Pixel(WhimTexDocument doc)
     {

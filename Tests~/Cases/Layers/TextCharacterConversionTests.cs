@@ -67,7 +67,7 @@ public static class TextCharacterConversionTests
             {
                 var source = Source(); var doc = Document(); source.fillMode = mode;
                 var fx = ScriptableObject.CreateInstance<ShaderFX>(); fx.hideFlags = HideFlags.HideAndDontSave;
-                typeof(ShaderFX).GetField("code", F).SetValue(fx, "float4 ApplyFX(float2 uv, float4 color) { float2 p = LayerToLocal(uv); return color * float4(.3 + .6 * saturate(p.x), .3 + .6 * saturate(p.y), .6, .75); }");
+                typeof(ShaderFX).GetField("code", F).SetValue(fx, "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; float2 p = LayerToLocal(uv); return color * float4(.3 + .6 * saturate(p.x), .3 + .6 * saturate(p.y), .6, .75); }");
                 try
                 {
                     t.True((bool)Call(fx, "ApplyCore", false), "Owned tint FX compiles");

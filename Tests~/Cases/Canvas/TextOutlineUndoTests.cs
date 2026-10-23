@@ -164,7 +164,7 @@ public static class TextOutlineUndoTests
         {
             var fx = ScriptableObject.CreateInstance<ShaderFX>(); fx.hideFlags = HideFlags.HideAndDontSave;
             effectIds.Add(Id(fx)); effectOwners.Add(owner.Id);
-            Write(fx, "code", "float4 ApplyFX(float2 uv, float4 color) { return color * float4(.65, .8, .9, .7); }");
+            Write(fx, "code", "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * float4(.65, .8, .9, .7); }");
             t.True((bool)Call(fx, "ApplyCore", false), "Owned tint FX compiles");
             owner.fx.Add(fx); effectData.Add(EditorJsonUtility.ToJson(fx));
         }

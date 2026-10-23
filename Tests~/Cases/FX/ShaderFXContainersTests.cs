@@ -46,7 +46,7 @@ public static class ShaderFXContainersTests
 // @endtab
 // @endtabs
 float4 Preview(float2 uv) { return float4(uv.x, _Amount, 0, 1); }
-float4 ApplyFX(float2 uv, float4 color) { return color * _Amount; }
+float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _Amount; }
 ";
 
     public static string Start(string id)

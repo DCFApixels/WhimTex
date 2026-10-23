@@ -59,7 +59,7 @@ public static class EnumFXTests
         ShaderFX fx = null;
         try
         {
-            fx = (ShaderFX)Method(typeof(ShaderFX), "CreateAgentDraft", 3).Invoke(null, new object[] { document, declarations + "float4 ApplyFX(float2 uv, float4 color) { return _Strength; }", new List<ShaderFXParameter>() });
+            fx = (ShaderFX)Method(typeof(ShaderFX), "CreateAgentDraft", 3).Invoke(null, new object[] { document, declarations + "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return _Strength; }", new List<ShaderFXParameter>() });
             Method(typeof(ShaderFX), "ApplyAgentDraft", 0).Invoke(fx, null);
             var list = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
             var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView");

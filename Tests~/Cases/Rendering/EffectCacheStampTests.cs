@@ -24,7 +24,7 @@ public static class EffectCacheStampTests
         {
             Layer layer = new ColorFillLayerBehaviour { enabled = i % 2 == 0 };
             var fx = S.Own(ScriptableObject.CreateInstance<ShaderFX>());
-            string source = "// " + new string((char)('a' + i % 20), 100000) + "\nfloat4 ApplyFX(float2 uv, float4 color) { return color; }";
+            string source = "// " + new string((char)('a' + i % 20), 100000) + "\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }";
             Set(fx, "code", source); Set(fx, "appliedCode", source); Set(fx, "appliedSource", source);
             layer.fx.Add(fx); doc.layers.Add(layer);
         }
@@ -115,7 +115,7 @@ public static class EffectCacheStampTests
         T.True(textureLayerStamp != (ulong)Call(cache, "Stamp", layer), "Explicit hidden FX texture inputs still invalidate");
 
         var renderFx = S.Own(ScriptableObject.CreateInstance<ShaderFX>());
-        Set(renderFx, "code", "// @param float _Amount = 1 [0 .. 4]\nfloat4 ApplyFX(float2 uv, float4 color) { return color * float4(_Amount, 1, 1, 1); }");
+        Set(renderFx, "code", "// @param float _Amount = 1 [0 .. 4]\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * float4(_Amount, 1, 1, 1); }");
         Call(renderFx, "ApplyAgentDraft");
         Layer color = new ColorFillLayerBehaviour { color = new Color(.25f, .5f, .75f, 1), colorRange = LayerColorRange.HDR };
         color.fx.Add(renderFx); doc.layers.Clear(); doc.layers.Add(color); doc.width = doc.height = 16;
@@ -136,7 +136,7 @@ public static class EffectCacheStampTests
         T.Near(baseColor.r * 3, Render().r, .001, "Direct parameter edit updates actual cached GPU output");
         renderValues[0].floatValue = 1;
         T.Near(baseColor.r, Render().r, .001, "Restored parameter values update cached GPU output");
-        Set(renderFx, "code", "// @param float _Amount = 1 [0 .. 4]\nfloat4 ApplyFX(float2 uv, float4 color) { return color * float4(1, _Amount, 1, 1); }");
+        Set(renderFx, "code", "// @param float _Amount = 1 [0 .. 4]\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * float4(1, _Amount, 1, 1); }");
         Call(renderFx, "ApplyAgentDraft"); renderValues = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", Flags).GetValue(renderFx);
         renderValues[0].floatValue = 2;
         var edited = Render();

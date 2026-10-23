@@ -39,8 +39,8 @@ public static class ShaderFXSelfTextureTests
         try
         {
             Layer layer=new ColorFillLayerBehaviour(); doc.layers.Add(layer);
-            var before=Create("float4 ApplyFX(float2 uv,float4 color){return float4(0.2,0.4,0.6,1);}");
-            var sample=Create("// @param texture2D _Source = self\nfloat4 ApplyFX(float2 uv,float4 color){return tex2D(_Source,uv);}");
+            var before=Create("float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return float4(0.2,0.4,0.6,1);}");
+            var sample=Create("// @param texture2D _Source = self\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return tex2D(_Source,uv);}");
             layer.fx.Add(before); layer.fx.Add(sample);
             Pixel(new Color(.2f,.4f,.6f,1));
             var p=((List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(sample))[0];

@@ -22,11 +22,13 @@ public static class ShaderFXPixelLocalTests
         using (var f = new Fixture(t))
         {
             Signatures(t, f);
+            Arithmetic(t, f);
             Rejections(t, f);
             Masks(t, f);
             Persistence(t, f);
             Bypasses(t, f);
             BundledPresets(t, f);
+            AuthoringExamples(t, f);
         }
     });
 
@@ -36,7 +38,7 @@ public static class ShaderFXPixelLocalTests
         t.True(color.IsPixelLocal, "Color-only contract is pixel-local");
         var sample = new Color(.2f, .4f, 2, .25f);
         f.Pixel(f.Render(color, sample), new Color(.4f, .4f, 1, .25f), "Color-only dispatch retains signed/HDR and alpha");
-        var spatial = f.Fx("float4 ApplyFX(float2 uv, float4 color) { return SampleInput(uv); }");
+        var spatial = f.Fx("float4 ApplyFX(PinnedUV uv, float4 color) { float2 p=uv; return SampleInput(p); }");
         t.True(!spatial.IsPixelLocal, "float2 declaration does not claim pixel locality");
         f.Pixel(f.Render(spatial, sample), sample, "Existing spatial dispatch");
         var pinned = f.Fx(@"
@@ -60,7 +62,7 @@ float4 ApplyFX(PinnedUV uv, float4 color)
         var throughSampler = f.Fx("float4 ReadHere(WhimTexTexture source, PinnedUV coordinate) { return SampleTexture(source, coordinate); }\nfloat4 ApplyFX(PinnedUV uv, float4 color) { return ReadHere(_MainTex, uv); }");
         t.True(throughSampler.IsPixelLocal, "Passing MainTex to a pinned sampler helper is not a bypass");
         f.Pixel(f.Render(throughSampler, sample), sample, "Pinned sampler helper matches incoming texture reads");
-        var mainSpatial = f.Fx("float4 ApplyFX(float2 uv, float4 color) { return SampleTexture(_MainTex, uv); }");
+        var mainSpatial = f.Fx("float4 ApplyFX(PinnedUV uv, float4 color) { return SampleTexture(_MainTex, (float2)uv); }");
         t.True(!mainSpatial.IsPixelLocal, "MainTex sampling with a spatial signature does not claim pixel locality");
         var dimensions = f.Fx("float4 ApplyFX(float4 color) { return color * (_MainTex_TexelSize.z / _InputSize.x); }");
         t.True(dimensions.IsPixelLocal, "Texture dimension metadata is not an image read");
@@ -81,13 +83,48 @@ float4 ApplyFX(PinnedUV uv, float4 color)
         t.True(!unapplied.IsPixelLocal && !layer.AreActiveFxPixelLocal(), "Unapplied active FX is not confirmed local");
         unapplied.Active = false;
         t.True(layer.AreActiveFxPixelLocal(), "Disabled unapplied FX is ignored");
-        Call(color, "SetDraftCode", "float4 ApplyFX(float2 uv, float4 color) { return color; }");
+        Call(color, "SetDraftCode", "float4 ApplyFX(PinnedUV uv, float4 color) { return SampleInput(uv + 0); }");
         t.True(color.IsPixelLocal, "Pending source does not change the applied contract");
         Call(color, "ApplyAgentDraft");
         t.True(!color.IsPixelLocal, "Applying the draft replaces the contract");
         Call(pinned, "SetDraftCode", "float4 ApplyFX(PinnedUV uv, float4 color) { uv.x = 0; return color; }");
         try { Call(pinned, "ApplyAgentDraft"); } catch (TargetInvocationException) { }
         t.True(!pinned.IsPixelLocal, "Failed Apply cannot leave a stale true flag");
+    }
+
+    static void Arithmetic(TestContext t, Fixture f)
+    {
+        var sample = new Color(-.2f, .4f, 2, .25f);
+        foreach (string expression in new[] { "uv", "(float2)uv", "float2(uv)", "uv.xy", "uv.yx.yx", "uv+0", "0+uv", "uv-0", "uv*1", "1*uv", "uv/1", "-(-uv)", "lerp(uv, uv, .5)", "min(uv, 1)", "float2(uv[0],uv[1])" })
+        {
+            var fx = f.Fx("float4 ApplyFX(PinnedUV uv,float4 color) {float2 p=" + expression + "; return float4(p,color.b,color.a);}");
+            t.True(fx.IsPixelLocal, "Numeric computation without image reads remains local: " + expression);
+            f.Pixel(f.Render(fx, sample, 2, 1), new Color(2.5f/Fixture.Width, 1.5f/Fixture.Height, 2, .25f), "Numeric conversion: " + expression);
+            var read = f.Fx("float4 ApplyFX(PinnedUV uv,float4 color) {return SampleInput(" + expression + ");}");
+            t.Equal(expression == "uv", read.IsPixelLocal, "Sampling uses the expression type: " + expression);
+            f.Pixel(f.Render(read, sample), sample, "Sampling retains HDR/alpha: " + expression);
+        }
+        foreach (var item in new[] {
+            (true, "PinnedUV Identity(PinnedUV p) {return p;} float4 ApplyFX(PinnedUV uv,float4 color) {return SampleInput(Identity((uv)));}"),
+            (false, "float2 Identity(float2 p) {return p;} float4 ApplyFX(PinnedUV uv,float4 color) {return SampleInput(Identity(uv));}"),
+            (false, "float4 Read(float2 p) {return SampleInput(p);} float4 ApplyFX(PinnedUV uv,float4 color) {return Read(uv);}"),
+            (true, "float4 Read(PinnedUV p) {return SampleInput(p);} float4 Read(float2 p) {return SampleInput(p);} float4 ApplyFX(PinnedUV uv,float4 color) {return Read(uv);}"),
+            (false, "float4 Read(PinnedUV p) {return SampleInput(p);} float4 Read(float2 p) {return SampleInput(p);} float4 ApplyFX(PinnedUV uv,float4 color) {return Read(uv+0);}"),
+            (true, "float4 Unused(float2 p) {return SampleInput(p);} float4 ApplyFX(PinnedUV uv,float4 color) {PinnedUV copy=uv; return SampleInput(copy);}"),
+            (false, "float4 ApplyFX(PinnedUV uv,float4 color) {return SampleInput(uv,0);}"),
+            (true, "float4 ApplyFX(PinnedUV uv,float4 color) {for(int i=0;i<2;i++){float2 p=uv; p+=i;} return SampleInput(uv);}"),
+            (false, "float4 ApplyFX(PinnedUV uv,float4 color) {float4 v=0; for(int i=0;i<2;i++){float2 p=uv; v+=SampleInput(p)*.5;} return v;}"),
+            (false, "float4 Read(float choose,PinnedUV p) {return SampleInput(p);} float4 Read(bool choose,PinnedUV p) {return SampleInput(p+0);} float4 ApplyFX(PinnedUV uv,float4 color) {return Read(uv.x>.5,uv);}"),
+            (false, "#define FETCH Read\nfloat4 Read(float2 p) {return SampleInput(p);}\nfloat4 ApplyFX(PinnedUV uv,float4 color) {return FETCH(uv);}"),
+            (false, "#define FETCH(p) \\\n SampleInput(p)\nfloat4 ApplyFX(PinnedUV uv,float4 color) {return FETCH(uv);}"),
+            (false, "float4 ApplyFX(PinnedUV uv,float4 color) {\n#if 1\nfloat2 p=uv;\n#else\nPinnedUV p=uv;\n#endif\nreturn SampleInput(p);}"),
+            (false, "float4 ApplyFX(float4 color) {return SampleInput(float2(.5,.5));}")
+        })
+        {
+            var fx = f.Fx(item.Item2);
+            t.Equal(item.Item1, fx.IsPixelLocal, "Reachable sampling contract: " + item.Item2);
+            f.Pixel(f.Render(fx, sample), sample, "Helper/loop sampling parity");
+        }
     }
 
     static void Rejections(TestContext t, Fixture f)
@@ -98,22 +135,22 @@ float4 ApplyFX(PinnedUV uv, float4 color)
             "float4 ApplyFX(float4 color, float2 uv) { return color; }",
             "float4 ApplyFX(inout float4 color) { return color; }",
             "float4 ApplyFX(float4 color) { return color; } float4 ApplyFX(float2 uv, float4 color) { return color; }",
-            "float4 ApplyFX(PinnedUV uv, float4 color) { return SampleInput(uv + float2(.1,0)); }",
+            "float4 ApplyFX(float2 uv, float4 color) { return color; }",
             "float4 ApplyFX(PinnedUV uv, float4 color) { uv.y++; return color; }",
             "float4 ApplyFX(PinnedUV uv, float4 color) { PinnedUV p=uv; p.x=0; return color; }",
             "float4 ApplyFX(PinnedUV uv, float4 color) { uv=uv; return color; }",
-            "float4 ApplyFX(PinnedUV uv, float4 color) { float2 p=(float2)uv; return float4(p,0,1); }",
-            "float4 ApplyFX(PinnedUV uv, float4 color) { float2 p=uv; return float4(p,0,1); }",
             "float4 ApplyFX(PinnedUV uv, float4 color) { PinnedUV p=uv*2; return color; }",
             "void Move(inout PinnedUV p) {} float4 ApplyFX(PinnedUV uv, float4 color) { Move(uv); return color; }",
-            "float4 ApplyFX(PinnedUV uv, float4 color) { return SampleInput(float2(uv.x,uv.y)); }",
-            "// @param texture2D _Mask\nfloat4 ApplyFX(PinnedUV uv, float4 color) { return SampleTexture(_Mask,float2(uv.x,uv.y)); }",
-            "float4 ApplyFX(PinnedUV uv, float4 color) { return SampleTexture(_MainTex,float2(uv.x,uv.y)); }",
-            "float4 ApplyFX(float4 color) { return SampleInput(float2(.5,.5)); }",
+            "float4 ApplyFX(PinnedUV uv, float4 color) { uv.xy += 1; return color; }",
+            "PinnedUV Wrong(float2 p) {return p;} float4 ApplyFX(PinnedUV uv,float4 color) {return SampleInput(Wrong(uv));}",
+            "float4 Read(PinnedUV p) {return SampleInput(p);} float4 ApplyFX(PinnedUV uv,float4 color) {return Read((float2)uv);}",
+            "void Move(inout float2 p) {p+=1;} float4 ApplyFX(PinnedUV uv,float4 color) {Move(uv); return color;}",
+            "float4 ApplyFX(PinnedUV uv,float4 color) {PinnedUV p=p; return SampleInput(p);}",
             "float4 ApplyFX(PinnedUV uv, float4 color) { PinnedUV p=(PinnedUV)float2(0,0); return SampleInput(p); }",
             "float4 ApplyFX(PinnedUV uv, float4 color) { PinnedUV p={0,0}; return SampleInput(p); }",
             "struct PinnedUV { float x; float y; }; float4 ApplyFX(PinnedUV uv,float4 color) { return color; }",
-            "#define Alias PinnedUV\nfloat4 ApplyFX(PinnedUV uv,float4 color) { return color; }"
+            "#define Alias PinnedUV\nfloat4 ApplyFX(PinnedUV uv,float4 color) { return color; }",
+            "#define Alias \\\n PinnedUV\nfloat4 ApplyFX(PinnedUV uv,float4 color) { return color; }"
         })
         {
             var fx = f.Fx(code, false);
@@ -155,7 +192,7 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
         f.Pixel(f.Render(mask, source), new Color(source.r, source.g, source.b, 0), "Missing mask layer binds transparent input");
         t.True(mask.IsPixelLocal, "Switching Texture/Self/Layer/None does not change pinned contract");
 
-        var spatial = f.Fx("// @param texture2D _Mask\nfloat4 ApplyFX(float2 uv,float4 color) { return SampleTexture(_Mask,1-uv); }");
+        var spatial = f.Fx("// @param texture2D _Mask\nfloat4 ApplyFX(PinnedUV uv,float4 color) { return SampleTexture(_Mask,1-uv); }");
         Values(spatial)[0].textureValue = texture;
         f.Pixel(f.Render(spatial, source, 0, 0), pixels[7], "Spatial SampleTexture keeps arbitrary UV support");
         t.True(!spatial.IsPixelLocal, "Transformed sampling does not claim pixel locality");
@@ -188,7 +225,14 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
             t.True(restoredFx.IsPixelLocal && restored.Document.layers[0].AreActiveFxPixelLocal(), "JSON reconstructs the code-derived contract");
         }
         layer.fx.Clear();
-        foreach (string form in new[] { "float4 color", "PinnedUV uv, float4 color", "float2 uv, float4 color" })
+        layer.fx.Add(f.Own(ScriptableObject.CreateInstance<ShaderFX>()));
+        using (var restored = WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(f.Document).Json))
+        {
+            var restoredFx = restored.Document.layers[0].fx[0];
+            t.True(restoredFx.IsPixelLocal, "Omitted/default FX source restores the current color-only contract");
+        }
+        layer.fx.Clear();
+        foreach (string form in new[] { "float4 color", "PinnedUV uv, float4 color" })
         {
             var previewFx = f.Fx("// @param preview(Show) float _Amount=.5 [0 .. 1]\n#ifdef WHIMTEX_PREVIEW\nfloat4 Show(float2 uv,float value) { return SampleInput(uv)*value; }\n#endif\nfloat4 ApplyFX(" + form + ") { return color; }");
             var parameter = Values(previewFx)[0];
@@ -223,7 +267,7 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
         }
         var lut = f.Fx("// @param gradient _Colors\nfloat4 ApplyFX(float4 color) {return _Colors_Sample(color.r);}");
         t.True(lut.IsPixelLocal, "Generated gradient LUT is not a document-image read");
-        var comment = f.Fx("// WhimTex pixel-local v1\nfloat4 ApplyFX(float2 uv,float4 color) {return color;}");
+        var comment = f.Fx("// WhimTex pixel-local v1\nfloat4 ApplyFX(PinnedUV uv,float4 color) {return SampleInput(uv+0);}");
         t.True(!comment.IsPixelLocal, "A user comment cannot forge the generated contract header");
     }
 
@@ -231,7 +275,7 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
     {
         var local = new HashSet<string>(StringComparer.Ordinal) {
             "BrightnessContrast", "ColorBalance", "ColorFilter", "Gain", "GradientMap", "HueSaturation",
-            "Levels", "Negative", "Normalize", "Step", "Threshold", "NormalLighting", "Posterize"
+            "Levels", "Negative", "Normalize", "Step", "Threshold", "NormalLighting", "Posterize", "ChromaKey", "DomainWarp"
         };
         int localCount = 0;
         var paths = Directory.GetFiles("Packages/com.dcfapixels.whimtex/src/FXPresets", "*.hlsl");
@@ -243,8 +287,8 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
             t.Equal(local.Contains(name), fx.IsPixelLocal, name + " declares the correct pixel-local contract");
             if (!local.Contains(name)) continue;
             localCount++;
-            string baseline = code.Replace("ApplyFX(float4 color)", "ApplyFX(float2 uv, float4 color)")
-                .Replace("ApplyFX(PinnedUV uv, float4 color)", "ApplyFX(float2 uv, float4 color)")
+            string baseline = System.Text.RegularExpressions.Regex.Replace(code,
+                @"ApplyFX\((?:PinnedUV uv, )?float4 color\)\s*\{", "ApplyFX(PinnedUV pinned, float4 color) { float2 uv = pinned;")
                 .Replace("floor(float2(uv.x, uv.y) *", "floor(uv *")
                 .Replace("SampleTexture(_Normals, uv)", "tex2D(_Normals, uv)");
             var original = f.Fx(baseline);
@@ -268,6 +312,25 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
                     f.Pixel(f.Render(fx, source, x, 1), f.Render(original, source, x, 1), name + " retains its original pixels at " + x);
         }
         t.Equal(local.Count, localCount, "All migrated built-in presets were checked");
+    }
+
+    [Serializable] sealed class CodeValue { public string code; }
+
+    static void AuthoringExamples(TestContext t, Fixture f)
+    {
+        int count = 0;
+        var codePattern = new System.Text.RegularExpressions.Regex("\"code\"\\s*:\\s*(\"(?:\\\\.|[^\"\\\\])*\")");
+        foreach (string folder in new[] { "Samples~/AgentTextures", "Documentation~/Examples/Clipboard" })
+            foreach (string file in Directory.GetFiles("Packages/com.dcfapixels.whimtex/" + folder, "*.json"))
+                foreach (System.Text.RegularExpressions.Match match in codePattern.Matches(File.ReadAllText(file)))
+                {
+                    string code = JsonUtility.FromJson<CodeValue>("{\"code\":" + match.Groups[1].Value + "}").code;
+                    if (string.IsNullOrWhiteSpace(code)) continue;
+                    try { f.Fx(code); }
+                    catch (Exception error) { throw new Exception("Authoring example failed: " + file, error); }
+                    count++;
+                }
+        t.True(count > 30, "Current authoring examples compile: " + count);
     }
 
     sealed class Fixture : IDisposable

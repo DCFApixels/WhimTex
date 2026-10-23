@@ -16,7 +16,7 @@ public static class GradientFXTests
         var metadata = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata");
         List<ShaderFXParameter> Parse(string text) => (List<ShaderFXParameter>)metadata.GetMethod("Parse", flags).Invoke(null, new object[] { text, false, null });
         void Check(bool ok, string reason) { UnityBRun.Check(!(!ok), reason); }
-        const string code = "// @param gradient _Ramp // Color mapping\n// @param gradient _Ramp // Linked gradient\nfloat4 ApplyFX(float2 uv, float4 color) { return _Ramp_Sample(uv.x * 2 - 0.5); }";
+        const string code = "// @param gradient _Ramp // Color mapping\n// @param gradient _Ramp // Linked gradient\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return _Ramp_Sample(uv.x * 2 - 0.5); }";
         var parsed = Parse(code);
         Check(parsed.Count == 1 && parsed[0].type == ShaderFXParameterType.Gradient, "Gradient parsing");
         Check(parsed[0].gradientValue.Mode == WhimTexGradientMode.Perceptual, "Implicit gradient keeps the new Perceptual default");

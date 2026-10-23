@@ -100,7 +100,7 @@ static System.Threading.CancellationToken Cancellation;
             parameters.Find(p => p.name == "_Brightness").floatValue = 100;
             parameters.Find(p => p.name == "_Contrast").floatValue = 0;
             sourceFx = (ShaderFX)draft.Invoke(null, new object[] { doc,
-                "float4 ApplyFX(float2 uv, float4 color) { return float4(.25,.5,.75,.37); }", new List<ShaderFXParameter>() });
+                "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(.25,.5,.75,.37); }", new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(sourceFx, null);
             Layer child = new ColorFillLayerBehaviour(); child.fx.Add(sourceFx);
             Layer group = new GroupLayerBehaviour(); group.children.Add(child); group.fx.Add(fx); doc.layers.Add(group);

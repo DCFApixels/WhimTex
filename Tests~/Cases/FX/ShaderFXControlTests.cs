@@ -37,7 +37,7 @@ public static class ShaderFXControlTests
         Check(Read("// @control(_A)\n// @control(_B)",out warning)=="_B" && warning.Contains("last declaration wins"), "Last wins");
         Check(Read("/*\n// @control(_A)\n*/",out warning)==null && warning=="", "Ignore block comments");
         Check(Read("// @control(_A)\n// @control()",out warning)==null && warning.Contains("expected"), "Malformed last does not resurrect earlier binding");
-        const string source="// @control(_Opacity)\n// @param label(Opacity) float _Opacity = 1 [0..1]\nfloat4 ApplyFX(float2 uv,float4 color){return color * _Opacity;}";
+        const string source="// @control(_Opacity)\n// @param label(Opacity) float _Opacity = 1 [0..1]\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return color * _Opacity;}";
         var doc=ScriptableObject.CreateInstance<WhimTexDocument>();doc.width=16;doc.height=16;
         Layer layer=new ColorFillLayerBehaviour();doc.layers.Add(layer);
         ShaderFX effect=null;ShaderFXControlTestsWindow window=null;WhimTexDocument loaded=null;
@@ -114,7 +114,7 @@ public static class ShaderFXControlTests
             Set("// @control(_Missing)\n"+source);
             ApplyOwnedDraft();
             Check(((string)typeof(ShaderFX).GetProperty("Diagnostics",F).GetValue(effect)).Contains("last declaration wins"),"Compilation succeeds with duplicate warning");
-            Set("// @control(_Missing)\n// @param float _Value\nfloat4 ApplyFX(float2 uv,float4 color){return color;}");
+            Set("// @control(_Missing)\n// @param float _Value\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return color;}");
             ApplyOwnedDraft();
             Check(header.childCount==0&&((string)typeof(ShaderFX).GetProperty("Diagnostics",F).GetValue(effect)).Contains("undeclared"),"Unknown reference is warning only");
             Set(source);

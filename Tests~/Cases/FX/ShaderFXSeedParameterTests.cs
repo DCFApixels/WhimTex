@@ -21,7 +21,7 @@ public static class ShaderFXSeedParameterTests
         const string code = "// @whimtex-effect Test/Seed\n// @control(_Seed)\n" +
             "// @param label(Seed) seed float _Seed = 2.5 [2.1 .. 3.8]\n" +
             "// @param seed hidden float _Hidden = -1 [~ -2.2 .. ~ -0.1]\n" +
-            "float4 ApplyFX(float2 uv, float4 color) { return float4(_Seed, _Hidden, color.b, color.a); }\n";
+            "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(_Seed, _Hidden, color.b, color.a); }\n";
         var parameters = Parse(code);
         t.True(parameters[0].controls[0].seed && parameters[1].controls[0].seed, "Explicit modifier is stored on each control");
         t.True(parameters[1].controls[0].hidden && parameters[1].softMinimum && parameters[1].softMaximum, "Hidden/soft modifiers coexist");

@@ -82,7 +82,7 @@ public static class DocumentJsonValidationTests
         Accept(Noise("\"seed\":-2147483648"));
         Accept(Noise("\"seed\":2147483647"));
         string TextureInput(string id, string source) => "{\"id\":\"" + id + "\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}," +
-            "\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"// @param texture2D _Map\\nfloat4 ApplyFX(float2 uv,float4 color){return color;}\",\"parameters\":[{\"name\":\"_Map\",\"type\":\"Texture2D\",\"textureSource\":\"Layer\",\"textureLayerId\":\"" + source + "\"}]}]}";
+            "\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"// @param texture2D _Map\\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return color;}\",\"parameters\":[{\"name\":\"_Map\",\"type\":\"Texture2D\",\"textureSource\":\"Layer\",\"textureLayerId\":\"" + source + "\"}]}]}";
         Reject(Doc(layers: "[" + TextureInput("self", "self") + "]"), "Invalid or cyclic FX input");
         Reject(Doc(layers: "[" + TextureInput("a", "b") + "," + TextureInput("b", "a") + "]"), "Invalid or cyclic FX input");
         string target = "{\"id\":\"target\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"source\"}}";
@@ -90,7 +90,7 @@ public static class DocumentJsonValidationTests
         target = "{\"id\":\"target\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"AllBelow\"}}";
         Reject(Doc(layers: "[" + target + "," + TextureInput("source", "target") + "]"), "Invalid or cyclic layer input");
         string inactiveTexture = Doc(layers: Layer("{\"$type\":\"ColorFillLayerBehaviour\"}",
-            ",\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"// @param float _Unused = 1\\nfloat4 ApplyFX(float2 uv,float4 color){return color;}\",\"parameters\":[{\"name\":\"_Unused\",\"type\":\"Float\",\"textureSource\":\"Layer\",\"textureLayerId\":\"unused-source\"}]}]"));
+            ",\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"// @param float _Unused = 1\\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return color;}\",\"parameters\":[{\"name\":\"_Unused\",\"type\":\"Float\",\"textureSource\":\"Layer\",\"textureLayerId\":\"unused-source\"}]}]"));
         using (var read = WhimTexDocumentJson.Read(inactiveTexture, false))
         {
             var stored = WhimTexDocumentJson.Write(read.Document, new WhimTexJsonWriteOptions { Mode = WhimTexJsonWriteMode.Full });
@@ -129,7 +129,7 @@ public static class DocumentJsonValidationTests
             Check(report.success && report.valid && report.warnings.Length == 1 && report.warnings[0].Contains("Missing asset"), "Load warning missing from Validate.");
             Check(File.ReadAllText(path) == missing, "Validation changed source bytes.");
             string broken = Doc(layers: Layer("{\"$type\":\"ColorFillLayerBehaviour\"}",
-                ",\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"// @param float _Amount = invalid\\nfloat4 ApplyFX(float2 uv,float4 color){return color;}\"}]"));
+                ",\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"// @param float _Amount = invalid\\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return color;}\"}]"));
             File.WriteAllText(path, broken);
             report = ReplyOf(WhimTexApi.Validate(path));
             Check(report.success && !report.valid && report.warnings.Length > 0 && report.errors.Length > 0, "Failed FX readiness/load warnings not reported.");

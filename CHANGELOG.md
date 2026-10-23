@@ -47,8 +47,8 @@ All notable changes to WhimTex are documented in this file.
 
 - FX Code shows the compiled shader's Pixel Local status above the code text area, distinguishing changed drafts and unavailable shaders. Shader Inputs uses separated sections, bulleted declarations and highlighted identifiers. The code-compilation button is now Compile; Apply and Apply All retain their pixel-baking behavior.
 
-- HLSL FX accept color-only, immutable `PinnedUV` and spatial `float2` ApplyFX signatures. `SampleInput` and `SampleTexture` are the primary image-reading helpers, including Texture/Layer/Self/None masks. Pinned coordinates reject writes, arithmetic and numeric conversions; detected low-level bypass reads or derivatives retain compilation but prevent pixel-local confirmation. Public `ShaderFX.IsPixelLocal` and `Layer.AreActiveFxPixelLocal()` expose the applied contract.
-- Thirteen built-in FX now declare their pixel-local behavior without changing calculations: eleven color-only presets plus Posterize and Normal Lighting using `PinnedUV`. New inline FX use a color-only template; spatial presets retain `float2`.
+- HLSL FX use `ApplyFX(PinnedUV uv, float4 color)` or the color-only entry point. Pinned coordinates support arithmetic and implicit/explicit conversion to `float2`; arithmetic and swizzles lose the pin, while reverse conversion and mutation are rejected. Locality follows coordinate types in reachable `SampleInput`/`SampleTexture` calls, including helpers and includes. Numeric sampling or explicit tiling is spatial; procedural coordinate math alone remains local. Low-level or unresolved reads stay conservative. Compile/inspection reasons identify the applied sampling sites.
+- Built-in FX, current authoring examples and Shader Inputs use the same coordinate contract. The former `ApplyFX(float2 uv, float4 color)` entry point is rejected with a clear diagnostic; user document/preset code is not automatically rewritten. New inline FX retain the color-only template.
 - Pixel-local classification accepts `SampleTexture(_MainTex, uv)` with `PinnedUV` and texture-size metadata instead of treating the sampler name itself as a bypass. Direct sampling, including mixed helper/direct reads, remains unconfirmed; Shader Inputs explains the distinction.
 
 - Gradient layers offer Freeform color points with direct canvas creation and dragging, per-point HDR color, opacity and influence, and a draggable influence guide. Point edits support Undo/Redo, TIFF/JSON storage and the shared agent API; zoomed previews evaluate the visible region at its requested resolution.
@@ -162,6 +162,8 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- FX rebuild outdated generated coordinate contracts after reload without applying pending drafts. Compact JSON restores the current color-only default source instead of the retired float2 entry point.
 
 - Duplicating Drawing layers and applying FX flush pending paint without replacing untouched source pixels with a lower-precision preview readback.
 - Healing Brush Redo restores the first stroke on an initially empty Drawing layer instead of recreating blank pixel storage.

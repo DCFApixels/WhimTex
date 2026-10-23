@@ -88,7 +88,7 @@ Declare the parameter in the code, then click **Compile**:
 ```hlsl
 // @param float _Amount = 1 [0 .. 1]
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     return float4(lerp(color.rgb, 1.0 - color.rgb, saturate(_Amount)), color.a);
 }
@@ -112,7 +112,7 @@ Fixing all issues clears the indicators; a successful compilation with warnings 
 come later. Built-in inputs include `_MainTex`, `_MainTex_TexelSize`, `_InputSize`,
 `_CanvasSize` (width, height, 1/width, 1/height) and `_RenderScale`. Do not redeclare generated uniforms.
 
-For the spatial `float2` signature, `SampleInput(uv, tiling)` selects input addressing: `0` Clamp, `1` Repeat, `2` Mirror,
+`SampleInput(uv, tiling)` selects spatial input addressing: `0` Clamp, `1` Repeat, `2` Mirror,
 `3` Clip (transparent outside UV 0–1). Repeat interpolates across both image seams with
 the input's Point/Bilinear filter; intermediate FX textures have no mipmaps, so Trilinear
 uses the same base-level interpolation. This helper does not change the source texture.
@@ -206,18 +206,30 @@ An effect defines exactly one of these `float4` entry points. Argument names are
 `ApplyFX` definitions are not supported.
 
 ```hlsl
-float4 ApplyFX(float4 color)                         // Color-only pixel-local contract.
-float4 ApplyFX(PinnedUV uv, float4 color)            // Pixel-local coordinates and texture reads.
-float4 ApplyFX(float2 uv, float4 color)              // General spatial coordinates and reads.
+float4 ApplyFX(float4 color)                        // No coordinate parameter.
+float4 ApplyFX(PinnedUV uv, float4 color)            // Current pixel coordinate.
 ```
 
-Pixel-local means that image reads refer to the corresponding current coordinate, not an
-arbitrarily displaced image location. `PinnedUV` is a reserved, immutable coordinate type,
-not a numeric vector. Read `.x`/`.y`, copy it or pass it to a helper accepting `PinnedUV`.
-Arithmetic, component writes, reassignment, constructors, component initializers, casts and
-`out`/`inout` use are rejected. Helpers in resolved project/package includes obey the same rules.
-You may build a `float2` from its components for procedural calculations; this does not create
-another `PinnedUV` or grant permission to use that `float2` for pixel-local image sampling.
+Locality is inferred from reachable image reads, including helper functions and expanded
+includes. The entry signature alone does not determine it. The old `ApplyFX(float2, float4)`
+signature is rejected with a diagnostic; document-owned code is not silently rewritten.
+
+`PinnedUV` is immutable. Copies, parentheses and helper parameters/returns of the same
+type retain the current coordinate. Arithmetic, swizzles, indexing, numeric constructors,
+implicit `float2 p = uv` and explicit `(float2)uv` conversion produce ordinary numeric
+values. Numeric values cannot become `PinnedUV`, even when they happen to equal the current
+coordinate. Mutation, component writes, uninitialized pinned locals, construction, arrays,
+struct fields, aliases and `out`/`inout` pinned arguments are rejected.
+
+The authoring pass inserts portable HLSL conversions before Unity compiles the shader;
+this does not require HLSL operator-overloading support or add a GPU pass.
+
+`SampleInput(uv)` and `SampleTexture(_Mask, uv)` with pinned UV are local.
+`SampleInput(uv + offset)`, `SampleInput((float2)uv)` and reads inside helpers accepting
+`float2` are spatial. Even `uv + 0` loses the pin. UV arithmetic used only to compute
+color, procedural noise or a gradient lookup does not make an effect spatial.
+Numeric overload resolution is conservative: possible helper overloads all participate.
+Macros invoking helpers/sampling or ambiguous preprocessor coordinate types remain unverified.
 
 **`SampleInput` and `SampleTexture` are WhimTex's primary texture-reading API.**
 `_MainTex` is the incoming `WhimTexTexture`, not a bypass by itself. `SampleTexture(_MainTex, uv)`
@@ -227,10 +239,10 @@ remain bypass paths, including when mixed with approved helper calls.
 `SampleInput(uv)` reads the current FX input, including previous FX. `SampleTexture(_Mask, uv)`
 reads a declared `texture2D` parameter at the corresponding normalized coordinate, including
 Texture, Layer, Self and None sources. Different resolutions do not change coordinate meaning.
-In the two pixel-local signatures these functions accept only `PinnedUV`; a color-only effect
-has no pinned coordinate to pass. The spatial signature also accepts `float2`, and retains
-the existing `SampleInput(float2, tiling)` addressing overload. Preview callbacks retain their
-existing `float2` interface and may use the spatial reading overloads.
+Both entry forms may use numeric sampling. Explicit `SampleInput(uv, tiling)` addressing
+is spatial even when UV is pinned. Preview callbacks retain their `float2` interface and
+complete reduced inputs; their reads do not change the main function's typed sampling status.
+Direct low-level bypass detection remains conservative across the complete source.
 
 `_MainTex` and declared `texture2D` parameters are read-only **`WhimTexTexture`** values.
 Each value carries its sampler, its own mapping from whole-image UV to the stored region,
@@ -276,7 +288,7 @@ not the primary API. Detected bypass reads, derivatives and unresolved compiler 
 leave the shader usable but prevent confirmation of pixel locality and produce a shared warning.
 This is an authoring contract, not a sandbox against deliberately hidden HLSL bypasses.
 Generated curve/gradient lookups and the reserved hue lookup are independent of image-neighbor reads.
-The transformable Mask preset keeps its spatial signature because it permits displaced mask coordinates.
+The transformable Mask preset remains spatial because it samples displaced mask coordinates.
 
 Built-in Brightness Contrast, Color Balance, Color Filter, Gain, Gradient Map, Hue & Saturation,
 Levels, Negative, Normalize, Step and Threshold use the color-only entry point. Posterize uses
@@ -285,7 +297,7 @@ for the normal input. Their calculations and output are unchanged. New inline FX
 the color-only tint template; existing document-owned code is not rewritten.
 
 `ShaderFX.IsPixelLocal` is a public read-only bool describing the applied, successfully compiled
-shader, not pending code edits. It is false before compilation, after failed compilation, for spatial signatures
+shader, not pending code edits. It is false before compilation, after failed compilation, for spatial reads
 and for unconfirmed declarations. It does not depend on Active. `Layer.AreActiveFxPixelLocal()`
 checks this layer's active non-null FX; an empty chain returns true, disabled FX are ignored,
 and an active unavailable/unconfirmed FX returns false. Child layers and source generation are not checked.
@@ -641,7 +653,7 @@ Full validation and loading happen when a preset is selected; invalid source rep
 // @whimtex-effect Color/Invert
 // @param float _Amount = 1 [0 .. 1]
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     return float4(lerp(color.rgb, 1 - color.rgb, _Amount), color.a);
 }
@@ -681,7 +693,7 @@ Use `// @control(_Opacity)` immediately after the catalog marker, or on the firs
 // @control(_Opacity)
 // @param hidden float _Opacity = 1 [0 .. 1]
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     return float4(color.rgb, color.a * _Opacity);
 }
@@ -1028,7 +1040,7 @@ The source value is not clamped; `_Smooth` is the half-width of the smoothstep i
 
 ```hlsl
 // @param curve _Profile = keys((0, 0, 1, 1, 0, 0, 0), (1, 1, 1, 1, 0, 0, 0))
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     return float4(color.rgb * _Profile_Sample(uv.x), color.a);
 }
@@ -1066,7 +1078,7 @@ Gradient parameters also work in HLSL brush tips, with the same sampling and exp
 
 ```hlsl
 // @param gradient _Ramp // Map input brightness to colors.
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     float4 mapped = _Ramp_Sample(dot(color.rgb, float3(0.2126, 0.7152, 0.0722)));
     return float4(mapped.rgb, mapped.a * color.a);
@@ -1224,7 +1236,7 @@ Define any region mask/falloff in the effect itself; Transform2D does not automa
 // @whimtex-effect Transform/Place Image
 // @param transform2D _Area
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     float2 p = _Area_ToLocal(uv);
     if (any(p < 0) || any(p > 1)) return 0;

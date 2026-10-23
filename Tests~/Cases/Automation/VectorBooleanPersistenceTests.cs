@@ -75,7 +75,7 @@ public static class VectorBooleanPersistenceTests
     {
         var effect = ScriptableObject.CreateInstance<ShaderFX>(); owned.Add(effect);
         effect.hideFlags = HideFlags.HideAndDontSave; effect.name = "Retained child appearance";
-        typeof(ShaderFX).GetField("code", Flags).SetValue(effect, "float4 ApplyFX(float2 uv, float4 color) { return color; }");
+        typeof(ShaderFX).GetField("code", Flags).SetValue(effect, "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }");
         typeof(ShaderFX).GetField("active", Flags).SetValue(effect, false);
         return effect;
     }

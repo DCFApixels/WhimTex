@@ -195,7 +195,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const layerFx = fields => ({ format: 'whimtex.document', version: 2,
       layers: [{ id: 'fx', behaviour: { $type: 'ColorFillLayerBehaviour' }, ...fields }] });
     validate(layerFx({ fx: [] }), schema);
-    validate(layerFx({ fx: [{ $type: 'ShaderFX', $id: 'owned', code: 'float4 ApplyFX(float2 uv,float4 c){return c;}' }, { $ref: 'owned' }, null] }), schema);
+    validate(layerFx({ fx: [{ $type: 'ShaderFX', $id: 'owned', code: 'float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return c;}' }, { $ref: 'owned' }, null] }), schema);
     for (const type of ['UnityEngine.Material', 'UnityEngine.Shader', 'DCFApixels.WhimTex.ShaderFX'])
       assert.throws(() => validate(layerFx({ fx: [{ $asset: { guid: 'missing', path: 'Assets/RemovedFX.asset', localId: '0', type } }] }), schema), 'Only HLSL model entries and internal identities are allowed');
     assert.throws(() => validate(layerFx({ modifiers: [] }), schema));

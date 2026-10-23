@@ -35,7 +35,7 @@ public static class ShaderFXTextureLayersTests
             doc.layers.Add(consumer); doc.layers.Add(source);
             typeof(WhimTexDocument).GetMethod("NormalizeModel", F).Invoke(doc, null);
             fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc,
-                "// @param texture2D _Map\nfloat4 ApplyFX(float2 uv,float4 color){return tex2D(_Map,uv);}", new List<ShaderFXParameter>() });
+                "// @param texture2D _Map\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return tex2D(_Map,uv);}", new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
             consumer.fx.Add(fx);
             var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);

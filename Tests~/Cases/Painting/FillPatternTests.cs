@@ -230,7 +230,7 @@ public static class FillPatternTests
             var draft=typeof(ShaderFX).GetMethod("CreateAgentDraft",F,null,
                 new[]{typeof(WhimTexDocument),typeof(string),typeof(System.Collections.Generic.List<ShaderFXParameter>)},null);
             effect=(ShaderFX)draft.Invoke(null,new object[]{doc,
-                "float4 ApplyFX(float2 uv,float4 color){ return float4(1-color.rgb,color.a); }",
+                "float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv; return float4(1-color.rgb,color.a); }",
                 new System.Collections.Generic.List<ShaderFXParameter>()});
             typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(effect,null);
             layer.fx.Add(effect);

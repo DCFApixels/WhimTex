@@ -161,7 +161,7 @@ Set(At(endpoints, "operations", 0, "settings", "normalMap"), "gamma", 8.001);
 Reject(endpoints, "invalid_request");
 
 var fxDependency = Batch("[{\"op\":\"fx\",\"layer\":\"" + imageId + "\",\"edits\":[{\"op\":\"add\",\"parameters\":{\"_Source\":{\"layer\":\"" + inkId + "\"}}}]},{\"op\":\"delete\",\"layer\":\"" + inkId + "\"}]");
-Set(At(fxDependency, "operations", 0, "edits", 0), "code", "// @param texture2D _Source = none\nfloat4 ApplyFX(float2 uv, float4 color) { return color; }");
+Set(At(fxDependency, "operations", 0, "edits", 0), "code", "// @param texture2D _Source = none\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }");
 Set(fxDependency, "dryRun", true);
 Reject(fxDependency, "invalid_target");
 

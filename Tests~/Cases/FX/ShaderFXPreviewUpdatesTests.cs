@@ -35,7 +35,7 @@ float4 P(float2 uv, float value) { return float4(value, _Amount, 0, 1); }
 float4 V(float2 uv, float2 value, float amount) { return float4(value.x, amount, value.y, 1); }
 float4 C(float2 uv, float4 value, float amount) { return float4(value.r, amount, 0, 1); }
 float4 U(float2 uv, float amount) { return float4(uv.x, amount, 0, 1); }
-float4 ApplyFX(float2 uv, float4 color) { return color; }
+float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }
 ";
             var values = (List<ShaderFXParameter>)T("ShaderFXMetadata").GetMethod("Parse", F).Invoke(null, new object[] { code, false, null });
             var effect = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,

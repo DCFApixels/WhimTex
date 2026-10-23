@@ -58,7 +58,7 @@ public static class ShaderFXDocumentDirtyTests
         if (preset == "inline")
         {
             effect = (ShaderFX)Invoke(typeof(ShaderFX), null, "CreateAgentDraft", doc,
-                "float4 ApplyFX(float2 uv, float4 color) { return color * 0.75; }", new List<ShaderFXParameter>());
+                "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * 0.75; }", new List<ShaderFXParameter>());
             Call(effect, "ApplyAgentDraft");
         }
         else if (preset != null) effect = (ShaderFX)Invoke(typeof(ShaderFX), null, "FromCatalog", doc, Entry(preset));

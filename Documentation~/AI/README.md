@@ -565,7 +565,7 @@ recommendation, not a requirement: custom noise or point distributions may suit 
 
 ```hlsl
 // @param float _Scale = 8 [0.1 .. 64]
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     fnl_state noise = fnlCreateState(123);
     noise.noise_type = FNL_NOISE_PERLIN;
@@ -672,24 +672,26 @@ Write a fragment function, **not a complete ShaderLab shader**:
 ```hlsl
 // @whimtex-effect Color/Invert
 // @param float _Amount = 1 [0 .. 1]
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     return float4(lerp(color.rgb, 1 - color.rgb, _Amount), color.a);
 }
 ```
 
-The supported signatures are `float4 ApplyFX(float4 color)`,
-`float4 ApplyFX(PinnedUV uv, float4 color)` and `float4 ApplyFX(float2 uv, float4 color)`.
-Define exactly one; parameter names may vary, and `const`/`in` are optional. The first two
-declare a pixel-local contract: image reads use the corresponding current coordinate.
-`PinnedUV` exposes read-only `.x`/`.y`, can be copied or passed to PinnedUV helpers, and does
-not support arithmetic, mutation, numeric casts or construction from arbitrary coordinates.
-Reconstructing `float2(uv.x, uv.y)` is allowed for calculations, not for pixel-local image reads.
+The supported signatures are `float4 ApplyFX(float4 color)` and
+`float4 ApplyFX(PinnedUV uv, float4 color)`. Define exactly one; parameter names may vary,
+and `const`/`in` are optional. `ApplyFX(float2, float4)` is no longer supported.
+`PinnedUV` is immutable and converts to `float2` implicitly or explicitly. Arithmetic,
+swizzles and numeric helpers lose the pin; conversion back, construction and mutation are
+forbidden. Same-type copies and pinned helper arguments/returns retain it.
+Locality follows the coordinate type in reachable `SampleInput`/`SampleTexture` calls:
+pinned is local; numeric coordinates or explicit tiling are spatial. Procedural UV math
+without image reads remains local. Unverifiable macro/bypass dependencies use a conservative path.
 
 **`SampleInput` and `SampleTexture` are the primary WhimTex API for reading textures.**
 `SampleTexture(_Mask, uv)` reads a declared `texture2D` parameter, including Texture, Layer,
-Self and None sources. Pixel-local signatures accept only `PinnedUV` in these reading functions;
-the spatial `float2` signature also allows displaced coordinates.
+Self and None sources. Both reading functions accept pinned or numeric coordinates;
+only unchanged pinned coordinates confirm a local read.
 `_MainTex` and declared `texture2D` parameters have the read-only HLSL type
 `WhimTexTexture`. Use that type for helper/preview arguments and texture return values,
 not `sampler2D`. `SampleTexture` maps whole-input UV to each texture's own stored region;
@@ -719,7 +721,7 @@ input at another UV, including earlier FX. Return straight RGBA in linear workin
 Shader Processor receives the lower composite; a regular layer's FX receives that layer's image.
 To generate an image from scratch, use a Color layer with FX replacing its color.
 
-With the spatial signature, `SampleInput(uv, tiling)` addresses the input as Clamp (0), Repeat (1), Mirror (2), or
+`SampleInput(uv, tiling)` uses spatial addressing: Clamp (0), Repeat (1), Mirror (2), or
 Clip (3; transparent outside UV 0–1). Repeat filters across opposite edges and respects
 the current input's Point/Bilinear filtering without changing texture import settings.
 Expose tiling through a normal enum `@param`. The one-argument function is unchanged.

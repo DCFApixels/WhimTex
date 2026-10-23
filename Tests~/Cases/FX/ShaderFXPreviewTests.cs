@@ -32,7 +32,7 @@ float4 ShowValue(float2 uv, float value) { return float4(value, _Amount, uv.y, 1
 float4 ShowUV(float2 uv) { return float4(uv, _Offset.x, 1); }
 float4 ShowInput(float2 uv) { return SampleInput(uv); }
 #endif
-float4 ApplyFX(float2 uv, float4 color) { return color; }
+float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }
 ";
         var parse = Type("ShaderFXMetadata").GetMethod("ParseWithPreviews", F);
         object[] args = { code, false, null, null };
@@ -174,7 +174,7 @@ float4 ApplyFX(float2 uv, float4 color) { return color; }
 float4 Pair(float2 uv, float first, float second, float4 tint) { return float4(first, second, tint.r, 1); }
 float4 RangeTint(float2 uv, float2 range, float4 tint) { return float4(range, tint.r, 1); }
 #endif
-float4 ApplyFX(float2 uv, float4 color) { return color; }
+float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }
 ";
         var parse = Type("ShaderFXMetadata").GetMethod("ParseWithPreviews", F);
         object[] args = { code, false, null, null };
@@ -391,7 +391,7 @@ float4 ApplyFX(float2 uv, float4 color) { return color; }
             UnityEngine.Object.DestroyImmediate(correctionPixel);
         }
 
-        const string lutCode = "float4 ApplyFX(float2 uv, float4 color) { float h = uv.x * 3 - 1; return float4(WhimTexHue(h), WhimTexHueLinear(h).r); }";
+        const string lutCode = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; float h = uv.x * 3 - 1; return float4(WhimTexHue(h), WhimTexHueLinear(h).r); }";
         var lutFX = (ShaderFX)create.Invoke(null, new object[] { null, lutCode, new List<ShaderFXParameter>() });
         Shader lutShader = null;
         Material lutMaterial = null;

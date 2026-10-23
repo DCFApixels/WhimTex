@@ -25,10 +25,10 @@ public static class ShaderFXDiagnosticsTests
         var logs = new List<(string text, LogType type)>();
         string token = Guid.NewGuid().ToString("N");
         string path = "Assets/WhimTexTestMigration/Diagnostics_" + token + ".hlsl";
-        string clean = "float4 ApplyFX(float2 uv, float4 color) { return color; }";
+        string clean = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return SampleInput(uv); }";
         string control = "// @control(_Missing_" + token + ")\n" + clean;
-        string mixed = control.Replace("return color;", "return color + _Time.y * 0.01;");
-        string broken = "float4 ApplyFX(float2 uv, float4 color) { return color + _Time.y + _Missing_" + token + "; }";
+        string mixed = control.Replace("return SampleInput(uv);", "return SampleInput(uv) + _Time.y * 0.01;");
+        string broken = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color + _Time.y + _Missing_" + token + "; }";
         string malformed = "// @param nonsense _Bad_" + token + "\n" + clean;
         Application.LogCallback capture = (text, stack, type) =>
         {
@@ -74,7 +74,7 @@ public static class ShaderFXDiagnosticsTests
             test.Equal(2, Logged(path), "Transient compiles share suppression for every warning");
             object compiled = ParseJson(WhimTexApi.CompileFXSource(mixed));
             CheckApi(test, compiled, true, 2);
-            CheckLocality(test, compiled, "spatial", "spatial_entry_point", 2);
+            CheckLocality(test, compiled, "spatial", "spatial_sample", 2);
             CheckParity(test, Messages(effect), At(compiled, "diagnostics"));
             int beforeRepeat = logs.Count;
             CheckApi(test, ParseJson(WhimTexApi.CompileFXSource(mixed)), true, 2);
@@ -85,7 +85,7 @@ public static class ShaderFXDiagnosticsTests
             CheckParity(test, Messages(effect), At(first, "diagnosticMessages"));
             test.Equal(2, Count(At(first, "warnings")), "Live inspection exposes all warning records");
             test.Equal(0, Count(At(first, "errors")), "Live inspection does not turn warnings into errors");
-            CheckLocality(test, first, "spatial", "spatial_entry_point", 2);
+            CheckLocality(test, first, "spatial", "spatial_sample", 2);
             test.Equal(path, At(First(At(At(first, "locality"), "reasons")), "file").ToString(), "Live locality retains the applied source path");
             Locality(test, Create);
 
@@ -101,7 +101,7 @@ public static class ShaderFXDiagnosticsTests
                 var loadedFx = (ShaderFX)loaded.Document.layers[0].fx[0];
                 test.Equal(2, Messages(loadedFx).Count, "JSON load preserves both warning producers");
                 test.True(!(bool)Read(loadedFx, "IsUnavailable"), "JSON warning-only FX remains usable");
-                CheckLocality(test, Snapshot(loadedFx), "spatial", "spatial_entry_point", 2);
+                CheckLocality(test, Snapshot(loadedFx), "spatial", "spatial_sample", 2);
             }
             using (var loaded = WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(document).Json, false))
             {
@@ -201,7 +201,7 @@ public static class ShaderFXDiagnosticsTests
     private static void Locality(TestContext test, Func<string, string, ShaderFX> create)
     {
         const string local = "float4 ApplyFX(PinnedUV uv, float4 color) { return SampleInput(uv); }";
-        const string spatial = "float4 ApplyFX(float2 uv, float4 color) { return SampleInput(uv); }";
+        const string spatial = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return SampleInput(uv); }";
         const string direct = "// Leading comment\nfloat4 ApplyFX(float4 color)\n{\n    return tex2D(_MainTex, float2(.2, .7));\n}";
         const string derivative = "float4 ApplyFX(PinnedUV uv, float4 color) { return color + ddx(uv.x); }";
         const string path = "Assets/LocalityReport.hlsl";
@@ -213,6 +213,14 @@ public static class ShaderFXDiagnosticsTests
         test.True(Apply(effect), "Local shader applies");
         CheckLocality(test, Snapshot(effect), "pixelLocal");
         test.True(effect.IsPixelLocal, "API agrees with renderer flag");
+        var appliedSource = typeof(ShaderFX).GetField("appliedSource", All);
+        string currentWrapper = (string)appliedSource.GetValue(effect);
+        appliedSource.SetValue(effect, currentWrapper.Replace("FX entry contract v3", "FX entry contract stale-test"));
+        SetCode(effect, direct);
+        typeof(ShaderFX).GetMethod("RefreshGeneratedWrapper", All).Invoke(effect, null);
+        CheckLocality(test, Snapshot(effect), "pixelLocal");
+        test.Equal(direct, Read(effect, "Code").ToString(), "Derived wrapper refresh does not apply or replace the pending draft");
+        test.Equal(currentWrapper, appliedSource.GetValue(effect).ToString(), "Derived wrapper refresh restores current typed contract");
         SetCode(effect, direct);
         test.True((bool)Read(effect, "HasPendingChanges"), "Modified source remains pending");
         CheckLocality(test, Snapshot(effect), "pixelLocal");
@@ -237,7 +245,7 @@ public static class ShaderFXDiagnosticsTests
         string Revision() => (string)typeof(WhimTexApi).GetMethod("DocumentFxRevision", All).Invoke(null, new object[] { effect });
         string beforeApply = Revision();
         test.True(Apply(effect), "Spatial draft applies");
-        CheckLocality(test, Snapshot(effect), "spatial", "spatial_entry_point", 1);
+        CheckLocality(test, Snapshot(effect), "spatial", "spatial_sample", 1);
         test.Equal(beforeApply, Revision(), "Rebuilding locality diagnostics is not a document content change");
         SetCode(effect, "float4 ApplyFX(float4 color) { return _UndefinedLocalityInput; }");
         test.True(!Apply(effect), "Broken draft fails compilation");
@@ -254,6 +262,12 @@ public static class ShaderFXDiagnosticsTests
         var reason = First(Field(contract, "reasons"));
         test.Equal("Packages/Example/Helper.hlsl", Field(reason, "file").ToString(), "Expanded include reason retains include path");
         test.Equal(7, (int)Field(reason, "line"), "Expanded include reason retains include line");
+        var typedContract = parser.GetMethod("ParseWithSource", All).Invoke(null, new object[] {
+            "#line 11 \"Packages/Example/Typed.hlsl\"\nfloat4 Read(float2 p) { return SampleInput(p); }\n#line 2 \"Assets/Main.hlsl\"\nfloat4 ApplyFX(PinnedUV uv,float4 c) { return Read(uv); }", path });
+        var typedReason = First(Field(typedContract, "reasons"));
+        test.Equal("spatial_sample", Field(typedReason, "code").ToString(), "Numeric helper sampling has a sampling-site reason");
+        test.Equal("Packages/Example/Typed.hlsl", Field(typedReason, "file").ToString(), "Typed helper reason points into its include");
+        test.Equal(11, (int)Field(typedReason, "line"), "Typed helper reason preserves original line");
         var included = ParseJson(WhimTexApi.CompileFXSource("#include \"Packages/com.dcfapixels.whimtex/Tests~/Fixtures/FX/PinnedUVHelper.hlsl\"\n" + direct));
         CheckLocality(test, included, "unverified", "direct_texture_read", 5);
         CheckLocality(test, ParseJson(WhimTexApi.CompileFXSource("/*\n#line 90 \"Wrong.hlsl\"\n*/\n" + direct)),

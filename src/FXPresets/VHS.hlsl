@@ -18,7 +18,7 @@
 
 #include "Packages/com.dcfapixels.whimtex/src/Shaders/Dither.cginc"
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     float4 result = color;
     float2 pixel = uv * _CanvasSize.xy;

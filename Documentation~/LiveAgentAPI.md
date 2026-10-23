@@ -411,7 +411,7 @@ just that layer. Reserve with `begin` first, then preview or complete with code 
 {
   "apiVersion":1,"op":"complete","jobId":"RESERVATION",
   "layer":{"type":"shaderProcessor","fx":[{
-    "code":"// @param float _Gain = 1.25\nfloat4 ApplyFX(float2 uv, float4 color) { color.rgb *= _Gain; return color; }"
+    "code":"// @param float _Gain = 1.25\nfloat4 ApplyFX(PinnedUV uv, float4 color) { color.rgb *= _Gain; return color; }"
   }]}
 }
 ```
@@ -434,7 +434,7 @@ migration or source-document rewrite. Internal Materials and compiled Unity Shad
 the HLSL. Catalog discovery and linked project/package versus embedded user-library presets are
 described in [FX edits and presets](AgentAPI.md#fx-edits-and-presets).
 
-- Code: 1..65,536 characters of HLSL with `float4 ApplyFX(float2 uv, float4 color)`.
+- Code: 1..65,536 characters of HLSL with `float4 ApplyFX(PinnedUV uv, float4 color)`.
 - `color` and `SampleInput(uv)` are straight RGBA in linear working space. Return straight RGBA;
   preserve `color.a` unless changing transparency is intentional. Layer opacity/blend run afterwards.
 - `_MainTex`, `_MainTex_TexelSize`, `_InputSize`, `_CanvasSize`, `_RenderScale` are supplied by the
@@ -500,7 +500,7 @@ the layer keeps rendering its previous result while the agent works.
 {
   "apiVersion":1,"op":"complete","jobId":"EDIT-JOB",
   "changes":{"fx":[{
-    "op":"add","code":"float4 ApplyFX(float2 uv, float4 color) { return float4(1 - color.rgb, color.a); }"
+    "op":"add","code":"float4 ApplyFX(PinnedUV uv, float4 color) { return float4(1 - color.rgb, color.a); }"
   }]}
 }
 ```

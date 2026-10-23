@@ -190,7 +190,6 @@ namespace DCFApixels.WhimTex
                         else uvName = match.Groups[2].Value;
                     }
                     replacement = snippet.Contains("PinnedUV") ? "float4 ApplyFX(PinnedUV " + uvName + ", float4 " + colorName + ")" :
-                        snippet.Contains("float2") ? "float4 ApplyFX(float2 " + uvName + ", float4 " + colorName + ")" :
                         "float4 ApplyFX(float4 " + colorName + ")";
                     start = definition.Index;
                     length = definition.Length;

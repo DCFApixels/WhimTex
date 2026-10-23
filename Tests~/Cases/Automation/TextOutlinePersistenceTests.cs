@@ -133,7 +133,7 @@ public static class TextOutlinePersistenceTests
         operand.transform.tiling = TransformTilingMode.Clip;
         var fx = scope.Own(ScriptableObject.CreateInstance<ShaderFX>());
         fx.hideFlags = HideFlags.HideAndDontSave;
-        typeof(ShaderFX).GetField("code", Flags).SetValue(fx, "float4 ApplyFX(float2 uv, float4 color) { return color; }");
+        typeof(ShaderFX).GetField("code", Flags).SetValue(fx, "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }");
         typeof(ShaderFX).GetField("active", Flags).SetValue(fx, false);
         operand.fx.Add(fx);
         group.children.Add(operand);

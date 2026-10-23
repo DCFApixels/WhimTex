@@ -45,7 +45,7 @@
           "$type": "ShaderFX",
           "$id": "fx0",
           "active": true,
-          "code": "// @whimtex-effect Samples/Master Tint\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = (1, 1, 1, 1)\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){return float4(color.rgb*_Tint.rgb,color.a*_Opacity*_Tint.a);}\r\n",
+          "code": "// @whimtex-effect Samples/Master Tint\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = (1, 1, 1, 1)\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return float4(color.rgb*_Tint.rgb,color.a*_Opacity*_Tint.a);}\r\n",
           "parameters": [
             {
               "name": "_Opacity",
@@ -124,7 +124,7 @@
           "$type": "ShaderFX",
           "$id": "fx1",
           "active": true,
-          "code": "// @whimtex-effect Samples/Gain\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @param float _Gain = 1 [0 .. ~4]\r\n// @param color _Tint = (0, 0.9883721, 1, 1)\r\n// @endgroup\r\n\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    float4 correctedColor = float4(color.rgb * _Tint.rgb * _Gain, color.a * _Tint.a);\r\n\treturn lerp(color, correctedColor, _Opacity);\r\n}\r\n",
+          "code": "// @whimtex-effect Samples/Gain\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @param float _Gain = 1 [0 .. ~4]\r\n// @param color _Tint = (0, 0.9883721, 1, 1)\r\n// @endgroup\r\n\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float4 correctedColor = float4(color.rgb * _Tint.rgb * _Gain, color.a * _Tint.a);\r\n\treturn lerp(color, correctedColor, _Opacity);\r\n}\r\n",
           "parameters": [
             {
               "name": "_Opacity",
@@ -215,7 +215,7 @@
           "$type": "ShaderFX",
           "$id": "fx2",
           "active": true,
-          "code": "// @whimtex-effect Samples/Lightning Path\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param float _Width = 0.012 [0.0005 .. 0.012]\r\n// @param float _Bend = 0.143 [0 .. 0.3]\r\n// @param float _Seed = 22.7 [0 .. 100]\r\n// @param float _Glow = 0.53 [0 .. 1]\r\n// @param float _GlowWidth = 1.8 [1 .. 20]\r\n\r\nfloat PathX(float t){return .5+_Bend*(.68*sin(t*9+_Seed)+.28*sin(t*24+1.2)+.12*sin(t*63+2));}\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float d=1;float along=0;\r\n    for(int i=0;i<96;i++){\r\n        float t=i/96.0;float s=(i+1)/96.0;\r\n        float2 a=float2(PathX(t),.065+t*.87);float2 b=float2(PathX(s),.065+s*.87);\r\n        float2 ab=b-a;float h=saturate(dot(uv-a,ab)/dot(ab,ab));\r\n        float distance=length(uv-a-ab*h);\r\n        if(distance<d){d=distance;along=lerp(t,s,h);}\r\n    }\r\n    float width=_Width*(.8+.2*sin(along*57+_Seed));\r\n    float aa=max(fwidth(d),.0003);\r\n    float alpha=1-smoothstep(width*.4,width+aa,d);\r\n    alpha+=_Glow*exp(-d/max(width*_GlowWidth,.0001));\r\n    alpha*=smoothstep(.045,.085,uv.y)*(1-smoothstep(.915,.955,uv.y));\r\n    return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n",
+          "code": "// @whimtex-effect Samples/Lightning Path\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param float _Width = 0.012 [0.0005 .. 0.012]\r\n// @param float _Bend = 0.143 [0 .. 0.3]\r\n// @param float _Seed = 22.7 [0 .. 100]\r\n// @param float _Glow = 0.53 [0 .. 1]\r\n// @param float _GlowWidth = 1.8 [1 .. 20]\r\n\r\nfloat PathX(float t){return .5+_Bend*(.68*sin(t*9+_Seed)+.28*sin(t*24+1.2)+.12*sin(t*63+2));}\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float d=1;float along=0;\r\n    for(int i=0;i<96;i++){\r\n        float t=i/96.0;float s=(i+1)/96.0;\r\n        float2 a=float2(PathX(t),.065+t*.87);float2 b=float2(PathX(s),.065+s*.87);\r\n        float2 ab=b-a;float h=saturate(dot(uv-a,ab)/dot(ab,ab));\r\n        float distance=length(uv-a-ab*h);\r\n        if(distance<d){d=distance;along=lerp(t,s,h);}\r\n    }\r\n    float width=_Width*(.8+.2*sin(along*57+_Seed));\r\n    float aa=max(fwidth(d),.0003);\r\n    float alpha=1-smoothstep(width*.4,width+aa,d);\r\n    alpha+=_Glow*exp(-d/max(width*_GlowWidth,.0001));\r\n    alpha*=smoothstep(.045,.085,uv.y)*(1-smoothstep(.915,.955,uv.y));\r\n    return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n",
           "parameters": [
             {
               "name": "_Opacity",
@@ -320,7 +320,7 @@
           "$type": "ShaderFX",
           "$id": "fx3",
           "active": true,
-          "code": "// @whimtex-effect Samples/Gain\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @param float _Gain = 1.24 [0 .. ~4]\r\n// @param color _Tint = (0, 0.712175369, 1, 1)\r\n// @endgroup\r\n\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    float4 correctedColor = float4(color.rgb * _Tint.rgb * _Gain, color.a * _Tint.a);\r\n\treturn lerp(color, correctedColor, _Opacity);\r\n}\r\n",
+          "code": "// @whimtex-effect Samples/Gain\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @param float _Gain = 1.24 [0 .. ~4]\r\n// @param color _Tint = (0, 0.712175369, 1, 1)\r\n// @endgroup\r\n\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float4 correctedColor = float4(color.rgb * _Tint.rgb * _Gain, color.a * _Tint.a);\r\n\treturn lerp(color, correctedColor, _Opacity);\r\n}\r\n",
           "parameters": [
             {
               "name": "_Opacity",

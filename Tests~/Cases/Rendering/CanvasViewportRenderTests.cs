@@ -236,15 +236,15 @@ public static class CanvasViewportRenderTests
     {
         var doc=ScriptableObject.CreateInstance<WhimTexDocument>();doc.hideFlags=HideFlags.HideAndDontSave;doc.width=512;doc.height=384;
         var cache=(IDisposable)Activator.CreateInstance(Type("EffectRenderCache"),true);
-        var point=Fx(doc,"float4 ApplyFX(float2 uv,float4 color){return float4(color.rgb * float3(uv,1) + _RenderScale/_InputSize.x, color.a);}");
-        var spatial=Fx(doc,"float4 ReadNeighbour(float2 uv){return SampleInput(uv+float2(17.0/_InputSize.x,0));} float4 ApplyFX(float2 uv,float4 color){return ReadNeighbour(uv);}");
+        var point=Fx(doc,"float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return float4(color.rgb * float3(uv,1) + _RenderScale/_InputSize.x, color.a);}");
+        var spatial=Fx(doc,"float4 ReadNeighbour(float2 uv){return SampleInput(uv+float2(17.0/_InputSize.x,0));} float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return ReadNeighbour(uv);}");
         var hsv=Fx(doc,File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/HueSaturation.hlsl"));
         try
         {
             t.True((bool)typeof(ShaderFX).GetProperty("SupportsRegionalColorInput",F).GetValue(point),"Pointwise UV effect supports regional input");
             t.True((bool)typeof(ShaderFX).GetProperty("SupportsRegionalColorInput",F).GetValue(hsv),"HSV supports regional input despite unused preview texture helper");
             t.True(!(bool)typeof(ShaderFX).GetProperty("SupportsRegionalColorInput",F).GetValue(spatial),"Neighbour reads in helper require full input");
-            var previewInput=Fx(doc,"float4 Preview(float2 uv){return SampleInput(uv);} float4 ApplyFX(float2 uv,float4 color){return color;}");
+            var previewInput=Fx(doc,"float4 Preview(float2 uv){return SampleInput(uv);} float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return color;}");
             try{t.True(!(bool)typeof(ShaderFX).GetProperty("SupportsRegionalColorInput",F).GetValue(previewInput),"Input-reading preview/helper keeps complete input");}
             finally{Object.DestroyImmediate(previewInput);}
             var layer=new Layer(new GradientLayerBehaviour());doc.layers.Add(layer);layer.fx.Add(point);Call(doc,"NormalizeModel");

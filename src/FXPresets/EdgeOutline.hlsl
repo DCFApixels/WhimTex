@@ -178,7 +178,7 @@ float EdgeOutlineMask(float2 uv)
     return mask;
 }
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     float amount = saturate(_Opacity);
     if (amount <= 0.0) return color;

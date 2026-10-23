@@ -39,7 +39,7 @@ public static class ShaderFXCurveTests
         int Count() => (int)utility.GetProperty("BakeCount", F).GetValue(lut);
         try
         {
-            var fx = Create("// @param curve _Profile\nfloat4 ApplyFX(float2 uv,float4 color){return float4(_Profile_Sample(-1),_Profile_Sample(0.5),_Profile_Sample(2),1);}");
+            var fx = Create("// @param curve _Profile\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return float4(_Profile_Sample(-1),_Profile_Sample(0.5),_Profile_Sample(2),1);}");
             var p = Params(fx)[0];
             Check(p.type == ShaderFXParameterType.Curve && Mathf.Abs(p.curveValue.Evaluate(.25f) - .25f) < 1e-6f, "default");
             Layer layer = new ColorFillLayerBehaviour(); doc.layers.Add(layer); layer.fx.Add(fx);

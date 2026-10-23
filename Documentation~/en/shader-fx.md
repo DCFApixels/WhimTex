@@ -268,16 +268,17 @@ when scrolling horizontally. Blank lines are numbered too.
 While editing, the current line has a subtle background and its number is slightly brighter;
 text selection remains visible above the highlight.
 
-A pixel-local FX processes the current coordinate without reading displaced points of an image.
-Authors can use `ApplyFX(float4 color)` for color calculations or
-`ApplyFX(PinnedUV uv, float4 color)` to read textures at that same coordinate.
-`PinnedUV` can be read and copied, but not modified or used in arithmetic.
-Use `ApplyFX(float2 uv, float4 color)` for effects that move texture coordinates.
+Pixel-local FX read textures at the current coordinate. Use `ApplyFX(float4 color)` for
+color operations, or `ApplyFX(PinnedUV uv, float4 color)` when UV is needed.
+`PinnedUV` supports arithmetic and conversion to `float2`, but cannot be changed or
+constructed from numeric coordinates. Copies retain the pin; arithmetic and swizzles lose it.
+Sampling with pinned UV is local; sampling with numeric UV or tiling is spatial, including
+inside helpers. UV math used only to calculate color does not remove locality.
 
 `SampleInput(uv)` and `SampleTexture(_Mask, uv)` are WhimTex's primary texture-reading functions.
 `SampleTexture(_MainTex, uv)` is also pixel-local with `PinnedUV`, equivalent to `SampleInput(uv)`;
 the sampler name itself does not make a read a bypass.
-The latter also supports masks from Texture, Layer, Self or None; pixel-local signatures require
+The latter also supports masks from Texture, Layer, Self or None; pixel-local reads require
 `PinnedUV`. Direct HLSL texture reads are bypass paths, and detected bypasses or derivatives
 produce a warning and prevent confirmation of pixel locality.
 Texture inputs use the read-only `WhimTexTexture` type. Keep calls such as

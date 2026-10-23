@@ -74,8 +74,8 @@ public static class LayerContentTests
                 "The owned inline FX compiled through the supported product path");
             return effect;
         }
-        var clearFx = Effect("float4 ApplyFX(float2 uv, float4 color) { return float4(color.rgb, 0); }");
-        var opaqueFx = Effect("float4 ApplyFX(float2 uv, float4 color) { return float4(.2, .6, .9, 1); }");
+        var clearFx = Effect("float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(color.rgb, 0); }");
+        var opaqueFx = Effect("float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(.2, .6, .9, 1); }");
         fxClearLayer.fx.Add(clearFx); fxOpaqueLayer.fx.Add(opaqueFx);
 
         var window = scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());

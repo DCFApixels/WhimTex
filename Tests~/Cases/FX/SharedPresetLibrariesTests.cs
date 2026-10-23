@@ -44,7 +44,7 @@ try
     string brushFolder = (string)Type("BrushPresetLibrary").GetProperty("Folder", Hidden).GetValue(null);
     Check(fxFolder == System.IO.Path.Combine(root, "ShaderFX"), "FX subfolder");
     Check(brushFolder == System.IO.Path.Combine(root, "Brushes"), "Brushes subfolder");
-    const string code = "// @whimtex-effect Test/Original\n// @param float _Amount = 1 [0 .. 4]\n// @param color _Tint = (1, 1, 1, 1)\n// @param float4 _Vector = (0, 0, 0, 0)\n// @param transform2D _Area\n// @param texture2D _Mask\nfloat4 ApplyFX(float2 uv, float4 color) { return color * _Amount; }\n";
+    const string code = "// @whimtex-effect Test/Original\n// @param float _Amount = 1 [0 .. 4]\n// @param color _Tint = (1, 1, 1, 1)\n// @param float4 _Vector = (0, 0, 0, 0)\n// @param transform2D _Area\n// @param texture2D _Mask\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _Amount; }\n";
     var values = Parse(code);
     values[0].floatValue = 2.75f;
     values[1].colorValue = new UnityEngine.Color(.25f, .5f, 3f, .75f);

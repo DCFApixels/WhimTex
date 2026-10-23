@@ -282,7 +282,10 @@ someone else's job to take over. Keep the same requestId/arguments on transport 
 Complete this job with `changes.fx` (add/replace/remove by FX index), optionally settings or
 transform. Read the existing code before replacing an FX and preserve unrelated entries and uniforms.
 Replacing an external reference creates a local embedded FX, leaving the shared asset untouched.
-Implement `float4 ApplyFX(float2 uv, float4 color)` in linear straight RGBA; use SampleInput for neighbours.
+Implement `float4 ApplyFX(PinnedUV uv, float4 color)` in linear straight RGBA; use SampleInput for neighbours.
+Pinned copies/helpers retain locality; arithmetic and implicit/explicit conversion to `float2` lose the pin.
+Reverse conversion and mutation are forbidden. Locality follows coordinate types at reachable image reads,
+not procedural UV math alone. Read the compile/applied `locality` result and reasons instead of guessing.
 For spatial noise, consider the automatically included FastNoiseLite first; no explicit include is needed.
 Prefer it when suitable, but custom algorithms remain valid. Read
 [the built-in noise reference](../../Documentation~/AI/README.md#built-in-noise-library) for exact names and an example.

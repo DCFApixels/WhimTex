@@ -38,7 +38,7 @@ static System.Threading.CancellationToken Cancellation;
         var pixels = new Texture2D(4, 4, TextureFormat.RGBAFloat, false, true);
         try
         {
-            string source = "// @param bool _Flag = false\nfloat4 ApplyFX(float2 uv, float4 color) { return float4(_Flag, 0, 0, 1); }";
+            string source = "// @param bool _Flag = false\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(_Flag, 0, 0, 1); }";
             fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", hidden, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, source, new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", hidden).Invoke(fx, null);
             var list = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", hidden).GetValue(fx);

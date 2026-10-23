@@ -37,18 +37,17 @@ namespace DCFApixels.WhimTex
             reference.Add(editingState);
 
             var entry = Section(reference, "Entry Points", true);
-            Item(entry, Code("float4 ApplyFX(float4 color)") + "\nColor-only, pixel-local operation.");
-            Item(entry, Code("float4 ApplyFX(PinnedUV uv, float4 color)") + "\nPixel-local coordinates and texture reads.");
-            Item(entry, Code("float4 ApplyFX(float2 uv, float4 color)") + "\nSpatial operation; coordinates may be changed before sampling.");
+            Item(entry, Code("float4 ApplyFX(float4 color)") + "\nIncoming color without a coordinate parameter.");
+            Item(entry, Code("float4 ApplyFX(PinnedUV uv, float4 color)") + "\nCoordinates of the current pixel, for local or spatial effects.");
             Text(entry, "Define exactly one entry point. " + Code("uv") + " is normalized; " + Code("color") +
-                " is straight, linear RGBA at the current pixel. " + Code("PinnedUV") + " is immutable and is not a numeric vector: read " +
-                Code(".x") + " / " + Code(".y") + " for calculations, or pass it to another " + Code("PinnedUV") + " parameter.");
+                " is straight, linear RGBA at the current pixel. " + Code("PinnedUV") + " is immutable. Arithmetic, swizzles and conversion to " +
+                Code("float2") + " produce numeric coordinates; conversion back is forbidden. Copy or pass an unchanged " + Code("PinnedUV") + " to retain locality.");
 
             var textures = Section(reference, "Texture Reads");
             Item(textures, Code("SampleInput(uv)") + " — primary read of the incoming image, including previous FX.");
             Item(textures, Code("SampleTexture(_Mask, uv)") + " — primary read of a declared texture, including Texture, Layer, Self and None masks. Self is the image before this FX; None is transparent black.");
-            Text(textures, "Pixel-local reads accept only " + Code("PinnedUV") + ". Spatial FX and preview callbacks also accept " + Code("float2") +
-                ". Different texture resolutions use the same normalized coordinates.");
+            Text(textures, "Locality follows the coordinate type at each reachable image read: " + Code("PinnedUV") + " is local; " + Code("float2") +
+                " or explicit tiling is spatial, including inside helpers. Numeric UV math without image reads remains local. Different texture resolutions use the same normalized coordinates.");
             Item(textures, Code("SampleInput(uv, tiling)") + " — spatial addressing: 0 Clamp, 1 Repeat, 2 Mirror, 3 Clip.");
             Text(textures, Code("_MainTex") + " is the incoming " + Code("WhimTexTexture") + ". " + Code("SampleTexture(_MainTex, uv)") +
                 " is equivalent to " + Code("SampleInput(uv)") + " and remains pixel-local when " + Code("uv") + " is " + Code("PinnedUV") + ".");

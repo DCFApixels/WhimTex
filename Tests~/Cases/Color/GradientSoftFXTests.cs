@@ -19,7 +19,7 @@ public static class GradientSoftFXTests
         int checks = 0;
         try
         {
-            const string code = "// @param gradient _Ramp\nfloat4 ApplyFX(float2 uv, float4 color) { return _Ramp_Sample(uv.x); }";
+            const string code = "// @param gradient _Ramp\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return _Ramp_Sample(uv.x); }";
             fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null,
                 new[] {typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>)}, null).Invoke(null,
                 new object[] {doc, code, new List<ShaderFXParameter>()});

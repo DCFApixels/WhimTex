@@ -140,7 +140,7 @@ float4 SmoothPixelGrid(float2 block, float2 local, float size, float2 canvas, fl
 }
 */
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     float size = max(1.0, floor(_PixelSize + 0.5));
     float2 canvas = max(_CanvasSize.xy, 1.0);

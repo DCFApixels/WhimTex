@@ -166,7 +166,7 @@ public static class HeightToDistortionTests
             t.Near(-strong.r, flipped.r, .00001, "Negative strength reverses X"); t.Near(strong.g, flipped.g, .00001, "Negative strength and Flip Y cancel");
 
             Set(generator, "_Output", 0); Set(generator, "_Strength", 8); Set(generator, "_FlipY", 0);
-            var heightFX = Create("float4 ApplyFX(float2 uv, float4 color) { float h = 2.0 * uv.x - uv.y + 0.3; return float4(h, h, h, 1); }");
+            var heightFX = Create("float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; float h = 2.0 * uv.x - uv.y + 0.3; return float4(h, h, h, 1); }");
             Layer child = new ColorFillLayerBehaviour(); child.colorRange = LayerColorRange.HDR; child.fx.Add(heightFX); child.fx.Add(generator);
             doc.layers.Add(child); var baseline = Composite();
             // Ordinary document finishing uses Half intermediates; direct float tests above
@@ -192,7 +192,7 @@ public static class HeightToDistortionTests
             { t.Equal(0, restored.Warnings.Count, "Restored preset warnings: " + string.Join("; ", restored.Warnings)); Same(baseline, Composite(restored.Document), "JSON render parity"); }
 
             group.fx.Clear(); doc.layers.Clear(); child.fx.Add(generator); child.enabled = false;
-            var imageFX = Create("float4 ApplyFX(float2 uv, float4 color) { return float4(uv, .2, 1); }");
+            var imageFX = Create("float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(uv, .2, 1); }");
             Layer imageLayer = new ColorFillLayerBehaviour(); imageLayer.fx.Add(imageFX); imageLayer.fx.Add(displacement);
             doc.layers.Add(imageLayer); doc.layers.Add(child);
             P(displacement, "_DisplacementMap").textureSource = ShaderFXTextureSource.Layer;

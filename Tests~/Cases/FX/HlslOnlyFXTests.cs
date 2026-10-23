@@ -56,10 +56,10 @@ public static class HlslOnlyFXTests
                 owned.Add(fx); Call(fx, "ApplyAgentDraft"); Call(doc, "AdoptAgentShaderFX", fx, null);
                 return fx;
             }
-            var gain = Fx("// @param float _Gain = 1 [0 .. 2]\nfloat4 ApplyFX(float2 uv,float4 c){return float4(c.b*_Gain,0,c.r,c.a);}");
+            var gain = Fx("// @param float _Gain = 1 [0 .. 2]\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(c.b*_Gain,0,c.r,c.a);}");
             bottom.fx.Add(gain);
-            clipped.fx.Add(Fx("float4 ApplyFX(float2 uv,float4 c){return float4(0,0,1,c.a);}"));
-            group.fx.Add(Fx("float4 ApplyFX(float2 uv,float4 c){return float4(1-c.rgb,c.a);}"));
+            clipped.fx.Add(Fx("float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(0,0,1,c.a);}"));
+            group.fx.Add(Fx("float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(1-c.rgb,c.a);}"));
             Call(doc, "NormalizeModel");
 
             var view = (VisualElement)Activator.CreateInstance(Type("LayerShaderFXView"), F, null,

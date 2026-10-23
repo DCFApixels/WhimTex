@@ -15,8 +15,8 @@ public static class PolarCoordinatesTests
 // @param float _RadialOffset = 0 [~-1 .. ~1] // Radial offset in normalized coordinates.
 // @param transform2D _Area
 
-float4 ApplyFX(float2 uv, float4 color)
-{
+float4 ApplyFX(PinnedUV _pinnedUv, float4 color)
+{ float2 uv = _pinnedUv;
     float2 p = (_Area_ToLocal(uv) - 0.5) * 2.0;
     float radius = length(p);
     // The center has no unique angle. Choose zero without evaluating atan2(0, 0).
@@ -31,8 +31,8 @@ float4 ApplyFX(float2 uv, float4 color)
 // @param float _RadialOffset = 0 [~-1 .. ~1] // Radial offset in normalized coordinates.
 // @param transform2D _Area
 
-float4 ApplyFX(float2 uv, float4 color)
-{
+float4 ApplyFX(PinnedUV _pinnedUv, float4 color)
+{ float2 uv = _pinnedUv;
     float angle = (uv.x + _AngleOffset / 360.0) * 6.28318530718;
     float radius = uv.y + _RadialOffset;
     float sine, cosine;
@@ -49,8 +49,8 @@ float4 ApplyFX(float2 uv, float4 color)
 // @param transform2D _Input
 // @param transform2D _Output
 // @param enum _Tiling = 0 {Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3}
-float4 ApplyFX(float2 uv, float4 color)
-{
+float4 ApplyFX(PinnedUV _pinnedUv, float4 color)
+{ float2 uv = _pinnedUv;
     if (_Amount <= 0.0) return color;
     float2 localUV = _Output_ToLocal(uv);
     float2 mappedUV;

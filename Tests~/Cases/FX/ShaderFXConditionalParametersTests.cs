@@ -70,8 +70,8 @@ public static class ShaderFXConditionalParametersTests
         ShaderFX serializedSource = null, serializedCopy = null;
         try
         {
-            string boolSource = "// @param bool _Mode = true\nfloat4 ApplyFX(float2 uv, float4 color) { return color * _Mode; }\n";
-            string enumSource = "// @param enum _Mode = On { Off: 0, On: 1 }\nfloat4 ApplyFX(float2 uv, float4 color) { return color * _Mode; }\n";
+            string boolSource = "// @param bool _Mode = true\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _Mode; }\n";
+            string enumSource = "// @param enum _Mode = On { Off: 0, On: 1 }\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _Mode; }\n";
             serializedSource = (ShaderFX)createDraft.Invoke(null, new object[] { null, boolSource, Parse(boolSource) });
             string serialized = UnityEditor.EditorJsonUtility.ToJson(serializedSource);
             serializedCopy = (ShaderFX)createDraft.Invoke(null, new object[] { null, string.Empty, new List<ShaderFXParameter>() });
@@ -117,7 +117,7 @@ public static class ShaderFXConditionalParametersTests
         ShaderFX fx = null;
         try
         {
-            string source = declarations + "float4 ApplyFX(float2 uv, float4 color) { return color * (_Mode == 1 ? _Amount : 1); }\n";
+            string source = declarations + "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * (_Mode == 1 ? _Amount : 1); }\n";
             fx = (ShaderFX)createDraft.Invoke(null, new object[] { document, source, new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
             var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);

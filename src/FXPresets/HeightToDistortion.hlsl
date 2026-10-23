@@ -64,7 +64,7 @@ float DistortionHeight(float2 uv)
     return source.a;
 }
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     float2 gradient = 0.0;
     if (_Strength != 0.0)

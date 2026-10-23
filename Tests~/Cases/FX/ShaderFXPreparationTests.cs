@@ -54,9 +54,9 @@ public static class ShaderFXPreparationTests
                         string type = workload == "textures12" ? "texture2D" : workload == "mixed32" ? new[] { "float", "gradient", "curve", "transform2D" }[i % 4] : "float";
                         code.Append("// @param ").Append(type).Append(" _P").Append(i).Append(type == "texture2D" ? " = self\n" : "\n");
                     }
-                    code.Append(workload == "textures12" ? "float4 ApplyFX(float2 uv,float4 c){return tex2D(_P0,uv)*.5+c*.5;}" :
-                        workload == "mixed32" ? "float4 ApplyFX(float2 uv,float4 c){return float4(_P1_Sample(_P2_Sample(_P3_ToLocal(uv).x)).rgb*c.rgb*_P0,c.a);}" :
-                        "float4 ApplyFX(float2 uv,float4 c){return float4(c.rgb*_P0,c.a);}");
+                    code.Append(workload == "textures12" ? "float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return tex2D(_P0,uv)*.5+c*.5;}" :
+                        workload == "mixed32" ? "float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(_P1_Sample(_P2_Sample(_P3_ToLocal(uv).x)).rgb*c.rgb*_P0,c.a);}" :
+                        "float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(c.rgb*_P0,c.a);}");
                     var fx = ScriptableObject.CreateInstance<ShaderFX>(); owned.Add(fx); fx.hideFlags = HideFlags.HideAndDontSave;
                     Set(fx, "code", code.ToString()); Call(fx, "ApplyAgentDraft"); consumer.fx.Clear(); consumer.fx.Add(fx);
                     var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
@@ -151,7 +151,7 @@ public static class ShaderFXPreparationTests
             input.Create();
             object context = Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext", true),
                 F, null, new object[] { doc, input, 13, 7, 2f, true, true, null }, null);
-            const string code = "// @param float _A = 1\n// @param float _B = 2\n// @param texture2D _Map = self\n// @param texture2D _Other = self\nfloat4 ApplyFX(float2 uv,float4 c){return float4(_A,_B,_Map_TexelSize.z/13,1);}";
+            const string code = "// @param float _A = 1\n// @param float _B = 2\n// @param texture2D _Map = self\n// @param texture2D _Other = self\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(_A,_B,_Map_TexelSize.z/13,1);}";
             Set(fx, "code", code); Call(fx, "ApplyAgentDraft");
             var valuesField = typeof(ShaderFX).GetField("parameters", F);
             List<ShaderFXParameter> Values() => (List<ShaderFXParameter>)valuesField.GetValue(fx);

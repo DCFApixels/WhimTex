@@ -61,7 +61,7 @@ public static class ShaderFXGroupMenuTests
                 "// @group\n// @param float _Plain = 42\n// @endgroup\n" +
                 "// @group(Different)\n// @param bool _Different = false\n// @endgroup\n" +
                 "// @tabs\n" + TabDeclarations("_TabA", "One", "1", false) + TabDeclarations("_TabB", "Two", "0.5", true) + "// @endtabs\n" +
-                "float4 ApplyFX(float2 uv, float4 color) { return color * _AAmount; }";
+                "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _AAmount; }";
             ShaderFX Create(WhimTexDocument owner)
             {
                 var parsed = (List<ShaderFXParameter>)Type("ShaderFXMetadata").GetMethod("Parse", F).Invoke(null, new object[] { code, false, null });

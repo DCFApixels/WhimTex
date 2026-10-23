@@ -95,7 +95,7 @@ public static class RemainingLegacyCleanupTests
                     new[] { new GradientAlphaKey(.2f, 0), new GradientAlphaKey(.8f, 1) });
                 saved.Add(p);
             }
-            Set(source, "code", "// @whimtex-effect Tests/Saved\nfloat4 ApplyFX(float2 uv, float4 color) { return color; }");
+            Set(source, "code", "// @whimtex-effect Tests/Saved\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }");
             Set(source, "parameters", saved);
             using var container = new WhimTexDocumentContainer();
             byte[] bytes = (byte[])Call("WhimTexDocumentSerializer", "Serialize", source, container);

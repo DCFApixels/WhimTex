@@ -44,7 +44,7 @@ public static class DocumentJsonContractTests
             Rejected(() => WhimTexDocumentJson.Read(Full(document).Replace("\"version\": 2", "\"version\": 999"), false).Dispose(), "Unsupported version accepted.");
             Rejected(() => WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":2,\"document\":{},\"layers\":[{}]}", false).Dispose(), "Incomplete layer silently accepted.");
             const string fxJson = "{\"format\":\"whimtex.document\",\"version\":2,\"document\":{},\"layers\":[" +
-                "{\"id\":\"first\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"$id\":\"shared\",\"code\":\"float4 ApplyFX(float2 uv,float4 color){return color;}\"}]}," +
+                "{\"id\":\"first\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"$id\":\"shared\",\"code\":\"float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return color;}\"}]}," +
                 "{\"id\":\"second\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$ref\":\"shared\"}]}]}";
             using (var shared = WhimTexDocumentJson.Read(fxJson, false))
             using (var again = WhimTexDocumentJson.Read(Full(shared.Document), false))
@@ -74,7 +74,7 @@ public static class DocumentJsonContractTests
                 try { Check(Full(clone).Contains(unknownGuid) && Full(clone).Contains("Assets/MissingJsonFixture.png"), "Unresolved asset lost after Unity serialization."); }
                 finally { UnityEngine.Object.DestroyImmediate(clone); }
             }
-            const string missingFx = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"fx-texture\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"// @param texture2D _Map\\nfloat4 ApplyFX(float2 uv,float4 color){return color;}\",\"parameters\":[{\"name\":\"_Map\",\"type\":\"Texture2D\",\"textureValue\":{\"$asset\":{\"guid\":\"00000000000000000000000000000001\",\"path\":\"Assets/MissingJsonFxTexture.png\",\"localId\":\"2800000\",\"type\":\"UnityEngine.Texture2D\"}}}]}]}]}";
+            const string missingFx = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"fx-texture\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"// @param texture2D _Map\\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return color;}\",\"parameters\":[{\"name\":\"_Map\",\"type\":\"Texture2D\",\"textureValue\":{\"$asset\":{\"guid\":\"00000000000000000000000000000001\",\"path\":\"Assets/MissingJsonFxTexture.png\",\"localId\":\"2800000\",\"type\":\"UnityEngine.Texture2D\"}}}]}]}]}";
             using (var missing = WhimTexDocumentJson.Read(missingFx, false))
                 foreach (WhimTexJsonWriteMode mode in Enum.GetValues(typeof(WhimTexJsonWriteMode)))
                 {

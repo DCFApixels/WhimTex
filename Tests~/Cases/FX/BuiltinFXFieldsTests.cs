@@ -33,7 +33,7 @@ static System.Threading.CancellationToken Cancellation;
         try
         {
             Layer layer=new ColorFillLayerBehaviour(); doc.layers.Add(layer);
-            var source=FX("float4 ApplyFX(float2 uv,float4 color){return float4(.37,.37,.37,1);}");
+            var source=FX("float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return float4(.37,.37,.37,1);}");
             foreach(string name in new[]{"Pixelate","Posterize"})
             {
                 var fx=Preset(name); layer.fx.Clear();layer.fx.Add(source);layer.fx.Add(fx);
@@ -58,7 +58,7 @@ static System.Threading.CancellationToken Cancellation;
             P(levels,"_OutBlack").floatValue=.2f;
             P(levels,"_OutWhite").floatValue=.8f;
             Check(Mathf.Abs(Render()-(.2f+.6f*(1-Mathf.Sqrt(.37f))))<.001f,"Levels Gamma/Curve/output order");
-            var channels=FX("float4 ApplyFX(float2 uv,float4 c){return float4(.1,.3,.7,.4);}");
+            var channels=FX("float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(.1,.3,.7,.4);}");
             layer.fx[0]=channels;
             P(levels,"_Gamma").floatValue=1; P(levels,"_OutBlack").floatValue=0; P(levels,"_OutWhite").floatValue=1;
             var result=doc.ComposeCanvas();

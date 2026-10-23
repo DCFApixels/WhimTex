@@ -109,7 +109,7 @@ public static class ShaderFXGroupTests
             fx = (ShaderFX)create.Invoke(null, new object[]
             {
                 document,
-                declarations + "float4 ApplyFX(float2 uv, float4 color) { return float4(color.rgb * lerp(1.0, _Tint.rgb, _EnableTint * _Strength), color.a); }\n",
+                declarations + "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(color.rgb * lerp(1.0, _Tint.rgb, _EnableTint * _Strength), color.a); }\n",
                 new List<ShaderFXParameter>()
             });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);

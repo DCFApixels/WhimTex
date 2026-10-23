@@ -92,7 +92,7 @@ document. Supply exactly one input:
 - `presetPath` for a `.hlsl` file inside `Assets`, `Packages` or the configured Shader FX user-preset
   folder. Presets must start with a valid `// @whimtex-effect Category/Name` header.
 - `source` for raw HLSL defining exactly one supported entry point: `float4 ApplyFX(float4 color)`,
-  `float4 ApplyFX(PinnedUV uv, float4 color)`, or `float4 ApplyFX(float2 uv, float4 color)`.
+  or `float4 ApplyFX(PinnedUV uv, float4 color)`.
   It may include `// @param` declarations and does not need the preset header. Raw source
   with relative `#include` paths must also supply `includeBasePath`, pointing to a base directory in
   `Assets` or `Packages`, or to an existing HLSL file whose directory is used as the base. Absolute
@@ -152,7 +152,7 @@ included when known, including expanded project/package includes. Raw source wit
 the diagnostic label `Assets/WhimTexAgentInput.hlsl`; this is not a created file. Locations belong to
 the applied source snapshot and can differ from a subsequently edited draft or include.
 
-Current reason codes are `spatial_entry_point` (the `float2` entry signature), `direct_texture_read`
+Current reason codes are `spatial_sample` (numeric sampling coordinates or explicit addressing), `unverified_sampling` (macro/conditional sampling that cannot be proven local), `direct_texture_read`
 (direct sampling/load/gather), `derivative` (neighbor-fragment derivatives), `texture_internals`
 (direct access to texture-view storage/mapping), and `unverified_dependency` (compiler/engine dependencies,
 buffer access or preprocessor constructs outside the checked contract). Reasons explain the conservative
@@ -171,7 +171,7 @@ $fx = @'
 // @param color _Tint = (1, 1, 1, 1)
 // @param color _Accent = #FF0000FF
 // @param gradient _Ramp = #FF0000FF -> #0000FF
-float4 ApplyFX(float2 uv, float4 color) { return color * _Tint * _Accent * _Ramp_Sample(uv.x); }
+float4 ApplyFX(PinnedUV uv, float4 color) { return color * _Tint * _Accent * _Ramp_Sample(uv.x); }
 '@
 unity command whimtex_fx_compile --source $fx --project-path 'D:/Projects/MyGame' --format json
 ```

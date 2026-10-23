@@ -133,7 +133,7 @@ public static class InputTilingTests
         public void CheckSampling()
         {
             var probe = Create("// @param float2 _Coordinate\n// @param float _InputTiling = 0\n" +
-                "float4 ApplyFX(float2 uv, float4 color) { return SampleInput(_Coordinate, _InputTiling); }");
+                "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return SampleInput(_Coordinate, _InputTiling); }");
             var shader = Material(probe).shader;
             var coordinates = new[] { new Vector2(-2.17f, 3.23f), new Vector2(-.013f, .371f),
                 new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 0), new Vector2(1, 1),
@@ -186,7 +186,7 @@ public static class InputTilingTests
                 presets.Add(path, Own((ShaderFX)typeof(ShaderFX).GetMethod("FromCatalog", F).Invoke(null, new object[] { doc, entry })));
             }
             t.Equal(6, presets.Count, "All transform/distortion presets found");
-            var source = Create("float4 ApplyFX(float2 uv, float4 color) { return float4(uv, frac(uv.x * 5 + uv.y * 3), 1); }");
+            var source = Create("float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(uv, frac(uv.x * 5 + uv.y * 3), 1); }");
             foreach (var pair in presets)
             {
                 var fx = pair.Value; string name = pair.Key;

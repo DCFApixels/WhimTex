@@ -30,7 +30,7 @@ float BevelHeight(float2 uv)
     return _Profile_Sample(saturate(height)) * _Depth;
 }
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     float radius = max(_RenderScale, _Smoothing);
     float2 stepUV = radius * _CanvasSize.zw;

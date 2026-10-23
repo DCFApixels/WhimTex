@@ -32,8 +32,8 @@ public static class ShaderFXExternalCodeTests
         string codePath = Path.Combine(folder, "test.hlsl");
         string baselinePath = Path.Combine(folder, "test.baseline");
         string requestPath = codePath + ".apply";
-        const string original = "float4 ApplyFX(float2 uv, float4 color) { return color; }";
-        const string edited = "float4 ApplyFX(float2 uv, float4 color) { return color * 0.75; }";
+        const string original = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }";
+        const string edited = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * 0.75; }";
         const string invalid = "// @param unsupported _Broken\n" + original;
         ShaderFX effect = null;
         void Check(bool value, string message) { context.True(value, message); }

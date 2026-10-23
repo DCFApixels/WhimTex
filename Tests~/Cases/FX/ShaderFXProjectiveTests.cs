@@ -85,7 +85,7 @@ public static class ShaderFXProjectiveTests
         var active=RenderTexture.active;
         try
         {
-            string code="// @param transform2D _Area\nfloat4 ApplyFX(float2 uv, float4 color) { float2 p=_Area_ToLocal(uv); float2 q=_Area_ToInput(p); return float4(p, length(q-uv),1); }";
+            string code="// @param transform2D _Area\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; float2 p=_Area_ToLocal(uv); float2 q=_Area_ToInput(p); return float4(p, length(q-uv),1); }";
             fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
             Call(fx,"ApplyAgentDraft");
             var parameters=(List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(fx);

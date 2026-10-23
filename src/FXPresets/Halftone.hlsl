@@ -152,7 +152,7 @@ float3 RGBToCMY(float3 rgb)
     return saturate((1.0 - rgb - black) / max(1.0 - black, 1e-5));
 }
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     float4 result = color;
     float density = max(_InkDensity, 0.0);

@@ -73,7 +73,7 @@ public static class ShaderFXCodeInfoTests
                 plain += Regex.Replace(paragraph.text, "<[^>]*>", "") + "\n";
             }
             foreach (string token in new[] { "ApplyFX(float4 color)", "ApplyFX(PinnedUV uv, float4 color)",
-                "ApplyFX(float2 uv, float4 color)", "SampleInput(uv)", "SampleTexture(_Mask, uv)", "Layer, Self and None",
+                "conversion back is forbidden", "SampleInput(uv)", "SampleTexture(_Mask, uv)", "Layer, Self and None",
                 "_MainTex_TexelSize", "_InputSize", "_CanvasSize", "_RenderScale", "_PixelScale", "@param px",
                 "LayerToLocal", "_Name_Sample", "_Name_ToLocal", "#include", "FastNoiseLite", "bypass", "straight",
                 "WhimTexTexture", "_Mask.texelSize", "complete input", "ReadMask(WhimTexTexture source, PinnedUV uv)" })
@@ -102,11 +102,11 @@ public static class ShaderFXCodeInfoTests
             t.True(value.ClassListContains("whimtex-fx-pixel-local-value--yes"), "Confirmed status has its own styling");
             effect.Active = false; Refresh();
             t.Equal("Yes", value.text, "Disabling FX does not change its compiled contract");
-            Draft("float4 ApplyFX(float2 uv, float4 color) { return color; }"); Refresh();
+            Draft("float4 ApplyFX(PinnedUV uv, float4 color) { return SampleInput(uv + 0); }"); Refresh();
             t.Equal("Yes", value.text, "Spatial draft cannot replace the compiled answer");
             t.True(note.text.Contains("draft changed"), "Pending state explains which shader is described");
             Compile();
-            t.Equal("No", value.text, "Spatial signature is not pixel-local");
+            t.Equal("No", value.text, "Numeric sampling is not pixel-local");
             t.True(!value.ClassListContains("whimtex-fx-pixel-local-value--yes"), "Old confirmed styling is cleared");
             Draft("float4 ApplyFX(float2 uv) { return 1; }");
             bool failed = false;

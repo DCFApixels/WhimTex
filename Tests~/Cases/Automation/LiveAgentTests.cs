@@ -150,7 +150,7 @@ public static class LiveAgentTests
         
             // Inline HLSL is compiled by these opt-in calls, never as a project compilation.
             var shaderJob=Begin();
-            string shaderSpec="\"layer\":{\"type\":\"shaderProcessor\",\"fx\":[{\"code\":\"// @param float _Gain = 1.25\\nfloat4 ApplyFX(float2 uv, float4 color) { color.rgb *= _Gain; return color; }\"}]}";
+            string shaderSpec="\"layer\":{\"type\":\"shaderProcessor\",\"fx\":[{\"code\":\"// @param float _Gain = 1.25\\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; color.rgb *= _Gain; return color; }\"}]}";
             string beforeShader=UnityEditor.EditorJsonUtility.ToJson(document);
             int shaderUndo=UnityEditor.Undo.GetCurrentGroup();
             Call("\"op\":\"preview\","+jobFields(shaderJob)+","+shaderSpec+",\"maxSize\":8");
@@ -168,10 +168,10 @@ public static class LiveAgentTests
             Call(editRequest.Replace("\"requestId\":\"","\"requestId\":\"other-"),"layer_locked");
             Check(Text(editJob,"context","layer","fx",0,"code").Contains("_Gain"),"Lock captures existing inline code");
             Edit(()=>{shaderLayer.layerName="User FX name";shaderLayer.enabled=false;});
-            string badFx="\"changes\":{\"fx\":[{\"op\":\"replace\",\"index\":0,\"code\":\"float4 ApplyFX(float2 uv, float4 color) { return invalid_identifier; }\"}]}";
+            string badFx="\"changes\":{\"fx\":[{\"op\":\"replace\",\"index\":0,\"code\":\"float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return invalid_identifier; }\"}]}";
             Call("\"op\":\"preview\","+jobFields(editJob)+","+badFx+",\"maxSize\":8","shader_compile_failed");
             Check(shaderLayer.fx[0]==firstFx && Text(Call("\"op\":\"status\","+jobFields(editJob)),"state")=="pending","Invalid shader preserves working FX and permits correction");
-            string edits="\"changes\":{\"settings\":{\"opacity\":0.5},\"fx\":[{\"op\":\"replace\",\"index\":0,\"code\":\"float4 ApplyFX(float2 uv, float4 color) { return float4(color.bgr, color.a); }\"}]}";
+            string edits="\"changes\":{\"settings\":{\"opacity\":0.5},\"fx\":[{\"op\":\"replace\",\"index\":0,\"code\":\"float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(color.bgr, color.a); }\"}]}";
             string beforeEdit=UnityEditor.EditorJsonUtility.ToJson(document);
             int editUndo=UnityEditor.Undo.GetCurrentGroup();
             Call("\"op\":\"preview\","+jobFields(editJob)+","+edits+",\"view\":\"layer\",\"maxSize\":8");

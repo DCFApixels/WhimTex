@@ -14,7 +14,7 @@
 // @endif
 // @endgroup
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     if (_Amount <= 0.0 || _Blend <= 0.0)
         return color;

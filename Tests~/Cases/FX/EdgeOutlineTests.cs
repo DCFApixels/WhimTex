@@ -336,7 +336,7 @@ public static class EdgeOutlineTests
             var draft = typeof(ShaderFX).GetMethod("CreateAgentDraft", Hidden, null,
                 new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
             var source = Own((ShaderFX)draft.Invoke(null, new object[] { doc,
-                "float4 ApplyFX(float2 uv, float4 color) { return uv.x < .5 ? float4(0,0,1,1) : float4(1,0,0,1); }",
+                "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return uv.x < .5 ? float4(0,0,1,1) : float4(1,0,0,1); }",
                 new List<ShaderFXParameter>() }));
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", Hidden).Invoke(source, null);
             Layer child = new ColorFillLayerBehaviour(); child.fx.Add(source); child.fx.Add(fx); doc.layers.Add(child);

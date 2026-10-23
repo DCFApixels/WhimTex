@@ -210,8 +210,7 @@ float4 SampleInput(float2 uv, float tiling)
             reasons = entry.reasons;
             // Expand before lowering so helper functions in project/package includes receive
             // the same immutable-coordinate rules. Keep the ordinary include path untouched.
-            string lowered = contractSource.Contains("PinnedUV") || contractSource.Contains("WhimTexTexture") ? contractSource : expanded;
-            if (lowered.Contains("PinnedUV")) lowered = ShaderFXEntryPoint.PreparePinnedUV(lowered);
+            string lowered = entry.preparedSource;
             lowered = ShaderFXTextureViews.Prepare(lowered);
             string imageUv = "_WhimTex_Viewport.xy + input.uv * _WhimTex_Viewport.zw";
             string fragment = preview == null ? entry.Call(imageUv, "tex2D(_MainTex, " + imageUv + ")")
@@ -236,7 +235,7 @@ float4 SampleInput(float2 uv, float tiling)
                 "float2 LayerToLocal(float2 uv) { float3 p = float3(uv, 1); float w = dot(_WhimTex_LayerToLocalRow2.xyz, p); w = abs(w) < 1e-8 ? (w < 0 ? -1e-8 : 1e-8) : w; return float2(dot(_WhimTex_LayerToLocalRow0.xyz, p), dot(_WhimTex_LayerToLocalRow1.xyz, p)) / w; }\n" +
                 ShaderFXTextureViews.Types + textureViews +
                 ShaderFXEntryPoint.PinnedSource +
-                (preview != null || !entry.Restricted ? InputSamplingSource + ShaderFXEntryPoint.SpatialSamplingSource : "") +
+                InputSamplingSource + ShaderFXEntryPoint.SpatialSamplingSource +
                 LineDirective(1, assetPath) + lowered + "\n#line 1 \"SpriteFXWrapper\"\n" +
                 "float4 SpriteFXFragment(v2f_img input) : SV_Target { return " + fragment + "; }\n" +
                 "ENDCG\n}\n}\nFallback Off\n}\n";

@@ -109,7 +109,7 @@ public static class PixelScaleFxTests
     {
         var doc = Document();
         const string source = "// @param px float _Radius = 2 [0 .. ~8]\n// @param px float2 _Offset = (3, 4)\n" +
-            "// @param float _Raw = 0.25\nfloat4 ApplyFX(float2 uv,float4 color) { return float4(_Radius * .1, _Offset.x * .1 + _PixelScale * .01, _Raw, 1); }";
+            "// @param float _Raw = 0.25\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(_Radius * .1, _Offset.x * .1 + _PixelScale * .01, _Raw, 1); }";
         var fx = Effect(doc, source);
         Layer leaf = new ColorFillLayerBehaviour(); leaf.colorRange = LayerColorRange.HDR; leaf.fx.Add(fx); doc.layers.Add(leaf);
         foreach (float p in new[] { 1f, 2f, .5f, 2f, 1f })

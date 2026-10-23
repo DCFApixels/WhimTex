@@ -10,9 +10,9 @@ public static class ShaderFXTimeWarningTests
 {
     private const BindingFlags Instance = BindingFlags.Instance | BindingFlags.NonPublic;
     private const BindingFlags Static = BindingFlags.Static | BindingFlags.NonPublic;
-    private const string TimeSource = "float4 ApplyFX(float2 uv, float4 color) { return color + _Time.y * 0.01; }";
-    private const string SinSource = "float4 ApplyFX(float2 uv, float4 color) { return color + _SinTime.x * 0.01; }";
-    private const string CleanSource = "// _Time is only a comment\nfloat4 ApplyFX(float2 uv, float4 color) { return color; }";
+    private const string TimeSource = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color + _Time.y * 0.01; }";
+    private const string SinSource = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color + _SinTime.x * 0.01; }";
+    private const string CleanSource = "// _Time is only a comment\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }";
 
     public static string Run() => TestContext.Run("Unity time inputs compile with visible, deduplicated warnings", test =>
     {

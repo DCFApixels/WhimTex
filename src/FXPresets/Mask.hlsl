@@ -32,7 +32,7 @@ float ReadMaskInput(float4 value)
     return value.b;
 }
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
 	float4 result = color;
     float2 maskUV = _Transform_ToLocal(uv);

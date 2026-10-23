@@ -21,7 +21,7 @@
 // @param bool _FlipY = false
 // @endgroup
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     float2 displacement = 0.0;
     if (_Strength != 0.0)

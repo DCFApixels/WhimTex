@@ -76,7 +76,7 @@ var readback = new Texture2D(16, 8, TextureFormat.RGBAFloat, false, true) { hide
 RenderTexture previous = RenderTexture.active;
 try
 {
-    string source = head + "// @param float _Amount = 0.25 [0 .. 1]\n// @param transform2D _Area\nfloat4 ApplyFX(float2 uv, float4 color) { float2 p = _Area_ToLocal(uv); return float4(p, _Amount, 1); }";
+    string source = head + "// @param float _Amount = 0.25 [0 .. 1]\n// @param transform2D _Area\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; float2 p = _Area_ToLocal(uv); return float4(p, _Amount, 1); }";
     fx = (DCFApixels.WhimTex.ShaderFX)typeof(DCFApixels.WhimTex.ShaderFX).GetMethod("CreateAgentDraft", Hidden, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, source, new List<DCFApixels.WhimTex.ShaderFXParameter>() });
     typeof(DCFApixels.WhimTex.ShaderFX).GetMethod("ApplyAgentDraft", Hidden).Invoke(fx, null);
     var list = (List<DCFApixels.WhimTex.ShaderFXParameter>)typeof(DCFApixels.WhimTex.ShaderFX).GetField("parameters", Hidden).GetValue(fx);

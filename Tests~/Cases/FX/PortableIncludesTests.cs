@@ -30,7 +30,7 @@ public static class PortableIncludesTests
         {
             File.WriteAllText(folder + "/leaf.hlsl", "#ifndef PORTABLE_LEAF\n#define PORTABLE_LEAF\nfloat Helper(float x) { return x * 0.5; }\n#endif\n");
             File.WriteAllText(folder + "/parent.hlsl", "#include \"leaf.hlsl\"\nfloat Twice(float x) { return Helper(x) + Helper(x); }\n");
-            string code = Expand("#include \"parent.hlsl\"\n#include \"leaf.hlsl\"\nfloat4 ApplyFX(float2 uv, float4 color) { return Twice(color.r); }");
+            string code = Expand("#include \"parent.hlsl\"\n#include \"leaf.hlsl\"\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return Twice(color.r); }");
             Check(code.Contains("float Helper(float x) { return x * 0.5; }"), "Separate helper definition");
             Check(code.Contains("return Helper(x) + Helper(x);"), "Function calls must not be inlined");
             Check(!code.Contains("#include"), "Nested includes expanded");
@@ -38,7 +38,7 @@ public static class PortableIncludesTests
             Check(Expand("#include \"UnityCG.cginc\"\n").Trim() == "#include \"UnityCG.cginc\"", "Engine include remains a dependency");
             string macros = "#define MULTIPLY(x) \\\n ((x) * 2)\n#if 1\n#endif\n";
             Check(Expand(macros).Replace("\r\n", "\n").Trim() == macros.Trim(), "Preprocessor definitions preserved");
-            string original = "#include \"" + folder + "/parent.hlsl\"\nfloat4 ApplyFX(float2 uv, float4 color) { return Twice(color.r); }";
+            string original = "#include \"" + folder + "/parent.hlsl\"\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return Twice(color.r); }";
             var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc, original, new List<ShaderFXParameter>() });
             effects.Add(fx);
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null); Check(true, "Original include draft compiles successfully");

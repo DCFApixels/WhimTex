@@ -202,7 +202,7 @@ public static class ProfilerGpuCoverageTests
             var create = typeof(ShaderFX).GetMethod("CreateAgentDraft", Static, null,
                 new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
             effect = (ShaderFX)create.Invoke(null, new object[] { document,
-                "float4 ApplyFX(float2 uv,float4 color){return color;}", new List<ShaderFXParameter>() });
+                "float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return color;}", new List<ShaderFXParameter>() });
             effect.hideFlags = HideFlags.HideAndDontSave;
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", Instance).Invoke(effect, null);
             var shader = (Shader)typeof(ShaderFX).GetField("compiledShader", Instance).GetValue(effect);

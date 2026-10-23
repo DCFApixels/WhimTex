@@ -31,7 +31,7 @@ public static class ShaderFXPreviewUiTests
 float4 P(float2 uv, float value) { return float4(value, _Hard, uv.y, 1); }
 float4 C(float2 uv, float4 value) { return value; }
 float4 U(float2 uv) { return float4(uv, 0, 1); }
-float4 ApplyFX(float2 uv, float4 color) { return color; }
+float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }
 ";
             var assembly = typeof(ShaderFX).Assembly;
             var metadata = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata", true);

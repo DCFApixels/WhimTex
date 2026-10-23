@@ -37,7 +37,7 @@
           "$type": "ShaderFX",
           "$id": "fx0",
           "active": true,
-          "code": "// @whimtex-effect Samples/Bubble Highlight\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param point _Center = (0.292, 0.633)\r\n// @param float _Size = 0.029 [0.005 .. 0.15]\r\n// @param float _Halo = 0.25 [0 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float d=length(uv-_Center)/max(_Size,.001);\r\n    float core=exp(-pow(d,4)*1.5);\r\n    float halo=exp(-d*d*.32)*_Halo;\r\n    float clip=1-smoothstep(.382,.390,length(uv-.5));\r\n    return float4(1,1,1,saturate(core+halo)*_Opacity*clip);\r\n}\r\n",
+          "code": "// @whimtex-effect Samples/Bubble Highlight\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param point _Center = (0.292, 0.633)\r\n// @param float _Size = 0.029 [0.005 .. 0.15]\r\n// @param float _Halo = 0.25 [0 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float d=length(uv-_Center)/max(_Size,.001);\r\n    float core=exp(-pow(d,4)*1.5);\r\n    float halo=exp(-d*d*.32)*_Halo;\r\n    float clip=1-smoothstep(.382,.390,length(uv-.5));\r\n    return float4(1,1,1,saturate(core+halo)*_Opacity*clip);\r\n}\r\n",
           "parameters": [
             {
               "name": "_Opacity",
@@ -135,7 +135,7 @@
           "$type": "ShaderFX",
           "$id": "fx1",
           "active": true,
-          "code": "// @whimtex-effect Samples/Bubble Highlight\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param point _Center = (0.375, 0.715)\r\n// @param float _Size = 0.053 [0.005 .. 0.15]\r\n// @param float _Halo = 0.25 [0 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float d=length(uv-_Center)/max(_Size,.001);\r\n    float core=exp(-pow(d,4)*1.5);\r\n    float halo=exp(-d*d*.32)*_Halo;\r\n    float clip=1-smoothstep(.382,.390,length(uv-.5));\r\n    return float4(1,1,1,saturate(core+halo)*_Opacity*clip);\r\n}\r\n",
+          "code": "// @whimtex-effect Samples/Bubble Highlight\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param point _Center = (0.375, 0.715)\r\n// @param float _Size = 0.053 [0.005 .. 0.15]\r\n// @param float _Halo = 0.25 [0 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float d=length(uv-_Center)/max(_Size,.001);\r\n    float core=exp(-pow(d,4)*1.5);\r\n    float halo=exp(-d*d*.32)*_Halo;\r\n    float clip=1-smoothstep(.382,.390,length(uv-.5));\r\n    return float4(1,1,1,saturate(core+halo)*_Opacity*clip);\r\n}\r\n",
           "parameters": [
             {
               "name": "_Opacity",
@@ -233,7 +233,7 @@
           "$type": "ShaderFX",
           "$id": "fx2",
           "active": true,
-          "code": "// @whimtex-effect Samples/Bubble Rim\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param float _Radius = 0.39 [0.1 .. 0.45]\r\n// @param float _Width = 0.014 [0.002 .. 0.06]\r\n// @param float _Softness = 0.032 [0.005 .. 0.1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float2 p=uv-.5;\r\n    float r=length(p);\r\n    float inset=_Radius-r;\r\n    float outer=smoothstep(-.003,.003,inset);\r\n    float ring=exp(-pow((inset-.008)/_Width,2));\r\n    float soft=exp(-max(inset,0)/_Softness)*.60;\r\n    float angle=dot(p/max(r,.0001),normalize(float2(-.7,1)));\r\n    float alpha=outer*saturate(max(ring,soft)*(.82+.18*angle))*_Opacity;\r\n    return float4(1,1,1,alpha);\r\n}\r\n",
+          "code": "// @whimtex-effect Samples/Bubble Rim\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param float _Radius = 0.39 [0.1 .. 0.45]\r\n// @param float _Width = 0.014 [0.002 .. 0.06]\r\n// @param float _Softness = 0.032 [0.005 .. 0.1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float2 p=uv-.5;\r\n    float r=length(p);\r\n    float inset=_Radius-r;\r\n    float outer=smoothstep(-.003,.003,inset);\r\n    float ring=exp(-pow((inset-.008)/_Width,2));\r\n    float soft=exp(-max(inset,0)/_Softness)*.60;\r\n    float angle=dot(p/max(r,.0001),normalize(float2(-.7,1)));\r\n    float alpha=outer*saturate(max(ring,soft)*(.82+.18*angle))*_Opacity;\r\n    return float4(1,1,1,alpha);\r\n}\r\n",
           "parameters": [
             {
               "name": "_Opacity",
@@ -326,7 +326,7 @@
           "$type": "ShaderFX",
           "$id": "fx3",
           "active": true,
-          "code": "// @whimtex-effect Samples/Bubble Reflection\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.5 [0 .. 1]\r\n// @param float _Radius = 0.39 [0.1 .. 0.45]\r\n// @param float _Depth = 0.085 [0.01 .. 0.2]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float2 p=uv-.5;\r\n    float r=length(p);\r\n    float edge=1-smoothstep(_Radius-.007,_Radius,r);\r\n    float2 direction=p/max(r,.0001);\r\n    float lower=pow(saturate(dot(direction,normalize(float2(.50,-1)))*.5+.5),3);\r\n    float upper=pow(saturate(dot(direction,normalize(float2(-.6,1)))*.5+.5),5);\r\n    float depth=exp(-pow((r-(_Radius-.045))/_Depth,2));\r\n    float reflection=depth*(.75*lower+.30*upper);\r\n    return float4(1,1,1,saturate(reflection*_Opacity*edge));\r\n}\r\n",
+          "code": "// @whimtex-effect Samples/Bubble Reflection\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.5 [0 .. 1]\r\n// @param float _Radius = 0.39 [0.1 .. 0.45]\r\n// @param float _Depth = 0.085 [0.01 .. 0.2]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float2 p=uv-.5;\r\n    float r=length(p);\r\n    float edge=1-smoothstep(_Radius-.007,_Radius,r);\r\n    float2 direction=p/max(r,.0001);\r\n    float lower=pow(saturate(dot(direction,normalize(float2(.50,-1)))*.5+.5),3);\r\n    float upper=pow(saturate(dot(direction,normalize(float2(-.6,1)))*.5+.5),5);\r\n    float depth=exp(-pow((r-(_Radius-.045))/_Depth,2));\r\n    float reflection=depth*(.75*lower+.30*upper);\r\n    return float4(1,1,1,saturate(reflection*_Opacity*edge));\r\n}\r\n",
           "parameters": [
             {
               "name": "_Opacity",

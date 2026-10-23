@@ -96,7 +96,7 @@ float3 FindBlockCell(float position, float cellSize, float randomness, float var
     return float3(index, start, max(end - start, 1.0));
 }
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     float4 result = color;
     float2 pixel = uv * _CanvasSize.xy;

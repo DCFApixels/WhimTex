@@ -385,7 +385,7 @@ public static class CanvasFrameTests
         var fxDocument = Document(scope); Layer fill = new GradientLayerBehaviour(); fxDocument.layers.Add(fill); Normalize(fxDocument);
         var effect = scope.OwnObject(ScriptableObject.CreateInstance<ShaderFX>());
         typeof(ShaderFX).GetField("code", Flags).SetValue(effect,
-            "float4 ApplyFX(float2 uv, float4 color) { float2 p = LayerToLocal(uv); return color * float4(p.x, 1-p.y, .7, 1); }");
+            "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; float2 p = LayerToLocal(uv); return color * float4(p.x, 1-p.y, .7, 1); }");
         test.True((bool)Call(effect, "ApplyCore", false), "Owned local-coordinate FX compiles without a document edit or global Undo group");
         fill.fx.Add(effect);
         Color[] fxBefore = Pixels(fxDocument); var fxFrame = new RectInt(6, 8, 49, 31);

@@ -33,7 +33,7 @@ public static class ShaderFXResetTests
             "// @param texture2D _Texture = self\n" +
             "// @param transform2D _Frame = (0.3,0.4,0.7,0.9,20)\n" +
             "// @param gradient _Gradient\n// @param curve _Curve\n" +
-            "float4 ApplyFX(float2 uv, float4 color) { return color * _Amount; }\n";
+            "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _Amount; }\n";
         var defaults = (List<ShaderFXParameter>)Type("ShaderFXMetadata").GetMethod("Parse", F).Invoke(null, new object[] { code, false, null });
         var document = ScriptableObject.CreateInstance<WhimTexDocument>();
         document.hideFlags = HideFlags.HideAndDontSave;
@@ -91,7 +91,7 @@ public static class ShaderFXResetTests
             t.Equal(before, JsonUtility.ToJson(fx), "Rejected reset leaves the FX untouched");
             typeof(ShaderFX).GetMethod("SetDraftCode", F).Invoke(fx, new object[] { "// @param float _Other = 1\n" });
             t.True(!CanReset(fx) && !Reset(fx), "Unapplied incompatible declarations cannot erase existing values");
-            typeof(ShaderFX).GetMethod("SetDraftCode", F).Invoke(fx, new object[] { "float4 ApplyFX(float2 uv, float4 c) { return c; }" });
+            typeof(ShaderFX).GetMethod("SetDraftCode", F).Invoke(fx, new object[] { "float4 ApplyFX(PinnedUV _pinnedUv, float4 c) { float2 uv = _pinnedUv; return c; }" });
             t.True(!CanReset(fx), "No declarations means nothing to reset");
             typeof(ShaderFX).GetMethod("SetDraftCode", F).Invoke(fx, new object[] { code });
             document.layers.Remove(layer);

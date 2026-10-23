@@ -165,7 +165,7 @@ public static class VectorRenderingTests
 
             fxEffect = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", BindingFlags.Static | BindingFlags.NonPublic, null,
                 new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
-                .Invoke(null, new object[] { document, "float4 ApplyFX(float2 uv,float4 color){return float4(color.bbb,color.a);}", new List<ShaderFXParameter>() });
+                .Invoke(null, new object[] { document, "float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return float4(color.bbb,color.a);}", new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fxEffect, null);
             clipLayer.fx.Add(fxEffect);
             Render(t => { Color c = t.GetPixel(48,32); context.True(c.r > .99f && c.g > .99f && c.b > .99f, "vector FX runs before ordinary clipping"); });

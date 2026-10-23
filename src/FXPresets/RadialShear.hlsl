@@ -9,7 +9,7 @@
 // @param enum _Tiling = Clamp {Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3} // Sampling outside the input image: extend its edge, repeat, mirror, or return transparency.
 // @endgroup
 
-float4 ApplyFX(float2 uv, float4 color)
+float4 ApplyFX(PinnedUV uv, float4 color)
 {
     float2 delta = uv - _Center;
     float delta2 = dot(delta, delta);

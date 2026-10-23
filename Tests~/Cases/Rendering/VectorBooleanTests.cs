@@ -58,7 +58,7 @@ public static class VectorBooleanTests
             var bottomStyle=((VectorLayerBehaviour)bottom.Behaviour).shapes[0];bottomStyle.stroke=true;bottomStyle.strokeWidth=30;
             ignored=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft",Hidden|BindingFlags.Static,null,
                 new[]{typeof(WhimTexDocument),typeof(string),typeof(List<ShaderFXParameter>)},null)
-                .Invoke(null,new object[]{doc,"float4 ApplyFX(float2 uv,float4 color){return 0;}",new List<ShaderFXParameter>()});
+                .Invoke(null,new object[]{doc,"float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return 0;}",new List<ShaderFXParameter>()});
             typeof(ShaderFX).GetMethod("ApplyAgentDraft",Hidden).Invoke(ignored,null);bottom.fx.Add(ignored);
             Same(t,baseline,Pixels(doc),"Child appearance/FX not rendered");
             bottom.fx.Clear();bottom.opacity=1;bottom.clippingMask=false;bottom.blendMode=BlendMode.Normal;bottomStyle.stroke=false;bottomStyle.strokeWidth=2;
