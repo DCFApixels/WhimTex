@@ -124,6 +124,7 @@ try
 catch (System.Exception exception) { throw new System.Exception("After " + checks + " checks: " + exception.ToString()); }
 finally
 {
+    foreach (var effect in effects) effect.GetType().GetMethod("ReleaseTransientResources", flags).Invoke(effect, null);
     UnityEngine.RenderTexture.active = previous; UnityEngine.GL.sRGBWrite = srgb;
     UnityEngine.RenderTexture.ReleaseTemporary(sentinel);
     UnityEngine.Object.DestroyImmediate(document); UnityEngine.Object.DestroyImmediate(texture);

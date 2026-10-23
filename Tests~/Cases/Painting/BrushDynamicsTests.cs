@@ -12,6 +12,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
 
 private static string BodyRun()
 {
+using var ownedJournal = new PaintTileHistoryTests.DiskScope();
 // Opt-in after manual compilation. Runs against the real GPU brush; no asset saves or imports.
 
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
@@ -409,6 +410,7 @@ finally { UnityEngine.Object.DestroyImmediate(tip); }
     {
         foreach (var target in new[] { apiLayer, directLayer, defaultLayer })
         {
+            PaintTileHistoryTests.ReleaseOwnedHistory(target);
             var stored = (Texture2D)Get(target, "StoredTexture");
             if (stored != null) Undo.ClearUndo(stored);
             Call(target, "EndStroke"); Release(target);

@@ -50,11 +50,13 @@ public static class ShaderFXGroupMenuTests
         var snapshotField = clipboardType.GetField("snapshot", F);
         object previousSnapshot = snapshotField.GetValue(null);
         string previousClipboard = GUIUtility.systemCopyBuffer;
-        var document = ScriptableObject.CreateInstance<WhimTexDocument>(); document.hideFlags = HideFlags.HideAndDontSave;
-        var otherDocument = ScriptableObject.CreateInstance<WhimTexDocument>(); otherDocument.hideFlags = HideFlags.HideAndDontSave;
+        WhimTexDocument document = null, otherDocument = null;
         ShaderFX effect = null, other = null;
+        Exception primaryFailure = null;
         try
         {
+            document = ScriptableObject.CreateInstance<WhimTexDocument>(); document.hideFlags = HideFlags.HideAndDontSave;
+            otherDocument = ScriptableObject.CreateInstance<WhimTexDocument>(); otherDocument.hideFlags = HideFlags.HideAndDontSave;
             string code = Declarations("_A", "First", "1") + Declarations("_B", "Second", "0.5") +
                 "// @group\n// @param float _Plain = 42\n// @endgroup\n" +
                 "// @group(Different)\n// @param bool _Different = false\n// @endgroup\n" +
@@ -179,13 +181,35 @@ public static class ShaderFXGroupMenuTests
             string before = JsonUtility.ToJson(effect); Call(view, "ResetContainer", first);
             t.Equal(before, JsonUtility.ToJson(effect), "Rejected Reset makes no partial changes");
         }
+        catch (Exception error)
+        {
+            primaryFailure = error;
+            throw;
+        }
         finally
         {
-            snapshotField.SetValue(null, previousSnapshot); GUIUtility.systemCopyBuffer = previousClipboard;
-            if (effect != null) { Undo.ClearUndo(effect); UnityEngine.Object.DestroyImmediate(effect); }
-            if (other != null) { Undo.ClearUndo(other); UnityEngine.Object.DestroyImmediate(other); }
-            Undo.ClearUndo(document); Undo.ClearUndo(otherDocument);
-            UnityEngine.Object.DestroyImmediate(document); UnityEngine.Object.DestroyImmediate(otherDocument);
+            var failures = new List<Exception>();
+            void Cleanup(System.Action action)
+            {
+                try { action(); }
+                catch (Exception error) { failures.Add(error); }
+            }
+            Cleanup(() => snapshotField.SetValue(null, previousSnapshot));
+            Cleanup(() =>
+            {
+                if (GUIUtility.systemCopyBuffer != previousClipboard) GUIUtility.systemCopyBuffer = previousClipboard;
+            });
+            foreach (var value in new UnityEngine.Object[] { effect, other, document, otherDocument })
+            {
+                if (value == null) continue;
+                Cleanup(() => Undo.ClearUndo(value));
+                Cleanup(() => { if (value != null) UnityEngine.Object.DestroyImmediate(value); });
+            }
+            if (failures.Count != 0)
+            {
+                if (primaryFailure != null) failures.Insert(0, primaryFailure);
+                throw new AggregateException("Owned FX group-menu cleanup unfinished", failures);
+            }
         }
     });
 }

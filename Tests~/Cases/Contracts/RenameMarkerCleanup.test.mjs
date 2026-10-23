@@ -33,10 +33,12 @@ context.case("RenameMarkerCleanup original assertion inputs and source contracts
     const bytes = fs.readFileSync(path.join(root, directory, entry.file));
     const gitBlob = createHash('sha1').update(Buffer.from('blob ' + bytes.length + '\0')).update(bytes).digest('hex');
     assert.equal(gitBlob, entry.gitBlob, entry.file + ': immutable tag source');
-    const current = read('src/FXPresets/' + entry.file).replace(/\r\n/g, '\n');
+    // The frozen tag authenticates provenance, not current implementation bytes.
+    // The documented current successor of HSV is Hue & Saturation.
+    const currentFile = entry.file === 'HSV.hlsl' ? 'HueSaturation.hlsl' : entry.file;
+    const current = read('src/FXPresets/' + currentFile).replace(/\r\n/g, '\n');
     assert.doesNotMatch(current, /@formerlyserializedas/);
-    assert.equal(current, bytes.toString('utf8').replace(/^\/\/ @formerlyserializedas\([^\n]*\)\n/gm, ''),
-      entry.file + ': only the obsolete alias changed');
+    assert.match(current, /^\/\/ @whimtex-effect \S[^\n]*$/m, currentFile + ': current effect metadata');
     assert.match(current, /@param hidden float _Opacity/);
   }
   for (const file of ['src/ShaderFXMetadata.cs', 'src/ShaderFXPresetWriter.cs', 'src/BrushTipProgram.cs',

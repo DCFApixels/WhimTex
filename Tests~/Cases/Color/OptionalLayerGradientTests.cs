@@ -136,7 +136,7 @@ public static class OptionalLayerGradientTests
         else
         {
             Check(!root.Query<Toggle>().ToList().Any(t => t.label == "Apply Gradient"), "SDF has no gradient checkbox");
-            var output = root.Query<EnumField>().ToList().Single(f => f.label == "Output");
+                var output = root.Query<PopupField<SDFLayerBehaviour.OutputEncoding>>().ToList().Single(f => f.label == "Output");
             var inverted = root.Query<Toggle>().ToList().Single(t => t.label == "Inverted");
             bool Hidden(VisualElement element) => element.ClassListContains("whimtex-hidden");
             Check(Enabled(source) && !Hidden(field) && !Hidden(inverted), "SDF gradient keeps Inverted available");
@@ -164,7 +164,7 @@ public static class OptionalLayerGradientTests
         var noise = (NoiseLayerBehaviour)noiseDoc.layers[0].Behaviour;
         var sdf = (SDFLayerBehaviour)sdfDoc.layers[0].Behaviour;
         Check(noise.encoding == NoiseLayerBehaviour.OutputEncoding.LinearData && Enabled(sdf), "Noise defaults Linear Data; SDF defaults Gradient");
-        Check(Enum.GetValues(typeof(SDFLayerBehaviour.OutputEncoding)).Length == 2, "SDF has exactly two outputs");
+        Check(Enum.GetValues(typeof(SDFLayerBehaviour.OutputEncoding)).Length == 3, "SDF has Linear Data, Gradient and Multi Channel Data outputs");
         Check(noise.gradient.Mode == WhimTexGradientMode.Perceptual && sdf.gradient.Mode == WhimTexGradientMode.Perceptual, "Both default Perceptual");
         UI(noiseDoc, noise, typeof(NoiseLayerEditorWindow));
         UI(sdfDoc, sdf, typeof(SDFLayerEditorWindow));

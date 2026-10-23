@@ -27,9 +27,11 @@ public static class WhimTexGradientWindowTests
     static void Check(bool v,string m) { context.True(v, m); }
     private static void ExecuteMain()
     {
-        var w=ScriptableObject.CreateInstance<WhimTexGradientWindow>();
+        Undo.IncrementCurrentGroup();
+        WhimTexGradientWindow w = null;
         try
         {
+            w=ScriptableObject.CreateInstance<WhimTexGradientWindow>();
             w.Show();
             w.CreateGUI();
             Check(w.rootVisualElement.styleSheets.count>0,"Stylesheet missing");
@@ -91,7 +93,15 @@ public static class WhimTexGradientWindowTests
             Undo.PerformRedo();
             Check(((WhimTexGradient)Field(w,"gradient")).Mode==WhimTexGradientMode.Fixed,"Redo failed");
         }
-        finally { Undo.ClearUndo(w); UnityEngine.Object.DestroyImmediate(w); }
+        finally
+        {
+            try { if (w != null) Undo.ClearUndo(w); }
+            finally
+            {
+                try { if (w != null) UnityEngine.Object.DestroyImmediate(w); }
+                finally { Undo.IncrementCurrentGroup(); }
+            }
+        }
         return;
     }
 }

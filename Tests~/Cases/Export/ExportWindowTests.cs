@@ -207,10 +207,14 @@ public static class ExportWindowTests
             focus = Identity(EditorWindow.focusedWindow),
             focusName = EditorWindow.focusedWindow == null ? null : EditorWindow.focusedWindow.name };
         SaveJournal(journal); // Keep partial ownership recoverable if subsequent setup fails.
+        var preferences = new UnityBToolPreferences();
+        try
+        {
         var owner = ScriptableObject.CreateInstance<WhimTexWindow>();
         owner.name = OwnedName(journal, "owner"); journal.owner = Identity(owner); SaveJournal(journal);
         var initial = (WhimTexDocument)Get(owner, "activeDocument");
         if (initial != null) { initial.name = OwnedName(journal, "initialDocument"); journal.initialDocument = Identity(initial); SaveJournal(journal); }
+        preferences.Own(owner);
         var document = ScriptableObject.CreateInstance<WhimTexDocument>();
         document.name = OwnedName(journal, "document"); journal.document = Identity(document); SaveJournal(journal);
         document.width = document.height = 16;
@@ -250,6 +254,14 @@ public static class ExportWindowTests
         context.True(document.width == 16 && document.height == 16 && pixels.width == 2 && pixels.height == 2 && format.index == 6, "Original Drawing/JSON visual input retained");
         foreach (var existing in before) context.True(existing != null, "Pre-existing window preserved");
         return "GUID " + runId + ": JSON visual at 420x280 remains open for capture. CloseVisual(same GUID) owns cleanup; no user window is acquired.";
+        }
+        finally
+        {
+            // Preserve the manual visual, not its test-only preference sessions/callbacks.
+            // CloseVisual still owns the exact journal-recorded Unity objects.
+            preferences.Dispose();
+            preferences.Verify();
+        }
     });
     public static string ShowExrVisual(string runId) => Manual("ExportWindowSmoke.ShowExrVisual", context =>
     {

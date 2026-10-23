@@ -17,7 +17,7 @@ public static class ContourDistanceTests
     {
         using var input = new NativeArray<Color32>(source, Allocator.TempJob);
         using var output = new NativeArray<float>(source.Length, Allocator.TempJob);
-        ComputeMethod.Invoke(null, new object[] { input, output, w, h, threshold, channel, mode, miter, merge });
+        ComputeMethod.Invoke(null, new object[] { input, output, w, h, threshold, channel, mode, miter, merge, SharpDistanceMode.Unrestricted });
         var result = output.ToArray();
         for (int i = 0; i < source.Length; i++)
         {

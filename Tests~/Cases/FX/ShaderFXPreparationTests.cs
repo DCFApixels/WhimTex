@@ -32,6 +32,7 @@ public static class ShaderFXPreparationTests
             // Do not disturb an existing capture, native recorder or benchmark.
             var profiler = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.WhimTexProfiler", true);
             var suppression = (IDisposable)profiler.GetMethod("SuppressInstrumentation", F).Invoke(null, null);
+            Exception primaryFailure = null;
             try
             {
                 var doc = ScriptableObject.CreateInstance<WhimTexDocument>(); owned.Add(doc);
@@ -104,11 +105,32 @@ public static class ShaderFXPreparationTests
                 if (File.Exists(path)) throw new IOException("Refusing to replace retained measurement: " + path);
                 File.WriteAllText(path, JsonUtility.ToJson(report, true));
             }
+            catch (Exception error)
+            {
+                primaryFailure = error;
+                throw;
+            }
             finally
             {
-                RenderTexture.active = previous; GL.sRGBWrite = srgb;
-                for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null) Object.DestroyImmediate(owned[i]);
-                suppression.Dispose();
+                var failures = new List<Exception>();
+                void Cleanup(Action action)
+                {
+                    try { action(); }
+                    catch (Exception error) { failures.Add(error); }
+                }
+                Cleanup(() => RenderTexture.active = previous);
+                Cleanup(() => GL.sRGBWrite = srgb);
+                for (int i = owned.Count - 1; i >= 0; i--)
+                {
+                    var value = owned[i];
+                    if (value != null) Cleanup(() => Object.DestroyImmediate(value));
+                }
+                Cleanup(suppression.Dispose);
+                if (failures.Count != 0)
+                {
+                    if (primaryFailure != null) failures.Insert(0, primaryFailure);
+                    throw new AggregateException("Owned FX preparation cleanup unfinished", failures);
+                }
             }
         });
         var parsed = JsonUtility.FromJson<TestResult>(result);

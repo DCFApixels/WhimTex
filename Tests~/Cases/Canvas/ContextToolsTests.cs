@@ -31,31 +31,46 @@ static System.Threading.CancellationToken Cancellation;
     }
     static bool Property(object target, string name) => (bool)target.GetType().GetProperty(name, Instance).GetValue(target);
 
-    sealed class PanelRepaintBarrier : ImmediateModeElement
+    sealed class PanelLayoutBarrier : VisualElement
     {
         internal readonly TaskCompletionSource<bool> completion =
             new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        protected override void ImmediateRepaint() => completion.TrySetResult(true);
+        public PanelLayoutBarrier() => generateVisualContent += _ => completion.TrySetResult(true);
     }
 
-    static async Task AwaitPanelRepaint(EditorWindow window)
+    static async Task AwaitPanelLayout(EditorWindow window)
     {
         Cancellation.ThrowIfCancellationRequested();
-        var barrier = new PanelRepaintBarrier { pickingMode = PickingMode.Ignore };
+        var barrier = new PanelLayoutBarrier { pickingMode = PickingMode.Ignore };
         barrier.style.position = Position.Absolute;
+        barrier.style.left = barrier.style.top = 0;
         barrier.style.width = barrier.style.height = 1;
+        int requests = 0, generations = 0;
+        barrier.generateVisualContent += _ => generations++;
         window.rootVisualElement.Add(barrier);
+        IVisualElementScheduledItem repaint = null;
         try
         {
-            window.Repaint();
-            if (await Task.WhenAny(barrier.completion.Task, WhimTex.Tests.UnityA.UnityAAsync.Delay(1000, Cancellation)) != barrier.completion.Task)
+            void RequestRepaint()
             {
-                Cancellation.ThrowIfCancellationRequested();
-                throw new TimeoutException("Owned panel did not repaint after its layout/style change.");
+                if (barrier.completion.Task.IsCompleted || Cancellation.IsCancellationRequested) return;
+                requests++;
+                barrier.MarkDirtyRepaint();
+                window.Repaint();
+            }
+            repaint = barrier.schedule.Execute(RequestRepaint).Every(16);
+            RequestRepaint();
+            await Task.WhenAny(barrier.completion.Task, WhimTex.Tests.UnityA.UnityAAsync.Delay(1000, Cancellation));
+            Cancellation.ThrowIfCancellationRequested();
+            if (!barrier.completion.Task.IsCompleted)
+            {
+                throw new TimeoutException("Owned panel did not generate visual content after its layout/style change: requests=" + requests +
+                    ", generations=" + generations + ", attached=" + (barrier.panel != null) +
+                    ", probe=" + barrier.worldBound + ", root=" + window.rootVisualElement.worldBound);
             }
             await barrier.completion.Task;
         }
-        finally { barrier.RemoveFromHierarchy(); }
+        finally { repaint?.Pause(); barrier.RemoveFromHierarchy(); }
     }
 
     sealed class ToolbarLayoutTrace : IDisposable
@@ -138,9 +153,10 @@ static System.Threading.CancellationToken Cancellation;
             try
             {
                 int remaining = Math.Max(1, 1000 - (int)budget.ElapsedMilliseconds);
-                if (await Task.WhenAny(completed.Task, WhimTex.Tests.UnityA.UnityAAsync.Delay(remaining, cancellation)) != completed.Task)
+                await Task.WhenAny(completed.Task, WhimTex.Tests.UnityA.UnityAAsync.Delay(remaining, cancellation));
+                cancellation.ThrowIfCancellationRequested();
+                if (!completed.Task.IsCompleted)
                 {
-                    cancellation.ThrowIfCancellationRequested();
                     throw new TimeoutException("Owned panel scheduler did not complete after resize.");
                 }
                 await completed.Task;
@@ -262,7 +278,10 @@ static System.Threading.CancellationToken Cancellation;
             IsTool("GradientHandles", "Gradient auto-selected");
             Check(Visible("gradientHandlesTool") && Property(window, "IsGradientCanvasEnabled"), "Gradient button and handles visible");
             Check(!Property(window, "IsCanvasPaintTool"), "Base brush does not receive contextual clicks");
-            Check(EditorPrefs.GetString(prefs[0]) == "Brush", "Context does not replace base preference");
+            var preferenceSession = Read(window, "toolPreferences");
+            Call(preferenceSession, "Flush");
+            var preferenceStore = preferenceSession.GetType().GetProperty("Store", Instance).GetValue(preferenceSession);
+            Check((string)Call(preferenceStore, "Read", "activeTool") == "Brush", "Context does not replace base preference");
             SetTool("Pencil"); Refresh(); Call(window, "Update");
             IsTool("Pencil", "Explicit base choice survives refresh and update");
             Select(second.Owner, true);
@@ -360,14 +379,14 @@ static System.Threading.CancellationToken Cancellation;
                         foreach (bool expanded in new[] { true, false })
                         {
                             transformFoldout.value = expanded;
-                            await AwaitPanelRepaint(parameterWindow);
+                            await AwaitPanelLayout(parameterWindow);
                             foreach (var action in new[] { edit, reset })
                             {
                                 action.style.width = 20; action.style.height = 18;
                                 action.style.marginTop = 0; action.style.marginBottom = 0;
                                 action.style.fontSize = 12;
                             }
-                            await AwaitPanelRepaint(parameterWindow);
+                            await AwaitPanelLayout(parameterWindow);
                             float previousHeaderHeight = header.layout.height;
                             float previousContentY = parameterView.Q<Vector2Field>().worldBound.y;
                             foreach (var action in new[] { edit, reset })
@@ -376,7 +395,7 @@ static System.Threading.CancellationToken Cancellation;
                                 action.style.marginTop = StyleKeyword.Null; action.style.marginBottom = StyleKeyword.Null;
                                 action.style.fontSize = StyleKeyword.Null;
                             }
-                            await AwaitPanelRepaint(parameterWindow);
+                            await AwaitPanelLayout(parameterWindow);
                             Check(Mathf.Abs(edit.resolvedStyle.width - 24f) < .1f && Mathf.Abs(edit.resolvedStyle.height - 20f) < .1f &&
                                 Mathf.Abs(reset.resolvedStyle.width - 24f) < .1f && Mathf.Abs(reset.resolvedStyle.height - 20f) < .1f,
                                 "Transform actions use the shared enlarged 24x20 size");
@@ -478,8 +497,12 @@ static System.Threading.CancellationToken Cancellation;
                         await WhimTex.Tests.UnityA.UnityAAsync.Delay(100, Cancellation);
                         var manipulator = Read(window, "pointManipulator");
                         Rect image = (Rect)canvas.GetType().GetProperty("ImageRect", Instance).GetValue(canvas);
-                        Vector2 Position(Vector2 uv) => canvas.LocalToWorld((Vector2)Call(canvas, "ToView",
-                            new Vector2(image.xMin + uv.x * image.width, image.yMax - uv.y * image.height)));
+                        Vector2 Position(Vector2 uv)
+                        {
+                            Rect currentImage = (Rect)canvas.GetType().GetProperty("ImageRect", Instance).GetValue(canvas);
+                            return canvas.LocalToWorld((Vector2)Call(canvas, "ToView",
+                                new Vector2(currentImage.xMin + uv.x * currentImage.width, currentImage.yMax - uv.y * currentImage.height)));
+                        }
                         void Pointer(EventType type, Vector2 uv, bool control = false)
                         {
                             var input = new Event { type = type, button = 0, mousePosition = Position(uv),
@@ -585,6 +608,8 @@ static System.Threading.CancellationToken Cancellation;
                         {
                             Select(first.Owner, mode == "Multiple"); SetTool("Transform");
                             if (mode == "FX") { SetTool("GradientHandles"); Press(edit); }
+                            await AwaitPanelLayout(window);
+                            image = (Rect)canvas.GetType().GetProperty("ImageRect", Instance).GetValue(canvas);
                             var grips = new List<Vector2> { Vector2.zero, new Vector2(.5f, 0), new Vector2(1, 0),
                                 new Vector2(1, .5f), Vector2.one, new Vector2(.5f, 1), new Vector2(0, 1), new Vector2(0, .5f),
                                 new Vector2(.5f, 1 + 24f / image.height) };
@@ -663,12 +688,12 @@ static System.Threading.CancellationToken Cancellation;
             TogglePrevious(); IsTool("Brush", "Temporary FX does not replace ordinary tool history");
             TogglePrevious(); IsTool("SmudgeBrush", "Ordinary tool history still switches both ways after FX");
             SetTool("Brush");
-            await WhimTex.Tests.UnityA.UnityAAsync.Delay(100, Cancellation);
+            await AwaitPanelLayout(window);
             var previewCanvas = (VisualElement)Read(window, "toolkitCanvas");
             Rect stableCanvas = previewCanvas.worldBound;
             async Task CheckCanvasLayout(string name)
             {
-                await AwaitPanelRepaint(window);
+                await AwaitPanelLayout(window);
                 window.rootVisualElement.panel.Pick(Vector2.zero);
                 var settingsPanel = window.rootVisualElement.Q<VisualElement>("canvasToolSettings");
                 Check(Mathf.Abs(window.rootVisualElement.Q("canvasToolSettingsSpace").resolvedStyle.height - 28f) < .1f,
@@ -685,8 +710,10 @@ static System.Threading.CancellationToken Cancellation;
                     (VisualElement)Read(window, "areaSelectionOverlay"), (VisualElement)Read(window, "healingOverlay") })
                     Check(previewCanvas.IndexOf(toolOverlay) > previewCanvas.IndexOf(guideOverlay),
                         name + " all tool overlays draw above guides");
-                Check(Mathf.Abs(topRail.worldBound.yMin - Mathf.Max(settingsPanel.worldBound.yMax, previewCanvas.worldBound.yMin)) < .1f,
-                    name + " guide rail follows settings bottom");
+                float settingsBottom = Mathf.Max(settingsPanel.worldBound.yMax,
+                    window.rootVisualElement.Q("canvasToolSettingsSpace").worldBound.yMax);
+                Check(Mathf.Abs(topRail.worldBound.yMin - settingsBottom) < .1f,
+                    name + " guide rail follows the full settings height, including wrapped rows");
                 Check(Mathf.Abs(leftRail.worldBound.yMin - topRail.worldBound.yMax) < .1f,
                     name + " left guide rail starts below top rail");
                 var guideManipulator = Read(window, "canvasGuideManipulator");
@@ -703,14 +730,15 @@ static System.Threading.CancellationToken Cancellation;
                                 control.worldBound.yMax <= settingsPanel.worldBound.yMax + .1f,
                                 name + " control fits settings height: " + control.GetType().Name + " " + control.worldBound + " panel " + settingsPanel.worldBound);
                 }
-                Check(Mathf.Abs(previewCanvas.worldBound.y - stableCanvas.y) < .1f &&
-                    Mathf.Abs(previewCanvas.worldBound.height - stableCanvas.height) < .1f,
-                    name + " preserves preview position and height: " + previewCanvas.worldBound + " vs " + stableCanvas);
+                Check(Mathf.Abs(previewCanvas.worldBound.yMin - topRail.worldBound.yMax) < .1f &&
+                    Mathf.Abs(previewCanvas.worldBound.yMax - stableCanvas.yMax) < .1f,
+                    name + " canvas fills the space below the settings and ruler, preserving its bottom: " +
+                    previewCanvas.worldBound + " vs " + stableCanvas);
                 foreach (var rail in new[] { topRail, leftRail })
                 {
                     Vector2 railCenter = rail.worldBound.center;
                     var picked = window.rootVisualElement.panel.Pick(railCenter);
-                    Check(picked != null && (picked == previewCanvas || guideOverlay.Contains(picked)),
+                    Check(picked != null && (picked == rail || rail.Contains(picked)),
                         name + " guide rail is not covered by settings: picked=" + picked?.GetType().Name + "/" + picked?.name +
                         ", picked bounds=" + picked?.worldBound + ", rail=" + rail.worldBound + ", settings=" + settingsPanel.worldBound);
                     int guideCount = ((System.Collections.IList)Read(window, "canvasGuides")).Count;
@@ -813,8 +841,8 @@ static System.Threading.CancellationToken Cancellation;
                 Escape(); IsTool("GradientHandles", "Second Escape exits temporary tool");
             }
             first.gradientType = GradientLayerBehaviour.GradientType.Angular; Refresh();
-            IsTool("Brush", "Unsupported gradient context returns base");
-            Check(!Visible("gradientHandlesTool"), "Angular gradient has no handles tool");
+            IsTool("GradientHandles", "Angular gradient preserves the supported context");
+            Check(Visible("gradientHandlesTool"), "Angular gradient has a handles tool");
             first.gradientType = GradientLayerBehaviour.GradientType.Linear;
             Select(second.Owner); Select(first.Owner); SetTool("Brush");
             window.CreateGUI(); Refresh();
@@ -860,27 +888,38 @@ static System.Threading.CancellationToken Cancellation;
                 "Temporary tool fits minimum window: " + lastButton.worldBound + " root: " + window.rootVisualElement.worldBound);
             Escape();
             SetTool("Fill");
-            await WhimTex.Tests.UnityA.UnityAAsync.Delay(100, Cancellation);
+            await AwaitPanelLayout(window);
             var narrowSettings = window.rootVisualElement.Q("canvasToolSettings");
             Check(narrowSettings.resolvedStyle.height > 28f, "Narrow settings wrap onto additional rows");
+            float wrappedSettingsHeight = narrowSettings.resolvedStyle.height;
             Rect narrowCanvas = ((VisualElement)Read(window, "toolkitCanvas")).worldBound;
             var lastField = narrowSettings.Q<IntegerField>(className: "whimtex-fill-expand");
             Check(lastField.worldBound.xMin >= narrowSettings.worldBound.xMin - .1f &&
                 lastField.worldBound.xMax <= narrowSettings.worldBound.xMax + .1f &&
                 lastField.worldBound.yMax <= narrowSettings.worldBound.yMax + .1f,
                 "Last setting fits inside the wrapped panel");
-            Check(lastField.worldBound.center.y > narrowCanvas.yMin, "Extra rows overlap the preview");
+            Check(lastField.worldBound.yMax <= narrowCanvas.yMin, "Extra rows remain above the canvas");
             var picked = window.rootVisualElement.panel.Pick(lastField.worldBound.center);
-            Check(picked == lastField || lastField.Contains(picked), "Overlapping settings receive input instead of the canvas");
-            SetTool("GradientHandles"); await WhimTex.Tests.UnityA.UnityAAsync.Delay(100, Cancellation);
+            Check(picked == lastField || lastField.Contains(picked), "Wrapped settings receive input");
+            SetTool("GradientHandles"); await AwaitPanelLayout(window);
             Check(Mathf.Abs(narrowSettings.resolvedStyle.height - 28f) < .1f, "Empty panel collapses to one row");
-            Check(((VisualElement)Read(window, "toolkitCanvas")).worldBound == narrowCanvas,
-                "Collapsing wrapped settings does not move or resize the preview");
+            Rect workspaceBounds = window.rootVisualElement.Q("canvasViewWorkspace").worldBound;
+            Rect expectedCanvas = new Rect(workspaceBounds.position,
+                new Vector2(workspaceBounds.width, Mathf.Max(96f, workspaceBounds.height)));
+            Rect collapsedTopRail = ((VisualElement)Read(window, "canvasGuideTopRail")).worldBound;
+            Rect actualCanvas = ((VisualElement)Read(window, "toolkitCanvas")).worldBound;
+            Check(actualCanvas == expectedCanvas && actualCanvas.yMin == collapsedTopRail.yMax &&
+                collapsedTopRail.yMin >= narrowSettings.worldBound.yMax,
+                "Collapsed settings leave the canvas in its current workspace below the ruler, respecting its 96px minimum: actual=" + actualCanvas +
+                ", expected=" + expectedCanvas + ", workspace=" + workspaceBounds + ", ruler=" + collapsedTopRail + ", before=" + narrowCanvas +
+                ", old settings height=" + wrappedSettingsHeight + ", new settings height=" + narrowSettings.resolvedStyle.height);
             // Repeat actual window resizes and tool switches after rebuilding the view.
             foreach (float width in new[] { 1280f, 640f, 900f, 640f })
             {
                 window.position = new Rect(120, 120, width, 650);
-                SetTool("Brush"); await WhimTex.Tests.UnityA.UnityAAsync.Delay(100, Cancellation);
+                SetTool("Brush");
+                await trace.AwaitResizedPanel((int)width, 650, Cancellation);
+                await AwaitPanelLayout(window);
                 previewCanvas = (VisualElement)Read(window, "toolkitCanvas");
                 stableCanvas = previewCanvas.worldBound;
                 foreach (string name in new[] { "Fill", "Zoom", "Transform", "Pencil", "BlurBrush", "HealingBrush", "GradientHandles", "Brush" })

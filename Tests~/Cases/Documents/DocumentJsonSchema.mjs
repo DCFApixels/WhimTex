@@ -62,6 +62,9 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const defaultsLiteral = defaultsSource.match(/internal const string Data = @"((?:[^"]|"")*)";/);
     assert(defaultsLiteral, 'Frozen JSON defaults must be available independently of Unity');
     const defaults = JSON.parse(defaultsLiteral[1].replaceAll('""', '"'));
+    const layoutLiteral = defaultsSource.match(/internal const string LayoutData = @"((?:[^"]|"")*)";/);
+    assert(layoutLiteral, 'FX layout defaults must be frozen independently of runtime initializers');
+    Object.assign(defaults, JSON.parse(layoutLiteral[1].replaceAll('""', '"')));
     const vectorDefaultsLiteral = defaultsSource.match(/internal const string VectorData = @"((?:[^"]|"")*)";/);
     assert(vectorDefaultsLiteral, 'Vector defaults must be frozen independently of runtime initializers');
     for (const [type, value] of Object.entries(JSON.parse(vectorDefaultsLiteral[1].replaceAll('""', '"')))) {
@@ -90,6 +93,11 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     Object.assign(defaults.TextLayerBehaviour, JSON.parse(textFillLiteral[1].replaceAll('""', '"')));
     defaults.TextLayerBehaviour.gradient = structuredClone(defaults.WhimTexGradient);
     const valueDefaultsSource = fs.readFileSync(path.join(root, 'src/WhimTexDocumentJson.Values.cs'), 'utf8');
+    for (const field of ['containers', 'enableIf']) {
+      assert.ok(valueDefaultsSource.includes(`defaultsV2["ShaderFXParameterControl"]["${field}"] = new JArray();`),
+        `${field}: explicit empty metadata default`);
+      defaults.ShaderFXParameterControl[field] = [];
+    }
     const freeformLiteral = valueDefaultsSource.match(/defaultsV2\["GradientLayerBehaviour"\]\["freeform"\] = JObject.Parse\(@"((?:[^"]|"")*)"\);/);
     const pointLiteral = valueDefaultsSource.match(/defaultsV2\["FreeformGradientPoint"\] = JObject.Parse\(@"((?:[^"]|"")*)"\);/);
     assert(freeformLiteral && pointLiteral, 'Freeform defaults are frozen independently of runtime constructors');

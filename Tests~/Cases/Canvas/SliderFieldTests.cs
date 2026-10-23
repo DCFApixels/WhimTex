@@ -331,7 +331,7 @@ public static class SliderFieldTests
                 }
             }
             string previewPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Application.dataPath),
-                "Temp", "WhimTex", "slider-field-preview.png");
+                "Temp", "WhimTex", "slider-field-preview-" + Guid.NewGuid().ToString("N") + ".png");
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(previewPath));
             await WhimTex.Tests.UnityA.UnityACapture.Capture(window, previewPath, token);
             context.True(System.IO.File.Exists(previewPath) && new System.IO.FileInfo(previewPath).Length > 32,
@@ -392,13 +392,14 @@ public static class SliderFieldTests
         return field;
     }
 
-    private static async Task ExecuteIntegration(TestContext context, CancellationToken token)
+    private static Task ExecuteIntegration(TestContext context, CancellationToken token)
+        => WhimTex.Tests.UnityA.UnityAScope.RunOwnedAsync(async scope =>
     {
         // Reflection is limited to package-owned WhimTex state and methods.
         // Pointer, keyboard, capture and focus use supported public Unity APIs.
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
         var windowType = typeof(WhimTexWindow);
-        var document = ScriptableObject.CreateInstance<WhimTexDocument>();
+        var document = scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
         document.hideFlags = HideFlags.HideAndDontSave;
         Layer FindLayer(string id)
         {
@@ -417,7 +418,7 @@ public static class SliderFieldTests
         WhimTexWindow window = null;
         try
         {
-            window = ScriptableObject.CreateInstance<WhimTexWindow>();
+            window = scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
             windowType.GetMethod("SetDocument", flags).Invoke(window, new object[] { document });
             firstId = first.Id; secondId = second.Id; groupId = group.Id;
             context.True(firstId != null && secondId != null && groupId != null,
@@ -515,7 +516,7 @@ public static class SliderFieldTests
                 "Combined input matches the neighboring field corner radius");
             context.Near(nameInputFontSize, opacityInput.resolvedStyle.fontSize, .1,
                 "Combined input uses the same font size as neighboring fields");
-            string previewDirectory = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Application.dataPath), "Temp", "WhimTex");
+            string previewDirectory = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Application.dataPath), "Temp", "WhimTex", "slider-field-" + Guid.NewGuid().ToString("N"));
             System.IO.Directory.CreateDirectory(previewDirectory);
             System.IO.File.WriteAllLines(System.IO.Path.Combine(previewDirectory, "slider-field-neighbor-styles.tsv"), measurements);
             await WhimTex.Tests.UnityA.UnityACapture.Capture(window,
@@ -526,10 +527,10 @@ public static class SliderFieldTests
             AsyncD.CleanupOwned(
                 () => { if (document != null) Undo.ClearUndo(document); },
                 () => { if (window != null) window.DiscardChanges(); },
-                () => { if (window != null) window.Close(); },
+                () => { if (window != null) WhimTex.Tests.UnityA.UnityAScope.CloseOwned(window); },
                 () => { if (document != null) UnityEngine.Object.DestroyImmediate(document); });
         }
-    }
+    });
 
     private static string DescribeStyle(string name, VisualElement element)
     {

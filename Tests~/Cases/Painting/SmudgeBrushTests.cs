@@ -14,6 +14,38 @@ public static class SmudgeBrushTests
     static float scenarioMixing = 1;
     static FixtureScope S => FixtureContext.Scope;
     static WhimTex.Tests.TestContext T => FixtureContext.Context;
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FixtureScope, OwnedJournal> journals = new();
+    static OwnedJournal Journal => journals.GetValue(S, scope => scope.OwnDisposable(new OwnedJournal(scope)));
+    sealed class OwnedJournal : IDisposable
+    {
+        readonly FixtureScope scope;
+        readonly PaintTileHistoryTests.DiskScope disk = new();
+        internal readonly System.Collections.Generic.List<WhimTexDocument> documents = new();
+        internal readonly System.Collections.Generic.List<DrawingLayerBehaviour> drawings = new();
+        internal readonly System.Collections.Generic.List<WhimTexWindow> windows = new();
+        internal OwnedJournal(FixtureScope scope) { this.scope = scope; }
+        public void Dispose()
+        {
+            var errors = new System.Collections.Generic.List<Exception>();
+            void Clean(Action action) { try { action(); } catch (Exception error) { errors.Add(error); } }
+            // OnDisable may finish an owned stroke: keep the private journal attached
+            // until every owned window and pixel-history cursor has been released.
+            foreach (var window in windows) Clean(() => scope.CloseWindow(window));
+            foreach (var drawing in drawings)
+            {
+                Clean(() => Call(drawing, "ReleasePaintSurface"));
+                Clean(() => PaintTileHistoryTests.ReleaseOwnedHistory(drawing));
+            }
+            foreach (var document in documents) if (document != null)
+            {
+                Clean(() => PaintTileHistoryTests.ReleaseOwnedHistory(document));
+                Clean(() => Undo.ClearUndo(document));
+            }
+            Clean(disk.Dispose);
+            journals.Remove(scope);
+            if (errors.Count != 0) throw new AggregateException("Owned Smudge journal cleanup failed; stop subsequent batches.", errors);
+        }
+    }
     static object Call(object owner, string name, params object[] args) =>
         (owner as Type ?? owner.GetType()).GetMethod(name, Flags).Invoke(owner is Type ? null : owner, args);
     static object Get(object owner, string name) => owner.GetType().GetField(name, Flags).GetValue(owner);
@@ -21,7 +53,9 @@ public static class SmudgeBrushTests
     static Texture2D Pixels(DrawingLayerBehaviour layer) => (Texture2D)typeof(DrawingLayerBehaviour).GetProperty("StoredTexture", Flags).GetValue(layer);
     static WhimTexDocument Document(int width = 128, int height = 64)
     {
+        var journal = Journal;
         var doc = S.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
+        journal.documents.Add(doc);
         doc.width = width; doc.height = height;
         return doc;
     }
@@ -32,6 +66,7 @@ public static class SmudgeBrushTests
         for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) values[y * width + x] = color(x, y);
         texture.SetPixels(values); texture.Apply();
         var drawing = (DrawingLayerBehaviour)Call(typeof(DrawingLayerBehaviour), "FromMergedTexture", texture);
+        Journal.drawings.Add(drawing);
         doc.layers.Add(drawing);
         Call(doc, "NormalizeModel");
         return drawing;
@@ -97,7 +132,7 @@ public static class SmudgeBrushTests
                 T.True(coordinates.width < 256, "Stroke history is cropped, not full-canvas");
             }
             T.True(mixing != 1 || transport == null, "Mixing 100 uses the original endpoint without deformation buffers");
-            End(layer); S.Destroy(doc); S.Destroy(Pixels(layer));
+            End(layer); ReleaseDocument(doc, layer);
         }
         Color[][] outputs = new Color[3][];
         for (int variant = 0; variant < 3; variant++)
@@ -585,9 +620,23 @@ public static class SmudgeBrushTests
 
     static WhimTexWindow Window(out WhimTexDocument doc)
     {
+        var journal = Journal;
         var window = S.Own(ScriptableObject.CreateInstance<WhimTexWindow>());
+        journal.windows.Add(window);
         doc = S.Own((WhimTexDocument)Get(window, "activeDocument")); doc.width = 128; doc.height = 64;
+        journal.documents.Add(doc);
         return window;
+    }
+
+    static void ReleaseDocument(WhimTexDocument doc, DrawingLayerBehaviour layer)
+    {
+        var pixels = Pixels(layer);
+        try { PaintTileHistoryTests.ReleaseOwnedHistory(layer); }
+        finally
+        {
+            try { S.Destroy(doc); }
+            finally { S.Destroy(pixels); }
+        }
     }
 
     [Serializable] public class Reply { public bool success; public string error; }
@@ -718,17 +767,21 @@ public static class SmudgeBrushTests
             Set(window, "temporaryDocumentDirty", false);
             T.True((bool)Call(window, "TryBeginCanvasStroke", View(Start), false), "Canvas begins a Smudge stroke");
             Call(window, "FinishPaintingStroke");
+            Call(layer, "SyncPendingSurfaceToTexture");
             T.True(Difference(original, Pixels(layer).GetPixels()) < .001, "Canvas click without dragging does not paint");
             T.True(!(bool)Get(window, "temporaryDocumentDirty"), "A click does not mark the document dirty");
             T.True((bool)Call(window, "TryBeginCanvasStroke", View(Start), false), "Canvas starts another Smudge stroke");
             T.True(Get(layer, "smudgeTransport") != null, "Canvas routes to coupled Smudge, not only the old endpoint");
             Call(window, "PaintTowardsLayerPoint", Finish); Call(window, "FinishPaintingStroke");
+            // Interactive completion queues tile readback; CPU assertions must drain it.
+            Call(layer, "SyncPendingSurfaceToTexture");
             T.True(Difference(original, Pixels(layer).GetPixels()) > 10, "Canvas movement uses Smudge, not the ordinary Brush");
             double pressureDifference = Difference(original, Pixels(layer).GetPixels());
             var light = Drawing(doc, Split); Call(window, "SelectOnlyLayer", light.Id);
             Set(settings, "smudgePressure", true); Set(window, "paintingPressure", .2f);
             T.True((bool)Call(window, "TryBeginCanvasStroke", View(Start), false), "Begin low-pressure stroke");
             Call(window, "PaintTowardsLayerPoint", Finish); Call(window, "FinishPaintingStroke");
+            Call(light, "SyncPendingSurfaceToTexture");
             T.True(Difference(original, Pixels(light).GetPixels()) < pressureDifference, "Pressure reduces Flow, not color retention");
             S.CloseWindow(window);
         });
@@ -837,7 +890,7 @@ public static class SmudgeBrushTests
                     " canvasMs=" + canvas.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
                 Call(layer, "EndStroke");
                 if (sample != null) S.Release(sample);
-                S.Destroy(doc); S.Destroy(Pixels(layer));
+                ReleaseDocument(doc, layer);
             }
             return string.Join("; ", measurements);
         });

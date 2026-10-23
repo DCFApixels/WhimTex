@@ -9,11 +9,12 @@ context.case('EmptyDocumentSave original assertions and branches', async () => {
     const read = path => readFileSync(new URL('../../../' + path, import.meta.url), 'utf8');
     const window = read('src/WhimTexWindow.cs');
     const expression = window.match(/hasUnsavedChanges = ([\s\S]*?);/)[1];
-    const closeWarning = new Function('HasCanvasLayers', 'HasDocumentChanges', 'paintingLayer', 'canvasTransformManipulator', `return ${expression};`);
+    const closeWarning = new Function('HasCanvasLayers', 'HasDocumentChanges', 'paintingLayer', 'canvasTransformManipulator', 'vectorMaskRebuild', `return ${expression};`);
     for (const hasLayers of [false, true]) for (const dirty of [false, true])
+      for (const vectorMaskRebuild of [null, {}])
         for (const painting of [null, {}]) for (const transform of [null, { IsDragging: false }, { IsDragging: true }]) {
-            assert.equal(closeWarning(hasLayers, () => dirty, painting, transform),
-                dirty || painting !== null || transform?.IsDragging === true);
+            assert.equal(closeWarning(hasLayers, () => dirty, painting, transform, vectorMaskRebuild),
+                dirty || vectorMaskRebuild !== null || painting !== null || transform?.IsDragging === true);
         }
     assert.match(window, /ResolveUnsavedTemporaryDocument\(\)\s*\{\s*PrepareDocumentSave\(\);\s*if \(!HasDocumentChanges\(\)\)/);
     assert.match(window, /public override void SaveChanges\(\)\s*\{\s*if \(!SaveDocument\(\)\)/);

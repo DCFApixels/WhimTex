@@ -242,10 +242,34 @@ public static class ShaderFXCodeLinesTests
         public void Fail(Exception e) { result = TestContext.Result("failed", test.Checks, "Line numbers", e.ToString()).ToJson(); Dispose(); }
         public void Dispose()
         {
-            schedule?.Pause(); schedule = null;
-            if (window != null) { window.Close(); window = null; }
-            if (effect != null) { Undo.ClearUndo(effect); UnityEngine.Object.DestroyImmediate(effect); effect = null; }
-            if (previous != null) previous.Focus(); previous = null;
+            var errors = new List<Exception>();
+            void ReleaseOwned(Action release) { try { release(); } catch (Exception error) { errors.Add(error); } }
+            ReleaseOwned(() => { schedule?.Pause(); schedule = null; });
+            ReleaseOwned(() =>
+            {
+                if (window != null)
+                {
+                    try { if (window.rootVisualElement.panel != null) window.Close(); }
+                    finally { if (window != null) UnityEngine.Object.DestroyImmediate(window); }
+                }
+                window = null;
+            });
+            ReleaseOwned(() =>
+            {
+                if (effect != null)
+                {
+                    try { Undo.ClearUndo(effect); }
+                    finally { UnityEngine.Object.DestroyImmediate(effect); }
+                }
+                effect = null;
+            });
+            ReleaseOwned(() => { if (previous != null) previous.Focus(); previous = null; });
+            if (errors.Count != 0)
+            {
+                var error = new AggregateException("Owned line numbers cleanup requires recovery", errors);
+                result = TestContext.Result("failed", test.Checks, "Line numbers cleanup requires recovery; prior result: " + result, error.ToString()).ToJson();
+                throw error;
+            }
         }
     }
 }

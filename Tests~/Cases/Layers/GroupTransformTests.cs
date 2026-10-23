@@ -77,6 +77,8 @@ public static class GroupTransformTests
             outer.transform.position=new Double2(3,7); outer.transform.storage=TransformStorage.TRS;
             refresh.Invoke(doc,null); Check(Version(inner)!=oldVersion,"ancestor invalidates descendant");
             var oldLocal=inner.transform;
+            UnityEditor.Undo.FlushUndoRecordObjects();
+            UnityEditor.Undo.IncrementCurrentGroup();
             UnityEditor.Undo.RegisterCompleteObjectUndo(doc,"Group transform test");
             outer.transform.position=new Double2(20,30);
             UnityEditor.Undo.FlushUndoRecordObjects();
@@ -90,7 +92,7 @@ public static class GroupTransformTests
             Check(!json.Contains("transformCache") && !json.Contains("parentMatrix"),"cache not serialized");
             return "";
         }
-        finally { UnityEngine.Object.DestroyImmediate(doc); }
+        finally { UnityEditor.Undo.ClearUndo(doc); UnityEngine.Object.DestroyImmediate(doc); }
     }
     public static string Main() => UnityBRun.Run("GroupTransformSmoke.Main", () => ExecuteMain());
 }

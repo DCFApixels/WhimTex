@@ -148,6 +148,7 @@ namespace WhimTex.Tests.UnityA
         readonly System.Collections.Generic.List<System.Action> restores = new System.Collections.Generic.List<System.Action>();
         readonly System.Collections.Generic.List<System.Action> finalizers = new System.Collections.Generic.List<System.Action>();
         readonly System.Collections.Generic.List<System.Func<System.Threading.Tasks.Task>> asyncFinalizers = new System.Collections.Generic.List<System.Func<System.Threading.Tasks.Task>>();
+        readonly UnityAToolPreferences toolPreferences = new UnityAToolPreferences();
         string assets, temp;
         public string Tag => guid;
         public bool RestoreWindowFocus { get; set; } = true;
@@ -237,6 +238,7 @@ namespace WhimTex.Tests.UnityA
             var persisted = FindOwnership(window);
             if (persisted.scopeGuid != ownership.scopeGuid || persisted.assignedName != ownership.assignedName)
                 throw new System.InvalidOperationException("Owned-window creation fields failed immediate persisted round trip.");
+            toolPreferences.Own(window);
             return window;
         }
         internal static void TestJournalWire(WhimTex.Tests.TestContext context)
@@ -362,6 +364,8 @@ namespace WhimTex.Tests.UnityA
             if (!MatchesOwnership(ownership, window)) throw new System.InvalidOperationException("Captured creation proof no longer matches; leave the window untouched.");
             var failures = new System.Collections.Generic.List<System.Exception>();
             void Clean(System.Action action) { try { action(); } catch (System.Exception error) { failures.Add(error); } }
+            System.Action disposePreferences = null;
+            Clean(() => disposePreferences = UnityAToolPreferences.Capture(window));
             try
             {
                 if (window is DCFApixels.WhimTex.WhimTexWindow documentWindow)
@@ -382,7 +386,11 @@ namespace WhimTex.Tests.UnityA
                 // sufficient here because every shown fixture uses the UI Toolkit root.
                 Clean(() => { if (window != null && window.rootVisualElement.panel != null) window.Close(); });
             }
-            finally { Clean(() => { if (window != null) UnityEngine.Object.DestroyImmediate(window); }); }
+            finally
+            {
+                Clean(() => { if (window != null) UnityEngine.Object.DestroyImmediate(window); });
+                Clean(() => disposePreferences?.Invoke());
+            }
             Clean(() => { if (window == null) ForgetOwnership(ownership); });
             if (failures.Count != 0) throw new System.AggregateException("Owned window cleanup failed.", failures);
         }
@@ -438,6 +446,7 @@ namespace WhimTex.Tests.UnityA
             }
             for (int i = finalizers.Count - 1; i >= 0; i--) Clean(finalizers[i]);
             for (int i = restores.Count - 1; i >= 0; i--) Clean(restores[i]);
+            Clean(toolPreferences.Dispose);
             Clean(() => { UnityEngine.RenderTexture.active = target; UnityEngine.GL.sRGBWrite = srgb; });
             Clean(() =>
             {
@@ -449,7 +458,8 @@ namespace WhimTex.Tests.UnityA
             if (assets != null) Clean(() => { if (!UnityEditor.AssetDatabase.DeleteAsset(assets)) throw new System.IO.IOException("Could not delete owned fixture " + assets); });
             Clean(PreserveDiagnostics);
             if (temp != null) Clean(() => { if (System.IO.Directory.Exists(temp)) System.IO.Directory.Delete(temp, true); });
-            Clean(() => { if (RestoreWindowFocus && focus != null) focus.Focus(); });
+            Clean(() => { if (RestoreWindowFocus && focus != null && UnityEditor.EditorWindow.focusedWindow != focus) focus.Focus(); });
+            Clean(toolPreferences.Verify);
             if (failures.Count != 0) throw new System.AggregateException("Fixture cleanup failed.", failures);
         }
     }
@@ -594,5 +604,99 @@ namespace WhimTex.Tests.UnityA
             }
             if (window != null) type.GetMethod("Update", flags).Invoke(window, null);
         }
+    }
+}
+
+// Existing fixtures compile independently, so this helper stays local to this support source.
+internal sealed class UnityAToolPreferences : System.IDisposable
+{
+    const System.Reflection.BindingFlags F = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
+    readonly string[] keys = {
+        "DCFApixels.WhimTex.Canvas.Tool", "DCFApixels.WhimTex.Canvas.TransformReturnTool",
+        "DCFApixels.WhimTex.Canvas.PaintToolSettings", "DCFApixels.WhimTex.Canvas.ToolSettings",
+        "DCFApixels.WhimTex.CommentAuthor", "DCFApixels.WhimTex.CommentAuthorColor", "DCFApixels.WhimTex.CommentAuthorId"
+    };
+    readonly bool[] existed = new bool[7];
+    readonly string[] values = new string[7];
+    readonly System.Collections.Generic.List<System.Action> sessions = new System.Collections.Generic.List<System.Action>();
+    bool disposed;
+    System.Exception disposalFailure;
+    internal UnityAToolPreferences()
+    {
+        for (int i = 0; i < keys.Length; i++)
+        { existed[i] = UnityEditor.EditorPrefs.HasKey(keys[i]); values[i] = UnityEditor.EditorPrefs.GetString(keys[i]); }
+    }
+    // Call only for a window explicitly created/registered by this fixture, never discovered windows.
+    internal void Own(UnityEditor.EditorWindow window)
+    {
+        if (!(window is DCFApixels.WhimTex.WhimTexWindow)) return;
+        sessions.Add(Capture(window));
+        var type = typeof(DCFApixels.WhimTex.WhimTexWindow);
+        var session = type.GetField("toolPreferences", F).GetValue(window);
+        if (session == null) throw new System.InvalidOperationException("Owned window has no initialized tool preference session; cleanup remains uncertain.");
+        var data = new System.Collections.Generic.Dictionary<string, string>();
+        System.Func<string, string> read = key => data.TryGetValue(key, out string value) ? value : null;
+        System.Action<string, string> write = (key, value) => data[key] = value;
+        using (var holder = (System.IDisposable)System.Activator.CreateInstance(session.GetType(), F, null, new object[] { read, write }, null))
+        {
+            object store = session.GetType().GetProperty("Store", F).GetValue(holder);
+            try { type.GetMethod("InitializeToolPreferences", F).Invoke(window, new[] { store }); }
+            finally { sessions.Add(Capture(window)); }
+        }
+    }
+    internal static System.Action Capture(UnityEditor.EditorWindow window)
+    {
+        if (!(window is DCFApixels.WhimTex.WhimTexWindow)) return () => { };
+        var type = typeof(DCFApixels.WhimTex.WhimTexWindow);
+        var session = type.GetField("toolPreferences", F).GetValue(window) as System.IDisposable;
+        var brush = (UnityEditor.EditorApplication.CallbackFunction)System.Delegate.CreateDelegate(
+            typeof(UnityEditor.EditorApplication.CallbackFunction), window, type.GetMethod("RestoreBrushTipAfterReload", F));
+        var projectBrush = (System.Action)System.Delegate.CreateDelegate(
+            typeof(System.Action), window, type.GetMethod("RestoreBrushTipAfterReload", F));
+        return () =>
+        {
+            try
+            {
+                session?.Dispose();
+                if (session != null && !(bool)session.GetType().GetField("disposed", F).GetValue(session))
+                    throw new System.InvalidOperationException("Owned preference session is still live; cleanup uncertain.");
+            }
+            finally
+            {
+                UnityEditor.EditorApplication.delayCall -= brush;
+                UnityEditor.EditorApplication.projectChanged -= projectBrush;
+            }
+        };
+    }
+    public void Dispose()
+    {
+        if (disposed)
+        {
+            if (disposalFailure != null) throw disposalFailure;
+            return;
+        }
+        disposed = true;
+        var errors = new System.Collections.Generic.List<System.Exception>();
+        foreach (var cleanup in sessions)
+            try { cleanup(); } catch (System.Exception error) { errors.Add(error); }
+        for (int i = 0; i < keys.Length; i++)
+            try
+            {
+                if (existed[i]) UnityEditor.EditorPrefs.SetString(keys[i], values[i]);
+                else UnityEditor.EditorPrefs.DeleteKey(keys[i]);
+            }
+            catch (System.Exception error) { errors.Add(error); }
+        if (errors.Count != 0)
+        {
+            disposalFailure = new System.AggregateException("Preference restoration/session cleanup uncertain; retain run evidence and do not start another window batch.", errors);
+            throw disposalFailure;
+        }
+    }
+    internal void Verify()
+    {
+        for (int i = 0; i < keys.Length; i++)
+            if (UnityEditor.EditorPrefs.HasKey(keys[i]) != existed[i] ||
+                (existed[i] && UnityEditor.EditorPrefs.GetString(keys[i]) != values[i]))
+                throw new System.InvalidOperationException("Preference changed after restoration/focus: " + keys[i] + "; cleanup uncertain.");
     }
 }

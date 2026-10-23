@@ -52,7 +52,7 @@ namespace DCFApixels.WhimTex
             int undoGroup = -1;
             try
             {
-                VisitDrawingLayers(roots, drawing => drawing.SyncSurfaceToTexture());
+                VisitDrawingLayers(roots, drawing => drawing.SyncPendingSurfaceToTexture());
                 foreach (Layer source in roots)
                 {
                     Layer copy = JsonUtility.FromJson<Layer>(JsonUtility.ToJson(source));

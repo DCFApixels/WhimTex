@@ -135,7 +135,7 @@ public static class FreeformFigureTests
                 {
                     t.True(image.GetPixels().Any(c=>c.r>1||c.g>1),"HDR export remains above one "+vectorMode);
                     var preview=new Texture2D(128,96,TextureFormat.RGBA32,false,true);
-                    try {preview.SetPixels(image.GetPixels().Select(c=>c.gamma).ToArray());preview.Apply();string path=Path.GetFullPath(Path.Combine(Application.dataPath,"../Temp/WhimTex/freeform-figure-"+vectorMode+".png"));File.WriteAllBytes(path,preview.EncodeToPNG());}
+                    try {preview.SetPixels(image.GetPixels().Select(c=>c.gamma).ToArray());preview.Apply();string path=Path.GetFullPath(Path.Combine(Application.dataPath,"../Temp/WhimTex/freeform-figure-"+Guid.NewGuid().ToString("N")+"-"+vectorMode+".png"));File.WriteAllBytes(path,preview.EncodeToPNG());}
                     finally {Object.DestroyImmediate(preview);}
                 }
                 finally {Object.DestroyImmediate(image);}

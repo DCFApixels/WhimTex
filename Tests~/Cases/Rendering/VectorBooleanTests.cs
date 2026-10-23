@@ -92,7 +92,7 @@ public static class VectorBooleanTests
             {model.style.fillMode=mode;model.style.stroke=true;model.style.strokeWidth=2;model.style.cap=VectorStrokeCap.Round;model.style.dashPattern=new List<float>{.1f,2};model.style.dashPatternRelative=true;Pixels(doc);t.True(true,"Gradient and dashes "+mode);}
             model.style.fillMode=VectorFillMode.Solid;model.style.stroke=false;
             var output=doc.ComposeCanvas();var png=new Texture2D(96,80,TextureFormat.RGBA32,false);
-            try{png.SetPixels(output.GetPixels());png.Apply();Directory.CreateDirectory("Temp/WhimTex");File.WriteAllBytes("Temp/WhimTex/vector-boolean.png",png.EncodeToPNG());}
+            try{png.SetPixels(output.GetPixels());png.Apply();Directory.CreateDirectory("Temp/WhimTex");File.WriteAllBytes("Temp/WhimTex/vector-boolean-" + System.Guid.NewGuid().ToString("N") + ".png",png.EncodeToPNG());}
             finally{Object.DestroyImmediate(output);Object.DestroyImmediate(png);}
             t.True(RenderTexture.active==previous && GL.sRGBWrite==srgb,"Render state preserved");
         }

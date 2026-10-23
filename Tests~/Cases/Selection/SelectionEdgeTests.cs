@@ -157,7 +157,9 @@ public static class SelectionEdgeTests
         document.width = document.height = side; document.outputFilter = FilterMode.Point;
         var painted = new DrawingLayerBehaviour(); document.layers.Add(painted);
         document.layers.Add(new ColorFillLayerBehaviour { color = new Color(.08f, .08f, .08f, 1) });
-        var window = scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>()); Call(window, "SetDocument", document);
+        var window = scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
+        // OwnWindow has isolated this session's store before defaults are changed.
+        Call(Read(window, "toolPreferences"), "Reset"); Call(window, "SetDocument", document);
         window.ShowUtility(); window.position = new Rect(60, 60, 1400, 850); window.CreateGUI();
         var root = window.rootVisualElement; for (int i = 0; i < 5; i++) await Tick(root, token);
         var canvas = (VisualElement)Read(window, "toolkitCanvas"); Call(window, "SetCanvasZoomPercent", 3200f); await Tick(root, token); canvas.Focus();

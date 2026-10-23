@@ -21,7 +21,7 @@ context.case('Branding original assertions and branches', async () => {
     assert.equal(JSON.parse(read('src/DCFApixels.WhimTex.asmdef')).name, 'DCFApixels.WhimTex');
     const window = read('src/WhimTexWindow.cs');
     assert.ok(window.includes('[MenuItem("Window/WhimTex")]'));
-    assert.match(window, /void OnEnable\(\)\s*\{\s*RestoreSourceImage\(\);\s*RefreshDocumentTitle\(true\)/,
+    assert.match(window, /void OnEnable\(\)\s*\{\s*WhimTexUserSettings\.EnsureCommentAuthorName\(\);\s*RestoreSourceImage\(\);\s*RefreshDocumentTitle\(true\)/,
       'Restored windows recover their source image and persisted title without resetting their document');
     assert.match(read('src/WhimTexWindow.DocumentTitle.cs'), /WhimTexBranding.WindowTitle\(title\)/);
     const commands = read('src/Automation/Pipeline/WhimTexCommands.cs');
@@ -44,7 +44,7 @@ context.case('Branding original assertions and branches', async () => {
     for (const [file, key] of [
       ['src/WhimTexColorInputs.cs', 'DCFApixels.WhimTex.HdrColorInputs'],
       ['src/WhimTexUserSettings.cs', 'DCFApixels.WhimTex.PresetsFolder'],
-      ['src/WhimTexWindow.Tools.cs', 'DCFApixels.WhimTex.Canvas.PaintToolSettings']
+      ['src/WhimTexUserSettings.Tools.cs', 'DCFApixels.WhimTex.Canvas.PaintToolSettings']
     ]) assert.ok(read(file).includes(`"${key}"`), `Current preference: ${key}`);
     function scan(dir) {
       for (const entry of readdirSync(path.join(root, dir), { withFileTypes: true })) {
@@ -113,18 +113,18 @@ context.case('Branding original assertions and branches', async () => {
     assert.match(toolbar, /Layer selected = hasLayers \? GetSelectedLayer\(\) : null;/);
     assert.ok(!/canvasTool\s*=(?!=)|SetCanvasTool\(|SetEnabled\(/.test(toolbar), 'Empty styling preserves tool choice and configuration');
     assert.deepEqual([...toolbar.matchAll(/--selected", displayedTool == CanvasTool\.(\w+)/g)].map(m => m[1]).sort(),
-      ['Shape', 'RectangleSelect', 'PolygonSelect', 'Zoom', 'None', 'Brush', 'BlurBrush', 'Pencil', 'SmudgeBrush', 'HealingBrush', 'Transform', 'Fill'].sort());
+      ['Shape', 'Text', 'Gradient', 'Crop', 'Comment', 'RectangleSelect', 'PolygonSelect', 'Zoom', 'None', 'Brush', 'BlurBrush', 'Pencil', 'SmudgeBrush', 'HealingBrush', 'Transform', 'Fill'].sort());
     for (const button of ['canvasRectangleSelectButton', 'canvasPolygonSelectButton', 'canvasZoomButton'])
       assert.ok(toolbar.includes(`${button}?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers)`));
     assert.match(toolSource, /HandlePaintConversionPrompt\(PointerDownEvent evt\)\s*\{\s*if \(!HasCanvasLayers\)\s*\{\s*WhimTexUI.ConsumeEvent\(evt\);\s*return true;/);
     const zoom = read('src/WhimTexWindow.Zoom.cs');
-    assert.match(zoom, /ChangeCanvasZoom\(bool fit\)\s*\{\s*if \(!HasCanvasLayers\) return;/);
-    assert.match(zoom, /if \(!owner.HasCanvasLayers \|\| \(evt.button != 2/);
-    assert.match(zoom, /if \(!owner.HasCanvasLayers \|\| !target.contentRect.Contains\(point\)/);
+    assert.match(zoom, /ChangeCanvasZoom\(bool fit\)\s*\{\s*if \(!HasNavigableCanvas\) return;/);
+    assert.match(zoom, /if \(!owner.HasNavigableCanvas \|\| \(evt.button != 2/);
+    assert.match(zoom, /if \(!owner.HasNavigableCanvas \|\| !target.contentRect.Contains\(point\)/);
     assert.match(read('src/WhimTexWindow.AreaSelectionView.cs'), /!owner.IsAreaSelectionTool \|\| !owner.HasCanvasLayers/);
     assert.match(read('src/WhimTexWindow.Eyedropper.cs'), /CanUseCanvasEyedropper => HasCanvasLayers &&/);
     assert.ok(!/layer\.visible/.test(presentation), 'Hidden layers still count as document content');
-    assert.match(presentation, /SetCanvasVisible\(hasLayers\)/);
+    assert.match(presentation, /SetCanvasVisible\(hasLayers \|\| canvasTool == CanvasTool\.Crop \|\| canvasTool == CanvasTool\.Comment \|\| IsVectorTool\(canvasTool\)\)/);
     for (const element of ['checker', 'image', 'tiledImage'])
       assert.ok(previewUI.includes(`${element}.AddToClassList("whimtex-canvas-surface")`));
     assert.ok(!previewUI.includes('backdrop.AddToClassList("whimtex-canvas-surface")'));

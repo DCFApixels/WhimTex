@@ -7,6 +7,14 @@ import { TestContext, finish, resultMarker } from '../../Framework/test-api.mjs'
 import { root, runProcess, runScenario, commandArgs, bundleSources, classifyReply } from '../../scripts/run-tests.mjs';
 const moduleName = process.env.WHIMTEX_PSD_READER;
 const require = createRequire(new URL('./PsdReader.mjs', import.meta.url));
+function requireUnlinkedPath(target) {
+    for (let current = path.resolve(target); ; current = path.dirname(current)) {
+        try {
+            if (fs.lstatSync(current).isSymbolicLink()) throw new Error('Refusing linked workflow path: ' + current);
+        } catch (error) { if (error.code !== 'ENOENT') throw error; }
+        if (current === path.dirname(current)) break;
+    }
+}
 let modulePath;
 try { modulePath = moduleName && require.resolve(moduleName); } catch { /* Explicit prerequisite below. */ }
 if (!modulePath) {
@@ -18,9 +26,15 @@ if (!modulePath) {
         const project = path.resolve(process.argv[2] ?? '');
         context.assert.equal(project, path.resolve(root, '../..'), 'Explicit matching project');
         const directory = path.join(project, 'Temp/WhimTex/test-runs');
+        requireUnlinkedPath(directory);
+        requireUnlinkedPath(path.join(directory, 'runner.lock'));
         context.assert.equal(JSON.parse(fs.readFileSync(path.join(directory, 'runner.lock'))).pid, process.ppid, 'Only the locked outer runner owns this workflow');
         const id = randomUUID(), source = bundleSources(['Tests~/Cases/Export/PsdWriter.cs', 'Tests~/Framework/TestApi.cs', 'src/PsdWriter.cs']);
         const file = path.join(directory, 'psd-reader-input-' + id + '.cs');
+        const fixture = path.join(directory, 'psd-writer-' + id + '.psd');
+        requireUnlinkedPath(file);
+        requireUnlinkedPath(fixture);
+        if (fs.existsSync(fixture)) throw new Error('Refusing preexisting workflow output: ' + fixture);
         fs.writeFileSync(file, source, { flag:'wx' });
         context.facts.input = { file, sha256:createHash('sha256').update(source).digest('hex') };
         context.facts.decoder = { modulePath, sha256:createHash('sha256').update(fs.readFileSync(modulePath)).digest('hex') };
@@ -31,7 +45,7 @@ if (!modulePath) {
         if (encoded.uncertain) context.recoveryRequired = true;
         context.assert.equal(encoded.uncertain, false, 'Encoder operation is complete before decoding');
         context.assert.equal(encoded.status, 'passed', encoded.detail);
-        const fixture = path.join(directory, 'psd-writer-' + id + '.psd');
+        requireUnlinkedPath(fixture);
         const reply = await runProcess(process.execPath, [path.join(root,'Tests~/Cases/Export/PsdReader.mjs'), modulePath, fixture], { timeoutMs:20000 });
         const decoded = classifyReply(reply, { runner:'node', result:{kind:'structured'} });
         context.facts.decoderResult = decoded; context.facts.fixture = fixture;

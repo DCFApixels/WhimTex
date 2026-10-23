@@ -49,7 +49,7 @@ context.case('BrushTipPersistence original assertions and branches', async () =>
       LoadAllAssetsAtPath:()=>[main,child]
     };
     const editor={isCompiling:false,isUpdating:false};
-    const settings={BrushTipSource:{HLSL:'HLSL'},dynamics:{tip:null,source:'Standard'},clipboardTipId:'',tipRestoreFailed:false,brushTipGuid:'asset-guid',brushTipLocalId:20,brushTipPresetPath:'',ownedPresetTip:null,
+    const settings={BrushTipSource:{HLSL:'HLSL'},dynamics:{tip:null,source:'Standard',get HasTip(){return this.tip != null;}},clipboardTipId:'',tipRestoreFailed:false,brushTipGuid:'asset-guid',brushTipLocalId:20,brushTipPresetPath:'',ownedPresetTip:null,
       ReleasePresetTip() { this.ownedPresetTip=null; }};
     settings.RememberBrushTip=()=>remember(settings,db,editor);
     settings.MatchesBrushTip=t=>t.guid===settings.brushTipGuid&&t.id===settings.brushTipLocalId;
@@ -95,7 +95,9 @@ context.case('BrushTipPersistence original assertions and branches', async () =>
       assert.ok(window.includes(`EditorApplication.${event} += RestoreBrushTipAfterReload`));
       assert.ok(window.includes(`EditorApplication.${event} -= RestoreBrushTipAfterReload`));
     }
-    assert.ok(tools.includes('paintSettings.RememberBrushTip();'));
+    assert.ok(tools.includes('SaveToolPreferences();')
+      && read('src/WhimTexWindow.ToolPreferences.cs').includes('encode: value => value.EncodePreferences()')
+      && /internal string EncodePreferences\(\)\s*\{\s*RememberBrushTip\(\);/.test(source));
     assert.ok(!tools.includes('paintSettings.dynamics.tip == null ? string.Empty'));
     assert.ok(read('src/WhimTexWindow.Brushes.cs').includes('paintSettings.SetBrushTip(texture)'));
 });

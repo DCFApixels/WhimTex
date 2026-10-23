@@ -108,13 +108,13 @@ context.case("NoiseContract original assertion inputs and source contracts", asy
   assert.equal(fields.warpSeed.default, 1337);
   assert.deepEqual(fields.scale.default, [8,8,1]);
   assert.equal(fields.scale.oneOf[1].maxItems, 3);
-  assert.match(layer, /public float scaleZ = 1f;/, 'Old files retain their slice coordinate');
+  assert.match(layer, /public float scaleZ = 1f;/, 'The default Z scale matches the current schema');
   assert.match(ui, /scale3D.EnableInClassList\("whimtex-hidden", !three\)/, 'Scale Z is visible only in effective 3D');
   assert.deepEqual(fields.offset.default, [0,0,0]);
   assert.match(fields.periodic.description, /UI Seamless/);
   assert.match(fields.gradient.description, /does not change encoding/);
   const sdf = schema.$defs.sdf.properties;
-  assert.deepEqual(sdf.encoding.enum, ['LinearData','Gradient']);
+  assert.deepEqual(sdf.encoding.enum, ['LinearData','Gradient','MultiChannelData']);
   assert.equal(sdf.encoding.default, 'Gradient');
   assert.equal(sdf.gradient.$ref, '#/$defs/gradient');
   assert.equal(fields.gradient.$ref, '#/$defs/gradient');

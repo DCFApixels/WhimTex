@@ -28,6 +28,7 @@ public static class ShaderFXDocumentDirtyTests
     const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
     static readonly Assembly Package = typeof(WhimTexDocument).Assembly;
     static readonly List<Object> owned = new();
+    static UnityBOwned ownedWindows;
     static int checks, changes, refreshes;
     static WhimTexDocument observed;
     static Type Type(string name) => Package.GetType("DCFApixels.WhimTex." + name, true);
@@ -88,6 +89,7 @@ public static class ShaderFXDocumentDirtyTests
     static WhimTexWindow Window(WhimTexDocument doc)
     {
         var window = ScriptableObject.CreateInstance<WhimTexWindow>(); owned.Add(window);
+        ownedWindows.Track(window);
         window.hideFlags = HideFlags.HideAndDontSave;
         Call(window, "SetDocument", doc);
         return window;
@@ -124,10 +126,12 @@ public static class ShaderFXDocumentDirtyTests
         var changedEvent = typeof(WhimTexDocument).GetEvent("Changed", Any);
         var refreshedEvent = typeof(WhimTexDocument).GetEvent("RenderResourcesChanged", Any);
         Action<WhimTexDocument> onChanged = Changed, onRefreshed = Refreshed;
-        changedEvent.GetAddMethod(true).Invoke(null, new object[] { onChanged });
-        refreshedEvent.GetAddMethod(true).Invoke(null, new object[] { onRefreshed });
+        ownedWindows = new UnityBOwned();
+        Exception primaryFailure = null;
         try
         {
+            changedEvent.GetAddMethod(true).Invoke(null, new object[] { onChanged });
+            refreshedEvent.GetAddMethod(true).Invoke(null, new object[] { onRefreshed });
             var lazyDoc = Source(null);
             var lazyDrawing = new DrawingLayerBehaviour();
             lazyDoc.layers.Add(new Layer(lazyDrawing));
@@ -231,23 +235,45 @@ public static class ShaderFXDocumentDirtyTests
                     item.window.hasUnsavedChanges == item.dirty, "user window untouched");
             return;
         }
+        catch (Exception error)
+        {
+            primaryFailure = error;
+            throw;
+        }
         finally
         {
-            changedEvent.GetRemoveMethod(true).Invoke(null, new object[] { onChanged });
-            refreshedEvent.GetRemoveMethod(true).Invoke(null, new object[] { onRefreshed });
+            var failures = new List<Exception>();
+            void Cleanup(Action action)
+            {
+                try { action(); }
+                catch (Exception error) { failures.Add(error); }
+            }
+            Cleanup(() => changedEvent.GetRemoveMethod(true).Invoke(null, new object[] { onChanged }));
+            Cleanup(() => refreshedEvent.GetRemoveMethod(true).Invoke(null, new object[] { onRefreshed }));
             for (int i = owned.Count - 1; i >= 0; i--)
             {
-                if (owned[i] == null) continue;
-                if (owned[i] is WhimTexWindow window)
+                if (owned[i] is WhimTexWindow window && window != null) Cleanup(() =>
                 {
                     Set(window, "temporaryDocumentDirty", false);
                     var doc = (WhimTexDocument)Get(window, "activeDocument");
                     if (doc != null && Get(doc, "documentBinding") is object binding) Set(binding, "dirty", false);
                     Call(window, "UpdateUnsavedChangesState");
-                }
-                Object.DestroyImmediate(owned[i]);
+                });
+            }
+            // Close registered windows and their exact F26 sessions before their models.
+            Cleanup(ownedWindows.Dispose);
+            ownedWindows = null;
+            for (int i = owned.Count - 1; i >= 0; i--)
+            {
+                var value = owned[i];
+                if (value != null && !(value is WhimTexWindow)) Cleanup(() => Object.DestroyImmediate(value));
             }
             owned.Clear(); observed = null;
+            if (failures.Count != 0)
+            {
+                if (primaryFailure != null) failures.Insert(0, primaryFailure);
+                throw new AggregateException("Shader FX document dirty cleanup failed", failures);
+            }
         }
     }
 }

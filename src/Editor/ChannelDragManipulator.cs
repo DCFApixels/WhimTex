@@ -12,6 +12,7 @@ namespace DCFApixels.WhimTex
         private int pointer = -1;
         private bool value;
         private Vector2 previous;
+        private VisualElement keyboardRoot;
 
         internal ChannelDragManipulator(Button[] buttons, Func<int> getMask, Action<int> toggle)
         {
@@ -58,6 +59,9 @@ namespace DCFApixels.WhimTex
                 pointer = evt.pointerId;
                 previous = evt.position;
                 target.CapturePointer(pointer);
+                keyboardRoot = target.panel?.visualTree;
+                if (keyboardRoot != target)
+                    keyboardRoot?.RegisterCallback<KeyDownEvent>(Key, TrickleDown.TrickleDown);
                 Apply(i);
                 evt.StopImmediatePropagation();
                 return;
@@ -114,6 +118,9 @@ namespace DCFApixels.WhimTex
 
         private void Release()
         {
+            if (keyboardRoot != target)
+                keyboardRoot?.UnregisterCallback<KeyDownEvent>(Key, TrickleDown.TrickleDown);
+            keyboardRoot = null;
             int captured = pointer;
             pointer = -1;
             if (captured >= 0 && target.HasPointerCapture(captured)) target.ReleasePointer(captured);

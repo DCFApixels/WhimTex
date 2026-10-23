@@ -2,6 +2,11 @@
 // No reflection into Unity internals and no persistent project script/asset is installed.
 public static class UnityBReload
 {
+    static readonly string[] PreferenceKeys = {
+        "DCFApixels.WhimTex.Canvas.Tool", "DCFApixels.WhimTex.Canvas.TransformReturnTool",
+        "DCFApixels.WhimTex.Canvas.PaintToolSettings", "DCFApixels.WhimTex.Canvas.ToolSettings",
+        "DCFApixels.WhimTex.CommentAuthor", "DCFApixels.WhimTex.CommentAuthorColor", "DCFApixels.WhimTex.CommentAuthorId"
+    };
     [System.Serializable]
     public sealed class Snapshot
     {
@@ -17,6 +22,9 @@ public static class UnityBReload
         public int requestCount;
         public string requestError;
         public string[] compilationErrors;
+        public string[] preferenceKeys;
+        public string[] preferenceValues;
+        public bool[] preferenceExisted;
     }
 
     [System.Serializable]
@@ -45,11 +53,23 @@ public static class UnityBReload
         string json = UnityEditor.SessionState.GetString(key, "");
         if (json.Length == 0) throw new System.InvalidOperationException("Missing owned reload state: " + key);
         var snapshot = UnityEngine.JsonUtility.FromJson<Snapshot>(json);
-        if (snapshot == null || snapshot.version != 3 || snapshot.selection == null || snapshot.compilationErrors == null)
-            throw new System.InvalidOperationException("Unsupported or malformed reload identity snapshot; do not reinterpret old integer IDs.");
+        if (snapshot == null || snapshot.version != 5 || snapshot.selection == null || snapshot.compilationErrors == null ||
+            snapshot.preferenceKeys == null || snapshot.preferenceKeys.Length != PreferenceKeys.Length ||
+            snapshot.preferenceValues == null || snapshot.preferenceValues.Length != PreferenceKeys.Length ||
+            snapshot.preferenceExisted == null || snapshot.preferenceExisted.Length != PreferenceKeys.Length)
+            throw new System.InvalidOperationException("Unsupported or malformed reload identity/preference snapshot; preserve it for recovery, never infer missing values.");
+        for (int i = 0; i < PreferenceKeys.Length; i++)
+            if (snapshot.preferenceKeys[i] != PreferenceKeys[i] || snapshot.preferenceValues[i] == null)
+                throw new System.InvalidOperationException("Malformed reload preference snapshot; cleanup uncertain, preserve recovery state.");
         return snapshot;
     }
-    static void Write(string key, Snapshot state) => UnityEditor.SessionState.SetString(key, UnityEngine.JsonUtility.ToJson(state));
+    static void Write(string key, Snapshot state)
+    {
+        string json = UnityEngine.JsonUtility.ToJson(state);
+        UnityEditor.SessionState.SetString(key, json);
+        if (UnityEditor.SessionState.GetString(key, "") != json || Read(key).runId != state.runId)
+            throw new System.InvalidOperationException("Reload identity/preference snapshot failed its persisted round trip; retain recovery state.");
+    }
     static string Identity(UnityEngine.Object value)
     {
         if (value == null) return "";
@@ -80,8 +100,30 @@ public static class UnityBReload
     {
         if (value == null) return;
         if (UnityEditor.AssetDatabase.Contains(value)) throw new System.InvalidOperationException("Refusing to destroy an imported object.");
-        Drain(new System.Action[] { () => UnityEditor.Undo.ClearUndo(value),
-            () => { if (value != null) UnityEngine.Object.DestroyImmediate(value); } });
+        System.Action disposePreferences = null;
+        void CapturePreferences()
+        {
+            if (!(value is DCFApixels.WhimTex.WhimTexWindow window)) return;
+            const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            var type = typeof(DCFApixels.WhimTex.WhimTexWindow);
+            var session = type.GetField("toolPreferences", flags).GetValue(window) as System.IDisposable;
+            var brush = (UnityEditor.EditorApplication.CallbackFunction)System.Delegate.CreateDelegate(
+                typeof(UnityEditor.EditorApplication.CallbackFunction), window, type.GetMethod("RestoreBrushTipAfterReload", flags));
+            var projectBrush = (System.Action)System.Delegate.CreateDelegate(typeof(System.Action), window, type.GetMethod("RestoreBrushTipAfterReload", flags));
+            disposePreferences = () =>
+            {
+                try
+                {
+                    session?.Dispose();
+                    if (session != null && !(bool)session.GetType().GetField("disposed", flags).GetValue(session))
+                        throw new System.InvalidOperationException("Owned reload preference session is still live; cleanup uncertain.");
+                }
+                finally { UnityEditor.EditorApplication.delayCall -= brush; UnityEditor.EditorApplication.projectChanged -= projectBrush; }
+            };
+        }
+        Drain(new System.Action[] { CapturePreferences, () => UnityEditor.Undo.ClearUndo(value),
+            () => { if (value != null) UnityEngine.Object.DestroyImmediate(value); },
+            () => disposePreferences?.Invoke() });
     }
     public static void ValidateAssetDirectory(string runId, bool creating)
     {
@@ -114,7 +156,16 @@ public static class UnityBReload
         var selected = UnityEditor.Selection.objects;
         var ids = new string[selected.Length];
         for (int i = 0; i < selected.Length; i++) ids[i] = Identity(selected[i]);
-        Write(key, new Snapshot { version = 3, runId = runId, selection = ids, compilationErrors = new string[0],
+        // Use primitive arrays, as for selection, instead of ephemeral nested DTOs.
+        var preferenceValues = new string[PreferenceKeys.Length];
+        var preferenceExisted = new bool[PreferenceKeys.Length];
+        for (int i = 0; i < PreferenceKeys.Length; i++)
+        {
+            preferenceExisted[i] = UnityEditor.EditorPrefs.HasKey(PreferenceKeys[i]);
+            preferenceValues[i] = UnityEditor.EditorPrefs.GetString(PreferenceKeys[i]);
+        }
+        Write(key, new Snapshot { version = 5, runId = runId, selection = ids, compilationErrors = new string[0],
+            preferenceKeys = (string[])PreferenceKeys.Clone(), preferenceValues = preferenceValues, preferenceExisted = preferenceExisted,
             active = Identity(UnityEditor.Selection.activeObject),
             focus = Identity(UnityEditor.EditorWindow.focusedWindow) });
     }
@@ -280,6 +331,15 @@ public static class UnityBReload
             {
                 var state = Read(key);
                 if (state.runId != runId) throw new System.InvalidOperationException("Reload ownership mismatch.");
+                // Body-owned windows/sessions must be terminal before this point. A failed
+                // fixture cleanup retains the snapshot and reports uncertainty, never PASS.
+                for (int i = 0; i < PreferenceKeys.Length; i++)
+                    try
+                    {
+                        if (state.preferenceExisted[i]) UnityEditor.EditorPrefs.SetString(state.preferenceKeys[i], state.preferenceValues[i]);
+                        else UnityEditor.EditorPrefs.DeleteKey(state.preferenceKeys[i]);
+                    }
+                    catch (System.Exception error) { failures.Add(error.ToString()); }
                 var loaded = UnityEngine.Resources.FindObjectsOfTypeAll<UnityEngine.Object>();
                 var selected = new System.Collections.Generic.List<UnityEngine.Object>();
                 foreach (string id in state.selection)
@@ -291,7 +351,11 @@ public static class UnityBReload
                 var active = Resolve(state.active, loaded);
                 if (active != null) UnityEditor.Selection.activeObject = active;
                 var focus = Resolve(state.focus, loaded) as UnityEditor.EditorWindow;
-                if (focus != null) focus.Focus();
+                if (focus != null && UnityEditor.EditorWindow.focusedWindow != focus) focus.Focus();
+                for (int i = 0; i < PreferenceKeys.Length; i++)
+                    if (UnityEditor.EditorPrefs.HasKey(state.preferenceKeys[i]) != state.preferenceExisted[i] ||
+                        (state.preferenceExisted[i] && UnityEditor.EditorPrefs.GetString(state.preferenceKeys[i]) != state.preferenceValues[i]))
+                        failures.Add("Preference changed after restoration/focus: " + state.preferenceKeys[i] + "; cleanup uncertain.");
                 // Retain the snapshot on any fixture-cleanup failure for public GUID recovery.
                 if (failures.Count == 0) UnityEditor.SessionState.EraseString(key);
             }

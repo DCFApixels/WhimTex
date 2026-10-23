@@ -197,7 +197,7 @@ private static async Task QualityInteraction() {
         toolField.SetValue(window,Enum.Parse(toolField.FieldType,"Brush"));refresh.Invoke(window,null);
         T.True(quality.enabledSelf&&display.text=="37.5%","Returning to Brush restores the preferred quality");
         await WhimTex.Tests.UnityA.UnityAAsync.Delay(100,Cancellation);
-        string path=System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Application.dataPath),"Temp","WhimTex","canvas-view-footer-preview.png");
+        string path=System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Application.dataPath),"Temp","WhimTex","canvas-view-footer-preview-"+Guid.NewGuid().ToString("N")+".png");
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
         await WhimTex.Tests.UnityA.UnityACapture.Capture(window,path,Cancellation);
     } finally {

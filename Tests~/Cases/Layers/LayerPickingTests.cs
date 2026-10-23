@@ -23,10 +23,12 @@ public static class LayerPickingTests
         void Check(bool ok, string message) { WhimTex.Tests.UnityC.FixtureContext.Context.True(ok, message); checks++; }
         DCFApixels.WhimTex.Layer Pick(int x = 16, int y = 16, float threshold = .1f, bool deep = false, DCFApixels.WhimTex.Layer selected = null) =>
             (DCFApixels.WhimTex.Layer)method.Invoke(document, new object[] { x, y, threshold, deep, selected });
+        var ownedLayers = new List<Layer>();
         DCFApixels.WhimTex.Layer NewLayer(DCFApixels.WhimTex.LayerBehaviour behaviour)
         {
             var layer = new DCFApixels.WhimTex.Layer(behaviour);
             typeof(DCFApixels.WhimTex.Layer).GetMethod("AssignNewId", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(layer, null);
+            ownedLayers.Add(layer);
             return layer;
         }
         DCFApixels.WhimTex.Layer Fill(float alpha) => NewLayer(new DCFApixels.WhimTex.ColorFillLayerBehaviour
@@ -48,6 +50,7 @@ public static class LayerPickingTests
             ((DCFApixels.WhimTex.ColorFillLayerBehaviour)front.Behaviour).color = UnityEngine.Color.white;
             var transform = DCFApixels.WhimTex.TextureTransform.Default;
             transform.scale = new UnityEngine.Vector2(.25f, .5f); transform.rotation = 90f;
+            transform.tiling = DCFApixels.WhimTex.TransformTilingMode.Clip;
             front.transform = transform;
             Check(Pick() == front && Pick(2, 2) == back, "transformed shape coverage");
             Check(Pick(threshold: 1f) == front, "fully opaque at 100%");
@@ -112,7 +115,12 @@ public static class LayerPickingTests
             document.layers.Add(group); document.layers.Add(back);
             return;
         }
-        finally { WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(document); }
+        finally
+        {
+            foreach (var layer in ownedLayers)
+                typeof(Layer).GetMethod("ReleaseTransientResources", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(layer, null);
+            WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(document);
+        }
 
         void VectorGeometryPicking()
         {

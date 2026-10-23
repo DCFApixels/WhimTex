@@ -131,7 +131,7 @@ public static class ReconstructedCacheTests
         using var output = new NativeArray<float>(source.Length, Allocator.TempJob);
         using var expected = new NativeArray<float>(source.Length, Allocator.TempJob);
         Poison(expected);
-        api.Uncached(source, expected, size, size, 128, 0, DistanceMetric.CornerFit, 4, 0);
+        api.Uncached(source, expected, size, size, 128, 0, DistanceMetric.CornerFit, 4, 0, SharpDistanceMode.GuardedSharp);
         var owners = new List<Cache>(maximumOwners);
         bool evicted = false;
         try
@@ -140,7 +140,7 @@ public static class ReconstructedCacheTests
             {
                 api.CheckTime(label);
                 Poison(output);
-                cache.Compute(source, output, size, size, 128, 0, DistanceMetric.CornerFit, 4);
+                cache.Compute(source, output, size, size, 128, 0, DistanceMetric.CornerFit, 4, SharpDistanceMode.GuardedSharp);
                 Counts(t, cache, preparations, distances, label);
                 SameField(t, expected, output, label);
                 t.True(cache.RetainedBytes > 0, label + " entry fits the retention budget");
@@ -210,10 +210,10 @@ public static class ReconstructedCacheTests
     {
         api.CheckTime(label);
         Poison(expected);
-        api.Uncached(source, expected, width, height, threshold, channel, mode, miter, 0);
+        api.Uncached(source, expected, width, height, threshold, channel, mode, miter, 0, SharpDistanceMode.GuardedSharp);
         SameSource(t, pixels, source, label + " uncached input");
         Poison(output);
-        cache.Compute(source, output, width, height, threshold, channel, mode, miter);
+        cache.Compute(source, output, width, height, threshold, channel, mode, miter, SharpDistanceMode.GuardedSharp);
         Counts(t, cache, preparations, distances, label);
         SameSource(t, pixels, source, label + " cached input");
         SameField(t, expected, output, label);
@@ -285,9 +285,9 @@ public static class ReconstructedCacheTests
     }
 
     delegate void CachedCompute(NativeArray<Color32> source, NativeArray<float> output,
-        int width, int height, byte threshold, int channel, DistanceMetric metric, float miterLimit);
+        int width, int height, byte threshold, int channel, DistanceMetric metric, float miterLimit, SharpDistanceMode sharpMode);
     delegate void UncachedCompute(NativeArray<Color32> source, NativeArray<float> output,
-        int width, int height, byte threshold, int channel, DistanceMetric metric, float miterLimit, float merge);
+        int width, int height, byte threshold, int channel, DistanceMetric metric, float miterLimit, float merge, SharpDistanceMode sharpMode);
 
     sealed class CacheApi
     {
@@ -305,7 +305,7 @@ public static class ReconstructedCacheTests
             cacheType = assembly.GetType("DCFApixels.WhimTex.ReconstructedDistanceCache", true);
             const BindingFlags instance = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
             var signature = new[] { typeof(NativeArray<Color32>), typeof(NativeArray<float>),
-                typeof(int), typeof(int), typeof(byte), typeof(int), typeof(DistanceMetric), typeof(float) };
+                typeof(int), typeof(int), typeof(byte), typeof(int), typeof(DistanceMetric), typeof(float), typeof(SharpDistanceMode) };
             compute = cacheType.GetMethod("Compute", instance, null, signature, null);
             preparations = cacheType.GetProperty("PreparationCount", instance);
             distances = cacheType.GetProperty("DistanceCount", instance);
@@ -321,7 +321,7 @@ public static class ReconstructedCacheTests
             var utility = assembly.GetType("DCFApixels.WhimTex.DistanceFieldUtility", true);
             var reference = utility.GetMethod("ComputeArtisticDistance", BindingFlags.Public | BindingFlags.Static,
                 null, new[] { typeof(NativeArray<Color32>), typeof(NativeArray<float>), typeof(int), typeof(int),
-                    typeof(byte), typeof(int), typeof(DistanceMetric), typeof(float), typeof(float) }, null);
+                    typeof(byte), typeof(int), typeof(DistanceMetric), typeof(float), typeof(float), typeof(SharpDistanceMode) }, null);
             test.True(reference != null && reference.ReturnType == typeof(void), "Exact uncached package reference signature");
             Uncached = (UncachedCompute)Delegate.CreateDelegate(typeof(UncachedCompute), reference);
         }

@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 const context = new TestContext("Shape source/reference tests");
 const assert = context.assert;
 context.case("Shape original assertion inputs and source contracts", async () => {
-  // Source/lifecycle contracts. Actual GPU and drag geometry checks: ShapeSmoke.cs via Unity Pipeline.
+  // Source/lifecycle contracts. Actual GPU and drag geometry checks: ShapeTests.cs via Unity Pipeline.
   const read = p => readFileSync(new URL('../../../src/' + p, import.meta.url), 'utf8');
   const tool = read('WhimTexWindow.Shapes.cs');
   const behaviour = read('Layers/ShapeLayerBehaviour.cs');
@@ -43,7 +43,7 @@ context.case("Shape original assertion inputs and source contracts", async () =>
   assert.match(read('Layers/ShapeContour.cs'), /cachedHash != next/, 'Contour is rebuilt only when geometry changes');
   assert.match(shader, /fwidth\(distance\)/);
   assert.match(shader, /float fillCoverage = fill \* _ShapeStyle.x/);
-  assert.match(inspector, /width.SetEnabled\(layer.stroke\)/);
+  assert.match(inspector, /width.SetEnabled\(appearance && layer.stroke\)/);
   assert.match(inspector, /Pixels\("Stroke Width \(px\)"/);
   assert.match(inspector, /Pixels\("Thickness \(px\)"/);
   assert.match(inspector, /thickness.EnableInClassList\("whimtex-hidden", !arc\)/);

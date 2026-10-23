@@ -9,7 +9,25 @@ namespace WhimTex.Tests.UnityD
         readonly UnityEngine.Object[] selection = UnityEditor.Selection.objects;
         readonly string clipboard = UnityEditor.EditorGUIUtility.systemCopyBuffer;
         readonly System.Collections.Generic.List<string> folders = new System.Collections.Generic.List<string>();
+        readonly string[] preferenceKeys = {
+            "DCFApixels.WhimTex.Canvas.Tool", "DCFApixels.WhimTex.Canvas.TransformReturnTool",
+            "DCFApixels.WhimTex.Canvas.PaintToolSettings", "DCFApixels.WhimTex.Canvas.ToolSettings",
+            "DCFApixels.WhimTex.CommentAuthor", "DCFApixels.WhimTex.CommentAuthorColor", "DCFApixels.WhimTex.CommentAuthorId"
+        };
+        readonly bool[] preferenceExisted = new bool[7];
+        readonly string[] preferenceValues = new string[7];
         bool disposed;
+        System.Exception disposalFailure;
+        public MigrationD()
+        {
+            // Constructed before the body by AsyncD. It cannot infer ownership of windows:
+            // direct window cases must finish their exact owned sessions in their own finally.
+            for (int i = 0; i < preferenceKeys.Length; i++)
+            {
+                preferenceExisted[i] = UnityEditor.EditorPrefs.HasKey(preferenceKeys[i]);
+                preferenceValues[i] = UnityEditor.EditorPrefs.GetString(preferenceKeys[i]);
+            }
+        }
         public static string ProjectPath(string relative)
             => System.IO.Path.GetFullPath(System.IO.Path.Combine(
                 System.IO.Path.GetDirectoryName(UnityEngine.Application.dataPath), relative));
@@ -47,7 +65,11 @@ namespace WhimTex.Tests.UnityD
         }
         public void Dispose()
         {
-            if (disposed) return;
+            if (disposed)
+            {
+                if (disposalFailure != null) throw disposalFailure;
+                return;
+            }
             disposed = true;
             var errors = new System.Collections.Generic.List<System.Exception>();
             void Attempt(System.Action action)
@@ -87,11 +109,31 @@ namespace WhimTex.Tests.UnityD
                 if (UnityEditor.EditorGUIUtility.systemCopyBuffer != clipboard)
                     UnityEditor.EditorGUIUtility.systemCopyBuffer = clipboard;
             });
+            for (int i = 0; i < preferenceKeys.Length; i++)
+            {
+                int index = i;
+                Attempt(() =>
+                {
+                    if (preferenceExisted[index]) UnityEditor.EditorPrefs.SetString(preferenceKeys[index], preferenceValues[index]);
+                    else UnityEditor.EditorPrefs.DeleteKey(preferenceKeys[index]);
+                });
+            }
             Attempt(() =>
             {
                 if (focus != null && UnityEditor.EditorWindow.focusedWindow != focus) focus.Focus();
             });
-            if (errors.Count > 0) throw new System.AggregateException("Owned fixture cleanup/restoration failed", errors);
+            Attempt(() =>
+            {
+                for (int i = 0; i < preferenceKeys.Length; i++)
+                    if (UnityEditor.EditorPrefs.HasKey(preferenceKeys[i]) != preferenceExisted[i] ||
+                        (preferenceExisted[i] && UnityEditor.EditorPrefs.GetString(preferenceKeys[i]) != preferenceValues[i]))
+                        throw new System.InvalidOperationException("Preference changed after restoration/focus: " + preferenceKeys[i] + "; cleanup uncertain.");
+            });
+            if (errors.Count > 0)
+            {
+                disposalFailure = new System.AggregateException("Owned fixture cleanup/restoration failed; unresolved owned-window/session cleanup remains uncertain", errors);
+                throw disposalFailure;
+            }
         }
     }
 }

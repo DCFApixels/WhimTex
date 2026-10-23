@@ -457,21 +457,69 @@ public static class HsvMasterTiming
         public string Poll() => result ?? TestContext.Result("running", 0, "HSV/Master timing, configuration " + configuration + "/6, pair " + pair + "/" + Pairs).ToJson();
         public void Dispose()
         {
-            if (disposed) return; disposed = true; EditorApplication.update -= Tick;
+            if (disposed) return;
+            EditorApplication.update -= Tick;
             if (window != null) window.repaint = null;
             if (capture != null)
             {
                 Set(capture, "recording", false);
-                foreach (object slot in (IEnumerable)Profiler.GetField("gpuSlots", F).GetValue(null))
-                    if (ReferenceEquals(Field(slot, "owner"), capture)) Set(slot, "owner", null);
+                int pending = (int)Profiler.GetMethod("PendingGpu", F).Invoke(null, new[] { capture });
+                if (pending != 0)
+                {
+                    string recovery = "Owned GPU cleanup unfinished: " + pending +
+                        " samples still pending. Retain ownership and retry Cleanup after profiler polling drains them; do not start another timing run.";
+                    result = TestContext.Result("failed", checks.Checks, recovery, "Prior result: " + result).ToJson();
+                    throw new InvalidOperationException(recovery);
+                }
             }
-            if (target != null) { target.Release(); UnityEngine.Object.DestroyImmediate(target); target = null; }
-            foreach (var recorder in references) recorder.Dispose(); references.Clear();
-            foreach (var recorder in legacy) if (recorder != null && recorder.isValid) recorder.enabled = false; legacy.Clear();
-            auditCommands?.Release(); auditCommands = null;
-            if (window != null) window.Close();
-            for (int n = owned.Count - 1; n >= 0; n--) if (owned[n] != null) UnityEngine.Object.DestroyImmediate(owned[n]);
-            if (previousFocus != null) previousFocus.Focus();
+            var errors = new List<Exception>();
+            void ReleaseOwned(Action release)
+            {
+                try { release(); }
+                catch (Exception error) { errors.Add(error); }
+            }
+            ReleaseOwned(() =>
+            {
+                if (window == null) return;
+                try { if (window.rootVisualElement.panel != null) window.Close(); }
+                finally { if (window != null) UnityEngine.Object.DestroyImmediate(window); }
+            });
+            ReleaseOwned(() =>
+            {
+                if (target == null) return;
+                try { target.Release(); }
+                finally { UnityEngine.Object.DestroyImmediate(target); }
+                target = null;
+            });
+            for (int n = references.Count - 1; n >= 0; n--)
+            {
+                int index = n;
+                ReleaseOwned(() => { references[index].Dispose(); references.RemoveAt(index); });
+            }
+            for (int n = legacy.Count - 1; n >= 0; n--)
+            {
+                int index = n;
+                ReleaseOwned(() =>
+                {
+                    var recorder = legacy[index];
+                    if (recorder != null && recorder.isValid) recorder.enabled = false;
+                    legacy.RemoveAt(index);
+                });
+            }
+            ReleaseOwned(() => { auditCommands?.Release(); auditCommands = null; });
+            for (int n = owned.Count - 1; n >= 0; n--)
+            {
+                var resource = owned[n];
+                ReleaseOwned(() => { if (resource != null) UnityEngine.Object.DestroyImmediate(resource); });
+            }
+            ReleaseOwned(() => { if (previousFocus != null) previousFocus.Focus(); });
+            if (errors.Count != 0)
+            {
+                var failure = new AggregateException("Owned HSV timing cleanup unfinished; retry Cleanup before another run", errors);
+                result = TestContext.Result("failed", checks.Checks, "Cleanup requires recovery; prior result: " + result, failure.ToString()).ToJson();
+                throw failure;
+            }
+            disposed = true;
         }
     }
 }

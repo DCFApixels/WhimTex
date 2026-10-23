@@ -44,6 +44,8 @@ public static class InputTilingTests
         public Harness(TestContext tests)
         {
             t = tests;
+            try
+            {
             doc = Own(ScriptableObject.CreateInstance<WhimTexDocument>()); doc.width = W; doc.height = H;
             input = Own(new Texture2D(7, 5, TextureFormat.RGBAFloat, false, true)
                 { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear, anisoLevel = 0 });
@@ -58,6 +60,13 @@ public static class InputTilingTests
             context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext", true),
                 doc, null, W, H, 1f, true, true, null);
             writer = assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter", true).GetMethod("BuildSource", F);
+            }
+            catch (Exception primary)
+            {
+                try { Dispose(); }
+                catch (Exception cleanup) { throw new AggregateException(primary, cleanup); }
+                throw;
+            }
         }
 
         T Own<T>(T value) where T : UnityEngine.Object { owned.Add(value); return value; }
@@ -151,7 +160,7 @@ public static class InputTilingTests
                     input.filterMode = FilterMode.Point; GL.sRGBWrite = false; Graphics.Blit(input, current);
                     current.wrapMode = TextureWrapMode.Clamp; current.filterMode = filter;
                     Layer layer = new ColorFillLayerBehaviour(); layer.fx.Add(probe);
-                    object[] args = { current, context, filter, int.MaxValue };
+                    object[] args = { current, context, filter, int.MaxValue, 0 };
                     typeof(Layer).GetMethod("ApplyFx", F).Invoke(layer, args); current = (RenderTexture)args[0];
                     t.Near(filter == FilterMode.Point ? 0 : 1, Material(probe).GetFloat("_WhimTex_InputFilter"), 0,
                         "Real FX pipeline uploads the current input filter");
@@ -187,7 +196,7 @@ public static class InputTilingTests
                 t.Near(name.StartsWith("Transform/") ? 3 : 0, p.floatValue, 0, "Previous default preserved: " + name);
                 t.Equal("Clamp,Repeat,Mirror,Clip", string.Join(",", p.controls[0].optionNames), "Uniform tiling choices");
                 var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView", true);
-                var view = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { fx, false }, null);
+                var view = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { fx, false, null, null, -1 }, null);
                 host.rootVisualElement.Add(view);
                 try
                 {
@@ -280,12 +289,35 @@ public static class InputTilingTests
 
         public void Dispose()
         {
-            RenderTexture.active = previous; GL.sRGBWrite = srgb; RenderTexture.ReleaseTemporary(output);
+            var failures = new List<Exception>();
+            void ReleaseOwned(Action release)
+            {
+                try { release(); }
+                catch (Exception error) { failures.Add(error); }
+            }
+            foreach (var value in owned)
+                if (value is EditorWindow window && window != null)
+                    ReleaseOwned(() =>
+                    {
+                        try
+                        {
+                            if (window.rootVisualElement.panel != null) { window.DiscardChanges(); window.Close(); }
+                        }
+                        finally { if (window != null) UnityEngine.Object.DestroyImmediate(window); }
+                    });
+            ReleaseOwned(() => RenderTexture.active = previous);
+            ReleaseOwned(() => GL.sRGBWrite = srgb);
+            ReleaseOwned(() => { if (output != null) RenderTexture.ReleaseTemporary(output); });
             for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null)
             {
-                if (owned[i] is EditorWindow window) { window.DiscardChanges(); window.Close(); }
-                if (owned[i] != null) UnityEngine.Object.DestroyImmediate(owned[i]);
+                var value = owned[i];
+                ReleaseOwned(() =>
+                {
+                    try { Undo.ClearUndo(value); }
+                    finally { if (value != null) UnityEngine.Object.DestroyImmediate(value); }
+                });
             }
+            if (failures.Count != 0) throw new AggregateException("Owned input-tiling cleanup unfinished; recovery required", failures);
         }
     }
 }

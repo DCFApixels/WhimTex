@@ -327,12 +327,12 @@ context.case('GuideSnapping original assertions and branches', async () => {
     assert.match(ui, /paintingAxisPointerAnchor = canvasPointerPosition/);
     assert.match(ui, /CapturePaintingGuide\(evt.localPosition, evt.ctrlKey\);\s*if \(!TryBeginCanvasStroke/);
     assert.equal((ui.match(/CapturePaintingGuide\(/g) ?? []).length, 1, 'Capture only at stroke start, never on Move or hover');
-    assert.match(read('WhimTexWindow.cs'), /paintingPointerMoved = false;\s*paintingGuideIndex = -1;/);
+assert.match(read('WhimTexWindow.cs'), /paintingPointerMoved = false;\s*paintingSmootherActive = false;\s*paintingGuideIndex = -1;/);
     for (const name of ['SnapCanvasGuidePoint', 'SnapCanvasGuideMove', 'SnapCanvasGuideResize', 'SnapCanvasGuideRotation'])
         assert.ok(transform.includes(`owner.${name}(`));
     assert.match(transform, /else if \(!disableSnap\)[\s\S]*?owner\.SnapCanvasGuideRotation\(next\.rotationF\)/);
     const selection = read('WhimTexWindow.AreaSelectionView.cs');
-    assert.equal((selection.match(/CanvasPoint\(evt.localPosition, evt.ctrlKey\)/g) ?? []).length, 1);
+    assert.match(selection, /SetCurrent\(evt.localPosition, evt.ctrlKey\);\s*if \(owner.canvasTool == CanvasTool.RectangleSelect\)/);
     assert.equal((selection.match(/UpdateCurrent\(evt.localPosition, evt.shiftKey, evt.ctrlKey\)/g) ?? []).length, 2);
     assert.match(selection, /Current = CanvasPoint\(position, control\)/);
     assert.match(selection, /disableSnap \? documentPoint : owner.SnapCanvasGuidePoint\(documentPoint, owner.canvasTool == CanvasTool.RectangleSelect\)/);

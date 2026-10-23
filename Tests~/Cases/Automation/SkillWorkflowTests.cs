@@ -1,5 +1,6 @@
 // Independent migrated assertions; compiled and executed only by the parent runner.
 using WhimTex.Tests;
+using WhimTex.Tests.UnityA;
 using WhimTex.Tests.UnityD;
 // Unity Pipeline run_script, entry SkillWorkflowTests.Run.
 // Behavioral traces for whimtex-live. Own unsaved window only; no user assets or Unity internal reflection.
@@ -17,13 +18,27 @@ using Object = UnityEngine.Object;
 public static class SkillWorkflowTests
 {
     static TestContext context;
-    static MigrationD fixture;
 
-    public static string Run() => TestContext.Run("SkillWorkflowTests.Run", runContext =>
+    public static string Run()
+    {
+        bool cleanupUncertain = false;
+        string result = TestContext.Run("SkillWorkflowTests.Run", runContext =>
     {
         context = runContext;
-        using (fixture = new MigrationD()) ExecuteRun();
+        try
+        {
+            UnityAScope.RunOwned(owner =>
+            {
+                var fixture = new MigrationD();
+                owner.Finally(fixture.Dispose);
+                ExecuteRun(owner);
+            });
+        }
+        catch (Exception error) when (error.Data.Contains("WhimTexCleanupFailure"))
+        { cleanupUncertain = true; throw; }
     });
+        return cleanupUncertain ? result.Substring(0, result.Length - 1) + ",\"recoveryRequired\":true}" : result;
+    }
 
     const BindingFlags Any = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
     static readonly Type Json = Type.GetType("Newtonsoft.Json.JsonConvert, Newtonsoft.Json", true);
@@ -36,7 +51,7 @@ public static class SkillWorkflowTests
         public override string ToString() => token?.ToString() ?? "";
         internal int Count => (int)token.GetType().GetProperty("Count").GetValue(token);
     }
-    private static void ExecuteRun()
+    private static void ExecuteRun(UnityAScope owner)
     {
         var jsonType = typeof(WhimTexApi).GetMethod("SetNoise", Any).GetParameters()[1].ParameterType;
         Node Parse(string json) => new Node(jsonType.GetMethod("Parse", new[] { typeof(string) }).Invoke(null, new object[] { json }));
@@ -45,8 +60,8 @@ public static class SkillWorkflowTests
         void Check(bool ok, string message) { context.True(ok, message); }
         Node Success(string json) { var n = Parse(json); Check(n["success"].ToString() == "True", json); return n; }
         Node Failure(string json, string code) { var n = Parse(json); Check(n["success"].ToString() == "False" && n["errorCode"].ToString() == code, json); return n; }
-        var window = ScriptableObject.CreateInstance<WhimTexWindow>();
-        var doc = (WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument", Any).GetValue(window);
+        var window = owner.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
+        var doc = owner.OwnObject((WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument", Any).GetValue(window));
         doc.width = doc.height = 32;
         string session = (string)typeof(WhimTexWindow).GetProperty("AgentSessionId", Any).GetValue(window);
         string scope = "\"sessionId\":" + Encode(session);
@@ -59,7 +74,14 @@ public static class SkillWorkflowTests
         Color[] Pixels() { var t = doc.ComposeCanvas(); try { return t.GetPixels(); } finally { Object.DestroyImmediate(t); } }
         string Link(string layer) => (string)typeof(ShaderFX).GetProperty("CatalogPath", Any).GetValue(doc.layers.First(l => l.Id == layer).fx[0]);
         var files = new List<string>();
-        try
+        owner.Finally(() =>
+        {
+            string root = Path.GetFullPath("Temp/WhimTex/Agent") + Path.DirectorySeparatorChar;
+            UnityAScope.RunCleanup(null, files.Select(file => (Action)(() =>
+            {
+                if (!string.IsNullOrEmpty(file) && Path.GetFullPath(file).StartsWith(root, StringComparison.OrdinalIgnoreCase) && File.Exists(file)) File.Delete(file);
+            })).ToArray());
+        });
         {
             var catalog = Success(WhimTexApi.FxCatalog("Color/Levels"));
             Check(catalog["presets"].Count == 1, "Levels resolved unambiguously");
@@ -131,16 +153,6 @@ public static class SkillWorkflowTests
             }
             report.AppendLine("Linked parameter iteration: fresh inspect + set + render probe succeeds; set is a live edit, not a detached trial.");
             return;
-        }
-        finally
-        {
-            window.DiscardChanges();
-            Object.DestroyImmediate(window);
-            Undo.ClearUndo(doc);
-            if (doc != null) Object.DestroyImmediate(doc);
-            string root = Path.GetFullPath("Temp/WhimTex/Agent") + Path.DirectorySeparatorChar;
-            foreach (string file in files)
-                if (!string.IsNullOrEmpty(file) && Path.GetFullPath(file).StartsWith(root, StringComparison.OrdinalIgnoreCase) && File.Exists(file)) File.Delete(file);
         }
     }
 }

@@ -415,7 +415,7 @@ test('source bundle contains only supported native trigger, real markers and can
     const nativeSupport = support.replace(/#if UNITY_6000_4_OR_NEWER\s*([\s\S]*?)#else[\s\S]*?#endif/g, '$1');
     assert.ok(nativeSupport.includes('GetEntityId().ToString()'));
     assert.doesNotMatch(nativeSupport, /GetInstanceID|activeInstanceID|InstanceIDToObject/);
-    assert.ok(support.includes('snapshot.version != 3'));
+    assert.ok(support.includes('snapshot.version != 5'));
     assert.equal(support.split('CompilationPipeline.RequestScriptCompilation();').length - 1, 1, 'Exactly one supported native request call site');
     assert.ok(support.includes('EditorApplication.CallbackFunction callback = null'));
     assert.ok(support.includes('EditorApplication.update -= request'));

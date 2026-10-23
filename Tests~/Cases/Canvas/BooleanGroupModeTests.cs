@@ -165,7 +165,7 @@ public static class BooleanGroupModeTests
                 texture = new Texture2D(w, h, TextureFormat.RGBA32, false);
                 texture.ReadPixels(new Rect(0, 0, w, h), 0, 0, false); texture.Apply(false);
                 System.IO.Directory.CreateDirectory("Temp/WhimTex");
-                System.IO.File.WriteAllBytes("Temp/WhimTex/boolean-group-mode.png", texture.EncodeToPNG()); done.TrySetResult(true);
+                System.IO.File.WriteAllBytes("Temp/WhimTex/boolean-group-mode-" + Guid.NewGuid().ToString("N") + ".png", texture.EncodeToPNG()); done.TrySetResult(true);
             }
             catch (Exception e) { done.TrySetException(e); }
             finally { if (texture != null) UnityEngine.Object.DestroyImmediate(texture); }

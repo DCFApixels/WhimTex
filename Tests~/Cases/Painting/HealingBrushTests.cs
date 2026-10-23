@@ -19,7 +19,11 @@ public static class HealingBrushTests
         (owner as Type ?? owner.GetType()).GetMethod(name, Flags).Invoke(owner is Type ? null : owner, args);
     static object Get(object owner, string name) => owner.GetType().GetField(name, Flags).GetValue(owner);
     static void Set(object owner, string name, object value) => owner.GetType().GetField(name, Flags).SetValue(owner, value);
-    static Texture2D Pixels(DrawingLayerBehaviour layer) => (Texture2D)typeof(DrawingLayerBehaviour).GetProperty("StoredTexture", Flags).GetValue(layer);
+    static Texture2D Pixels(DrawingLayerBehaviour layer)
+    {
+        Call(layer, "SyncPendingSurfaceToTexture");
+        return (Texture2D)typeof(DrawingLayerBehaviour).GetProperty("StoredTexture", Flags).GetValue(layer);
+    }
     static Color[] ReadMask(object stroke)
     {
         var rt = (RenderTexture)stroke.GetType().GetProperty("Texture", Flags).GetValue(stroke);
@@ -32,6 +36,7 @@ public static class HealingBrushTests
     static async Task<string> ExecuteMain()
     {
         UnityBHealing.RequireIdle();
+        using var ownedJournal = new PaintTileHistoryTests.DiskScope();
         int checks = 0;
         void Check(bool good, string why) { UnityBRun.Check(!(!good), why); checks++; }
         var assembly = typeof(WhimTexWindow).Assembly;
@@ -113,6 +118,7 @@ public static class HealingBrushTests
             var canvas = (VisualElement)Get(window, "toolkitCanvas");
             Check(window.rootVisualElement.Q<Button>("healingBrushTool") != null, "Healing tool exists");
             var settings = Get(window, "paintSettings");
+            Set(Get(settings, "dynamics"), "writeChannels", 15);
             var searchField = window.rootVisualElement.Q<IntegerField>(className: "whimtex-healing-search");
             Check(searchField != null && searchField.Q<VisualElement>(className: "unity-base-field__input").worldBound.width >= 35,
                 "Search input remains visible beside its label");
@@ -125,8 +131,9 @@ public static class HealingBrushTests
                 Call(window, "SelectOnlyLayer", layer.Id);
                 Set(window, "healingDocument", document); Set(window, "healingLayer", layer);
                 Set(window, "healingCanvasSize", new Vector2Int(128, 96));
+                Set(window, "healingPixelScale", Call(document, "GetPixelScale"));
                 Set(window, "healingSelectionRevision", (int)selection.GetType().GetProperty("Revision", Flags).GetValue(selection));
-                var transform = (TextureTransform)Call(document, "GetCanvasTransform", (Layer)layer);
+                var transform = (TextureTransform)Call(document, "GetPaintTransform", (Layer)layer);
                 Set(window, "healingTransform", transform.ToMatrix(128, 96));
                 Call(window, "BeginHealingStroke", new Vector2(64, 39));
                 Call(Get(window, "healingStroke"), "Add", new Vector2(64, 57));
@@ -397,7 +404,15 @@ public static class HealingBrushTests
         }
         finally
         {
-            if (window != null) { await UnityBHealing.StopAndDrain(window); UnityBRun.CloseOwned(window); }
+            if (window != null)
+            {
+                try { await UnityBHealing.StopAndDrain(window); }
+                finally
+                {
+                    try { PaintTileHistoryTests.ReleaseOwnedHistory(document); }
+                    finally { UnityBRun.CloseOwned(window); }
+                }
+            }
             if (document != null) { Undo.ClearUndo(document); UnityEngine.Object.DestroyImmediate(document); }
             foreach (var texture in ownedTextures) if (texture != null) { Undo.ClearUndo(texture); UnityEngine.Object.DestroyImmediate(texture); }
             if (hadPref) EditorPrefs.SetString(pref, oldPref); else EditorPrefs.DeleteKey(pref);

@@ -274,7 +274,7 @@ public static class LayerContentTests
 
         Refresh(); await Tick(4);
         string previewPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Application.dataPath),
-            "Temp", "WhimTex", "layer-content-preview.png");
+            "Temp", "WhimTex", "layer-content-preview-" + System.Guid.NewGuid().ToString("N") + ".png");
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(previewPath));
         await UnityACapture.Capture(window, previewPath, token);
         context.True(System.IO.File.Exists(previewPath) && new System.IO.FileInfo(previewPath).Length > 32,

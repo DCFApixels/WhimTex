@@ -5,6 +5,10 @@ namespace DCFApixels.WhimTex
         internal const string LayerBooleanData = @"{""booleanOperation"":""Union"",""groupFxInLayerSpace"":false}";
         internal const string PreviewControlData = @"{""previewFunction"":null,""previewParameters"":[]}";
         internal const string CyclicRangeData = @"{""cyclicRange"":false}";
+        internal const string LayoutData = @"{
+            ""ShaderFXLayoutContainer"": {""kind"":""Group"",""title"":null,""headerParameter"":null},
+            ""ShaderFXEnableCondition"": {""parameter"":null,""notEqual"":false,""value"":0}
+        }";
         internal const string TextFillData = @"{""fillMode"":""Solid"",""gradientScope"":""Text"",""gradientStart"":[0,0],""gradientEnd"":[1,0],""gradientRepetitions"":1,""fallbackInkBounds"":[0,0,0,0],""fallbackPaint"":null,""fallbackPaintKey"":null,""fallbackPaintWidth"":0,""fallbackPaintHeight"":0}";
         internal const string ShapeFillData = @"{
             ""fillMode"":""Solid"",""gradient"":{},""gradientStart"":[0,0],""gradientEnd"":[1,0],""gradientRepetitions"":1,

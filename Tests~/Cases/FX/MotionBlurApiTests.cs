@@ -62,7 +62,7 @@ public static class MotionBlurApiTests
         try
         {
             var aliases = new System.Collections.Generic.Dictionary<string, DCFApixels.WhimTex.Layer>();
-            object Apply(string json) => type.GetMethod("ApplyOperation", flags).Invoke(null, new object[]{document, Json(json), aliases, false});
+            object Apply(string json) => type.GetMethod("ApplyOperation", flags).Invoke(null, new object[]{document, Json(json), aliases, false, null, null});
             var added = (DCFApixels.WhimTex.BlurLayerBehaviour)((DCFApixels.WhimTex.Layer)Apply("{\"op\":\"add\",\"type\":\"blur\",\"as\":\"blur\",\"settings\":{\"blur\":{\"distance\":37}}}")).Behaviour;
             Check(added.distance == 37 && document.layers.Count == 1, "Factory and settings routing");
             Apply("{\"op\":\"set\",\"layer\":\"@blur\",\"settings\":{\"blur\":{\"mode\":\"Circular\",\"arc\":20}}}");

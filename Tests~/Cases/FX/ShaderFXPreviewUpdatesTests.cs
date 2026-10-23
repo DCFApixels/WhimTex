@@ -170,10 +170,47 @@ float4 ApplyFX(float2 uv, float4 color) { return color; }
     }
     static void Release(object[] s)
     {
-        (s[4] as IVisualElementScheduledItem)?.Pause(); s[4] = null;
-        if (s[5] is EditorApplication.CallbackFunction tick) EditorApplication.update -= tick; s[5] = null;
-        if (s[0] is EditorWindow window && window != null) { window.Close(); if (window != null) UnityEngine.Object.DestroyImmediate(window); } s[0] = null;
-        if (s[1] is ShaderFX effect && effect != null) { Undo.ClearUndo(effect); UnityEngine.Object.DestroyImmediate(effect); } s[1] = null;
-        if (s[2] is EditorWindow focus && focus != null) focus.Focus(); s[2] = null;
+        var errors = new System.Collections.Generic.List<Exception>();
+        void ReleaseOwned(Action action)
+        {
+            try { action(); }
+            catch (Exception error) { errors.Add(error); }
+        }
+        ReleaseOwned(() =>
+        {
+            (s[4] as IVisualElementScheduledItem)?.Pause(); s[4] = null;
+        });
+        ReleaseOwned(() =>
+        {
+            if (s[5] is EditorApplication.CallbackFunction tick) EditorApplication.update -= tick; s[5] = null;
+        });
+        ReleaseOwned(() =>
+        {
+            if (s[0] is EditorWindow window && window != null)
+            {
+                try { if (window.rootVisualElement.panel != null) window.Close(); }
+                finally { if (window != null) UnityEngine.Object.DestroyImmediate(window); }
+            }
+            s[0] = null;
+        });
+        ReleaseOwned(() =>
+        {
+            if (s[1] is ShaderFX effect && effect != null)
+            {
+                try { Undo.ClearUndo(effect); }
+                finally { UnityEngine.Object.DestroyImmediate(effect); }
+            }
+            s[1] = null;
+        });
+        ReleaseOwned(() =>
+        {
+            if (s[2] is EditorWindow focus && focus != null) focus.Focus(); s[2] = null;
+        });
+        if (errors.Count != 0)
+        {
+            var failure = new AggregateException("Owned FX fixture cleanup unfinished; retry cleanup before another run", errors);
+            s[3] = TestContext.Result("failed", 0, "Cleanup requires recovery; prior result: " + s[3], failure.ToString()).ToJson();
+            throw failure;
+        }
     }
 }

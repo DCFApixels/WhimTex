@@ -42,13 +42,22 @@ public static class ShaderFXControlTests
         Layer layer=new ColorFillLayerBehaviour();doc.layers.Add(layer);
         ShaderFX effect=null;ShaderFXControlTestsWindow window=null;WhimTexDocument loaded=null;
         string folder=null;
+        var ownedShaders = new List<Shader>();
+        void ApplyOwnedDraft()
+        {
+            typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(effect,null);
+            using var data = new SerializedObject(effect);
+            var shader = data.FindProperty("compiledShader").objectReferenceValue as Shader;
+            if (shader != null && !ownedShaders.Contains(shader)) ownedShaders.Add(shader);
+        }
+        Exception primaryFailure = null;
         try
         {
             var draft=typeof(ShaderFX).GetMethod("CreateAgentDraft",F,null,new[]{typeof(WhimTexDocument),typeof(string),typeof(List<ShaderFXParameter>)},null);
             effect=(ShaderFX)draft.Invoke(null,new object[]{doc,source,Parse(source)});layer.fx.Add(effect);
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(effect,null);
+            ApplyOwnedDraft();
             var viewType=assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView");
-            VisualElement View(bool header)=>(VisualElement)Activator.CreateInstance(viewType,F,null,new object[]{effect,header},null);
+            VisualElement View(bool header)=>(VisualElement)Activator.CreateInstance(viewType,F,null,new object[]{effect,header,null,null,-1},null);
             void Refresh(VisualElement view)=>viewType.GetMethod("Refresh",F).Invoke(view,null);
             window=ScriptableObject.CreateInstance<ShaderFXControlTestsWindow>();window.ShowUtility();
             var header=View(true);var body=View(false);window.rootVisualElement.Add(header);window.rootVisualElement.Add(body);
@@ -103,10 +112,10 @@ public static class ShaderFXControlTests
             Set("// @control(_Curve)\n// @param curve _Curve");
             Check(header.childCount==0&&body.childCount>0,"Unsupported type stays in body");
             Set("// @control(_Missing)\n"+source);
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(effect,null);
+            ApplyOwnedDraft();
             Check(((string)typeof(ShaderFX).GetProperty("Diagnostics",F).GetValue(effect)).Contains("last declaration wins"),"Compilation succeeds with duplicate warning");
             Set("// @control(_Missing)\n// @param float _Value\nfloat4 ApplyFX(float2 uv,float4 color){return color;}");
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(effect,null);
+            ApplyOwnedDraft();
             Check(header.childCount==0&&((string)typeof(ShaderFX).GetProperty("Diagnostics",F).GetValue(effect)).Contains("undeclared"),"Unknown reference is warning only");
             Set(source);
             var stackType=assembly.GetType("DCFApixels.WhimTex.LayerShaderFXView");
@@ -120,13 +129,37 @@ public static class ShaderFXControlTests
             Check(!toolbar.HasPointerCapture(PointerId.mousePointerId),"Editing control does not start FX dragging");
             return;
         }
+        catch (Exception error) { primaryFailure = error; throw; }
         finally
         {
-            if(window!=null)window.Close();
-            if(effect!=null) { Undo.ClearUndo(effect);UnityEngine.Object.DestroyImmediate(effect); }
-            if(loaded!=null)UnityEngine.Object.DestroyImmediate(loaded);
-            UnityEngine.Object.DestroyImmediate(doc);
-            if(folder!=null)MigrationD.DeleteAsset(folder);
+            var cleanupErrors = new List<Exception>();
+            void ReleaseOwned(Action release)
+            {
+                try { release(); }
+                catch (Exception error) { cleanupErrors.Add(error); }
+            }
+            ReleaseOwned(() =>
+            {
+                if (window == null) return;
+                try { if (window.rootVisualElement.panel != null) window.Close(); }
+                finally { if (window != null) UnityEngine.Object.DestroyImmediate(window); }
+            });
+            ReleaseOwned(() =>
+            {
+                if (effect == null) return;
+                try { Undo.ClearUndo(effect); }
+                finally { UnityEngine.Object.DestroyImmediate(effect); }
+            });
+            foreach (var shader in ownedShaders)
+                ReleaseOwned(() => { if (shader != null && !EditorUtility.IsPersistent(shader)) UnityEngine.Object.DestroyImmediate(shader); });
+            ReleaseOwned(() => { if (loaded != null) UnityEngine.Object.DestroyImmediate(loaded); });
+            ReleaseOwned(() => { if (doc != null) UnityEngine.Object.DestroyImmediate(doc); });
+            ReleaseOwned(() => { if (folder != null) MigrationD.DeleteAsset(folder); });
+            if (cleanupErrors.Count != 0)
+            {
+                if (primaryFailure != null) cleanupErrors.Insert(0, primaryFailure);
+                throw new AggregateException("Owned FX control cleanup unfinished; recovery required", cleanupErrors);
+            }
         }
     }
 }

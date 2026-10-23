@@ -11,7 +11,7 @@ public static class VectorRenderingPreview
 {
     public static string CaptureBrush()
     {
-        string path = Path.Combine(Path.GetDirectoryName(Application.dataPath), "Temp", "WhimTex", "vector-brush-curves-preview.png");
+        string path = Path.Combine(Path.GetDirectoryName(Application.dataPath), "Temp", "WhimTex", "vector-brush-curves-preview-" + System.Guid.NewGuid().ToString("N") + ".png");
         return TestContext.Run("Actual Bezier brush preview: " + path, context =>
         {
             var document = ScriptableObject.CreateInstance<WhimTexDocument>();
@@ -87,7 +87,7 @@ public static class VectorRenderingPreview
 
     public static string Capture()
     {
-        string path = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Application.dataPath), "Temp", "WhimTex", "vector-render-preview.png");
+        string path = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Application.dataPath), "Temp", "WhimTex", "vector-render-preview-" + System.Guid.NewGuid().ToString("N") + ".png");
         return TestContext.Run("Actual Vector preview: " + path, context =>
         {
             var document = ScriptableObject.CreateInstance<WhimTexDocument>();

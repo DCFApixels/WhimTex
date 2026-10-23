@@ -21,6 +21,7 @@ for (int y=0; y<16; y++) for (int x=0; x<16; x++)
     data[y*16+x] = new UnityEngine.Color(x/15f,y/15f,.4f,x>=4 && x<12 && y>=4 && y<12 ? 1f : 0f);
 texture.SetPixels(data); texture.Apply(false,false);
 var source = new DCFApixels.WhimTex.FileLayerBehaviour { sourceTexture = texture };
+var ownedEffects = new System.Collections.Generic.HashSet<DCFApixels.WhimTex.TargetedLayerBehaviour>();
 int checks = 0;
 void Check(bool value, string message) { UnityBRun.Check(!(!value), message); checks++; }
 void Normalize() => type.GetMethod("NormalizeModel",flags).Invoke(document,null);
@@ -55,6 +56,7 @@ try
     foreach (bool specific in new[]{false,true})
     foreach (bool grouped in new[]{false,true})
     {
+        ownedEffects.Add(effect);
         source.enabled = true;
         var group = new DCFApixels.WhimTex.GroupLayerBehaviour(); group.layers.Add(source);
         DCFApixels.WhimTex.Layer target = grouped ? (DCFApixels.WhimTex.Layer)group : source;
@@ -79,6 +81,7 @@ try
     }
     var sdf = new DCFApixels.WhimTex.SDFLayerBehaviour();
     var normal = new DCFApixels.WhimTex.NormalMapLayerBehaviour();
+    ownedEffects.Add(sdf); ownedEffects.Add(normal);
     document.layers.Clear(); document.layers.Add(normal); document.layers.Add(sdf); document.layers.Add(source);
     source.enabled = true; Normalize();
     var visibleChain = Render(normal);
@@ -90,6 +93,8 @@ try
 }
 finally
 {
+    foreach (var effect in ownedEffects)
+        effect.GetType().GetMethod("ReleaseTransientResources", flags).Invoke(effect, null);
     UnityEngine.Object.DestroyImmediate(document); UnityEngine.Object.DestroyImmediate(texture);
 }
 

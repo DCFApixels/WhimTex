@@ -18,7 +18,7 @@ using WhimTex.Tests;
 
 public static class DistanceSafetyTests
 {
-    const double AngularCap = 4, StraightSupport = 2, BorderBand = 1.5;
+    const double OwnerUncertaintyLimit = 4, StraightSupport = 2, BorderBand = 1.5;
     const int BodyMilliseconds = 30000, MaximumSize = 512;
     const string FifthSource = "Packages/com.dcfapixels.whimtex/Tests~/Fixtures/DistanceRaster/star-13-inner-0364-phase3-known-failure.png";
     const string FifthHash = "98BFDEDC59C261EDBAD7888C35500A3FAFC143A476C0118D7599274879BD1ACC";
@@ -42,7 +42,7 @@ public static class DistanceSafetyTests
     });
 
     public static string RunAngles() => TestContext.Run(
-        "Raster angles: preserve supported 30/45/60/75/90 tips; bound 10/15/20; retain requested bevels", t =>
+        "Guarded raster angles: finite ownership at 10 through 90 degrees and requested bevels", t =>
     {
         var api = new CpuApi(t, 106);
         foreach (double degrees in new[] { 10.0, 15, 20, 30, 45, 60, 75, 90 })
@@ -79,7 +79,9 @@ public static class DistanceSafetyTests
                     int index = Index(q, size);
                     double expected = Dot(q - tip.vertex, tip.bisector) / tip.cosine;
                     t.Near(expected, limited[index], .85 + .04 * along, label + " bevel fan");
-                    t.Near(bevel[index], limited[index], .001, label + " still agrees with explicit Bevel");
+                    // Bevel retains the earlier contour fitter; Sharp uses
+                    // adaptive local fits. Their fields are no longer identical.
+                    t.Near(expected, bevel[index], .85 + .04 * along, label + " explicit Bevel fan");
                     t.True(limited[index] > along + 1, label + " lower limit has a visible bevel effect");
                     count++;
                 }
@@ -219,7 +221,7 @@ public static class DistanceSafetyTests
                     var capped = api.Scalar(source, size, threshold, DistanceMetric.Sharp, 4, label);
                     int different = 0;
                     for (int i = 0; i < sharp.Length; i++) if (sharp[i] != capped[i]) different++;
-                    t.Equal(0, different, "Requested Sharp 64 cannot preserve more angular amplification than 4, over the full field");
+                    t.True(different > 0, "Guarded Sharp honors requested miter limits 4 and 64 instead of silently capping both at four");
                 }
             }
         }
@@ -245,6 +247,7 @@ public static class DistanceSafetyTests
         {
             string label = "short support/islands/threshold=" + threshold;
             var oracle = new FiniteContour(source, size, threshold);
+            double amplification = SupportedAmplification(new[] { polygon });
             var sharp = api.Scalar(source, size, threshold, DistanceMetric.Sharp, 64, label);
             var multi = api.Multi(source, size, threshold, label);
             CheckBilinear(t, api, oracle, multi, size, label);
@@ -263,7 +266,7 @@ public static class DistanceSafetyTests
                 {
                     Corner corner = Tip(polygon, vertex);
                     P r = q - corner.vertex;
-                    if (corner.left < StraightSupport || corner.right < StraightSupport || 1 / corner.cosine > AngularCap
+                    if (corner.left < StraightSupport || corner.right < StraightSupport
                         || Dot(r, corner.incoming) < 0 || Dot(r, corner.outgoing) > 0
                         || (expected < 0) != (Cross(corner.incoming, corner.outgoing) < 0)) continue;
                     double angular = expected < 0 ? Math.Max(-Dot(r, corner.n1), -Dot(r, corner.n2))
@@ -274,7 +277,7 @@ public static class DistanceSafetyTests
                 t.True((sharp[index] < 0) == (expected < 0) && (Median(multi[index]) < 0) == (expected < 0),
                     label + " independent raw finite sign at " + q);
                 t.True(Math.Abs(sharp[index]) >= lowSharp - 1.2, label + " no distant short-support Sharp ray at " + q);
-                t.True(Math.Abs(Median(multi[index])) >= Math.Max(lowMulti - 1.2, finite / AngularCap - 1.2),
+                t.True(Math.Abs(Median(multi[index])) >= Math.Max(lowMulti - 1.2, finite / amplification - 1.2),
                     label + " no distant short-support RGB ray at " + q);
                 t.Near(expected, multi[index].w, .85, label + " retained finite alpha at " + q);
                 probes++;
@@ -352,6 +355,7 @@ public static class DistanceSafetyTests
         bool inside = SignedPolygon(rings, q) < 0;
         double lowSharp = owner.distance, lowMulti = owner.distance, high = owner.distance;
         double uncertainty = .85;
+        double maximumAmplification = SupportedAmplification(rings);
         foreach (Vector2[] ring in rings)
         {
         // Independent boundaries combine their already-resolved artistic fields.
@@ -367,19 +371,22 @@ public static class DistanceSafetyTests
             // Fitting may change which of two almost equidistant finite
             // endpoints owns a sample. Admit only that geometric uncertainty,
             // never a remote endpoint selected for its small angular value.
-            double ownerSlack = .85 * (1 + Math.Min(amplification, AngularCap)) + .04 * owner.distance;
+            // Keep the existing positional uncertainty budget. This bound
+            // does not disqualify an otherwise supported acute corner.
+            double ownerSlack = .85 * (1 + Math.Min(amplification, OwnerUncertaintyLimit)) + .04 * owner.distance;
             bool owns = length <= contourDistance + ownerSlack;
             bool fan = Dot(r, corner.incoming) >= 0 && Dot(r, corner.outgoing) <= 0
                 && inside == (Cross(corner.incoming, corner.outgoing) < 0);
             if (!fan) continue;
             bool supported = corner.left >= StraightSupport && corner.right >= StraightSupport;
-            if (supported && amplification <= AngularCap)
+            if (supported)
             {
                 double angular = inside ? Math.Max(-Dot(r, corner.n1), -Dot(r, corner.n2))
                     : Math.Max(Dot(r, corner.n1), Dot(r, corner.n2));
                 // Sharp's angular value must belong to the nearest finite
                 // polygon endpoint. RGB may combine other supported colors,
-                // but never unsupported or above-cap angular continuations.
+                // but never unsupported angular continuations. The adaptive
+                // contract has no fixed minimum corner angle in either mode.
                 if (owns) lowSharp = Math.Min(lowSharp, angular);
                 lowMulti = Math.Min(lowMulti, angular);
             }
@@ -400,7 +407,8 @@ public static class DistanceSafetyTests
             label + " Sharp nearest finite-owner envelope at " + q + "; allowed=" + lowSharp + ".." + high + ", slack=" + budget + ", got=" + s);
         t.True(Math.Abs(m) >= Math.Max(0, lowMulti - budget) && Math.Abs(m) <= high + budget,
             label + " RGB allowed angular envelope at " + q + "; allowed=" + lowMulti + ".." + high + ", slack=" + budget + ", got=" + m);
-        t.True(Math.Abs(m) >= Math.Max(0, owner.distance / AngularCap - budget), label + " RGB amplification is bounded by four at " + q);
+        t.True(Math.Abs(m) >= Math.Max(0, owner.distance / maximumAmplification - budget),
+            label + " RGB amplification is bounded by the independent supported corner angles at " + q);
         t.Near(inside ? -owner.distance : owner.distance, multi[index].w, budget, label + " alpha remains finite contour distance at " + q);
     }
 
@@ -428,7 +436,7 @@ public static class DistanceSafetyTests
     static void CheckTip(TestContext t, Vector2[] polygon, float[] sharp, float4[] multi, int size, string label)
     {
         Corner tip = Tip(polygon, 2);
-        t.True(1 / tip.cosine <= AngularCap && tip.left > StraightSupport && tip.right > StraightSupport,
+        t.True(tip.cosine > 0 && tip.left > StraightSupport && tip.right > StraightSupport,
             label + " independently supported common-angle corner is eligible");
         int colored = 0;
         foreach (double along in new[] { 10.0, 16 })
@@ -611,9 +619,9 @@ public static class DistanceSafetyTests
             const BindingFlags flags = BindingFlags.Public | BindingFlags.Static;
             scalar = utility.GetMethod("ComputeArtisticDistance", flags, null, new[] {
                 typeof(NativeArray<Color32>), typeof(NativeArray<float>), typeof(int), typeof(int),
-                typeof(byte), typeof(int), typeof(DistanceMetric), typeof(float), typeof(float) }, null);
+                typeof(byte), typeof(int), typeof(DistanceMetric), typeof(float), typeof(float), typeof(SharpDistanceMode) }, null);
             multi = utility.GetMethod("ComputeMtsdfDistance", flags, null, new[] {
-                typeof(NativeArray<Color32>), typeof(NativeArray<float4>), typeof(int), typeof(int), typeof(byte), typeof(int), typeof(float) }, null);
+                typeof(NativeArray<Color32>), typeof(NativeArray<float4>), typeof(int), typeof(int), typeof(byte), typeof(int), typeof(float), typeof(SharpDistanceMode) }, null);
             test.True(scalar != null && multi != null, "Use public package-owned methods and enum; no Unity internal reflection");
         }
         public void CheckTime()
@@ -635,7 +643,7 @@ public static class DistanceSafetyTests
             using var output = new NativeArray<float>(source.Length, Allocator.TempJob);
             var writable = output;
             for (int i = 0; i < output.Length; i++) writable[i] = float.NaN;
-            scalar.Invoke(null, new object[] { pixels, output, size, size, threshold, 0, mode, limit, 0f });
+            scalar.Invoke(null, new object[] { pixels, output, size, size, threshold, 0, mode, limit, 0f, SharpDistanceMode.GuardedSharp });
             var result = output.ToArray();
             int invalid = 0;
             foreach (float value in result) if (!Finite(value)) invalid++;
@@ -652,7 +660,7 @@ public static class DistanceSafetyTests
             using var output = new NativeArray<float4>(source.Length, Allocator.TempJob);
             var writable = output;
             for (int i = 0; i < output.Length; i++) writable[i] = new float4(float.NaN);
-            multi.Invoke(null, new object[] { pixels, output, size, size, threshold, 0, 0f });
+            multi.Invoke(null, new object[] { pixels, output, size, size, threshold, 0, 0f, SharpDistanceMode.GuardedSharp });
             var result = output.ToArray();
             int invalid = 0;
             foreach (float4 value in result) for (int channel = 0; channel < 4; channel++) if (!Finite(value[channel])) invalid++;
@@ -709,6 +717,17 @@ public static class DistanceSafetyTests
         P n1 = new P(incoming.y, -incoming.x), n2 = new P(outgoing.y, -outgoing.x), bisector = (n1 + n2).Unit;
         return new Corner { vertex = v, incoming = incoming, outgoing = outgoing, n1 = n1, n2 = n2,
             bisector = bisector, cosine = Math.Max(.000001, Dot(n1, bisector)), left = left.Length, right = right.Length };
+    }
+    static double SupportedAmplification(Vector2[][] rings)
+    {
+        double result = 1;
+        foreach (Vector2[] ring in rings) for (int i = 0; i < ring.Length; i++)
+        {
+            Corner corner = Tip(ring, i);
+            if (corner.left >= StraightSupport && corner.right >= StraightSupport)
+                result = Math.Max(result, 1 / corner.cosine);
+        }
+        return result;
     }
     static Owner Nearest(Vector2[][] rings, P q)
     {

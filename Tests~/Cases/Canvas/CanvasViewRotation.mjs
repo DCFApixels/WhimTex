@@ -106,11 +106,11 @@ context.case('CanvasViewRotation original assertions and branches', async () => 
     assert.match(zoom, /new FloatField\("Angle °"\)\s*\{\s*isDelayed = true/);
     assert.match(zoom, /SetCanvasRotation\(evt.newValue\);\s*canvasRotationField.SetValueWithoutNotify\(canvasViewport.Rotation\)/);
     assert.match(zoom, /SetViewRotation\(degrees, snap: false\)/);
-    assert.match(zoom, /!HasCanvasLayers \|\| float.IsNaN\(degrees\) \|\| float.IsInfinity\(degrees\)/);
+assert.match(zoom, /!HasNavigableCanvas \|\| float.IsNaN\(degrees\) \|\| float.IsInfinity\(degrees\)/);
     assert.match(zoom, /canvasRotationField.SetValueWithoutNotify\(displayedCanvasRotation\)/);
     const styles = read('WhimTexSplitView.uss');
-    assert.match(styles, /\.whimtex-view-field\s*\{\s*width: 130px;/);
-    assert.match(styles, /\.whimtex-view-field > \.unity-base-field__label\s*\{\s*min-width: 0;/);
+    assert.match(styles, /\.whimtex-canvas-header-row \.unity-base-field > \.unity-base-field__input\s*\{\s*width: 54px;/);
+    assert.match(styles, /\.whimtex-canvas-header-row \.unity-base-field__label\s*\{\s*width: auto;\s*min-width: 0;/);
     assert.match(zoom, /new FloatField\("Zoom %"\)\s*\{\s*isDelayed = true/);
     assert.match(zoom, /SetCanvasZoomPercent\(evt.newValue\);\s*canvasZoomPercent.SetValueWithoutNotify\(toolkitCanvas.PixelScale \* 100f\)/);
     assert.match(zoom, /percent <= 0f \|\| float.IsNaN\(percent\) \|\| float.IsInfinity\(percent\)/);
@@ -120,14 +120,14 @@ context.case('CanvasViewRotation original assertions and branches', async () => 
     assert.match(zoom, /disableSnap \? freeRotation : owner.SnapCanvasGuideRotation\(freeRotation, includeCanvasAxes: true\)/);
     assert.match(zoom, /SetViewRotation\(rotation, snap: false\)/);
     assert.match(zoom, /RotateTo\(point, evt.ctrlKey\)/);
-    assert.match(zoom, /if \(!owner.HasCanvasLayers/);
+assert.match(zoom, /if \(!owner.HasNavigableCanvas/);
     assert.match(zoom, /pointerId = -1;\s*if \(captured >= 0/);
     for (const event of ['Down', 'Move', 'Up'])
         for (const action of ['Register', 'Unregister'])
             assert.ok(zoom.includes(`${action}Callback<Pointer${event}Event>(On${event}, TrickleDown.TrickleDown)`));
     assert.match(ui, /presentedRotation == viewport.Rotation/);
     assert.match(ui, /PositionSurface\(checker, presentationRect, !tiled\)/);
-    assert.match(ui, /PositionSurface\(image, ImageRect, true\)/);
+    assert.match(ui, /PositionSurface\(image, imagePixels, true\)/);
     assert.match(ui, /rect.position = ToView\(rect.center\) - rect.size \* 0.5f/);
     assert.match(ui, /Vector2 canvasCursor = ToCanvas\(cursorPosition\)/);
     assert.match(ui, /x = viewport.ToViewDelta\(x\)/);

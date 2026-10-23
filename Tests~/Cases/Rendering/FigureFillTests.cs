@@ -9,6 +9,16 @@ using Object = UnityEngine.Object;
 
 public static class FigureFillTests
 {
+    // Use the product PNG path: composed/readback textures contain linear float pixels.
+    static byte[] EncodePng(UnityEngine.Texture2D texture)
+    {
+        var assembly = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly;
+        var encoder = assembly.GetType("DCFApixels.WhimTex.WhimTexRasterEncoder", true);
+        var format = System.Enum.Parse(assembly.GetType("DCFApixels.WhimTex.RasterImageFormat", true), "Png");
+        return (byte[])encoder.GetMethod("Encode", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+            .Invoke(null, new object[] { texture, format, 95, UnityEngine.Texture2D.EXRFlags.CompressZIP });
+    }
+
     const BindingFlags Hidden = BindingFlags.NonPublic | BindingFlags.Instance;
     static readonly VectorFillMode[] Modes = { VectorFillMode.LinearGradient, VectorFillMode.RadialGradient,
         VectorFillMode.SquareGradient, VectorFillMode.AngularGradient };
@@ -123,6 +133,7 @@ public static class FigureFillTests
                 { colorRange=LayerColorRange.HDR,blendRange=LayerBlendRange.HDR };
             doc.layers.Insert(0,target); group.enabled=false;
             b=doc.ComposeCanvas(); Equal(t,baseline,b.GetPixels(),"Hidden group Target gradient"); Object.DestroyImmediate(b); b=null;
+            typeof(Layer).GetMethod("ReleaseTransientResources", Hidden).Invoke(target, null);
             doc.layers.Remove(target); group.enabled=true;
             var clip = new Layer(new ColorFillLayerBehaviour { color=Color.white }) { clippingMask=true }; group.children.Insert(0,clip);
             b=doc.ComposeCanvas(); var clipPixels=b.GetPixels(); for(int i=0;i<baseline.Length;i++) t.Near(baseline[i].a,clipPixels[i].a,.003,"Gradient alpha is clipping coverage");
@@ -169,7 +180,7 @@ public static class FigureFillTests
                 layer.SetBehaviour(shape);a=doc.ComposeCanvas();
                 var vector=ShapeToVector.Convert(shape,doc);layer.SetBehaviour(vector);b=doc.ComposeCanvas();
                 if(mode==VectorFillMode.LinearGradient && wrap==WhimTexGradientWrapMode.Clamp && interpolation==WhimTexGradientMode.Classic)
-                { File.WriteAllBytes("Temp/WhimTex/stroke-gradient-shape.png",a.EncodeToPNG());File.WriteAllBytes("Temp/WhimTex/stroke-gradient-vector.png",b.EncodeToPNG()); }
+                { File.WriteAllBytes("Temp/WhimTex/stroke-gradient-shape-" + System.Guid.NewGuid().ToString("N") + ".png",EncodePng(a));File.WriteAllBytes("Temp/WhimTex/stroke-gradient-vector-" + System.Guid.NewGuid().ToString("N") + ".png",EncodePng(b)); }
                 for(int y=2;y<60;y+=7)for(int x=2;x<80;x+=7)
                 {
                     if(!((x<10 || x>70) && y>14 && y<46 || (y<10 || y>50) && x>14 && x<66))continue;
@@ -205,6 +216,7 @@ public static class FigureFillTests
             b=doc.ComposeCanvas();Equal(t,baseline,b.GetPixels(),"Grouped stroke gradients");Object.DestroyImmediate(b);b=null;
             var target=new BlurLayerBehaviour {radius=0,strength=0,inputMode=EffectInputMode.Specific,TargetLayerId=group.Id}.Owner;doc.layers.Insert(0,target);group.enabled=false;
             b=doc.ComposeCanvas();Equal(t,baseline,b.GetPixels(),"Hidden Target stroke gradients");Object.DestroyImmediate(b);b=null;
+            typeof(Layer).GetMethod("ReleaseTransientResources", Hidden).Invoke(target, null);
             doc.layers.Remove(target);group.enabled=true;
             var clip=new Layer(new ColorFillLayerBehaviour {color=Color.white}) {clippingMask=true};group.children.Insert(0,clip);
             b=doc.ComposeCanvas();var clipped=b.GetPixels();for(int i=0;i<baseline.Length;i++)t.Near(baseline[i].a,clipped[i].a,.003,"Stroke gradient clipping");
@@ -263,7 +275,7 @@ public static class FigureFillTests
                 }
                 finally{if(a!=null)Object.DestroyImmediate(a);if(b!=null)Object.DestroyImmediate(b);Object.DestroyImmediate(doc);}
             }
-            output.Apply();Directory.CreateDirectory("Temp/WhimTex");File.WriteAllBytes("Temp/WhimTex/figure-fills.png",output.EncodeToPNG());
+            output.Apply();Directory.CreateDirectory("Temp/WhimTex");File.WriteAllBytes("Temp/WhimTex/figure-fills-" + System.Guid.NewGuid().ToString("N") + ".png",output.EncodeToPNG());
         }
         finally{Object.DestroyImmediate(output);}
     }

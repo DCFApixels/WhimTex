@@ -37,6 +37,7 @@ void EqualPixels(Texture2D a, Texture2D b)
 }
 
 var document = UnityBRun.Create<DCFApixels.WhimTex.WhimTexDocument>();
+var ownedLayers = new System.Collections.Generic.List<Layer>();
 Texture2D source = null;
 RenderTexture sentinel = null;
 RenderTexture originalActive = RenderTexture.active;
@@ -54,6 +55,7 @@ try
                 (byte)(x > 3 && x < 28 && y > 2 && y < 13 ? 180 : 0));
     source.Apply(false, false);
     var drawing = new DCFApixels.WhimTex.DrawingLayerBehaviour();
+    ownedLayers.Add(drawing);
     typeof(DCFApixels.WhimTex.DrawingLayerBehaviour).GetField("pixels", InstanceHidden).SetValue(drawing, source);
     sentinel = RenderTexture.GetTemporary(2, 2);
     RenderTexture.active = sentinel;
@@ -63,6 +65,7 @@ try
         document.layers.Clear();
         if (mode == 2) document.layers.Add(new DCFApixels.WhimTex.SDFLayerBehaviour());
         if (mode == 3) document.layers.Add(new DCFApixels.WhimTex.OutlineLayerBehaviour());
+        ownedLayers.AddRange(document.layers);
         if (mode != 0) document.layers.Add(drawing);
         foreach (int size in new[] { 32, 16, 1, 32 })
         {
@@ -102,6 +105,8 @@ finally
 {
     RenderTexture.active = originalActive;
     if (sentinel != null) RenderTexture.ReleaseTemporary(sentinel);
+    foreach (var layer in ownedLayers)
+        typeof(Layer).GetMethod("ReleaseTransientResources", InstanceHidden).Invoke(layer, null);
     UnityEngine.Object.DestroyImmediate(document);
     if (source != null) UnityEngine.Object.DestroyImmediate(source);
 }

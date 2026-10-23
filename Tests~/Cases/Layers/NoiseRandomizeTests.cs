@@ -74,7 +74,7 @@ public static class NoiseRandomizeTests
             }
             foreach (var field in fields)
             {
-                if (field.Name == "scaleZ" || field.Name == "dimensions" || field.Name == "direction" || field.Name == "encoding" || field.Name == "gradient" || field.Name == "periodic" || field.Name == "periodic1D" || field.Name == "linkScale" || field.Name == "linkWarpScale" || field.Name == "offset")
+                if (field.Name == "scaleZ" || field.Name == "warpScaleZ" || field.Name == "field" || field.Name == "vectorOutput" || field.Name == "normalize" || field.Name == "strength" || field.Name == "dimensions" || field.Name == "direction" || field.Name == "encoding" || field.Name == "gradient" || field.Name == "periodic" || field.Name == "periodic1D" || field.Name == "linkScale" || field.Name == "linkWarpScale" || field.Name == "offset")
                 {
                     if (field.Name != "dimensions") Check(seen[field.Name].Count == 1, "Preserves " + field.Name);
                     continue;
@@ -190,7 +190,8 @@ public static class NoiseRandomizeTests
             Check(window.rootVisualElement.Query<Vector2Field>().ToList().Any(f => f.label == "Warp Scale" && f.value == ((NoiseLayerBehaviour)doc.layers[0].Behaviour).WarpScale), "Warp Scale refreshes after Random All and Undo/Redo");
             var currentNoise = (NoiseLayerBehaviour)doc.layers[0].Behaviour;
             var unchanged = fields.Where(f => f.Name != "seed").ToDictionary(f => f, f => f.GetValue(currentNoise));
-            var seedButton = window.rootVisualElement.Query<Button>().ToList().Single(b => b.text == "Random");
+            var seedButton = window.rootVisualElement.Query<IntegerField>().ToList().Single(f => f.label == "Seed")
+                .parent.Query<Button>().ToList().Single(b => b.text == "Random");
             for (int i=0; i<8; i++)
             {
                 lastSeed = currentNoise.seed;

@@ -21,6 +21,7 @@ doc.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 doc.width = doc.height = 8;
 int checks = 0;
 var owned = new System.Collections.Generic.List<UnityEngine.Object>();
+var ownedLayers = new System.Collections.Generic.HashSet<DCFApixels.WhimTex.Layer>();
 void Check(bool value, string message) { T.True(value, message); }
 void Near(float value, float expected, string message) => Check(UnityEngine.Mathf.Abs(value - expected) < .013f,
     message + ": " + value + " != " + expected);
@@ -36,6 +37,7 @@ void Alpha(DCFApixels.WhimTex.ColorFillLayerBehaviour layer, float alpha)
 }
 void Stack(params DCFApixels.WhimTex.Layer[] layers)
 {
+    foreach (var layer in layers) ownedLayers.Add(layer);
     doc.layers.Clear(); doc.layers.AddRange(layers);
     type.GetMethod("NormalizeModel", flags).Invoke(doc, null);
 }
@@ -148,6 +150,7 @@ try
     var converted = (DCFApixels.WhimTex.DrawingLayerBehaviour)typeof(DCFApixels.WhimTex.DrawingLayerBehaviour)
         .GetMethod("FromRasterizedLayer", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
         .Invoke(null, new object[] { upper.Owner, rasterized, true, false });
+    ownedLayers.Add(converted);
     Check(converted.clippingMask, "Drawing conversion preserves clipping flag");
     Check(UnityEngine.JsonUtility.FromJson<DCFApixels.WhimTex.Layer>(UnityEngine.JsonUtility.ToJson(upper.Owner)).clippingMask,
         "Copy/serialization preserves clipping");
@@ -203,6 +206,8 @@ try
 }
 finally
 {
+    foreach (var layer in ownedLayers)
+        typeof(DCFApixels.WhimTex.Layer).GetMethod("ReleaseTransientResources", flags).Invoke(layer, null);
     foreach (var item in owned) if (item != null) UnityEngine.Object.DestroyImmediate(item);
     UnityEngine.Object.DestroyImmediate(doc);
 }

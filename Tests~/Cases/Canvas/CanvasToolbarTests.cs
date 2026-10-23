@@ -104,7 +104,7 @@ static System.Threading.CancellationToken Cancellation;
             Select("Brush"); Select(tool);
             Press(toggleKey); IsTool("Brush", tool + " restores Brush");
             Press(toggleKey); IsTool(tool, tool + " is restored on next press");
-            T.Equal(1, window.rootVisualElement.Query<Button>(className: "whimtex-tool-button--selected").ToList().Count,
+            T.Equal(1, window.rootVisualElement.Q("canvasTools").Query<Button>(className: "whimtex-tool-button--selected").ToList().Count,
                 "Exactly one selected toolbar button after switching " + tool);
         }
         Select("Brush"); Select("SmudgeBrush");

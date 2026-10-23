@@ -577,7 +577,7 @@ public static class RasterReconstructionTests
             var corner = assembly.GetType("DCFApixels.WhimTex.RasterCornerDistanceContour", true);
             compute = utility.GetMethod("ComputeArtisticDistance", BindingFlags.Public | BindingFlags.Static, null,
                 new[] { typeof(NativeArray<Color32>), typeof(NativeArray<float>), typeof(int), typeof(int), typeof(byte),
-                    typeof(int), typeof(DistanceMetric), typeof(float), typeof(float) }, null);
+                    typeof(int), typeof(DistanceMetric), typeof(float), typeof(float), typeof(SharpDistanceMode) }, null);
             refine = corner.GetMethod("Refine", BindingFlags.NonPublic | BindingFlags.Static, null,
                 new[] { typeof(List<float2>), typeof(NativeArray<Color32>), typeof(int), typeof(int), typeof(byte),
                     typeof(int), typeof(HashSet<float2>) }, null);
@@ -622,7 +622,7 @@ public static class RasterReconstructionTests
             // plausible cleared zero field. The input remains byte-for-byte owned.
             var writable = output;
             for (int i = 0; i < output.Length; i++) writable[i] = float.NaN;
-            compute.Invoke(null, new object[] { input, output, size, size, threshold, channel, mode, miter, 0f });
+            compute.Invoke(null, new object[] { input, output, size, size, threshold, channel, mode, miter, 0f, SharpDistanceMode.GuardedSharp });
             CheckInput(source, input, label);
             var result = output.ToArray();
             for (int i = 0; i < result.Length; i++) test.True(float.IsFinite(result[i]), label + " finite output/pixel=" + i);

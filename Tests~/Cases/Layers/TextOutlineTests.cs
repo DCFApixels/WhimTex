@@ -203,7 +203,7 @@ public static class TextOutlineTests
             {
                 Directory.CreateDirectory("Temp/WhimTex/text-outlines");
                 var png = new Texture2D(doc.width, doc.height, TextureFormat.RGBA32, false, true);
-                try { png.SetPixels(image.GetPixels()); png.Apply(); File.WriteAllBytes("Temp/WhimTex/text-outlines/boolean-text.png", png.EncodeToPNG()); }
+                try { png.SetPixels(image.GetPixels()); png.Apply(); File.WriteAllBytes("Temp/WhimTex/text-outlines/boolean-text-" + System.Guid.NewGuid().ToString("N") + ".png", png.EncodeToPNG()); }
                 finally { Object.DestroyImmediate(png); }
             }
             finally { Object.DestroyImmediate(image); }

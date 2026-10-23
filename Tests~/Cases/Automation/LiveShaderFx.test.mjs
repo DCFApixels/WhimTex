@@ -45,7 +45,7 @@ context.case("LiveShaderFx original assertion inputs and source contracts", asyn
   const Keys=(o,...names)=>{for(const k of Object.keys(o))Require(names.includes(k),'Unknown field');};
   let code=body(source,'private static void ApplyLiveFx(')
     .replace('token is JArray array && array.Count <= 16','Array.isArray(token) && token.length <= 16')
-    .replaceAll('new List<Object>', 'new List')
+    .replaceAll('new List<ShaderFX>', 'new List')
     .replace('foreach (var item in (JArray)token)','for (const item of token)')
     .replace('foreach (var parameter in fx.TextureLayerParameters())','for (const parameter of fx.TextureLayerParameters())')
     .replace(/\bJObject spec\b|\bstring op\b|\bint index\b|\bvar parameters\b|\bvar fx\b/g,m=>'let '+m.split(' ')[1])

@@ -61,9 +61,9 @@ context.case('BrushSdf original assertions and branches', async () => {
     const dynamics = read('src/BrushDynamics.cs'), drawer = read('src/WhimTexWindow.Brushes.cs');
     assert.ok(dynamics.includes('public WhimTexGradient tipGradient = DefaultTipGradient();'));
     const usesSdfBody = dynamics.match(/internal bool UsesSdfGradient => ([^;]+);/)[1];
-    const usesSdf = new Function('tip','tipSdf','proceduralMode','BrushProceduralMode','return '+usesSdfBody);
+    const usesSdf = new Function('HasTip','tipSdf','proceduralMode','BrushProceduralMode','return '+usesSdfBody);
     for(const tip of [null,{}]) for(const textureSdf of [false,true]) for(const mode of [0,1])
-      assert.equal(usesSdf(tip,textureSdf,mode,{SdfGradient:1}),tip ? textureSdf : mode===1);
+      assert.equal(usesSdf(tip != null,textureSdf,mode,{SdfGradient:1}),tip ? textureSdf : mode===1);
     assert.ok(dynamics.includes('proceduralMode = BrushProceduralMode.Hardness;'));
     assert.ok(read('src/Layers/DrawingLayerBehaviour.cs').includes('bool sdfGradient = !pixelPerfect && dynamics != null && dynamics.UsesSdfGradient;'));
     assert.ok(shader.includes('SdfTipGradient(radius)'));
@@ -73,7 +73,7 @@ context.case('BrushSdf original assertions and branches', async () => {
     for (let i = 0; i <= 100; i++) near(textureCoordinate(1-i/100), i/100);
     const proceduralStart=shader.indexOf('SdfTipGradient(radius)');
     assert.ok(shader.lastIndexOf('if (radius > 1.0) discard;',proceduralStart)>shader.indexOf('#else',shader.indexOf('float radius = length')));
-    assert.ok(shader.includes('coverage = 1.0 - smoothstep(inner, 1.0, radius);'));
+    assert.ok(shader.includes('coverage = 1.0 - smoothstep(inner, outer, radius);'));
     for(const r of [0,.1,.25,.5,.75,.9,1]) {
       const value=r;
       near(uv(value)*width-.5,value*(width-1));
@@ -87,14 +87,14 @@ context.case('BrushSdf original assertions and branches', async () => {
     assert.ok(dynamics.includes('new GradientAlphaKey(1f, .4f), new GradientAlphaKey(0f, .6f)'));
     assert.ok(drawer.includes('new WhimTexGradientValueField("Gradient")'));
     assert.ok(!drawer.includes('new Slider("Threshold"'));
-    assert.ok(drawer.includes('hardness.SetEnabled(paintSettings.dynamics.tip == null)'));
+    assert.ok(drawer.includes('hardness.SetEnabled(!paintSettings.dynamics.HasTip)'));
     const header = drawer.split('private void AddBrushEdgeHeader(VisualElement row)')[1].split('private void AddBrushHeaderPercent')[0];
     assert.ok(header.includes('new FloatField("Hardness")'), 'Keep the native draggable field label');
     assert.ok(header.includes('toolkitHeaderBindings.Track(hardness, () => paintSettings.brushHardness * 100f)'));
     assert.ok(header.includes('toolkitHeaderBindings, () => paintSettings.dynamics.tipGradient'));
     assert.ok(header.includes('hardness.EnableInClassList("whimtex-brush-setting--hidden", sdf)'));
     assert.ok(header.includes('gradient.EnableInClassList("whimtex-brush-setting--hidden", !sdf)'));
-    assert.ok(header.includes('mode.SetEnabled(paintSettings.dynamics.tip == null)'));
+    assert.ok(header.includes('mode.SetEnabled(!paintSettings.dynamics.HasTip)'));
     assert.ok(!header.includes('GetSelectedLayer'), 'Brush settings remain editable without a Drawing layer');
     const drawerControls = drawer.split('private void AddBrushEdgeHeader')[0];
     assert.ok(drawerControls.includes('new WhimTexGradientValueField("Gradient")'));
@@ -105,7 +105,8 @@ context.case('BrushSdf original assertions and branches', async () => {
     assert.ok(applyChange.includes('toolkitHeaderBindings.Refresh();'));
     assert.ok(applyChange.includes('brushSettingsBindings?.Refresh();'), 'Both copies update after editing either location');
     assert.match(read('src/WhimTexWindow.UI.cs'), /brushRow.Add\(size\);\s*AddBrushEdgeHeader\(brushRow\);\s*AddBrushHeaderPercent\(brushRow, "Opacity"/);
-    assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-brush-edge\s*\{\s*width: 150px;\s*height: 20px;\s*flex-shrink: 0;/);
+    // Edge controls now inherit the common auto-width, 22px nonshrinking header row.
+    assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-canvas-header-row > \*,\s*\.whimtex-canvas-header-row \.unity-base-field\s*\{(?=[^}]*\bwidth: auto;)(?=[^}]*\bheight: 22px;)(?=[^}]*\bflex-shrink: 0;)[^}]*\}[\s\S]*?\.whimtex-canvas-header-row \.whimtex-brush-edge\s*\{\s*flex-direction: row;\s*align-items: center;\s*\}/);
     assert.ok(read('src/Layers/DrawingLayerBehaviour.cs').includes('GetBrushSdfGradient(dynamics, standardColorInputs)'));
     assert.ok(read('src/Automation/WhimTexApi.Paint.cs').includes('dynamics.tipGradient = ReadGradient(brush["tipGradient"])'));
     assert.ok(read('src/Automation/WhimTexApi.Inspect.cs').includes('["tipGradientKeys"] = GradientSnapshot(dynamics.tipGradient)'));

@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
         // certifies a corner; no source-vector knowledge or display range is used.
         struct AdaptiveCorner
         {
-            public int index, radius;
+            public int index, radius, support;
             public float2 point, left, right;
             public float score;
         }
@@ -22,14 +22,22 @@ namespace DCFApixels.WhimTex
         {
             using var timing = DistanceFieldTiming.Measure("contour.adaptiveSharp");
             var result = new List<List<float2>>(contours.Count);
-            var obstacles = new List<Path64>(contours.Count);
-            foreach (var path in contours) obstacles.Add(QuantizeContour(path));
+            var filled = new List<Path64>();
+            var holes = new List<Path64>();
+            foreach (var path in contours)
+                (SignedArea(path) < 0 ? holes : filled).Add(QuantizeContour(path));
             for (int i = 0; i < contours.Count; i++)
             {
                 var local = new HashSet<int2>();
-                var fitted = FitAdaptiveCorners(contours[i], local);
-                // A local fit must not consume a hole or another small component.
-                if (!ReferenceEquals(fitted, contours[i]) && !FittingPreservesHoles(contours[i], fitted, obstacles))
+                // Normalized contours have positive filled outlines and negative
+                // holes. Same-winding fits may overlap: both contours remain in
+                // the NonZero union, including detached AA tip coverage. Opposite
+                // winding could cancel a hole/island, so protect it at both levels.
+                var protectedContours = SignedArea(contours[i]) < 0 ? filled : holes;
+                var fitted = FitAdaptiveCorners(contours[i], local, protectedContours);
+                // Retain the whole-contour guard after candidate-local checks.
+                // Interacting fits must not consume a protected component either.
+                if (!ReferenceEquals(fitted, contours[i]) && !FittingPreservesHoles(contours[i], fitted, protectedContours))
                 { fitted = contours[i]; local.Clear(); }
                 result.Add(fitted);
                 reliable.UnionWith(local);
@@ -38,7 +46,7 @@ namespace DCFApixels.WhimTex
             // Construct uncertain joins once in geometry. Pixel-by-pixel rejection
             // of a miter is not a substitute for a continuous boundary.
             var rounded = new List<List<float2>>(result.Count);
-            obstacles.Clear();
+            var obstacles = new List<Path64>(result.Count);
             foreach (var path in result) obstacles.Add(QuantizeContour(path));
             foreach (var path in result)
             {
@@ -48,7 +56,7 @@ namespace DCFApixels.WhimTex
             return rounded;
         }
 
-        static List<float2> FitAdaptiveCorners(List<float2> raw, HashSet<int2> reliable)
+        static List<float2> FitAdaptiveCorners(List<float2> raw, HashSet<int2> reliable, List<Path64> obstacles)
         {
             float perimeter = 0;
             var arc = new float[raw.Count + 1];
@@ -124,14 +132,21 @@ namespace DCFApixels.WhimTex
                     for (int k = -gap; k < gap; k++) capDistance = math.min(capDistance, SquaredSegmentDistance(point, At(i + k), At(i + k + 1)));
                     float extrapolation = math.min(longer * step * .5f, .75f / math.max(.05f, cosine));
                     if (capDistance > extrapolation * extrapolation) continue;
-                    // Prefer scale agreement and raster residual over angle size.
+                    // Among fits passing every acceptance check, longer observed
+                    // walls reduce the directional bias of a short raster cap.
+                    // Agreement and residual choose between equal supports.
                     float score = agreement + math.sqrt(error) + math.sqrt(l1.error + r1.error) + .025f * gap - .005f * longer;
-                    if (score >= best.score) continue;
-                    best = new AdaptiveCorner { index = i, radius = radius, point = point, left = left, right = right, score = score };
+                    if (longer < best.support || longer == best.support && score >= best.score) continue;
+                    best = new AdaptiveCorner { index = i, radius = radius, support = longer, point = point, left = left, right = right, score = score };
                 }
                 if (best.score < float.MaxValue) proposals.Add(best);
             }
-            proposals.Sort((a, b) => { int order = a.score.CompareTo(b.score); return order != 0 ? order : a.index.CompareTo(b.index); });
+            proposals.Sort((a, b) =>
+            {
+                int supportOrder = b.support.CompareTo(a.support);
+                if (supportOrder != 0) return supportOrder;
+                int order = a.score.CompareTo(b.score); return order != 0 ? order : a.index.CompareTo(b.index);
+            });
             var occupied = new bool[count];
             var selected = new List<AdaptiveCorner>();
             int comparisons = 2000000;
@@ -141,6 +156,8 @@ namespace DCFApixels.WhimTex
                 bool blocked = false;
                 for (int k = -proposal.radius - 1; k <= proposal.radius + 1; k++) blocked |= occupied[Wrap(proposal.index + k)];
                 if (blocked || !AdaptivePatchSafe(raw, arc, perimeter, proposal, step, ref comparisons)) continue;
+                if (!AdaptivePatchPreservesComponents(raw, arc, perimeter, proposal, step,
+                    At(proposal.index - proposal.radius), At(proposal.index + proposal.radius), obstacles, ref comparisons)) continue;
                 for (int k = -proposal.radius; k <= proposal.radius; k++) occupied[Wrap(proposal.index + k)] = true;
                 selected.Add(proposal);
             }
@@ -205,8 +222,53 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
+        static bool AdaptivePatchPreservesComponents(List<float2> raw, float[] arc, float perimeter,
+            AdaptiveCorner corner, float step, float2 start, float2 end, List<Path64> obstacles, ref int comparisons)
+        {
+            if (obstacles.Count == 0) return true;
+            // Trace the replaced raw arc, then the fitted arc in reverse. Only
+            // this swept region can change another contour's ownership. Reject
+            // its candidate before occupancy, not every fitted corner in the ring.
+            float from = (corner.index - corner.radius) * step, to = (corner.index + corner.radius) * step;
+            var patch = new List<float2> { start };
+            int cycle = (int)Math.Floor(from / perimeter);
+            int index = Array.BinarySearch(arc, from - cycle * perimeter);
+            index = index < 0 ? ~index : index + 1;
+            if (index >= raw.Count) { index = 0; cycle++; }
+            while (arc[index] + cycle * perimeter < to)
+            {
+                if (--comparisons < 0) return false;
+                patch.Add(raw[index]);
+                if (++index == raw.Count) { index = 0; cycle++; }
+            }
+            patch.Add(end); patch.Add(corner.right); patch.Add(corner.point); patch.Add(corner.left);
+            var swept = QuantizeContour(patch);
+            Rect64 bounds = InternalClipper.GetBounds(swept);
+            for (int i = 0; i < obstacles.Count; i++)
+            {
+                if (--comparisons < 0) return false;
+                var obstacle = obstacles[i];
+                Rect64 other = InternalClipper.GetBounds(obstacle);
+                if (other.right < bounds.left || other.left > bounds.right ||
+                    other.bottom < bounds.top || other.top > bounds.bottom) continue;
+                long work = 2L * swept.Count * obstacle.Count;
+                if (work > comparisons) { comparisons = 0; return false; }
+                comparisons -= (int)work;
+                if (ContoursCross(swept, obstacle)) return false;
+                foreach (Point64 p in obstacle)
+                    if (InternalClipper.PointInPolygon(p, swept) != PointInPolygonResult.IsOutside) return false;
+            }
+            return true;
+        }
+
         static List<float2> RoundUncertainCorners(List<float2> path, HashSet<int2> reliable)
         {
+            float perimeter = 0;
+            for (int i = 0; i < path.Count; i++) perimeter += math.distance(path[i], path[(i + 1) % path.Count]);
+            // Match Simplify's tiny-ring protection: geometric caps would move
+            // the original subpixel crossings even when topology is unchanged.
+            // Unsupported endpoints already retain finite distance evaluation.
+            if (perimeter < 4) return path;
             var result = new List<float2>(path.Count);
             int comparisons = 2000000;
             for (int i = 0; i < path.Count; i++)

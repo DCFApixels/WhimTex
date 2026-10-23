@@ -134,6 +134,7 @@ public static class TextLayerUiTests
                 "Font name fits inside the selector without overlapping other fields");
             var size = root.Q<FloatField>("textSize");
             var sizeRange = root.Q<Vector2Field>("textSizeRange");
+            Undo.FlushUndoRecordObjects(); Undo.IncrementCurrentGroup();
             size.value = 48;
             t.Equal(48f, ((TextLayerBehaviour)document.layers[0].Behaviour).fontSize, "Size field updates actual layer through the common apply transaction");
             Undo.FlushUndoRecordObjects(); Undo.PerformUndo();

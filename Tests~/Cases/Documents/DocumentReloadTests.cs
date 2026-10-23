@@ -38,6 +38,9 @@ public static class DocumentReloadTests
         doc.hideFlags = HideFlags.HideAndDontSave;
         doc.width = 64; doc.height = 32;
         doc.layers.Add(new Layer(new ColorFillLayerBehaviour { color = Color.red }));
+        var preferences = new UnityBToolPreferences();
+        try
+        {
         string path = WhimTexDocumentFile.Save(doc, folder + "/Reload.tiff");
         var importer = (TextureImporter)AssetImporter.GetAtPath(path);
         importer.isReadable = false; importer.SaveAndReimport();
@@ -45,6 +48,7 @@ public static class DocumentReloadTests
         // across an assembly reload and would make this probe test the wrong lifecycle.
         var window = EditorWindow.CreateWindow<WhimTexWindow>();
         window.name = "WhimTex Document Reload " + RunId;
+        preferences.Own(window);
         var previousDefault = (WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument", Any).GetValue(window);
         typeof(WhimTexWindow).GetMethod("SetDocument", Any).Invoke(window, new object[] { doc });
         if (previousDefault != null && previousDefault != doc) UnityEngine.Object.DestroyImmediate(previousDefault);
@@ -55,6 +59,14 @@ public static class DocumentReloadTests
         typeof(WhimTexDocument).GetMethod("MarkChanged", Any).Invoke(doc, null);
         Check((bool)Session.GetMethod("Start", Any).Invoke(null, new object[] { doc, path }), "Live Update start");
         return "READY: run Unity recompile, wait for completion, then Verify. " + folder;
+        }
+        finally
+        {
+            // Keep the real window/document alive for reload, but no test preference
+            // session or delayed brush callback may escape this setup invocation.
+            preferences.Dispose();
+            preferences.Verify();
+        }
     }
 
     static string ExecuteVerify(out bool carrierOnly)
@@ -70,7 +82,8 @@ public static class DocumentReloadTests
             {
                 var document = (WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument", Any).GetValue(window);
                 var service = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentService");
-                if ((string)service.GetMethod("PathOf", Any).Invoke(null, new object[] { document }) == path) found = window;
+                if (window.name == "WhimTex Document Reload " + RunId &&
+                    (string)service.GetMethod("PathOf", Any).Invoke(null, new object[] { document }) == path) found = window;
             }
         if (found == null)
         {
@@ -84,7 +97,11 @@ public static class DocumentReloadTests
             return "PARTIAL: carrier/session branch only; surviving-window binding/content/storage-GUID/save oracle was not executed.";
         }
         {
+            var preferences = new UnityBToolPreferences();
+            try
+            {
             Check(found != null, "window restored");
+            preferences.Own(found);
             var doc = (WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument", Any).GetValue(found);
             object[] binding = { doc, null };
             Check((bool)typeof(WhimTexWindow).GetMethod("TryGetDocumentFile", Any).Invoke(null, binding) && (string)binding[1] == path, "binding restored after domain reload");
@@ -99,6 +116,8 @@ public static class DocumentReloadTests
             try { Check(((ColorFillLayerBehaviour)loaded.layers[0].Behaviour).color == Color.green, "save after reload persists unsaved contents"); }
             finally { UnityEngine.Object.DestroyImmediate(loaded); }
             return "Surviving-window branch verified; owned cleanup follows separately.";
+            }
+            finally { preferences.Dispose(); preferences.Verify(); }
         }
     }
 
@@ -156,7 +175,7 @@ public static class DocumentReloadTests
         foreach (var window in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
         {
             var doc = (WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument", Any).GetValue(window);
-            if (window.name == "WhimTex Document Reload " + RunId || doc != null && doc.name == RunId)
+            if (window.name == "WhimTex Document Reload " + RunId)
             {
                 steps.Add(() => UnityBRun.CloseOwned(window));
                 if (doc != null && doc.name == RunId) steps.Add(() => UnityBReload.DestroyOwned(doc));

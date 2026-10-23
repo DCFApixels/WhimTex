@@ -11,6 +11,16 @@ using WhimTex.Tests;
 
 public static class DistanceFieldRenderTests
 {
+    // Use the product PNG path: composed/readback textures contain linear float pixels.
+    static byte[] EncodePng(UnityEngine.Texture2D texture)
+    {
+        var assembly = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly;
+        var encoder = assembly.GetType("DCFApixels.WhimTex.WhimTexRasterEncoder", true);
+        var format = System.Enum.Parse(assembly.GetType("DCFApixels.WhimTex.RasterImageFormat", true), "Png");
+        return (byte[])encoder.GetMethod("Encode", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+            .Invoke(null, new object[] { texture, format, 95, UnityEngine.Texture2D.EXRFlags.CompressZIP });
+    }
+
     const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
     const int Size = 128;
 
@@ -75,7 +85,7 @@ public static class DistanceFieldRenderTests
                 RenderTexture.active = input; RenderTexture.ReleaseTemporary(output); output = null;
             }
             sheet.Apply();
-            string directory = "Temp/WhimTex/distance-fields/reconstruction";
+            string directory = "Temp/WhimTex/distance-fields/reconstruction-" + Guid.NewGuid().ToString("N");
             Directory.CreateDirectory(directory);
             File.WriteAllBytes(Path.Combine(directory, "captured-contour-cornerfit-spring.png"), sheet.EncodeToPNG());
             File.WriteAllLines(Path.Combine(directory, "captured.csv"), records);
@@ -176,7 +186,7 @@ public static class DistanceFieldRenderTests
             }
             t.Equal(6, calls, "Exactly six native comparison renders");
             sheet.Apply();
-            string directory = Path.GetFullPath("Temp/WhimTex/distance-fields/aaedt");
+            string directory = Path.GetFullPath("Temp/WhimTex/distance-fields/aaedt-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
             File.WriteAllBytes(Path.Combine(directory, "captured-round-aaedt-77-128-192.png"), sheet.EncodeToPNG());
             File.WriteAllLines(Path.Combine(directory, "captured-round-aaedt-77-128-192.csv"), metrics);
@@ -217,7 +227,7 @@ public static class DistanceFieldRenderTests
             var contextType=typeof(SDFLayerBehaviour).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext",true);
             object context=Activator.CreateInstance(contextType,doc,input,size,size,1f,false,false,null);
             var metrics=new List<string>{"threshold,mode,mergePixels,changedPixels,maxNormalizedDelta"};
-            string directory=Path.GetFullPath("Temp/WhimTex/distance-fields/merge"); Directory.CreateDirectory(directory);
+            string directory=Path.GetFullPath("Temp/WhimTex/distance-fields/merge-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
             foreach(byte threshold in new byte[]{77,128,192})
             {
             int row=0;
@@ -264,7 +274,7 @@ public static class DistanceFieldRenderTests
         }
     });
 
-    public static string Run() => TestContext.Run("Ten distance modes: native render and data output", t =>
+    public static string Run() => TestContext.Run("Twelve distance modes: native render and data output", t =>
     {
         var objects = new List<UnityEngine.Object>();
         T Own<T>(T item) where T : UnityEngine.Object { objects.Add(item); return item; }
@@ -303,7 +313,7 @@ public static class DistanceFieldRenderTests
             GL.sRGBWrite = false; Graphics.Blit(source, input);
             var contextType = typeof(SDFLayerBehaviour).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext", true);
             object context = Activator.CreateInstance(contextType, doc, input, Size, Size, 1f, false, false, null);
-            var sheet = Own(new Texture2D(Size * 10, Size * 2, TextureFormat.RGBA32, false, true));
+            var sheet = Own(new Texture2D(Size * 12, Size * 2, TextureFormat.RGBA32, false, true));
             int column = 0;
             foreach (DistanceMetric mode in Enum.GetValues(typeof(DistanceMetric)))
             {
@@ -343,9 +353,9 @@ public static class DistanceFieldRenderTests
                 RenderTexture.active = input; RenderTexture.ReleaseTemporary(rendered); rendered = null;
                 column++;
             }
-            t.Equal(10, column, "Exactly ten artist modes");
+            t.Equal(12, column, "Exactly twelve artist modes");
             sheet.Apply();
-            string directory = Path.Combine(Application.dataPath, "../Temp/WhimTex/distance-fields");
+            string directory = Path.Combine(Application.dataPath, "../Temp/WhimTex/distance-fields/modes-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
             File.WriteAllBytes(Path.Combine(directory, "ten-modes.png"), sheet.EncodeToPNG());
 
@@ -410,7 +420,7 @@ public static class DistanceFieldRenderTests
                 for (int y = 0; y < 512; y++) for (int x = 400; x < 512; x++)
                     farError = Math.Max(farError, Math.Abs(1 - pixels[y * 512 + x].r));
                 t.Near(0, farError, .002, $"Native {mode} star has no distant false gradient; threshold={threshold}");
-                t.True(canvas.EncodeToPNG().Length > 200, "Native star regression remains exportable: " + mode);
+                t.True(EncodePng(canvas).Length > 200, "Native star regression remains exportable: " + mode);
                 if (mode == DistanceMetric.Bevel && threshold >= 117 && threshold <= 119)
                     t.Near(1, pixels[213 * 512 + 216].r, .002,
                         "Native Bevel facet exceeds the 32.6px range at the former overlapping-loop bulge; threshold=" + threshold);
@@ -459,7 +469,7 @@ public static class DistanceFieldRenderTests
                         if (p.a > .1f) visible++;
                     }
                     t.True(visible > 100, "Disabled group remains a usable explicit effect source: " + mode);
-                    t.True(canvas.EncodeToPNG().Length > 200, "Composed effect is exportable: " + mode);
+                    t.True(EncodePng(canvas).Length > 200, "Composed effect is exportable: " + mode);
                 }
                 finally { UnityEngine.Object.DestroyImmediate(canvas); }
                 var preview = (RenderTexture)typeof(WhimTexDocument).GetMethod("RenderLayerPreview", Hidden)
@@ -477,7 +487,7 @@ public static class DistanceFieldRenderTests
                 finally { UnityEngine.Object.DestroyImmediate(canvas); }
                 effect.clippingMask = false;
                 // Both behaviors were rendered even though only one is in the final list.
-                typeof(SDFLayerBehaviour).GetMethod("ReleaseTransientResources", Hidden).Invoke(sdf, null);
+                effect.GetType().GetMethod("ReleaseTransientResources", Hidden).Invoke(effect, null);
             }
         }
     }
@@ -498,7 +508,7 @@ public static class DistanceFieldRenderTests
             int changes = 0;
             Action<string, Action> apply = (label, action) => { changes++; action(); };
             Action<VisualElement, TargetedLayerBehaviour> target = (element, behavior) => { };
-            var sdf = new SDFLayerBehaviour();
+            var sdf = new SDFLayerBehaviour { sharpMode = SharpDistanceMode.GuardedSharp };
             typeof(SDFLayerEditorWindow).GetMethod("BuildFields", BindingFlags.Static | BindingFlags.NonPublic)
                 .Invoke(null, new object[] { root, sdf, doc, apply, bindings, target });
             var algorithm = root.Query<EnumField>().ToList().Find(field => field.label == "Distance Algorithm");
@@ -512,7 +522,7 @@ public static class DistanceFieldRenderTests
             t.Equal(2, output.choices.Count, "Round has only scalar and gradient outputs");
             Edit(algorithm, (Enum)DistanceMetric.Sharp);
             t.Equal(DistanceMetric.Sharp, sdf.metric, "Algorithm field edits the actual model");
-            t.True(!miter.ClassListContains("whimtex-hidden"), "Miter Limit appears for Sharp");
+            t.True(!miter.ClassListContains("whimtex-hidden"), "Miter Limit appears for Guarded Sharp");
             t.True(!merge.ClassListContains("whimtex-hidden"), "Contour Merge appears for Sharp");
             int mergeChanges = changes;
             Edit(merge, 1f);

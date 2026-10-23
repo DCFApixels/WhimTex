@@ -123,7 +123,7 @@ public static class FigureFillUiTests
                 UnityBRun.Check(Mathf.Abs(first.resolvedStyle.width-24)<.01f,"Same button width as Gradient layer");
                 UnityBRun.Check(Mathf.Abs(first.resolvedStyle.height-20)<.01f,"Same button height as other actions");
             }
-            var capture=new Capture {owner=window,path="Temp/WhimTex/figure-fill-icons-"+kind+"-"+(stroke?"stroke":"fill")+".png",pickingMode=PickingMode.Ignore};
+            var capture=new Capture {owner=window,path="Temp/WhimTex/figure-fill-icons-"+Guid.NewGuid().ToString("N")+"-"+kind+"-"+(stroke?"stroke":"fill")+".png",pickingMode=PickingMode.Ignore};
             capture.style.position=Position.Absolute;capture.style.width=1;capture.style.height=1;root.Add(capture);
             for(int tick=0;tick<30 && !capture.completed;tick++) { window.Repaint(); await UnityBRun.NextUpdate(); }
             UnityBRun.Check(capture.completed,"Actual icon row captured");capture.RemoveFromHierarchy();

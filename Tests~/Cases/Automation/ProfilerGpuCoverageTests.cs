@@ -192,16 +192,22 @@ public static class ProfilerGpuCoverageTests
         document.hideFlags = HideFlags.HideAndDontSave; document.width = document.height = 24; owned.Add(document);
         Layer layer = new ColorFillLayerBehaviour { mode = ColorFillLayerBehaviour.FillMode.UV };
         document.layers.Add(layer); Invoke(document, "NormalizeModel");
-        var shader = Shader.Find("Hidden/WhimTex/Hdr");
-        t.True(shader != null && shader.isSupported, "Existing finishing shader is available for the owned material FX fixture");
-        var effect = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
-        layer.fx.Add(effect);
+        ShaderFX effect = null;
         Type contextType = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext", true);
         object Context(bool transform, bool fx) => Activator.CreateInstance(contextType, Instance, null,
             new object[] { document, null, 24, 24, 1f, transform, fx, null }, null);
         object oldFilter = Get(capture, "documentId");
         try
         {
+            var create = typeof(ShaderFX).GetMethod("CreateAgentDraft", Static, null,
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+            effect = (ShaderFX)create.Invoke(null, new object[] { document,
+                "float4 ApplyFX(float2 uv,float4 color){return color;}", new List<ShaderFXParameter>() });
+            effect.hideFlags = HideFlags.HideAndDontSave;
+            typeof(ShaderFX).GetMethod("ApplyAgentDraft", Instance).Invoke(effect, null);
+            var shader = (Shader)typeof(ShaderFX).GetField("compiledShader", Instance).GetValue(effect);
+            t.True(shader != null && shader.isSupported, "Applied shader is available for the owned ShaderFX fixture");
+            layer.fx.Add(effect);
             // Root calls have no enclosing document span, so their context must carry the filter identity.
             string documentId = (string)Call("DocumentId", document);
             Set(capture, "documentId", documentId);
@@ -247,7 +253,15 @@ public static class ProfilerGpuCoverageTests
                 t.True(!rows.Any(s => (string)Get(s, "phase") == "layer.transform"), "Empty dispatch has no transform pass");
             }
         }
-        finally { Set(capture, "documentId", oldFilter); layer.fx.Remove(effect); UnityEngine.Object.DestroyImmediate(effect); }
+        finally
+        {
+            try { Set(capture, "documentId", oldFilter); }
+            finally
+            {
+                layer.fx.Remove(effect);
+                if (effect != null) UnityEngine.Object.DestroyImmediate(effect);
+            }
+        }
     }
 
     static void CheckQueries(TestContext t, object capture, IList slots)

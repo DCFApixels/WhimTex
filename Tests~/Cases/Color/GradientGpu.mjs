@@ -32,7 +32,7 @@ context.case('GradientGpu original assertions and branches', async () => {
     assert.match(shader, /color\.rgb = SpriteDecode\(color\.rgb\)/);
     assert.match(shader, /floor\(uv \* _GradientOutputSize\)/);
     assert.match(shader, /all\(p == 0\)/);
-    assert.match(shader, /float WrapGradientTime\(float t\)/);
+assert.match(shader, /float WrapGradientTime\(float t, int wrapMode\)/);
     assert.match(shader, /frac\(t\)/);
     assert.match(shader, /float mirrored = t - floor\(t \* \.5\) \* 2/);
     assert.match(shader, /return mirrored <= 1 \? mirrored : 2 - mirrored/);

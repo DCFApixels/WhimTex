@@ -9,6 +9,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 using WhimTex.Tests;
+using WhimTex.Tests.UnityA;
 using WhimTex.Tests.UnityD;
 using Object = UnityEngine.Object;
 
@@ -35,13 +36,15 @@ public static class CommentAgentTests
 
     static async Task Execute(TestContext t, CancellationToken token)
     {
-        WhimTexWindow window = null; WhimTexDocument document = null; Texture2D pixels = null;
-        try
+        var scope = new UnityAScope();
+        using (AsyncD.OwnCleanup(scope))
         {
-            window = ScriptableObject.CreateInstance<WhimTexWindow>();
-            document = (WhimTexDocument)Read(window, "activeDocument");
+            var window = scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
+            try
+            {
+            var document = scope.OwnObject((WhimTexDocument)Read(window, "activeDocument"));
             document.width = 96; document.height = 64; document.layers.Clear();
-            pixels = new Texture2D(96, 64, TextureFormat.RGBA32, false, true);
+            var pixels = scope.OwnObject(new Texture2D(96, 64, TextureFormat.RGBA32, false, true));
             for (int y = 0; y < 64; y++) for (int x = 0; x < 96; x++) pixels.SetPixel(x, y, y >= 32 ? Color.red : Color.blue);
             pixels.Apply(false);
             var drawing = new DrawingLayerBehaviour(); var layer = new Layer(drawing); document.layers.Add(layer);
@@ -98,7 +101,7 @@ public static class CommentAgentTests
             t.Equal(96, overview.imageWidth, "Overview preserves native small-image width");
             t.True(!overview.comments.Single(c => c.id == outside).inView, "Off-canvas markers remain in metadata");
             t.Near(16, overview.comments[0].imagePoint[1], .001, "Marker Y converts to top-left image coordinates");
-            Texture2D Load(string path) { var value = new Texture2D(2, 2); ImageConversion.LoadImage(value, File.ReadAllBytes(path)); return value; }
+            Texture2D Load(string path) { var value = scope.OwnObject(new Texture2D(2, 2)); ImageConversion.LoadImage(value, File.ReadAllBytes(path)); return value; }
             var clean = Load(overview.imagePath); var annotated = Load(overview.annotatedPath);
             try
             {
@@ -348,14 +351,8 @@ public static class CommentAgentTests
             document.RemoveComment(maskThread);
             Comments(",\"op\":\"mask\",\"maskRef\":" + maskRef, "mask_not_found");
             await AsyncD.Tick(window.rootVisualElement, token);
-        }
-        finally
-        {
-            AsyncD.CleanupOwned(
-                () => { if (document != null) Undo.ClearUndo(document); if (window != null) Undo.ClearUndo(window); },
-                () => { if (window != null) { window.DiscardChanges(); window.Close(); Object.DestroyImmediate(window); } },
-                () => { if (document != null) Object.DestroyImmediate(document); },
-                () => { if (pixels != null) Object.DestroyImmediate(pixels); });
+            }
+            finally { AsyncD.CleanupOwned(() => { if (window != null) Undo.ClearUndo(window); }); }
         }
     }
 }

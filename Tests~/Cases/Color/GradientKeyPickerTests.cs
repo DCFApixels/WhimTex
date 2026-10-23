@@ -75,22 +75,16 @@ public static class GradientKeyPickerTests
     public static string FocusLifecycle() => UnityBRun.Run("GradientKeyPickerSmoke.FocusLifecycle", () => ExecuteFocusLifecycle());
 
     static async System.Threading.Tasks.Task ExecuteInteractions() {
-{
-
         Check(ActivePicker == null, "Close the existing color picker before running this test.");
-        var setupWindow = UnityBRun.Create<WhimTexGradientWindow>();
-        setupWindow.name = WindowName;
-        setupWindow.titleContent = new GUIContent(WindowName);
-        setupWindow.position = new Rect(100, 100, 560, 420);
-        setupWindow.ShowUtility();
-        
-    
-}
- await UnityBRun.Delay(250);
-
-        var window = Resources.FindObjectsOfTypeAll<WhimTexGradientWindow>().Single(w => w.name == WindowName);
+        var window = UnityBRun.Create<WhimTexGradientWindow>();
+        WhimTexColorPicker ownedPicker = null;
         try
         {
+            window.name = WindowName;
+            window.titleContent = new GUIContent(WindowName);
+            window.position = new Rect(100, 100, 560, 420);
+            window.ShowUtility();
+            await UnityBRun.Delay(250);
             var strip = window.rootVisualElement.Q("gradientStrip");
             Check(strip.contentRect.width > 100 && strip.contentRect.height > 44, "Window layout is ready");
             var bottom = new Vector2(10, strip.contentRect.height - 10);
@@ -110,7 +104,7 @@ public static class GradientKeyPickerTests
                 Refresh(window);
                 string before = JsonUtility.ToJson(gradient);
                 Pointer(strip, bottom, EventType.MouseDown, 2);
-                var picker = ActivePicker;
+                var picker = ownedPicker = ActivePicker;
                 Check(picker != null, "Double click must open WhimTex picker");
                 Check((int)Get(window, "selected") == 0, "Clicked key selected before opening");
                 Check(before == JsonUtility.ToJson(gradient), "Opening must not modify gradient");
@@ -128,7 +122,7 @@ public static class GradientKeyPickerTests
                 string unchanged = JsonUtility.ToJson(gradient);
                 Change(Color.magenta);
                 Check(unchanged == JsonUtility.ToJson(gradient), "Stale callback cannot change another key");
-                picker.Close(); window.Focus();
+                picker.Close(); ownedPicker = null; window.Focus();
             }
             Pointer(strip, new Vector2(10, 10), EventType.MouseDown, 2);
             Check(ActivePicker == null, "Alpha marker must not open color picker");
@@ -141,7 +135,7 @@ public static class GradientKeyPickerTests
         }
         finally
         {
-            UnityBRun.CloseOwned(ActivePicker);
+            UnityBRun.CloseOwned(ownedPicker);
             Undo.ClearUndo(window);
             UnityBRun.CloseOwned(window);
         }

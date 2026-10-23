@@ -168,7 +168,7 @@ public static class RefactoringR01R04Tests
                 if (reader.NextName() == "tail")
                 {
                     using var container = new WhimTexDocumentContainer();
-                    Inner = Read(new byte[] { 1, 0, 0, 0, 6, 42, 0, 0, 0 }, container, typeof(int));
+                    Inner = Read(new byte[] { 2, 0, 0, 0, 6, 42, 0, 0, 0 }, container, typeof(int));
                     tail = reader.ReadInt();
                 }
                 else reader.Skip();

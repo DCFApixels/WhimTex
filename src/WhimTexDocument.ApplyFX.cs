@@ -36,7 +36,7 @@ namespace DCFApixels.WhimTex
             const string undoName = "Apply Layer FX";
             try
             {
-                VisitDrawingLayers(new List<Layer> { layer }, drawing => drawing.SyncSurfaceToTexture());
+                VisitDrawingLayers(new List<Layer> { layer }, drawing => drawing.SyncPendingSurfaceToTexture());
                 texture = RasterizeFXPrefix(layer, lastIndex + 1);
                 prepared = DrawingLayerBehaviour.FromRasterizedLayer(layer, texture, false, preserveGroupBlend: true);
                 prepared.transform = layer.transform;

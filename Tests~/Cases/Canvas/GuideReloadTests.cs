@@ -56,7 +56,7 @@ public static class GuideReloadTests
         catch (Exception primary)
         {
             var document = (WhimTexDocument)Field("activeDocument").GetValue(window);
-            try { UnityBReload.Drain(new Action[] { () => UnityBRun.CloseOwned(window), () => UnityBReload.DestroyOwned(document) }); }
+            try { UnityBReload.Drain(new Action[] { () => UnityBReload.DestroyOwned(window), () => UnityBReload.DestroyOwned(document) }); }
             catch (Exception cleanup) { throw new AggregateException("Begin failed and owned cleanup also failed", primary, cleanup); }
             throw;
         }
@@ -132,7 +132,7 @@ public static class GuideReloadTests
         foreach (var window in Resources.FindObjectsOfTypeAll<WhimTexWindow>()) {
             var document = (WhimTexDocument)Field("activeDocument").GetValue(window);
             if (window.name != "WhimTex Guide Reload " + RunId && (document == null || document.name != "Guide Reload Test " + RunId)) continue;
-            steps.Add(() => UnityBRun.CloseOwned(window));
+            steps.Add(() => UnityBReload.DestroyOwned(window));
             if (document != null && document.name == "Guide Reload Test " + RunId) steps.Add(() => UnityBReload.DestroyOwned(document));
         }
         foreach (var document in Resources.FindObjectsOfTypeAll<WhimTexDocument>())

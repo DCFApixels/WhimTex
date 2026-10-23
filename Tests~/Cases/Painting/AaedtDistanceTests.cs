@@ -17,17 +17,17 @@ public static class AaedtDistanceTests
         .GetType("DCFApixels.WhimTex.DistanceFieldUtility", true)
         .GetMethod("ComputeArtisticDistance", BindingFlags.Public | BindingFlags.Static, null,
             new[] { typeof(NativeArray<Color32>), typeof(NativeArray<float>), typeof(int), typeof(int),
-                typeof(byte), typeof(int), typeof(DistanceMetric), typeof(float), typeof(float) }, null);
+                typeof(byte), typeof(int), typeof(DistanceMetric), typeof(float), typeof(float), typeof(SharpDistanceMode) }, null);
 
     public static string Run() => TestContext.Run("AAEDT + 8SED: bounded independent coverage and geometry regressions", t =>
     {
         var run = new CpuRun(t);
         t.Equal(10, (int)DistanceMetric.AAEDT, "AAEDT has its assigned serialized value");
-        t.Equal(10, Enum.GetNames(typeof(DistanceMetric)).Length, "Ten selectable distance modes");
+        t.Equal(12, Enum.GetNames(typeof(DistanceMetric)).Length, "Twelve selectable distance modes");
         var label = typeof(DistanceMetric).GetField(nameof(DistanceMetric.AAEDT))
             .GetCustomAttribute<InspectorNameAttribute>();
         t.True(label != null && label.displayName == "AAEDT + 8SED", "AAEDT inspector label");
-        t.True(ComputeMethod != null, "Nine-argument artistic distance entry exists");
+        t.True(ComputeMethod != null, "Ten-argument artistic distance entry exists");
         CheckAxisEdges(t, run);
         CheckDiagonalCoverage(t, run);
         CheckThresholdNormalization(t, run);
@@ -57,7 +57,7 @@ public static class AaedtDistanceTests
             var writable = output;
             for (int i = 0; i < output.Length; i++) writable[i] = float.NaN;
             ComputeMethod.Invoke(null, new object[] { pixels, output, width, height, threshold, channel,
-                DistanceMetric.AAEDT, miter, merge });
+                DistanceMetric.AAEDT, miter, merge, SharpDistanceMode.Unrestricted });
             var values = output.ToArray();
             int nonfinite = -1, mutated = -1;
             for (int i = 0; i < input.Length; i++)

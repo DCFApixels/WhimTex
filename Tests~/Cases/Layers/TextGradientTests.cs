@@ -131,7 +131,7 @@ public static class TextGradientTests
             var consumer = new Layer(new BlurLayerBehaviour { inputMode = EffectInputMode.Specific, TargetLayerId = layer.Id, radius = 0, strength = 0 });
             doc.layers.Insert(0, consumer); layer.enabled = false;
             Same(t, targetPixels, Pixels(doc), .00001f, "Target input preserves gradient text");
-            doc.layers.Remove(consumer); layer.enabled = true;
+            Call(consumer, "ReleaseTransientResources"); doc.layers.Remove(consumer); layer.enabled = true;
             var export = (Texture2D)Call(doc, "RenderPsdPixels", layer, false);
             try
             {
@@ -221,7 +221,7 @@ public static class TextGradientTests
                 for (int i = 0; i < output.Length; i++) output[i] = Color.Lerp(new Color(.12f, .12f, .12f), rows[row][i], rows[row][i].a);
                 image.SetPixels(0, (rows.Count - row - 1) * 128, 192, 128, output);
             }
-            image.Apply(); Directory.CreateDirectory("Temp/WhimTex"); File.WriteAllBytes("Temp/WhimTex/text-gradient-preview.png", image.EncodeToPNG());
+            image.Apply(); Directory.CreateDirectory("Temp/WhimTex"); File.WriteAllBytes("Temp/WhimTex/text-gradient-preview-" + System.Guid.NewGuid().ToString("N") + ".png", image.EncodeToPNG());
         }
         finally { Object.DestroyImmediate(image); }
     }

@@ -46,7 +46,7 @@ public static class GradientCreationTests
     {
         internal readonly TaskCompletionSource<bool> completion = new TaskCompletionSource<bool>();
         internal WhimTexWindow owner;
-        internal string path = "Temp/WhimTex/gradient-picker-preview.png";
+        internal string path = "Temp/WhimTex/gradient-picker-preview-" + Guid.NewGuid().ToString("N") + ".png";
         internal Action<Texture2D> inspect;
         protected override void ImmediateRepaint()
         {
@@ -75,6 +75,7 @@ public static class GradientCreationTests
         var document = scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         document.hideFlags = HideFlags.HideAndDontSave; document.width = 512; document.height = 256;
         var window = scope.Own(ScriptableObject.CreateInstance<WhimTexWindow>());
+        scope.Own((WhimTexDocument)Read(window, "activeDocument"));
         typeof(WhimTexWindow).GetField("activeDocument", Flags).SetValue(window, document);
         window.ShowUtility(); window.position = new Rect(80, 80, 1400, 800); window.CreateGUI();
         job.OwnCleanup(() => Undo.ClearUndo(document));
@@ -178,7 +179,10 @@ public static class GradientCreationTests
             Call(window, "UpdateCanvasCursor", canvas.contentRect.center, false);
             t.True(root.Q("gradientPicker") == null && !button.HasPointerCapture(PointerId.mousePointerId), "Choosing closes the picker and releases capture");
         }
-        var originalPalette = root.Q<WhimTexGradientValueField>("gradientToolRamp").value.Clone();
+        // The endpoint checks below require an opaque white-to-black ramp, not
+        // the user's palette restored when the owned window was initialized.
+        var originalPalette = GradientUtility.Create(GradientUtility.WhiteToBlack);
+        root.Q<WhimTexGradientValueField>("gradientToolRamp").value = originalPalette.Clone();
         foreach (string kind in new[] { "Linear", "Radial", "Angular", "Square", "Freeform" })
         {
             await Pick(kind);
@@ -200,7 +204,7 @@ public static class GradientCreationTests
                 t.Equal(count, document.layers.Count, "Color preview does not insert a layer before release");
                 Vector2 drag = end - start;
                 Vector2 apexView = (start + end) * .5f + new Vector2(drag.y, -drag.x) * .8660254f;
-                await Capture("Temp/WhimTex/freeform-creation-colors-preview.png", image =>
+                await Capture("Temp/WhimTex/freeform-creation-colors-preview-" + scope.Token + ".png", image =>
                 {
                     var positions = new[] { start, apexView, end };
                     float scale = EditorGUIUtility.pixelsPerPoint;
@@ -413,7 +417,7 @@ public static class GradientCreationTests
         t.Near(20, headerFirst.resolvedStyle.height, .01, "Header icon button matches action button height");
         t.True(headerLast.worldBound.xMax <= type.worldBound.xMax + .01f, "Header field contains the whole icon strip");
         t.True(type.worldBound.xMax <= root.Q<WhimTexGradientValueField>("gradientToolRamp").worldBound.xMin, "Icon strip does not overlap the gradient palette");
-        await Capture("Temp/WhimTex/gradient-type-icons-preview.png");
+        await Capture("Temp/WhimTex/gradient-type-icons-preview-" + scope.Token + ".png");
         var firstButton = layerType.Q<Button>("gradientTypeLinear");
         var lastButton = layerType.Q<Button>("gradientTypeFreeform");
         t.Near(firstButton.worldBound.y, lastButton.worldBound.y, .01, "Type icons share one row");

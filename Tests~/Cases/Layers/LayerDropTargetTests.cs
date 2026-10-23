@@ -190,7 +190,7 @@ public static class LayerDropTargetTests
         RectNear(insideBefore, Row(outer).worldBound, "Into-group highlight preserves header geometry");
         context.True(Row(outer).ClassListContains("whimtex-layer-row--drop-inside"),
             "Into-group target visibly differs from a sibling insertion line");
-        string previewDirectory = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Application.dataPath), "Temp", "WhimTex");
+        string previewDirectory = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Application.dataPath), "Temp", "WhimTex", "layer-drop-" + System.Guid.NewGuid().ToString("N"));
         System.IO.Directory.CreateDirectory(previewDirectory);
         await UnityACapture.Capture(window, System.IO.Path.Combine(previewDirectory, "layer-drop-inside.png"), token);
         foreach (int depth in new[] { 2, 0 })

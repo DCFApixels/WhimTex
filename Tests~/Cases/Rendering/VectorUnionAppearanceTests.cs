@@ -20,7 +20,8 @@ public static class VectorUnionAppearanceTests
     public static string Dashes() => Check(2);
     static string Check(int mode) => TestContext.Run("Union appearance: " + mode, t =>
     {
-        Directory.CreateDirectory(Folder);
+        string folder = Folder + "-" + Guid.NewGuid().ToString("N");
+        Directory.CreateDirectory(folder);
         using var suppression = (IDisposable)Product.GetType("DCFApixels.WhimTex.WhimTexProfiler", true)
             .GetMethod("SuppressInstrumentation", Hidden).Invoke(null, null);
         int cases = 0;
@@ -45,8 +46,8 @@ public static class VectorUnionAppearanceTests
                         t.Near(0, delta, 0, "pixels fixture=" + fixture + " compound=" + compound + " variant=" + variant);
                         if (!compound && fixture == 5 && variant == 0)
                         {
-                            File.WriteAllBytes(Folder + "/" + mode + "-reference.png", a.EncodeToPNG());
-                            File.WriteAllBytes(Folder + "/" + mode + "-current.png", b.EncodeToPNG());
+                            File.WriteAllBytes(folder + "/" + mode + "-reference.png", EncodePng(a));
+                            File.WriteAllBytes(folder + "/" + mode + "-current.png", EncodePng(b));
                         }
                         cases++;
                     }
@@ -55,7 +56,7 @@ public static class VectorUnionAppearanceTests
             }
         }
         t.Equal(mode == 0 ? 48 : 216, cases, "appearance matrix count");
-        Counterexample(t, mode);
+        Counterexample(t, mode, folder);
         FixedPointIsUsed(t);
     });
 
@@ -69,7 +70,7 @@ public static class VectorUnionAppearanceTests
         t.Equal(1L, calls["vector.clip.execute"], "proven fixed point skips the second union");
     }
 
-    static void Counterexample(TestContext t, int mode)
+    static void Counterexample(TestContext t, int mode, string folder)
     {
         var split = Input(5);
         var joined = VectorClipperWrapperTests.Reference(new[] { split }, new[] { VectorFillRule.NonZero });
@@ -81,7 +82,7 @@ public static class VectorUnionAppearanceTests
             double delta = Difference(a, b);
             if (mode == 0) t.Near(0, delta, 0, "touching partition preserves fill");
             else t.True(delta > 0, "blind union removal changes centered " + (mode == 1 ? "stroke" : "dashes"));
-            File.WriteAllBytes(Folder + "/" + mode + "-unsafe-skip.png", a.EncodeToPNG());
+            File.WriteAllBytes(folder + "/" + mode + "-unsafe-skip.png", EncodePng(a));
         }
         finally { Object.DestroyImmediate(a); if (b != null) Object.DestroyImmediate(b); }
     }
@@ -135,6 +136,15 @@ public static class VectorUnionAppearanceTests
         var image = new Texture2D(64,64,TextureFormat.RGBAFloat,false,true) { hideFlags = HideFlags.HideAndDontSave };
         try { Render.Invoke(null, new object[] { model, image, ProjectiveMatrix.Identity, variant % 2 == 1 }); image.Apply(false,false); return image; }
         catch { Object.DestroyImmediate(image); throw; }
+    }
+
+
+    static byte[] EncodePng(Texture2D texture)
+    {
+        var encoder = Product.GetType("DCFApixels.WhimTex.WhimTexRasterEncoder", true);
+        var format = Enum.Parse(Product.GetType("DCFApixels.WhimTex.RasterImageFormat", true), "Png");
+        return (byte[])encoder.GetMethod("Encode", Hidden)
+            .Invoke(null, new object[] { texture, format, 95, Texture2D.EXRFlags.CompressZIP });
     }
 
     static double Difference(Texture2D a, Texture2D b)

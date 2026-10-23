@@ -135,7 +135,7 @@ test('Node exit, skip, timeout and spawn error are not all pass', () => {
 test('CLI milliseconds and seconds are not confused; project path is explicit', () => {
     const args = commandArgs(base, base.entry, ["a'b", 'a b'], 50000, 'D:/Fixture', root);
     assert.equal(args[args.indexOf('--timeout') + 1], '50');
-    assert.equal(args[args.indexOf('--timeout_ms') + 1], '45000');
+    assert.equal(args[args.indexOf('--timeout_ms') + 1], '49000');
     assert.equal(args[args.indexOf('--project-path') + 1], 'D:/Fixture');
     assert.equal(args[args.indexOf('--args') + 1], JSON.stringify(["a'b", 'a b']));
     assert.ok(!commandArgs({ ...base, runner: 'eval_file' }, null, [], 50000, 'D:/Fixture').includes('--timeout_ms'));

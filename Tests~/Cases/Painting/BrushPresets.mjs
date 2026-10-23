@@ -18,10 +18,14 @@ context.case('BrushPresets original assertions and branches', async () => {
       assert.ok(drawer.includes(`AddBrushPercent(scroll, "${label}", () => paintSettings.dynamics.${member}, v => paintSettings.dynamics.${member} = v`));
     for (const member of ['brushSize', 'brushHardness', 'brushSpacing'])
       assert.ok(drawer.includes(`paintSettings.${member}`), `Preset setting accessible in drawer: ${member}`);
-    const dynamics = read('src/BrushDynamics.cs').split('[NonSerialized]')[0];
+    const dynamics = read('src/BrushDynamics.cs').split('internal sealed class BrushDynamics')[1].split('[NonSerialized]')[0];
     for (const [, member] of dynamics.matchAll(/public (?:float|int|bool|Gradient|Texture2D|Brush\w+|BlendMode) (\w+)/g)) {
       if (member === 'seed') continue; // Per-stroke runtime value, refreshed automatically when painting starts.
-      assert.ok(drawer.includes(`paintSettings.dynamics.${member}`), `Preset dynamics accessible in drawer: ${member}`);
+      // Channel protection is edited in the shared paint header, not the brush drawer.
+      const controls = member === 'writeChannels'
+        && read('src/WhimTexWindow.UI.cs').includes('AddPaintInputSettings(brushRow,')
+        ? read('src/WhimTexWindow.PaintInput.cs') : drawer;
+      assert.ok(controls.includes(`paintSettings.dynamics.${member}`), `Preset dynamics accessible in painting controls: ${member}`);
     }
     function body(source,name) {
       const declaration=source.search(new RegExp('(?:internal|private) (?:static )?(?:int|void) '+name+'\\('));
@@ -42,11 +46,12 @@ context.case('BrushPresets original assertions and branches', async () => {
     
     const apply=new Function('settings','preset','tip','path',
       'with(settings){'+body(settings,'ApplyPreset').replaceAll('string.Empty','""')+'}');
-    const current={brushSize:12,brushHardness:.9,brushSpacing:.1,dynamics:{},ownedPresetTip:{},
+    const current={BrushTipSource:{Standard:0,HLSL:2},brushSize:12,brushHardness:.9,brushSpacing:.1,dynamics:{},ownedPresetTip:{},
+      hlslTextureReferences:[],clipboardTipId:'',
       brushTipGuid:'old',brushTipLocalId:22,brushTipPresetPath:'old-file',brushColor:'red',secondaryBrushColor:'blue',
       tool:'Eraser',pencilSize:7,fillTolerance:42,ReleasePresetTip(){this.ownedPresetTip=null;}};
     const sdfStops=[{time:.2,color:[1,0,0,0]},{time:.7,color:[0,0,1,1]}];
-    const preset={size:46,hardness:.3,spacing:.6,dynamics:{angleOffset:90,opacity:.4,flow:.2,flipX:.5,flipY:1,tipSdf:true,proceduralMode:1,blendApplication:1,tipGradient:sdfStops}};
+    const preset={size:46,hardness:.3,spacing:.6,parameterTextures:[],dynamics:{source:0,DynamicTip:false,angleOffset:90,opacity:.4,flow:.2,flipX:.5,flipY:1,tipSdf:true,proceduralMode:1,blendApplication:1,tipGradient:sdfStops}};
     const tip={}; apply(current,preset,tip,'/library/Brushes/test.sebrush');
     assert.equal(current.brushSize,46); assert.equal(current.brushHardness,.3); assert.equal(current.brushSpacing,.6);
     assert.equal(current.dynamics,preset.dynamics); assert.equal(current.dynamics.tip,tip);
@@ -57,7 +62,7 @@ context.case('BrushPresets original assertions and branches', async () => {
     assert.equal(current.ownedPresetTip,tip); assert.equal(current.brushTipGuid,''); assert.equal(current.brushTipLocalId,0);
     for (const [key,value] of Object.entries({brushColor:'red',secondaryBrushColor:'blue',tool:'Eraser',pencilSize:7,fillTolerance:42}))
       assert.equal(current[key],value);
-    apply(current,{...preset,dynamics:{}},null,'/library/Brushes/round.sebrush');
+    apply(current,{...preset,dynamics:{source:0,DynamicTip:false}},null,'/library/Brushes/round.sebrush');
     assert.equal(current.brushTipPresetPath,'');
     
     // Reference binary framing, not execution of the C# codec or Unity texture upload.

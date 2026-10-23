@@ -235,7 +235,7 @@ public static class MirrorEnhancementsTests
         finally
         {
             if(window!=null)global::WhimTex.Tests.UnityC.FixtureContext.Scope.CloseWindow(window);if(focus!=null)focus.Focus();
-            ((IDisposable)cache).Dispose();Undo.RevertAllDownToGroup(undo);WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(document);WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(texture);WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(renderedInput);
+            ((IDisposable)cache).Dispose();Undo.ClearUndo(document);WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(document);WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(texture);WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(renderedInput);
         }
     }
     static string ExecutePreview(byte[] input)

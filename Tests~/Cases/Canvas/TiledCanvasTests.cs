@@ -84,8 +84,15 @@ try
             {
                 float dx = Mathf.Min(x+0.5f,64-x-0.5f), dy = Mathf.Min(y+0.5f,64-y-0.5f);
                 float radius = new Vector2(dx,dy).magnitude * 2f / size;
-                float t = Mathf.Clamp01((radius - Mathf.Min(hardness,0.9999f)) / (1f - Mathf.Min(hardness,0.9999f)));
-                float alpha = 0.5f * (1f - t*t*(3f-2f*t));
+                // PaintBrush.shader uses a one-pixel AA edge (DECISIONS: round brush AA).
+                // This untransformed unit-pixel grid has normalized tip derivatives 2 / size.
+                float pixelWidth = 2f / size;
+                float halfPixel = Mathf.Max(pixelWidth * 0.5f, 0.00001f);
+                float inner = Mathf.Min(hardness, 1f - halfPixel);
+                float outer = Mathf.Max(1f, hardness + halfPixel);
+                float t = Mathf.Clamp01((radius - inner) / (outer - inner));
+                float alpha = 0.5f * (1f - t*t*(3f-2f*t)) *
+                    Mathf.Clamp01(4f / Mathf.Max(pixelWidth * pixelWidth, 0.00001f));
                 if (erase) alpha = 1f-alpha;
                 context.True(!(Mathf.Abs(actual[y*64+x].a/255f-alpha) > 0.012f), $"Wrapped corner coverage differs at {x},{y}, size={size}, hardness={hardness}, erase={erase}.");
             }

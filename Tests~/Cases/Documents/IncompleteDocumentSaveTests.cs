@@ -36,7 +36,7 @@ public static class IncompleteDocumentSaveTests
         using (var stream = new MemoryStream())
         using (var output = new BinaryWriter(stream))
         {
-            context.True(input.ReadInt32() == 1 && input.ReadByte() == 29, "Current tagged root");
+            context.True(input.ReadInt32() == 2 && input.ReadByte() == 29, "Current tagged root");
             input.ReadString();
             int countPosition = checked((int)input.BaseStream.Position);
             int count = input.ReadInt32();

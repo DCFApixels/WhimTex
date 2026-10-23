@@ -27,6 +27,15 @@ public static class ToolIconCompatibilityTests
         const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
         Type iconType = typeof(WhimTexWindow).GetNestedType("CanvasToolIcon", flags);
         Type toolType = typeof(WhimTexWindow).GetNestedType("CanvasTool", flags);
+        VisualElement CreateIcon(string tool)
+        {
+            var constructor = iconType.GetConstructors(flags)[0];
+            var parameters = constructor.GetParameters();
+            var arguments = new object[parameters.Length];
+            arguments[0] = Enum.Parse(toolType, tool);
+            for (int i = 1; i < parameters.Length; i++) arguments[i] = parameters[i].DefaultValue;
+            return (VisualElement)constructor.Invoke(arguments);
+        }
         var points = (Vector2[])iconType.GetField("BlurBrushOutline", flags).GetValue(null);
         void Check(bool valid, string message) { context.True(valid, message); }
         Check(points.Length == 64, "Drop outline resolution");
@@ -63,8 +72,7 @@ public static class ToolIconCompatibilityTests
             foreach (string tool in new[] { "BlurBrush", "Text", "HealingBrush" })
             foreach (int size in new[] { 22, 24, 48, 96 })
             {
-                var icon = (VisualElement)Activator.CreateInstance(iconType, flags, null,
-                    new object[] { Enum.Parse(toolType, tool), false }, null);
+                var icon = CreateIcon(tool);
                 icon.style.width = size; icon.style.height = size; icon.style.color = Color.white;
                 icon.style.flexShrink = 0; icon.style.marginRight = 6;
                 sizes.Add(icon);
@@ -89,8 +97,7 @@ public static class ToolIconCompatibilityTests
                     var button = new Button(); button.AddToClassList("whimtex-tool-button");
                     if (mode == "Selected") button.AddToClassList("whimtex-tool-button--selected");
                     button.style.translate = new Translate(phase, phase);
-                    var icon = (VisualElement)Activator.CreateInstance(iconType, flags, null,
-                        new object[] { Enum.Parse(toolType, "HealingBrush"), false }, null);
+                    var icon = CreateIcon("HealingBrush");
                     button.Add(icon); cell.Add(button); row.Add(cell);
                     var image = icon.Q<Image>();
                     Check(image != null && image.vectorImage != null, "Healing Brush uses the imported SVG");
@@ -121,7 +128,7 @@ public static class ToolIconCompatibilityTests
                     "SVG detail centers remain on physical pixel centers at every layout phase: " + i + " center=" + pixelCenter);
             }
 #endif
-            string preview = MigrationD.ProjectPath("Temp/WhimTex/tool-icons-preview.png");
+            string preview = MigrationD.ProjectPath("Temp/WhimTex/tool-icons/" + Guid.NewGuid().ToString("N") + "/preview.png");
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(preview));
             await UnityACapture.Capture(window, preview, token);
             return;
@@ -130,7 +137,7 @@ public static class ToolIconCompatibilityTests
         {
             AsyncD.CleanupOwned(
                 () => Application.logMessageReceived -= Log,
-                () => window.Close(),
+                () => { if (window != null && window.rootVisualElement.panel != null) window.Close(); },
                 () => { if (window != null) UnityEngine.Object.DestroyImmediate(window); },
                 () => { if (previousFocus != null) previousFocus.Focus(); });
         }

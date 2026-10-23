@@ -105,6 +105,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Existing regression scenarios and their catalog now match current rendering, tool and FX contracts. Test windows isolate tool preferences and clean up owned resources; Gradient creation checks use an explicit palette. The runner supports compact issue-only reports at an explicit path outside the project.
+
 - Unified gradient types across layers, figure fills/strokes, creation tools and agent contracts: Linear replaces separate horizontal/vertical types; Square remains and Diamond is removed. Retired gradient names are rejected without migration; portable JSON always writes an explicit gradient type. The canvas cursor distinguishes all five creation subtypes.
 
 - HLSL FX reuse parameter matching and shader property IDs, fingerprint mutable render data without routine JSON serialization, and reuse bounded texture-input binding storage. Direct edits, applied-value fallbacks, Undo/Redo, texture dimensions and FX rendering order are preserved.
@@ -156,6 +158,15 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Duplicating Drawing layers and applying FX flush pending paint without replacing untouched source pixels with a lower-precision preview readback.
+- Healing Brush Redo restores the first stroke on an initially empty Drawing layer instead of recreating blank pixel storage.
+- Full-image FX sampling uses the actual bound input texture size; viewport inputs keep their explicit coordinate and size metadata.
+- Document JSON defaults include FX layout containers and enable conditions.
+- Ordinary and cyclic FX Range preview tracks align with scalar sliders without widening numeric inputs.
+- Escape releases channel-drag pointer capture before window-level shortcuts consume the event.
+- Procedural sample recipes retain their original warp seeds after independent noise and warp seed controls were introduced.
+- Sharp AA and MTSDF favor longer agreeing corner supports, distinguish detached AA islands from holes during fitting, and preserve tiny contours instead of rounding away their original boundary crossings.
 
 - Large profiler captures no longer rebuild all per-event JSON aggregates in one automatic window refresh. Typed aggregation and direct editor responses reduce allocations; automatic reads run in short slices and back off for expensive captures. Filters, Clear, capture replacement and closing the window cancel unfinished reads without losing recorded events.
 

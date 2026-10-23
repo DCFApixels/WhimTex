@@ -149,6 +149,8 @@ namespace DCFApixels.WhimTex
             if (defaultsV2 == null)
             {
                 defaultsV2 = JObject.Parse(WhimTexJsonDefaultsV2.Data);
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV2.LayoutData).Properties())
+                    defaultsV2[entry.Name] = entry.Value;
                 foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV2.VectorData).Properties())
                     defaultsV2[entry.Name] = entry.Value;
                 defaultsV2["VectorShape"]["gradient"] = defaultsV2["WhimTexGradient"].DeepClone();

@@ -40,7 +40,7 @@ namespace DCFApixels.WhimTex
                             for(int i=0;i<a.Length;i++)for(int c=0;c<4;c++)
                             {
                                 float error=Math.Abs(a[i][c]-b[i][c]);maxError=Math.Max(maxError,error);
-                                global::WhimTex.Tests.UnityC.FixtureContext.Context.True(!(error>1e-6f), $"Mismatch size={size} fixture={fixture} quality={q} edge={edge} matching={matching} seed={seed} at {i}/{c}: {a[i][c]} != {b[i][c]}");
+                                global::WhimTex.Tests.UnityC.FixtureContext.Context.True(error<=1e-6f, $"Mismatch size={size} fixture={fixture} quality={q} edge={edge} matching={matching} seed={seed} at {i}/{c}: {a[i][c]} != {b[i][c]}");
                             }
                             cases++;
                         }
@@ -64,7 +64,7 @@ namespace DCFApixels.WhimTex
             {
                 var mask=new Vector4(0,1,1,0);var a=Render(t,0,.2f,16,q,0,matching,mask,false);var b=Render(t,0,.2f,16,q,0,matching,mask,true);
                 float error=0;for(int i=0;i<a.Length;i++)for(int c=0;c<4;c++)error=Math.Max(error,Math.Abs(a[i][c]-b[i][c]));
-                global::WhimTex.Tests.UnityC.FixtureContext.Context.True(!(error>1e-6), "Live noise differs: "+error);
+                global::WhimTex.Tests.UnityC.FixtureContext.Context.True(error<=1e-6, "Live noise differs: "+error);
                 var oldTimes=new double[3];var newTimes=new double[3];
                 for(int run=0;run<3;run++)
                 {

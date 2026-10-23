@@ -94,7 +94,7 @@ public static class SeamlessReleaseTests
                     WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy((WhimTexDocument)Get(source,"activeDocument"));Set(source,"activeDocument",loaded);loaded=null;
                     source.ShowUtility();doc=(WhimTexDocument)Get(source,"activeDocument");
                     int editGroup;Undo.IncrementCurrentGroup();editGroup=Undo.GetCurrentGroup();
-                    Call(source,"ExecuteModelChange","Release smoke seed",new Action(()=>((MakeSeamlessLayerBehaviour)doc.layers[0].Behaviour).quiltingSeed=71));
+                    Call(source,"ExecuteModelChange","Release smoke seed",new Action(()=>((MakeSeamlessLayerBehaviour)doc.layers[0].Behaviour).quiltingSeed=71),false);
                     Undo.FlushUndoRecordObjects();Undo.PerformUndo();Check(((MakeSeamlessLayerBehaviour)doc.layers[0].Behaviour).quiltingSeed==-184,"Undo");
                     Undo.PerformRedo();Check(((MakeSeamlessLayerBehaviour)doc.layers[0].Behaviour).quiltingSeed==71,"Redo");
                     Undo.RevertAllDownToGroup(editGroup);

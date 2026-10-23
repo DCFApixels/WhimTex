@@ -9,6 +9,16 @@ using LineCap = DCFApixels.WhimTex.ShapeLayerBehaviour.LineCap;
 
 public static class ShapeDesignTests
 {
+    // Use the product PNG path: composed/readback textures contain linear float pixels.
+    static byte[] EncodePng(UnityEngine.Texture2D texture)
+    {
+        var assembly = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly;
+        var encoder = assembly.GetType("DCFApixels.WhimTex.WhimTexRasterEncoder", true);
+        var format = System.Enum.Parse(assembly.GetType("DCFApixels.WhimTex.RasterImageFormat", true), "Png");
+        return (byte[])encoder.GetMethod("Encode", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+            .Invoke(null, new object[] { texture, format, 95, UnityEngine.Texture2D.EXRFlags.CompressZIP });
+    }
+
     public static string Run() => TestContext.Run("Shape contour, constraints, pixel edges and current JSON", RunChecks);
     private static void RunChecks(TestContext test)
     {
@@ -198,7 +208,7 @@ public static class ShapeDesignTests
                     for (int i = 0; i < a.Length; i++) test.Equal(a[i].a, b[i].a, "Clipping preserves Arc coverage"); }); }
                 finally { doc.layers.Remove(clipping); }
                 using var decoded = new OwnedImage(new Texture2D(2,2,TextureFormat.RGBA32,false,true));
-                test.True(decoded.Value.LoadImage(baseline.Value.EncodeToPNG()), "Arc composite exports to PNG");
+                test.True(decoded.Value.LoadImage(EncodePng(baseline.Value)), "Arc composite exports to PNG");
                 var original = baseline.Value.GetPixels(); var exported = decoded.Value.GetPixels();
                 for (int i = 0; i < original.Length; i++) test.Equal(original[i], exported[i], "PNG retains Arc fill, outline and alpha");
             }

@@ -362,15 +362,42 @@ public static class ShaderFXCodeReferenceTests
     }
     static void Release(object[] state)
     {
-        (state[4] as IVisualElementScheduledItem)?.Pause(); state[4] = null;
-        if (state[0] is EditorWindow window && window != null)
-        { window.rootVisualElement.Unbind(); window.Close(); if (window != null) UnityEngine.Object.DestroyImmediate(window); }
-        state[0] = null;
-        (state[5] as SerializedObject)?.Dispose(); state[5] = null;
-        if (state[1] is ShaderFX effect && effect != null)
-        { Undo.ClearUndo(effect); UnityEngine.Object.DestroyImmediate(effect); }
-        state[1] = null;
-        if (state[2] is EditorWindow previousFocus && previousFocus != null) previousFocus.Focus();
-        state[2] = null;
+        var errors = new List<Exception>();
+        void ReleaseOwned(Action release) { try { release(); } catch (Exception error) { errors.Add(error); } }
+        ReleaseOwned(() => { (state[4] as IVisualElementScheduledItem)?.Pause(); state[4] = null; });
+        ReleaseOwned(() =>
+        {
+            if (state[0] is EditorWindow window && window != null)
+            {
+                try
+                {
+                    window.rootVisualElement.Unbind();
+                    if (window.rootVisualElement.panel != null) window.Close();
+                }
+                finally { if (window != null) UnityEngine.Object.DestroyImmediate(window); }
+            }
+            state[0] = null;
+        });
+        ReleaseOwned(() => { (state[5] as SerializedObject)?.Dispose(); state[5] = null; });
+        ReleaseOwned(() =>
+        {
+            if (state[1] is ShaderFX effect && effect != null)
+            {
+                try { Undo.ClearUndo(effect); }
+                finally { UnityEngine.Object.DestroyImmediate(effect); }
+            }
+            state[1] = null;
+        });
+        ReleaseOwned(() =>
+        {
+            if (state[2] is EditorWindow previousFocus && previousFocus != null) previousFocus.Focus();
+            state[2] = null;
+        });
+        if (errors.Count != 0)
+        {
+            var error = new AggregateException("Owned code reference cleanup requires recovery", errors);
+            state[3] = TestContext.Result("failed", 0, "Code reference cleanup requires recovery; prior result: " + state[3], error.ToString()).ToJson();
+            throw error;
+        }
     }
 }

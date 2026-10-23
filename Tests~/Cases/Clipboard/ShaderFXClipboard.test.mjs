@@ -30,7 +30,7 @@ try {
     assert.match(view, /Undo\.CollapseUndoOperations\(undoGroup\)/);
     assert.match(view, /Undo\.FlushUndoRecordObjects\(\)/);
 
-    assert.match(clipboard, /effect\.CloneForClipboard\(\)/);
+    assert.match(clipboard, /value\.CloneForClipboard\(\)/);
     assert.match(clipboard, /source\.CloneForDocument\(destination\)/);
     assert.match(clipboard, /copy\.RemapTextureLayers\(new Dictionary<string, string>\(\), clearExternal: true\)/);
     assert.match(clipboard, /GUIUtility\.systemCopyBuffer != marker/);
@@ -66,7 +66,7 @@ try {
     assert.match(view, /panel\?\.Pick\(panelPosition\)/);
     assert.match(view, /ClassListContains\("whimtex-layer-row"\)/);
     assert.match(view, /!WhimTexApi\.IsLayerContentLocked\(owner, layer\)[\s\S]*!WhimTexApi\.IsLayerContentLocked\(owner, destination\)/);
-    assert.match(view, /layer\.fx\.RemoveAt\(sourceIndex\);\s*destination\.fx \?\?= new List<UnityEngine\.Object>\(\);\s*destination\.fx\.Add\(fxEntry\);/);
+    assert.match(view, /layer\.fx\.RemoveAt\(sourceIndex\);\s*destination\.fx \?\?= new List<ShaderFX>\(\);\s*destination\.fx\.Add\(fxEntry\);/);
     assert.match(view, /moveToLayer\(sourceIndex, destinationLayerAtRelease\)/);
     assert.match(styles, /\.whimtex-layer-row--drop-fx\s*>\s*\.whimtex-layer-drop-marker/);
   });

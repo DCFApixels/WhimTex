@@ -1,12 +1,12 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using DCFApixels.WhimTex;
 using UnityEditor;
 using UnityEngine;
 using WhimTex.Tests;
+using WhimTex.Tests.UnityA;
 using Object = UnityEngine.Object;
 
 public static class DocumentWindowNamingTests
@@ -14,20 +14,14 @@ public static class DocumentWindowNamingTests
     private const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
     private const BindingFlags All = Hidden | BindingFlags.Public | BindingFlags.Static;
 
-    public static string Run() => TestContext.Run("Document/window names, script bindings, storage and rendering agree", test =>
+    public static string Run()
     {
-        var documents = new List<WhimTexDocument>();
-        WhimTexWindow window = null;
-        RenderTexture target = RenderTexture.active;
-        bool srgb = GL.sRGBWrite;
-        Object[] dragObjects = DragAndDrop.objectReferences;
-        var dragData = new Dictionary<string, object>();
-        foreach (string field in new[] { "DraggedLayerIdKey", "DraggedLayersKey", "DraggedDocumentIdKey", "DraggedWindowKey" })
-        {
-            string key = (string)typeof(WhimTexWindow).GetField(field, All).GetValue(null);
-            dragData.Add(key, DragAndDrop.GetGenericData(key));
-        }
+        bool cleanupUncertain = false;
+        string result = TestContext.Run("Document/window names, script bindings, storage and rendering agree", test =>
+    {
         try
+        {
+        UnityAScope.RunOwned(scope =>
         {
             Assembly assembly = typeof(WhimTexDocument).Assembly;
             string previous = "DCFApixels.WhimTex.Texture" + "Compositor";
@@ -43,8 +37,7 @@ public static class DocumentWindowNamingTests
             foreach (string shader in new[] { "Blend", "Hdr", "Transform", "Shape", "Noise", "GaussianBlur", "SmudgeBrush", "SmudgeTransport", "EffectCache" })
                 test.True(Shader.Find("Hidden/WhimTex/" + shader) != null, "Product shader lookup resolves " + shader);
 
-            WhimTexDocument document = ScriptableObject.CreateInstance<WhimTexDocument>();
-            documents.Add(document);
+            WhimTexDocument document = scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
             document.hideFlags = HideFlags.HideAndDontSave;
             document.width = 16; document.height = 8;
             document.layers.Add(new ColorFillLayerBehaviour { color = Color.red });
@@ -65,29 +58,24 @@ public static class DocumentWindowNamingTests
             test.True(Encoding.UTF8.GetString(bytes).Contains("WhimTexDocument"), "TIFF model block emits the current type name");
             object read = serializer.GetMethod("Deserialize", All).Invoke(null, new object[] { bytes, container, typeof(WhimTexDocument), null, false });
             var decoded = (WhimTexDocument)read.GetType().GetProperty("Model", All).GetValue(read);
-            documents.Add(decoded);
+            scope.OwnObject(decoded);
             foreach (string diagnostic in new[] { "SkippedFields", "MissingTypes", "UnresolvedReferences" })
                 test.Equal(0, ((ICollection)read.GetType().GetProperty(diagnostic, All).GetValue(read)).Count, "No binary round-trip " + diagnostic);
             CheckDocument(test, decoded);
 
-            window = ScriptableObject.CreateInstance<WhimTexWindow>();
-            window.name = Guid.NewGuid().ToString("N") + "-owned-naming-window";
+            var window = scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
             typeof(WhimTexWindow).GetMethod("SetDocument", Hidden).Invoke(window, new object[] { decoded });
             test.True(ReferenceEquals(decoded, typeof(WhimTexWindow).GetField("activeDocument", Hidden).GetValue(window)), "Window binds the renamed document field");
             typeof(WhimTexWindow).GetMethod("CreateGUI", All).Invoke(window, null);
             test.True(window.rootVisualElement.childCount > 0, "Renamed window builds its existing interface");
             test.True(!window.hasUnsavedChanges, "Binding and building the interface do not modify the test document");
+        });
         }
-        finally
-        {
-            if (window != null) { window.DiscardChanges(); Object.DestroyImmediate(window); }
-            foreach (WhimTexDocument document in documents) if (document != null) Object.DestroyImmediate(document);
-            foreach (var item in dragData) DragAndDrop.SetGenericData(item.Key, item.Value);
-            DragAndDrop.objectReferences = dragObjects;
-            RenderTexture.active = target;
-            GL.sRGBWrite = srgb;
-        }
+        catch (Exception error) when (error.Data.Contains("WhimTexCleanupFailure"))
+        { cleanupUncertain = true; throw; }
     });
+        return cleanupUncertain ? result.Substring(0, result.Length - 1) + ",\"recoveryRequired\":true}" : result;
+    }
 
     private static void CheckDocument(TestContext test, WhimTexDocument document)
     {

@@ -5,6 +5,16 @@ using UnityEngine;
 
 public static class NoiseIntegrationTests
 {
+    // Use the product PNG path: composed/readback textures contain linear float pixels.
+    static byte[] EncodePng(UnityEngine.Texture2D texture)
+    {
+        var assembly = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly;
+        var encoder = assembly.GetType("DCFApixels.WhimTex.WhimTexRasterEncoder", true);
+        var format = System.Enum.Parse(assembly.GetType("DCFApixels.WhimTex.RasterImageFormat", true), "Png");
+        return (byte[])encoder.GetMethod("Encode", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+            .Invoke(null, new object[] { texture, format, 95, UnityEngine.Texture2D.EXRFlags.CompressZIP });
+    }
+
     static string ExecuteRun(bool oneD = false)
     {
         int checks=0;
@@ -63,7 +73,7 @@ public static class NoiseIntegrationTests
             var export=doc.ComposeCanvas();var decoded=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(2,2));
             try
             {
-                Check(decoded.LoadImage(export.EncodeToPNG()),"PNG export decodes");
+                Check(decoded.LoadImage(EncodePng(export)),"PNG export decodes");
                 Check(decoded.width==doc.width && decoded.height==doc.height,"PNG export dimensions");
             }
             finally {WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(export);WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(decoded);}

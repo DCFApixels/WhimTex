@@ -150,7 +150,7 @@ public static class StrokeAlignmentTests
                 }
                 finally { if (a != null) Object.DestroyImmediate(a); if (b != null) Object.DestroyImmediate(b); Object.DestroyImmediate(doc); }
             }
-            output.Apply(); Directory.CreateDirectory("Temp/WhimTex"); File.WriteAllBytes("Temp/WhimTex/stroke-alignment.png",output.EncodeToPNG());
+            output.Apply(); Directory.CreateDirectory("Temp/WhimTex"); File.WriteAllBytes("Temp/WhimTex/stroke-alignment-" + System.Guid.NewGuid().ToString("N") + ".png",output.EncodeToPNG());
         }
         finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; Object.DestroyImmediate(output); }
     }

@@ -4,15 +4,34 @@ import { readFileSync } from 'node:fs';
 import { snapshot } from '../../Framework/Node/UssCascadeSnapshot.mjs';
 const context = new TestContext("UiRefactor source/reference tests");
 const assert = context.assert;
+// The snapshot helper resolves only global palette variables. Preserve local
+// custom-property declarations/references as a scoped cascade, not a global tint.
+// Selector specificity, declaration order and each theme/state value still hash.
+function scopedSnapshot(source) {
+    const rules = [...source.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+    const global = new Set(), local = new Set();
+    for (const [, selectors, body] of rules) {
+        const names = selectors.trim() === '.whimtex-theme' ? global : local;
+        for (const [, name] of body.matchAll(/(?:^|;)\s*(--whimtex-[\w-]+)\s*:/g)) names.add(name);
+    }
+    // Do not silently treat a genuinely undefined token as an inherited one.
+    // An alias keeps the helper from resolving local variables at theme scope;
+    // the original selector-qualified declarations remain in its property chains.
+    const scoped = name => local.has(name) && !global.has(name);
+    const canonical = source
+        .replace(/var\((--whimtex-[\w-]+)\)/g, (value, name) =>
+            scoped(name) ? `var(--scoped-${name.slice(2)})` : value)
+        .replace(/(--whimtex-[\w-]+)(\s*:)/g, (value, name, colon) =>
+            scoped(name) ? `--scoped-${name.slice(2)}${colon}` : value);
+    return snapshot(canonical);
+}
 context.case("UiRefactor original assertion inputs and source contracts", async () => {
   const read = p => readFileSync(new URL('../../../' + p, import.meta.url), 'utf8');
-  // New controls are not a restyle of the existing cascade.
-  // Canonicalize only the approved terminology migration. Values, specificity and
-  // conflicting declaration order still compare against a frozen baseline.
-  // Baseline: committed USS at e8070f0, with only unused legacy Output rules removed
-  // (shared Layer Preview selectors and Brush preset styles are retained).
-  // Original (new inspector, Healing, scrollable tools,
-  // seamless controls and FX groups reviewed separately from the glossary rename).
+  // Preserve the existing terminology normalization and exclusions. The original
+  // fixture exactly matches 1269df5, before shared headers, navigation and comments.
+  // Its successor records the reviewed 1269df5..d11522c changes and the explicit
+  // cyclic-rail correction; the old fixture remains unchanged. Values, selectors,
+  // scoped tokens and conflicting declaration order still compare exactly.
   const terminology = [
       ['.whimtex-canvas-view-', '.whimtex-preview-'],
       ['.whimtex-canvas-shadow', '.whimtex-preview-canvas-shadow'],
@@ -28,10 +47,10 @@ context.case("UiRefactor original assertion inputs and source contracts", async 
       .replace(/\.whimtex-view-field(?:\s*>\s*\.unity-base-field__label)?\s*\{[^}]*\}/g, '')
       .replace(/\.whimtex-guides?-[^{]+\{[^}]*\}/g, '')
       .replace(/\.whimtex-shape-(?:kind|color|picker[\w-]*|corners|corner[\w-]*)(?:\s*>\s*\.unity-base-field__label)?\s*\{[^}]*\}/g, '');
-  const baseline = JSON.parse(read('Tests~/Fixtures/UssCascadeBaseline.json'));
-  assert.deepEqual(snapshot(styles), baseline, 'Exact USS values, selectors/specificity and conflicting property order must remain unchanged');
-  assert.notDeepEqual(snapshot(styles.replace('--whimtex-surface: #383838', '--whimtex-surface: #393939')), baseline);
-  assert.notDeepEqual(snapshot(styles.replace('height: 26px', 'height: 27px')), baseline);
+  const baseline = JSON.parse(read('Tests~/Fixtures/UssCascadeBaseline.current.json')).snapshot;
+  assert.deepEqual(scopedSnapshot(styles), baseline, 'Exact USS values, selectors/specificity and conflicting property order must remain unchanged');
+  assert.notDeepEqual(scopedSnapshot(styles.replace('--whimtex-surface: #383838', '--whimtex-surface: #393939')), baseline);
+  assert.notDeepEqual(scopedSnapshot(styles.replace('height: 26px', 'height: 27px')), baseline);
   const shared = read('src/WhimTexUI.cs');
   assert.match(shared, /root.AddToClassList\("whimtex-theme"\)/);
   const target = read('src/EffectTargetSettingsView.cs');

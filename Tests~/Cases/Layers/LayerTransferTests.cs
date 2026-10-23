@@ -37,7 +37,6 @@ public static class LayerTransferTests
     static string ExecuteSetup()
     {
         Check(!Resources.FindObjectsOfTypeAll<WhimTexWindow>().Any(w => w.name == SourceName || w.name == TargetName), "Clean up the previous owned transfer fixture first");
-        SessionState.SetInt("WhimTex.Tests.UnityC.Transfer.Focus." + WhimTex.Tests.UnityC.FixtureContext.Scope.Token, EditorWindow.focusedWindow != null ? EditorWindow.focusedWindow.GetHashCode() : 0);
         Undo.IncrementCurrentGroup();SessionState.SetInt("WhimTex.Tests.UnityC.Transfer.Undo." + WhimTex.Tests.UnityC.FixtureContext.Scope.Token,Undo.GetCurrentGroup());
         var source = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexWindow>()); source.name = SourceName;
         var target = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexWindow>()); target.name = TargetName;
@@ -199,8 +198,7 @@ public static class LayerTransferTests
             global::WhimTex.Tests.UnityC.FixtureContext.Scope.CloseWindow(window);
         }
         // Owned objects' Undo was cleared above; do not revert later user operations.
-        var previous=Resources.FindObjectsOfTypeAll<EditorWindow>().FirstOrDefault(w=>w.GetHashCode()==SessionState.GetInt("WhimTex.Tests.UnityC.Transfer.Focus." + WhimTex.Tests.UnityC.FixtureContext.Scope.Token,0));
-        if(previous!=null)previous.Focus();
+        // The owning scope restores its captured window reference after session cleanup.
         return "Temporary windows removed.";
     }
 
@@ -219,7 +217,6 @@ public static class LayerTransferTests
             {
                 for (int i = 0; i < keys.Length; i++) DragAndDrop.SetGenericData(keys[i], previous[i]);
                 DragAndDrop.objectReferences = references; DragAndDrop.paths = paths; DragAndDrop.visualMode = visual;
-                SessionState.EraseInt("WhimTex.Tests.UnityC.Transfer.Focus." + job.Scope.Token);
                 SessionState.EraseInt("WhimTex.Tests.UnityC.Transfer.Undo." + job.Scope.Token);
             }
         }));

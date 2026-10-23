@@ -15,6 +15,7 @@ var cacheType = documentType.Assembly.GetType("DCFApixels.WhimTex.EffectRenderCa
 var cache = System.Activator.CreateInstance(cacheType,true);
 using var cacheLifetime = (System.IDisposable)cache;
 var document = UnityBRun.Create<DCFApixels.WhimTex.WhimTexDocument>();
+var ownedLayers = new System.Collections.Generic.HashSet<Layer>();
 document.hideFlags=UnityEngine.HideFlags.HideAndDontSave;
 document.width=document.height=64;
 var texture=UnityBRun.Track(new UnityEngine.Texture2D(64,64,UnityEngine.TextureFormat.RGBAFloat,false,true));
@@ -43,7 +44,11 @@ UnityEngine.Color[] Read(UnityEngine.RenderTexture rt)
     try{UnityEngine.RenderTexture.active=rt;read.ReadPixels(new UnityEngine.Rect(0,0,rt.width,rt.height),0,0,false);return read.GetPixels();}
     finally{UnityEngine.RenderTexture.active=previous;UnityEngine.Object.DestroyImmediate(read);UnityEngine.RenderTexture.ReleaseTemporary(rt);}
 }
-UnityEngine.Color[] Render(bool fast=false)=>Read((UnityEngine.RenderTexture)documentType.GetMethod("RenderCanvasWithCache",flags).Invoke(document,new object[]{64,cache,fast,null}));
+UnityEngine.Color[] Render(bool fast=false)
+{
+    foreach (var layer in document.layers) ownedLayers.Add(layer);
+    return Read((UnityEngine.RenderTexture)documentType.GetMethod("RenderCanvasWithCache",flags).Invoke(document,new object[]{64,cache,fast,null}));
+}
 UnityEngine.Color[] Fresh()
 {
     var result=document.ComposeCanvas();try{return result.GetPixels();}finally{UnityEngine.Object.DestroyImmediate(result);}
@@ -106,7 +111,11 @@ try
     string json=UnityEngine.JsonUtility.ToJson(document);Check(!json.Contains("effectCache")&&!json.Contains("numericErrors"),"Derived textures are not serialized");
     return "Effect cache GPU checks passed: "+checks;
 }
-finally{UnityEngine.Object.DestroyImmediate(document);UnityEngine.Object.DestroyImmediate(texture);}
+finally
+{
+    foreach (var layer in ownedLayers) typeof(Layer).GetMethod("ReleaseTransientResources",flags).Invoke(layer,null);
+    UnityEngine.Object.DestroyImmediate(document);UnityEngine.Object.DestroyImmediate(texture);
+}
 
 return "";
     }

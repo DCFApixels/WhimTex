@@ -77,7 +77,16 @@ try
     Check(events == 0, "Mode/source refresh must not emit edit events");
     return null;
 }
-finally { mode.SetValue(null, originalMode); }
+finally
+{
+    try
+    {
+        // Detached fields never receive DetachFromPanelEvent; release this field's preview.
+        if (gradientField.Q<Image>()?.image is Texture2D preview)
+            UnityEngine.Object.DestroyImmediate(preview);
+    }
+    finally { mode.SetValue(null, originalMode); }
+}
 
 
 }

@@ -1,4 +1,4 @@
-// run_script entry BaseHeartReferenceTests.Run. Validates the package-owned golden TIFF without modifying it.
+// run_script entry BaseHeartReferenceTests.Run. Authenticates and rejects the archived package-owned TIFF without modifying it.
 using System;
 using System.IO;
 using System.Security.Cryptography;
@@ -33,21 +33,14 @@ static System.Threading.CancellationToken Cancellation;
         }
 
         Check(WhimTexDocumentFile.IsDocument(fullPath), "golden TIFF is recognised as a WhimTex document");
-        Check(WhimTexDocumentFile.TryLoad(fullPath, out WhimTexDocument document, out string error),
-            "golden TIFF opens: " + error);
+        bool loaded = WhimTexDocumentFile.TryLoad(fullPath, out WhimTexDocument document, out string error);
         try
         {
-            Check(document != null && document.width == 512 && document.height == 512, "document canvas is 512x512");
-            Check(document.layers != null && document.layers.Count > 0, "document contains the reference layer stack");
-            Texture2D composed = document.ComposeCanvas();
-            try
-            {
-                Check(composed != null && composed.width == 512 && composed.height == 512, "reference document composes at native size");
-            }
-            finally
-            {
-                if (composed != null) UnityEngine.Object.DestroyImmediate(composed);
-            }
+            // The authenticated fixture retains container v1. Current readers deliberately
+            // reject it; the historical bytes must not be regenerated as a current document.
+            Check(!loaded && document == null &&
+                string.Equals(error, "Unsupported document container.", StringComparison.Ordinal),
+                "archived golden TIFF is explicitly rejected without a partial document: " + error);
         }
         finally
         {

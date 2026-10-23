@@ -64,6 +64,7 @@ public static class ProfilerFxTests
         int batch;
         double deadline;
         bool disposed;
+        Exception disposalFailure;
         EditorWindow frameWindow;
         readonly EditorWindow previousFocus = EditorWindow.focusedWindow;
         public Fixture(string id)
@@ -233,7 +234,11 @@ public static class ProfilerFxTests
                 {
                     EditorApplication.QueuePlayerLoopUpdate(); SceneView.RepaintAll();
                     string availability = (string)Profiler.GetProperty("GpuAvailability", Hidden).GetValue(null);
-                    if (availability == "warming_up") return;
+                    if (availability == "warming_up")
+                    {
+                        if (EditorApplication.timeSinceStartup > deadline) throw new Exception("GPU activation did not finish before fixture deadline");
+                        return;
+                    }
                     t.Equal(SystemInfo.supportsGpuRecorder ? "ready" : "unsupported", availability, "Native GPU activation");
                     RunBatch();
                     return;
@@ -435,17 +440,41 @@ public static class ProfilerFxTests
         public string Poll() => result ?? TestContext.Result("running", t.Checks, "Waiting for GPU results, batch " + batch).ToJson();
         public void Dispose()
         {
-            if (disposed) return;
-            disposed = true; EditorApplication.update -= Tick;
-            if (capture != null) Set(capture, "recording", false);
+            if (disposed)
+            {
+                if (disposalFailure != null) throw disposalFailure;
+                return;
+            }
+            disposed = true;
+            var failures = new List<Exception>();
+            void Clean(Action action) { try { action(); } catch (Exception error) { failures.Add(error); } }
+            Clean(() => EditorApplication.update -= Tick);
+            Clean(() => { if (capture != null) Set(capture, "recording", false); });
             // Cancel only this fixture's queries. Do not touch any native/user capture scopes.
-            var slots = (System.Collections.IEnumerable)Profiler.GetField("gpuSlots", Hidden).GetValue(null);
-            foreach (object slot in slots)
-                if (ReferenceEquals(Field(slot, "owner"), capture))
-                    Profiler.GetMethod("CompleteGpu", Hidden).Invoke(null, new[] { slot, "interrupted", (object)true });
-            for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null) UnityEngine.Object.DestroyImmediate(owned[i]);
+            Clean(() =>
+            {
+                if (capture == null) return;
+                var slots = (System.Collections.IEnumerable)Profiler.GetField("gpuSlots", Hidden).GetValue(null);
+                foreach (object slot in slots.Cast<object>().ToArray())
+                    Clean(() =>
+                    {
+                        if (ReferenceEquals(Field(slot, "owner"), capture))
+                            Profiler.GetMethod("CompleteGpu", Hidden).Invoke(null, new[] { slot, "interrupted", (object)true });
+                    });
+            });
+            for (int i = owned.Count - 1; i >= 0; i--)
+            {
+                var value = owned[i];
+                Clean(() => { if (value != null) UnityEngine.Object.DestroyImmediate(value); });
+            }
+            Clean(() => { if (previousFocus != null) previousFocus.Focus(); });
+            if (failures.Count != 0)
+            {
+                disposalFailure = new AggregateException("Owned FX profiler cleanup failed; retain the cleanup delegate and references.", failures);
+                disposalFailure.Data["WhimTexCleanupFailure"] = disposalFailure.ToString();
+                throw disposalFailure;
+            }
             owned.Clear();
-            if (previousFocus != null) previousFocus.Focus();
         }
     }
 }

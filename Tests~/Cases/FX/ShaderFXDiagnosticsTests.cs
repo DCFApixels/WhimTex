@@ -183,7 +183,7 @@ public static class ShaderFXDiagnosticsTests
         test.Equal((string)Read(effect, "DiagnosticNotice"), warning.tooltip, "Tooltip uses the same messages");
         using var serialized = new SerializedObject(effect);
         var view = (VisualElement)assembly.GetType("DCFApixels.WhimTex.ShaderFXEditor", true)
-            .GetMethod("BuildView", All).Invoke(null, new object[] { effect, serialized });
+            .GetMethod("BuildView", All).Invoke(null, new object[] { effect, serialized, null, null, -1 });
         test.Equal(severity, view.Q<HelpBox>().messageType, "Editor status uses the shared severity");
         test.Equal((string)Read(effect, "Diagnostics"), view.Q<TextField>("shaderFXDiagnostics").value, "Editor Diagnostics uses the same text");
         view.Unbind();

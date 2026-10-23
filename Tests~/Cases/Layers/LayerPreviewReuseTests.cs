@@ -50,7 +50,9 @@ public static class LayerPreviewReuseTests
         var mini = (VisualElement)Activator.CreateInstance(panelType, F, null, new[] { state }, null);
         job.Scope.OwnDisposable((IDisposable)mini);
         var noise = new NoiseLayerBehaviour { noiseType = NoiseLayerBehaviour.NoiseType.WhiteNoise, grainColor = NoiseLayerBehaviour.GrainColor.Color, seed = 7189 };
+        var ownedLayers = new System.Collections.Generic.List<Layer>();
         Layer n = noise; doc.layers.Add(n); Call(doc, "NormalizeModel");
+        ownedLayers.Add(n);
         RenderTexture sentinel = job.Scope.Temporary(RenderTexture.GetTemporary(2, 2));
         var original = RenderTexture.active; bool originalSrgb = GL.sRGBWrite;
         RenderTexture Source() => (RenderTexture)Get(mini, "source");
@@ -70,6 +72,7 @@ public static class LayerPreviewReuseTests
         void Cleanup() => job.DisposeOwned();
         job.OwnCleanup(() => {
             ((IDisposable)mini).Dispose(); job.Scope.CloseWindow(window); cache.Dispose();
+            foreach (var layer in ownedLayers) Call(layer, "ReleaseTransientResources");
             RenderTexture.active = original; GL.sRGBWrite = originalSrgb;
             job.Scope.Release(sentinel); job.Scope.Destroy(doc);
             if (focus != null) focus.Focus();
@@ -100,6 +103,7 @@ public static class LayerPreviewReuseTests
 
                 var blur = new BlurLayerBehaviour { radius = 6, inputMode = EffectInputMode.Specific, TargetLayerId = n.Id };
                 Layer b = blur; doc.layers.Insert(0, b); n.enabled = false; Call(doc, "NormalizeModel");
+                ownedLayers.Add(b);
                 Bind(b); Main(); CompareLayer(b, 512);
                 args = new object[] { b, null };
                 Check((bool)Call(doc, "TryGetCachedLayerPreview", args), "Finished effect available from main cache");
@@ -124,15 +128,18 @@ public static class LayerPreviewReuseTests
 
                 var fill = new ColorFillLayerBehaviour { color = new Color(.2f, .7f, .4f, .5f), opacity = .25f };
                 Layer f = fill; doc.layers.Clear(); doc.layers.Add(f); Call(doc, "NormalizeModel"); Bind(f); Main(); CompareLayer(f, 512);
+                ownedLayers.Add(f);
                 Check(Math.Abs(Read(Source())[0].a - .5f) < .002f, "Snapshot precedes outer opacity/blending");
                 var group = new GroupLayerBehaviour { compositing = GroupCompositing.Isolated };
                 Layer g = group; g.opacity = .5f; g.children.Add(f); doc.layers.Clear(); doc.layers.Add(g); Call(doc, "NormalizeModel"); Bind(g); Main();
+                ownedLayers.Add(g);
                 Check(Source() != null && Read(Source())[0].g > Read(Source())[0].r, "Isolated group snapshot preserves rendered color");
                 var groupPixels = Read(Source());
                 var groupFallback = (RenderTexture)Call(doc, "RenderLayerPreviewFallback", g, 256);
                 try { Same(groupPixels, Read(groupFallback), "Group fallback matches main color before outer opacity"); }
                 finally { job.Scope.Release(groupFallback); }
                 var processor = new ShaderProcessorLayerBehaviour(); Layer p = processor; doc.layers.Insert(0, p); Call(doc, "NormalizeModel"); Bind(p); Main();
+                ownedLayers.Add(p);
                 Check(Source() != null, "Stack processor publishes processed result");
 
                 doc.layers.Clear(); f.clippingMask = true; doc.layers.Add(f);

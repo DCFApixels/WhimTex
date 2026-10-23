@@ -21,7 +21,7 @@ public static class DistanceFieldModesTests
     public static string Run() => TestContext.Run("Distance modes: source fields, channels and current-format roundtrip", t =>
     {
         t.Equal(10, Modes.Length, "All ten modes participate in source and roundtrip checks");
-        t.Equal(10, Enum.GetNames(typeof(DistanceMetric)).Length, "Exactly ten distance modes are exposed");
+        t.Equal(12, Enum.GetNames(typeof(DistanceMetric)).Length, "Exactly twelve distance modes are exposed");
         for (int i = 0; i < Modes.Length; i++)
             t.Equal(i + 4, (int)Modes[i], "Mode values remain stable: " + Modes[i]);
         t.Equal(DistanceMetric.EuclideanAntialiased, new SDFLayerBehaviour().metric, "SDF defaults to Round AA");

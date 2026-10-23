@@ -34,7 +34,7 @@ context.case('CanvasTerminology original assertions and branches', async () => {
     for (const suffix of ['CheckerLight', 'CheckerDark', 'InvalidPixels', 'CheckerSize', 'ShowManta', 'PostFxBackground', 'PostFxBackgroundMode'])
       assert.ok(settings.includes(`"DCFApixels.WhimTex.CanvasView.${suffix}"`), suffix);
     assert.ok(read('src/WhimTexWindow.cs').includes('"DCFApixels.WhimTex.Canvas.PaintingScale"'));
-    const tools = read('src/WhimTexWindow.Tools.cs');
+    const tools = read('src/WhimTexUserSettings.Tools.cs');
     for (const key of ['Canvas.Tool', 'Canvas.TransformReturnTool'])
       assert.ok(tools.includes(`"DCFApixels.WhimTex.${key}"`));
     

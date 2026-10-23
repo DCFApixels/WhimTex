@@ -38,7 +38,7 @@ context.case("PresetsFolder original assertion inputs and source contracts", asy
   assert.ok(ui.includes('WhimTexWindow.ConfirmResetEditorSettings(this)'));
   const editor = read('src/WhimTexWindow.cs');
   assert.ok(!editor.includes('menu.AddItem(new GUIContent("Reset WhimTex Settings…")'));
-  assert.match(editor, /OnCanvasViewAppearanceChanged\(\)\s*\{\s*toolkitCanvas\?\.RefreshBackdropVisibility\(\)/);
+  assert.match(editor, /OnCanvasViewAppearanceChanged\(\)\s*\{[^{}]*\btoolkitCanvas\?\.RefreshBackdropVisibility\(\)/);
   const preview = read('src/WhimTexWindow.UI.cs');
   assert.match(preview, /toolbar.Add\(export\);\s*Button userSettings = WhimTexUI.CreateToolbarButton\(string.Empty, WhimTexUserSettingsWindow.Open, 26f\);/);
   assert.ok(preview.includes('userSettings.Add(new LayerActionIcon(LayerActionIcon.Kind.Settings));'));

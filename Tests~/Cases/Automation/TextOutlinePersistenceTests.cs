@@ -194,7 +194,7 @@ public static class TextOutlinePersistenceTests
         SameNative(t, effectId, layer.fx[0], "API keeps original native FX");
         t.Equal(VectorBooleanOperation.Subtract, layer.booleanOperation, "API keeps Boolean operation");
         t.Equal(sourceData, JsonUtility.ToJson(source), "Successful API replacement leaves detached original Text data intact");
-        t.Equal(TransformTilingMode.Unbounded, layer.transform.tiling, "Text conversion changes Clip to Unbounded");
+        t.Equal(TransformTilingMode.Clip, layer.transform.tiling, "Text conversion preserves explicit Clip");
         var fitted = (VectorLayerBehaviour)layer.Behaviour;
         var after = parentMatrix * layer.transform.ToMatrix(doc.width, doc.height);
         t.Equal(curves.shapes[0].contours.Count, fitted.shapes[0].contours.Count, "FitFrame retains every contour");

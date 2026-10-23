@@ -77,6 +77,7 @@ public static class PixelScaleBrushTests
             }
             finally
             {
+                PaintTileHistoryTests.ReleaseOwnedHistory(drawing);
                 Undo.ClearUndo(document);
                 if (Pixels(drawing) != null) Undo.ClearUndo(Pixels(drawing));
                 Call(drawing, "ReleaseTransientResources");
@@ -127,6 +128,7 @@ public static class PixelScaleBrushTests
 
     private static void Body()
     {
+        using var ownedJournal = new PaintTileHistoryTests.DiskScope();
         foreach (float scale in new[] { .5f, 1f, 2f, 3.25f })
         {
             object settings = Settings(8f);

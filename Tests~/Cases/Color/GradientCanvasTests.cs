@@ -114,8 +114,8 @@ public static class GradientCanvasTests
             typeof(WhimTexWindow).GetField("activeDocument",instanceFlags).SetValue(window,null);
             UnityEngine.Object.DestroyImmediate(window);UnityEngine.Object.DestroyImmediate(document);
         }
-        Check(new GradientLayerBehaviour().Owner.transform.tiling==TransformTilingMode.Unbounded,"New Gradient is Unbounded");
-        Check(new NoiseLayerBehaviour().Owner.transform.tiling==TransformTilingMode.Unbounded,"New Noise is Unbounded");
+Check(new GradientLayerBehaviour().Owner.transform.tiling==TransformTilingMode.Source,"New Gradient uses Source tiling");
+Check(new NoiseLayerBehaviour().Owner.transform.tiling==TransformTilingMode.Source,"New Noise uses Source tiling");
         return "Gradient canvas geometry and selection checks: "+checks;
     }
     public static string Main() => UnityBRun.Run("GradientCanvasSmoke.Main", () => ExecuteMain());

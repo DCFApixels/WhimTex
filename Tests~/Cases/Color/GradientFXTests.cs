@@ -55,12 +55,12 @@ public static class GradientFXTests
             Material Get() => (Material)typeof(ShaderFX).GetMethod("GetMaterial", flags).Invoke(fx, new[] { context });
             var material = Get();
             var shader = material.shader;
-            var bindings = (IDictionary)typeof(ShaderFX).GetField("gradientBindings", flags).GetValue(fx);
-            var enumerator = bindings.Values.GetEnumerator(); enumerator.MoveNext();
-            object binding = enumerator.Current;
-            var lut = (WhimTexGradientTexture)binding.GetType().GetField("lut", flags).GetValue(binding);
-            int property = (int)binding.GetType().GetField("propertyId", flags).GetValue(binding);
-            int wrapProperty = (int)binding.GetType().GetField("wrapModePropertyId", flags).GetValue(binding);
+            var parameterBindings = typeof(ShaderFX).GetField("parameterBindings", flags).GetValue(fx);
+            var bindings = (IDictionary)parameterBindings.GetType().GetField("gradients", flags).GetValue(parameterBindings);
+            var enumerator = bindings.GetEnumerator(); enumerator.MoveNext();
+            var lut = (WhimTexGradientTexture)enumerator.Value;
+            int property = (int)enumerator.Key;
+            int wrapProperty = Shader.PropertyToID("_WhimTex_" + values[0].name.TrimStart('_') + "_" + values[0].id + "_GradientWrap");
             var texture = (Texture2D)material.GetTexture(property);
             Check(texture.width == 512 && texture.height == 2 && texture.mipmapCount == 1 && texture.format == TextureFormat.RGBAHalf, "LUT format");
             for (int i = 0; i < 30; i++) Check(Get() == material, "Material cache");

@@ -5,6 +5,16 @@ using DCFApixels.WhimTex;
 
 public static class ProjectiveTransformTests
 {
+    // Use the product PNG path: composed/readback textures contain linear float pixels.
+    static byte[] EncodePng(UnityEngine.Texture2D texture)
+    {
+        var assembly = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly;
+        var encoder = assembly.GetType("DCFApixels.WhimTex.WhimTexRasterEncoder", true);
+        var format = System.Enum.Parse(assembly.GetType("DCFApixels.WhimTex.RasterImageFormat", true), "Png");
+        return (byte[])encoder.GetMethod("Encode", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+            .Invoke(null, new object[] { texture, format, 95, UnityEngine.Texture2D.EXRFlags.CompressZIP });
+    }
+
     [Serializable] public class Holder { public TextureTransform transform; }
     static int checks;
     static void Check(bool condition,string message) { WhimTex.Tests.UnityC.FixtureContext.Context.True(condition, message); checks++; }
@@ -134,7 +144,7 @@ public static class ProjectiveTransformTests
             RenderTexture.active=output;read=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(128,128,TextureFormat.RGBAFloat,false,true));
             read.ReadPixels(new Rect(0,0,128,128),0,0);read.Apply();
             System.IO.Directory.CreateDirectory(WhimTex.Tests.UnityC.FixtureContext.Scope.Temp);
-            System.IO.File.WriteAllBytes(WhimTex.Tests.UnityC.FixtureContext.Scope.Temp + "/projective-brush-test.png",read.EncodeToPNG());
+            System.IO.File.WriteAllBytes(WhimTex.Tests.UnityC.FixtureContext.Scope.Temp + "/projective-brush-test.png",EncodePng(read));
             for(int y=0;y<128;y++)for(int x=0;x<128;x++)
             {
                 float distance=Vector2.Distance(new Vector2(x+.5f,y+.5f),center*128);

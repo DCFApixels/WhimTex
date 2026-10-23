@@ -183,7 +183,7 @@ public static class DocumentPreparationTests
             Check(Resources.FindObjectsOfTypeAll<Texture2D>().Length == texturesBefore, "storage inspection does not create textures");
             Check(Resources.FindObjectsOfTypeAll<WhimTexWindow>().Length == windows, "headless path never creates an editor window");
 
-            // External FX must retain their persistent shader, source, values and dirty state on open.
+            // Persistent ShaderFX assets are unsupported; rejection must leave the source untouched.
             var external = UnityBRun.Create<ShaderFX>();
             string externalPath = folder + "/External.asset";
             AssetDatabase.CreateAsset(external, externalPath);
@@ -192,10 +192,13 @@ public static class DocumentPreparationTests
             byte[] externalBytes = File.ReadAllBytes(externalPath);
             int externalDirty = EditorUtility.GetDirtyCount(external);
             var externalDoc = Document(); externalDoc.layers[0].fx.Add(external);
-            var externalFile = WhimTexDocumentFile.Save(externalDoc, folder + "/ExternalDoc.tiff");
-            var externalLoaded = Load(externalFile);
-            Check(externalLoaded.layers[0].fx[0] == external, "external FX identity preserved");
-            Check(EditorUtility.GetDirtyCount(external) == externalDirty && File.ReadAllBytes(externalPath).SequenceEqual(externalBytes), "loading TIFF does not mutate external FX");
+            WhimTexDocumentException externalRejection = null;
+            try { WhimTexDocumentFile.Save(externalDoc, folder + "/ExternalDoc.tiff"); }
+            catch (WhimTexDocumentException error) { externalRejection = error; }
+            Check(externalRejection != null && externalRejection.Message ==
+                "External FX references are no longer supported. Use a marked .hlsl preset or inline HLSL code.",
+                "external FX rejected explicitly by the HLSL-only document contract");
+            Check(EditorUtility.GetDirtyCount(external) == externalDirty && File.ReadAllBytes(externalPath).SequenceEqual(externalBytes), "rejected TIFF save does not mutate external FX");
 
             // Drawing is owned by the in-memory model and embedded into TIFF, never a sub-asset.
             var painted = Document(); painted.layers.Clear();

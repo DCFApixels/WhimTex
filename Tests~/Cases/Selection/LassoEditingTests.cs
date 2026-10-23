@@ -56,7 +56,9 @@ public static class LassoEditingTests
         var document = scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>()); document.hideFlags = HideFlags.HideAndDontSave;
         document.name = ownedName; document.width = 320; document.height = 240;
         Layer layer = new ColorFillLayerBehaviour { color = new Color(.16f, .16f, .16f, 1f) }; document.layers.Add(layer);
-        var window = scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>()); Call(window, "SetDocument", document);
+        var window = scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
+        // OwnWindow has isolated this session's store before defaults are changed.
+        Call(Read(window, "toolPreferences"), "Reset"); Call(window, "SetDocument", document);
         window.ShowUtility(); window.position = new Rect(60, 60, 1250, 850); window.CreateGUI();
         var root = window.rootVisualElement; for (int i = 0; i < 5; i++) await Tick(root, token);
         var canvas = (VisualElement)Read(window, "toolkitCanvas"); canvas.Focus();

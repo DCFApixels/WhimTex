@@ -153,6 +153,11 @@ public static class TextFontAtlasTests
                     var restored = FontEngine.LoadFontFace(initialFace.familyName, initialFace.styleName, Mathf.RoundToInt(initialFace.pointSize));
                     restoration = restored.ToString(); t.Equal(FontEngineError.Success, restored, "The initial font face is restored through the public family/style loader.");
                 }
+                else
+                {
+                    var restored = FontEngine.UnloadFontFace();
+                    restoration = restored.ToString(); t.Equal(FontEngineError.Success, restored, "The initially unloaded font face is restored.");
+                }
             }
             t.Equal(0, warnings.Count, "Font atlas creation/population emits no font-load warning: " + string.Join(" | ", warnings));
         });

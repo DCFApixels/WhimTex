@@ -176,7 +176,7 @@ static System.Threading.CancellationToken Cancellation;
             var operation = api.GetMethod("ApplyOperation", F);
             var jsonType = operation.GetParameters()[1].ParameterType;
             object Parse(string json) => jsonType.GetMethod("Parse", new[] { typeof(string) }).Invoke(null, new object[] { json });
-            operation.Invoke(null, new object[] { doc, Parse("{\"op\":\"target\",\"layer\":\"" + blur.Id + "\",\"input\":\"AllBelow\"}"), new Dictionary<string, Layer>(), false });
+            operation.Invoke(null, new object[] { doc, Parse("{\"op\":\"target\",\"layer\":\"" + blur.Id + "\",\"input\":\"AllBelow\"}"), new Dictionary<string, Layer>(), false, null, null });
             Check(blur.inputMode == EffectInputMode.AllBelow && blur.TargetLayerId == null, "API sets stack input without target");
             var readClipboard = api.GetMethod("ReadProceduralClipboard", F);
             var clipboard = readClipboard.Invoke(null, new object[] { "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"AllBelow\"}},{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}", 32, 32 });

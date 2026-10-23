@@ -38,7 +38,7 @@ context.case('BrushFlip original assertions and branches', async () => {
     for (const axis of ['X','Y']) {
       assert.ok(dynamics.includes(`flip${axis} = Unit(flip${axis}, 0f);`));
       assert.ok(ui.includes(`new Slider("Flip ${axis}", 0f, 1f)`));
-      assert.ok(ui.includes(`flip${axis}.SetEnabled(paintSettings.dynamics.tip != null)`));
+      assert.ok(ui.includes(`flip${axis}.SetEnabled(paintSettings.dynamics.HasTip)`));
       assert.ok(read('src/PaintToolSettings.cs').includes(`dynamics.flip${axis} = defaults.dynamics.flip${axis}`));
     }
     assert.ok(brush.includes('SampleFlip(ref brushRandomState, stampIndex, 5, dynamics.flipX)'));

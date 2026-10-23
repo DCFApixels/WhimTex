@@ -12,41 +12,6 @@ using Object = UnityEngine.Object;
 // All disk/settings changes are confined to a fresh Temp directory. No user history is cleared.
 public static partial class PaintTileHistoryTests
 {
-    sealed class DiskScope : IDisposable
-    {
-        internal readonly string home;
-        internal readonly object disk;
-        readonly object previous;
-        readonly bool loaded;
-        readonly IDictionary steps;
-        readonly List<DictionaryEntry> saved = new();
-        internal DiskScope()
-        {
-            Static("PaintTileTransfer", "Drain"); Static("PaintHistoryStore", "FlushWrites");
-            Static("PaintHistoryStore", "FinishCheckpointWork", (object)null);
-            home = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/WhimTex/paint-undo-lifecycle", Guid.NewGuid().ToString("N")));
-            previous = Type("PaintUndoDisk").GetField("current", S).GetValue(null);
-            disk = NewDisk(home);
-            steps = (IDictionary)Type("PaintHistoryStore").GetField("steps", S).GetValue(null);
-            foreach (DictionaryEntry entry in steps) saved.Add(entry);
-            steps.Clear();
-            loaded = (bool)Type("PaintHistoryStore").GetField("loaded", S).GetValue(null);
-            Type("PaintHistoryStore").GetField("loaded", S).SetValue(null, false);
-            Type("PaintUndoDisk").GetField("current", S).SetValue(null, disk);
-        }
-        public void Dispose()
-        {
-            try { Static("PaintTileTransfer", "Drain"); Static("PaintHistoryStore", "FlushWrites"); Static("PaintHistoryStore", "FinishCheckpointWork", (object)null); Call(disk, "Close"); }
-            finally
-            {
-                steps.Clear(); foreach (var entry in saved) steps.Add(entry.Key, entry.Value);
-                Type("PaintHistoryStore").GetField("loaded", S).SetValue(null, loaded);
-                Type("PaintUndoDisk").GetField("current", S).SetValue(null, previous);
-            }
-        }
-    }
-    static object NewDisk(string home, string session = null) => Activator.CreateInstance(Type("PaintUndoDisk"), F, null,
-        new object[] { home, session ?? Guid.NewGuid().ToString("N") }, null);
     static bool Reserve(object disk, string path, long bytes)
     { var args = new object[] { path, bytes, null, false }; return (bool)Call(disk, "Reserve", args); }
     static string Child(object disk, string name) => Path.Combine((string)Get(disk, "Root"), name);

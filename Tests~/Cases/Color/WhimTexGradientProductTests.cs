@@ -28,17 +28,19 @@ public static class WhimTexGradientProductTests
         var flags = BindingFlags.NonPublic | BindingFlags.Instance;
         var host = ScriptableObject.CreateInstance<EditorWindow>();
         WhimTexGradientWindow editor = null;
+        WhimTexGradientValueField field = null;
+        UnityEngine.Object ownedSession = null;
         try
         {
             host.Show();
-            var field = new WhimTexGradientValueField("Gradient");
+            field = new WhimTexGradientValueField("Gradient");
             host.rootVisualElement.Add(field);
             var original = new WhimTexGradient();
             field.SetValueWithoutNotify(original);
             int changes = 0;
             field.RegisterValueChangedCallback(e => changes++);
             field.GetType().GetMethod("OpenEditor", flags).Invoke(field, null);
-            var ownedSession = field.GetType().GetField("session", flags).GetValue(field);
+            ownedSession = (UnityEngine.Object)field.GetType().GetField("session", flags).GetValue(field);
             foreach (var candidate in Resources.FindObjectsOfTypeAll<WhimTexGradientWindow>())
                 if (ReferenceEquals(candidate.GetType().GetField("owner", flags).GetValue(candidate), ownedSession)) editor = candidate;
             context.True(editor != null, "Value field opened its owned gradient session");
@@ -63,8 +65,19 @@ public static class WhimTexGradientProductTests
         finally
         {
             AsyncD.CleanupOwned(
-                () => { if(editor!=null)editor.Close(); },
-                () => host.Close());
+                () =>
+                {
+                    if (field != null) ownedSession = (UnityEngine.Object)field.GetType().GetField("session", flags).GetValue(field);
+                    if (ownedSession == null) return;
+                    foreach (var candidate in Resources.FindObjectsOfTypeAll<WhimTexGradientWindow>())
+                        if (ReferenceEquals(candidate.GetType().GetField("owner", flags).GetValue(candidate), ownedSession)) editor = candidate;
+                },
+                () => { if (editor != null && editor.rootVisualElement?.panel != null) editor.Close(); },
+                () => { if (editor != null) UnityEngine.Object.DestroyImmediate(editor); },
+                () => { if (ownedSession != null) Undo.ClearUndo(ownedSession); },
+                () => { if (ownedSession != null) UnityEngine.Object.DestroyImmediate(ownedSession); },
+                () => { if (host != null && host.rootVisualElement?.panel != null) host.Close(); },
+                () => { if (host != null) UnityEngine.Object.DestroyImmediate(host); });
         }
     }
 }

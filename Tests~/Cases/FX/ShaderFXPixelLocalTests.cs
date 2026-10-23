@@ -182,6 +182,8 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
         using (var restored = WhimTexDocumentJson.Read(json.Json))
         {
             var restoredFx = restored.Document.layers[0].fx[0];
+            var previousShader = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(restoredFx);
+            if (previousShader != null) f.Own(previousShader);
             Call(restoredFx, "ApplyAgentDraft");
             t.True(restoredFx.IsPixelLocal && restored.Document.layers[0].AreActiveFxPixelLocal(), "JSON reconstructs the code-derived contract");
         }

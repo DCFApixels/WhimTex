@@ -39,6 +39,9 @@ public static class NewDocumentWindowTests
             for (int i = 0; i < 2; i++)
             {
                 var next = (DCFApixels.WhimTex.WhimTexWindow)type.GetMethod("OpenNewDocument", Flags).Invoke(origin, null);
+                if (next == null || next == origin || originalDocuments.ContainsKey(next) || created.Contains(next))
+                    throw new InvalidOperationException("Refusing to own or close a non-new document window.");
+                WhimTex.Tests.UnityC.FixtureContext.Scope.Own(next);
                 created.Add(next);
                 var blank = (DCFApixels.WhimTex.WhimTexDocument)field.GetValue(next);
                 Check(next != origin && blank != document, "New window and document instances");

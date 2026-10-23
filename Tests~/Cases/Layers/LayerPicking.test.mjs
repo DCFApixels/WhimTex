@@ -42,7 +42,7 @@ context.case("LayerPicking original assertion inputs and source contracts", asyn
   assert.match(renderer, /enteredGroups.Add\(parent\)/);
   assert.match(renderer, /insideGroups \|\| enteredGroups\?\.Contains\(layer\) == true/);
   assert.match(window, /groupExpansion\[parent.Id\] = true/);
-  assert.match(renderer, /sample.ReadPixels\(new Rect\(x, y, 1, 1\)/);
+  assert.match(renderer, /WhimTexProfiler.ReadPixels\(sample, new Rect\(x, y, 1, 1\), 0, 0, false\)/);
   assert.match(renderer, /collectingErrors = previousErrors/);
   assert.match(renderer, /effectCache = previousCache/);
   assert.match(renderer, /FindClippingBaseIndex/);

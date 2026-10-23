@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -11,6 +13,78 @@ using Object = UnityEngine.Object;
 // Detached, owned fixtures; no windows or input. Native Undo is scoped to owned objects.
 public static partial class PaintTileHistoryTests
 {
+    internal sealed class DiskScope : IDisposable
+    {
+        internal readonly string home;
+        internal readonly object disk;
+        readonly object previous;
+        readonly bool loaded;
+        readonly IDictionary steps;
+        readonly List<DictionaryEntry> saved = new();
+        internal DiskScope()
+        {
+            Static("PaintTileTransfer", "Drain"); Static("PaintHistoryStore", "FlushWrites");
+            Static("PaintHistoryStore", "FinishCheckpointWork", (object)null);
+            home = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/WhimTex/paint-undo-lifecycle", Guid.NewGuid().ToString("N")));
+            previous = Type("PaintUndoDisk").GetField("current", S).GetValue(null);
+            steps = (IDictionary)Type("PaintHistoryStore").GetField("steps", S).GetValue(null);
+            foreach (DictionaryEntry entry in steps) saved.Add(entry);
+            loaded = (bool)Type("PaintHistoryStore").GetField("loaded", S).GetValue(null);
+            disk = NewDisk(home);
+            try
+            {
+                steps.Clear();
+                Type("PaintHistoryStore").GetField("loaded", S).SetValue(null, false);
+                Type("PaintUndoDisk").GetField("current", S).SetValue(null, disk);
+            }
+            catch (Exception original)
+            {
+                try { Dispose(); } catch (Exception cleanup) { throw new AggregateException(original, cleanup); }
+                throw;
+            }
+        }
+        public void Dispose()
+        {
+            var errors = new List<Exception>();
+            void Clean(Action action) { try { action(); } catch (Exception error) { errors.Add(error); } }
+            Clean(() => Static("PaintTileTransfer", "Drain"));
+            Clean(() => Static("PaintHistoryStore", "FlushWrites"));
+            Clean(() => Static("PaintHistoryStore", "FinishCheckpointWork", (object)null));
+            Clean(() => Call(disk, "Close"));
+            Clean(() => steps.Clear());
+            foreach (var entry in saved) Clean(() => steps.Add(entry.Key, entry.Value));
+            Clean(() => Type("PaintHistoryStore").GetField("loaded", S).SetValue(null, loaded));
+            Clean(() => Type("PaintUndoDisk").GetField("current", S).SetValue(null, previous));
+            if (errors.Count != 0) throw new AggregateException("Owned journal cleanup/restoration failed; stop subsequent batches.", errors);
+        }
+    }
+    static object NewDisk(string home, string session = null) => Activator.CreateInstance(Type("PaintUndoDisk"), F, null,
+        new object[] { home, session ?? Guid.NewGuid().ToString("N") }, null);
+    internal static void ReleaseOwnedHistory(DrawingLayerBehaviour layer)
+    {
+        var cursor = layer == null ? null : (Object)Get(layer, "PixelUndoObject");
+        if (cursor == null) return;
+        try { Undo.ClearUndo(cursor); }
+        finally { if (cursor != null) Object.DestroyImmediate(cursor); }
+    }
+    internal static void ReleaseOwnedHistory(WhimTexDocument document)
+    {
+        if (document == null) return;
+        var errors = new List<Exception>();
+        void Release(List<Layer> layers)
+        {
+            if (layers == null) return;
+            foreach (var layer in layers)
+            {
+                if (layer == null) continue;
+                if (layer.Behaviour is DrawingLayerBehaviour drawing)
+                    try { ReleaseOwnedHistory(drawing); } catch (Exception error) { errors.Add(error); }
+                Release(layer.children);
+            }
+        }
+        Release(document.layers);
+        if (errors.Count != 0) throw new AggregateException("Owned history cursor cleanup failed.", errors);
+    }
     sealed class HistoryMemoryProbe
     {
         readonly long allocatedAt = GC.GetAllocatedBytesForCurrentThread();
@@ -171,6 +245,7 @@ public static partial class PaintTileHistoryTests
     static T Transfer<T>(string name) => (T)Type("PaintTileTransfer").GetProperty(name, S).GetValue(null);
     public static string RunQueued() => TestContext.Run("Queued strokes preserve exact revision order and bounded staging", t =>
     {
+        using var diskScope = new DiskScope();
         var previous = RenderTexture.active; bool srgb = GL.sRGBWrite; var mask = Mask();
         try
         {
@@ -217,6 +292,7 @@ public static partial class PaintTileHistoryTests
     });
     public static string RunRaw() => TestContext.Run("Uncompressed journal keeps exact patterned SDR/HDR pixels", t =>
     {
+        using var diskScope = new DiskScope();
         var previous = RenderTexture.active; bool srgb = GL.sRGBWrite; var mask = Mask();
         try
         {
@@ -284,6 +360,7 @@ public static partial class PaintTileHistoryTests
     }
     public static string RunSmall() => TestContext.Run("Block coverage, exact Half Undo, partial storage, disk journal", t =>
     {
+        using var diskScope = new DiskScope();
         var previous = RenderTexture.active; bool srgb = GL.sRGBWrite; var mask = Mask();
         try
         {

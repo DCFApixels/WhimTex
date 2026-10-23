@@ -33,6 +33,7 @@ public static class SourceTilingTests
         var source = new Texture2D(4, 4, TextureFormat.RGBAFloat, false, true)
             { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Point };
         var previous = RenderTexture.active; bool srgb = GL.sRGBWrite;
+        var ownedLayers = new System.Collections.Generic.List<Layer>();
         Color[] Render()
         {
             var image = doc.ComposeCanvas();
@@ -41,6 +42,7 @@ public static class SourceTilingTests
         try
         {
             var drawing = new Layer(new DrawingLayerBehaviour()); doc.layers.Add(drawing);
+            ownedLayers.Add(drawing);
             var paintTransform = (TextureTransform)typeof(WhimTexDocument).GetMethod("GetPaintTransform", Hidden).Invoke(doc, new object[] { drawing });
             t.Equal(TransformTilingMode.Clip, paintTransform.tiling, "Drawing paint guards receive resolved Clip");
             t.Equal(TransformTilingMode.Source, drawing.transform.tiling, "Painting does not materialize Source");
@@ -49,6 +51,7 @@ public static class SourceTilingTests
                 new ColorFillLayerBehaviour(), new GradientLayerBehaviour(), new NoiseLayerBehaviour() })
             {
                 var layer = new Layer(generator); layer.transform.scale = Vector2.one * .5f; doc.layers.Add(layer);
+                ownedLayers.Add(layer);
                 var intrinsic = Render(); layer.transform.tiling = TransformTilingMode.Unbounded;
                 Same(t, intrinsic, Render(), "Source matches explicit Unbounded for " + generator.GetType().Name);
                 doc.layers.Clear();
@@ -59,6 +62,7 @@ public static class SourceTilingTests
                 contour.points.Add(new VectorPoint(point));
             shape.contours.Add(contour); vector.shapes.Add(shape);
             var vectorLayer = new Layer(vector); vectorLayer.transform.scale = Vector2.one * .5f; doc.layers.Add(vectorLayer);
+            ownedLayers.Add(vectorLayer);
             var contextType = typeof(Layer).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext", true);
             var context = Activator.CreateInstance(contextType, new object[] { doc, null, 64, 64, 1f, true, true, null });
             var render = typeof(Layer).GetMethod("Render", Hidden);
@@ -102,7 +106,11 @@ public static class SourceTilingTests
             t.Equal(TransformTilingMode.Source, file.transform.tiling, "File still stores Source");
             t.True(RenderTexture.active == previous && GL.sRGBWrite == srgb, "Caller render state preserved");
         }
-        finally { Object.DestroyImmediate(doc); Object.DestroyImmediate(source); RenderTexture.active = previous; GL.sRGBWrite = srgb; }
+        finally
+        {
+            foreach (var layer in ownedLayers) typeof(Layer).GetMethod("ReleaseTransientResources", Hidden).Invoke(layer, null);
+            Object.DestroyImmediate(doc); Object.DestroyImmediate(source); RenderTexture.active = previous; GL.sRGBWrite = srgb;
+        }
     });
 
     static void Same(TestContext t, Color[] expected, Color[] actual, string label)

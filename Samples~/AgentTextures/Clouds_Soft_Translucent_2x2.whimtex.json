@@ -272,6 +272,7 @@
         "gain": 0.5,
         "weightedStrength": 0.0,
         "warp": "OpenSimplex2Reduced",
+        "warpSeed": 513,
         "warpStrength": 0.5,
         "warpScale": 1.0,
         "warpScaleY": 1.0,

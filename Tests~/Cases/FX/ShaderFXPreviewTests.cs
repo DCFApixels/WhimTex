@@ -128,7 +128,7 @@ float4 ApplyFX(float2 uv, float4 color) { return color; }
                 test.Near((x + .5) / 64.0, pixel.r, .0001, "Slider candidate value at pixel " + x);
                 test.Near(.25, pixel.g, .0001, "Real uniform remains unchanged");
             }
-            string directory = "Temp/WhimTex/fx-preview";
+            string directory = "Temp/WhimTex/fx-preview/" + Guid.NewGuid().ToString("N");
             Directory.CreateDirectory(directory);
             var display = new Texture2D(64, 16, TextureFormat.RGBA32, false);
             try { display.SetPixels(pixels.GetPixels()); display.Apply(); File.WriteAllBytes(directory + "/slider.png", display.EncodeToPNG()); }

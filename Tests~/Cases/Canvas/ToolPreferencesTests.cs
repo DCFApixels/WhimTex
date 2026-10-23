@@ -28,11 +28,25 @@ public static class ToolPreferencesTests
         }
         return result;
     }
-    public static string Run() => TestContext.Run("Unified tool preferences", t =>
+    public static string Run()
+    {
+        bool cleanupUncertain = false;
+        string result = TestContext.Run("Unified tool preferences", t =>
     {
         var assembly = typeof(WhimTexWindow).Assembly;
         var type = assembly.GetType("DCFApixels.WhimTex.WhimTexUserSettings+ToolPreferenceSession", true);
         var windows = new List<WhimTexWindow>(); var sessions = new List<IDisposable>();
+        var brushCallbacks = new List<Action>();
+        var previousFocus = EditorWindow.focusedWindow;
+        string[] borrowedKeys = {
+            "DCFApixels.WhimTex.Canvas.Tool", "DCFApixels.WhimTex.Canvas.TransformReturnTool",
+            "DCFApixels.WhimTex.Canvas.PaintToolSettings", "DCFApixels.WhimTex.Canvas.ToolSettings",
+            "DCFApixels.WhimTex.CommentAuthor", "DCFApixels.WhimTex.CommentAuthorColor", "DCFApixels.WhimTex.CommentAuthorId"
+        };
+        var borrowedPresent = new bool[borrowedKeys.Length];
+        var borrowedValues = new string[borrowedKeys.Length];
+        for (int i = 0; i < borrowedKeys.Length; i++)
+        { borrowedPresent[i] = EditorPrefs.HasKey(borrowedKeys[i]); borrowedValues[i] = EditorPrefs.GetString(borrowedKeys[i]); }
         var keys = new HashSet<string>(); string prefix = "DCFApixels.WhimTex.Tests.F26." + Guid.NewGuid().ToString("N") + ".";
         int writes = 0;
         Func<string, string> read = name => EditorPrefs.HasKey(prefix + name) ? EditorPrefs.GetString(prefix + name) : null;
@@ -42,19 +56,33 @@ public static class ToolPreferencesTests
             object session = Activator.CreateInstance(type, F, null, new object[] { read, write }, null);
             sessions.Add((IDisposable)session); return session;
         }
-        var bridge = Session(); object store = type.GetProperty("Store", F).GetValue(bridge);
+        object store = null;
+        void CaptureSession(WhimTexWindow window)
+        {
+            var session = Get(window, "toolPreferences") as IDisposable;
+            if (session == null) throw new InvalidOperationException("Owned window has no preference session; cleanup uncertain.");
+            if (!sessions.Contains(session)) sessions.Add(session);
+        }
         WhimTexWindow Window(bool reset = false)
         {
             var window = ScriptableObject.CreateInstance<WhimTexWindow>(); windows.Add(window);
-            Call(window, "InitializeToolPreferences", store);
+            CaptureSession(window); // Retain the initial real-store session before replacing it.
+            var restore = typeof(WhimTexWindow).GetMethod("RestoreBrushTipAfterReload", F);
+            var delayed = (EditorApplication.CallbackFunction)Delegate.CreateDelegate(typeof(EditorApplication.CallbackFunction), window, restore);
+            var projectChanged = (Action)Delegate.CreateDelegate(typeof(Action), window, restore);
+            brushCallbacks.Add(() => { EditorApplication.delayCall -= delayed; EditorApplication.projectChanged -= projectChanged; });
+            try { Call(window, "InitializeToolPreferences", store); }
+            finally { CaptureSession(window); } // Keep the intentionally shared GUID store, including partial initialization.
             if (reset) Call(Get(window, "toolPreferences"), "Reset");
             return window;
         }
         void Register(object session, Func<Pair> get, Action<Pair> set)
             => type.GetMethod("Register", F).MakeGenericMethod(typeof(Pair)).Invoke(session,
                 new object[] { "pair", get, set, (Func<Pair>)(() => new Pair()), null, null, null, true });
+        Exception primaryFailure = null;
         try
         {
+            var bridge = Session(); store = type.GetProperty("Store", F).GetValue(bridge);
             Pair a = new Pair(), b = new Pair(); var sa = Session(); var sb = Session();
             Register(sa, () => a, value => a = value); Register(sb, () => b, value => b = value);
             int initial = writes; a.a = 4;
@@ -188,11 +216,61 @@ public static class ToolPreferencesTests
             t.Equal("Text", Get(damaged, "canvasTool").ToString(), "Another window cannot switch the active tool on focus");
             var newDefault = Window(); t.Equal("Brush", Get(newDefault, "canvasTool").ToString(), "New window uses latest basic-tool preference");
         }
+        catch (Exception error) { primaryFailure = error; throw; }
         finally
         {
-            for (int i = windows.Count - 1; i >= 0; i--) if (windows[i] != null) UnityEngine.Object.DestroyImmediate(windows[i]);
-            foreach (var session in sessions) session.Dispose();
-            foreach (string key in keys) { if (!key.StartsWith(prefix, StringComparison.Ordinal)) throw new InvalidOperationException("Foreign preference key."); EditorPrefs.DeleteKey(key); }
+            var failures = new List<Exception>();
+            void Attempt(Action action) { try { action(); } catch (Exception error) { failures.Add(error); } }
+            // Keep the original OnDisable flush/roundtrip path: destroy windows before disposing captured sessions.
+            for (int i = windows.Count - 1; i >= 0; i--)
+            { var owned = windows[i]; Attempt(() => { if (owned != null) UnityEngine.Object.DestroyImmediate(owned); }); }
+            bool sessionsStopped = true;
+            foreach (var session in sessions)
+            {
+                Attempt(session.Dispose);
+                Attempt(() =>
+                {
+                    bool stopped;
+                    try { stopped = (bool)Get(session, "disposed"); }
+                    catch { sessionsStopped = false; throw; }
+                    if (!stopped)
+                    {
+                        sessionsStopped = false;
+                        throw new InvalidOperationException("Owned preference session remains live; retain GUID store " + prefix);
+                    }
+                });
+            }
+            foreach (var detach in brushCallbacks) Attempt(detach);
+            if (sessionsStopped) foreach (string key in keys) Attempt(() =>
+            {
+                if (!key.StartsWith(prefix, StringComparison.Ordinal)) throw new InvalidOperationException("Foreign preference key.");
+                EditorPrefs.DeleteKey(key);
+            });
+            for (int i = 0; i < borrowedKeys.Length; i++)
+            {
+                int index = i;
+                Attempt(() => { if (borrowedPresent[index]) EditorPrefs.SetString(borrowedKeys[index], borrowedValues[index]); else EditorPrefs.DeleteKey(borrowedKeys[index]); });
+            }
+            Attempt(() => { if (previousFocus != null && EditorWindow.focusedWindow != previousFocus) previousFocus.Focus(); });
+            for (int i = 0; i < borrowedKeys.Length; i++)
+            {
+                int index = i;
+                Attempt(() =>
+                {
+                    if (EditorPrefs.HasKey(borrowedKeys[index]) != borrowedPresent[index] ||
+                        (borrowedPresent[index] && EditorPrefs.GetString(borrowedKeys[index]) != borrowedValues[index]))
+                        throw new InvalidOperationException("Preference changed after cleanup/focus: " + borrowedKeys[index]);
+                });
+            }
+            if (failures.Count != 0)
+            {
+                cleanupUncertain = true;
+                if (primaryFailure != null) failures.Insert(0, primaryFailure);
+                throw new AggregateException("F26 owned cleanup uncertain; do not start another batch. GUID store: " + prefix, failures);
+            }
         }
-    });
+        });
+        // TestContext emits a JSON object; retain the runner lock after unresolved owned cleanup.
+        return cleanupUncertain ? result.Substring(0, result.Length - 1) + ",\"recoveryRequired\":true}" : result;
+    }
 }

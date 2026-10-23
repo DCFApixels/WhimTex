@@ -205,7 +205,11 @@ float4 Far(float2 uv){return SampleInput(float2(.03,.94));}
                     File.WriteAllText(Path.Combine(directory, "report.json"), json);
                     if (!json.Contains("\"frames\":[")) throw new InvalidOperationException("Per-update metrics were not serialized.");
                 },
-                () => { if (window != null) window.Close(); },
+                () =>
+                {
+                    try { if (window != null && window.rootVisualElement.panel != null) window.Close(); }
+                    finally { if (window != null) Object.DestroyImmediate(window); }
+                },
                 () => { if (displayed != null) RenderTexture.ReleaseTemporary(displayed); },
                 () => RenderTexture.ReleaseTemporary(fence),
                 () => Call(drawing, "CancelStroke"),

@@ -212,6 +212,19 @@ public static class PlayerReleaseTests
             throw new InvalidOperationException("Editor must be idle; do not compile/build/mutate concurrently.");
     }
     static bool InFlight(State s) => s.phase == "queued" || s.phase == "building";
+    static void RequireCleanLoadedScenes()
+    {
+        var dirty = new List<string>();
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            var scene = SceneManager.GetSceneAt(i);
+            if (scene.IsValid() && scene.isLoaded && scene.isDirty)
+                dirty.Add(scene.name + " (" + (string.IsNullOrEmpty(scene.path) ? "unsaved scene" : scene.path) + ")");
+        }
+        if (dirty.Count != 0)
+            throw new InvalidOperationException("DEFER: Player workflow requires clean loaded scenes: " +
+                string.Join(", ", dirty) + ". Resolve unsaved edits explicitly; this fixture never saves or discards them.");
+    }
     static void Quiescent(State s)
     {
         EditorIdle();
@@ -323,7 +336,7 @@ public static class PlayerReleaseTests
         var r = new Result { runId = runId, message = "Install owned native Player probe; parent must wait for native compilation/reload" };
         try
         {
-            string id = Id(runId); EditorIdle(); LiveIdle(); var target = Target();
+            string id = Id(runId); EditorIdle(); RequireCleanLoadedScenes(); LiveIdle(); var target = Target();
             string output = Output(id), folder = AssetRoot + "/" + id; NoLinks(output); NoLinks(folder);
             Check(r, !Directory.Exists(output) && !File.Exists(output) && !Directory.Exists(folder) &&
                 !File.Exists(folder) && !File.Exists(folder + ".meta"), "GUID output/asset paths are fresh.");
@@ -531,6 +544,7 @@ public static class PlayerReleaseTests
         Check(r, doc != null && IsLiveFor(doc) && LivePath == s.document && ((ColorFillLayerBehaviour)doc.layers[0].Behaviour).color == Color.red,
             "RestartPlayerLive must precede Trigger, including after parent compilation.");
         Check(r, Hash(s.document) == s.savedHash, "Saved green bytes intact before build.");
+        RequireCleanLoadedScenes(); // Recheck after preparation, before arming any native build.
         s.attempt++; string attempt = AttemptDirectory(s); NoLinks(attempt);
         Check(r, !Directory.Exists(attempt) && !File.Exists(attempt), "Build attempt output is fresh.");
         Directory.CreateDirectory(attempt); s.phase = "queued"; WriteState(s);

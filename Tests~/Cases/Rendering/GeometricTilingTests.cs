@@ -133,7 +133,7 @@ public static class GeometricTilingTests
                 }
                 image.SetPixels(side * 128, 0, 128, 96, display);
             }
-            image.Apply(); Directory.CreateDirectory("Temp/WhimTex"); File.WriteAllBytes("Temp/WhimTex/shape-tiling-preview.png", image.EncodeToPNG());
+            image.Apply(); Directory.CreateDirectory("Temp/WhimTex"); File.WriteAllBytes("Temp/WhimTex/shape-tiling-preview-" + System.Guid.NewGuid().ToString("N") + ".png", image.EncodeToPNG());
         }
         finally { Object.DestroyImmediate(image); }
     }

@@ -160,8 +160,10 @@ public static class PixelScaleFxTests
                 x >= 13 && x <= 35 && y >= 10 && y <= 26 ? 1f : 0f);
         texture.SetPixels(input); texture.Apply(false, false);
         Layer leaf = new FileLayerBehaviour { sourceTexture = texture }; leaf.colorRange = LayerColorRange.HDR;
+        var ownedLayers = new List<Layer> { leaf };
         void Compare(Layer effect, Action twice, Action restore, string name)
         {
+            if (!ownedLayers.Contains(effect)) ownedLayers.Add(effect);
             doc.layers.Clear(); doc.layers.Add(effect); doc.layers.Add(leaf); effect.colorRange = LayerColorRange.HDR;
             foreach (int size in new[] { 49, 25 })
             {
@@ -174,6 +176,8 @@ public static class PixelScaleFxTests
                 C.Near(0, maximum, .002, name + " matches explicit physical dimensions, preview " + size);
             }
         }
+        try
+        {
         var gaussian = new BlurLayerBehaviour { radius = 3 };
         Compare(gaussian, () => gaussian.radius = 6, () => gaussian.radius = 3, "Gaussian radius");
         var linear = new BlurLayerBehaviour { mode = BlurType.Linear, distance = 6, angle = 27 };
@@ -211,5 +215,12 @@ public static class PixelScaleFxTests
             smoothing = 1, mediumRadius = 2, largeRadius = 4, strength = 4 };
         Compare(normal, () => { normal.smoothing = 2; normal.mediumRadius = 4; normal.largeRadius = 8; normal.strength = 8; },
             () => { normal.smoothing = 1; normal.mediumRadius = 2; normal.largeRadius = 4; normal.strength = 4; }, "Normal surface lengths");
+        }
+        finally
+        {
+            // Keep every detached test layer reachable by the owned document's resource cleanup.
+            doc.layers.Clear();
+            doc.layers.AddRange(ownedLayers);
+        }
     }
 }

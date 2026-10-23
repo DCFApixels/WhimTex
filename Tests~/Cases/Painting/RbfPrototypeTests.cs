@@ -63,10 +63,10 @@ public static class RbfPrototypeTests
             try
             {
                 var watch = Stopwatch.StartNew();
-                cacheCompute.Invoke(cache, new object[] { input, result, w, h, (byte)128, 0, DistanceMetric.Rbf, 4f });
+                cacheCompute.Invoke(cache, new object[] { input, result, w, h, (byte)128, 0, DistanceMetric.Rbf, 4f, SharpDistanceMode.Unrestricted });
                 double firstMs = watch.Elapsed.TotalMilliseconds;
                 watch.Restart();
-                cacheCompute.Invoke(cache, new object[] { input, repeated, w, h, (byte)128, 0, DistanceMetric.Rbf, 4f });
+                cacheCompute.Invoke(cache, new object[] { input, repeated, w, h, (byte)128, 0, DistanceMetric.Rbf, 4f, SharpDistanceMode.Unrestricted });
                 timings.AppendLine($"{shape}: first={firstMs:F3}ms retained={watch.Elapsed.TotalMilliseconds:F3}ms");
                 t.Equal(1, (int)count.GetValue(cache), shape + " retains field for repeated remap requests");
                 int nonfinite = 0, altered = 0, wrongSign = 0;
@@ -81,7 +81,7 @@ public static class RbfPrototypeTests
                 t.Equal(0, altered, shape + " exact retained result");
                 t.Equal(0, wrongSign, shape + " no sign inversion away from the boundary");
                 if (shape != "empty") t.True(result[19 * w + 23] < 0 && result[0] > 0, shape + " inside/outside sign");
-                cacheCompute.Invoke(cache, new object[] { input, repeated, w, h, (byte)128, 0, DistanceMetric.Rbf, 1f });
+                cacheCompute.Invoke(cache, new object[] { input, repeated, w, h, (byte)128, 0, DistanceMetric.Rbf, 1f, SharpDistanceMode.Unrestricted });
                 t.Equal(1, (int)prepared.GetValue(cache), shape + " miter reuses RBF preparation");
                 t.Equal(1, (int)count.GetValue(cache), shape + " unrestricted RBF ignores Miter Limit without rebuilding");
                 double miterDifference = 0;

@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using DCFApixels.WhimTex;
 using WhimTex.Tests;
+using WhimTex.Tests.UnityA;
 using Json = ProfilerTests.Json;
 
 public static class ProfilerCoverageTests
@@ -34,7 +35,8 @@ public static class ProfilerCoverageTests
         var status = Json.Parse(WhimTexApi.ProfileJson("{\"apiVersion\":1,\"action\":\"status\"}"))["capture"];
         if (status.Type != "Null" && ((bool)status["recording"] || (int)status["openSpans"] != 0 || (int)status["pendingGpuSamples"] != 0))
             return TestContext.Result("skipped", 0, "Requires idle profiler; retained stopped capture is preserved.").ToJson();
-        return TestContext.Run("Editor coverage, recomputation reasons, document isolation and pixel parity", t =>
+        bool cleanupUncertain = false;
+        string result = TestContext.Run("Editor coverage, recomputation reasons, document isolation and pixel parity", t =>
         {
             var captureField = Profiler.GetField("capture", Static);
             object previousCapture = captureField.GetValue(null);
@@ -46,16 +48,38 @@ public static class ProfilerCoverageTests
                 dictionaries.Add(dictionary, dictionary.Keys.Cast<object>().Select(key => new DictionaryEntry(key, dictionary[key])).ToArray());
             }
             long previousChange = (long)Profiler.GetField("nextChange", Static).GetValue(null);
-            var activeRt = RenderTexture.active; bool srgb = GL.sRGBWrite;
+            try
+            {
+            UnityAScope.RunOwned(scope =>
+            {
+            // Registered first so borrowed profiler state is restored after every owned resource.
+            scope.Finally(() => captureField.SetValue(null, previousCapture));
+            scope.Finally(() => Profiler.GetField("current", Static).SetValue(null, -1));
+            scope.Finally(() => Profiler.GetField("nextChange", Static).SetValue(null, previousChange));
+            foreach (var pair in dictionaries)
+                scope.Finally(() => { pair.Key.Clear(); foreach (var entry in pair.Value) pair.Key.Add(entry.Key, entry.Value); });
+            scope.Finally(() =>
+            {
+                if (!ReferenceEquals(captureField.GetValue(null), previousCapture)) Profile("Stop", "test_cleanup");
+            });
+            var activeRt = RenderTexture.active;
             WhimTexWindow window = null;
-            var documents = new List<WhimTexDocument>();
             object cache = null;
             Texture2D texture = null;
             WhimTexDocument OwnDocument()
             {
-                var document = ScriptableObject.CreateInstance<WhimTexDocument>();
+                var document = scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
+                scope.Finally(() =>
+                {
+                    if (document == null) return;
+                    UnityAScope.RunCleanup(null, document.layers.Select(layer => (Action)(() =>
+                    {
+                        if (layer.Behaviour is DrawingLayerBehaviour drawing && Get(drawing, "pixels") is Texture2D pixels)
+                            Undo.ClearUndo(pixels);
+                    })).ToArray());
+                });
                 document.width = document.height = 32; document.hideFlags = HideFlags.HideAndDontSave;
-                documents.Add(document); return document;
+                return document;
             }
             Color[] Render(WhimTexDocument document)
             {
@@ -82,10 +106,9 @@ public static class ProfilerCoverageTests
                 Undo.ClearUndo(pixels); // Only the fixture's texture, never the global undo stack.
                 return pixels.GetPixels();
             }
-            try
             {
                 var document = OwnDocument(); var other = OwnDocument();
-                texture = new Texture2D(32, 32, TextureFormat.RGBA32, false, true) { hideFlags = HideFlags.HideAndDontSave };
+                texture = scope.OwnObject(new Texture2D(32, 32, TextureFormat.RGBA32, false, true) { hideFlags = HideFlags.HideAndDontSave });
                 var pixels = new Color32[1024];
                 for (int y = 0; y < 32; y++) for (int x = 0; x < 32; x++)
                     pixels[y * 32 + x] = new Color32(255, 255, 255, (byte)(x > 8 && x < 24 && y > 6 && y < 25 ? 255 : 0));
@@ -95,9 +118,10 @@ public static class ProfilerCoverageTests
                 document.layers.Add(sdf); document.layers.Add(file); Invoke(document, "NormalizeModel");
                 sdf.TargetLayerId = file.Id; file.layerName = "Owned source"; sdf.layerName = "Owned dependent";
                 other.layers.Add(new ColorFillLayerBehaviour()); Invoke(other, "NormalizeModel");
-                window = ScriptableObject.CreateInstance<WhimTexWindow>();
+                window = scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
                 Invoke(window, "SetDocument", document);
                 cache = Activator.CreateInstance(Package.GetType("DCFApixels.WhimTex.EffectRenderCache", true), true);
+                scope.Finally(() => (cache as IDisposable)?.Dispose());
                 var baseline = Render(document); ((IDisposable)cache).Dispose();
                 var brushBaseline = Paint(OwnDocument());
 
@@ -185,7 +209,7 @@ public static class ProfilerCoverageTests
                 string events = Read()["events"].ToString();
                 t.Equal(0, (int)Read()["capture"]["openSpans"], "All measured operations complete");
                 t.True(Events().Where(e => (string)e["kind"] == "reason").All(e => (double)e["durationMs"] == 0 && e["selfMs"].Type == "Null"), "Reasons are instantaneous, without self timing");
-                var profilerWindow = (EditorWindow)ScriptableObject.CreateInstance(Package.GetType("DCFApixels.WhimTex.WhimTexProfilerWindow", true));
+                var profilerWindow = scope.OwnWindow((EditorWindow)ScriptableObject.CreateInstance(Package.GetType("DCFApixels.WhimTex.WhimTexProfilerWindow", true)));
                 try
                 {
                     Invoke(profilerWindow, "CreateGUI");
@@ -196,7 +220,7 @@ public static class ProfilerCoverageTests
                     Invoke(profilerWindow, "SelectEvent", new object[] { new object[] { requests.Single(e => (string)e["detail"] == "brush.live").Raw } });
                     t.True(((Label)Get(profilerWindow, "detailInfo")).text.Contains("Occurrences: 2"), "Request aggregation is readable without raw JSON");
                 }
-                finally { UnityEngine.Object.DestroyImmediate(profilerWindow); }
+                finally { UnityAScope.RunCleanup(null, () => UnityAScope.CloseOwned(profilerWindow)); }
                 using (var stream = new MemoryStream())
                 {
                     Profile("WriteSnapshot", stream, capture); stream.Position = 0;
@@ -204,26 +228,13 @@ public static class ProfilerCoverageTests
                     t.Equal(events, Read()["events"].ToString(), "New provenance survives the reload serialization codec exactly");
                 }
             }
-            finally
-            {
-                captureField.SetValue(null, previousCapture);
-                Profiler.GetField("current", Static).SetValue(null, -1);
-                Profiler.GetField("nextChange", Static).SetValue(null, previousChange);
-                foreach (var pair in dictionaries) { pair.Key.Clear(); foreach (var entry in pair.Value) pair.Key.Add(entry.Key, entry.Value); }
-                if (window != null) UnityEngine.Object.DestroyImmediate(window);
-                (cache as IDisposable)?.Dispose();
-                foreach (var document in documents) if (document != null)
-                {
-                    foreach (var layer in document.layers)
-                        if (layer.Behaviour is DrawingLayerBehaviour drawing && Get(drawing, "pixels") is Texture2D pixels)
-                            Undo.ClearUndo(pixels);
-                    UnityEngine.Object.DestroyImmediate(document);
-                }
-                if (texture != null) UnityEngine.Object.DestroyImmediate(texture);
-                RenderTexture.active = activeRt; GL.sRGBWrite = srgb;
+            });
             }
+            catch (Exception error) when (error.Data.Contains("WhimTexCleanupFailure"))
+            { cleanupUncertain = true; throw; }
             t.True(ReferenceEquals(previousCapture, captureField.GetValue(null)), "Retained user capture restored");
             if (previousCapture != null) t.Equal(previousEvents, Read()["events"].ToString(), "User capture events untouched");
         });
+        return cleanupUncertain ? result.Substring(0, result.Length - 1) + ",\"recoveryRequired\":true}" : result;
     }
 }

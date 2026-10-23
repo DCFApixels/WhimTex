@@ -56,9 +56,9 @@ public static class FillPatternTests
         {
             fill.pattern.Size = new Vector2(29,29);
             Check(fill.pattern.Size == new Vector2(29,29), "Explicit axes");
-            using (var legacyFile = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"pattern\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"pattern\":{\"size\":37}}}]}", false))
-                Check(((ColorFillLayerBehaviour)legacyFile.Document.layers[0].Behaviour).pattern.Size == new Vector2(37,37),
-                    "0.12.5 file scalar normalized at read");
+            using (var currentFile = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"pattern\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"pattern\":{\"size\":37,\"sizeY\":37}}}]}", false))
+                Check(((ColorFillLayerBehaviour)currentFile.Document.layers[0].Behaviour).pattern.Size == new Vector2(37,37),
+                    "Current-format explicit axes retained at read");
             Check(new FillPatternSettings().Size == new Vector2(64,64), "Modern explicit defaults");
             fill.pattern.Size = new Vector2(29,17); fill.pattern.seamless = true;
             fill.pattern.offset = new Vector2(13.2f,-7.3f);

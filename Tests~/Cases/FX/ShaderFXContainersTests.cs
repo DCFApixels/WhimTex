@@ -222,21 +222,50 @@ float4 ApplyFX(float2 uv, float4 color) { return color * _Amount; }
 
     static void Release(object[] s)
     {
-        if (s[0] is EditorWindow window && window != null) window.Close();
-        if (s[1] is ShaderFX effect && effect != null)
+        var errors = new System.Collections.Generic.List<Exception>();
+        void ReleaseOwned(Action action)
         {
-            Undo.ClearUndo(effect);
-            var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
-            var keys = new HashSet<string>();
-            foreach (var p in values) foreach (var c in p.controls) foreach (var scope in c.containers)
-            {
-                string key = "WhimTex.FX.Layout." + typeof(ShaderFX).GetProperty("ShaderKey", F).GetValue(effect) + "." + scope.kind + "." + scope.id + "." + scope.title;
-                if (keys.Add(key)) { SessionState.EraseBool(key); SessionState.EraseInt(key); }
-            }
-            UnityEngine.Object.DestroyImmediate(effect);
+            try { action(); }
+            catch (Exception error) { errors.Add(error); }
         }
-        if (s[2] is EditorWindow focus && focus != null) focus.Focus();
-        s[0] = null; s[1] = null;
+        ReleaseOwned(() =>
+        {
+            if (s[0] is EditorWindow window && window != null)
+            {
+                try { if (window.rootVisualElement.panel != null) window.Close(); }
+                finally { if (window != null) UnityEngine.Object.DestroyImmediate(window); }
+            }
+            s[0] = null;
+        });
+        ReleaseOwned(() =>
+        {
+            if (s[1] is ShaderFX effect && effect != null)
+            {
+                try
+                {
+                    Undo.ClearUndo(effect);
+                    var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
+                    var keys = new HashSet<string>();
+                    foreach (var p in values) foreach (var c in p.controls) foreach (var scope in c.containers)
+                    {
+                        string key = "WhimTex.FX.Layout." + typeof(ShaderFX).GetProperty("ShaderKey", F).GetValue(effect) + "." + scope.kind + "." + scope.id + "." + scope.title;
+                        if (keys.Add(key)) { SessionState.EraseBool(key); SessionState.EraseInt(key); }
+                    }
+                }
+                finally { UnityEngine.Object.DestroyImmediate(effect); }
+            }
+            s[1] = null;
+        });
+        ReleaseOwned(() =>
+        {
+            if (s[2] is EditorWindow focus && focus != null) focus.Focus(); s[2] = null;
+        });
+        if (errors.Count != 0)
+        {
+            var failure = new AggregateException("Owned FX fixture cleanup unfinished; retry cleanup before another run", errors);
+            s[3] = TestContext.Result("failed", 0, "Cleanup requires recovery; prior result: " + s[3], failure.ToString()).ToJson();
+            throw failure;
+        }
     }
     public static string Poll(string id) => AppDomain.CurrentDomain.GetData(Key(id)) is object[] s && s[3] is string done ? done : TestContext.Result("running", 0, "Container UI pending").ToJson();
     public static string Cleanup(string id)

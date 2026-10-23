@@ -68,7 +68,9 @@ public static class PaintToolSettingsTests
         var parseTool = windowType.GetMethod("ParseCanvasTool", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
         foreach (string name in System.Enum.GetNames(toolType))
         {
-            bool basic = (int)System.Enum.Parse(toolType, name) <= (int)System.Enum.Parse(toolType, "Shape") || name == "HealingBrush" || name == "SmudgeBrush";
+            bool basic = (int)System.Enum.Parse(toolType, name) <= (int)System.Enum.Parse(toolType, "Shape") ||
+                name == "HealingBrush" || name == "SmudgeBrush" || name == "Text" || name == "Gradient" ||
+                name == "Crop" || name == "Comment" || name == "VectorPen" || name == "VectorNodes" || name == "VectorBrush";
             Check(parseTool.Invoke(null, new object[] { name }).ToString() == (basic ? name : "None"),
                 "Only base tools survive preferences: " + name);
         }

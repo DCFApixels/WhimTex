@@ -41,7 +41,7 @@ context.case("LayerComposition original assertion inputs and source contracts", 
   const referenceEquals = (a,b) => a === b;
   function extract(signature) {
     const code = body(signature)
-      .replaceAll('value is GroupLayerBehaviour', 'value instanceof GroupLayerBehaviour')
+      .replaceAll('children.Count', 'children.length')
       .replaceAll('new List<Layer>()', '[]')
       .replaceAll('new InvalidOperationException(', 'new Error(')
       .replaceAll('new ArgumentException(', 'new Error(')
@@ -63,7 +63,7 @@ context.case("LayerComposition original assertion inputs and source contracts", 
   }
   function payload(id, group=false) {
     return Object.assign(group ? new GroupLayerBehaviour() : {}, {
-      RecoveryId:id, owner:null, releases:0,
+      RecoveryId:id, IsGroup:group, owner:null, releases:0,
       ValidateOwner(next) { if(this.owner && this.owner !== next && this.owner.behaviour === this) throw Error('shared'); },
       Bind(next) { this.ValidateOwner(next); this.owner=next; },
       OnDetached() { this.ReleaseTransientResources(); },

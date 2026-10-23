@@ -101,6 +101,7 @@ public static class CropToolTests
         Layer layer = new ColorFillLayerBehaviour { color = Color.white }; document.layers.Add(layer);
         var window = scope.Own(ScriptableObject.CreateInstance<WhimTexWindow>());
         WhimTexDocument other = null;
+        scope.Own((WhimTexDocument)Read(window, "activeDocument"));
         Write(window, "activeDocument", document);
         job.OwnCleanup(() => { if (document != null) Undo.ClearUndo(document); if (window != null) Undo.ClearUndo(window); if (other != null) Undo.ClearUndo(other); });
         window.ShowUtility(); window.position = new Rect(60, 60, 1400, 800); window.CreateGUI();
@@ -161,7 +162,7 @@ public static class CropToolTests
         SelectMode("Scale"); SelectMode("Resize");
         t.True(cropButton.tooltip.Contains("Crop: Resize"), "Header mode changes synchronize the toolbar");
         t.True(root.Q<Button>("cropTool").ClassListContains("whimtex-tool-button--selected"), "Crop has a selected toolbar button");
-        t.Equal(1, root.Query<Button>(className: "whimtex-tool-button--selected").ToList().Count, "One basic tool is selected");
+        t.Equal(1, root.Q("canvasTools").Query<Button>(className: "whimtex-tool-button--selected").ToList().Count, "One basic tool is selected");
         t.Equal(new RectInt(0, 0, 320, 240), Frame(window), "Initial frame is the full canvas");
         t.True(!root.Q<Button>("cropApply").enabledSelf, "Apply is disabled for unchanged bounds");
         foreach (string name in OrientationButtons)
@@ -187,7 +188,7 @@ public static class CropToolTests
         t.Near(1, pixelScale.value, 0, "Initial Crop draft uses the document multiplier");
         t.True(autoPixelScale != null && autoPixelScale.value, "Automatic pixel sizes start enabled");
         t.True(pixelScale.enabledSelf, "Resize permits manual pixel sizes");
-        t.True(autoPixelScale.resolvedStyle.display == DisplayStyle.None, "Automatic fitting is specific to Scale");
+        t.True(autoPixelScale.ClassListContains("whimtex-hidden"), "Automatic fitting is specific to Scale");
         pixelScale.value = 1.75f;
         t.Near(1.75, (float)Call(window, "GetCanvasCropPixelScale"), 0, "Resize keeps a manual multiplier draft");
         t.Equal(documentBefore, EditorJsonUtility.ToJson(document), "Manual Pixel Scale does not mutate the document before Apply");
@@ -352,7 +353,7 @@ public static class CropToolTests
         Key(canvas, KeyCode.Escape); Pointer(canvas, EventType.MouseUp, first);
         var applied = new RectInt(-11, 23, 200, 120); SetFrame(window, applied);
         await Tick(root, token);
-        string preview = System.IO.Path.GetFullPath("Temp/WhimTex/crop-tool-preview.png");
+        string preview = System.IO.Path.GetFullPath("Temp/WhimTex/crop-tool-preview-" + scope.Token + ".png");
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(preview));
         await WhimTex.Tests.UnityA.UnityACapture.Capture(window, preview, token);
         Key(canvas, KeyCode.Return); await Tick(root, token);
@@ -512,7 +513,7 @@ public static class CropToolTests
             Vector2 normal = (Vector2)Read(guides[index], "normal");
             scaleGuidePoints[index] = Vector2.Scale(normal * ((float)Read(guides[index], "position") / normal.sqrMagnitude), stretch);
         }
-        await WhimTex.Tests.UnityA.UnityACapture.Capture(window, System.IO.Path.GetFullPath("Temp/WhimTex/crop-scale-preview.png"), token);
+        await WhimTex.Tests.UnityA.UnityACapture.Capture(window, System.IO.Path.GetFullPath("Temp/WhimTex/crop-scale-preview-" + scope.Token + ".png"), token);
         PublicInput.Click(root.Q<Button>("cropApply")); await Tick(root, token);
         var scaledSize = new Vector2Int(scaleDraft.width, scaleDraft.height);
         t.Equal(scaledSize, new Vector2Int(document.width, document.height), "Scale applies the preview width and height");

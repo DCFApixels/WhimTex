@@ -51,6 +51,7 @@ public static class HealingNoiseSeamDiagnosticTests
     static async Task<string> ExecuteMain()
     {
         UnityBHealing.RequireIdle();
+        using var ownedJournal = new PaintTileHistoryTests.DiskScope();
         var focused = EditorWindow.focusedWindow;
         const string pref = "DCFApixels.WhimTex.Canvas.Tool";
         bool hadPref = EditorPrefs.HasKey(pref); string oldPref = EditorPrefs.GetString(pref);
@@ -99,8 +100,9 @@ public static class HealingNoiseSeamDiagnosticTests
                         var selection = Call(window, "GetAreaSelection");
                         Set(window, "healingDocument", document); Set(window, "healingLayer", drawing);
                         Set(window, "healingCanvasSize", new Vector2Int(N, N));
+                        Set(window, "healingPixelScale", Call(document, "GetPixelScale"));
                         Set(window, "healingSelectionRevision", (int)selection.GetType().GetProperty("Revision", F).GetValue(selection));
-                        var transform = (TextureTransform)Call(document, "GetCanvasTransform", (Layer)drawing);
+                        var transform = (TextureTransform)Call(document, "GetPaintTransform", (Layer)drawing);
                         Set(window, "healingTransform", transform.ToMatrix(N, N));
                         Call(window, "BeginHealingStroke", vertical ? new Vector2(0, -8) : new Vector2(-8, 0));
                         Call(Get(window, "healingStroke"), "Add", vertical ? new Vector2(0, N + 8) : new Vector2(N + 8, 0));
@@ -156,7 +158,15 @@ public static class HealingNoiseSeamDiagnosticTests
                 }
                 finally
                 {
-                    if (window != null) { await UnityBHealing.StopAndDrain(window); UnityBRun.CloseOwned(window); }
+                    if (window != null)
+                    {
+                        try { await UnityBHealing.StopAndDrain(window); }
+                        finally
+                        {
+                            try { PaintTileHistoryTests.ReleaseOwnedHistory(document); }
+                            finally { UnityBRun.CloseOwned(window); }
+                        }
+                    }
                     if (document != null) { Undo.ClearUndo(document); UnityEngine.Object.DestroyImmediate(document); }
                     if (source != null) { Undo.ClearUndo(source); UnityEngine.Object.DestroyImmediate(source); }
                 }

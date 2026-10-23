@@ -294,9 +294,9 @@ public static class DistanceContourMergeTests
             const BindingFlags flags = BindingFlags.Public | BindingFlags.Static;
             scalar = type.GetMethod("ComputeArtisticDistance",flags,null,new[] {
                 typeof(NativeArray<Color32>),typeof(NativeArray<float>),typeof(int),typeof(int),
-                typeof(byte),typeof(int),typeof(DistanceMetric),typeof(float),typeof(float) },null);
+                typeof(byte),typeof(int),typeof(DistanceMetric),typeof(float),typeof(float),typeof(SharpDistanceMode) },null);
             multi = type.GetMethod("ComputeMtsdfDistance",flags,null,new[] {
-                typeof(NativeArray<Color32>),typeof(NativeArray<float4>),typeof(int),typeof(int),typeof(byte),typeof(int),typeof(float) },null);
+                typeof(NativeArray<Color32>),typeof(NativeArray<float4>),typeof(int),typeof(int),typeof(byte),typeof(int),typeof(float),typeof(SharpDistanceMode) },null);
             test.True(scalar != null && multi != null,"Package scalar and MTSDF merge entries exist");
         }
         public void CheckTime() => DistanceContourMergeTests.CheckTime(clock);
@@ -313,7 +313,7 @@ public static class DistanceContourMergeTests
             using var output = new NativeArray<float>(source.Length,Allocator.TempJob);
             var writable = output;
             for (int i=0;i<output.Length;i++) writable[i]=float.NaN;
-            scalar.Invoke(null,new object[] { pixels,output,size,size,(byte)128,0,DistanceMetric.Sharp,64f,merge });
+            scalar.Invoke(null,new object[] { pixels,output,size,size,(byte)128,0,DistanceMetric.Sharp,64f,merge,SharpDistanceMode.GuardedSharp });
             var result = output.ToArray();
             int invalid=0;
             foreach (float value in result) if (!float.IsFinite(value)) invalid++;
@@ -327,7 +327,7 @@ public static class DistanceContourMergeTests
             using var output = new NativeArray<float4>(source.Length,Allocator.TempJob);
             var writable = output;
             for (int i=0;i<output.Length;i++) writable[i]=new float4(float.NaN);
-            multi.Invoke(null,new object[] { pixels,output,size,size,(byte)128,0,merge });
+            multi.Invoke(null,new object[] { pixels,output,size,size,(byte)128,0,merge,SharpDistanceMode.GuardedSharp });
             var result = output.ToArray();
             int invalid=0;
             foreach (float4 value in result) for (int c=0;c<4;c++) if (!float.IsFinite(value[c])) invalid++;

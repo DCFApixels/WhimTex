@@ -180,14 +180,14 @@ public static class ShapeFeatherTests
                 var strokeField = ui.Query<Toggle>().ToList().Find(f => f.label == "Stroke");
                 var thicknessField = ui.Query<FloatField>().ToList().Find(f => f.label == "Thickness (px)");
                 var widthField = ui.Query<FloatField>().ToList().Find(f => f.label == "Stroke Width (px)");
-                var positionField = ui.Query<EnumField>().ToList().Find(f => f.label == "Stroke Position");
+                var positionField = ui.Q<BaseField<VectorStrokePosition>>("strokePosition");
                 Check(!fillField.ClassListContains("whimtex-hidden") && !strokeField.ClassListContains("whimtex-hidden"), "Arc shows Fill and Stroke independently");
                 Check(thicknessField != null && !thicknessField.ClassListContains("whimtex-hidden"), "Arc shows body thickness");
                 Check(!widthField.enabledSelf, "Arc outline width is disabled without Stroke");
                 thicknessField.value = 24;
                 Check(shape.arcThickness == 24 && shape.strokeWidth == 12, "Arc body edit leaves outline width unchanged");
                 strokeField.value = true;
-                Check(widthField.enabledSelf && !positionField.ClassListContains("whimtex-hidden"), "Arc enables outline width and position with Stroke");
+                Check(widthField.enabledSelf && positionField != null && !positionField.parent.ClassListContains("whimtex-hidden"), "Arc enables outline width and position with Stroke");
                 widthField.value = 3;
                 Check(shape.strokeWidth == 3 && shape.arcThickness == 24, "Arc outline edit leaves body unchanged");
                 fillField.value = false;

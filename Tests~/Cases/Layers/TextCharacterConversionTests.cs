@@ -65,7 +65,7 @@ public static class TextCharacterConversionTests
             foreach (var mode in new[] { VectorFillMode.LinearGradient, VectorFillMode.RadialGradient,
                 VectorFillMode.SquareGradient, VectorFillMode.AngularGradient })
             {
-                var doc = Document(); var source = Source(); source.fillMode = mode;
+                var source = Source(); var doc = Document(); source.fillMode = mode;
                 var fx = ScriptableObject.CreateInstance<ShaderFX>(); fx.hideFlags = HideFlags.HideAndDontSave;
                 typeof(ShaderFX).GetField("code", F).SetValue(fx, "float4 ApplyFX(float2 uv, float4 color) { float2 p = LayerToLocal(uv); return color * float4(.3 + .6 * saturate(p.x), .3 + .6 * saturate(p.y), .6, .75); }");
                 try
@@ -154,7 +154,7 @@ public static class TextCharacterConversionTests
                 finally { Undo.ClearUndo(doc); Object.DestroyImmediate(doc); if (fx != null) Object.DestroyImmediate(fx); }
             }
             EdgeCases(t);
-            sheet.Apply(); Directory.CreateDirectory("Temp/WhimTex"); File.WriteAllBytes("Temp/WhimTex/text-character-conversion.png", sheet.EncodeToPNG());
+            sheet.Apply(); Directory.CreateDirectory("Temp/WhimTex"); File.WriteAllBytes("Temp/WhimTex/text-character-conversion-" + System.Guid.NewGuid().ToString("N") + ".png", sheet.EncodeToPNG());
             t.True(RenderTexture.active == active && GL.sRGBWrite == srgb, "Caller render state preserved");
         }
         finally { Object.DestroyImmediate(sheet); RenderTexture.active = active; GL.sRGBWrite = srgb; }
@@ -164,7 +164,7 @@ public static class TextCharacterConversionTests
     {
         foreach (string content in new[] { "H", " \n\t", "OO O\nOO O" })
         {
-            var doc = Document(); var source = Source(); source.text = content;
+            var source = Source(); var doc = Document(); source.text = content;
             var layer = new Layer(source); doc.layers.Add(layer);
             try
             {
@@ -176,7 +176,7 @@ public static class TextCharacterConversionTests
             }
             finally { Object.DestroyImmediate(doc); }
         }
-        var nested = Document(); var text = Source(); var operand = new Layer(text);
+        var text = Source(); var nested = Document(); var operand = new Layer(text);
         var outer = new Layer(new BooleanGroupLayerBehaviour { referenceSize = new Vector2(192, 128) }); outer.children.Add(operand); nested.layers.Add(outer);
         try
         {
@@ -186,7 +186,7 @@ public static class TextCharacterConversionTests
             t.True(VisibleError(before, Pixels(nested)) < .0001, "Outer Boolean result retains geometry");
         }
         finally { Object.DestroyImmediate(nested); }
-        var limited = Document(); var limitedText = Source(); var limitedLayer = new Layer(limitedText); limited.layers.Add(limitedLayer);
+        var limitedText = Source(); var limited = Document(); var limitedLayer = new Layer(limitedText); limited.layers.Add(limitedLayer);
         try
         {
             for (int i = 0; i < 1022; i++) limited.layers.Add(new Layer(new ColorFillLayerBehaviour()));

@@ -47,7 +47,7 @@ public static class CommentNavigationTests
                 image = new Texture2D(target != null ? target.width : (int)(window.position.width * EditorGUIUtility.pixelsPerPoint),
                     target != null ? target.height : (int)(window.position.height * EditorGUIUtility.pixelsPerPoint), TextureFormat.RGBA32, false);
                 image.ReadPixels(new Rect(0, 0, image.width, image.height), 0, 0); image.Apply();
-                Directory.CreateDirectory("Temp/WhimTex"); File.WriteAllBytes("Temp/WhimTex/comment-navigation-preview.png", image.EncodeToPNG()); done.SetResult(true);
+                Directory.CreateDirectory("Temp/WhimTex"); File.WriteAllBytes("Temp/WhimTex/comment-navigation-preview-" + Guid.NewGuid().ToString("N") + ".png", image.EncodeToPNG()); done.SetResult(true);
             }
             catch (Exception error) { done.SetException(error); }
             finally { if (image != null) Object.DestroyImmediate(image); }

@@ -71,7 +71,7 @@ public static class ContourTextRenderTests
                 row++;
             }
             sheet.Apply();
-            string directory = Path.GetFullPath("Temp/WhimTex/distance-fields/contour"); Directory.CreateDirectory(directory);
+            string directory = Path.GetFullPath("Temp/WhimTex/distance-fields/contour-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
             File.WriteAllBytes(Path.Combine(directory,"text-source-round-aaedt-contour.png"),sheet.EncodeToPNG());
             t.True(RenderTexture.active == previous && GL.sRGBWrite == srgb, "Text/SDF composition preserves caller render state");
         }

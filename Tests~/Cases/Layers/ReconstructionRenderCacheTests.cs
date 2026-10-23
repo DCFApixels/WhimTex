@@ -62,9 +62,9 @@ public static class ReconstructionRenderCacheTests
             {
                 LayerBehaviour Create(int edit)
                 {
-                    if (outline) return new OutlineLayerBehaviour { metric = metric, miterLimit = edit == 3 ? 8 : 4,
+                    if (outline) return new OutlineLayerBehaviour { metric = metric, sharpMode = SharpDistanceMode.GuardedSharp, miterLimit = edit == 3 ? 8 : 4,
                         outlineWidth = 4 + edit * 3, outlineSoftness = 1, fillCenter = true };
-                    return new SDFLayerBehaviour { metric = metric, miterLimit = edit == 3 ? 8 : 4,
+                    return new SDFLayerBehaviour { metric = metric, sharpMode = SharpDistanceMode.GuardedSharp, miterLimit = edit == 3 ? 8 : 4,
                         threshold = 128, maxDistanceNormalization = 16 + edit * 7,
                         encoding = SDFLayerBehaviour.OutputEncoding.LinearData };
                 }
@@ -105,7 +105,7 @@ public static class ReconstructionRenderCacheTests
                 }
                 finally { Release(warm); }
             }
-            string directory = "Temp/WhimTex/distance-fields/preparation";
+            string directory = "Temp/WhimTex/distance-fields/preparation-" + Guid.NewGuid().ToString("N");
             Directory.CreateDirectory(directory); File.WriteAllLines(Path.Combine(directory, "interaction.csv"), records);
         }
         finally

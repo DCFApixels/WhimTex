@@ -286,9 +286,10 @@ namespace DCFApixels.WhimTex
                 Undo.IncrementCurrentGroup(); group = Undo.GetCurrentGroup();
                 Undo.SetCurrentGroupName("Healing Brush");
                 Undo.RegisterCompleteObjectUndo(activeDocument, "Healing Brush");
-                bool hadPixels = layer.StoredTexture != null;
                 layer.PrepareStroke(activeDocument.width, activeDocument.height, "Healing Brush");
-                if (!hadPixels) Undo.RegisterCreatedObjectUndo(layer.StoredTexture, "Healing Brush");
+                // Like ordinary painting, keep the storage owned by pixel history.
+                // A separate creation record would recreate an empty texture on Redo,
+                // while the block journal still considers its healed revision applied.
                 try
                 {
                     layer.ConfigureStrokeWriteProtection(paintSettings.dynamics.writeChannels);

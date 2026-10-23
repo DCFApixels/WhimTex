@@ -18,7 +18,11 @@ public static class HealingPerimeterTests
     static object Call(object o, string name, params object[] args) => (o as Type ?? o.GetType()).GetMethod(name, F).Invoke(o is Type ? null : o, args);
     static object Get(object o, string name) => o.GetType().GetField(name, F).GetValue(o);
     static void Set(object o, string name, object value) => o.GetType().GetField(name, F).SetValue(o, value);
-    static Texture2D Pixels(DrawingLayerBehaviour d) => (Texture2D)d.GetType().GetProperty("StoredTexture", F).GetValue(d);
+    static Texture2D Pixels(DrawingLayerBehaviour d)
+    {
+        Call(d, "SyncPendingSurfaceToTexture");
+        return (Texture2D)d.GetType().GetProperty("StoredTexture", F).GetValue(d);
+    }
     static void Preview(string name, params Color[][] columns)
     {
         var image = UnityBRun.Track(new Texture2D(N * columns.Length, N, TextureFormat.RGBA32, false));
@@ -35,6 +39,7 @@ public static class HealingPerimeterTests
     static async Task<string> ExecuteMain()
     {
         UnityBHealing.RequireIdle();
+        using var ownedJournal = new PaintTileHistoryTests.DiskScope();
         var focused = EditorWindow.focusedWindow;
         const string pref = "DCFApixels.WhimTex.Canvas.Tool";
         bool hadPref = EditorPrefs.HasKey(pref); string oldPref = EditorPrefs.GetString(pref);
@@ -71,6 +76,7 @@ public static class HealingPerimeterTests
                     await UnityBRun.Delay(150); Call(window, "RefreshToolkitInterface", false);
                     Call(window, "SetTiledCanvas", true);
                     var settings = Get(window, "paintSettings");
+                    Set(Get(settings, "dynamics"), "writeChannels", 15);
                     Set(settings, "healingSize", 64f); Set(settings, "healingHardness", .8f); Set(settings, "healingSearch", 64);
                     Set(settings, "healingTransparentOnly", false);
                     Set(settings, "healingQuality", Enum.ToObject(settings.GetType().GetField("healingQuality").FieldType, 1));
@@ -81,8 +87,9 @@ public static class HealingPerimeterTests
                         var selection = Call(window, "GetAreaSelection");
                         Set(window, "healingDocument", document); Set(window, "healingLayer", drawing);
                         Set(window, "healingCanvasSize", new Vector2Int(N, N));
+                        Set(window, "healingPixelScale", Call(document, "GetPixelScale"));
                         Set(window, "healingSelectionRevision", (int)selection.GetType().GetProperty("Revision", F).GetValue(selection));
-                        var transform = (TextureTransform)Call(document, "GetCanvasTransform", (Layer)drawing);
+                        var transform = (TextureTransform)Call(document, "GetPaintTransform", (Layer)drawing);
                         Set(window, "healingTransform", transform.ToMatrix(N, N));
                         Call(window, "BeginHealingStroke", Vector2.zero);
                         foreach (var point in new[] { new Vector2(N, 0), new Vector2(N, N), new Vector2(0, N), Vector2.zero })
@@ -123,7 +130,15 @@ public static class HealingPerimeterTests
                 }
                 finally
                 {
-                    if (window != null) { await UnityBHealing.StopAndDrain(window); UnityBRun.CloseOwned(window); }
+                    if (window != null)
+                    {
+                        try { await UnityBHealing.StopAndDrain(window); }
+                        finally
+                        {
+                            try { PaintTileHistoryTests.ReleaseOwnedHistory(document); }
+                            finally { UnityBRun.CloseOwned(window); }
+                        }
+                    }
                     if (document != null) { Undo.ClearUndo(document); UnityEngine.Object.DestroyImmediate(document); }
                     if (source != null) { Undo.ClearUndo(source); UnityEngine.Object.DestroyImmediate(source); }
                 }

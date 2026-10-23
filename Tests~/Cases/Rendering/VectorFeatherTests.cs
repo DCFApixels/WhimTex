@@ -138,6 +138,7 @@ public static class VectorFeatherTests
             var outline = new Layer(new OutlineLayerBehaviour { inputMode = EffectInputMode.Specific, TargetLayerId = layer.Id, outlineWidth = 2 });
             doc.layers.Insert(0, outline);
             t.True(Render()[48 * W + 29].a >= beforeGroup[48 * W + 29].a, "Target consumer accepts feathered Vector");
+            typeof(Layer).GetMethod("ReleaseTransientResources", Hidden).Invoke(outline, null);
             doc.layers.Remove(outline);
             layer.transform.tiling = TransformTilingMode.Unbounded;
             VectorLayerStructure.FitFrame(layer, W, H);
@@ -239,7 +240,7 @@ public static class VectorFeatherTests
                 }
                 sheet.SetPixels(i % 4 * W, (1 - i / 4) * H, W, H, display);
             }
-            sheet.Apply(); Directory.CreateDirectory("Temp/WhimTex"); File.WriteAllBytes("Temp/WhimTex/vector-feather-preview.png", sheet.EncodeToPNG());
+            sheet.Apply(); Directory.CreateDirectory("Temp/WhimTex"); File.WriteAllBytes("Temp/WhimTex/vector-feather-preview-" + System.Guid.NewGuid().ToString("N") + ".png", sheet.EncodeToPNG());
         }
         finally { Object.DestroyImmediate(sheet); }
     }

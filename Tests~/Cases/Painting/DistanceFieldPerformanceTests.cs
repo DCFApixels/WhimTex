@@ -95,6 +95,10 @@ public static class DistanceFieldPerformanceTests
                 : guarded ? new[] { (DistanceMetric)Enum.Parse(typeof(DistanceMetric), mode.Substring("guarded-".Length)) }
                 : new[] { (DistanceMetric)Enum.Parse(typeof(DistanceMetric), mode) };
             if (mode == "guarded-fast") modes = Array.FindAll(modes, m => m != DistanceMetric.CornerFit && m != DistanceMetric.Spring);
+            bool rbfExcludedBySize = size > 2046 && Array.Exists(modes,
+                m => m == DistanceMetric.Rbf || m == DistanceMetric.RbfDual);
+            if (rbfExcludedBySize) modes = Array.FindAll(modes,
+                m => m != DistanceMetric.Rbf && m != DistanceMetric.RbfDual);
             LayerBehaviour Create(DistanceMetric metric) => kind == "sdf"
                 ? (LayerBehaviour)new SDFLayerBehaviour { metric = metric, sharpMode = cornerMode, threshold = 128,
                     encoding = SDFLayerBehaviour.OutputEncoding.Gradient, maxDistanceNormalization = 32 }
@@ -165,6 +169,7 @@ public static class DistanceFieldPerformanceTests
                     (cold ? "Zero algorithm warmups. Every sample creates a new behaviour with fresh LUTs/materials and rebuilds all field/geometry/workspace data. Source fixture/RT and the already running Editor are shared; this is cold resource construction, not a restarted process or a guarantee of cold Burst/shader compilation. firstSampleForMode flags startup/first-call samples; compiler readiness is not inferred. creationMs times behaviour/owner attachment separately; endToEndMs includes creation. Unity's own temporary RT pool is not purged."
                     : "Two warmups do not guarantee asynchronous Burst compilation has finished; retain raw variance.") +
                     (paired ? " Round/Contour calls are paired with alternating AB/BA order. field.total measures CPU field construction, including source extension/sampling, without input GPU readback or output upload. Text input is HintedAA at size/9 with no layer transform; its rasterization is excluded from both modes." : "") +
+                    (rbfExcludedBySize ? " RBF/RBF Dual are excluded because transparent-edge source extension makes their 2x refinement grid exceed the production 16-million-sample limit." : "") +
                     (guarded ? " Selected algorithms use GuardedSharp (ignored by modes without sharp-corner policy), miter 4, merge 0, threshold 128 and Max Distance 32. Repetitions interleave selected modes in alternating/rotating order. field.total includes fresh field preparation, source extension/sampling and jobs, excludes GPU input readback/output upload. Text is native HintedAA at size/9, generated before timing." : "") };
             string directory = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/WhimTex/distance-fields/performance"));
             Directory.CreateDirectory(directory);

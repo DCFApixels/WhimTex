@@ -674,7 +674,10 @@ namespace DCFApixels.WhimTex
                 1f / context.activeDocument.width, 1f / context.activeDocument.height));
             material.SetFloat("_RenderScale", context.scaleMultiplier);
             material.SetFloat("_PixelScale", context.pixelScale);
-            ShaderTextureView.ForContext(null, context).BindMetadata(material, ShaderTextureView.MainMapId, ShaderTextureView.MainSizeId);
+            if (document.RenderingViewport)
+                ShaderTextureView.ForContext(null, context).BindMetadata(material, ShaderTextureView.MainMapId, ShaderTextureView.MainSizeId);
+            else
+                ShaderTextureView.BindFull(material, ShaderTextureView.MainMapId, ShaderTextureView.MainSizeId);
             return material;
         }
 

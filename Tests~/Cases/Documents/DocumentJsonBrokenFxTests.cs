@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using DCFApixels.WhimTex;
 using UnityEditor;
@@ -14,11 +15,28 @@ public static class DocumentJsonBrokenFxTests
     const string Good = "float4 ApplyFX(float2 uv,float4 color){return color;}";
     const string Broken = "float4 ApplyFX(float2 uv,float4 color){return missingFunction(color);}";
     const string Json = "{\"format\":\"whimtex.document\",\"version\":2,\"document\":{\"width\":16,\"height\":16},\"layers\":[{\"id\":\"fixture\",\"layerName\":\"Broken FX fixture\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[0.2,0.4,0.6,1]},\"fx\":[{\"$type\":\"ShaderFX\",\"$name\":\"Broken fixture\",\"code\":\"SOURCE\",\"parameters\":[{\"name\":\"_Amount\",\"type\":\"Float\",\"floatValue\":0.37}]}]}]}";
-    static int checks, warnings;
+    static int checks;
+    static readonly List<(string text, LogType type)> logs = new List<(string text, LogType type)>();
     static void Check(bool ok, string message) { checks++; UnityBRun.Check(!(!ok), message); }
     static object Call(object obj, string name, params object[] args) => obj.GetType().GetMethod(name, F).Invoke(obj, args);
     static bool Flag(ShaderFX fx, string name) => (bool)typeof(ShaderFX).GetProperty(name, F).GetValue(fx);
-    static void Log(string text, string stack, LogType type) { if (type == LogType.Warning && text.StartsWith("WhimTex: Broken fixture:")) warnings++; }
+    static void Log(string text, string stack, LogType type) { if (text.StartsWith("WhimTex: ", StringComparison.Ordinal)) logs.Add((text, type)); }
+    static Dictionary<string, LogType> NewDiagnostics(ShaderFX fx, HashSet<Hash128> previous)
+    {
+        string sourcePath = (string)typeof(ShaderFX).GetProperty("SourcePath", F).GetValue(fx);
+        var expected = new Dictionary<string, LogType>(StringComparer.Ordinal);
+        foreach (object diagnostic in (System.Collections.IEnumerable)typeof(ShaderFX).GetProperty("DiagnosticMessages", F).GetValue(fx))
+        {
+            string severity = diagnostic.GetType().GetField("Severity", F).GetValue(diagnostic).ToString();
+            string identity = sourcePath + "\n" + diagnostic;
+            if (severity != "Info" && !previous.Contains(Hash128.Compute(identity)))
+                expected["WhimTex: " + identity] = severity == "Error" ? LogType.Error : LogType.Warning;
+        }
+        return expected;
+    }
+    static bool LoggedOnce(Dictionary<string, LogType> expected) => expected.Values.Contains(LogType.Error) &&
+        expected.All(item => logs.Count(log => log.text == item.Key) == 1 &&
+            logs.Any(log => log.text == item.Key && log.type == item.Value));
     static Color Pixel(WhimTexDocument document)
     {
         var texture = document.ComposeCanvas();
@@ -27,26 +45,35 @@ public static class DocumentJsonBrokenFxTests
     }
     static string ExecuteRun()
     {
-        checks = warnings = 0;
+        checks = 0; logs.Clear();
+        var reporter = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXDiagnostics", true);
+        var reported = (HashSet<Hash128>)reporter.GetField("reportedMessages", F).GetValue(null);
+        var previousReported = new HashSet<Hash128>(reported);
         string path = UnityBRun.AssetPath("__WhimTexBrokenFx_") + Guid.NewGuid().ToString("N") + ".whimtex.json";
         string exportPath = path.Replace(".whimtex.json", "_export.whimtex.json");
         WhimTexWindow window = null;
         Application.logMessageReceived += Log;
         try
         {
-            using var read = WhimTexDocumentJson.Read(Json.Replace("SOURCE", Broken));
+            // The missing symbol stays the same failure fixture, with a fresh diagnostic
+            // identity so an earlier run's domain-wide suppression cannot mask its first log.
+            string broken = ("// @param float _Amount = 1\\n" + Broken)
+                .Replace("missingFunction", "missingFunction_" + Guid.NewGuid().ToString("N"));
+            using var read = WhimTexDocumentJson.Read(Json.Replace("SOURCE", broken));
             var doc = read.Document;
             var layer = doc.layers[0];
             var fx = (ShaderFX)layer.fx[0];
             Check(read.Warnings.Count == 1 && Flag(fx, "LastApplyFailed"), "Broken shader must open with a warning.");
             Check(fx.Active && layer.fx.Count == 1, "Failure changed enabled state or removed effect.");
-            Check(warnings == 1, "Failure must log once.");
+            var expectedLogs = NewDiagnostics(fx, previousReported);
+            Check(LoggedOnce(expectedLogs), "Each new failure diagnostic must log once with its current severity.");
+            int firstFailureLogs = logs.Count;
             for (int i = 0; i < 2; i++)
             {
                 Call(fx, "TryPrepareDocumentEffect", new object[] { null });
                 Call(fx, "RestoreDocumentShader");
             }
-            Check(warnings == 1, "Repeated same failure spammed Console.");
+            Check(logs.Count == firstFailureLogs && LoggedOnce(expectedLogs), "Repeated same failure spammed Console.");
             var actual = Pixel(doc);
             layer.fx.Clear();
             var expected = Pixel(doc);
@@ -117,6 +144,12 @@ public static class DocumentJsonBrokenFxTests
         finally
         {
             Application.logMessageReceived -= Log;
+            // Keep every pre-existing suppression identity; remove only this run's logged additions.
+            foreach (var log in logs)
+            {
+                var identity = Hash128.Compute(log.text.Substring("WhimTex: ".Length));
+                if (!previousReported.Contains(identity)) reported.Remove(identity);
+            }
             if (window != null) { Call(window, "SetDocument", new object[] { null }); Object.DestroyImmediate(window); }
             if (File.Exists(path)) AssetDatabase.DeleteAsset(path);
             if (File.Exists(exportPath)) AssetDatabase.DeleteAsset(exportPath);

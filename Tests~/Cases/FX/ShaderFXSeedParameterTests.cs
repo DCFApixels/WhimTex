@@ -89,7 +89,7 @@ public static class ShaderFXSeedParameterTests
             t.Equal(3f, values[0].floatValue, "Redo restores the chosen value, not a new random choice");
             Undo.ClearUndo(fx);
 
-            var header = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { fx, true }, null);
+            var header = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { fx, true, null, null, -1 }, null);
             t.True(header.Q<Button>("randomizeSeed") != null, "@control exposes Random in the header too");
             string exported = (string)Call(Type("ShaderFXPresetWriter"), "BuildParameterSource", code, values, "Test/Seed", "whimtex-effect", null);
             var exportedValues = Parse(exported);

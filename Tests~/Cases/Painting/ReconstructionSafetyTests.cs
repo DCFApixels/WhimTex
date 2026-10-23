@@ -103,7 +103,10 @@ public static class ReconstructionSafetyTests
                 foreach (float x in new[] { 4.5f, 5f, 5.25f, 5.75f, 6f })
                     t.Near(Sample(x - .00001f, 0, miter), Sample(x + .00001f, 0, miter), .001,
                         "No value jump at ownership/locality transitions; x=" + x + ", miter=" + miter);
-            t.Near(4, Sample(6, 0), .00001, "Remote corner loses influence when a competing boundary is nearer by more than 1.5px");
+            // The verified tip has miter ratio sqrt(5) < 4. Its two supporting
+            // planes give 6/sqrt(5), below the wall's finite distance 4; the
+            // current reconstruction contract keeps this candidate without fade.
+            t.Near(6 / Math.Sqrt(5), Sample(6, 0), .00001, "Verified corner competes with a nearer finite boundary without radial fade");
             for (int i = 0; i < 64; i++)
             {
                 float x = 4 + i * .05f, value = Sample(x, 0, 64);

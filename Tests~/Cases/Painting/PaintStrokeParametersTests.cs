@@ -14,6 +14,7 @@ public static class PaintStrokeParametersTests
     public static string Run() => WhimTex.Tests.UnityC.FixtureContext.Run("PaintStrokeParametersTests", Body);
     static void Body()
     {
+        using var ownedJournal = new PaintTileHistoryTests.DiskScope();
         // Opt-in eval body after manual compilation. Uses temporary GPU resources and Editor Undo.
         // No saved assets or preference changes. Run only when no edits are in progress.
         const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
@@ -122,6 +123,7 @@ public static class PaintStrokeParametersTests
             {
                 foreach (var layer in new[] { uiLayer, apiLayer })
                 {
+                    PaintTileHistoryTests.ReleaseOwnedHistory(layer);
                     var pixels = Pixels(layer);
                     if (pixels != null) Undo.ClearUndo(pixels);
                     Call(layer, "ReleaseTransientResources");

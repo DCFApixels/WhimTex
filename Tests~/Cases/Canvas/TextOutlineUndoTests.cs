@@ -105,6 +105,8 @@ public static class TextOutlineUndoTests
         internal Fixture(TestContext t, TextLayoutMode mode, TextOverflowMode overflow, bool grouped, VectorBooleanOperation operation)
         {
             this.t = t;
+            try
+            {
             foreach (string key in new[] { "DCFApixels.WhimTex.Canvas.Tool", "DCFApixels.WhimTex.Canvas.TransformReturnTool",
                 "DCFApixels.WhimTex.Canvas.PaintToolSettings" })
             {
@@ -150,6 +152,13 @@ public static class TextOutlineUndoTests
             }
             window = ScriptableObject.CreateInstance<WhimTexWindow>();
             Call(window, "SetDocument", doc);
+            }
+            catch (Exception original)
+            {
+                try { Dispose(); }
+                catch (Exception cleanup) { throw new AggregateException(original, cleanup); }
+                throw;
+            }
         }
         void AddFX(Layer owner)
         {
@@ -215,7 +224,7 @@ public static class TextOutlineUndoTests
             var actions = new List<Action> {
                 () => { if (window != null) Call(window, "EndTextEditing", false); },
                 () => { if (doc != null) Undo.ClearUndo(doc); if (window != null) Undo.ClearUndo(window); },
-                () => { if (window != null) { window.DiscardChanges(); window.Close(); } },
+                () => { if (window != null && window.rootVisualElement.panel != null) { window.DiscardChanges(); window.Close(); } },
                 () => { if (window != null) Object.DestroyImmediate(window); },
                 () => { if (doc != null) Object.DestroyImmediate(doc); }
             };

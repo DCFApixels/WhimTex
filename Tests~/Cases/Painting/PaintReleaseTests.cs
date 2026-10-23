@@ -71,13 +71,17 @@ public static class PaintReleaseTests
             else t.True(expected.AsSpan().SequenceEqual(stream.ToArray()), "Exact native raw/Deflate input");
         }
         var borrow = type.GetMethod("Borrow", S);
-        var first = (IDisposable)borrow.Invoke(null, null); var second = (IDisposable)borrow.Invoke(null, null);
-        object firstValue = Field(first, "Value"), secondValue = Field(second, "Value");
-        t.True(!ReferenceEquals(firstValue, secondValue), "Concurrent leases never share work buffers");
-        first.Dispose();
-        using (var next = (IDisposable)borrow.Invoke(null, null))
-            t.True(ReferenceEquals(firstValue, Field(next, "Value")), "Completed workspace is reused");
-        second.Dispose();
+        var first = (IDisposable)borrow.Invoke(null, null);
+        try
+        {
+            using var second = (IDisposable)borrow.Invoke(null, null);
+            object firstValue = Field(first, "Value"), secondValue = Field(second, "Value");
+            t.True(!ReferenceEquals(firstValue, secondValue), "Concurrent leases never share work buffers");
+            var released = first; first = null; released.Dispose();
+            using (var next = (IDisposable)borrow.Invoke(null, null))
+                t.True(ReferenceEquals(firstValue, Field(next, "Value")), "Completed workspace is reused");
+        }
+        finally { first?.Dispose(); }
         void Reject(byte[] payload, int size)
         {
             using var stream = new MemoryStream(payload); using var reader = new BinaryReader(stream);

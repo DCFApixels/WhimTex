@@ -92,6 +92,7 @@ public static class CanvasViewportRenderTests
             doc.layers.Add(boolean);Call(doc,"NormalizeModel");
             Compare(t,doc,cache,"Boolean region",.001f);
             doc.layers.Clear();Call(boolean.Behaviour,"ReleaseTransientResources");
+            foreach (var child in boolean.children) Call(child,"ReleaseTransientResources");
 
             var group = new Layer(new GroupLayerBehaviour());
             group.children.Add(new Layer(new ShapeLayerBehaviour()));
@@ -103,6 +104,7 @@ public static class CanvasViewportRenderTests
             group.children.Add(new Layer(new BlurLayerBehaviour()));
             t.True((bool)Call(doc,"SupportsViewportRendering"),"Input effects preserve regional composition");
             Compare(t,doc,cache,"Group with spatial input effect",.003f);
+            Call(group.children[group.children.Count-1],"ReleaseTransientResources");
             group.children.RemoveAt(group.children.Count-1);
             var fx = ScriptableObject.CreateInstance<ShaderFX>();
             try {group.fx.Add(fx);t.True((bool)Call(doc,"SupportsViewportRendering"),"Unavailable FX do not disable regions");}
@@ -296,7 +298,7 @@ public static class CanvasViewportRenderTests
             t.True(rows>=35 && rows<=80,"64px text retains native detail; ink rows="+rows);
             png=new Texture2D(rt.width,rt.height,TextureFormat.RGBA32,false,true);
             RenderTexture.active=rt;png.ReadPixels(new Rect(0,0,rt.width,rt.height),0,0,false);png.Apply(false,false);
-            string folder=Path.GetFullPath(Path.Combine(Application.dataPath,"../Temp/WhimTex/viewport"));Directory.CreateDirectory(folder);
+            string folder=Path.GetFullPath(Path.Combine(Application.dataPath,"../Temp/WhimTex/viewport-" + Guid.NewGuid().ToString("N")));Directory.CreateDirectory(folder);
             var display=png.GetPixels();
             for(int i=0;i<display.Length;i++){display[i]=Color.Lerp(new Color(.15f,.15f,.15f,1),display[i],display[i].a);display[i].a=1;}
             png.SetPixels(display);png.Apply(false,false);

@@ -70,7 +70,8 @@ public static class VectorPreparationTests
             var coverageType = OwnType("VectorRasterizer+Coverage");
             var exceededType = OwnType("VectorRasterizer+CoverageBudgetExceeded");
             var render = Method("VectorCoveragePreparation", "Render", edgeType.MakeArrayType(), edgeType.MakeArrayType(),
-                coverageType, typeof(bool), typeof(long).MakeByRefType());
+                typeof(Unity.Collections.NativeArray<Color>), typeof(int), typeof(int), typeof(int), typeof(int),
+                typeof(bool), typeof(long).MakeByRefType());
             var constructor = coverageType.GetConstructor(Instance, null,
                 new[] { typeof(int), typeof(int), typeof(int), typeof(int), typeof(int) }, null);
             t.True(constructor != null, "WhimTex coverage constructor exists");
@@ -81,17 +82,20 @@ public static class VectorPreparationTests
                 object coverage = constructor.Invoke(new object[] { 0, 4, 7, width, height });
                 using var owned = (IDisposable)coverage;
                 var texture = (Texture2D)Field(coverage, "texture");
+                var output = texture.GetRawTextureData<Color>();
                 // Public API tripwire: a regressed precheck must fail at output access, before
-                // scheduling the oversized synthetic workload. This texture is owned by this case.
+                // scheduling the oversized synthetic workload. Uploading and dropping CPU data
+                // invalidates this owned raw view. The current core overload owns the precheck;
+                // the Coverage wrapper obtains its raw view before entering that overload.
                 texture.Apply(false, true);
                 t.True(!texture.isReadable, label + " unreadable output tripwire armed");
-                object[] arguments = { fill, stroke, coverage, step, priorWork };
+                object[] arguments = { fill, stroke, output, 4, 7, width, height, step, priorWork };
                 Exception failure = null;
                 try { render.Invoke(null, arguments); }
                 catch (TargetInvocationException error) { failure = error.InnerException ?? error; }
                 t.True(failure != null && failure.GetType() == exceededType,
                     label + " must request scalar fallback before output access/dispatch; got " + (failure?.GetType().FullName ?? "success"));
-                t.Equal(priorWork, (long)arguments[4], label + " preserves caller work for scalar fallback");
+                t.Equal(priorWork, (long)arguments[8], label + " preserves caller work for scalar fallback");
             }
 
             // The 1x1024 mask is 16 KiB. 12,210 full-height edges imply >100M AA crossings;
@@ -116,9 +120,9 @@ public static class VectorPreparationTests
                 object coverage = constructor.Invoke(new object[] { 0, 4, 7, 2, 3 });
                 using var owned = (IDisposable)coverage;
                 long priorWork = limit - (6 + 2 * 3 * (step ? 1 : 8));
-                object[] arguments = { spanning, empty, coverage, step, priorWork };
+                object[] arguments = { spanning, empty, ((Texture2D)Field(coverage, "texture")).GetRawTextureData<Color>(), 4, 7, 2, 3, step, priorWork };
                 Invoke(render, arguments);
-                t.Equal(limit, (long)arguments[4], "exact global work limit is accepted " + (step ? "Step" : "AA"));
+                t.Equal(limit, (long)arguments[8], "exact global work limit is accepted " + (step ? "Step" : "AA"));
                 var pixels = ((Texture2D)Field(coverage, "texture")).GetPixels();
                 t.Equal(6, pixels.Length, "bounded budget fixture size");
                 foreach (var pixel in pixels)

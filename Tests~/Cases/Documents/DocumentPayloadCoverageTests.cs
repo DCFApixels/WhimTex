@@ -58,6 +58,14 @@ int counter = 0;
 bool Mutate(object target, Type type, int depth)
 {
     if (target == null || depth > 6 || IsUnityType(type)) return false;
+    if (target is DCFApixels.WhimTex.VectorBrushDraft draft)
+    {
+        draft.width = 2; draft.height = 2;
+        draft.coverage = new byte[] { 32, 96, 160, 224 };
+        draft.tolerance = 2.5f; draft.expansion = 1.5f;
+        draft.frame = new UnityEngine.Rect(1f, 2f, 3f, 4f);
+        return true;
+    }
     bool touched = false;
     foreach (var field in Fields(type))
     {
@@ -70,7 +78,9 @@ bool Mutate(object target, Type type, int depth)
         if (fieldType.IsEnum)
         {
             var values = Enum.GetValues(fieldType);
-            if (values.Length > 1) field.SetValue(target, values.GetValue(values.Length - 1));
+            // Text supports the shared gradient modes, but not Vector's Freeform fill.
+            if (target is TextLayerBehaviour && field.Name == "fillMode") field.SetValue(target, VectorFillMode.AngularGradient);
+            else if (values.Length > 1) field.SetValue(target, values.GetValue(values.Length - 1));
             touched = true;
         }
         else if (fieldType == typeof(bool)) { field.SetValue(target, true); touched = true; }
@@ -79,7 +89,12 @@ bool Mutate(object target, Type type, int depth)
         else if (fieldType == typeof(short)) { field.SetValue(target, (short)(counter + 7)); touched = true; }
         else if (fieldType == typeof(byte)) { field.SetValue(target, (byte)((counter % 200) + 20)); touched = true; }
         else if (fieldType == typeof(long)) { field.SetValue(target, (long)counter + 7); touched = true; }
-        else if (fieldType == typeof(float)) { field.SetValue(target, counter + .25f); touched = true; }
+        else if (fieldType == typeof(float))
+        {
+            // Keep constrained Text fields non-default without creating an invalid document.
+            float sample = target is TextLayerBehaviour && field.Name == "characterHorizontalScale" ? 1.25f : counter + .25f;
+            field.SetValue(target, sample); touched = true;
+        }
         else if (fieldType == typeof(double)) { field.SetValue(target, counter + .3125d); touched = true; }
         else if (fieldType == typeof(string)) { field.SetValue(target, "value" + counter); touched = true; }
         else if (fieldType == typeof(UnityEngine.Vector2)) { field.SetValue(target, new UnityEngine.Vector2(counter, counter + 1)); touched = true; }

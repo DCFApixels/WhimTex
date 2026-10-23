@@ -69,7 +69,7 @@ public static class NoisePeriodicGpuTests
             foreach(var key in new[]{"_NoiseOneD","_NoisePeriodic","_NoiseSeed","_NoiseType",
                 "_NoiseFractal","_NoiseOctaves","_NoiseCellularDistance","_NoiseCellularReturn","_NoiseWarp",
                 "_NoiseEncoding","_NoiseInverted","_NoiseField","_NoiseVectorOutput","_NoiseNormalize","_NoiseWarpSeed","_UseGradient"}) material.SetInteger(key,shared.GetInteger(key));
-            foreach(var key in new[]{"_NoiseDomain","_NoiseScale","_NoiseFractalSettings","_NoiseWarpInverse"})
+            foreach(var key in new[]{"_NoiseDomain","_NoiseScale","_NoiseFractalSettings","_NoiseWarpInverse","_NoiseWarpScale"})
                 material.SetVector(key,shared.GetVector(key));
             foreach(var key in new[]{"_NoiseZ","_NoiseCellularJitter","_NoiseWarpStrength","_NoiseStrength"})
                 material.SetFloat(key,shared.GetFloat(key));

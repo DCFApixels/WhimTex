@@ -256,7 +256,7 @@ export async function runScenario(scenario, invoke, { now = Date.now, delay = sl
 export function commandArgs(scenario, entry, args, budgetMs, projectPath, packageRoot = root) {
     const file = path.relative(projectPath, path.join(packageRoot, scenario.file)).replaceAll('\\', '/');
     const argv = ['command', scenario.runner, '--file', file];
-    if (scenario.runner === 'run_script') argv.push('--entry', entry, '--args', JSON.stringify(args), '--timeout_ms', String(Math.max(1, Math.min(45000, budgetMs - 1000))));
+    if (scenario.runner === 'run_script') argv.push('--entry', entry, '--args', JSON.stringify(args), '--timeout_ms', String(Math.max(1, budgetMs - 1000)));
     // --timeout is the CLI's seconds option, not eval_file's milliseconds parameter.
     argv.push('--project-path', projectPath, '--timeout', String(Math.max(1, Math.ceil(budgetMs / 1000))), '--format', 'json');
     return argv;
@@ -276,7 +276,7 @@ export function runProcess(binary, args, { cwd = root, timeoutMs = 50000 } = {})
 
 function options(argv) {
     const result = {};
-    const flags = new Set(['list', 'review', 'run', 'compile', 'check-entries', 'all', 'keep-going']);
+    const flags = new Set(['list', 'review', 'run', 'compile', 'check-entries', 'all', 'keep-going', 'failures-only']);
     const values = new Set(['profile', 'id', 'ids', 'group', 'project-path', 'reviewed', 'allow-effects', 'output']);
     for (let i = 0; i < argv.length; i++) {
         const key = argv[i].replace(/^--/, '');
@@ -287,6 +287,7 @@ function options(argv) {
     if (['list', 'review', 'run', 'compile', 'check-entries'].filter(key => result[key]).length > 1) throw Error('Choose one action: --list, --review, --compile, --check-entries or --run.');
     if (!result.run && !result.compile && !result['check-entries'] && (result.reviewed || result['allow-effects'] || result.output)) throw Error('Execution options require --run, --compile or --check-entries.');
     if (result['keep-going'] && !result.run) throw Error('--keep-going requires --run.');
+    if (result['failures-only'] && !result.run) throw Error('--failures-only requires --run.');
     return result;
 }
 
@@ -321,14 +322,44 @@ export async function main(argv = process.argv.slice(2)) {
     fs.mkdirSync(directory, { recursive: true });
     if (!inside(fs.realpathSync(projectPath), fs.realpathSync(directory))) throw Error('Report directory resolves outside the requested project.');
     const output = path.resolve(projectPath, opt.output ?? 'Temp/WhimTex/test-runs/' + new Date().toISOString().replaceAll(':', '-') + '-' + process.pid + '.json');
-    if (!inside(directory, output) || path.dirname(output) !== directory || !output.endsWith('.json')) throw Error('--output must be a new JSON file directly under Temp/WhimTex/test-runs.');
+    const outputDirectory = path.dirname(output);
+    const externalOutput = Boolean(opt.output && path.isAbsolute(opt.output)
+        && outputDirectory !== projectPath && !inside(projectPath, output));
+    if ((outputDirectory !== directory && !externalOutput) || !output.endsWith('.json'))
+        throw Error('--output must be a new JSON file directly under Temp/WhimTex/test-runs or an explicit absolute path outside the project.');
+    fs.mkdirSync(outputDirectory, { recursive: true });
+    const resolvedProject = fs.realpathSync(projectPath);
+    const resolvedOutputDirectory = fs.realpathSync(outputDirectory);
+    if (externalOutput ? resolvedOutputDirectory === resolvedProject || inside(resolvedProject, resolvedOutputDirectory)
+        : !inside(resolvedProject, resolvedOutputDirectory))
+        throw Error('Report directory resolves across the requested project boundary.');
     const lock = path.join(directory, 'runner.lock');
     const lockHandle = fs.openSync(lock, 'wx');
     let outputHandle;
     let keepLock = false;
     const report = { version: 2, action: opt.compile ? 'compile' : opt['check-entries'] ? 'entries' : 'run', startedAt: new Date().toISOString(), projectPath, fingerprint, productionFingerprint: productionFingerprint(),
         selected: scenarios.map(s => s.id), environment: null, results: [], success: false };
-    const save = () => { fs.ftruncateSync(outputHandle, 0); fs.writeSync(outputHandle, JSON.stringify(report, null, 2) + '\n', 0, 'utf8'); };
+    const save = () => {
+        let persisted = report;
+        if (opt['failures-only']) {
+            const failures = report.results.filter(r => r.status !== 'passed');
+            const brief = value => String(value ?? '').replace(/\s+/g, ' ').slice(0, 700);
+            persisted = {
+                recoveryRequired: report.recoveryRequired || undefined,
+                error: report.error ? brief(report.error) : undefined,
+                issues: failures.map(r => ({
+                    id: r.id, status: r.status,
+                    reason: brief((r.testResult?.failures ?? r.primaryResult?.testResult?.failures ?? [])
+                        .map(f => typeof f === 'string' ? f : f.message).join('; ') || r.detail),
+                    cleanup: r.cleanupResult ? brief(r.cleanupResult.detail) : undefined
+                })),
+                notRun: report.notRun?.length ? report.notRun : undefined,
+                recoveryInputs: report.inputs?.filter(input => failures.some(r => r.id === input.id && r.uncertain))
+            };
+        }
+        fs.ftruncateSync(outputHandle, 0);
+        fs.writeSync(outputHandle, JSON.stringify(persisted, null, 2) + '\n', 0, 'utf8');
+    };
     try {
         fs.writeFileSync(lockHandle, JSON.stringify({ pid: process.pid, output, startedAt: report.startedAt }));
         outputHandle = fs.openSync(output, 'wx');

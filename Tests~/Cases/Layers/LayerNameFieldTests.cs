@@ -356,7 +356,7 @@ public static class LayerNameFieldTests
         context.True(Row(firstId).worldBound.xMax <= settingsPane.worldBound.xMax + .1f,
             "The wide preview uses naturally fitting rows without oversized clipping");
         string previewPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Application.dataPath),
-            "Temp", "WhimTex", "layer-name-preview.png");
+            "Temp", "WhimTex", "layer-name-preview-" + System.Guid.NewGuid().ToString("N") + ".png");
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(previewPath));
         await UnityACapture.Capture(window, previewPath, token);
         context.True(System.IO.File.Exists(previewPath) && new System.IO.FileInfo(previewPath).Length > 32,
@@ -368,7 +368,7 @@ public static class LayerNameFieldTests
         AllColumns(true, false, "Normal intermediate Layers context keeps only Opacity");
         context.True(Row(firstId).worldBound.xMax <= settingsPane.worldBound.xMax + .1f,
             "The intermediate preview uses naturally fitting rows without oversized clipping");
-        string middlePreviewPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(previewPath), "layer-name-opacity-only-preview.png");
+        string middlePreviewPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(previewPath), "layer-name-opacity-only-preview-" + System.Guid.NewGuid().ToString("N") + ".png");
         await UnityACapture.Capture(window, middlePreviewPath, token);
         context.True(System.IO.File.Exists(middlePreviewPath) && new System.IO.FileInfo(middlePreviewPath).Length > 32,
             "Owned Opacity-only Layers context pixels were retained for visual review");
@@ -380,7 +380,7 @@ public static class LayerNameFieldTests
         AllColumns(false, false, "Normal narrow Layers context");
         context.True(Row(firstId).worldBound.xMax <= settingsPane.worldBound.xMax + .1f,
             "The narrow preview uses naturally fitting rows without oversized clipping");
-        string narrowPreviewPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(previewPath), "layer-name-narrow-preview.png");
+        string narrowPreviewPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(previewPath), "layer-name-narrow-preview-" + System.Guid.NewGuid().ToString("N") + ".png");
         await UnityACapture.Capture(window, narrowPreviewPath, token);
         context.True(System.IO.File.Exists(narrowPreviewPath) && new System.IO.FileInfo(narrowPreviewPath).Length > 32,
             "Owned narrow Layers context pixels were retained for visual review");

@@ -78,7 +78,7 @@ void CompareFixedBoundaries()
     {
         output.Create();
         var holder = PaletteHolder();
-        holder.GetType().GetMethod("Bind", flags).Invoke(holder, new object[] { material, layer.gradient });
+        holder.GetType().GetMethod("Bind", flags).Invoke(holder, new object[] { material, layer.gradient, false });
         material.SetInt("_GradientType", 1);
         material.SetInt("_GradientWrapMode", (int)layer.gradient.WrapMode);
         material.SetVector("_GradientOutputSize", UnityEngine.Vector4.one);

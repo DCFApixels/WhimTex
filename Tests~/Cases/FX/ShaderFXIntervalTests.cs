@@ -219,9 +219,43 @@ float4 ApplyFX(float2 uv, float4 color) { return color; }
     }
     static void Release(object[] state)
     {
-        (state[4] as IVisualElementScheduledItem)?.Pause(); state[4] = null;
-        if (state[0] is EditorWindow window && window != null) { window.Close(); if (window != null) UnityEngine.Object.DestroyImmediate(window); } state[0] = null;
-        if (state[1] is ShaderFX effect && effect != null) { Undo.ClearUndo(effect); UnityEngine.Object.DestroyImmediate(effect); } state[1] = null;
-        if (state[2] is EditorWindow focus && focus != null) focus.Focus(); state[2] = null;
+        var errors = new System.Collections.Generic.List<Exception>();
+        void ReleaseOwned(Action action)
+        {
+            try { action(); }
+            catch (Exception error) { errors.Add(error); }
+        }
+        ReleaseOwned(() =>
+        {
+            (state[4] as IVisualElementScheduledItem)?.Pause(); state[4] = null;
+        });
+        ReleaseOwned(() =>
+        {
+            if (state[0] is EditorWindow window && window != null)
+            {
+                try { if (window.rootVisualElement.panel != null) window.Close(); }
+                finally { if (window != null) UnityEngine.Object.DestroyImmediate(window); }
+            }
+            state[0] = null;
+        });
+        ReleaseOwned(() =>
+        {
+            if (state[1] is ShaderFX effect && effect != null)
+            {
+                try { Undo.ClearUndo(effect); }
+                finally { UnityEngine.Object.DestroyImmediate(effect); }
+            }
+            state[1] = null;
+        });
+        ReleaseOwned(() =>
+        {
+            if (state[2] is EditorWindow focus && focus != null) focus.Focus(); state[2] = null;
+        });
+        if (errors.Count != 0)
+        {
+            var failure = new AggregateException("Owned FX fixture cleanup unfinished; retry cleanup before another run", errors);
+            state[3] = TestContext.Result("failed", 0, "Cleanup requires recovery; prior result: " + state[3], failure.ToString()).ToJson();
+            throw failure;
+        }
     }
 }

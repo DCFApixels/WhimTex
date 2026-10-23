@@ -109,6 +109,7 @@
         "periodic": "None",
         "fractal": "None",
         "warp": "OpenSimplex2",
+        "warpSeed": 631,
         "warpStrength": 0.4,
         "warpScale": 1.0,
         "warpScaleY": 1.0,

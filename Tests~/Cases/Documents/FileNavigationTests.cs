@@ -30,7 +30,11 @@ void Check(bool condition, string reason = null) { UnityBRun.Check(!(!condition)
 try
 {
     Check(open.Invoke(null, new object[] { null }) == null);
-    created = (DCFApixels.WhimTex.WhimTexWindow)open.Invoke(null, new object[] { document });
+    var opened = (DCFApixels.WhimTex.WhimTexWindow)open.Invoke(null, new object[] { document });
+    if (opened != null && documents.ContainsKey(opened))
+        throw new InvalidOperationException("Refusing to own or close a pre-existing document window.");
+    created = opened;
+    if (created != null) UnityBRun.Track(created);
     Check(created != null && field.GetValue(created) == document);
     Check(created.titleContent.text == "Reference Test");
     Check(created.titleContent.image != null);
@@ -53,7 +57,13 @@ try
     secondDocument.name = "Second Document Test";
     DCFApixels.WhimTex.WhimTexWindow.Open(secondDocument);
     foreach (var item in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.WhimTexWindow>())
-        if (field.GetValue(item) == secondDocument) secondWindow = item;
+        if (field.GetValue(item) == secondDocument)
+        {
+            if (documents.ContainsKey(item) || item == created)
+                throw new InvalidOperationException("Refusing to own or close a reused document window.");
+            secondWindow = item;
+            UnityBRun.Track(secondWindow);
+        }
     Check(secondWindow != null && secondWindow != created && !documents.ContainsKey(secondWindow));
     Check(field.GetValue(created) == document);
     Check(UnityEditor.EditorWindow.focusedWindow == secondWindow);

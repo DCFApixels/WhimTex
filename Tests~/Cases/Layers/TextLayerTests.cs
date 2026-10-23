@@ -9,6 +9,16 @@ using WhimTex.Tests;
 
 public static class TextLayerTests
 {
+    // Use the product PNG path: composed/readback textures contain linear float pixels.
+    static byte[] EncodePng(UnityEngine.Texture2D texture)
+    {
+        var assembly = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly;
+        var encoder = assembly.GetType("DCFApixels.WhimTex.WhimTexRasterEncoder", true);
+        var format = System.Enum.Parse(assembly.GetType("DCFApixels.WhimTex.RasterImageFormat", true), "Png");
+        return (byte[])encoder.GetMethod("Encode", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+            .Invoke(null, new object[] { texture, format, 95, UnityEngine.Texture2D.EXRFlags.CompressZIP });
+    }
+
     // Reflection is restricted to package-owned types. All Unity APIs are public.
     const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
     static readonly Assembly Product = typeof(WhimTexDocument).Assembly;
@@ -149,7 +159,7 @@ public static class TextLayerTests
             text.spacing.character = .25f; text.spacing.word = .5f; Rect spacedCaps = Bounds(Pixels(document), document.width);
             t.Near(72, spacedCaps.width - plainCaps.width, 1.5, "Character and Word spacing use the full em size with Small Caps");
             using (var proof = new OwnedTexture(document.ComposeCanvas()))
-                System.IO.File.WriteAllBytes("Temp/WhimTex/text-spacing-proof-" + Guid.NewGuid().ToString("N") + ".png", proof.Value.EncodeToPNG());
+                System.IO.File.WriteAllBytes("Temp/WhimTex/text-spacing-proof-" + Guid.NewGuid().ToString("N") + ".png", EncodePng(proof.Value));
             text.spacing = default;
             text.frameSize = new Vector2(384,192); text.fontSize = 48; text.text = "MiXeD Привет";
             text.casing = TextCasing.Uppercase;
@@ -262,9 +272,9 @@ public static class TextLayerTests
             }
             finally { ((IDisposable)container).Dispose(); }
             var pointBackup = new TextLayerBehaviour { text = "Saved bounds", fontFamily = family, fontSize = 24 };
+            ownedLayers.Add(pointBackup.Owner);
             Call(pointBackup, "PrepareSavedAppearance", document.width, document.height);
             Rect savedBounds = (Rect)pointBackup.GetType().GetField("fallbackRect", Flags).GetValue(pointBackup);
-            ownedLayers.Add(new Layer(pointBackup));
             Color[] beforeMissing = Pixels(document);
             availableField.SetValue(null, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
             EqualPixels(t, beforeMissing, Pixels(document), "Missing font uses saved appearance");
@@ -287,7 +297,7 @@ public static class TextLayerTests
             var apiDocument = Document(); restored.Add(apiDocument);
             var apiLayer = (Layer)Call(typeof(WhimTexApi), "ApplyOperation", apiDocument,
                 Json("{\"op\":\"add\",\"type\":\"text\",\"settings\":{\"text\":{\"text\":\"Created by API\",\"fontSize\":28}}}"),
-                new Dictionary<string, Layer>(), false);
+                new Dictionary<string, Layer>(), false, null, null);
             t.Equal("Created by API", ((TextLayerBehaviour)apiLayer.Behaviour).text, "Agent add routes nested Text settings through the layer registry");
             t.True(Pixels(apiDocument).Any(c => c.a > .1f), "Agent-created text renders without project font assets");
             var apiText = (TextLayerBehaviour)apiLayer.Behaviour;
@@ -347,7 +357,7 @@ public static class TextLayerTests
             catch (ArgumentException) { t.True(true, "Invalid size rejected"); }
             text.fontSize = 42; text.text = "WhimTex\nПривет"; text.color = new Color(.2f, .7f, 1);
             using (var proof = new OwnedTexture(document.ComposeCanvas()))
-                System.IO.File.WriteAllBytes("Temp/WhimTex/text-layer-proof-" + Guid.NewGuid().ToString("N") + ".png", proof.Value.EncodeToPNG());
+                System.IO.File.WriteAllBytes("Temp/WhimTex/text-layer-proof-" + Guid.NewGuid().ToString("N") + ".png", EncodePng(proof.Value));
             text.text = "";
             t.True(Pixels(document).All(c => c.a == 0), "Empty text produces a transparent layer");
         }
@@ -409,7 +419,7 @@ public static class TextLayerTests
             }
             finally { ((IDisposable)container).Dispose(); }
             using var proof = new OwnedTexture(document.ComposeCanvas());
-            System.IO.File.WriteAllBytes("Temp/WhimTex/text-overflow-" + mode + "-" + Guid.NewGuid().ToString("N") + ".png", proof.Value.EncodeToPNG());
+            System.IO.File.WriteAllBytes("Temp/WhimTex/text-overflow-" + mode + "-" + Guid.NewGuid().ToString("N") + ".png", EncodePng(proof.Value));
         }
         text.autoSize = true; text.fontSize = text.maxFontSize = 24;
         t.Equal(24f, (float)Call(text, "GetFontSize", document.width, document.height), "Ellipsis applies after Auto Size reaches its minimum, without changing the limits");
@@ -492,7 +502,7 @@ public static class TextLayerTests
         {
             text.characterHorizontalScale = scale;
             using var proof = new OwnedTexture(document.ComposeCanvas());
-            System.IO.File.WriteAllBytes("Temp/WhimTex/text-horizontal-scale-" + scale.ToString(System.Globalization.CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N") + ".png", proof.Value.EncodeToPNG());
+            System.IO.File.WriteAllBytes("Temp/WhimTex/text-horizontal-scale-" + scale.ToString(System.Globalization.CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N") + ".png", EncodePng(proof.Value));
         }
     }
     sealed class OwnedTexture : IDisposable

@@ -103,10 +103,10 @@ static System.Threading.CancellationToken Cancellation;
         Check(shader != null && shader.isSupported && !ShaderUtil.ShaderHasError(shader), "Blend shader supported");
         var brushShader = Shader.Find("Hidden/WhimTex/PaintBrush");
         Check(brushShader != null && !ShaderUtil.ShaderHasError(brushShader), "Brush shader supported");
-        var material = new Material(shader);
-        var baseTex = new Texture2D(1, 1, TextureFormat.RGBAFloat, false, true);
-        var sourceTex = new Texture2D(1, 1, TextureFormat.RGBAFloat, false, true);
-        var read = new Texture2D(1, 1, TextureFormat.RGBAFloat, false, true);
+        var material = Scope.OwnObject(new Material(shader));
+        var baseTex = Scope.OwnObject(new Texture2D(1, 1, TextureFormat.RGBAFloat, false, true));
+        var sourceTex = Scope.OwnObject(new Texture2D(1, 1, TextureFormat.RGBAFloat, false, true));
+        var read = Scope.OwnObject(new Texture2D(1, 1, TextureFormat.RGBAFloat, false, true));
         var target = RenderTexture.GetTemporary(1, 1, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
         var previous = RenderTexture.active;
         bool oldWrite = GL.sRGBWrite;
@@ -116,6 +116,11 @@ static System.Threading.CancellationToken Cancellation;
         {
             GL.sRGBWrite = false;
             material.SetTexture("_Blend", sourceTex);
+            // Pass 1 consumes the pending-brush contract, not the layer pass inputs.
+            material.SetTexture("_BrushStroke", sourceTex);
+            material.SetVector("_BrushStrokeMap", new Vector4(1, 1, 0, 0));
+            material.SetVector("_BrushDirtyRect", new Vector4(0, 0, 1, 1));
+            material.SetVector("_BrushWriteChannels", Vector4.one);
             foreach (bool hdr in new[] { false, true })
             foreach (BlendMode mode in modes)
             for (int sample = 0; sample < 24; sample++)
@@ -140,6 +145,8 @@ static System.Threading.CancellationToken Cancellation;
                     material.SetFloat("_Mode", (float)mode); material.SetFloat("_HdrBlend", hdr ? 1 : 0);
                     material.SetFloat("_Opacity", opacity); material.SetFloat("_PreserveAlpha", path == 1 ? 1 : 0);
                     material.SetFloat("_BrushStandard", hdr ? 0 : 1);
+                    material.SetFloat("_StrokeMode", (float)mode);
+                    material.SetFloat("_StrokeOpacity", opacity);
                     Graphics.Blit(baseTex, target, material, path == 2 ? 1 : 0);
                     RenderTexture.active = target; read.ReadPixels(new Rect(0, 0, 1, 1), 0, 0); read.Apply();
                     Color actual = read.GetPixel(0, 0), expected = Expected(b, s, mode, hdr, opacity, path == 1);

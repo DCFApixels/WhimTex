@@ -2408,7 +2408,7 @@
     overflow: visible;
 }
 .whimtex-fx-preview-minmax > .unity-min-max-slider__input {
-    margin-left: -4px;
+    margin-left: -8px;
     margin-right: -4px;
     overflow: visible;
 }
@@ -2457,7 +2457,7 @@
 .whimtex-cyclic-range,
 .whimtex-cyclic-range > .unity-base-field__input { overflow: visible; }
 .whimtex-cyclic-range-slider { height: 20px; min-height: 20px; max-height: 20px; overflow: visible; }
-.whimtex-cyclic-range-rail { position: absolute; left: 0; right: 0; top: 5px; height: 10px; overflow: visible; }
+.whimtex-cyclic-range-rail { position: absolute; left: 0; right: 4px; top: 5px; height: 10px; overflow: visible; }
 .whimtex-cyclic-range-track {
     position: absolute; left: 0; right: 0; top: 0; bottom: 0;
     background-color: #373737; border-radius: 2px; overflow: hidden;

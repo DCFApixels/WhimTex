@@ -170,7 +170,7 @@ try
         var material = new Material(shader) { hideFlags = HideFlags.HideAndDontSave }; objects.Add(material);
         var parameter = new DCFApixels.WhimTex.ShaderFXParameter
         { name = "_Color", type = DCFApixels.WhimTex.ShaderFXParameterType.Color, colorValue = new Color(.463f, .23f, .71f, 1) };
-        Call(parameter, "SetValue", material, parameter, new Vector2(8, 8));
+            Call(parameter, "SetValue", material, parameter, new Vector2(8, 8), 1f);
         if (shader == brushShader)
         {
             material.SetFloat("_Hardness", 1); material.SetFloat("_SrcBlend", 1); material.SetFloat("_DstBlend", 0);

@@ -114,14 +114,22 @@ context.case("LiveAgent original assertion inputs and source contracts", async (
   assert.ok(!originalImage.includes('SampleLiveImage(') && !originalImage.includes('Resize'));
   assert.ok(complete.includes('(long)generated.StoredTexture.width * generated.StoredTexture.height'));
   // Run selection validation/capture bounds and coverage policy from production, without graphics.
+  // Existing inputs omit applicationMask. Execute that production default branch so the
+  // original strict/guide fixtures use the current explicit application-coverage field.
+  const applicationMaskDefault=body(read('src/Automation/WhimTexApi.ApplicationMask.cs'),
+    'private static void CaptureApplicationMask(').split('var spec =')[0];
+  const captureApplicationMask=new Function(`return (job,request)=>{${applicationMaskDefault}
+    throw Error('Explicit applicationMask is outside these existing fixture inputs');}`)();
+  const withApplicationMask=job=>{captureApplicationMask(job,{});return job;};
   code=body(images,'private static void CaptureLiveInput(').split('string source =')[0]
-    .replace(/\bstring\b|\bint\b|\bvar\b|\bCanvasSelection\b/g,'let')
+    .replace(/\bstring\b|\bint\b|\bvar\b|\bCanvasSelection(?= selection\b)/g,'let')
+    .replaceAll('(JObject)', '')
     .replace('(byte[])selection.Coverage.Clone()', 'selection.Coverage.slice()')
     .replaceAll('Math.Min','Math.min').replaceAll('Math.Max','Math.max');
   const requireValid=(valid,message)=>assert.ok(valid,message);
   const Bounds=function(x,y,width,height) { Object.assign(this,{x,y,width,height,xMin:x,yMin:y,xMax:x+width,yMax:y+height}); };
-  const configure=new Function('Text','Int','Require','RectInt',`return (request,job,window)=>{${code}return job;}`)
-    ((r,k,d)=>r[k]??d,(r,k,d,min,max)=>{const n=r[k]??d; assert.ok(Number.isInteger(n)&&n>=min&&n<=max);return n;},requireValid,Bounds);
+  const configure=new Function('Text','Int','Require','RectInt','CaptureApplicationMask',`return (request,job,window)=>{${code}return job;}`)
+    ((r,k,d)=>r[k]??d,(r,k,d,min,max)=>{const n=r[k]??d; assert.ok(Number.isInteger(n)&&n>=min&&n<=max);return n;},requireValid,Bounds,captureApplicationMask);
   const selected={AgentSelection:{Active:true,Bounds:new Bounds(200,300,50,60),Coverage:new Uint8Array(512*512)}};
   const strictCapture=configure({area:'selection'},{width:512,height:512},selected);
   const guideCapture=configure({area:'selection',selectionMode:'guide'},{width:512,height:512},selected);
@@ -139,7 +147,7 @@ context.case("LiveAgent original assertion inputs and source contracts", async (
   const coverageAt=new Function(`return (job,x,y)=>{${code}}`)();
   for(const mode of ['strict','guide']) for(const mask of [null,Uint8Array.from([0,64,128,255])])
   for(let y=-1;y<=2;y++) for(let x=-1;x<=2;x++) {
-    const actual=coverageAt({width:2,height:2,selectionMode:mode,mask},x,y);
+    const actual=coverageAt(withApplicationMask({width:2,height:2,selectionMode:mode,mask}),x,y);
     const expected=x<0||y<0||x>1||y>1 ? 0 : mode==='guide'||mask===null ? 255 : mask[y*2+x];
     assert.equal(actual,expected); checks++;
   }
@@ -153,7 +161,7 @@ context.case("LiveAgent original assertion inputs and source contracts", async (
   const inputImage={width:4,height:4,GetPixels32:()=>sourcePixels.map(p=>({...p}))};
   const softMask=new Uint8Array(64); softMask[3*8+3]=255; softMask[3*8+4]=128;
   for(const selectionMode of ['strict','guide']) {
-    const result=applyMask({width:8,height:8,selectionMode,mask:softMask},inputImage,new Rect(2,2,4,3));
+    const result=applyMask(withApplicationMask({width:8,height:8,selectionMode,mask:softMask}),inputImage,new Rect(2,2,4,3));
     for(let y=0;y<4;y++) for(let x=0;x<4;x++) {
       const i=y*4+x, expected={...sourcePixels[i]};
       if(selectionMode==='strict') expected.a=Math.floor((expected.a*softMask[Math.floor(2+(y+.5)/4*3)*8+2+x]+127)/255);

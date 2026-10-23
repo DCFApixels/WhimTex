@@ -278,7 +278,7 @@ public static class EdgeOutlineTests
             }
             var viewType = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView", true);
             var view = (VisualElement)Activator.CreateInstance(viewType, Hidden, null, new object[] { fx }, null);
-            var effectControl = (VisualElement)Activator.CreateInstance(viewType, Hidden, null, new object[] { fx, true }, null);
+            var effectControl = (VisualElement)Activator.CreateInstance(viewType, Hidden, null, new object[] { fx, true, null, null, -1 }, null);
             try
             {
                 t.Equal(3, view.childCount, "Hidden FX opacity does not add a body row");
@@ -408,7 +408,7 @@ public static class EdgeOutlineTests
                     t.Near(method, restoredParameters.Find(p => p.name == "_Method").floatValue, 0, "Method survives JSON");
                     t.Near(.65f, restoredParameters.Find(p => p.name == "_Opacity").floatValue, 0, "FX opacity survives JSON");
                     var restoredHeader = (VisualElement)Activator.CreateInstance(viewType, Hidden, null,
-                        new object[] { restored.Document.layers[0].fx[0], true }, null);
+                        new object[] { restored.Document.layers[0].fx[0], true, null, null, -1 }, null);
                     try { t.Near(.65f, restoredHeader.Q<FloatField>().value, 0, "FX header binding survives JSON"); }
                     finally { restoredHeader.Clear(); }
                     t.Near(1.7f, restoredParameters.Find(p => p.name == "_Strength").floatValue, 0, "Strength survives JSON even when hidden");

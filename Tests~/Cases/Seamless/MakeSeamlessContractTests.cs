@@ -121,11 +121,11 @@ public static class MakeSeamlessContractTests
             var examples = Regex.Matches(guide, @"```json\s*\n([\s\S]*?)```");
             Check(examples.Count == 2, "Two operation examples");
             foreach (var operation in Parse("{\"operations\":" + examples[0].Groups[1].Value + "}")["operations"].Children())
-                operations.Invoke(null, new object[] { temporary, operation.Token, aliases, false });
+                operations.Invoke(null, new object[] { temporary, operation.Token, aliases, false, null, null });
             var effect = (MakeSeamlessLayerBehaviour)aliases["tile"].Behaviour;
             Check(effect.TargetLayerId == aliases["source"].Id && !aliases["source"].enabled, "Add/target example resolves hidden source");
             operations.Invoke(null, new object[] { temporary,
-                Parse(examples[1].Groups[1].Value.Replace("LAYER-ID", aliases["tile"].Id)).Token, aliases, false });
+                Parse(examples[1].Groups[1].Value.Replace("LAYER-ID", aliases["tile"].Id)).Token, aliases, false, null, null });
             Check(effect.mode == MakeSeamlessLayerBehaviour.SeamlessMode.PatchQuilting && !effect.processAlpha &&
                 effect.quiltingChannels == MakeSeamlessLayerBehaviour.QuiltingChannels.Independent, "Set example");
         }

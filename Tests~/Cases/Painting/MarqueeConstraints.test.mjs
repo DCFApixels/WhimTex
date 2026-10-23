@@ -47,7 +47,7 @@ context.case("MarqueeConstraints original assertion inputs and source contracts"
       assert.ok(source.includes(`RegisterCallback<${event}Event>`));
       assert.ok(source.includes(`UnregisterCallback<${event}Event>`));
   }
-  assert.match(read('WhimTexWindow.Tools.cs'), /tool == CanvasTool.Shape \|\| tool == CanvasTool.RectangleSelect \|\| tool == CanvasTool.Crop \|\| tool == CanvasTool.PolygonSelect\)\s*button.Add\(new ToolDropdownMarker\(\)\)/);
+  assert.match(read('WhimTexWindow.Tools.cs'), /tool == CanvasTool.Shape \|\| tool == CanvasTool.RectangleSelect \|\| tool == CanvasTool.Crop \|\| tool == CanvasTool.PolygonSelect \|\| tool == CanvasTool.Gradient\)\s*button.Add\(new ToolDropdownMarker\(\)\)/);
   assert.match(read('WhimTexSplitView.uss'), /\.whimtex-tool-dropdown-marker \{\s*position: absolute;\s*right: 1px;\s*bottom: 1px;/);
 
   context.facts.referenceChecks = checks;

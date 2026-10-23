@@ -173,7 +173,7 @@ context.case('CanvasViewGuides original assertions and branches', async () => {
     assert.ok(!src.match(/private bool Ready => ([\s\S]*?);/)[1].includes('CanMoveCanvasGuides'), 'Guide visibility must not depend on the selected tool');
     const setTool = read('WhimTexWindow.ContextTools.cs').split('private void ChangeCanvasTool(CanvasTool tool)')[1];
     assert.ok(setTool.indexOf('CancelCanvasZoomGesture();') >= 0 && setTool.indexOf('CancelCanvasZoomGesture();') < setTool.indexOf('canvasTool = tool;'), 'Switching tools must cancel an uncommitted guide drag');
-    assert.match(read('WhimTexWindow.Zoom.cs'), /CancelCanvasZoomGesture\(\)\s*\{\s*canvasGuideManipulator\?\.Cancel\(\);/);
+assert.match(read('WhimTexWindow.Zoom.cs'), /CancelCanvasZoomGesture\(\)\s*\{[^}]*canvasGuideManipulator\?\.Cancel\(\);/);
     assert.match(src, /owner.areaSelectionManipulator\?\.HasGesture/);
     for (const [event, callback] of [['PointerDown', 'Down'], ['PointerMove', 'Move'], ['PointerUp', 'Up']])
         for (const op of ['Register', 'Unregister'])

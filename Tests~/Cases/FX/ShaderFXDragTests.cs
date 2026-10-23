@@ -134,8 +134,12 @@ public static class ShaderFXDragTests
         }
         finally
         {
-            window.Close();
-            if (previousWindow != null) previousWindow.Focus();
+            try
+            {
+                try { if (window != null && window.rootVisualElement.panel != null) window.Close(); }
+                finally { if (window != null) UnityEngine.Object.DestroyImmediate(window); }
+            }
+            finally { if (previousWindow != null) previousWindow.Focus(); }
         }
     }
 }

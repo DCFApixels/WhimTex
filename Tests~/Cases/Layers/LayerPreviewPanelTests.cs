@@ -139,6 +139,7 @@ public static class LayerPreviewPanelTests
         void Cleanup() => job.DisposeOwned();
         job.OwnCleanup(() => {
             job.Scope.CloseWindow(properties); job.Scope.CloseWindow(window);
+            Call(b, "ReleaseTransientResources");
             if (doc != null) job.Scope.Destroy(doc);
             job.Scope.Destroy(tex);
             if (focus != null) focus.Focus();
@@ -157,7 +158,29 @@ public static class LayerPreviewPanelTests
             }
             finally { job.Scope.Release(expected); }
         }
-        void Later() => job.Schedule(window.rootVisualElement, Run, 500);
+        void Later()
+        {
+            double deadline = EditorApplication.timeSinceStartup + 5;
+            bool Pending(VisualElement panel)
+            {
+                if (panel == null || (bool)Get(panel, "disposed") || (bool)Get(Get(panel, "state"), "collapsed")) return false;
+                var layer = (Layer)Get(panel, "boundLayer");
+                return layer != null && doc.layers.Contains(layer) &&
+                    (Get(panel, "source") == null || (bool)Get(panel, "dirty"));
+            }
+            void WaitForPreview()
+            {
+                if (EditorApplication.timeSinceStartup < deadline &&
+                    (Pending(window.rootVisualElement.Q("layer-preview")) || Pending(properties.rootVisualElement.Q("layer-preview"))))
+                {
+                    job.Schedule(window.rootVisualElement, WaitForPreview, 100);
+                    return;
+                }
+                Run();
+            }
+            // Viewport renders do not publish a full layer image; allow the panel's deferred fallback to finish.
+            job.Schedule(window.rootVisualElement, WaitForPreview, 500);
+        }
         void Run()
         {
             try

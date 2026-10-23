@@ -16,7 +16,7 @@ context.case("OutputDependencies original assertion inputs and source contracts"
   for (const op of ['+=', '-=']) assert.ok(window.includes(`WhimTexDocument.OutputTextureChanged ${op} OnOutputTextureChanged`));
   assert.match(live, /!change.ShouldRefresh\(activeDocument\)/);
   assert.match(live, /outputDependencyDirty = true;\s*RequestCanvasRender\(\)/);
-  assert.match(window, /UpdateCanvasRender\(\)\s*\{\s*if \(outputDependencyDirty\)\s*\{\s*outputDependencyDirty = false;\s*ReleaseEffectCache\(\)/);
+  assert.match(window, /UpdateCanvasRender\(\)\s*\{\s*using var profile = WhimTexProfiler.Measure\("ui.canvas_update", activeDocument\);\s*PublishCanvasReasons\(\);\s*if \(outputDependencyDirty\)\s*\{\s*WhimTexProfiler.Reason\("cache.invalidate", "document.output_dependency", activeDocument\);\s*outputDependencyDirty = false;\s*ReleaseEffectCache\(\)/);
   assert.match(change, /consumer == source/);
   assert.match(change, /layer\?\.IsGroup == true && UsesTexture\(layer.layers, texture\)/);
   assert.match(change, /visited.Add\(dependency\)/);

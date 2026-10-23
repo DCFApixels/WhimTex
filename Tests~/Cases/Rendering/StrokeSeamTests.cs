@@ -82,7 +82,7 @@ public static class StrokeSeamTests
             layer.transform.tiling=TransformTilingMode.Unbounded;b=doc.ComposeCanvas();
             output=new Texture2D(512,256,TextureFormat.RGBA32,false,true);
             output.SetPixels(0,0,256,256,a.GetPixels());output.SetPixels(256,0,256,256,b.GetPixels());output.Apply();
-            Directory.CreateDirectory("Temp/WhimTex");File.WriteAllBytes("Temp/WhimTex/stroke-seams.png",output.EncodeToPNG());
+            Directory.CreateDirectory("Temp/WhimTex");File.WriteAllBytes("Temp/WhimTex/stroke-seams-" + System.Guid.NewGuid().ToString("N") + ".png",output.EncodeToPNG());
         }
         finally
         {

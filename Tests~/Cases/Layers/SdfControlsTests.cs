@@ -8,6 +8,16 @@ using DCFApixels.WhimTex;
 
 public static class SdfControlsTests
 {
+    // Use the product PNG path: composed/readback textures contain linear float pixels.
+    static byte[] EncodePng(UnityEngine.Texture2D texture)
+    {
+        var assembly = typeof(DCFApixels.WhimTex.WhimTexDocument).Assembly;
+        var encoder = assembly.GetType("DCFApixels.WhimTex.WhimTexRasterEncoder", true);
+        var format = System.Enum.Parse(assembly.GetType("DCFApixels.WhimTex.RasterImageFormat", true), "Png");
+        return (byte[])encoder.GetMethod("Encode", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+            .Invoke(null, new object[] { texture, format, 95, UnityEngine.Texture2D.EXRFlags.CompressZIP });
+    }
+
     // Support: Tests~/Framework/TestApi.cs and Framework/Unity/UnityCFixture.cs.
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
     static string ExecuteMain()
@@ -83,7 +93,7 @@ public static class SdfControlsTests
         try
         {
             foreach(var p in texture.GetPixels())Check(!float.IsNaN(p.r)&&!float.IsInfinity(p.r),"finite render");
-            System.IO.Directory.CreateDirectory(WhimTex.Tests.UnityC.FixtureContext.Scope.Temp);File.WriteAllBytes(WhimTex.Tests.UnityC.FixtureContext.Scope.Temp + "/sdf-controls.png",texture.EncodeToPNG());
+            System.IO.Directory.CreateDirectory(WhimTex.Tests.UnityC.FixtureContext.Scope.Temp);File.WriteAllBytes(WhimTex.Tests.UnityC.FixtureContext.Scope.Temp + "/sdf-controls.png",EncodePng(texture));
         }
         finally{WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(texture);}
         sdf.profile=AnimationCurve.Linear(0,1,1,1);

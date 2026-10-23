@@ -43,7 +43,7 @@ static System.Threading.CancellationToken Cancellation;
                         if (scenario == 1)
                         {
                             Set("_Dither", 1); Set("_Gamma", 2.3f); Set("_ShadowRange", 0); Set("_HighlightRange", 0);
-                            Set("_OutBlack", .25f); Set("_Density", 1);
+                Set("_OutBlack", .25f); Set("_Opacity", 1);
                             foreach (var p in parameters)
                             {
                                 if (p.name == "_Midtones") p.vectorValue = new Vector4(-1, .5f, -2, 0);

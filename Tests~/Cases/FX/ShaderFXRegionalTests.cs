@@ -605,7 +605,7 @@ float4 Show(float2 uv){return SampleInput(float2(.05,.5));}
             }
         }
         StrokeBenchmark(t, f, local, full, rows);
-        string directory = Path.GetFullPath("Temp/WhimTex/regional-fx"); Directory.CreateDirectory(directory);
+        string directory = Path.GetFullPath("Temp/WhimTex/regional-fx/" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
         File.WriteAllLines(Path.Combine(directory, "benchmark.txt"), rows);
         t.True(rows.Count == 9, "All bounded 8K comparisons completed");
     });
@@ -698,7 +698,16 @@ float4 Show(float2 uv){return SampleInput(float2(.05,.5));}
         readonly bool srgb = GL.sRGBWrite;
         internal IDisposable cache;
         internal Fixture()
-        { doc = Own(ScriptableObject.CreateInstance<WhimTexDocument>()); doc.width = 512; doc.height = 384; ClearCache(); }
+        {
+            doc = Own(ScriptableObject.CreateInstance<WhimTexDocument>());
+            try { doc.width = 512; doc.height = 384; ClearCache(); }
+            catch (Exception primary)
+            {
+                try { Dispose(); }
+                catch (Exception cleanup) { throw new AggregateException(primary, cleanup); }
+                throw;
+            }
+        }
         internal A Own<A>(A obj) where A : Object { obj.hideFlags = HideFlags.HideAndDontSave; owned.Add(obj); return obj; }
         internal ShaderFX Fx(string source)
         {
@@ -755,7 +764,23 @@ float4 Show(float2 uv){return SampleInput(float2(.05,.5));}
             return new Subscription(evt, handler);
         }
         public void Dispose()
-        { cache.Dispose(); for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null) Object.DestroyImmediate(owned[i]); RenderTexture.active = previous; GL.sRGBWrite = srgb; }
+        {
+            var failures = new List<Exception>();
+            void ReleaseOwned(Action release)
+            {
+                try { release(); }
+                catch (Exception error) { failures.Add(error); }
+            }
+            ReleaseOwned(() => cache?.Dispose());
+            for (int i = owned.Count - 1; i >= 0; i--)
+            {
+                var value = owned[i];
+                ReleaseOwned(() => { if (value != null) Object.DestroyImmediate(value); });
+            }
+            ReleaseOwned(() => RenderTexture.active = previous);
+            ReleaseOwned(() => GL.sRGBWrite = srgb);
+            if (failures.Count != 0) throw new AggregateException("Owned regional FX cleanup unfinished; recovery required", failures);
+        }
     }
     sealed class Subscription : IDisposable
     {

@@ -76,6 +76,7 @@ public static class MultiLayerTransformTests
             Check(farChild.transform.Equals(localA)&&nested.transform.Equals(localB),"Pivot does not change layers");
             Call(state,"Cancel");
             Call(state,"Begin");next=Frame(state);next.position+=new Double2(5,6);
+            Undo.FlushUndoRecordObjects(); Undo.IncrementCurrentGroup();
             Undo.RegisterCompleteObjectUndo(doc,"Multi transform smoke");
             Call(state,"Apply",next,false);Undo.FlushUndoRecordObjects();Undo.PerformUndo();
             Check(!(bool)Call(state,"Matches",doc,Ids(farChild,nested)),"Undo invalidates cached frame");

@@ -55,7 +55,7 @@ public static class SoftRangeTests
             foreach(var lowerSoft in new[]{false,true})
             foreach(var upperSoft in new[]{false,true})
             {
-                var side=(BaseField<float>)Activator.CreateInstance(fieldType,flags,null,new object[]{"Sides",0f,2f,lowerSoft,upperSoft},null);
+                var side=(BaseField<float>)Activator.CreateInstance(fieldType,flags,null,new object[]{"Sides",0f,2f,lowerSoft,upperSoft,false},null);
                 window.rootVisualElement.Add(side);
                 var input=side.Q<FloatField>();
                 input.value=-3;
@@ -105,9 +105,25 @@ public static class SoftRangeTests
         catch (TargetInvocationException e) { throw new Exception(e.GetBaseException().ToString()); }
         finally
         {
-            if(window!=null)window.Close();
-            if(fx!=null){Undo.ClearUndo(fx);UnityEngine.Object.DestroyImmediate(fx);}
-            UnityEngine.Object.DestroyImmediate(owner);
+            var errors = new List<Exception>();
+            void ReleaseOwned(Action release)
+            {
+                try { release(); }
+                catch (Exception error) { errors.Add(error); }
+            }
+            ReleaseOwned(() =>
+            {
+                try { if (window != null && window.rootVisualElement.panel != null) window.Close(); }
+                finally { if (window != null) UnityEngine.Object.DestroyImmediate(window); }
+            });
+            ReleaseOwned(() =>
+            {
+                if (fx == null) return;
+                try { Undo.ClearUndo(fx); }
+                finally { UnityEngine.Object.DestroyImmediate(fx); }
+            });
+            ReleaseOwned(() => { if (owner != null) UnityEngine.Object.DestroyImmediate(owner); });
+            if (errors.Count != 0) throw new AggregateException("Owned soft-range cleanup unfinished; recovery required", errors);
         }
     }
 }
