@@ -32,8 +32,8 @@ public static class RemainingLegacyCleanupTests
             typeof(WhimTexWindow).GetField("documentFileGuid", F) == null &&
             typeof(WhimTexWindow).GetField("documentFileOwner", F) == null, "No duplicated window binding");
         foreach (string kind in new[] { "document", "fragment", "layers" })
-            Reject(() => WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":2,\"kind\":\"" + kind + "\",\"layers\":[]}", false).Dispose(), "Root kind accepted");
-        const string explicitAxes = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[" +
+            Reject(() => WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":3,\"kind\":\"" + kind + "\",\"layers\":[]}", false).Dispose(), "Root kind accepted");
+        const string explicitAxes = "{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[" +
             "{\"id\":\"noise\",\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\",\"scale\":23,\"scaleY\":23,\"warpScale\":3,\"warpScaleY\":3}}," +
             "{\"id\":\"pattern\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"pattern\":{\"size\":37,\"sizeY\":37}}}," +
             "{\"id\":\"shape\",\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\",\"rectangleCorners\":[{\"amount\":0.4},{\"amount\":0.2},{\"amount\":0.4},{}]}}]}";
@@ -58,7 +58,7 @@ public static class RemainingLegacyCleanupTests
         Check(new NoiseLayerBehaviour().scaleY == 8 && new NoiseLayerBehaviour().warpScaleY == 1, "New Noise explicit defaults");
         Check(new FillPatternSettings().sizeY == 64 && new ShapeLayerBehaviour().rectangleCorners[0].amount == 0, "New Pattern/Shape explicit defaults");
 
-        using (var omitted = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[" +
+        using (var omitted = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[" +
             "{\"id\":\"n\",\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\",\"scale\":23,\"warpScale\":3}}," +
             "{\"id\":\"p\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"pattern\":{\"size\":37}}}]}" , false))
         {
@@ -69,7 +69,7 @@ public static class RemainingLegacyCleanupTests
 
         foreach (bool declared in new[] { false, true })
         {
-            string json = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"fx-layer\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"parameters\":[{\"name\":\"_Removed\",\"type\":\"Float\",\"declaredInCode\":" + (declared ? "true" : "false") + "}]}]}]}";
+            string json = "{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"fx-layer\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"parameters\":[{\"name\":\"_Removed\",\"type\":\"Float\",\"declaredInCode\":" + (declared ? "true" : "false") + "}]}]}]}";
             Reject(() => WhimTexDocumentJson.Read(json, false).Dispose(), "Removed declaration metadata accepted");
         }
 

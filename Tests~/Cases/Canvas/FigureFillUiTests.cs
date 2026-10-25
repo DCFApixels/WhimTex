@@ -102,7 +102,7 @@ public static class FigureFillUiTests
             Undo.PerformUndo();Build();UnityBRun.Check(Read<Vector2>("gradientStart")==before,"Undo restores anchor");
             UnityBRun.Check(root.Q<Vector2Field>(prefix+"Start").value==before,"Undo refreshes control");
             Undo.PerformRedo();Build();UnityBRun.Check(Read<Vector2>("gradientStart")==moved,"Redo restores anchor");
-            var gradient=new WhimTexGradient { WrapMode=WhimTexGradientWrapMode.Mirror,Mode=WhimTexGradientMode.Fixed };
+            var gradient=new WhimTexGradient { WrapMode=WhimTexGradientWrapMode.Mirror,Interpolation=WhimTexGradientInterpolation.Fixed };
             gradient.SetKeys(new[]{new GradientColorKey(Color.red,0),new GradientColorKey(Color.blue,1)},new[]{new GradientAlphaKey(.4f,0),new GradientAlphaKey(.8f,1)});
             ((INotifyValueChanged<WhimTexGradient>)root.Q(prefix+"Gradient")).value=gradient;
             UnityBRun.Check(Read<WhimTexGradient>("gradient").Equals(gradient),"Gradient field preserves all settings");

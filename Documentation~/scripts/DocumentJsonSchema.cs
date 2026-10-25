@@ -154,6 +154,47 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                                 ("anyOf", new[] { D(("const", new[] { 0, 0 })), D(("items", D(("type", "integer"), ("minimum", 1), ("maximum", 16384)))) }),
                                 ("description", "Source reference canvas dimensions retained by Crop. [0,0] uses the current canvas; otherwise both dimensions must be positive and their product at most 16,777,216. Keeps Noise, ordinary Pattern and uninitialized Drawing sources at their original pixel scale. Not a source-image resolution, crop rectangle or rendering cache.")) :
                             type == typeof(Layer) && f.Name == "id" ? D(("type", "string"), ("minLength", 1)) : Schema(f.FieldType);
+                if (type == typeof(WhimTexGradient))
+                {
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Independent color model and scalar interpolation. colors/alphas/colorMode retain automatic data. Custom uses independent customKeys/customColorMode; inactive automatic and manual data remain stored in every write mode. huePath, smoothness, midpoint and chromaCorrection do not change Custom curves. Retired mode and transition fields are unsupported.";
+                    ((Dictionary<string, object>)properties["colorMode"])["default"] = "Perceptual";
+                    ((Dictionary<string, object>)properties["interpolation"])["default"] = "Balanced";
+                    ((Dictionary<string, object>)properties["huePath"])["default"] = "Shortest";
+                    properties["chromaCorrection"] = D(("type", "number"), ("minimum", 0), ("maximum", 1), ("default", 0));
+                    properties["smoothness"] = D(("type", "number"), ("minimum", 0), ("maximum", 1), ("default", 1),
+                        ("description", "Used only by Blend/Balanced. Smooth, Adaptive, Fixed and Custom retain but ignore it."));
+                    properties["colorSpace"] = D(("type", "string"), ("enum", new[] { "Gamma", "Linear" }), ("default", "Gamma"),
+                        ("description", "Technical encoding of stored color keys, independent of colorMode."));
+                    ((Dictionary<string, object>)properties["wrapMode"])["default"] = "Clamp";
+                    properties["customKeys"] = D(("type", new[] { "array", "null" }), ("maxItems", 256), ("default", null),
+                        ("items", Schema(typeof(WhimTexGradientCurveKey))),
+                        ("description", "Optional retained manual data. When nonempty: one to 64 keys in each channel, at most 64 distinct color times across channels 0..2, unique positive IDs, channel times increasing by at least 0.000001. Keys are independent. Markers cluster all channels sorted by time/id within 0.00001 of each earliest anchor, not transitively; color/alpha filtering happens inside these clusters. Groups are never serialized; the obsolete link field is rejected. Empty/null allowed only outside Custom."));
+                    properties["customColorMode"] = D(("type", "string"), ("enum", Enum.GetNames(typeof(WhimTexGradientColorMode))), ("default", "Perceptual"),
+                        ("description", "Required with nonempty customKeys. Linear/Gamma use RGB, Perceptual uses L/a/b, Hue uses L/C/H; alpha is channel 3. Color conversion must explicitly refit the curves; changing this field reinterprets values."));
+                    properties["customApproximationError"] = D(("type", "number"), ("minimum", 0), ("default", 0),
+                        ("description", "Saved conversion diagnostic: maximum observed relative RGB/alpha sample deviation, not a certified bound. It does not affect evaluation."));
+                    var customSelected = D(("required", new[] { "interpolation" }),
+                        ("properties", D(("interpolation", D(("const", "Custom"))))));
+                    var hasManualKeys = D(("required", new[] { "customKeys" }),
+                        ("properties", D(("customKeys", D(("type", "array"), ("minItems", 1))))));
+                    var requiresManualKeys = D(("required", new[] { "customKeys", "customColorMode" }),
+                        ("properties", D(("customKeys", D(("type", "array"), ("minItems", 4))))));
+                    ((Dictionary<string, object>)definitions[name])["allOf"] = new[] {
+                        D(("if", customSelected), ("then", requiresManualKeys)),
+                        D(("if", hasManualKeys), ("then", D(("required", new[] { "customColorMode" }))))
+                    };
+                }
+                if (type == typeof(WhimTexGradientCurveKey))
+                {
+                    properties["id"] = D(("type", "integer"), ("minimum", 1), ("maximum", int.MaxValue));
+                    properties["channel"] = D(("type", "integer"), ("minimum", 0), ("maximum", 3), ("default", 0));
+                    properties["time"] = D(("type", "number"), ("minimum", 0), ("maximum", 1), ("default", 0));
+                    ((Dictionary<string, object>)properties["tangentMode"])["description"] = "Auto, Smooth, Broken, Linear or Constant. Constant uses the right key between knots, matching Fixed; exact knots keep their values.";
+                    ((Dictionary<string, object>)definitions[name])["required"] = new[] { "id" };
+                    var alphaChannel = D(("required", new[] { "channel" }), ("properties", D(("channel", D(("const", 3))))));
+                    var alphaValue = D(("properties", D(("value", D(("type", "number"), ("minimum", 0), ("maximum", 1))))));
+                    ((Dictionary<string, object>)definitions[name])["allOf"] = new[] { D(("if", alphaChannel), ("then", alphaValue)) };
+                }
                 if (type == typeof(Layer))
                     ((Dictionary<string, object>)properties["fx"])["description"] = "Document-owned HLSL effects only: inline code or marked .hlsl presets. Internal $ref identities are supported; external Material, Shader and ShaderFX asset references are rejected.";
                 if (type == typeof(ShapeLayerBehaviour) || type == typeof(VectorShape))
@@ -168,7 +209,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                         ((Dictionary<string, object>)properties[mode])["description"] = stroke
                             ? "Independent stroke paint: None disables painting without clearing settings; Solid uses strokeColor; four gradient modes use strokeGradient; Freeform uses strokeFreeform. The stroke boolean remains an additional gate. Every JSON mode retains inactive stroke settings."
                             : "Shared figure fill: None=0, Solid=1, LinearGradient=2, RadialGradient=3, SquareGradient=4, AngularGradient=6, Freeform=7. Freeform uses the independent freeform point field. Shape fill is an additional overall gate. Full, FullOptimized and Compact retain inactive fill settings.";
-                        ((Dictionary<string, object>)properties[palette])["description"] = "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the angular-only " + repetitions + " multiplier.";
+                        ((Dictionary<string, object>)properties[palette])["description"] = "Independent WhimTexGradient palette, default black-to-white Perceptual/Balanced/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, colorMode, interpolation, huePath, chromaCorrection, smoothness, colorSpace and wrapMode; wrapping follows the angular-only " + repetitions + " multiplier.";
                         ((Dictionary<string, object>)properties[start])["default"] = new[] { 0, 0 };
                         ((Dictionary<string, object>)properties[start])["description"] = "Finite normalized layer-local y-up anchor, allowed outside 0..1. Linear start; center for other gradients. Pixel metric: Shape current canvas dimensions before layer Transform; Vector and Boolean Group referenceSize. Changing this anchor does not change the layer transform or the other paint.";
                         ((Dictionary<string, object>)properties[end])["default"] = new[] { 1, 0 };

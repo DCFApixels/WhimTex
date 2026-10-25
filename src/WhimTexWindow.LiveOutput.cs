@@ -12,6 +12,7 @@ namespace DCFApixels.WhimTex
         {
             if (healingLayer != null && change.ShouldRefresh(activeDocument)) CancelHealing();
             if (activeDocument == null || !change.ShouldRefresh(activeDocument)) return;
+            ResetQuickSelection();
             outputDependencyDirty = true;
             RequestCanvasRender();
         }

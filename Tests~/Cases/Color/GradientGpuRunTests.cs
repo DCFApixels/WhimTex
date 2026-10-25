@@ -1,3 +1,5 @@
+using DCFApixels.WhimTex;
+
 public static class GradientGpuRunTests
 {
     static string ExecuteMain() => Run();
@@ -72,18 +74,24 @@ try
     }, new[] { new UnityEngine.GradientAlphaKey(.1f, 0), new UnityEngine.GradientAlphaKey(.8f, .3f),
         new UnityEngine.GradientAlphaKey(.2f, .7f), new UnityEngine.GradientAlphaKey(1, 1) });
     foreach (var space in new[] { UnityEngine.ColorSpace.Gamma, UnityEngine.ColorSpace.Linear })
-    foreach (DCFApixels.WhimTex.WhimTexGradientMode mode in System.Enum.GetValues(typeof(DCFApixels.WhimTex.WhimTexGradientMode)))
+    foreach (var mode in new[] {
+        (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Fixed),
+        (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Balanced),
+        (color: WhimTexGradientColorMode.Linear, interpolation: WhimTexGradientInterpolation.Balanced),
+        (color: WhimTexGradientColorMode.Perceptual, interpolation: WhimTexGradientInterpolation.Balanced)
+    })
     {
-        layer.gradient.Mode = mode; layer.gradient.ColorSpace = space;
+        layer.gradient.ColorMode = mode.color; layer.gradient.Interpolation = mode.interpolation; layer.gradient.ColorSpace = space;
         var copy = DCFApixels.WhimTex.GradientUtility.Create(layer.gradient);
         Check(!object.ReferenceEquals(copy, layer.gradient) && copy.Equals(layer.gradient),
             "Settings callback copies keys, mode and color space: " + mode + "/" + space);
-        Check(copy.Mode == mode && copy.ColorSpace == space, "Copied interpolation metadata");
+        Check(copy.ColorMode == mode.color && copy.Interpolation == mode.interpolation && copy.ColorSpace == space, "Copied interpolation metadata");
         int originalHash = DCFApixels.WhimTex.GradientUtility.ComputeHash(copy);
-        copy.Mode = mode == DCFApixels.WhimTex.WhimTexGradientMode.Classic ? DCFApixels.WhimTex.WhimTexGradientMode.Fixed : DCFApixels.WhimTex.WhimTexGradientMode.Classic;
+        copy.ColorMode = mode.color == WhimTexGradientColorMode.Gamma ? WhimTexGradientColorMode.Linear : WhimTexGradientColorMode.Gamma;
+        copy.Interpolation = mode.interpolation == WhimTexGradientInterpolation.Fixed ? WhimTexGradientInterpolation.Balanced : WhimTexGradientInterpolation.Fixed;
         Check(originalHash != DCFApixels.WhimTex.GradientUtility.ComputeHash(copy), "Mode invalidates gradient hash");
-        Check(layer.gradient.Mode == mode, "Independent copy does not modify original");
-        copy.Mode = mode;
+        Check(layer.gradient.ColorMode == mode.color && layer.gradient.Interpolation == mode.interpolation, "Independent copy does not modify original");
+        copy.ColorMode = mode.color; copy.Interpolation = mode.interpolation;
         copy.ColorSpace = space == UnityEngine.ColorSpace.Linear ? UnityEngine.ColorSpace.Gamma : UnityEngine.ColorSpace.Linear;
         Check(originalHash != DCFApixels.WhimTex.GradientUtility.ComputeHash(copy), "Color space invalidates gradient hash");
         foreach (DCFApixels.WhimTex.GradientLayerBehaviour.GradientType kind in
@@ -91,9 +99,8 @@ try
         {
             layer.gradientType = kind;
             layer.circularRepetitions = 3.2f;
-            // Native PerceptualBlend quantizes RGB; interpolating the palette can differ
-            // by one encoded 8-bit step (up to .009 in linear light near white).
-            Compare(space + "/" + mode + "/" + kind, tolerance: mode == DCFApixels.WhimTex.WhimTexGradientMode.Perceptual ? .01f : .002f);
+            // Retain the existing palette error budgets against CPU evaluation.
+            Compare(space + "/" + mode + "/" + kind, tolerance: mode.color == WhimTexGradientColorMode.Perceptual ? .01f : .002f);
         }
     }
     // Shifted first/last stops must match the smoothed CPU ramp on the GPU too.
@@ -106,15 +113,15 @@ try
     foreach (var smooth in new[] {0f, .5f, 1f})
     {
         layer.gradient.Smoothness = smooth;
-        foreach (var mode in new[] {DCFApixels.WhimTex.WhimTexGradientMode.Classic,
-            DCFApixels.WhimTex.WhimTexGradientMode.Linear, DCFApixels.WhimTex.WhimTexGradientMode.Perceptual})
+        foreach (var mode in new[] {WhimTexGradientColorMode.Gamma,
+            WhimTexGradientColorMode.Linear, WhimTexGradientColorMode.Perceptual})
         {
-            layer.gradient.Mode = mode;
+            layer.gradient.ColorMode = mode; layer.gradient.Interpolation = WhimTexGradientInterpolation.Balanced;
             Compare("Radial endpoint joins " + mode + "/" + smooth, 257, 257, .002f);
         }
     }
     layer.gradient.Smoothness = 1;
-    layer.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic;
+    layer.gradient.ColorMode = WhimTexGradientColorMode.Gamma; layer.gradient.Interpolation = WhimTexGradientInterpolation.Balanced;
     layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Angular;
     layer.circularWrapMode = DCFApixels.WhimTex.GradientLayerBehaviour.WrapMode.PingPong;
     Compare("Angular exact center and ping-pong");
@@ -131,8 +138,8 @@ try
     layer.circularRepetitions = 0; Compare("Zero repetitions");
     layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Radial;
     layer.gradient = null; Compare("Null fallback");
-    // The strict signed-HDR case tests Classic; all modes are covered above.
-    layer.gradient = new DCFApixels.WhimTex.WhimTexGradient { Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic };
+    // The strict signed-HDR case uses Gamma; the four retained profiles are covered above.
+    layer.gradient = new DCFApixels.WhimTex.WhimTexGradient { ColorMode = WhimTexGradientColorMode.Gamma };
     layer.gradient.SetKeys(new[] {new UnityEngine.GradientColorKey(new UnityEngine.Color(-.5f, 2f, .2f), 0),
         new UnityEngine.GradientColorKey(new UnityEngine.Color(3f, -.2f, 1.2f), 1)},
         new[] {new UnityEngine.GradientAlphaKey(.2f, 0), new UnityEngine.GradientAlphaKey(.8f, 1)});
@@ -144,7 +151,7 @@ try
     var thumb = layer.GetPreviewTexture(18);
     Check(object.ReferenceEquals(thumb, layer.GetPreviewTexture(18)), "Stable thumbnail cache");
     Check(Palette().updateCount == revision, "Thumbnail does not invalidate GPU palette");
-    layer.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Fixed;
+    layer.gradient.Interpolation = WhimTexGradientInterpolation.Fixed;
     Check(layer.GetPreviewTexture(18) != null && thumb == null, "Mode change invalidates thumbnail");
     var rtChanged = Render(32, 16); UnityEngine.RenderTexture.ReleaseTemporary(rtChanged);
     Check(Palette().GetPixel(127, 0) != paletteMiddle, "Mode change updates palette pixels");
@@ -165,7 +172,7 @@ try
     // can choose opposite sides of that jump. Smooth-ramp joins are tested above.
     Compare("Maximum independent color/alpha keys, fixed", 64, 34);
     Check(Palette().height == 17, "Maximum palette interval count");
-    layer.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic;
+    layer.gradient.ColorMode = WhimTexGradientColorMode.Gamma; layer.gradient.Interpolation = WhimTexGradientInterpolation.Balanced;
     Compare("Maximum independent color/alpha keys, blend");
     var snapshot = layer.GetPreviewTexture(18);
     layer.gradient.ColorSpace = layer.gradient.ColorSpace == UnityEngine.ColorSpace.Linear ? UnityEngine.ColorSpace.Gamma : UnityEngine.ColorSpace.Linear;

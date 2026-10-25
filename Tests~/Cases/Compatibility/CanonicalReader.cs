@@ -44,7 +44,7 @@ public static class CanonicalReaderTests
         context.True(typeof(LayerBehaviour).GetProperty("fx") != null && typeof(LayerBehaviour).GetProperty("modifiers") == null, "Canonical behaviour API, no alias");
         context.True(typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.LayerFxEditorWindow") != null &&
             typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.ModifierEditorWindow") == null, "Layer-scoped FX editor name");
-        const string json = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[" +
+        const string json = "{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[" +
             "{\"id\":\"a\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"$id\":\"shared\",\"active\":false},null,{\"$ref\":\"shared\"}]}," +
             "{\"id\":\"b\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$ref\":\"shared\"}]}]}";
         using (var read = WhimTexDocumentJson.Read(json, false))
@@ -64,7 +64,7 @@ public static class CanonicalReaderTests
             context.True(System.Text.RegularExpressions.Regex.IsMatch(snapshot, "\"fxCount\"\\s*:\\s*3") &&
                 !snapshot.Contains("modifierCount"), "Agent API exposes fxCount only");
         }
-        const string minimal = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"a\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}FIELDS}]}";
+        const string minimal = "{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"a\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}FIELDS}]}";
         foreach (string field in new[] { "", ",\"fx\":[]" })
         using (var read = WhimTexDocumentJson.Read(minimal.Replace("FIELDS", field), false))
             context.True(read.Document.layers[0].fx != null && read.Document.layers[0].fx.Count == 0, "Empty/omitted FX preserves frozen v2 default");

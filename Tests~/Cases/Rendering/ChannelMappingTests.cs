@@ -143,7 +143,7 @@ finally { UnityEngine.Object.DestroyImmediate(document); }
 
 private static void CheckContract(TestContext context, DCFApixels.WhimTex.WhimTexDocument document)
 {
-    context.Equal(2, DCFApixels.WhimTex.WhimTexDocumentJson.Version, "Current JSON format version");
+    context.Equal(3, DCFApixels.WhimTex.WhimTexDocumentJson.Version, "Current JSON format version");
     context.Equal(2, DCFApixels.WhimTex.WhimTexDocumentContainer.CurrentVersion, "Current TIFF container version");
     var layer = document.layers[0];
     var mapping = new DCFApixels.WhimTex.LayerChannelMapping

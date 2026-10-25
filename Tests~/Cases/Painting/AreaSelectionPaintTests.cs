@@ -23,6 +23,8 @@ void Check(bool value, string message) { T.True(value, message); }
 var mask = new UnityEngine.Texture2D(16, 16, UnityEngine.TextureFormat.RGBA32, false, true);
 mask.filterMode = UnityEngine.FilterMode.Point; mask.wrapMode = UnityEngine.TextureWrapMode.Clamp;
 var colors = new UnityEngine.Color32[256];
+var gpuMask = new UnityEngine.RenderTexture(16, 16, 0, UnityEngine.RenderTextureFormat.R8, UnityEngine.RenderTextureReadWrite.Linear)
+    { hideFlags = UnityEngine.HideFlags.HideAndDontSave, filterMode = UnityEngine.FilterMode.Point };
 for (int y = 0; y < 16; y++) for (int x = 0; x < 16; x++) colors[y * 16 + x] = new UnityEngine.Color32((byte)(x < 8 ? 255 : 0), 0, 0, 255);
 mask.SetPixels32(colors); mask.Apply(false, false);
 var settings = System.Activator.CreateInstance(settingsType, true);
@@ -53,6 +55,8 @@ try
         for (int i = 0; i < colors.Length; i++) colors[i].r = coverage[i];
         mask.SetPixels32(colors); mask.Apply(false, false);
     }
+    UnityEngine.Graphics.Blit(mask, gpuMask);
+    foreach (bool gpu in new[] { false, true })
     foreach (bool pencil in new[] { false, true })
     foreach (bool transformed in new[] { false, true })
     {
@@ -61,7 +65,7 @@ try
         try
         {
             object parameters = Call(settings, pencil ? "GetPencilParameters" : "GetStrokeParameters", false, UnityEngine.Color.white);
-            parameters = Call(parameters, "WithSelectionMask", mask);
+            parameters = Call(parameters, "WithSelectionMask", gpu ? (UnityEngine.Texture)gpuMask : mask);
             Point(layer, parameters);
             for (int y = 0; y < 16; y++)
             for (int x = 0; x < 16; x++)
@@ -72,7 +76,7 @@ try
             }
             Check(Stored(layer).GetPixel(transformed ? 10 : 5, 8).a > .9f, "Selected source pixels are painted");
             object eraser = Call(settings, pencil ? "GetPencilParameters" : "GetStrokeParameters", true, UnityEngine.Color.white);
-            eraser = Call(eraser, "WithSelectionMask", mask);
+            eraser = Call(eraser, "WithSelectionMask", gpu ? (UnityEngine.Texture)gpuMask : mask);
             Point(layer, eraser);
             Check(Stored(layer).GetPixel(transformed ? 10 : 5, 8).a < .001f, "Eraser uses selection coverage");
         }
@@ -97,7 +101,7 @@ try
     finally { UnityEngine.Object.DestroyImmediate(document); }
     return null;
 }
-finally { UnityEngine.Object.DestroyImmediate(mask); }
+finally { gpuMask.Release(); UnityEngine.Object.DestroyImmediate(gpuMask); UnityEngine.Object.DestroyImmediate(mask); }
 
 
 }

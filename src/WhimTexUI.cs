@@ -32,57 +32,6 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
-        internal static void StyleSplitView(TwoPaneSplitView split)
-        {
-            if (!ApplyWindowStyles(split))
-                return;
-
-            VisualElement anchor = split.Q<VisualElement>("unity-dragline-anchor");
-            VisualElement line = anchor?.Q<VisualElement>("unity-dragline");
-            if (line == null)
-                return;
-
-            bool columns = split.orientation == TwoPaneSplitViewOrientation.Horizontal;
-            anchor.RegisterCallback<GeometryChangedEvent>(evt =>
-            {
-                float thickness = columns ? evt.newRect.width : evt.newRect.height;
-                float previousThickness = columns ? evt.oldRect.width : evt.oldRect.height;
-                if (Mathf.Approximately(thickness, previousThickness) || split.childCount != 2 ||
-                    split[0].resolvedStyle.display == DisplayStyle.None ||
-                    split[1].resolvedStyle.display == DisplayStyle.None)
-                    return;
-
-                if (columns)
-                {
-                    split[1].style.left = thickness;
-                    split.contentContainer.style.paddingRight = thickness;
-                }
-                else
-                {
-                    split[1].style.top = thickness;
-                    split.contentContainer.style.paddingBottom = thickness;
-                }
-            });
-            anchor.AddToClassList("whimtex-split-handle");
-            anchor.AddToClassList(columns ? "whimtex-split-handle--columns" : "whimtex-split-handle--rows");
-            anchor.EnableInClassList("whimtex-split-handle--light", !EditorGUIUtility.isProSkin);
-            line.AddToClassList("whimtex-split-line");
-            line.pickingMode = PickingMode.Ignore;
-            for (int i = 0; i < 3; i++)
-            {
-                VisualElement dot = new VisualElement { pickingMode = PickingMode.Ignore };
-                dot.AddToClassList("whimtex-split-grip");
-                line.Add(dot);
-            }
-            VisualElement hitArea = new VisualElement
-            {
-                name = "splitHitArea",
-                pickingMode = PickingMode.Position
-            };
-            hitArea.AddToClassList("whimtex-split-hit-area");
-            anchor.Add(hitArea);
-        }
-
         internal sealed class ValueBindings
         {
             private readonly List<Action<bool>> updates = new List<Action<bool>>();

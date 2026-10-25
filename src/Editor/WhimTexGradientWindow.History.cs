@@ -38,7 +38,7 @@ namespace DCFApixels.WhimTex
             if (historyGrid == null) return;
             var document = WhimTexColorPicker.DocumentFor(owner);
             var entries = document != null ? document.ColorHistory : null;
-            bool hdr = color != null && color.hdr;
+            bool hdr = IsCustom || color != null && color.hdr;
             bool rebuild = force || hdr != historyHdr || document != historyDocument || (entries?.Count ?? 0) != historySnapshot.Count;
             if (!rebuild && entries != null)
                 for (int i = 0; i < entries.Count; i++) if (!entries[i].Equals(historySnapshot[i])) { rebuild = true; break; }
@@ -69,12 +69,12 @@ namespace DCFApixels.WhimTex
         {
             var document = WhimTexColorPicker.DocumentFor(owner);
             if (document == null || document != historyDocument || alphaTrack || midpointSelected ||
-                !WhimTexColorPicker.IsHistoryColorVisible(value, color != null && color.hdr) ||
-                selected < 0 || selected >= colors.Length || index < 0 || index >= document.ColorHistory.Count ||
+                !WhimTexColorPicker.IsHistoryColorVisible(value, IsCustom || color != null && color.hdr) ||
+                selected < 0 || selected >= Count || index < 0 || index >= document.ColorHistory.Count ||
                 !document.ColorHistory[index].Equals(value)) return;
             Edit(() =>
             {
-                float time = colors[selected].time;
+                float time = Time;
                 intensityPreferences.Remove(time); hdrPreferences.Remove(time);
                 StoreDisplayColor(value);
             });

@@ -35,12 +35,12 @@ namespace DCFApixels.WhimTex
             p.position = Enum(value, "position", p.position);
             p.inverted = Bool(value, "inverted", p.inverted);
             if (value["profile"] != null) p.profile = WhimTexCurveTexture.Parse(Text(value, "profile"));
-            if (value["gradient"] != null) p.gradient = ReadGradient(value["gradient"], WhimTexGradientMode.Linear);
+            if (value["gradient"] != null) p.gradient = ReadGradient(value["gradient"], WhimTexGradientColorMode.Linear);
             p.cellColor = Enum(value, "cellColor", p.cellColor);
             p.colorBlend = Enum(value, "colorBlend", p.colorBlend);
             p.seed = Int(value, "seed", p.seed, int.MinValue, int.MaxValue);
             p.variation = Number(value, "variation", p.variation, 0, 1);
-            if (value["palette"] != null) p.palette = ReadGradient(value["palette"], WhimTexGradientMode.Linear);
+            if (value["palette"] != null) p.palette = ReadGradient(value["palette"], WhimTexGradientColorMode.Linear);
         }
 
         private static JObject FillPatternSnapshot(FillPatternSettings p) => new JObject

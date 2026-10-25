@@ -508,6 +508,20 @@
     flex-shrink: 0;
 }
 
+.whimtex-tool-icon--quick-selection {
+    overflow: hidden;
+    translate: 0 -2px;
+}
+
+.whimtex-tool-icon--quick-selection > .whimtex-tool-icon {
+    position: absolute;
+    left: 29.166667%;
+    top: -2.5%;
+    translate: 0 1px;
+    width: 100%;
+    height: 100%;
+}
+
 .whimtex-tool-vector-image {
     --unity-image-tint-color: var(--whimtex-tool-icon-tint);
     position: absolute;
@@ -515,6 +529,13 @@
     top: 4.545455%;
     width: 90.90909%;
     height: 90.90909%;
+}
+
+.whimtex-tool-vector-image--pencil {
+    left: -4.545455%;
+    top: -4.545455%;
+    width: 109.09091%;
+    height: 109.09091%;
 }
 
 .whimtex-tool-dropdown-marker {
@@ -1835,6 +1856,17 @@
     background-color: var(--split-line);
 }
 
+.whimtex-split {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.whimtex-split > .whimtex-split-handle {
+    position: relative;
+    flex-shrink: 0;
+}
+
 .whimtex-split-handle,
 .whimtex-document-separator {
     overflow: visible;
@@ -1918,11 +1950,13 @@
     margin-bottom: 0;
 }
 
-.whimtex-split-handle:hover > .whimtex-split-line {
+.whimtex-split-handle:hover > .whimtex-split-line,
+.whimtex-split-handle--dragging > .whimtex-split-line {
     background-color: #3b6997;
 }
 
 .whimtex-split-handle:hover > .whimtex-split-line > .whimtex-split-grip,
+.whimtex-split-handle--dragging > .whimtex-split-line > .whimtex-split-grip,
 .whimtex-split-handle:active > .whimtex-split-line > .whimtex-split-grip {
     background-color: rgb(239, 246, 255);
 }

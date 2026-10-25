@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "WhimTex document v2",
+  "title": "WhimTex document v3",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -13,7 +13,7 @@
       "const": "whimtex.document"
     },
     "version": {
-      "const": 2
+      "const": 3
     },
     "writeMode": {
       "type": "string",
@@ -1546,6 +1546,35 @@
         "$type": {
           "const": "WhimTexGradient"
         },
+        "customKeys": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "maxItems": 256,
+          "default": null,
+          "items": {
+            "$ref": "#/$defs/WhimTexGradientCurveKey"
+          },
+          "description": "Optional retained manual data. When nonempty: one to 64 keys in each channel, at most 64 distinct color times across channels 0..2, unique positive IDs, channel times increasing by at least 0.000001. Keys are independent. Markers cluster all channels sorted by time/id within 0.00001 of each earliest anchor, not transitively; color/alpha filtering happens inside these clusters. Groups are never serialized; the obsolete link field is rejected. Empty/null allowed only outside Custom."
+        },
+        "customColorMode": {
+          "type": "string",
+          "enum": [
+            "Linear",
+            "Gamma",
+            "Perceptual",
+            "Hue"
+          ],
+          "default": "Perceptual",
+          "description": "Required with nonempty customKeys. Linear/Gamma use RGB, Perceptual uses L/a/b, Hue uses L/C/H; alpha is channel 3. Color conversion must explicitly refit the curves; changing this field reinterprets values."
+        },
+        "customApproximationError": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0,
+          "description": "Saved conversion diagnostic: maximum observed relative RGB/alpha sample deviation, not a certified bound. It does not affect evaluation."
+        },
         "colors": {
           "type": [
             "array",
@@ -1564,14 +1593,43 @@
             "$ref": "#/$defs/WhimTexGradient+AlphaStop"
           }
         },
-        "mode": {
+        "colorMode": {
           "type": "string",
           "enum": [
-            "Fixed",
-            "Classic",
             "Linear",
-            "Perceptual"
-          ]
+            "Gamma",
+            "Perceptual",
+            "Hue"
+          ],
+          "default": "Perceptual"
+        },
+        "interpolation": {
+          "type": "string",
+          "enum": [
+            "Blend",
+            "Balanced",
+            "Smooth",
+            "Adaptive",
+            "Fixed",
+            "Custom"
+          ],
+          "default": "Balanced"
+        },
+        "huePath": {
+          "type": "string",
+          "enum": [
+            "Shortest",
+            "Longest",
+            "Increasing",
+            "Decreasing"
+          ],
+          "default": "Shortest"
+        },
+        "chromaCorrection": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
         },
         "wrapMode": {
           "type": "string",
@@ -1579,22 +1637,149 @@
             "Clamp",
             "Repeat",
             "Mirror"
-          ]
+          ],
+          "default": "Clamp"
         },
         "colorSpace": {
           "type": "string",
           "enum": [
             "Gamma",
-            "Linear",
-            "Uninitialized"
-          ]
+            "Linear"
+          ],
+          "default": "Gamma",
+          "description": "Technical encoding of stored color keys, independent of colorMode."
         },
         "smoothness": {
           "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1,
+          "description": "Used only by Blend/Balanced. Smooth, Adaptive, Fixed and Custom retain but ignore it."
+        }
+      },
+      "description": "Independent color model and scalar interpolation. colors/alphas/colorMode retain automatic data. Custom uses independent customKeys/customColorMode; inactive automatic and manual data remain stored in every write mode. huePath, smoothness, midpoint and chromaCorrection do not change Custom curves. Retired mode and transition fields are unsupported.",
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "interpolation"
+            ],
+            "properties": {
+              "interpolation": {
+                "const": "Custom"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "customKeys",
+              "customColorMode"
+            ],
+            "properties": {
+              "customKeys": {
+                "type": "array",
+                "minItems": 4
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "customKeys"
+            ],
+            "properties": {
+              "customKeys": {
+                "type": "array",
+                "minItems": 1
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "customColorMode"
+            ]
+          }
+        }
+      ]
+    },
+    "WhimTexGradientCurveKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "WhimTexGradientCurveKey"
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "channel": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 0
+        },
+        "time": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
+        },
+        "value": {
+          "type": "number",
           "minimum": -3.40282347E+38,
           "maximum": 3.40282347E+38
+        },
+        "inTangent": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "outTangent": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "tangentMode": {
+          "type": "string",
+          "enum": [
+            "Auto",
+            "Smooth",
+            "Broken",
+            "Linear",
+            "Constant"
+          ],
+          "description": "Auto, Smooth, Broken, Linear or Constant. Constant uses the right key between knots, matching Fixed; exact knots keep their values."
         }
-      }
+      },
+      "required": [
+        "id"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "channel"
+            ],
+            "properties": {
+              "channel": {
+                "const": 3
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        }
+      ]
     },
     "WhimTexGradient+ColorStop": {
       "type": "object",
@@ -2221,7 +2406,7 @@
               "type": "null"
             }
           ],
-          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the angular-only gradientRepetitions multiplier."
+          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Balanced/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, colorMode, interpolation, huePath, chromaCorrection, smoothness, colorSpace and wrapMode; wrapping follows the angular-only gradientRepetitions multiplier."
         },
         "freeform": {
           "anyOf": [
@@ -2331,7 +2516,7 @@
               "type": "null"
             }
           ],
-          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the angular-only strokeGradientRepetitions multiplier."
+          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Balanced/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, colorMode, interpolation, huePath, chromaCorrection, smoothness, colorSpace and wrapMode; wrapping follows the angular-only strokeGradientRepetitions multiplier."
         },
         "strokeFreeform": {
           "anyOf": [
@@ -4781,7 +4966,7 @@
               "type": "null"
             }
           ],
-          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the angular-only gradientRepetitions multiplier."
+          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Balanced/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, colorMode, interpolation, huePath, chromaCorrection, smoothness, colorSpace and wrapMode; wrapping follows the angular-only gradientRepetitions multiplier."
         },
         "freeform": {
           "anyOf": [
@@ -4870,7 +5055,7 @@
               "type": "null"
             }
           ],
-          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, interpolation, smoothness, colorSpace and wrapMode; wrapping follows the angular-only strokeGradientRepetitions multiplier."
+          "description": "Independent WhimTexGradient palette, default black-to-white Perceptual/Balanced/Clamp. Required non-null in gradient modes, even with painting disabled. Retains HDR colors, alpha, midpoints, colorMode, interpolation, huePath, chromaCorrection, smoothness, colorSpace and wrapMode; wrapping follows the angular-only strokeGradientRepetitions multiplier."
         },
         "strokeFreeform": {
           "anyOf": [

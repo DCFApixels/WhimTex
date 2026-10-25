@@ -112,7 +112,7 @@ public static class GroupFXTests
             group.fx.Clear();
             bindingsType.GetMethod("Refresh").Invoke(bindings, new object[] { true });
             UnityBRun.Check(!(mode.value != "Pass Through"), "Group inspector restoration");
-            string json = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"group\",\"group\":true,\"behaviour\":{\"$type\":\"GroupLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"" + code + "\"}],\"children\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[1,0,0,1]}}]}]}";
+            string json = "{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"group\",\"group\":true,\"behaviour\":{\"$type\":\"GroupLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"" + code + "\"}],\"children\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[1,0,0,1]}}]}]}";
             using (var data = (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", flags).Invoke(null, new object[] { json, 8, 8 }))
             {
                 data.GetType().GetMethod("Compile", flags).Invoke(data, null);

@@ -50,6 +50,7 @@ namespace DCFApixels.WhimTex
             if (version == 5) ReadDescriptors(reader, result, front, back);
             else if (version == 3) ReadStops(reader, result, front, back);
             else throw new InvalidDataException("Unsupported GRD version: " + version);
+            if (result.entries.Count > 0) result.messages.Add("Imported interpolation uses Blend in the selected color model; the source transition curve may differ.");
             if (result.entries.Count == 0) throw new InvalidDataException("The GRD library contains no usable gradients. " + string.Join(" ", result.messages));
             return result;
         }
@@ -92,8 +93,9 @@ namespace DCFApixels.WhimTex
                     var value = Create(colors, alphas);
                     object method = wrapper.Get("gradientsInterpolationMethod") ?? gradient.Get("gradientsInterpolationMethod");
                     string methodName = method is EnumValue enumMethod ? enumMethod.Value : method as string;
-                    value.Mode = methodName == "Gcls" || methodName == "classic" ? WhimTexGradientMode.Classic :
-                        methodName == "Lnr " || methodName == "linear" ? WhimTexGradientMode.Linear : WhimTexGradientMode.Perceptual;
+                    value.ColorMode = methodName == "Gcls" || methodName == "classic" ? WhimTexGradientColorMode.Gamma :
+                        methodName == "Lnr " || methodName == "linear" ? WhimTexGradientColorMode.Linear : WhimTexGradientColorMode.Perceptual;
+                    value.Interpolation = WhimTexGradientInterpolation.Blend;
                     if (method != null && methodName != "Gcls" && methodName != "classic" && methodName != "Lnr " && methodName != "linear" && methodName != "Perc" && methodName != "perceptual")
                         result.messages.Add(name + ": unknown interpolation uses Perceptual.");
                     object smoothness = gradient.Get("Intr");
@@ -162,7 +164,8 @@ namespace DCFApixels.WhimTex
             var c = new GradientColorKey[colors.Count]; var a = new GradientAlphaKey[alphas.Count];
             for (int i = 0; i < c.Length; i++) c[i] = new GradientColorKey(colors[i].color, colors[i].time);
             for (int i = 0; i < a.Length; i++) a[i] = new GradientAlphaKey(alphas[i].alpha, alphas[i].time);
-            var gradient = new WhimTexGradient(); gradient.SetKeys(c, a);
+            var gradient = new WhimTexGradient { ColorMode = WhimTexGradientColorMode.Gamma,
+                Interpolation = WhimTexGradientInterpolation.Blend }; gradient.SetKeys(c, a);
             for (int i = 0; i < c.Length; i++) gradient.SetMidpoint(false, i, colors[i].midpoint);
             for (int i = 0; i < a.Length; i++) gradient.SetMidpoint(true, i, alphas[i].midpoint);
             return gradient;

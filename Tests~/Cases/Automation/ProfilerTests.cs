@@ -536,8 +536,8 @@ public static class ProfilerTests
                     windowType.GetMethod("CreateGUI").Invoke(window, null);
                     t.Equal(2, window.rootVisualElement.Query<ListView>().ToList().Count, "Window contains virtualized events and summary");
                     t.True(window.rootVisualElement.styleSheets.count > 0, "Profiler style sheet resolves");
-                    t.Equal(2, window.rootVisualElement.Query<TwoPaneSplitView>().ToList().Count, "Three independently sized panes use two draggable splits");
-                    t.True(window.rootVisualElement.Query<TwoPaneSplitView>().ToList().All(s => s.orientation == TwoPaneSplitViewOrientation.Vertical && s.childCount == 2), "Vertical split hierarchy has two panes per divider");
+                    t.Equal(2, window.rootVisualElement.Query<WhimTexSplitView>().ToList().Count, "Three independently sized panes use two draggable splits");
+                    t.True(window.rootVisualElement.Query<WhimTexSplitView>().ToList().All(s => !s.IsHorizontal && s.childCount == 3 && s.FirstPane.parent == s && s.SecondPane.parent == s), "Vertical split hierarchy has two panes and an in-flow divider");
                     CheckSummarySorting(t, windowType);
                     CheckGroups(t, windowType);
                     windowType.GetMethod("StartCapture", Instance).Invoke(window, null);

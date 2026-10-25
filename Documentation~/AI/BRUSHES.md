@@ -508,7 +508,7 @@ their usual painting behavior. Dynamic tips use the same batched stamp mesh.
 
 Save HLSL Preset writes the current parameter values as declaration defaults and retains
 their groups, conditions and linked controls. It shares FX's export restrictions:
-gradient defaults support only two-endpoint Classic/Gamma/Clamp with Smoothness 1 and
+gradient defaults support only two-endpoint Gamma/Blend with Gamma key encoding, Clamp, Chroma Correction 0, Smoothness 0 and
 midpoint .5; any other gradient, including an implicit Perceptual default, causes an explicit refusal. Texture asset references
 must resolve to a GUID in the destination project. A JSON brush contains code defaults,
 not embedded parameter textures or separate edited values.

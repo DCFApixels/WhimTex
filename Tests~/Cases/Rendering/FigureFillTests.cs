@@ -35,11 +35,16 @@ public static class FigureFillTests
         try
         {
             foreach (var mode in Modes)
-            foreach (WhimTexGradientMode interpolation in Enum.GetValues(typeof(WhimTexGradientMode)))
+            foreach (var interpolation in new[] {
+                (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Fixed),
+                (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Balanced),
+                (color: WhimTexGradientColorMode.Linear, interpolation: WhimTexGradientInterpolation.Balanced),
+                (color: WhimTexGradientColorMode.Perceptual, interpolation: WhimTexGradientInterpolation.Balanced)
+            })
             foreach (WhimTexGradientWrapMode wrap in Enum.GetValues(typeof(WhimTexGradientWrapMode)))
             foreach (ColorSpace space in new[] { ColorSpace.Linear, ColorSpace.Gamma })
             {
-                shape.fillMode = mode; shape.gradient = Ramp(); shape.gradient.Mode = interpolation;
+                shape.fillMode = mode; shape.gradient = Ramp(); shape.gradient.ColorMode = interpolation.color; shape.gradient.Interpolation = interpolation.interpolation;
                 shape.gradient.WrapMode = wrap; shape.gradient.ColorSpace = space;
                 layer.SetBehaviour(shape); a = doc.ComposeCanvas();
                 var vector = ShapeToVector.Convert(shape, doc);
@@ -56,7 +61,7 @@ public static class FigureFillTests
                 }
                 Object.DestroyImmediate(a); a = null; Object.DestroyImmediate(b); b = null;
             }
-            shape.gradient = new WhimTexGradient { Mode=WhimTexGradientMode.Classic, ColorSpace=ColorSpace.Linear };
+            shape.gradient = new WhimTexGradient { ColorMode=WhimTexGradientColorMode.Gamma, ColorSpace=ColorSpace.Linear };
             shape.gradient.SetKeys(new[]{new GradientColorKey(new Color(-.5f,2f,.2f),0),new GradientColorKey(new Color(3f,-.2f,1.2f),1)},
                 new[]{new GradientAlphaKey(.2f,0),new GradientAlphaKey(.8f,1)});
             foreach(var mode in Modes)
@@ -173,13 +178,17 @@ public static class FigureFillTests
         {
             foreach(var mode in Modes)
             foreach(var wrap in new[]{WhimTexGradientWrapMode.Clamp,WhimTexGradientWrapMode.Repeat,WhimTexGradientWrapMode.Mirror})
-            foreach(var interpolation in new[]{WhimTexGradientMode.Classic,WhimTexGradientMode.Fixed,WhimTexGradientMode.Perceptual})
+            foreach(var interpolation in new[] {
+                (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Balanced),
+                (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Fixed),
+                (color: WhimTexGradientColorMode.Perceptual, interpolation: WhimTexGradientInterpolation.Balanced)
+            })
             {
-                shape.strokeMode=mode;shape.strokeGradient=Ramp();shape.strokeGradient.WrapMode=wrap;shape.strokeGradient.Mode=interpolation;
+                shape.strokeMode=mode;shape.strokeGradient=Ramp();shape.strokeGradient.WrapMode=wrap;shape.strokeGradient.ColorMode=interpolation.color;shape.strokeGradient.Interpolation=interpolation.interpolation;
                 shape.strokeGradient.ColorSpace=ColorSpace.Linear;shape.strokeGradientRepetitions=2.5f;
                 layer.SetBehaviour(shape);a=doc.ComposeCanvas();
                 var vector=ShapeToVector.Convert(shape,doc);layer.SetBehaviour(vector);b=doc.ComposeCanvas();
-                if(mode==VectorFillMode.LinearGradient && wrap==WhimTexGradientWrapMode.Clamp && interpolation==WhimTexGradientMode.Classic)
+                if(mode==VectorFillMode.LinearGradient && wrap==WhimTexGradientWrapMode.Clamp && interpolation.color==WhimTexGradientColorMode.Gamma && interpolation.interpolation==WhimTexGradientInterpolation.Balanced)
                 { File.WriteAllBytes("Temp/WhimTex/stroke-gradient-shape-" + System.Guid.NewGuid().ToString("N") + ".png",EncodePng(a));File.WriteAllBytes("Temp/WhimTex/stroke-gradient-vector-" + System.Guid.NewGuid().ToString("N") + ".png",EncodePng(b)); }
                 for(int y=2;y<60;y+=7)for(int x=2;x<80;x+=7)
                 {
@@ -193,9 +202,9 @@ public static class FigureFillTests
                 Object.DestroyImmediate(a);a=null;Object.DestroyImmediate(b);b=null;
             }
             shape.fill=true;shape.fillMode=VectorFillMode.LinearGradient;shape.gradientStart=Vector2.zero;shape.gradientEnd=Vector2.right;
-            shape.gradient=new WhimTexGradient {Mode=WhimTexGradientMode.Classic,ColorSpace=ColorSpace.Linear};shape.gradient.SetKeys(new[]{new GradientColorKey(Color.red,0),new GradientColorKey(Color.blue,1)},new[]{new GradientAlphaKey(1,0),new GradientAlphaKey(1,1)});
+            shape.gradient=new WhimTexGradient {ColorMode=WhimTexGradientColorMode.Gamma,ColorSpace=ColorSpace.Linear};shape.gradient.SetKeys(new[]{new GradientColorKey(Color.red,0),new GradientColorKey(Color.blue,1)},new[]{new GradientAlphaKey(1,0),new GradientAlphaKey(1,1)});
             shape.strokeGradient.SetKeys(new[]{new GradientColorKey(Color.green,0),new GradientColorKey(Color.yellow,1)},new[]{new GradientAlphaKey(1,0),new GradientAlphaKey(1,1)});
-            shape.strokeGradient.WrapMode=WhimTexGradientWrapMode.Clamp;shape.strokeGradient.Mode=WhimTexGradientMode.Classic;
+            shape.strokeGradient.WrapMode=WhimTexGradientWrapMode.Clamp;shape.strokeGradient.ColorMode=WhimTexGradientColorMode.Gamma;shape.strokeGradient.Interpolation=WhimTexGradientInterpolation.Balanced;
             layer.SetBehaviour(shape);a=doc.ComposeCanvas();
             t.True(shape.GetPreviewTexture(40)!=null,"Shape stroke gradient thumbnail");
             layer.SetBehaviour(ShapeToVector.Convert(shape,doc));b=doc.ComposeCanvas();

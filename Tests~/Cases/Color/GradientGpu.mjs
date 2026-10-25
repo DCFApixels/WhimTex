@@ -19,7 +19,7 @@ context.case('GradientGpu original assertions and branches', async () => {
     assert.match(palette, /texture\.GetRawTextureData<Color>\(\)/);
     assert.match(palette, /var evaluated = gradient\.Clone\(\)/);
     assert.match(palette, /evaluated\.WrapMode = WhimTexGradientWrapMode\.Clamp/);
-    assert.match(palette, /evaluated\.Mode == WhimTexGradientMode\.Fixed/);
+    assert.match(palette, /evaluated\.Interpolation == WhimTexGradientInterpolation\.Fixed/);
     assert.match(render, /palette\.Bind\(material, gradient/);
     assert.match(palette, /"_GradientWrapMode"/);
     assert.match(layer, /destination = source\.Clone\(\)/);

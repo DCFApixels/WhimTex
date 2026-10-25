@@ -145,7 +145,7 @@ public static class DistanceFieldModesTests
 
     static void CheckRoundtrip(TestContext t)
     {
-        using (var defaults = Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":["
+        using (var defaults = Read("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":["
             + "{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\"}},{\"id\":\"outline\",\"behaviour\":{\"$type\":\"OutlineLayerBehaviour\"}}]}"))
         {
             var document = Document(defaults);
@@ -159,7 +159,7 @@ public static class DistanceFieldModesTests
         }
         foreach (var mode in Modes)
         {
-            string json = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":["
+            string json = "{\"format\":\"whimtex.document\",\"version\":3,\"layers\":["
                 + "{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\",\"metric\":\"" + mode
                 + "\",\"miterLimit\":2.75,\"contourMergeDistance\":1.25,\"encoding\":\"LinearData\",\"sourceEdges\":\"Repeat\",\"sourceOffset\":[2.25,-1.5]}},"
                 + "{\"id\":\"outline\",\"behaviour\":{\"$type\":\"OutlineLayerBehaviour\",\"metric\":\"" + mode
@@ -184,7 +184,7 @@ public static class DistanceFieldModesTests
             t.True(outline.fillCenter, "Filled Outline roundtrip");
             t.Equal(SDFLayerBehaviour.OutputEncoding.LinearData, sdf.encoding, "Scalar encoding roundtrip");
         }
-        using (var multi = Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\",\"metric\":\"MTSDF\",\"encoding\":\"MultiChannelData\"}}]}"))
+        using (var multi = Read("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\",\"metric\":\"MTSDF\",\"encoding\":\"MultiChannelData\"}}]}"))
             t.Equal(SDFLayerBehaviour.OutputEncoding.MultiChannelData, ((SDFLayerBehaviour)Document(multi).layers[0].Behaviour).encoding,
                 "Explicit MTSDF data output accepted");
         foreach (string properties in new[] {
@@ -200,7 +200,7 @@ public static class DistanceFieldModesTests
             bool rejected = false;
             try
             {
-                using var invalid = Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\","
+                using var invalid = Read("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\","
                     + properties + "}}]}");
             }
             catch (TargetInvocationException error) { rejected = error.GetBaseException() is WhimTexDocumentException; }
@@ -261,7 +261,7 @@ public static class DistanceFieldModesTests
 
     static void CheckMergeSettingsApi(TestContext t)
     {
-        using var parsed=Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\"}},{\"id\":\"outline\",\"behaviour\":{\"$type\":\"OutlineLayerBehaviour\"}}]}");
+        using var parsed=Read("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\"}},{\"id\":\"outline\",\"behaviour\":{\"$type\":\"OutlineLayerBehaviour\"}}]}");
         var doc=Document(parsed);
         var sdf=(SDFLayerBehaviour)doc.layers[0].Behaviour;
         var set=typeof(WhimTexApi).GetMethod("SetLayer",Static);
@@ -295,7 +295,7 @@ public static class DistanceFieldModesTests
 
     static void CheckAaedtSettingsApi(TestContext t)
     {
-        using var parsed = Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\"}},{\"id\":\"outline\",\"behaviour\":{\"$type\":\"OutlineLayerBehaviour\"}}]}");
+        using var parsed = Read("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"sdf\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\"}},{\"id\":\"outline\",\"behaviour\":{\"$type\":\"OutlineLayerBehaviour\"}}]}");
         var doc = Document(parsed);
         var set = typeof(WhimTexApi).GetMethod("SetLayer", Static);
         var inspect = typeof(WhimTexApi).GetMethod("Snapshot", Static);

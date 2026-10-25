@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 2,
+  "version": 3,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -255,7 +255,7 @@
                 "midpoint": 0.5
               }
             ],
-            "mode": "Linear",
+            "colorMode": "Linear", "interpolation": "Balanced",
             "wrapMode": "Clamp",
             "colorSpace": "Gamma",
             "smoothness": 1.0
@@ -366,7 +366,7 @@
                 "midpoint": 0.5
               }
             ],
-            "mode": "Linear",
+            "colorMode": "Linear", "interpolation": "Balanced",
             "wrapMode": "Clamp",
             "colorSpace": "Gamma",
             "smoothness": 1.0
@@ -666,7 +666,7 @@
                 "midpoint": 0.5
               }
             ],
-            "mode": "Linear",
+            "colorMode": "Linear", "interpolation": "Balanced",
             "wrapMode": "Clamp",
             "colorSpace": "Gamma",
             "smoothness": 1.0
@@ -792,7 +792,7 @@
                 "midpoint": 0.5
               }
             ],
-            "mode": "Linear",
+            "colorMode": "Linear", "interpolation": "Balanced",
             "wrapMode": "Clamp",
             "colorSpace": "Gamma",
             "smoothness": 1.0

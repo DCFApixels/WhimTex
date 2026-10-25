@@ -15,6 +15,34 @@ profiler, and ReadScreenPixel on test-created windows. It does not authorize oth
 
 ## Inspect and select
 
+`quick-selection-quality` compares analytical native contours with flat/weak/textured images,
+one/two-pixel branches, HDR holes, an 8K weak-edge object, a thin 8K frame and a one-pixel HDR
+branch on 8K. It records false positives/negatives, IoU, complete CPU/worker times, request
+counts and estimated live solver arrays. The deliberately crossed HDR-hole hint is reported
+separately: hard foreground painted over a hole is not an expected background pixel.
+`quick-selection-refinement` checks hard/soft unary hints, last-stroke overwrite, neutral erasure,
+fractional baseline preservation, repeated canvases and min-cut energy against exhaustive label
+enumeration on small cyclic graphs. A forced small graph budget exercises converged block sweeps.
+`quick-selection-8k` also verifies GPU source coordinates and partial R8 uploads.
+Progressive coverage measures the first CPU snapshot and the first tool-visible contour,
+checks a held-brush pause, prevents preview starvation under queued input, interrupts an
+in-flight solve, and verifies exact 8K HDR Add/Subtract/Add boundaries. Preview data must
+never enter the native consumer mask. CPU timings exclude GPU/editor scheduling.
+Contour checks exercise dense rings/components, odd dimensions, intermediate tile publication
+and 8K. Display boundaries must stay connected across tile seams within the segment budget;
+native mask bytes remain unchanged.
+It also drives the real tool in an owned, detached window object; no window is shown and no
+user input is automated. Large new strokes must enter an unfinished traversal, and Stop/reset
+must retain/discard the correct marker masks. Worker and main-thread timings go to
+`Temp/WhimTex/quick-selection/<runId>.json`. The scenario declares `temp-files,windows`.
+`area-selection-paint-v2` exercises both Texture2D and GPU R8 masks with Brush, Pencil and Eraser.
+
+`shader-fx-catalog-performance-v2` prepares native menus without showing them. It reports first/repeated
+menu preparation, main-thread path capture and worker completion; native popup drawing is outside this
+measurement. It checks cold/no-session readiness, reload snapshot reuse, import/save invalidation,
+background header-only discovery and user file edits/moves/deletions using only an owned Temp folder.
+No FX/shader objects, assets, document changes or UI input are needed.
+
 `shader-fx-diagnostics` also checks compile/inspection locality parity, reason codes and source
 locations, include line mapping, pending drafts, failed Apply/recovery, disabled FX, serialized
 applied snapshots and revision stability. It uses only owned transient effects and documents.
@@ -1876,3 +1904,16 @@ establish whole-process RAM use or prove absence of long-term leaks. Event capac
 worker limits were checked separately. The attempted full 262K JSON reload snapshot exceeded
 the existing 256 MiB reader limit (278,911,734 bytes); max-size reload is not claimed as passing.
 Small current-format worker/latency snapshot roundtrip still passes `profiler-followup`.
+
+
+### Gradient CPU contract update (F30)
+
+The existing core, contract, defaults, midpoint and window cases use ColorMode and
+Interpolation separately. Their assertions and numeric tolerances remain in place;
+midpoint/tangent assertions target Balanced, not Adaptive's different midpoint semantics.
+No new cases were added and this update is not a test-run result.
+`whim-tex-gradient-rounded-v2` and `whim-tex-gradient-rounded-capture-v2` are retired
+from profiles: the former domain remap no longer exists. Explicit calls return **skipped**,
+never PASS. Frozen fixtures and previously captured output were not regenerated.
+Document payload/JSON are v3, gradient clipboard is v2, and binary brush presets are v2.
+Older-format fixtures require an explicit unsupported-format expectation, not reinterpretation.

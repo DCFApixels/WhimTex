@@ -21,7 +21,7 @@ public static class OptionalLayerGradientTests
     static IDisposable Read(string layers)
     {
         try { return (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", F)
-            .Invoke(null, new object[] { "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":" + layers + "}", 48, 48 }); }
+            .Invoke(null, new object[] { "{\"format\":\"whimtex.document\",\"version\":3,\"layers\":" + layers + "}", 48, 48 }); }
         catch (TargetInvocationException error) { throw error.GetBaseException(); }
     }
     static WhimTexDocument Document(IDisposable data) => (WhimTexDocument)data.GetType().GetField("Document", F).GetValue(data);
@@ -165,12 +165,12 @@ public static class OptionalLayerGradientTests
         var sdf = (SDFLayerBehaviour)sdfDoc.layers[0].Behaviour;
         Check(noise.encoding == NoiseLayerBehaviour.OutputEncoding.LinearData && Enabled(sdf), "Noise defaults Linear Data; SDF defaults Gradient");
         Check(Enum.GetValues(typeof(SDFLayerBehaviour.OutputEncoding)).Length == 3, "SDF has Linear Data, Gradient and Multi Channel Data outputs");
-        Check(noise.gradient.Mode == WhimTexGradientMode.Perceptual && sdf.gradient.Mode == WhimTexGradientMode.Perceptual, "Both default Perceptual");
+        Check(noise.gradient.ColorMode == WhimTexGradientColorMode.Perceptual && sdf.gradient.ColorMode == WhimTexGradientColorMode.Perceptual, "Both default Perceptual");
         UI(noiseDoc, noise, typeof(NoiseLayerEditorWindow));
         UI(sdfDoc, sdf, typeof(SDFLayerEditorWindow));
         var palette = GradientUtility.Create(new[] { new GradientColorKey(new Color(.1f,.3f,1.4f), 0),
             new GradientColorKey(new Color(1.2f,.2f,.05f), 1) }, new[] { new GradientAlphaKey(.3f, 0), new GradientAlphaKey(.9f, 1) });
-        palette.Mode = WhimTexGradientMode.Linear;
+        palette.ColorMode = WhimTexGradientColorMode.Linear;
         noise.gradient = palette.Clone(); sdf.gradient = palette.Clone();
         noise.encoding = NoiseLayerBehaviour.OutputEncoding.LinearData;
         foreach (NoiseLayerBehaviour.NoiseType type in Enum.GetValues(typeof(NoiseLayerBehaviour.NoiseType)))
@@ -214,9 +214,15 @@ public static class OptionalLayerGradientTests
             // Colored grain bypasses gradient mapping; use monochrome grain for the active-palette clipboard case.
             if (source is NoiseLayerBehaviour grain) grain.grainColor = NoiseLayerBehaviour.GrainColor.Monochrome;
             Enable(source, false);
-            foreach (WhimTexGradientMode mode in Enum.GetValues(typeof(WhimTexGradientMode)))
+            foreach (var mode in new[] {
+                (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Fixed),
+                (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Balanced),
+                (color: WhimTexGradientColorMode.Linear, interpolation: WhimTexGradientInterpolation.Balanced),
+                (color: WhimTexGradientColorMode.Perceptual, interpolation: WhimTexGradientInterpolation.Balanced)
+            })
             {
-                ((WhimTexGradient)source.GetType().GetField("gradient").GetValue(source)).Mode = mode;
+                var sourceGradient = (WhimTexGradient)source.GetType().GetField("gradient").GetValue(source);
+                sourceGradient.ColorMode = mode.color; sourceGradient.Interpolation = mode.interpolation;
                 using var full = WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(doc, new WhimTexJsonWriteOptions {Mode = WhimTexJsonWriteMode.Full}).Json);
                 var fullCopy = full.Document.layers[0].Behaviour;
                 Check(!Enabled(fullCopy) && ((WhimTexGradient)fullCopy.GetType().GetField("gradient").GetValue(fullCopy)).Equals(source.GetType().GetField("gradient").GetValue(source)), "Full JSON preserves inactive palette " + mode);

@@ -28,7 +28,7 @@ const schema={
     object({...common,source:{const:'Standard'},url:{type:'string',maxLength:4096,pattern:'^https?://[^\\s]+$'}},['format','version','source']),
     object({...common,source:{const:'HLSL'},code:{type:'string',minLength:1,maxLength:65536,description:'At most 65,536 UTF-8 bytes, checked at runtime. Line 1 must be // @whimtex-brush Category/Name. Define exactly one float4 BrushTip with one float2 and optional BrushSequence/BrushMotion, each at most once, in any order; contexts make it Dynamic, otherwise Static. Only input arguments are supported. Parameters use shared FX @param types, groups, linked/conditional controls and @control on line 2; brush textures support Texture/None only.'},resolution:{...integer(32,2048),default:512,description:'Static tip bake resolution. Ignored by Dynamic tips.'}},['format','version','source','code'])
   ],
-  $defs:{settings,pressureBinding:fields.$defs.pressureBinding,gradient:fields.$defs.gradient,gradientStops:fields.$defs.gradientStops}
+  $defs:{settings,pressureBinding:fields.$defs.pressureBinding,gradient:fields.$defs.gradient,gradientStops:fields.$defs.gradientStops,gradientCurveKey:fields.$defs.gradientCurveKey}
 };
 const output=path.join(docs,'AI/brush.schema.json');
 const serialized=JSON.stringify(schema,null,2)+'\n';

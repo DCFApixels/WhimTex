@@ -27,7 +27,7 @@ public static class WhimTexGradientTests
             new GradientColorKey(new Color(.4f,.6f,.8f),.27f), new GradientColorKey(new Color(2,3,4),1) };
         var a = new[] { new GradientAlphaKey(0,0), new GradientAlphaKey(.6f,.7f), new GradientAlphaKey(1,1) };
         g.SetKeys(c,a);
-        g.Mode = WhimTexGradientMode.Fixed;
+        g.Interpolation = WhimTexGradientInterpolation.Fixed;
         var native = new Gradient { mode = GradientMode.Fixed };
         native.SetKeys(c,a);
         for (int i=0;i<=1000;i++)
@@ -39,9 +39,9 @@ public static class WhimTexGradientTests
         Near(g.Evaluate(.27f).r, c[1].color.r);
         Near(g.Evaluate(.7f).a, a[1].alpha);
         g.ColorSpace=ColorSpace.Gamma;
-        foreach (WhimTexGradientMode mode in new[] { WhimTexGradientMode.Classic, WhimTexGradientMode.Linear, WhimTexGradientMode.Perceptual })
+        foreach (WhimTexGradientColorMode mode in new[] { WhimTexGradientColorMode.Gamma, WhimTexGradientColorMode.Linear, WhimTexGradientColorMode.Perceptual })
         {
-            g.Mode=mode;
+            g.ColorMode=mode; g.Interpolation=WhimTexGradientInterpolation.Balanced;
             foreach(var key in c)
                 for(int k=0;k<3;k++) Near(g.Evaluate(key.time)[k],key.color[k],.0002f);
             foreach(var key in a) Near(g.Evaluate(key.time).a,key.alpha);
@@ -52,7 +52,7 @@ public static class WhimTexGradientTests
                 for(int k=0;k<4;k++) { Check(!float.IsNaN(result[k])&&!float.IsInfinity(result[k]),"Nonfinite output"); Near(result[k],copy[k]); }
             }
         }
-        g.Mode=WhimTexGradientMode.Classic;
+        g.ColorMode=WhimTexGradientColorMode.Gamma;
         g.SetKeys(new[] { new GradientColorKey(Color.black,0), new GradientColorKey(Color.gray,.2f),
             new GradientColorKey(Color.white,1) },a);
         float dt=.0001f, center=g.Evaluate(.2f).r;
@@ -64,9 +64,9 @@ public static class WhimTexGradientTests
         var returned=g.ColorKeys; returned[0]=new GradientColorKey(Color.red,0);
         Near(g.Evaluate(0).r,0);
         var simple=new[] { new GradientColorKey(Color.black,0),new GradientColorKey(Color.white,1) };
-        g.SetKeys(simple,a); g.Mode=WhimTexGradientMode.Linear;
+        g.SetKeys(simple,a); g.ColorMode=WhimTexGradientColorMode.Linear;
         Near(g.Evaluate(.5f).r,.7353569f);
-        g.Mode=WhimTexGradientMode.Classic; Near(g.Evaluate(.5f).r,.5f);
+        g.ColorMode=WhimTexGradientColorMode.Gamma; Near(g.Evaluate(.5f).r,.5f);
         var buffer=new Color[257]; g.Bake(buffer); Near(buffer[0].r,0); Near(buffer[256].r,1);
         g.Evaluate(.5f);
         long before=GC.GetAllocatedBytesForCurrentThread();

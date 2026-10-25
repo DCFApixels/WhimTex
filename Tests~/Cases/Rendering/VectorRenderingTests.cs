@@ -119,7 +119,7 @@ public static class VectorRenderingTests
 
             shape.stroke = false; shape.fillColor = Color.white;
             shape.fillMode = VectorFillMode.LinearGradient;
-            shape.gradient = new WhimTexGradient { Mode = WhimTexGradientMode.Linear, ColorSpace = ColorSpace.Linear };
+            shape.gradient = new WhimTexGradient { ColorMode = WhimTexGradientColorMode.Linear, ColorSpace = ColorSpace.Linear };
             shape.gradientStart = new Vector2(.25f,.5f); shape.gradientEnd = new Vector2(.75f,.5f);
             Render(t => context.True(t.GetPixel(68, 32).r > t.GetPixel(28, 32).r + .6f, "linear gradient uses shape-local anchors"));
             shape.fillMode = VectorFillMode.RadialGradient; shape.gradientStart = new Vector2(.5f,.5f);

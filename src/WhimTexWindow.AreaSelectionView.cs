@@ -696,6 +696,13 @@ namespace DCFApixels.WhimTex
                 }
                 MarkDirtyRepaint();
             }
+            internal void SetQuickSelectionEdges(Vector4[] prepared)
+            {
+                cached = owner.areaSelection; revision = cached?.Revision ?? -1;
+                edges.Clear();
+                if (prepared != null) edges.AddRange(prepared);
+                MarkDirtyRepaint();
+            }
             private bool BuildEdges(CanvasSelection s, int step)
             {
                 int width = (s.Width + step - 1) / step, height = (s.Height + step - 1) / step;
@@ -779,7 +786,7 @@ namespace DCFApixels.WhimTex
                 for (int x = left; x <= right && visibleEdges.Count < 16384; x += skip)
                 {
                     Rect tile = new Rect(image.position + new Vector2(x * image.width, y * image.height), image.size);
-                    foreach (Vector4 e in edges)
+                    foreach (Vector4 e in (IEnumerable<Vector4>)owner.quickSelectionPreviewEdges??edges)
                     {
                         if (visibleEdges.Count >= 16384) break;
                         AddVisible(CanvasViewPoint(new Vector2(e.x, e.y), tile), CanvasViewPoint(new Vector2(e.z, e.w), tile));

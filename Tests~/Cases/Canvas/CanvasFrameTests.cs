@@ -322,7 +322,7 @@ public static class CanvasFrameTests
         Normalize(reopened);
         test.Equal(new Vector2Int(64, 48), (Vector2Int)SourceSize.GetValue(reopened.layers[0]), "TIFF payload retains source frame");
         Same(test, expected, Pixels(reopened), .012, "TIFF cropped appearance");
-        string invalid = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"bad\",\"sourceCanvasSize\":[0,48],\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\"}}]}";
+        string invalid = "{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"bad\",\"sourceCanvasSize\":[0,48],\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\"}}]}";
         bool rejected = false;
         try { using var read = WhimTexDocumentJson.Read(invalid, false); }
         catch (WhimTexDocumentException) { rejected = true; }

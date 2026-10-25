@@ -26,7 +26,12 @@ public static class SdfGradientGpuTests
         try
         {
             var gradient = new SDFLayerBehaviour().gradient;
-            foreach (WhimTexGradientMode mode in new[] { WhimTexGradientMode.Linear, WhimTexGradientMode.Classic, WhimTexGradientMode.Perceptual, WhimTexGradientMode.Fixed })
+            foreach (var mode in new[] {
+                (color: WhimTexGradientColorMode.Linear, interpolation: WhimTexGradientInterpolation.Balanced),
+                (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Balanced),
+                (color: WhimTexGradientColorMode.Perceptual, interpolation: WhimTexGradientInterpolation.Balanced),
+                (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Fixed)
+            })
             foreach (WhimTexGradientWrapMode wrap in new[] { WhimTexGradientWrapMode.Clamp, WhimTexGradientWrapMode.Repeat, WhimTexGradientWrapMode.Mirror })
             for (int position = 0; position < 4; position++)
             for (int inverted = 0; inverted < 2; inverted++)
@@ -34,7 +39,7 @@ public static class SdfGradientGpuTests
             for (int useGradient = 0; useGradient < 2; useGradient++)
             {
                 material.SetInt("_UseGradient", useGradient);
-                gradient.Mode = mode; gradient.WrapMode = wrap;
+                gradient.ColorMode = mode.color; gradient.Interpolation = mode.interpolation; gradient.WrapMode = wrap;
                 material.SetTexture("_GradientLut", lut.GetTexture(gradient, ColorSpace.Gamma));
                 material.SetInt("_GradientWrapMode", (int)wrap);
                 material.SetFloat("_MaxDistance", 8);

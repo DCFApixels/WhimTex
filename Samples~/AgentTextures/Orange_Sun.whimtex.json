@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 2,
+  "version": 3,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -105,7 +105,7 @@
                     "midpoint": 0.5
                   }
                 ],
-                "mode": "Classic",
+                "colorMode": "Gamma", "interpolation": "Balanced",
                 "wrapMode": "Clamp",
                 "colorSpace": "Gamma",
                 "smoothness": 1.0

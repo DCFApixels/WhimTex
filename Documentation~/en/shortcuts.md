@@ -50,6 +50,7 @@ In settings dropdowns with two choices, a short left-click switches to the other
 | `Ctrl+A` / `Ctrl+D` / `Ctrl+Shift+I` | Select all / deselect / invert area. |
 | `Shift` / `Alt` / `Shift+Alt` with selection tools | Add / subtract / intersect. |
 | `L` | Lasso in its chosen Polygonal/Freehand mode. |
+| `W` | Quick Selection. Brush adds image regions; `Alt` subtracts, `[` / `]` change size, `Esc` stops pending work. |
 | `Enter` / `Backspace` / `Escape` with Polygonal Lasso | Close / remove vertex / cancel. |
 | `C` with Smooth Polygonal Lasso | Toggle the hovered point between smooth and corner; otherwise edit the selected point. |
 | Drag and release / `Escape` with Freehand Lasso | Draw and apply the closed selection / cancel the current outline. |

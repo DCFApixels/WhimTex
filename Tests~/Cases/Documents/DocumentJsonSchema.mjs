@@ -58,7 +58,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
         });
       }
     }
-    const defaultsSource = fs.readFileSync(path.join(root, 'src/WhimTexJsonDefaultsV2.cs'), 'utf8');
+    const defaultsSource = fs.readFileSync(path.join(root, 'src/WhimTexJsonDefaultsV3.cs'), 'utf8');
     const defaultsLiteral = defaultsSource.match(/internal const string Data = @"((?:[^"]|"")*)";/);
     assert(defaultsLiteral, 'Frozen JSON defaults must be available independently of Unity');
     const defaults = JSON.parse(defaultsLiteral[1].replaceAll('""', '"'));
@@ -94,12 +94,12 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     defaults.TextLayerBehaviour.gradient = structuredClone(defaults.WhimTexGradient);
     const valueDefaultsSource = fs.readFileSync(path.join(root, 'src/WhimTexDocumentJson.Values.cs'), 'utf8');
     for (const field of ['containers', 'enableIf']) {
-      assert.ok(valueDefaultsSource.includes(`defaultsV2["ShaderFXParameterControl"]["${field}"] = new JArray();`),
+      assert.ok(valueDefaultsSource.includes(`defaultsV3["ShaderFXParameterControl"]["${field}"] = new JArray();`),
         `${field}: explicit empty metadata default`);
       defaults.ShaderFXParameterControl[field] = [];
     }
-    const freeformLiteral = valueDefaultsSource.match(/defaultsV2\["GradientLayerBehaviour"\]\["freeform"\] = JObject.Parse\(@"((?:[^"]|"")*)"\);/);
-    const pointLiteral = valueDefaultsSource.match(/defaultsV2\["FreeformGradientPoint"\] = JObject.Parse\(@"((?:[^"]|"")*)"\);/);
+    const freeformLiteral = valueDefaultsSource.match(/defaultsV3\["GradientLayerBehaviour"\]\["freeform"\] = JObject.Parse\(@"((?:[^"]|"")*)"\);/);
+    const pointLiteral = valueDefaultsSource.match(/defaultsV3\["FreeformGradientPoint"\] = JObject.Parse\(@"((?:[^"]|"")*)"\);/);
     assert(freeformLiteral && pointLiteral, 'Freeform defaults are frozen independently of runtime constructors');
     defaults.FreeformGradient = JSON.parse(freeformLiteral[1].replaceAll('""', '"'));
     defaults.FreeformGradientPoint = JSON.parse(pointLiteral[1].replaceAll('""', '"'));
@@ -188,11 +188,11 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     assert.ok(schema.$defs.Layer.properties.fx);
     assert.equal(schema.$defs.Layer.properties.modifiers, undefined);
     assert.deepEqual(schema.$defs.TextLayerBehaviour.properties.overflow.enum, ['None', 'Clip', 'Ellipsis']);
-    for (const overflow of ['None', 'Clip', 'Ellipsis']) validate({ format: 'whimtex.document', version: 2,
+    for (const overflow of ['None', 'Clip', 'Ellipsis']) validate({ format: 'whimtex.document', version: 3,
       layers: [{ id: 'text', behaviour: { $type: 'TextLayerBehaviour', overflow } }] }, schema);
-    assert.throws(() => validate({ format: 'whimtex.document', version: 2,
+    assert.throws(() => validate({ format: 'whimtex.document', version: 3,
       layers: [{ id: 'text', behaviour: { $type: 'TextLayerBehaviour', overflow: 'unknown' } }] }, schema));
-    const layerFx = fields => ({ format: 'whimtex.document', version: 2,
+    const layerFx = fields => ({ format: 'whimtex.document', version: 3,
       layers: [{ id: 'fx', behaviour: { $type: 'ColorFillLayerBehaviour' }, ...fields }] });
     validate(layerFx({ fx: [] }), schema);
     validate(layerFx({ fx: [{ $type: 'ShaderFX', $id: 'owned', code: 'float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return c;}' }, { $ref: 'owned' }, null] }), schema);
@@ -207,7 +207,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
         if (value.format === 'whimtex.gradient') continue;
         validate(value, schema, file);
       }
-    const empty = { format: 'whimtex.document', version: 2, document: {}, layers: [] };
+    const empty = { format: 'whimtex.document', version: 3, document: {}, layers: [] };
     const comments = value => ({ ...empty, document: { comments: value } });
     const note = { id: 'thread', anchor: [-.5, 1.25], color: [.9, .3, .1, 1], messages: [{ id: 'message', text: 'Note' }] };
     validate(comments([note]), schema);
@@ -259,7 +259,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
         assert.throws(() => validate(document({ encoding: 'MultiChannelData' }), schema));
       }
     }
-    validate({ format: 'whimtex.document', version: 2, layers: [] }, schema);
+    validate({ format: 'whimtex.document', version: 3, layers: [] }, schema);
     for (const document of [{}, { width: 64 }, { height: 32 }, { outputSrgb: false }])
       validate({ ...empty, document }, schema);
     for (const document of [null, [], 'invalid', 1])

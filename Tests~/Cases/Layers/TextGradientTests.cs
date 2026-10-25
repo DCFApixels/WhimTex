@@ -30,7 +30,7 @@ public static class TextGradientTests
         var text = new TextLayerBehaviour { text = "HH", fontSize = 54, spacing = new TextSpacing { character = .2f } };
         var layer = new Layer(text); doc.layers.Add(layer);
         var active = RenderTexture.active; bool srgb = GL.sRGBWrite;
-        var gradient = new WhimTexGradient { Mode = WhimTexGradientMode.Linear, ColorSpace = ColorSpace.Linear };
+        var gradient = new WhimTexGradient { ColorMode = WhimTexGradientColorMode.Linear, ColorSpace = ColorSpace.Linear };
         gradient.SetKeys(new[] { new GradientColorKey(Color.red, 0), new GradientColorKey(Color.blue, 1) },
             new[] { new GradientAlphaKey(1, 0), new GradientAlphaKey(1, 1) });
         var previews = new List<Color[]>();

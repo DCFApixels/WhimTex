@@ -124,6 +124,9 @@ public static class ToolPreferencesTests
             ((WhimTexGradient)Get(creation, "gradient")).SetKeys(new[] { new GradientColorKey(Color.red, 0), new GradientColorKey(new Color(2, .3f, .5f), 1) },
                 new[] { new GradientAlphaKey(.2f, 0), new GradientAlphaKey(.8f, 1) });
             Set(first, "lassoMode", 1); Set(first, "lassoCurveMode", 1); Set(first, "selectionEdgeMode", 1);
+            Set(first, "quickSelectionSize", 257f); Set(first, "quickSelectionTolerance", .27f);
+            Set(first, "quickSelectionStrength", .42f);
+            Set(first, "quickSelectionMode", 1); Set(first, "quickSelectionSource", 1);
             Set(first, "marqueeShape", 1); Set(first, "areaSelectionMode", 2); Set(first, "canvasCropMode", 0); Set(first, "canvasCropAutoPixelScale", false);
             Set(first, "vectorBrushSize", 67f); Set(first, "vectorBrushShape", 2); Set(first, "vectorBrushTolerance", .31f);
             Set(first, "vectorFillColor", new Color(.3f, .5f, 1.7f, .6f)); Set(first, "canvasGuidesSnap", false); Set(first, "uvLineOpacity", .38f);
@@ -160,6 +163,11 @@ public static class ToolPreferencesTests
             foreach (var spec in new[] { ("lassoMode", 1), ("lassoCurveMode", 1), ("selectionEdgeMode", 1), ("marqueeShape", 1), ("areaSelectionMode", 2), ("vectorBrushShape", 2), ("canvasCropMode", 0) })
                 t.Equal(spec.Item2, Convert.ToInt32(Get(reopened, spec.Item1)), spec.Item1 + " restored");
             t.Equal(67f, (float)Get(reopened, "vectorBrushSize"), "Vector brush restored");
+            t.Equal(257f, (float)Get(reopened, "quickSelectionSize"), "Quick Selection size restored");
+            t.Near(.27, (float)Get(reopened, "quickSelectionTolerance"), .00001, "Quick Selection tolerance restored");
+            t.Near(.42, (float)Get(reopened, "quickSelectionStrength"), .00001, "Quick Selection strength restored");
+            t.Equal("Subtract", Get(reopened, "quickSelectionMode").ToString(), "Quick Selection mode restored");
+            t.Equal("CurrentLayer", Get(reopened, "quickSelectionSource").ToString(), "Quick Selection source restored");
             t.Equal("AwaitingReview", Get(reopened, "commentFilter").ToString(), "Comment tool filter restored");
             t.Equal(new Color(.3f, .5f, 1.7f, .6f), (Color)Get(reopened, "vectorFillColor"), "Signed/HDR color structure restored");
             t.Near(.31, (float)Get(reopened, "vectorBrushTolerance"), .00001, "Vector precision restored");

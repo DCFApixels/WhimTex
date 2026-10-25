@@ -16,47 +16,47 @@ public static class GradientDefaultsTests
         var clipboard = assembly.GetType("DCFApixels.WhimTex.WhimTexGradientClipboard");
         WhimTexGradient Read(string json) => (WhimTexGradient)clipboard.GetMethod("Read", F).Invoke(null, new object[] { json });
         var read = typeof(WhimTexApi).GetMethod("ReadGradient", F);
-        Check((WhimTexGradientMode)read.GetParameters()[1].DefaultValue == WhimTexGradientMode.Perceptual, "API default");
-        Check(new WhimTexGradient().Mode == WhimTexGradientMode.Perceptual, "Constructor default");
-        Check(GradientUtility.WhiteToBlack.Mode == WhimTexGradientMode.Perceptual, "Shared ramp default");
-        Check(GradientUtility.Create((WhimTexGradient)null).Mode == WhimTexGradientMode.Perceptual, "Null fallback");
-        Check(new GradientLayerBehaviour().gradient.Mode == WhimTexGradientMode.Perceptual, "Gradient layer default");
-        Check(new SDFLayerBehaviour().gradient.Mode == WhimTexGradientMode.Perceptual, "SDF defaults to Perceptual");
+        Check((WhimTexGradientColorMode)read.GetParameters()[1].DefaultValue == WhimTexGradientColorMode.Perceptual, "API default");
+        Check(new WhimTexGradient().ColorMode == WhimTexGradientColorMode.Perceptual, "Constructor default");
+        Check(GradientUtility.WhiteToBlack.ColorMode == WhimTexGradientColorMode.Perceptual, "Shared ramp default");
+        Check(GradientUtility.Create((WhimTexGradient)null).ColorMode == WhimTexGradientColorMode.Perceptual, "Null fallback");
+        Check(new GradientLayerBehaviour().gradient.ColorMode == WhimTexGradientColorMode.Perceptual, "Gradient layer default");
+        Check(new SDFLayerBehaviour().gradient.ColorMode == WhimTexGradientColorMode.Perceptual, "SDF defaults to Perceptual");
         var sdfGradient = new SDFLayerBehaviour().gradient;
         var noiseGradient = new NoiseLayerBehaviour().gradient;
         Check(sdfGradient.Equals(noiseGradient), "SDF and Noise share identical default gradient values");
         foreach (var gradient in new[] { sdfGradient, noiseGradient })
         {
-            Check(gradient.Mode == WhimTexGradientMode.Perceptual, "SDF/Noise default Perceptual");
+            Check(gradient.ColorMode == WhimTexGradientColorMode.Perceptual, "SDF/Noise default Perceptual");
             Check(gradient.ColorKeys.Length == 2, "Two default color keys");
             Check(gradient.ColorKeys[0].time == 0f && gradient.ColorKeys[0].color == Color.black, "Default key 0 is black");
             Check(gradient.ColorKeys[1].time == 1f && gradient.ColorKeys[1].color == Color.white, "Default key 1 is white");
             Check(gradient.Evaluate(0).a == 1f && gradient.Evaluate(1).a == 1f, "Opaque default endpoints");
         }
-        Check(GradientUtility.CreateLinearWhiteToBlack().Mode == WhimTexGradientMode.Linear, "Explicit Linear helper");
+        Check(GradientUtility.CreateLinearWhiteToBlack().ColorMode == WhimTexGradientColorMode.Linear, "Explicit Linear helper");
         var brushType = assembly.GetType("DCFApixels.WhimTex.BrushDynamics");
         var brush = Activator.CreateInstance(brushType, true);
-        Check(((WhimTexGradient)brushType.GetField("tipGradient", F).GetValue(brush)).Mode == WhimTexGradientMode.Perceptual, "Brush tip default");
-        Check(((WhimTexGradient)brushType.GetField("tintGradient", F).GetValue(brush)).Mode == WhimTexGradientMode.Perceptual, "Brush tint default");
+        Check(((WhimTexGradient)brushType.GetField("tipGradient", F).GetValue(brush)).ColorMode == WhimTexGradientColorMode.Perceptual, "Brush tip default");
+        Check(((WhimTexGradient)brushType.GetField("tintGradient", F).GetValue(brush)).ColorMode == WhimTexGradientColorMode.Perceptual, "Brush tint default");
         var patternType = assembly.GetType("DCFApixels.WhimTex.FillPatternSettings");
         var pattern = Activator.CreateInstance(patternType, true);
         foreach (string field in new[] { "gradient", "palette" })
-            Check(((WhimTexGradient)patternType.GetField(field, F).GetValue(pattern)).Mode == WhimTexGradientMode.Linear, "Pattern stays Linear: " + field);
+            Check(((WhimTexGradient)patternType.GetField(field, F).GetValue(pattern)).ColorMode == WhimTexGradientColorMode.Linear, "Pattern stays Linear: " + field);
         var metadata = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata");
         var parameters = (List<ShaderFXParameter>)metadata.GetMethod("Parse", F).Invoke(null, new object[] { "// @param gradient _Ramp", false, null });
-        Check(parameters[0].gradientValue.Mode == WhimTexGradientMode.Perceptual, "FX default");
+        Check(parameters[0].gradientValue.ColorMode == WhimTexGradientColorMode.Perceptual, "FX default");
         const string stops = "[{\"time\":0,\"color\":[1,0,0,1]},{\"time\":1,\"color\":[0,0,1,1]}]";
-        Check(Read(stops).Mode == WhimTexGradientMode.Perceptual, "Clipboard stops default");
-        Check(Read("{\"colors\":" + stops + "}").Mode == WhimTexGradientMode.Perceptual, "Clipboard object default");
-        CheckBrushInput(stops, WhimTexGradientMode.Perceptual, WhimTexGradientMode.Perceptual);
-        CheckBrushInput("{\"colors\":" + stops + "}", WhimTexGradientMode.Perceptual, WhimTexGradientMode.Perceptual);
-        foreach (WhimTexGradientMode mode in Enum.GetValues(typeof(WhimTexGradientMode)))
+        Check(Read(stops).ColorMode == WhimTexGradientColorMode.Perceptual, "Clipboard stops default");
+        Check(Read("{\"colors\":" + stops + "}").ColorMode == WhimTexGradientColorMode.Perceptual, "Clipboard object default");
+        CheckBrushInput(stops, WhimTexGradientColorMode.Perceptual, WhimTexGradientColorMode.Perceptual);
+        CheckBrushInput("{\"colors\":" + stops + "}", WhimTexGradientColorMode.Perceptual, WhimTexGradientColorMode.Perceptual);
+        foreach (WhimTexGradientColorMode mode in Enum.GetValues(typeof(WhimTexGradientColorMode)))
         {
-            CheckBrushInput("{\"colors\":" + stops + ",\"mode\":\"" + mode + "\",\"smoothness\":0.35}", mode, mode);
-            var gradient = Read("{\"colors\":" + stops + ",\"mode\":\"" + mode + "\"}");
-            Check(gradient.Mode == mode, "Explicit clipboard mode preserved: " + mode);
-            Check(gradient.Clone().Mode == mode, "Clone preserves mode");
-            Check(JsonUtility.FromJson<WhimTexGradient>(JsonUtility.ToJson(gradient)).Mode == mode, "Serialized mode preserved");
+            CheckBrushInput("{\"colors\":" + stops + ",\"colorMode\":\"" + mode + "\",\"smoothness\":0.35}", mode, mode);
+            var gradient = Read("{\"colors\":" + stops + ",\"colorMode\":\"" + mode + "\"}");
+            Check(gradient.ColorMode == mode, "Explicit clipboard mode preserved: " + mode);
+            Check(gradient.Clone().ColorMode == mode, "Clone preserves mode");
+            Check(JsonUtility.FromJson<WhimTexGradient>(JsonUtility.ToJson(gradient)).ColorMode == mode, "Serialized mode preserved");
             var document = UnityBRun.Create<WhimTexDocument>();
             try
             {
@@ -71,7 +71,7 @@ public static class GradientDefaultsTests
         return "";
     }
 
-    private static void CheckBrushInput(string gradient, WhimTexGradientMode tipMode, WhimTexGradientMode tintMode)
+    private static void CheckBrushInput(string gradient, WhimTexGradientColorMode tipMode, WhimTexGradientColorMode tintMode)
     {
         // Both paths operate on fresh managed values only, without painting or touching a document.
         string settingsJson = "{\"tipGradient\":" + gradient + ",\"tintGradient\":" + gradient + "}";
@@ -84,8 +84,8 @@ public static class GradientDefaultsTests
         WhimTexGradient Get(object value, string name) => (WhimTexGradient)value.GetType().GetField(name, F).GetValue(value);
         var tip = Get(dynamics, "tipGradient");
         var tint = Get(dynamics, "tintGradient");
-        Check(tip.Mode == tipMode, "API brush tip mode: expected " + tipMode + ", got " + tip.Mode);
-        Check(tint.Mode == tintMode, "API brush tint mode: " + tintMode);
+        Check(tip.ColorMode == tipMode, "API brush tip mode: expected " + tipMode + ", got " + tip.ColorMode);
+        Check(tint.ColorMode == tintMode, "API brush tint mode: " + tintMode);
         var args = new object[] { "{\"format\":\"whimtex.brush\",\"version\":1,\"source\":\"Standard\",\"settings\":" + settingsJson + "}", null };
         var clipboard = typeof(WhimTexApi).GetMethod("ReadBrushClipboard", F).Invoke(null, args);
         var clipboardDynamics = clipboard.GetType().GetField("dynamics", F).GetValue(clipboard);

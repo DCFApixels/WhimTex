@@ -22,19 +22,19 @@ namespace DCFApixels.WhimTex
         private string snapshot;
         private WhimTexGradientSession session;
 
-        public WhimTexGradientValueField(string label) : base(label, new VisualElement())
+        public WhimTexGradientValueField(string label) : base(label, new Button())
         {
             var sheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.dcfapixels.whimtex/src/Editor/WhimTexGradientWindow.uss");
             if (sheet != null) styleSheets.Add(sheet);
-            var button = new Button(OpenEditor);
-            button.AddToClassList("whimtex-gradient-test-field");
+            var button = this.Q<Button>(className: inputUssClassName);
+            button.clicked += OpenEditor;
+            WhimTexGradientField.ConfigureAppearance(this, labelElement, button);
             var background = new VisualElement { pickingMode = PickingMode.Ignore };
             background.AddToClassList("whimtex-gradient-test-fill");
             background.generateVisualContent += WhimTexGradientWindow.DrawCheckerboard;
             button.Add(background);
             image = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.StretchToFill };
             image.AddToClassList("whimtex-gradient-test-fill"); button.Add(image);
-            this.Q<VisualElement>(className: "unity-base-field__input").Add(button);
             RegisterCallback<DetachFromPanelEvent>(_ =>
             {
                 if (preview != null) UnityEngine.Object.DestroyImmediate(preview);

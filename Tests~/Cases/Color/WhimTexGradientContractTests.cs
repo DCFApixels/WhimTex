@@ -24,11 +24,11 @@ public static class WhimTexGradientContractTests
     static int checks;
     static void Check(bool value, string reason) { context.True(value, reason); }
     static void Near(float a, float b, float tolerance = .00002f) => Check(Mathf.Abs(a-b) <= tolerance, a + " != " + b);
-    static float Neutral(float value, WhimTexGradientMode mode, ColorSpace space)
+    static float Neutral(float value, WhimTexGradientColorMode mode, ColorSpace space)
     {
-        if (mode == WhimTexGradientMode.Classic)
+        if (mode == WhimTexGradientColorMode.Gamma)
             return space == ColorSpace.Gamma ? value : Mathf.GammaToLinearSpace(value);
-        float linear = mode == WhimTexGradientMode.Perceptual ? value*value*value : value;
+        float linear = mode == WhimTexGradientColorMode.Perceptual ? value*value*value : value;
         return space == ColorSpace.Linear ? linear : Mathf.LinearToGammaSpace(linear);
     }
     private static void ExecuteMain()
@@ -40,10 +40,10 @@ public static class WhimTexGradientContractTests
         Check(!JsonUtility.ToJson(g).Contains("transition"), "No transition output");
         foreach (float midpoint in new[] {.01f, .1f, .5f, .72700745f, .9437751f, .99f})
         foreach (float smooth in new[] {0f, .5f, 1f})
-        foreach (var mode in new[] {WhimTexGradientMode.Classic, WhimTexGradientMode.Linear, WhimTexGradientMode.Perceptual})
+        foreach (var mode in new[] {WhimTexGradientColorMode.Gamma, WhimTexGradientColorMode.Linear, WhimTexGradientColorMode.Perceptual})
         foreach (var space in new[] {ColorSpace.Linear, ColorSpace.Gamma})
         {
-            g = new WhimTexGradient { Mode = mode, ColorSpace = space, Smoothness = smooth };
+            g = new WhimTexGradient { ColorMode = mode, ColorSpace = space, Smoothness = smooth };
             g.SetKeys(new[] {new GradientColorKey(Color.white, .1f), new GradientColorKey(Color.white, .4f), new GradientColorKey(Color.black, .95f)},
                 new[] {new GradientAlphaKey(1, .05f), new GradientAlphaKey(0, .85f)});
             g.SetMidpoint(false, 1, midpoint); g.SetMidpoint(true, 0, midpoint);
@@ -64,7 +64,7 @@ public static class WhimTexGradientContractTests
                 }
                 previous = c;
             }
-            g.Mode = WhimTexGradientMode.Fixed;
+            g.Interpolation = WhimTexGradientInterpolation.Fixed;
             for (int i = 0; i <= 200; i++) Near(g.Evaluate(i/200f).r, i/200f <= .4f ? 1 : 0, 0);
         }
         g = new WhimTexGradient();
@@ -109,7 +109,7 @@ public static class WhimTexGradientContractTests
         }
         foreach (string value in new[] {"0","1","2","3","4","5","999","null","\"Standard\"","\"Soft\"","\"Soft2\"","\"Soft3\"","\"Rational\"","\"Rounded\""})
         {
-            string portable = json.Replace("\"mode\":", "\"transition\":" + value + ",\"mode\":");
+            string portable = json.Replace("\"colorMode\":", "\"transition\":" + value + ",\"colorMode\":");
             RejectClipboard(portable, "Retired transition rejected: " + value);
         }
         var single = new WhimTexGradient();
@@ -167,7 +167,7 @@ public static class WhimTexGradientContractTests
             Undo.PerformRedo();
             edited = (WhimTexGradient)typeof(WhimTexGradientWindow).GetField("gradient", Flags).GetValue(editor);
             Near(edited.Smoothness, .25f);
-            edited.Mode = WhimTexGradientMode.Fixed;
+            edited.Interpolation = WhimTexGradientInterpolation.Fixed;
             typeof(WhimTexGradientWindow).GetMethod("Refresh", Flags).Invoke(editor, null);
             Check(!smoothField.enabledSelf, "Fixed disables Smoothness");
         }

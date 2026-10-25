@@ -40,6 +40,21 @@ keep originals and use a matching older checkout. The same boundary applies to
 [document/clipboard JSON](JSON_FORMAT.md#asset-references). It does not remove external texture
 parameters or marked HLSL source links.
 
+## Custom gradient keys
+
+The native model retains both automatic gradient data and independent manual
+`customKeys`/`customColorMode`, including inactive curves and the conversion diagnostic
+`customApproximationError`. A manual key stores `id`, `channel`, `time`, `value`,
+`inTangent`, `outTangent` and `tangentMode`. Values, tangents and IDs are preserved;
+there are no persistent links or marker groups. The strict gradient-field reader rejects
+an explicit obsolete `link` field, including zero, without migration or rewriting the file.
+
+Markers are derived from all channels sorted by time/ID. Keys within 0.00001 of each
+earliest cluster anchor share a marker; this is not transitive. Track filtering happens
+inside those clusters. This presentation does not change stored times or curve evaluation.
+See the [shared curve contract](AI/README.md#custom-channel-curves) and the
+[atomic movement/deletion API](AgentAPI.md#custom-gradient-settings).
+
 ## Optional comments
 
 Canvas annotations are stored in the optional `comments` block, separate from the main
@@ -47,7 +62,7 @@ Canvas annotations are stored in the optional `comments` block, separate from th
 resolved threads remain stored. Missing blocks load as an empty list. A malformed known
 block fails loading with a comment-specific diagnostic rather than silently losing notes.
 
-Its payload is a version-2 tagged `List<WhimTexComment>`. Each thread has a stable `id`, permanent `number`,
+Its payload is a version-3 tagged `List<WhimTexComment>`. Each thread has a stable `id`, permanent `number`,
 bottom-left normalized canvas `anchor`, opaque RGB `color`, mutually exclusive `resolved` / `awaitingReview`
 flags and `messages`. Both flags false means In Progress; `awaitingReview` means Awaiting Review;
 `resolved` means Resolved. Missing flags default to false. Conflicting flags are rejected. These are explicit
@@ -120,7 +135,7 @@ WHIMTEXD container
 footer: int64 container length + WHIMTEXD
 ```
 
-The current container and tagged model both use version **2**. Version-1 documents are
+The current container uses version **2**; its tagged model uses version **3**. Older model versions are
 unsupported and rejected explicitly; there is no automatic conversion in this checkout.
 Channel routing is stored as `Layer.channelMapping` / `LayerChannelMapping`.
 
@@ -136,7 +151,7 @@ platform overrides belong to Unity's normal Texture Importer and are not part of
 
 ## Blocks and model
 
-The first logical block is `document`. It contains the tagged WhimTex model (version 2): layers,
+The first logical block is `document`. It contains the tagged WhimTex model (version 3): layers,
 groups, transforms, settings, gradients, document color history, FX source and references. Drawing layers use separate named
 pixel blocks. Other embedded textures may use their own blocks. Block names and lengths are recorded
 in the directory before the block payloads, so the reader can validate bounds before allocating data.

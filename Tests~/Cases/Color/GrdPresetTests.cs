@@ -18,21 +18,21 @@ public static class GrdPresetTests
             t.Equal(1, result.presets.Count, "One gradient");
             var preset = result.presets[0];
             t.Equal("Test 渐变", preset.name, "Unicode preset name");
-            t.Equal(method == "Gcls" ? WhimTexGradientMode.Classic : method == "Lnr " ? WhimTexGradientMode.Linear : WhimTexGradientMode.Perceptual, preset.gradient.Mode, "Interpolation selection/fallback");
+            t.Equal(method == "Gcls" ? WhimTexGradientColorMode.Gamma : method == "Lnr " ? WhimTexGradientColorMode.Linear : WhimTexGradientColorMode.Perceptual, preset.gradient.ColorMode, "Color model selection/fallback");
             t.Near(.5, preset.gradient.Smoothness, .00001, "Smoothness scale is independent of stop location");
             t.Near(1, preset.gradient.ColorKeys[1].time, .00001, "Endpoint always uses 4096 units");
             t.Near(.3, preset.gradient.GetMidpoint(false, 0), .00001, "Color midpoint");
             t.Near(.25, preset.gradient.AlphaKeys[0].alpha, .00001, "Separate opacity stops");
-            t.True(result.warnings.Count == (method == "unknown" ? 1 : 0), "Unknown mode is reported once");
+            t.True(result.warnings.Count == (method == "unknown" ? 2 : 1), "Curve approximation warning and one additional warning for an unknown color model");
         }
         t.Near(1, WhimTexGradientPresetReader.Read(Modern(null, null)).presets[0].gradient.Smoothness, 0, "Absent smoothness defaults to 100%");
         t.Near(1, WhimTexGradientPresetReader.Read(Modern("Perc", -4)).presets[0].gradient.Smoothness, 0, "Invalid smoothness defaults to 100%");
         var dynamic = WhimTexGradientPresetReader.Read(Modern("Perc", 4096, true), Color.red, Color.blue);
         t.Equal(Color.red, dynamic.presets[0].gradient.ColorKeys[0].color, "Foreground stop resolved to explicit input");
         t.Equal(Color.blue, dynamic.presets[0].gradient.ColorKeys[1].color, "Background stop resolved to explicit input");
-        t.Equal(1, dynamic.warnings.Count, "Dynamic resolution has a warning");
+        t.Equal(2, dynamic.warnings.Count, "Dynamic resolution and curve approximation are reported");
         var old = WhimTexGradientPresetReader.Read(VersionThree());
-        t.Equal(WhimTexGradientMode.Perceptual, old.presets[0].gradient.Mode, "Version 3 mode fallback");
+        t.Equal(WhimTexGradientColorMode.Gamma, old.presets[0].gradient.ColorMode, "Version 3 Gamma color model");
         t.Near(1, old.presets[0].gradient.Smoothness, 0, "Version 3 smoothness fallback");
         t.Equal(Color.red, old.presets[0].gradient.ColorKeys[0].color, "Version 3 RGB");
         byte[] bytes = Modern("Perc", 4096);
@@ -56,7 +56,7 @@ public static class GrdPresetTests
             var clipboard = typeof(WhimTexGradientPresetReader).Assembly.GetType("DCFApixels.WhimTex.WhimTexGradientClipboard");
             var saved = (WhimTexGradient)clipboard.GetMethod("Read", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
                 .Invoke(null, new object[] { File.ReadAllText(files[0]) });
-            t.Equal(WhimTexGradientMode.Linear, saved.Mode, "Native preset retains imported method");
+            t.Equal(WhimTexGradientColorMode.Linear, saved.ColorMode, "Native preset retains imported method");
             t.Near(.25, saved.Smoothness, 0, "Native preset retains smoothness");
             File.WriteAllBytes(path, Modern("Perc", 4096, noise: true));
             bool rejected = false;

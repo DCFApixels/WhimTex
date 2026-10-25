@@ -62,3 +62,14 @@ restored windows checked against durable settings before running the cases again
 Physical pointer/tablet input, the Reset dialog and reload during active gestures
 remain in [D02](../Context~/Backlog/VERIFICATION.md#настройки-инструментов-f26);
 recreating a window is not presented as a real process restart.
+
+Gradient settings retain colorMode, interpolation, huePath, chromaCorrection, smoothness,
+wrapMode and technical colorSpace along with both automatic key tracks. Optional `customKeys`
+and `customColorMode` retain all manual channel IDs and tangents independently
+of the active interpolation. Invalid active or dormant curves are rejected before applying
+the saved settings. Numeric enum values here belong
+to Unity's settings encoding, not the public JSON gradient contract. Saved settings containing
+retired gradient `mode` or Custom-key `link` fields are diagnosed before JsonUtility can
+ignore them; that tool uses defaults. No migration or persistent marker groups are stored.
+An unchanged fallback does not overwrite the unreadable stored value. Current settings are
+written through the existing preference session when the user changes them.

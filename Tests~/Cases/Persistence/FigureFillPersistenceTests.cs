@@ -26,10 +26,15 @@ public static class FigureFillPersistenceTests
     }
     static WhimTexGradient Palette(int index)
     {
-        var modes = (WhimTexGradientMode[])Enum.GetValues(typeof(WhimTexGradientMode));
+        var modes = new[] {
+            (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Fixed),
+            (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Balanced),
+            (color: WhimTexGradientColorMode.Linear, interpolation: WhimTexGradientInterpolation.Balanced),
+            (color: WhimTexGradientColorMode.Perceptual, interpolation: WhimTexGradientInterpolation.Balanced)
+        };
         var gradient = new WhimTexGradient
         {
-            Mode = modes[index % modes.Length], WrapMode = (WhimTexGradientWrapMode)(index % 3),
+            ColorMode = modes[index % modes.Length].color, Interpolation = modes[index % modes.Length].interpolation, WrapMode = (WhimTexGradientWrapMode)(index % 3),
             ColorSpace = index % 2 == 0 ? ColorSpace.Gamma : ColorSpace.Linear, Smoothness = .37f
         };
         gradient.SetKeys(new[] {
@@ -242,7 +247,7 @@ public static class FigureFillPersistenceTests
                 using var fragment = WhimTexDocumentJson.Read(WhimTexDocumentJson.WriteLayers(document, document.layers, options).Json, false);
                 Same(t, document, fragment.Document, "Clipboard " + mode);
             }
-            using (var defaults = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"shape\",\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\"}},{\"id\":\"vector\",\"behaviour\":{\"$type\":\"VectorLayerBehaviour\",\"shapes\":[{}]}},{\"id\":\"boolean\",\"behaviour\":{\"$type\":\"BooleanGroupLayerBehaviour\"}}]}", false))
+            using (var defaults = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"shape\",\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\"}},{\"id\":\"vector\",\"behaviour\":{\"$type\":\"VectorLayerBehaviour\",\"shapes\":[{}]}},{\"id\":\"boolean\",\"behaviour\":{\"$type\":\"BooleanGroupLayerBehaviour\"}}]}", false))
             {
                 var shape = (ShapeLayerBehaviour)defaults.Document.layers[0].Behaviour;
                 var figure = ((VectorLayerBehaviour)defaults.Document.layers[1].Behaviour).shapes[0];

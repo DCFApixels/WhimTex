@@ -178,10 +178,16 @@ namespace DCFApixels.WhimTex
             AddLegend(legend, "Cache miss", "miss");
             AddLegend(legend, "Error", "error");
 
-            var outer = Split("summary-split", 0, Mathf.Max(110, summaryHeight));
+            var summaryPane = Pane("summary-pane");
+            summaryPane.style.minHeight = 110;
+            var eventPane = Pane("events-pane");
+            var detailsPane = Pane("details-pane");
+            var lower = Split("details-split", eventPane, detailsPane, 1, Mathf.Max(105, detailsHeight));
+            lower.AddToClassList("whimtex-profiler-lower");
+            lower.FixedPaneSizeChanged += value => detailsHeight = value;
+            var outer = Split("summary-split", summaryPane, lower, 0, Mathf.Max(110, summaryHeight));
+            outer.FixedPaneSizeChanged += value => summaryHeight = value;
             root.Add(outer);
-            var summaryPane = Pane(outer, "summary-pane");
-            summaryPane.RegisterCallback<GeometryChangedEvent>(e => { if (e.newRect.height >= 110) summaryHeight = e.newRect.height; });
             rootWall = Heading(summaryPane, "Summary", "All matching events · click a column to sort");
             rootWall.tooltip = "Sum of completed root spans that match the filters. Inclusive summary rows overlap; do not sum them.";
             var summaryScroll = new ScrollView(ScrollViewMode.Horizontal) { name = "summary-content" };
@@ -205,10 +211,6 @@ namespace DCFApixels.WhimTex
             AlignColumns(summaryHeader, summaryList);
             CreateComparisonView(summaryPane);
 
-            var lower = Split("details-split", 1, Mathf.Max(105, detailsHeight));
-            lower.AddToClassList("whimtex-profiler-lower");
-            outer.Add(lower);
-            var eventPane = Pane(lower, "events-pane");
             eventCount = Heading(eventPane, "Events", "Event tree · bars = share of operation");
             AddButton(eventCount.parent, "Expand all", ExpandAllBranches);
             AddButton(eventCount.parent, "Collapse all", CollapseAllBranches).tooltip = "Collapse every branch across all pages, leaving only root events.";
@@ -233,8 +235,6 @@ namespace DCFApixels.WhimTex
             paging.Add(page);
             next = AddButton(paging, "Next", () => ReadPage(nextOffset ?? offset));
 
-            var detailsPane = Pane(lower, "details-pane");
-            detailsPane.RegisterCallback<GeometryChangedEvent>(e => { if (e.newRect.height >= 105) detailsHeight = e.newRect.height; });
             Heading(detailsPane, "Event details", "Select a row to inspect timings and context");
             var selection = Row(detailsPane, true);
             operation = new Label("Selected operation / event");
@@ -1019,19 +1019,17 @@ namespace DCFApixels.WhimTex
             return hint;
         }
 
-        private static TwoPaneSplitView Split(string name, int fixedPane, float size)
+        private static WhimTexSplitView Split(string name, VisualElement first, VisualElement second, int fixedPane, float size)
         {
-            var split = new TwoPaneSplitView(fixedPane, size, TwoPaneSplitViewOrientation.Vertical) { name = name };
+            var split = new WhimTexSplitView(first, second, fixedPane, size, false) { name = name };
             split.AddToClassList("whimtex-profiler-split");
-            WhimTexUI.StyleSplitView(split);
             return split;
         }
 
-        private static VisualElement Pane(VisualElement parent, string name)
+        private static VisualElement Pane(string name)
         {
             var pane = new VisualElement { name = name };
             pane.AddToClassList("whimtex-profiler-pane");
-            parent.Add(pane);
             return pane;
         }
 

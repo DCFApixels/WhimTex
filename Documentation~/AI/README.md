@@ -8,7 +8,7 @@ description: "Generate editable WhimTex documents and layers using unified JSON 
 
 # WhimTex AI authoring: JSON documents and HLSL effects
 
-Use **`whimtex.document`, version 2** for new documents, selected layers and clipboard recipes.
+Use **`whimtex.document`, version 3** for new documents, selected layers and clipboard recipes.
 Files use **`.json`**. The operation (open, paste or API insert/replace), not a `kind` field,
 decides what to do with the content. Brush and standalone gradient presets remain separate formats.
 
@@ -37,7 +37,7 @@ Brush JSON replaces the brush rather than creating layers.
 - Layer arrays are **top to bottom**; `fx` execute **first to last**.
   Give every layer a unique nonempty `id`. IDs may be descriptive local strings;
   paste remaps them and internal references to fresh document IDs.
-- Omit values only when the version-2 default is intended. Do not infer storage defaults from
+- Omit values only when the version-3 default is intended. Do not infer storage defaults from
   a current UI factory or a slider range. Use FullOptimized by default; Full or Compact on request.
 - Do not invent asset GUIDs or paths. For an existing project asset, use its verified `$asset`
   identity. Drawing pixels and remote image URLs are not stored in this format. Text layers use
@@ -56,7 +56,7 @@ Brush JSON replaces the brush rather than creating layers.
 ```json
 {
   "format": "whimtex.document",
-  "version": 2,
+  "version": 3,
   "document": {
     "width": 256,
     "height": 256,
@@ -137,7 +137,7 @@ Numbers and booleans are not quoted strings. Enum names are case-sensitive.
 ### Noise, gradients and SDF
 
 Noise settings are directly in `behaviour`, not `properties.noise`.
-`scale`, `scaleY` and `scaleZ` store explicit axis scales; omitted fields use frozen version-2 defaults (`8`, `8`, `1`), not another axis.
+`scale`, `scaleY` and `scaleZ` store explicit axis scales; omitted fields use frozen version-3 defaults (`8`, `8`, `1`), not another axis.
 `warpScale` and `warpScaleY` are per-axis multipliers of the main scale.
 `offset` is `[x,y,z]`; Z is used by `ThreeD` slices.
 Seamless uses `periodic: "None" | "X" | "Y" | "XY"` for TwoD/ThreeD, and `periodic1D`
@@ -293,7 +293,7 @@ Equal anchors give `t=0`. See the complete
 [figure-fill contract](../JSON_FORMAT.md#figure-fills). Independent stroke paint uses
 `strokeMode`, `strokeGradient`, `strokeGradientStart`, `strokeGradientEnd` and
 `strokeGradientRepetitions`, with the same modes and palette behavior. Defaults are
-Solid, a separate black-to-white Perceptual/Clamp palette, `[0,0]`, `[1,0]` and `1`.
+Solid, a separate black-to-white Perceptual/Balanced/Clamp palette, `[0,0]`, `[1,0]` and `1`.
 `stroke:false` or `strokeMode:"None"` disables painting while preserving settings.
 Anchors must be finite and repetitions finite and at least `0.0001` even while
 inactive; a gradient mode requires a non-null palette. Boolean Group stores these
@@ -318,7 +318,7 @@ output; it does not quantize the final alpha. The mode is included in the saved-
 ```json
 {
   "format": "whimtex.document",
-  "version": 2,
+  "version": 3,
   "document": { "width": 256, "height": 128 },
   "layers": [
     {
@@ -417,15 +417,18 @@ See the [current format and unsupported-input boundary](../JSON_FORMAT.md).
 
 ## Standalone gradient JSON
 
-For a gradient field (not canvas layer paste), right-click the field or the gradient strip
-in its editor and choose **Paste**. **Copy** produces this independent, reusable value:
+For a gradient field (not canvas layer paste), right-click the field or its editor strip
+and choose **Paste**. **Copy** produces this independent value:
 
 ```json
 {
   "format": "whimtex.gradient",
-  "version": 1,
+  "version": 2,
   "gradient": {
-    "mode": "Classic",
+    "colorMode": "Perceptual",
+    "interpolation": "Balanced",
+    "huePath": "Shortest",
+    "chromaCorrection": 0,
     "wrapMode": "Clamp",
     "colorSpace": "Gamma",
     "smoothness": 1,
@@ -441,49 +444,113 @@ in its editor and choose **Paste**. **Copy** produces this independent, reusable
 }
 ```
 
-The gradient body alone or a bare color-stop array is also accepted, optionally within one
-JSON code fence. Each track requires 1..64 strictly increasing times in 0..1. Colors are
-RGBA arrays; standalone RGB supports finite HDR values from -65504 to 65504, alpha is 0..1.
-`wrapMode` is optional and defaults to `Clamp`; `Repeat` tiles values outside 0..1, while `Mirror`
-reflects each repeated interval.
-If `alphas` is omitted, color alpha components define the alpha track. Interpolation modes:
-`Classic`, `Linear`, `Perceptual`, `Fixed`; default `Perceptual`. `colorSpace`: `Gamma` (default)
-or `Linear`. `smoothness`: 0..1, default 1. `midpoint`: 0.01..0.99, default 0.5;
-the last key's midpoint has no following segment. Rounded is the built-in algorithm, not a serialized setting.
-Modes use string names and colors use RGBA arrays. The old `WhimTex.Gradient/1` prefix,
-color objects, numeric enums and retired `transition` field are not accepted.
-Unknown fields are rejected. Use the current gradient format; there is no historical-name
-or retired-field migration. The standalone clipboard
-format is not the internal gradient representation in `whimtex.document` files.
-Rounded partitions the curve at complete equal-color intervals and uses monotone cubic
-interpolation with adjacent-secant boundary slopes on each nonconstant block. In Perceptual,
-opposing chroma is reduced by `0.5*(1-|a+b|/(|a|+|b|))`, where a/b are the neighboring
-OKLab chroma vectors; a neutral endpoint disables the correction. Its envelope is
-`[4u(1-u)]^2`, with u=0.5 at the midpoint, scaled by Smoothness. Lightness and alpha
-are unaffected by this chroma adjustment. A shared RGB time map rounds the boundaries on both sides. Its radius
-is the distance to the adjacent midpoint, limited to half the intervening constant
-gap; redundant keys in an outer constant run do not alter it. The domain clips the support
-to 0..1. With `u` normalized over that support and `q = supportLength / radius`,
-use `e=0.2`, `v=min(u/e,1)`, and the integrated onset
-`I(u)=e*(v^3-v^4/2)` for `u<e`, otherwise `I(u)=u-e/2`.
-Then `F(u)=I(u)+(e/2)*u^3*(10-15u+6u^2)`, `S(u)=u^3*(2-u)`,
-and `w=(2-q)*F(u)+(q-1)*S(u)`. The broad positive speed surplus in F reduces
-domain-edge catch-up from 1.512 to 1.1875 times identity speed. The mapped coordinate is
-`boundary + radius*w`, mirrored at the right edge. A color boundary already having zero
-first and second output-linear-RGB derivatives is not eased again. Alpha uses an independent
-scalar map. At full smoothness the constant joins and the time map are C2; the color curve
-still inherits the base cubic's interior/midpoint joins, which need not be C2.
-Partial smoothness retains a linear component. Stops at interior held boundaries
-may have approximate evaluated colors/alpha; domain-edge stops, ordinary interior stops and
-midpoint coordinates are preserved. This prioritizes smooth shoulders, not exact matching to
-the reference or a guarantee of no plateau/rim. At zero smoothness interpolation is linear
-in the selected working color space. Repeat does not make mismatched endpoints seamless.
-Fixed ignores smoothness and midpoints.
-The clipboard input is limited to 65536 characters. Unknown fields, duplicate fields and
-unsupported versions are rejected. These standalone HDR limits do not change layer/brush JSON limits.
+The body alone or a bare color-stop array is also accepted, optionally inside one JSON
+code fence. Each track requires 1..64 keys with strictly increasing times in 0..1. Colors
+are RGBA arrays; standalone RGB accepts finite values from -65504 to 65504, alpha 0..1.
+If `alphas` is omitted, alpha components of the colors form the opacity track.
+The live layer/brush API retains its own RGB limits; this clipboard range does not widen them.
 
-User presets store this envelope in `<user presets folder>/Gradients/<GUID>.json`.
-Use a GUID without hyphens as the filename; files are limited to 64 KiB. No display name is needed.
+| Field | Values | Default |
+| --- | --- | --- |
+| `colorMode` | `Linear`, `Gamma`, `Perceptual`, `Hue` | `Perceptual` |
+| `interpolation` | `Blend`, `Balanced`, `Smooth`, `Adaptive`, `Fixed`, `Custom` | `Balanced` |
+| `customColorMode` | Same values as `colorMode`; required with nonempty `customKeys` | No curves |
+| `customKeys` | Independent channel keys, described below; retained while inactive | No curves |
+| `huePath` | `Shortest`, `Longest`, `Increasing`, `Decreasing` | `Shortest` |
+| `chromaCorrection` | Finite 0..1 | 0 |
+| `smoothness` | Finite 0..1 | 1 |
+| `wrapMode` | `Clamp`, `Repeat`, `Mirror` | `Clamp` |
+| `colorSpace` | `Gamma`, `Linear`: encoding of stored key components only | `Gamma` |
+
+Pattern palette inputs explicitly default to Linear color mode; other settings use the table.
+All settings survive copying, serialization and switching to a mode that does not use them.
+`colorSpace` describes storage, not the selected color model. Color modes operate in linear
+RGB, encoded RGB, OKLab and OKLCH respectively. Each interval between color keys uses one
+shared RGB range: `min(0, A.r, A.g, A.b, B.r, B.g, B.b)` to
+`max(1, A.r, A.g, A.b, B.r, B.g, B.b)`. RGB is clamped after color conversion and chroma
+correction, with both bounds and the result in the same encoded RGB space, before output
+decoding. This preserves signed HDR keys while bounding intermediate overshoot; ordinary
+0..1 keys produce 0..1 RGB. Bounds expand continuously with the keys and are not per-channel.
+Exact keys and Fixed retain their values. Alpha is an independent scalar curve using the same interpolation;
+color-mode conversions, hue direction and chroma correction never apply to alpha.
+
+Blend interpolates each neighboring pair with its midpoint and blends linear versus eased
+weights using Smoothness. Balanced inserts midpoint nodes and uses monotone cubic interpolation
+with shaped boundary spans; Smoothness controls its contribution. Smooth uses a fixed 17-value
+easing table. Adaptive prepares a curve using neighboring keys; its midpoint changes the curve
+shape and is not a guarantee of a half-color sample. Smooth and Adaptive retain but ignore
+Smoothness. Curve preparation is cached and shared by Evaluate/Bake consumers.
+
+`midpoint` is stored in 0.01..0.99, default 0.5; the final key has no following interval.
+Blend and Smooth evaluate it within 0.05..0.95. Hue Path affects only Hue mode; achromatic
+regions avoid arbitrary hue spins. Chroma Correction reduces opposing chroma with the
+physical-interval envelope `[4u(1-u)]^3`; it is independent of alpha and Smoothness.
+Fixed ignores midpoint, Smoothness, Hue Path and Chroma Correction. It keeps the established
+step convention: choose the first key whose time is greater than or equal to the wrapped
+coordinate, using the last key beyond that track. Color and alpha tracks are selected separately.
+Clamp/Repeat/Mirror apply before evaluation; Repeat does not make different endpoint colors seamless.
+
+The current clipboard envelope is version 2. Version 1, retired `mode`/`transition`, old
+prefixes, color objects, numeric enums, unknown/duplicate fields and unsupported versions
+are rejected, without migration or rewriting source files. The input limit is 262,144 characters.
+The standalone envelope differs from the internal gradient object in `whimtex.document` v3.
+User presets store it in `<user presets folder>/Gradients/<GUID>.json` (256 KiB maximum).
+
+### Custom channel curves
+
+`Custom` stores four independent channel curves. `colors`, `alphas` and `colorMode` always
+describe the retained automatic gradient, including when Custom is selected; never replace
+them with sampled or projected Custom colors. `customColorMode` describes the manual curves:
+Linear/Gamma use R/G/B, Perceptual uses OKLab L/a/b, Hue uses OKLCH L/C/H (hue in degrees).
+Channel 3 is alpha in every mode. `colorSpace` remains the output/key encoding, not the
+manual curve's color model. Custom does not apply midpoint, Smoothness, Hue Path or Chroma Correction.
+
+Each `customKeys` entry is an object such as
+`{"id":1,"channel":0,"time":0,"value":0,"inTangent":0,"outTangent":0,"tangentMode":"Auto"}`.
+`id`, `channel`, `time`, `value` and `tangentMode` are required in API/clipboard input;
+`inTangent` and `outTangent` default to zero. IDs are unique positive 32-bit integers.
+`channel` is 0..3. Times are 0..1, strictly increasing within each channel with spacing
+at least 0.000001. Each channel has 1..64 keys; the union of times of channels 0..2 has
+at most 64 distinct positions, and alpha has at most 64. Values and tangents are finite
+floats; alpha values stay in 0..1. Signed/HDR curve values are permitted.
+Combinations whose encoded or linear RGB at a color-key position cannot fit a finite float
+are rejected before replacing the previous manual data; there is no separate fixed cap on
+the working-space channel values.
+
+Keys are independent; there are no persistent links. The obsolete `link` field is rejected,
+including `link:0`, without migration. Markers are derived by sorting all channels together
+by time, then ID, and collecting keys within 0.00001 of the earliest remaining anchor.
+This is not transitive: times 0, 0.000009 and 0.000018 produce two clusters. Color/alpha
+tracks filter inside these same clusters and choose the first matching key, never regroup
+filtered data. The combined track chooses the first key regardless of channel. A marker
+does not merge or average the underlying values/times and may contain same-channel keys.
+Curve edits move/remove only the addressed key; marker gestures freeze their ID set at
+gesture start and move it with a common delta limited by 0..1 and unselected same-channel
+neighbours. Deletion must keep every channel nonempty. See the exact atomic movement,
+rounding and selection contract in the [C# API](../AgentAPI.md#custom-gradient-settings).
+Tangent modes are `Auto`, `Smooth`,
+`Broken`, `Linear`, `Constant`. On the CPU, Constant follows Fixed: between two keys it uses the
+right key's value, while exact keys keep their own values.
+
+Custom still uses the existing GPU palette resolutions and ordinary filtering; a Constant
+tangent does not select the dedicated Fixed GPU path. Sharp Custom steps are therefore
+limited by LUT sampling and may soften or shift within a sampling interval. The CPU
+right-key convention does not promise the same rendered step behavior as GPU Fixed.
+
+Active Custom requires explicit nonempty `customKeys` and `customColorMode`. Switching
+or fitting automatic data is a UI/C# operation, not an implicit import conversion.
+Other interpolation modes may retain these same fields; empty/null curves are allowed
+only outside Custom. Invalid IDs, times, channels or nonfinite values are rejected.
+Copy/inspect preserves both datasets and can be used as the body of a later gradient write.
+The source RGB curves retain their entered values; final RGB uses the shared expanded
+range at adjacent positions in the union of color-key times, and alpha is clamped to 0..1.
+
+Changing `customColorMode` in a payload reinterprets its values. To preserve appearance,
+use explicit **Convert Color Mode** or `ConvertCustomColorMode`: it approximately refits the curves,
+may change keys/tangents, and retains the separate automatic gradient. The observed
+conversion error is diagnostic rather than a certified bound.
+
+GPU palette layout, dimensions, formats and filtering are unchanged in this CPU update.
 
 ## HLSL interface — shader-only or inside JSON
 
@@ -833,14 +900,16 @@ for sampling precision and preset persistence. This is not a layer property.
 `gradient` for FX or HLSL tips is declared as `// @param gradient _Ramp`, optionally with two endpoint colors:
 `// @param gradient _Ramp = #FF0000FF -> #0000FF`. Each endpoint may be `#RRGGBB` (opaque),
 `#RRGGBBAA` (RGBA), or a numeric `(r, g, b, a)` tuple. Without an initializer it starts opaque
-black-to-white (Perceptual). Explicit two-endpoint defaults use Classic/Gamma/Clamp,
-Smoothness 1 and midpoint .5 to preserve the endpoint-only HLSL export contract.
+black-to-white (Perceptual color mode, Balanced interpolation). Explicit two-endpoint defaults use Gamma/Blend with Gamma key encoding, Clamp, Chroma Correction 0,
+Smoothness 0 and midpoint .5 to preserve the endpoint-only HLSL export contract.
 The user can edit colors, HDR, alpha and interpolation in the gradient field.
 The same hex forms are accepted for `color` defaults; color defaults also accept numeric RGBA tuples.
 Call `_Ramp_Sample(t)` for straight linear RGBA; the gradient's Wrap setting controls `t` (Clamp by default).
 For example, `return _Ramp_Sample(uv.x);`. Do not declare a sampler yourself. A cached 512×2
 LUT supplies the samples; editing keys does not recompile the shader. Edited values persist in the
-owning effect/brush; two-endpoint defaults are exported with HLSL presets. Brush-specific texture
+owning effect/brush; two-endpoint defaults are exported with HLSL presets. Active or retained
+Custom curves cannot be encoded by that endpoint-only syntax, so export rejects them instead
+of discarding manual data. Save the gradient separately or keep it in the document. Brush-specific texture
 sources and tip coordinates are described in the [brush contract](BRUSHES.md#declared-parameters).
 
 Transform2D uses `(centerX, centerY, width, height, angleDegrees)` in normalized input units.

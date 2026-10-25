@@ -232,10 +232,18 @@ namespace DCFApixels.WhimTex
 
         private static bool CanExportGradient(GradientLayerBehaviour layer, bool requiresRasterization, int width, int height)
         {
-            if (requiresRasterization || layer.Owner.CanvasTransform.storage == TransformStorage.Projective || layer.gradient == null || layer.gradient.Mode == WhimTexGradientMode.Fixed ||
+            if (requiresRasterization || layer.Owner.CanvasTransform.storage == TransformStorage.Projective || layer.gradient == null || layer.gradient.Interpolation != WhimTexGradientInterpolation.Blend ||
+                layer.gradient.Smoothness != 0f || layer.gradient.ChromaCorrection != 0f ||
+                layer.gradient.ColorMode != WhimTexGradientColorMode.Gamma ||
                 layer.gradient.WrapMode != WhimTexGradientWrapMode.Clamp ||
                 (layer.Owner.EffectiveTiling != TransformTilingMode.Clip && layer.Owner.EffectiveTiling != TransformTilingMode.Unbounded)) return false;
-            foreach (var key in layer.gradient.ColorKeys)
+            var colorKeys = layer.gradient.ColorKeys;
+            var alphaKeys = layer.gradient.AlphaKeys;
+            for (int i = 0; i + 1 < colorKeys.Length; i++)
+                if (layer.gradient.GetMidpoint(false, i) != .5f) return false;
+            for (int i = 0; i + 1 < alphaKeys.Length; i++)
+                if (layer.gradient.GetMidpoint(true, i) != .5f) return false;
+            foreach (var key in colorKeys)
                 if (key.color.r < 0 || key.color.g < 0 || key.color.b < 0 ||
                     key.color.r > 1 || key.color.g > 1 || key.color.b > 1) return false;
             bool linear = layer.gradientType == GradientLayerBehaviour.GradientType.Linear;
@@ -311,14 +319,12 @@ namespace DCFApixels.WhimTex
                 if (layer.gradientType == GradientLayerBehaviour.GradientType.Square) scale *= Math.Sqrt(2);
             }
             return new PsdWriter.Descriptor().Unit("Angl", "#Ang", angle).Enum("Type", "GrdT", type)
-                .Enum("gradientsInterpolationMethod", "gradientInterpolationMethodType", GradientMethod(layer.gradient.Mode))
+                .Enum("gradientsInterpolationMethod", "gradientInterpolationMethodType", "Gcls")
                 .Unit("Scl ", "#Prc", scale).Bool("Rvrs", false).Bool("Dthr", false).Bool("Algn", true)
                 .Object("Ofst", new PsdWriter.Descriptor("Pnt ").Unit("Hrzn", "#Prc", x).Unit("Vrtc", "#Prc", y))
                 .Object("Grad", gradient);
         }
 
-        private static string GradientMethod(WhimTexGradientMode mode) => mode == WhimTexGradientMode.Classic ? "Gcls" :
-            mode == WhimTexGradientMode.Linear ? "Lnr " : "Perc";
 
         internal static string BlendKey(BlendMode mode, out bool approximate)
         {

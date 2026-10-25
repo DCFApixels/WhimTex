@@ -13,7 +13,7 @@ public static class DocumentJsonOptionalSettingsTests
     const string Layers = "\"layers\":[{\"id\":\"incoming\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[1,0,0,1]}}]";
     static int checks;
     static void Check(bool value, string message) { checks++; UnityBRun.Check(!(!value), message); }
-    static string Json(string settings) => "{\"format\":\"whimtex.document\",\"version\":2," +
+    static string Json(string settings) => "{\"format\":\"whimtex.document\",\"version\":3," +
         (settings == null ? "" : "\"document\":" + settings + ",") + Layers + "}";
     static object Call(object target, string name, params object[] args) => target.GetType().GetMethod(name, F).Invoke(target, args);
     [Serializable] public class Reply { public bool success, saved; public State document; }

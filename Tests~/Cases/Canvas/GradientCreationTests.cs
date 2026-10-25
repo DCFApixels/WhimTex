@@ -223,7 +223,7 @@ public static class GradientCreationTests
             var behaviour = document.layers[0].Behaviour as GradientLayerBehaviour;
             string expectedType = kind;
             t.Equal(expectedType, behaviour.gradientType.ToString(), "Creation uses the picked type");
-            t.True(behaviour != null && behaviour.gradient.Mode == WhimTexGradientMode.Perceptual, "Current gradient model/default interpolation");
+            t.True(behaviour != null && behaviour.gradient.ColorMode == WhimTexGradientColorMode.Perceptual, "Current gradient model/default interpolation");
             t.True(!ReferenceEquals(behaviour.gradient, root.Q<WhimTexGradientValueField>("gradientToolRamp").value), "Each new layer owns a ramp copy");
             t.Equal(TransformTilingMode.Unbounded, document.layers[0].EffectiveTiling, "Gradient extends beyond its handles");
             var transform = document.layers[0].transform;

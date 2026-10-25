@@ -179,7 +179,7 @@ static System.Threading.CancellationToken Cancellation;
             operation.Invoke(null, new object[] { doc, Parse("{\"op\":\"target\",\"layer\":\"" + blur.Id + "\",\"input\":\"AllBelow\"}"), new Dictionary<string, Layer>(), false, null, null });
             Check(blur.inputMode == EffectInputMode.AllBelow && blur.TargetLayerId == null, "API sets stack input without target");
             var readClipboard = api.GetMethod("ReadProceduralClipboard", F);
-            var clipboard = readClipboard.Invoke(null, new object[] { "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"AllBelow\"}},{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}", 32, 32 });
+            var clipboard = readClipboard.Invoke(null, new object[] { "{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"AllBelow\"}},{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}", 32, 32 });
             try
             {
                 var pasted = (WhimTexDocument)clipboard.GetType().GetField("Document", F).GetValue(clipboard);
@@ -205,9 +205,9 @@ static System.Threading.CancellationToken Cancellation;
             }
             finally { ((IDisposable)restored).Dispose(); }
             foreach (string invalid in new[] {
-                "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"missing\"}}]}",
-                "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\"}}]}",
-                "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"inputMode\":\"AllBelow\"}}]}" })
+                "{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"missing\"}}]}",
+                "{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\"}}]}",
+                "{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"inputMode\":\"AllBelow\"}}]}" })
             {
                 bool rejected = false;
                 try

@@ -254,9 +254,14 @@ try
     Call(dynamics, "ResetTint");
     Check(!(bool)dynamics.GetType().GetProperty("HasTint", flags).GetValue(dynamics), "White reset restores neutral fast path");
     foreach (UnityEngine.ColorSpace space in new[] { UnityEngine.ColorSpace.Gamma, UnityEngine.ColorSpace.Linear })
-    foreach (DCFApixels.WhimTex.WhimTexGradientMode mode in System.Enum.GetValues(typeof(DCFApixels.WhimTex.WhimTexGradientMode)))
+    foreach (var mode in new[] {
+        (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Fixed),
+        (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Balanced),
+        (color: WhimTexGradientColorMode.Linear, interpolation: WhimTexGradientInterpolation.Balanced),
+        (color: WhimTexGradientColorMode.Perceptual, interpolation: WhimTexGradientInterpolation.Balanced)
+    })
     {
-        gradient = new DCFApixels.WhimTex.WhimTexGradient { Mode = mode, ColorSpace = space };
+        gradient = new DCFApixels.WhimTex.WhimTexGradient { ColorMode = mode.color, Interpolation = mode.interpolation, ColorSpace = space };
         gradient.SetKeys(new[] { new UnityEngine.GradientColorKey(UnityEngine.Color.white, .2f), new UnityEngine.GradientColorKey(UnityEngine.Color.white, .8f) },
             new[] { new UnityEngine.GradientAlphaKey(1f, .3f), new UnityEngine.GradientAlphaKey(1f, .7f) });
         Set(dynamics, "tintGradient", gradient);

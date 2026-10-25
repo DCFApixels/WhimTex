@@ -28,9 +28,9 @@ namespace DCFApixels.WhimTex
         private FloatField intensity;
         private readonly Dictionary<float, bool> hdrPreferences = new Dictionary<float, bool>();
         private readonly Dictionary<float, float> intensityPreferences = new Dictionary<float, float>();
-        private Slider alpha, smoothness;
+        private Slider alpha, smoothness, chromaCorrection;
         private FloatField location;
-        private EnumField mode, wrapMode;
+        private EnumField mode, colorMode, huePath, wrapMode;
         private bool pendingRemoval;
         private bool writingOwner;
         private bool checkFocus;
@@ -60,15 +60,16 @@ namespace DCFApixels.WhimTex
                 window.owner = owner;
                 window.ownerPath = propertyPath;
                 window.gradient = JsonUtility.FromJson<WhimTexGradient>(JsonUtility.ToJson(value));
-                window.selected = 0; window.midpointSelected = false;
+                window.selected = 0; window.selectedCustomKey = 0; window.midpointSelected = false;
                 window.hdrPreferences.Clear(); window.intensityPreferences.Clear();
                 Undo.ClearUndo(window);
             }
             window.titleContent = new GUIContent("Gradient");
             window.gradient = value;
+            window.pendingColorMode = value.ColorMode;
             window.channelSource = owner is WhimTexGradientSession session ? session.channelSource :
                 WhimTexColorChannels.FindSource(null, WhimTexColorPicker.DocumentFor(owner));
-            window.minSize = new Vector2(380, 400);
+            window.minSize = new Vector2(380, 460);
 #if WHIMTEX_DEEP_DEBUG
             window.minSize += new Vector2(0, 110);
 #endif
@@ -101,6 +102,7 @@ namespace DCFApixels.WhimTex
         }
         private void CheckFocus()
         {
+            if (curvesWindow != null) { checkFocus = false; return; }
             if (waitingForColorPicker)
             {
                 if (keyColorPicker != null) return;
@@ -116,6 +118,7 @@ namespace DCFApixels.WhimTex
         }
         private void OnDisable()
         {
+            curvesWindow = null;
             if (historyCursor != null) DestroyImmediate(historyCursor);
             historyCursor = null;
             ReleasePresetPreviews();
@@ -140,12 +143,22 @@ namespace DCFApixels.WhimTex
                 "Packages/com.dcfapixels.whimtex/src/Editor/WhimTexGradientWindow.uss");
             if (sheet != null) rootVisualElement.styleSheets.Add(sheet);
             rootVisualElement.AddToClassList("whimtex-gradient-editor");
-            mode = new EnumField("Interpolation", gradient.Mode);
+            colorMode = new EnumField("Color Mode", gradient.ColorMode) { name = "gradientColorMode" };
+            TwoChoiceDropdown.Attach(colorMode);
+            colorMode.RegisterValueChangedCallback(e =>
+            {
+                pendingColorMode = (WhimTexGradientColorMode)e.newValue;
+                if (IsCustom) convertColorMode.SetEnabled(pendingColorMode != gradient.ColorMode);
+                else Edit(() => gradient.ColorMode = pendingColorMode);
+            });
+            rootVisualElement.Add(colorMode);
+            BuildCustomControls();
+            mode = new EnumField("Interpolation", gradient.Interpolation) { name = "gradientInterpolation" };
             TwoChoiceDropdown.Attach(mode);
             mode.RegisterValueChangedCallback(e =>
             {
-                var next = (WhimTexGradientMode)e.newValue;
-                Edit(() => gradient.Mode = next);
+                var next = (WhimTexGradientInterpolation)e.newValue;
+                Edit(() => { gradient.Interpolation = next; pendingColorMode = gradient.ColorMode; });
             });
             rootVisualElement.Add(mode);
             wrapMode = new EnumField("Wrap", gradient.WrapMode) { tooltip = "How values outside 0..1 are sampled: clamp, repeat, or mirror." };
@@ -155,6 +168,13 @@ namespace DCFApixels.WhimTex
             smoothness = new Slider("Smoothness", 0, 100) { showInputField = true };
             smoothness.RegisterValueChangedCallback(e => Edit(() => gradient.Smoothness = Mathf.Clamp01(e.newValue / 100)));
             rootVisualElement.Add(smoothness);
+            chromaCorrection = new Slider("Chroma Correction", 0, 100) { name = "gradientChromaCorrection", showInputField = true };
+            chromaCorrection.RegisterValueChangedCallback(e => Edit(() => gradient.ChromaCorrection = Mathf.Clamp01(e.newValue / 100)));
+            rootVisualElement.Add(chromaCorrection);
+            huePath = new EnumField("Hue Path", gradient.HuePath) { name = "gradientHuePath" };
+            TwoChoiceDropdown.Attach(huePath);
+            huePath.RegisterValueChangedCallback(e => Edit(() => gradient.HuePath = (WhimTexGradientHuePath)e.newValue));
+            rootVisualElement.Add(huePath);
             strip = new VisualElement { focusable = true, name = "gradientStrip" };
             strip.AddToClassList("whimtex-gradient-strip");
             var background = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -168,6 +188,7 @@ namespace DCFApixels.WhimTex
             strip.AddManipulator(new KeyDrag(this));
             strip.AddManipulator(new ContextualMenuManipulator(e =>
             {
+                CustomStripMenu(e);
                 e.menu.AppendAction("Copy", _ => EditorGUIUtility.systemCopyBuffer = WhimTexGradientClipboard.Write(gradient));
                 e.menu.AppendAction("Paste", _ =>
                 {
@@ -236,7 +257,10 @@ namespace DCFApixels.WhimTex
             });
             alpha = new Slider("Opacity", 0, 100) { showInputField = true };
             alpha.RegisterValueChangedCallback(e => Edit(() =>
-            { alphas[selected].alpha = Mathf.Clamp01(e.newValue / 100); gradient.SetKeys(colors, alphas); }));
+            {
+                if (IsCustom) return;
+                alphas[selected].alpha = Mathf.Clamp01(e.newValue / 100); gradient.SetKeys(colors, alphas);
+            }));
             location = new FloatField("Location");
             var percent = new Label("%") { pickingMode = PickingMode.Ignore };
             percent.AddToClassList("whimtex-gradient-unit");
@@ -258,7 +282,7 @@ namespace DCFApixels.WhimTex
             location.AddToClassList("whimtex-gradient-location");
             var separator = new VisualElement { pickingMode = PickingMode.Ignore };
             separator.AddToClassList("whimtex-gradient-key-separator");
-            keyRow.Add(colorControls); keyRow.Add(alpha); keyRow.Add(separator); keyRow.Add(location);
+            keyRow.Add(colorControls); keyRow.Add(alpha); BuildCustomValue(keyRow); keyRow.Add(separator); keyRow.Add(location);
             rootVisualElement.Add(keyRow);
             BuildColorHistory();
             BuildPresets();
@@ -274,7 +298,7 @@ namespace DCFApixels.WhimTex
             rootVisualElement.Add(debug);
             Refresh();
         }
-        private int Count => alphaTrack ? alphas.Length : colors.Length;
+        private int Count => IsCustom ? CustomTrack.Length : alphaTrack ? alphas.Length : colors.Length;
         private void OpenAllColors()
         {
             var expected = gradient;
@@ -291,7 +315,7 @@ namespace DCFApixels.WhimTex
                 {
                     Edit(() =>
                     {
-                        gradient = original;
+                        gradient = original.Clone();
                         intensityPreferences.Clear();
                         foreach (var entry in originalIntensities) intensityPreferences.Add(entry.Key, entry.Value);
                     });
@@ -304,10 +328,11 @@ namespace DCFApixels.WhimTex
 
         private void StoreAllColors(Color value)
         {
-            if (gradient.ColorSpace == ColorSpace.Linear) value = value.linear;
+            if (gradient.ColorSpace == ColorSpace.Linear) value = IsCustom ? HdrUtility.Decode(value) : value.linear;
             value.r = Mathf.Clamp(value.r, -65504, 65504);
             value.g = Mathf.Clamp(value.g, -65504, 65504);
             value.b = Mathf.Clamp(value.b, -65504, 65504);
+            if (IsCustom) { GradientCustomMarkers.SetColor(gradient, value); intensityPreferences.Clear(); return; }
             for (int i = 0; i < colors.Length; i++)
             {
                 value.a = colors[i].color.a;
@@ -320,7 +345,7 @@ namespace DCFApixels.WhimTex
         private void ReverseGradient() => Edit(() =>
         {
             gradient.Reverse();
-            selected = Count - (midpointSelected ? 2 : 1) - selected;
+            if (!IsCustom) selected = Count - (midpointSelected ? 2 : 1) - selected;
             ReversePreferences(hdrPreferences);
             ReversePreferences(intensityPreferences);
         });
@@ -375,6 +400,7 @@ namespace DCFApixels.WhimTex
 
         private void OpenKeyColor()
         {
+            if (IsCustom) { OpenCustomCurves(selectedCustomKey); return; }
             var expected = gradient;
             int index = selected;
             float time = colors[index].time;
@@ -408,20 +434,42 @@ namespace DCFApixels.WhimTex
         }
         private void StoreDisplayColor(Color value)
         {
-            if (gradient.ColorSpace == ColorSpace.Linear) value = value.linear;
+            if (gradient.ColorSpace == ColorSpace.Linear) value = IsCustom ? HdrUtility.Decode(value) : value.linear;
             value.r = Mathf.Clamp(value.r, -65504, 65504);
             value.g = Mathf.Clamp(value.g, -65504, 65504);
             value.b = Mathf.Clamp(value.b, -65504, 65504);
+            if (IsCustom) { GradientCustomMarkers.SetColor(gradient, value, selectedCustomKey); return; }
             value.a = colors[selected].color.a;
             colors[selected].color = value; gradient.SetKeys(colors, alphas);
         }
-        private float KeyTime(int i) => alphaTrack ? alphas[i].time : colors[i].time;
+        private float KeyTime(int i) => IsCustom ? CustomTrack[i].time : alphaTrack ? alphas[i].time : colors[i].time;
         private float Time => KeyTime(selected);
         private void Edit(Action action)
         {
+            if (IsCustom)
+            {
+                var previous = gradient;
+                gradient = previous.Clone();
+                try { action(); }
+                catch (Exception e) when (e is ArgumentException || e is InvalidOperationException)
+                {
+                    gradient = previous; ShowNotification(new GUIContent(e.Message)); Refresh(); return;
+                }
+                var next = gradient;
+                gradient = previous;
+                if (!next.Equals(previous))
+                {
+                    RecordUndo("Edit Gradient"); gradient = next;
+                    try { Commit(); }
+                    catch (Exception e) when (e is ArgumentException || e is InvalidOperationException)
+                    { gradient = previous; ShowNotification(new GUIContent(e.Message)); }
+                }
+                Refresh(); return;
+            }
             RecordUndo("Edit Gradient");
             try { action(); Commit(); }
-            catch (ArgumentException e) { ShowNotification(new GUIContent(e.Message)); }
+            catch (Exception e) when (e is ArgumentException || e is InvalidOperationException)
+            { ShowNotification(new GUIContent(e.Message)); }
             Refresh();
         }
         private void RecordUndo(string name) => Undo.RegisterCompleteObjectUndo(owner != null ? owner : this, name);
@@ -438,13 +486,14 @@ namespace DCFApixels.WhimTex
         }
         private void ReloadOwner()
         {
-            if (owner is WhimTexGradientSession) { Close(); return; }
+            if (owner is WhimTexGradientSession && curvesWindow == null) { Close(); return; }
             if (owner != null)
             {
                 try { gradient = WhimTexGradientBinding.Read(owner, ownerPath); }
                 catch (ArgumentException) { Close(); return; }
             }
             hdrPreferences.Clear(); intensityPreferences.Clear();
+            pendingColorMode = gradient.ColorMode;
             Refresh();
         }
         private void Refresh()
@@ -452,31 +501,43 @@ namespace DCFApixels.WhimTex
             if (strip == null) return;
             gradient ??= new WhimTexGradient();
             colors = gradient.ColorKeys; alphas = gradient.AlphaKeys;
+            RefreshCustomSelection();
             selected = Mathf.Clamp(selected, 0, Count - 1);
-            if (gradient.Mode == WhimTexGradientMode.Fixed || selected >= Count - 1) midpointSelected = false;
+            if (IsCustom || gradient.Interpolation == WhimTexGradientInterpolation.Fixed || selected >= Count - 1) midpointSelected = false;
             Color common = colors[0].color;
             bool mixed = false, anyHdr = false;
             foreach (var key in colors)
             {
                 mixed |= key.color.r != common.r || key.color.g != common.g || key.color.b != common.b;
-                Color display = gradient.ColorSpace == ColorSpace.Linear ? key.color.gamma : key.color;
+                Color display = gradient.ColorSpace == ColorSpace.Linear ? (IsCustom ? HdrUtility.Encode(key.color) : key.color.gamma) : key.color;
                 anyHdr |= ColorIntensity(display) > 1 || display.r < 0 || display.g < 0 || display.b < 0;
             }
-            common = gradient.ColorSpace == ColorSpace.Linear ? common.gamma : common;
+            common = gradient.ColorSpace == ColorSpace.Linear ? (IsCustom ? HdrUtility.Encode(common) : common.gamma) : common;
             common.a = 1;
             allColors.hdr = anyHdr;
             allColors.SetValueWithoutNotify(common);
             allColors.showMixedValue = mixed;
             allColorsMixedSwatch.EnableInClassList("whimtex-gradient-hidden", !mixed);
-            mode.SetValueWithoutNotify(gradient.Mode);
+            bool fixedInterpolation = gradient.Interpolation == WhimTexGradientInterpolation.Fixed;
+            mode.SetValueWithoutNotify(gradient.Interpolation);
+            if (!IsCustom) pendingColorMode = gradient.ColorMode;
+            colorMode.SetValueWithoutNotify(IsCustom ? pendingColorMode : gradient.ColorMode);
+            colorMode.SetEnabled(!fixedInterpolation);
+            huePath.SetValueWithoutNotify(gradient.HuePath);
+            huePath.EnableInClassList("whimtex-gradient-hidden", gradient.ColorMode != WhimTexGradientColorMode.Hue);
+            huePath.SetEnabled(!fixedInterpolation && !IsCustom);
+            chromaCorrection.SetValueWithoutNotify(gradient.ChromaCorrection * 100);
+            chromaCorrection.SetEnabled(!fixedInterpolation && !IsCustom);
             wrapMode.SetValueWithoutNotify(gradient.WrapMode);
             smoothness.SetValueWithoutNotify(gradient.Smoothness * 100);
-            smoothness.SetEnabled(gradient.Mode != WhimTexGradientMode.Fixed);
-            colorControls.EnableInClassList("whimtex-gradient-hidden", alphaTrack);
-            alpha.EnableInClassList("whimtex-gradient-hidden", !alphaTrack);
+            smoothness.SetEnabled(gradient.Interpolation == WhimTexGradientInterpolation.Blend || gradient.Interpolation == WhimTexGradientInterpolation.Balanced);
+            smoothness.EnableInClassList("whimtex-gradient-hidden", gradient.Interpolation != WhimTexGradientInterpolation.Blend && gradient.Interpolation != WhimTexGradientInterpolation.Balanced);
+            colorControls.EnableInClassList("whimtex-gradient-hidden", alphaTrack || IsCustom);
+            alpha.EnableInClassList("whimtex-gradient-hidden", !alphaTrack || IsCustom);
+            RefreshCustomControls();
             colorControls.SetEnabled(!midpointSelected); alpha.SetEnabled(!midpointSelected);
-            if (alphaTrack) alpha.SetValueWithoutNotify(alphas[selected].alpha * 100);
-            else
+            if (alphaTrack && !IsCustom) alpha.SetValueWithoutNotify(alphas[selected].alpha * 100);
+            else if (!IsCustom)
             {
                 Color value = DisplayColor();
                 float intensityGain = CurrentIntensity();
@@ -497,20 +558,41 @@ namespace DCFApixels.WhimTex
             if (newPresetImage != null) newPresetImage.image = preview;
             if (preview != null && ReferenceEquals(previewSource, gradient) && previewRevision == gradient.Revision && previewExposure == exposure)
             { image.image = preview; return; }
-            gradient.Bake(ramp);
+            preview = BakePreviewTexture(gradient, preview, ramp, pixels, exposure);
+            image.image = preview;
+            if (newPresetImage != null) newPresetImage.image = preview;
+            previewSource = gradient; previewRevision = gradient.Revision; previewExposure = exposure;
+        }
+        internal static Texture2D BakePreviewTexture(WhimTexGradient gradient, Texture2D texture,
+            Color[] ramp, Color32[] pixels, float exposure = 0, double timeStart = 0, double timeEnd = 1)
+        {
+            if (timeStart == 0 && timeEnd == 1) gradient.Bake(ramp);
+            else for (int i = 0; i < ramp.Length; i++)
+            {
+                double time = timeStart + (timeEnd - timeStart) * (i / (double)Math.Max(1, ramp.Length - 1));
+                switch (gradient.WrapMode)
+                {
+                    case WhimTexGradientWrapMode.Repeat: time -= Math.Floor(time); break;
+                    case WhimTexGradientWrapMode.Mirror:
+                        time -= Math.Floor(time * .5) * 2;
+                        if (time > 1) time = 2 - time;
+                        break;
+                    default: time = Math.Max(0, Math.Min(1, time)); break;
+                }
+                ramp[i] = gradient.Evaluate((float)time);
+            }
             float gain = Mathf.Pow(2, exposure);
-            for (int x = 0; x < 512; x++)
+            for (int x = 0; x < ramp.Length; x++)
             {
                 Color c = gradient.ColorSpace == ColorSpace.Linear ? ramp[x] : ramp[x].linear;
                 c *= gain; c = c.gamma;
                 c.a = ramp[x].a;
-                pixels[x] = pixels[512 + x] = c;
+                pixels[x] = pixels[ramp.Length + x] = c;
             }
-            if (preview == null) preview = new Texture2D(512, 2, TextureFormat.RGBA32, false)
+            if (texture == null) texture = new Texture2D(ramp.Length, 2, TextureFormat.RGBA32, false)
                 { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
-            preview.SetPixels32(pixels); preview.Apply(false, false); image.image = preview;
-            if (newPresetImage != null) newPresetImage.image = preview;
-            previewSource = gradient; previewRevision = gradient.Revision; previewExposure = exposure;
+            texture.SetPixels32(pixels); texture.Apply(false, false);
+            return texture;
         }
         internal static void DrawCheckerboard(MeshGenerationContext context)
         {
@@ -529,9 +611,28 @@ namespace DCFApixels.WhimTex
                 p.ClosePath(); p.Fill();
             }
         }
-        private void MoveKey(float time, bool record)
+        private void MoveKey(float time, bool record, int[] customGroup = null)
         {
             if (float.IsNaN(time) || float.IsInfinity(time)) { Refresh(); return; }
+            if (IsCustom)
+            {
+                var previous = gradient;
+                try
+                {
+                    var next = previous.Clone();
+                    if (customGroup != null && next.TryGetCustomKey(selectedCustomKey, out var anchor))
+                        next.MoveCustomKeys(customGroup, time - anchor.time);
+                    else GradientCustomMarkers.Move(next, selectedCustomKey, time);
+                    if (!next.Equals(previous))
+                    {
+                        if (record) RecordUndo("Move Gradient Key");
+                        gradient = next; Commit();
+                    }
+                }
+                catch (Exception e) when (e is ArgumentException || e is InvalidOperationException)
+                { gradient = previous; ShowNotification(new GUIContent(e.Message)); }
+                Refresh(); return;
+            }
             time = Mathf.Clamp01(time);
             int newIndex = 0;
             for (int i = 0; i < Count; i++)
@@ -555,6 +656,7 @@ namespace DCFApixels.WhimTex
         }
         private void MoveMidpoint(float value, bool record)
         {
+            if (IsCustom) return;
             if (float.IsNaN(value) || float.IsInfinity(value)) { Refresh(); return; }
             if (record) RecordUndo("Move Gradient Midpoint");
             gradient.SetMidpoint(alphaTrack, selected, Mathf.Clamp(value, .01f, .99f));
@@ -569,7 +671,7 @@ namespace DCFApixels.WhimTex
         }
         private int HitMidpoint(float x)
         {
-            if (gradient.Mode == WhimTexGradientMode.Fixed) return -1;
+            if (IsCustom || gradient.Interpolation == WhimTexGradientInterpolation.Fixed) return -1;
             for (int i = 0; i < Count - 1; i++)
                 if (Mathf.Abs(x - MidpointX(alphaTrack, i)) <= 6) return i;
             return -1;
@@ -578,8 +680,27 @@ namespace DCFApixels.WhimTex
         {
             RemoveKey(true);
         }
-        private void RemoveKey(bool record)
+        private void RemoveKey(bool record, int[] customGroup = null)
         {
+            if (IsCustom)
+            {
+                if (customGroup == null && !GradientCustomMarkers.CanRemove(gradient, selectedCustomKey)) return;
+                var ids = customGroup ?? GradientCustomMarkers.Group(gradient, selectedCustomKey);
+                if (record) Edit(() => gradient.RemoveCustomKeys(ids));
+                else
+                {
+                    var previous = gradient;
+                    try
+                    {
+                        var next = previous.Clone(); next.RemoveCustomKeys(ids);
+                        RecordUndo("Delete Gradient Key"); gradient = next; Commit();
+                    }
+                    catch (Exception e) when (e is ArgumentException || e is InvalidOperationException)
+                    { gradient = previous; ShowNotification(new GUIContent(e.Message)); }
+                    Refresh();
+                }
+                return;
+            }
             if (Count <= 1) return;
             void Remove()
             {
@@ -594,7 +715,8 @@ namespace DCFApixels.WhimTex
         private bool IsRemovalPosition(Vector2 position)
         {
             const float margin = 16;
-            return Count > 1 && (position.y < -margin || position.y > strip.contentRect.height + margin);
+            return (IsCustom ? GradientCustomMarkers.CanRemove(gradient, selectedCustomKey) : Count > 1) &&
+                (position.y < -margin || position.y > strip.contentRect.height + margin);
         }
         private void SetPendingRemoval(bool value)
         {
@@ -605,6 +727,7 @@ namespace DCFApixels.WhimTex
         private float AtX(float x) => Mathf.Clamp01((x - 10) / Mathf.Max(1, strip.contentRect.width - 20));
         private int Hit(float x)
         {
+            if (IsCustom) return HitCustomStrip(x, false);
             int hit = -1; float best = 9;
             for (int i = 0; i < Count; i++)
             {
@@ -615,6 +738,7 @@ namespace DCFApixels.WhimTex
         }
         private bool AddKey(float time)
         {
+            if (IsCustom) return AddCustomStripKey(time);
             const int limit = 64;
             if (Count >= limit) { ShowNotification(new GUIContent($"Maximum {limit} keys per track.")); return false; }
             for (int i = 0; i < Count; i++) if (Mathf.Abs(KeyTime(i) - time) < .00001f) return false;
@@ -632,6 +756,7 @@ namespace DCFApixels.WhimTex
         private void DrawKeys(MeshGenerationContext context)
         {
             if (colors == null || strip.contentRect.width < 20) return;
+            if (IsCustom) { DrawCustomStrip(context); return; }
             var p = context.painter2D;
             for (int track = 0; track < 2; track++)
             for (int i = 0; i < (track == 0 ? alphas.Length : colors.Length); i++)
@@ -651,7 +776,7 @@ namespace DCFApixels.WhimTex
                 p.LineTo(new Vector2(x-6,y+d*17)); p.LineTo(new Vector2(x+6,y+d*17));
                 p.LineTo(new Vector2(x+6,y+d*7)); p.ClosePath(); p.Fill(); p.Stroke();
             }
-            if (gradient.Mode == WhimTexGradientMode.Fixed) return;
+            if (gradient.Interpolation == WhimTexGradientInterpolation.Fixed) return;
             for (int track = 0; track < 2; track++)
             for (int i = 0; i < (track == 0 ? alphas.Length : colors.Length) - 1; i++)
             {
@@ -667,6 +792,7 @@ namespace DCFApixels.WhimTex
             private readonly WhimTexGradientWindow owner;
             private int pointer = -1, group;
             private string before;
+            private int[] customGroup;
             public KeyDrag(WhimTexGradientWindow owner) { this.owner = owner; }
             protected override void RegisterCallbacksOnTarget()
             {
@@ -686,22 +812,23 @@ namespace DCFApixels.WhimTex
                 Vector2 pos = e.localPosition;
                 if (pos.y > 22 && pos.y < target.contentRect.height - 22) return;
                 owner.alphaTrack = pos.y < 22;
-                int hit = owner.Hit(pos.x);
+                int hit = owner.IsCustom ? owner.HitCustomStrip(pos.x, e.clickCount == 1) : owner.Hit(pos.x);
                 int midpoint = hit < 0 ? owner.HitMidpoint(pos.x) : -1;
-                if (e.clickCount == 2 && hit >= 0 && !owner.alphaTrack)
+                if (e.clickCount == 2 && hit >= 0 && (!owner.alphaTrack || owner.IsCustom))
                 {
-                    owner.selected = hit; owner.midpointSelected = false;
+                    owner.SelectKeyIndex(hit); owner.midpointSelected = false;
                     owner.Refresh();
                     owner.OpenKeyColor();
                     e.StopPropagation(); return;
                 }
                 before = JsonUtility.ToJson(owner.gradient);
                 Undo.IncrementCurrentGroup(); group = Undo.GetCurrentGroup();
-                owner.RecordUndo("Edit Gradient Key");
+                if (!owner.IsCustom) owner.RecordUndo("Edit Gradient Key");
                 owner.midpointSelected = midpoint >= 0;
                 if (midpoint >= 0) owner.selected = midpoint;
-                else if (hit >= 0) owner.selected = hit;
+                else if (hit >= 0) owner.SelectKeyIndex(hit);
                 else if (!owner.AddKey(owner.AtX(pos.x))) { owner.Refresh(); return; }
+                customGroup = owner.IsCustom ? owner.gradient.GetCustomMarkerGroup(owner.selectedCustomKey) : null;
                 pointer = e.pointerId; target.CapturePointer(pointer); target.Focus();
                 owner.Refresh(); e.StopPropagation();
             }
@@ -715,7 +842,7 @@ namespace DCFApixels.WhimTex
                     e.StopPropagation(); return;
                 }
                 owner.SetPendingRemoval(owner.IsRemovalPosition(e.localPosition));
-                if (!owner.pendingRemoval) owner.MoveKey(owner.AtX(e.localPosition.x), false);
+                if (!owner.pendingRemoval) owner.MoveKey(owner.AtX(e.localPosition.x), owner.IsCustom, customGroup);
                 e.StopPropagation();
             }
             private void Up(PointerUpEvent e)
@@ -723,7 +850,7 @@ namespace DCFApixels.WhimTex
                 if (e.pointerId != pointer || e.button != 0) return;
                 try
                 {
-                    if (!owner.midpointSelected && owner.IsRemovalPosition(e.localPosition)) owner.RemoveKey(false);
+                    if (!owner.midpointSelected && owner.IsRemovalPosition(e.localPosition)) owner.RemoveKey(false, customGroup);
                 }
                 finally { Finish(); }
                 e.StopPropagation();
@@ -738,7 +865,7 @@ namespace DCFApixels.WhimTex
             }
             private void Finish()
             {
-                int id = pointer; pointer = -1;
+                int id = pointer; pointer = -1; customGroup = null;
                 owner.SetPendingRemoval(false);
                 if (id >= 0 && target.HasPointerCapture(id)) target.ReleasePointer(id);
                 Undo.CollapseUndoOperations(group); Undo.IncrementCurrentGroup();

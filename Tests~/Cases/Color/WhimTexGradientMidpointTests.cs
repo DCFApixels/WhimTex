@@ -22,13 +22,13 @@ public static class WhimTexGradientMidpointTests
         var g = new WhimTexGradient();
         g.SetKeys(new[] { new GradientColorKey(Color.black,0), new GradientColorKey(Color.white,1) },
             new[] { new GradientAlphaKey(0,0), new GradientAlphaKey(1,1) });
-        foreach (WhimTexGradientMode mode in Enum.GetValues(typeof(WhimTexGradientMode)))
+        // Midpoint/tangent assertions concern Balanced, whose midpoint is a half-color node.
+        foreach (var mode in new[] { WhimTexGradientColorMode.Gamma, WhimTexGradientColorMode.Linear, WhimTexGradientColorMode.Perceptual })
         {
-            g.Mode = mode;
+            g.ColorMode = mode;
             g.SetMidpoint(false,0,.5f); g.SetMidpoint(true,0,.5f);
             Color half = g.Evaluate(.5f);
             g.SetMidpoint(false,0,.2f); g.SetMidpoint(true,0,.8f);
-            if (mode == WhimTexGradientMode.Fixed) continue;
             foreach (float smooth in new[] { 0f, .5f, 1f })
             {
                 g.Smoothness = smooth;
@@ -43,7 +43,7 @@ public static class WhimTexGradientMidpointTests
         }
         var copy=JsonUtility.FromJson<WhimTexGradient>(JsonUtility.ToJson(g));
         Check(copy.GetMidpoint(false,0)==.2f && copy.GetMidpoint(true,0)==.8f,"Serialization");
-        g.Mode=WhimTexGradientMode.Classic;
+        g.ColorMode=WhimTexGradientColorMode.Gamma;
         g.Evaluate(.3f);
         long bytes=GC.GetAllocatedBytesForCurrentThread();
         for(int i=0;i<10000;i++)g.Evaluate((i%100)/100f);

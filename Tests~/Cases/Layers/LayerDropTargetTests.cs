@@ -86,7 +86,7 @@ public static class LayerDropTargetTests
         window.titleContent = new GUIContent("WhimTex safe layer drop targets");
         window.ShowUtility(); window.position = new Rect(80, 80, 1100, 800); window.CreateGUI();
         var root = window.rootVisualElement;
-        root.Q<TwoPaneSplitView>(className: "whimtex-workspace-split").fixedPaneInitialDimension = 520f;
+        root.Q<WhimTexSplitView>(className: "whimtex-workspace-split").FixedPaneSize = 520f;
         var scroll = (ScrollView)Field(window, "toolkitSettingsScroll");
         var hierarchy = (VisualElement)Field(window, "toolkitLayerHierarchyRoot");
         var expansion = (Dictionary<string, bool>)Field(window, "groupExpansion");

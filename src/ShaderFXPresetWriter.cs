@@ -165,6 +165,8 @@ namespace DCFApixels.WhimTex
                 case ShaderFXParameterType.Curve:
                     return prefix + "curve " + p.name + " = " + WhimTexCurveTexture.Format(p.curveValue);
                 case ShaderFXParameterType.Gradient:
+                    if (p.gradientValue != null && p.gradientValue.HasCustomCurves)
+                        throw new FormatException("Endpoint-only HLSL gradient defaults cannot store active or retained Custom curves. Keep this gradient in the document or save it as a gradient preset.");
                     if (!GradientUtility.IsTwoColorGradient(p.gradientValue, out var left, out var right))
                         throw new FormatException("Gradient preset defaults currently support two endpoint colors only. Simplify the gradient before saving this preset.");
                     return prefix + "gradient " + p.name + " = " + ColorDefault(left) + " -> " + ColorDefault(right);
@@ -233,6 +235,7 @@ namespace DCFApixels.WhimTex
             }
             finally { if (File.Exists(temporary)) File.Delete(temporary); }
             PresetLibraryPaths.ImportSavedFile(path);
+            ShaderFXCatalog.UserPresetsChanged();
         }
     }
 }

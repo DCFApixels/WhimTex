@@ -324,3 +324,13 @@ The build uses [Jekyll](https://github.com/jekyll/jekyll) (MIT),
 and [WEBrick](https://github.com/ruby/webrick) (BSD-2-Clause).
 Direct and transitive versions are recorded in `Documentation~/Gemfile.lock`; resolved gems supply
 their own licenses. These are documentation tooling dependencies, not Unity package dependencies.
+
+## Gradient easing table
+
+The 17-value easing table used by Smooth interpolation is adapted from PhotoCraft.
+Copyright (c) 2026 ArtCraft Team and the PhotoCraft contributors.
+License: MIT; the complete notice is retained in
+[GradientEasing-MIT.txt](Documentation~/Licenses/GradientEasing-MIT.txt).
+The table was supplied in source revision `769f663de5f86abec5decec593c027f2f4e16c21`;
+its sampled values are retained in the portable CPU implementation. The supplying
+project is not a runtime dependency or a persistent test oracle.

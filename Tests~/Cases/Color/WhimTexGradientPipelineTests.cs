@@ -24,7 +24,7 @@ public static class WhimTexGradientPipelineTests
         var doc=ScriptableObject.CreateInstance<WhimTexDocument>();
         doc.hideFlags=HideFlags.HideAndDontSave;doc.width=doc.height=64;
         var behavior=new GradientLayerBehaviour {gradientType=GradientLayerBehaviour.GradientType.Radial};
-        behavior.gradient.Mode=WhimTexGradientMode.Perceptual;
+        behavior.gradient.ColorMode=WhimTexGradientColorMode.Perceptual;
         behavior.gradient.SetKeys(new[] {new GradientColorKey(Color.white,0),new GradientColorKey(new Color(0,81/255f,125/255f),.5f),new GradientColorKey(Color.red,1)},
             new[] {new GradientAlphaKey(1,0),new GradientAlphaKey(1,1)});
         Layer source=behavior,group=new GroupLayerBehaviour();

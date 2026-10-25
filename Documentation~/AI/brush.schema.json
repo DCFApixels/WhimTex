@@ -302,14 +302,64 @@
                 ]
               }
             },
-            "mode": {
+            "colorMode": {
               "type": "string",
               "enum": [
-                "Classic",
                 "Linear",
+                "Gamma",
                 "Perceptual",
-                "Fixed"
+                "Hue"
+              ],
+              "default": "Perceptual",
+              "description": "Retained automatic color mode; Custom uses customColorMode."
+            },
+            "interpolation": {
+              "type": "string",
+              "enum": [
+                "Blend",
+                "Balanced",
+                "Smooth",
+                "Adaptive",
+                "Fixed",
+                "Custom"
+              ],
+              "default": "Balanced"
+            },
+            "customColorMode": {
+              "type": "string",
+              "enum": [
+                "Linear",
+                "Gamma",
+                "Perceptual",
+                "Hue"
               ]
+            },
+            "customKeys": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "maxItems": 256,
+              "items": {
+                "$ref": "#/$defs/gradientCurveKey"
+              },
+              "description": "Independent manual channels, including inactive data. At least one key per channel, at most 64 distinct RGB positions and 64 alpha keys. IDs must be unique; times within each channel strictly increase with spacing at least 0.000001. Marker groups are derived from all channels before color/alpha filtering, never serialized. The obsolete link field is rejected."
+            },
+            "huePath": {
+              "type": "string",
+              "enum": [
+                "Shortest",
+                "Longest",
+                "Increasing",
+                "Decreasing"
+              ],
+              "default": "Shortest"
+            },
+            "chromaCorrection": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0
             },
             "wrapMode": {
               "type": "string",
@@ -317,24 +367,73 @@
                 "Clamp",
                 "Repeat",
                 "Mirror"
-              ]
+              ],
+              "default": "Clamp"
             },
             "smoothness": {
               "type": "number",
               "minimum": 0,
-              "maximum": 1
+              "maximum": 1,
+              "default": 1
             },
             "colorSpace": {
               "type": "string",
               "enum": [
                 "Gamma",
                 "Linear"
-              ]
+              ],
+              "default": "Gamma",
+              "description": "Technical encoding of stored automatic keys; independent of colorMode."
             }
           },
           "required": [
             "colors"
-          ]
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "interpolation": {
+                    "const": "Custom"
+                  }
+                },
+                "required": [
+                  "interpolation"
+                ]
+              },
+              "then": {
+                "required": [
+                  "customKeys",
+                  "customColorMode"
+                ],
+                "properties": {
+                  "customKeys": {
+                    "type": "array",
+                    "minItems": 4
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "customKeys": {
+                    "type": "array",
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "customKeys"
+                ]
+              },
+              "then": {
+                "required": [
+                  "customColorMode"
+                ]
+              }
+            }
+          ],
+          "description": "colors/alphas/colorMode always retain automatic data. customKeys/customColorMode retain independent manual curves, whether active or not. Active Custom requires explicit saved data; switching/conversion is a separate C# or UI operation."
         }
       ]
     },
@@ -396,6 +495,85 @@
         ]
       },
       "description": "Stops must have strictly increasing times."
+    },
+    "gradientCurveKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "channel": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "time": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "value": {
+          "type": "number",
+          "minimum": -3.4028234663852886e+38,
+          "maximum": 3.4028234663852886e+38
+        },
+        "inTangent": {
+          "type": "number",
+          "minimum": -3.4028234663852886e+38,
+          "maximum": 3.4028234663852886e+38,
+          "default": 0
+        },
+        "outTangent": {
+          "type": "number",
+          "minimum": -3.4028234663852886e+38,
+          "maximum": 3.4028234663852886e+38,
+          "default": 0
+        },
+        "tangentMode": {
+          "type": "string",
+          "enum": [
+            "Auto",
+            "Smooth",
+            "Broken",
+            "Linear",
+            "Constant"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "channel",
+        "time",
+        "value",
+        "tangentMode"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "channel": {
+                "const": 3
+              }
+            },
+            "required": [
+              "channel"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        }
+      ],
+      "description": "Stable positive unique id; channels 0..2 follow customColorMode, channel 3 is alpha. Keys are independent; no persistent links. Markers cluster all channels by time/id within 0.00001 of each earliest anchor, not transitively. Constant uses the right key between knots, like Fixed."
     }
   }
 }

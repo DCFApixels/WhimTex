@@ -50,7 +50,7 @@ public static class AngularGradientCanvasTests
             var document = UnityBRun.Create<WhimTexDocument>();
             document.hideFlags = HideFlags.HideAndDontSave; document.width = document.height = 128;
             var gradient = new GradientLayerBehaviour { gradientType = GradientLayerBehaviour.GradientType.Angular };
-            gradient.gradient = new WhimTexGradient { Mode = WhimTexGradientMode.Linear };
+            gradient.gradient = new WhimTexGradient { ColorMode = WhimTexGradientColorMode.Linear };
             gradient.gradient.SetKeys(new[]{new GradientColorKey(Color.red,0),new GradientColorKey(Color.green,.4f),new GradientColorKey(Color.blue,1)},
                 new[]{new GradientAlphaKey(1,0),new GradientAlphaKey(1,1)});
             gradient.transform.scale = new Vector2(.55f,.55f);

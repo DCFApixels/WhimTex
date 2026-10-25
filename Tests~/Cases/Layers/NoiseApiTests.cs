@@ -46,9 +46,9 @@ public static class NoiseApiTests
         Check(layer.WarpScale == new UnityEngine.Vector2(2,5), "Literal anisotropic warp multipliers with chain");
         Reject("{\"warpScale\":[1]}"); Reject("{\"warpScale\":[1,1001]}"); Reject("{\"linkWarpScale\":1}");
         Reject("{\"warpScale\":0}"); Reject("{\"warpScale\":1001}");
-        Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData && layer.gradient.Mode == DCFApixels.WhimTex.WhimTexGradientMode.Perceptual, "Linear Data output and Perceptual palette defaults");
+        Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData && layer.gradient.ColorMode == DCFApixels.WhimTex.WhimTexGradientColorMode.Perceptual, "Linear Data output and Perceptual palette defaults");
         Set("{\"encoding\":\"ColorValues\",\"gradient\":[{\"time\":0,\"color\":[1,0,0,0.5]},{\"time\":1,\"color\":[0,0,1,1]}]}");
-        Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.ColorValues && layer.gradient.Mode == DCFApixels.WhimTex.WhimTexGradientMode.Perceptual, "Supplied stops default to Perceptual");
+        Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.ColorValues && layer.gradient.ColorMode == DCFApixels.WhimTex.WhimTexGradientColorMode.Perceptual, "Supplied stops default to Perceptual");
         var savedGradient = layer.gradient.Clone();
         Set("{\"encoding\":\"Gradient\"}");
         Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.Gradient && layer.gradient.Equals(savedGradient), "Output retains palette");
@@ -103,12 +103,12 @@ public static class NoiseApiTests
         Check(current.Scale3D==new Vector3(8,8,1),"Default Z keeps existing 3D slices unchanged");
         Check(current.WarpScale == UnityEngine.Vector2.one, "Runtime Warp Scale defaults to multiplier 1");
         Check(DCFApixels.WhimTex.WhimTexApi.Describe().Contains("noisePeriodicAxes"), "Periodicity discovery");
-        Set("{\"linkScale\":true,\"scale\":[4,9],\"encoding\":\"LinearData\",\"gradient\":{\"colors\":[{\"time\":0,\"color\":[0,0,0,0.25]},{\"time\":1,\"color\":[2,1,0,1]}],\"mode\":\"Linear\"}}");
+        Set("{\"linkScale\":true,\"scale\":[4,9],\"encoding\":\"LinearData\",\"gradient\":{\"colors\":[{\"time\":0,\"color\":[0,0,0,0.25]},{\"time\":1,\"color\":[2,1,0,1]}],\"colorMode\":\"Linear\"}}");
         Check(layer.Scale == new UnityEngine.Vector2(4,9), "API axes are literal even with chain enabled");
         Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData &&
-            layer.gradient.Mode == DCFApixels.WhimTex.WhimTexGradientMode.Linear, "Palette assignment does not enable Gradient; explicit mode retained");
+            layer.gradient.ColorMode == DCFApixels.WhimTex.WhimTexGradientColorMode.Linear, "Palette assignment does not enable Gradient; explicit mode retained");
         Set("{\"gradient\":[{\"time\":0,\"color\":[0,0,0,1]},{\"time\":1,\"color\":[1,1,1,1]}]}");
-        Check(layer.gradient.Mode == DCFApixels.WhimTex.WhimTexGradientMode.Perceptual, "Replacement palette uses its own default mode");
+        Check(layer.gradient.ColorMode == DCFApixels.WhimTex.WhimTexGradientColorMode.Perceptual, "Replacement palette uses its own default mode");
         foreach(string invalid in new[]{"{\"seamless\":true}","{\"scaleY\":2}","{\"offsetZ\":1}","{\"useGradient\":true}"}) Reject(invalid);
         var sdf = new DCFApixels.WhimTex.SDFLayerBehaviour();
         Check(sdf.encoding == DCFApixels.WhimTex.SDFLayerBehaviour.OutputEncoding.Gradient &&
@@ -120,9 +120,9 @@ public static class NoiseApiTests
             var setLayer = type.GetMethod("SetLayer", flags);
             void SetSdf(string json) => setLayer.Invoke(null, new object[]{document, (DCFApixels.WhimTex.Layer)sdf, Json(json)});
             SetSdf("{\"encoding\":\"LinearData\",\"inverted\":true}");
-            SetSdf("{\"gradient\":{\"colors\":[{\"time\":0,\"color\":[0,0,0,0.25]},{\"time\":1,\"color\":[2,1,0,1]}],\"mode\":\"Fixed\"}}");
+            SetSdf("{\"gradient\":{\"colors\":[{\"time\":0,\"color\":[0,0,0,0.25]},{\"time\":1,\"color\":[2,1,0,1]}],\"interpolation\":\"Fixed\"}}");
             Check(sdf.encoding == DCFApixels.WhimTex.SDFLayerBehaviour.OutputEncoding.LinearData && sdf.inverted &&
-                sdf.gradient.Mode == DCFApixels.WhimTex.WhimTexGradientMode.Fixed, "SDF palette assignment retains output/inversion and accepts explicit mode");
+                sdf.gradient.Interpolation == DCFApixels.WhimTex.WhimTexGradientInterpolation.Fixed, "SDF palette assignment retains output/inversion and accepts explicit mode");
             var palette = sdf.gradient.Clone();
             SetSdf("{\"encoding\":\"Gradient\"}");
             Check(sdf.gradient.Equals(palette) && sdf.inverted, "SDF output retains palette/inversion");

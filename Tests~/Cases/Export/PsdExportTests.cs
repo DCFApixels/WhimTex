@@ -25,7 +25,8 @@ public static class PsdExportTests
             fill.transform.rotation = 20;
             var gradient = new DCFApixels.WhimTex.GradientLayerBehaviour { layerName = "Gradient", gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Linear };
             gradient.transform.rotation = 15;
-            gradient.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic;
+            gradient.gradient.ColorMode = WhimTexGradientColorMode.Gamma;
+            gradient.gradient.Interpolation = WhimTexGradientInterpolation.Blend;
             gradient.gradient.ColorSpace = ColorSpace.Gamma;
             gradient.gradient.Smoothness = 0;
             gradient.transform.storage = DCFApixels.WhimTex.TransformStorage.TRS;
@@ -84,17 +85,22 @@ public static class PsdExportTests
             Check(System.IO.File.ReadAllBytes(path).Length == bytes.Length, "Successful replacement");
             document.layers = new List<Layer> { gradientLayer };
             gradient.transform.tiling = TransformTilingMode.Unbounded;
-            foreach (var mode in new[] { WhimTexGradientMode.Classic, WhimTexGradientMode.Linear, WhimTexGradientMode.Perceptual })
+            foreach (var mode in new[] { WhimTexGradientColorMode.Gamma, WhimTexGradientColorMode.Linear, WhimTexGradientColorMode.Perceptual })
             {
-                gradient.gradient.Mode = mode; gradient.gradient.Smoothness = .8f;
+                gradient.gradient.ColorMode = mode; gradient.gradient.Smoothness = .8f;
                 var native = WhimTexPsdExporter.Export(document, System.IO.Path.Combine(folder, mode + ".psd"));
-                Check(native.editableFillCount == 1 && !native.usesBakedComposite, mode + " with Smoothness remains editable");
+                Check(native.editableFillCount == 0 && !native.usesBakedComposite, mode + " with a curved transition uses a raster layer");
                 string data = System.Text.Encoding.ASCII.GetString(System.IO.File.ReadAllBytes(System.IO.Path.Combine(folder, mode + ".psd")));
-                Check(data.Contains("gradientsInterpolationMethod") && data.Contains(mode == WhimTexGradientMode.Classic ? "Gcls" : mode == WhimTexGradientMode.Linear ? "Lnr " : "Perc"), "Gradient method descriptor " + mode);
+                Check(!data.Contains("gradientsInterpolationMethod"), "No misleading native gradient descriptor for " + mode);
             }
-            gradient.gradient.Mode = WhimTexGradientMode.Fixed;
+            gradient.gradient.ColorMode = WhimTexGradientColorMode.Gamma;
+            gradient.gradient.Smoothness = 0;
+            gradient.gradient.Interpolation = WhimTexGradientInterpolation.Fixed;
             Check(WhimTexPsdExporter.Export(document, System.IO.Path.Combine(folder, "fixed.psd")).editableFillCount == 0, "Fixed has no native equivalent");
-            gradient.gradient.Mode = WhimTexGradientMode.Perceptual;
+            // Keep every other setting natively representable so HDR alone triggers fallback.
+            gradient.gradient.ColorMode = WhimTexGradientColorMode.Gamma;
+            gradient.gradient.Interpolation = WhimTexGradientInterpolation.Blend;
+            gradient.gradient.Smoothness = 0;
             var ordinary = gradient.gradient.Clone();
             gradient.gradient.SetKeys(new[] { new GradientColorKey(new Color(2, 0, 0), 0), new GradientColorKey(Color.black, 1) }, ordinary.AlphaKeys);
             Check(WhimTexPsdExporter.Export(document, System.IO.Path.Combine(folder, "hdr-gradient.psd")).editableFillCount == 0, "HDR stops are clamped after rendering, not before interpolation");

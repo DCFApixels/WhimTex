@@ -29,11 +29,11 @@ namespace DCFApixels.WhimTex
                     try
                     {
                         var info = new FileInfo(file);
-                        if (info.Length > 65536) throw new IOException("Gradient preset exceeds 64 KiB.");
+                        if (info.Length > WhimTexGradientClipboard.MaximumJsonLength) throw new IOException("Gradient preset exceeds 256 KiB.");
                         entries.Add(new Entry { Path = file, CreatedUtc = info.CreationTimeUtc,
                             Gradient = WhimTexGradientClipboard.Read(File.ReadAllText(file)) });
                     }
-                    catch (Exception error) { warning = "Some presets could not be read: " + error.GetBaseException().Message; }
+                    catch (Exception) { /* Unreadable presets are omitted from the library. */ }
                 }
             }
             catch (Exception error) { warning = "Presets unavailable: " + error.Message; }

@@ -24,7 +24,8 @@ namespace DCFApixels.WhimTex
                 sdfGradientSnapshot = source.Clone();
                 sdfGradientStandardInputs = standardInputs;
                 WhimTexGradient evaluated = sdfGradientSnapshot;
-                if (standardInputs)
+                bool standardCustom = standardInputs && source.Interpolation == WhimTexGradientInterpolation.Custom;
+                if (standardInputs && !standardCustom)
                 {
                     var colors = source.ColorKeys;
                     for (int i = 0; i < colors.Length; i++)
@@ -41,7 +42,9 @@ namespace DCFApixels.WhimTex
                 sdfGradientPixels ??= new Color[SdfGradientWidth * 2];
                 for (int i = 0; i < SdfGradientWidth; i++)
                 {
-                    Color color = HdrUtility.DecodePaintColor(evaluated.EvaluateEncoded(i / (float)(SdfGradientWidth - 1)));
+                    Color encoded = evaluated.EvaluateEncoded(i / (float)(SdfGradientWidth - 1));
+                    if (standardCustom) encoded = WhimTexColorInputs.StandardColor(encoded);
+                    Color color = HdrUtility.DecodePaintColor(encoded);
                     sdfGradientPixels[i + SdfGradientWidth] = sdfGradientPixels[i] = new Color(color.r * color.a, color.g * color.a, color.b * color.a, color.a);
                 }
                 sdfGradientTexture.SetPixels(sdfGradientPixels);

@@ -144,42 +144,32 @@ namespace DCFApixels.WhimTex
 
             if (settingsPaneWidth <= 0f)
                 settingsPaneWidth = DefaultSettingsPaneWidth;
-            TwoPaneSplitView split = new TwoPaneSplitView(
-                1,
-                Mathf.Max(SettingsPaneMinWidth, settingsPaneWidth),
-                TwoPaneSplitViewOrientation.Horizontal);
-            WhimTexUI.StyleSplitView(split);
+            toolkitCanvasView = BuildToolkitCanvasView();
+            toolkitCanvasView.style.minWidth = CanvasViewMinWidth;
+            VisualElement settingsPane = new VisualElement();
+            var split = new WhimTexSplitView(toolkitCanvasView, settingsPane,
+                1, Mathf.Max(SettingsPaneMinWidth, settingsPaneWidth), true);
+            split.FixedPaneSizeChanged += value => settingsPaneWidth = value;
             split.AddToClassList("whimtex-workspace-split");
             split.style.flexGrow = 1f;
             split.style.minHeight = 0f;
             workspace.Add(split);
 
-            toolkitCanvasView = BuildToolkitCanvasView();
-            toolkitCanvasView.style.minWidth = CanvasViewMinWidth;
-            toolkitCanvasView.style.flexGrow = 1f;
-            split.Add(toolkitCanvasView);
-
-            VisualElement settingsPane = new VisualElement();
             settingsPane.style.minWidth = SettingsPaneMinWidth;
             settingsPane.style.minHeight = 0f;
-            settingsPane.RegisterCallback<GeometryChangedEvent>(evt =>
-            {
-                if (evt.newRect.width >= SettingsPaneMinWidth)
-                    settingsPaneWidth = evt.newRect.width;
-            });
             settingsPane.AddToClassList("whimtex-settings-pane");
             settingsPane.EnableInClassList("whimtex-settings-pane--light", !EditorGUIUtility.isProSkin);
-            split.Add(settingsPane);
-
-            TwoPaneSplitView settingsSplit = new TwoPaneSplitView(
-                0, Mathf.Max(100f, layerSettingsPaneHeight), TwoPaneSplitViewOrientation.Vertical);
-            WhimTexUI.StyleSplitView(settingsSplit);
+            VisualElement layerSettingsPane = new VisualElement();
+            layerSettingsPane.style.minHeight = 100f;
+            VisualElement layersPane = new VisualElement();
+            var settingsSplit = new WhimTexSplitView(layerSettingsPane, layersPane,
+                0, Mathf.Max(100f, layerSettingsPaneHeight), false);
+            settingsSplit.FixedPaneSizeChanged += value => layerSettingsPaneHeight = value;
             settingsSplit.name = "layer-settings-split";
             settingsSplit.style.flexGrow = 1f;
             settingsSplit.style.minHeight = 0f;
             settingsPane.Add(settingsSplit);
 
-            VisualElement layerSettingsPane = new VisualElement();
             layerSettingsPane.AddToClassList("whimtex-layer-settings-pane");
             var layerSettingsHeader = new VisualElement();
             layerSettingsHeader.AddToClassList("whimtex-pane-header");
@@ -200,25 +190,17 @@ namespace DCFApixels.WhimTex
             toolkitLayerGuidButton.AddToClassList("whimtex-layer-guid-copy");
             layerSettingsHeader.Add(toolkitLayerGuidButton);
             layerSettingsPane.Add(layerSettingsHeader);
-            settingsSplit.Add(layerSettingsPane);
 
             toolkitLayerSettingsScroll = new ScrollView(ScrollViewMode.Vertical);
             toolkitLayerSettingsScroll.name = "selected-layer-settings";
             toolkitLayerSettingsScroll.AddToClassList("whimtex-layer-inspector");
-            layerSettingsPane.RegisterCallback<GeometryChangedEvent>(evt =>
-            {
-                if (evt.newRect.height >= 100f)
-                    layerSettingsPaneHeight = evt.newRect.height;
-            });
             layerSettingsPane.Add(toolkitLayerSettingsScroll);
             layerPreviewState ??= new LayerPreviewPanel.ViewState { collapsed = true };
             toolkitLayerPreview = new LayerPreviewPanel(layerPreviewState);
             layerSettingsPane.Add(toolkitLayerPreview);
 
-            VisualElement layersPane = new VisualElement();
             layersPane.AddToClassList("whimtex-layers-pane");
             layersPane.Add(CreatePaneHeader("Layers", "layersTitle"));
-            settingsSplit.Add(layersPane);
 
             VisualElement layerTableHeader = BuildLayerTableHeader();
             layersPane.Add(layerTableHeader);
@@ -1528,6 +1510,7 @@ namespace DCFApixels.WhimTex
             AddGradientHandleSettings();
             AddAreaSelectionSettings(CanvasTool.RectangleSelect);
             AddAreaSelectionSettings(CanvasTool.PolygonSelect);
+            AddQuickSelectionSettings();
 
             VisualElement pickRow = CreateCanvasSettingsRow();
             AddLayerPickSettings(pickRow);
@@ -1797,6 +1780,8 @@ namespace DCFApixels.WhimTex
                 {
                     toolkitCanvasViewFooter.text = "Drag new gradient • Shift 45° • Ctrl no snapping • Esc cancel • Gradient Handles edits stops and endpoints";
                 }
+                else if (canvasTool == CanvasTool.QuickSelection)
+                    toolkitCanvasViewFooter.text = "LMB select by image boundaries • Alt subtract • [ ] size • Esc stop pending work • Ctrl+D deselect";
                 else if (IsAreaSelectionTool)
                 {
                     toolkitCanvasViewFooter.text = IsUvSelectionTool
@@ -2185,7 +2170,7 @@ namespace DCFApixels.WhimTex
                 toolkitCanvas.SetToolCursor(CanvasTool.Transform, false, false, MouseCursor.MoveArrow);
                 return;
             }
-            toolkitCanvas?.SetToolCursor(canvasTool, visible, panning, transformCursor,
+            toolkitCanvas?.SetToolCursor(canvasTool, visible || (!panning && canvasPointerInside && canvasTool == CanvasTool.QuickSelection), panning, transformCursor,
                 canvasZoomManipulator?.IsRotating ?? false,
                 icon: !panning && canvasPointerInside && (!alt || IsAreaSelectionTool || canvasTool == CanvasTool.VectorNodes) &&
                     !OwnsScreenEyedropper && activeDocument != null

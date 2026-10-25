@@ -19,13 +19,13 @@ public static class GradientFXTests
         const string code = "// @param gradient _Ramp // Color mapping\n// @param gradient _Ramp // Linked gradient\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return _Ramp_Sample(uv.x * 2 - 0.5); }";
         var parsed = Parse(code);
         Check(parsed.Count == 1 && parsed[0].type == ShaderFXParameterType.Gradient, "Gradient parsing");
-        Check(parsed[0].gradientValue.Mode == WhimTexGradientMode.Perceptual, "Implicit gradient keeps the new Perceptual default");
+        Check(parsed[0].gradientValue.ColorMode == WhimTexGradientColorMode.Perceptual, "Implicit gradient keeps the new Perceptual default");
         var endpointDefault = Parse("// @param gradient _Ramp = #FF0000FF -> #0000FF")[0].gradientValue;
-        Check(endpointDefault.Mode == WhimTexGradientMode.Classic && endpointDefault.ColorSpace == ColorSpace.Gamma &&
-            endpointDefault.WrapMode == WhimTexGradientWrapMode.Clamp && endpointDefault.Smoothness == 1f,
-            "Endpoint-only HLSL defaults preserve their Classic/Gamma/Clamp contract");
+        Check(endpointDefault.ColorMode == WhimTexGradientColorMode.Gamma && endpointDefault.Interpolation == WhimTexGradientInterpolation.Blend && endpointDefault.ColorSpace == ColorSpace.Gamma &&
+            endpointDefault.WrapMode == WhimTexGradientWrapMode.Clamp && endpointDefault.Smoothness == 0f,
+            "Endpoint-only HLSL defaults preserve their Gamma/Blend/Clamp contract");
         Check(parsed[0].gradientValue.Evaluate(0) == Color.black && parsed[0].gradientValue.Evaluate(1) == Color.white, "Opaque black-white default");
-        var wrapped = new WhimTexGradient { Mode = WhimTexGradientMode.Linear, ColorSpace = ColorSpace.Linear, Smoothness = 0 };
+        var wrapped = new WhimTexGradient { ColorMode = WhimTexGradientColorMode.Linear, ColorSpace = ColorSpace.Linear, Smoothness = 0 };
         Check(wrapped.WrapMode == WhimTexGradientWrapMode.Clamp && Mathf.Approximately(wrapped.Evaluate(1.25f).r, 1f), "Default gradient clamp");
         wrapped.WrapMode = WhimTexGradientWrapMode.Repeat;
         Check(Mathf.Approximately(wrapped.Evaluate(1.25f).r, .25f) && Mathf.Approximately(wrapped.Evaluate(-.25f).r, .75f), "Gradient repeat wrap");
@@ -67,7 +67,7 @@ public static class GradientFXTests
             Check(lut.BakeCount == 1 && Get().GetTexture(property) == texture, "LUT rebuilt without changes");
             var gradient = values[0].gradientValue;
             gradient.ColorSpace = ColorSpace.Linear;
-            gradient.Mode = WhimTexGradientMode.Linear;
+            gradient.ColorMode = WhimTexGradientColorMode.Linear;
             gradient.Smoothness = 0;
             gradient.SetKeys(new[] { new GradientColorKey(new Color(4, 0, 0), 0), new GradientColorKey(new Color(0, 0, 2), 1) },
                 new[] { new GradientAlphaKey(.25f, 0), new GradientAlphaKey(.75f, 1) });
@@ -101,7 +101,7 @@ public static class GradientFXTests
             gradient.WrapMode = WhimTexGradientWrapMode.Mirror;
             Get();
             Check(Mathf.Approximately(material.GetFloat(wrapProperty), 2f) && lut.BakeCount == 2, "Mirror mode binding");
-            gradient.Mode = WhimTexGradientMode.Fixed;
+            gradient.Interpolation = WhimTexGradientInterpolation.Fixed;
             Get();
             Check(texture.filterMode == FilterMode.Point && lut.BakeCount == 3, "Fixed filtering");
             var copy = (ShaderFXParameter)typeof(ShaderFXParameter).GetMethod("Copy", flags).Invoke(values[0], null);
@@ -117,7 +117,7 @@ public static class GradientFXTests
             try { buildSource.Invoke(null, new object[] { fx, "Test/Gradient" }); }
             catch (TargetInvocationException e) when (e.GetBaseException() is FormatException) { rejectedLossyExport = true; }
             Check(rejectedLossyExport && values[0].gradientValue.Equals(gradient), "Export must reject an unrepresentable gradient without changing it");
-            var exportable = new WhimTexGradient { Mode = WhimTexGradientMode.Classic, ColorSpace = ColorSpace.Gamma, WrapMode = WhimTexGradientWrapMode.Clamp, Smoothness = 1 };
+            var exportable = new WhimTexGradient { ColorMode = WhimTexGradientColorMode.Gamma, Interpolation = WhimTexGradientInterpolation.Blend, ColorSpace = ColorSpace.Gamma, WrapMode = WhimTexGradientWrapMode.Clamp, Smoothness = 0 };
             exportable.SetKeys(new[] { new GradientColorKey(new Color(.2f, .3f, .4f, .25f), 0), new GradientColorKey(new Color(.6f, .7f, .8f, .75f), 1) },
                 new[] { new GradientAlphaKey(.25f, 0), new GradientAlphaKey(.75f, 1) });
             values[0].gradientValue = exportable;

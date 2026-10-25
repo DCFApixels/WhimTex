@@ -1,5 +1,6 @@
 using System;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
@@ -21,9 +22,14 @@ namespace DCFApixels.WhimTex
             this.owner = owner; this.propertyPath = propertyPath;
             var sheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.dcfapixels.whimtex/src/Editor/WhimTexGradientWindow.uss");
             if (sheet != null) styleSheets.Add(sheet);
-            AddToClassList("whimtex-gradient-test-row"); Add(new Label(label));
+            AddToClassList(BaseField<WhimTexGradient>.ussClassName);
+            var labelElement = new Label(label);
+            labelElement.AddToClassList(BaseField<WhimTexGradient>.labelUssClassName);
+            if (string.IsNullOrEmpty(label)) AddToClassList(BaseField<WhimTexGradient>.noLabelVariantUssClassName);
+            else Add(labelElement);
             button = new Button(() => WhimTexGradientWindow.Open(owner, propertyPath));
-            button.AddToClassList("whimtex-gradient-test-field");
+            button.AddToClassList(BaseField<WhimTexGradient>.inputUssClassName);
+            ConfigureAppearance(this, labelElement, button);
             var background = new VisualElement { pickingMode = PickingMode.Ignore };
             background.AddToClassList("whimtex-gradient-test-fill");
             background.generateVisualContent += WhimTexGradientWindow.DrawCheckerboard;
@@ -53,6 +59,14 @@ namespace DCFApixels.WhimTex
                 if (preview != null) Object.DestroyImmediate(preview);
                 preview = null; displayedJson = null;
             });
+        }
+        internal static void ConfigureAppearance(VisualElement field, Label label, Button input)
+        {
+            field.AddToClassList(GradientField.ussClassName);
+            label.AddToClassList(GradientField.labelUssClassName);
+            input.RemoveFromClassList(Button.ussClassName);
+            input.AddToClassList(GradientField.inputUssClassName);
+            input.AddToClassList("whimtex-gradient-test-field");
         }
         private void OnChanged(Object target, string path)
         {

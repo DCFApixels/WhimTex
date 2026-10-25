@@ -42,6 +42,8 @@ namespace DCFApixels.WhimTex
                 float angle = AngularAngle(p) - owner.gradientCanvasLayer.circularStartAngle;
                 if (pointer >= 0 && handle >= 0)
                 {
+                    if (GradientCustomMarkers.IsCustom(originalGradient) && originalGradient.TryGetCustomKey(handle, out var customKey))
+                        return AngularGradientGeometry.Project(angle, AngularSpan, customKey.time);
                     var keys = originalGradient.ColorKeys;
                     float reference = midpointSelected
                         ? Mathf.Lerp(keys[handle].time, keys[handle + 1].time, originalGradient.GetMidpoint(false, handle))
@@ -97,7 +99,7 @@ namespace DCFApixels.WhimTex
                         if (distance <= nearest) { nearest = distance; hit = i; }
                     }
                 }
-                if (hit == -1 && g.Mode != WhimTexGradientMode.Fixed)
+                if (hit == -1 && g.Interpolation != WhimTexGradientInterpolation.Fixed)
                     for (int i = 0; i < keys.Length - 1; i++)
                     {
                         float t = Mathf.Lerp(keys[i].time, keys[i + 1].time, g.GetMidpoint(false, i));
@@ -211,6 +213,13 @@ namespace DCFApixels.WhimTex
             private Color AngularKeyColor(float time)
             {
                 var gradient = owner.gradientCanvasLayer.gradient;
+                if (GradientCustomMarkers.IsCustom(gradient))
+                {
+                    Color sample = gradient.Evaluate(time);
+                    if (gradient.ColorSpace == ColorSpace.Linear) sample = HdrUtility.Encode(sample);
+                    sample /= Mathf.Max(1, Mathf.Max(sample.r, Mathf.Max(sample.g, sample.b))); sample.a = 1;
+                    return sample;
+                }
                 int index = time == 0 ? AngularEndpointKey(true) : time == 1 ? AngularEndpointKey(false) : -1;
                 Color color = index >= 0 ? gradient.ColorKeys[index].color : gradient.Evaluate(time);
                 if (gradient.ColorSpace == ColorSpace.Linear) color = HdrUtility.Encode(color);
@@ -267,7 +276,7 @@ namespace DCFApixels.WhimTex
                 Square(p, center);
                 var g = owner.gradientCanvasLayer.gradient;
                 var keys = g.ColorKeys;
-                if (g.Mode != WhimTexGradientMode.Fixed)
+                if (!IsCustom && g.Interpolation != WhimTexGradientInterpolation.Fixed)
                     for (int i = 0; i < keys.Length - 1; i++)
                     {
                         float t = Mathf.Lerp(keys[i].time, keys[i + 1].time, g.GetMidpoint(false, i));
@@ -275,6 +284,7 @@ namespace DCFApixels.WhimTex
                     }
                 for (int i = 0; i < keys.Length; i++)
                 {
+                    if (IsCustom) break;
                     if (keys[i].time <= .00001f || keys[i].time >= .99999f || !AngularVisible(keys[i].time) || pendingRemoval && selected == i) continue;
                     Color color = keys[i].color;
                     if (g.ColorSpace == ColorSpace.Linear) color = HdrUtility.Encode(color);
@@ -282,8 +292,11 @@ namespace DCFApixels.WhimTex
                     AngularDisc(p, AngularPoint(keys[i].time), color,
                         !midpointSelected && selected == i && selectionLayer == owner.gradientCanvasLayer);
                 }
-                bool firstSelected = !midpointSelected && selected >= 0 && selected == AngularEndpointKey(true) && selectionLayer == owner.gradientCanvasLayer;
-                bool endSelected = !midpointSelected && selected >= 0 && selected == AngularEndpointKey(false) && selectionLayer == owner.gradientCanvasLayer;
+                if (IsCustom) DrawCustomCanvas(p, center, first);
+                bool firstSelected = IsCustom ? CustomEndpointSelected(true) :
+                    !midpointSelected && selected >= 0 && selected == AngularEndpointKey(true) && selectionLayer == owner.gradientCanvasLayer;
+                bool endSelected = IsCustom ? CustomEndpointSelected(false) :
+                    !midpointSelected && selected >= 0 && selected == AngularEndpointKey(false) && selectionLayer == owner.gradientCanvasLayer;
                 AngularDisc(p, first, AngularKeyColor(0), firstSelected || AngularClosed && endSelected);
                 if (AngularClosed)
                 {

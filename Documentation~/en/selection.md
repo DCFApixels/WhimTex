@@ -78,6 +78,42 @@ For Lasso, these modifiers choose the operation when you place the first point o
 `Ctrl+D` removes the selection so you can paint everywhere again.
 The selection survives tool and layer changes, but is not saved with the document.
 
+## Quick Selection
+
+Choose **Quick Selection** (`W`) and brush inside an area. The tool looks for a boundary
+along colour changes while avoiding unnecessary expansion. A stroke on a flat background
+stays local without needing a Subtract stroke. Brush over another area to include it.
+Fine details missed by the first result can be guided with another Add or Subtract stroke.
+
+- **Add** includes regions; **Subtract** removes them. Paint with the right mouse button or hold `Alt` to subtract temporarily.
+- **Size**, or `[` / `]`, changes the brush diameter in canvas pixels.
+- **Strength** controls how firmly a stroke marks foreground or background. At 100% the
+  hint is fixed; lower values can yield to opposing hints. At 0% the brush clears hints
+  under it. This changes boundary guidance, not selection opacity.
+- **Tolerance** controls how much colour variation can join a region. Reduce it when the
+  selection crosses a subtle boundary; raise it to include a larger tonal range.
+- **Visible Layers** samples the composite; **Current Layer** samples the selected layer,
+  including its effects.
+
+Add and Subtract strokes remain as foreground/background hints throughout the selection.
+Brush Subtract on unwanted background, then continue Add inside the object: both sets of
+hints guide the boundary together. You can mark background before making the first selection.
+The latest stroke replaces earlier hints under the brush; hints elsewhere remain.
+**Deselect** (`Ctrl+D`) clears both hints and the result.
+Returning to the tool keeps the hints unless the source image or selection was changed.
+
+While brushing, **Preview** shows an approximate contour, including on 8192 × 8192 canvases.
+After a short pause or release, **Refining** adjusts the boundary to the original pixels.
+Keep brushing to correct it: new hints interrupt the previous refinement. Fine details can
+appear during refinement. Switching tools or copying waits for the refined selection.
+**Stop** or `Escape` cancels unfinished work and pending actions, removes the preview and
+keeps only the selection already committed. Changing the source image or making another
+kind of selection also stops unfinished work.
+The tool changes only the selection, never source pixels. Its boundary follows the native
+pixel grid; the Rectangle/Lasso antialias setting does not change Quick Selection.
+Very detailed outlines may use a coarser, connected display contour. This does not reduce
+the precision of the selection mask itself.
+
 ## Select UV islands
 
 Use a model's UV layout to paint individual parts of its texture:

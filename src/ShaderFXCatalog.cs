@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using UnityEditor;
 using PackageInfo = UnityEditor.PackageManager.PackageInfo;
 using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
+    [InitializeOnLoad]
     internal static class ShaderFXCatalog
     {
         [Serializable]
@@ -31,9 +33,26 @@ namespace DCFApixels.WhimTex
         private static readonly Dictionary<string, (long length, long modified)> userFiles = new Dictionary<string, (long, long)>(StringComparer.Ordinal);
         private static readonly Dictionary<string, HashSet<ShaderFX>> shaderDependents =
             new Dictionary<string, HashSet<ShaderFX>>(StringComparer.OrdinalIgnoreCase);
+        private static IReadOnlyList<Entry> sortedEntries = Array.Empty<Entry>();
+        private static Task<HeaderScan> pendingScan;
+        private static bool refreshProject = true;
+        private static int revision, pendingRevision;
+        private static string userFolder;
+
+        private sealed class HeaderScan
+        {
+            internal readonly Dictionary<string, Entry> entries = new Dictionary<string, Entry>(StringComparer.Ordinal);
+            internal readonly Dictionary<string, (long length, long modified)> userFiles = new Dictionary<string, (long, long)>(StringComparer.Ordinal);
+            internal string folder;
+            internal bool project;
+        }
 
         static ShaderFXCatalog()
         {
+            userFolder = Folder;
+            WhimTexUserSettings.Changed += UserSettingsChanged;
+            EditorApplication.focusChanged += focused => { if (focused) QueueRefresh(); };
+            QueueRefresh();
             string saved = SessionState.GetString(SessionKey, "");
             if (saved.Length == 0) return;
             try
@@ -43,8 +62,144 @@ namespace DCFApixels.WhimTex
                 foreach (var entry in snapshot.entries)
                     if (entry != null && !string.IsNullOrEmpty(entry.path)) entries[entry.path] = entry;
                 initialized = true;
+                SortEntries();
             }
             catch (ArgumentException) { entries.Clear(); }
+        }
+
+        private static void SortEntries()
+        {
+            var list = new List<Entry>(entries.Values);
+            list.Sort((a, b) => string.Compare(a.menuPath, b.menuPath, StringComparison.OrdinalIgnoreCase));
+            sortedEntries = list;
+        }
+
+        private static void UserSettingsChanged()
+        {
+            if (string.Equals(userFolder, Folder, StringComparison.Ordinal)) return;
+            userFolder = Folder;
+            foreach (var entry in sortedEntries) if (entry.user) entries.Remove(entry.path);
+            userFiles.Clear();
+            SortEntries();
+            UserPresetsChanged();
+        }
+
+        internal static void UserPresetsChanged()
+        {
+            revision++;
+            QueueRefresh();
+        }
+
+        private static void QueueRefresh()
+        {
+            EditorApplication.delayCall -= BeginRefresh;
+            EditorApplication.delayCall += BeginRefresh;
+        }
+
+        // Unity APIs run here, outside the menu click. Only file enumeration/header reads run on the worker.
+        private static Func<HeaderScan> PrepareScan(string folder)
+        {
+            var scan = new HeaderScan { folder = folder, project = refreshProject || !initialized };
+            var sources = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (scan.project)
+            {
+                var packages = new Dictionary<string, string>(StringComparer.Ordinal);
+                foreach (string path in AssetDatabase.GetAllAssetPaths())
+                {
+                    if (!IsHlsl(path)) continue;
+                    string physical = path;
+                    if (path.StartsWith("Packages/", StringComparison.Ordinal))
+                    {
+                        int slash = path.IndexOf('/', "Packages/".Length);
+                        string root = path.Substring(0, slash);
+                        if (!packages.TryGetValue(root, out string resolved))
+                        {
+                            resolved = PackageInfo.FindForAssetPath(path)?.resolvedPath ?? root;
+                            packages.Add(root, resolved);
+                        }
+                        physical = Path.Combine(resolved, path.Substring(slash + 1));
+                    }
+                    sources.Add(path, physical);
+                }
+            }
+            else foreach (var entry in entries.Values) if (!entry.user) scan.entries.Add(entry.path, entry);
+            var previousEntries = new Dictionary<string, Entry>(entries, StringComparer.Ordinal);
+            var previousFiles = new Dictionary<string, (long length, long modified)>(userFiles, StringComparer.Ordinal);
+            string assets = Path.GetFullPath(Application.dataPath) + Path.DirectorySeparatorChar;
+            var comparison = Application.platform == RuntimePlatform.WindowsEditor ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            // Initialize the shared path helper on the main thread before its file-only iterator runs.
+            PresetLibraryPaths.IsInside(scan.folder, Application.dataPath);
+            return () =>
+            {
+                foreach (var source in sources)
+                {
+                    var entry = ReadHeader(source.Key, source.Value, false);
+                    if (entry != null) scan.entries.Add(entry.path, entry);
+                }
+                foreach (string path in PresetLibraryPaths.UserFiles(scan.folder, "hlsl"))
+                {
+                    if (Path.GetFullPath(path).StartsWith(assets, comparison)) continue;
+                    try
+                    {
+                        var file = new FileInfo(path);
+                        var stamp = (file.Length, file.LastWriteTimeUtc.Ticks);
+                        Entry entry;
+                        if (previousFiles.TryGetValue(path, out var previous) && previous == stamp)
+                            previousEntries.TryGetValue(path, out entry);
+                        else entry = ReadHeader(path, path, true);
+                        if (entry != null) scan.entries[path] = entry;
+                        scan.userFiles[path] = stamp;
+                    }
+                    catch (IOException) { }
+                    catch (UnauthorizedAccessException) { }
+                }
+                return scan;
+            };
+        }
+
+        private static void BeginRefresh()
+        {
+            if (pendingScan != null) return;
+            if (EditorApplication.isCompiling || EditorApplication.isUpdating) { QueueRefresh(); return; }
+            UserSettingsChanged();
+            var read = PrepareScan(Folder);
+            pendingRevision = revision;
+            pendingScan = Task.Run(read);
+            EditorApplication.update += FinishRefresh;
+        }
+
+        private static void FinishRefresh()
+        {
+            if (pendingScan == null || !pendingScan.IsCompleted) return;
+            var task = pendingScan;
+            pendingScan = null;
+            EditorApplication.update -= FinishRefresh;
+            try
+            {
+                var scan = task.GetAwaiter().GetResult();
+                if (pendingRevision == revision && scan.folder == Folder) Publish(scan);
+                else QueueRefresh();
+            }
+            catch (Exception error) { Debug.LogWarning("WhimTex FX preset discovery: " + error.Message); }
+        }
+
+        private static void Publish(HeaderScan scan)
+        {
+            foreach (var entry in scan.entries.Values)
+            {
+                if (!entry.user && string.IsNullOrEmpty(entry.guid)) entry.guid = AssetDatabase.AssetPathToGUID(entry.path);
+            }
+            var previous = new Dictionary<string, Entry>(entries, StringComparer.Ordinal);
+            entries.Clear();
+            foreach (var pair in scan.entries)
+                entries.Add(pair.Key, previous.TryGetValue(pair.Key, out var old) && SameEntry(old, pair.Value) ? old : pair.Value);
+            userFiles.Clear();
+            foreach (var pair in scan.userFiles) userFiles.Add(pair.Key, pair.Value);
+            initialized = true;
+            refreshProject = false;
+            userFolder = scan.folder;
+            SortEntries();
+            if (scan.project) SaveHeaders();
         }
 
         private static void SaveHeaders()
@@ -67,77 +222,66 @@ namespace DCFApixels.WhimTex
             return File.ReadAllText(physical);
         }
 
+        private static Entry ReadHeader(string path, string physical, bool user)
+        {
+            try
+            {
+                using var reader = new StreamReader(physical);
+                if (!ShaderFXMetadata.TryHeader(reader.ReadLine(), out string menuPath)) return null;
+                var entry = new Entry { path = path, menuPath = menuPath, user = user };
+                foreach (string segment in menuPath.Split('/'))
+                    if (string.IsNullOrWhiteSpace(segment)) entry.error = "Effect category/name must not contain empty segments.";
+                return entry;
+            }
+            catch (IOException) { return null; }
+            catch (UnauthorizedAccessException) { return null; }
+        }
+
         private static void Inspect(string path, bool user = false)
         {
             entries.Remove(path);
             if (path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase))
             {
-                string physical = path;
-                if (path.StartsWith("Packages/", StringComparison.Ordinal))
-                {
-                    PackageInfo package = PackageInfo.FindForAssetPath(path);
-                    if (package != null) physical = Path.Combine(package.resolvedPath, path.Substring(package.assetPath.Length + 1));
-                }
-                try
-                {
-                    using var reader = new StreamReader(physical);
-                    // Discovery reads only the first physical line of unrelated HLSL files.
-                    if (!ShaderFXMetadata.TryHeader(reader.ReadLine(), out string menuPath)) return;
-                    var entry = new Entry { path = path, guid = user ? null : AssetDatabase.AssetPathToGUID(path), menuPath = menuPath, user = user };
-                    foreach (string segment in menuPath.Split('/'))
-                        if (string.IsNullOrWhiteSpace(segment)) entry.error = "Effect category/name must not contain empty segments.";
-                    entries[path] = entry;
-                }
-                catch (IOException) { }
-                catch (UnauthorizedAccessException) { }
+                var entry = ReadHeader(path, PresetLibraryPaths.PhysicalPath(path), user);
+                if (entry == null) return;
+                entry.guid = user ? null : AssetDatabase.AssetPathToGUID(path);
+                entries[path] = entry;
             }
         }
 
         internal static IReadOnlyList<Entry> GetEntries()
         {
-            if (!initialized)
-            {
-                initialized = true;
-                entries.Clear();
-                userFiles.Clear();
-                foreach (string path in AssetDatabase.GetAllAssetPaths())
-                    if (path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase)) Inspect(path);
-                SaveHeaders();
-            }
-            // User files are outside AssetDatabase. Refresh on opening the menu, not every repaint.
-            var remaining = new HashSet<string>(userFiles.Keys, StringComparer.Ordinal);
-            foreach (string path in PresetLibraryPaths.UserFiles(Folder, "hlsl"))
-            {
-                if (PresetLibraryPaths.AssetPath(path) != null) continue;
-                remaining.Remove(path);
-                try
-                {
-                    var file = new FileInfo(path);
-                    var stamp = (file.Length, file.LastWriteTimeUtc.Ticks);
-                    if (userFiles.TryGetValue(path, out var previous) && previous == stamp) continue;
-                    Inspect(path, true);
-                    userFiles[path] = stamp;
-                }
-                catch (IOException) { entries.Remove(path); userFiles.Remove(path); }
-                catch (UnauthorizedAccessException) { entries.Remove(path); userFiles.Remove(path); }
-            }
-            foreach (string path in remaining) { entries.Remove(path); userFiles.Remove(path); }
-            var list = new List<Entry>(entries.Values);
-            list.Sort((a, b) => string.Compare(a.menuPath, b.menuPath, StringComparison.OrdinalIgnoreCase));
-            return list;
+            // Explicit API discovery is fresh and synchronous. UI uses GetMenuEntries instead.
+            UserSettingsChanged();
+            FinishRefresh();
+            revision++; // An older background snapshot must not replace this newer one.
+            var read = PrepareScan(Folder);
+            Publish(read());
+            return sortedEntries;
+        }
+
+        internal static IReadOnlyList<Entry> GetMenuEntries()
+        {
+            UserSettingsChanged();
+            QueueRefresh();
+            return sortedEntries;
         }
 
         internal static Entry InspectDroppedHlsl(string path)
         {
             if (string.IsNullOrEmpty(path) || !path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase)) return null;
             Inspect(path);
+            revision++;
+            SortEntries();
             return entries.TryGetValue(path, out var entry) ? entry : null;
         }
 
-        internal static void ShowMenu(Action<Entry> select)
+        internal static void ShowMenu(Action<Entry> select) => BuildMenu(select).ShowAsContext();
+
+        private static GenericMenu BuildMenu(Action<Entry> select)
         {
             var menu = new GenericMenu();
-            var list = GetEntries();
+            var list = GetMenuEntries();
             var labels = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var entry in list)
             {
@@ -145,7 +289,8 @@ namespace DCFApixels.WhimTex
                 labels.TryGetValue(label, out int count);
                 labels[label] = count + 1;
             }
-            if (list.Count == 0) menu.AddDisabledItem(new GUIContent("No effects found — add a marked .hlsl file"));
+            if (list.Count == 0) menu.AddDisabledItem(new GUIContent(initialized
+                ? "No effects found — add a marked .hlsl file" : "Loading effect presets…"));
             foreach (var entry in list)
             {
                 string label = (entry.user ? "User/" : "") + entry.menuPath;
@@ -161,7 +306,7 @@ namespace DCFApixels.WhimTex
                 catch (Exception error) { EditorUtility.DisplayDialog("Shader FX Presets", error.Message, "OK"); }
             });
             menu.AddItem(new GUIContent("Library Settings…"), false, WhimTexUserSettingsWindow.Open);
-            menu.ShowAsContext();
+            return menu;
         }
 
         internal static void AssetsChanged(params string[][] batches)
@@ -174,21 +319,25 @@ namespace DCFApixels.WhimTex
                         changed.Add(path);
                 }
             }
-            if (changed.Count == 0 || queued) return;
+            if (changed.Count == 0) return;
+            revision++; // Reject in-flight headers as soon as an import is reported.
+            if (queued) return;
             queued = true;
             EditorApplication.delayCall += FlushChanges;
         }
 
         internal static void DomainReloaded()
         {
-            // Imports that coincided with compilation may predate the restored SessionState snapshot.
-            // Reconcile with AssetDatabase once, on the next catalog request.
-            initialized = false;
+            // Keep restored headers usable while imports from the reload are reconciled in the background.
+            revision++;
+            refreshProject = true;
+            QueueRefresh();
         }
 
         private static void FlushChanges()
         {
             queued = false;
+            if (changed.Count == 0) return;
             bool catalogChanged = false;
             bool shaderSourceChanged = false;
             foreach (string path in changed)
@@ -204,7 +353,8 @@ namespace DCFApixels.WhimTex
             }
             if (shaderSourceChanged) ReloadShaderDependents(changed);
             changed.Clear();
-            if (initialized && catalogChanged) SaveHeaders();
+            if (initialized && catalogChanged) { SortEntries(); SaveHeaders(); }
+            if (pendingScan != null || refreshProject) QueueRefresh();
         }
 
         internal static void SetShaderDependencies(ShaderFX effect, HashSet<string> dependencies)

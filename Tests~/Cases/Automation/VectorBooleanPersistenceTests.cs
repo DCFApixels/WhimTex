@@ -218,7 +218,7 @@ public static class VectorBooleanPersistenceTests
 
     static void Defaults(TestContext t)
     {
-        const string minimal = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"default-group\",\"behaviour\":{\"$type\":\"BooleanGroupLayerBehaviour\"},\"children\":[{\"id\":\"base\",\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\"}}]}]}";
+        const string minimal = "{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"default-group\",\"behaviour\":{\"$type\":\"BooleanGroupLayerBehaviour\"},\"children\":[{\"id\":\"base\",\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\"}}]}]}";
         using var read = WhimTexDocumentJson.Read(minimal, false);
         var layer = read.Document.layers[0]; var group = (BooleanGroupLayerBehaviour)layer.Behaviour;
         t.True((bool)typeof(Layer).GetProperty("IsGroup",Flags).GetValue(layer), "Omitted group flag derives from behavior");

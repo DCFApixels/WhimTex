@@ -31,7 +31,7 @@ public static class GeometricTilingTests
         foreach (string type in new[] { "ShapeLayerBehaviour", "VectorLayerBehaviour", "ColorFillLayerBehaviour" })
         foreach (string transform in new[] { "", ",\"transform\":{\"position\":{\"x\":3,\"y\":4}}", ",\"transform\":{\"tiling\":\"Clip\"}" })
         {
-            using var read = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"figure\",\"behaviour\":{\"$type\":\"" + type + "\"}" + transform + "}]}", false);
+            using var read = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"figure\",\"behaviour\":{\"$type\":\"" + type + "\"}" + transform + "}]}", false);
             var layer = read.Document.layers[0];
             var expected = transform.Contains("Clip") ? TransformTilingMode.Clip : TransformTilingMode.Source;
             t.Equal(expected, layer.transform.tiling, type + " omitted/partial/explicit JSON transform");

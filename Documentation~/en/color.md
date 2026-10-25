@@ -139,23 +139,129 @@ Use **Convert to 8-bit** only if you want to permanently reduce the stored color
 
 ## Edit a gradient
 
-New gradients, including brush-tip and brush-tint gradients, use **Perceptual** unless a control explicitly defines another mode, such as Linear for Pattern gradients. Existing gradients retain their selected interpolation.
+New gradients use **Color Mode → Perceptual** and **Interpolation → Balanced**.
+Pattern gradients explicitly start in Linear color mode. Each gradient keeps its own settings.
 
-### Interpolation and smoothing
+### Color Mode and Interpolation
 
-Click a gradient field to edit its colors and opacity. **Classic** gives familiar color blends;
-**Linear** blends light, **Perceptual** keeps perceived color transitions more even,
-and **Fixed** makes hard bands. **Smoothness** softens transitions around keys;
-the small diamonds move the halfway point between neighboring keys. Fixed ignores both controls.
+The gradient field uses the standard Unity field height and aligns with adjacent controls.
+Click it to edit its colors and opacity. These two controls are independent:
 
-**Wrap** controls samples outside 0–1: **Clamp** holds the nearest endpoint, **Repeat** tiles the gradient,
-and **Mirror** reflects each repeated interval.
+| Control | Result |
+| :--- | :--- |
+| Color Mode → Linear | Blends in linear RGB, useful for light mixtures. |
+| Color Mode → Gamma | Blends the encoded RGB components. |
+| Color Mode → Perceptual | Blends in OKLab for more even perceived changes. |
+| Color Mode → Hue | Blends lightness, chroma and hue in OKLCH; choose the route around the hue circle. |
+| Interpolation → Blend | Each pair of keys defines a separate transition. |
+| Interpolation → Balanced | Neighboring keys help shape a monotone transition with midpoint control. |
+| Interpolation → Smooth | Uses a fixed easing curve for each transition. |
+| Interpolation → Adaptive | Adjusts the curve using neighboring keys; the midpoint changes its shape rather than guaranteeing a half-color sample. |
+| Interpolation → Fixed | Produces hard color and opacity bands. |
+| Interpolation → Custom | Edit independent channel curves and their tangents directly. |
+
+**Smoothness** appears only for Blend and Balanced. **Chroma Correction** reduces chroma
+between opposing colors; zero disables it. **Hue Path** appears in Hue mode: Shortest,
+Longest, Increasing or Decreasing. Fixed disables Chroma Correction and Hue Path while retaining their values.
+Opacity follows the selected interpolation with its own keys and midpoints; color mode,
+hue direction and chroma correction do not change the opacity calculation.
+
+Between two color keys, RGB stays within 0–1 unless either key extends that range.
+HDR and negative components expand the shared range for all three channels; for example,
+keys with a minimum component of −0.2 and a maximum of 4 allow −0.2…4.
+The keys themselves stay unchanged. Intermediate values beyond these bounds are clipped,
+which can flatten parts of a transition or change its hue.
+
+The diamonds move transition midpoints. Fixed ignores them and Smoothness.
+**Wrap** controls values outside 0–1: Clamp holds the nearest endpoint, Repeat tiles the
+gradient, and Mirror reflects alternate repetitions. Repeating different endpoint colors
+still creates a seam.
+
+### Edit Custom curves
+
+Choose **Interpolation → Custom**, then open **Edit Curves**. The first switch fits the
+current transition; later switches restore your manual curves. Automatic settings stay
+separate. The fit can slightly change the result, especially sharp transitions.
+
+The curve window shows R/G/B in Linear or Gamma, L/a/b in Perceptual, and L/C/H in Hue,
+with a separate alpha channel. Click an authored curve to make its channel active;
+double-click near it to add a key on the curve.
+Keep the second click held to drag the new key immediately; this also works on the curve-window strip.
+The nearest visible channel at that time is used; coincident curves prefer the active channel.
+Empty space and Wrap continuations do not add keys. Output remains a result preview.
+Adjust the key's position, value and tangents; negative and HDR values remain available. Tangent modes are
+**Auto**, **Smooth**, **Broken**, **Linear** and **Constant**. Constant uses the next key's
+value between keys, matching Fixed; a key at its exact position keeps its own value.
+Very sharp Custom steps can appear slightly softened in the rendered result.
+
+Grid divisions stay anchored to curve coordinates when panning. The maximum main line step is
+0.5 on both axes. Lines and labels use decimal 1–2–5 steps, such as 0.5, 0.2, 0.1, 0.05 and 0.02.
+Finer lines are more transparent and gradually become stronger as you zoom in; overlapping
+divisions are drawn only once. Numeric labels choose a separate, uncapped step to stay sparse
+and omit unnecessary trailing zeros. They use a fixed light transparency; zoom only shows or hides them.
+Zero lines appear slightly brighter.
+The background outside 0–1 on either axis is slightly darker, with equal shading at the corners.
+Outside time 0–1, translucent curves follow **Wrap**: Clamp extends the endpoint values,
+Repeat repeats the curves, and Mirror alternates their direction. Repeat boundaries do
+not connect different endpoint values with a diagonal. Keys remain in the original interval.
+With **Output** enabled, continuations show only the final curve; the authored curve remains
+visible for comparison inside 0–1. This avoids overlapping translucent lines outside the interval.
+
+The graph and the gradient strip directly beneath it share the same side margins, with no gap
+between them. The strip follows the visible horizontal interval and **Wrap**, including areas
+outside 0–1. Vertical navigation does not change its colors. The graph includes the area behind axis labels and scrollbars.
+Labels overlay the top and left edges. Scrollbar tracks are transparent and their thumbs
+are translucent, becoming more visible on hover or drag. Middle-button panning shows a hand cursor. The bottom bar controls
+time; the right bar controls channel values. Drag
+the thumb body to pan, or either end to zoom that axis. Clicking the track centers the
+view there. The navigation range stays fixed when panning; moving the view does not
+change the thumb's size or sensitivity. Ctrl+wheel zooms vertically only. Escape cancels
+the current drag, and **F** frames time 0–1 and the visible channels, extending their
+value range in steps of 0.25 for negative or HDR values. Navigation does not change keys.
+Wheel zoom and scrollbar grips have no preset minimum or maximum zoom. Only numerical
+precision limits remain. At extreme zoom-out, subpixel Wrap repetitions appear as a faint
+value-range band instead of drawing every repetition.
+
+**Output** sits below the graph; channel buttons are on the right of the same row. They use
+the Canvas View footer style and behavior: click to toggle a channel or drag across several
+buttons to apply the first button's new state to all crossed buttons. Channel names follow
+the selected color mode. There is no Fit button.
+
+The curve-window strip combines keys whose **t** values differ by at most 0.00001 into one
+marker, including alpha. Dragging it moves the represented keys together; dragging an individual
+curve key edits it independently. The keys included in a drag are fixed when the drag starts.
+There are no persistent key links. Double-click empty strip space inside 0–1 to add keys in all
+four channels. Markers appear only at original key positions, not on Wrap repetitions.
+Alpha-only markers show white over a checkerboard: opaque white at alpha 1, the checkerboard
+at alpha 0. The body shows a centered 2×2 checkerboard; the same square-cell grid continues into
+the triangular tip, clipped to the marker outline. Combined markers that also contain color keys keep their color swatch.
+Keys snap to other key times and to time/value boundaries 0 and 1. In **Repeat**, a key moved
+along the left or right boundary also snaps vertically to the opposite end of its channel curve.
+
+The ordinary gradient editor and canvas handles also combine coincident channel keys. The editor
+keeps separate color and opacity tracks; Canvas View shows only color markers. Edit alpha in the
+gradient editor or curve window. Markers have no colored channel dots in any window.
+Custom canvas markers sit directly on the gradient line or arc, with the same circles and outlines
+as ordinary gradient handles. Angular endpoints share the usual two-color handle when the circle is closed.
+Double-click a marker to edit its key in the curve window. Adding a color marker creates three
+independent color keys at one position; the editor's opacity track adds only alpha. Moving a marker
+stops before an unselected neighbor in any represented channel.
+
+Drag a curve-window strip marker above or below the strip and release to delete its represented
+keys. A faded marker with a red outline shows pending deletion; return to the strip before
+releasing to keep it, or press Escape to cancel the drag. Each channel must retain a key.
+Deleting a strip marker removes the represented keys; deleting a point in the curve window
+removes that point only. Each channel keeps at least one key. Custom ignores midpoint,
+Smoothness, Chroma Correction and Hue Path. Final color still uses the expanded RGB
+bounds described above, so an entered curve value and the final color can differ.
+Use **Convert Color Mode** to change Custom's color model while approximately preserving appearance;
+conversion may replace keys and tangents. Undo restores the previous curves.
 
 ### Edit keys
 
 The narrow color field to the left of the strip changes all color keys together. A gray swatch with a white diagonal and dark-gray shadow from the bottom-left to the top-right corner means their colors differ; the field remains editable. Key positions, midpoints and opacity are preserved. Escape in the picker restores the original colors. The equally sized circular-arrow button on the right reverses both key tracks and their midpoints. Both actions support Undo.
 
-Double-click a color-key marker in the gradient editor to open its color picker. A single click selects it; dragging moves it.
+Outside Custom, double-click a color-key marker in the gradient editor to open its color picker. A single click selects it; dragging moves it.
 Closing the color picker or canceling it with Escape returns to the gradient editor without closing that editor.
 Use **HDR** beside the selected color when extra brightness is needed. Drag a key vertically
 away from its track to delete it; each track keeps at least one key. Right-click a gradient field
@@ -173,10 +279,11 @@ In **Presets**, click the **New** swatch to save the current gradient without na
 Click a swatch to apply it; right-click for **Copy** or **Delete**. Presets are
 listed newest first, immediately after **New**. The folder is
 chosen in User Settings; gradients use its **Gradients** subfolder. **↻** reloads the list.
-Deleted presets can be recovered from **Gradients/.trash**. Built-in Unity gradient preset libraries are not imported.
+Deleted presets can be recovered from **Gradients/.trash**. Unreadable preset files are skipped in the library. Built-in Unity gradient preset libraries are not imported.
 
 Use **Import…** in Presets to read a `.grd` library. Imported gradients become independent user presets.
-Classic, Linear and Perceptual retain their corresponding mode, stops, midpoints and Smoothness.
+Source Classic/Linear/Perceptual methods map to Gamma/Linear/Perceptual color mode with Blend interpolation.
+Stops, midpoints and Smoothness are retained; a warning explains that the source transition curve may differ.
 Missing or unrecognized interpolation uses **Perceptual**; missing or unrecognized Smoothness uses **100%**.
 Foreground/background stops become black/white. Noise gradients, unsupported color models and tracks
 over 64 stops are skipped with a warning; they are not silently replaced with a different gradient.
@@ -258,18 +365,13 @@ Changing Gradient Type preserves both the Freeform points and the ordinary gradi
 Freeform is available for Gradient layers and Shape/Vector paints, including Boolean Group styling.
 Text and SVG export are unchanged.
 
-### How Rounded smoothing behaves
+### Choose transition shape
 
-Rounded smoothing softens the join where a flat-color section becomes a fade.
-It reshapes the fade up to the neighboring midpoint. Use **Perceptual** and **100% Smoothness** to see it;
-there is no separate Transition setting.
-
-At such a join inside 0–1, smoothing affects both sides. The key stays in place,
-but its displayed color or opacity can differ from its stored value.
-Keys at 0 and 1, ordinary interior keys and midpoint positions remain unchanged.
-
-**Smoothness 0%** gives a linear transition in the selected color space; **Fixed** gives hard bands.
-Nearly flat sections remain, and narrow fades or midpoints near an endpoint can still show a visible rim.
+Use Blend for separate eased transitions or Balanced when neighboring keys should influence the curve.
+Smoothness 0% removes their smoothing contribution; 100% applies it fully. Smooth uses a fixed easing
+curve, while Adaptive follows the surrounding key arrangement. Neither uses Smoothness.
+Changing interpolation does not move keys. Narrow transitions can still be approximated by the
+existing rendering palette; selecting a mode is not a guarantee of invisible bands in every result.
 
 <a id="rearrange-channels-with-swizzle"></a>
 

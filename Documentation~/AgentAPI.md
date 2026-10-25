@@ -778,7 +778,7 @@ not with a sum of overlapping rows. These bars are comparisons, not a timeline o
 Content uses the [shared document format](JSON_FORMAT.md); commands are only an operation envelope.
 There is no required `kind`: the same content can be opened, written, inserted or used for an explicit
 layer replacement. Root `kind` is rejected; the caller chooses the operation.
-The `document` object and its fields are optional. Open/write use version-2 defaults for missing
+The `document` object and its fields are optional. Open/write use version-3 defaults for missing
 settings (512 × 512 canvas). Insert/replace use destination dimensions for each omitted source axis,
 without resizing or changing destination output settings. Standalone validate uses format defaults.
 Writers always include both canvas dimensions, including in Compact mode, to preserve placement context.
@@ -1515,8 +1515,12 @@ Persistent layer IDs are returned per operation and in `document.layers`.
 
 `document.layers` is flat, with `parent` and sibling `index`. Index zero is visually topmost.
 `settings` contains editable values; hierarchy, target and transform have separate fields/operations.
-`gradientKeys` contains separate color/alpha keys, interpolation, smoothness and midpoints. Rounded is built in; `transition` is not an accepted input field. Gradient input uses RGBA arrays and string enum names; it does not convert old color objects or numeric enums.
-`Rounded` prioritizes smooth constant-region joins at full smoothness; values at interior held-boundary stops may be approximate. See the [gradient contract](AI/README.md) for its independent RGB/alpha maps and limits.
+`gradientKeys` contains separate color/alpha keys, colorMode, interpolation, huePath,
+chromaCorrection, smoothness, wrapMode, technical colorSpace and midpoints. Default color mode
+is Perceptual and interpolation is Balanced. Alpha follows the interpolation independently;
+color models and chroma/hue controls affect RGB only. The retired mode/transition fields are
+rejected. Gradient input uses RGBA arrays and string enum names. See the
+[gradient contract](AI/README.md#standalone-gradient-json) for controls, defaults and limits.
 ### Color and gradient input
 
 Gradient inputs accept either an ordered stop array or the object form documented in
@@ -1580,7 +1584,7 @@ Current Sharp/MTSDF quality prototype: closed raster contours use line fits over
 | Make Seamless | `makeSeamless`: `{ "mode": "OffsetBlend", "edgeWidth": 0.2, "offsetTransitionStart": -0.25 }`; [all four methods and parameters](#make-seamless-settings) |
 | Gradient, SDF | `gradient`: 1..64 `{"time":0.0,"color":[1,1,1,1]}` stops in strictly increasing time order, time 0..1 |
 
-SDF accepts `encoding` directly in settings: `Gradient` (default), `LinearData` or `MultiChannelData`, reported by `sdfEncodings` in capabilities. Its default palette matches Noise: black at 0, white at 1, with Perceptual interpolation. For Gradient and LinearData, Inverted reverses normalized distance before Profile; Gradient then samples the palette. LinearData outputs the remapped distance as raw linear RGB 0–1 with alpha 1, without gamma decoding or palette sampling. With `metric:"MTSDF"`, both scalar outputs use the median of the three RGB distances before this remap. In Signed mode low values are inside and high values outside. Switching output preserves the palette, profile and inversion setting; existing explicit gradient modes are retained. SDF has no `useGradient` field or ColorValues output. Document export encoding still applies normally; choose linear output when exporting numeric maps.
+SDF accepts `encoding` directly in settings: `Gradient` (default), `LinearData` or `MultiChannelData`, reported by `sdfEncodings` in capabilities. Its default palette matches Noise: black at 0, white at 1, with Perceptual color mode and Balanced interpolation. For Gradient and LinearData, Inverted reverses normalized distance before Profile; Gradient then samples the palette. LinearData outputs the remapped distance as raw linear RGB 0–1 with alpha 1, without gamma decoding or palette sampling. With `metric:"MTSDF"`, both scalar outputs use the median of the three RGB distances before this remap. In Signed mode low values are inside and high values outside. Switching output preserves the palette, profile and inversion setting; existing explicit gradient modes are retained. SDF has no `useGradient` field or ColorValues output. Document export encoding still applies normally; choose linear output when exporting numeric maps.
 
 `encoding:"MultiChannelData"` requires `metric:"MTSDF"` in the resulting layer state; API settings reject a mismatched pair. It writes raw linear RGBA: RGB holds corner-preserving signed perpendicular/pseudo distances, and alpha holds the true signed Euclidean distance to the reconstructed subpixel contour. Alpha is distance data, not coverage. Each channel encodes `saturate(0.5 + 0.5 * d / maxDistance)`, with negative distances inside, positive outside and zero at 0.5; `maxDistance:0` uses the automatic symmetric range. This output bypasses `distancePosition`, `contourOffset`, `insideDistance`, `outsideDistance`, `inverted`, `profile` and the palette. It is not a copy of one scalar field into four channels, and its alpha is not distance to the binary bitmap. Preserve RGBA and linear encoding when exporting these data.
 
@@ -1597,7 +1601,7 @@ SDF operations write `settings.gradient`, not `settings.sdf`. Unified document/c
 instead stores the native palette in `behaviour.gradient` on `SDFLayerBehaviour`.
 Inspection reports the palette separately as `gradientKeys`; write that body's value using `gradient`.
 Both stop arrays and the shared gradient object are accepted, including separate alpha keys, HDR colors,
-`mode`, `smoothness`, `wrapMode` and `colorSpace`. Supplying `gradient` replaces the whole palette but
+`colorMode`, `interpolation`, `huePath`, `chromaCorrection`, `smoothness`, `wrapMode` and `colorSpace`. Supplying `gradient` replaces the whole palette but
 does not select an output mode; set `encoding:"Gradient"` explicitly to enable it from LinearData.
 
 SDF and Outline use the same twelve `DistanceMetric` values and field semantics:
@@ -1866,6 +1870,75 @@ layer deletion, duplication, merging and conversion to Drawing; see [shared edit
 Changing gradient geometry is not exposed by these batch operations.
 Use `enabled:false` when hiding a layer is preferable to deleting it.
 
+### Custom gradient settings
+
+Every shared gradient input accepts `interpolation:"Custom"`, `customColorMode` and
+`customKeys` alongside retained automatic `colors`/`alphas`/`colorMode`. Inspect snapshots
+use the same body and preserve inactive manual data. Replacing a palette replaces both
+datasets; retain both when editing a snapshot. See the [complete JSON contract](AI/README.md#custom-channel-curves)
+for channel key fields, links, finite-value limits and validation. There are no new batch
+commands for individual keys; supply the complete gradient body through the existing field.
+
+The public `WhimTexGradient` C# API adds:
+
+- `CustomKeys` (a copy), `HasCustomCurves`, `CustomColorMode` and `CustomApproximationError`.
+- `AutomaticColorMode`, `AutomaticColorKeys`, `AutomaticAlphaKeys` for retained automatic data.
+- `SetCustomData(keys, mode)` validates and clones data. Null/empty clears manual data only
+  when Custom is inactive. `ColorKeys`/`AlphaKeys` are projections while Custom is active;
+  do not feed these projections back to `SetKeys`, which edits automatic data.
+- `Interpolation = Custom` initially fits the current gradient and subsequently restores
+  saved manual curves. `ConvertCustomColorMode(mode)` explicitly refits active Custom;
+  changing `ColorMode` to a different mode directly while Custom is active is rejected.
+- `AddCustomKey(channel,time)` samples the current channel curve to create one key, or
+  returns the existing key within the minimum time spacing. `AddCustomColorKeys(time)`
+  atomically adds/reuses three independent color-channel keys at the same time; it returns
+  the channel-0 key ID. It creates no persistent association between them.
+  These edit operations clamp the requested time to 0..1.
+- `MoveCustomKey(id,time)` moves only that key, stopping at 0..1 and the nearest unselected
+  same-channel neighbours. `UpdateCustomKey(key)` retains identity/channel, edits its
+  values/tangents/mode and uses this independent movement for time changes.
+- `MoveCustomKeys(int[] ids,float deltaTime)` atomically moves exactly the supplied IDs by
+  one common delta. It clamps that delta so every selected key stays in 0..1 and at least
+  0.000001 from its nearest unselected same-channel neighbours, preserving order and
+  relative offsets subject to float storage rounding. It can shorten the delta further
+  if rounding would violate spacing. Selected neighbours move together; nearby keys are
+  never implicitly added. For a marker drag, freeze `GetCustomMarkerGroup(id)` at pointer
+  down and reuse those IDs for the entire gesture; do not recompute membership after each move.
+- `RemoveCustomKey(id)` removes only that key (an unknown ID is a no-op).
+  `RemoveCustomKeys(int[] ids)` removes exactly the supplied set atomically; an operation
+  that would leave any channel empty is rejected without changing the gradient.
+  Both bulk methods reject null arrays or unknown IDs, deduplicate IDs, and accept an empty
+  array as a no-op. Moves reject nonfinite times/deltas. All normal Custom validation,
+  including the 64 distinct color-position limit, remains in force; failures do not commit
+  partial changes. Editing a curve never implicitly moves or removes its marker neighbours.
+- `EvaluateCustomChannel(channel,time,final=false)` samples the raw working-space channel.
+  With `final:true`, it samples the bounded final color converted back into that channel's
+  working space (or bounded alpha). Both clamp time to 0..1 without Repeat/Mirror wrapping.
+  `CustomKeyTangent(id,incoming)` returns the effective prepared slope, including automatic
+  tangents, or zero for an unknown ID.
+- `TryGetCustomKey(id,out key)` and `CustomChannelName(channel)` expose key identity and names.
+- `GetCustomMarkerGroup(int id)` returns a new array of all IDs in the key's automatic time
+  cluster, including alpha and any same-channel keys; an unknown ID returns an empty array.
+  All keys are sorted by time, then ID. Each cluster starts at the earliest remaining key
+  and includes later keys at most `CustomMarkerTimeTolerance` (0.00001) from that anchor.
+  Clustering is not transitive and does not change stored times: keys at 0, 0.000009 and
+  0.000018 form two clusters, not one.
+- `GetCustomMarkers(bool? alpha=false)` uses those same all-channel clusters, then selects
+  the first matching key in time/ID order within each cluster: color channels for `false`,
+  alpha for `true`, all channels for `null`. A cluster without a matching channel is omitted.
+  Filtering never rebuilds clusters. Color and alpha representatives can therefore differ
+  while `GetCustomMarkerGroup` returns the same membership for either. Representatives keep
+  their own time/value; there is no averaged position or serialized group identity.
+  Ordering, membership and representatives are cached internally until gradient data
+  invalidation. Queries return copies, so callers cannot mutate the cache. Cloning and
+  deserialization reset it; repeated per-marker queries do not re-sort the keys.
+
+`WhimTexGradientCurveKey.link`, `LinkCustomKeys` and `UnlinkCustomKeys` are removed. Explicit
+obsolete `link` fields are rejected by strict readers, including zero; no migration is provided.
+Conversion uses bounded adaptive fitting and may change key count and tangents.
+Its observed error is not a guaranteed maximum. The owning editor/API operation remains
+responsible for its normal Undo/commit flow; the gradient model itself does not create Undo records.
+
 ### Freeform gradient settings
 
 Gradient layers accept `gradientType:"Freeform"` with `freeform.points`. For example, use
@@ -2062,7 +2135,7 @@ Each figure also has independent `strokeMode`, `strokeGradient`,
 `strokeGradientStart`, `strokeGradientEnd` and `strokeGradientRepetitions` fields.
 They use the same modes, palette features and geometry as fill. `stroke` remains
 the enable gate; `strokeMode:"None"` also suppresses stroke without clearing its
-settings. Defaults are Solid, a separate black-to-white Perceptual/Clamp palette,
+settings. Defaults are Solid, a separate black-to-white Perceptual/Balanced/Clamp palette,
 `[0,0]`, `[1,0]` and `1`. Anchors must be finite; repetitions must be finite and at
 least `0.0001`, including when inactive. Vector/Boolean palettes use the native
 document gradient object, as for fill; Shape patches use the API gradient contract.
@@ -2159,13 +2232,13 @@ and `shapeKinds`; `inspect` includes all parameters. One layer contains one edit
 | `kind` | Rectangle (default), Ellipse, Polygon, Star, Line, Arc, Sector |
 | `fill`, `fillColor` | Boolean (default true), RGBA color (default white) |
 | `fillMode` | None, Solid (default), LinearGradient, RadialGradient, SquareGradient, AngularGradient, Freeform; `fill` remains the overall gate |
-| `gradient` | Complete gradient palette, using the existing gradient object or color-stop array contract; default black-to-white Perceptual/Clamp. A supplied value replaces the palette |
+| `gradient` | Complete gradient palette, using the existing gradient object or color-stop array contract; default black-to-white Perceptual/Balanced/Clamp. A supplied value replaces the palette |
 | `freeform`, `strokeFreeform` | Independent Freeform point lists; see [point fields](#freeform-gradient-settings). Retained when inactive. |
 | `gradientStart`, `gradientEnd` | Two finite normalized layer-local coordinates, Y up; defaults `[0,0]` / `[1,0]`; API components -1000000..1000000, allowed outside 0..1 |
 | `gradientRepetitions` | Finite float, minimum `0.0001`, default `1`; AngularGradient only. One period spans `360 / gradientRepetitions` degrees from the start-to-end ray before palette wrapping. Retained and validated in every mode, including disabled fills |
 | `stroke`, `strokeColor` | Boolean (default false), RGBA color (default black) |
 | `strokeMode` | None, Solid (default), LinearGradient, RadialGradient, SquareGradient, AngularGradient, Freeform; `stroke` remains the enable gate; None suppresses paint without clearing settings |
-| `strokeGradient` | Complete independent palette using the API gradient object or color-stop array; default black-to-white Perceptual/Clamp. A supplied value replaces only this palette |
+| `strokeGradient` | Complete independent palette using the API gradient object or color-stop array; default black-to-white Perceptual/Balanced/Clamp. A supplied value replaces only this palette |
 | `strokeGradientStart`, `strokeGradientEnd` | Two finite normalized layer-local coordinates, Y up; defaults `[0,0]` / `[1,0]`; allowed outside 0..1 within the finite float range |
 | `strokeGradientRepetitions` | Finite float, minimum `0.0001`, default `1`; AngularGradient only, before palette wrapping. Retained and validated even with stroke disabled or another mode selected |
 | `strokeWidth` | 0–8192 canvas pixels; default 2; outline width, independent of body thickness |
@@ -2307,7 +2380,7 @@ Use `type:"noise"` with partial `settings.noise` updates. `describe` exposes `no
 | `vectorOutput` | Vector fields only: PackedVector (default; `XYZ * 0.5 + 0.5`), SignedVector (raw XYZ). Linear data, alpha 1, no implicit clamping |
 | `normalize`, `strength` | Vector fields only: boolean (default false), 0–100 (default 1). Normalize first, then multiply by Strength; zero stays zero |
 | `inverted` | Boolean; Value reverses 0–1 before palette sampling; vector fields negate the vector before encoding |
-| `gradient` | Shared stops/object, default black-to-white, Perceptual interpolation when mode is omitted; RGBA/HDR palette, retained while disabled |
+| `gradient` | Shared stops/object, default black-to-white, Perceptual color mode and Balanced interpolation when omitted; RGBA/HDR palette, retained while disabled |
 
 With Field Value and without gradient mapping, RGB repeats the normalized scalar, except WhiteNoise/BlueNoise with Color which generates independent RGB; alpha is 1. Gradient output supplies RGB and alpha through the same encoded LUT and linear decode as SDF. Inverted remains available and reverses values before palette sampling. Color WhiteNoise/BlueNoise supports only ColorValues/LinearData: a retained Gradient setting temporarily renders/displays ColorValues, then returns to Gradient on switching to monochrome. Changing Output preserves the palette. Random All preserves `gradient` and keeps `encoding:Gradient`; otherwise it randomizes encoding only between ColorValues and LinearData. It can vary `inverted`; for grain noise with stored Gradient output it also preserves the Color setting so effective Output cannot change. Noise operations put the palette inside `settings.noise`; unified document/clipboard JSON uses `behaviour.gradient` on `NoiseLayerBehaviour`. Noise has no `useGradient` field.
 UI **Output** maps to `encoding` for Value or `vectorOutput` for vectors, **Seamless** to `periodic` (TwoD/ThreeD) or `periodic1D` (OneD), and the Scale chain to `linkScale`.
@@ -2843,9 +2916,9 @@ SDF uses its gradient. SDF fields use the normalized 0–1 range. Luminance is m
 in source-encoded RGB for sRGB textures, preserving the threshold between Gamma and Linear projects.
 Pencil ignores all advanced dynamics and texture-tip settings.
 Both `tipGradient` and `tintGradient` accept a stop array or the shared gradient object with `colors`,
-optional `alphas`, `mode`, `wrapMode`, `smoothness` and `colorSpace`. Supplying either field replaces
+optional `alphas`, `colorMode`, `interpolation`, `huePath`, `chromaCorrection`, `wrapMode`, `smoothness`, `colorSpace`, `customKeys` and `customColorMode`. Supplying either field replaces
 that entire gradient; omitting it preserves the existing gradient. For supplied gradients without
-`mode`, both `tipGradient` and `tintGradient` default to **Perceptual**, matching brush
+`colorMode`, both `tipGradient` and `tintGradient` default to **Perceptual**, matching brush
 clipboard import. Explicit modes are preserved. This applies to `settings.brush` and stroke `brush`.
 Inspect returns `tipGradientKeys` / `tintGradientKeys`, including separate color/alpha tracks and
 interpolation settings; write their gradient bodies using `tipGradient` / `tintGradient` respectively.

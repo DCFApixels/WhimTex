@@ -163,7 +163,7 @@ converted to the palette's stored color space and bounded to half-float range. D
 the gray mixed-value swatch with a white corner-to-corner diagonal and a dark-gray shadow; alpha does not affect this state. The picker starts in HDR if any key requires it.
 Positions, midpoints and alpha keys are preserved; cancel restores the entire original palette.
 The opposite button reverses both tracks (`time = 1 - time`) and their interval midpoints,
-retaining interpolation, smoothness, wrap mode and color space. Both operations use the owner's Undo path.
+retaining color mode, interpolation, hue path, chroma correction, smoothness, wrap mode and key encoding. Both operations use the owner's Undo path.
 
 Switching modes never rewrites stored colors: returning to HDR restores their full intensity.
 Explicitly editing a color or gradient in Standard replaces that value with the edited bounded value.

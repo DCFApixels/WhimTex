@@ -692,8 +692,10 @@ namespace DCFApixels.WhimTex
             var gradient = GradientUtility.Create(
                 new[] { new GradientColorKey(start, 0f), new GradientColorKey(end, 1f) },
                 new[] { new GradientAlphaKey(start.a, 0f), new GradientAlphaKey(end.a, 1f) });
-            // The endpoint-only syntax predates the Perceptual default and represents Classic.
-            gradient.Mode = WhimTexGradientMode.Classic;
+            // Endpoint-only defaults describe a straight encoded-RGB blend.
+            gradient.ColorMode = WhimTexGradientColorMode.Gamma;
+            gradient.Interpolation = WhimTexGradientInterpolation.Blend;
+            gradient.Smoothness = 0f;
             return gradient;
         }
 

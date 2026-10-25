@@ -27,7 +27,7 @@ JSON, TIFF-контейнер и tagged model имеют версию **2**; в�
 - Адаптер 0.12.5 удалён: нет allowlist снятых полей, наследования осей через нулевой Y,
   переноса общего roundness в углы, восстановления manual FX через `@param` или специальных
   обновлений старых связанных Polar Coordinates/Displacement Map.
-- `WhimTexJsonDefaultsV2` задаёт defaults текущего Compact-контракта. Оси и углы хранятся явно;
+- `WhimTexJsonDefaultsV3` задаёт defaults текущего Compact-контракта. Оси и углы хранятся явно;
   отсутствующее поле получает фиксированный default, а не значение соседнего поля.
 - JSON отвергает неизвестные поля. TIFF диагностирует неизвестные поля/типы;
   обычный Save блокирует потерю этих данных, интерактивный Save предлагает явный выбор.
@@ -51,6 +51,15 @@ JSON, TIFF-контейнер и tagged model имеют версию **2**; в�
   прежние документы — отрицательные входы, а не обещание совместимости.
 
 Подробная инвентаризация: [аудит переименований и легаси](RENAME_CLEANUP_AUDIT.ru.md).
+
+## Форматы градиентов
+
+Документ JSON — `whimtex.document` v3; бинарная модель внутри TIFF — v3.
+Оболочка контейнера `WHIMTEXD` остаётся v2. Gradient clipboard/user presets — v2,
+бинарные brush presets — v2. Прежние версии отклоняются явно, без миграции и перезаписи.
+Модель сохраняет ColorMode, Interpolation, HuePath, ChromaCorrection, Smoothness,
+WrapMode и техническое ColorSpace; неактивные настройки тоже сохраняются.
+Defaults компактного JSON находятся в WhimTexJsonDefaultsV3.
 
 ## Файл и импорт
 

@@ -321,6 +321,15 @@ namespace DCFApixels.WhimTex
 
         private void SetCanvasTool(CanvasTool tool)
         {
+            if(tool==CanvasTool.QuickSelection)quickSelectionNextTool=null;
+            if(tool!=CanvasTool.QuickSelection&&HasPendingQuickSelection)
+            {
+                quickSelectionNextTool=tool;
+                quickSelectionManipulator?.End();
+                if(quickSelectionStroke!=null)quickSelectionStroke.ended=true;
+                foreach(var stroke in quickSelectionStrokes)stroke.ended=true;
+                return;
+            }
             ReconcileCanvasToolContext();
             if (!IsBaseCanvasTool(tool))
             {
@@ -349,6 +358,8 @@ namespace DCFApixels.WhimTex
                 SetCanvasTool(CanvasTool.RectangleSelect);
             else if (evt.keyCode == KeyCode.L)
                 SetCanvasTool(CanvasTool.PolygonSelect);
+            else if (evt.keyCode == KeyCode.W)
+                SetCanvasTool(CanvasTool.QuickSelection);
             else if (evt.keyCode == KeyCode.U)
                 SetCanvasTool(CanvasTool.Shape);
             else if (evt.keyCode == KeyCode.C)

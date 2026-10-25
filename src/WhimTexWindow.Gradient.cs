@@ -160,7 +160,7 @@ namespace DCFApixels.WhimTex
                 var g=owner.gradientCanvasLayer.gradient;
                 var keys=GradientHitKeys(g);
                 midpointHit=-1;
-                if(g.Mode!=WhimTexGradientMode.Fixed && midpointSelected && selectionLayer==owner.gradientCanvasLayer &&
+                if(g.Interpolation!=WhimTexGradientInterpolation.Fixed && midpointSelected && selectionLayer==owner.gradientCanvasLayer &&
                     selected>=0 && selected<keys.Length-1 &&
                     (p-MidpointPosition(g,selected,a,b)).sqrMagnitude<=64)
                     midpointHit=selected;
@@ -173,7 +173,7 @@ namespace DCFApixels.WhimTex
                         if(distance<=nearest){nearest=distance;hit=i;}
                     }
                 }
-                if(hit==-1 && midpointHit<0 && g.Mode!=WhimTexGradientMode.Fixed)
+                if(hit==-1 && midpointHit<0 && g.Interpolation!=WhimTexGradientInterpolation.Fixed)
                     for(int i=0;i<keys.Length-1;i++)
                         if((p-MidpointPosition(g,i,a,b)).sqrMagnitude<=64){midpointHit=i;break;}
                 time=Projection(p,a,b);
@@ -192,6 +192,11 @@ namespace DCFApixels.WhimTex
                     !target.contentRect.Contains(view)) return MouseCursor.Arrow;
                 if (pointer >= 0) return MouseCursor.Pan;
                 if (IsFreeform) return GetFreeformCursor(view);
+                if (IsCustom)
+                {
+                    if (!HitCustomCanvas(view, out int customHit, out float customTime)) return MouseCursor.Arrow;
+                    return customHit != -1 ? MouseCursor.Pan : CanAddCustomCanvasKey(customTime) ? MouseCursor.ArrowPlus : MouseCursor.Arrow;
+                }
                 int hit, midpoint; float time;
                 bool found = IsAngular ? HitAngular(view, out hit, out midpoint, out time, out _, out _) :
                     HitGradientLine(view, out hit, out midpoint, out time);
@@ -201,6 +206,9 @@ namespace DCFApixels.WhimTex
             }
             private void Down(PointerDownEvent e)
             {
+                if (owner.IsGradientCanvasEnabled && pointer < 0 && !IsFreeform && IsCustom && !e.altKey &&
+                    owner.toolkitCanvas.ImageRect.width > 0 && (e.button == 0 || e.button == 1))
+                { CustomCanvasDown(e); return; }
                 if (!owner.IsGradientCanvasEnabled || pointer>=0 || e.button!=0 || e.altKey || owner.toolkitCanvas.ImageRect.width<=0) return;
                 owner.UpdateCanvasCursor(e.localPosition, e.altKey);
                 if (IsFreeform) { FreeformDown(e); return; }
@@ -275,6 +283,10 @@ namespace DCFApixels.WhimTex
                 {
                     AngularMove(e.localPosition, e.ctrlKey);
                 }
+                else if (handle >= 0 && GradientCustomMarkers.IsCustom(originalGradient))
+                {
+                    MoveCustomCanvasKey(e.localPosition);
+                }
                 else if(midpointSelected && handle>=0)
                 {
                     Points(out var a,out var b);
@@ -324,7 +336,12 @@ namespace DCFApixels.WhimTex
                 if(pendingRemoval && handle>=0)
                 {
                     BeginUndo();
-                    layer.gradient=WithoutColorKey(originalGradient,handle);
+                    if (GradientCustomMarkers.IsCustom(originalGradient))
+                    {
+                        var next = originalGradient.Clone(); GradientCustomMarkers.Remove(next, handle); layer.gradient = next;
+                        selectedCustomKey = 0;
+                    }
+                    else layer.gradient=WithoutColorKey(originalGradient,handle);
                     selected=-1;
                 }
                 End(false); e.StopImmediatePropagation();
@@ -334,7 +351,7 @@ namespace DCFApixels.WhimTex
             public void Validate()
             {
                 if(pointer>=0 && (!owner.IsGradientCanvasEnabled || owner.gradientCanvasLayer!=layer || angularGesture != IsAngular || freeformGesture != IsFreeform))End(false);
-                if(selectionLayer!=owner.gradientCanvasLayer){selected=-1;selectionLayer=default;}
+                if(selectionLayer!=owner.gradientCanvasLayer){selected=-1;selectedCustomKey=0;selectionLayer=default;}
                 ValidateFreeformSelection();
             }
             private static WhimTexGradient WithoutColorKey(WhimTexGradient source,int index)
@@ -353,6 +370,7 @@ namespace DCFApixels.WhimTex
             {
                 Validate();
                 if (IsFreeform) return DeleteFreeform(e);
+                if (owner.IsGradientCanvasEnabled && IsCustom) return DeleteCustomCanvasKey(e);
                 var element=e.target as VisualElement;
                 if(e.keyCode!=KeyCode.Delete || !owner.IsGradientCanvasEnabled ||
                     selectionLayer!=owner.gradientCanvasLayer || selected<0 ||
@@ -460,10 +478,11 @@ namespace DCFApixels.WhimTex
                 p.BeginPath(); p.MoveTo(a); p.LineTo(a+offset); p.MoveTo(b); p.LineTo(b+offset); p.Stroke();
                 Square(p,a+offset); Square(p,b+offset);
                 var gradient=owner.gradientCanvasLayer.gradient;
+                if (IsCustom) { DrawCustomCanvas(p, a, b); return; }
                 var keys=gradient.ColorKeys;
                 int topMidpoint=midpointSelected && selectionLayer==owner.gradientCanvasLayer &&
                     selected>=0 && selected<keys.Length-1?selected:-1;
-                if(gradient.Mode!=WhimTexGradientMode.Fixed)
+                if(gradient.Interpolation!=WhimTexGradientInterpolation.Fixed)
                     for(int i=0;i<keys.Length-1;i++)
                         if(i!=topMidpoint)Diamond(p,MidpointPosition(gradient,i,a,b),false);
                 int topKey=!midpointSelected && selectionLayer==owner.gradientCanvasLayer && selected>=0 && selected<keys.Length?selected:-1;
@@ -487,7 +506,7 @@ namespace DCFApixels.WhimTex
                     p.fillColor=color;
                     p.BeginPath(); p.Arc(point,7.1f,0,360); p.ClosePath(); p.Fill();
                 }
-                if(topMidpoint>=0 && gradient.Mode!=WhimTexGradientMode.Fixed)
+                if(topMidpoint>=0 && gradient.Interpolation!=WhimTexGradientInterpolation.Fixed)
                     Diamond(p,MidpointPosition(gradient,topMidpoint,a,b),true);
             }
             private Vector2 MidpointPosition(WhimTexGradient gradient,int index,Vector2 a,Vector2 b)

@@ -14,7 +14,7 @@ public static class DocumentJsonBrokenFxTests
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
     const string Good = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return color;}";
     const string Broken = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return missingFunction(color);}";
-    const string Json = "{\"format\":\"whimtex.document\",\"version\":2,\"document\":{\"width\":16,\"height\":16},\"layers\":[{\"id\":\"fixture\",\"layerName\":\"Broken FX fixture\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[0.2,0.4,0.6,1]},\"fx\":[{\"$type\":\"ShaderFX\",\"$name\":\"Broken fixture\",\"code\":\"SOURCE\",\"parameters\":[{\"name\":\"_Amount\",\"type\":\"Float\",\"floatValue\":0.37}]}]}]}";
+    const string Json = "{\"format\":\"whimtex.document\",\"version\":3,\"document\":{\"width\":16,\"height\":16},\"layers\":[{\"id\":\"fixture\",\"layerName\":\"Broken FX fixture\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[0.2,0.4,0.6,1]},\"fx\":[{\"$type\":\"ShaderFX\",\"$name\":\"Broken fixture\",\"code\":\"SOURCE\",\"parameters\":[{\"name\":\"_Amount\",\"type\":\"Float\",\"floatValue\":0.37}]}]}]}";
     static int checks;
     static readonly List<(string text, LogType type)> logs = new List<(string text, LogType type)>();
     static void Check(bool ok, string message) { checks++; UnityBRun.Check(!(!ok), message); }

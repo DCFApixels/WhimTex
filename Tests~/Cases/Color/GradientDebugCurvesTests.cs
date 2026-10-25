@@ -30,7 +30,7 @@ public static class GradientDebugCurvesTests
                 "Debug allocations are compiled out without the symbol");
             if (!enabled) return;
 
-            var gradient = new WhimTexGradient { ColorSpace = ColorSpace.Linear, Mode = WhimTexGradientMode.Linear };
+            var gradient = new WhimTexGradient { ColorSpace = ColorSpace.Linear, ColorMode = WhimTexGradientColorMode.Linear };
             gradient.SetKeys(new[] {
                 new GradientColorKey(new Color(8, -2, 4, 1), 0),
                 new GradientColorKey(new Color(1, .5f, .25f, 1), .37f),
@@ -63,16 +63,21 @@ public static class GradientDebugCurvesTests
                 Toggle(window, channel);
             }
 
-            foreach (WhimTexGradientMode mode in Enum.GetValues(typeof(WhimTexGradientMode)))
+            foreach (var mode in new[] {
+                (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Fixed),
+                (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Balanced),
+                (color: WhimTexGradientColorMode.Linear, interpolation: WhimTexGradientInterpolation.Balanced),
+                (color: WhimTexGradientColorMode.Perceptual, interpolation: WhimTexGradientInterpolation.Balanced)
+            })
             {
-                gradient.Mode = mode;
+                gradient.ColorMode = mode.color; gradient.Interpolation = mode.interpolation;
                 gradient.Smoothness = .73f;
                 Refresh(window);
                 context.True(ReferenceEquals(values, Read(window, "debugCurveValues")), "Sample buffer reused");
                 for (int i = 0; i < times.Count; i++)
                     context.Equal(gradient.Evaluate(times[i]), values[i], "Current interpolation samples " + mode);
             }
-            gradient.Mode = WhimTexGradientMode.Fixed;
+            gradient.Interpolation = WhimTexGradientInterpolation.Fixed;
             Refresh(window);
             int atKey = times.IndexOf(.37f);
             context.Equal(.37f, times[atKey], "Fixed step exact location");

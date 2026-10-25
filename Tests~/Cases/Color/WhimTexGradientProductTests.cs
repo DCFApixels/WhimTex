@@ -56,10 +56,10 @@ public static class WhimTexGradientProductTests
             editor.Close(); editor = null;
             var read = typeof(WhimTexApi).GetMethod("ReadGradient", BindingFlags.Static | BindingFlags.NonPublic);
             var jsonType = read.GetParameters()[0].ParameterType.Assembly.GetType("Newtonsoft.Json.Linq.JObject");
-            var json = jsonType.GetMethod("Parse", new[]{typeof(string)}).Invoke(null, new object[]{"{colors:[{time:0,color:[0,0,0,1],midpoint:0.2},{time:1,color:[1,1,1,1]}],alphas:[{time:0,alpha:1},{time:1,alpha:0}],mode:'Perceptual',smoothness:0.6}"});
-            var gradient = (WhimTexGradient)read.Invoke(null,new object[]{json,WhimTexGradientMode.Classic,107f});
-            context.True(!(gradient.Mode!=WhimTexGradientMode.Perceptual || gradient.Smoothness!=.6f || gradient.GetMidpoint(false,0)!=.2f), "JSON gradient settings lost.");
-            context.True(!(new SDFLayerBehaviour().gradient.Mode!=WhimTexGradientMode.Perceptual), "SDF default must be Perceptual.");
+            var json = jsonType.GetMethod("Parse", new[]{typeof(string)}).Invoke(null, new object[]{"{colors:[{time:0,color:[0,0,0,1],midpoint:0.2},{time:1,color:[1,1,1,1]}],alphas:[{time:0,alpha:1},{time:1,alpha:0}],colorMode:'Perceptual',smoothness:0.6}"});
+            var gradient = (WhimTexGradient)read.Invoke(null,new object[]{json,WhimTexGradientColorMode.Gamma,107f});
+            context.True(!(gradient.ColorMode!=WhimTexGradientColorMode.Perceptual || gradient.Smoothness!=.6f || gradient.GetMidpoint(false,0)!=.2f), "JSON gradient settings lost.");
+            context.True(!(new SDFLayerBehaviour().gradient.ColorMode!=WhimTexGradientColorMode.Perceptual), "SDF default must be Perceptual.");
             return;
         }
         finally

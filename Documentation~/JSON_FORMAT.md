@@ -8,17 +8,17 @@ permalink: /reference/json-format/
 
 # WhimTex JSON documents
 
-`whimtex.document`, version **2**, is the shared editable format for `.json` files,
+`whimtex.document`, version **3**, is the shared editable format for `.json` files,
 layer clipboard data and agent serialization. It stores settings, not rendered pixels.
-TIFF remains the image-backed format; its tagged binary encoding is version 2.
+TIFF remains the image-backed format; its tagged binary encoding is version 3.
 New saves and exports use `.json`; existing `.whimtex.json` names remain readable without renaming.
 Previous JSON, layer clipboard and TIFF document versions are unsupported by this checkout.
-They are rejected explicitly, not silently interpreted as version 2. No migration or old
+They are rejected explicitly, not silently interpreted as version 3. No migration or old
 `swizzle` alias is provided. Work with a matching older checkout if those files need editing.
 New exports and Copy as JSON use this format. Brush and gradient preset formats remain separate.
 
 Backward compatibility with package **0.12.5** or **0.13.0** is not a development requirement.
-Retired fields and previous-name aliases are not accepted. The version-2 default
+Retired fields and previous-name aliases are not accepted. The version-3 default
 snapshot defines omitted values for current Compact files, independently of UI defaults.
 
 The layer FX list is `fx` in UI, code and TIFF/JSON. JSON rejects `modifiers`;
@@ -40,6 +40,32 @@ layer-only clipboard fragments omit it. Each `WhimTexComment` stores `id`, `anch
 Comments do not contribute to image pixels. See [TIFF comments](TIFF_FORMAT.md#optional-comments)
 for validation limits and anchor behavior. JSON insertion/paste imports layers only;
 opening a full document retains its comments.
+
+## Custom gradients
+
+`WhimTexGradient` stores automatic and manual data together. `colors`, `alphas`,
+`colorMode`, midpoint and automatic interpolation controls retain their automatic values.
+`interpolation:"Custom"` selects `customKeys` and `customColorMode`; all JSON write modes
+keep both datasets, including inactive manual keys. The additive fields do not change
+the document version (3) or standalone gradient envelope version (2).
+
+`customKeys` is a flat array of `WhimTexGradientCurveKey` values: `id`, `channel`,
+`time`, `value`, `inTangent`, `outTangent`, `tangentMode`. IDs, tangents and
+channel values survive a roundtrip. `customColorMode` is required with nonempty curves;
+active Custom requires saved curves and is never reconstructed silently on load.
+The [shared curve contract](AI/README.md#custom-channel-curves) describes limits, channel
+meaning, automatic time-cluster markers and the right-key Constant convention. Native Compact
+JSON may omit default-valued key fields; the standalone/API contract requires the fields
+listed in that reference. Unknown fields and invalid dormant data are rejected too.
+There is no persistent marker/group field. Explicit obsolete `link` fields (including zero)
+are rejected without migration. Marker clustering sorts all channels by time/ID, includes
+keys within 0.00001 of each earliest anchor without transitive chaining, then filters the
+cluster for a color/alpha track. It does not snap stored times or affect evaluation.
+
+`customApproximationError` is a nonnegative, finite diagnostic saved with document data.
+It is the maximum observed relative sample deviation from conversion, not a bound on
+the entire curve or a render setting. Standalone presets and agent palette writes do not
+restore this diagnostic. GPU caches and sampling remain unchanged.
 
 ## Freeform gradients
 
@@ -83,7 +109,7 @@ Shape and Vector share `VectorFillMode`: `None=0`, `Solid=1`, `LinearGradient=2`
 `RadialGradient=3`, `SquareGradient=4`, `AngularGradient=6`, `Freeform=7`.
 JSON uses these exact names, never numeric enum values. `ShapeLayerBehaviour` and
 each `VectorShape` store `fillMode` (default `Solid`), `fillColor` (white),
-`gradient` (a new black-to-white `WhimTexGradient`, Perceptual/Clamp),
+`gradient` (a new black-to-white `WhimTexGradient`, Perceptual/Balanced/Clamp),
 `gradientStart` (`[0,0]`), `gradientEnd` (`[1,0]`) and `gradientRepetitions` (`1`). Shape also retains its
 `fill` boolean (default true) as the overall body-fill gate. None suppresses fill;
 Solid uses `fillColor`; the four palette gradient modes use `gradient`; Freeform uses
@@ -125,7 +151,7 @@ Shape, Vector and Boolean Group (`style`) also store an independent stroke paint
 | `stroke` | `false`; existing stroke enable gate |
 | `strokeMode` | `Solid`; the same seven `VectorFillMode` names as fill. `None` disables stroke paint while retaining its settings |
 | `strokeColor` | Opaque black; used by Solid |
-| `strokeGradient` | A separate black-to-white Perceptual/Clamp `WhimTexGradient`; the same HDR, alpha, midpoint, interpolation, smoothness, color-space and wrap behavior as fill |
+| `strokeGradient` | A separate black-to-white Perceptual/Balanced/Clamp `WhimTexGradient`; the same HDR, alpha, midpoint, interpolation, smoothness, color-space and wrap behavior as fill |
 | `strokeGradientStart`, `strokeGradientEnd` | `[0,0]`, `[1,0]`; finite normalized layer-local anchors using the same geometry and reference-pixel metric as fill |
 | `strokeGradientRepetitions` | `1`; finite float of at least `0.0001`. AngularGradient only, before palette wrapping; one period spans `360 / strokeGradientRepetitions` degrees |
 
@@ -489,7 +515,7 @@ style from children added later. See [Boolean Group API](AgentAPI.md#boolean-gro
 | --- | --- |
 | `Full` | All persistent settings, including inactive values and defaults. |
 | `FullOptimized` (default) | Active settings, including their defaults; inactive branches are omitted except retained Shape/Vector fill and stroke styles, Boolean Group styles and Vector source data. |
-| `Compact` | Same inactive-branch rules, additionally omitting version-2 default values, except source canvas dimensions. |
+| `Compact` | Same inactive-branch rules, additionally omitting version-3 default values, except source canvas dimensions. |
 
 The optional envelope field `writeMode` uses these exact names; absence means `FullOptimized`.
 Full and Compact exports include it; FullOptimized may omit it. Opening restores the mode for
@@ -503,7 +529,7 @@ Compiled shaders, rendering caches, catalog refresh state and code-derived contr
 are not document settings and are never saved. HLSL source and parameter values are separate;
 changing a value does not rewrite its declaration into the source code.
 
-Omitted values use the frozen defaults in `WhimTexJsonDefaultsV2`, not the current UI factory defaults.
+Omitted values use the frozen defaults in `WhimTexJsonDefaultsV3`, not the current UI factory defaults.
 For insertion/paste only, omitted canvas dimensions instead inherit the corresponding destination axes.
 Re-enabling an omitted feature restores those defaults, not the previously inactive user value.
 
@@ -512,7 +538,7 @@ Re-enabling an omitted feature restores those defaults, not the previously inact
 Only `format`, `version` and `layers` are required at the root. `document` and every setting inside
 it are optional. If present, `document` must be an object, not null; `{}` is valid.
 
-- Opening or writing a document fills missing settings from version-2 defaults (canvas **512 × 512**).
+- Opening or writing a document fills missing settings from version-3 defaults (canvas **512 × 512**).
 - Insertion/paste fills each missing source dimension from the current destination canvas. Without
   either dimension, no canvas-size prompt is requested; unrelated document settings do not request a resize.
 - With only `width` or only `height`, the other axis is independent: format default on open/write,
@@ -530,7 +556,7 @@ output settings during export.
 ```json
 {
   "format": "whimtex.document",
-  "version": 2,
+  "version": 3,
   "document": {
     "width": 256,
     "height": 256,
@@ -706,7 +732,7 @@ not the editable `text`. SmallCaps synthesizes smaller uppercase glyphs for lowe
 defaulting to zero. One em is the effective font size. The former `lineSpacing` multiplier is a removed
 field, not an alternative spelling or unit for `spacing.line`; old data must receive an unresolved-field diagnostic.
 No font asset or machine-specific font path is embedded.
-Omitted Text settings use frozen version-2 defaults: `text: "Text"`, empty `fontFamily`,
+Omitted Text settings use frozen version-3 defaults: `text: "Text"`, empty `fontFamily`,
 `fontStyle: "Normal"`, `fontSize: 64`, `maxFontSize: 256`, `alignment: "MiddleCenter"`,
 `layoutMode: "Point"`, `layoutOffset: [0,0]`, `frameSize: [256,128]`, `wrapping: "Words"`, `overflow: "None"`,
 `casing: "Normal"`, zero spacing, `characterHorizontalScale: 1`, white `color`,
@@ -811,7 +837,7 @@ Errors identify the field or component path. Curve tangents alone also accept `"
 `"-Infinity"` for stepped keys. Vector/color components follow their numeric types.
 These are storage checks, not the stricter agent-property patch/UI slider bounds: finite persisted values
 are retained, with the model's rendering clamps. Noise and Pattern axes and Shape corners
-use explicit current values; missing components use the version-2 defaults, not sentinel inheritance.
+use explicit current values; missing components use the version-3 defaults, not sentinel inheritance.
 FX declarations come only from `@param`; readers do not append declarations for saved values.
 `declaredInCode` and Shape's former `roundness`/`cornerRoundness` fields are unknown input.
 Shape corners use `{style:"Round"|"Bevel",amount:0..1}` objects: four `rectangleCorners`,

@@ -44,8 +44,9 @@ Raster transforms are applied only to the exported pixels; they do not remain ed
 Linear gradients support position, pivot, rotation and nonzero positive/negative scale.
 Radial, angular and diamond variants support positive uniform scale and rotation on square canvases;
 Square maps to a rotated diamond. Non-linear gradients on rectangular canvases remain rasterized.
-Classic, Linear and Perceptual map to their corresponding native methods; Smoothness and midpoints are retained.
-Small interpolation differences remain possible, including rounded smoothing near flat segments.
+Native color stops are used only for Gamma color mode with Blend interpolation, Smoothness 0,
+Chroma Correction 0 and centered midpoints. Other interpolation/color settings are rasterized
+to retain the rendered result rather than claiming an equivalent native curve.
 Fixed interpolation, tiled Repeat/Mirror transforms, repeated angular gradients, degenerate transforms,
 anisotropic non-linear gradients, HDR/negative gradient keys and gradients with FX are rasterized.
 Clip, Source/clamped and Unbounded transforms are supported for linear gradients. Native gradient alpha is kept in opacity stops;
@@ -129,7 +130,9 @@ This API is separate from the Pipeline command adapter; there is no new CLI comm
 modifying the source or writing presets. Its result exposes named gradients and warnings. Input is bounded
 to 32 MiB, 4096 presets, 64 keys per track and finite values. RGB, HSB and grayscale colors are supported;
 profile-dependent/color-book entries and noise gradients are rejected or skipped with diagnostics.
-Missing/unrecognized method and Smoothness use Perceptual and 100%. Stop coordinates always use
+Source Classic/Linear/Perceptual methods map to Gamma/Linear/Perceptual color modes with Blend interpolation.
+Imports report that their transition curve may differ. Missing/unrecognized descriptor methods use Perceptual;
+version-3 stop libraries without a method use Gamma. Missing/unrecognized Smoothness uses 100%. Stop coordinates always use
 0–4096 independently of Smoothness. Foreground/background stops resolve to explicit supplied colors
 (black/white by default), with a warning. Presets → Import creates independent native user presets
 only after decoding; a failed write removes only files created by that import.

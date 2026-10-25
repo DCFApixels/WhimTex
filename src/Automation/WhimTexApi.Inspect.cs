@@ -393,20 +393,9 @@ namespace DCFApixels.WhimTex
 
         private static JObject GradientSnapshot(WhimTexGradient gradient)
         {
-            var colors = new JArray();
-            var alphas = new JArray();
-            if (gradient != null)
-            {
-                var colorKeys = gradient.ColorKeys;
-                var alphaKeys = gradient.AlphaKeys;
-                for (int i = 0; i < colorKeys.Length; i++) colors.Add(new JObject { ["time"] = colorKeys[i].time, ["color"] = Json(colorKeys[i].color), ["midpoint"] = i + 1 < colorKeys.Length ? gradient.GetMidpoint(false, i) : .5f });
-                for (int i = 0; i < alphaKeys.Length; i++) alphas.Add(new JObject { ["time"] = alphaKeys[i].time, ["alpha"] = alphaKeys[i].alpha, ["midpoint"] = i + 1 < alphaKeys.Length ? gradient.GetMidpoint(true, i) : .5f });
-            }
-            return new JObject { ["colors"] = colors, ["alphas"] = alphas,
-                ["mode"] = (gradient?.Mode ?? WhimTexGradientMode.Perceptual).ToString(),
-                ["wrapMode"] = (gradient?.WrapMode ?? WhimTexGradientWrapMode.Clamp).ToString(),
-                ["smoothness"] = gradient?.Smoothness ?? 1f,
-                ["colorSpace"] = (gradient?.ColorSpace ?? ColorSpace.Gamma).ToString() };
+            var result = WriteGradient(gradient ?? new WhimTexGradient());
+            if (gradient == null) { result["colors"] = new JArray(); result["alphas"] = new JArray(); }
+            return result;
         }
 
         private static JObject BrushSnapshot(DrawingLayerBehaviour layer)

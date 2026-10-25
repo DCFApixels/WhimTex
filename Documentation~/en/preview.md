@@ -15,6 +15,7 @@ next_page: "en/color.md"
 
 Canvas View is the whole panel, including its tool settings and footer. The canvas is the image area inside it: use it to paint, inspect details and check seams or individual channels.
 Changing the view does not resize the document.
+Drag the right-hand divider to resize Canvas View. Its header, canvas area and footer stay flush with the divider when the window is resized. Temporarily narrowing the window preserves your chosen pane size for later expansion. Press Escape to cancel a divider drag.
 
 The two rows above the canvas contain document and tool settings. In a narrow panel, slider tracks hide while their number fields remain available. You can type a value or drag a numeric field's label; controls wrap to another line if needed.
 

@@ -46,6 +46,8 @@ namespace DCFApixels.WhimTex
         }
         private void ResetAreaSelection()
         {
+            ResetQuickSelection();
+            ReleaseQuickSelectionMask();
             areaSelectionManipulator?.Cancel();
             if (areaSelectionTexture != null) DestroyImmediate(areaSelectionTexture);
             areaSelectionTexture = null;
@@ -58,6 +60,9 @@ namespace DCFApixels.WhimTex
         {
             CanvasSelection selection = GetAreaSelection();
             if (selection == null || !selection.Active) return null;
+            if (quickSelectionMaskTexture != null && quickSelectionMaskRevision == selection.Revision && quickSelectionMaskTexture.IsCreated())
+                return quickSelectionMaskTexture;
+            if (quickSelectionMaskTexture != null) ReleaseQuickSelectionMask();
             if (areaSelectionTexture != null && areaSelectionTextureRevision == selection.Revision) return areaSelectionTexture;
             using var profile = WhimTexProfiler.Measure("selection.upload", activeDocument);
             if (areaSelectionTexture != null) DestroyImmediate(areaSelectionTexture);
@@ -80,6 +85,8 @@ namespace DCFApixels.WhimTex
         }
         private void ChangeAreaSelection(Action<CanvasSelection> action)
         {
+            ResetQuickSelection();
+            ReleaseQuickSelectionMask();
             if (!HasCanvasLayers && !(activeDocument != null && canvasTool == CanvasTool.Comment)) return;
             using var profile = WhimTexProfiler.Measure("selection.change", activeDocument);
             areaSelectionManipulator?.Cancel();
@@ -104,6 +111,8 @@ namespace DCFApixels.WhimTex
             areaSelectionManipulator = new AreaSelectionManipulator(this);
             toolkitCanvas.AddManipulator(areaSelectionManipulator);
             toolkitCanvas.ViewChanged += areaSelectionOverlay.MarkDirtyRepaint;
+            quickSelectionManipulator = new QuickSelectionManipulator(this);
+            toolkitCanvas.AddManipulator(quickSelectionManipulator);
         }
         private void RegisterAreaSelectionCommands(VisualElement root)
         {
@@ -271,6 +280,7 @@ namespace DCFApixels.WhimTex
         }
         private void CopySelection(bool merged)
         {
+            if(DeferUntilQuickSelectionReady(()=>CopySelection(merged)))return;
             if (activeDocument == null) return;
             if (merged || GetAreaSelection().Active)
             {
@@ -292,6 +302,7 @@ namespace DCFApixels.WhimTex
 
         private void CopyAreaSelection(bool merged)
         {
+            if(DeferUntilQuickSelectionReady(()=>CopyAreaSelection(merged)))return;
             if (!HasCanvasLayers) return;
             areaSelectionManipulator?.Cancel();
             FinishPaintingStroke(); FinishCanvasTransform();

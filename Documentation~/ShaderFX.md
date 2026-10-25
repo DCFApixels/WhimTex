@@ -644,9 +644,15 @@ Catalog-linked code uses **Open HLSL Source** to edit its shared HLSL source; va
 Add a `.hlsl` file anywhere in Assets or an installed package. Its **first physical line** must be
 `// @whimtex-effect Category/Name`. UTF-8 BOM is allowed, but no preceding blank line, indentation,
 license comment or other text. Unmarked HLSL files are not catalog effects. Discovery reads headers only,
-without parsing parameters, loading FX instances or hashing shader dependencies. Project headers
-are updated by import notifications and reconciled once against AssetDatabase after a script reload,
-on the next catalog request.
+without parsing parameters, loading FX instances or hashing shader dependencies. The menu uses a
+ready, sorted header snapshot; opening it performs no file scan or shader compilation. After startup
+or script reload, reconciliation is scheduled outside the click: Unity captures asset paths and resolves
+each package once, a worker reads headers, and the main thread publishes the completed snapshot.
+Session headers remain available during reconciliation; superseded scans cannot overwrite newer data.
+Import notifications update affected project headers. User files refresh in the background on Editor
+focus, preset saves, library-location changes and menu requests. A menu already open retains its snapshot;
+reopen it to see a refresh that finished later. With no initial snapshot it displays **Loading effect presets…**.
+Explicit agent/API catalog discovery remains synchronous and fresh, independent of menu readiness.
 Full validation and loading happen when a preset is selected; invalid source reports an error without adding an FX.
 
 ```hlsl
@@ -1055,24 +1061,29 @@ default wins. Curve parameters also work in HLSL brush tips.
 
 ### Gradient parameters
 
-`gradient` without a default creates an opaque black-to-white Perceptual gradient.
+`gradient` without a default creates an opaque black-to-white gradient with Perceptual color mode and Balanced interpolation.
 Declare `// @param gradient _Ramp`, optionally with two endpoint colors such as
 `// @param gradient _Ramp = #FF0000FF -> #0000FF`. Each endpoint accepts `#RRGGBB` (opaque) or
-`#RRGGBBAA` (RGBA), or a numeric `(r, g, b, a)` tuple. Explicit endpoint defaults use Classic,
-Gamma, Clamp, Smoothness 1 and midpoint .5, matching their original HLSL export format.
+`#RRGGBBAA` (RGBA), or a numeric `(r, g, b, a)` tuple. Explicit endpoint defaults use Gamma color mode,
+Blend interpolation, Gamma key encoding, Clamp, Smoothness 0, Chroma Correction 0 and midpoint .5.
 The parameter remains editable after creation.
 Use `_Ramp_Sample(t)` to obtain straight linear RGBA. The helper uses the gradient's **Wrap** setting: **Clamp** holds endpoint colors, **Repeat** repeats every unit, and **Mirror** alternates forward and backward every unit, including negative inputs.
 Do not redeclare a sampler or reference internal `_WhimTex_` uniforms.
-Colors, HDR, alpha, interpolation, smoothness and midpoints are edited in the gradient field.
+Colors, HDR, alpha, color mode, interpolation, hue path, chroma correction, smoothness and midpoints are edited in the gradient field.
 Repeated declarations share a gradient value; copying an effect creates independent gradient data.
 
 The effect lazily caches a 512×2 RGBAHalf LUT without mipmaps. Unchanged renders reuse it;
 edits upload new pixels without recompiling the shader. Fixed uses Point filtering, other modes
 use Bilinear. LUT sampling is an approximation: transitions finer than one LUT interval may be lost.
+Custom uses that same Bilinear LUT even for Constant tangents. Constant follows the CPU
+right-key convention, but its rendered steps retain LUT discretization and filtering;
+they do not use the Fixed GPU branch. See [Custom curves](AI/README.md#custom-channel-curves).
 GPU caches are released with the material and recreated after reload. Edited keys are serialized
 in the effect/document. The code default initializes new instances; applying code preserves the current edited value.
-**Save Preset…** writes a two-endpoint Classic/Gamma/Clamp gradient with Smoothness 1 and
-midpoint .5 as a default. Other gradients must be simplified before this endpoint-only export;
+**Save Preset…** writes a two-endpoint Gamma/Blend gradient with Gamma key encoding, Clamp, Smoothness 0, Chroma Correction 0 and
+midpoint .5 as a default. Active or retained Custom curves are rejected by endpoint-only HLSL
+export even when the active automatic gradient has two stops; save the complete palette as
+a gradient preset or retain it in the document. Other gradients must be simplified before this endpoint-only export;
 the exporter rejects them rather than silently changing their settings.
 Gradient parameters also work in HLSL brush tips, with the same sampling and export rules.
 

@@ -196,6 +196,7 @@ namespace DCFApixels.WhimTex
             EditorApplication.delayCall += RestoreBrushTipAfterReload;
             EditorApplication.projectChanged += RestoreBrushTipAfterReload;
             EditorApplication.projectChanged += CancelHealing;
+            EditorApplication.projectChanged += CancelQuickSelection;
             minSize = new Vector2(640f, 420f);
             groupExpansion = new Dictionary<string, bool>();
             paintingCanvasScale = ClampPaintingCanvasScale(
@@ -225,6 +226,7 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            DrainQuickSelection();
             CancelVectorMaskRebuild(false);
             vectorManipulator?.Cancel();
             commentManipulator?.Cancel();
@@ -248,6 +250,7 @@ namespace DCFApixels.WhimTex
             EditorApplication.delayCall -= RestoreBrushTipAfterReload;
             EditorApplication.projectChanged -= RestoreBrushTipAfterReload;
             EditorApplication.projectChanged -= CancelHealing;
+            EditorApplication.projectChanged -= CancelQuickSelection;
             StopLiveOutput();
             CancelCanvasEyedropper();
             CancelCanvasZoomGesture();
@@ -1421,6 +1424,7 @@ namespace DCFApixels.WhimTex
             if (changedDocument != activeDocument)
                 return;
             using var profile = WhimTexProfiler.Measure("ui.document_changed", activeDocument);
+            ResetQuickSelection();
             ProfileCanvasRequest(contentChanged ? "document.changed" : "document.resources_changed");
             if (contentChanged) SyncCommentAuthorColors();
             RefreshTextEditing();

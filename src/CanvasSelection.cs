@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
     // Window-local, canvas-space coverage. No source pixels or document settings live here.
     internal sealed class CanvasSelection
     {
-        internal const int MaximumPixels = 16777216;
+        internal const int MaximumPixels = 67108864;
         internal readonly int Width, Height;
         internal byte[] Coverage { get; private set; }
         internal RectInt Bounds { get; private set; }
@@ -20,9 +20,20 @@ namespace DCFApixels.WhimTex
         internal void ValidateSize()
         {
             if (Width < 1 || Height < 1 || (long)Width * Height > MaximumPixels)
-                throw new InvalidOperationException("Area selections support up to 16,777,216 canvas pixels.");
+                throw new InvalidOperationException("Area selections support up to 67,108,864 canvas pixels.");
         }
         internal void Clear() { Coverage = null; Bounds = default; Revision++; }
+        // Prepared on a worker; publication copies only one bounded tile, never rescans the canvas.
+        internal void ApplyQuickSelection(QuickSelection.Result result, byte[] initialCoverage)
+        {
+            if (!result.changed) return;
+            Coverage ??= initialCoverage;
+            if (Coverage == null || Coverage.Length != Width * Height) throw new ArgumentException("Invalid selection storage.");
+            RectInt r = result.region;
+            for (int y = 0; y < r.height; y++)
+                Buffer.BlockCopy(result.coverage, y * r.width, Coverage, (r.y + y) * Width + r.x, r.width);
+            Bounds = result.bounds; Revision++;
+        }
         internal void All()
         {
             ValidateSize();

@@ -25,9 +25,15 @@ public static class GradientPresetsTests
             new[] {new GradientAlphaKey(.25f, 0), new GradientAlphaKey(.9f, 1)});
         g.Smoothness = .37f; g.ColorSpace = ColorSpace.Linear;
         g.SetMidpoint(false, 0, .3f); g.SetMidpoint(true, 0, .7f);
-        foreach (WhimTexGradientMode mode in Enum.GetValues(typeof(WhimTexGradientMode)))
+        // Preserve the former four profiles without adding scenarios.
+        foreach (var mode in new[] {
+            (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Fixed),
+            (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Balanced),
+            (color: WhimTexGradientColorMode.Linear, interpolation: WhimTexGradientInterpolation.Balanced),
+            (color: WhimTexGradientColorMode.Perceptual, interpolation: WhimTexGradientInterpolation.Balanced)
+        })
         {
-            g.Mode = mode;
+            g.ColorMode = mode.color; g.Interpolation = mode.interpolation;
             string json = (string)Call("WhimTexGradientClipboard", "Write", g);
             Check(g.Equals(Read(json)), "Roundtrip " + mode);
             Check(g.Equals(Read("```json\n" + json + "\n```")), "Fenced JSON");
@@ -42,10 +48,10 @@ public static class GradientPresetsTests
         Check(Read("{\"colors\":" + stops + "}").ColorKeys.Length == 2, "Bare object");
         foreach (string invalid in new[] {"{}", "[]", "{\"colors\":[],\"colors\":[]}",
             "{\"colors\":" + stops + ",\"unknown\":1}",
-            "{\"format\":\"whimtex.gradient\",\"version\":2,\"gradient\":{\"colors\":" + stops + "}}",
+            "{\"format\":\"whimtex.gradient\",\"version\":1,\"gradient\":{\"colors\":" + stops + "}}",
             "[{\"time\":0,\"color\":[99999,0,0,1]}]", stops + " trailing",
             "WhimTex.Gradient/1\n" + JsonUtility.ToJson(g), JsonUtility.ToJson(g),
-            "{\"colors\":" + stops + ",\"mode\":5}",
+            "{\"colors\":" + stops + ",\"colorMode\":5}",
             "{\"colors\":" + stops + ",\"wrapMode\":1}",
             "{\"colors\":" + stops + ",\"colorSpace\":0}",
             "{\"colors\":" + stops + ",\"transition\":\"Rounded\"}"})

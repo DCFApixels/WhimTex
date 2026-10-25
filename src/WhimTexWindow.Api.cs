@@ -52,7 +52,8 @@ namespace DCFApixels.WhimTex
             {
                 if (window.activeDocument != document) continue;
                 if (window.activeLayerDrag != null || window.GetDraggedRoots() != null ||
-                    window.areaSelectionManipulator != null && window.areaSelectionManipulator.HasGesture) return true;
+                    window.areaSelectionManipulator != null && window.areaSelectionManipulator.HasGesture ||
+                    window.quickSelection != null || window.quickSelectionStrokes.Count != 0) return true;
                 for (var element = window.rootVisualElement.panel?.focusController?.focusedElement as VisualElement;
                     element != null; element = element.parent)
                 {

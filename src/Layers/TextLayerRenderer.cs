@@ -454,8 +454,7 @@ namespace DCFApixels.WhimTex
             material.SetVector("_TextCanvasSize", new Vector4(output.width, output.height, 0, 0));
             material.SetVector("_TextPaintRect", new Vector4(paintPixels.x, paintPixels.y, paintPixels.width, paintPixels.height));
             if (layer.gradientScope == TextGradientScope.Text) { Graphics.Blit(mask, output, material, 2); return; }
-            bool opaque = true;
-            foreach (var key in layer.gradient.AlphaKeys) opaque &= key.alpha == 1;
+            bool opaque = layer.gradient.HasOpaqueAlpha;
             material.SetInt("_TextOpaqueGradient", opaque ? 1 : 0);
             material.SetTexture("_TextCoverage", mask);
             var previous = RenderTexture.active; bool srgb = GL.sRGBWrite;

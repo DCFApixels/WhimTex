@@ -186,7 +186,7 @@ namespace DCFApixels.WhimTex
         private static float Unit(float value, float fallback) => Mathf.Clamp01(Finite(value, fallback));
         internal static WhimTexGradient DefaultTipGradient()
         {
-            var result = new WhimTexGradient { Mode = WhimTexGradientMode.Perceptual };
+            var result = new WhimTexGradient { ColorMode = WhimTexGradientColorMode.Perceptual };
             result.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
                 new[] { new GradientAlphaKey(1f, .4f), new GradientAlphaKey(0f, .6f) });
             return result;
@@ -202,6 +202,11 @@ namespace DCFApixels.WhimTex
         {
             tintGradient ??= WhiteGradient();
             constantTint = tintGradient.EvaluateEncoded(0f);
+            if (tintGradient.Interpolation == WhimTexGradientInterpolation.Custom)
+            {
+                tintVaries = true;
+                return;
+            }
             tintVaries = false;
             var colors = tintGradient.ColorKeys;
             for (int i = 1; i < colors.Length; i++)

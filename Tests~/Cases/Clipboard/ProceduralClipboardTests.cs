@@ -43,22 +43,22 @@ public static class ProceduralClipboardTests
             Check(Document(data).layers.Count > 0, file + " did not create layers.");
             Render(Document(data));
         }
-        const string plain = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}";
+        const string plain = "{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}";
         Check((bool)typeof(WhimTexApi).GetMethod("IsProceduralClipboard", BindingFlags.NonPublic | BindingFlags.Static)
             .Invoke(null, new object[] { "{'format':'whimtex.layers','version':1,'layers':[{'type':'color'}]}" }),
             "Retired JSON must route to rejection, not fall back to a stale native layer copy.");
         Reject("{\"format\":\"whimtex.layers\",\"version\":1,\"layers\":[{\"type\":\"color\"}]}");
         Reject(plain.Replace("whimtex.document", "unknown.document"));
-        Reject(plain.Replace("\"version\":2", "\"version\":999"));
+        Reject(plain.Replace("\"version\":3", "\"version\":999"));
         Reject(plain.Replace("\"ColorFillLayerBehaviour\"", "\"UnknownLayerBehaviour\""));
         Reject(plain.Replace("\"id\":\"color\"", "\"id\":\"\""));
         Reject(plain.Replace("\"id\":\"color\"", "\"id\":\"color\",\"unexpected\":1"));
-        Reject(plain.Replace("\"version\":2", "\"version\":2,\"version\":2"));
-        Reject("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"missing\"}}]}");
-        Reject("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"blur\"}}]}");
-        Reject("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"a\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"b\"}},{\"id\":\"b\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"a\"}}]}");
-        Reject("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}},{\"id\":\"color\",\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\"}}]}");
-        Reject("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"drawing\",\"behaviour\":{\"$type\":\"DrawingLayerBehaviour\"},\"url\":\"https://example.com/a.png\"}]}");
+        Reject(plain.Replace("\"version\":3", "\"version\":3,\"version\":3"));
+        Reject("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"missing\"}}]}");
+        Reject("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"blur\"}}]}");
+        Reject("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"a\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"b\"}},{\"id\":\"b\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"a\"}}]}");
+        Reject("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}},{\"id\":\"color\",\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\"}}]}");
+        Reject("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"drawing\",\"behaviour\":{\"$type\":\"DrawingLayerBehaviour\"},\"url\":\"https://example.com/a.png\"}]}");
         using (var fenced = (IDisposable)Build("```json\n" + plain + "\n```"))
             Check(Document(fenced).layers.Count == 1, "Fenced JSON failed.");
         using (var bom = (IDisposable)Build("\uFEFF" + plain))
@@ -132,7 +132,7 @@ public static class ProceduralClipboardTests
             var document = (WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument", Hidden).GetValue(window);
             int oldWidth = document.width, oldHeight = document.height;
             FilterMode oldFilter = document.outputFilter;
-            using var data = (IDisposable)Build("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}],\"document\":{\"width\":64,\"height\":96,\"outputFilter\":\"Point\"}}");
+            using var data = (IDisposable)Build("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}],\"document\":{\"width\":64,\"height\":96,\"outputFilter\":\"Point\"}}");
             var method = typeof(WhimTexWindow).GetMethod("PasteCopiedLayers", Hidden);
             method.Invoke(window, new object[] { Document(data), true });
             Check(document.outputFilter == oldFilter, "JSON paste must preserve destination output filter.");
@@ -162,7 +162,7 @@ public static class ProceduralClipboardTests
         linkedDestination.width = 64; linkedDestination.height = 64;
         try
         {
-            using (var data = (IDisposable)Build("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"drawing\",\"behaviour\":{\"$type\":\"DrawingLayerBehaviour\"}}]}"))
+            using (var data = (IDisposable)Build("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"drawing\",\"behaviour\":{\"$type\":\"DrawingLayerBehaviour\"}}]}"))
             {
                 Layer linked = Document(data).layers[0];
                 var image = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(96, 48, TextureFormat.RGBA32, false, false) { hideFlags = HideFlags.HideAndDontSave });

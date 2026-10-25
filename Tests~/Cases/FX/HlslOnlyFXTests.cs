@@ -143,7 +143,7 @@ public static class HlslOnlyFXTests
 
             foreach (string oldType in new[] { "UnityEngine.Material", "UnityEngine.Shader", typeof(ShaderFX).FullName })
             {
-                string invalid = "{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"legacy\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$asset\":{\"guid\":\"00000000000000000000000000000000\",\"localId\":\"0\",\"path\":\"Assets/RemovedFX.asset\",\"type\":\"" + oldType + "\"}}]}]}";
+                string invalid = "{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"legacy\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$asset\":{\"guid\":\"00000000000000000000000000000000\",\"localId\":\"0\",\"path\":\"Assets/RemovedFX.asset\",\"type\":\"" + oldType + "\"}}]}]}";
                 bool rejected = false;
                 try { using var unexpected = WhimTexDocumentJson.Read(invalid, false); }
                 catch (WhimTexDocumentException error) { rejected = error.Message.Contains("External FX references are no longer supported"); }

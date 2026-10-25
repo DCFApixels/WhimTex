@@ -65,7 +65,7 @@ public static class GradientClipboardCleanupTests
             int count;
             using (var reader = new BinaryReader(new MemoryStream(model)))
             { reader.BaseStream.Position = offset; count = reader.ReadInt32(); }
-            Check(count == 6, "Canonical gradient has six fields");
+            Check(count == 9, "Canonical gradient has nine fields");
             byte[] extra = Encode(writer => { writer.Write("transition"); writer.Write((byte)14);
                 writer.Write("DCFApixels.WhimTex.WhimTexGradientTransition"); writer.Write("Rounded"); writer.Write(5L); });
             byte[] altered = Encode(writer => { writer.Write(model, 0, offset); writer.Write(count + 1);
@@ -110,14 +110,19 @@ public static class GradientClipboardCleanupTests
             new GradientColorKey(new Color(.1f, 2, 1, .5f), .375f), new GradientColorKey(Color.blue, 1)},
             new[] {new GradientAlphaKey(.125f, .125f), new GradientAlphaKey(.875f, .75f)});
         gradient.SetMidpoint(false, 0, .3f); gradient.SetMidpoint(false, 1, .7f); gradient.SetMidpoint(true, 0, .2f);
-        foreach (WhimTexGradientMode mode in Enum.GetValues(typeof(WhimTexGradientMode)))
+        foreach (var mode in new[] {
+            (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Fixed),
+            (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Balanced),
+            (color: WhimTexGradientColorMode.Linear, interpolation: WhimTexGradientInterpolation.Balanced),
+            (color: WhimTexGradientColorMode.Perceptual, interpolation: WhimTexGradientInterpolation.Balanced)
+        })
         foreach (WhimTexGradientWrapMode wrap in Enum.GetValues(typeof(WhimTexGradientWrapMode)))
         foreach (ColorSpace space in new[] {ColorSpace.Gamma, ColorSpace.Linear})
         {
-            gradient.Mode = mode; gradient.WrapMode = wrap; gradient.ColorSpace = space;
+            gradient.ColorMode = mode.color; gradient.Interpolation = mode.interpolation; gradient.WrapMode = wrap; gradient.ColorSpace = space;
             string json = Write(gradient);
             string body = Body(json);
-            Check(body.Contains("\"mode\": \"" + mode + "\""), "Mode writes name");
+            Check(body.Contains("\"colorMode\": \"" + mode.color + "\"") && body.Contains("\"interpolation\": \"" + mode.interpolation + "\""), "Color mode and interpolation write names");
             Check(body.Contains("\"wrapMode\": \"" + wrap + "\""), "Wrap writes name");
             Check(body.Contains("\"colorSpace\": \"" + space + "\""), "Color space writes name");
             Check(!body.Contains("transition"), "No transition output");
@@ -134,7 +139,7 @@ public static class GradientClipboardCleanupTests
         var inputs = new System.Collections.Generic.List<string> {raw, "WhimTex.Gradient/1\n" + raw,
             "WhimTex.Gradient/1\n" + Write(gradient)};
         inputs.Add("{\"colors\":[{\"time\":0,\"color\":{\"r\":1,\"g\":0,\"b\":0,\"a\":1}},{\"time\":1,\"color\":[0,0,1,1]}]}");
-        foreach (string name in new[] {"mode", "wrapMode", "colorSpace"})
+        foreach (string name in new[] {"colorMode", "wrapMode", "colorSpace"})
             inputs.Add("{\"colors\":" + stops + ",\"" + name + "\":0}");
         foreach (string value in new[] {"0", "\"Rounded\"", "null", "{}"})
             inputs.Add("{\"colors\":" + stops + ",\"transition\":" + value + "}");
@@ -146,7 +151,7 @@ public static class GradientClipboardCleanupTests
         foreach (string input in inputs.GetRange(3, inputs.Count - 3))
         {
             object data = Call("AgentJson", "Parse", input);
-            Reject(() => Call("WhimTexApi", "ReadGradient", data, WhimTexGradientMode.Perceptual, 107f), "API gradient");
+            Reject(() => Call("WhimTexApi", "ReadGradient", data, WhimTexGradientColorMode.Perceptual, 107f), "API gradient");
             foreach (string name in new[] {"tipGradient", "tintGradient"})
             {
                 string brush = "{\"format\":\"whimtex.brush\",\"version\":1,\"source\":\"Standard\",\"settings\":{\"" + name + "\":" + input + "}}";
@@ -163,9 +168,9 @@ public static class GradientClipboardCleanupTests
             string preset = Path.Combine(folder, "Gradients", Guid.NewGuid().ToString("N") + ".json");
             byte[] frozen = File.ReadAllBytes(source); File.Copy(source, preset);
             object[] args = {null}; var entries = (IList)Call("WhimTexGradientPresets", "Read", args);
-            Check(entries.Count == 1 && args[0] == null, "Frozen 0.12.5 preset discovers without warning");
-            var loaded = (WhimTexGradient)entries[0].GetType().GetField("Gradient", Any).GetValue(entries[0]);
-            Same(Read(File.ReadAllText(source)), loaded, "Frozen library preset");
+            Check(entries.Count == 0 && args[0] == null, "Retired preset is silently skipped without modifying its file");
+            var loaded = Read(Write(gradient));
+            Same(gradient, loaded, "Current-format preset roundtrip");
             Same(loaded, Read(File.ReadAllText((string)Call("WhimTexGradientPresets", "Save", loaded))), "Preset resave");
             Check(Convert.ToBase64String(File.ReadAllBytes(preset)) == Convert.ToBase64String(frozen), "Original preset bytes unchanged");
             UnknownDocument(folder);

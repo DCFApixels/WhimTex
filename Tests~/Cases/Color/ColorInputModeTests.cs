@@ -25,7 +25,7 @@ Color primary = new Color(16, 8, 4, .4f), secondary = new Color(2, 4, 1, .7f);
 Color originalPrimary = primary;
 var colorField = new DCFApixels.WhimTex.WhimTexColorField();
 var gradientField = new DCFApixels.WhimTex.WhimTexGradientValueField(null);
-var sourceGradient = new DCFApixels.WhimTex.WhimTexGradient { Mode = DCFApixels.WhimTex.WhimTexGradientMode.Fixed, ColorSpace = ColorSpace.Linear };
+var sourceGradient = new DCFApixels.WhimTex.WhimTexGradient { Interpolation = DCFApixels.WhimTex.WhimTexGradientInterpolation.Fixed, ColorSpace = ColorSpace.Linear };
 sourceGradient.SetKeys(new[] { new GradientColorKey(primary, 0), new GradientColorKey(secondary, 1) },
     new[] { new GradientAlphaKey(.2f, 0), new GradientAlphaKey(.8f, 1) });
 int checks = 0, events = 0;
@@ -61,7 +61,7 @@ try
     Near(gradientField.value.ColorKeys[0].color,
         sourceGradient.ColorKeys[0].color, "Gradient model retains HDR keys while its UI displays a bounded preview");
     Check(sourceGradient.ColorKeys[0].color.r == 16, "Gradient source is not mutated");
-    Check(gradientField.value.Mode == sourceGradient.Mode && gradientField.value.ColorSpace == sourceGradient.ColorSpace,
+    Check(gradientField.value.Interpolation == sourceGradient.Interpolation && gradientField.value.ColorSpace == sourceGradient.ColorSpace,
         "Gradient metadata is preserved");
     Check(gradientField.value.AlphaKeys[0].alpha == .2f, "Gradient alpha is preserved");
     var swap = primary; primary = secondary; secondary = swap;

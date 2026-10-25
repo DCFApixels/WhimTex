@@ -6,6 +6,12 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Custom gradient interpolation adds independent channel curves, tangents and keys. Automatic data and manual curves are retained separately; conversion between color models approximately preserves appearance. Gradient presets, clipboard, API inspection, document formats and tool settings retain manual key identities and inactive data. Endpoint-only HLSL preset export rejects retained Custom curves instead of dropping them. Existing GPU palettes are unchanged.
+- Custom curve editing aligns the graph and the gradient strip directly below it, with matching side margins and no gap. The bilinear 512-sample preview follows horizontal navigation and Clamp/Repeat/Mirror. Coincident keys use one strip marker with a time tolerance of 0.00001; dragging the marker moves its starting set together, while curve points stay independent. Persistent key links and Link/Unlink controls are removed. Keys snap to time/value boundaries 0 and 1, and Repeat endpoints can snap to the opposite endpoint's height.
+- Custom curve editing overlays top/left axis labels, transparent scrollbar tracks and translucent thumbs. The lower row places Output on the left and channel buttons on the right, sharing Canvas View styles and click/drag toggling. The Fit button is removed; F still frames the curves. Scrollbar ends zoom each axis independently; their navigation range stays fixed during panning, track clicks recenter the view, Ctrl+wheel zooms vertically and Escape cancels a drag.
+
+- Quick Selection (`W`) selects connected image regions by brushing, with Add/Subtract, temporary right-mouse or Alt subtraction, brush size, Strength, tolerance and visible/current-layer sampling. Persistent 8-bit tiled hints jointly refine the boundary: gray is unknown, white/black fix foreground/background, and intermediate values provide weaker guidance. The latest stroke replaces earlier hints under the brush; zero Strength clears hints, and background can be marked before the first selection. Native-resolution 8K selections use asynchronous tile readback, a background Burst solver and partial GPU mask uploads; new hints enter an unfinished calculation and pending work can be stopped without losing the selection already shown. Tool preferences are saved with other user settings.
+
 - FX compilation and document inspection expose applied shader locality (`pixelLocal`, `spatial`, `unverified`) with structured reasons and source locations. Pending drafts retain the applied result; failed or uncompiled FX return no locality. Derived diagnostics do not change document revisions.
 
 - Color/Chroma Key adds color-based soft background removal, Chroma/RGB distance, independent Despill and a Matte output as a pixel-local HLSL preset. Distortion/Domain Warp generates raw 2D displacement with three warp types and optional Progressive/Independent fractals; Signed RG and Packed RG retain vector magnitude and work with the existing Displacement Map. Both use the ordinary FX pipeline without renderer changes.
@@ -109,6 +115,31 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- The Comment tool appears directly above Crop in the canvas toolbar.
+- Gradient markers no longer show colored channel badges. Custom gradient handles in Canvas View show only color keys directly on the line or arc, matching ordinary handles and sharing the two-color angular seam. Alpha remains editable in the gradient editor and curve window.
+- Alpha-only markers on the curve-window gradient strip display white over a centered 2×2 checkerboard according to key opacity, independently of RGB. Darker cells improve contrast; square cells continue into the triangular tip at the same scale, clipped to the marker outline.
+
+- Brush-shaped tool icons use smooth filled vector contours for the handle, curved ferrule and bristles, separated by two curved transparent gaps.
+- Quick Selection pairs a brush clipped at the right edge with a short vertical capsule-shaped selection outline at the lower-left edge. Its bristle tip sits near the bottom with a small inset.
+- Pencil uses one compound vector fill for the separated cap and body, with a flat-ended hollow tip, a roughly one-pixel outline and graphite integrated into the cutout contour. No filled shapes overlap and no stroke outlines are layered over the silhouette. The SVG keeps its 24-unit viewport and renders at the matching toolbar scale, with small corner bevels and physical-pixel alignment; the Painter2D fallback uses the same shape and scale.
+
+- Quick Selection uses contrast-sensitive graph cuts with persistent weighted Add/Subtract hints. Coarse-to-fine boundary refinement retains native-resolution output and HDR features; worker-side mask processing publishes only changed tiles.
+- Quick Selection shows a bounded provisional contour while brushing, then refines native boundaries after a short pause or release. New input interrupts obsolete refinement; Copy and tool switching wait asynchronously for the refined selection. Stop discards the provisional contour and keeps committed coverage.
+- Area selections support up to 67,108,864 canvas pixels, including 8192 × 8192 canvases.
+
+- Gradient data separates Color Mode (Linear/Gamma/Perceptual/Hue) from Interpolation
+  (Blend/Balanced/Smooth/Adaptive/Fixed/Custom), with Smoothness, Hue Path and Chroma Correction.
+  Serialization, live API snapshots, clipboard/presets and tool preferences carry the settings;
+  Alpha uses the selected interpolation with its own keys and midpoints. The editor exposes the
+  separate controls; ColorSpace remains the technical key encoding. GPU palette storage is unchanged.
+- Gradient RGB overshoot is bounded per segment by a shared 0–1 range expanded to include
+  all RGB components of both neighboring keys. Signed HDR keys remain unchanged; crossing
+  0 or 1 expands the bounds continuously instead of disabling clipping for the whole segment.
+- Gradient format break: editable document JSON and binary model payload now use version 3,
+  standalone gradient clipboard/presets version 2, and binary brush presets version 2.
+  Older versions are rejected explicitly. GRD imports map color models to Blend and report
+  possible curve differences; PSD rasterizes interpolation settings it cannot represent.
+
 - Existing regression scenarios and their catalog now match current rendering, tool and FX contracts. Test windows isolate tool preferences and clean up owned resources; Gradient creation checks use an explicit palette. The runner supports compact issue-only reports at an explicit path outside the project.
 
 - Unified gradient types across layers, figure fills/strokes, creation tools and agent contracts: Linear replaces separate horizontal/vertical types; Square remains and Diamond is removed. Retired gradient names are rejected without migration; portable JSON always writes an explicit gradient type. The canvas cursor distinguishes all five creation subtypes.
@@ -163,6 +194,23 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Canvas View, layer settings and Profiler panes share an in-flow flex divider, replacing split-view offset corrections. Resizing leaves no gap beside the separator; temporarily narrowing a pane preserves its chosen size for later expansion. Escape cancels a divider drag.
+- Gradient fields use the standard Unity GradientField sizing and spacing, aligning their preview edges and row height with adjacent controls.
+
+- Dense Quick Selection outlines no longer lose disconnected segments. Display simplification uses one coherent grid across tiles and seams, preserving connected contours without changing native selection coverage.
+
+- The Custom curve editor uses the same cached texture preview as the gradient editor, removing seams between separately antialiased color strips.
+- Custom curve grid lines and numeric labels use decimal 1–2–5 steps anchored to curve coordinates. Grid lines retain a maximum main step of 0.5, fade smoothly with zoom and draw overlapping divisions only once. Labels use a separate uncapped step, wider spacing, fixed light transparency and no unnecessary trailing zeros; scrollbar thumbs are more translucent, with stronger hover/drag feedback.
+- Clicking an authored Custom curve activates its channel. Double-clicking near it adds a key on the nearest visible channel at that time, preferring the active channel when curves coincide. Holding the second click immediately drags the new key on either the curve or its gradient strip, with creation and movement in one Undo step. Empty graph space and Wrap continuations do not create keys; Output remains a result preview.
+- Custom curve-strip markers can be deleted by dragging above or below the strip and releasing. Pending deletion uses a faded marker and red outline; dragging back cancels deletion and Escape cancels the gesture. Deletion uses the keys selected at drag start, retains at least one key per channel and stays in the same Undo step.
+- Custom curve wheel and scrollbar zoom no longer use preset minimum/maximum magnification. Numerically unrepresentable view changes are rejected; extreme-value labels remain readable and subpixel Wrap repetitions use a bounded value-range preview instead of iterating every repeat.
+- The curve background outside 0–1 on either axis is slightly darker, without double shading at the corners. Translucent curve continuations follow Clamp/Repeat/Mirror, sample only visible intervals and keep Repeat seams disconnected. With Output enabled, continuations show only the final curve to avoid brightening from overlapping lines.
+
+- Unreadable gradient preset files are silently omitted from the preset library.
+- Derived FX locality diagnostics are excluded from document serialization and JSON schemas.
+
+- The FX preset menu uses a prepared header snapshot instead of scanning all project HLSL files on its first click after script reload. Header reads run in the background, retained session entries stay available, and stale scans cannot overwrite newer imports or library changes. Presets still compile only when selected.
+
 - FX rebuild outdated generated coordinate contracts after reload without applying pending drafts. Compact JSON restores the current color-only default source instead of the retired float2 entry point.
 
 - Duplicating Drawing layers and applying FX flush pending paint without replacing untouched source pixels with a lower-precision preview readback.
@@ -215,7 +263,7 @@ All notable changes to WhimTex are documented in this file.
 
 - Breaking: old external Material, Shader or ShaderFX `.asset` FX references in JSON/TIFF are explicitly rejected, including unresolved references. There is no migration, silent omission or document rewrite. Keep originals and use a matching older checkout; marked HLSL source links and texture parameter references remain supported.
 - This is unreleased development after 0.13.0, without a backward-compatibility guarantee for that release's documents, presets, public APIs or user settings. Keep originals and use a matching older checkout for unsupported files; do not overwrite them assuming an automatic migration.
-- Current document JSON, TIFF container and tagged model formats use version 2. Previous document versions and retired names such as `swizzle` and `modifiers` are unsupported; use `channelMapping` and `fx`. The shared version number is not a compatibility promise between development revisions. Update integrations for the renamed document/window types and `grainColor`/`grainSize` settings; see the [current JSON contract](Documentation~/JSON_FORMAT.md).
+- Current document JSON and tagged model payloads use version 3; the TIFF container remains version 2. Previous document versions and retired names such as `swizzle` and `modifiers` are unsupported; use `channelMapping` and `fx`. The shared version number is not a compatibility promise between development revisions. Update integrations for the renamed document/window types and `grainColor`/`grainSize` settings; see the [current JSON contract](Documentation~/JSON_FORMAT.md).
 - Former non-antialiased SDF choices are replaced by the current mode set. Round AA remains the default algorithm; Corner Mode defaults to Unrestricted on Sharp, MTSDF, Corner Fit, Spring and both RBF modes. Choose Guarded Sharp for the additional artifact checks, and review experimental output on the intended source and resolution. MTSDF Multi Channel Data uses alpha as distance, not transparency: use Overwrite blending and linear RGBA export when preserving its channels. See the [output and encoding rules](Documentation~/en/effects.md#outline-and-sdf).
 - Shape-to-Vector conversion is not pixel-identical for every style: active Feather, certain transformed strokes and overlapping geometry can be rejected before conversion. Dash patterns are width multipliers, not pixel lengths; Vector strokes scale with the layer, while Shape strokes keep their document-pixel width.
 

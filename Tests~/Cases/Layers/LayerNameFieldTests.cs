@@ -348,9 +348,9 @@ public static class LayerNameFieldTests
         header.style.width = StyleKeyword.Null;
         root.Focus(); outside.RemoveFromHierarchy();
         var settingsPane = root.Q<VisualElement>(className: "whimtex-settings-pane");
-        var workspaceSplit = root.Q<TwoPaneSplitView>(className: "whimtex-workspace-split");
+        var workspaceSplit = root.Q<WhimTexSplitView>(className: "whimtex-workspace-split");
         context.True(settingsPane != null && workspaceSplit != null, "The owned workspace exposes its public split layout");
-        workspaceSplit.fixedPaneInitialDimension = 520f;
+        workspaceSplit.FixedPaneSize = 520f;
         await Settle(5);
         AllColumns(true, true, "Normal wide Layers context");
         context.True(Row(firstId).worldBound.xMax <= settingsPane.worldBound.xMax + .1f,
@@ -363,7 +363,7 @@ public static class LayerNameFieldTests
             "Owned wide Layers context pixels were retained for visual review");
         settingsPane.style.minWidth = 0f;
         settingsPane.style.maxWidth = 350f;
-        workspaceSplit.fixedPaneInitialDimension = 350f;
+        workspaceSplit.FixedPaneSize = 350f;
         await Settle(5);
         AllColumns(true, false, "Normal intermediate Layers context keeps only Opacity");
         context.True(Row(firstId).worldBound.xMax <= settingsPane.worldBound.xMax + .1f,
@@ -373,7 +373,7 @@ public static class LayerNameFieldTests
         context.True(System.IO.File.Exists(middlePreviewPath) && new System.IO.FileInfo(middlePreviewPath).Length > 32,
             "Owned Opacity-only Layers context pixels were retained for visual review");
         settingsPane.style.maxWidth = 230f;
-        workspaceSplit.fixedPaneInitialDimension = 230f;
+        workspaceSplit.FixedPaneSize = 230f;
         await Settle(5);
         context.True(settingsPane.worldBound.width <= 230.1f,
             "The narrow preview resizes the actual settings pane");

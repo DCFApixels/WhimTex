@@ -369,13 +369,17 @@ namespace DCFApixels.WhimTex
             result.Validate(); return result;
         }
 
-        internal static WhimTexGradient ReadGradient(JToken token, WhimTexGradientMode defaultMode = WhimTexGradientMode.Perceptual, float maximumColor = 107f)
+        internal static WhimTexGradient ReadGradient(JToken token, WhimTexGradientColorMode defaultColorMode = WhimTexGradientColorMode.Perceptual, float maximumColor = 107f)
         {
             if (token is JObject data)
             {
-                Keys(data, "colors", "alphas", "mode", "wrapMode", "smoothness", "colorSpace");
-                var result = ReadGradient(data["colors"], defaultMode, maximumColor);
-                result.Mode = Enum(data, "mode", defaultMode);
+                Require(data["mode"] == null, "Gradient mode is no longer supported. Use colorMode and interpolation.");
+                Keys(data, "colors", "alphas", "colorMode", "interpolation", "huePath", "chromaCorrection", "wrapMode", "smoothness", "colorSpace", "customKeys", "customColorMode");
+                var result = ReadGradient(data["colors"], defaultColorMode, maximumColor);
+                result.ColorMode = Enum(data, "colorMode", defaultColorMode);
+                var interpolation = Enum(data, "interpolation", WhimTexGradientInterpolation.Balanced);
+                result.HuePath = Enum(data, "huePath", WhimTexGradientHuePath.Shortest);
+                result.ChromaCorrection = Number(data, "chromaCorrection", 0f, 0f, 1f);
                 result.WrapMode = Enum(data, "wrapMode", WhimTexGradientWrapMode.Clamp);
                 result.Smoothness = Number(data, "smoothness", 1f, 0f, 1f);
                 result.ColorSpace = Enum(data, "colorSpace", ColorSpace.Gamma);
@@ -393,6 +397,15 @@ namespace DCFApixels.WhimTex
                     result.SetKeys(result.ColorKeys,alphaKeys);
                     for(int i=0;i<a.Count;i++) result.SetMidpoint(true,i,Number((JObject)a[i],"midpoint",.5f,.01f,.99f));
                 }
+                var customKeys = ReadCustomGradientKeys(data["customKeys"]);
+                bool hasCustom = customKeys != null && customKeys.Length != 0;
+                Require(!hasCustom || data["customColorMode"] != null, "customColorMode is required with customKeys.");
+                Require(interpolation != WhimTexGradientInterpolation.Custom || hasCustom,
+                    "Custom interpolation requires explicit customKeys; convert an automatic gradient with the C# API or curve editor first.");
+                var customMode = Enum(data, "customColorMode", WhimTexGradientColorMode.Perceptual);
+                result.SetCustomData(customKeys, customMode);
+                // Select Custom only after restoring both datasets: the setter may prepare initial curves.
+                result.Interpolation = interpolation;
                 return result;
             }
             Require(token is JArray keys && keys.Count >= 1 && keys.Count <= 64, "gradient must contain 1..64 {time, color} stops.");
@@ -416,13 +429,72 @@ namespace DCFApixels.WhimTex
                 previous = time;
             }
             var gradient = GradientUtility.Create(colors, alphas);
-            gradient.Mode = defaultMode;
+            gradient.ColorMode = defaultColorMode;
             for(int i=0;i<values.Count;i++)
             {
                 gradient.SetMidpoint(false,i,Number((JObject)values[i],"midpoint",.5f,.01f,.99f));
                 gradient.SetMidpoint(true,i,Number((JObject)values[i],"alphaMidpoint",.5f,.01f,.99f));
             }
             return gradient;
+        }
+
+        private static WhimTexGradientCurveKey[] ReadCustomGradientKeys(JToken token)
+        {
+            if (token == null || token.Type == JTokenType.Null) return null;
+            Require(token is JArray values && values.Count <= 256, "customKeys must be an array with at most 256 keys.");
+            var data = (JArray)token;
+            var result = new WhimTexGradientCurveKey[data.Count];
+            for (int i = 0; i < data.Count; i++)
+            {
+                var key = Obj(data[i], "custom gradient key");
+                Keys(key, "id", "channel", "time", "value", "inTangent", "outTangent", "tangentMode");
+                Require(key["id"] != null && key["channel"] != null && key["time"] != null && key["value"] != null && key["tangentMode"] != null,
+                    "Custom keys require id, channel, time, value and tangentMode.");
+                int channel = Int(key, "channel", 0, 0, 3);
+                result[i] = new WhimTexGradientCurveKey
+                {
+                    id = Int(key, "id", 0, 1, int.MaxValue), channel = channel,
+                    time = Number(key["time"], "time", 0, 1),
+                    value = Number(key["value"], "value", channel == 3 ? 0 : -float.MaxValue, channel == 3 ? 1 : float.MaxValue),
+                    inTangent = Number(key, "inTangent", 0, -float.MaxValue, float.MaxValue),
+                    outTangent = Number(key, "outTangent", 0, -float.MaxValue, float.MaxValue),
+                    tangentMode = Enum(key, "tangentMode", WhimTexGradientTangentMode.Auto)
+                };
+            }
+            // SetCustomData validates IDs, channel coverage and collision spacing.
+            return result;
+        }
+
+        internal static JObject WriteGradient(WhimTexGradient gradient)
+        {
+            if (gradient == null) throw new ArgumentNullException(nameof(gradient));
+            gradient.Evaluate(0);
+            var colors = new JArray();
+            var alphas = new JArray();
+            var c = gradient.AutomaticColorKeys;
+            var a = gradient.AutomaticAlphaKeys;
+            for (int i = 0; i < c.Length; i++)
+                colors.Add(new JObject { ["time"] = c[i].time, ["color"] = Json(c[i].color), ["midpoint"] = gradient.GetMidpoint(false, i) });
+            for (int i = 0; i < a.Length; i++)
+                alphas.Add(new JObject { ["time"] = a[i].time, ["alpha"] = a[i].alpha, ["midpoint"] = gradient.GetMidpoint(true, i) });
+            var result = new JObject
+            {
+                ["colors"] = colors, ["alphas"] = alphas, ["colorMode"] = gradient.AutomaticColorMode.ToString(),
+                ["interpolation"] = gradient.Interpolation.ToString(), ["huePath"] = gradient.HuePath.ToString(),
+                ["chromaCorrection"] = gradient.ChromaCorrection, ["wrapMode"] = gradient.WrapMode.ToString(),
+                ["smoothness"] = gradient.Smoothness, ["colorSpace"] = gradient.ColorSpace.ToString()
+            };
+            if (gradient.HasCustomCurves)
+            {
+                var keys = new JArray();
+                foreach (var key in gradient.CustomKeys)
+                    keys.Add(new JObject { ["id"] = key.id, ["channel"] = key.channel,
+                        ["time"] = key.time, ["value"] = key.value, ["inTangent"] = key.inTangent,
+                        ["outTangent"] = key.outTangent, ["tangentMode"] = key.tangentMode.ToString() });
+                result["customColorMode"] = gradient.CustomColorMode.ToString();
+                result["customKeys"] = keys;
+            }
+            return result;
         }
 
         private static double TransformNumber(JToken token)

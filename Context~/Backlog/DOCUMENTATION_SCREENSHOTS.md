@@ -72,8 +72,8 @@
 Место: [Color → Настроить градиент](../../Documentation~/ru/color.md#настроить-градиент).
 
 Сначала актуальное окно: цветовые/альфа-ключи, midpoint, Mode, Smoothness, Wrap, History и Presets.
-Затем одинаковые ключи в Classic, Linear, Perceptual и Fixed. Отдельная пара Smoothness 0/100 на градиенте с постоянным крайним участком.
-Не менять цвета или положения ключей между кадрами. Не нужен график внутренних формул Rounded.
+Затем одинаковые ключи в Color Mode Linear/Gamma/Perceptual/Hue и Interpolation Blend/Balanced/Smooth/Adaptive/Fixed. Отдельная пара Smoothness 0/100 на градиенте с постоянным крайним участком.
+Не менять цвета или положения ключей между кадрами. Не нужен график внутренних формул интерполяции.
 Имена: `gradient-editor.png`, `gradient-modes-*.png`, `gradient-smoothness-*.png`.
 
 ### 07. HDR и Preview EV

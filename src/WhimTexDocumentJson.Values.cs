@@ -143,52 +143,78 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
-        private static JObject defaultsV2;
+        private static JObject defaultsV3;
+        internal static void ValidateGradientStorage(WhimTexGradient gradient)
+        {
+            if (gradient == null) return;
+            if (gradient.Interpolation == WhimTexGradientInterpolation.Custom && !gradient.HasCustomCurves)
+                throw new WhimTexDocumentException("Custom interpolation requires saved customKeys.");
+            // Validate dormant data too, without clearing the saved approximation diagnostic.
+            var automatic = gradient.Clone();
+            automatic.Interpolation = WhimTexGradientInterpolation.Balanced;
+            automatic.Evaluate(0);
+            if (!Enum.IsDefined(typeof(WhimTexGradientColorMode), gradient.CustomColorMode))
+                throw new WhimTexDocumentException("Invalid Custom color mode.");
+            if (gradient.HasCustomCurves)
+            {
+                var manual = gradient.Clone();
+                manual.Interpolation = WhimTexGradientInterpolation.Custom;
+                manual.Evaluate(0);
+            }
+            if (float.IsNaN(gradient.CustomApproximationError) || float.IsInfinity(gradient.CustomApproximationError) || gradient.CustomApproximationError < 0)
+                throw new WhimTexDocumentException("Custom approximation error must be finite and nonnegative.");
+            gradient.Evaluate(0);
+        }
+
         private static JObject DefaultsFor(Type type)
         {
-            if (defaultsV2 == null)
+            if (defaultsV3 == null)
             {
-                defaultsV2 = JObject.Parse(WhimTexJsonDefaultsV2.Data);
-                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV2.LayoutData).Properties())
-                    defaultsV2[entry.Name] = entry.Value;
-                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV2.VectorData).Properties())
-                    defaultsV2[entry.Name] = entry.Value;
-                defaultsV2["VectorShape"]["gradient"] = defaultsV2["WhimTexGradient"].DeepClone();
-                defaultsV2["VectorShape"]["strokeGradient"] = defaultsV2["WhimTexGradient"].DeepClone();
-                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV2.LayerBooleanData).Properties())
-                    defaultsV2["Layer"][entry.Name] = entry.Value;
-                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV2.ShapeFillData).Properties())
-                    defaultsV2["ShapeLayerBehaviour"][entry.Name] = entry.Value;
-                defaultsV2["ShapeLayerBehaviour"]["gradient"] = defaultsV2["WhimTexGradient"].DeepClone();
-                defaultsV2["ShapeLayerBehaviour"]["strokeGradient"] = defaultsV2["WhimTexGradient"].DeepClone();
-                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV2.PreviewControlData).Properties())
-                    defaultsV2["ShaderFXParameterControl"][entry.Name] = entry.Value;
-                defaultsV2["ShaderFXParameterControl"]["containers"] = new JArray();
-                defaultsV2["ShaderFXParameterControl"]["enableIf"] = new JArray();
+                defaultsV3 = JObject.Parse(WhimTexJsonDefaultsV3.Data);
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.CustomGradientData).Properties())
+                    defaultsV3["WhimTexGradient"][entry.Name] = entry.Value;
+                defaultsV3["WhimTexGradientCurveKey"] = JObject.Parse(WhimTexJsonDefaultsV3.CustomGradientKeyData);
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.LayoutData).Properties())
+                    defaultsV3[entry.Name] = entry.Value;
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.VectorData).Properties())
+                    defaultsV3[entry.Name] = entry.Value;
+                defaultsV3["VectorShape"]["gradient"] = defaultsV3["WhimTexGradient"].DeepClone();
+                defaultsV3["VectorShape"]["strokeGradient"] = defaultsV3["WhimTexGradient"].DeepClone();
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.LayerBooleanData).Properties())
+                    defaultsV3["Layer"][entry.Name] = entry.Value;
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.ShapeFillData).Properties())
+                    defaultsV3["ShapeLayerBehaviour"][entry.Name] = entry.Value;
+                defaultsV3["ShapeLayerBehaviour"]["gradient"] = defaultsV3["WhimTexGradient"].DeepClone();
+                defaultsV3["ShapeLayerBehaviour"]["strokeGradient"] = defaultsV3["WhimTexGradient"].DeepClone();
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.PreviewControlData).Properties())
+                    defaultsV3["ShaderFXParameterControl"][entry.Name] = entry.Value;
+                defaultsV3["ShaderFXParameterControl"]["containers"] = new JArray();
+                defaultsV3["ShaderFXParameterControl"]["enableIf"] = new JArray();
                 foreach (var modelName in new[] { "ShaderFXParameter", "ShaderFXParameterControl" })
-                    foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV2.CyclicRangeData).Properties())
-                        defaultsV2[modelName][entry.Name] = entry.Value.DeepClone();
-                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV2.TextFillData).Properties())
-                    defaultsV2["TextLayerBehaviour"][entry.Name] = entry.Value;
-                defaultsV2["TextLayerBehaviour"]["gradient"] = defaultsV2["WhimTexGradient"].DeepClone();
-                defaultsV2["GradientLayerBehaviour"]["freeform"] = JObject.Parse(@"{""points"":[
+                    foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.CyclicRangeData).Properties())
+                        defaultsV3[modelName][entry.Name] = entry.Value.DeepClone();
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.TextFillData).Properties())
+                    defaultsV3["TextLayerBehaviour"][entry.Name] = entry.Value;
+                defaultsV3["TextLayerBehaviour"]["gradient"] = defaultsV3["WhimTexGradient"].DeepClone();
+                defaultsV3["GradientLayerBehaviour"]["freeform"] = JObject.Parse(@"{""points"":[
                     {""position"":[0.25,0.3],""color"":[0.95,0.35,0.2,1],""influence"":0.35},
                     {""position"":[0.75,0.3],""color"":[0.2,0.5,0.95,1],""influence"":0.35},
                     {""position"":[0.5,0.75],""color"":[0.7,0.25,0.85,1],""influence"":0.35}]}");
                 foreach (string model in new[] { "ShapeLayerBehaviour", "VectorShape" })
                 {
-                    defaultsV2[model]["freeform"] = defaultsV2["GradientLayerBehaviour"]["freeform"].DeepClone();
-                    defaultsV2[model]["strokeFreeform"] = defaultsV2["GradientLayerBehaviour"]["freeform"].DeepClone();
+                    defaultsV3[model]["freeform"] = defaultsV3["GradientLayerBehaviour"]["freeform"].DeepClone();
+                    defaultsV3[model]["strokeFreeform"] = defaultsV3["GradientLayerBehaviour"]["freeform"].DeepClone();
                 }
-                defaultsV2["FreeformGradientPoint"] = JObject.Parse(@"{""position"":[0.5,0.5],""color"":[1,1,1,1],""influence"":0.35}");
+                defaultsV3["FreeformGradientPoint"] = JObject.Parse(@"{""position"":[0.5,0.5],""color"":[1,1,1,1],""influence"":0.35}");
             }
-            return defaultsV2[TypeName(type)] as JObject;
+            return defaultsV3[TypeName(type)] as JObject;
         }
 
         private static bool IsDefault(Type type, string field, JToken value)
         {
             if (field == "id" || field == "behaviour" || field == "behaviourId" || field == "children" || field == "fx") return false;
             if (type == typeof(GradientLayerBehaviour) && field == "gradientType") return false;
+            if (type == typeof(WhimTexGradient) && field == "customColorMode") return false;
             return DefaultsFor(type)?[field] is JToken baseline && JToken.DeepEquals(value, baseline);
         }
 

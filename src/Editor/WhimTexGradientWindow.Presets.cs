@@ -139,7 +139,8 @@ namespace DCFApixels.WhimTex
             Edit(() =>
             {
                 gradient = value.Clone();
-                selected = 0; midpointSelected = false; pendingRemoval = false;
+                selected = 0; selectedCustomKey = 0; midpointSelected = false; pendingRemoval = false;
+                pendingColorMode = gradient.ColorMode;
                 hdrPreferences.Clear(); intensityPreferences.Clear();
             });
         }

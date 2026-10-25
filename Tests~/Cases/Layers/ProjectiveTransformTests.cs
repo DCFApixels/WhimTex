@@ -81,7 +81,7 @@ public static class ProjectiveTransformTests
     {
         const BindingFlags f=BindingFlags.Static|BindingFlags.NonPublic;
         var read=typeof(WhimTexApi).GetMethod("ReadProceduralClipboard",f);
-        string root="{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"transform\":";
+        string root="{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"transform\":";
         string[] bodies={"{\"storage\":\"Projective\",\"matrix\":{\"m00\":0.8,\"m01\":0.1,\"m02\":0.05,\"m10\":0,\"m11\":0.8,\"m12\":0.1,\"m20\":0,\"m21\":0.25,\"m22\":1}}","{\"position\":{\"x\":12.123456789123,\"y\":0}}","{\"storage\":\"Projective\",\"matrix\":{\"m00\":1,\"m01\":0,\"m02\":0,\"m10\":0,\"m11\":1,\"m12\":0,\"m20\":0,\"m21\":0,\"m22\":1},\"scale\":{\"x\":2,\"y\":3}}"};
         for(int i=0;i<bodies.Length;i++)
         {
@@ -102,7 +102,7 @@ public static class ProjectiveTransformTests
     {
         var doc=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());doc.hideFlags=HideFlags.HideAndDontSave;doc.width=doc.height=64;
         var g=new GradientLayerBehaviour {gradientType=GradientLayerBehaviour.GradientType.Linear};
-        g.gradient.Mode=WhimTexGradientMode.Linear;g.gradient.Smoothness=0;
+        g.gradient.ColorMode=WhimTexGradientColorMode.Linear;g.gradient.Smoothness=0;
         g.gradient.SetKeys(new[]{new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,1)},
             new[]{new GradientAlphaKey(0,0),new GradientAlphaKey(1,1)});
         Layer layer=g;transform.tiling=TransformTilingMode.Unbounded;layer.transform=transform;doc.layers.Add(layer);

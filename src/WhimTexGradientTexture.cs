@@ -40,7 +40,7 @@ namespace DCFApixels.WhimTex
             }
             if (texture == null) texture = new Texture2D(width, 2, TextureFormat.RGBAHalf, false, true)
                 { name = "WhimTex Gradient LUT", hideFlags = HideFlags.HideAndDontSave, wrapMode = TextureWrapMode.Clamp };
-            texture.filterMode = gradient.Mode == WhimTexGradientMode.Fixed ? FilterMode.Point : FilterMode.Bilinear;
+            texture.filterMode = gradient.Interpolation == WhimTexGradientInterpolation.Fixed ? FilterMode.Point : FilterMode.Bilinear;
             texture.SetPixels(pixels); texture.Apply(false, false);
             source = gradient; colorRevision = gradient.ColorRevision; outputSpace = space; BakeCount++;
             return texture;

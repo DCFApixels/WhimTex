@@ -117,7 +117,7 @@ public static class VectorPaintBenchmark
         var s=new VectorShape{fillMode=VectorFillMode.AngularGradient,gradientStart=new Vector2(.43f,.47f),gradientEnd=new Vector2(.8f,.6f),gradientRepetitions=1.7f,
             stroke=true,strokeWidth=14,strokeMode=VectorFillMode.LinearGradient,strokeGradientStart=new Vector2(.2f,.3f),strokeGradientEnd=new Vector2(.8f,.6f),
             join=VectorStrokeJoin.Round,cap=VectorStrokeCap.Round,dashPatternRelative=true,dashPattern=new List<float>{1,1.3f},strokePosition=VectorStrokePosition.Inside};
-        s.gradient.WrapMode=WhimTexGradientWrapMode.Mirror;s.gradient.Mode=WhimTexGradientMode.Perceptual;
+        s.gradient.WrapMode=WhimTexGradientWrapMode.Mirror;s.gradient.ColorMode=WhimTexGradientColorMode.Perceptual;
         s.gradient.SetKeys(new[]{new GradientColorKey(new Color(.8f,.03f,.1f),0),new GradientColorKey(new Color(.05f,.6f,1.4f),.45f),new GradientColorKey(Color.white,1)},new[]{new GradientAlphaKey(.4f,0),new GradientAlphaKey(.9f,1)});
         s.strokeGradient.SetKeys(new[]{new GradientColorKey(Color.yellow,0),new GradientColorKey(Color.magenta,1)},new[]{new GradientAlphaKey(.35f,0),new GradientAlphaKey(.8f,1)});
         var contour=new VectorContour();s.contours.Add(contour);

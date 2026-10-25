@@ -150,7 +150,7 @@ Gain、Levels、Threshold、环境光及扭曲偏移在适当位置提供软边�
 效果还可以提供渐变字段。点击色带即可编辑颜色、透明度和插值，包括 HDR 颜色。
 默认渐变为黑到白，也可在 HLSL 声明中指定两个端点，例如 `// @param gradient _Ramp = #FF0000FF -> #0000FF`。
 十六进制颜色按 RGBA 顺序书写；六位颜色默认完全不透明。更改会立即更新效果；简单双端点渐变可以保存为 HLSL 预设默认值。
-未指定默认值时使用 Perceptual 插值；HLSL 双颜色声明使用 Classic。
+未指定默认值时使用 Perceptual 颜色模式和 Balanced 插值；HLSL 双颜色声明使用 Gamma/Blend，Smoothness 为 0%。
 
 渐变编辑器中的 **Wrap** 决定 0–1 以外的行为：**Clamp** 保持端点颜色，**Repeat** 重复渐变，**Mirror** 交替反转方向。若效果自身限制了输入范围，循环可能不会显现。
 
@@ -191,15 +191,17 @@ Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已
 
 在 **User Settings → Presets → Presets Folder** 中设置共享库位置。其 **Brushes**
 和 **ShaderFX** 子文件夹分别存放两类预设。你也可以将现有的
-HLSL 预设放入 ShaderFX 或其子文件夹；重新打开 **+ Preset** 即可在 **User** 下看到它们。
+HLSL 预设放入 ShaderFX 或其子文件夹，它们会显示在 **+ Preset → User** 中。
+返回 Unity 时，列表会在后台刷新。如果菜单打开时刷新尚未完成，请关闭后重新打开。
+首次启动时可能会短暂显示 **Loading effect presets…**。
 用户预设会被复制到文档中，后续文件修改不会影响已添加的效果。
 从项目 **Assets** 添加预设会创建关联实例，修改文件会更新与其关联的效果。导出预设本身不会将当前效果重新关联到新文件。
 
 纹理默认值是引用，而不是内嵌图像。要在另一个项目中使用它们，
 还需一并转移被引用的纹理资源及其 `.meta` 文件，或指定替换资源。
 
-编辑后的渐变保存在文档中。HLSL 默认值支持两个端点、Classic 插值、Gamma 色彩空间、
-Clamp 循环、Smoothness 100% 和居中的中点。其他设置必须在导出前简化；导出不会静默丢弃设置。
+编辑后的渐变保存在文档中。HLSL 默认值支持两个端点、Gamma 颜色模式、Blend 插值、Gamma 关键点编码、
+Clamp 循环、Smoothness 0%、Chroma Correction 0 和居中的中点。其他设置必须在导出前简化；导出不会静默丢弃设置。
 
 ## 将效果烘焙到图层
 

@@ -35,7 +35,7 @@ public static class GradientMapTests
             var source = values.Find(p => p.name == "_SourceChannel");
             UnityBRun.Check(!(source == null || source.floatValue != 0), "Luminance remains the default source");
             var gradient = values.Find(p => p.name == "_Gradient").gradientValue;
-            gradient.Mode = WhimTexGradientMode.Linear;
+            gradient.ColorMode = WhimTexGradientColorMode.Linear;
             gradient.ColorSpace = ColorSpace.Linear;
             gradient.Smoothness = 0;
             gradient.SetKeys(new[] { new GradientColorKey(Color.red * 2, 0), new GradientColorKey(Color.blue, 1) },

@@ -103,7 +103,7 @@ public static class ShapeDesignTests
                 test.Equal(shape.innerCorner, copy.innerCorner, "Inner corner roundtrip " + mode);
                 test.Equal(mode == WhimTexJsonWriteMode.Full ? shape.lineCap : LineCap.Round, copy.lineCap, "Inactive fields use their defaults in pruned JSON " + mode);
             }
-            using (var defaults = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"arc\",\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\",\"kind\":\"Arc\"}}]}", false))
+            using (var defaults = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"arc\",\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\",\"kind\":\"Arc\"}}]}", false))
             {
                 var arc = (ShapeLayerBehaviour)defaults.Document.layers[0].Behaviour;
                 test.Equal(LineCap.Round, arc.lineCap, "Omitted caps use current Shape defaults"); test.Equal(90f, arc.sweepAngle, "Omitted arc sweep uses current default");

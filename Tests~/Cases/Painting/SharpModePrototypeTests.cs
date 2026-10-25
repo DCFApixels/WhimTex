@@ -95,7 +95,7 @@ public static class SharpModePrototypeTests
         t.True(differentModes>=5,"Modes produce different fields across the sample set");
         foreach(var mode in new[]{SharpDistanceMode.Unrestricted,SharpDistanceMode.GuardedSharp})
         {
-            string json="{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[{\"id\":\"s\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\",\"sharpMode\":\""+mode+"\"}},{\"id\":\"o\",\"behaviour\":{\"$type\":\"OutlineLayerBehaviour\",\"sharpMode\":\""+mode+"\"}}]}";
+            string json="{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"s\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\",\"sharpMode\":\""+mode+"\"}},{\"id\":\"o\",\"behaviour\":{\"$type\":\"OutlineLayerBehaviour\",\"sharpMode\":\""+mode+"\"}}]}";
             using var source=Read(json);
             var doc=Document(source);
             string exported=(string)typeof(WhimTexApi).GetMethod("WritePortableClipboard",Static).Invoke(null,new object[]{doc,doc.layers});

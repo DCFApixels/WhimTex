@@ -66,10 +66,13 @@ public static class VectorPaintCacheTests
                 shape.gradient.WrapMode = wrap; Check("fill wrap " + wrap);
                 shape.strokeGradient.WrapMode = wrap; Check("stroke wrap " + wrap);
             }
-            foreach (var mode in new[] { WhimTexGradientMode.Fixed, WhimTexGradientMode.Perceptual })
+            foreach (var mode in new[] {
+                (color: WhimTexGradientColorMode.Gamma, interpolation: WhimTexGradientInterpolation.Fixed),
+                (color: WhimTexGradientColorMode.Perceptual, interpolation: WhimTexGradientInterpolation.Balanced)
+            })
             {
-                shape.gradient.Mode = mode; Check("fill interpolation " + mode);
-                shape.strokeGradient.Mode = mode; Check("stroke interpolation " + mode);
+                shape.gradient.ColorMode = mode.color; shape.gradient.Interpolation = mode.interpolation; Check("fill interpolation " + mode);
+                shape.strokeGradient.ColorMode = mode.color; shape.strokeGradient.Interpolation = mode.interpolation; Check("stroke interpolation " + mode);
             }
             shape.gradient = Ramp(true); Check("replace fill palette");
             shape.strokeGradient = Ramp(); Check("replace stroke palette");
@@ -315,7 +318,7 @@ public static class VectorPaintCacheTests
 
     static WhimTexGradient Ramp(bool reverse = false)
     {
-        var gradient = new WhimTexGradient { Mode = WhimTexGradientMode.Classic, ColorSpace = ColorSpace.Linear };
+        var gradient = new WhimTexGradient { ColorMode = WhimTexGradientColorMode.Gamma, ColorSpace = ColorSpace.Linear };
         SetRamp(gradient, reverse ? Color.blue : Color.red, reverse ? Color.yellow : Color.green, .8f, .6f);
         return gradient;
     }

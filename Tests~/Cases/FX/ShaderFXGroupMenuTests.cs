@@ -89,11 +89,11 @@ public static class ShaderFXGroupMenuTests
             var defaults = Values(effect).ToDictionary(p => p.name, p => JsonUtility.ToJson(p));
             P("_AEnabled").floatValue = 0; P("_AAmount").floatValue = .8f; P("_ASecret").floatValue = .7f;
             P("_ATint").colorValue = Color.magenta; P("_AProfile").curveValue = AnimationCurve.EaseInOut(0, .1f, 1, .9f);
-            P("_APalette").gradientValue.Mode = WhimTexGradientMode.Classic;
+            P("_APalette").gradientValue.ColorMode = WhimTexGradientColorMode.Gamma;
             P("_AFrame").transformValue = new ShaderFXTransform { position = new Double2(.2, .3), size = new Double2(.7, .8), rotation = 35 };
             Action(Menu(view, first), "Copy").Execute();
             t.True(GUIUtility.systemCopyBuffer.StartsWith("WhimTex parameter group:"), "Copy uses the ordinary clipboard channel");
-            P("_APalette").gradientValue.Mode = WhimTexGradientMode.Linear; P("_AAmount").floatValue = .3f;
+            P("_APalette").gradientValue.ColorMode = WhimTexGradientColorMode.Linear; P("_AAmount").floatValue = .3f;
             var unrelated = Values(effect).Where(p => !p.name.StartsWith("_B")).ToDictionary(p => p.name, p => JsonUtility.ToJson(p));
             var ids = Values(effect).ToDictionary(p => p.name, p => p.id);
             Undo.IncrementCurrentGroup();
@@ -104,7 +104,7 @@ public static class ShaderFXGroupMenuTests
             t.Equal(0f, P("_BEnabled").floatValue, "Linked header value is included");
             t.Equal(.7f, P("_BSecret").floatValue, "Hidden values are included");
             t.Equal(Color.magenta, P("_BTint").colorValue, "Color is copied");
-            t.Equal(WhimTexGradientMode.Classic, P("_BPalette").gradientValue.Mode, "Clipboard is a snapshot, not a live source reference");
+            t.Equal(WhimTexGradientColorMode.Gamma, P("_BPalette").gradientValue.ColorMode, "Clipboard is a snapshot, not a live source reference");
             t.True(!ReferenceEquals(P("_AProfile").curveValue, P("_BProfile").curveValue) &&
                 !ReferenceEquals(P("_APalette").gradientValue, P("_BPalette").gradientValue), "Mutable values are independently cloned");
             t.Near(.1, P("_BProfile").curveValue.Evaluate(0), .00001, "Curve values are copied");

@@ -620,7 +620,9 @@ recovery data returns `recovery_unavailable`. Closed documents are never reopene
   the agent must explicitly resume. Serialized reservations remain recognizable and removable.
   Saving normally keeps jobs alive; Save As transfers active jobs to the newly saved copy in that window.
 - `document_busy` means wait for the current paint/transform/selection/drag gesture or delayed text edit
-  to end, then retry the same request. No command ends the user's gesture or discards typed text.
+  to end, then retry the same request. This includes pending Quick Selection tile calculations,
+  even after pointer release: do not capture an unfinished mask. No command ends the user's
+  gesture or discards typed text. See the [Quick Selection runtime contract](QuickSelection.md).
   Canvas resize produces a conflict; cancel and capture again.
 - After timeout, inspect status before retrying. Do not create a second reservation merely because the
   first response was lost. After an unknown job/session error, rediscover and inspect; never silently

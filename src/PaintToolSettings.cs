@@ -124,8 +124,9 @@ namespace DCFApixels.WhimTex
 
         internal static PaintToolSettings DecodePreferences(string json)
         {
-            if (Newtonsoft.Json.Linq.JToken.Parse(json) is not Newtonsoft.Json.Linq.JObject)
+            if (Newtonsoft.Json.Linq.JToken.Parse(json) is not Newtonsoft.Json.Linq.JObject data)
                 throw new FormatException("Expected paint settings.");
+            WhimTexUserSettings.ValidateGradientPreferences(data);
             var settings = new PaintToolSettings(); JsonUtility.FromJsonOverwrite(json, settings);
             settings.dynamics ??= new BrushDynamics(); settings.dynamics.tip = null; settings.dynamics.Normalize();
             settings.smoothing ??= new StrokeSmoothingSettings(); settings.smoothing.Normalize();

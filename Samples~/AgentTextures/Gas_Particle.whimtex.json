@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 2,
+  "version": 3,
   "document": {
     "colorHistory": [
       [
@@ -2365,7 +2365,7 @@
                           "midpoint": 0.5
                         }
                       ],
-                      "mode": "Perceptual",
+                      "colorMode": "Perceptual", "interpolation": "Balanced",
                       "wrapMode": "Clamp",
                       "colorSpace": "Linear",
                       "smoothness": 1.0

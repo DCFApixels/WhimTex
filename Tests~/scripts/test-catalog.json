@@ -846,7 +846,6 @@
       "whim-tex-gradient-pipeline-v2",
       "whim-tex-gradient-product-v2",
       "whim-tex-gradient-retired-field-v2",
-      "whim-tex-gradient-rounded-v2",
       "gradient-reverse-v1",
       "whim-tex-gradient-v2",
       "whim-tex-gradient-window-v2",
@@ -1475,7 +1474,6 @@
       "whim-tex-gradient-pipeline-v2",
       "whim-tex-gradient-product-v2",
       "whim-tex-gradient-retired-field-v2",
-      "whim-tex-gradient-rounded-v2",
       "gradient-reverse-v1",
       "whim-tex-gradient-v2",
       "whim-tex-gradient-window-v2",
@@ -2181,7 +2179,6 @@
       "small-document-save-carrier-v2",
       "whimtex-gradient-reload-begin-v2",
       "whimtex-gradient-reload-end-v2",
-      "whim-tex-gradient-rounded-capture-v2",
       "content-aware-quality-baseline-edge-v2",
       "content-aware-quality-baseline-diagonal-v2",
       "content-aware-quality-baseline-stripes-v2",
@@ -3055,7 +3052,6 @@
       "whim-tex-gradient-midpoint-v2",
       "whim-tex-gradient-pipeline-v2",
       "whim-tex-gradient-product-v2",
-      "whim-tex-gradient-rounded-v2",
       "gradient-reverse-v1",
       "whim-tex-gradient-v2",
       "whim-tex-gradient-window-v2",
@@ -3257,6 +3253,97 @@
     ]
   },
   "scenarios": [
+{
+  "id": "quick-selection-quality",
+  "file": "Tests~/Cases/Painting/QuickSelectionQualityTests.cs",
+  "runner": "run_script",
+  "entry": "QuickSelectionQualityTests.Begin",
+  "args": [
+    "$runId"
+  ],
+  "category": "diagnostic",
+  "workflow": "diagnostic",
+  "timeoutMs": 240000,
+  "effects": [
+    "temp-files"
+  ],
+  "groups": [
+    "painting"
+  ],
+  "prerequisites": "Idle Test6.6 graphics Editor with current sources compiled. No windows are shown and no input is automated.",
+  "setup": "Worker-only analytical images, native masks and deterministic hints. Records boundary error, CPU times and estimated solver-array storage. No window or GPU object is created.",
+  "teardown": "Await owned worker, dispose segmentation storage. Numerical report: Temp/WhimTex/quick-selection/<runId>-quality.json.",
+  "result": {
+    "kind": "structured"
+  },
+  "supportFiles": [
+    "Tests~/Framework/TestApi.cs",
+    "Tests~/Framework/Unity/AsyncD.cs",
+    "Tests~/Framework/Unity/MigrationD.cs"
+  ],
+  "reviewFiles": [],
+  "async": {
+    "entry": "QuickSelectionQualityTests.Poll",
+    "args": [
+      "$runId"
+    ],
+    "pollMs": 3000
+  },
+  "cancel": {
+    "entry": "QuickSelectionQualityTests.Cancel",
+    "args": [
+      "$runId"
+    ]
+  },
+  "cleanup": {
+    "entry": "QuickSelectionQualityTests.Cleanup",
+    "args": [
+      "$runId"
+    ]
+  }
+},
+    {
+      "id": "quick-selection-refinement",
+      "file": "Tests~/Cases/Painting/QuickSelectionTests.cs",
+      "runner": "run_script",
+      "entry": "QuickSelectionTests.BeginRefinement",
+      "args": ["$runId"],
+      "category": "diagnostic",
+      "workflow": "diagnostic",
+      "timeoutMs": 120000,
+      "effects": ["windows"],
+      "groups": ["painting"],
+      "prerequisites": "Idle graphical Test6.6 Editor with current sources. No window shown or input automated.",
+      "setup": "Owned masks and detached transient document/window. Competing persistent Add/Subtract across weak boundaries and flat regions.",
+      "teardown": "Await owned workers/readbacks; destroy only owned resources.",
+      "result": {"kind":"structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/AsyncD.cs", "Tests~/Framework/Unity/MigrationD.cs"],
+      "reviewFiles": [],
+      "async": {"entry":"QuickSelectionTests.Poll","args":["$runId"],"pollMs":3000},
+      "cancel": {"entry":"QuickSelectionTests.Cancel","args":["$runId"]},
+      "cleanup": {"entry":"QuickSelectionTests.Cleanup","args":["$runId"]}
+    },
+    {
+      "id": "quick-selection-8k",
+      "file": "Tests~/Cases/Painting/QuickSelectionTests.cs",
+      "runner": "run_script",
+      "entry": "QuickSelectionTests.Begin",
+      "args": ["$runId"],
+      "category": "diagnostic",
+      "workflow": "diagnostic",
+      "timeoutMs": 240000,
+      "effects": ["temp-files", "windows"],
+      "groups": ["painting"],
+      "prerequisites": "Idle Test6.6 graphics Editor with current sources compiled. No windows are shown and no input is automated.",
+      "setup": "Worker-only native masks and synthetic tiles; owned transient 8K document and detached window object, bounded GPU regions and async readback.",
+      "teardown": "Await owned work, release owned render textures/cache/document, restore GPU state. Report under Temp/WhimTex/quick-selection/<runId>.json.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/AsyncD.cs", "Tests~/Framework/Unity/MigrationD.cs"],
+      "reviewFiles": [],
+      "async": {"entry": "QuickSelectionTests.Poll", "args": ["$runId"], "pollMs": 3000},
+      "cancel": {"entry": "QuickSelectionTests.Cancel", "args": ["$runId"]},
+      "cleanup": {"entry": "QuickSelectionTests.Cleanup", "args": ["$runId"]}
+    },
     {
       "id": "shader-fx-workflow-512",
       "file": "Tests~/Cases/FX/ShaderFXWorkflowTests.cs",
@@ -20462,7 +20549,7 @@
         "src/FXPresets/NormalLighting.hlsl",
         "src/FXPresets/Posterize.hlsl",
         "src/ShaderFXPinnedUV.cs",
-        "src/WhimTexJsonDefaultsV2.cs",
+        "src/WhimTexJsonDefaultsV3.cs",
         "src/FXPresets/BevelEmboss.hlsl",
         "src/FXPresets/ChromaKey.hlsl",
         "src/FXPresets/ChromaticAberration.hlsl",
@@ -23127,19 +23214,17 @@
       "runner": "run_script",
       "entry": "WhimTexGradientRoundedTests.Run",
       "args": [],
-      "category": "regression",
+      "category": "diagnostic",
       "timeoutMs": 60000,
-      "effects": [
-        "temp-files"
-      ],
+      "effects": [],
       "groups": [
-        "regression",
+        "diagnostic",
         "gradient",
         "color"
       ],
-      "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
-      "setup": "owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>.",
-      "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+      "prerequisites": "Retired by F30. Explicit calls return skipped with zero assertions; never count as current validation.",
+      "setup": "No models, windows or captures are created.",
+      "teardown": "No resources are acquired.",
       "result": {
         "kind": "structured"
       },
@@ -23159,18 +23244,15 @@
       ],
       "category": "diagnostic",
       "timeoutMs": 60000,
-      "effects": [
-        "temp-files",
-        "user-state"
-      ],
+      "effects": [],
       "groups": [
         "diagnostic",
         "gradient",
         "color"
       ],
-      "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
-      "setup": "Capture writes all original 12291 invariant CSV samples to a new project-local GUID temporary folder and persists only that owned path in SessionState; duplicate GUIDs cannot overwrite prior artifacts.",
-      "teardown": "CleanupCapture(the same GUID) validates the absolute project-local owned GUID folder before deleting the CSV/directory and erasing its SessionState key. Automatic cleanup after diagnostic completion; manual callers may review before explicit cleanup. Capture is skipped with zero assertions; CleanupCapture returns a zero-check cleanup acknowledgement, permitted only in the runner cleanup phase and never regression success.",
+      "prerequisites": "Retired by F30. Explicit calls return skipped with zero assertions; never count as current validation.",
+      "setup": "No models, windows or captures are created.",
+      "teardown": "No resources are acquired.",
       "result": {
         "kind": "structured"
       },
@@ -23178,13 +23260,7 @@
         "Tests~/Framework/TestApi.cs",
         "Tests~/Framework/Unity/MigrationD.cs"
       ],
-      "reviewFiles": [],
-      "cleanup": {
-        "entry": "WhimTexGradientRoundedTests.CleanupCapture",
-        "args": [
-          "$runId"
-        ]
-      }
+      "reviewFiles": []
     },
     {
       "id": "gradient-reverse-v1",

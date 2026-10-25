@@ -202,7 +202,7 @@ namespace DCFApixels.WhimTex
         public static WhimTexGradient CreateLinearWhiteToBlack()
         {
             var result = WhiteToBlack.Clone();
-            result.Mode = WhimTexGradientMode.Linear;
+            result.ColorMode = WhimTexGradientColorMode.Linear;
             return result;
         }
 
@@ -222,8 +222,8 @@ namespace DCFApixels.WhimTex
         {
             left = default;
             right = default;
-            if (gradient == null || gradient.Mode != WhimTexGradientMode.Classic || gradient.ColorSpace != ColorSpace.Gamma ||
-                gradient.WrapMode != WhimTexGradientWrapMode.Clamp || gradient.Smoothness != 1f ||
+            if (gradient == null || gradient.ColorMode != WhimTexGradientColorMode.Gamma || gradient.Interpolation != WhimTexGradientInterpolation.Blend || gradient.ChromaCorrection != 0f || gradient.ColorSpace != ColorSpace.Gamma ||
+                gradient.WrapMode != WhimTexGradientWrapMode.Clamp || gradient.Smoothness != 0f ||
                 gradient.GetMidpoint(false, 0) != .5f || gradient.GetMidpoint(true, 0) != .5f)
                 return false;
 

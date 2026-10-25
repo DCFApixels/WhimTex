@@ -24,9 +24,7 @@ namespace DCFApixels.WhimTex
             bool translucentStroke = source.strokeColor.a < 1;
             if (FigureFill.IsPaletteGradient(source.strokeMode))
             {
-                translucentStroke = false;
-                if (source.strokeGradient != null) foreach (var key in source.strokeGradient.AlphaKeys)
-                    if (key.alpha < 1) { translucentStroke = true; break; }
+                translucentStroke = source.strokeGradient != null && !source.strokeGradient.HasOpaqueAlpha;
             }
             if (source.strokeMode == VectorFillMode.Freeform)
             {

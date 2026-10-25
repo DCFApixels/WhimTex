@@ -76,22 +76,22 @@ public static class WhimTexGradientWindowTests
             Check(g.AlphaKeys.Length==1,"Alpha drag removal failed");
             Call(w,"DeleteKey");
             Check(g.AlphaKeys.Length==1,"Last alpha removed");
-            foreach(WhimTexGradientMode m in Enum.GetValues(typeof(WhimTexGradientMode)))
+            foreach(WhimTexGradientInterpolation m in Enum.GetValues(typeof(WhimTexGradientInterpolation)))
             {
-                g.Mode=m;
+                g.Interpolation=m;
                 Color expected=g.Evaluate(0);
                 for(int i=1;i<=10;i++)
                     Check(g.Evaluate(i/10f)==expected,"Single key must be constant in "+m);
             }
-            g.Mode=WhimTexGradientMode.Classic;
+            g.Interpolation=WhimTexGradientInterpolation.Balanced;
             Call(w,"Refresh");
-            ((EnumField)Field(w,"mode")).value=WhimTexGradientMode.Fixed;
+            ((EnumField)Field(w,"mode")).value=WhimTexGradientInterpolation.Fixed;
             Check(!((Slider)Field(w,"smoothness")).enabledSelf,"Fixed smoothing enabled");
             Check(((Texture2D)Field(w,"preview")).width==512,"Preview missing");
             Undo.PerformUndo();
-            Check(((WhimTexGradient)Field(w,"gradient")).Mode!=WhimTexGradientMode.Fixed,"Undo failed");
+            Check(((WhimTexGradient)Field(w,"gradient")).Interpolation!=WhimTexGradientInterpolation.Fixed,"Undo failed");
             Undo.PerformRedo();
-            Check(((WhimTexGradient)Field(w,"gradient")).Mode==WhimTexGradientMode.Fixed,"Redo failed");
+            Check(((WhimTexGradient)Field(w,"gradient")).Interpolation==WhimTexGradientInterpolation.Fixed,"Redo failed");
         }
         finally
         {

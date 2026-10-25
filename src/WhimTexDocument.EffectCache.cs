@@ -20,6 +20,17 @@ namespace DCFApixels.WhimTex
 
         internal RenderTexture RenderCanvasViewport(CanvasRenderRegion region, EffectRenderCache cache,
             bool interactive, DrawingLayerBehaviour painting)
+            => RenderCanvasViewportCore(region, cache, interactive, painting, null);
+
+        internal RenderTexture RenderSelectionRegion(CanvasRenderRegion region, EffectRenderCache cache, Layer source)
+        {
+            var previous = RenderTexture.active; bool srgb = GL.sRGBWrite;
+            try { return RenderCanvasViewportCore(region, cache, false, null, source); }
+            finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
+        }
+
+        private RenderTexture RenderCanvasViewportCore(CanvasRenderRegion region, EffectRenderCache cache,
+            bool interactive, DrawingLayerBehaviour painting, Layer selectionSource)
         {
             if (!SupportsViewportRendering()) throw new InvalidOperationException("This document requires full-frame rendering.");
             using var profile = WhimTexProfiler.Measure("document.canvas_viewport", this);
@@ -36,6 +47,13 @@ namespace DCFApixels.WhimTex
                 viewportToCanvas = ProjectiveMatrix.Translate((double)region.pixels.x / width, (double)region.pixels.y / height) *
                     ProjectiveMatrix.Scale((double)region.pixels.width / width, (double)region.pixels.height / height);
                 viewportToCanvas.TryInverse(out canvasToViewport);
+                if (selectionSource != null)
+                {
+                    if (!TryFindLayer(selectionSource, out var container, out int index))
+                        throw new ArgumentException("Selection source is no longer in the document.");
+                    return RenderStandalone(container, index, region.width, region.height, region.step,
+                        new HashSet<Layer>(), includeDisabled: true) ?? GetClearRenderTexture(region.width, region.height);
+                }
                 return RenderCanvasCore(region.width, region.height, region.step);
             }
             finally

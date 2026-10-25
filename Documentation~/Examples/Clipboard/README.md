@@ -1,6 +1,6 @@
 # Clipboard JSON examples for AI authors
 
-The nine procedural recipes below use **`whimtex.document`, version 2**, the same format as
+The nine procedural recipes below use **`whimtex.document`, version 3**, the same format as
 document files, Copy as JSON and agent serialization. Read the [authoring guide](../../AI/README.md),
 [shared contract](../../JSON_FORMAT.md) and [document schema](../../AI/document.schema.json).
 

@@ -101,7 +101,7 @@ namespace DCFApixels.WhimTex
         private void AddDebugCurveTime(float time)
         {
             debugCurveTimes.Add(time);
-            if (gradient.Mode == WhimTexGradientMode.Fixed && time < 1)
+            if (gradient.Interpolation == WhimTexGradientInterpolation.Fixed && time < 1)
                 debugCurveTimes.Add(time == 0 ? float.Epsilon :
                     BitConverter.Int32BitsToSingle(BitConverter.SingleToInt32Bits(time) + 1));
         }

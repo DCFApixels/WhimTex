@@ -156,7 +156,7 @@ Saving an HLSL preset preserves the edited curve.
 Effects can also offer a gradient field. Click its strip to edit colors, transparency and interpolation,
 including HDR colors. New gradients start black-to-white unless the HLSL declaration supplies two endpoint colors,
 for example `// @param gradient _Ramp = #FF0000FF -> #0000FF`. Hex colors use RGBA order; six digits imply full opacity.
-Without an explicit default, interpolation is Perceptual; the two-color HLSL form uses Classic.
+Without an explicit default, Color Mode is Perceptual and Interpolation is Balanced; the two-color HLSL form uses Gamma/Blend with Smoothness 0.
 Changes update the effect immediately.
 
 In the gradient editor, **Wrap** chooses what happens outside 0–1: **Clamp** holds the endpoint colors, **Repeat** repeats the gradient, and **Mirror** alternates its direction. An effect that clamps its own input may never reach the repeated range.
@@ -199,7 +199,9 @@ subfolder or anywhere under the project's **Assets** folder. Overwriting keeps a
 
 Set the shared library location in **User Settings → Presets → Presets Folder**. Its **Brushes**
 and **ShaderFX** subfolders hold the two kinds of presets. You can also place existing
-HLSL presets in ShaderFX or its subfolders; reopen **+ Preset** to see them under **User**.
+HLSL presets in ShaderFX or its subfolders; they appear under **User** in **+ Preset**.
+The list refreshes in the background when you return to Unity. If you open it before the
+refresh finishes, close and reopen it to see the new presets. On first startup it may briefly show **Loading effect presets…**.
 User presets are copied into the document; later changes to their files do not change
 effects you have already added. Adding a preset from the project's **Assets** creates a linked instance:
 editing its file updates the effects linked to it. Saving a preset does not relink the effect you exported.
@@ -207,8 +209,8 @@ editing its file updates the effects linked to it. Saving a preset does not reli
 Texture defaults are references, not embedded images. To use them in another project,
 also transfer the referenced texture assets with their `.meta` files, or assign replacements.
 
-Edited gradients are saved in the document. HLSL defaults support two endpoints, Classic interpolation,
-Gamma color space, Clamp wrapping, Smoothness 100% and centered midpoints. Other gradients must be
+Edited gradients are saved in the document. HLSL defaults support two endpoints, Gamma color mode, Blend interpolation,
+Gamma key encoding, Clamp wrapping, Smoothness 0%, Chroma Correction 0 and centered midpoints. Other gradients must be
 simplified before this export; unsupported settings are not silently discarded.
 
 ## Bake effects into a layer

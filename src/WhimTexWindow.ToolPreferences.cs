@@ -52,6 +52,14 @@ namespace DCFApixels.WhimTex
                     value.gradient ??= GradientUtility.Create(GradientUtility.WhiteToBlack); return value;
                 });
             preferences.Register("selectionMode", () => areaSelectionMode, value => areaSelectionMode = value, () => default, ToolEnum);
+            preferences.Register("quickSelectionSize", () => quickSelectionSize, value => quickSelectionSize = value, () => 64f,
+                value => ShapeLayerBehaviour.Limit(value, 1, 2048, 64));
+            preferences.Register("quickSelectionTolerance", () => quickSelectionTolerance, value => quickSelectionTolerance = value, () => .18f,
+                value => ShapeLayerBehaviour.Limit(value, .01f, .6f, .18f));
+            preferences.Register("quickSelectionMode", () => quickSelectionMode, value => quickSelectionMode = value, () => QuickSelectionMode.Add, ToolEnum);
+            preferences.Register("quickSelectionStrength", () => quickSelectionStrength, value => quickSelectionStrength = value, () => 1f,
+                value => ShapeLayerBehaviour.Limit(value, 0, 1, 1));
+            preferences.Register("quickSelectionSource", () => quickSelectionSource, value => quickSelectionSource = value, () => QuickSelectionSource.VisibleLayers, ToolEnum);
             preferences.Register("selectionEdges", () => selectionEdgeMode, value => selectionEdgeMode = value, () => SelectionEdgeMode.Aliased, ToolEnum);
             preferences.Register("marquee", () => marqueeShape, value => marqueeShape = value, () => MarqueeShape.Rectangle, ToolEnum);
             preferences.Register("lasso", () => lassoMode, value => lassoMode = value, () => LassoMode.Polygonal, ToolEnum);

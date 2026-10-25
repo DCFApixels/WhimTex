@@ -36,12 +36,12 @@ public static class GradientSoftFXTests
             target.Create(); pixels = UnityBRun.Track(new Texture2D(257, 2, TextureFormat.RGBAFloat, false, true));
             Shader shader = null;
             for (int pass=0; pass<2; pass++)
-            foreach (var mode in new[] {WhimTexGradientMode.Classic, WhimTexGradientMode.Linear, WhimTexGradientMode.Perceptual})
+            foreach (var mode in new[] {WhimTexGradientColorMode.Gamma, WhimTexGradientColorMode.Linear, WhimTexGradientColorMode.Perceptual})
             foreach (bool colored in new[] {false, true})
             {
                 g.SetKeys(new[] {new GradientColorKey(colored ? Color.red : Color.white, 0),
                     new GradientColorKey(colored ? Color.cyan : Color.black, 1)}, g.AlphaKeys);
-                g.Mode = mode;
+                g.ColorMode = mode;
                 var material = (Material)typeof(ShaderFX).GetMethod("GetMaterial", flags).Invoke(fx, new[] {context});
                 UnityBRun.Check(!(shader != null && shader != material.shader), "Gradient edit recompiled shader");
                 shader = material.shader;
@@ -53,16 +53,17 @@ public static class GradientSoftFXTests
                     for (int c = 0; c < 4; c++)
                     {
                         checks++;
-                        UnityBRun.Check(!(Mathf.Abs(expected[c]-actual[c]) > .002f), "Rounded/" + mode + " pixel " + x + " channel " + c);
+                        UnityBRun.Check(!(Mathf.Abs(expected[c]-actual[c]) > .002f), "Balanced/" + mode + " pixel " + x + " channel " + c);
                     }
                 }
             }
-            g.Mode = WhimTexGradientMode.Classic; g.ColorSpace = ColorSpace.Gamma;
+            g.ColorMode = WhimTexGradientColorMode.Gamma; g.ColorSpace = ColorSpace.Gamma;
+            g.Interpolation = WhimTexGradientInterpolation.Blend; g.Smoothness = 0;
             g.SetMidpoint(false, 0, .5f); g.SetMidpoint(true, 0, .5f);
-            UnityBRun.Check(!(!GradientUtility.IsTwoColorGradient(g, out _, out _)), "Rounded two-color default export rejected");
+            UnityBRun.Check(!(!GradientUtility.IsTwoColorGradient(g, out _, out _)), "Straight two-color export rejected");
             g.Smoothness = .5f;
             UnityBRun.Check(!(GradientUtility.IsTwoColorGradient(g, out _, out _)), "Lossy custom-smoothness export accepted");
-            return "Rounded FX sampling, gradient rebinding and export guard passed: " + checks + " channel checks.";
+            return "Balanced FX sampling, gradient rebinding and export guard passed: " + checks + " channel checks.";
         }
         finally
         {

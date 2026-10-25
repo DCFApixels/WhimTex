@@ -2,8 +2,7 @@
 .whimtex-gradient-debug-spacer { flex-grow: 1; min-height: 10px; }
 .whimtex-gradient-debug { border-top-width: 1px; border-top-color: rgba(128, 128, 128, 0.45); margin-left: -8px; margin-right: -8px; margin-bottom: -8px; padding: 2px; background-color: rgba(0, 0, 0, 0.08); flex-shrink: 0; }
 .whimtex-gradient-debug > .unity-slider { margin-left: 0; margin-right: 0; margin-top: 1px; margin-bottom: 1px; }
-.whimtex-gradient-test-row { flex-direction: row; align-items: center; }
-.whimtex-gradient-test-field { flex-grow: 1; height: 28px; margin-left: 8px; }
+.whimtex-gradient-test-field { margin: 0; padding: 0; }
 .whimtex-gradient-test-fill { position: absolute; left: 1px; right: 1px; top: 1px; bottom: 1px; }
 .whimtex-gradient-strip-row { flex-direction: row; align-items: center; margin-top: 6px; margin-bottom: 4px; flex-shrink: 0; }
 .whimtex-gradient-strip { height: 104px; min-width: 0; margin-left: 12px; margin-right: 12px; flex-grow: 1; flex-shrink: 1; }
@@ -25,6 +24,37 @@
 .whimtex-gradient-mixed-color { position: absolute; left: 0; right: 0; top: 0; bottom: 0; background-color: rgb(96, 96, 96); overflow: hidden; }
 .whimtex-gradient-reverse-icon { width: 14px; height: 14px; flex-shrink: 0; }
 .whimtex-gradient-image { position: absolute; left: 10px; right: 10px; top: 22px; bottom: 22px; }
+.whimtex-gradient-curves-strip { height: 44px; flex-shrink: 0; }
+.whimtex-gradient-curves-preview { height: 24px; flex-shrink: 0; }
+.whimtex-gradient-curves-preview-image { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+.whimtex-gradient-curves-strip-markers { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+.whimtex-gradient-axis-label { position: absolute; font-size: 10px; color: rgb(163, 163, 163); opacity: 0.8; margin: 0; padding: 0; }
+.whimtex-gradient-axis-label-x { top: 0; height: 22px; width: 64px; -unity-text-align: middle-center; }
+.whimtex-gradient-axis-label-y { left: 4px; width: 33px; height: 16px; -unity-text-align: middle-left; }
+.whimtex-gradient-axis-label-zero { color: rgb(204, 204, 204); }
+.whimtex-gradient-curves-graph { position: relative; flex-grow: 1; min-height: 170px; overflow: hidden; }
+.whimtex-gradient-curves-editor-plot { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.whimtex-gradient-curves-footer { flex-direction: row; align-items: center; min-height: 24px; flex-shrink: 0; }
+.whimtex-gradient-curves-channels { flex-direction: row; align-items: center; }
+.whimtex-gradient-curves-panning, .whimtex-gradient-curves-panning * { cursor: pan; }
+.whimtex-curve-scroll { position: absolute; background-color: rgba(0, 0, 0, 0); overflow: hidden; }
+.whimtex-curve-scroll-x { left: 0; right: 14px; bottom: 0; height: 14px; }
+.whimtex-curve-scroll-y { right: 0; top: 0; bottom: 14px; width: 14px; }
+.whimtex-curve-scroll-thumb { position: absolute; background-color: rgb(77, 77, 77); opacity: 0.55; border-radius: 3px; cursor: pan; }
+.whimtex-curve-scroll-x > .whimtex-curve-scroll-thumb { top: 1px; bottom: 1px; }
+.whimtex-curve-scroll-y > .whimtex-curve-scroll-thumb { left: 1px; right: 1px; }
+.whimtex-curve-scroll-thumb:hover, .whimtex-curve-scroll-dragging > .whimtex-curve-scroll-thumb { background-color: rgb(100, 100, 100); opacity: 0.75; }
+.whimtex-curve-scroll-grip { position: absolute; align-items: center; justify-content: center; }
+.whimtex-curve-scroll-grip:hover { background-color: rgba(255, 255, 255, 0.12); }
+.whimtex-curve-scroll-x .whimtex-curve-scroll-grip { top: 0; bottom: 0; width: 9px; max-width: 40%; overflow: hidden; cursor: resize-horizontal; }
+.whimtex-curve-scroll-y .whimtex-curve-scroll-grip { left: 0; right: 0; height: 9px; max-height: 40%; overflow: hidden; cursor: resize-vertical; }
+.whimtex-curve-scroll-x .whimtex-curve-scroll-low { left: 0; }
+.whimtex-curve-scroll-x .whimtex-curve-scroll-high { right: 0; }
+.whimtex-curve-scroll-y .whimtex-curve-scroll-low { bottom: 0; }
+.whimtex-curve-scroll-y .whimtex-curve-scroll-high { top: 0; }
+.whimtex-curve-scroll-grip-mark { background-color: rgb(175, 175, 175); }
+.whimtex-curve-scroll-x .whimtex-curve-scroll-grip-mark { width: 1px; height: 6px; }
+.whimtex-curve-scroll-y .whimtex-curve-scroll-grip-mark { width: 6px; height: 1px; }
 .whimtex-gradient-key-row { flex-direction: row; }
 .whimtex-gradient-key-separator { width: 1px; flex-shrink: 0; margin-left: 7px; margin-right: 7px; margin-top: 3px; margin-bottom: 3px; background-color: rgba(128, 128, 128, 0.45); }
 .whimtex-gradient-color-controls { flex-direction: row; }
@@ -38,6 +68,7 @@
 .whimtex-gradient-location { flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 0; }
 .whimtex-gradient-key-row .unity-base-field__label { min-width: 0; width: auto; margin-right: 6px; }
 .whimtex-gradient-hidden { display: none; }
+#gradientCustomSelection { font-size: 10px; color: rgb(170, 170, 170); margin-top: 3px; margin-bottom: 3px; }
 .whimtex-gradient-history .whimtex-picker-history-scroll { max-height: 56px; }
 
 .whimtex-gradient-presets-actions { position: absolute; top: 2px; right: 2px; flex-direction: row; }

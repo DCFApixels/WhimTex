@@ -65,7 +65,7 @@ public static class EffectCacheStampTests
         Changed(() => Set(fx, "appliedParameters", new List<ShaderFXParameter> { applied }), "Applied fallback parameters invalidate");
         Changed(() => applied.colorValue = Color.red, "Applied fallback value edits invalidate");
         value.type = ShaderFXParameterType.Gradient; value.gradientValue = new WhimTexGradient(); previous = Stamp();
-        Changed(() => value.gradientValue.Mode = WhimTexGradientMode.Linear, "In-place gradient edits invalidate");
+        Changed(() => value.gradientValue.ColorMode = WhimTexGradientColorMode.Linear, "In-place gradient edits invalidate");
         value.type = ShaderFXParameterType.Curve; value.curveValue = AnimationCurve.Linear(0, 0, 1, 1); previous = Stamp();
         Changed(() => value.curveValue.MoveKey(1, new Keyframe(1, .25f)), "In-place curve edits invalidate");
         var texture = S.Own(new Texture2D(2, 2, TextureFormat.RGBAFloat, false, true));

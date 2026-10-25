@@ -7,19 +7,19 @@ public static class GradientReverseTests
     public static string Run() => TestContext.Run("Gradient reversal", context =>
     {
         foreach (var space in new[] { ColorSpace.Gamma, ColorSpace.Linear })
-        foreach (var mode in new[] { WhimTexGradientMode.Classic, WhimTexGradientMode.Linear, WhimTexGradientMode.Perceptual })
+        foreach (var mode in new[] { WhimTexGradientColorMode.Gamma, WhimTexGradientColorMode.Linear, WhimTexGradientColorMode.Perceptual })
         foreach (float smoothness in new[] { 0f, .37f, 1f })
         {
             var gradient = Create();
             gradient.ColorSpace = space;
-            gradient.Mode = mode;
+            gradient.ColorMode = mode;
             gradient.Smoothness = smoothness;
             var original = gradient.Clone();
             gradient.Evaluate(.35f);
             uint revision = gradient.Revision;
             gradient.Reverse();
             context.True(gradient.Revision != revision, "Reverse invalidates baked previews");
-            context.Equal(mode, gradient.Mode, "Interpolation preserved");
+            context.Equal(mode, gradient.ColorMode, "Interpolation preserved");
             context.Equal(space, gradient.ColorSpace, "Color space preserved");
             context.Near(smoothness, gradient.Smoothness, 0, "Smoothness preserved");
             Compare(context, original, gradient, true, mode + "/" + space + "/" + smoothness);
@@ -30,12 +30,12 @@ public static class GradientReverseTests
         }
 
         var fixedGradient = Create();
-        fixedGradient.Mode = WhimTexGradientMode.Fixed;
+        fixedGradient.Interpolation = WhimTexGradientInterpolation.Fixed;
         fixedGradient.WrapMode = WhimTexGradientWrapMode.Mirror;
         var fixedColors = fixedGradient.ColorKeys;
         var fixedAlpha = fixedGradient.AlphaKeys;
         fixedGradient.Reverse();
-        context.Equal(WhimTexGradientMode.Fixed, fixedGradient.Mode, "Fixed mode retained");
+        context.Equal(WhimTexGradientInterpolation.Fixed, fixedGradient.Interpolation, "Fixed mode retained");
         context.Equal(WhimTexGradientWrapMode.Mirror, fixedGradient.WrapMode, "Wrap retained");
         for (int i = 0; i < fixedColors.Length; i++)
         {

@@ -56,12 +56,12 @@ namespace DCFApixels.WhimTex
     public static partial class WhimTexDocumentJson
     {
         public const string Format = "whimtex.document";
-        public const int Version = 2;
+        public const int Version = 3;
         public const string Extension = ".json";
         private const int MaxCharacters = 64 * 1024 * 1024;
         private static readonly HashSet<string> TransientFields = new(StringComparer.Ordinal)
         {
-            "compiledShader", "appliedCode", "appliedSource", "appliedParameters", "diagnostics",
+            "compiledShader", "appliedCode", "appliedSource", "appliedParameters", "appliedLocalityReasons", "diagnostics",
             "lastApplyFailed", "shaderCreationRecorded", "embeddedOwner", "transformCache", "jsonWriteMode",
             "outputTexture", "documentLoadWarning", "documentBinding",
             "embeddedShaderFX", "jsonMissingAssets",
@@ -632,6 +632,12 @@ namespace DCFApixels.WhimTex
                     throw JsonError(node["amount"] ?? node, "Corner amount must be between 0 and 1.");
                 if (result is TextLayerBehaviour text && text.Notice != null) Warnings.Add(text.Notice);
                 if (result is FreeformGradient freeform) freeform.Validate();
+                if (result is WhimTexGradient gradient)
+                {
+                    if (gradient.HasCustomCurves && node["customColorMode"] == null)
+                        throw JsonError(node, "customColorMode is required with customKeys.");
+                    ValidateGradientStorage(gradient);
+                }
                 if (result is Layer layer && layer.Behaviour is BooleanGroupLayerBehaviour)
                 {
                     if (node["compositing"] != null && layer.compositing != GroupCompositing.Isolated)

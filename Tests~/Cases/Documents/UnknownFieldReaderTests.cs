@@ -58,7 +58,7 @@ public static class UnknownFieldReaderTests
                 context.True(((IReadOnlyList<string>)Property(result, "MissingTypes")).Count > 0, "Unavailable type is diagnosed");
             }
             finally { UnityEngine.Object.DestroyImmediate(model); }
-            string json = "{\"format\":\"whimtex.document\",\"version\":2,\"document\":{\"" + name + "\":null},\"layers\":[]}";
+            string json = "{\"format\":\"whimtex.document\",\"version\":3,\"document\":{\"" + name + "\":null},\"layers\":[]}";
             bool rejected = false;
             try { using var read = WhimTexDocumentJson.Read(json, false); }
             catch (WhimTexDocumentException) { rejected = true; }

@@ -108,7 +108,7 @@ public static class WhimTexGradientIntegrationTests
                 Check(cache.BakeCount==1,"LUT rebuilt without edit");
                 g.Smoothness=.25f; cache.GetTexture(g);
                 Check(cache.BakeCount==2,"Smoothness did not invalidate LUT");
-                g.Mode=WhimTexGradientMode.Fixed; cache.GetTexture(g);
+                g.Interpolation=WhimTexGradientInterpolation.Fixed; cache.GetTexture(g);
                 Check(texture.filterMode==FilterMode.Point,"Fixed uses interpolated sampler");
                 cache.Dispose(); Check(texture==null,"LUT not destroyed");
             }

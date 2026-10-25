@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
     {
         internal const string Extension = "sebrush";
         private const int Magic = 0x42525348;
-        private const int Version = 1;
+        private const int Version = 2;
         private const int MaxJsonBytes = 512 * 1024;
         private const int MaxTipPixels = 16 * 1024 * 1024;
         internal static string Folder => Path.GetFullPath(Path.Combine(WhimTexUserSettings.PresetsFolder, "Brushes"));

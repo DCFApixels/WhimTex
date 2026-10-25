@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
         {
             None, Brush, BlurBrush, Transform, Fill, Zoom, Pencil, RectangleSelect, PolygonSelect, Shape,
             GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush, SmudgeBrush, Text, Gradient, Crop, Comment,
-            VectorPen, VectorNodes, VectorBrush
+            VectorPen, VectorNodes, VectorBrush, QuickSelection
         }
 
         [NonSerialized] private CanvasTool canvasTool = CanvasTool.None;
@@ -188,6 +188,7 @@ namespace DCFApixels.WhimTex
                 case CanvasTool.VectorNodes:
                 case CanvasTool.VectorBrush:
                 case CanvasTool.RectangleSelect:
+                case CanvasTool.QuickSelection:
                 case CanvasTool.PolygonSelect: return activeDocument != null;
                 default: return false;
             }
@@ -240,10 +241,10 @@ namespace DCFApixels.WhimTex
                 GetCanvasCropToolTooltip());
             cropPicker = new CropPickerManipulator(this);
             canvasCropButton.AddManipulator(cropPicker);
-            toolbar.Add(canvasCropButton);
             canvasCommentButton = CreateCanvasToolButton("commentTool", CanvasTool.Comment,
                 "Comment (N). Click the canvas to start a comment, click a pin to read or reply, and drag a pin to move it. Ctrl+Enter posts; Escape cancels. Comments are saved with the document.");
             toolbar.Add(canvasCommentButton);
+            toolbar.Add(canvasCropButton);
             canvasRectangleSelectButton = CreateCanvasToolButton("rectangleSelectTool", CanvasTool.RectangleSelect,
                 "Area Select (M). Hold or drag this button to choose Rectangle or Ellipse. Shift adds; Alt subtracts; Ctrl+D deselects. Selection limits painting and filling.");
             marqueePicker = new ShapePickerManipulator(this, true);
@@ -254,6 +255,9 @@ namespace DCFApixels.WhimTex
             canvasPolygonSelectButton.AddManipulator(lassoPicker);
             toolbar.Add(canvasRectangleSelectButton);
             toolbar.Add(canvasPolygonSelectButton);
+            canvasQuickSelectionButton = CreateCanvasToolButton("quickSelectionTool", CanvasTool.QuickSelection,
+                "Quick Selection (W). Brush to select connected colours up to image boundaries. Right mouse or Alt subtracts; [ and ] change size. Esc stops pending work.");
+            toolbar.Add(canvasQuickSelectionButton);
             canvasShapeButton = CreateCanvasToolButton("shapeTool", CanvasTool.Shape,
                 "Shape (U). Hold or drag this button to pick a figure, then release over its icon. Drag on the canvas to create it.");
             shapePicker = new ShapePickerManipulator(this);
@@ -394,6 +398,8 @@ namespace DCFApixels.WhimTex
             canvasPolygonSelectButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.PolygonSelect);
             canvasRectangleSelectButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
             canvasPolygonSelectButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
+            canvasQuickSelectionButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
+            canvasQuickSelectionButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.QuickSelection);
             canvasZoomButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
             canvasZoomButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.Zoom);
             canvasNoneButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.None);
@@ -440,11 +446,11 @@ namespace DCFApixels.WhimTex
             private readonly bool largeGradient;
             private readonly VectorFillMode? flatFill;
             private readonly Image healingVectorImage;
-            private readonly Image fillVectorImage;
+            private readonly Image alignedVectorImage;
             private Vector2 healingVectorOffset;
             private bool hasHealingVectorOffset;
-            private Vector2 fillVectorOffset;
-            private bool hasFillVectorOffset;
+            private Vector2 alignedVectorOffset;
+            private bool hasAlignedVectorOffset;
 
             internal CanvasToolIcon(CanvasTool tool, bool ellipse = false, CanvasCropMode cropMode = CanvasCropMode.Resize,
                 GradientCreationType gradientType = GradientCreationType.Linear, bool largeGradient = false, VectorFillMode? flatFill = null)
@@ -458,6 +464,11 @@ namespace DCFApixels.WhimTex
                 pickingMode = PickingMode.Ignore;
                 AddToClassList("whimtex-tool-icon");
                 generateVisualContent += Draw;
+                if (tool == CanvasTool.QuickSelection)
+                {
+                    AddToClassList("whimtex-tool-icon--quick-selection");
+                    Add(new CanvasToolIcon(CanvasTool.Brush));
+                }
 #if UNITY_6000_3_OR_NEWER
                 if (tool == CanvasTool.HealingBrush)
                 {
@@ -478,40 +489,43 @@ namespace DCFApixels.WhimTex
                         RegisterCallback<AttachToPanelEvent>(_ => AlignHealingVectorImage());
                     }
                 }
-                else if (tool == CanvasTool.Fill)
+                else if (tool == CanvasTool.Fill || tool == CanvasTool.Pencil)
                 {
                     var vector = AssetDatabase.LoadAssetAtPath<VectorImage>(
-                        "Packages/com.dcfapixels.whimtex/src/Editor/Icons/Fill.svg");
+                        "Packages/com.dcfapixels.whimtex/src/Editor/Icons/" +
+                        (tool == CanvasTool.Fill ? "Fill.svg" : "Pencil.svg"));
                     if (vector != null)
                     {
-                        fillVectorImage = new Image
+                        alignedVectorImage = new Image
                         {
                             vectorImage = vector,
                             scaleMode = ScaleMode.ScaleToFit,
                             pickingMode = PickingMode.Ignore
                         };
-                        fillVectorImage.AddToClassList("whimtex-tool-vector-image");
-                        Add(fillVectorImage);
-                        RegisterCallback<GeometryChangedEvent>(_ => AlignFillVectorImage());
-                        fillVectorImage.RegisterCallback<GeometryChangedEvent>(_ => AlignFillVectorImage());
-                        RegisterCallback<AttachToPanelEvent>(_ => AlignFillVectorImage());
+                        alignedVectorImage.AddToClassList("whimtex-tool-vector-image");
+                        if (tool == CanvasTool.Pencil)
+                            alignedVectorImage.AddToClassList("whimtex-tool-vector-image--pencil");
+                        Add(alignedVectorImage);
+                        RegisterCallback<GeometryChangedEvent>(_ => AlignVectorImage());
+                        alignedVectorImage.RegisterCallback<GeometryChangedEvent>(_ => AlignVectorImage());
+                        RegisterCallback<AttachToPanelEvent>(_ => AlignVectorImage());
                     }
                 }
 #endif
             }
 
-            private void AlignFillVectorImage()
+            private void AlignVectorImage()
             {
-                if (fillVectorImage == null || panel == null || fillVectorImage.contentRect.width < 1f) return;
+                if (alignedVectorImage == null || panel == null || alignedVectorImage.contentRect.width < 1f) return;
                 float pixelsPerPoint = EditorGUIUtility.pixelsPerPoint;
-                Vector2 pixels = fillVectorImage.LocalToWorld(Vector2.zero) * pixelsPerPoint;
+                Vector2 pixels = alignedVectorImage.LocalToWorld(Vector2.zero) * pixelsPerPoint;
                 Vector2 snapped = new Vector2(Mathf.Round(pixels.x), Mathf.Round(pixels.y));
-                Translate applied = fillVectorImage.resolvedStyle.translate;
+                Translate applied = alignedVectorImage.resolvedStyle.translate;
                 Vector2 offset = new Vector2(applied.x.value, applied.y.value) + this.WorldToLocal(snapped / pixelsPerPoint)
                     - this.WorldToLocal(pixels / pixelsPerPoint);
-                if (hasFillVectorOffset && (offset - fillVectorOffset).sqrMagnitude < .000001f) return;
-                fillVectorOffset = offset; hasFillVectorOffset = true;
-                fillVectorImage.style.translate = new Translate(offset.x, offset.y);
+                if (hasAlignedVectorOffset && (offset - alignedVectorOffset).sqrMagnitude < .000001f) return;
+                alignedVectorOffset = offset; hasAlignedVectorOffset = true;
+                alignedVectorImage.style.translate = new Translate(offset.x, offset.y);
             }
 
             private void OnHealingVectorGeometryChanged(GeometryChangedEvent evt) => AlignHealingVectorImage();
@@ -574,7 +588,7 @@ namespace DCFApixels.WhimTex
             {
                 if (contentRect.width < 1f || contentRect.height < 1f)
                     return;
-                if (healingVectorImage != null || fillVectorImage != null)
+                if (healingVectorImage != null || alignedVectorImage != null)
                     return;
                 Painter2D painter = context.painter2D;
                 painter.strokeColor = resolvedStyle.color;
@@ -625,8 +639,34 @@ namespace DCFApixels.WhimTex
                     if (freehand) DrawFreehandSelect(painter);
                     else DrawPolygonSelect(painter);
                 }
+                else if (tool == CanvasTool.QuickSelection)
+                    DrawQuickSelection(painter);
                 else
                     DrawBrush(painter);
+            }
+
+            private void DrawQuickSelection(Painter2D painter)
+            {
+                painter.lineWidth = 1.2f;
+                painter.lineCap = LineCap.Butt;
+                painter.BeginPath();
+                painter.MoveTo(P(1.00f, 13.00f));
+                painter.BezierCurveTo(P(1.00f, 11.83f), P(1.41f, 10.69f), P(2.17f, 9.79f));
+                painter.MoveTo(P(4.29f, 8.30f));
+                painter.BezierCurveTo(P(5.40f, 7.90f), P(6.60f, 7.90f), P(7.71f, 8.30f));
+                painter.MoveTo(P(9.83f, 9.79f));
+                painter.BezierCurveTo(P(10.59f, 10.69f), P(11.00f, 11.83f), P(11.00f, 13.00f));
+                painter.MoveTo(P(11.00f, 18.00f));
+                painter.BezierCurveTo(P(11.00f, 19.18f), P(10.59f, 20.31f), P(9.83f, 21.21f));
+                painter.MoveTo(P(7.71f, 22.70f));
+                painter.BezierCurveTo(P(6.60f, 23.10f), P(5.40f, 23.10f), P(4.29f, 22.70f));
+                painter.MoveTo(P(2.17f, 21.21f));
+                painter.BezierCurveTo(P(1.41f, 20.31f), P(1.00f, 19.18f), P(1.00f, 18.00f));
+                painter.MoveTo(P(1.00f, 14.10f));
+                painter.LineTo(P(1.00f, 16.90f));
+                painter.MoveTo(P(11.00f, 14.10f));
+                painter.LineTo(P(11.00f, 16.90f));
+                painter.Stroke();
             }
 
             private void DrawCommentTool(Painter2D painter)
@@ -986,37 +1026,28 @@ namespace DCFApixels.WhimTex
 
             private void DrawBrush(Painter2D painter)
             {
-                Color ink = resolvedStyle.color;
-                painter.fillColor = new Color(ink.r, ink.g, ink.b, ink.a * 0.16f);
+                painter.fillColor = resolvedStyle.color;
                 painter.BeginPath();
-                painter.MoveTo(P(9.8f, 10.6f));
-                painter.BezierCurveTo(P(13.5f, 8.5f), P(17.6f, 4.1f), P(19.9f, 2.6f));
-                painter.BezierCurveTo(P(21.4f, 1.6f), P(22.3f, 2.8f), P(21.3f, 4.2f));
-                painter.BezierCurveTo(P(19.5f, 6.7f), P(15.8f, 11.1f), P(13.8f, 14.6f));
+                painter.MoveTo(P(10.6788f, 9.5538f));
+                painter.BezierCurveTo(P(13.3108f, 7.5569f), P(18.4064f, 3.4138f), P(19.8064f, 2.0138f));
+                painter.BezierCurveTo(P(21.2596f, .5606f), P(23.4394f, 2.7404f), P(21.9862f, 4.1936f));
+                painter.BezierCurveTo(P(20.5862f, 5.5936f), P(16.4431f, 10.6892f), P(14.4462f, 13.3212f));
+                painter.BezierCurveTo(P(13.3968f, 11.4047f), P(12.5953f, 10.6032f), P(10.6788f, 9.5538f));
                 painter.ClosePath();
-                painter.Fill();
-                painter.Stroke();
-                painter.fillColor = new Color(ink.r, ink.g, ink.b, ink.a * 0.45f);
-                painter.BeginPath();
-                painter.MoveTo(P(9.8f, 10.6f));
-                painter.LineTo(P(7.8f, 12.6f));
-                painter.LineTo(P(11.8f, 16.6f));
-                painter.LineTo(P(13.8f, 14.6f));
+                painter.MoveTo(P(10.0939f, 10.3283f));
+                painter.BezierCurveTo(P(11.7831f, 11.3378f), P(12.9751f, 12.7642f), P(13.9061f, 14.3982f));
+                painter.LineTo(P(12.6846f, 16.2940f));
+                painter.BezierCurveTo(P(11.4771f, 13.9615f), P(10.1410f, 12.8363f), P(8.0341f, 11.5966f));
                 painter.ClosePath();
-                painter.Fill();
-                painter.Stroke();
-
-                painter.fillColor = ink;
-                painter.BeginPath();
-                painter.MoveTo(P(7.8f, 12.6f));
-                painter.BezierCurveTo(P(4.4f, 12f), P(3.9f, 15.4f), P(4.2f, 17.1f));
-                painter.BezierCurveTo(P(4.5f, 19.2f), P(2.8f, 20.7f), P(1.8f, 21.4f));
-                painter.BezierCurveTo(P(6.4f, 22.6f), P(11.7f, 20.9f), P(12.3f, 18.4f));
-                painter.BezierCurveTo(P(12.5f, 17.6f), P(12.2f, 17f), P(11.8f, 16.6f));
+                painter.MoveTo(P(7.2375f, 12.6f));
+                painter.BezierCurveTo(P(3.8375f, 12f), P(3.3375f, 15.4f), P(3.6375f, 17.1f));
+                painter.BezierCurveTo(P(3.9375f, 19.2f), P(2.2375f, 20.7f), P(1.2375f, 21.4f));
+                painter.BezierCurveTo(P(5.8375f, 22.6f), P(11.1375f, 20.9f), P(11.7375f, 18.4f));
+                painter.BezierCurveTo(P(12.375f, 16.1016f), P(9.3047f, 12.8906f), P(7.2375f, 12.6f));
                 painter.ClosePath();
-                painter.MoveTo(P(7.1f, 14.6f));
-                painter.BezierCurveTo(P(5.9f, 16f), P(7f, 17.3f), P(5.1f, 19.6f));
-                painter.BezierCurveTo(P(8f, 18.3f), P(7.2f, 16.6f), P(7.1f, 14.6f));
+                painter.MoveTo(P(6.5375f, 14.6f));
+                painter.BezierCurveTo(P(5.3375f, 16f), P(6.4375f, 17.3f), P(4.5375f, 19.6f));
+                painter.BezierCurveTo(P(7.4375f, 18.3f), P(6.6375f, 16.6f), P(6.5375f, 14.6f));
                 painter.ClosePath();
                 painter.Fill(FillRule.OddEven);
             }
@@ -1158,37 +1189,42 @@ namespace DCFApixels.WhimTex
 
             private void DrawPencil(Painter2D painter)
             {
-                Color ink = resolvedStyle.color;
-                painter.fillColor = new Color(ink.r, ink.g, ink.b, ink.a * 0.25f);
+                float pixelsPerPoint = EditorGUIUtility.pixelsPerPoint;
+                float unit = Mathf.Min(contentRect.width, contentRect.height) / 22f;
+                Vector2 origin = this.LocalToWorld(contentRect.center - Vector2.one * (12f * unit)) * pixelsPerPoint;
+                origin = this.WorldToLocal(new Vector2(Mathf.Round(origin.x), Mathf.Round(origin.y)) / pixelsPerPoint);
+                Vector2 Point(float x, float y) => origin + new Vector2(x, y) * unit;
                 painter.BeginPath();
-                painter.MoveTo(P(6f, 14f));
-                painter.LineTo(P(16f, 4f));
-                painter.LineTo(P(20f, 8f));
-                painter.LineTo(P(10f, 18f));
+                painter.MoveTo(Point(17f, 2.4f));
+                painter.BezierCurveTo(Point(17.9f, 1.5f), Point(19.19f, 1.59f), Point(20.225f, 2.625f));
+                painter.LineTo(Point(21.375f, 3.775f));
+                painter.BezierCurveTo(Point(22.41f, 4.81f), Point(22.5f, 6.1f), Point(21.6f, 7f));
+                painter.LineTo(Point(20.5f, 8.1f));
+                painter.LineTo(Point(19.21f, 8.01f));
+                painter.LineTo(Point(15.99f, 4.79f));
+                painter.LineTo(Point(15.9f, 3.5f));
                 painter.ClosePath();
-                painter.Fill();
-                painter.Stroke();
-                painter.BeginPath();
-                painter.MoveTo(P(8f, 16f));
-                painter.LineTo(P(17f, 7f));
-                painter.MoveTo(P(6f, 14f));
-                painter.LineTo(P(3f, 21f));
-                painter.LineTo(P(10f, 18f));
-                painter.Stroke();
-                painter.fillColor = ink;
-                painter.BeginPath();
-                painter.MoveTo(P(3f, 21f));
-                painter.LineTo(P(4.5f, 17.5f));
-                painter.LineTo(P(6.5f, 19.5f));
+                painter.MoveTo(Point(13.6f, 5.8f));
+                painter.LineTo(Point(14.2f, 5.8f));
+                painter.LineTo(Point(18.2f, 9.8f));
+                painter.LineTo(Point(18.2f, 10.4f));
+                painter.LineTo(Point(7.9f, 20.7f));
+                painter.LineTo(Point(7.2f, 21f));
+                painter.LineTo(Point(3.6f, 21f));
+                painter.LineTo(Point(3f, 20.4f));
+                painter.LineTo(Point(3f, 16.8f));
+                painter.LineTo(Point(3.3f, 16.1f));
                 painter.ClosePath();
-                painter.Fill();
-                painter.BeginPath();
-                painter.MoveTo(P(17.5f, 2.5f));
-                painter.LineTo(P(18.5f, 1.5f));
-                painter.LineTo(P(22.5f, 5.5f));
-                painter.LineTo(P(21.5f, 6.5f));
+                painter.MoveTo(Point(4f, 16.8f));
+                painter.LineTo(Point(5.1f, 15.7f));
+                painter.LineTo(Point(8.3f, 18.9f));
+                painter.LineTo(Point(7.2f, 20f));
+                painter.LineTo(Point(5f, 20f));
+                painter.LineTo(Point(5.95f, 19.35f));
+                painter.LineTo(Point(4.65f, 18.05f));
+                painter.LineTo(Point(4f, 19f));
                 painter.ClosePath();
-                painter.Fill();
+                painter.Fill(FillRule.OddEven);
             }
 
             private void DrawHand(Painter2D painter, bool withHandle = false)

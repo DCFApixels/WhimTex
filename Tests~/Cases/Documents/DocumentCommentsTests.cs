@@ -260,7 +260,7 @@ public static class DocumentCommentsTests
             t.Equal(0, fragment.Document.comments.Count, "Layer fragments omit document comments in " + mode);
             t.Equal(0, fragment.Document.commentNumberSequence, "Layer fragments omit comment numbering history in " + mode);
         }
-        using (var oldColors = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":2,\"layers\":[],\"document\":{\"comments\":[{\"id\":\"old-note\",\"color\":[0.1882353,0.3764706,0.5215687,1],\"messages\":[{\"id\":\"old-message\",\"text\":\"Old blue note\"}]}]}}", false))
+        using (var oldColors = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[],\"document\":{\"comments\":[{\"id\":\"old-note\",\"color\":[0.1882353,0.3764706,0.5215687,1],\"messages\":[{\"id\":\"old-message\",\"text\":\"Old blue note\"}]}]}}", false))
         {
             t.True(!oldColors.Document.comments[0].useAuthorColor, "Comments without color mode retain manual colors");
             t.True(string.IsNullOrEmpty(oldColors.Document.comments[0].colorAuthorId), "Old comments do not acquire an owner implicitly");

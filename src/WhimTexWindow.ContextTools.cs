@@ -15,7 +15,7 @@ namespace DCFApixels.WhimTex
         private VisualElement contextToolSeparator;
         private Button gradientToolButton, uvIslandToolButton, temporaryToolButton;
 
-        private static bool IsBaseCanvasTool(CanvasTool tool) => tool <= CanvasTool.Shape || tool == CanvasTool.HealingBrush || tool == CanvasTool.SmudgeBrush || tool == CanvasTool.Text || tool == CanvasTool.Gradient || tool == CanvasTool.Crop || tool == CanvasTool.Comment || IsVectorTool(tool);
+        private static bool IsBaseCanvasTool(CanvasTool tool) => tool <= CanvasTool.Shape || tool == CanvasTool.HealingBrush || tool == CanvasTool.SmudgeBrush || tool == CanvasTool.Text || tool == CanvasTool.Gradient || tool == CanvasTool.Crop || tool == CanvasTool.Comment || tool == CanvasTool.QuickSelection || IsVectorTool(tool);
         private static bool IsTemporaryCanvasTool(CanvasTool tool) =>
             tool == CanvasTool.FXTransform || tool == CanvasTool.FXPoint || tool == CanvasTool.FXNormal;
         private bool IsUvToolAvailable => activeDocument != null && uvEnabled;
@@ -166,6 +166,7 @@ namespace DCFApixels.WhimTex
             commentManipulator?.Cancel();
             if (canvasTool != tool) CloseCanvasCommentEditor();
             areaSelectionManipulator?.Cancel();
+            if (canvasTool != tool) CancelQuickSelection();
             shapeManipulator?.Cancel();
             vectorManipulator?.Cancel();
             if (canvasTool != tool) cropManipulator?.Reset();

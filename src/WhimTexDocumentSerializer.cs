@@ -24,7 +24,7 @@ namespace DCFApixels.WhimTex
     /// </summary>
     internal static class WhimTexDocumentSerializer
     {
-        private const int FormatVersion = 2;
+        private const int FormatVersion = 3;
 
         private const byte TagNull = 0;
         private const byte TagBool = 1;
@@ -65,7 +65,7 @@ namespace DCFApixels.WhimTex
         /// <summary>Derived or transient state: rebuilt from the rest of the document, never stored.</summary>
         private static readonly HashSet<string> SkippedFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "compiledShader", "appliedCode", "appliedSource", "appliedParameters", "diagnostics",
+            "compiledShader", "appliedCode", "appliedSource", "appliedParameters", "appliedLocalityReasons", "diagnostics",
             "lastApplyFailed", "shaderCreationRecorded", "embeddedOwner", "transformCache",
             "outputTexture", "documentLoadWarning", "documentBinding", "outputSrgb"
         };
@@ -989,6 +989,7 @@ namespace DCFApixels.WhimTex
                 }
                 if (instance is ISerializationCallbackReceiver receiver) receiver.OnAfterDeserialize();
                 WhimTexDocumentJson.ValidateVectorStorage(instance);
+                if (instance is WhimTexGradient gradient) WhimTexDocumentJson.ValidateGradientStorage(gradient);
                 // This reader reconstructs a file/copy, not a Unity Undo operation. Keep the
                 // deserialization hooks, but establish a clean baseline for later Undo events.
                 if (instance is WhimTexDocument document) document.ResetUndoTrackingAfterLoad();
@@ -1135,27 +1136,48 @@ namespace DCFApixels.WhimTex
                 Type type = value.GetType();
                 int count = ReadCount(65536, 2);
                 bool readLayerFx = false;
+                var gradientFields = value is WhimTexGradient || value is WhimTexGradientCurveKey
+                    ? new HashSet<string>(StringComparer.Ordinal) : null;
                 for (int i = 0; i < count; i++)
                 {
                     string fieldName = ReadText();
+                    if (gradientFields != null && !gradientFields.Add(fieldName))
+                        throw new WhimTexDocumentException("Duplicate gradient field: " + fieldName);
                     if (type == typeof(Layer) && fieldName == "fx")
                     {
                         if (readLayerFx) throw new WhimTexDocumentException("Duplicate layer FX field in the document.");
                         readLayerFx = true;
                     }
                     FieldInfo field = FindField(type, fieldName);
+                    if (gradientFields != null && field == null)
+                        throw new WhimTexDocumentException("Unsupported gradient field: " + fieldName);
                     object fieldValue = type == typeof(DrawingLayerBehaviour) && field?.FieldType == typeof(Texture2D) &&
                         string.Equals(field.Name, "pixels", StringComparison.Ordinal) && _deferDrawingTextures
                         ? ReadDeferredDrawingTexture((DrawingLayerBehaviour)value)
                         : Read(field?.FieldType);
                     if (field == null) continue;
+                    if (gradientFields != null && fieldValue == null && field.FieldType.IsValueType)
+                        throw new WhimTexDocumentException("Missing gradient value: " + fieldName);
                     try
                     {
                         if (fieldValue != null || !field.FieldType.IsValueType) field.SetValue(value, fieldValue);
                     }
-                    catch (ArgumentException) { RecordSkippedField(type, fieldName); }
-                    catch (InvalidCastException) { RecordSkippedField(type, fieldName); }
+                    catch (ArgumentException)
+                    {
+                        if (gradientFields != null) throw new WhimTexDocumentException("Invalid gradient field: " + fieldName);
+                        RecordSkippedField(type, fieldName);
+                    }
+                    catch (InvalidCastException)
+                    {
+                        if (gradientFields != null) throw new WhimTexDocumentException("Invalid gradient field: " + fieldName);
+                        RecordSkippedField(type, fieldName);
+                    }
                 }
+                if (value is WhimTexGradient gradient && gradient.HasCustomCurves && !gradientFields.Contains("customColorMode"))
+                    throw new WhimTexDocumentException("customColorMode is required with saved customKeys.");
+                if (value is WhimTexGradientCurveKey)
+                    foreach (string required in new[] { "id", "channel", "time", "value", "tangentMode" })
+                        if (!gradientFields.Contains(required)) throw new WhimTexDocumentException("Missing Custom key field: " + required);
             }
         }
 

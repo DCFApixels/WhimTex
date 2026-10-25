@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 2,
+  "version": 3,
   "document": {
     "colorHistory": [
       [
@@ -353,7 +353,7 @@
                   "midpoint": 0.5
                 }
               ],
-              "mode": "Perceptual",
+              "colorMode": "Perceptual", "interpolation": "Balanced",
               "wrapMode": "Clamp",
               "colorSpace": "Gamma",
               "smoothness": 1.0
@@ -702,7 +702,7 @@
                         "midpoint": 0.5
                       }
                     ],
-                    "mode": "Perceptual",
+                    "colorMode": "Perceptual", "interpolation": "Balanced",
                     "wrapMode": "Clamp",
                     "colorSpace": "Gamma",
                     "smoothness": 0.0
@@ -979,7 +979,7 @@
                         "midpoint": 0.4923664
                       }
                     ],
-                    "mode": "Perceptual",
+                    "colorMode": "Perceptual", "interpolation": "Balanced",
                     "wrapMode": "Clamp",
                     "colorSpace": "Gamma",
                     "smoothness": 1.0
@@ -1141,7 +1141,7 @@
                       "midpoint": 0.5
                     }
                   ],
-                  "mode": "Perceptual",
+                  "colorMode": "Perceptual", "interpolation": "Balanced",
                   "wrapMode": "Clamp",
                   "colorSpace": "Gamma",
                   "smoothness": 1.0
@@ -1243,7 +1243,7 @@
                       "midpoint": 0.5
                     }
                   ],
-                  "mode": "Perceptual",
+                  "colorMode": "Perceptual", "interpolation": "Balanced",
                   "wrapMode": "Clamp",
                   "colorSpace": "Gamma",
                   "smoothness": 1.0
@@ -1449,7 +1449,7 @@
                         "midpoint": 0.5
                       }
                     ],
-                    "mode": "Perceptual",
+                    "colorMode": "Perceptual", "interpolation": "Balanced",
                     "wrapMode": "Clamp",
                     "colorSpace": "Gamma",
                     "smoothness": 0.0
@@ -1721,7 +1721,7 @@
                             "midpoint": 0.5
                           }
                         ],
-                        "mode": "Perceptual",
+                        "colorMode": "Perceptual", "interpolation": "Balanced",
                         "wrapMode": "Clamp",
                         "colorSpace": "Gamma",
                         "smoothness": 1.0
@@ -1938,7 +1938,7 @@
                         "midpoint": 0.5
                       }
                     ],
-                    "mode": "Perceptual",
+                    "colorMode": "Perceptual", "interpolation": "Balanced",
                     "wrapMode": "Clamp",
                     "colorSpace": "Gamma",
                     "smoothness": 1.0
@@ -2282,7 +2282,7 @@
                             "midpoint": 0.5
                           }
                         ],
-                        "mode": "Perceptual",
+                        "colorMode": "Perceptual", "interpolation": "Balanced",
                         "wrapMode": "Clamp",
                         "colorSpace": "Gamma",
                         "smoothness": 1.0

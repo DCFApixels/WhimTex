@@ -61,6 +61,32 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        // JsonUtility ignores unknown fields; reject retired gradient data before it can do so.
+        internal static void ValidateGradientPreferences(JToken token)
+        {
+            if (token is JObject value)
+            {
+                if (value["colors"] is JArray && value["alphas"] is JArray)
+                {
+                    if (value["mode"] != null || value["colorMode"] == null || value["interpolation"] == null)
+                        throw new FormatException("Unsupported saved gradient at " + value.Path + ": colorMode and interpolation are required; the former mode is not supported.");
+                    if (value["customKeys"] is JArray custom && custom.Count != 0)
+                    {
+                        if (value["customColorMode"] == null)
+                            throw new FormatException("Saved Custom gradient requires customColorMode at " + value.Path + ".");
+                        foreach (var item in custom)
+                            AgentJson.Keys(AgentJson.Obj(item, "Custom gradient key"), "id", "channel", "time", "value", "inTangent", "outTangent", "tangentMode");
+                    }
+                    if (value["customKeys"] != null && value["customKeys"].Type != JTokenType.Null && !(value["customKeys"] is JArray))
+                        throw new FormatException("Saved customKeys must be an array at " + value.Path + ".");
+                    WhimTexDocumentJson.ValidateGradientStorage(JsonUtility.FromJson<WhimTexGradient>(value.ToString(Formatting.None)));
+                }
+                foreach (var property in value.Properties()) ValidateGradientPreferences(property.Value);
+            }
+            else if (token is JArray array)
+                foreach (var item in array) ValidateGradientPreferences(item);
+        }
+
         internal static void ResetToolSettings()
         {
             editorTools.Reset();
@@ -111,6 +137,7 @@ namespace DCFApixels.WhimTex
                     if (value.Type == JTokenType.Null) return defaults();
                     if (scalar) return value.ToObject<T>();
                     if (value is not JObject) throw new FormatException("Expected a settings value object.");
+                    ValidateGradientPreferences(value);
                     object result = defaults(); JsonUtility.FromJsonOverwrite(value.ToString(Formatting.None), result); return (T)result;
                 };
                 var added = new Entry<T>(name, get, set, defaults, normalize, encode, decode, refresh);
@@ -176,7 +203,7 @@ namespace DCFApixels.WhimTex
                 {
                     try { T value = raw == null ? defaults() : decode(raw); return normalize != null ? normalize(value) : value; }
                     catch (Exception error) when (error is ArgumentException || error is FormatException || error is JsonException || error is OverflowException)
-                    { Debug.LogWarning("Could not restore WhimTex tool setting '" + Name + "'. Using defaults."); return defaults(); }
+                    { Debug.LogWarning("Could not restore WhimTex tool setting '" + Name + "'. Using defaults. " + error.Message); return defaults(); }
                 }
                 public void Load(IToolPreferenceStore store)
                 {

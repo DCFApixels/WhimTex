@@ -24,7 +24,7 @@ static System.Threading.CancellationToken Cancellation;
     static IDisposable Read(string json) => (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", F).Invoke(null, new object[] { json, 16, 16 });
     static WhimTexDocument Doc(object data) => (WhimTexDocument)Get(data, "Document");
     static string Fixture(string code, bool active) =>
-        "{\"format\":\"whimtex.document\",\"version\":2,\"document\":{\"width\":16,\"height\":16},\"layers\":[" +
+        "{\"format\":\"whimtex.document\",\"version\":3,\"document\":{\"width\":16,\"height\":16},\"layers\":[" +
         "{\"id\":\"group\",\"group\":true,\"behaviour\":{\"$type\":\"GroupLayerBehaviour\"},\"children\":[" +
         "{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[0.2,0.4,0.6,1]},\"fx\":[" +
         "{\"$type\":\"ShaderFX\",\"$name\":\"Clipboard failure fixture\",\"active\":" + (active ? "true" : "false") + ",\"code\":" + Quote(code) +

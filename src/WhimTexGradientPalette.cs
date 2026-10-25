@@ -41,7 +41,7 @@ namespace DCFApixels.WhimTex
             }
             var pixels = texture.GetRawTextureData<Color>();
             var evaluated = gradient.Clone(); evaluated.WrapMode = WhimTexGradientWrapMode.Clamp;
-            bool fixedMode = evaluated.Mode == WhimTexGradientMode.Fixed;
+            bool fixedMode = evaluated.Interpolation == WhimTexGradientInterpolation.Fixed;
             startColor = evaluated.EvaluateEncoded(0);
             for (int row = 0; row < count; row++)
             {
