@@ -863,6 +863,14 @@ For Slider (including soft-range sliders), it fills the track beneath the thumb.
 a small rectangle to their right; their native controls are not replaced. Use a standalone
 `// @preview(FunctionName)` for a separate image at that position in the inspector.
 Both forms respect groups and conditions; neither creates another shader parameter.
+Standalone previews use a centered 96×96 logical-pixel square; inline field and slider previews retain their own dimensions.
+
+Built-in Mask, Chroma Key and Edge Outline use standalone previews in collapsible sections.
+They render opaque grayscale: Mask evaluates the selected channel after Transform/Profile/Invert,
+Chroma Key evaluates retained alpha, and Edge Outline evaluates contour coverage including source
+and line alpha. They use the production mask helpers and ignore header Opacity and output mode.
+No additional parameters or rendering contract are introduced; the existing bounded inspector
+input path is retained, including its reduced-resolution approximation and fallback behavior.
 
 Hard- and soft-range Slider previews use the native Slider's fixed 50-pixel numeric field size and matching
 horizontal spacing. Track endpoints stay aligned when numeric text or inspector width changes.

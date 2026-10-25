@@ -83,6 +83,10 @@ Dependent fields and previews can stay visible but gray while their section is d
 
 ### Parameter previews
 
+Standalone previews are square and centered; widening the inspector does not stretch them.
+
+**Mask**, **Chroma Key** and **Edge Outline** include collapsible **Mask Preview**, **Matte Preview** and **Contour Preview** sections. White represents full mask value or coverage, black represents zero. Mask shows the selected channel after Transform, Profile and Invert. Chroma Key shows retained coverage including source alpha; Edge Outline shows contour coverage including source and line alpha. These previews show the mask before the FX header Opacity and do not switch the canvas output. Collapse the section to stop drawing its preview. Small previews can omit fine details; use the canvas to judge final edges.
+
 Changing a parameter refreshes previews on the next Editor update, without a 100 ms wait.
 Rapid changes are combined, and each preview redraws at most once per Editor update.
 Periodic refresh remains a fallback for changes made outside normal controls.

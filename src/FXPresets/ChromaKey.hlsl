@@ -9,6 +9,9 @@
 // @param float _Tolerance = 0.1 [0 .. 1] // Colors within this distance are removed completely.
 // @param float _Softness = 0.05 [0 .. 1] // Smooth transition outside Tolerance. Zero gives a hard color threshold, not a spatial blur.
 // @endgroup
+// @foldout(Matte Preview)
+// @preview(PreviewChromaKeyMatte)
+// @endfoldout
 // @group(Spill)
 // @param float _Despill = 0 [0 .. 1] // Remove color contamination in the key direction without changing the matte. Zero preserves RGB.
 // @if _Despill != 0
@@ -37,6 +40,16 @@ float ChromaKeyKeep(float distance, float tolerance, float softness)
     if (softness <= 0.0) return distance <= tolerance ? 0.0 : 1.0;
     return smoothstep(tolerance, tolerance + softness, distance);
 }
+
+#ifdef WHIMTEX_PREVIEW
+float4 PreviewChromaKeyMatte(float2 uv)
+{
+    float4 color = SampleInput(uv);
+    float distance = ChromaKeyDistance(color.rgb, _KeyColor.rgb);
+    float alpha = color.a * ChromaKeyKeep(distance, _Tolerance, _Softness);
+    return float4(alpha.xxx, 1.0);
+}
+#endif
 
 float3 ChromaKeyDespill(float3 rgb, float distance)
 {

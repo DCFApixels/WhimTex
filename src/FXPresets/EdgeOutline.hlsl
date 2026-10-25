@@ -22,6 +22,9 @@
 // @param px label("Thickness (px)") float _Thickness = 2 [0 .. 32] // Total width, centered on the boundary. Zero removes the line.
 // @param px label("Softness (px)") float _Softness = 0 [0 .. 8] // Soften line edges. Zero keeps them crisp and antialiased.
 // @endgroup
+// @foldout(Contour Preview)
+// @preview(PreviewEdgeOutline)
+// @endfoldout
 // @group(Output; _Output)
 // @param hidden enum _Output = Overlay {Overlay: 0, OutlineOnly: 1} // Draw over the image or keep only contours on transparency.
 // @param label(Color) color _OutlineColor = (0, 0, 0, 1) // Line color; alpha controls opacity. Source transparency is preserved.
@@ -180,13 +183,28 @@ float EdgeOutlineMask(float2 uv)
     return mask;
 }
 
+float EdgeOutlineAmount(float2 uv, float4 color)
+{
+    float mask = 0.0;
+    if (_Thickness > 0.0 && color.a > 1e-5 && _OutlineColor.a > 0.0 && (_Method < 0.5 || _Strength > 0.0))
+        mask = EdgeOutlineMask(uv) * saturate(_OutlineColor.a);
+    return mask;
+}
+
+#ifdef WHIMTEX_PREVIEW
+float4 PreviewEdgeOutline(float2 uv)
+{
+    float4 color = SampleInput(uv);
+    float coverage = color.a * EdgeOutlineAmount(uv, color);
+    return float4(coverage.xxx, 1.0);
+}
+#endif
+
 float4 ApplyFX(PinnedUV uv, float4 color)
 {
     float amount = saturate(_Opacity);
     if (amount <= 0.0) return color;
-    float mask = 0.0;
-    if (_Thickness > 0.0 && color.a > 1e-5 && _OutlineColor.a > 0.0 && (_Method < 0.5 || _Strength > 0.0))
-        mask = EdgeOutlineMask(uv) * saturate(_OutlineColor.a);
+    float mask = EdgeOutlineAmount(uv, color);
     float4 result = _Output > 0.5
         ? float4(_OutlineColor.rgb, color.a * mask)
         : float4(lerp(color.rgb, _OutlineColor.rgb, mask), color.a);
