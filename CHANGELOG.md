@@ -212,7 +212,7 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
-- FX parameter foldout headers share group header sizing, spacing, backgrounds and full-width separators. Their nested content no longer adds duplicate spacing; wrapped titles and linked controls retain their natural height.
+- FX parameter foldout headers share group header sizing, spacing, backgrounds and full-width separators, with no extra native side margins. Their nested content no longer adds duplicate spacing; wrapped titles and linked controls retain their natural height.
 
 - Mesh gradient overlap correction reconstructs a smooth transition across the whole overlap using surrounding colors and boundary variation, reducing visible bands after moving a central node. Accelerated reconstruction improves convergence, and a narrow smoothly fading band softens the join around the overlap. Pixels outside the overlap and its band remain unchanged; HDR, negative RGB, coverage and constant opacity are preserved. Certified single-surface grids skip reconstruction. The correction appears in profiler statistics as `render.mesh.overlap_reconstruction`.
 - Mesh gradient shading uses precise per-sample positions and refined UV. Fragments that do not reach the shaded sample are rejected; overlap weights are normalized before resolving MSAA, preserving edge coverage and avoiding patch-index seams. Actual folds can remain visible, but their colors transition without hard winner changes or accumulated alpha.
