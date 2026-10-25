@@ -199,17 +199,26 @@ namespace DCFApixels.WhimTex
                 internal Entry(string name, Func<T> get, Action<T> set, Func<T> defaults, Func<T, T> normalize,
                     Func<T, string> encode, Func<string, T> decode, bool refresh)
                 { Name = name; this.get = get; this.set = set; this.defaults = defaults; this.normalize = normalize; this.encode = encode; this.decode = decode; this.refresh = refresh; }
-                private T Read(string raw)
+                private T Read(string raw, IToolPreferenceStore store)
                 {
                     try { T value = raw == null ? defaults() : decode(raw); return normalize != null ? normalize(value) : value; }
                     catch (Exception error) when (error is ArgumentException || error is FormatException || error is JsonException || error is OverflowException)
-                    { Debug.LogWarning("Could not restore WhimTex tool setting '" + Name + "'. Using defaults. " + error.Message); return defaults(); }
+                    {
+                        T value = defaults();
+                        if (normalize != null) value = normalize(value);
+                        string replacement = encode(value);
+                        // Replace the rejected section before another window reads or merges it.
+                        store.Write(Name, replacement);
+                        loaded = replacement;
+                        Debug.LogWarning("Could not restore WhimTex tool setting '" + Name + "'. Saved current defaults instead. " + error.Message);
+                        return value;
+                    }
                 }
                 public void Load(IToolPreferenceStore store)
                 {
                     loaded = store.Read(Name);
                     T initial = get();
-                    T value = loaded == null && initial is not null ? initial : Read(loaded);
+                    T value = loaded == null && initial is not null ? initial : Read(loaded, store);
                     set(normalize != null ? normalize(value) : value); baseline = encode(get());
                     seedUnstored = loaded == null && baseline != encode(defaults());
                 }
@@ -229,7 +238,7 @@ namespace DCFApixels.WhimTex
                     string raw = store.Read(Name);
                     if (raw == loaded && !pendingMerged) return false;
                     loaded = raw;
-                    if (refresh) set(Read(raw));
+                    if (refresh) set(Read(raw, store));
                     baseline = encode(get()); pendingMerged = false; return refresh;
                 }
                 public void Reset() { set(defaults()); loaded = null; baseline = encode(get()); seedUnstored = pendingMerged = false; }

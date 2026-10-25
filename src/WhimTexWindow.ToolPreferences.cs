@@ -49,6 +49,8 @@ namespace DCFApixels.WhimTex
                 () => new GradientCreationSettings(), value =>
                 {
                     value ??= new GradientCreationSettings(); value.type = ToolEnum(value.type);
+                    value.meshRows = Mathf.Clamp(value.meshRows, 1, MeshGradient.MaxCells);
+                    value.meshColumns = Mathf.Clamp(value.meshColumns, 1, MeshGradient.MaxCells);
                     value.gradient ??= GradientUtility.Create(GradientUtility.WhiteToBlack); return value;
                 });
             preferences.Register("selectionMode", () => areaSelectionMode, value => areaSelectionMode = value, () => default, ToolEnum);

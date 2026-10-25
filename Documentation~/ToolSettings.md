@@ -46,7 +46,10 @@ choice does not switch an existing window or terminate its editing context on fo
 
 Reset clears the shared tool store and existing tool keys, cancels pending writes and
 restores fresh defaults in open sessions. It never deletes presets or edits documents.
-Malformed sections fall back independently; valid other sections remain intact.
+Malformed or unsupported sections fall back independently; valid other sections remain intact.
+On load or focus refresh, the rejected section is immediately replaced with normalized defaults
+in the current encoding. One warning describes that reset; later reads and unchanged closes
+do not warn or rewrite it again. The replacement becomes the shared merge baseline.
 
 ## Verification
 
@@ -70,6 +73,12 @@ of the active interpolation. Invalid active or dormant curves are rejected befor
 the saved settings. Numeric enum values here belong
 to Unity's settings encoding, not the public JSON gradient contract. Saved settings containing
 retired gradient `mode` or Custom-key `link` fields are diagnosed before JsonUtility can
-ignore them; that tool uses defaults. No migration or persistent marker groups are stored.
-An unchanged fallback does not overwrite the unreadable stored value. Current settings are
-written through the existing preference session when the user changes them.
+ignore them; that tool uses defaults and saves them in the current format immediately.
+No migration or persistent marker groups are stored.
+
+The `gradient` section also retains the creation tool's Mesh cell counts,
+`meshRows` and `meshColumns` (default 2, normalized to 1–16), and its selected type.
+These defaults affect the next created layer. The layer's Mesh control lattice,
+node selection, handles and render caches are document or transient state and do
+not enter tool preferences. Mesh payload validation belongs to the document/API
+boundary, not the F26 preferences codec.

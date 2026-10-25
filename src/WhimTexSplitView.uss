@@ -478,7 +478,8 @@
     border-color: #578ac0;
 }
 
-.whimtex-tools > .unity-button.whimtex-tool-button--selected {
+.whimtex-tools > .unity-button.whimtex-tool-button--selected,
+.whimtex-canvas-view-drawer-tabs > .unity-button.whimtex-tool-button--selected {
     color: #eeeeee;
     --whimtex-tool-icon-tint: #eeeeee;
 }
@@ -639,7 +640,8 @@
     bottom: 0;
 }
 
-.whimtex-canvas-view-workspace {
+.whimtex-canvas-view-workspace,
+.whimtex-canvas-view-viewport {
     flex-grow: 1;
     flex-shrink: 1;
     min-width: 0;
@@ -647,12 +649,16 @@
     overflow: hidden;
 }
 
+.whimtex-canvas-view-workspace {
+    flex-direction: row;
+}
+
 .whimtex-post-fx-overlay {
     position: absolute;
-    top: 8px;
-    bottom: 8px;
+    top: 0;
+    bottom: 0;
     left: 0;
-    right: 0;
+    right: 36px;
     align-items: flex-end;
 }
 
@@ -663,8 +669,26 @@
     max-width: 100%;
 }
 
-.whimtex-canvas-view-drawer-tabs {
+.whimtex-tools.whimtex-canvas-view-drawer-tabs {
     flex-shrink: 0;
+    width: 36px;
+    border-left-width: 1px;
+    border-left-color: #171717;
+}
+
+.whimtex-tools--light.whimtex-canvas-view-drawer-tabs {
+    border-left-color: #858585;
+}
+
+.whimtex-canvas-drawer-content {
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+.unity-button.whimtex-canvas-drawer-activate {
+    flex-shrink: 0;
+    margin: 6px;
+    min-height: 24px;
 }
 
 .whimtex-brush-spacing-info {
@@ -742,6 +766,11 @@
     overflow: hidden;
 }
 
+.whimtex-post-fx-panel > .whimtex-post-fx-drawer {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
 .whimtex-brush-stroke-preview {
     height: 96px;
     flex-shrink: 0;
@@ -797,27 +826,6 @@
 .whimtex-post-fx-settings .unity-base-field__label {
     min-width: 100px;
     width: 100px;
-}
-
-.unity-button.whimtex-post-fx-tab {
-    width: 16px;
-    height: 44px;
-    flex-shrink: 0;
-    align-self: flex-start;
-    margin: 0;
-    padding: 0;
-    border-width: 1px;
-    border-color: #191919;
-    border-top-left-radius: 4px;
-    border-bottom-left-radius: 4px;
-    background-color: var(--whimtex-surface);
-    color: #b8b8b8;
-    font-size: 18px;
-}
-
-.unity-button.whimtex-post-fx-tab:hover {
-    color: #66b8ff;
-    background-color: var(--whimtex-header);
 }
 
 .unity-button.whimtex-channel-button.whimtex-post-fx-button,

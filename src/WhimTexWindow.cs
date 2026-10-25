@@ -146,9 +146,9 @@ namespace DCFApixels.WhimTex
             tiledCanvas = false;
             ReleasePostFx();
             postFxEnabled = false;
-            postFxExpanded = true;
+            postFxExpanded = false;
             brushesExpanded = false;
-            commentsExpanded = true;
+            commentsExpanded = false;
             uvEnabled = uvExpanded = false;
             uvLineColor = new Color(.35f, .85f, 1f, 1f);
             uvLineOpacity = .65f;

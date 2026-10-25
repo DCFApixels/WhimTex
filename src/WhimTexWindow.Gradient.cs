@@ -22,7 +22,9 @@ namespace DCFApixels.WhimTex
         private VisualElement gradientCanvasOverlay;
         private GradientCanvasManipulator gradientCanvasManipulator;
         private bool IsGradientCanvasAvailable => activeDocument != null && gradientCanvasLayer.IsValid &&
-            (gradientCanvasLayer.gradientType == GradientLayerBehaviour.GradientType.Freeform || gradientCanvasLayer.gradient != null) && !activeDocument.IsBooleanStyleSuppressed(gradientCanvasLayer.Owner) &&
+            (gradientCanvasLayer.gradientType == GradientLayerBehaviour.GradientType.Mesh
+                ? gradientCanvasLayer.GradientLayer.mesh != null
+                : gradientCanvasLayer.gradientType == GradientLayerBehaviour.GradientType.Freeform || gradientCanvasLayer.gradient != null) && !activeDocument.IsBooleanStyleSuppressed(gradientCanvasLayer.Owner) &&
             !WhimTexApi.IsLayerContentLocked(activeDocument, gradientCanvasLayer.Owner) &&
             !WhimTexApi.ContainsReservation(gradientCanvasLayer.Owner);
         private bool IsGradientCanvasEnabled => canvasTool == CanvasTool.GradientHandles && IsGradientCanvasAvailable;
@@ -191,6 +193,7 @@ namespace DCFApixels.WhimTex
                 if (!owner.IsGradientCanvasEnabled || owner.toolkitCanvas.ImageRect.width <= 0 ||
                     !target.contentRect.Contains(view)) return MouseCursor.Arrow;
                 if (pointer >= 0) return MouseCursor.Pan;
+                if (IsMesh) return GetMeshCursor(view);
                 if (IsFreeform) return GetFreeformCursor(view);
                 if (IsCustom)
                 {
@@ -206,7 +209,10 @@ namespace DCFApixels.WhimTex
             }
             private void Down(PointerDownEvent e)
             {
-                if (owner.IsGradientCanvasEnabled && pointer < 0 && !IsFreeform && IsCustom && !e.altKey &&
+                if (owner.IsGradientCanvasEnabled && pointer < 0 && IsMesh && !e.altKey &&
+                    owner.toolkitCanvas.ImageRect.width > 0 && (e.button == 0 || e.button == 1))
+                { MeshDown(e); return; }
+                if (owner.IsGradientCanvasEnabled && pointer < 0 && !IsFreeform && !IsMesh && IsCustom && !e.altKey &&
                     owner.toolkitCanvas.ImageRect.width > 0 && (e.button == 0 || e.button == 1))
                 { CustomCanvasDown(e); return; }
                 if (!owner.IsGradientCanvasEnabled || pointer>=0 || e.button!=0 || e.altKey || owner.toolkitCanvas.ImageRect.width<=0) return;
@@ -276,6 +282,7 @@ namespace DCFApixels.WhimTex
             {
                 if(pointer!=e.pointerId)return;
                 Validate(); if(pointer<0)return;
+                if (meshGesture) { MeshMove(e); return; }
                 if (freeformGesture) { FreeformMove(e); return; }
                 owner.UpdateCanvasCursor(e.localPosition, e.altKey);
                 BeginUndo();
@@ -332,13 +339,13 @@ namespace DCFApixels.WhimTex
             {
                 if(pointer!=e.pointerId || e.button!=0)return;
                 owner.UpdateCanvasCursor(e.localPosition, e.altKey);
-                if (freeformGesture) { End(false); e.StopImmediatePropagation(); return; }
+                if (freeformGesture || meshGesture) { End(false); e.StopImmediatePropagation(); return; }
                 if(pendingRemoval && handle>=0)
                 {
                     BeginUndo();
                     if (GradientCustomMarkers.IsCustom(originalGradient))
                     {
-                        var next = originalGradient.Clone(); GradientCustomMarkers.Remove(next, handle); layer.gradient = next;
+                        var next = originalGradient.Clone(); GradientCustomMarkers.Remove(next, handle, alpha: false); layer.gradient = next;
                         selectedCustomKey = 0;
                     }
                     else layer.gradient=WithoutColorKey(originalGradient,handle);
@@ -350,9 +357,10 @@ namespace DCFApixels.WhimTex
             private void Detach(DetachFromPanelEvent e)=>End(false);
             public void Validate()
             {
-                if(pointer>=0 && (!owner.IsGradientCanvasEnabled || owner.gradientCanvasLayer!=layer || angularGesture != IsAngular || freeformGesture != IsFreeform))End(false);
+                if(pointer>=0 && (!owner.IsGradientCanvasEnabled || owner.gradientCanvasLayer!=layer || angularGesture != IsAngular || freeformGesture != IsFreeform || meshGesture != IsMesh))End(false);
                 if(selectionLayer!=owner.gradientCanvasLayer){selected=-1;selectedCustomKey=0;selectionLayer=default;}
                 ValidateFreeformSelection();
+                ValidateMeshSelection();
             }
             private static WhimTexGradient WithoutColorKey(WhimTexGradient source,int index)
             {
@@ -369,6 +377,7 @@ namespace DCFApixels.WhimTex
             public bool HandleDelete(KeyDownEvent e)
             {
                 Validate();
+                if (IsMesh) return false;
                 if (IsFreeform) return DeleteFreeform(e);
                 if (owner.IsGradientCanvasEnabled && IsCustom) return DeleteCustomCanvasKey(e);
                 var element=e.target as VisualElement;
@@ -405,7 +414,9 @@ namespace DCFApixels.WhimTex
                 if(pointer<0)return;
                 int captured=pointer; pointer=-1;
                 if(target.HasPointerCapture(captured))target.ReleasePointer(captured);
-                if (freeformGesture && cancel && layer.IsValid && undo >= 0)
+                if (meshGesture && cancel && layer.IsValid && undo >= 0)
+                    layer.GradientLayer.mesh = originalMesh;
+                else if (freeformGesture && cancel && layer.IsValid && undo >= 0)
                     layer.freeform = originalFreeform;
                 else if(cancel && layer.IsValid && undo>=0)
                 {
@@ -422,6 +433,7 @@ namespace DCFApixels.WhimTex
                 pendingRemoval=false;
                 angularGesture=false;
                 freeformGesture = false; originalFreeform = null;
+                meshGesture = false; originalMesh = null;
                 owner.RefreshCanvasPointerCursor();
                 owner.gradientCanvasOverlay?.MarkDirtyRepaint();
             }
@@ -465,6 +477,7 @@ namespace DCFApixels.WhimTex
             public void Draw(MeshGenerationContext context)
             {
                 if(!owner.IsGradientCanvasEnabled || owner.toolkitCanvas.ImageRect.width<=0)return;
+                if (IsMesh) { DrawMeshGradient(context.painter2D); return; }
                 if (IsFreeform) { DrawFreeform(context.painter2D); return; }
                 if(IsAngular) { DrawAngular(context.painter2D); return; }
                 Points(out var a,out var b); Vector2 offset=Offset(a,b);

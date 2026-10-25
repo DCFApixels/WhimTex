@@ -295,6 +295,7 @@ namespace DCFApixels.WhimTex
         private static Material patchQuiltingMaterial;
         private static Material noiseMaterial;
         private static Material gradientMaterial;
+        private static Material meshGradientMaterial;
         private static Material fillUvMaterial;
         private static Material fillPatternMaterial;
         private static Material shapeMaterial;
@@ -325,6 +326,7 @@ namespace DCFApixels.WhimTex
         public static Material PatchQuilting => GetOrCreate(ref patchQuiltingMaterial, "Hidden/WhimTex/PatchQuilting");
         public static Material Noise => GetOrCreate(ref noiseMaterial, "Hidden/WhimTex/Noise");
         public static Material Gradient => GetOrCreate(ref gradientMaterial, "Hidden/WhimTex/Gradient");
+        public static Material MeshGradient => GetOrCreate(ref meshGradientMaterial, "Hidden/WhimTex/MeshGradient");
         public static Material FillUv => GetOrCreate(ref fillUvMaterial, "Hidden/WhimTex/FillUv");
         public static Material FillPattern => GetOrCreate(ref fillPatternMaterial, "Hidden/WhimTex/FillPattern");
         public static Material Shape => GetOrCreate(ref shapeMaterial, "Hidden/WhimTex/Shape");
@@ -360,6 +362,8 @@ namespace DCFApixels.WhimTex
 
         private static void Dispose()
         {
+            if (meshGradientMaterial != null) UnityEngine.Object.DestroyImmediate(meshGradientMaterial);
+            meshGradientMaterial = null;
             if (paintWriteProtectionMaterial != null) UnityEngine.Object.DestroyImmediate(paintWriteProtectionMaterial);
             paintWriteProtectionMaterial = null;
             if (smudgeTransportMaterial != null) UnityEngine.Object.DestroyImmediate(smudgeTransportMaterial);

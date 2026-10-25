@@ -290,6 +290,14 @@ namespace DCFApixels.WhimTex
                 throw new WhimTexDocumentException("Include the referenced layer in the fragment: " + target);
         }
 
+        internal static void ValidateMeshStorage(object value)
+        {
+            if (value is MeshGradient mesh) mesh.Validate();
+            if (value is GradientLayerBehaviour gradient &&
+                gradient.gradientType == GradientLayerBehaviour.GradientType.Mesh && gradient.mesh == null)
+                throw new WhimTexDocumentException("Mesh gradient data is missing.");
+        }
+
         internal static void ValidateModelInputs(WhimTexDocument document)
         {
             document.ValidateComments();
@@ -316,6 +324,8 @@ namespace DCFApixels.WhimTex
                         if (gradient.gradientType == GradientLayerBehaviour.GradientType.Freeform && gradient.freeform == null)
                             throw new WhimTexDocumentException("Freeform gradient data is missing: " + layer.Id);
                         gradient.freeform?.Validate();
+                        ValidateMeshStorage(gradient);
+                        gradient.mesh?.Validate();
                     }
                     if (layer?.Behaviour is SDFLayerBehaviour sdf)
                     {
@@ -399,6 +409,7 @@ namespace DCFApixels.WhimTex
                     textLayer.PrepareSavedAppearance(document.width, document.height);
                     if (textLayer.Notice != null) Warnings.Add(textLayer.Notice);
                 }
+                ValidateMeshStorage(value);
                 var node = new JObject();
                 foreach (var field in Fields(value.GetType()))
                 {
@@ -420,6 +431,8 @@ namespace DCFApixels.WhimTex
                     }
                     if (options.Mode != WhimTexJsonWriteMode.Full && !IsActive(value, field.Name)) continue;
                     object item = field.GetValue(value);
+                    if (value is MeshGradient && (field.Name == "nodeModes" || field.Name == "patchPriorities") &&
+                        item is Array array && array.Length == 0) item = null;
                     if (value is ShaderFX effect && field.Name == "parameters")
                     {
                         // Store the valid draft's declarations without mutating its applied state.
@@ -612,12 +625,29 @@ namespace DCFApixels.WhimTex
                     if (!fields.ContainsKey(property.Name)) throw new WhimTexDocumentException("Unknown field: " + property.Path);
                 }
                 if (type == typeof(GradientLayerBehaviour) && node["gradientType"] == null)
-                    throw JsonError(node, "gradientType is required; specify Linear, Radial, Angular, Square or Freeform.");
+                    throw JsonError(node, "gradientType is required; specify Linear, Radial, Angular, Square, Freeform or Mesh.");
+                if (type == typeof(MeshGradient))
+                {
+                    ((MeshGradient)result).patchPriorities = null;
+                    foreach (string field in new[] { "columns", "rows", "colorMode", "positions", "colors", "nodeModes" })
+                        if (node[field] == null) throw JsonError(node, "Mesh requires the complete control lattice; missing " + field + ".");
+                    foreach (string field in new[] { "nodeModes", "patchPriorities" })
+                        if (node[field] is JArray empty && empty.Count == 0)
+                            throw JsonError(node[field], "Use null for implicit Mesh defaults, not an empty array.");
+                    if (node["patchPriorities"] is JArray priorities)
+                        foreach (JToken priority in priorities)
+                            if (!(priority is JArray coefficients) || coefficients.Count != 3)
+                                throw JsonError(priority, "Mesh priority requires exactly three coefficients.");
+                }
+                if (type == typeof(GradientLayerBehaviour) && (string)node["gradientType"] == "Mesh" && node["mesh"] == null)
+                    throw JsonError(node, "mesh is required when gradientType is Mesh.");
                 JObject defaults = DefaultsFor(type);
                 foreach (var field in fields.Values)
                 {
                     JToken value = node[field.Name] ?? defaults?[field.Name];
                     if (value != null) field.SetValue(result, Value(value, field.FieldType, result, field.Name));
+                    else if (type == typeof(GradientLayerBehaviour) && field.Name == "mesh")
+                        continue; // An omitted inactive mesh retains the model's initial grid.
                     else if (defaults != null && field.Name != "id" && field.Name != "recoveryId" && field.Name != "shaderKey")
                         field.SetValue(result, field.FieldType.IsValueType ? Activator.CreateInstance(field.FieldType) : null);
                 }
@@ -632,6 +662,8 @@ namespace DCFApixels.WhimTex
                     throw JsonError(node["amount"] ?? node, "Corner amount must be between 0 and 1.");
                 if (result is TextLayerBehaviour text && text.Notice != null) Warnings.Add(text.Notice);
                 if (result is FreeformGradient freeform) freeform.Validate();
+                ValidateMeshStorage(result);
+                if (result is MeshGradient mesh) result = mesh.Clone();
                 if (result is WhimTexGradient gradient)
                 {
                     if (gradient.HasCustomCurves && node["customColorMode"] == null)

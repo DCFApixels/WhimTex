@@ -620,9 +620,8 @@ namespace DCFApixels.WhimTex
                 try
                 {
                     var next = previous.Clone();
-                    if (customGroup != null && next.TryGetCustomKey(selectedCustomKey, out var anchor))
-                        next.MoveCustomKeys(customGroup, time - anchor.time);
-                    else GradientCustomMarkers.Move(next, selectedCustomKey, time);
+                    if (next.TryGetCustomKey(selectedCustomKey, out var anchor))
+                        next.MoveCustomKeys(customGroup ?? CustomStripGroup(selectedCustomKey), time - anchor.time);
                     if (!next.Equals(previous))
                     {
                         if (record) RecordUndo("Move Gradient Key");
@@ -684,8 +683,8 @@ namespace DCFApixels.WhimTex
         {
             if (IsCustom)
             {
-                if (customGroup == null && !GradientCustomMarkers.CanRemove(gradient, selectedCustomKey)) return;
-                var ids = customGroup ?? GradientCustomMarkers.Group(gradient, selectedCustomKey);
+                var ids = customGroup ?? CustomStripGroup(selectedCustomKey);
+                if (!GradientCustomMarkers.CanRemove(gradient, ids)) return;
                 if (record) Edit(() => gradient.RemoveCustomKeys(ids));
                 else
                 {
@@ -715,7 +714,7 @@ namespace DCFApixels.WhimTex
         private bool IsRemovalPosition(Vector2 position)
         {
             const float margin = 16;
-            return (IsCustom ? GradientCustomMarkers.CanRemove(gradient, selectedCustomKey) : Count > 1) &&
+            return (IsCustom ? GradientCustomMarkers.CanRemove(gradient, CustomStripGroup(selectedCustomKey)) : Count > 1) &&
                 (position.y < -margin || position.y > strip.contentRect.height + margin);
         }
         private void SetPendingRemoval(bool value)
@@ -828,7 +827,7 @@ namespace DCFApixels.WhimTex
                 if (midpoint >= 0) owner.selected = midpoint;
                 else if (hit >= 0) owner.SelectKeyIndex(hit);
                 else if (!owner.AddKey(owner.AtX(pos.x))) { owner.Refresh(); return; }
-                customGroup = owner.IsCustom ? owner.gradient.GetCustomMarkerGroup(owner.selectedCustomKey) : null;
+                customGroup = owner.IsCustom ? owner.CustomStripGroup(owner.selectedCustomKey) : null;
                 pointer = e.pointerId; target.CapturePointer(pointer); target.Focus();
                 owner.Refresh(); e.StopPropagation();
             }

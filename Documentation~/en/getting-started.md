@@ -78,6 +78,9 @@ Each window owns its editing state; returning to an idle window picks up shared 
 Document properties, the current selection, unfinished paths/strokes and the Crop frame are
 not tool preferences. **Reset WhimTex Settings…** also resets all remembered tool options.
 
+If a tool's saved options are damaged or use an unsupported format, that section is reset
+and saved in the current format. The warning appears once; other tool options remain intact.
+
 **Paint Undo** sets the shared **Undo Disk Limit (GiB)** (8 by default) and **Paint Undo Steps**
 (50 per document by default, including Redo). Brush, Pencil, Smudge, Blur, Healing, fill and layer-clear pixel operations count;
 parameter edits use Unity Undo independently. These preferences apply to all projects for this user.

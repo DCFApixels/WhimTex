@@ -536,6 +536,7 @@ namespace DCFApixels.WhimTex
             private void WriteObject(object value, Type type)
             {
                 WhimTexDocumentJson.ValidateVectorStorage(value);
+                WhimTexDocumentJson.ValidateMeshStorage(value);
                 if (IsUnityType(type))
                     throw new WhimTexDocumentException("Unsupported Unity field type: " + type.FullName + ".");
                 if (TryWriteBackReference(value)) return;
@@ -969,6 +970,7 @@ namespace DCFApixels.WhimTex
                 object instance = typeof(ScriptableObject).IsAssignableFrom(type)
                     ? ScriptableObject.CreateInstance(type)
                     : Activator.CreateInstance(type, true);
+                if (instance is MeshGradient mesh) mesh.patchPriorities = null;
                 _objects.Add(instance);
                 if (instance is UnityEngine.Object owned) owned.hideFlags = HideFlags.HideAndDontSave;
                 if (instance is IWhimTexDocumentSerializable manual)
@@ -989,6 +991,7 @@ namespace DCFApixels.WhimTex
                 }
                 if (instance is ISerializationCallbackReceiver receiver) receiver.OnAfterDeserialize();
                 WhimTexDocumentJson.ValidateVectorStorage(instance);
+                WhimTexDocumentJson.ValidateMeshStorage(instance);
                 if (instance is WhimTexGradient gradient) WhimTexDocumentJson.ValidateGradientStorage(gradient);
                 // This reader reconstructs a file/copy, not a Unity Undo operation. Keep the
                 // deserialization hooks, but establish a clean baseline for later Undo events.
@@ -1136,7 +1139,8 @@ namespace DCFApixels.WhimTex
                 Type type = value.GetType();
                 int count = ReadCount(65536, 2);
                 bool readLayerFx = false;
-                var gradientFields = value is WhimTexGradient || value is WhimTexGradientCurveKey
+                bool readLayerMesh = false;
+                var gradientFields = value is WhimTexGradient || value is WhimTexGradientCurveKey || value is MeshGradient
                     ? new HashSet<string>(StringComparer.Ordinal) : null;
                 for (int i = 0; i < count; i++)
                 {
@@ -1147,6 +1151,11 @@ namespace DCFApixels.WhimTex
                     {
                         if (readLayerFx) throw new WhimTexDocumentException("Duplicate layer FX field in the document.");
                         readLayerFx = true;
+                    }
+                    if (value is GradientLayerBehaviour && fieldName == "mesh")
+                    {
+                        if (readLayerMesh) throw new WhimTexDocumentException("Duplicate layer Mesh field in the document.");
+                        readLayerMesh = true;
                     }
                     FieldInfo field = FindField(type, fieldName);
                     if (gradientFields != null && field == null)
@@ -1178,6 +1187,12 @@ namespace DCFApixels.WhimTex
                 if (value is WhimTexGradientCurveKey)
                     foreach (string required in new[] { "id", "channel", "time", "value", "tangentMode" })
                         if (!gradientFields.Contains(required)) throw new WhimTexDocumentException("Missing Custom key field: " + required);
+                if (value is MeshGradient)
+                    foreach (string required in new[] { "columns", "rows", "colorMode", "positions", "colors", "nodeModes" })
+                        if (!gradientFields.Contains(required)) throw new WhimTexDocumentException("Missing Mesh field: " + required);
+                if (value is GradientLayerBehaviour layerGradient &&
+                    layerGradient.gradientType == GradientLayerBehaviour.GradientType.Mesh && !readLayerMesh)
+                    throw new WhimTexDocumentException("Missing Mesh data in the Gradient layer.");
             }
         }
 

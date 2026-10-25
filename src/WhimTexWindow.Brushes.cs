@@ -9,19 +9,20 @@ namespace DCFApixels.WhimTex
     public sealed partial class WhimTexWindow
     {
         [SerializeField] private bool brushesExpanded;
-        [NonSerialized] private Button brushTab;
-        [NonSerialized] private VisualElement brushDrawer;
+        [NonSerialized] private Button brushTab, selectBrushButton;
+        [NonSerialized] private VisualElement brushDrawer, brushDrawerContent;
         [NonSerialized] private WhimTexUI.ValueBindings brushSettingsBindings;
 
         private void BuildBrushTab(VisualElement tabs)
         {
-            brushTab = new Button(() =>
+            brushTab = CreateCanvasDrawerTab("brushesTab",
+                "Brushes — tip, spacing, scatter, size variation, tint and blending.",
+                new CanvasToolIcon(CanvasTool.Brush), () =>
             {
                 brushesExpanded = !brushesExpanded;
                 if (brushesExpanded) postFxExpanded = uvExpanded = commentsExpanded = false;
                 RefreshPostFxPanel();
-            }) { tooltip = "Brushes: tip, spacing, scatter, size variation, tint and blending." };
-            brushTab.AddToClassList("whimtex-post-fx-tab");
+            });
             tabs.Add(brushTab);
         }
 
@@ -31,10 +32,14 @@ namespace DCFApixels.WhimTex
             brushDrawer = new VisualElement();
             brushDrawer.AddToClassList("whimtex-post-fx-drawer");
             brushDrawer.Add(CreatePaneHeader("Brushes", "brushesTitle"));
-            BuildBrushPresetControls(brushDrawer);
+            selectBrushButton = AddCanvasDrawerActivation(brushDrawer, "selectBrush", "Select Brush", () => SetCanvasTool(CanvasTool.Brush));
+            brushDrawerContent = new VisualElement { name = "brushDrawerContent" };
+            brushDrawerContent.AddToClassList("whimtex-canvas-drawer-content");
+            brushDrawer.Add(brushDrawerContent);
+            BuildBrushPresetControls(brushDrawerContent);
             var scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.AddToClassList("whimtex-post-fx-settings");
-            brushDrawer.Add(scroll);
+            brushDrawerContent.Add(scroll);
             panel.Add(brushDrawer);
 
             scroll.Add(CreateBrushSectionHeader("Tip", () => paintSettings.ResetBrushTip(),
@@ -234,7 +239,7 @@ namespace DCFApixels.WhimTex
             brushSettingsBindings.Track(application, () => paintSettings.dynamics.blendApplication == BrushBlendApplication.Stamp ? "Per Stamp" : "Per Stroke");
             brushSettingsBindings.Add(() => application.SetEnabled(paintSettings.tool != PaintToolMode.Eraser));
             scroll.Add(application);
-            BuildBrushStrokePreview(brushDrawer);
+            BuildBrushStrokePreview(brushDrawerContent);
             brushSettingsBindings.Refresh(true);
         }
 

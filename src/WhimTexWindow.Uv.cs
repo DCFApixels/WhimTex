@@ -13,8 +13,8 @@ namespace DCFApixels.WhimTex
         [SerializeField] private bool uvEnabled, uvExpanded;
         [SerializeField] private Color uvLineColor = new Color(.35f, .85f, 1f, 1f);
         [SerializeField] private float uvLineOpacity = .65f;
-        private Button uvButton, uvTab;
-        private VisualElement uvDrawer, uvOverlay;
+        private Button uvButton, uvTab, activateUvButton;
+        private VisualElement uvDrawer, uvOverlay, uvDrawerContent;
         private ObjectField uvMeshField;
         private DropdownField uvChannelField, uvSubmeshField;
         private HelpBox uvStatus;
@@ -33,7 +33,7 @@ namespace DCFApixels.WhimTex
             {
                 uvEnabled = !uvEnabled;
                 if (uvEnabled) OpenUvDrawer();
-                else { uvExpanded = false; uvMap = null; uvCachedChannel = -1; RefreshPostFxPanel(); uvOverlay?.MarkDirtyRepaint(); }
+                else { uvMap = null; uvCachedChannel = -1; RefreshPostFxPanel(); uvOverlay?.MarkDirtyRepaint(); }
                 RefreshToolkitInterface();
             }) { text = "UV", tooltip = "Show mesh UV island outlines. Preview only; never included in the texture or export." };
             uvButton.AddToClassList("whimtex-channel-button");
@@ -49,20 +49,28 @@ namespace DCFApixels.WhimTex
         }
         private void BuildUvTab(VisualElement tabs)
         {
-            uvTab = new Button(() =>
+            uvTab = CreateCanvasDrawerTab("uvTab",
+                "UV — show or hide settings. Closing this panel keeps the UV outlines visible.",
+                new CanvasPreviewPanelIcon(CanvasPreviewPanelIcon.Kind.Uv), () =>
             {
                 uvExpanded = !uvExpanded;
                 if (uvExpanded) brushesExpanded = postFxExpanded = commentsExpanded = false;
                 RefreshPostFxPanel();
-            }) { tooltip = "Show or hide UV settings. Closing this panel keeps the UV outlines visible." };
-            uvTab.AddToClassList("whimtex-post-fx-tab"); tabs.Add(uvTab);
+            });
+            tabs.Add(uvTab);
         }
         private void BuildUvDrawer(VisualElement panel)
         {
             uvDrawer = new VisualElement { name = "uvDrawer" };
             uvDrawer.AddToClassList("whimtex-post-fx-drawer");
             uvDrawer.Add(CreatePaneHeader("UV", "uvTitle"));
+            activateUvButton = AddCanvasDrawerActivation(uvDrawer, "activateUv", "Enable UV", () =>
+            {
+                OpenUvDrawer();
+                RefreshToolkitInterface();
+            });
             var fields = new ScrollView(ScrollViewMode.Vertical);
+            uvDrawerContent = fields;
             fields.AddToClassList("whimtex-post-fx-settings");
             uvDrawer.Add(fields); panel.Add(uvDrawer);
             uvMeshField = WhimTexUI.ConfigureField(new ObjectField("Mesh")
@@ -135,10 +143,11 @@ namespace DCFApixels.WhimTex
         private void RefreshUvPanel()
         {
             uvButton?.EnableInClassList("whimtex-channel-button--enabled", uvEnabled);
-            uvTab?.EnableInClassList("whimtex-post-fx-drawer--hidden", !uvEnabled);
-            if (uvTab != null) uvTab.text = uvExpanded ? "›" : "‹";
-            uvDrawer?.EnableInClassList("whimtex-post-fx-drawer--hidden", !uvEnabled || !uvExpanded);
-            uvDrawer?.SetEnabled(activeDocument != null);
+            RefreshCanvasDrawerTab(uvTab, uvExpanded);
+            uvDrawer?.EnableInClassList("whimtex-post-fx-drawer--hidden", !uvExpanded);
+            uvDrawerContent?.SetEnabled(uvEnabled && activeDocument != null);
+            activateUvButton?.EnableInClassList("whimtex-hidden", uvEnabled);
+            activateUvButton?.SetEnabled(activeDocument != null);
         }
         private void RefreshUvReference()
         {

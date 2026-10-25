@@ -21,6 +21,12 @@ namespace DCFApixels.WhimTex
         private bool IsCustom => GradientCustomMarkers.IsCustom(gradient);
         private WhimTexGradientCurveKey[] CustomTrack => alphaTrack ? customAlphas : customColors;
 
+        private int[] CustomStripGroup(int id)
+        {
+            if (!gradient.TryGetCustomKey(id, out var anchor)) return Array.Empty<int>();
+            return GradientCustomMarkers.Group(gradient, id, anchor.channel == 3);
+        }
+
         private void BuildCustomControls()
         {
             pendingColorMode = gradient.ColorMode;
@@ -61,7 +67,7 @@ namespace DCFApixels.WhimTex
             int index = Array.FindIndex(track, k => k.id == selectedCustomKey);
             if (index < 0)
             {
-                var group = GradientCustomMarkers.Group(gradient, selectedCustomKey);
+                var group = CustomStripGroup(selectedCustomKey);
                 index = Array.FindIndex(track, k => Array.IndexOf(group, k.id) >= 0);
             }
             selected = index >= 0 ? index : 0;
@@ -86,7 +92,7 @@ namespace DCFApixels.WhimTex
             {
                 customValue.label = gradient.CustomChannelName(key.channel);
                 customValue.SetValueWithoutNotify(key.value);
-                customSelection.text = GradientCustomMarkers.Label(gradient, key) + " · Double-click to edit curves";
+                customSelection.text = GradientCustomMarkers.Label(gradient, key, CustomStripGroup(key.id)) + " · Double-click to edit curves";
             }
         }
 
@@ -139,7 +145,7 @@ namespace DCFApixels.WhimTex
             var expected = gradient;
             bool Valid() => this != null && IsCustom && ReferenceEquals(expected, gradient) && gradient.TryGetCustomKey(id, out _);
             e.menu.AppendAction("Edit Curves", _ => { if (Valid()) OpenCustomCurves(id); });
-            var group = GradientCustomMarkers.Group(gradient, id);
+            var group = CustomStripGroup(id);
             foreach (var key in customKeys)
             {
                 if (Array.IndexOf(group, key.id) < 0 || key.id == id) continue;
@@ -151,7 +157,7 @@ namespace DCFApixels.WhimTex
                     alphaTrack = key.channel == 3; selectedCustomKey = otherId; Refresh(); OpenCustomCurves(otherId);
                 });
             }
-            e.menu.AppendAction("Delete Keys", _ => { if (Valid()) { selectedCustomKey = id; DeleteKey(); } }, GradientCustomMarkers.CanRemove(gradient, id)
+            e.menu.AppendAction("Delete Keys", _ => { if (Valid()) { selectedCustomKey = id; DeleteKey(); } }, GradientCustomMarkers.CanRemove(gradient, group)
                 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
             e.menu.AppendSeparator();
         }
@@ -159,7 +165,7 @@ namespace DCFApixels.WhimTex
         private void DrawCustomStrip(MeshGenerationContext context)
         {
             var p = context.painter2D;
-            var selectedGroup = GradientCustomMarkers.Group(gradient, selectedCustomKey);
+            var selectedGroup = CustomStripGroup(selectedCustomKey);
             for (int track = 0; track < 2; track++)
             {
                 var markers = track == 0 ? customAlphas : customColors;
@@ -194,7 +200,7 @@ namespace DCFApixels.WhimTex
                 hits.Add(i);
             }
             if (hits.Count == 0) return -1;
-            var selectedGroup = GradientCustomMarkers.Group(gradient, selectedCustomKey);
+            var selectedGroup = CustomStripGroup(selectedCustomKey);
             int previous = hits.FindIndex(i => Array.IndexOf(selectedGroup, CustomTrack[i].id) >= 0);
             return previous < 0 ? hits[0] : hits[cycle ? (previous + 1) % hits.Count : previous];
         }

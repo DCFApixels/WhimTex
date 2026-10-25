@@ -25,6 +25,23 @@ const noiseEnum = name => enumeration('Layers/NoiseLayerBehaviour.cs', name);
 const normalEnum = name => enumeration('Layers/NormalMapLayerBehaviour.cs', name);
 const defs = {
   gradientType: enumeration('Layers/GradientLayerBehaviour.cs', 'GradientType'),
+  mesh: {
+    ...object({ columns: integer(1, 16), rows: integer(1, 16), colorMode: choice('Linear Gamma Perceptual'),
+      positions: { type: 'array', minItems: 16, maxItems: 2401, items: tuple(number(-3.40282347e38, 3.40282347e38), 2) },
+      colors: { type: 'array', minItems: 16, maxItems: 2401, items: tuple(number(-3.40282347e38, 3.40282347e38), 4) },
+      nodeModes: { type: ['array', 'null'], minItems: 4, maxItems: 289, items: enumeration('MeshGradient.cs', 'MeshGradientNodeMode') },
+      patchPriorities: { type: ['array', 'null'], minItems: 1, maxItems: 256, items: tuple(number(0,1),3),
+        description: 'Optional row-major priority plane per cell: constant + uCoefficient*u + vCoefficient*v. Null or omitted uses canonical patch order. Array length equals columns*rows; each finite nonnegative triple sums to at most 1. Preserve supplied coefficients when replacing a mesh to retain overlap order after subdivision.' }
+    }, ['columns', 'rows', 'colorMode', 'positions', 'colors', 'nodeModes']),
+    description: 'Gradient layers only. Replaces the entire mesh, including inactive data. columns/rows are cell counts. Both coefficient arrays must contain (3*columns+1)*(3*rows+1) row-major entries; nodeModes contains (columns+1)*(rows+1) row-major Smooth/Corner entries, or null for all Smooth. New nodes default to Smooth. positions are finite local Bezier controls, unrestricted by 0..1 or folding; colors are working coefficients: linear RGB for Linear, encoded RGB for Gamma, OKLab for Perceptual. Alpha is a straight cubic coefficient and may overshoot; only evaluated alpha is clamped. Preserve every coefficient and node mode. Overlaps select one surface section without accumulating alpha. Runtime validation rejects nonfinite values, malformed arrays and unsupported modes.'
+  },
+  meshOperation: {
+    oneOf: [
+      object({ op: { const: 'mesh' }, layer: str(256), action: { const: 'nodeMode' }, node: integer(0,288), mode: enumeration('MeshGradient.cs', 'MeshGradientNodeMode') }, ['op', 'layer', 'action', 'node', 'mode']),
+      object({ op: { const: 'mesh' }, layer: str(256), action: { const: 'moveEdge' }, node: integer(0,288), direction: integer(0,3), delta: tuple(number(-3.40282347e38, 3.40282347e38),2) }, ['op', 'layer', 'action', 'node', 'direction', 'delta'])
+    ],
+    description: 'Shared Gradient-layer operation. node is a zero-based row-major node index, not a control-lattice index. nodeMode selects Smooth/Corner; moveEdge shifts its two handles and adjacent tensor controls by a finite local delta, preserving node positions. direction: 0 left, 1 right, 2 down, 3 up; the edge must exist. Runtime checks node bounds. Leaves the active gradient type unchanged.'
+  },
   freeform: object({ points: { type: 'array', minItems: 1, maxItems: 64,
     items: object({ position: tuple(number(-10000, 10000), 2), color: rgba,
       influence: { ...number(.01, 4), default: .35, description: 'Relative influence in local layer coordinates, displayed as percent. Smooth decay with no hard boundary.' } }, ['position', 'color']) } }, ['points']),

@@ -155,7 +155,7 @@ namespace DCFApixels.WhimTex
                 Points(out var a, out var b);
                 int markerIndex = Array.FindIndex(customMarkers, k => k.id == hit);
                 customDragOffset = markerIndex >= 0 ? p - CustomBasePoint(customMarkers[markerIndex].time, a, b) : Vector2.zero;
-                customCanRemove = markerIndex >= 0 && GradientCustomMarkers.CanRemove(originalGradient, hit);
+                customCanRemove = markerIndex >= 0 && GradientCustomMarkers.CanRemove(originalGradient, hit, alpha: false);
                 if (IsAngular)
                 {
                     originalAngularAngle = layer.circularStartAngle; originalAngularRepetitions = layer.circularRepetitions;
@@ -194,7 +194,7 @@ namespace DCFApixels.WhimTex
                 pendingRemoval = customCanRemove && distance > 32;
                 if (pendingRemoval) return;
                 var next = originalGradient.Clone();
-                try { GradientCustomMarkers.Move(next, handle, time); }
+                try { GradientCustomMarkers.Move(next, handle, time, alpha: false); }
                 catch (Exception e) when (e is ArgumentException || e is InvalidOperationException) { return; }
                 layer.gradient = next;
                 selectedCustomKey = handle;
@@ -238,7 +238,7 @@ namespace DCFApixels.WhimTex
                 bool Valid() => owner != null && owner.activeDocument == document && owner.gradientCanvasLayer == edited &&
                     owner.IsGradientCanvasAvailable && edited.gradient == g;
                 menu.AddItem(new GUIContent("Edit Curves"), false, () => { if (Valid()) OpenCustomCanvasCurves(id); });
-                var group = GradientCustomMarkers.Group(g, id);
+                var group = GradientCustomMarkers.Group(g, id, alpha: false);
                 foreach (var key in g.CustomKeys)
                 {
                     if (key.id == id || Array.IndexOf(group, key.id) < 0) continue;
@@ -247,8 +247,8 @@ namespace DCFApixels.WhimTex
                     menu.AddItem(new GUIContent("Select/" + name), false, () =>
                     { if (!Valid()) return; selectedCustomKey = otherId; owner.gradientCanvasOverlay.MarkDirtyRepaint(); OpenCustomCanvasCurves(otherId); });
                 }
-                if (GradientCustomMarkers.CanRemove(g, id)) menu.AddItem(new GUIContent("Delete Keys"), false,
-                    () => Change(next => GradientCustomMarkers.Remove(next, id)));
+                if (GradientCustomMarkers.CanRemove(g, id, alpha: false)) menu.AddItem(new GUIContent("Delete Keys"), false,
+                    () => Change(next => GradientCustomMarkers.Remove(next, id, alpha: false)));
                 else menu.AddDisabledItem(new GUIContent("Delete Keys"));
                 menu.ShowAsContext();
             }
@@ -258,9 +258,9 @@ namespace DCFApixels.WhimTex
                 var element = e.target as VisualElement;
                 if (e.keyCode != KeyCode.Delete || pointer >= 0 || selectionLayer != owner.gradientCanvasLayer ||
                     selectedCustomKey <= 0 || element != target && (element == null || !target.Contains(element))) return false;
-                if (GradientCustomMarkers.CanRemove(selectionLayer.gradient, selectedCustomKey))
+                if (GradientCustomMarkers.CanRemove(selectionLayer.gradient, selectedCustomKey, alpha: false))
                 {
-                    var next = selectionLayer.gradient.Clone(); GradientCustomMarkers.Remove(next, selectedCustomKey);
+                    var next = selectionLayer.gradient.Clone(); GradientCustomMarkers.Remove(next, selectedCustomKey, alpha: false);
                     BeginUndo(); selectionLayer.gradient = next; selectedCustomKey = 0; Commit();
                 }
                 e.StopImmediatePropagation(); return true;
@@ -270,7 +270,7 @@ namespace DCFApixels.WhimTex
             {
                 RefreshCustomMarkers(); RefreshCustomGeometry(a, b);
                 var g = owner.gradientCanvasLayer.gradient;
-                var selectedGroup = GradientCustomMarkers.Group(g, selectedCustomKey);
+                var selectedGroup = GradientCustomMarkers.Group(g, selectedCustomKey, alpha: false);
                 for (int pass = 0; pass < 2; pass++)
                 for (int i = 0; i < customMarkers.Length; i++)
                 {

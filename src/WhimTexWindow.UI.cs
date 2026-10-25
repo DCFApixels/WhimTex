@@ -297,7 +297,7 @@ namespace DCFApixels.WhimTex
             toolkitCanvas.RegisterCallback<PointerLeaveEvent>(OnCanvasPointerLeave);
             toolkitCanvas.RegisterCallback<PointerCaptureOutEvent>(OnCanvasPointerCaptureOut);
             toolkitCanvas.AddManipulator(canvasGuideManipulator);
-            canvasBody.Add(BuildCanvasNavigation(BuildCanvasViewWorkspace(toolkitCanvas)));
+            canvasBody.Add(BuildCanvasViewWorkspace(toolkitCanvas));
 
             canvasBody.Add(BuildCanvasViewFooter());
             // Reserve one row in the layout; wrapped settings draw above the canvas.
@@ -1699,7 +1699,7 @@ namespace DCFApixels.WhimTex
                 return;
 
             bool hasLayers = HasCanvasLayers;
-            toolkitCanvas.SetCanvasVisible(hasLayers || canvasTool == CanvasTool.Crop || canvasTool == CanvasTool.Comment || IsVectorTool(canvasTool));
+            toolkitCanvas.SetCanvasVisible(hasLayers || canvasTool == CanvasTool.Crop || CanvasCommentsVisible || IsVectorTool(canvasTool));
             DrawingLayerBehaviour drawing = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
             ApplyCanvasTextureFilter();
             RefreshCanvasQualityControl();

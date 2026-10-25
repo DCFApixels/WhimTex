@@ -31,7 +31,12 @@ namespace DCFApixels.WhimTex
             {
                 applyChange(
                     "Change Gradient Type",
-                    () => layer.gradientType = evt.newValue);
+                    () =>
+                    {
+                        layer.gradientType = evt.newValue;
+                        if (evt.newValue == GradientLayerBehaviour.GradientType.Mesh && layer.mesh == null)
+                            layer.mesh = new MeshGradient();
+                    });
             });
             root.Add(gradientType);
 
@@ -42,6 +47,9 @@ namespace DCFApixels.WhimTex
             var freeformSettings = new VisualElement();
             FreeformGradientEditor.Build(freeformSettings, layer, activeDocument, applyChange, bindings);
             root.Add(freeformSettings);
+            var meshSettings = new VisualElement();
+            MeshGradientEditor.Build(meshSettings, layer, activeDocument, applyChange, bindings);
+            root.Add(meshSettings);
 
             VisualElement angularSettings = new VisualElement();
             FloatField startAngle = WhimTexUI.ConfigureField(new FloatField("Start Angle"));
@@ -67,7 +75,7 @@ namespace DCFApixels.WhimTex
             bindings.Add(() =>
             {
                 bool angular = layer.gradientType == GradientLayerBehaviour.GradientType.Angular;
-                gradient.style.display = layer.gradientType == GradientLayerBehaviour.GradientType.Freeform ? DisplayStyle.None : DisplayStyle.Flex;
+                gradient.style.display = layer.gradientType == GradientLayerBehaviour.GradientType.Freeform || layer.gradientType == GradientLayerBehaviour.GradientType.Mesh ? DisplayStyle.None : DisplayStyle.Flex;
                 angularSettings.style.display = angular ? DisplayStyle.Flex : DisplayStyle.None;
             });
         }

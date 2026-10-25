@@ -94,6 +94,74 @@ clones both point sets. Palette anchors and repetitions do not affect Freeform.
 Text excludes this mode; SVG export is unchanged.
 The live API accepts `settings.gradientType` and `settings.freeform` (see [AgentAPI](AgentAPI.md#freeform-gradient-settings)).
 
+## Mesh gradients
+
+Only `GradientLayerBehaviour` accepts `gradientType:"Mesh"` (enum ID 7). Its independent
+`mesh` object contains the complete tensor-product cubic Bézier control lattice:
+
+| Field | Contract |
+| --- | --- |
+| `columns`, `rows` | Cell counts, integers 1–16. These are not node counts. |
+| `colorMode` | `Linear`, `Gamma` or `Perceptual`; `Hue` is rejected. |
+| `positions` | Finite row-major `[x,y]` controls in local coordinates, including values outside 0–1. Exactly `(3*columns+1)*(3*rows+1)` entries. |
+| `colors` | Row-major four-component working-space coefficients, with the same length as `positions`. |
+| `nodeModes` | Row-major `Smooth`/`Corner` entries for `(columns+1)*(rows+1)` nodes, or `null` for all Smooth; new nodes default to `Smooth`. |
+| `patchPriorities` | Optional row-major `[constant,uCoefficient,vCoefficient]` per cell. `null` or omission uses canonical ordering. |
+
+For lattice width `w=3*columns+1`, element `(x,y)` has index `y*w+x`. User nodes are
+at `(3*c,3*r)`; the other entries are Bézier controls and must not be omitted or
+reconstructed from the nodes. `colors` stores linear RGB for `Linear`, encoded RGB
+for `Gamma`, and OKLab for `Perceptual`. Its fourth component is a straight alpha
+coefficient. It is not the ordinary encoded RGBA color contract: signed HDR and control
+overshoot are retained, including alpha coefficients outside 0–1. Evaluation clamps
+alpha to 0–1. C# callers use `NodeColor`/`SetNodeColor` for encoded display colors.
+
+The six core fields through `nodeModes` are required when `mesh` is supplied.
+`patchPriorities` is optional. Numeric components must be
+finite; array-size mismatches and unsupported color/node modes are rejected. Positions
+are not restricted to 0–1, and folded or overlapping cells are allowed. A missing
+`nodeModes` field is rejected; explicit `null` means all nodes use Smooth without
+rewriting geometry.
+Internal Unity deserialization can turn null arrays into empty arrays. The model treats
+empty node modes/priorities as implicit defaults; JSON export and Inspect write them
+as `null`. External JSON still rejects `[]`. JSON/API reads normalize implicit defaults
+through `Clone()` without changing the field's appearance or aligning handles.
+An active Mesh requires non-null `mesh` data. TIFF and all JSON modes retain the full
+lattice and node modes while another type is selected; the ordinary palette and Freeform points are
+also retained. Copy/clipboard use the same data, without color-space conversion or
+coefficient clamping. Selection and render caches are not serialized.
+
+Adding a row or column subdivides positions and color coefficients together using
+de Casteljau, preserving the continuous result apart from floating-point rounding.
+Existing node modes are carried to their corresponding nodes; inserted nodes use
+`Smooth`. `SetNodeMode` changes editing behavior and can align geometry, but does not
+change color coefficients. Switching Corner to Smooth aligns each opposite handle
+pair to its average direction, preserving each handle's length. Subsequent handle
+movement in Smooth aligns its opposite while preserving the opposite handle's length;
+Corner leaves it independent. Raw `nodeModes` assignment records the modes without
+rewriting coefficients, so file reads preserve geometry exactly.
+
+`MoveEdge(node,direction,delta)` translates the edge's two handles and adjoining
+tensor controls without moving its endpoint nodes. Smooth endpoint modes can also
+realign the opposite handles. Directions are 0 left, 1 right, 2 down, 3 up.
+Overlapping regions select one surface section instead of compositing their alpha
+repeatedly. `patchPriorities` retains this choice through subdivision: the priority
+inside a cell is `constant + uCoefficient*u + vCoefficient*v`. A supplied array
+must have `columns*rows` triples. All three components must be finite and nonnegative,
+and their sum must not exceed 1; zero u/v coefficients are allowed. `null` uses
+canonical patch-index ordering followed by local v/u ordering. Subdivision creates
+or transforms priority planes so that an overlap keeps its previous winner.
+Preserve them on raw roundtrip; they are technical data, not a blend-mode control.
+Outside the mesh boundary the source is transparent; Mesh resolves `Source` tiling to
+`Clip`. Ordinary palette interpolation
+and wrapping do not control Mesh. Shape, Vector, Text, Boolean Group styles and
+standalone gradient-value clipboard formats do not accept this mode.
+See [Mesh editing settings](AgentAPI.md#mesh-gradient-settings) for the Agent API.
+`SetColorMode` converts retained coefficients when changing models; because those
+conversions are nonlinear, the interpolated appearance can change. `SetNodeColor`
+updates the adjacent coefficient block as well as the node to retain its local
+color derivatives. `EvaluateColor` returns straight linear color.
+
 ## Figure fills
 
 The ordinary `GradientLayerBehaviour` stores `circularStartAngle` (default 0), in
@@ -103,7 +171,7 @@ The angle rotates the field without changing transform or palette keys; it is
 retained by native storage/Undo and included in JSON when Angular is active.
 Shifted angular fields rasterize on PSD export. This is separate from figure-fill geometry.
 
-Gradient layer `gradientType` is required in every JSON mode, including Compact: `Linear`, `Radial`, `Angular`, `Square` or `Freeform`. Removed type names and omitted types are rejected rather than converted. The Linear direction comes from its transform and canvas handles.
+Gradient layer `gradientType` is required in every JSON mode, including Compact: `Linear`, `Radial`, `Angular`, `Square`, `Freeform` or `Mesh`. Removed type names and omitted types are rejected rather than converted. The Linear direction comes from its transform and canvas handles.
 
 Shape and Vector share `VectorFillMode`: `None=0`, `Solid=1`, `LinearGradient=2`,
 `RadialGradient=3`, `SquareGradient=4`, `AngularGradient=6`, `Freeform=7`.

@@ -17,8 +17,9 @@ This feature currently needs **URP 17.x with Universal Renderer**; other editing
 
 ## Choose the look
 
-Enable **Post FX** in the footer, then open the floating settings panel with the small arrow
-on the right of the canvas. Close it with the same arrow to see the image unobstructed.
+Open the settings with the frame-and-sparkles icon in the toolbar at the right edge of Canvas View.
+Click **Enable Post FX** above the disabled settings, or enable **Post FX** in the footer.
+Click the same icon to close the panel and see the image unobstructed.
 
 | Source | Use it to… |
 | :--- | :--- |

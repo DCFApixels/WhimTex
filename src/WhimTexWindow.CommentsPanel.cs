@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexWindow
     {
-        [SerializeField] private bool commentsExpanded = true;
+        [SerializeField] private bool commentsExpanded;
         private VisualElement commentDrawer;
         private Button commentTab, closeAllCommentsButton;
         private Label commentListTitle, commentListEmpty;
@@ -57,9 +57,8 @@ namespace DCFApixels.WhimTex
 
         private void BuildCommentTab(VisualElement tabs)
         {
-            commentTab = new Button(ToggleCommentDrawer)
-            { name = "commentsTab", tooltip = "Show or hide the list of all comments." };
-            commentTab.AddToClassList("whimtex-post-fx-tab");
+            commentTab = CreateCanvasDrawerTab("commentsTab", "Comments — show or hide the list of all comments.",
+                new CanvasToolIcon(CanvasTool.Comment), ToggleCommentDrawer);
             tabs.Add(commentTab);
         }
 
@@ -87,7 +86,7 @@ namespace DCFApixels.WhimTex
             commentSearchField.RegisterValueChangedCallback(evt => { commentSearch = evt.newValue; ApplyCommentFilter(); });
             filters.Add(commentSearchField); commentDrawer.Add(filters);
             BuildCommentQueries(commentDrawer);
-            commentListEmpty = new Label("Click the canvas to add a comment.");
+            commentListEmpty = new Label("Select the Comment tool and click the canvas to add a comment.");
             commentListEmpty.AddToClassList("whimtex-comments-empty");
             commentDrawer.Add(commentListEmpty);
             commentList = new ListView
@@ -118,6 +117,7 @@ namespace DCFApixels.WhimTex
             RefreshPostFxPanel();
             RefreshCommentList();
             PositionCanvasComments();
+            UpdateToolkitCanvasPresentation();
         }
 
         private void RefreshCommentList() => RefreshCommentList(CurrentCommentQuery());
@@ -132,7 +132,7 @@ namespace DCFApixels.WhimTex
             RefreshCommentQueryControls();
             int count = filteredComments.Count;
             if (commentListTitle != null) commentListTitle.text = "Comments · " + OpenCommentCount() + " open";
-            commentListEmpty.text = items?.Count > 0 ? "No matching comments." : "Click the canvas to add a comment.";
+            commentListEmpty.text = items?.Count > 0 ? "No matching comments." : "Select the Comment tool and click the canvas to add a comment.";
             commentListEmpty.EnableInClassList("whimtex-hidden", count != 0);
             commentList.EnableInClassList("whimtex-hidden", count == 0);
             commentList.style.height = count * commentList.fixedItemHeight;

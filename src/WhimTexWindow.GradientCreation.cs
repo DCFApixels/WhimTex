@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexWindow
     {
-        private enum GradientCreationType { Linear, Radial, Angular, Square, Freeform }
+        private enum GradientCreationType { Linear, Radial, Angular, Square, Freeform, Mesh }
         private const float FreeformCreationHeight = .8660254f;
         private static Vector2 FreeformCreationApex(Vector2 start, Vector2 end)
         {
@@ -19,6 +19,7 @@ namespace DCFApixels.WhimTex
         private sealed class GradientCreationSettings
         {
             public GradientCreationType type;
+            public int meshRows = 2, meshColumns = 2;
             public WhimTexGradient gradient = GradientUtility.Create(GradientUtility.WhiteToBlack);
         }
         [SerializeField] private GradientCreationSettings gradientCreationSettings = new GradientCreationSettings();
@@ -47,6 +48,7 @@ namespace DCFApixels.WhimTex
             GradientLayerBehaviour.GradientType.Angular => GradientCreationType.Angular,
             GradientLayerBehaviour.GradientType.Square => GradientCreationType.Square,
             GradientLayerBehaviour.GradientType.Freeform => GradientCreationType.Freeform,
+            GradientLayerBehaviour.GradientType.Mesh => GradientCreationType.Mesh,
             _ => throw new ArgumentOutOfRangeException(nameof(type))
         };
 
@@ -57,6 +59,7 @@ namespace DCFApixels.WhimTex
             GradientCreationType.Angular => GradientLayerBehaviour.GradientType.Angular,
             GradientCreationType.Square => GradientLayerBehaviour.GradientType.Square,
             GradientCreationType.Freeform => GradientLayerBehaviour.GradientType.Freeform,
+            GradientCreationType.Mesh => GradientLayerBehaviour.GradientType.Mesh,
             _ => throw new ArgumentOutOfRangeException(nameof(type))
         };
 
@@ -114,6 +117,17 @@ namespace DCFApixels.WhimTex
                 gradientCreationSettings.gradient = e.newValue.Clone();
                 SaveToolPreferences();
             });
+            var columns = new IntegerField("Columns") { name = "gradientMeshColumns" }; columns.AddToClassList("whimtex-view-field"); row.Add(columns);
+            var rows = new IntegerField("Rows") { name = "gradientMeshRows" }; rows.AddToClassList("whimtex-view-field"); row.Add(rows);
+            toolkitHeaderBindings.Track(columns, () => gradientCreationSettings.meshColumns);
+            toolkitHeaderBindings.Track(rows, () => gradientCreationSettings.meshRows);
+            columns.RegisterValueChangedCallback(e => { gradientCreationSettings.meshColumns = Mathf.Clamp(e.newValue, 1, MeshGradient.MaxCells); SaveToolPreferences(); });
+            rows.RegisterValueChangedCallback(e => { gradientCreationSettings.meshRows = Mathf.Clamp(e.newValue, 1, MeshGradient.MaxCells); SaveToolPreferences(); });
+            toolkitHeaderBindings.Add(() =>
+            {
+                bool mesh = gradientCreationSettings.type == GradientCreationType.Mesh;
+                columns.style.display = rows.style.display = mesh ? DisplayStyle.Flex : DisplayStyle.None;
+            });
             toolkitCanvasViewHeader.Add(row);
         }
 
@@ -148,6 +162,14 @@ namespace DCFApixels.WhimTex
             layer.transform.rotation = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg + (type == GradientCreationType.Angular ? 180 : 0);
             float side = type == GradientCreationType.Angular ? Mathf.Min(size.x, size.y) : delta.magnitude * (linear || freeform ? 1 : 2);
             layer.transform.scale = new Double2(side / size.x, side / size.y);
+            if (type == GradientCreationType.Mesh)
+            {
+                if (Mathf.Abs(delta.x) < 1 || Mathf.Abs(delta.y) < 1) return;
+                behaviour.mesh = MeshGradient.Create(behaviour.gradient, gradientCreationSettings.meshColumns, gradientCreationSettings.meshRows);
+                layer.transform.position = (start + end) * .5f - size * .5f;
+                layer.transform.rotation = 0;
+                layer.transform.scale = new Double2(Mathf.Abs(delta.x) / size.x, Mathf.Abs(delta.y) / size.y);
+            }
             foreach (var key in behaviour.gradient.ColorKeys)
                 if (key.color.r < 0 || key.color.g < 0 || key.color.b < 0 || key.color.maxColorComponent > 1)
                 { layer.colorRange = LayerColorRange.HDR; layer.blendRange = LayerBlendRange.HDR; }
@@ -165,7 +187,7 @@ namespace DCFApixels.WhimTex
                 Undo.CollapseUndoOperations(undo);
             }
             finally { Undo.IncrementCurrentGroup(); }
-            if (freeform && canvasTool != CanvasTool.GradientHandles) SetCanvasTool(CanvasTool.GradientHandles);
+            if ((freeform || type == GradientCreationType.Mesh) && canvasTool != CanvasTool.GradientHandles) SetCanvasTool(CanvasTool.GradientHandles);
         }
 
         private sealed class GradientCreationManipulator : PointerManipulator
@@ -277,6 +299,19 @@ namespace DCFApixels.WhimTex
                 bool freeform = owner.gradientCreationSettings.type == GradientCreationType.Freeform;
                 Vector2 apex = freeform ? View(FreeformCreationApex(start, end)) : default;
                 var painter = context.painter2D;
+                if (owner.gradientCreationSettings.type == GradientCreationType.Mesh)
+                {
+                    int columns = Mathf.Clamp(owner.gradientCreationSettings.meshColumns, 1, MeshGradient.MaxCells);
+                    int rows = Mathf.Clamp(owner.gradientCreationSettings.meshRows, 1, MeshGradient.MaxCells);
+                    for (int pass = 0; pass < 2; pass++)
+                    {
+                        painter.lineWidth = pass == 0 ? 3 : 1; painter.strokeColor = pass == 0 ? Color.black : Color.white; painter.BeginPath();
+                        for (int x = 0; x <= columns; x++) { float px = Mathf.Lerp(a.x, b.x, x / (float)columns); painter.MoveTo(new Vector2(px, a.y)); painter.LineTo(new Vector2(px, b.y)); }
+                        for (int y = 0; y <= rows; y++) { float py = Mathf.Lerp(a.y, b.y, y / (float)rows); painter.MoveTo(new Vector2(a.x, py)); painter.LineTo(new Vector2(b.x, py)); }
+                        painter.Stroke();
+                    }
+                    return;
+                }
                 painter.lineWidth = 3; painter.strokeColor = Color.black;
                 painter.BeginPath(); painter.MoveTo(a); painter.LineTo(b);
                 if (freeform) { painter.LineTo(apex); painter.ClosePath(); }

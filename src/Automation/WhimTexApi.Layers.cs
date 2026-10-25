@@ -65,6 +65,9 @@ namespace DCFApixels.WhimTex
             }
             switch (op)
             {
+                case "mesh":
+                    ApplyMeshOperation(layer, operation);
+                    break;
                 case "convertToVector":
                     Keys(operation, "op", "layer");
                     Require(layer.Behaviour is ShapeLayerBehaviour || layer.Behaviour is TextLayerBehaviour,
@@ -203,7 +206,7 @@ namespace DCFApixels.WhimTex
         {
             Keys(settings, "name", "enabled", "clippingMask", "opacity", "blend", "filter", "source", "colorRange", "blendRange", "channelMapping", "compositing", "color", "brush",
                 "fillMode", "fillPattern", "metric", "sharpMode", "miterLimit", "contourMergeDistance", "outlineWidth", "outlineSoftness", "outlinePosition", "outlineOffset", "fillCenter", "fillColor", "sourceChannel", "threshold",
-                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "encoding", "gradient", "gradientType", "freeform", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape", "vector", "booleanGroup", "booleanOperation", "text");
+                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "encoding", "gradient", "gradientType", "freeform", "mesh", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape", "vector", "booleanGroup", "booleanOperation", "text");
             foreach (var property in settings.Properties())
             {
                 string key = property.Name;
@@ -228,7 +231,7 @@ namespace DCFApixels.WhimTex
                     (key == "sourceChannel" || key == "outlineWidth" || key == "outlineSoftness" || key == "outlinePosition" ||
                      key == "outlineOffset" || key == "fillCenter" || key == "fillColor") && layer?.Behaviour is OutlineLayerBehaviour ||
                     (key == "sourceChannel" || key == "threshold" || key == "distancePosition" || key == "inverted" || key == "maxDistance" || key == "sourceOffset" || key == "sourceEdges" || key == "contourOffset" || key == "contourMergeDistance" || key == "insideDistance" || key == "outsideDistance" || key == "profile" || key == "encoding") && layer?.Behaviour is SDFLayerBehaviour ||
-                    (key == "gradientType" || key == "freeform") && layer?.Behaviour is GradientLayerBehaviour ||
+                    (key == "gradientType" || key == "freeform" || key == "mesh") && layer?.Behaviour is GradientLayerBehaviour ||
                     key == "gradient" && (layer?.Behaviour is GradientLayerBehaviour || layer?.Behaviour is SDFLayerBehaviour));
                 Require(valid, key + " is not supported by " + TypeName(layer) + " layers.");
             }
@@ -346,7 +349,105 @@ namespace DCFApixels.WhimTex
                 gradient.gradientType = Enum(settings, "gradientType", gradient.gradientType);
                 if (settings["gradient"] != null) gradient.gradient = ReadGradient(settings["gradient"]);
                 if (settings["freeform"] != null) gradient.freeform = ReadFreeform(settings["freeform"]);
+                if (settings["mesh"] != null) gradient.mesh = ReadMesh(settings["mesh"]);
+                WhimTexDocumentJson.ValidateMeshStorage(gradient);
             }
+        }
+
+        private static void ApplyMeshOperation(Layer layer, JObject operation)
+        {
+            Require(layer?.Behaviour is GradientLayerBehaviour, "mesh requires a Gradient layer.");
+            var gradient = (GradientLayerBehaviour)layer.Behaviour;
+            Require(gradient.mesh != null, "Mesh gradient data is missing.");
+            gradient.mesh.Validate();
+            string action = Text(operation, "action");
+            Require(action == "nodeMode" || action == "moveEdge", "Unknown mesh action: " + action);
+            if (action == "nodeMode") Keys(operation, "op", "layer", "action", "node", "mode");
+            else Keys(operation, "op", "layer", "action", "node", "direction", "delta");
+            Require(operation["node"] != null, "mesh requires an explicit node index.");
+            int node = Int(operation, "node", -1, 0, gradient.mesh.NodeCount - 1);
+            var next = gradient.mesh.Clone();
+            if (action == "nodeMode")
+            {
+                Require(operation["mode"] != null, "nodeMode requires mode: Smooth or Corner.");
+                next.SetNodeMode(node, Enum(operation, "mode", MeshGradientNodeMode.Smooth));
+            }
+            else
+            {
+                Require(operation["direction"] != null, "moveEdge requires direction: 0=left, 1=right, 2=down, 3=up.");
+                int direction = Int(operation, "direction", -1, 0, 3);
+                Require(next.HandleIndex(node, direction) >= 0, "The selected node has no edge in that direction.");
+                next.MoveEdge(node, direction, ReadMeshVector(operation["delta"], "mesh delta"));
+            }
+            next.Validate();
+            gradient.mesh = next;
+        }
+
+        private static Vector2 ReadMeshVector(JToken token, string name)
+        {
+            Require(token is JArray xy && xy.Count == 2, name + " must contain two finite components.");
+            return new Vector2(Number(token[0], name + " x", -float.MaxValue, float.MaxValue),
+                Number(token[1], name + " y", -float.MaxValue, float.MaxValue));
+        }
+
+        private static MeshGradient ReadMesh(JToken token)
+        {
+            var data = Obj(token, "mesh"); Keys(data, "columns", "rows", "colorMode", "positions", "colors", "nodeModes", "patchPriorities");
+            foreach (string field in new[] { "columns", "rows", "colorMode", "positions", "colors", "nodeModes" })
+                Require(data[field] != null, "mesh." + field + " is required; provide the complete control lattice.");
+            int columns = Int(data, "columns", 1, 1, MeshGradient.MaxCells), rows = Int(data, "rows", 1, 1, MeshGradient.MaxCells);
+            int count = (3 * columns + 1) * (3 * rows + 1);
+            Require(data["positions"] is JArray positions && positions.Count == count,
+                "mesh.positions length must equal (3 * columns + 1) * (3 * rows + 1).");
+            Require(data["colors"] is JArray colors && colors.Count == count,
+                "mesh.colors length must equal (3 * columns + 1) * (3 * rows + 1).");
+            bool implicitSmooth = data["nodeModes"].Type == JTokenType.Null;
+            Require(implicitSmooth || data["nodeModes"] is JArray modes && modes.Count == (columns + 1) * (rows + 1),
+                "mesh.nodeModes must be null (all Smooth), or have (columns + 1) * (rows + 1) entries.");
+            var result = new MeshGradient
+            {
+                columns = columns, rows = rows,
+                colorMode = Enum(data, "colorMode", WhimTexGradientColorMode.Perceptual),
+                positions = new Vector2[count], colors = new Color[count],
+                nodeModes = implicitSmooth ? null : new MeshGradientNodeMode[(columns + 1) * (rows + 1)],
+                patchPriorities = null
+            };
+            for (int i = 0; i < count; i++)
+            {
+                JToken position = data["positions"][i], color = data["colors"][i];
+                Require(color is JArray rgba && rgba.Count == 4, "Mesh color must contain four working-space coefficients.");
+                result.positions[i] = ReadMeshVector(position, "mesh position");
+                // These are cubic coefficients, not display colors. In particular, alpha controls may overshoot.
+                result.colors[i] = new Color(
+                    Number(color[0], "mesh color 0", -float.MaxValue, float.MaxValue),
+                    Number(color[1], "mesh color 1", -float.MaxValue, float.MaxValue),
+                    Number(color[2], "mesh color 2", -float.MaxValue, float.MaxValue),
+                    Number(color[3], "mesh alpha", -float.MaxValue, float.MaxValue));
+            }
+            for (int i = 0; i < (result.nodeModes?.Length ?? 0); i++)
+            {
+                JToken mode = data["nodeModes"][i];
+                Require(mode.Type == JTokenType.String && ((string)mode == "Smooth" || (string)mode == "Corner"),
+                    "mesh.nodeModes entries must be Smooth or Corner.");
+                result.nodeModes[i] = (string)mode == "Smooth" ? MeshGradientNodeMode.Smooth : MeshGradientNodeMode.Corner;
+            }
+            if (data["patchPriorities"] != null && data["patchPriorities"].Type != JTokenType.Null)
+            {
+                Require(data["patchPriorities"] is JArray priorities && priorities.Count == columns * rows,
+                    "mesh.patchPriorities must be null, or have columns * rows entries.");
+                result.patchPriorities = new Vector3[columns * rows];
+                for (int i = 0; i < result.patchPriorities.Length; i++)
+                {
+                    JToken value = data["patchPriorities"][i];
+                    Require(value is JArray coefficients && coefficients.Count == 3, "Mesh priority must have three coefficients.");
+                    result.patchPriorities[i] = new Vector3(
+                        Number(value[0], "mesh priority constant", 0f, 1f),
+                        Number(value[1], "mesh priority u", 0f, 1f),
+                        Number(value[2], "mesh priority v", 0f, 1f));
+                }
+            }
+            result.Validate();
+            return result.Clone();
         }
 
         private static FreeformGradient ReadFreeform(JToken token)

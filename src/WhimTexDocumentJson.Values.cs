@@ -213,7 +213,8 @@ namespace DCFApixels.WhimTex
         private static bool IsDefault(Type type, string field, JToken value)
         {
             if (field == "id" || field == "behaviour" || field == "behaviourId" || field == "children" || field == "fx") return false;
-            if (type == typeof(GradientLayerBehaviour) && field == "gradientType") return false;
+            if (type == typeof(GradientLayerBehaviour) && (field == "gradientType" || field == "mesh")) return false;
+            if (type == typeof(MeshGradient)) return false;
             if (type == typeof(WhimTexGradient) && field == "customColorMode") return false;
             return DefaultsFor(type)?[field] is JToken baseline && JToken.DeepEquals(value, baseline);
         }

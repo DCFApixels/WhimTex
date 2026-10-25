@@ -44,7 +44,7 @@ namespace DCFApixels.WhimTex
         {
             GradientLayerBehaviour.GradientType.Linear, GradientLayerBehaviour.GradientType.Radial,
             GradientLayerBehaviour.GradientType.Angular, GradientLayerBehaviour.GradientType.Square,
-            GradientLayerBehaviour.GradientType.Freeform
+            GradientLayerBehaviour.GradientType.Freeform, GradientLayerBehaviour.GradientType.Mesh
         };
         internal GradientTypeField(string label) : base(label, Types, WhimTexWindow.CreateGradientTypeIcon) { }
     }

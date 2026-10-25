@@ -601,7 +601,7 @@ namespace DCFApixels.WhimTex
                 else if (IsVectorTool(tool))
                     DrawVectorToolIcon(painter, tool, P);
                 else if (tool == CanvasTool.Transform)
-                    DrawHand(painter);
+                    DrawTransform(painter);
                 else if (tool == CanvasTool.Text)
                     DrawTextTool(painter);
                 else if (tool == CanvasTool.Comment)
@@ -816,6 +816,20 @@ namespace DCFApixels.WhimTex
                 TraceRectangle(painter, innerMin, innerMax);
                 painter.Fill();
                 if (linear || radial) return;
+                if (gradientType == GradientCreationType.Mesh)
+                {
+                    painter.lineWidth = 1 / pixelsPerPoint; painter.strokeColor = tint;
+                    painter.BeginPath();
+                    for (int i = 1; i < 3; i++)
+                    {
+                        float t = i / 3f;
+                        painter.MoveTo(new Vector2(Mathf.Lerp(innerMin.x, innerMax.x, t), innerMin.y));
+                        painter.BezierCurveTo(innerMin + Vector2.Scale(new Vector2(t + .12f, .33f), innerMax - innerMin), innerMin + Vector2.Scale(new Vector2(t - .12f, .67f), innerMax - innerMin), new Vector2(Mathf.Lerp(innerMin.x, innerMax.x, t), innerMax.y));
+                        painter.MoveTo(new Vector2(innerMin.x, Mathf.Lerp(innerMin.y, innerMax.y, t)));
+                        painter.LineTo(new Vector2(innerMax.x, Mathf.Lerp(innerMin.y, innerMax.y, t)));
+                    }
+                    painter.Stroke(); return;
+                }
                 if (gradientType == GradientCreationType.Freeform)
                 {
                     const int steps = 16, stride = steps + 1;
@@ -1225,6 +1239,59 @@ namespace DCFApixels.WhimTex
                 painter.LineTo(Point(4f, 19f));
                 painter.ClosePath();
                 painter.Fill(FillRule.OddEven);
+            }
+
+            private void DrawTransform(Painter2D painter)
+            {
+                float ppi = EditorGUIUtility.pixelsPerPoint;
+                Vector2 Point(float x, float y) => new Vector2(
+                    contentRect.x + x * contentRect.width / 22f,
+                    contentRect.y + y * contentRect.height / 22f);
+                Vector2 Pixel(float x, float y)
+                {
+                    Vector2 world = this.LocalToWorld(Point(x, y)) * ppi;
+                    return this.WorldToLocal(new Vector2(Mathf.Round(world.x), Mathf.Round(world.y)) / ppi);
+                }
+
+                void Box(float x0, float y0, float x1, float y1)
+                {
+                    painter.BeginPath();
+                    TraceRectangle(painter, Pixel(x0, y0), Pixel(x1, y1));
+                    painter.Fill();
+                }
+                Box(5, 3, 17, 4);
+                Box(3, 5, 4, 17);
+                Box(18, 5, 19, 11);
+                Box(5, 18, 11, 19);
+                Box(2, 2, 5, 5);
+                Box(17, 2, 20, 5);
+                Box(2, 17, 5, 20);
+
+                float radius = 1.25f * Mathf.Min(contentRect.width, contentRect.height) / 22f;
+                void Dot(float x, float y)
+                {
+                    painter.BeginPath();
+                    painter.Arc(Point(x, y), radius, 0, 360);
+                    painter.ClosePath();
+                    painter.Fill();
+                }
+                Dot(11, 3.5f);
+                Dot(3.5f, 11);
+                Dot(18.5f, 11);
+                Dot(11, 18.5f);
+
+                painter.BeginPath();
+                painter.MoveTo(Point(11.25f, 10.6f));
+                painter.LineTo(Point(20.8f, 14.8f));
+                painter.BezierCurveTo(Point(21.15f, 14.96f), Point(21.1f, 15.4f), Point(20.72f, 15.49f));
+                painter.LineTo(Point(16.62f, 16.44f));
+                painter.BezierCurveTo(Point(16.52f, 16.46f), Point(16.46f, 16.52f), Point(16.44f, 16.62f));
+                painter.LineTo(Point(15.49f, 20.72f));
+                painter.BezierCurveTo(Point(15.4f, 21.1f), Point(14.96f, 21.15f), Point(14.8f, 20.8f));
+                painter.LineTo(Point(10.6f, 11.25f));
+                painter.BezierCurveTo(Point(10.41f, 10.82f), Point(10.82f, 10.41f), Point(11.25f, 10.6f));
+                painter.ClosePath();
+                painter.Fill();
             }
 
             private void DrawHand(Painter2D painter, bool withHandle = false)

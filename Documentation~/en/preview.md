@@ -23,6 +23,12 @@ The Canvas View footer holds controls for quality, live texture updates, post-pr
 UV overlays, guides and channel viewing. It also contains **HDR**, the color-input mode,
 and hints for the active tool.
 
+The permanent icon toolbar sits to the right of the canvas scrollbar, between the Canvas View header and footer and beside the draggable pane divider. It matches the main tool strip's width and appearance. All four icons — **Brushes**, **Comments**, **Post FX** and **UV** — stay available.
+Panels open flush against its left edge, covering the scrollbar and canvas without moving them.
+The open panel's icon is highlighted; click it again to close the panel, or another icon to switch sections.
+Hover for names. Inactive sections show disabled settings with **Select Brush**, **Enable Post FX** or **Enable UV** above them; these buttons activate the section in place. Comments needs no tool switch.
+Closing these settings panels keeps Post FX and UV enabled.
+
 ## Profiler
 
 Background history writes appear as **worker** events with their own duration. Their time overlaps UI work and must not be added to the main-thread total. **input.canvas_ready** measures how long brush input waits for the updated canvas; **input.gpu_observed** includes waiting for GPU completion when available. It does not measure when the monitor displays the result. Several input events may share one canvas update.
@@ -177,8 +183,8 @@ You can open several discussions at once, each in its own card with a line to it
 A short, thicker accent follows the card outline where the line meets it, keeps its thickness around rounded corners, and extends slightly over the inside edge.
 Its outer edge forms a short arrow with concave sides, adjusting its base around corners and shortening as the marker approaches the card. The arrow and line meet at the same width, without a crosswise outline at the junction. The thin line stays behind all cards; the arrow and contact accent sit directly above their own card and can be covered by cards stacked higher.
 Clicking an already open discussion brings its card forward. Closing a card keeps the others open;
-each has its own draft and attachments. Switching away from **Comment** hides its cards, pins and side panel;
-returning restores the open cards. Script reloads retain this open set and changed drafts in the same window.
+each has its own draft and attachments. The list and open cards remain usable with any tool. Pins appear while the list or a card is open, or while Comment is selected; creating and moving pins still requires Comment.
+Script reloads retain the open set and changed drafts in the same window.
 Filters temporarily hide cards together with their markers; clearing the filter restores them.
 **Close All**, to the right of **Comments** in the list header, closes every card in the current document, including filtered ones.
 Discussions, drafts and attachments stay intact. Click a pin or list entry to reopen a discussion;
@@ -208,7 +214,7 @@ The side panel and canvas share **Open / In Progress / Awaiting Review / Resolve
 authors and comment numbers. The header shows the open count; **Draft** marks unfinished replies or edits.
 Off-canvas discussions remain available in the list. Each row has a thick left stripe matching its marker color. A slightly lighter,
 subtly outlined header shows the comment number; thin lines separate the rows. Scroll the list and
-click a row to open its discussion. **Comments (open count)** or the arrow at the panel edge
+click a row to open its discussion. **Comments (open count)** or the speech-bubble icon at the right edge of Canvas View
 collapses or reopens the panel.
 The panel fits its contents up to the available canvas height; the scrollbar appears only
 when the list no longer fits.

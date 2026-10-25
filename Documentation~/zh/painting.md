@@ -84,8 +84,9 @@ Pencil 没有硬度或间距控件。可为它的笔尖选择 **Circle**、**Squ
 
 ## 自定义画笔
 
-在选中 **Brush** 的情况下，打开画布视图右边缘上方的箭头以显示
-**Brushes**。它与 Post FX 共用抽屉：打开一个会关闭另一个。
+点击 Canvas View 右边缘面板工具栏中的画笔图标，即可打开 **Brushes**。
+如果当前选择其他工具，设置会被禁用；点击上方的 **Select Brush** 即可启用 Brush。
+再次点击图标可关闭面板；打开其他面板会关闭当前面板。
 
 <a href="{{ '/Images/brush-settings.png' | relative_url }}"><img src="{{ '/Images/brush-settings.png' | relative_url }}" alt="WhimTex Brushes drawer with a neon red stroke, stamp controls, tint, blend mode and live brush preview" width="720"></a>
 

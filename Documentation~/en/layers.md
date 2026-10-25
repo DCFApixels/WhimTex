@@ -24,7 +24,7 @@ Use **+** at the bottom of Layers to choose a type:
 | File | An existing texture from Project. |
 | Drawing Layer | Painting, erasing and filling. |
 | Color Fill | A solid color, UV coordinates or a geometric distance-field pattern. |
-| Gradient | A smooth color transition. |
+| Gradient | A smooth color transition, Freeform color points or an editable [Mesh](color.md#mesh-gradients). |
 | Noise | A generated pattern. See [Noise](noise.md). |
 | Shape | An editable rectangle, ellipse, polygon, star, line, arc or sector. |
 | Vector | One editable figure with its own transform, nodes, curves, fill and stroke; compound contours can include holes. See [Vector paths](vector.md). |

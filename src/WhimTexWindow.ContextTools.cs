@@ -164,7 +164,6 @@ namespace DCFApixels.WhimTex
                 previousCanvasTool = previous;
             StopKeyboardNudge();
             commentManipulator?.Cancel();
-            if (canvasTool != tool) CloseCanvasCommentEditor();
             areaSelectionManipulator?.Cancel();
             if (canvasTool != tool) CancelQuickSelection();
             shapeManipulator?.Cancel();

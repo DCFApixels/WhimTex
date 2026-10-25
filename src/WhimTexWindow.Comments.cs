@@ -14,7 +14,9 @@ namespace DCFApixels.WhimTex
         private VisualElement commentOverlay;
         private CommentPin commentDraftPin;
         private readonly Dictionary<string, CommentPin> commentPins = new Dictionary<string, CommentPin>();
-        private bool HasNavigableCanvas => activeDocument != null && (HasCanvasLayers || canvasTool == CanvasTool.Comment);
+        private bool CanvasCommentsVisible => activeDocument != null &&
+            (canvasTool == CanvasTool.Comment || commentsExpanded || HasOpenCanvasComments());
+        private bool HasNavigableCanvas => activeDocument != null && (HasCanvasLayers || CanvasCommentsVisible);
 
         private void BuildCanvasCommentTool()
         {
@@ -83,10 +85,10 @@ namespace DCFApixels.WhimTex
             commentToolIcon?.SetCommentsState((activeDocument?.comments?.Count ?? 0) > 0,
                 activeDocument?.comments?.Exists(item => item.Status == WhimTexCommentStatus.AwaitingReview) == true);
             if (commentOverlay == null) return;
-            bool visible = canvasTool == CanvasTool.Comment && activeDocument != null;
+            bool visible = CanvasCommentsVisible;
             var query = CurrentCommentQuery();
             commentOverlay.EnableInClassList("whimtex-hidden", !visible);
-            SyncCommentEditors(visible, query);
+            SyncCommentEditors(activeDocument != null, query);
             closeAllCommentsButton?.SetEnabled(HasOpenCanvasComments());
             RefreshCommentList(query);
             if (!visible) { commentManipulator?.Cancel(); return; }

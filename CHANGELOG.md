@@ -6,6 +6,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Gradient layers add Mesh gradients with a shared bicubic grid, per-node HDR color and opacity, Bézier handles and Linear/Gamma/Perceptual color models. Nodes and handles move freely; Smooth aligns opposite handles while Corner keeps them independent, and dragging an edge bends it without moving its endpoints. Folded and overlapping surfaces choose one section without accumulating alpha. Splitting rows or columns preserves geometry, color and overlap priority, carries existing node types and gives new nodes Smooth. Mesh creation remembers its initial row/column counts. Complete grids, node types and retained overlap priorities survive native documents, JSON/clipboard and the agent API; shared mesh actions change node type or move an edge.
+
 - Custom gradient interpolation adds independent channel curves, tangents and keys. Automatic data and manual curves are retained separately; conversion between color models approximately preserves appearance. Gradient presets, clipboard, API inspection, document formats and tool settings retain manual key identities and inactive data. Endpoint-only HLSL preset export rejects retained Custom curves instead of dropping them. Existing GPU palettes are unchanged.
 - Custom curve editing aligns the graph and the gradient strip directly below it, with matching side margins and no gap. The bilinear 512-sample preview follows horizontal navigation and Clamp/Repeat/Mirror. Coincident keys use one strip marker with a time tolerance of 0.00001; dragging the marker moves its starting set together, while curve points stay independent. Persistent key links and Link/Unlink controls are removed. Keys snap to time/value boundaries 0 and 1, and Repeat endpoints can snap to the opposite endpoint's height.
 - Custom curve editing overlays top/left axis labels, transparent scrollbar tracks and translucent thumbs. The lower row places Output on the left and channel buttons on the right, sharing Canvas View styles and click/drag toggling. The Fit button is removed; F still frames the curves. Scrollbar ends zoom each axis independently; their navigation range stays fixed during panning, track clicks recenter the view, Ctrl+wheel zooms vertically and Escape cancels a drag.
@@ -43,7 +45,7 @@ All notable changes to WhimTex are documented in this file.
 
 - The FX code field uses four-space soft tabs: Tab advances to the next tab stop or indents selected lines, and Shift+Tab outdents them without leaving the field. Each action supports Undo/Redo with caret/selection restoration; new ApplyFX bodies use the same indentation rule.
 
-- Gradient's toolbar button offers Linear, Radial, Angular, Square and Freeform subtypes through the shared hold/drag picker. Distinct gradient icons show the selected type and stay synchronized with the header. Freeform has a matching three-spot cursor; dragging previews and creates three triangular points sampled from the current palette, preserving HDR/alpha, then immediately opens point editing. Drag previews show all three point colors. Gradient layer Properties and the tool header use a shared single-selection icon row instead of type dropdowns, with larger glyphs sized to match other text and transform actions. Shape/Vector fill and stroke selectors use the same icons, with matching Solid and None squares; the shared text fill selector retains its supported types.
+- Gradient's toolbar button offers Linear, Radial, Angular, Square, Freeform and Mesh subtypes through the shared hold/drag picker. Distinct gradient icons show the selected type and stay synchronized with the header. Freeform has a matching three-spot cursor; dragging previews and creates three triangular points sampled from the current palette, preserving HDR/alpha, then immediately opens point editing. Drag previews show all three point colors. Gradient layer Properties and the tool header use a shared single-selection icon row instead of type dropdowns, with larger glyphs sized to match other text and transform actions. Shape/Vector fill and stroke selectors use the same icons, with matching Solid and None squares; the shared text fill selector retains its supported types.
 - Angular gradient creation uses the drag only for its center and direction, retaining the creation guide while restoring a canvas-sized square on release. Drag length no longer changes its scale.
 - Angular is the consistent gradient type name in layer settings, figure/text fills and strokes, canvas handles and JSON/agent contracts. Native type IDs and stored angle/repetition/wrapping fields are unchanged.
 
@@ -115,12 +117,14 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Canvas View replaces drawer arrows with a permanent tool-style icon rail to the right of the scrollbar, between the header and footer. Brushes, Comments, Post FX and UV open flush to its left over the scrollbar. Inactive settings offer Select Brush, Enable Post FX or Enable UV; the comments list and discussions remain usable with any tool.
 - The Comment tool appears directly above Crop in the canvas toolbar.
 - Gradient markers no longer show colored channel badges. Custom gradient handles in Canvas View show only color keys directly on the line or arc, matching ordinary handles and sharing the two-color angular seam. Alpha remains editable in the gradient editor and curve window.
 - Alpha-only markers on the curve-window gradient strip display white over a centered 2×2 checkerboard according to key opacity, independently of RGB. Darker cells improve contrast; square cells continue into the triangular tip at the same scale, clipped to the marker outline.
 
 - Brush-shaped tool icons use smooth filled vector contours for the handle, curved ferrule and bristles, separated by two curved transparent gaps.
 - Quick Selection pairs a brush clipped at the right edge with a short vertical capsule-shaped selection outline at the lower-left edge. Its bristle tip sits near the bottom with a small inset.
+- Transform uses a pixel-aligned frame with filled square corner handles, smaller round side handles and a filled cursor instead of the hand icon.
 - Pencil uses one compound vector fill for the separated cap and body, with a flat-ended hollow tip, a roughly one-pixel outline and graphite integrated into the cutout contour. No filled shapes overlap and no stroke outlines are layered over the silhouette. The SVG keeps its 24-unit viewport and renders at the matching toolbar scale, with small corner bevels and physical-pixel alignment; the Painter2D fallback uses the same shape and scale.
 
 - Quick Selection uses contrast-sensitive graph cuts with persistent weighted Add/Subtract hints. Coarse-to-fine boundary refinement retains native-resolution output and HDR features; worker-side mask processing publishes only changed tiles.
@@ -194,6 +198,9 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Mesh gradient shading uses precise per-sample positions and matching refined UV for color and overlap depth. Fold fragments that do not reach the shaded sample are rejected, removing numerical specks without restricting mesh edits or accumulating alpha. Hard color boundaries caused by actual folds and the current overlap order remain.
+- Unreadable tool preference sections now save current defaults immediately after a reset, preventing repeated restore warnings and stale-format merges on later window opens or focus refreshes. Other tool settings remain intact.
+- The ordinary gradient editor edits Custom opacity markers independently of coincident color keys. Moving, changing Location or deleting a marker affects only its own track. Canvas View color handles also preserve alpha when moved or deleted; combined markers in the curve window retain their behavior.
 - Canvas View, layer settings and Profiler panes share an in-flow flex divider, replacing split-view offset corrections. Resizing leaves no gap beside the separator; temporarily narrowing a pane preserves its chosen size for later expansion. Escape cancels a divider drag.
 - Gradient fields use the standard Unity GradientField sizing and spacing, aligning their preview edges and row height with adjacent controls.
 
@@ -261,6 +268,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Upgrade notes
 
+- Mesh gradient rendering requires Shader Model 4.5 for per-sample shading.
+- Mesh payloads require `nodeModes`: one Smooth/Corner entry per node, or explicit `null` for all Smooth. Finite positions are no longer limited to 0–1 or an unfolded grid. Optional `patchPriorities` retains overlap order after subdivision and must be preserved by raw API/document roundtrips. Missing node modes are diagnosed; no automatic file migration is performed.
 - Breaking: old external Material, Shader or ShaderFX `.asset` FX references in JSON/TIFF are explicitly rejected, including unresolved references. There is no migration, silent omission or document rewrite. Keep originals and use a matching older checkout; marked HLSL source links and texture parameter references remain supported.
 - This is unreleased development after 0.13.0, without a backward-compatibility guarantee for that release's documents, presets, public APIs or user settings. Keep originals and use a matching older checkout for unsupported files; do not overwrite them assuming an automatic migration.
 - Current document JSON and tagged model payloads use version 3; the TIFF container remains version 2. Previous document versions and retired names such as `swizzle` and `modifiers` are unsupported; use `channelMapping` and `fx`. The shared version number is not a compatibility promise between development revisions. Update integrations for the renamed document/window types and `grainColor`/`grainSize` settings; see the [current JSON contract](Documentation~/JSON_FORMAT.md).

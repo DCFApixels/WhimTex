@@ -239,7 +239,9 @@ Keys snap to other key times and to time/value boundaries 0 and 1. In **Repeat**
 along the left or right boundary also snaps vertically to the opposite end of its channel curve.
 
 The ordinary gradient editor and canvas handles also combine coincident channel keys. The editor
-keeps separate color and opacity tracks; Canvas View shows only color markers. Edit alpha in the
+keeps separate color and opacity tracks. In this editor, dragging, editing Location or deleting a
+Custom marker affects only its own track, even when color and alpha share the same time.
+Canvas View shows only color markers; moving or deleting them preserves alpha keys. Edit alpha in the
 gradient editor or curve window. Markers have no colored channel dots in any window.
 Custom canvas markers sit directly on the gradient line or arc, with the same circles and outlines
 as ordinary gradient handles. Angular endpoints share the usual two-color handle when the circle is closed.
@@ -298,11 +300,11 @@ retired fields and previous names are not migrated.
 ### Shape the gradient on canvas
 
 Choose **Gradient** beside **Fill**, pick a type and edit the gradient in the Canvas View header, then drag.
-Hold or drag the toolbar button to open its subtype list, then release over **Linear**, **Radial**, **Angular**, **Square** or **Freeform**. Each has its own gradient icon; the button shows the current type and stays synchronized with **Type** in the header. A quick click activates the remembered type.
+Hold or drag the toolbar button to open its subtype list, then release over **Linear**, **Radial**, **Angular**, **Square**, **Freeform** or **Mesh**. Each has its own gradient icon; the button shows the current type and stays synchronized with **Type** in the header. A quick click activates the remembered type.
 Point with the small arrow tip; the gradient symbol sits to its lower right.
-The canvas cursor shows the selected gradient type and updates immediately when you change it.
+The canvas cursor shows the selected gradient type and updates immediately when you change it. Mesh currently uses the standard gradient cursor.
 
-The tool header's **Type** and the layer Properties' **Gradient Type** use the same row of five icons. Click one to switch type; the selected icon is highlighted, and hovering shows its name.
+The tool header's **Type** and the layer Properties' **Gradient Type** use the same row of six icons. Click one to switch type; the selected icon is highlighted, and hovering shows its name.
 
 Linear replaces separate horizontal and vertical types: drag its endpoints or rotate the layer for any direction.
 
@@ -310,9 +312,9 @@ Linear uses the drag's start and end; Radial, Angular and Square use the start a
 **Freeform** creates three points in a triangle: the drag places two corners and previews the third. All three preview points show their palette colors while dragging. Their colors and opacity come from the start, middle and end of the current palette, including HDR. Releasing immediately activates point editing.
 **Shift** constrains the angle to 45° increments, **Ctrl** disables snapping and **Escape** cancels.
 Each drag creates a separate editable Gradient layer; a click without dragging creates nothing.
-Every type starts with a square transform in canvas pixels, so switching to Radial produces a circle even on a rectangular canvas.
+The palette types and Freeform start with a square transform in canvas pixels, so switching to Radial produces a circle even on a rectangular canvas. Mesh uses the rectangle drawn on the canvas.
 For **Angular**, the creation line sets the center and direction only. Releasing restores a unit square, independent of the drag length: Scale is 1 × 1 on a square canvas; on a rectangular canvas the square fits its shorter side.
-The creation settings do not change existing layers. Choose **Gradient Handles** to edit a created layer; Freeform opens these handles automatically after creation.
+The creation settings do not change existing layers. Choose **Gradient Handles** to edit a created layer; Freeform and Mesh open these handles automatically after creation.
 All canvas gradient handles show a hand over draggable points and handles, and an arrow with a plus where a click adds a color key. Fill and stroke gradients follow the same rule.
 
 Select a Gradient layer to activate **Gradient Handles**, the contextual hand tool. Square handles change its geometry;
@@ -340,7 +342,7 @@ Angular fills use the same split endpoint handle, opening/closing gestures, fain
 
 **Boolean Group** also provides these handles for its common fill, including Angular. Select the group to edit its gradient without moving the group or its operands. In **Combine → Appearance: Layers**, the group handles are hidden; select a child to edit its own fill instead.
 
-New Color Fill, Gradient and Noise layers use **Unbounded** tiling by default.
+With **Source** tiling, Color Fill, Noise and non-Mesh Gradient sources are unbounded. Mesh clips to its layer frame.
 
 ### Freeform gradient points
 
@@ -364,6 +366,45 @@ the layer's **Rendering → Color Range** set to **HDR** to remain brighter than
 Changing Gradient Type preserves both the Freeform points and the ordinary gradient palette.
 Freeform is available for Gradient layers and Shape/Vector paints, including Boolean Group styling.
 Text and SVG export are unchanged.
+
+<a id="mesh-gradients"></a>
+
+### Shape colors with a Mesh gradient
+
+On a **Gradient** layer, choose **Gradient Type → Mesh**, then **Gradient Handles**.
+The grid lets you shape color transitions with connected curves. Each node has its
+own color and transparency.
+
+To create one directly, choose **Mesh** in the Gradient tool, set **Rows** and
+**Columns** in the header, and drag a rectangle. The initial colors and alpha come
+from the current palette's two ends. Creation settings start at 2 × 2 cells and are
+remembered between sessions; they do not change existing meshes.
+
+- Drag a node to move it. Select it to edit **Position**, **Color** and **Opacity**
+  in Properties; double-click its color marker to open the color picker.
+- Drag the selected node's Bézier handles to bend the adjoining edges. Nodes and
+  handles move freely, including beyond the initial frame; the grid can fold and overlap.
+- Choose **Node Type → Smooth** to align the opposite handle while retaining its
+  length when editing a handle, or **Corner** to move each handle independently. The same choices
+  are available from the node's context menu. Switching to Smooth aligns its handle
+  pairs and can change the shape; colors stay unchanged. New nodes use Smooth.
+- Drag an edge to bend it without moving its endpoint nodes. Both edge handles move
+  together; Smooth endpoints keep their opposite handles aligned.
+- **Rows** and **Columns** count cells. **Add Row** and **Add Column** split the
+  selected adjacent cell in half. Double-click an edge to split the corresponding
+  row or column. Subdivision preserves the colors and shape already drawn.
+- Use ordinary **Transform** to move, rotate or scale the whole mesh.
+
+**Color Model** offers Linear, Gamma and Perceptual. Changing it can alter transitions
+between nodes. HDR colors are supported; choose **Rendering → Color Range → HDR**
+to retain brightness beyond white. Areas outside the mesh are transparent. Where the
+mesh overlaps itself, one surface section supplies the color and opacity; transparency
+does not build up from repeated coverage. Visible output still follows **Rendering → Tiling**.
+Switching Gradient Type preserves the mesh and the other gradient settings.
+
+Up to 16 rows and 16 columns are supported. Removing individual nodes or rows is
+not available. Mesh is currently only for Gradient layers; it is not a figure fill
+or stroke type.
 
 ### Choose transition shape
 

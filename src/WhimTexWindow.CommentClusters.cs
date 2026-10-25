@@ -29,7 +29,7 @@ namespace DCFApixels.WhimTex
             foreach (var bucket in commentClusterCells.Values) { bucket.Clear(); spareCommentClusterCells.Push(bucket); }
             commentClusterCells.Clear(); commentClusterCandidates.Clear(); openCommentIds.Clear();
             foreach (var entry in commentPins) entry.Value.RemoveFromClassList("whimtex-hidden");
-            if (canvasTool != CanvasTool.Comment || commentOverlay == null)
+            if (!CanvasCommentsVisible || commentOverlay == null)
             {
                 foreach (var cluster in spareCommentClusters) cluster.pin?.RemoveFromHierarchy();
                 return;

@@ -123,11 +123,12 @@ namespace DCFApixels.WhimTex
         private void UpdateCanvasNavigationInset()
         {
             if (canvasNavigation?.parent == null || toolkitCanvasViewHeader == null) return;
+            var workspace = canvasNavigation.parent;
             float inset = Mathf.Max(0f, toolkitCanvasViewHeader.worldBound.yMax -
-                (canvasNavigation.worldBound.yMin - canvasNavigation.resolvedStyle.marginTop));
+                (workspace.worldBound.yMin - workspace.resolvedStyle.marginTop));
             if (!float.IsNaN(inset) && !float.IsInfinity(inset) &&
-                Mathf.Abs(canvasNavigation.resolvedStyle.marginTop - inset) > .1f)
-                canvasNavigation.style.marginTop = inset;
+                Mathf.Abs(workspace.resolvedStyle.marginTop - inset) > .1f)
+                workspace.style.marginTop = inset;
         }
 
         private void RefreshCanvasNavigation()

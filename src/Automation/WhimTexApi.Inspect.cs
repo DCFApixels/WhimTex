@@ -12,6 +12,27 @@ namespace DCFApixels.WhimTex
     public static partial class WhimTexApi
     {
 
+        private static JObject MeshSnapshot(MeshGradient data)
+        {
+            if (data == null) return null;
+            var positions = new JArray();
+            var colors = new JArray();
+            var modes = new JArray();
+            var priorities = new JArray();
+            if (data.positions != null) foreach (var position in data.positions) positions.Add(Json(position));
+            if (data.colors != null) foreach (var color in data.colors) colors.Add(Json(color));
+            if (data.nodeModes != null) foreach (var mode in data.nodeModes) modes.Add(mode.ToString());
+            if (data.patchPriorities != null) foreach (var priority in data.patchPriorities)
+                priorities.Add(new JArray(priority.x, priority.y, priority.z));
+            return new JObject
+            {
+                ["columns"] = data.columns, ["rows"] = data.rows, ["colorMode"] = data.colorMode.ToString(),
+                ["positions"] = positions, ["colors"] = colors,
+                ["nodeModes"] = data.nodeModes == null || data.nodeModes.Length == 0 ? JValue.CreateNull() : modes,
+                ["patchPriorities"] = data.patchPriorities == null || data.patchPriorities.Length == 0 ? JValue.CreateNull() : priorities
+            };
+        }
+
         private static JObject FreeformSnapshot(FreeformGradient data)
         {
             if (data == null) return null;
@@ -38,12 +59,13 @@ namespace DCFApixels.WhimTex
         {
             JObject result = Success();
             result["operations"] = new JArray("add", "set", "transform", "target", "move", "stroke", "compact",
-                "fx", "delete", "duplicate", "merge", "convertToDrawing", "convertToVector", "blurStroke", "smudgeStroke", "healStroke", "resize", "comment", "commentCreate");
+                "fx", "mesh", "delete", "duplicate", "merge", "convertToDrawing", "convertToVector", "blurStroke", "smudgeStroke", "healStroke", "resize", "comment", "commentCreate");
             result["comments"] = "whimtex_comments: list/render/context discussions, export masks/overlays/compact layers with context, or query completed work receipts with op:work and workId, from assetPath/assistantSessionId/headlessSessionId. Threads include full revision and feedbackRevision (colors and intact agent replies excluded), anchors and messages with layer/asset attachments. Shared comment operations check expectedRevision or expectedFeedbackRevision, append reply/author/attachments and/or set status: InProgress, AwaitingReview or Resolved. Any transition is allowed; opening/reading/replying alone preserves status. Do not combine status with resolved. commentCreate takes anchorUv:[x,y] in 0..1 (bottom-left canvas), text, optional author (Assistant by default) and attachments; returns commentId/messageId. Live begin/lock accept frozen commentChecks and optional workId. Assistant Execute workId/requestId enables durable idempotent retries and links messages to work.";
             result["commentMasks"] = "Attachments also support kind:mask, maskId/revision, source width/height, canvasBounds and localToCanvas (bottom-left UV). Read exact coverage PNGs with whimtex_comments op:mask and maskRef:{maskId,expectedRevision}. maskPath is full canvas; sourceMaskPath retains cropped original pixels. RGB bytes are linear coverage, alpha 255. Attach using {selection:true} in Assistant Execute, {maskRef:{maskId,expectedRevision}}, or {maskImagePath:absolutePng,channel:red|alpha,bounds:[x,y,w,h]} in shared comment/commentCreate. JSON live begin area:commentMask uses maskRef directly with strict/guide and padding; it leaves the working selection unchanged and rechecks mask revision before preview/complete/fork. Image completion required.";
             result["commentQueries"] = "whimtex_comments list/render/context accepts filter:{status:Open|All|InProgress|AwaitingReview|Resolved,author:exactParticipantName,search:text,time:Created|Activity,fromUtc:ISO8601,toUtc:ISO8601}, sort:Number|Created|Activity|Author and descending:boolean. Time bounds require a timezone; lower inclusive, upper exclusive. Default order is Number ascending. Activity is latest message creation/edit. Returns totalCount/matchedCount; UI filters and clusters do not affect API results. Snapshots include createdUtc, lastActivityUtc, link and persistentLink. op:open accepts only apiVersion/op/link and navigates to the exact discussion. Asset GUID links survive project renames; unsaved session links expire with the window session. No OS protocol handler is registered.";
             result["resize"] = "Document operation: width/height (1..16384, at most 16,777,216 pixels), preserveLayout=true. Preserves normalized layer transforms, not pixel-valued effects or source raster dimensions. Result layerId/name are null.";
             result["fxOperations"] = new JArray("add", "replace", "set", "remove", "move", "copy", "apply", "applyAll");
+            result["meshOperations"] = "Gradient layers only: op:mesh, layer, action:nodeMode, node (zero-based row-major), mode:Smooth|Corner; or action:moveEdge, node, direction (0 left, 1 right, 2 down, 3 up), delta:[x,y] in local coordinates. Moves the edge handles and adjacent tensor controls without moving its nodes. Finite coordinates may lie outside 0..1; folds/overlaps are allowed. Edits preserve the active gradient type. settings.mesh replaces all coefficients and nodeModes; Inspect retains dormant data.";
             result["fxSeedRandomization"] = "FX add/replace/set/copy accepts randomizeSeeds:[uniformName]. Uses the first seed declaration's inclusive integer bounds. Validation does not randomize; execution changes saved values once with ordinary FX Undo/invalidation.";
             result["fxCatalog"] = "whimtex_fx_catalog: query installed presets; pass presetId for parameter details. Use returned id in FX add/replace.";
             result["assistantBatch"] = "whimtex_assistant_execute: sessionId + expectedRevision + operations, same operations as batch/headless; one Undo step, no save. Finish active jobs first.";
@@ -384,6 +406,7 @@ namespace DCFApixels.WhimTex
                         entry["gradientType"] = gradient.gradientType.ToString();
                         entry["gradientKeys"] = GradientSnapshot(gradient.gradient);
                         entry["freeform"] = FreeformSnapshot(gradient.freeform);
+                        entry["mesh"] = MeshSnapshot(gradient.mesh);
                     }
                     layers.Add(entry);
                     if (layer?.AsGroup() is Layer group) Collect(group.layers, layer.Id);

@@ -1570,7 +1570,7 @@ Current Sharp/MTSDF quality prototype: closed raster contours use line fits over
 | File | `source` (already imported Texture2D path in Assets or Packages) |
 | Color | `color` (`[r,g,b,a]`, encoded RGB -107..107, alpha 0..1), `fillMode` (`Color`, `UV`, `Pattern`), `fillPattern` (partial settings below) |
 | Drawing | `brush` (partial brush settings below) |
-| Gradient | `gradientType` (`Linear`, `Radial`, `Angular`, `Square`, `Freeform`), `gradient` (ordinary palette), `freeform` (point settings below) |
+| Gradient | `gradientType` (`Linear`, `Radial`, `Angular`, `Square`, `Freeform`, `Mesh`), `gradient` (ordinary palette), `freeform` (point settings below), `mesh` (complete control lattice below) |
 | Outline | `color`, `metric` (`EuclideanAntialiased` default; ten modes below), `miterLimit` (float, 1..64, default 4; Sharp/CornerFit/Spring), `sourceChannel` (`Alpha` default, `Red`, `Green`, `Blue`, `Luminance`), `outlineWidth`, `outlineSoftness` (0..16384), `outlinePosition` (`Outside`, `Inside`, `Center`), `outlineOffset` (-16384..16384), `fillCenter` (bool), `fillColor` (`[r,g,b,a]`) |
 | SDF | `metric` (`EuclideanAntialiased` default; ten modes below), `miterLimit` (float, 1..64, default 4; Sharp/CornerFit/Spring), `contourMergeDistance` (finite float, 0..2 inclusive, default 0/off; experimental, Sharp/MTSDF only, current render px), `sourceChannel` (`Alpha`, `Red`, `Green`, `Blue`, `Luminance`), `threshold` (integer 0..255), `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`), `encoding` (`Gradient` default, `LinearData`, `MultiChannelData`), `inverted` (bool; Gradient/LinearData), `maxDistance` (0..16384; zero = automatic), `sourceOffset` ([x,y], each -16384..16384 px), `sourceEdges` (`Transparent`, `Clamp`, `Repeat`, `Mirror`), `contourOffset` (-16384..16384 px; positive expands; Gradient/LinearData only), `insideDistance`/`outsideDistance` (Signed Gradient/LinearData only, 0..16384; 0 inherits maxDistance/auto), `profile` (FX curve string syntax, at most 4096 characters; default `linear`; Gradient/LinearData only) |
 | Normal Map | `normalMap`: partial settings object described below |
@@ -1977,6 +1977,76 @@ For example: `{"shape":{"fillMode":"Freeform","freeform":{"points":[{"position":
 Both inactive palettes and point sets are retained. Text does not accept Freeform.
 SVG is unchanged. See
 [document JSON storage](JSON_FORMAT.md#freeform-gradients) for serialization and interpolation.
+
+### Mesh gradient settings
+
+Only Gradient layers accept `settings.gradientType:"Mesh"` and `settings.mesh`.
+`mesh` replaces the entire lattice; it must include `columns`, `rows`, `colorMode`,
+`positions`, `colors` and `nodeModes`. Omission retains existing Mesh data. Changing `gradientType`
+does not clear the ordinary palette, Freeform points or Mesh lattice. A newly created
+Gradient layer has an initial mesh, so selecting Mesh without supplying `mesh` uses it.
+Inspect returns `mesh` even while another type is active. The same settings apply to
+live and file-based shared editing operations.
+
+- `columns` and `rows` count cells, each 1–16. Both arrays contain exactly
+  `(3*columns+1)*(3*rows+1)` entries in row-major order; a single cell has 16 controls.
+- `positions` entries are finite `[x,y]` local Bézier controls, including outside 0–1. Nodes are at lattice indices
+  `(3*c,3*r)`; all other controls remain part of the saved model.
+- `colorMode` is `Linear`, `Gamma` or `Perceptual`. `Hue` is not supported.
+- `nodeModes` contains `(columns+1)*(rows+1)` row-major `Smooth`/`Corner` entries.
+  This is a node array, not a control array. Explicit `null` means all Smooth;
+  the field itself remains required. Newly created or inserted nodes use Smooth.
+- Optional `patchPriorities` is `null` or a row-major array of `columns*rows`
+  `[constant,uCoefficient,vCoefficient]` triples. Each component is finite and
+  nonnegative; each triple sums to at most 1. Null/omission uses canonical overlap
+  order. Supplied planes preserve overlap order after subdivision; retain them
+  when replacing an inspected mesh instead of rebuilding them from cell indices.
+  Empty `nodeModes` or `patchPriorities` arrays are not valid input; use `null` for
+  implicit defaults. Inspect also reports internal empty/default arrays as `null`,
+  and API reads normalize implicit defaults to concrete arrays.
+- `colors` entries contain working coefficients, **not encoded display colors**:
+  linear RGB for Linear, encoded RGB for Gamma, OKLab for Perceptual, followed by
+  straight alpha. Signed HDR and alpha-control overshoot are allowed. Do not apply
+  the ordinary color-field alpha clamp to these arrays; evaluated alpha is clamped.
+
+For a color or handle edit, read `mesh`, change the needed coefficients and submit
+the complete payload. Changing `colorMode` in a raw payload also requires converting
+its color coefficients; merely changing the name reinterprets them. In C#, use
+`SetColorMode` for conversion; appearance can change across nonlinear models. Use
+`NodeColor`/`SetNodeColor` when editing encoded node colors. `SetNodeColor` carries
+the adjacent controls to preserve local color derivatives; `EvaluateColor` returns
+straight linear output.
+The model's `SplitColumn`/`SplitRow` subdivide both lattices without changing the
+continuous result; an API client performing subdivision must likewise preserve all
+coefficients and carry existing node modes; inserted nodes use Smooth.
+
+Malformed arrays, missing `nodeModes`, nonfinite values and unsupported color/node
+modes fail validation. Folded and overlapping geometry is allowed. Overlaps select
+one surface section without accumulating alpha from the others.
+`mesh` on non-Gradient layers is rejected. The field schema is
+[`$defs.mesh`](AI/agent-fields.schema.json); the [storage contract](JSON_FORMAT.md#mesh-gradients)
+describes TIFF, JSON, clipboard and dormant data.
+
+The shared `mesh` operation edits an existing grid without replacing all coefficients:
+
+```json
+{"op":"mesh","layer":"GRADIENT-ID","action":"nodeMode","node":0,"mode":"Corner"}
+{"op":"mesh","layer":"GRADIENT-ID","action":"moveEdge","node":0,"direction":1,"delta":[0,0.05]}
+```
+
+`node` is zero-based and row-major: `row*(columns+1)+column`. `nodeMode` requires
+`mode:"Smooth"` or `"Corner"`. Switching to Smooth aligns each opposite pair to an
+average direction, keeping both handle lengths; subsequent handle edits align the
+opposite handle while keeping its length. Corner keeps handles independent. Colors
+do not change. In a raw payload, `nodeModes` stores modes as supplied and does not
+realign controls; use this action when alignment is intended.
+
+`moveEdge` requires `direction` (0 left, 1 right, 2 down, 3 up) and a finite local
+`delta:[x,y]`. The edge must exist. It moves the two edge handles and adjoining tensor
+controls, preserving endpoint positions; Smooth endpoints may also realign their
+opposite handles. Both actions retain `gradientType`, so dormant Mesh data can also
+be edited. They use ordinary shared-operation dry-run, revision and Undo handling;
+invalid input fails before replacing the mesh. See [`$defs.meshOperation`](AI/agent-fields.schema.json).
 
 ### Resize a document
 

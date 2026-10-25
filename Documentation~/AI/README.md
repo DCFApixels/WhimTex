@@ -279,6 +279,14 @@ Gradient layers additionally support `gradientType:"Freeform"` and `freeform.poi
 with local `position`, straight encoded HDR `color` and relative `influence`.
 See [Freeform document fields](../JSON_FORMAT.md#freeform-gradients) and
 [shared editing settings](../AgentAPI.md#freeform-gradient-settings).
+Gradient layers also accept `gradientType:"Mesh"` with a complete `mesh` Bézier
+lattice with `nodeModes`: one `Smooth`/`Corner` entry per node, or `null` for all Smooth. Its `colors`
+are working-space coefficients, not ordinary encoded RGBA; retain all controls,
+node modes, signed HDR and alpha overshoot. Positions are finite local coordinates;
+folds and overlaps are allowed, with one surface section chosen without alpha
+accumulation. Mesh is not a Shape/Vector/Text
+paint mode. See [Mesh document fields](../JSON_FORMAT.md#mesh-gradients) and
+[Mesh editing settings](../AgentAPI.md#mesh-gradient-settings).
 Shape and Vector/Boolean Group styles support `fillMode:"Freeform"` with `freeform`,
 and `strokeMode:"Freeform"` with independent `strokeFreeform` points. Text excludes Freeform.
 Shape and Vector figures share `fillMode`: None, Solid, LinearGradient, RadialGradient,

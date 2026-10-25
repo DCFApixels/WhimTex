@@ -37,7 +37,8 @@ namespace DCFApixels.WhimTex
                 case BooleanGroupLayerBehaviour:
                 case VectorLayerBehaviour:
                     return tiling == TransformTilingMode.Unbounded || tiling == TransformTilingMode.Clip;
-                case GradientLayerBehaviour:
+                case GradientLayerBehaviour gradient:
+                    return gradient.gradientType != GradientLayerBehaviour.GradientType.Mesh && tiling == TransformTilingMode.Unbounded;
                 case NoiseLayerBehaviour: return tiling == TransformTilingMode.Unbounded;
                 case ColorFillLayerBehaviour fill when fill.mode == ColorFillLayerBehaviour.FillMode.Pattern:
                     return (fill.pattern == null || !fill.pattern.seamless) && tiling == TransformTilingMode.Unbounded;

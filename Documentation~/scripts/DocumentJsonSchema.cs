@@ -78,6 +78,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 var properties = new Dictionary<string, object>();
                 definitions[name] = D(("type", "object"), ("additionalProperties", false), ("properties", properties));
                 if (type == typeof(GradientLayerBehaviour)) ((Dictionary<string, object>)definitions[name])["required"] = new[] { "gradientType" };
+                if (type == typeof(MeshGradient)) ((Dictionary<string, object>)definitions[name])["required"] = new[] { "columns", "rows", "colorMode", "positions", "colors", "nodeModes" };
                 if (type == typeof(Layer)) ((Dictionary<string, object>)definitions[name])["required"] = new[] { "id", "behaviour" };
                 properties["$type"] = D(("const", name));
                 if (type == typeof(ShaderFX))
@@ -85,7 +86,21 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 if (type == typeof(DrawingLayerBehaviour)) properties["contentOmitted"] = D(("const", true));
                 foreach (FieldInfo f in (FieldInfo[])fields.Invoke(null, new object[] { type }))
                     if (!(type == typeof(WhimTexDocument) && f.Name == "layers") && !(type == typeof(DrawingLayerBehaviour) && f.Name == "pixels"))
-                        properties[f.Name] = type == typeof(FreeformGradient) && f.Name == "points"
+                        properties[f.Name] = type == typeof(MeshGradient) && (f.Name == "columns" || f.Name == "rows")
+                            ? D(("type", "integer"), ("minimum", 1), ("maximum", MeshGradient.MaxCells)) :
+                            type == typeof(MeshGradient) && f.Name == "colorMode"
+                            ? D(("type", "string"), ("enum", new[] { "Linear", "Gamma", "Perceptual" })) :
+                            type == typeof(MeshGradient) && f.Name == "positions"
+                            ? D(("type", "array"), ("minItems", 16), ("maxItems", 2401), ("items", Tuple(2))) :
+                            type == typeof(MeshGradient) && f.Name == "colors"
+                            ? D(("type", "array"), ("minItems", 16), ("maxItems", 2401), ("items", Tuple(4))) :
+                            type == typeof(MeshGradient) && f.Name == "nodeModes"
+                            ? D(("type", new[] { "array", "null" }), ("minItems", 4), ("maxItems", (MeshGradient.MaxCells + 1) * (MeshGradient.MaxCells + 1)), ("items", Schema(typeof(MeshGradientNodeMode)))) :
+                            type == typeof(MeshGradient) && f.Name == "patchPriorities"
+                            ? D(("type", new[] { "array", "null" }), ("minItems", 1), ("maxItems", MeshGradient.MaxCells * MeshGradient.MaxCells),
+                                ("items", D(("type", "array"), ("minItems", 3), ("maxItems", 3), ("items", D(("type", "number"), ("minimum", 0), ("maximum", 1))))),
+                                ("description", "Optional row-major priority plane per cell: constant + uCoefficient*u + vCoefficient*v. Null or omitted uses canonical patch order. Array length equals columns*rows; each finite nonnegative triple sums to at most 1. Subdivision preserves these coefficients to retain overlap order.")) :
+                            type == typeof(FreeformGradient) && f.Name == "points"
                             ? D(("type", "array"), ("minItems", 1), ("maxItems", FreeformGradient.MaxPoints), ("items", Schema(typeof(FreeformGradientPoint)))) :
                             type == typeof(FreeformGradientPoint) && f.Name == "influence"
                             ? D(("type", "number"), ("minimum", FreeformGradient.MinInfluence), ("maximum", FreeformGradient.MaxInfluence), ("default", .35),
@@ -184,6 +199,15 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                         D(("if", hasManualKeys), ("then", D(("required", new[] { "customColorMode" }))))
                     };
                 }
+                if (type == typeof(GradientLayerBehaviour))
+                {
+                    ((Dictionary<string, object>)properties["mesh"])["description"] = "Independent Mesh data, retained in every JSON write mode while inactive. Required non-null when gradientType is Mesh. Mesh is supported only by Gradient layers.";
+                    var meshSelected = D(("required", new[] { "gradientType" }), ("properties", D(("gradientType", D(("const", "Mesh"))))));
+                    var meshRequired = D(("required", new[] { "mesh" }), ("properties", D(("mesh", D(("type", "object"))))));
+                    ((Dictionary<string, object>)definitions[name])["allOf"] = new[] { D(("if", meshSelected), ("then", meshRequired)) };
+                }
+                if (type == typeof(MeshGradient))
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Tensor-product cubic Bezier lattice. columns/rows are cell counts; positions and colors must each have (3*columns+1)*(3*rows+1) entries in row-major order. positions are finite local coordinates, unrestricted by 0..1 or folding. nodeModes has (columns+1)*(rows+1) row-major Smooth/Corner entries, or null for all Smooth; new nodes default to Smooth. colors are working coefficients: linear RGB for Linear, encoded RGB for Gamma, OKLab for Perceptual; alpha is a straight cubic coefficient. Coefficients may overshoot; only evaluated alpha is clamped. Keep every coefficient and node mode to preserve subdivision and editing behavior. Overlapping surface regions select one section without accumulating alpha. Runtime validation rejects nonfinite values, malformed arrays and unsupported modes.";
                 if (type == typeof(WhimTexGradientCurveKey))
                 {
                     properties["id"] = D(("type", "integer"), ("minimum", 1), ("maximum", int.MaxValue));

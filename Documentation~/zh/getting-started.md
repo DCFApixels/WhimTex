@@ -77,6 +77,9 @@ Vector Nodes 使用工具按钮上的空心箭头；Layer Select 保留操作系
 未完成的路径或笔触及 Crop 边框不属于工具首选项。**Reset WhimTex Settings…** 也会
 重置这些已保存的工具选项。
 
+如果某项工具设置已损坏或使用不支持的格式，该部分会重置并立即按当前格式保存。
+警告只显示一次，其他工具设置保持不变。
+
 **Paint Undo** 可设置共享的 **Undo Disk Limit (GiB)**（默认 8）与 **Paint Undo Steps**
 （每个文档默认 50 步，包括 Redo）。Brush、Pencil、Smudge、Blur、Healing、填充与图层清空的像素操作计入此限制；
 参数编辑由 Unity Undo 独立管理。这些设置适用于当前用户的所有项目。

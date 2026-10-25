@@ -6,10 +6,12 @@ namespace DCFApixels.WhimTex
     [Serializable]
     public sealed class GradientLayerBehaviour : LayerBehaviour
     {
-        public override TransformTilingMode SourceTiling => TransformTilingMode.Unbounded;
+        public override TransformTilingMode SourceTiling => gradientType == GradientType.Mesh ? TransformTilingMode.Clip : TransformTilingMode.Unbounded;
         public GradientType gradientType = GradientType.Linear;
         public WhimTexGradient gradient = GradientUtility.Create(GradientUtility.WhiteToBlack);
         public FreeformGradient freeform = new FreeformGradient();
+        public MeshGradient mesh = new MeshGradient();
+        [NonSerialized] internal int selectedMeshNode;
         [NonSerialized] internal int selectedFreeformPoint;
         internal static readonly Vector2 BaseCenter = new Vector2(0.5f, 0.5f);
         internal const float BaseRadius = 0.5f;
@@ -21,6 +23,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private int cachedHash;
         [NonSerialized] private WhimTexGradient previewGradient;
         [NonSerialized] private WhimTexGradientPalette palette;
+        [NonSerialized] private MeshGradientRenderer meshRenderer;
 
         public override Texture2D GetPreviewTexture(int size)
         {
@@ -40,6 +43,16 @@ namespace DCFApixels.WhimTex
 
         internal override RenderTexture Render(in LayerRenderContext context)
         {
+            if (gradientType == GradientType.Mesh)
+            {
+                var target = ProfiledRenderTexture.GetTemporary(context.width, context.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                try
+                {
+                    meshRenderer ??= new MeshGradientRenderer(); meshRenderer.Render(mesh, target);
+                    return Owner.ApplyTransformAndFx(target, context, premultipliedSource: true);
+                }
+                finally { ProfiledRenderTexture.ReleaseTemporary(target); }
+            }
             Material material = WhimTexMaterials.Gradient;
             if (material == null || !material.shader.isSupported)
                 throw new InvalidOperationException("Gradient shader is unavailable or unsupported on this graphics device.");
@@ -115,6 +128,7 @@ namespace DCFApixels.WhimTex
         {
             if (cachedPreview != null) UnityEngine.Object.DestroyImmediate(cachedPreview);
             palette?.Dispose();
+            meshRenderer?.Dispose(); meshRenderer = null;
             cachedPreview = null;
             palette = null;
             previewGradient = null;
@@ -139,6 +153,22 @@ namespace DCFApixels.WhimTex
                 wrapMode = TextureWrapMode.Clamp
             };
             var pixels = texture.GetRawTextureData<Color>();
+            if (gradientType == GradientType.Mesh)
+            {
+                var target = ProfiledRenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                var previous = RenderTexture.active;
+                try
+                {
+                    meshRenderer ??= new MeshGradientRenderer(); meshRenderer.Render(mesh, target);
+                    RenderTexture.active = target; texture.ReadPixels(new Rect(0, 0, width, height), 0, 0, false);
+                    pixels = texture.GetRawTextureData<Color>();
+                    for (int i = 0; i < pixels.Length; i++)
+                    { Color p = pixels[i]; if (p.a > 0) { p.r /= p.a; p.g /= p.a; p.b /= p.a; } pixels[i] = p; }
+                    texture.Apply(false, false); return texture;
+                }
+                catch { UnityEngine.Object.DestroyImmediate(texture); throw; }
+                finally { RenderTexture.active = previous; ProfiledRenderTexture.ReleaseTemporary(target); }
+            }
             WhimTexGradient evaluatedGradient = gradient ?? GradientUtility.WhiteToBlack;
 
             for (int y = 0; y < height; y++)
@@ -167,6 +197,7 @@ namespace DCFApixels.WhimTex
                 hash = hash * 31 + circularStartAngle.GetHashCode();
                 hash = hash * 31 + circularWrapMode.GetHashCode();
                 if (gradientType == GradientType.Freeform) hash = hash * 31 + (freeform?.ContentHash() ?? 0);
+                if (gradientType == GradientType.Mesh) hash = hash * 31 + (mesh?.ContentHash() ?? 0);
                 return hash;
             }
         }
@@ -177,7 +208,8 @@ namespace DCFApixels.WhimTex
             Radial = 2,
             Angular = 3,
             Square = 5,
-            Freeform = 6
+            Freeform = 6,
+            Mesh = 7
         }
 
         public enum WrapMode

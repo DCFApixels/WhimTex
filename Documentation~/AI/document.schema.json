@@ -3770,7 +3770,8 @@
             "Radial",
             "Angular",
             "Square",
-            "Freeform"
+            "Freeform",
+            "Mesh"
           ]
         },
         "gradient": {
@@ -3792,6 +3793,17 @@
               "type": "null"
             }
           ]
+        },
+        "mesh": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MeshGradient"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Independent Mesh data, retained in every JSON write mode while inactive. Required non-null when gradientType is Mesh. Mesh is supported only by Gradient layers."
         },
         "circularRepetitions": {
           "type": "number",
@@ -3819,8 +3831,133 @@
       },
       "required": [
         "gradientType"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "gradientType"
+            ],
+            "properties": {
+              "gradientType": {
+                "const": "Mesh"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "mesh"
+            ],
+            "properties": {
+              "mesh": {
+                "type": "object"
+              }
+            }
+          }
+        }
       ]
     },
+    "MeshGradient": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "MeshGradient"
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "colorMode": {
+          "type": "string",
+          "enum": [
+            "Linear",
+            "Gamma",
+            "Perceptual"
+          ]
+        },
+        "positions": {
+          "type": "array",
+          "minItems": 16,
+          "maxItems": 2401,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number",
+              "minimum": -3.40282347e+38,
+              "maximum": 3.40282347e+38
+            }
+          }
+        },
+        "colors": {
+          "type": "array",
+          "minItems": 16,
+          "maxItems": 2401,
+          "items": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+              "type": "number",
+              "minimum": -3.40282347e+38,
+              "maximum": 3.40282347e+38
+            }
+          }
+        },
+        "nodeModes": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "minItems": 4,
+          "maxItems": 289,
+          "items": {
+            "type": "string",
+            "enum": [
+              "Smooth",
+              "Corner"
+            ]
+          }
+        },
+        "patchPriorities": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "description": "Optional row-major priority plane per cell: constant + uCoefficient*u + vCoefficient*v. Null or omitted uses canonical patch order. Array length equals columns*rows; each finite nonnegative triple sums to at most 1. Subdivision preserves these coefficients to retain overlap order."
+        }
+      },
+      "required": [
+        "columns",
+        "rows",
+        "colorMode",
+        "positions",
+        "colors",
+        "nodeModes"
+      ],
+      "description": "Tensor-product cubic Bezier lattice. columns/rows are cell counts; positions and colors must each have (3*columns+1)*(3*rows+1) entries in row-major order. positions are finite local coordinates, unrestricted by 0..1 or folding. nodeModes has (columns+1)*(rows+1) row-major Smooth/Corner entries, or null for all Smooth; new nodes default to Smooth. colors are working coefficients: linear RGB for Linear, encoded RGB for Gamma, OKLab for Perceptual; alpha is a straight cubic coefficient. Coefficients may overshoot; only evaluated alpha is clamped. Keep every coefficient and node mode to preserve subdivision and editing behavior. Overlapping surface regions select one section without accumulating alpha. Runtime validation rejects nonfinite values, malformed arrays and unsupported modes."
+    },
+
     "GroupLayerBehaviour": {
       "type": "object",
       "additionalProperties": false,

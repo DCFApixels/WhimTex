@@ -42,6 +42,11 @@ For packed maps, `quiltingChannels:"Independent"` affects patch matching, while 
 
 ## Connect and discover
 
+Gradient layers support shared `mesh` operations for `action:"nodeMode"` and
+`action:"moveEdge"`, alongside complete `settings.mesh` replacement. These edits
+use the existing batch revision and Undo flow. See [Mesh gradient settings](AgentAPI.md#mesh-gradient-settings)
+for node indexing, Smooth/Corner modes, edge directions and retained inactive data.
+
 Shape and Vector fill edits use the same shared `set` operations: partial
 `settings.shape` fields or `settings.vector.shapes` as a complete replacement array.
 Both expose all seven fill modes and retain inactive palettes and anchors. See

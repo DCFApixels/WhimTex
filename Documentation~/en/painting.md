@@ -91,8 +91,9 @@ Smoothing is remembered as an input preference. Write channels are included in b
 
 ## Customize the brush
 
-With **Brush** selected, open the upper arrow on the right edge of Canvas View to show
-**Brushes**. It shares the drawer with Post FX: opening one closes the other.
+Click the brush icon in the panel toolbar at the right edge of Canvas View to show **Brushes**.
+If another tool is selected, its settings are disabled; click **Select Brush** above them to activate Brush.
+Click the icon again to close the panel; opening another section closes the current one.
 
 <a href="{{ '/Images/brush-settings.png' | relative_url }}"><img src="{{ '/Images/brush-settings.png' | relative_url }}" alt="WhimTex Brushes drawer with a neon red stroke, stamp controls, tint, blend mode and live brush preview" width="720"></a>
 

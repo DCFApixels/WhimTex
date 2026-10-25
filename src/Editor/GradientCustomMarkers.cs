@@ -8,10 +8,10 @@ namespace DCFApixels.WhimTex
         internal static bool IsCustom(WhimTexGradient gradient) => gradient != null &&
             gradient.Interpolation == WhimTexGradientInterpolation.Custom;
 
-        internal static string Label(WhimTexGradient gradient, WhimTexGradientCurveKey marker)
+        internal static string Label(WhimTexGradient gradient, WhimTexGradientCurveKey marker, int[] group = null)
         {
             string result = "";
-            var group = Group(gradient, marker.id);
+            group ??= Group(gradient, marker.id);
             foreach (var key in gradient.CustomKeys)
                 if (Array.IndexOf(group, key.id) >= 0)
                     result += (result.Length == 0 ? "" : "/") + gradient.CustomChannelName(key.channel);
@@ -28,10 +28,10 @@ namespace DCFApixels.WhimTex
             return color;
         }
 
-        internal static bool CanRemove(WhimTexGradient gradient, int id)
+        internal static bool CanRemove(WhimTexGradient gradient, int id, bool? alpha = null)
         {
             if (!gradient.TryGetCustomKey(id, out _)) return false;
-            return CanRemove(gradient, Group(gradient, id));
+            return CanRemove(gradient, Group(gradient, id, alpha));
         }
 
         internal static bool CanRemove(WhimTexGradient gradient, int[] ids)
@@ -43,14 +43,19 @@ namespace DCFApixels.WhimTex
             return remainingChannels == 15;
         }
 
-        internal static int[] Group(WhimTexGradient gradient, int id) => gradient.GetCustomMarkerGroup(id);
-
-        internal static void Move(WhimTexGradient gradient, int id, float time)
+        internal static int[] Group(WhimTexGradient gradient, int id, bool? alpha = null)
         {
-            if (gradient.TryGetCustomKey(id, out var key)) gradient.MoveCustomKeys(Group(gradient, id), time - key.time);
+            var group = gradient.GetCustomMarkerGroup(id);
+            return alpha.HasValue ? Array.FindAll(group, keyId => gradient.TryGetCustomKey(keyId, out var key) &&
+                (key.channel == 3) == alpha.Value) : group;
         }
 
-        internal static void Remove(WhimTexGradient gradient, int id) => gradient.RemoveCustomKeys(Group(gradient, id));
+        internal static void Move(WhimTexGradient gradient, int id, float time, bool? alpha = null)
+        {
+            if (gradient.TryGetCustomKey(id, out var key)) gradient.MoveCustomKeys(Group(gradient, id, alpha), time - key.time);
+        }
+
+        internal static void Remove(WhimTexGradient gradient, int id, bool? alpha = null) => gradient.RemoveCustomKeys(Group(gradient, id, alpha));
 
         internal static void SetColor(WhimTexGradient gradient, Color encodedColor, int selectedId = 0)
         {
