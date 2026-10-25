@@ -30,6 +30,17 @@ namespace DCFApixels.WhimTex
                 apply(label, () => write(next));
             }
 
+            var model = WhimTexUI.ConfigureField(new PopupField<string>("Color Model", new List<string> { "Linear", "Gamma", "Perceptual", "Hue" }, 2)
+                { name = "freeformColorModel" });
+            bindings.Track(model, () => (read()?.colorMode ?? WhimTexGradientColorMode.Perceptual).ToString());
+            model.RegisterValueChangedCallback(e =>
+            {
+                if (read() == null) return;
+                var next = read().Clone();
+                next.colorMode = Enum.Parse<WhimTexGradientColorMode>(e.newValue); next.Validate();
+                apply("Change Freeform Color Model", () => write(next));
+            });
+            root.Add(model);
             var point = WhimTexUI.ConfigureField(new PopupField<int>("Point", new List<int> { 0 }, 0,
                 value => (value + 1).ToString(), value => (value + 1).ToString()) { name = "freeformPoint" });
             point.RegisterValueChangedCallback(e => select(e.newValue));

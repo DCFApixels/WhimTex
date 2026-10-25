@@ -19,7 +19,8 @@ namespace DCFApixels.WhimTex
         private int postFxStateHash;
         private double nextPostFxCheck;
         private VisualElement postFxOverlay, postFxDrawer, postFxDrawerContent;
-        private Button postFxTab, postFxButton, activatePostFxButton;
+        private Button postFxTab;
+        private Toggle postFxEnabledToggle;
         private HelpBox postFxStatus;
         private ColorField postFxBackgroundField;
         private Action refreshPostFxFields;
@@ -65,8 +66,8 @@ namespace DCFApixels.WhimTex
             BuildUvDrawer(panel);
             postFxDrawer = new VisualElement();
             postFxDrawer.AddToClassList("whimtex-post-fx-drawer");
-            postFxDrawer.Add(CreatePaneHeader("Post FX", "postFxTitle"));
-            activatePostFxButton = AddCanvasDrawerActivation(postFxDrawer, "activatePostFx", "Enable Post FX", () => SetPostFxEnabled(true));
+            postFxEnabledToggle = AddCanvasDrawerToggleHeader(postFxDrawer, "Post FX", "postFxTitle",
+                "postFxEnabled", postFxEnabled, "Enable Post FX preview. Does not affect painting, sampling or export.", SetPostFxEnabled);
             var scroll = new ScrollView(ScrollViewMode.Vertical);
             postFxDrawerContent = scroll;
             scroll.AddToClassList("whimtex-post-fx-settings");
@@ -75,16 +76,6 @@ namespace DCFApixels.WhimTex
             BuildPostFxFields(scroll);
             RefreshPostFxPanel();
             return workspace;
-        }
-
-        private Button BuildPostFxButton()
-        {
-            postFxButton = new Button(() => SetPostFxEnabled(!postFxEnabled))
-                { text = "Post FX", tooltip = "Preview through the scene, game camera or a Volume Profile. Does not affect painting, sampling or export." };
-            postFxButton.AddToClassList("whimtex-channel-button");
-            postFxButton.AddToClassList("whimtex-post-fx-button");
-            postFxButton.EnableInClassList("whimtex-channel-button--enabled", postFxEnabled);
-            return postFxButton;
         }
 
         private void SetPostFxEnabled(bool enabled)
@@ -222,9 +213,7 @@ namespace DCFApixels.WhimTex
             SetBrushStrokePreviewActive(brushAvailable && brushesExpanded);
             RefreshCanvasDrawerTab(postFxTab, postFxExpanded);
             postFxDrawer?.EnableInClassList("whimtex-post-fx-drawer--hidden", !postFxExpanded);
-            postFxDrawerContent?.SetEnabled(postFxEnabled);
-            activatePostFxButton?.EnableInClassList("whimtex-hidden", postFxEnabled);
-            postFxButton?.EnableInClassList("whimtex-channel-button--enabled", postFxEnabled);
+            postFxEnabledToggle?.SetValueWithoutNotify(postFxEnabled);
             if (commentOverlay != null && commentOverlay.ClassListContains("whimtex-hidden") == CanvasCommentsVisible)
                 RefreshCanvasComments();
             refreshPostFxFields?.Invoke();

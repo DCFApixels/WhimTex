@@ -180,8 +180,8 @@ namespace DCFApixels.WhimTex
                 }
                 else Refresh();
             });
-            const string historyExpandedKey = "DCFApixels.WhimTex.ColorPicker.HistoryExpanded";
-            var heading = new Foldout { text = "History", value = EditorPrefs.GetBool(historyExpandedKey, true), tooltip = "Click to reuse. Drag to reorder; drag outside the history to remove on release (red outline). Escape cancels the drag." };
+            const string historyExpandedKey = "DCFApixels.WhimTex.ColorPicker.ColorHistoryExpanded";
+            var heading = new Foldout { name = "colorHistory", text = "Color History", value = EditorPrefs.GetBool(historyExpandedKey, true), tooltip = "Click to reuse. Drag to reorder; drag outside Color History to remove on release (red outline). Escape cancels the drag." };
             heading.AddToClassList("whimtex-picker-heading");
             heading.AddToClassList("whimtex-color-library-section");
             heading.RegisterValueChangedCallback(e =>
@@ -305,7 +305,7 @@ namespace DCFApixels.WhimTex
         {
             if (history == null) return;
             history.Clear();
-            var add = new ColorSurface(() => new Color(.5f, .5f, .5f), true) { tooltip = "Add current color to History", focusable = true };
+            var add = new ColorSurface(() => new Color(.5f, .5f, .5f), true) { tooltip = "Add current color to Color History", focusable = true };
             add.AddToClassList("whimtex-picker-chip");
             add.AddToClassList("whimtex-picker-add-color");
             add.AddManipulator(new Clickable(AddCurrentHistoryColor));
@@ -317,7 +317,7 @@ namespace DCFApixels.WhimTex
             });
             add.SetEnabled(document != null);
             history.Add(add);
-            if (document == null) { history.Add(new Label("No document history for this input.")); return; }
+            if (document == null) { history.Add(new Label("Color History is unavailable for this input.")); return; }
             var colors = document.ColorHistory;
             for (int i = 0; i < colors.Count; i++)
             {
@@ -353,7 +353,7 @@ namespace DCFApixels.WhimTex
         {
             if (document == null || finished || valid != null && !valid() || !IsHistoryColorVisible(value, hdr) ||
                 index < 0 || index >= document.ColorHistory.Count || !document.ColorHistory[index].Equals(value)) return;
-            document.MoveHistoryColor(index, 0);
+            document.RememberColor(value);
             RefreshHistory();
             SetColor(value);
         }

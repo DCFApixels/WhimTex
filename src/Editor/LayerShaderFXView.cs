@@ -14,7 +14,6 @@ namespace DCFApixels.WhimTex
         private readonly VisualElement entries = new VisualElement();
         private readonly List<ShaderFX> displayed = new List<ShaderFX>();
         private readonly List<Action> refreshActivity = new List<Action>();
-        private readonly Button applyAll;
         private VisualElement activeLayerDropMarker;
         private VisualElement activeStackDropMarker;
         private bool stackDropAfter;
@@ -26,23 +25,20 @@ namespace DCFApixels.WhimTex
             this.applyChange = applyChange;
             WhimTexUI.ApplyWindowStyles(this);
             AddToClassList("whimtex-layer-fx");
-            VisualElement toolbar = new VisualElement();
-            toolbar.AddToClassList("whimtex-layer-fx-toolbar");
-            toolbar.Add(new Button(() => Change("Add Shader FX", () => owner.AddEmbeddedShaderFX(layer))) { text = "+ Shader FX" });
-            toolbar.Add(new Button(() => ShaderFXCatalog.ShowMenu(entry => Change("Add Catalog FX", () => owner.AddCatalogShaderFX(layer, entry)))) { text = "+ Preset ▾", tooltip = "Effects from the project and your user ShaderFX preset folder." });
-            applyAll = new Button(() => ApplyThrough(layer.fx.Count - 1)) { text = "Apply All" };
-            toolbar.Add(applyAll);
-            Add(toolbar);
             entries.AddToClassList("whimtex-layer-fx-entries");
             Add(entries);
+            var add = CreateAddButton();
+            add.AddToClassList("whimtex-layer-fx-add");
+            Add(add);
             Refresh();
         }
 
+        internal Button CreateAddButton() => ShaderFXAddDropdown.CreateButton(
+            entry => { if (CanEditStack()) Change("Add Catalog FX", () => owner.AddCatalogShaderFX(layer, entry)); },
+            () => { if (CanEditStack()) Change("Add Shader FX", () => owner.AddEmbeddedShaderFX(layer)); });
+
         internal void Refresh()
         {
-            string unavailable = owner.ApplyFXUnavailable(layer, layer.fx.Count - 1);
-            applyAll.SetEnabled(unavailable == null);
-            applyAll.tooltip = unavailable ?? "Bake the FX stack into Drawing pixels, keeping the layer transform editable.";
             foreach (var refresh in refreshActivity) refresh();
             bool changed = displayed.Count != layer.fx.Count;
             for (int i = 0; !changed && i < displayed.Count; i++)
@@ -56,6 +52,29 @@ namespace DCFApixels.WhimTex
             displayed.AddRange(layer.fx);
             for (int i = 0; i < displayed.Count; i++)
                 AddEntry(i);
+        }
+
+        internal void BuildStackContextMenu(DropdownMenu menu)
+        {
+            menu.AppendAction("Apply All", _ => ApplyThrough(layer.fx.Count - 1),
+                _ => CanEditStack() && owner.ApplyFXUnavailable(layer, layer.fx.Count - 1) == null
+                    ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            menu.AppendAction("Paste FX As New", _ => { if (CanEditStack()) PasteAt(layer.fx.Count); },
+                _ => CanEditStack() && ShaderFXClipboard.Current != null
+                    ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            menu.AppendSeparator();
+            menu.AppendAction("Remove All", _ => RemoveAll(),
+                _ => CanRemoveAll() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+        }
+
+        private bool CanEditStack() => CanReorderLayer() && !owner.IsBooleanOperand(layer);
+
+        private bool CanRemoveAll() => CanEditStack() && layer.fx.Count > 0 &&
+            !layer.fx.Exists(effect => effect != null && WhimTexApi.IsShaderFXContentLocked(effect));
+
+        private void RemoveAll()
+        {
+            if (CanRemoveAll()) Change("Remove All FX", () => layer.fx.Clear());
         }
 
         private void AddEntry(int index)
@@ -90,6 +109,20 @@ namespace DCFApixels.WhimTex
                 foldout.RegisterCallback<AttachToPanelEvent>(_ =>
                     foldout.schedule.Execute(() => foldoutButton.text = foldout.value ? "▾" : "▸"));
                 toolbar.Add(foldoutButton);
+
+                var icon = new Image { name = "fxIcon", scaleMode = ScaleMode.ScaleToFit };
+                icon.AddToClassList("whimtex-fx-icon");
+                void RefreshIcon()
+                {
+                    if (effect == null) return;
+                    icon.image = ShaderFXIconCache.Get(effect.IconMetadata, effect.SourcePath, out string iconWarning);
+                    icon.tooltip = iconWarning;
+                }
+                icon.RegisterCallback<AttachToPanelEvent>(_ => { ShaderFXIconCache.Changed += RefreshIcon; RefreshIcon(); });
+                icon.RegisterCallback<DetachFromPanelEvent>(_ => ShaderFXIconCache.Changed -= RefreshIcon);
+                refreshActivity.Add(RefreshIcon);
+                RefreshIcon();
+                toolbar.Add(icon);
 
                 var active = new Toggle { tooltip = "Enable or disable this FX" };
                 active.AddToClassList("whimtex-fx-visibility-toggle");

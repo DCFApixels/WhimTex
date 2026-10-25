@@ -15,6 +15,8 @@ next_page: "zh/painting.md"
 拖动边框可移动它，拖动边或角可缩放，拖动圆形控制柄可旋转。
 如需精确数值，请在 Layer Settings 中展开 **Transform**。
 
+右键点击该分区标题或点击右侧的 **⋮**，可使用 **Reset** 和 **Original Aspect**，折叠时也可操作。展开后的分区内仍保留这两个按钮。
+
 **Original Aspect** 会恢复图像的原始比例。
 
 Transform 工具栏中的 **Original Size** 还会恢复其像素尺寸：一个源像素等于一个画布像素。

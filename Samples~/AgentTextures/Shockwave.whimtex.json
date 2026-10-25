@@ -322,7 +322,7 @@
             "periodic": "None",
             "fractal": "None",
             "warp": "None",
-            "encoding": "ColorValues",
+            "encoding": "Gamma",
             "inverted": false,
             "recoveryId": "4bb153fbcf2a4e33ad1e64476c779411"
           },
@@ -688,7 +688,7 @@
             "periodic": "None",
             "fractal": "None",
             "warp": "None",
-            "encoding": "ColorValues",
+            "encoding": "Gamma",
             "inverted": false,
             "recoveryId": "2f5ec9bd1d8d4f87b61b181cb9bca4de"
           },

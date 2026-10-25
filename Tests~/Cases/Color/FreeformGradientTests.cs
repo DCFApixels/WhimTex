@@ -35,7 +35,7 @@ public static class FreeformGradientTests
         Directory.CreateDirectory(folder);
         try
         {
-            var data = gradient.freeform;
+            var data = gradient.freeform; data.colorMode = WhimTexGradientColorMode.Linear;
             data.points.Clear();
             data.points.Add(new FreeformGradientPoint(new Vector2(.25f,.5f),new Color(1,0,0,.2f)));
             data.points.Add(new FreeformGradientPoint(new Vector2(.75f,.5f),new Color(0,0,1,.8f)));

@@ -574,7 +574,7 @@ namespace DCFApixels.WhimTex
                     _writer.Write(field.Name);
                     object fieldValue = field.GetValue(value);
                     if (value is ShaderFX effect && field.Name == "code")
-                        fieldValue = ShaderFXSourceBuilder.DocumentCode((string)fieldValue, effect.SourcePath);
+                        fieldValue = ShaderFXSourceBuilder.DocumentCode(ShaderFXIconMetadata.MakePortable((string)fieldValue, effect.SourcePath), effect.SourcePath);
                     Write(fieldValue, field.FieldType);
                 }
             }
@@ -813,6 +813,13 @@ namespace DCFApixels.WhimTex
                 {
                     if (!Enum.IsDefined(type, name))
                         throw new WhimTexDocumentException("Unsupported gradient type: " + name + ". This document requires a matching editor version.");
+                    return Enum.Parse(type, name);
+                }
+                if (type == typeof(NoiseLayerBehaviour.OutputEncoding) ||
+                    type == typeof(NormalMapLayerBehaviour.InputSpace) || type == typeof(NormalMapLayerBehaviour.OutputEncoding))
+                {
+                    if (Array.IndexOf(Enum.GetNames(type), name) < 0)
+                        throw new WhimTexDocumentException("Unsupported color encoding: " + name + ". This document requires a matching editor version.");
                     return Enum.Parse(type, name);
                 }
                 return Enum.IsDefined(type, name) ? Enum.Parse(type, name) : Enum.ToObject(type, number);

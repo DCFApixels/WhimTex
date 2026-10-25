@@ -1,6 +1,9 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 
+# Shader includes must not mix checkout CRLF with LF metadata edits.
+src/FXPresets/*.hlsl text eol=lf
+
 
 # Frozen file bytes must match their captured hashes on every checkout.
 Tests~/Fixtures/Compatibility0125/** -text

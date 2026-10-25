@@ -1,5 +1,7 @@
 // @whimtex-effect Distortion/Height to Distortion
 // @control(_Strength)
+// @group("Normal")
+// @icon("../Editor/Icons/FX/Normal.svg")
 // @param hidden float _Strength = 8 [~-64 .. ~64] // Multiply the raw height gradient. Zero outputs a neutral map; negative values reverse both axes.
 // @header(Height Source)
 // @param texture2D _HeightMap = self // Linear height data. Self reads the image before this FX; another layer or texture can be assigned.

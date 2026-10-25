@@ -113,7 +113,7 @@ public static class NoiseRandomizeTests
                         Check(noise.encoding == output, "Gradient output is retained");
                         Check(Equals(effectiveOutput, typeof(NoiseLayerBehaviour).GetProperty("EffectiveOutput", Any).GetValue(noise)), "Gradient effective output is retained");
                     }
-                    else Check(noise.encoding == NoiseLayerBehaviour.OutputEncoding.ColorValues || noise.encoding == NoiseLayerBehaviour.OutputEncoding.LinearData,
+                    else Check(noise.encoding == NoiseLayerBehaviour.OutputEncoding.Gamma || noise.encoding == NoiseLayerBehaviour.OutputEncoding.Linear,
                         "Raw outputs never switch to Gradient");
                     outputs.Add(noise.encoding);
                     sawTrue |= noise.inverted; sawFalse |= !noise.inverted;

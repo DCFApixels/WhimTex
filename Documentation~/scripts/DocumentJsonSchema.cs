@@ -78,7 +78,14 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 var properties = new Dictionary<string, object>();
                 definitions[name] = D(("type", "object"), ("additionalProperties", false), ("properties", properties));
                 if (type == typeof(GradientLayerBehaviour)) ((Dictionary<string, object>)definitions[name])["required"] = new[] { "gradientType" };
-                if (type == typeof(MeshGradient)) ((Dictionary<string, object>)definitions[name])["required"] = new[] { "columns", "rows", "colorMode", "positions", "colors", "nodeModes" };
+                if (type == typeof(MeshGradient))
+                {
+                    var definition = (Dictionary<string, object>)definitions[name];
+                    definition["required"] = new[] { "columns", "rows", "colorMode", "positions", "colors", "nodeModes" };
+                    definition["anyOf"] = new[] {
+                        D(("properties", D(("colorMode", D(("not", D(("const", "Hue")))))))),
+                        D(("required", new[] { "hueChroma" }), ("properties", D(("hueChroma", D(("type", "array")))))) };
+                }
                 if (type == typeof(Layer)) ((Dictionary<string, object>)definitions[name])["required"] = new[] { "id", "behaviour" };
                 properties["$type"] = D(("const", name));
                 if (type == typeof(ShaderFX))
@@ -88,8 +95,11 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                     if (!(type == typeof(WhimTexDocument) && f.Name == "layers") && !(type == typeof(DrawingLayerBehaviour) && f.Name == "pixels"))
                         properties[f.Name] = type == typeof(MeshGradient) && (f.Name == "columns" || f.Name == "rows")
                             ? D(("type", "integer"), ("minimum", 1), ("maximum", MeshGradient.MaxCells)) :
-                            type == typeof(MeshGradient) && f.Name == "colorMode"
-                            ? D(("type", "string"), ("enum", new[] { "Linear", "Gamma", "Perceptual" })) :
+                            (type == typeof(MeshGradient) || type == typeof(FreeformGradient)) && f.Name == "colorMode"
+                            ? D(("type", "string"), ("enum", new[] { "Linear", "Gamma", "Perceptual", "Hue" })) :
+                            type == typeof(MeshGradient) && f.Name == "hueChroma"
+                            ? D(("type", new[] { "array", "null" }), ("minItems", 16), ("maxItems", 2401), ("items", Number(typeof(float))),
+                                ("description", "Required non-null for Hue: one finite chroma coefficient per color control, length equals (3*columns+1)*(3*rows+1). Colors hold OKLab/alpha; this scalar lattice is subdivided alongside them to preserve appearance. Controls can be negative; evaluated target chroma cannot. Null for other models.")) :
                             type == typeof(MeshGradient) && f.Name == "positions"
                             ? D(("type", "array"), ("minItems", 16), ("maxItems", 2401), ("items", Tuple(2))) :
                             type == typeof(MeshGradient) && f.Name == "colors"
@@ -99,7 +109,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                             type == typeof(MeshGradient) && f.Name == "patchPriorities"
                             ? D(("type", new[] { "array", "null" }), ("minItems", 1), ("maxItems", MeshGradient.MaxCells * MeshGradient.MaxCells),
                                 ("items", D(("type", "array"), ("minItems", 3), ("maxItems", 3), ("items", D(("type", "number"), ("minimum", 0), ("maximum", 1))))),
-                                ("description", "Optional row-major priority plane per cell: constant + uCoefficient*u + vCoefficient*v. Null or omitted uses canonical patch order. Array length equals columns*rows; each finite nonnegative triple sums to at most 1. Subdivision preserves these coefficients to retain overlap order.")) :
+                                ("description", "Optional row-major priority coefficients per cell. Retained u slopes in the first row and v slopes in the first column define subdivision intervals. Each axis is normalized; zero totals and null/omission use equal intervals. Effective priorities are continuous across shared edges; independent stored offsets do not select front surfaces. Clone/API reads canonicalize the planes. Length equals columns*rows; finite nonnegative triples sum to at most 1. Preserve coefficients when replacing a mesh.")) :
                             type == typeof(FreeformGradient) && f.Name == "points"
                             ? D(("type", "array"), ("minItems", 1), ("maxItems", FreeformGradient.MaxPoints), ("items", Schema(typeof(FreeformGradientPoint)))) :
                             type == typeof(FreeformGradientPoint) && f.Name == "influence"
@@ -207,7 +217,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                     ((Dictionary<string, object>)definitions[name])["allOf"] = new[] { D(("if", meshSelected), ("then", meshRequired)) };
                 }
                 if (type == typeof(MeshGradient))
-                    ((Dictionary<string, object>)definitions[name])["description"] = "Tensor-product cubic Bezier lattice. columns/rows are cell counts; positions and colors must each have (3*columns+1)*(3*rows+1) entries in row-major order. positions are finite local coordinates, unrestricted by 0..1 or folding. nodeModes has (columns+1)*(rows+1) row-major Smooth/Corner entries, or null for all Smooth; new nodes default to Smooth. colors are working coefficients: linear RGB for Linear, encoded RGB for Gamma, OKLab for Perceptual; alpha is a straight cubic coefficient. Coefficients may overshoot; only evaluated alpha is clamped. Keep every coefficient and node mode to preserve subdivision and editing behavior. Overlapping surface regions select one section without accumulating alpha. Runtime validation rejects nonfinite values, malformed arrays and unsupported modes.";
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Tensor-product cubic Bezier lattice. columns/rows are cell counts; positions and colors must each have (3*columns+1)*(3*rows+1) entries in row-major order. positions are finite local coordinates, unrestricted by 0..1 or folding. nodeModes has (columns+1)*(rows+1) row-major Smooth/Corner entries, or null for all Smooth; new nodes default to Smooth. colors are working coefficients: linear RGB for Linear, encoded RGB for Gamma, OKLab for Perceptual/Hue; alpha is a straight cubic coefficient. Hue requires a separate hueChroma lattice of equal length, subdivided with colors; circular mixing favors the minor arc and fades to Perceptual on conflict, without huePath. Coefficients may overshoot; only evaluated alpha is clamped. Keep every coefficient and node mode to preserve subdivision and editing behavior. Overlaps use normalized color/opacity blending with soft transitions near folds and exposed edges, without accumulating alpha. Single-surface regions retain their color and opacity. Runtime validation rejects nonfinite values, malformed arrays and unsupported modes.";
                 if (type == typeof(WhimTexGradientCurveKey))
                 {
                     properties["id"] = D(("type", "integer"), ("minimum", 1), ("maximum", int.MaxValue));

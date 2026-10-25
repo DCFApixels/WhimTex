@@ -232,24 +232,26 @@ function parseParameter(body) {
 // Match Unity's line-oriented metadata scanner, ignoring commented-out examples.
 function directiveLines(source) {
   const result = [];
-  let block = false;
+  let block = false, leading = true;
   const lines = source.split(/\r\n|\n|\r/);
   for (let line = 0; line < lines.length; line++) {
     const text = lines[line];
     if (!block) {
       const match = text.match(/^\s*\/\/\s*@\s*([A-Za-z][A-Za-z0-9-]*)(.*)$/);
-      if (match) result.push({ line, start: text.indexOf('@'), length: text.length, name: match[1], body: match[2].trim(), text });
+      if (match) result.push({ line, start: text.indexOf('@'), length: text.length, name: match[1], body: match[2].trim(), text, leading });
     }
-    for (let i = 0; i < text.length - 1; i++) {
+    for (let i = 0; i < text.length; i++) {
       if (block) { if (text.slice(i, i + 2) === '*/') { block = false; i++; } }
       else if (text.slice(i, i + 2) === '//') break;
       else if (text.slice(i, i + 2) === '/*') { block = true; i++; }
       else if (text[i] === '"') {
+        leading = false;
         for (i++; i < text.length; i++) {
           if (text[i] === '\\') i++;
           else if (text[i] === '"') break;
         }
       }
+      else if (/\S/.test(text[i])) leading = false;
     }
   }
   return result;
@@ -258,7 +260,7 @@ function directiveLines(source) {
 function validate(source) {
   const diagnostics = [], names = new Map(), declarations = [], containers = [], stack = [], conditions = [], conditionStack = [], previews = [];
   const directives = directiveLines(source);
-  let condition = null, headers = 0, helpBoxes = 0, control = null, controlCount = 0, previewCount = 0;
+  let condition = null, headers = 0, helpBoxes = 0, control = null, controlCount = 0, previewCount = 0, presetGroupCount = 0;
   const parent = () => stack[stack.length - 1];
   const nearestGroup = () => {
     for (let i = stack.length - 1; i >= 0; i--)
@@ -286,6 +288,9 @@ function validate(source) {
           if (d.line !== 0 || !/^\uFEFF?\/\/\s*@whimtex-effect\s+/.test(d.text))
             report(d, 'The catalog marker is recognized only on the first line, without indentation.', true);
           if (!body || body.split('/').some(p => !p.trim())) fail('Effect category/name must not contain empty segments.');
+          break;
+        case 'icon':
+          if (!/^\("[^"\r\n]+"\)$/.test(body)) report(d, 'Expected // @icon("relative/path.svg") or // @icon("guid:...").', true);
           break;
         case 'param': {
           if (parent()?.kind === 'tabs') fail('Declare parameters inside a @tab page, not directly inside @tabs.');
@@ -337,6 +342,13 @@ function validate(source) {
           headers = 0; helpBoxes = 0; break;
         }
         case 'group': case 'foldout': case 'tabs': case 'tab': {
+          if (name === 'group' && /^\(\s*"/.test(body)) {
+            if (!d.leading) fail('Preset @group must appear in the leading comments before HLSL code.');
+            const match = body.match(/^\(\s*"([^"\r\n]+)"\s*\)$/);
+            if (++presetGroupCount > 1) fail('Declare only one preset @group.');
+            if (!match || !match[1].trim()) fail('Expected // @group("Name") with a non-empty preset group.');
+            break;
+          }
           if (conditionStack.length) fail(`@${name} must be outside conditional blocks.`);
           if (stack.length >= 16) fail('At most 16 layout levels are supported.');
           if (name === 'tab') {

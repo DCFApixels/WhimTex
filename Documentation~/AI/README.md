@@ -74,7 +74,7 @@ Brush JSON replaces the brush rather than creating layers.
         "scaleY": 8,
         "fractal": "FBm",
         "octaves": 3,
-        "encoding": "LinearData"
+        "encoding": "Linear"
       }
     }
   ]
@@ -143,7 +143,7 @@ Noise settings are directly in `behaviour`, not `properties.noise`.
 Seamless uses `periodic: "None" | "X" | "Y" | "XY"` for TwoD/ThreeD, and `periodic1D`
 for OneD. White/Blue Noise ignore Seamless and do not have a true ThreeD variant.
 
-Noise Output uses `encoding` (`LinearData`, `ColorValues`, `Gradient`), with
+Noise Output uses `encoding` (`Linear`, `Gamma`, `Gradient`), with
 `gradient` storing the palette and `inverted` reversing the value before palette sampling.
 Color White/Blue Noise does not use Gradient output.
 SDF uses `SDFLayerBehaviour.encoding`: `Gradient` (default), `LinearData` or `MultiChannelData`.
@@ -269,7 +269,7 @@ For raw RGBA composition/export, set the layer's native `blendMode:"Overwrite"`;
 treats alpha as coverage and can alter the data. Ordinary FX/effect-layer inputs reading the standalone
 SDF layer receive its rendered RGBA channels; group/AllBelow inputs use the composed image.
 Use linear document output and preserve RGBA when exporting. Live settings use `blend:"Overwrite"`.
-SDF has no ColorValues mode.
+SDF has no Gamma output mode.
 Document JSON stores `maxDistanceNormalization`; live patches use `maxDistance`.
 See the [shared SDF/Outline field contract](../AgentAPI.md#layer-settings) for mode semantics,
 but use native behaviour fields here, not live patch wrappers.
@@ -277,15 +277,23 @@ For document gradients use the schema's native `WhimTexGradient` model;
 the standalone clipboard format below is a separate value contract.
 Gradient layers additionally support `gradientType:"Freeform"` and `freeform.points`
 with local `position`, straight encoded HDR `color` and relative `influence`.
+`freeform.colorMode` chooses `Linear`, `Gamma`, `Perceptual` (OKLab, default) or `Hue` RGB
+mixing; alpha is weighted independently. Figure fills and strokes choose their own model.
 See [Freeform document fields](../JSON_FORMAT.md#freeform-gradients) and
 [shared editing settings](../AgentAPI.md#freeform-gradient-settings).
 Gradient layers also accept `gradientType:"Mesh"` with a complete `mesh` Bézier
 lattice with `nodeModes`: one `Smooth`/`Corner` entry per node, or `null` for all Smooth. Its `colors`
 are working-space coefficients, not ordinary encoded RGBA; retain all controls,
 node modes, signed HDR and alpha overshoot. Positions are finite local coordinates;
-folds and overlaps are allowed, with one surface section chosen without alpha
-accumulation. Mesh is not a Shape/Vector/Text
-paint mode. See [Mesh document fields](../JSON_FORMAT.md#mesh-gradients) and
+folds and overlaps are allowed. Normalized color/opacity blending is followed by
+smooth reconstruction across the whole overlap using surrounding colors and boundary
+variation, with a narrow fading transition band around the overlap. It retains HDR,
+leaves pixels outside the overlap and its band unchanged and does not accumulate alpha. Mesh is not a Shape/Vector/Text
+paint mode. Mesh also accepts `colorMode:"Hue"`, with OKLab/alpha `colors` and a required
+`hueChroma` scalar lattice of the same length. Retain both lattices on subdivision or replacement.
+Both Freeform and Mesh Hue favor short circular transitions and smoothly fall back to
+Perceptual where hues conflict; neither exposes `huePath`.
+See [Mesh document fields](../JSON_FORMAT.md#mesh-gradients) and
 [Mesh editing settings](../AgentAPI.md#mesh-gradient-settings).
 Shape and Vector/Boolean Group styles support `fillMode:"Freeform"` with `freeform`,
 and `strokeMode:"Freeform"` with independent `strokeFreeform` points. Text excludes Freeform.
@@ -561,6 +569,19 @@ conversion error is diagnostic rather than a certified bound.
 GPU palette layout, dimensions, formats and filtering are unchanged in this CPU update.
 
 ## HLSL interface — shader-only or inside JSON
+
+Preset headers may declare `// @group("Color")` after the effect marker and optional
+`@control`, before HLSL declarations/includes. It creates a flat block within each Add FX
+category submenu: groups and names sort alphabetically, with separators between groups.
+The effect marker retains its `Category/Name` path. No `@order` is used.
+Quoted preset groups have no end directive; unquoted `@group(Title)` / `@endgroup`
+still controls parameter layout. The catalog returns `group` and searches it with `query`.
+See [preset list groups](../ShaderFX.md#preset-list-groups).
+
+FX may declare `// @icon("../Icons/name.svg")`, `// @icon("guid:...")` or a leading
+`/* @icon-svg ... */` block. Keep these after the effect marker and optional `@control`,
+before HLSL code. Icons do not change shader sampling or compilation. See the
+[icon syntax, supported SVG features and transport rules](../ShaderFX.md#fx-icons).
 
 FX inspector previews use `// @preview(Function)` for an independent image, or
 `// @param preview(Function) float _Amount = 0.5 [0 .. 1]` for a Slider track.
@@ -885,7 +906,7 @@ Unbounded `float2`, `float3` and `float4` are raw vectors with two, three and fo
 
 `// @param preview(PreviewRange) float2 _Range = (0.2, 0.8) [0 .. 1]` is an ordered interval using a native MinMaxSlider and X/Y fields. It requires two hard finite limits with min < max and min <= X <= Y <= max; omitted defaults select the whole interval. `[0 % 360]` instead permits wrapped start/end pairs such as `(330, 30)` and wraps dragged endpoints across track edges. `(0, 360)` is full; equal stored endpoints are empty before Feather. Full cycles can also retain their meeting angle with endpoints one positive period apart: `(-330, 30)` or `(330, 690)`. At least one endpoint must be within the limits; all nonfull pairs must have both endpoints within them. The UI wraps full-cycle coordinates to the displayed angles but retains their winding in storage and shader values, so the handles stop where they meet rather than resetting to the limits. A scalar `float` also accepts `%`: ordinary slider dragging, repeating manual input (`370` → `10`, `-10` → `350`). Missing/soft `%` limits are rejected. Inline preview accepts `float2 uv` followed by optional `float2 value`: UV spans the whole track, value contains both actual endpoints. No extra JSON type is needed: values remain two-number arrays. Live FX snapshots expose `cyclicRange`. See [float2 intervals](../ShaderFX.md#float2-intervals).
 
-FX use ordinary input images and explicit parameters, not hidden layer-specific data. Lighting/Bevel Emboss reads a height texture (Self by default) and shares lighting with Normal Map/Lighting. Base Color alpha blends transparent lighting (0) into the shaded surface (1); Output selects Both/Highlight Only/Shadow Only for the transparent part. SDF inputs use the selected layer output; use Gradient or LinearData for a scalar height map. MultiChannelData remains an ordinary RGBA texture input, with distance data in alpha; it does not introduce a typed SDF parameter or hidden field access. See [shader reference](../ShaderFX.md) for the complete contract.
+FX use ordinary input images and explicit parameters, not hidden layer-specific data. Lighting/Bevel Emboss reads a height texture (Self by default) and shares lighting with Normal Map/Lighting. Base Color alpha blends transparent lighting (0) into the shaded surface (1); Output selects Both/Highlight Only/Shadow Only for the transparent part. SDF inputs use the selected layer output; use Gradient or LinearData for a scalar height map. MultiChannelData remains an ordinary RGBA texture input, with distance data in alpha; it does not introduce a typed SDF parameter or hidden field access. Normal Map/Lighting uses `_InputEncoding`; Normal Map/Normalize uses `_Encoding`. Both are enum parameters: `Linear:0`, `Gamma:1` (default Gamma). Gamma means sRGB-encoded channel values; Linear uses raw channels. See [shader reference](../ShaderFX.md) for the complete contract.
 
 `float4` is a raw vector; `color` is a color picker. Texture parameters without an explicit default keep Texture mode and sample white when empty. Use `= none` for transparent black, or `= self` to sample the current layer immediately before this FX (including earlier FX, excluding current/later FX). Both are unquoted declaration keywords and are preserved in exported presets. These are FX parameter defaults, not layer IDs. Users can change the texture source in the editor. In unified JSON, existing texture assets use `$asset` identity references in the parameter value. Do not invent asset identities. Drawing pixels and URL downloads are not part of this format.
 Names generate labels: `_NoiseScale` → Noise Scale. No need for a second uniform declaration.

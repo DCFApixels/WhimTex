@@ -1,5 +1,7 @@
 // @whimtex-effect Distortion/Radial Shear
 // @control(_Strength)
+// @group("Distortion")
+// @icon("../Editor/Icons/FX/Distortion.svg")
 // @group
 // @param float _Strength = 1 [~-4 .. ~4] // Shear amount. Zero removes the shear but keeps Offset; the sign reverses direction.
 // @if _Strength != 0

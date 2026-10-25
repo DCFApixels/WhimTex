@@ -137,8 +137,8 @@ Uniform projection оставляет прежний crop. Это не полн�
 - `content-aware-fill-v2`, `healing-brush-smoke-v2`, `healing-perimeter-smoke-v2`:
   реальные GPU writes, soft masks, Tiled edges/corners, HDR/alpha, source dimensions, Undo/Redo.
 - `healing-noise-seam-diagnostic-v2`: roughness, seam reduction и tonal variation конкретной
-  Noise → Drawing fixture, не универсальная quality score. Fixture использует ColorValues;
-  смена на нынешний Noise default LinearData меняет вход и нарушает историческое сравнение.
+  Noise → Drawing fixture, не универсальная quality score. Fixture использует Gamma;
+  смена на нынешний Noise default Linear меняет вход и нарушает историческое сравнение.
 
 Managed worker timing исключает GPU/UI/commit и первую компиляцию. End-to-end stroke включает
 readback, worker, commit и polling. Не смешивать измерения этих уровней и разных стадий алгоритма.

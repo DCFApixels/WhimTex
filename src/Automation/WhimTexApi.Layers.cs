@@ -392,7 +392,7 @@ namespace DCFApixels.WhimTex
 
         private static MeshGradient ReadMesh(JToken token)
         {
-            var data = Obj(token, "mesh"); Keys(data, "columns", "rows", "colorMode", "positions", "colors", "nodeModes", "patchPriorities");
+            var data = Obj(token, "mesh"); Keys(data, "columns", "rows", "colorMode", "positions", "colors", "hueChroma", "nodeModes", "patchPriorities");
             foreach (string field in new[] { "columns", "rows", "colorMode", "positions", "colors", "nodeModes" })
                 Require(data[field] != null, "mesh." + field + " is required; provide the complete control lattice.");
             int columns = Int(data, "columns", 1, 1, MeshGradient.MaxCells), rows = Int(data, "rows", 1, 1, MeshGradient.MaxCells);
@@ -424,6 +424,13 @@ namespace DCFApixels.WhimTex
                     Number(color[2], "mesh color 2", -float.MaxValue, float.MaxValue),
                     Number(color[3], "mesh alpha", -float.MaxValue, float.MaxValue));
             }
+            if (data["hueChroma"] != null && data["hueChroma"].Type != JTokenType.Null)
+            {
+                Require(data["hueChroma"] is JArray chroma && chroma.Count == count,
+                    "mesh.hueChroma length must equal (3 * columns + 1) * (3 * rows + 1).");
+                result.hueChroma = new float[count];
+                for (int i = 0; i < count; i++) result.hueChroma[i] = Number(data["hueChroma"][i], "mesh hueChroma", -float.MaxValue, float.MaxValue);
+            }
             for (int i = 0; i < (result.nodeModes?.Length ?? 0); i++)
             {
                 JToken mode = data["nodeModes"][i];
@@ -452,10 +459,10 @@ namespace DCFApixels.WhimTex
 
         private static FreeformGradient ReadFreeform(JToken token)
         {
-            var data = Obj(token, "freeform"); Keys(data, "points");
+            var data = Obj(token, "freeform"); Keys(data, "colorMode", "points");
             Require(data["points"] is JArray points && points.Count >= 1 && points.Count <= FreeformGradient.MaxPoints,
                 "freeform.points must contain 1..64 points.");
-            var result = new FreeformGradient(); result.points.Clear();
+            var result = new FreeformGradient { colorMode = Enum(data, "colorMode", WhimTexGradientColorMode.Perceptual) }; result.points.Clear();
             foreach (var item in (JArray)data["points"])
             {
                 var point = Obj(item, "freeform point"); Keys(point, "position", "color", "influence");

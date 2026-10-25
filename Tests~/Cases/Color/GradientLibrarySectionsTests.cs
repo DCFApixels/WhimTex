@@ -6,9 +6,9 @@ using UnityEngine.UIElements;
 
 public static class GradientLibrarySectionsTests
 {
-    const string HistoryKey = "DCFApixels.WhimTex.Gradient.HistoryExpanded";
+    const string HistoryKey = "DCFApixels.WhimTex.Gradient.ColorHistoryExpanded";
     const string PresetsKey = "DCFApixels.WhimTex.Gradient.PresetsExpanded";
-    const string PickerKey = "DCFApixels.WhimTex.ColorPicker.HistoryExpanded";
+    const string PickerKey = "DCFApixels.WhimTex.ColorPicker.ColorHistoryExpanded";
     static void Check(bool condition, string message)
     { UnityBRun.Check(!(!condition), message); }
 
@@ -38,7 +38,7 @@ public static class GradientLibrarySectionsTests
                 Check(history != null && presets != null, "Both sections are foldouts");
                 Check(history.value == (pass == 0 || pass == 2), "History restored independently");
                 Check(presets.value == (pass < 2), "Presets restored independently");
-                Check(history.text == "History" && presets.text == "Presets", "Section labels");
+                Check(history.text == "Color History" && presets.text == "Presets", "Section labels");
                 Check(history.ClassListContains("whimtex-color-library-section") &&
                     presets.ClassListContains("whimtex-color-library-section"), "Shared header styling");
                 Check(history.contentContainer.Q<ScrollView>() != null &&

@@ -1,4 +1,6 @@
-// @whimtex-effect Transform/UV Transform
+// @whimtex-effect Distortion/UV Transform
+// @group("Transform")
+// @icon("../Editor/Icons/FX/Transform.svg")
 // @param transform2D _Area
 // @param enum _InputTiling = Clip {Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3} // Sampling outside the input image: extend its edge, repeat, mirror, or return transparency.
 

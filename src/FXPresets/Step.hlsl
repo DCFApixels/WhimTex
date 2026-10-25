@@ -1,4 +1,6 @@
 // @whimtex-effect Stylization/Step
+// @group("Tone")
+// @icon("../Editor/Icons/FX/Tone.svg")
 // @group(Step; _Mode)
 // @param label(Edge) float _Edge = 0.5 [~0 .. ~1] // Threshold for each selected channel.
 // @param hidden enum _Mode = Hard {Hard: 0, Smoothstep: 1}

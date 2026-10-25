@@ -59,6 +59,35 @@ namespace DCFApixels.WhimTex
             return match.Success;
         }
 
+        // Quoted names are preset metadata; unquoted @group(...) remains a layout container.
+        private static bool IsPresetGroup(string line) => line != null &&
+            Regex.IsMatch(line.TrimStart('\uFEFF'), "^\\s*//\\s*@group\\s*\\(\\s*\"");
+
+        internal static string ReadPresetGroup(string source, out string error)
+        {
+            error = null;
+            string group = null;
+            using var sourceReader = new StringReader(source ?? "");
+            using var reader = new StringReader(ShaderFXIconMetadata.ReadHeader(sourceReader));
+            bool block = false, declared = false;
+            string line;
+            int number = 0;
+            while ((line = reader.ReadLine()) != null)
+            {
+                number++;
+                bool directive = !block && IsPresetGroup(line);
+                ShaderFXSourceBuilder.MaskComments(line, ref block);
+                if (!directive) continue;
+                var match = Regex.Match(line.TrimStart('\uFEFF'), "^\\s*//\\s*@group\\s*\\(\\s*\"([^\"\\r\\n]+)\"\\s*\\)\\s*$");
+                if (!match.Success || string.IsNullOrWhiteSpace(match.Groups[1].Value))
+                    error = $"Line {number}: expected // @group(\"Name\") with a non-empty preset group.";
+                else if (declared) error = $"Line {number}: declare only one preset @group.";
+                else group = match.Groups[1].Value.Trim();
+                declared = true;
+            }
+            return group;
+        }
+
         private static double TransformNumber(string value)
         {
             double result = double.Parse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture);
@@ -112,6 +141,8 @@ namespace DCFApixels.WhimTex
             out List<ShaderFXParameterControl> previews)
         {
             previews = new List<ShaderFXParameterControl>();
+            string presetGroup = ReadPresetGroup(source, out string presetGroupError);
+            if (presetGroupError != null) throw new FormatException(presetGroupError);
             var result = new List<ShaderFXParameter>();
             var names = new Dictionary<string, ShaderFXParameter>(StringComparer.Ordinal);
             using var reader = new StringReader(source ?? "");
@@ -126,6 +157,7 @@ namespace DCFApixels.WhimTex
             int lineNumber = 0;
             int declarationCount = 0;
             bool blockComment = false;
+            bool leadingComments = true;
             string visibleIfParameter = null;
             bool visibleIfNotEqual = false;
             float visibleIfValue = 0f;
@@ -149,7 +181,15 @@ namespace DCFApixels.WhimTex
                 bool enableifDirective = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@enableif\b");
                 bool endenableifDirective = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@endenableif\b");
                 bool previewDirective = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@preview\b");
-                if (line != null) ShaderFXSourceBuilder.MaskComments(line, ref blockComment);
+                bool presetGroupDirective = !blockComment && IsPresetGroup(line);
+                if (line != null && !string.IsNullOrWhiteSpace(ShaderFXSourceBuilder.MaskComments(line.TrimStart('\uFEFF'), ref blockComment)))
+                    leadingComments = false;
+                if (presetGroupDirective)
+                {
+                    if (!leadingComments || presetGroup == null)
+                        throw new FormatException($"Line {lineNumber}: preset @group must appear in the leading comments before HLSL code.");
+                    continue;
+                }
                 if (ifDirective || enableifDirective)
                 {
                     if (ifDirective && visibleIfParameter != null) throw new FormatException($"Line {lineNumber}: nested @if blocks are not supported.");

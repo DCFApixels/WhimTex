@@ -18,7 +18,7 @@ This feature currently needs **URP 17.x with Universal Renderer**; other editing
 ## Choose the look
 
 Open the settings with the frame-and-sparkles icon in the toolbar at the right edge of Canvas View.
-Click **Enable Post FX** above the disabled settings, or enable **Post FX** in the footer.
+Use the checkbox before **Post FX** in the panel header to turn the preview on or off. Its settings remain editable while off and take effect when enabled.
 Click the same icon to close the panel and see the image unobstructed.
 
 | Source | Use it to… |

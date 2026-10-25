@@ -28,6 +28,7 @@ namespace DCFApixels.WhimTex
             {
                 ["columns"] = data.columns, ["rows"] = data.rows, ["colorMode"] = data.colorMode.ToString(),
                 ["positions"] = positions, ["colors"] = colors,
+                ["hueChroma"] = data.hueChroma == null || data.hueChroma.Length == 0 ? JValue.CreateNull() : JArray.FromObject(data.hueChroma),
                 ["nodeModes"] = data.nodeModes == null || data.nodeModes.Length == 0 ? JValue.CreateNull() : modes,
                 ["patchPriorities"] = data.patchPriorities == null || data.patchPriorities.Length == 0 ? JValue.CreateNull() : priorities
             };
@@ -39,7 +40,7 @@ namespace DCFApixels.WhimTex
             var points = new JArray();
             if (data.points != null) foreach (var point in data.points)
                 points.Add(new JObject { ["position"] = Json(point.position), ["color"] = Json(point.color), ["influence"] = point.influence });
-            return new JObject { ["points"] = points };
+            return new JObject { ["colorMode"] = data.colorMode.ToString(), ["points"] = points };
         }
         public static string Inspect(string assetPath) => Respond(() =>
         {

@@ -20,9 +20,11 @@ namespace DCFApixels.WhimTex
             {
                 string id = PresetId(entry);
                 if (presetId != null && id != presetId) continue;
-                if (!string.IsNullOrEmpty(query) && entry.menuPath.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                if (!string.IsNullOrEmpty(query) && entry.menuPath.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0 &&
+                    (entry.group == null || entry.group.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0)) continue;
                 var item = new JObject { ["id"] = id, ["path"] = entry.path, ["name"] = entry.menuPath,
-                    ["kind"] = "hlsl", ["error"] = entry.error };
+                    ["kind"] = "hlsl", ["group"] = entry.group, ["error"] = entry.error };
+                item["icon"] = FxIconSnapshot(entry.icon, entry.path);
                 if (presetId != null && !entry.HasError)
                 {
                     ShaderFX effect = null;
@@ -44,6 +46,19 @@ namespace DCFApixels.WhimTex
         });
 
         private static string PresetId(ShaderFXCatalog.Entry entry) => string.IsNullOrEmpty(entry.guid) ? entry.path : entry.guid;
+
+        private static JObject FxIconSnapshot(ShaderFXIconMetadata.Descriptor icon, string source)
+        {
+            if (icon == null) return new JObject { ["kind"] = "default" };
+            bool png = icon.reference?.StartsWith("data:", StringComparison.Ordinal) == true;
+            ShaderFXIconCache.Get(icon, source, out string warning);
+            return new JObject {
+                ["kind"] = icon.svg != null ? "inlineSvg" : png ? "embeddedPng" :
+                    icon.reference?.StartsWith("guid:", StringComparison.OrdinalIgnoreCase) == true ? "guid" : "file",
+                ["reference"] = png ? null : icon.reference,
+                ["warning"] = icon.error ?? warning
+            };
+        }
 
         private static ShaderFX ReadPreset(WhimTexDocument owner, ShaderFXCatalog.Entry entry, bool execute)
         {

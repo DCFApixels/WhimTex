@@ -28,6 +28,7 @@ namespace DCFApixels.WhimTex
             }
             catch (Exception) { /* The settings window and paint reservation report storage errors. */ }
             string signature = string.Join("|", EditorPrefs.GetString(PressureCurveKey, "linear"),
+                ColorHistoryLimit,
                 EditorPrefs.GetString(LightKey), EditorPrefs.GetString(DarkKey), EditorPrefs.GetString(ErrorKey),
                 EditorPrefs.GetString(GuideAlignedKey), EditorPrefs.GetString(GuideAngledKey), EditorPrefs.GetString(GuideActiveKey),
                 EditorPrefs.GetString(HealingStrokeColorKey), EditorPrefs.GetString(PostFxBackgroundKey),

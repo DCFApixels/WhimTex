@@ -288,6 +288,16 @@ namespace DCFApixels.WhimTex
         }
 
         internal string Code => code;
+        [NonSerialized] private string iconCode;
+        [NonSerialized] private ShaderFXIconMetadata.Descriptor iconMetadata;
+        internal ShaderFXIconMetadata.Descriptor IconMetadata
+        {
+            get
+            {
+                if (!ReferenceEquals(iconCode, code)) { iconCode = code; iconMetadata = ShaderFXIconMetadata.Read(code); }
+                return iconMetadata;
+            }
+        }
         internal IReadOnlyList<ShaderFXParameter> Parameters => parameters;
         internal string Diagnostics => diagnostics;
         internal bool LastApplyFailed => lastApplyFailed;

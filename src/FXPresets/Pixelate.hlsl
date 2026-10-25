@@ -1,4 +1,6 @@
 // @whimtex-effect Stylization/Pixelate
+// @group("Pattern")
+// @icon("../Editor/Icons/FX/Pattern.svg")
 // @header(Pixel Grid)
 // @param px float _PixelSize = 4 [1 .. ~64] // Block size in canvas pixels.
 // @param px float2 _Offset = (0, 0) // Shift the pixel grid origin in canvas pixels without moving the layer.

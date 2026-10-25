@@ -15,6 +15,8 @@ profiler, and ReadScreenPixel on test-created windows. It does not authorize oth
 
 ## Inspect and select
 
+`color-history-limit-v1` checks the 256-color default, oldest-entry eviction, recency, reduced limits, exact HDR/alpha, per-document isolation, Undo/Redo and native-model/JSON roundtrips. It restores its user preference and opens no windows.
+
 `quick-selection-quality` compares analytical native contours with flat/weak/textured images,
 one/two-pixel branches, HDR holes, an 8K weak-edge object, a thin 8K frame and a one-pixel HDR
 branch on 8K. It records false positives/negatives, IoU, complete CPU/worker times, request
@@ -36,6 +38,15 @@ user input is automated. Large new strokes must enter an unfinished traversal, a
 must retain/discard the correct marker masks. Worker and main-thread timings go to
 `Temp/WhimTex/quick-selection/<runId>.json`. The scenario declares `temp-files,windows`.
 `area-selection-paint-v2` exercises both Texture2D and GPU R8 masks with Brush, Pencil and Eraser.
+
+`shader-fx-preset-groups-v1` checks quoted preset metadata alongside parameter containers,
+header discovery/cache invalidation, export, built-in layout parsing and alphabetical
+dropdown blocks with submenus, duplicates, errors and empty groups. It opens no windows.
+
+`shader-fx-icons-v1` checks parent-directory/GUID/inline references, shared textures, SVG/PNG
+rendering, missing-icon fallback, portable preset/clipboard/JSON/TIFF model payloads, header
+order and cached picker preparation. It creates no windows and does not simulate input.
+It retains a small rendered icon sheet at `Temp/WhimTex/fx-icons-preview.png`.
 
 `shader-fx-catalog-performance-v2` prepares native menus without showing them. It reports first/repeated
 menu preparation, main-thread path capture and worker completion; native popup drawing is outside this
@@ -99,7 +110,7 @@ The report is `Temp/WhimTex/regional-fx/benchmark.txt`. These cases do not drive
 UI, finish strokes or change Undo history. Live inspector interaction remains a manual check.
 
 `normal-specular-v1` checks the catalog-linked Normal Lighting preset against an independent
-CPU diffuse/specular oracle with Packed Color and Linear Data, original disabled behavior,
+CPU diffuse/specular oracle with Gamma and Linear encoding, original disabled behavior,
 all output modes, transparent/partial/filled coverage, HDR, tint alpha, Roughness endpoints,
 Flip Y and frontal/opposite/degenerate directions. Owned documents cover group/Target input,
 clipping, thumbnails, group export, external disabled-layer normals and JSON render parity.

@@ -32,7 +32,7 @@ public static class NormalMapApiTests
             catch (System.Reflection.TargetInvocationException e) { rejected = e.InnerException?.GetType().Name == "WhimTexApiException"; }
             Check(rejected, "Reject " + json);
         }
-        Set("{\"mode\":\"Texture\",\"sourceChannel\":\"Alpha\",\"inputSpace\":\"Linear\",\"edges\":\"Repeat\",\"encoding\":\"LinearData\",\"strength\":12,\"flipY\":true}");
+        Set("{\"mode\":\"Texture\",\"sourceChannel\":\"Alpha\",\"inputSpace\":\"Linear\",\"edges\":\"Repeat\",\"encoding\":\"Linear\",\"strength\":12,\"flipY\":true}");
         Check(normal.mode == DCFApixels.WhimTex.NormalMapLayerBehaviour.GenerationMode.Texture && normal.flipY && normal.strength == 12, "Apply settings");
         var copy = new DCFApixels.WhimTex.NormalMapLayerBehaviour();
         setter.Invoke(null, new object[] { copy, snapshot.Invoke(null, new object[] { normal }) });

@@ -12,7 +12,7 @@ search_exclude: true
 For browser AI generation, start with the [JSON layers and HLSL authoring guide](AI/README.md).
 It is self-contained and includes clipboard-ready examples.
 
-Use **+ Shader FX** in a layer's settings, write `ApplyFX`, and click **Compile**.
+Use **Add FX → Custom Shader FX** in a layer's settings, write `ApplyFX`, and click **Compile**.
 Code and parameters belong to the document. For an effect on the already-composited
 stack below a position, add a **Shader Processor** layer instead.
 
@@ -637,7 +637,7 @@ Working copies are disposable cache, not backups, standalone presets or the save
 
 At Editor startup/domain reload and then hourly, cleanup removes inactive working-file sets unused for more than **24 hours**, including their `.baseline` and `.hlsl.apply` companions. Reopening code refreshes its baseline timestamp without changing its content; a newer timestamp on any member preserves the whole set. Connected sessions are excluded and periodically refreshed, including before reload/quit. Only generated 32-character lowercase-hex names with the known suffixes are eligible; cleanup is non-recursive and skips linked files/directories. The VS Code profile/extensions and unrelated files are untouched. Saved-document state is deliberately not checked: code absent from the saved document may be lost after expiry. A surviving working copy can still be reused when reconnecting, but recovery is not guaranteed.
 
-Catalog-linked code uses **Open HLSL Source** to edit its shared HLSL source; values stay local to each FX. To edit the existing effect's code independently, choose **Code → Embed Copy**. This stops following the `.hlsl` file and enables document-local code editing while preserving values and the original include base. Custom algorithms can also be authored as a new inline **+ Shader FX**. Relative includes resolve from the document/source context, not the working-copy directory.
+Catalog-linked code uses **Open HLSL Source** to edit its shared HLSL source; values stay local to each FX. To edit the existing effect's code independently, choose **Code → Embed Copy**. This stops following the `.hlsl` file and enables document-local code editing while preserving values and the original include base. Custom algorithms can also be authored as a new inline **Add FX → Custom Shader FX**. Relative includes resolve from the document/source context, not the working-copy directory.
 
 ## HLSL catalog
 
@@ -665,7 +665,7 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 }
 ```
 
-Use **FX → + Preset ▾** to add an independent document-owned instance. The HLSL source is referenced by asset GUID;
+Use **FX → Add FX** to add an independent document-owned instance. The HLSL source is referenced by asset GUID;
 keep its `.meta` when moving files. Source/include changes refresh loaded, unlocked instances.
 Missing or invalid source retains the last applied shader and reports diagnostics. **Compile** retries/reloads.
 **Code → Embed Copy** detaches the source link and enables local code editing; later source-file
@@ -1273,3 +1273,90 @@ and retains the original layers in a hidden Source Layers folder.
 The stack's **Apply All** and **⋮ → Apply** bake rendered pixels; they are distinct from compiling code with **Code → Compile**. A per-FX bake consumes the inclusive prefix, preserving the remaining stack. The result is Drawing with unchanged logical Transform; serialized pixel-frame compensation prevents double-transforming the snapshot, and converted groups retain their FX coordinate frame. Painting uses the pixel frame, while Transform editing uses the logical frame. The snapshot is canvas-sized linear half-float, before layer opacity/blending/channelMapping/clipping.
 
 Shader Processor baking reconstructs its stack-position backdrop, inheriting external input through Pass Through ancestors and starting transparent inside isolated/clipped groups. Its Normal becomes Overwrite; Drawing stores `processorSnapshot` and `processorNormalBlend` to retain premultiplied before/after opacity interpolation instead of ordinary straight-RGBA Overwrite. Other blend modes retain their ordinary behavior. Processor snapshots remain clipping boundaries so existing orphan clipping layers do not acquire a new base; explicitly enabling clipping on the Drawing opts into ordinary clipping semantics. The lower layers are unchanged, but their future edits no longer regenerate the snapshot. Flags survive repeated Apply, native clipboard, TIFF and Undo/Redo.
+
+## Preset list groups
+
+Use one quoted group name in the leading comments to arrange presets into flat blocks in
+**Add FX**:
+
+```hlsl
+// @whimtex-effect Color/Hue & Saturation
+// @control(_Opacity)
+// @group("Color")
+// @icon("../Icons/color.svg")
+```
+
+The 31 built-in presets use the Color, Distortion, Lighting, Normal Map and Stylization
+category submenus. UV Transform is in Distortion. Inside each category, related presets
+use the same group (for example Color, Mask or Tone). Gradient Map shares the Color group
+while retaining its gradient icon. Separators divide these
+blocks without adding another navigation level. Grouping does not change catalog paths or asset GUIDs.
+
+Groups and the effects inside each group sort alphabetically, ignoring case. Group names
+are trimmed and matched without case sensitivity. Blocks are separated by a line; they
+do not create submenus or group-title rows. No numeric order field is used.
+Ungrouped effects and existing submenus occupy the first alphabetically sorted block.
+`Category/Name` in the effect marker still creates submenus; grouping is local to each
+menu, including the User library. A slash inside the quoted group name is literal.
+Duplicate effect names retain their source-path suffix.
+
+Keep the marker on line 1 and optional `@control` immediately after it. Put `@group("Name")`
+after these and before HLSL declarations/includes. Empty, malformed or duplicate preset
+groups are errors. Double quotes are required and cannot occur inside the group name.
+This quoted declaration has no `@endgroup`; the existing unquoted `@group(Title)` /
+`@endgroup` still controls parameter layout.
+
+Grouping is read with cached catalog headers, without compiling effects. Preset export
+retains it. `whimtex_fx_catalog` includes `group` (null when absent) and its `query`
+also matches the group name.
+
+## FX icons
+
+Place icon metadata in the leading comment block, before HLSL declarations or includes.
+Keep `@whimtex-effect` on line 1 and an optional `@control` on line 2; put the icon after them.
+Declare one icon using a relative SVG/PNG file, an imported asset GUID, or inline SVG:
+
+```hlsl
+// @whimtex-effect Color/My Effect
+// @icon("../Icons/color.svg")
+```
+
+```hlsl
+// @icon("guid:0123456789abcdef0123456789abcdef")
+```
+
+```hlsl
+/* @icon-svg
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <circle cx="8" cy="8" r="5" fill="currentColor"/>
+</svg>
+*/
+```
+
+Relative paths resolve from the HLSL source directory and support `../` and `../../`.
+GUIDs resolve through the current project's AssetDatabase, including package assets.
+For inline document code, relative paths use the existing source/include base or document path.
+An unsaved document without a source uses `Assets/Untitled.hlsl` as its base; prefer inline SVG there.
+
+SVG icons use paths, shapes, transforms, clipping and flat fills/strokes; `currentColor` follows
+the Editor theme. SVG gradients, image fills, external resources and scripts are unsupported;
+use PNG for artwork needing these features. SVG rendering requires Unity 6.3+; older Editors
+show the general icon for SVG and continue to support PNG. SVG is limited to 64 KiB; PNG to
+256 KiB and 1024 × 1024 pixels. Keep the leading metadata within 512 KiB.
+
+The catalog reads icon metadata without compiling effects. Preparation is queued outside popup
+construction, with one request per Editor update. Shared image content reuses cached textures;
+SVG is rendered for the current display scale. File icons refresh after project changes or
+returning to the Editor. The same image is used in the searchable Add FX picker and FX header.
+A missing or invalid icon does not disable the effect; the header icon tooltip reports its error.
+
+Embed Copy, FX clipboard copies, user-library imports, preset export and document JSON/TIFF
+serialization embed available external icons. SVG becomes `@icon-svg`; PNG uses the generated
+`// @icon("data:image/png;base64,...")` representation. Saving does not mutate the source effect.
+Unavailable files retain their original declaration and use the fallback icon; no missing image
+can be recovered from a broken link. Linked project presets continue to follow their HLSL source.
+
+Catalog and document FX inspection include `icon.kind` (`default`, `file`, `guid`, `inlineSvg`,
+`embeddedPng`), an external `reference` when present, and `warning`. The image payload is not
+repeated in inspection metadata; it remains in the HLSL code. A loader warning may appear after
+queued icon preparation completes.

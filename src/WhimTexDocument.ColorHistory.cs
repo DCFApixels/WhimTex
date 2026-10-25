@@ -14,9 +14,12 @@ namespace DCFApixels.WhimTex
             if (!WhimTexColorPicker.IsFinite(color)) return;
             colorHistory ??= new List<Color>();
             int existing = colorHistory.IndexOf(color);
-            if (existing >= 0) { MoveHistoryColor(existing, 0); return; }
-            Undo.RecordObject(this, "Remember Color");
+            int limit = WhimTexUserSettings.ColorHistoryLimit;
+            if (existing == 0 && colorHistory.Count <= limit) return;
+            Undo.RecordObject(this, "Update Color History");
+            if (existing >= 0) colorHistory.RemoveAt(existing);
             colorHistory.Insert(0, color);
+            if (colorHistory.Count > limit) colorHistory.RemoveRange(limit, colorHistory.Count - limit);
             MarkChanged();
         }
 

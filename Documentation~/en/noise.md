@@ -114,7 +114,7 @@ White Noise also supports **Dimensions → 1D** for random bands; see [Striped n
 Choose **Noise Type → Blue Noise** for more evenly distributed grain with fewer random clumps.
 It is useful for dither masks and fine speckles. **Monochrome / Color**, **Grain Size (px)**,
 **Offset**, **Inverted** and **Output** work as they do for White Noise; **Dimensions → 1D** creates bands.
-Choose **Output → Linear Data** for a dither mask, or **Output → Color Values** for a visible texture.
+Choose **Output → Linear** for a dither mask, or **Output → Gamma** for a visible texture.
 
 In canvas pixels, Blue Noise repeats every 128 × grain size on each axis, or 256 × grain size along the direction of variation in 1D.
 Large grains can make this repetition visible. Seed rearranges the pattern while preserving its distribution.
@@ -137,20 +137,20 @@ For **Field → Value**, **Output** determines how noise values become pixels:
 
 | Output | Use |
 | :--- | :--- |
-| Linear Data (default) | Height maps and packed texture data. |
-| Color Values | Display the original noise as colors. |
+| Linear (default) | Height maps and packed texture data. |
+| Gamma | Display the original noise as colors. |
 | Gradient | Map monochrome values through a palette, including its alpha and HDR colors. |
 
 **Inverted** reverses values before gradient sampling and works in every output mode.
 The default palette is black-to-white **Perceptual**; switching Output keeps it.
 
-Color White/Blue Noise supports only Color Values and Linear Data.
-A stored Gradient selection temporarily uses Color Values until you return to Monochrome.
+Color White/Blue Noise supports only Gamma and Linear.
+A stored Gradient selection temporarily uses Gamma until you return to Monochrome.
 For which settings change with Random All, see [Random variations](#random-variations).
 
 To create surface relief:
 
-1. Add Noise and choose **Output → Linear Data**.
+1. Add Noise and choose **Output → Linear**.
 2. Choose **Fractal → FBm**, start with three octaves and adjust Scale.
 3. Add **Normal Map** above it and choose **Generation → Height Map**.
 4. In Normal Map's Advanced settings, choose **Input Space → Linear**.
@@ -162,7 +162,7 @@ For the next step, see [Normal Map](normal-map.md).
 ## Random variations
 
 **Random All** at the top of the noise settings explores a new combination of generator parameters,
-including inactive generator options and **Inverted**. Output varies between Color Values and Linear Data, but stays Gradient if selected. The gradient palette, **Dimensions**, **Direction**, **Seamless**, linked Scale and Warp Scale ratios, **Offset X/Y/Z**, layer transforms, blending and FX
+including inactive generator options and **Inverted**. Output varies between Gamma and Linear, but stays Gradient if selected. The gradient palette, **Dimensions**, **Direction**, **Seamless**, linked Scale and Warp Scale ratios, **Offset X/Y/Z**, layer transforms, blending and FX
 stay unchanged. One Undo restores the previous combination. **Random** beside **Seed** changes only the seed.
 Noise Type stays within the selected group: **White Noise / Blue Noise**, or types supported by
 the current Field. Random All retains Field, Normalize, Strength and vector Output; it randomizes

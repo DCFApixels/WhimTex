@@ -31,6 +31,7 @@ namespace DCFApixels.WhimTex
         private ColorField commentAuthorColor;
         private Button resetCommentAuthorColor;
         private IntegerField undoDiskLimit, paintUndoSteps;
+        private IntegerField colorHistoryLimit;
         private Label undoUsage;
 
         internal static void Open()
@@ -96,6 +97,19 @@ namespace DCFApixels.WhimTex
             resetCommentAuthorColor.AddToClassList("whimtex-user-settings-folder-button");
             authorColorRow.Add(resetCommentAuthorColor);
             scroll.Add(authorColorRow);
+            AddHeading(scroll, "Color History");
+            colorHistoryLimit = new IntegerField("Maximum Colors")
+            {
+                name = "colorHistoryLimit", isDelayed = true,
+                tooltip = "Maximum colors in each document's Color History. Default: 256. Minimum: 1. Adding or reusing a color removes the oldest entries beyond this limit. Lowering the limit takes effect on the next addition or reuse."
+            };
+            colorHistoryLimit.AddToClassList("whimtex-user-settings-color");
+            colorHistoryLimit.RegisterValueChangedCallback(evt =>
+            {
+                WhimTexUserSettings.ColorHistoryLimit = evt.newValue;
+                colorHistoryLimit.SetValueWithoutNotify(WhimTexUserSettings.ColorHistoryLimit);
+            });
+            scroll.Add(colorHistoryLimit);
             AddHeading(scroll, "Tablet Input");
             tabletPressureCurve = WhimTexUI.ConfigureField(new CurveField("Pressure Curve")
             { ranges = new Rect(0, 0, 1, 1), tooltip = "Global pressure response before brush curves. Mouse input is 1. This setting is not stored in brush presets." });
@@ -327,6 +341,7 @@ namespace DCFApixels.WhimTex
         private void RefreshValues()
         {
             RefreshUndoUsage();
+            colorHistoryLimit?.SetValueWithoutNotify(WhimTexUserSettings.ColorHistoryLimit);
             commentAuthorColor?.SetValueWithoutNotify(WhimTexUserSettings.CommentAuthorColor);
             resetCommentAuthorColor?.SetEnabled(WhimTexUserSettings.HasCustomCommentAuthorColor);
             commentAuthorName?.SetValueWithoutNotify(WhimTexUserSettings.AssignedCommentAuthorName);

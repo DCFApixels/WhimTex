@@ -45,8 +45,6 @@ namespace DCFApixels.WhimTex
             updates.Add(BuildLiveOutputButton());
             left.Add(updates);
             var context = CreateCanvasViewFooterGroup("canvasFooterContext", true);
-            context.Add(BuildPostFxButton());
-            context.Add(BuildUvButton());
             context.Add(BuildTiledCanvasButton());
             context.Add(BuildGuidesButton());
             left.Add(context);

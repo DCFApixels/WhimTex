@@ -2601,7 +2601,9 @@
       "normal-map-v2",
       "normal-normalize-v2",
       "polar-coordinates-unity-v2",
-      "portable-includes-v2"
+      "portable-includes-v2",
+      "shader-fx-icons-v1",
+      "shader-fx-preset-groups-v1"
     ],
     "export": [
       "psd-writer-v2",
@@ -3093,7 +3095,9 @@
       "optional-layer-gradient-v2",
       "whimtex-gradient-reload-v2",
       "color-picker-eyedropper-native-render-v2",
-      "gradient-debug-curves-v1"
+      "gradient-debug-curves-v1",
+      "color-history-limit-v1",
+      "color-encoding-v1"
     ],
     "seamless": [
       "make-seamless-v2",
@@ -3253,96 +3257,153 @@
     ]
   },
   "scenarios": [
-{
-  "id": "quick-selection-quality",
-  "file": "Tests~/Cases/Painting/QuickSelectionQualityTests.cs",
-  "runner": "run_script",
-  "entry": "QuickSelectionQualityTests.Begin",
-  "args": [
-    "$runId"
-  ],
-  "category": "diagnostic",
-  "workflow": "diagnostic",
-  "timeoutMs": 240000,
-  "effects": [
-    "temp-files"
-  ],
-  "groups": [
-    "painting"
-  ],
-  "prerequisites": "Idle Test6.6 graphics Editor with current sources compiled. No windows are shown and no input is automated.",
-  "setup": "Worker-only analytical images, native masks and deterministic hints. Records boundary error, CPU times and estimated solver-array storage. No window or GPU object is created.",
-  "teardown": "Await owned worker, dispose segmentation storage. Numerical report: Temp/WhimTex/quick-selection/<runId>-quality.json.",
-  "result": {
-    "kind": "structured"
-  },
-  "supportFiles": [
-    "Tests~/Framework/TestApi.cs",
-    "Tests~/Framework/Unity/AsyncD.cs",
-    "Tests~/Framework/Unity/MigrationD.cs"
-  ],
-  "reviewFiles": [],
-  "async": {
-    "entry": "QuickSelectionQualityTests.Poll",
-    "args": [
-      "$runId"
-    ],
-    "pollMs": 3000
-  },
-  "cancel": {
-    "entry": "QuickSelectionQualityTests.Cancel",
-    "args": [
-      "$runId"
-    ]
-  },
-  "cleanup": {
-    "entry": "QuickSelectionQualityTests.Cleanup",
-    "args": [
-      "$runId"
-    ]
-  }
-},
+    {
+      "id": "quick-selection-quality",
+      "file": "Tests~/Cases/Painting/QuickSelectionQualityTests.cs",
+      "runner": "run_script",
+      "entry": "QuickSelectionQualityTests.Begin",
+      "args": [
+        "$runId"
+      ],
+      "category": "diagnostic",
+      "workflow": "diagnostic",
+      "timeoutMs": 240000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle Test6.6 graphics Editor with current sources compiled. No windows are shown and no input is automated.",
+      "setup": "Worker-only analytical images, native masks and deterministic hints. Records boundary error, CPU times and estimated solver-array storage. No window or GPU object is created.",
+      "teardown": "Await owned worker, dispose segmentation storage. Numerical report: Temp/WhimTex/quick-selection/<runId>-quality.json.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "QuickSelectionQualityTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 3000
+      },
+      "cancel": {
+        "entry": "QuickSelectionQualityTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "QuickSelectionQualityTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
     {
       "id": "quick-selection-refinement",
       "file": "Tests~/Cases/Painting/QuickSelectionTests.cs",
       "runner": "run_script",
       "entry": "QuickSelectionTests.BeginRefinement",
-      "args": ["$runId"],
+      "args": [
+        "$runId"
+      ],
       "category": "diagnostic",
       "workflow": "diagnostic",
       "timeoutMs": 120000,
-      "effects": ["windows"],
-      "groups": ["painting"],
+      "effects": [
+        "windows"
+      ],
+      "groups": [
+        "painting"
+      ],
       "prerequisites": "Idle graphical Test6.6 Editor with current sources. No window shown or input automated.",
       "setup": "Owned masks and detached transient document/window. Competing persistent Add/Subtract across weak boundaries and flat regions.",
       "teardown": "Await owned workers/readbacks; destroy only owned resources.",
-      "result": {"kind":"structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/AsyncD.cs", "Tests~/Framework/Unity/MigrationD.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
       "reviewFiles": [],
-      "async": {"entry":"QuickSelectionTests.Poll","args":["$runId"],"pollMs":3000},
-      "cancel": {"entry":"QuickSelectionTests.Cancel","args":["$runId"]},
-      "cleanup": {"entry":"QuickSelectionTests.Cleanup","args":["$runId"]}
+      "async": {
+        "entry": "QuickSelectionTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 3000
+      },
+      "cancel": {
+        "entry": "QuickSelectionTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "QuickSelectionTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
     },
     {
       "id": "quick-selection-8k",
       "file": "Tests~/Cases/Painting/QuickSelectionTests.cs",
       "runner": "run_script",
       "entry": "QuickSelectionTests.Begin",
-      "args": ["$runId"],
+      "args": [
+        "$runId"
+      ],
       "category": "diagnostic",
       "workflow": "diagnostic",
       "timeoutMs": 240000,
-      "effects": ["temp-files", "windows"],
-      "groups": ["painting"],
+      "effects": [
+        "temp-files",
+        "windows"
+      ],
+      "groups": [
+        "painting"
+      ],
       "prerequisites": "Idle Test6.6 graphics Editor with current sources compiled. No windows are shown and no input is automated.",
       "setup": "Worker-only native masks and synthetic tiles; owned transient 8K document and detached window object, bounded GPU regions and async readback.",
       "teardown": "Await owned work, release owned render textures/cache/document, restore GPU state. Report under Temp/WhimTex/quick-selection/<runId>.json.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/AsyncD.cs", "Tests~/Framework/Unity/MigrationD.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
       "reviewFiles": [],
-      "async": {"entry": "QuickSelectionTests.Poll", "args": ["$runId"], "pollMs": 3000},
-      "cancel": {"entry": "QuickSelectionTests.Cancel", "args": ["$runId"]},
-      "cleanup": {"entry": "QuickSelectionTests.Cleanup", "args": ["$runId"]}
+      "async": {
+        "entry": "QuickSelectionTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 3000
+      },
+      "cancel": {
+        "entry": "QuickSelectionTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "QuickSelectionTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
     },
     {
       "id": "shader-fx-workflow-512",
@@ -40142,6 +40203,111 @@
         "src/Editor/WhimTexGradientWindow.cs",
         "src/Editor/WhimTexGradientWindow.uss"
       ]
+    },
+    {
+      "id": "shader-fx-icons-v1",
+      "file": "Tests~/Cases/FX/ShaderFXIconTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXIconTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "regression",
+        "shader-fx",
+        "fx"
+      ],
+      "prerequisites": "Idle connected Unity Test6.6, Unity 6.3+ SVG module and package icon assets/shader.",
+      "setup": "Owned transient models, textures, and one GUID-named Temp/WhimTex directory. No UI input or user document edits.",
+      "teardown": "Destroy owned objects; remove exact temporary PNG and its empty directory. Restore render target and sRGB state. Retain the icon preview PNG in Temp/WhimTex.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "shader-fx-preset-groups-v1",
+      "file": "Tests~/Cases/FX/ShaderFXPresetGroupTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXPresetGroupTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "regression",
+        "shader-fx",
+        "fx"
+      ],
+      "prerequisites": "Idle connected Unity Test6.6.",
+      "setup": "Header parsing and native dropdown trees without windows. One owned temporary HLSL file outside Assets.",
+      "teardown": "Remove the exact temporary HLSL file. No document, selection or preference changes.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "color-history-limit-v1",
+      "file": "Tests~/Cases/Color/ColorHistoryLimitTests.cs",
+      "runner": "run_script",
+      "entry": "ColorHistoryLimitTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "regression",
+        "color"
+      ],
+      "prerequisites": "Idle connected Unity Test6.6.",
+      "setup": "Detached documents; temporarily change the Color History limit preference. Record and exercise Undo only for owned documents. No windows, assets or user documents.",
+      "teardown": "Restore the exact preference, clear only owned Undo records and destroy owned documents.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "color-encoding-v1",
+      "file": "Tests~/Cases/Color/ColorEncodingTests.cs",
+      "runner": "run_script",
+      "entry": "ColorEncodingTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "regression",
+        "color",
+        "fx"
+      ],
+      "prerequisites": "Idle connected Unity Test6.6 with graphics.",
+      "setup": "Owned 32x32 documents, textures and transient FX; compare Linear/Gamma rendering and current JSON/native model data.",
+      "teardown": "Destroy owned objects and restore active RT/sRGB write state. No windows, assets or user preferences.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
     }
   ]
 }

@@ -1,4 +1,6 @@
 // @whimtex-effect Stylization/Digital Glitch
+// @group("Pattern")
+// @icon("../Editor/Icons/FX/Pattern.svg")
 // @param float _Blend = 1 [0 .. 1] // Blend the corrupted signal with the original image.
 // @group(Spatial Glitch)
 // @header(Line Tearing)

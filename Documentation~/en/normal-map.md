@@ -24,7 +24,7 @@ Returning to Simple keeps your advanced settings.
 
 Light areas are high; dark areas are low. **Invert Height** reverses them.
 **Strength** makes the relief stronger; **Smoothing** softens fine bumps.
-For a Noise source with Linear Data encoding, choose **Input Space → Linear** in Advanced.
+For a Noise source with Linear encoding, choose **Input Space → Linear** in Advanced.
 
 ## From a color texture
 
@@ -50,9 +50,9 @@ Return **Output** to **Normal** when you are happy with the surface.
 For a normal map on its own, keep **Normal** blending, full opacity and unchanged [Mapping](color.md), without rearranging channels.
 Avoid color effects, which can distort the relief.
 
-Choose **Advanced → Encoding → Packed Color** for PNG/TGA/PSD. Import the exported PNG or TGA into Unity as
+Choose **Advanced → Encoding → Gamma** for PNG/TGA/PSD. Import the exported PNG or TGA into Unity as
 **Normal Map**, without grayscale conversion.
-Choose **Encoding → Linear Data** when your workflow needs a linear EXR or Texture2D.
+Choose **Encoding → Linear** when your workflow needs a linear EXR or Texture2D.
 
 Rotating a finished Normal Map layer rotates only its image: the relief is lit as though it had not rotated.
 For correctly oriented relief, transform the source before generating the map.

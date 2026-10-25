@@ -105,7 +105,7 @@ White Noise 还支持 **Dimensions → 1D** 随机条带，详见[条纹噪声](
 选择 **Noise Type → Blue Noise** 可获得分布更均匀、随机团块更少的颗粒。
 它适合抖动遮罩和细密的斑点。**Monochrome / Color**、**Grain Size (px)**、
 **Offset**、**Inverted** 和 **Output** 的用法与 White Noise 相同；**Dimensions → 1D** 会创建条带。
-抖动遮罩选择 **Output → Linear Data**，可见纹理选择 **Output → Color Values**。
+抖动遮罩选择 **Output → Linear**，可见纹理选择 **Output → Gamma**。
 
 以画布像素计，Blue Noise 在每个轴上的重复周期为 128 × 颗粒大小；1D 模式沿变化方向的周期为 256 × 颗粒大小。
 较大的颗粒会让这种重复变得可见。Seed 会重新排列图案，同时保持其分布。
@@ -126,20 +126,20 @@ White Noise 还支持 **Dimensions → 1D** 随机条带，详见[条纹噪声](
 
 | Output | 用途 |
 | :--- | :--- |
-| Linear Data（默认） | 高度贴图及打包到通道的纹理数据。 |
-| Color Values | 将原始噪声显示为颜色。 |
+| Linear（默认） | 高度贴图及打包到通道的纹理数据。 |
+| Gamma | 将原始噪声显示为颜色。 |
 | Gradient | 用调色板映射单色值，包括其透明度和 HDR 颜色。 |
 
 **Inverted** 在渐变采样前反转数值，适用于所有输出模式。
 默认调色板是黑到白的 **Perceptual** 渐变；切换 Output 会保留它。
 
-彩色 White/Blue Noise 仅支持 Color Values 和 Linear Data。
-已保存的 Gradient 选择会暂时使用 Color Values，直到切回 Monochrome。
+彩色 White/Blue Noise 仅支持 Gamma 和 Linear。
+已保存的 Gradient 选择会暂时使用 Gamma，直到切回 Monochrome。
 Random All 会改变哪些设置，参见[随机变化](#随机变化)。
 
 要创建表面起伏：
 
-1. 添加 Noise 并选择 **Output → Linear Data**。
+1. 添加 Noise 并选择 **Output → Linear**。
 2. 选择 **Fractal → FBm**，从三个八度开始并调整 Scale。
 3. 在其上方添加 **Normal Map** 并选择 **Generation → Height Map**。
 4. 在 Normal Map 的 Advanced 设置中，选择 **Input Space → Linear**。
@@ -151,7 +151,7 @@ Random All 会改变哪些设置，参见[随机变化](#随机变化)。
 ## 随机变化
 
 噪声设置顶部的 **Random All** 会随机组合生成器参数，包括当前未启用的选项、
-以及 **Inverted**。Output 仅在 Color Values 和 Linear Data 之间随机切换；选定的 Gradient 保持不变。渐变配色、**Dimensions**、**Direction**、**Seamless**、链接的 Scale 和 Warp Scale 比例、**Offset X/Y/Z**、图层变换、混合和 FX 保持不变。
+以及 **Inverted**。Output 仅在 Gamma 和 Linear 之间随机切换；选定的 Gradient 保持不变。渐变配色、**Dimensions**、**Direction**、**Seamless**、链接的 Scale 和 Warp Scale 比例、**Offset X/Y/Z**、图层变换、混合和 FX 保持不变。
 一次撤销即可恢复上一个组合。**Seed** 旁的 **Random** 只改变种子。
 Noise Type 只在当前组内切换：White Noise / Blue Noise，或当前 Field 支持的类型。
 Random All 保留 Field、Normalize、Strength 和向量 Output，并随机化 Seed 与 Warp Seed。

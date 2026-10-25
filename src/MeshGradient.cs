@@ -13,6 +13,8 @@ namespace DCFApixels.WhimTex
         public WhimTexGradientColorMode colorMode = WhimTexGradientColorMode.Perceptual;
         public Vector2[] positions;
         public Color[] colors;
+        // Independent cubic coefficients: recomputing length(colors.gb) after a split changes Hue.
+        public float[] hueChroma;
         public MeshGradientNodeMode[] nodeModes;
         public Vector3[] patchPriorities;
         public int Width => columns * 3 + 1;
@@ -35,6 +37,7 @@ namespace DCFApixels.WhimTex
         {
             var copy = (MeshGradient)MemberwiseClone();
             copy.positions = (Vector2[])positions.Clone(); copy.colors = (Color[])colors.Clone();
+            copy.hueChroma = hueChroma == null ? null : (float[])hueChroma.Clone();
             copy.nodeModes = nodeModes == null || nodeModes.Length == 0 ? new MeshGradientNodeMode[NodeCount] : (MeshGradientNodeMode[])nodeModes.Clone();
             copy.patchPriorities = new Vector3[columns * rows];
             for (int r = 0; r < rows; r++) for (int c = 0; c < columns; c++) copy.patchPriorities[r * columns + c] = PatchPriority(c, r);
@@ -63,7 +66,12 @@ namespace DCFApixels.WhimTex
             return node / (columns + 1) * 3 * Width + node % (columns + 1) * 3;
         }
         public Vector2 NodePosition(int node) => positions[NodeIndex(node)];
-        public Color NodeColor(int node) => FromWorking(colors[NodeIndex(node)], false);
+        public Color NodeColor(int node)
+        {
+            int index = NodeIndex(node);
+            return FromWorking(colors[index], false, chroma: ChromaCoefficient(index));
+        }
+        internal float ChromaCoefficient(int index) => hueChroma == null || hueChroma.Length == 0 ? 0 : hueChroma[index];
         public MeshGradientNodeMode NodeMode(int node)
         {
             NodeIndex(node);
@@ -96,9 +104,15 @@ namespace DCFApixels.WhimTex
         {
             if (!Finite(color) || color.a < 0 || color.a > 1) throw new ArgumentException("Mesh node color must be finite with alpha in 0..1.");
             int index = NodeIndex(node), x = index % Width, y = index / Width;
-            Color delta = ToWorking(color) - colors[index];
+            Color target = ToWorking(color), delta = target - colors[index];
+            float chromaDelta = colorMode == WhimTexGradientColorMode.Hue
+                ? (float)GradientColorMath.HueChroma(new GradientVector(target.r, target.g, target.b)) - hueChroma[index] : 0;
             for (int j = Mathf.Max(0, y - 1); j <= Mathf.Min(Height - 1, y + 1); j++)
-                for (int i = Mathf.Max(0, x - 1); i <= Mathf.Min(Width - 1, x + 1); i++) colors[j * Width + i] += delta;
+                for (int i = Mathf.Max(0, x - 1); i <= Mathf.Min(Width - 1, x + 1); i++)
+                {
+                    colors[j * Width + i] += delta;
+                    if (colorMode == WhimTexGradientColorMode.Hue) hueChroma[j * Width + i] += chromaDelta;
+                }
         }
 
         public void SetColorMode(WhimTexGradientColorMode mode)
@@ -106,9 +120,14 @@ namespace DCFApixels.WhimTex
             ValidateMode(mode);
             if (mode == colorMode) return;
             var encoded = new Color[colors.Length];
-            for (int i = 0; i < colors.Length; i++) encoded[i] = FromWorking(colors[i], false, false);
+            for (int i = 0; i < colors.Length; i++) encoded[i] = FromWorking(colors[i], false, false, ChromaCoefficient(i));
             colorMode = mode;
-            for (int i = 0; i < colors.Length; i++) colors[i] = ToWorking(encoded[i]);
+            hueChroma = mode == WhimTexGradientColorMode.Hue ? new float[colors.Length] : null;
+            for (int i = 0; i < colors.Length; i++)
+            {
+                colors[i] = ToWorking(encoded[i]);
+                if (hueChroma != null) hueChroma[i] = (float)GradientColorMath.HueChroma(new GradientVector(colors[i].r, colors[i].g, colors[i].b));
+            }
         }
 
         public void SetNodePosition(int node, Vector2 position)
@@ -175,10 +194,26 @@ namespace DCFApixels.WhimTex
         public void SplitRow(int cell, float t = .5f) => Split(false, cell, t);
         internal Vector3 PatchPriority(int column, int row)
         {
-            int index = row * columns + column;
-            if (patchPriorities != null && patchPriorities.Length != 0) return patchPriorities[index];
-            float count = columns * rows;
-            return new Vector3((index + .01f) / count, .98f / (1002 * count), .98f * 1000 / (1002 * count));
+            // Retained slopes describe the parameter intervals after subdivision. Reconstruct one
+            // continuous field across the lattice instead of allowing independent cell offsets.
+            bool stored = patchPriorities != null && patchPriorities.Length != 0;
+            double totalU = 0, totalV = 0, startU = 0, startV = 0;
+            for (int c = 0; c < columns; c++)
+            {
+                double width = stored ? patchPriorities[c].y : 1;
+                totalU += width; if (c < column) startU += width;
+            }
+            for (int r = 0; r < rows; r++)
+            {
+                double height = stored ? patchPriorities[r * columns].z : 1;
+                totalV += height; if (r < row) startV += height;
+            }
+            double u = totalU > 0 ? startU / totalU : column / (double)columns;
+            double v = totalV > 0 ? startV / totalV : row / (double)rows;
+            double du = stored && totalU > 0 ? patchPriorities[column].y / totalU : 1d / columns;
+            double dv = stored && totalV > 0 ? patchPriorities[row * columns].z / totalV : 1d / rows;
+            return new Vector3((float)(.01 + .98 * (.05 * u + .95 * v)),
+                (float)(.98 * .05 * du), (float)(.98 * .95 * dv));
         }
         private void Split(bool horizontal, int cell, float t)
         {
@@ -188,18 +223,25 @@ namespace DCFApixels.WhimTex
             int width = Width, height = Height;
             int nextWidth = width + (horizontal ? 3 : 0), nextHeight = height + (horizontal ? 0 : 3);
             var nextPositions = new Vector2[nextWidth * nextHeight]; var nextColors = new Color[nextPositions.Length];
+            var nextChroma = hueChroma == null || hueChroma.Length == 0 ? null : new float[nextPositions.Length];
             int lines = horizontal ? height : width, length = horizontal ? width : height, begin = cell * 3;
-            var p = new Vector2[7]; var c = new Color[7];
+            var p = new Vector2[7]; var c = new Color[7]; var h = nextChroma == null ? null : new float[7];
             for (int line = 0; line < lines; line++)
             {
                 int Index(int at) => horizontal ? line * width + at : at * width + line;
-                for (int k = 0; k < 4; k++) { p[k] = positions[Index(begin + k)]; c[k] = colors[Index(begin + k)]; }
+                for (int k = 0; k < 4; k++)
+                {
+                    p[k] = positions[Index(begin + k)]; c[k] = colors[Index(begin + k)];
+                    if (h != null) h[k] = hueChroma[Index(begin + k)];
+                }
                 SplitCubic(p, t); SplitCubic(c, t);
+                if (h != null) SplitCubic(h, t);
                 for (int at = 0; at < length + 3; at++)
                 {
                     int dest = horizontal ? line * nextWidth + at : at * nextWidth + line;
                     if (at >= begin && at <= begin + 6) { nextPositions[dest] = p[at - begin]; nextColors[dest] = c[at - begin]; }
                     else { int source = Index(at < begin ? at : at - 3); nextPositions[dest] = positions[source]; nextColors[dest] = colors[source]; }
+                    if (h != null) nextChroma[dest] = at >= begin && at <= begin + 6 ? h[at - begin] : hueChroma[Index(at < begin ? at : at - 3)];
                 }
             }
             int nodeWidth = columns + 1, nextNodeWidth = nodeWidth + (horizontal ? 1 : 0);
@@ -222,6 +264,7 @@ namespace DCFApixels.WhimTex
             }
             if (horizontal) columns++; else rows++;
             positions = nextPositions; colors = nextColors;
+            hueChroma = nextChroma;
             nodeModes = nextModes;
             patchPriorities = nextPriorities;
         }
@@ -237,6 +280,12 @@ namespace DCFApixels.WhimTex
             Color d = Color.LerpUnclamped(a, b, t), e = Color.LerpUnclamped(b, c, t), f = Color.LerpUnclamped(d, e, t);
             p[6] = p[3]; p[1] = a; p[2] = d; p[3] = f; p[4] = e; p[5] = c;
         }
+        private static void SplitCubic(float[] p, float t)
+        {
+            float a = Mathf.LerpUnclamped(p[0], p[1], t), b = Mathf.LerpUnclamped(p[1], p[2], t), c = Mathf.LerpUnclamped(p[2], p[3], t);
+            float d = Mathf.LerpUnclamped(a, b, t), e = Mathf.LerpUnclamped(b, c, t), f = Mathf.LerpUnclamped(d, e, t);
+            p[6] = p[3]; p[1] = a; p[2] = d; p[3] = f; p[4] = e; p[5] = c;
+        }
         internal static Vector4 Basis(float t)
         { float s = 1 - t; return new Vector4(s * s * s, 3 * s * s * t, 3 * s * t * t, t * t * t); }
         public Vector2 EvaluatePosition(int column, int row, float u, float v)
@@ -248,35 +297,49 @@ namespace DCFApixels.WhimTex
         public Color EvaluateColor(int column, int row, float u, float v)
         {
             Vector4 bu = Basis(u), bv = Basis(v); Color result = Color.clear;
-            for (int y = 0; y < 4; y++) for (int x = 0; x < 4; x++) result += colors[(row * 3 + y) * Width + column * 3 + x] * (bu[x] * bv[y]);
-            return FromWorking(result, true);
+            float chroma = 0;
+            for (int y = 0; y < 4; y++) for (int x = 0; x < 4; x++)
+            {
+                int index = (row * 3 + y) * Width + column * 3 + x;
+                float weight = bu[x] * bv[y]; result += colors[index] * weight;
+                if (colorMode == WhimTexGradientColorMode.Hue) chroma += hueChroma[index] * weight;
+            }
+            return FromWorking(result, true, chroma: chroma);
         }
 
         private Color ToWorking(Color encoded)
         {
             var v = new GradientVector(encoded.r, encoded.g, encoded.b);
             if (colorMode == WhimTexGradientColorMode.Linear) v = GradientColorMath.Decode(v);
-            else if (colorMode == WhimTexGradientColorMode.Perceptual) v = GradientColorMath.ToLab(v);
+            else if (colorMode == WhimTexGradientColorMode.Perceptual || colorMode == WhimTexGradientColorMode.Hue) v = GradientColorMath.ToLab(v);
             return new Color((float)v.x, (float)v.y, (float)v.z, encoded.a);
         }
-        private Color FromWorking(Color value, bool linear, bool clampAlpha = true)
+        private Color FromWorking(Color value, bool linear, bool clampAlpha = true, float chroma = 0)
         {
             var v = new GradientVector(value.r, value.g, value.b);
+            if (colorMode == WhimTexGradientColorMode.Hue) v = GradientColorMath.ResolveHue(v, chroma);
             if (colorMode == WhimTexGradientColorMode.Linear) v = GradientColorMath.Encode(v);
-            else if (colorMode == WhimTexGradientColorMode.Perceptual) v = GradientColorMath.FromLab(v);
+            else if (colorMode == WhimTexGradientColorMode.Perceptual || colorMode == WhimTexGradientColorMode.Hue) v = GradientColorMath.FromLab(v);
             if (linear) v = GradientColorMath.Decode(v);
             return new Color((float)v.x, (float)v.y, (float)v.z, clampAlpha ? Mathf.Clamp01(value.a) : value.a);
         }
         private static void ValidateMode(WhimTexGradientColorMode mode)
         {
-            if (mode != WhimTexGradientColorMode.Linear && mode != WhimTexGradientColorMode.Gamma && mode != WhimTexGradientColorMode.Perceptual)
-                throw new ArgumentException("Mesh supports Linear, Gamma and Perceptual color models.");
+            if (mode != WhimTexGradientColorMode.Linear && mode != WhimTexGradientColorMode.Gamma && mode != WhimTexGradientColorMode.Perceptual && mode != WhimTexGradientColorMode.Hue)
+                throw new ArgumentException("Mesh supports Linear, Gamma, Perceptual and Hue color models.");
         }
         public void Validate()
         {
             ValidateMode(colorMode);
             if (columns < 1 || columns > MaxCells || rows < 1 || rows > MaxCells || positions == null || colors == null ||
                 positions.Length != Width * Height || colors.Length != positions.Length) throw new ArgumentException("Invalid Mesh control lattice.");
+            if (colorMode == WhimTexGradientColorMode.Hue && (hueChroma == null || hueChroma.Length != colors.Length))
+                throw new ArgumentException("Hue Mesh requires one hueChroma coefficient per color control.");
+            if (hueChroma != null && hueChroma.Length != 0)
+            {
+                if (hueChroma.Length != colors.Length) throw new ArgumentException("Invalid Mesh hueChroma lattice.");
+                foreach (float c in hueChroma) if (!float.IsFinite(c)) throw new ArgumentException("Mesh hueChroma coefficients must be finite.");
+            }
             foreach (var color in colors) if (!Finite(color)) throw new ArgumentException("Mesh color coefficients must be finite.");
             foreach (Vector2 p in positions) if (!Finite(p)) throw new ArgumentException("Mesh controls must be finite.");
             if (patchPriorities != null && patchPriorities.Length != 0)
@@ -303,6 +366,7 @@ namespace DCFApixels.WhimTex
                 int hash = ((columns * 397) ^ rows) * 397 ^ (int)colorMode;
                 if (positions != null) foreach (var p in positions) hash = hash * 31 + p.GetHashCode();
                 if (colors != null) foreach (var c in colors) hash = hash * 31 + c.GetHashCode();
+                if (hueChroma != null) foreach (var c in hueChroma) hash = hash * 31 + c.GetHashCode();
                 for (int i = 0; i < NodeCount; i++) hash = hash * 31 + (int)NodeMode(i);
                 for (int r = 0; r < rows; r++) for (int c = 0; c < columns; c++) hash = hash * 31 + PatchPriority(c, r).GetHashCode();
                 return hash;

@@ -9,12 +9,12 @@ namespace DCFApixels.WhimTex
     {
         public enum GenerationMode { HeightMap, Texture }
         public enum HeightChannel { Luminance, Red, Green, Blue, Alpha, Maximum }
-        public enum InputSpace { ColorValues, Linear }
+        public enum InputSpace { Gamma, Linear }
         public enum EdgeMode { Clamp, Repeat, Mirror }
         public enum DerivativeFilter { Sobel, Scharr, CentralDifference }
         public enum AlphaMode { Opaque, Source }
         public enum OutputMode { Normal, Height }
-        public enum OutputEncoding { PackedColor, LinearData }
+        public enum OutputEncoding { Gamma, Linear }
 
         public GenerationMode mode;
         public HeightChannel sourceChannel;

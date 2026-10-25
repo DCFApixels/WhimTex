@@ -39,8 +39,12 @@ next_page: "zh/preview.md"
 ## 应用现有效果
 
 1. 选择要更改的图层。
-2. 在其 FX 区域中使用 **+ Preset ▾**，按类别选择效果。
+2. 点击效果列表下方的 **Add FX**，或 FX 区域标题中 **⋮** 左侧的 **+**，区域折叠时也可使用。两个按钮打开相同的菜单。通过名称搜索预设，或进入类别选择；**Custom Shader FX** 可创建用于编写自定义 HLSL 的效果。
 3. 调整滑块、颜色、纹理、开关和下拉选项，图像会立即更新。
+
+**Add FX** 保留 Color、Distortion、Lighting、Normal Map 和 Stylization 分类。每个分类内，功能相关的预设排列在一起，各组之间以分隔线区分。分组及组内预设均按名称排序。在 HLSL 预设头部添加 `// @group("Tone")` 可指定其在分类内的分组；未分组预设排在前面。带引号的声明不需要 `@endgroup`。详见[预设列表分组](../ShaderFX.md#preset-list-groups)。
+
+预设图标显示在 **Add FX** 的名称旁，以及各 FX 标题栏的 Enabled 复选框之前。内置效果按含义共享颜色、色调、渐变、遮罩、扭曲、光照、法线、图案和变换图标。图标缺失或加载失败时显示通用 FX 图标；将鼠标悬停在标题图标上可查看详情。
 
 也可以将 WhimTex 效果 `.hlsl` 从 Project 拖到 **Layers** 的某一行。
 拖到画布视图或列表空白处会在合成顶部创建 **Shader Processor**。
@@ -49,7 +53,7 @@ HLSL 画笔预设和没有效果标记的文件不会被接受。
 如果预设的代码或参数无效，选择时会在 Console 中报告错误，图层保持不变。
 
 每个目录效果都有自己的设置。内置的 **Color → Gain** 用于调整亮度和色调；
-**Transform → UV Transform** 移动输入图像。默认的 **Input Tiling → Clip** 使边框外透明；
+**Distortion → UV Transform** 移动输入图像。默认的 **Input Tiling → Clip** 使边框外透明；
 Repeat 或 Mirror 则用重复图像填充边框外的区域。
 添加到项目中的效果会自动可用；无需设置预设文件夹。
 
@@ -174,11 +178,13 @@ Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已
 
 ## 顺序、复制与 HLSL 源码
 
+在 Layer Settings 中右键点击 **FX** 分区标题或点击右侧的 **⋮**，折叠时也可打开堆栈菜单。**Paste FX As New** 将复制的效果追加到末尾；**Apply All** 烘焙整个堆栈；**Remove All** 删除全部效果而不烘焙，可通过 Undo 撤销。空堆栈的 Apply 和 Remove 不可用。
+
 效果顺序会影响结果。拖动 FX 标题可以调整顺序，也可将其拖到其他图层行上以移动到该图层。标题的右键菜单也提供 **Move Up** 和 **Move Down**。
 
 每个 FX 都属于文档，参数值和启用状态相互独立。选择 **⋮ → Copy FX**，然后在另一行选择 **Paste FX As New**，即可在该行后插入独立副本。同一文档内粘贴时保留图层纹理引用，粘贴到其他文档时会清除这些引用。菜单还包含 **Move Up**、**Move Down** 和 **Remove**。
 
-项目和包内预设的代码会随源 `.hlsl` 文件更新，参数值仍各自独立。使用 **Open HLSL Source** 编辑源文件。要独立编辑当前效果的代码，点击 **Code → Embed Copy**：它会断开 `.hlsl` 链接，在文档中保留当前代码和参数值，并允许本地编辑代码。此后源文件的修改不会再更新该效果。用户库预设已经在文档中保留快照。要编写自己的代码，添加 **+ Shader FX**，输入 inline HLSL 并点击 **Compile**。参数显示在标题下方；**Code** 提供适用的代码操作、**Save Preset…** 和 **Shader Inputs** 参考。存在消息时才显示诊断。
+项目和包内预设的代码会随源 `.hlsl` 文件更新，参数值仍各自独立。使用 **Open HLSL Source** 编辑源文件。要独立编辑当前效果的代码，点击 **Code → Embed Copy**：它会断开 `.hlsl` 链接，在文档中保留当前代码和参数值，并允许本地编辑代码。此后源文件的修改不会再更新该效果。用户库预设已经在文档中保留快照。要编写自己的代码，添加 **Add FX → Custom Shader FX**，输入 inline HLSL 并点击 **Compile**。参数显示在标题下方；**Code** 提供适用的代码操作、**Save Preset…** 和 **Shader Inputs** 参考。存在消息时才显示诊断。
 
 仅支持带标记的 `.hlsl` 预设和 inline HLSL，不能添加外部 Material、Shader 或 Shader FX `.asset` 引用。包含外部 FX 引用的旧 JSON/TIFF 会被拒绝并给出诊断，不会自动迁移或重写文档。请保留原件，并使用匹配的旧 checkout 打开。
 
@@ -191,7 +197,7 @@ Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已
 
 在 **User Settings → Presets → Presets Folder** 中设置共享库位置。其 **Brushes**
 和 **ShaderFX** 子文件夹分别存放两类预设。你也可以将现有的
-HLSL 预设放入 ShaderFX 或其子文件夹，它们会显示在 **+ Preset → User** 中。
+HLSL 预设放入 ShaderFX 或其子文件夹，它们会显示在 **Add FX → User** 中。
 返回 Unity 时，列表会在后台刷新。如果菜单打开时刷新尚未完成，请关闭后重新打开。
 首次启动时可能会短暂显示 **Loading effect presets…**。
 用户预设会被复制到文档中，后续文件修改不会影响已添加的效果。
@@ -211,7 +217,7 @@ Clamp 循环、Smoothness 0%、Chroma Correction 0 和居中的中点。其他�
 | :--- | :--- |
 | **Code → Compile** | 编译 HLSL，保持效果可编辑，不烘焙像素。 |
 | FX 标题/菜单中的 **⋮ → Apply** | 按堆栈顺序烘焙该 FX 及其前面的所有 FX，后续效果保持可编辑。 |
-| 添加 FX 按钮旁的 **Apply All** | 烘焙整个 FX 堆栈。 |
+| FX 分区标题菜单中的 **Apply All** | 烘焙整个 FX 堆栈。 |
 
 烘焙范围内禁用的 FX 会移除，但不参与图像计算。
 
@@ -221,7 +227,7 @@ Shader Processor 也支持 Apply。它捕获当前输入，包括 Pass Through �
 
 ## 创建你自己的效果
 
-如果你有着色器代码，请使用 **+ Shader FX**，将其粘贴到编辑器中并点击 **Compile**。
+如果你有着色器代码，请使用 **Add FX → Custom Shader FX**，将其粘贴到编辑器中并点击 **Compile**。
 代码和设置会随文档一起保存；不需要单独的文件。
 如果编译报告问题，参见 [FX 错误与警告](#编译错误)。
 
@@ -395,7 +401,7 @@ Master 不参与平均。**Source Saturation (HSV)** 设置饱和度排除阈值
 
 ### 边界轮廓
 
-选择 **FX → + Preset → Stylization → Edge Outline**，在明显的变化处绘制轮廓。
+选择 **FX → Add FX → Edge Outline**，在明显的变化处绘制轮廓。
 **Method → Boundary** 绘制均匀轮廓；**Scharr** 使较弱变化处的线条更透明。
 在 Scharr 中提高 **Strength** 可增强这些线条；此控件在 Boundary 中隐藏。
 其他控件由两种方法共用，切换方法保留参数值。
@@ -423,7 +429,7 @@ Thickness 为零时不绘制轮廓。
 - **Digital Glitch** 组合行撕裂、按行或列独立分段的破损块、通道偏移、颜色/噪声/Alpha 瑕疵以及渐变着色。**Seed**、**Effect Time** 和 **Frame Rate** 控制可重复的动画变化；**Block Order** 选择先按行或先按列独立排布区块。
 
 ### 光照与浮雕
-- **Normal Map → Lighting** 根据 RGB 法线贴图生成受光表面。**Normals** 默认为 Self。通过画布手柄调整 **Light Direction**，并设置 **Base Color**、明暗颜色、**Intensity** 和 **Ambient**。Normal Map 的默认输出应开启 **Packed Color**；Linear Data 应关闭。**Flip Y** 反转绿色轴方向。不支持平台专用压缩法线编码。
+- **Normal Map → Lighting** 根据 RGB 法线贴图生成受光表面。**Normals** 默认为 Self。通过画布手柄调整 **Light Direction**，并设置 **Base Color**、明暗颜色、**Intensity** 和 **Ambient**。Normal Map 的默认输出选择 **Input Encoding → Gamma**；原始线性通道选择 **Linear**。**Flip Y** 反转绿色轴方向。不支持平台专用压缩法线编码。
 - **Lighting → Bevel Emboss** 从 **Height Map**（默认 Self，也可选择其他图层）计算法线。**Height Channel** 选择亮度、R、G、B 或 Alpha；**Profile** 映射高度，**Depth** 控制凸起或凹陷，**Smoothing** 设置以文档像素计的采样半径。SDF 的可见渐变与距离范围决定倒角宽度。
 
 两个效果均通过 **Base Color 的透明度** 在透明光影（0）和完整受光表面（1）之间平滑混合，中间值采用考虑透明度的混合。RGB 设置表面颜色，**Ambient** 随填充逐渐显现。**Output** 为透明光影选择 Both、Highlight Only 或 Shadow Only；Base Color 透明度为 1 时无影响。Light Color/Shadow Color 的透明度控制该部分的强度。整体不透明度与混合模式由图层控制。两个效果的 Base Color 默认透明度均为 0。旧的嵌入版本需重新添加预设。
@@ -434,12 +440,12 @@ Thickness 为零时不绘制轮廓。
 **Normal Map → Normalize** 恢复法线的单位长度，同时保留透明度。
 处理 RGB 法线贴图后，如果向量长度发生变化，可以使用此效果。
 中性法线 `(0.5, 0.5, 1)` 保持不变；未定义的方向会变为中性法线。
-对于 Normal Map 图层的默认编码，保持 **Packed Color** 开启；对于 **Linear Data**，关闭它。
+Normal Map 图层的默认编码选择 **Encoding → Gamma**，原始线性通道选择 **Linear**。该设置同时作用于输入和输出。
 该开关处理颜色编码，不会解包平台特定的法线贴图格式。
 
 ## 扭曲预设
 
-选择 **FX → + Preset → Distortion → Spherize**、**Twirl**、**Radial Shear** 或 **Displacement Map**。
+选择 **FX → Add FX → Spherize**、**Twirl**、**Radial Shear** 或 **Displacement Map**。
 
 每个 FX 标题栏中的数值字段控制扭曲：Spherize 和 Radial Shear 使用 **Strength**，
 Twirl 使用 **Angle**，Displacement Map 和 Polar Coordinates 使用 **Amount**。

@@ -1,4 +1,6 @@
 // @whimtex-effect Stylization/Chromatic Aberration
+// @group("Color")
+// @icon("../Editor/Icons/FX/Color.svg")
 // @group(Separation Mode; _Mode)
 // @param hidden enum _Mode = 0 {Radial: 0, Directional: 1}
 // @param px label(Channel Offset (px)) float _Amount = 2 [0 .. ~16] // Red and blue channel offset from the original in canvas pixels.

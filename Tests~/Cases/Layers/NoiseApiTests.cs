@@ -46,14 +46,14 @@ public static class NoiseApiTests
         Check(layer.WarpScale == new UnityEngine.Vector2(2,5), "Literal anisotropic warp multipliers with chain");
         Reject("{\"warpScale\":[1]}"); Reject("{\"warpScale\":[1,1001]}"); Reject("{\"linkWarpScale\":1}");
         Reject("{\"warpScale\":0}"); Reject("{\"warpScale\":1001}");
-        Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData && layer.gradient.ColorMode == DCFApixels.WhimTex.WhimTexGradientColorMode.Perceptual, "Linear Data output and Perceptual palette defaults");
-        Set("{\"encoding\":\"ColorValues\",\"gradient\":[{\"time\":0,\"color\":[1,0,0,0.5]},{\"time\":1,\"color\":[0,0,1,1]}]}");
-        Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.ColorValues && layer.gradient.ColorMode == DCFApixels.WhimTex.WhimTexGradientColorMode.Perceptual, "Supplied stops default to Perceptual");
+        Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.Linear && layer.gradient.ColorMode == DCFApixels.WhimTex.WhimTexGradientColorMode.Perceptual, "Linear Data output and Perceptual palette defaults");
+        Set("{\"encoding\":\"Gamma\",\"gradient\":[{\"time\":0,\"color\":[1,0,0,0.5]},{\"time\":1,\"color\":[0,0,1,1]}]}");
+        Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.Gamma && layer.gradient.ColorMode == DCFApixels.WhimTex.WhimTexGradientColorMode.Perceptual, "Supplied stops default to Perceptual");
         var savedGradient = layer.gradient.Clone();
         Set("{\"encoding\":\"Gradient\"}");
         Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.Gradient && layer.gradient.Equals(savedGradient), "Output retains palette");
         Reject("{\"encoding\":\"Unknown\"}");
-        Set("{\"seed\":2147483647,\"noiseType\":\"Cellular\",\"scale\":12.5,\"offset\":[3,-4],\"fractal\":\"Ridged\",\"octaves\":6,\"lacunarity\":3,\"gain\":0.6,\"weightedStrength\":0.2,\"pingPongStrength\":3,\"cellularDistance\":\"Hybrid\",\"cellularReturn\":\"Distance2Sub\",\"cellularJitter\":0.75,\"warp\":\"BasicGrid\",\"warpStrength\":2,\"encoding\":\"LinearData\",\"inverted\":true}");
+        Set("{\"seed\":2147483647,\"noiseType\":\"Cellular\",\"scale\":12.5,\"offset\":[3,-4],\"fractal\":\"Ridged\",\"octaves\":6,\"lacunarity\":3,\"gain\":0.6,\"weightedStrength\":0.2,\"pingPongStrength\":3,\"cellularDistance\":\"Hybrid\",\"cellularReturn\":\"Distance2Sub\",\"cellularJitter\":0.75,\"warp\":\"BasicGrid\",\"warpStrength\":2,\"encoding\":\"Linear\",\"inverted\":true}");
         Check(layer.seed == int.MaxValue && layer.offset.y == -4 && layer.inverted, "Set parameters");
         var copy = new DCFApixels.WhimTex.NoiseLayerBehaviour();
         setter.Invoke(null, new object[] { copy, snapshot.Invoke(null, new object[] { layer }) });
@@ -103,9 +103,9 @@ public static class NoiseApiTests
         Check(current.Scale3D==new Vector3(8,8,1),"Default Z keeps existing 3D slices unchanged");
         Check(current.WarpScale == UnityEngine.Vector2.one, "Runtime Warp Scale defaults to multiplier 1");
         Check(DCFApixels.WhimTex.WhimTexApi.Describe().Contains("noisePeriodicAxes"), "Periodicity discovery");
-        Set("{\"linkScale\":true,\"scale\":[4,9],\"encoding\":\"LinearData\",\"gradient\":{\"colors\":[{\"time\":0,\"color\":[0,0,0,0.25]},{\"time\":1,\"color\":[2,1,0,1]}],\"colorMode\":\"Linear\"}}");
+        Set("{\"linkScale\":true,\"scale\":[4,9],\"encoding\":\"Linear\",\"gradient\":{\"colors\":[{\"time\":0,\"color\":[0,0,0,0.25]},{\"time\":1,\"color\":[2,1,0,1]}],\"colorMode\":\"Linear\"}}");
         Check(layer.Scale == new UnityEngine.Vector2(4,9), "API axes are literal even with chain enabled");
-        Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData &&
+        Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.Linear &&
             layer.gradient.ColorMode == DCFApixels.WhimTex.WhimTexGradientColorMode.Linear, "Palette assignment does not enable Gradient; explicit mode retained");
         Set("{\"gradient\":[{\"time\":0,\"color\":[0,0,0,1]},{\"time\":1,\"color\":[1,1,1,1]}]}");
         Check(layer.gradient.ColorMode == DCFApixels.WhimTex.WhimTexGradientColorMode.Perceptual, "Replacement palette uses its own default mode");

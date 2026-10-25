@@ -1,5 +1,7 @@
 // @whimtex-effect Color/Hue & Saturation
 // @control(_Opacity)
+// @group("Color")
+// @icon("../Editor/Icons/FX/Color.svg")
 // @param hidden float _Opacity = 1 [0 .. 1] // Blend with the selected output. Zero preserves the original RGBA, including in mask outputs.
 // @tabs
 // @tab(Master)

@@ -69,7 +69,7 @@ namespace DCFApixels.WhimTex
                 throw new InvalidOperationException("An FX preset must be a marked .hlsl file.");
             string source = ShaderFXCatalog.ReadSource(entry.path);
             ShaderFXMetadata.Parse(source, true, out _);
-            if (entry.user) source = ShaderFXSourceBuilder.ExportIncludes(source, entry.path);
+            if (entry.user) source = ShaderFXSourceBuilder.ExportIncludes(ShaderFXIconMetadata.MakePortable(source, entry.path), entry.path);
             var effect = CreateAgentDraft(owner, source, new List<ShaderFXParameter>());
             effect.name = entry.menuPath.Substring(entry.menuPath.LastIndexOf('/') + 1);
             effect.catalogGuid = entry.user ? null : entry.guid;
@@ -81,6 +81,10 @@ namespace DCFApixels.WhimTex
 
         internal void DetachCatalog()
         {
+            string basePath = SourcePath;
+            bool applied = code == appliedCode;
+            code = ShaderFXIconMetadata.MakePortable(code, basePath);
+            appliedCode = applied ? code : ShaderFXIconMetadata.MakePortable(appliedCode, basePath);
             // Keep the source path as the include base when embedding a copy.
             ReleaseCatalogDependencies();
             catalogGuid = null;

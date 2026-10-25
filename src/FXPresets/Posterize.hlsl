@@ -1,5 +1,7 @@
 // @whimtex-effect Stylization/Posterize
 // @control(_Opacity)
+// @group("Tone")
+// @icon("../Editor/Icons/FX/Tone.svg")
 // @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original colors and the posterized result.
 // @group(Tonal Steps)
 // @param float _Levels = 8 [2 .. ~64] // Number of output levels per channel, rounded to an integer.

@@ -1,5 +1,7 @@
 // @whimtex-effect Color/Brightness Contrast
 // @control(_Opacity)
+// @group("Tone")
+// @icon("../Editor/Icons/FX/Tone.svg")
 // @group
 // @param hidden float _Opacity = 1[0..1] // Blend between the original colors and the adjusted result.
 // @param float _Brightness = 0 [~-100 .. ~100] // Adjust midtone brightness while retaining black and white. Soft bounds allow stronger values.

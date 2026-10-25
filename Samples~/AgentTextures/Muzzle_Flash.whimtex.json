@@ -1322,7 +1322,7 @@
                 "warpScale": 0.474315524,
                 "warpScaleY": 0.474315524,
                 "linkWarpScale": true,
-                "encoding": "LinearData",
+                "encoding": "Linear",
                 "inverted": false,
                 "recoveryId": "29663d31ce0e4371992256f623f1ea59"
               },
@@ -2133,7 +2133,7 @@
                 "gain": 0.5,
                 "weightedStrength": 0.0,
                 "warp": "None",
-                "encoding": "ColorValues",
+                "encoding": "Gamma",
                 "inverted": false,
                 "recoveryId": "f06f88c9a3b34244a4541779c3c81396"
               },

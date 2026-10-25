@@ -19,14 +19,15 @@ Drag the right-hand divider to resize Canvas View. Its header, canvas area and f
 
 The two rows above the canvas contain document and tool settings. In a narrow panel, slider tracks hide while their number fields remain available. You can type a value or drag a numeric field's label; controls wrap to another line if needed.
 
-The Canvas View footer holds controls for quality, live texture updates, post-processing,
-UV overlays, guides and channel viewing. It also contains **HDR**, the color-input mode,
+The Canvas View footer holds controls for quality, live texture updates,
+tiling, guides and channel viewing. It also contains **HDR**, the color-input mode,
 and hints for the active tool.
 
 The permanent icon toolbar sits to the right of the canvas scrollbar, between the Canvas View header and footer and beside the draggable pane divider. It matches the main tool strip's width and appearance. All four icons — **Brushes**, **Comments**, **Post FX** and **UV** — stay available.
+The **UV** icon is a cross-shaped cube net with six square faces and its long arm pointing right.
 Panels open flush against its left edge, covering the scrollbar and canvas without moving them.
 The open panel's icon is highlighted; click it again to close the panel, or another icon to switch sections.
-Hover for names. Inactive sections show disabled settings with **Select Brush**, **Enable Post FX** or **Enable UV** above them; these buttons activate the section in place. Comments needs no tool switch.
+Hover for names. Only Brush settings are disabled when another tool is selected; **Select Brush** sits at the right of its header. The checkboxes before the **Post FX** and **UV** titles toggle those modes. Their settings remain editable while off. Comments needs no tool switch.
 Closing these settings panels keeps Post FX and UV enabled.
 
 ## Profiler
@@ -147,8 +148,8 @@ the close button hides the card and keeps the draft. **Cancel** discards it. Tex
 survive switching tools or discussions and script reloads in the same editor window. **Resume Draft** reopens
 an unposted new comment. Until **Post** or **Save**, draft text and attachments stay local to the editor window and are invisible to agents. Notes appear as numbered pins while
 Comment is selected, including on an empty canvas.
-The tool icon is outlined when the document has no comments. Once a comment is posted,
-it becomes filled, with transparent text lines; resolved comments count too.
+The Comments icon in the right panel toolbar is outlined when the document has no comments. Once a comment is posted,
+it becomes filled, with transparent text lines; resolved comments count too. The Comment tool icon on the left always stays filled, without a status dot.
 
 New comments use your **WhimTex Settings → Comments → Color**. Until you choose a color,
 WhimTex derives its hue from your nickname, keeping the saturation and brightness of the
@@ -175,7 +176,7 @@ You can also click to open the menu, then click an option. The status icons are
 a half-filled circle (**In Progress**), a red circle (**Awaiting Review**) or a checkmark
 (**Resolved**). The list and status filters use the same icons; hover to read their full names.
 You can switch freely between all three states.
-Awaiting Review adds a red dot beside the discussion number in the list, to that pin and to the filled Comment tool icon, even when a filter hides
+Awaiting Review adds a red dot beside the discussion number in the list, to that pin and to the filled Comments icon in the right panel toolbar, even when a filter hides
 the discussion. The status is saved with the document in TIFF. Reading, opening and replying do not
 change it automatically; change the status explicitly when handing work over or accepting it.
 
@@ -300,7 +301,7 @@ Click the active context-tool button or press `Escape` to return to your last ba
 
 ## Mesh UV overlay
 
-Enable **UV** in the footer and assign a **Mesh** to see its UV island outlines over the image. The UV panel lets you choose the channel, submesh, line color and opacity. The outlines follow zoom, pan and view rotation and never appear in exports. To paint a specific part of the model, use [UV Island selection](selection.md#select-uv-islands).
+Open the **UV** panel, check **UV** in its header and assign a **Mesh** to see its UV island outlines over the image. The UV panel lets you choose the channel, submesh, line color and opacity. The outlines follow zoom, pan and view rotation and never appear in exports. To paint a specific part of the model, use [UV Island selection](selection.md#select-uv-islands).
 
 The **Mesh** field also accepts a model or GameObject containing a mesh; if it contains several meshes, WhimTex uses the first one it finds.
 
@@ -331,7 +332,7 @@ PNG/JPEG/EXR files do not store a sampling mode for other applications.
 
 View rotation does not rotate the layers or affect saving and export.
 
-**Tiled** is a toggle button in the Canvas View footer, beside UV and Guides. Enable it to see repeated copies
+**Tiled** is a toggle button in the Canvas View footer, beside Guides. Enable it to see repeated copies
 and work across the edges: painting, erasing, filling and selections wrap to the opposite side.
 The saved image size and layer transforms remain unchanged.
 See [seamless painting](symmetry.md).
@@ -370,7 +371,7 @@ Click a guide to select it: arrow keys nudge it, `Shift` increases the step tenf
 
 Right-click a guide to **Edit**, **Duplicate** or **Delete** it. Right-click either ruler for the shared controls:
 
-- **Show Guides** — hide or show the lines. The **Guides** button next to **UV** in the Canvas View footer does the same. Hidden guides do not attract tools; creating a new guide shows them again.
+- **Show Guides** — hide or show the lines. The **Guides** button next to **Tiled** in the Canvas View footer does the same. Hidden guides do not attract tools; creating a new guide shows them again.
 - **Lock Guides** — protect existing lines from editing. You can still create new guides and snap tools to locked ones.
 - **Snap to Guides** — toggle snapping; hold `Ctrl` to bypass it temporarily.
 - **Undo Guide Change / Redo Guide Change** — undo or redo guide edits without affecting painting.
@@ -417,7 +418,7 @@ Patch Quilting can select different patches at reduced resolution; verify this f
 ## See your paint on a model
 
 1. Save the document and assign its texture to your model's material.
-2. Turn on **Live Update** (the circle button) in the Canvas View footer, next to **Post FX**.
+2. Turn on **Live Update** (the circle button) in the Canvas View footer, next to **Live Quality**.
 3. Paint or adjust layers: objects using that texture update in Scene View.
 
 <a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="Live Update in WhimTex: white lettering painted across the cube's texture appears on the model in Unity Scene view" width="720"></a>

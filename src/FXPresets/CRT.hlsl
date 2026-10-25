@@ -1,4 +1,6 @@
 // @whimtex-effect Stylization/CRT
+// @group("Pattern")
+// @icon("../Editor/Icons/FX/Pattern.svg")
 // @header(Screen)
 // @param float _Curvature = 0.08 [0 .. ~0.35] // Barrel curvature; stronger values crop more of the screen edges.
 // @param float _ScanlineStrength = 0.2 [0 .. 1] // Darkness of the scanlines.

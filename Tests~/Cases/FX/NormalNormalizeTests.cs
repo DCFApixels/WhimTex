@@ -26,7 +26,7 @@ public static class NormalNormalizeTests
             fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", hidden, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, source, new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", hidden).Invoke(fx, null);
             var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", hidden).GetValue(fx);
-            WhimTex.Tests.UnityC.FixtureContext.Context.True(!(parameters.Count != 1 || parameters[0].floatValue != 1), "Packed Color must default to true");
+            WhimTex.Tests.UnityC.FixtureContext.Context.True(!(parameters.Count != 1 || parameters[0].floatValue != 1), "Gamma encoding must be the default");
             var context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), document, null, 2, 2, 1f, true, true, null);
             var decode = assembly.GetType("DCFApixels.WhimTex.HdrUtility").GetMethod("Decode", hidden);
             Color EncodeNormal(Vector3 n, bool packed)
@@ -54,7 +54,7 @@ public static class NormalNormalizeTests
                     checks++;
                 }
             }
-            return "PASS: " + checks + " GPU normal cases, Packed Color/Linear Data, neutral fallback and alpha preservation.";
+            return "PASS: " + checks + " GPU normal cases, Gamma/Linear, neutral fallback and alpha preservation.";
         }
         finally
         {

@@ -15,7 +15,7 @@ public static class OptionalLayerGradientTests
         ? noise.encoding == NoiseLayerBehaviour.OutputEncoding.Gradient : ((SDFLayerBehaviour)source).encoding == SDFLayerBehaviour.OutputEncoding.Gradient;
     static void Enable(LayerBehaviour source, bool value)
     {
-        if (source is NoiseLayerBehaviour noise) noise.encoding = value ? NoiseLayerBehaviour.OutputEncoding.Gradient : NoiseLayerBehaviour.OutputEncoding.ColorValues;
+        if (source is NoiseLayerBehaviour noise) noise.encoding = value ? NoiseLayerBehaviour.OutputEncoding.Gradient : NoiseLayerBehaviour.OutputEncoding.Gamma;
         else ((SDFLayerBehaviour)source).encoding = value ? SDFLayerBehaviour.OutputEncoding.Gradient : SDFLayerBehaviour.OutputEncoding.LinearData;
     }
     static IDisposable Read(string layers)
@@ -119,15 +119,15 @@ public static class OptionalLayerGradientTests
             var output = root.Q<PopupField<NoiseLayerBehaviour.OutputEncoding>>();
             var inverted = root.Query<Toggle>().ToList().Single(t => t.label == "Inverted");
             bool Hidden(VisualElement element) => element.ClassListContains("whimtex-hidden");
-            Check(output.value == NoiseLayerBehaviour.OutputEncoding.LinearData && Hidden(field) && !Hidden(inverted), "Default Linear Data shows Inverted");
-            output.value = NoiseLayerBehaviour.OutputEncoding.LinearData;
-            Check(noise.encoding == NoiseLayerBehaviour.OutputEncoding.LinearData && Hidden(field) && !Hidden(inverted), "Linear Data shows Inverted");
+            Check(output.value == NoiseLayerBehaviour.OutputEncoding.Linear && Hidden(field) && !Hidden(inverted), "Default Linear shows Inverted");
+            output.value = NoiseLayerBehaviour.OutputEncoding.Linear;
+            Check(noise.encoding == NoiseLayerBehaviour.OutputEncoding.Linear && Hidden(field) && !Hidden(inverted), "Linear shows Inverted");
             output.value = NoiseLayerBehaviour.OutputEncoding.Gradient;
             Check(!Hidden(field) && !Hidden(inverted), "Gradient shows palette and Inverted");
             noise.noiseType = NoiseLayerBehaviour.NoiseType.WhiteNoise;
             noise.grainColor = NoiseLayerBehaviour.GrainColor.Color;
             Refresh();
-            Check(output.value == NoiseLayerBehaviour.OutputEncoding.ColorValues && output.choices.Count == 2 && Hidden(field) && !Hidden(inverted), "Color noise exposes supported outputs");
+            Check(output.value == NoiseLayerBehaviour.OutputEncoding.Gamma && output.choices.Count == 2 && Hidden(field) && !Hidden(inverted), "Color noise exposes supported outputs");
             Check(noise.encoding == NoiseLayerBehaviour.OutputEncoding.Gradient, "Color noise retains requested output");
             noise.grainColor = NoiseLayerBehaviour.GrainColor.Monochrome;
             Refresh();
@@ -163,7 +163,7 @@ public static class OptionalLayerGradientTests
         var noiseDoc = Document(noiseData); var sdfDoc = Document(sdfData);
         var noise = (NoiseLayerBehaviour)noiseDoc.layers[0].Behaviour;
         var sdf = (SDFLayerBehaviour)sdfDoc.layers[0].Behaviour;
-        Check(noise.encoding == NoiseLayerBehaviour.OutputEncoding.LinearData && Enabled(sdf), "Noise defaults Linear Data; SDF defaults Gradient");
+        Check(noise.encoding == NoiseLayerBehaviour.OutputEncoding.Linear && Enabled(sdf), "Noise defaults Linear; SDF defaults Gradient");
         Check(Enum.GetValues(typeof(SDFLayerBehaviour.OutputEncoding)).Length == 3, "SDF has Linear Data, Gradient and Multi Channel Data outputs");
         Check(noise.gradient.ColorMode == WhimTexGradientColorMode.Perceptual && sdf.gradient.ColorMode == WhimTexGradientColorMode.Perceptual, "Both default Perceptual");
         UI(noiseDoc, noise, typeof(NoiseLayerEditorWindow));
@@ -172,11 +172,11 @@ public static class OptionalLayerGradientTests
             new GradientColorKey(new Color(1.2f,.2f,.05f), 1) }, new[] { new GradientAlphaKey(.3f, 0), new GradientAlphaKey(.9f, 1) });
         palette.ColorMode = WhimTexGradientColorMode.Linear;
         noise.gradient = palette.Clone(); sdf.gradient = palette.Clone();
-        noise.encoding = NoiseLayerBehaviour.OutputEncoding.LinearData;
+        noise.encoding = NoiseLayerBehaviour.OutputEncoding.Linear;
         foreach (NoiseLayerBehaviour.NoiseType type in Enum.GetValues(typeof(NoiseLayerBehaviour.NoiseType)))
         {
             noise.noiseType = type;
-            noise.encoding = NoiseLayerBehaviour.OutputEncoding.LinearData;
+            noise.encoding = NoiseLayerBehaviour.OutputEncoding.Linear;
             var raw = Render(noiseDoc, noise.Owner);
             noise.encoding = NoiseLayerBehaviour.OutputEncoding.Gradient;
             var mapped = Render(noiseDoc, noise.Owner);
@@ -189,7 +189,7 @@ public static class OptionalLayerGradientTests
         foreach (var type in new[] { NoiseLayerBehaviour.NoiseType.WhiteNoise, NoiseLayerBehaviour.NoiseType.BlueNoise })
         {
             noise.noiseType = type; noise.grainColor = NoiseLayerBehaviour.GrainColor.Color;
-            noise.encoding = NoiseLayerBehaviour.OutputEncoding.ColorValues; var raw = Render(noiseDoc, noise.Owner);
+            noise.encoding = NoiseLayerBehaviour.OutputEncoding.Gamma; var raw = Render(noiseDoc, noise.Owner);
             noise.encoding = NoiseLayerBehaviour.OutputEncoding.Gradient; var bypass = Render(noiseDoc, noise.Owner);
             for (int i = 0; i < raw.Length; i++) Near(bypass[i], raw[i], "RGB noise bypass");
         }

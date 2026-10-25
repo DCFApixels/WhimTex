@@ -281,9 +281,17 @@ static System.Threading.CancellationToken Cancellation;
                 new object[] { transparentLayer, transparent, new Action<string, Action>((name, change) => change()) }, null);
             Button applyAll = null;
             view.Query<Button>().ForEach(button => { if (button.text == "Apply All") applyAll = button; });
-            Check(applyAll != null && applyAll.enabledSelf, "FX toolbar offers enabled Apply All for a populated Drawing stack");
-            Call(view, "ApplyThrough", 0);
-            Check(transparentLayer.fx.Count == 0 && !applyAll.enabledSelf, "UI Apply All bakes Drawing and disables the empty stack");
+            Check(applyAll == null, "FX body no longer duplicates the Apply All menu action");
+            var menu = new DropdownMenu();
+            Call(view, "BuildStackContextMenu", menu);
+            var applyAction = (DropdownMenuAction)menu.MenuItems()[0];
+            applyAction.UpdateActionStatus(null);
+            Check(applyAction.name == "Apply All" && applyAction.status == DropdownMenuAction.Status.Normal,
+                "FX header offers enabled Apply All for a populated Drawing stack");
+            applyAction.Execute();
+            applyAction.UpdateActionStatus(null);
+            Check(transparentLayer.fx.Count == 0 && applyAction.status == DropdownMenuAction.Status.Disabled,
+                "UI Apply All bakes Drawing and disables the empty stack");
             Undo.PerformUndo();
             Same(transparentPainted, Pixels(transparent), "UI Apply is undoable");
             return null;

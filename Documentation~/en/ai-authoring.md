@@ -39,5 +39,5 @@ Copy diagnostics from **Window → General → Console** when asking the AI for 
 [Brush JSON](painting.md#customize-the-brush) is separate and still requires a valid brush shader.
 Re-pasting creates new layers rather than updating the previous result.
 
-For a single shader, request HLSL instead and paste it into **FX → + Shader FX**, then click **Apply**.
+For a single shader, request HLSL instead and paste it into **FX → Add FX → Custom Shader FX**, then click **Compile**.
 The same [AI guide](../AI/README.md) explains the syntax and editable parameters.

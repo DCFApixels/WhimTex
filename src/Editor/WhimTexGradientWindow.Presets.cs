@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexGradientWindow
     {
-        private const string HistoryExpandedKey = "DCFApixels.WhimTex.Gradient.HistoryExpanded";
+        private const string ColorHistoryExpandedKey = "DCFApixels.WhimTex.Gradient.ColorHistoryExpanded";
         private const string PresetsExpandedKey = "DCFApixels.WhimTex.Gradient.PresetsExpanded";
         private VisualElement presetGrid;
         private HelpBox presetWarning;

@@ -140,13 +140,12 @@ namespace DCFApixels.WhimTex
             buttons.AddToClassList("whimtex-layer-fx-buttons");
             buttons.style.justifyContent = Justify.FlexEnd;
             buttons.style.marginTop = 6f;
-            buttons.Add(WhimTexUI.CreateButton("New Shader FX", CreateShaderFX));
-            buttons.Add(WhimTexUI.CreateButton("Preset ▾", () => ShaderFXCatalog.ShowMenu(entry =>
+            buttons.Add(ShaderFXAddDropdown.CreateButton(entry =>
             {
                 if (!ResolveLayer()) return;
                 ApplyChange("Add Catalog FX", () => activeDocument.AddCatalogShaderFX(layer, entry));
                 RefreshFxItems();
-            })));
+            }, CreateShaderFX));
             buttons.Add(WhimTexUI.CreateButton("Edit", EditSelectedFx));
             buttons.Add(WhimTexUI.CreateButton("Remove", RemoveSelectedFx, 72f));
             buttons.Add(WhimTexUI.CreateButton("Close", Close, 64f));

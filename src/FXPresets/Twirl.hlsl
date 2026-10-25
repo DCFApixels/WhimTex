@@ -1,5 +1,7 @@
 // @whimtex-effect Distortion/Twirl
 // @control(_Angle)
+// @group("Distortion")
+// @icon("../Editor/Icons/FX/Distortion.svg")
 // @group
 // @param float _Angle = 180 [~-720 .. ~720] // Twist angle in degrees at local radius 1. Zero removes the twist; the sign reverses direction.
 // @param transform2D _Area

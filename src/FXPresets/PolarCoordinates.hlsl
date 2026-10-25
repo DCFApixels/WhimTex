@@ -1,5 +1,7 @@
 // @whimtex-effect Distortion/Polar Coordinates
 // @control(_Amount)
+// @group("Distortion")
+// @icon("../Editor/Icons/FX/Distortion.svg")
 // @param hidden float _Amount = 1 [0 .. 1] // Coordinate distortion amount. Zero keeps the original image; one applies the full mapping.
 // @group(Polar Coordinates Mode; _Mode)
 // @param hidden enum _Mode = 0 {ToPolar: 0, FromPolar: 1} // Wrap a strip into a circle, or unwrap a circle into a strip.

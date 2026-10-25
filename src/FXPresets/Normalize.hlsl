@@ -1,11 +1,13 @@
 // @whimtex-effect Normal Map/Normalize
-// @param bool _PackedColor = true
+// @group("Normal")
+// @icon("../Editor/Icons/FX/Normal.svg")
+// @param enum _Encoding = Gamma {Linear: 0, Gamma: 1} // Input and output encoding. Gamma interprets channels as sRGB values; Linear uses raw values.
 
 #include "Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc"
 
 float4 ApplyFX(float4 color)
 {
-    float3 channels = _PackedColor > 0.5 ? SpriteEncode(color.rgb) : color.rgb;
+    float3 channels = _Encoding > 0.5 ? SpriteEncode(color.rgb) : color.rgb;
     float3 normal = channels * 2.0 - 1.0;
     float3 magnitude = abs(normal);
     float largest = max(magnitude.x, max(magnitude.y, magnitude.z));
@@ -17,5 +19,5 @@ float4 ApplyFX(float4 color)
         normal *= rsqrt(dot(normal, normal));
     }
     channels = normal * 0.5 + 0.5;
-    return float4(_PackedColor > 0.5 ? SpriteDecode(channels) : channels, color.a);
+    return float4(_Encoding > 0.5 ? SpriteDecode(channels) : channels, color.a);
 }

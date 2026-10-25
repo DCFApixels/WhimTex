@@ -1,4 +1,6 @@
 // @whimtex-effect Stylization/Halftone
+// @group("Pattern")
+// @icon("../Editor/Icons/FX/Pattern.svg")
 // @group(Screen Mode; _Mode)
 // @param hidden enum _Mode = 1 {Monochrome: 0, CMYKTriangle: 2, CMYKSquare: 3, CMYKManual: 1, RGBTriangle: 4, RGBManual: 5}
 // @param px float _DotSize = 8 [1 .. ~64] // Screen-cell size in canvas pixels.

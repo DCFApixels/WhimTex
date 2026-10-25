@@ -26,7 +26,7 @@ public static class NormalMapTests
         var normal = new DCFApixels.WhimTex.NormalMapLayerBehaviour
         {
             inputSpace = DCFApixels.WhimTex.NormalMapLayerBehaviour.InputSpace.Linear,
-            encoding = DCFApixels.WhimTex.NormalMapLayerBehaviour.OutputEncoding.LinearData,
+            encoding = DCFApixels.WhimTex.NormalMapLayerBehaviour.OutputEncoding.Linear,
             smoothing = 0f, strength = 4f
         };
         document.layers.Add(normal); document.layers.Add(file);
@@ -81,10 +81,10 @@ public static class NormalMapTests
             normal.inverted = true; Check(Near(Pixel().r,1-original.r), "Invert height"); normal.inverted = false;
             var reduced = Pixel(8,8,16); Check(Near(reduced.r,original.r), "Slope amplitude survives reduced preview resolution");
             normal.strength = 0; Check(Near(Pixel().r,.5f), "Zero strength"); normal.strength = 4;
-            normal.encoding = DCFApixels.WhimTex.NormalMapLayerBehaviour.OutputEncoding.PackedColor;
+            normal.encoding = DCFApixels.WhimTex.NormalMapLayerBehaviour.OutputEncoding.Gamma;
             var packed = Pixel();
             Check(Near(packed.r,UnityEngine.Mathf.GammaToLinearSpace(original.r)), "Packed encoding follows the image export boundary");
-            normal.encoding = DCFApixels.WhimTex.NormalMapLayerBehaviour.OutputEncoding.LinearData;
+            normal.encoding = DCFApixels.WhimTex.NormalMapLayerBehaviour.OutputEncoding.Linear;
             var group = new DCFApixels.WhimTex.GroupLayerBehaviour(); group.layers.Add(file);
             document.layers[1] = group;
             Check(Near(Pixel().r,original.r), "Group supplies color, not only alpha");

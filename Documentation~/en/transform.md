@@ -15,6 +15,8 @@ Choose **Transform** (`T`) to move, resize or rotate a layer.
 Drag the frame to move it, an edge or corner to resize, and the round handle to rotate.
 For exact values, expand **Transform** in Layer Settings.
 
+Right-click that section's header or click **⋮** at its right to use **Reset** and **Original Aspect**, even while collapsed. Both buttons also remain inside the expanded section.
+
 **Original Aspect** restores the image's original proportions.
 
 **Original Size** in the Transform toolbar also restores its pixel size: one source pixel equals one canvas pixel.

@@ -24,7 +24,7 @@ translations: "en/normal-map.md,ru/normal-map.md,zh/normal-map.md"
 
 Светлое — высоко, тёмное — низко. **Invert Height** меняет их местами.
 **Strength** усиливает рельеф, **Smoothing** смягчает мелкие неровности.
-Для Noise с кодировкой Linear Data выбери **Input Space → Linear** в Advanced.
+Для Noise с кодировкой Linear выбери **Input Space → Linear** в Advanced.
 
 ## Из цветной текстуры
 
@@ -51,9 +51,9 @@ translations: "en/normal-map.md,ru/normal-map.md,zh/normal-map.md"
 и исходный [Mapping](color.md#переставить-каналы-через-swizzle), без перестановки каналов.
 Избегай цветовых эффектов: они могут исказить рельеф.
 
-Для PNG/TGA/PSD выбери **Advanced → Encoding → Packed Color**.
+Для PNG/TGA/PSD выбери **Advanced → Encoding → Gamma**.
 Импортируй полученный PNG или TGA в Unity как **Normal Map**, без преобразования из grayscale.
-**Encoding → Linear Data** нужен, если твой рабочий процесс предполагает линейный EXR или Texture2D.
+**Encoding → Linear** нужен, если твой рабочий процесс предполагает линейный EXR или Texture2D.
 
 Поворот готового слоя Normal Map вращает только картинку: рельеф освещается так, будто поворота нет.
 Чтобы рельеф был ориентирован правильно, трансформируй источник до генерации карты.

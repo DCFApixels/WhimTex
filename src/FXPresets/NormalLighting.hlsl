@@ -1,7 +1,9 @@
 // @whimtex-effect Normal Map/Lighting
+// @group("Lighting")
+// @icon("../Editor/Icons/FX/Lighting.svg")
 // @header(Normal Source)
 // @param texture2D _Normals = self // RGB normal map. Self reads the image before this FX.
-// @param bool _PackedColor = true // Match Normal Map Output Encoding: enabled for Packed Color, disabled for Linear Data.
+// @param enum _InputEncoding = Gamma {Linear: 0, Gamma: 1} // Match Normal Map Output Encoding. Gamma reads sRGB-encoded channel values; Linear reads raw channel values.
 // @param bool _FlipY = false // Reverse the green axis for maps using the opposite Y convention.
 // @group(Lighting Output; _Output)
 // @param hidden enum _Output = Both {Both: 0, HighlightOnly: 1, ShadowOnly: 2, SpecularOnly: 3} // Both/Highlight Only include enabled Specular. Shadow Only excludes it. Specular Only omits the surface and diffuse lighting.
@@ -42,7 +44,7 @@ float NormalLightingSpecular(float3 normal, float3 lightDirection)
 float4 ApplyFX(PinnedUV uv, float4 color)
 {
     float3 packed = SampleTexture(_Normals, uv).rgb;
-    packed = _PackedColor > 0.5 ? SpriteEncode(packed) : packed;
+    packed = _InputEncoding > 0.5 ? SpriteEncode(packed) : packed;
     float3 n = packed * 2.0 - 1.0;
     n.y *= lerp(1.0, -1.0, step(0.5001, _FlipY));
     float4 lighting = _Output == 3 ? float4(0, 0, 0, 0) : WhimTexSurfaceLighting(n, color.a, _Output, _LightDirection,

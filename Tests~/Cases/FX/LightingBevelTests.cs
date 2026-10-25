@@ -34,7 +34,7 @@ public static class LightingBevelTests
             Layer normal=new ColorFillLayerBehaviour(); doc.layers.Add(normal);
             normal.fx.Add(FX("float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(.5,.5,1,.6);}"));
             normal.fx.Add(lighting);
-            P(lighting,"_PackedColor").floatValue=0; P(lighting,"_Ambient").floatValue=0;
+            P(lighting,"_InputEncoding").floatValue=0; P(lighting,"_Ambient").floatValue=0;
             P(lighting,"_LightDirection").vectorValue=new Vector4(0,0,1,0);
             var lit=Render()[8256];
             Check(Mathf.Abs(lit.r-1)<.005 && Mathf.Abs(lit.a-.6f)<.005,"flat normal and alpha");
@@ -42,7 +42,7 @@ public static class LightingBevelTests
             Check(Render()[8256].r<.01,"back lighting");
             normal.fx.Clear();
             normal.fx.Add(FX("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc\"\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(SpriteDecode(float3(.5,.5,1)),.6);}"));
-            normal.fx.Add(lighting); P(lighting,"_PackedColor").floatValue=1; P(lighting,"_LightDirection").vectorValue=new Vector4(0,0,1,0);
+            normal.fx.Add(lighting); P(lighting,"_InputEncoding").floatValue=1; P(lighting,"_LightDirection").vectorValue=new Vector4(0,0,1,0);
             Check(Mathf.Abs(Render()[8256].r-1)<.005,"packed color decode");
             normal.fx.Clear();
             normal.fx.Add(FX("float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;float h=saturate(1-length(uv-.5)*3);return float4(h,h,h,1);}"));

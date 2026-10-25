@@ -20,7 +20,7 @@ namespace DCFApixels.WhimTex
         {
             var sheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.dcfapixels.whimtex/src/Editor/WhimTexColorPicker.uss");
             if (sheet != null) rootVisualElement.styleSheets.Add(sheet);
-            var heading = BuildLibrarySection("History", "gradientColorHistory", HistoryExpandedKey);
+            var heading = BuildLibrarySection("Color History", "gradientColorHistory", ColorHistoryExpandedKey);
             heading.tooltip = "Apply a history color to the selected color key. Opacity keys are unchanged. Drag to reorder; drag outside to remove.";
             heading.AddToClassList("whimtex-gradient-history");
             historyScroll = new ScrollView(ScrollViewMode.Vertical) { horizontalScrollerVisibility = ScrollerVisibility.Hidden };
@@ -47,7 +47,7 @@ namespace DCFApixels.WhimTex
             {
                 historyGrid.Clear(); historySnapshot.Clear(); historyDocument = document; historyHdr = hdr;
                 if (entries == null || entries.Count == 0)
-                    historyGrid.Add(new Label(entries == null ? "No document history for this input." : "No colors in History yet."));
+                    historyGrid.Add(new Label(entries == null ? "Color History is unavailable for this input." : "Color History is empty."));
                 else for (int i = 0; i < entries.Count; i++)
                 {
                     historySnapshot.Add(entries[i]);
@@ -55,7 +55,7 @@ namespace DCFApixels.WhimTex
                     WhimTexColorPicker.AddHistoryChip(document, i, entries[i], historyGrid, historyScroll,
                         () => HistoryChannelMask, ref historyCursor, () => RefreshColorHistory(true), SelectHistoryColor);
                 }
-                if (historyGrid.childCount == 0) historyGrid.Add(new Label("No standard colors in History."));
+                if (historyGrid.childCount == 0) historyGrid.Add(new Label("No standard colors in Color History."));
             }
             int mask = HistoryChannelMask;
             if (mask != historyMask)
@@ -78,7 +78,7 @@ namespace DCFApixels.WhimTex
                 intensityPreferences.Remove(time); hdrPreferences.Remove(time);
                 StoreDisplayColor(value);
             });
-            document.MoveHistoryColor(index, 0);
+            document.RememberColor(value);
             RefreshColorHistory(true);
         }
     }

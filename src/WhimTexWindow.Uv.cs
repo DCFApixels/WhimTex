@@ -13,7 +13,8 @@ namespace DCFApixels.WhimTex
         [SerializeField] private bool uvEnabled, uvExpanded;
         [SerializeField] private Color uvLineColor = new Color(.35f, .85f, 1f, 1f);
         [SerializeField] private float uvLineOpacity = .65f;
-        private Button uvButton, uvTab, activateUvButton;
+        private Button uvTab;
+        private Toggle uvEnabledToggle;
         private VisualElement uvDrawer, uvOverlay, uvDrawerContent;
         private ObjectField uvMeshField;
         private DropdownField uvChannelField, uvSubmeshField;
@@ -23,29 +24,24 @@ namespace DCFApixels.WhimTex
         private WhimTexDocument uvCachedDocument;
         private int uvCachedChannel = -1, uvCachedSubmesh = -2, uvCachedDirty, uvHoveredIsland = -1;
         private Hash128 uvCachedHash;
+        private bool uvCachedEnabled;
         private string uvMessage;
         private bool uvDisplayedSelection, uvDisplayedLayers;
         private bool IsUvSelectionTool => canvasTool == CanvasTool.UvIslandSelect;
 
-        private Button BuildUvButton()
+        private void SetUvEnabled(bool enabled)
         {
-            uvButton = new Button(() =>
-            {
-                uvEnabled = !uvEnabled;
-                if (uvEnabled) OpenUvDrawer();
-                else { uvMap = null; uvCachedChannel = -1; RefreshPostFxPanel(); uvOverlay?.MarkDirtyRepaint(); }
-                RefreshToolkitInterface();
-            }) { text = "UV", tooltip = "Show mesh UV island outlines. Preview only; never included in the texture or export." };
-            uvButton.AddToClassList("whimtex-channel-button");
-            RefreshUvPanel();
-            return uvButton;
+            uvEnabled = enabled;
+            RefreshUvReference();
+            RefreshPostFxPanel();
+            uvOverlay?.MarkDirtyRepaint();
+            RefreshToolkitInterface();
         }
         private void OpenUvDrawer()
         {
-            uvEnabled = uvExpanded = true;
+            uvExpanded = true;
             brushesExpanded = postFxExpanded = commentsExpanded = false;
-            RefreshUvReference();
-            RefreshPostFxPanel();
+            SetUvEnabled(true);
         }
         private void BuildUvTab(VisualElement tabs)
         {
@@ -63,12 +59,8 @@ namespace DCFApixels.WhimTex
         {
             uvDrawer = new VisualElement { name = "uvDrawer" };
             uvDrawer.AddToClassList("whimtex-post-fx-drawer");
-            uvDrawer.Add(CreatePaneHeader("UV", "uvTitle"));
-            activateUvButton = AddCanvasDrawerActivation(uvDrawer, "activateUv", "Enable UV", () =>
-            {
-                OpenUvDrawer();
-                RefreshToolkitInterface();
-            });
+            uvEnabledToggle = AddCanvasDrawerToggleHeader(uvDrawer, "UV", "uvTitle", "uvEnabled", uvEnabled,
+                "Show mesh UV island outlines. Preview only; never included in the texture or export.", SetUvEnabled);
             var fields = new ScrollView(ScrollViewMode.Vertical);
             uvDrawerContent = fields;
             fields.AddToClassList("whimtex-post-fx-settings");
@@ -142,25 +134,25 @@ namespace DCFApixels.WhimTex
         }
         private void RefreshUvPanel()
         {
-            uvButton?.EnableInClassList("whimtex-channel-button--enabled", uvEnabled);
+            uvEnabledToggle?.SetValueWithoutNotify(uvEnabled);
             RefreshCanvasDrawerTab(uvTab, uvExpanded);
             uvDrawer?.EnableInClassList("whimtex-post-fx-drawer--hidden", !uvExpanded);
-            uvDrawerContent?.SetEnabled(uvEnabled && activeDocument != null);
-            activateUvButton?.EnableInClassList("whimtex-hidden", uvEnabled);
-            activateUvButton?.SetEnabled(activeDocument != null);
+            uvDrawerContent?.SetEnabled(activeDocument != null);
+            uvEnabledToggle?.SetEnabled(activeDocument != null);
         }
         private void RefreshUvReference()
         {
-            if (!uvEnabled || activeDocument == null) return;
+            if (activeDocument == null) return;
             Mesh mesh = activeDocument.uvReferenceMesh;
             int channel = activeDocument.uvReferenceChannel, submesh = activeDocument.uvReferenceSubmesh;
             int dirty = mesh != null ? EditorUtility.GetDirtyCount(mesh) : 0;
             string path = mesh != null ? AssetDatabase.GetAssetPath(mesh) : string.Empty;
             Hash128 hash = string.IsNullOrEmpty(path) ? default : AssetDatabase.GetAssetDependencyHash(path);
             if (uvCachedDocument == activeDocument && ReferenceEquals(mesh, uvCachedMesh) && channel == uvCachedChannel &&
-                submesh == uvCachedSubmesh && dirty == uvCachedDirty && hash == uvCachedHash) return;
+                submesh == uvCachedSubmesh && dirty == uvCachedDirty && hash == uvCachedHash && uvCachedEnabled == uvEnabled) return;
             uvCachedDocument = activeDocument; uvCachedMesh = mesh; uvCachedChannel = channel;
             uvCachedSubmesh = submesh; uvCachedDirty = dirty; uvCachedHash = hash;
+            uvCachedEnabled = uvEnabled;
             uvMap = null; uvHoveredIsland = -1;
             uvMeshField?.SetValueWithoutNotify(mesh);
             uvChannelField?.SetValueWithoutNotify("UV" + channel);
@@ -173,15 +165,19 @@ namespace DCFApixels.WhimTex
             }
             try
             {
-                uvMap = UvIslandMap.Build(mesh, channel, submesh);
-                uvMessage = $"{uvMap.islands.Count} UV islands. Choose UV Island in Area Select to select one. Overlapping UVs share texture pixels. Only the 0–1 UV tile is shown.";
-                if (uvMap.SkippedTriangles > 0) uvMessage += $" Skipped {uvMap.SkippedTriangles} empty or invalid UV faces.";
+                if (uvEnabled)
+                {
+                    uvMap = UvIslandMap.Build(mesh, channel, submesh);
+                    uvMessage = $"{uvMap.islands.Count} UV islands. Choose UV Island in Area Select to select one. Overlapping UVs share texture pixels. Only the 0–1 UV tile is shown.";
+                    if (uvMap.SkippedTriangles > 0) uvMessage += $" Skipped {uvMap.SkippedTriangles} empty or invalid UV faces.";
+                }
+                else uvMessage = mesh == null ? "Assign a Mesh to show its UV islands." : "Enable UV in the header to show the mesh outlines.";
             }
             catch (Exception error) { uvMessage = error.Message; }
             if (uvStatus != null)
             {
                 uvStatus.text = uvMessage;
-                uvStatus.messageType = uvMap == null && mesh != null ? HelpBoxMessageType.Warning : HelpBoxMessageType.Info;
+                uvStatus.messageType = uvEnabled && uvMap == null && mesh != null ? HelpBoxMessageType.Warning : HelpBoxMessageType.Info;
             }
             uvOverlay?.MarkDirtyRepaint();
         }

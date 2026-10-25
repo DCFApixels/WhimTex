@@ -1,5 +1,7 @@
 // @whimtex-effect Distortion/Spherize
 // @control(_Strength)
+// @group("Distortion")
+// @icon("../Editor/Icons/FX/Distortion.svg")
 // @group(Spherize Mode; _Mode)
 // @param hidden enum _Mode = 0 {Classic: 0, Sphere: 1} // Classic is the current unbounded radial distortion. Sphere wraps the image over a sphere and clips outside its circular edge.
 // @param float _Strength = 0.5 [~-1 .. ~1] // Positive values bulge; negative values pinch. Zero removes distortion but keeps the circular clip in Sphere mode.

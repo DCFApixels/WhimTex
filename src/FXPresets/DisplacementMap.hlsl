@@ -1,5 +1,7 @@
 // @whimtex-effect Distortion/Displacement Map
 // @control(_Amount)
+// @group("Distortion")
+// @icon("../Editor/Icons/FX/Distortion.svg")
 // @param hidden float _Amount = 1 [0 .. ~2] // Multiply displacement and parallax depth in every mode. Zero keeps the original image; one keeps the configured strength.
 // @group(Map Wrap; _MapWrap)
 // @param texture2D _DisplacementMap = self // Source field. Vector mode reads R/G; Grayscale mode reads the selected channel.

@@ -1,5 +1,7 @@
 // @whimtex-effect Distortion/Domain Warp
 // @control(_Strength)
+// @group("Distortion")
+// @icon("../Editor/Icons/FX/Distortion.svg")
 // @param hidden float _Strength = 1 [~-4 .. ~4] // Domain-warp amplitude. Zero outputs a neutral map. Negative values reverse the warp amplitude; progressive octaves can also change the pattern.
 // @group(Warp)
 // @param enum _WarpType = OpenSimplex2 {OpenSimplex2: 0, OpenSimplex2Reduced: 1, BasicGrid: 2}

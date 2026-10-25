@@ -12,6 +12,7 @@ namespace DCFApixels.WhimTex
         [SerializeField] private bool commentsExpanded;
         private VisualElement commentDrawer;
         private Button commentTab, closeAllCommentsButton;
+        private CanvasToolIcon commentPanelIcon;
         private Label commentListTitle, commentListEmpty;
         private ListView commentList;
         private enum CommentFilter { Open, Resolved, All, InProgress, AwaitingReview }
@@ -58,7 +59,7 @@ namespace DCFApixels.WhimTex
         private void BuildCommentTab(VisualElement tabs)
         {
             commentTab = CreateCanvasDrawerTab("commentsTab", "Comments — show or hide the list of all comments.",
-                new CanvasToolIcon(CanvasTool.Comment), ToggleCommentDrawer);
+                commentPanelIcon = new CanvasToolIcon(CanvasTool.Comment), ToggleCommentDrawer);
             tabs.Add(commentTab);
         }
 

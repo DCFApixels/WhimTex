@@ -176,7 +176,7 @@ public static class InputTilingTests
         {
             var host = Own(ScriptableObject.CreateInstance<InputTilingTestWindow>());
             host.titleContent = new GUIContent("WhimTex input tiling test"); host.ShowUtility();
-            var paths = new[] { "Transform/UV Transform", "Distortion/Spherize", "Distortion/Twirl",
+            var paths = new[] { "Distortion/UV Transform", "Distortion/Spherize", "Distortion/Twirl",
                 "Distortion/Radial Shear", "Distortion/Polar Coordinates", "Distortion/Displacement Map" };
             var catalog = assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog", true);
             foreach (var entry in (IEnumerable)catalog.GetMethod("GetEntries", F).Invoke(null, null))

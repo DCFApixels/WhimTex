@@ -37,5 +37,5 @@ JSON 结构或图层引用错误会阻止插入。图层 FX 编译失败时会�
 [画笔 JSON](painting.md#自定义画笔) 是独立格式，仍要求画笔着色器有效。
 重新粘贴会创建新图层，而不是更新之前的结果。
 
-对于单个着色器，请改为索取 HLSL，并将其粘贴到 **FX → + Shader FX**，然后点击 **Apply**。
+对于单个着色器，请改为索取 HLSL，并将其粘贴到 **FX → Add FX → Custom Shader FX**，然后点击 **Compile**。
 同一份 [AI 指南](../AI/README.md)解释了语法和可编辑参数。

@@ -39,6 +39,18 @@ namespace DCFApixels.WhimTex
             var v = Multiply(InverseLab, lab);
             return Encode(Multiply(InverseLms, new GradientVector(v.x * v.x * v.x, v.y * v.y * v.y, v.z * v.z * v.z)));
         }
+        internal static double HueChroma(GradientVector lab) => Math.Sqrt(lab.y * lab.y + lab.z * lab.z);
+        internal static GradientVector ResolveHue(GradientVector lab, double chroma)
+        {
+            // Circular mean direction follows the minor arc. Recover the mean chroma only
+            // when directions agree; a quintic fade keeps cancellation continuous in OKLab.
+            double magnitude = HueChroma(lab);
+            double agreement = magnitude / Math.Max(chroma, 1e-20);
+            double t = Math.Max(0, Math.Min(1, (agreement - .25) * 4));
+            double blend = t * t * t * (t * (t * 6 - 15) + 10);
+            double scale = 1 + blend * Math.Max(0, chroma - magnitude) / Math.Max(magnitude, 1e-20);
+            return new GradientVector(lab.x, lab.y * scale, lab.z * scale);
+        }
         internal static GradientVector ToLch(GradientVector lab)
         {
             double h = Math.Atan2(lab.z, lab.y) * 180 / Math.PI;

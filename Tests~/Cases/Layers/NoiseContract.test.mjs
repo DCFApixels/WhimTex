@@ -92,7 +92,7 @@ context.case("NoiseContract original assertion inputs and source contracts", asy
       const names = layer.match(new RegExp(`public enum ${type} \\{([^}]+)\\}`))[1].split(',').map(s => s.trim());
       assert.deepEqual(fields[field].enum, names, field);
   }
-  assert.equal(fields.encoding.default, 'LinearData');
+  assert.equal(fields.encoding.default, 'Linear');
   assert.equal(fields.dimensions.default, 'TwoD');
   assert.equal(fields.periodic.default, 'None');
   assert.equal(fields.periodic1D.default, false);

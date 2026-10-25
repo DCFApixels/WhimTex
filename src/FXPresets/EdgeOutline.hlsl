@@ -1,5 +1,7 @@
 // @whimtex-effect Stylization/Edge Outline
 // @control(_Opacity)
+// @group("Pattern")
+// @icon("../Editor/Icons/FX/Pattern.svg")
 // @param hidden float _Opacity = 1 [0 .. 1] // Blend with the FX result. Zero keeps the original image, including in Outline Only.
 // @group(Detection; _Detection)
 // @param hidden enum _Detection = Color {Color: 0, Luminance: 1, Hue: 2} // Find changes in color, brightness, or hue.

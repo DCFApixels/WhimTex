@@ -10,6 +10,20 @@ namespace DCFApixels.WhimTex
 
     internal static partial class WhimTexUserSettings
     {
+        private const string ColorHistoryLimitKey = "DCFApixels.WhimTex.ColorHistory.MaxColors";
+        internal const int DefaultColorHistoryLimit = 256;
+        internal static int ColorHistoryLimit
+        {
+            get => Math.Max(1, EditorPrefs.GetInt(ColorHistoryLimitKey, DefaultColorHistoryLimit));
+            set
+            {
+                value = Math.Max(1, value);
+                if (ColorHistoryLimit == value) return;
+                EditorPrefs.SetInt(ColorHistoryLimitKey, value);
+                Changed?.Invoke();
+            }
+        }
+
         private const string PressureCurveKey = "DCFApixels.WhimTex.TabletPressureCurve";
         private static AnimationCurve tabletPressureCurve;
         internal static AnimationCurve TabletPressureCurve
@@ -307,6 +321,7 @@ namespace DCFApixels.WhimTex
             PaintUndoDisk.Current.SetLimits(8, 100);
             ResetCommentAuthorColor();
             ClearCommentAuthorName();
+            EditorPrefs.DeleteKey(ColorHistoryLimitKey);
             EditorPrefs.DeleteKey(PressureCurveKey);
             tabletPressureCurve = null;
             EditorPrefs.DeleteKey(ImageOpenModeKey);

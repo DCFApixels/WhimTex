@@ -287,7 +287,7 @@ public static class NoiseVectorTests
                 layer.clippingMask = false; group.layers.Remove(basis);
                 var targeted = new NormalMapLayerBehaviour { inputMode = EffectInputMode.Specific, TargetLayerId = layer.Id,
                     inputSpace = NormalMapLayerBehaviour.InputSpace.Linear, sourceChannel = NormalMapLayerBehaviour.HeightChannel.Red,
-                    output = NormalMapLayerBehaviour.OutputMode.Height, encoding = NormalMapLayerBehaviour.OutputEncoding.LinearData, smoothing = 0 };
+                    output = NormalMapLayerBehaviour.OutputMode.Height, encoding = NormalMapLayerBehaviour.OutputEncoding.Linear, smoothing = 0 };
                 document.layers.Insert(0, targeted);
                 var before = Read(document);
                 n.field = NoiseLayerBehaviour.Field.Curl;

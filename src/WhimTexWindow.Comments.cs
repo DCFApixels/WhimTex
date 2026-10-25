@@ -9,7 +9,6 @@ namespace DCFApixels.WhimTex
     public sealed partial class WhimTexWindow
     {
         private Button canvasCommentButton;
-        private CanvasToolIcon commentToolIcon;
         private CommentManipulator commentManipulator;
         private VisualElement commentOverlay;
         private CommentPin commentDraftPin;
@@ -82,7 +81,7 @@ namespace DCFApixels.WhimTex
 
         private void RefreshCanvasComments()
         {
-            commentToolIcon?.SetCommentsState((activeDocument?.comments?.Count ?? 0) > 0,
+            commentPanelIcon?.SetCommentsState((activeDocument?.comments?.Count ?? 0) > 0,
                 activeDocument?.comments?.Exists(item => item.Status == WhimTexCommentStatus.AwaitingReview) == true);
             if (commentOverlay == null) return;
             bool visible = CanvasCommentsVisible;

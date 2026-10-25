@@ -88,7 +88,7 @@ public static class NormalSpecularTests
                     Color c = new Color(n.x, n.y, n.z, 1); if (packed) c = Linear(c);
                     c.a = x < 3 ? 0 : x < 6 ? .35f : 1; pixels[i] = c;
                 }
-                input.SetPixels(pixels); input.Apply(); Set("_PackedColor", packed ? 1 : 0);
+                input.SetPixels(pixels); input.Apply(); Set("_InputEncoding", packed ? 1 : 0);
             }
             Color[] Oracle()
             {

@@ -1208,11 +1208,16 @@ do not prove that a result layer/message still exists or has not subsequently ch
 
 ### FX edits and presets
 
-`whimtex_fx_catalog` accepts an optional `query` category/name substring. It discovers only `.hlsl`
+`whimtex_fx_catalog` accepts an optional `query` category/name/group substring. It discovers only `.hlsl`
 presets whose first physical line is `// @whimtex-effect Category/Name`, in Assets, installed
 packages and the user preset library. ShaderFX `.asset`, Material and standalone ShaderLab
 sources are not catalog entries. Each result has `id`, `path`, `name`,
-`kind` and `error`. Pass an exact returned `presetId` to obtain `effect` with code and parameter
+`kind`, `group` (null when absent), `error` and `icon`. A leading `// @group("Name")`
+organizes presets within each category submenu into alphabetical blocks separated by lines,
+without adding navigation levels or numeric priorities. See [preset list groups](ShaderFX.md#preset-list-groups).
+The icon descriptor reports `kind`, external `reference` and
+`warning`; document FX inspection returns the same fields. See [FX icons](ShaderFX.md#fx-icons).
+Pass an exact returned `presetId` to obtain `effect` with code and parameter
 types, current defaults, hard/soft bounds and enum options. Use IDs, not display names; invalid
 presets remain visible with an error. This command does not insert anything into a document.
 Project/package HLSL presets retain a source link; user-library presets are embedded snapshots.
@@ -1584,7 +1589,7 @@ Current Sharp/MTSDF quality prototype: closed raster contours use line fits over
 | Make Seamless | `makeSeamless`: `{ "mode": "OffsetBlend", "edgeWidth": 0.2, "offsetTransitionStart": -0.25 }`; [all four methods and parameters](#make-seamless-settings) |
 | Gradient, SDF | `gradient`: 1..64 `{"time":0.0,"color":[1,1,1,1]}` stops in strictly increasing time order, time 0..1 |
 
-SDF accepts `encoding` directly in settings: `Gradient` (default), `LinearData` or `MultiChannelData`, reported by `sdfEncodings` in capabilities. Its default palette matches Noise: black at 0, white at 1, with Perceptual color mode and Balanced interpolation. For Gradient and LinearData, Inverted reverses normalized distance before Profile; Gradient then samples the palette. LinearData outputs the remapped distance as raw linear RGB 0–1 with alpha 1, without gamma decoding or palette sampling. With `metric:"MTSDF"`, both scalar outputs use the median of the three RGB distances before this remap. In Signed mode low values are inside and high values outside. Switching output preserves the palette, profile and inversion setting; existing explicit gradient modes are retained. SDF has no `useGradient` field or ColorValues output. Document export encoding still applies normally; choose linear output when exporting numeric maps.
+SDF accepts `encoding` directly in settings: `Gradient` (default), `LinearData` or `MultiChannelData`, reported by `sdfEncodings` in capabilities. Its default palette matches Noise: black at 0, white at 1, with Perceptual color mode and Balanced interpolation. For Gradient and LinearData, Inverted reverses normalized distance before Profile; Gradient then samples the palette. LinearData outputs the remapped distance as raw linear RGB 0–1 with alpha 1, without gamma decoding or palette sampling. With `metric:"MTSDF"`, both scalar outputs use the median of the three RGB distances before this remap. In Signed mode low values are inside and high values outside. Switching output preserves the palette, profile and inversion setting; existing explicit gradient modes are retained. SDF has no `useGradient` field or Gamma output. Document export encoding still applies normally; choose linear output when exporting numeric maps.
 
 `encoding:"MultiChannelData"` requires `metric:"MTSDF"` in the resulting layer state; API settings reject a mismatched pair. It writes raw linear RGBA: RGB holds corner-preserving signed perpendicular/pseudo distances, and alpha holds the true signed Euclidean distance to the reconstructed subpixel contour. Alpha is distance data, not coverage. Each channel encodes `saturate(0.5 + 0.5 * d / maxDistance)`, with negative distances inside, positive outside and zero at 0.5; `maxDistance:0` uses the automatic symmetric range. This output bypasses `distancePosition`, `contourOffset`, `insideDistance`, `outsideDistance`, `inverted`, `profile` and the palette. It is not a copy of one scalar field into four channels, and its alpha is not distance to the binary bitmap. Preserve RGBA and linear encoding when exporting these data.
 
@@ -1948,6 +1953,7 @@ the following `settings` in an `add` or `set` operation:
 {
   "gradientType": "Freeform",
   "freeform": {
+    "colorMode": "Perceptual",
     "points": [
       { "position": [0.25, 0.3], "color": [1.5, 0.2, 0.1, 1], "influence": 0.35 },
       { "position": [0.75, 0.7], "color": [0.1, 0.3, 1.2, 0.4], "influence": 0.5 }
@@ -1963,13 +1969,19 @@ increases that point's relative weight; it does not impose a hard radius cutoff.
 are decoded and blended in linear space, retaining signed HDR and independent alpha.
 Use the layer's HDR rendering range when the output must retain values outside 0..1.
 
-Providing `freeform` replaces its complete point list; omitting it preserves the stored list.
+Providing `freeform` replaces its complete settings; omitting it preserves the stored settings.
+`colorMode` accepts `Linear`, `Gamma`, `Perceptual` (OKLab, default when omitted) or `Hue`.
+Hue uses a chroma-weighted circular mean, favoring the minor arc and smoothly falling back
+to Perceptual under directional conflict. It has no `huePath` option and is not an exact
+angular-speed match for the one-dimensional palette's Shortest interpolation.
+It selects RGB mixing; stored point colors and independently weighted alpha are unchanged.
+The same field is supported independently by figure `freeform` and `strokeFreeform` settings.
 Switching `gradientType` preserves both Freeform points and the ordinary `gradient` palette.
 The canvas Gradient creation tool also offers Freeform: a drag creates three equilateral-triangle points sampled from the current palette at 0, 0.5 and 1, preserving encoded HDR RGB and alpha, then activates point editing. This UI initialization does not change the API default point set; API callers specify `freeform.points` explicitly when matching a particular palette.
-Inspect returns `gradientType` and `freeform.points` alongside `gradientKeys`, including
+Inspect returns `gradientType`, `freeform.colorMode` and `freeform.points` alongside `gradientKeys`, including
 inactive settings. Live and file-based shared editing operations use this same contract.
 For Shape, use `settings.shape` with `fillMode:"Freeform"` and `freeform`, or
-`strokeMode:"Freeform"` and `strokeFreeform`. Each point field replaces that complete list;
+`strokeMode:"Freeform"` and `strokeFreeform`. Each field replaces its complete settings;
 omitted fields stay intact. Inspect includes both point fields under `settings.shape`.
 Vector `settings.vector.shapes` and Boolean Group `settings.booleanGroup.style` use the
 same paint fields, following their existing whole-array/whole-style replacement rules.
@@ -1992,20 +2004,27 @@ live and file-based shared editing operations.
   `(3*columns+1)*(3*rows+1)` entries in row-major order; a single cell has 16 controls.
 - `positions` entries are finite `[x,y]` local Bézier controls, including outside 0–1. Nodes are at lattice indices
   `(3*c,3*r)`; all other controls remain part of the saved model.
-- `colorMode` is `Linear`, `Gamma` or `Perceptual`. `Hue` is not supported.
+- `colorMode` is `Linear`, `Gamma`, `Perceptual` or `Hue`.
+- Hue requires `hueChroma`: a finite scalar coefficient for every color control, with
+  the same lattice length as `colors`. Retain this independent lattice on replacement;
+  do not recompute it from the OKLab coefficients after subdivision. Other modes use `null`.
+  Hue uses the same circular-mean/conflict rule as Freeform, without `huePath`.
 - `nodeModes` contains `(columns+1)*(rows+1)` row-major `Smooth`/`Corner` entries.
   This is a node array, not a control array. Explicit `null` means all Smooth;
   the field itself remains required. Newly created or inserted nodes use Smooth.
 - Optional `patchPriorities` is `null` or a row-major array of `columns*rows`
   `[constant,uCoefficient,vCoefficient]` triples. Each component is finite and
-  nonnegative; each triple sums to at most 1. Null/omission uses canonical overlap
-  order. Supplied planes preserve overlap order after subdivision; retain them
-  when replacing an inspected mesh instead of rebuilding them from cell indices.
+  nonnegative; each triple sums to at most 1. Null/omission uses equal parameter
+  intervals. Retained u slopes in the first row and v slopes in the first column
+  describe subdivision widths/heights; effective priorities are reconstructed
+  continuously, without independent cell offsets. Clone/API reads canonicalize
+  the planes. Retain them when replacing an inspected mesh instead of rebuilding
+  equal intervals; see the [mesh contract](JSON_FORMAT.md).
   Empty `nodeModes` or `patchPriorities` arrays are not valid input; use `null` for
   implicit defaults. Inspect also reports internal empty/default arrays as `null`,
   and API reads normalize implicit defaults to concrete arrays.
 - `colors` entries contain working coefficients, **not encoded display colors**:
-  linear RGB for Linear, encoded RGB for Gamma, OKLab for Perceptual, followed by
+  linear RGB for Linear, encoded RGB for Gamma, OKLab for Perceptual/Hue, followed by
   straight alpha. Signed HDR and alpha-control overshoot are allowed. Do not apply
   the ordinary color-field alpha clamp to these arrays; evaluated alpha is clamped.
 
@@ -2021,8 +2040,13 @@ continuous result; an API client performing subdivision must likewise preserve a
 coefficients and carry existing node modes; inserted nodes use Smooth.
 
 Malformed arrays, missing `nodeModes`, nonfinite values and unsupported color/node
-modes fail validation. Folded and overlapping geometry is allowed. Overlaps select
-one surface section without accumulating alpha from the others.
+modes fail validation. Folded and overlapping geometry is allowed. Overlaps use
+normalized color/opacity blending followed by whole-overlap reconstruction from
+surrounding colors and boundary variation. This redistributes colors inside the overlap
+without modifying the stored geometry or color coefficients.
+A narrow, smoothly fading band around the overlap allows the transition to match its
+surroundings. Alpha does not accumulate; pixels outside the overlap and this band retain
+their color and opacity.
 `mesh` on non-Gradient layers is rejected. The field schema is
 [`$defs.mesh`](AI/agent-fields.schema.json); the [storage contract](JSON_FORMAT.md#mesh-gradients)
 describes TIFF, JSON, clipboard and dormant data.
@@ -2418,7 +2442,7 @@ Use `type:"noise"` with partial `settings.noise` updates. `describe` exposes `no
 ```json
 {"op":"add","type":"noise","as":"height","settings":{"noise":{
   "noiseType":"OpenSimplex2","seed":1337,"scale":8,"offset":[0,0],
-  "fractal":"FBm","octaves":3,"lacunarity":2,"gain":0.5,"encoding":"LinearData"
+  "fractal":"FBm","octaves":3,"lacunarity":2,"gain":0.5,"encoding":"Linear"
 }}}
 ```
 
@@ -2446,13 +2470,13 @@ Use `type:"noise"` with partial `settings.noise` updates. `describe` exposes `no
 | `warpSeed` | Signed 32-bit integer, default 1337; independent of the noise `seed` |
 | `warpScale` | Scalar sets XY, or XYZ in active ThreeD; `[x,y]` preserves Z, `[x,y,z]` sets all axes. Each 0.01–1000; default `[1,1,1]`. Multipliers of Noise Scale; inspection returns XYZ |
 | `linkWarpScale` | boolean, default true; UI/Random All chain, explicit API values apply literally |
-| `encoding` | Value only: LinearData (default; raw normalized values), ColorValues (display colors), Gradient (monochrome noise mapped through a palette) |
+| `encoding` | Value only: Linear (default; raw normalized values), Gamma (display colors), Gradient (monochrome noise mapped through a palette) |
 | `vectorOutput` | Vector fields only: PackedVector (default; `XYZ * 0.5 + 0.5`), SignedVector (raw XYZ). Linear data, alpha 1, no implicit clamping |
 | `normalize`, `strength` | Vector fields only: boolean (default false), 0–100 (default 1). Normalize first, then multiply by Strength; zero stays zero |
 | `inverted` | Boolean; Value reverses 0–1 before palette sampling; vector fields negate the vector before encoding |
 | `gradient` | Shared stops/object, default black-to-white, Perceptual color mode and Balanced interpolation when omitted; RGBA/HDR palette, retained while disabled |
 
-With Field Value and without gradient mapping, RGB repeats the normalized scalar, except WhiteNoise/BlueNoise with Color which generates independent RGB; alpha is 1. Gradient output supplies RGB and alpha through the same encoded LUT and linear decode as SDF. Inverted remains available and reverses values before palette sampling. Color WhiteNoise/BlueNoise supports only ColorValues/LinearData: a retained Gradient setting temporarily renders/displays ColorValues, then returns to Gradient on switching to monochrome. Changing Output preserves the palette. Random All preserves `gradient` and keeps `encoding:Gradient`; otherwise it randomizes encoding only between ColorValues and LinearData. It can vary `inverted`; for grain noise with stored Gradient output it also preserves the Color setting so effective Output cannot change. Noise operations put the palette inside `settings.noise`; unified document/clipboard JSON uses `behaviour.gradient` on `NoiseLayerBehaviour`. Noise has no `useGradient` field.
+With Field Value and without gradient mapping, RGB repeats the normalized scalar, except WhiteNoise/BlueNoise with Color which generates independent RGB; alpha is 1. Gradient output supplies RGB and alpha through the same encoded LUT and linear decode as SDF. Inverted remains available and reverses values before palette sampling. Color WhiteNoise/BlueNoise supports only Gamma/Linear: a retained Gradient setting temporarily renders/displays Gamma, then returns to Gradient on switching to monochrome. Changing Output preserves the palette. Random All preserves `gradient` and keeps `encoding:Gradient`; otherwise it randomizes encoding only between Gamma and Linear. It can vary `inverted`; for grain noise with stored Gradient output it also preserves the Color setting so effective Output cannot change. Noise operations put the palette inside `settings.noise`; unified document/clipboard JSON uses `behaviour.gradient` on `NoiseLayerBehaviour`. Noise has no `useGradient` field.
 UI **Output** maps to `encoding` for Value or `vectorOutput` for vectors, **Seamless** to `periodic` (TwoD/ThreeD) or `periodic1D` (OneD), and the Scale chain to `linkScale`.
 There is no Noise `seamless` boolean, `scaleY`, `scaleZ` or `offsetZ` API field: use `periodic`/`periodic1D`, `scale:[x,y,z]`
 and `offset:[x,y,z]`. Supplying `gradient` alone does not enable it: also set `encoding:"Gradient"`.
@@ -2499,8 +2523,8 @@ a separate 256-sample RGB sequence in 1D. Seed hashes select translations/reflec
 not an expensive runtime rebake. Each channel has a separately generated rank table. Grain coordinates,
 ignored settings, encoding and inversion match WhiteNoise. Both grain types use
 `grainColor` and `grainSize`; old `whiteNoise*` aliases are not accepted. Offset Y in 1D selects a seeded variation of the sequence.
-The tables use 8-bit uniform ranks; use LinearData for raw dither thresholds.
-For masks/channel packing, prefer LinearData and apply the existing ChannelMapping/blend settings.
+The tables use 8-bit uniform ranks; use Linear for raw dither thresholds.
+For masks/channel packing, prefer Linear and apply the existing ChannelMapping/blend settings.
 For a Normal Map or SDF source, add the effect above Noise and assign `Previous` or a specific target as usual.
 Domain Warp uses a single warp pass; noise fractal settings affect the subsequent noise evaluation.
 Warp Seed is independent of Seed. Warp Scale multiplies Noise Scale separately on
@@ -2815,7 +2839,7 @@ clipping masks, duplication, conversion and raster export use the existing paths
 {"op":"add","type":"normalMap","as":"normal","settings":{"normalMap":{
   "mode":"Texture","strength":6,"smoothing":1,"mediumRadius":4,"largeRadius":32,
   "fineDetail":1.5,"mediumDetail":1,"largeDetail":0.5,"lightRemoval":0.75,
-  "edges":"Repeat","encoding":"PackedColor"
+  "edges":"Repeat","encoding":"Gamma"
 }}}
 {"op":"target","layer":"@normal","input":"Specific","target":"@art"}
 ```
@@ -2824,7 +2848,7 @@ clipping masks, duplication, conversion and raster export use the existing paths
 |---|---|
 | `mode` | `HeightMap` (default), `Texture` |
 | `sourceChannel` | `Luminance` (default), `Red`, `Green`, `Blue`, `Alpha`, `Maximum` |
-| `inputSpace` | `ColorValues` (default; encoded/display RGB), `Linear` (working values) |
+| `inputSpace` | `Gamma` (default; encoded/display RGB), `Linear` (working values) |
 | `strength` | 0..128, default 4 |
 | `blackLevel`, `whiteLevel` | 0..1 / 0.0001..16; defaults 0/1; white must exceed black |
 | `gamma` | 0.05..8, default 1 |
@@ -2838,7 +2862,7 @@ clipping masks, duplication, conversion and raster export use the existing paths
 | `ignoreTransparent` | Boolean, default true; alpha-normalized smoothing, except when Alpha is height |
 | `alphaMode` | `Opaque` (default), `Source` |
 | `output` | `Normal` (default), `Height` (reconstructed height for tuning) |
-| `encoding` | `PackedColor` (default; PNG/TGA/PSD/display), `LinearData` (raw linear EXR/Texture2D data) |
+| `encoding` | `Gamma` (default; PNG/TGA/PSD/display), `Linear` (raw linear EXR/Texture2D data) |
 
 Normals are tangent-space vectors packed into 0..1 RGB. Alpha is coverage, not a packed X channel.
 Positive height gradients tilt the normal toward negative X/Y; flips reverse each respective axis.
@@ -2855,8 +2879,8 @@ Opacity and clipping semantics are unchanged; missing and cyclic targets remain 
 
 Keep the resulting normal layer at full opacity with Normal blend, identity channelMapping and no color
 FX when exporting a normal texture. Color blending does not renormalize normals. Transform moves
-the output image without rotating its vectors. PackedColor compensates for the document's LDR
-gamma encoding; LinearData is the appropriate choice for raw linear output, not ordinary PNG export.
+the output image without rotating its vectors. Gamma compensates for the document's LDR
+gamma encoding; Linear is the appropriate choice for raw linear output, not ordinary PNG export.
 Import exported packed PNG/TGA as Normal Map with grayscale conversion disabled; see the
 [Unity normal-map import reference](https://docs.unity.cn/6000.1/Documentation/Manual/texture-type-normal-map.html).
 The API does not change source or exported texture import settings automatically.

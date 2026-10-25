@@ -86,7 +86,7 @@ namespace DCFApixels.WhimTex
             current.Add(explanation);
             Choice("Source Channel", () => layer.sourceChannel, v => layer.sourceChannel = v);
             Choice("Input Space", () => layer.inputSpace, v => layer.inputSpace = v,
-                "Color Values uses displayed RGB values. Linear uses working linear values, suitable for data textures imported without sRGB. Alpha is unchanged.", advanced: true);
+                "Gamma uses sRGB-encoded RGB values. Linear uses working linear values, suitable for data textures imported without sRGB. Alpha is unchanged.", advanced: true);
             Flag("Ignore Transparent", () => layer.ignoreTransparent, v => layer.ignoreTransparent = v,
                 "Normalize smoothing by source alpha to avoid dark fringes. Alpha height always includes transparency as height.", advanced: true);
 
@@ -121,7 +121,7 @@ namespace DCFApixels.WhimTex
             Choice("Alpha", () => layer.alphaMode, v => layer.alphaMode = v);
             Choice("Output", () => layer.output, v => layer.output = v, "Height outputs the reconstructed height for tuning. Switch back to Normal for a normal map.", advanced: true);
             Choice("Encoding", () => layer.encoding, v => layer.encoding = v,
-                "Packed Color keeps normal channel values correct in PNG/TGA/PSD and the color preview. Linear Data keeps raw 0–1 vector data in linear EXR/Texture assets; its color preview looks brighter.", advanced: true);
+                "Gamma keeps normal channel values correct in PNG/TGA/PSD and the color preview. Linear keeps raw 0–1 vector data in linear EXR/Texture assets; its color preview looks brighter.", advanced: true);
 
             void RefreshPresentation()
             {

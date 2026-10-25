@@ -118,7 +118,7 @@ the precision of the selection mask itself.
 
 Use a model's UV layout to paint individual parts of its texture:
 
-1. Enable **UV** in the Canvas View footer and assign a mesh or model from Project to **Mesh**. Models automatically use the first mesh in their hierarchy, including inactive nodes. To choose another mesh, expand the model and assign that mesh directly.
+1. Open the **UV** panel, check **UV** in its header and assign a mesh or model from Project to **Mesh**. Models automatically use the first mesh in their hierarchy, including inactive nodes. To choose another mesh, expand the model and assign that mesh directly.
 2. Choose **UV Channel** (usually **UV0**) and optionally a **Submesh** to show one material slot.
 3. Select **UV Island Select** below the toolbar separator, or click **Select UV Islands** in the UV panel. Enabling UV makes the tool available without selecting it.
 4. Click anywhere inside an island. `Shift` adds islands, `Alt` subtracts, and `Shift+Alt` intersects.

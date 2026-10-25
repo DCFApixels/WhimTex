@@ -178,7 +178,7 @@ public static class NoiseSmallScaleTests
             offset=new Vector3(723.9f,-340.202026f,0), fractal=NoiseLayerBehaviour.FractalType.PingPong,
             octaves=3,lacunarity=2.84f,gain=1,weightedStrength=.61f,pingPongStrength=1,
             warp=NoiseLayerBehaviour.WarpType.BasicGrid,warpStrength=.5f,
-            encoding=NoiseLayerBehaviour.OutputEncoding.ColorValues };
+            encoding=NoiseLayerBehaviour.OutputEncoding.Gamma };
         doc.layers.Add(n);
         typeof(WhimTexDocument).GetMethod("NormalizeModel",Flags).Invoke(doc,null);
         var candidate = new PrototypeNoiseLatticeSettings();
@@ -229,7 +229,7 @@ public static class NoiseSmallScaleTests
             }
             Save(sheet,Output+"/type"+kind+"-comparison.png");
             WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(sheet);sheet=null;
-            n.encoding=NoiseLayerBehaviour.OutputEncoding.LinearData;
+            n.encoding=NoiseLayerBehaviour.OutputEncoding.Linear;
             foreach(float scale in new[]{.25f,.68f,1f})
             foreach(int axes in new[]{1,2,3})
             foreach(int fractal in new[]{0,1,2,3})

@@ -20,11 +20,14 @@ namespace DCFApixels.WhimTex
         {
             if (string.IsNullOrWhiteSpace(menuPath) || menuPath.IndexOfAny(new[] { '\r', '\n' }) >= 0)
                 throw new FormatException("Choose a non-empty effect name.");
+            if (marker == "whimtex-effect") code = ShaderFXIconMetadata.MakePortable(code, sourcePath);
             var values = ShaderFXMetadata.ParseWithPreviews(code, false, out _, out var previews);
             ShaderFXMetadata.PreserveValues(values, parameters);
             var result = new StringBuilder("// @" + marker + " " + menuPath + "\n");
             string mainControl = ShaderFXMetadata.ReadControl(code, out _);
             if (mainControl != null) result.AppendLine("// @control(" + mainControl + ")");
+            string presetGroup = ShaderFXMetadata.ReadPresetGroup(code, out _);
+            if (presetGroup != null) result.AppendLine("// @group(\"" + presetGroup + "\")");
             var rows = new System.Collections.Generic.List<(int order, string text, ShaderFXParameterControl control)>();
             foreach (var p in values)
             {

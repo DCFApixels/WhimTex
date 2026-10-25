@@ -20,7 +20,7 @@ public static class NoiseTests
         var document = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.WhimTexDocument>());
         document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
         document.width = 99; document.height = 63;
-        var layer = new DCFApixels.WhimTex.NoiseLayerBehaviour { encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData };
+        var layer = new DCFApixels.WhimTex.NoiseLayerBehaviour { encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.Linear };
         document.layers.Add(layer);
         type.GetMethod("NormalizeModel", flags).Invoke(document, null);
         int checks = 0;
@@ -65,11 +65,11 @@ public static class NoiseTests
             var inverse = Render();
             for (int i = 0; i < a.Length; i++) Check(UnityEngine.Mathf.Abs(a[i].r + inverse[i].r - 1) < .002f, "Invert");
             layer.inverted = false;
-            layer.encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.ColorValues;
+            layer.encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.Gamma;
             var color = Render();
             for (int i = 0; i < a.Length; i++)
                 Check(UnityEngine.Mathf.Abs(color[i].r - UnityEngine.Mathf.GammaToLinearSpace(a[i].r)) < .003f, "Color encoding");
-            layer.encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData;
+            layer.encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.Linear;
             foreach (DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseType algorithm in System.Enum.GetValues(typeof(DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseType)))
             foreach (DCFApixels.WhimTex.NoiseLayerBehaviour.FractalType fractal in System.Enum.GetValues(typeof(DCFApixels.WhimTex.NoiseLayerBehaviour.FractalType)))
             {
@@ -128,12 +128,12 @@ public static class NoiseTests
             for (int i = 0; i < rgbNoise.Length; i++) for (int channel = 0; channel < 3; channel++)
                 Check(UnityEngine.Mathf.Abs(rgbNoise[i][channel] + whiteInverse[i][channel] - 1) < .002f, "White RGB inversion");
             layer.inverted = false;
-            layer.encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.ColorValues;
+            layer.encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.Gamma;
             var whiteDisplay = Render(99);
             for (int i = 0; i < rgbNoise.Length; i++) for (int channel = 0; channel < 3; channel++)
                 Check(UnityEngine.Mathf.Abs(whiteDisplay[i][channel] - UnityEngine.Mathf.GammaToLinearSpace(rgbNoise[i][channel])) < .003f,
                     "White RGB color encoding");
-            layer.encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData;
+            layer.encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.Linear;
             layer.offset = new UnityEngine.Vector2(1, 0);
             var shifted = Render(99);
             for (int y = 0; y < 63; y++) for (int x = 0; x < 98; x++)

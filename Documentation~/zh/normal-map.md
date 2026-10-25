@@ -24,7 +24,7 @@ translations: "en/normal-map.md,ru/normal-map.md,zh/normal-map.md"
 
 明亮区域为高，暗色区域为低。**Invert Height** 会将其反转。
 **Strength** 让浮雕更强；**Smoothing** 柔化细小的凸起。
-对于使用 Linear Data 编码的 Noise 源，请在 Advanced 中选择 **Input Space → Linear**。
+对于使用 Linear 编码的 Noise 源，请在 Advanced 中选择 **Input Space → Linear**。
 
 ## 从颜色纹理生成
 
@@ -50,9 +50,9 @@ translations: "en/normal-map.md,ru/normal-map.md,zh/normal-map.md"
 单独输出法线贴图时，请保持 **Normal** 混合、完全不透明和原始 [Mapping](color.md)，不要重排通道。
 避免使用颜色效果，它们会扭曲浮雕。
 
-为 PNG/TGA/PSD 选择 **Advanced → Encoding → Packed Color**。将导出的 PNG 或 TGA 以
+为 PNG/TGA/PSD 选择 **Advanced → Encoding → Gamma**。将导出的 PNG 或 TGA 以
 **Normal Map** 导入 Unity，不要进行灰度转换。
-当你的工作流需要线性 EXR 或 Texture2D 时，选择 **Encoding → Linear Data**。
+当你的工作流需要线性 EXR 或 Texture2D 时，选择 **Encoding → Linear**。
 
 旋转已完成的 Normal Map 图层只会旋转图像；起伏的受光方向仍像旋转前一样。
 要获得方向正确的浮雕，请在生成贴图之前变换源。

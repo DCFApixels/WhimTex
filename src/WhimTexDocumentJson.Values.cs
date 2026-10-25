@@ -196,7 +196,7 @@ namespace DCFApixels.WhimTex
                 foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.TextFillData).Properties())
                     defaultsV3["TextLayerBehaviour"][entry.Name] = entry.Value;
                 defaultsV3["TextLayerBehaviour"]["gradient"] = defaultsV3["WhimTexGradient"].DeepClone();
-                defaultsV3["GradientLayerBehaviour"]["freeform"] = JObject.Parse(@"{""points"":[
+                defaultsV3["GradientLayerBehaviour"]["freeform"] = JObject.Parse(@"{""colorMode"":""Perceptual"",""points"":[
                     {""position"":[0.25,0.3],""color"":[0.95,0.35,0.2,1],""influence"":0.35},
                     {""position"":[0.75,0.3],""color"":[0.2,0.5,0.95,1],""influence"":0.35},
                     {""position"":[0.5,0.75],""color"":[0.7,0.25,0.85,1],""influence"":0.35}]}");

@@ -11,7 +11,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
     const schema = JSON.parse(fs.readFileSync(path.join(root, 'Documentation~/AI/document.schema.json')));
     // The generated schema deliberately uses this small, dependency-free Draft 2020-12 vocabulary.
-    const keywords = new Set(['$schema', '$ref', '$defs', 'title', 'type', 'enum', 'const', 'anyOf', 'allOf',
+    const keywords = new Set(['$schema', '$ref', '$defs', 'title', 'type', 'enum', 'const', 'anyOf', 'allOf', 'if', 'then', 'else',
       'properties', 'additionalProperties', 'required', 'items', 'prefixItems', 'minItems', 'maxItems', 'minLength', 'maxLength', 'pattern', 'minimum', 'exclusiveMinimum', 'maximum', 'deprecated', 'description', 'default', 'not', 'contentEncoding']);
     function validate(value, rule, location = '$') {
       for (const key of Object.keys(rule)) assert(keywords.has(key), `Unsupported schema keyword ${key}`);
@@ -22,6 +22,12 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
         assert(valid, `${location}: no allowed variant: ${errors.join('; ')}`);
       }
       if (rule.allOf) for (const r of rule.allOf) validate(value, r, location);
+      if (rule.if) {
+        let matches = true;
+        try { validate(value, rule.if, location); } catch { matches = false; }
+        const branch = matches ? rule.then : rule.else;
+        if (branch) validate(value, branch, location);
+      }
       if (rule.not) {
         let matches = false;
         try { validate(value, rule.not, location); matches = true; } catch {}

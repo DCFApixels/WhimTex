@@ -30,7 +30,7 @@ document.width = document.height = 256;
 var layer = new DCFApixels.WhimTex.NoiseLayerBehaviour
 {
     noiseType = DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseType.BlueNoise,
-    encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData
+    encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.Linear
 };
 document.layers.Add(layer);
 type.GetMethod("NormalizeModel", flags).Invoke(document, null);

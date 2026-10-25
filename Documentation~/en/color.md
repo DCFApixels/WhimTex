@@ -48,7 +48,7 @@ Switching alone preserves the stored color; editing in Standard replaces it with
 | Exposure | Changes the actual HDR intensity in stops. RGB changes; alpha does not. |
 | Preview EV | Changes display brightness only, from −10 to +10. Saved colors and numeric values do not change. |
 
-Lower **Preview EV** to inspect bright colors. It affects the square, slider gradients and color/History swatches,
+Lower **Preview EV** to inspect bright colors. It affects the square, slider gradients and color/Color History swatches,
 not the hue ring, screen eyedropper, checkerboards or alpha. Each new picker starts at 0.
 Its footer matches the gradient editor; their exposure settings are independent.
 
@@ -60,33 +60,35 @@ the picker stays open and retains its current color. If your Editor cannot show 
 
 Alt sampling in WhimTex also updates that window's open **primary brush color** picker, including numbers and markers.
 Layer, gradient and secondary-color pickers are unaffected. Without a matching picker, Alt still changes the primary brush color.
-Its white eyedropper cursor samples at the lower-left tip, without a separate arrow. History swatches use the same cursor.
+Its white eyedropper cursor samples at the lower-left tip, without a separate arrow. Color History swatches use the same cursor.
 
-### Reuse colors from History
+### Reuse colors from Color History
 
-**History** stores colors with the document. Confirmed colors go to the front; intermediate slider values are not recorded.
-Confirming a color already in History moves it to the front without a duplicate, including when entered manually.
-Matching includes alpha and HDR intensity. Fields outside a document have no History.
+**Color History** stores colors with the document. Confirmed colors go to the front; intermediate slider values are not recorded.
+Confirming a color already in Color History moves it to the front without a duplicate, including when entered manually.
+Matching includes alpha and HDR intensity. Fields outside a document have no Color History.
+
+Set the limit in **User Settings → Color History → Maximum Colors** (default **256**, minimum **1**). Each document has its own history. Adding or reusing a color removes excess entries from the end; manual reordering changes which entries are removed first. A lower limit takes effect on the next addition or reuse, not when opening a document. Undo restores an evicted color together with the previous order.
 
 | Action | Result |
 | :--- | :--- |
 | Click a color | Apply it and move it to the first slot after **+**. |
 | Click **+** | Add the current color without closing the picker. |
-| Drag within History | Reorder colors. |
+| Drag within Color History | Reorder colors. |
 | Drag outside until the outline turns red, then release | Remove the color. Return inside or press Escape before release to cancel. |
 | Right-click → Remove, or Delete/Backspace | Remove the selected swatch. |
 
-Removing a swatch does not change layers that use that color. Explicit History actions remain even if you later
+Removing a swatch does not change layers that use that color. Explicit Color History actions remain even if you later
 cancel color selection with Escape; canceled manual color edits are not recorded.
 
-With **HDR off**, History hides colors with RGB outside 0–1 without deleting them.
+With **HDR off**, Color History hides colors with RGB outside 0–1 without deleting them.
 In the gradient editor, filtering follows the selected color key's HDR mode; alpha does not affect filtering.
 
-The gradient editor's History sits above **Presets**, without **+**.
+The gradient editor's Color History sits above **Presets**, without **+**.
 Select a color key, then click a swatch to apply RGB and HDR intensity; opacity keys and the key's position stay unchanged.
 The palette is unavailable for opacity keys and midpoints. Drag sorting and removal work as in the picker.
 
-History and gradient Presets remember their expanded state between sessions.
+Color History and gradient Presets remember their expanded state between sessions.
 
 ## Inspect a channel
 
@@ -102,7 +104,7 @@ in the Canvas View header; see [painting](painting.md#steady-the-path-and-protec
 
 ### Color picker channel view
 
-**Channels** in the color picker follows the R/G/B/A buttons in Canvas View for document colors (brushes, layers, gradient keys and FX). Turn it off for ordinary color display. The ring, square and slider gradients adapt; swatches compare the original color in the upper-left half with the channel view in the lower-right half. Their single alpha bar still shows actual transparency. RGB/HSV/HEX numbers and saved History colors remain original; editing is not restricted to visible channels.
+**Channels** in the color picker follows the R/G/B/A buttons in Canvas View for document colors (brushes, layers, gradient keys and FX). Turn it off for ordinary color display. The ring, square and slider gradients adapt; swatches compare the original color in the upper-left half with the channel view in the lower-right half. Their single alpha bar still shows actual transparency. RGB/HSV/HEX numbers and saved Color History colors remain original; editing is not restricted to visible channels.
 
 This choice is remembered across color pickers. Interface colors such as guides, UV overlays and checkerboards do not adapt. The eyedropper magnifier always shows the actual screen pixels. Layer Preview channel buttons are independent and do not affect the picker.
 HDR color fields keep their intensity gradients in both diagonal halves; the shared alpha bar still represents the stored alpha.
@@ -361,7 +363,11 @@ Use **Gradient Handles** to place colors anywhere on the layer:
 - Press **Delete** with the canvas focused, or use **Delete Point**, to remove it. One point must remain; up to 64 are supported.
 - **Escape** cancels a drag, including a point just added. Undo/Redo includes the whole gesture.
 
-Colors blend smoothly in linear space and support HDR and transparency. HDR colors also need
+**Color Model** chooses how the points blend: **Linear**, **Gamma**, **Perceptual** (default) or **Hue**.
+Hue favors the short route around the color circle and keeps more colorfulness where hues agree.
+Conflicting hues blend smoothly toward Perceptual; no Hue Path setting is needed.
+Changing it preserves the point colors and opacity; fill and stroke have independent choices.
+All four support HDR and transparency. HDR colors also need
 the layer's **Rendering → Color Range** set to **HDR** to remain brighter than white in the result.
 Changing Gradient Type preserves both the Freeform points and the ordinary gradient palette.
 Freeform is available for Gradient layers and Shape/Vector paints, including Boolean Group styling.
@@ -395,11 +401,19 @@ remembered between sessions; they do not change existing meshes.
   row or column. Subdivision preserves the colors and shape already drawn.
 - Use ordinary **Transform** to move, rotate or scale the whole mesh.
 
-**Color Model** offers Linear, Gamma and Perceptual. Changing it can alter transitions
+**Color Model** offers Linear, Gamma, Perceptual and Hue. Hue favors the short route around
+the color circle and smoothly blends toward Perceptual where hues conflict, without a Hue Path selector.
+Splitting rows or columns preserves the Hue result too. Changing the model can alter transitions
 between nodes. HDR colors are supported; choose **Rendering → Color Range → HDR**
 to retain brightness beyond white. Areas outside the mesh are transparent. Where the
-mesh overlaps itself, one surface section supplies the color and opacity; transparency
-does not build up from repeated coverage. Visible output still follows **Rendering → Tiling**.
+mesh overlaps itself, the transition is reconstructed across the whole overlapping area,
+using surrounding colors and their changes at the boundary. This redistributes colors
+inside a fold to reduce visible bands. A narrow transition band around the overlap also
+softens the join with its surroundings; its influence fades smoothly to zero. HDR is
+retained, and repeated coverage does not accumulate opacity. Outside the overlap and
+this band, colors and opacity stay unchanged. Strongly folded geometry can still leave
+a visible crease.
+Visible output still follows **Rendering → Tiling**.
 Switching Gradient Type preserves the mesh and the other gradient settings.
 
 Up to 16 rows and 16 columns are supported. Removing individual nodes or rows is
@@ -447,7 +461,7 @@ Changing a group's Mapping treats its contents as one image, so outside blending
 
 For the opposite mask, choose **1 - Luminance to Alpha** from Mapping's preset menu: black becomes opaque and white becomes transparent, with white RGB. This preset does not include the image's original transparency.
 
-To use this layer as a mask for another layer, select the artwork layer and add **FX → + Preset → Color → Mask**.
+To use this layer as a mask for another layer, select the artwork layer and add **FX → Add FX → Color → Mask**.
 Set the mask texture source to **Layer**, choose your mask layer, and set **Mask Channel → Alpha**.
 Under **Apply To → Channels**, leave only **A** enabled to change transparency without changing RGB.
 The mask layer can be hidden; the FX still reads it. See [texture sources](shader-fx.md#texture-sources).

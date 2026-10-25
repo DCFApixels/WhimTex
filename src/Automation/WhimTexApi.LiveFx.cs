@@ -191,6 +191,7 @@ namespace DCFApixels.WhimTex
                     }
                     entry["parameters"] = parameters;
                     entry["catalogPath"] = fx.CatalogPath;
+                    entry["icon"] = FxIconSnapshot(fx.IconMetadata, fx.SourcePath);
                 }
                 else entry["type"] = "empty";
                 result.Add(entry);

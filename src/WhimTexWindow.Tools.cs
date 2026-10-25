@@ -327,7 +327,11 @@ namespace DCFApixels.WhimTex
             else if (tool == CanvasTool.Gradient)
                 button.Add(gradientCreationToolIcon = new CanvasToolIcon(tool, gradientType: gradientCreationSettings?.type ?? GradientCreationType.Linear));
             else if (tool == CanvasTool.Comment)
-                button.Add(commentToolIcon = new CanvasToolIcon(tool));
+            {
+                var icon = new CanvasToolIcon(tool);
+                icon.SetCommentsState(true, false);
+                button.Add(icon);
+            }
             else if (tool == CanvasTool.PolygonSelect)
             {
                 lassoToolIcon = new CanvasToolIcon(tool);

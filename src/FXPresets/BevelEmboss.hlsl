@@ -1,4 +1,6 @@
 // @whimtex-effect Lighting/Bevel Emboss
+// @group("Lighting")
+// @icon("../Editor/Icons/FX/Lighting.svg")
 // @header(Height Source)
 // @param texture2D _HeightMap = self // Height image before this FX, or another layer. No raw distance data is used.
 // @param enum _HeightChannel = Luminance {Luminance: 0, R: 1, G: 2, B: 3, Alpha: 4} // Channel mapped to height in the 0 to 1 range.

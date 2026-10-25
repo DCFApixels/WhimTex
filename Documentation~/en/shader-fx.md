@@ -40,8 +40,12 @@ Unlike [Post FX preview](post-fx.md), both are included in the saved image.
 ## Apply an existing effect
 
 1. Select the layer you want to change.
-2. Use **+ Preset ▾** in its FX section and choose an effect by category.
+2. Click **Add FX** below the effect stack, or **+** beside **⋮** in the FX section header, including when the section is collapsed. Both open the same menu. Search by name or open a category to choose a preset; **Custom Shader FX** creates an effect for your own HLSL.
 3. Adjust its sliders, colors, textures, toggles and dropdowns. Changes appear immediately.
+
+In **Add FX**, the 31 built-in presets keep the Color, Distortion, Lighting, Normal Map and Stylization categories. Inside each category, related effects sit together, separated from other groups by a line. Groups and presets sort alphabetically. Add `// @group("Tone")` to an HLSL preset header to choose its group within its category. Presets without a group appear first. The quoted declaration does not need `@endgroup`. See [preset list groups](../ShaderFX.md#preset-list-groups).
+
+Preset icons appear beside names in **Add FX** and before the Enabled checkbox in each FX header. Related built-in effects share icons for color, tone, gradient, mask, distortion, lighting, normals, patterns and transforms. A missing or invalid icon uses the general FX symbol; hover over the header icon for details.
 
 Alternatively, drag a WhimTex effect `.hlsl` from Project onto a row in **Layers**.
 Dropping it onto Canvas View or empty space in the list creates a **Shader Processor** at the top of the composition.
@@ -50,7 +54,7 @@ HLSL brush presets and files without the effect marker are not accepted.
 If a preset contains invalid code or parameters, selecting it reports an error in Console and leaves the layer unchanged.
 
 Each catalog effect has its own settings. The included **Color → Gain** adjusts brightness and tint;
-**Transform → UV Transform** repositions the incoming image within a visible frame. Its default
+**Distortion → UV Transform** repositions the incoming image within a visible frame. Its default
 **Input Tiling → Clip** makes the area outside the frame transparent; Repeat or Mirror fills it with tiles.
 Effects added to the project become available automatically; no preset folder setup is needed.
 
@@ -182,11 +186,13 @@ but **UV Transform** with **Input Tiling → Clip** leaves pixels outside the fr
 
 ## Order, copying and HLSL sources
 
+Right-click the **FX** section header in Layer Settings or click **⋮** at its right to open stack actions, even while collapsed. **Paste FX As New** appends the copied effect; **Apply All** bakes the stack; **Remove All** removes every effect without baking. Removal can be undone. Apply and Remove are disabled for an empty stack.
+
 Effect order matters. Drag an FX header to reorder effects, or drop it onto another layer's row to move it there. **Move Up** and **Move Down** in the header context menu also change the order.
 
 Every FX belongs to the document and has independent parameter values and enabled state. Use **⋮ → Copy FX**, then **Paste FX As New** on another row to insert an independent copy after it. Layer-texture links stay within the same document and are cleared when pasted into another document. The menu also contains **Move Up**, **Move Down** and **Remove**.
 
-Project/package presets receive code changes from their source `.hlsl` file; their parameter values remain independent. Use **Open HLSL Source** to edit that source. To edit this effect independently, choose **Code → Embed Copy**: it disconnects the `.hlsl` link, keeps the current code and values in the document, and enables local code editing. Later source-file changes no longer update this effect. User-library presets already keep a snapshot in the document. For custom code, add **+ Shader FX**, write inline HLSL and click **Compile**. Parameters appear below the header; **Code** provides the applicable code controls, **Save Preset…** and **Shader Inputs**. Diagnostics appear when there is something to report.
+Project/package presets receive code changes from their source `.hlsl` file; their parameter values remain independent. Use **Open HLSL Source** to edit that source. To edit this effect independently, choose **Code → Embed Copy**: it disconnects the `.hlsl` link, keeps the current code and values in the document, and enables local code editing. Later source-file changes no longer update this effect. User-library presets already keep a snapshot in the document. For custom code, add **Add FX → Custom Shader FX**, write inline HLSL and click **Compile**. Parameters appear below the header; **Code** provides the applicable code controls, **Save Preset…** and **Shader Inputs**. Diagnostics appear when there is something to report.
 
 Only marked `.hlsl` presets and inline HLSL are supported. External Material, Shader and Shader FX `.asset` references cannot be added. Older JSON/TIFF documents containing external FX references are rejected with a diagnostic; there is no automatic migration or document rewrite. Keep the originals and use a matching older checkout to open them.
 
@@ -199,7 +205,7 @@ subfolder or anywhere under the project's **Assets** folder. Overwriting keeps a
 
 Set the shared library location in **User Settings → Presets → Presets Folder**. Its **Brushes**
 and **ShaderFX** subfolders hold the two kinds of presets. You can also place existing
-HLSL presets in ShaderFX or its subfolders; they appear under **User** in **+ Preset**.
+HLSL presets in ShaderFX or its subfolders; they appear under **User** in **Add FX**.
 The list refreshes in the background when you return to Unity. If you open it before the
 refresh finishes, close and reopen it to see the new presets. On first startup it may briefly show **Loading effect presets…**.
 User presets are copied into the document; later changes to their files do not change
@@ -221,7 +227,7 @@ Baking turns the current result into Drawing pixels. Choose the command by scope
 | :--- | :--- |
 | **Code → Compile** | Compile HLSL; keep the effect editable. Does not bake pixels. |
 | **⋮ → Apply** in an FX header/menu | Bake that FX and every preceding FX, in stack order. Later effects remain editable. |
-| **Apply All** beside the add-FX buttons | Bake the entire FX stack. |
+| **Apply All** in the FX section header menu | Bake the entire FX stack. |
 
 Disabled FX in the baked range are removed without contributing to the image.
 
@@ -231,7 +237,7 @@ Shader Processor also supports Apply. It captures its current input, including t
 
 ## Create your own effect
 
-If you have shader code, use **+ Shader FX**, paste it into the editor and click **Compile**.
+If you have shader code, use **Add FX → Custom Shader FX**, paste it into the editor and click **Compile**.
 The code and settings stay with the document; no separate file is required.
 If compilation reports a problem, see [FX errors and warnings](#compilation-warnings).
 
@@ -422,7 +428,7 @@ The same pattern list works per pixel in **Stylization → Posterize**.
 
 ### Edge contours
 
-Choose **FX → + Preset → Stylization → Edge Outline** to draw lines along sharp transitions.
+Choose **FX → Add FX → Edge Outline** to draw lines along sharp transitions.
 **Method → Boundary** creates uniform contours; **Scharr** makes weaker transitions less opaque.
 In Scharr, raise **Strength** to make these lines stronger. This control is hidden in Boundary.
 Both methods share the controls below; switching methods keeps their values.
@@ -452,7 +458,7 @@ especially with Scharr.
 - **Digital Glitch** combines line tears, independently segmented corruption blocks, channel shifts, color/noise/alpha artifacts and optional gradient tinting. **Seed**, **Effect Time** and **Frame Rate** control its repeatable animated variation; **Block Order** chooses independent row-first or column-first block layouts.
 
 ### Lighting and embossing
-- **Normal Map → Lighting** turns an RGB normal map into a shaded surface. **Normals** defaults to Self. Set **Light Direction** with its canvas handle, then adjust **Base Color**, light/shadow colors, **Intensity** and **Ambient**. Keep **Packed Color** enabled for the Normal Map layer's default output; disable it for Linear Data. **Flip Y** reverses the green-axis convention. Platform-packed normal textures are not supported.
+- **Normal Map → Lighting** turns an RGB normal map into a shaded surface. **Normals** defaults to Self. Set **Light Direction** with its canvas handle, then adjust **Base Color**, light/shadow colors, **Intensity** and **Ambient**. Set **Input Encoding → Gamma** for the Normal Map layer’s default output, or **Linear** for raw linear channels. **Flip Y** reverses the green-axis convention. Platform-packed normal textures are not supported.
 - **Lighting → Bevel Emboss** derives normals from **Height Map** (Self by default, or another layer). **Height Channel** selects luminance, R, G, B or Alpha; **Profile** maps height, **Depth** raises or engraves, and **Smoothing** sets the sampling radius in document pixels. For SDF, the visible gradient and distance ranges define bevel width.
 
 Both effects use **Base Color alpha** to blend transparent lighting (0) into the filled, shaded surface (1). Intermediate values crossfade with alpha-aware mixing. RGB tints the surface; **Ambient** fades in with it. **Output** selects Both, Highlight Only or Shadow Only for the transparent component and has no effect at Base Color alpha = 1. Light Color/Shadow Color alpha controls that component's strength. Overall opacity and blending belong to the layer. Both effects default to Base Color alpha 0. Re-add the preset to update an older embedded copy.
@@ -463,12 +469,12 @@ Both effects use **Base Color alpha** to blend transparent lighting (0) into the
 **Normal Map → Normalize** restores unit-length normals while preserving alpha.
 Use it after processing an RGB normal map if its vectors have changed length.
 Neutral `(0.5, 0.5, 1)` stays unchanged; an undefined direction becomes neutral.
-Keep **Packed Color** enabled for the Normal Map layer's default encoding; disable it for **Linear Data**.
+Set **Encoding → Gamma** for the Normal Map layer’s default encoding, or **Linear** for raw linear channels. This setting applies to both input and output.
 This toggle accounts for color encoding, but does not unpack platform-specific normal-map formats.
 
 ## Distortion presets
 
-Choose **FX → + Preset → Distortion → Spherize**, **Twirl**, **Radial Shear** or **Displacement Map**.
+Choose **FX → Add FX → Spherize**, **Twirl**, **Radial Shear** or **Displacement Map**.
 
 The numeric field in each FX header controls distortion: **Strength** for Spherize and
 Radial Shear, **Angle** for Twirl, and **Amount** for Displacement Map and Polar Coordinates.

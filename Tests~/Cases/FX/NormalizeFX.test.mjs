@@ -9,7 +9,7 @@ context.case("NormalizeFX original assertion inputs and source contracts", async
   assert.ok(source.startsWith('// @whimtex-effect Normal Map/Normalize\n'));
   assert.ok(source.includes('channels * 2.0 - 1.0'));
   assert.ok(source.includes('SpriteDecode(channels) : channels, color.a'));
-  assert.ok(source.includes('// @param bool _PackedColor = true'));
+  assert.ok(source.includes('// @param enum _Encoding = Gamma {Linear: 0, Gamma: 1}'));
   assert.ok(source.includes('SpriteEncode(color.rgb)'));
   function normalize(color) {
       const normal = color.slice(0, 3).map(c => c * 2 - 1);

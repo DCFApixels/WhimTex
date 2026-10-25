@@ -42,7 +42,7 @@ public static class UnifiedLightingTests
             var ramp=FX("float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;float h=.25+.5*uv.x;return float4(h,h,h,1);}");
             var packed=FX("float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(normalize(float3(-3.0/128,0,1))*.5+.5,1);}");
             Layer host=new ColorFillLayerBehaviour();doc.layers.Add(host);
-            P(normal,"_PackedColor").floatValue=0;
+            P(normal,"_InputEncoding").floatValue=0;
             foreach(var fx in new[]{normal,bevel})
             {
                 P(fx,"_Intensity").floatValue=3;

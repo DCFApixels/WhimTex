@@ -431,7 +431,7 @@ namespace DCFApixels.WhimTex
                     }
                     if (options.Mode != WhimTexJsonWriteMode.Full && !IsActive(value, field.Name)) continue;
                     object item = field.GetValue(value);
-                    if (value is MeshGradient && (field.Name == "nodeModes" || field.Name == "patchPriorities") &&
+                    if (value is MeshGradient && (field.Name == "nodeModes" || field.Name == "patchPriorities" || field.Name == "hueChroma") &&
                         item is Array array && array.Length == 0) item = null;
                     if (value is ShaderFX effect && field.Name == "parameters")
                     {
@@ -453,7 +453,7 @@ namespace DCFApixels.WhimTex
                         encoded = identity.DeepClone();
                     else if (value is ShaderFX fx && field.Name == "code")
                     {
-                        try { encoded = new JValue(ShaderFXSourceBuilder.ExportIncludes(fx.Code, fx.SourcePath)); }
+                        try { encoded = new JValue(ShaderFXSourceBuilder.ExportIncludes(ShaderFXIconMetadata.MakePortable(fx.Code, fx.SourcePath), fx.SourcePath)); }
                         catch (Exception error) when (error is IOException || error is InvalidOperationException)
                         { encoded = new JValue(fx.Code); }
                     }
@@ -631,7 +631,7 @@ namespace DCFApixels.WhimTex
                     ((MeshGradient)result).patchPriorities = null;
                     foreach (string field in new[] { "columns", "rows", "colorMode", "positions", "colors", "nodeModes" })
                         if (node[field] == null) throw JsonError(node, "Mesh requires the complete control lattice; missing " + field + ".");
-                    foreach (string field in new[] { "nodeModes", "patchPriorities" })
+                    foreach (string field in new[] { "nodeModes", "patchPriorities", "hueChroma" })
                         if (node[field] is JArray empty && empty.Count == 0)
                             throw JsonError(node[field], "Use null for implicit Mesh defaults, not an empty array.");
                     if (node["patchPriorities"] is JArray priorities)

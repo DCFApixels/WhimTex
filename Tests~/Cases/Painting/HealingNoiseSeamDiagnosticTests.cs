@@ -55,7 +55,7 @@ public static class HealingNoiseSeamDiagnosticTests
         var focused = EditorWindow.focusedWindow;
         const string pref = "DCFApixels.WhimTex.Canvas.Tool";
         bool hadPref = EditorPrefs.HasKey(pref); string oldPref = EditorPrefs.GetString(pref);
-        var report = new StringBuilder("256x256; Noise ColorValues; scale 8; seed 1337; size 64; hardness .8; search 64; Balanced; Current Layer.\n");
+        var report = new StringBuilder("256x256; Noise Gamma; scale 8; seed 1337; size 64; hardness .8; search 64; Balanced; Current Layer.\n");
         try
         {
             foreach (bool fractal in new[] { false, true })
@@ -68,8 +68,8 @@ public static class HealingNoiseSeamDiagnosticTests
                     document = (WhimTexDocument)Get(window, "activeDocument"); document.width = document.height = N;
                     var noise = new NoiseLayerBehaviour { noiseType = NoiseLayerBehaviour.NoiseType.Perlin,
                         fractal = fractal ? NoiseLayerBehaviour.FractalType.FBm : NoiseLayerBehaviour.FractalType.None,
-                        scale = 8, seed = 1337, encoding = NoiseLayerBehaviour.OutputEncoding.ColorValues };
-                    // The recorded quality gates used ColorValues, before Noise defaulted to LinearData.
+                        scale = 8, seed = 1337, encoding = NoiseLayerBehaviour.OutputEncoding.Gamma };
+                    // The recorded quality gates used Gamma, before Noise defaulted to Linear.
                     document.layers.Add(noise); Call(document, "NormalizeModel");
                     var previous = RenderTexture.active;
                     var rendered = (RenderTexture)Call(document, "RenderLayerPreview", noise.Owner, N);

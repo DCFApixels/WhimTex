@@ -233,7 +233,7 @@ static System.Threading.CancellationToken Cancellation;
         Check(plane.worldBound.width>=100&&Mathf.Abs(plane.worldBound.width-plane.worldBound.height)<1,"Square color plane laid out");
         Check(Vector2.Distance(plane.worldBound.center,ring.worldBound.center)<1,"Square centered within hue ring");
         Check(root.Query(className:"whimtex-picker-ramp").ToList().Count==5,"Gradient tracks for RGB/HSV, alpha and exposure");
-        Check(root.Query<Foldout>().ToList().Single().text=="History","History uses foldout without Swatches");
+        Check(root.Query<Foldout>().ToList().Single().text=="Color History","History uses foldout without Swatches");
         foreach(var button in root.Query<Button>().ToList()) Check(root.worldBound.Contains(button.worldBound.center),"Action inside window: "+button.text);
         var history=(VisualElement)Get(picker,"history");
         Check(history.childCount==21,"History swatches and add button visible");

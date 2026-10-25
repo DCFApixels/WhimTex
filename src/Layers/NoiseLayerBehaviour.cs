@@ -15,7 +15,7 @@ namespace DCFApixels.WhimTex
         public enum CellularDistance { Euclidean, EuclideanSquared, Manhattan, Hybrid }
         public enum CellularReturn { CellValue, Distance, Distance2, Distance2Add, Distance2Sub, Distance2Mul, Distance2Div }
         public enum WarpType { None, OpenSimplex2, OpenSimplex2Reduced, BasicGrid }
-        public enum OutputEncoding { ColorValues, LinearData, Gradient }
+        public enum OutputEncoding { Gamma, Linear, Gradient }
         public enum NoiseDimensions { TwoD, OneD, ThreeD }
         public enum PeriodicAxes { None, X, Y, XY }
 
@@ -120,13 +120,13 @@ namespace DCFApixels.WhimTex
             get => new Vector3(WarpScale.x, WarpScale.y, Limit(warpScaleZ, .01f, 1000f, 1f));
             set { WarpScale = value; warpScaleZ = Limit(value.z, .01f, 1000f, 1f); }
         }
-        public OutputEncoding encoding = OutputEncoding.LinearData;
+        public OutputEncoding encoding = OutputEncoding.Linear;
         public bool inverted;
         public WhimTexGradient gradient = new WhimTexGradient();
 
         internal bool SupportsGradient => !IsVectorField && (!IsGrain || grainColor != GrainColor.Color);
         internal OutputEncoding EffectiveOutput => encoding == OutputEncoding.Gradient && !SupportsGradient
-            ? OutputEncoding.ColorValues : encoding;
+            ? OutputEncoding.Gamma : encoding;
 
         [NonSerialized] private ProceduralLayerThumbnail thumbnail;
         [NonSerialized] private WhimTexGradientTexture gradientLut;

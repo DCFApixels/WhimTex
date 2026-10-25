@@ -75,10 +75,20 @@ Positions are local layer UV coordinates, with (0,0) at the bottom left; finite 
 outside 0–1 are permitted within -10000..10000. Influence is 0.01–4 (default 0.35),
 displayed as 1–400%. Its guide is circular in local UV space and follows the layer transform.
 It controls relative spread, not a hard clipping radius; scaling every influence equally leaves the blend unchanged.
-RGB is straight, encoded color with signed HDR support; alpha is 0–1. Evaluation decodes
-RGB into linear working space and mixes RGBA with normalized inverse fourth-power
-distance weights. A small squared-distance floor keeps coincident points finite; equal-position
+RGB is straight, encoded color with signed HDR support; alpha is 0–1. `freeform.colorMode`
+accepts `Linear`, `Gamma`, `Perceptual` (OKLab, default) or `Hue`. Point colors remain encoded when
+switching models. RGB is mixed in the selected space with normalized inverse fourth-power
+distance weights and converted to linear output; alpha uses the same weights independently.
+CPU evaluation and GPU painting share this contract. A small squared-distance floor keeps coincident points finite; equal-position
 points mix at their common anchor. Transparent points retain their RGB.
+
+Hue accumulates OKLab and chroma independently with the same weights. The mean a/b vector
+gives a chroma-weighted circular direction, preferring the minor arc without a `huePath`.
+Its length divided by mean chroma measures agreement: at or below 0.25 the result is
+Perceptual; from 0.25 to 0.5 a quintic smoothstep restores the mean chroma, fully restored
+at 0.5 or above. Neutral colors contribute no arbitrary direction. Zero-length means are
+finite and remain neutral. This two-dimensional rule does not reproduce the exact angular
+speed of one-dimensional Shortest interpolation. RGB remains signed HDR; alpha is unchanged.
 
 All JSON modes and native TIFF retain Freeform points even while a different gradient type
 is selected, and retain the ordinary `gradient` palette while Freeform is selected.
@@ -87,7 +97,7 @@ there is no per-point canvas-sized texture.
 
 Shape and Vector/Boolean Group styles also accept `fillMode:"Freeform"` or
 `strokeMode:"Freeform"` (`VectorFillMode` ID 7). The independent fields `freeform`
-and `strokeFreeform` have the same point contract in normalized layer-local coordinates,
+and `strokeFreeform` have independent `colorMode` values and the same point contract in normalized layer-local coordinates,
 before the layer/parent transform. Both are retained in inactive modes; active Freeform
 data must be non-null even when its painting gate is disabled. Shape-to-Vector conversion
 clones both point sets. Palette anchors and repetitions do not affect Freeform.
@@ -102,16 +112,22 @@ Only `GradientLayerBehaviour` accepts `gradientType:"Mesh"` (enum ID 7). Its ind
 | Field | Contract |
 | --- | --- |
 | `columns`, `rows` | Cell counts, integers 1–16. These are not node counts. |
-| `colorMode` | `Linear`, `Gamma` or `Perceptual`; `Hue` is rejected. |
+| `colorMode` | `Linear`, `Gamma`, `Perceptual` or `Hue`. |
 | `positions` | Finite row-major `[x,y]` controls in local coordinates, including values outside 0–1. Exactly `(3*columns+1)*(3*rows+1)` entries. |
 | `colors` | Row-major four-component working-space coefficients, with the same length as `positions`. |
+| `hueChroma` | Required non-null for Hue: finite scalar chroma coefficients, same length/order as `colors`. Other models use `null`. |
 | `nodeModes` | Row-major `Smooth`/`Corner` entries for `(columns+1)*(rows+1)` nodes, or `null` for all Smooth; new nodes default to `Smooth`. |
-| `patchPriorities` | Optional row-major `[constant,uCoefficient,vCoefficient]` per cell. `null` or omission uses canonical ordering. |
+| `patchPriorities` | Optional row-major `[constant,uCoefficient,vCoefficient]` per cell. `null` or omission uses equal parameter intervals. |
 
 For lattice width `w=3*columns+1`, element `(x,y)` has index `y*w+x`. User nodes are
 at `(3*c,3*r)`; the other entries are Bézier controls and must not be omitted or
 reconstructed from the nodes. `colors` stores linear RGB for `Linear`, encoded RGB
-for `Gamma`, and OKLab for `Perceptual`. Its fourth component is a straight alpha
+for `Gamma`, and OKLab for `Perceptual`/`Hue`. Hue evaluates the independent `hueChroma`
+cubic field and applies the same circular-mean/conflict rule as Freeform. Both fields
+are subdivided with de Casteljau, preserving the image and shared-cell continuity.
+Do not reconstruct hueChroma as the magnitude of subdivided a/b controls. Chroma controls
+can be negative; the evaluated correction never reduces chroma below the Perceptual result.
+The fourth component of `colors` is a straight alpha
 coefficient. It is not the ordinary encoded RGBA color contract: signed HDR and control
 overshoot are retained, including alpha coefficients outside 0–1. Evaluation clamps
 alpha to 0–1. C# callers use `NodeColor`/`SetNodeColor` for encoded display colors.
@@ -144,14 +160,22 @@ rewriting coefficients, so file reads preserve geometry exactly.
 `MoveEdge(node,direction,delta)` translates the edge's two handles and adjoining
 tensor controls without moving its endpoint nodes. Smooth endpoint modes can also
 realign the opposite handles. Directions are 0 left, 1 right, 2 down, 3 up.
-Overlapping regions select one surface section instead of compositing their alpha
-repeatedly. `patchPriorities` retains this choice through subdivision: the priority
-inside a cell is `constant + uCoefficient*u + vCoefficient*v`. A supplied array
-must have `columns*rows` triples. All three components must be finite and nonnegative,
-and their sum must not exceed 1; zero u/v coefficients are allowed. `null` uses
-canonical patch-index ordering followed by local v/u ordering. Subdivision creates
-or transforms priority planes so that an overlap keeps its previous winner.
-Preserve them on raw roundtrip; they are technical data, not a blend-mode control.
+Overlaps blend surface colors and opacity with normalized weights, not source-over alpha.
+Weights fade near folds and exposed mesh edges; regions with one surface retain their
+original color. MSAA samples are normalized separately to preserve edge coverage.
+A GPU reconstruction then redistributes premultiplied linear RGBA across the whole
+overlap using surrounding colors and boundary variation. A narrow transition band
+around the overlap fades smoothly into the original image; pixels outside both regions
+stay unchanged. The stored mesh is untouched, HDR is retained and alpha does not accumulate.
+`patchPriorities` retains the row/column parameter intervals through subdivision.
+A supplied array has `columns*rows` triples with finite, nonnegative components
+summing to at most 1. The u slopes in the first row define column widths; v slopes
+in the first column define row heights. Each axis is normalized to 0–1 (all-zero
+slopes use equal intervals). Effective priority planes are rebuilt as a continuous
+field across shared edges; independent stored constants do not control overlap order.
+Null/omission uses equal intervals. Clone, subdivision and API reads canonicalize
+the planes; preserve them when replacing a mesh instead of recreating equal cells.
+These are technical data, not a blend-mode control.
 Outside the mesh boundary the source is transparent; Mesh resolves `Source` tiling to
 `Clip`. Ordinary palette interpolation
 and wrapping do not control Mesh. Shape, Vector, Text, Boolean Group styles and

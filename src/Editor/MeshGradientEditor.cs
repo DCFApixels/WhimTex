@@ -18,7 +18,7 @@ namespace DCFApixels.WhimTex
                 var next = layer.mesh.Clone(); edit(next); next.Validate();
                 apply(label, () => layer.mesh = next);
             }
-            var model = WhimTexUI.ConfigureField(new PopupField<string>("Color Model", new List<string> { "Linear", "Gamma", "Perceptual" }, 2) { name = "meshColorModel" });
+            var model = WhimTexUI.ConfigureField(new PopupField<string>("Color Model", new List<string> { "Linear", "Gamma", "Perceptual", "Hue" }, 2) { name = "meshColorModel" });
             bindings.Track(model, () => (layer.mesh?.colorMode ?? WhimTexGradientColorMode.Perceptual).ToString());
             model.RegisterValueChangedCallback(e => Change("Change Mesh Color Model", next => next.SetColorMode(Enum.Parse<WhimTexGradientColorMode>(e.newValue))));
             root.Add(model);

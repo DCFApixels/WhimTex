@@ -14,15 +14,16 @@ namespace DCFApixels.WhimTex
         [Serializable]
         internal sealed class Entry
         {
-            [SerializeField] internal string guid, path, menuPath, error;
+            [SerializeField] internal string guid, path, menuPath, group, error;
             [SerializeField] internal bool user;
+            [SerializeField] internal ShaderFXIconMetadata.Descriptor icon;
             internal bool HasError => !string.IsNullOrEmpty(error);
         }
 
         [Serializable]
         private sealed class Snapshot { public List<Entry> entries = new List<Entry>(); }
         // SessionState survives domain reloads but is discarded when the Editor closes.
-        private const string SessionKey = "WhimTex.ShaderFXCatalog.Headers.v2";
+        private const string SessionKey = "WhimTex.ShaderFXCatalog.Headers.v4";
 
         internal static string Folder => Path.GetFullPath(Path.Combine(WhimTexUserSettings.PresetsFolder, "ShaderFX"));
 
@@ -72,6 +73,7 @@ namespace DCFApixels.WhimTex
             var list = new List<Entry>(entries.Values);
             list.Sort((a, b) => string.Compare(a.menuPath, b.menuPath, StringComparison.OrdinalIgnoreCase));
             sortedEntries = list;
+            ShaderFXIconCache.Warm(sortedEntries);
         }
 
         private static void UserSettingsChanged()
@@ -227,8 +229,11 @@ namespace DCFApixels.WhimTex
             try
             {
                 using var reader = new StreamReader(physical);
-                if (!ShaderFXMetadata.TryHeader(reader.ReadLine(), out string menuPath)) return null;
-                var entry = new Entry { path = path, menuPath = menuPath, user = user };
+                string header = ShaderFXIconMetadata.ReadHeader(reader);
+                using var firstLine = new StringReader(header);
+                if (!ShaderFXMetadata.TryHeader(firstLine.ReadLine(), out string menuPath)) return null;
+                var entry = new Entry { path = path, menuPath = menuPath, user = user, icon = ShaderFXIconMetadata.Read(header) };
+                entry.group = ShaderFXMetadata.ReadPresetGroup(header, out entry.error);
                 foreach (string segment in menuPath.Split('/'))
                     if (string.IsNullOrWhiteSpace(segment)) entry.error = "Effect category/name must not contain empty segments.";
                 return entry;
@@ -278,6 +283,15 @@ namespace DCFApixels.WhimTex
 
         internal static void ShowMenu(Action<Entry> select) => BuildMenu(select).ShowAsContext();
 
+        internal static string EmptyMenuMessage => initialized
+            ? "No effects found — add a marked .hlsl file" : "Loading effect presets…";
+
+        internal static void OpenUserFolder()
+        {
+            try { Directory.CreateDirectory(Folder); EditorUtility.RevealInFinder(Folder); }
+            catch (Exception error) { EditorUtility.DisplayDialog("Shader FX Presets", error.Message, "OK"); }
+        }
+
         private static GenericMenu BuildMenu(Action<Entry> select)
         {
             var menu = new GenericMenu();
@@ -289,8 +303,7 @@ namespace DCFApixels.WhimTex
                 labels.TryGetValue(label, out int count);
                 labels[label] = count + 1;
             }
-            if (list.Count == 0) menu.AddDisabledItem(new GUIContent(initialized
-                ? "No effects found — add a marked .hlsl file" : "Loading effect presets…"));
+            if (list.Count == 0) menu.AddDisabledItem(new GUIContent(EmptyMenuMessage));
             foreach (var entry in list)
             {
                 string label = (entry.user ? "User/" : "") + entry.menuPath;
@@ -300,11 +313,7 @@ namespace DCFApixels.WhimTex
                 else menu.AddItem(content, false, () => select(entry));
             }
             menu.AddSeparator("");
-            menu.AddItem(new GUIContent("Open User Shader FX Folder"), false, () =>
-            {
-                try { Directory.CreateDirectory(Folder); EditorUtility.RevealInFinder(Folder); }
-                catch (Exception error) { EditorUtility.DisplayDialog("Shader FX Presets", error.Message, "OK"); }
-            });
+            menu.AddItem(new GUIContent("Open User Shader FX Folder"), false, OpenUserFolder);
             menu.AddItem(new GUIContent("Library Settings…"), false, WhimTexUserSettingsWindow.Open);
             return menu;
         }
@@ -398,7 +407,11 @@ namespace DCFApixels.WhimTex
             return string.Equals(a.guid, b.guid, StringComparison.Ordinal) &&
                 string.Equals(a.path, b.path, StringComparison.Ordinal) &&
                 string.Equals(a.menuPath, b.menuPath, StringComparison.Ordinal) &&
+                string.Equals(a.group, b.group, StringComparison.Ordinal) &&
                 string.Equals(a.error, b.error, StringComparison.Ordinal) &&
+                string.Equals(a.icon?.reference, b.icon?.reference, StringComparison.Ordinal) &&
+                string.Equals(a.icon?.svg, b.icon?.svg, StringComparison.Ordinal) &&
+                string.Equals(a.icon?.error, b.icon?.error, StringComparison.Ordinal) &&
                 a.user == b.user;
         }
 

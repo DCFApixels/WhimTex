@@ -20,12 +20,40 @@ namespace DCFApixels.WhimTex
             button?.EnableInClassList("whimtex-tool-button--selected", expanded);
         }
 
-        private static Button AddCanvasDrawerActivation(VisualElement drawer, string name, string text, Action activate)
+        private static VisualElement AddCanvasDrawerHeader(VisualElement drawer)
         {
+            var header = new VisualElement();
+            header.AddToClassList("whimtex-pane-header");
+            header.AddToClassList("whimtex-canvas-drawer-header");
+            header.EnableInClassList("whimtex-pane-header--light", !UnityEditor.EditorGUIUtility.isProSkin);
+            drawer.Add(header);
+            return header;
+        }
+
+        private static Button AddCanvasDrawerActivationHeader(VisualElement drawer, string title, string titleName,
+            string name, string text, Action activate)
+        {
+            var header = AddCanvasDrawerHeader(drawer);
+            var label = new Label(title) { name = titleName, pickingMode = PickingMode.Ignore };
+            label.AddToClassList("whimtex-canvas-drawer-title");
+            header.Add(label);
             var button = new Button(activate) { name = name, text = text };
             button.AddToClassList("whimtex-canvas-drawer-activate");
-            drawer.Add(button);
+            header.Add(button);
             return button;
+        }
+
+        private static Toggle AddCanvasDrawerToggleHeader(VisualElement drawer, string title, string titleName,
+            string toggleName, bool enabled, string tooltip, Action<bool> change)
+        {
+            var header = AddCanvasDrawerHeader(drawer);
+            var toggle = new Toggle { name = toggleName, text = title, value = enabled, tooltip = tooltip };
+            toggle.AddToClassList("whimtex-canvas-drawer-toggle");
+            var label = toggle.Q<Label>(className: "unity-toggle__text");
+            if (label != null) label.name = titleName;
+            toggle.RegisterValueChangedCallback(evt => change(evt.newValue));
+            header.Add(toggle);
+            return toggle;
         }
 
         private sealed class CanvasPreviewPanelIcon : VisualElement
@@ -56,11 +84,21 @@ namespace DCFApixels.WhimTex
                 painter.BeginPath();
                 if (kind == Kind.Uv)
                 {
-                    painter.MoveTo(P(3, 4)); painter.LineTo(P(18, 3));
-                    painter.LineTo(P(19, 18)); painter.LineTo(P(4, 19));
+                    painter.lineWidth = 1f;
+                    painter.lineJoin = LineJoin.Miter;
+                    painter.lineCap = LineCap.Butt;
+                    painter.MoveTo(P(.5f, 8.5f)); painter.LineTo(P(5.5f, 8.5f));
+                    painter.LineTo(P(5.5f, 3.5f)); painter.LineTo(P(10.5f, 3.5f));
+                    painter.LineTo(P(10.5f, 8.5f)); painter.LineTo(P(20.5f, 8.5f));
+                    painter.LineTo(P(20.5f, 13.5f)); painter.LineTo(P(10.5f, 13.5f));
+                    painter.LineTo(P(10.5f, 18.5f)); painter.LineTo(P(5.5f, 18.5f));
+                    painter.LineTo(P(5.5f, 13.5f)); painter.LineTo(P(.5f, 13.5f));
                     painter.ClosePath();
-                    painter.MoveTo(P(3, 4)); painter.LineTo(P(10, 11)); painter.LineTo(P(18, 3));
-                    painter.MoveTo(P(4, 19)); painter.LineTo(P(10, 11)); painter.LineTo(P(19, 18));
+                    painter.MoveTo(P(5.5f, 8.5f)); painter.LineTo(P(5.5f, 13.5f));
+                    painter.MoveTo(P(10.5f, 8.5f)); painter.LineTo(P(10.5f, 13.5f));
+                    painter.MoveTo(P(15.5f, 8.5f)); painter.LineTo(P(15.5f, 13.5f));
+                    painter.MoveTo(P(5.5f, 8.5f)); painter.LineTo(P(10.5f, 8.5f));
+                    painter.MoveTo(P(5.5f, 13.5f)); painter.LineTo(P(10.5f, 13.5f));
                     painter.Stroke();
                 }
                 else

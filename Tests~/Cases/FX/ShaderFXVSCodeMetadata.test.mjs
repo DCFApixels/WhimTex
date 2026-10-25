@@ -174,6 +174,19 @@ try {
     assert.equal(validate('\n// @whimtex-effect Color/Mask')[0].warning, true);
   });
 
+  context.case('quoted preset groups do not open parameter containers', async () => {
+    const layout = '// @group(Settings)\n// @param float _Amount\n// @endgroup';
+    const header = '\uFEFF// @whimtex-effect Demo\n// @group(" Color ")';
+    assert.deepEqual(validate(header + '\n' + layout), []);
+    assert.deepEqual(validate(header + '\n// @icon("../Icons/color.svg")\n' + layout), []);
+    assert.deepEqual(validate('// @group("Shapes/Colors")\n' + layout), []);
+    assert.deepEqual(validate('/* // @group("Fake") */\n' + layout), []);
+    for (const invalid of ['// @group("")', '// @group(" ")', '// @group("Color"',
+      '// @group("Color")\n// @group("Tone")', 'float _Data;\n// @group("Late")',
+      'x\n// @group("Late")', header + '\nfloat _Data;\n// @group("Late")'])
+      assert.ok(validate(invalid).some(d => !d.warning), invalid);
+  });
+
   context.case('logical pixel metadata supports only explicit numeric lengths', async () => {
     const { parseParameter } = require('../../../ExternalTools~/WhimTexVSCode/metadata.js');
     for (const kind of ['float', 'float2', 'float3', 'float4'])

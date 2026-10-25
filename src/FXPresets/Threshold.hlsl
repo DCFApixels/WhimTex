@@ -1,4 +1,6 @@
 // @whimtex-effect Stylization/Threshold
+// @group("Tone")
+// @icon("../Editor/Icons/FX/Tone.svg")
 // @header(Threshold)
 // @param label(Source Channel) enum _SourceChannel = Luminance {Luminance:0,R:1,G:2,B:3,Alpha:4} // Channel compared with the threshold. This does not change output alpha.
 // @param float _Threshold = 0.25 [0 .. ~1] // Threshold in the source channel.

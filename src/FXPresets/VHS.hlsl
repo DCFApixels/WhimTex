@@ -1,4 +1,6 @@
 // @whimtex-effect Stylization/VHS
+// @group("Pattern")
+// @icon("../Editor/Icons/FX/Pattern.svg")
 // @header(Tape Signal)
 // @param px float _ChromaBleed = 1 [0 .. ~8] // Horizontal red/blue separation in canvas pixels.
 // @param px float _LineJitter = 1.5 [0 .. ~12] // Seeded horizontal wobble per scanline in canvas pixels.

@@ -318,8 +318,48 @@ namespace DCFApixels.WhimTex
             bindings.Add(RefreshWarning);
             var view = new LayerShaderFXView(layer, owner, apply);
             fx.Add(view);
-            bindings.Add(() => view.SetEnabled(owner == null || !owner.IsBooleanOperand(layer)));
+            AddInspectorSectionMenu(fx, view.BuildStackContextMenu);
+            fx.AddToClassList("whimtex-inspector-section--add-fx");
+            var addFx = view.CreateAddButton();
+            addFx.name = "addFxHeader";
+            addFx.text = string.Empty;
+            addFx.AddToClassList("whimtex-layer-menu-button");
+            addFx.AddToClassList("whimtex-fx-header-add");
+            addFx.EnableInClassList("whimtex-layer-menu-button--light", !EditorGUIUtility.isProSkin);
+            addFx.Add(new LayerActionIcon(LayerActionIcon.Kind.Add));
+            fx.hierarchy.Add(addFx);
+            bindings.Add(() =>
+            {
+                bool available = owner == null || !owner.IsBooleanOperand(layer);
+                view.SetEnabled(available);
+                addFx.SetEnabled(available);
+            });
             return view;
+        }
+
+        private static void AddInspectorSectionMenu(Foldout section, Action<DropdownMenu> buildMenu)
+        {
+            section.AddToClassList("whimtex-inspector-section--menu");
+            var menu = new ToolbarMenu { name = section.name + "Menu", tooltip = section.text + " actions" };
+            menu.AddToClassList("whimtex-inspector-section-menu");
+            var visual = new VisualElement { pickingMode = PickingMode.Ignore };
+            visual.AddToClassList("whimtex-inspector-section-menu-visual");
+            menu.Add(visual);
+            for (int i = 0; i < 3; i++)
+            {
+                var dot = new VisualElement { pickingMode = PickingMode.Ignore };
+                dot.AddToClassList("whimtex-layer-menu-dot");
+                visual.Add(dot);
+            }
+            buildMenu(menu.menu);
+            section.hierarchy.Add(menu);
+            void Populate(ContextualMenuPopulateEvent evt)
+            {
+                buildMenu(evt.menu);
+                evt.StopPropagation();
+            }
+            section.Q<Toggle>().AddManipulator(new ContextualMenuManipulator(Populate));
+            menu.AddManipulator(new ContextualMenuManipulator(Populate));
         }
 
         public static void AddTextureTransform(
@@ -369,7 +409,7 @@ namespace DCFApixels.WhimTex
             bindings.Track(tiling, () => (Enum)read().tiling);
             bindings.Track(filter, () => (Enum)layer.filterMode);
 
-            Button reset = CreateButton("Reset", () =>
+            void Reset()
             {
                 applyChange("Reset Layer Transform", () =>
                 {
@@ -378,11 +418,18 @@ namespace DCFApixels.WhimTex
                     write(value);
                 });
                 bindings.Refresh(true);
-            }, 54f);
+            }
+            Button reset = CreateButton("Reset", Reset, 54f);
             VisualElement actions = CreateRow();
             actions.Add(reset);
             actions.Add(CreateOriginalAspectButton(() => layer, () => activeDocument, applyChange, bindings));
             card.Add(actions);
+            AddInspectorSectionMenu(card, menu =>
+            {
+                menu.AppendAction("Reset", _ => Reset());
+                menu.AppendAction("Original Aspect", _ => RestoreOriginalAspect(layer, activeDocument, applyChange),
+                    _ => CanRestoreOriginalAspect(layer, activeDocument) ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            });
 
             pivot.RegisterValueChangedCallback(evt =>
             {
@@ -449,22 +496,26 @@ namespace DCFApixels.WhimTex
             ValueBindings bindings,
             bool originalSize = false)
         {
-            Button button = CreateButton(originalSize ? "Original Size" : "Original Aspect", () =>
-            {
-                Layer layer = readLayer();
-                if (layer == null || !layer.TryGetOriginalAspectTransform(readDocument(), out TextureTransform fitted, originalSize) ||
-                    fitted.Equals(layer.transform))
-                    return;
-                applyChange(originalSize ? "Restore Original Size" : "Restore Original Aspect", () => layer.transform = fitted);
-            });
+            Button button = CreateButton(originalSize ? "Original Size" : "Original Aspect",
+                () => RestoreOriginalAspect(readLayer(), readDocument(), applyChange, originalSize));
             button.tooltip = (originalSize ? "Set one source pixel to one canvas pixel. " :
                 "Fit the source aspect ratio inside the current frame by shrinking one axis. ") +
                 "Preserve image center, pivot, rotation, and flips. Generated layers use the canvas ratio. " +
                 "Requires a source image for File layers and nonzero scale.";
-            bindings.Add(() => button.SetEnabled(
-                readLayer() is Layer layer && layer.TryGetOriginalAspectTransform(readDocument(), out TextureTransform fitted, originalSize) &&
-                !fitted.Equals(layer.transform)));
+            bindings.Add(() => button.SetEnabled(CanRestoreOriginalAspect(readLayer(), readDocument(), originalSize)));
             return button;
+        }
+
+        private static bool CanRestoreOriginalAspect(Layer layer, WhimTexDocument document, bool originalSize = false) =>
+            layer != null && layer.TryGetOriginalAspectTransform(document, out TextureTransform fitted, originalSize) &&
+            !fitted.Equals(layer.transform);
+
+        private static void RestoreOriginalAspect(Layer layer, WhimTexDocument document, Action<string, Action> applyChange,
+            bool originalSize = false)
+        {
+            if (layer == null || !layer.TryGetOriginalAspectTransform(document, out TextureTransform fitted, originalSize) ||
+                fitted.Equals(layer.transform)) return;
+            applyChange(originalSize ? "Restore Original Size" : "Restore Original Aspect", () => layer.transform = fitted);
         }
     }
 }

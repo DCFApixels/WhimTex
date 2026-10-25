@@ -1,5 +1,7 @@
 // @whimtex-effect Color/Color Balance
 // @control(_Opacity)
+// @group("Color")
+// @icon("../Editor/Icons/FX/Color.svg")
 // @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and balanced colors.
 // @group
 // @header(Shadows)

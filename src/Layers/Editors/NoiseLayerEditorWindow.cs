@@ -124,7 +124,7 @@ namespace DCFApixels.WhimTex
                     : new Vector2(randomWarpScale, LogRange(.25f, 4f));
             if (layer.encoding != NoiseLayerBehaviour.OutputEncoding.Gradient)
                 layer.encoding = random.Next(2) == 0
-                    ? NoiseLayerBehaviour.OutputEncoding.ColorValues : NoiseLayerBehaviour.OutputEncoding.LinearData;
+                    ? NoiseLayerBehaviour.OutputEncoding.Gamma : NoiseLayerBehaviour.OutputEncoding.Linear;
             layer.inverted = random.Next(2) != 0;
         }
 
@@ -355,15 +355,15 @@ namespace DCFApixels.WhimTex
             warp.Add(warpScale3D);
             root.Add(warp);
             var scalarOutputs = new System.Collections.Generic.List<NoiseLayerBehaviour.OutputEncoding>
-                { NoiseLayerBehaviour.OutputEncoding.ColorValues, NoiseLayerBehaviour.OutputEncoding.LinearData, NoiseLayerBehaviour.OutputEncoding.Gradient };
+                { NoiseLayerBehaviour.OutputEncoding.Gamma, NoiseLayerBehaviour.OutputEncoding.Linear, NoiseLayerBehaviour.OutputEncoding.Gradient };
             var colorOutputs = new System.Collections.Generic.List<NoiseLayerBehaviour.OutputEncoding>
-                { NoiseLayerBehaviour.OutputEncoding.ColorValues, NoiseLayerBehaviour.OutputEncoding.LinearData };
+                { NoiseLayerBehaviour.OutputEncoding.Gamma, NoiseLayerBehaviour.OutputEncoding.Linear };
             string OutputLabel(NoiseLayerBehaviour.OutputEncoding value) => UnityEditor.ObjectNames.NicifyVariableName(value.ToString());
             var encoding = WhimTexUI.ConfigureField(new PopupField<NoiseLayerBehaviour.OutputEncoding>("Output",
                 layer.SupportsGradient ? scalarOutputs : colorOutputs, layer.EffectiveOutput, OutputLabel, OutputLabel));
             bindings.Track(encoding, () => layer.EffectiveOutput);
             encoding.RegisterValueChangedCallback(evt => applyChange("Change Noise Output", () => layer.encoding = evt.newValue));
-            encoding.tooltip = "Color Values displays encoded colors; Linear Data keeps raw 0–1 values; Gradient maps monochrome noise through a color palette. Color White/Blue Noise supports Color Values and Linear Data only.";
+            encoding.tooltip = "Gamma interprets values as sRGB colors; Linear keeps raw 0–1 values; Gradient maps monochrome noise through a color palette. Color White/Blue Noise supports Gamma and Linear only.";
             root.Add(encoding);
             var vectorSettings = new VisualElement();
             Choice(vectorSettings, "Output", () => layer.vectorOutput, value => layer.vectorOutput = value);

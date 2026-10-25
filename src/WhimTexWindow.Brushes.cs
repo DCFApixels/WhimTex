@@ -31,8 +31,8 @@ namespace DCFApixels.WhimTex
             brushSettingsBindings = new WhimTexUI.ValueBindings();
             brushDrawer = new VisualElement();
             brushDrawer.AddToClassList("whimtex-post-fx-drawer");
-            brushDrawer.Add(CreatePaneHeader("Brushes", "brushesTitle"));
-            selectBrushButton = AddCanvasDrawerActivation(brushDrawer, "selectBrush", "Select Brush", () => SetCanvasTool(CanvasTool.Brush));
+            selectBrushButton = AddCanvasDrawerActivationHeader(brushDrawer, "Brushes", "brushesTitle",
+                "selectBrush", "Select Brush", () => SetCanvasTool(CanvasTool.Brush));
             brushDrawerContent = new VisualElement { name = "brushDrawerContent" };
             brushDrawerContent.AddToClassList("whimtex-canvas-drawer-content");
             brushDrawer.Add(brushDrawerContent);

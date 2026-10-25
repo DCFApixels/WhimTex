@@ -1,5 +1,7 @@
 // @whimtex-effect Color/Chroma Key
 // @control(_Opacity)
+// @group("Mask")
+// @icon("../Editor/Icons/FX/Mask.svg")
 // @param hidden float _Opacity = 1 [0 .. 1] // Blend the selected RGBA output with the input. Zero preserves the input, including in Matte mode.
 // @group(Key)
 // @param color _KeyColor = (0, 1, 0, 1) // Background color to remove. Alpha is ignored.

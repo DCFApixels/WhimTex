@@ -734,7 +734,7 @@
                         "warpScale": 1.0,
                         "warpScaleY": 1.0,
                         "linkWarpScale": true,
-                        "encoding": "LinearData",
+                        "encoding": "Linear",
                         "inverted": false,
                         "recoveryId": "718392ff7c4241c79693497bac9ff17d"
                       },
@@ -801,7 +801,7 @@
                         "periodic": "XY",
                         "fractal": "None",
                         "warp": "None",
-                        "encoding": "ColorValues",
+                        "encoding": "Gamma",
                         "inverted": false,
                         "recoveryId": "ef064bf9cf1740e9b4d4a4d263678e89"
                       },
@@ -959,7 +959,7 @@
                         "warpScale": 0.59,
                         "warpScaleY": 0.59,
                         "linkWarpScale": true,
-                        "encoding": "LinearData",
+                        "encoding": "Linear",
                         "inverted": false,
                         "recoveryId": "335843b5c714497b82213408a1c9f259"
                       },
@@ -1235,7 +1235,7 @@
                     "warpScale": 1.0,
                     "warpScaleY": 1.0,
                     "linkWarpScale": true,
-                    "encoding": "ColorValues",
+                    "encoding": "Gamma",
                     "inverted": false,
                     "recoveryId": "c4ac9d508f104ca29c7ec43b94782b06"
                   },
@@ -1394,7 +1394,7 @@
                     "warpScale": 1.0,
                     "warpScaleY": 1.0,
                     "linkWarpScale": true,
-                    "encoding": "ColorValues",
+                    "encoding": "Gamma",
                     "inverted": false,
                     "recoveryId": "a48e61989c2d4db29f2d6dac5f579ee0"
                   },
@@ -1725,7 +1725,7 @@
                         "warpScale": 1.0,
                         "warpScaleY": 1.0,
                         "linkWarpScale": true,
-                        "encoding": "LinearData",
+                        "encoding": "Linear",
                         "inverted": false,
                         "recoveryId": "3d3214fa0d1847c49804f4cb078d8901"
                       },
@@ -1801,7 +1801,7 @@
                         "warpScale": 1.0,
                         "warpScaleY": 1.0,
                         "linkWarpScale": true,
-                        "encoding": "LinearData",
+                        "encoding": "Linear",
                         "inverted": false,
                         "recoveryId": "a5469bd3db33421e89749399cc4341f3"
                       },
@@ -2016,7 +2016,7 @@
                         "warpScale": 1.0,
                         "warpScaleY": 1.0,
                         "linkWarpScale": true,
-                        "encoding": "LinearData",
+                        "encoding": "Linear",
                         "inverted": false,
                         "recoveryId": "551680f848894fb9859c442cbf99d77d"
                       },
@@ -2440,7 +2440,7 @@
                     "warpScale": 1.0,
                     "warpScaleY": 1.0,
                     "linkWarpScale": true,
-                    "encoding": "LinearData",
+                    "encoding": "Linear",
                     "inverted": false,
                     "recoveryId": "5d0d50cc48c746fda8eabd3d0180c199"
                   },
@@ -2516,7 +2516,7 @@
                     "warpScale": 2.51,
                     "warpScaleY": 2.51,
                     "linkWarpScale": true,
-                    "encoding": "ColorValues",
+                    "encoding": "Gamma",
                     "inverted": false,
                     "recoveryId": "7dae2b16e71b491db36e039eb07b2134"
                   },
@@ -2670,7 +2670,7 @@
                     "warpScale": 1.0,
                     "warpScaleY": 1.0,
                     "linkWarpScale": true,
-                    "encoding": "ColorValues",
+                    "encoding": "Gamma",
                     "inverted": false,
                     "recoveryId": "d2c6b6621e614d458b295e0ecaa4107f"
                   },
