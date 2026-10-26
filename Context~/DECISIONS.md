@@ -360,7 +360,8 @@ TIFF-контейнер, precision/sRGB, атомарная запись, identi
   кубических коэффициентов `(3*columns+1)*(3*rows+1)`: конечные локальные позиции
   без ограничения 0..1 и четыре цветовые компоненты. Пользовательские узлы находятся через каждые
   три коэффициента; внутренние controls нельзя восстанавливать только из узлов при
-  сохранении. Рабочие RGB — Linear/encoded Gamma/OKLab Perceptual; Hue недоступен.
+  сохранении. Рабочие RGB — Linear/encoded Gamma/OKLab Perceptual или Hue; для Hue
+  отдельно сохраняется hueChroma, как описано ниже.
   Альфа отдельная, без premultiply в модели; overshoot коэффициентов сохраняется,
   clamp применяется к вычисленной альфе. `NodeColor`/`SetNodeColor` принимают
   encoded display RGB; `EvaluateColor` возвращает straight linear.
@@ -411,6 +412,11 @@ TIFF-контейнер, precision/sRGB, атомарная запись, identi
   консервативно доказанная границами Bernstein derivatives на каждой ячейке, позволяет
   пропустить коррекцию у гарантированно однозначных сеток. Неуверенный случай идёт
   через GPU-маску. CPU-подача проходов видна как `render.mesh.overlap_reconstruction`.
+  Вершины готовятся через Jobs/Burst FloatMode.Strict с тем же порядком Bernstein-суммы,
+  что у EvaluatePosition. Один native workspace на renderer переиспользуется между
+  ячейками; UV/индексы перестраиваются только при изменении nx/ny. Критерий плотности
+  сетки и GPU-коррекция прежние. Workspace освобождается в ReleaseTransientResources;
+  подготовка видна как `render.mesh.prepare`, память — в native-cache статистике.
   Буфер глубины не используется. Нужны SM4.5, два MRT и float blending.
   Необязательный `patchPriorities` хранит row-major Vector3 по columns*rows:
   конечные неотрицательные коэффициенты, сумма <=1. U-коэффициенты первой строки

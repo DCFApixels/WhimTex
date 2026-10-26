@@ -27,6 +27,10 @@ namespace DCFApixels.WhimTex
         private static readonly Dictionary<string, Request> requests = new Dictionary<string, Request>(StringComparer.Ordinal);
         private static readonly Dictionary<string, Texture2D> textures = new Dictionary<string, Texture2D>(StringComparer.Ordinal);
         private static readonly Queue<Request> pending = new Queue<Request>();
+        private static readonly ShaderFXIconMetadata.Descriptor categoryIcon = new ShaderFXIconMetadata.Descriptor
+        {
+            svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><path fill=\"currentColor\" fill-opacity=\"0.22\" d=\"M2 3h4.2c.4 0 .7 .15 1 .45L8.5 5H14a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z\"/></svg>"
+        };
         private static double nextFileCheck;
         internal static event Action Changed;
         internal static Texture2D Default => EditorGUIUtility.ObjectContent(null, typeof(Shader)).image as Texture2D;
@@ -72,8 +76,16 @@ namespace DCFApixels.WhimTex
             if (request != null && !request.ready) request.items.Add(new WeakReference<AdvancedDropdownItem>(item));
         }
 
+        internal static void BindCategory(AdvancedDropdownItem item)
+        {
+            var request = GetRequest(categoryIcon, null);
+            item.icon = request.texture;
+            if (!request.ready) request.items.Add(new WeakReference<AdvancedDropdownItem>(item));
+        }
+
         internal static void Warm(IReadOnlyList<ShaderFXCatalog.Entry> entries)
         {
+            GetRequest(categoryIcon, null);
             foreach (var entry in entries) GetRequest(entry.icon, entry.path);
         }
 

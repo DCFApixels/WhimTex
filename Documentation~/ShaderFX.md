@@ -243,6 +243,9 @@ Both entry forms may use numeric sampling. Explicit `SampleInput(uv, tiling)` ad
 is spatial even when UV is pinned. Preview callbacks retain their `float2` interface and
 complete reduced inputs; their reads do not change the main function's typed sampling status.
 Direct low-level bypass detection remains conservative across the complete source.
+Its warning describes a full-input fallback, not a failed compilation or an invalid
+`PinnedUV` entry point. Neighborhood effects such as Edge Outline need this input
+and may intentionally use explicit-LOD texture reads inside dynamic loops.
 
 `_MainTex` and declared `texture2D` parameters are read-only **`WhimTexTexture`** values.
 Each value carries its sampler, its own mapping from whole-image UV to the stored region,

@@ -147,6 +147,14 @@ lattice and node modes while another type is selected; the ordinary palette and 
 also retained. Copy/clipboard use the same data, without color-space conversion or
 coefficient clamping. Selection and render caches are not serialized.
 
+Vertex preparation uses Jobs/Burst with strict floating-point evaluation and the same
+Bernstein sum order as `EvaluatePosition`. Each renderer reuses one native workspace
+across its cells; UVs and triangle indices rebuild only when their subdivision counts
+change. Resolution changes retain the existing tessellation criterion. The workspace
+is released with transient layer resources; profiler stage `render.mesh.prepare`
+and native-cache accounting expose its cost. GPU shading and overlap reconstruction
+are unchanged, including during dragging.
+
 Adding a row or column subdivides positions and color coefficients together using
 de Casteljau, preserving the continuous result apart from floating-point rounding.
 Existing node modes are carried to their corresponding nodes; inserted nodes use

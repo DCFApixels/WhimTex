@@ -271,9 +271,11 @@ namespace DCFApixels.WhimTex
                 bool expanded = expandedFoldouts.TryGetValue(key, out bool saved) ? saved : SessionState.GetBool(key, true);
                 foldout = new Foldout { value = expanded };
                 foldout.AddToClassList("whimtex-fx-parameter-foldout");
+                root.EnableInClassList("whimtex-fx-parameter-group--collapsed", !expanded);
                 foldout.RegisterValueChangedCallback(evt =>
                 {
                     if (evt.target != foldout) return;
+                    root.EnableInClassList("whimtex-fx-parameter-group--collapsed", !evt.newValue);
                     expandedFoldouts[key] = evt.newValue;
                     SessionState.SetBool(key, evt.newValue);
                     evt.StopPropagation();

@@ -2868,6 +2868,11 @@
     border-bottom-width: 0;
 }
 
+.whimtex-fx-parameter-group--collapsed > .whimtex-fx-parameter-foldout > .whimtex-fx-parameter-foldout-toggle {
+    margin-bottom: 0;
+    border-bottom-width: 0;
+}
+
 .whimtex-fx-parameter-group--empty > .whimtex-fx-parameter-group-content,
 .whimtex-fx-parameter-group--empty > .whimtex-fx-parameter-foldout > .unity-foldout__content > .whimtex-fx-parameter-group-content {
     display: none;

@@ -45,7 +45,7 @@ Unlike [Post FX preview](post-fx.md), both are included in the saved image.
 
 In **Add FX**, the 31 built-in presets keep the Color, Distortion, Lighting, Normal Map and Stylization categories. Inside each category, related effects sit together, separated from other groups by a line. Groups and presets sort alphabetically. Add `// @group("Tone")` to an HLSL preset header to choose its group within its category. Presets without a group appear first. The quoted declaration does not need `@endgroup`. See [preset list groups](../ShaderFX.md#preset-list-groups).
 
-Preset icons appear beside names in **Add FX** and before the Enabled checkbox in each FX header. Related built-in effects share icons for color, tone, gradient, mask, distortion, lighting, normals, patterns and transforms. A missing or invalid icon uses the general FX symbol; hover over the header icon for details.
+Categories and nested categories use subdued filled folder icons. Preset icons appear beside names in **Add FX** and before the Enabled checkbox in each FX header. Related built-in effects share icons for color, tone, gradient, mask, distortion, lighting, normals, patterns and transforms. A missing or invalid icon uses the general FX symbol; hover over the header icon for details.
 
 Alternatively, drag a WhimTex effect `.hlsl` from Project onto a row in **Layers**.
 Dropping it onto Canvas View or empty space in the list creates a **Shader Processor** at the top of the composition.
@@ -431,6 +431,9 @@ pixelation. **Dither Strength** weakens it down to plain rounding. **Color → Q
 The same pattern list works per pixel in **Stylization → Posterize**.
 
 ### Edge contours
+
+Edge Outline reads neighboring pixels. A pixel-locality warning alone does not mean that
+the effect failed to compile; it uses the complete input image to find contours.
 
 Choose **FX → Add FX → Edge Outline** to draw lines along sharp transitions.
 **Method → Boundary** creates uniform contours; **Scharr** makes weaker transitions less opaque.

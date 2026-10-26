@@ -12,7 +12,7 @@ All notable changes to WhimTex are documented in this file.
 
 - HLSL preset headers accept `@group("Name")` for flat Add FX blocks separated by lines. All 31 built-in presets use category submenus, with semantic groups inside each category. UV Transform is in Distortion. Groups and presets sort alphabetically without numeric priorities; submenus remain independent. Export and cached catalog discovery retain groups, and agent catalog results expose/search their names.
 
-- FX icon metadata supports inline SVG, relative SVG/PNG paths including parent directories, and Unity asset GUIDs. Add FX results and effect headers share cached icons; 31 built-in presets reuse nine semantic SVGs. External icons embed with preset/document export and FX copies; missing images fall back without disabling effects. Agent inspection includes icon source and warnings.
+- FX icon metadata supports inline SVG, relative SVG/PNG paths including parent directories, and Unity asset GUIDs. Add FX categories and nested categories use subdued filled folder icons. Add FX results and effect headers share cached icons; 31 built-in presets reuse nine semantic SVGs. External icons embed with preset/document export and FX copies; missing images fall back without disabling effects. Agent inspection includes icon source and warnings.
 
 - Gradient layers add Mesh gradients with a shared bicubic grid, per-node HDR color and opacity, Bézier handles and Linear/Gamma/Perceptual/Hue color models. Hue favors short circular transitions and smoothly blends toward Perceptual where hues conflict, without a Hue Path selector. Nodes and handles move freely; Smooth aligns opposite handles while Corner keeps them independent, and dragging an edge bends it without moving its endpoints. Folded and overlapping surfaces use a continuous lattice-wide priority and normalized color/alpha blending, with soft transitions near folds and exposed edges. Regions outside overlaps and their narrow transition bands retain their original color and opacity; overlap does not accumulate alpha. Splitting rows or columns preserves geometry, color and overlap priority, carries existing node types and gives new nodes Smooth. Mesh creation remembers its initial row/column counts. Complete grids, node types and retained overlap priorities survive native documents, JSON/clipboard and the agent API; shared mesh actions change node type or move an edge.
 
@@ -125,6 +125,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Mesh gradient vertex preparation uses Jobs/Burst with strict floating-point evaluation and a shared reusable native workspace. Moving nodes, handles or edges updates vertex positions without rebuilding unchanged UVs and triangle indices. Tessellation density, surface shading and overlap reconstruction are unchanged; the profiler exposes `render.mesh.prepare` and retained workspace memory.
+
 - Noise and Normal Map encoding choices use Linear/Gamma consistently in UI, native documents, JSON and the agent API. Normal Lighting replaces Packed Color with Input Encoding; Normalize uses Encoding, both Linear/Gamma enums defaulting to Gamma. Color calculations and defaults are unchanged. Former enum names and FX parameter names have no aliases or migration; sRGB settings, SDF and Blend Range are unchanged.
 
 - Layer FX use a wider, taller **Add FX** button below the effect stack and a compact **+** beside the section header menu, also available while collapsed. Both open the same searchable hierarchical picker. **Custom Shader FX** creates an inline effect; preset categories, user presets and library actions share the same picker in layer settings and the separate FX window. Opening the picker uses cached preset headers without compiling effects.
@@ -211,6 +213,10 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Collapsed FX parameter foldouts remove the header-to-content gap and divider, leaving only the header; expanded spacing is preserved, including restored foldout state.
+
+- The FX locality warning now explains complete-input rendering instead of treating every PinnedUV entry as a pixel-local declaration. Explicit-LOD neighborhood reads in Edge Outline remain supported; compilation, classification and rendering are unchanged.
 
 - FX parameter foldout headers share group header sizing, spacing, backgrounds and full-width separators, with no extra native side margins. Their nested content no longer adds duplicate spacing; wrapped titles and linked controls retain their natural height.
 

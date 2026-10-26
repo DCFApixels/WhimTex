@@ -18,7 +18,7 @@ namespace DCFApixels.WhimTex
         internal const string WrapperMarker = "// WhimTex FX entry contract v3\n";
         internal const string PixelLocalMarker = "// WhimTex pixel-local v1\n";
         internal const string UnverifiedMarker = "// WhimTex pixel-local unverified v1\n";
-        internal const string BypassWarning = "Warning: Pixel-local declaration uses a bypass texture read, derivatives or an unverified compiler dependency. IsPixelLocal is false. Use SampleInput/SampleTexture with PinnedUV for pixel-local image reads.";
+        internal const string BypassWarning = "Warning: Pixel locality could not be verified because of direct texture access, derivatives or an unverified dependency. IsPixelLocal is false; the effect uses complete image inputs. This is expected for effects that inspect neighboring pixels and does not indicate a compilation failure.";
         internal enum Kind { Color, Pinned }
         internal readonly Kind kind;
         internal readonly bool verified;

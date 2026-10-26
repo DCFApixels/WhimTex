@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Unity.Burst;
+using Unity.Collections;
+using Unity.Jobs;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
@@ -20,6 +23,29 @@ namespace DCFApixels.WhimTex
         private readonly RenderBuffer[] colorBuffers = new RenderBuffer[2];
         private readonly Vector4[] positionBuffer = new Vector4[16];
         private readonly Vector4[] colorBuffer = new Vector4[16];
+        private int[] horizontal, vertical;
+        private NativeArray<Vector3> vertices;
+        private NativeArray<Vector2> controls;
+        private NativeArray<Vector4> horizontalBasis, verticalBasis;
+        private int basisNx, basisNy;
+
+        [BurstCompile(FloatMode = FloatMode.Strict)]
+        private struct VerticesJob : IJobParallelFor
+        {
+            [ReadOnly] public NativeArray<Vector2> controls;
+            [ReadOnly] public NativeArray<Vector4> horizontalBasis, verticalBasis;
+            [WriteOnly] public NativeArray<Vector3> vertices;
+            public int stride;
+
+            public void Execute(int index)
+            {
+                Vector4 bu = horizontalBasis[index % stride], bv = verticalBasis[index / stride];
+                Vector2 point = default;
+                for (int y = 0; y < 4; y++) for (int x = 0; x < 4; x++)
+                    point += controls[y * 4 + x] * (bu[x] * bv[y]);
+                vertices[index] = new Vector3(point.x, point.y, 0);
+            }
+        }
 
         internal void Render(MeshGradient data, RenderTexture target)
         {
@@ -235,12 +261,14 @@ namespace DCFApixels.WhimTex
 
         private void Prepare(MeshGradient data, int width, int height)
         {
+            using var scope = WhimTexProfiler.Measure("render.mesh.prepare");
             if (patches == null || columns != data.columns || rows != data.rows)
             {
                 Dispose(); columns = data.columns; rows = data.rows; patches = new Patch[columns * rows];
                 for (int i = 0; i < patches.Length; i++) patches[i] = new Patch();
+                horizontal = new int[columns]; vertical = new int[rows];
             }
-            var horizontal = new int[columns]; var vertical = new int[rows];
+            Array.Clear(horizontal, 0, horizontal.Length); Array.Clear(vertical, 0, vertical.Length);
             for (int r = 0; r < rows; r++) for (int c = 0; c < columns; c++)
             {
                 float bound = 0;
@@ -268,30 +296,80 @@ namespace DCFApixels.WhimTex
                 Array.Copy(positionBuffer, patch.positions, 16); Array.Copy(colorBuffer, patch.colors, 16);
                 int nx = horizontal[c], ny = vertical[r];
                 if (!changed && patch.nx == nx && patch.ny == ny) continue;
+                bool topologyChanged = patch.mesh == null || patch.nx != nx || patch.ny != ny;
+                int vertexCount = (nx + 1) * (ny + 1);
+                PrepareVertexBuffers(nx, ny, vertexCount);
+                for (int i = 0; i < 16; i++) controls[i] = patch.positions[i];
+                var job = new VerticesJob { controls = controls, horizontalBasis = horizontalBasis,
+                    verticalBasis = verticalBasis, vertices = vertices, stride = nx + 1 };
+                if (vertexCount < 1024) job.Run(vertexCount);
+                else job.Schedule(vertexCount, 64).Complete();
+                if (patch.mesh == null)
+                {
+                    patch.mesh = new Mesh { name = "Gradient Mesh Patch", hideFlags = HideFlags.HideAndDontSave };
+                    patch.mesh.MarkDynamic();
+                }
+                if (topologyChanged)
+                {
+                    patch.mesh.Clear(); patch.mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+                }
+                patch.mesh.SetVertices(vertices, 0, vertexCount);
+                if (topologyChanged)
+                {
+                    var uv = new Vector2[vertexCount];
+                    var triangles = new int[nx * ny * 6];
+                    for (int y = 0; y <= ny; y++) for (int x = 0; x <= nx; x++)
+                        uv[y * (nx + 1) + x] = new Vector2(x / (float)nx, y / (float)ny);
+                    int at = 0;
+                    for (int y = 0; y < ny; y++) for (int x = 0; x < nx; x++)
+                    {
+                        int i = y * (nx + 1) + x;
+                        triangles[at++] = i; triangles[at++] = i + 1; triangles[at++] = i + nx + 1;
+                        triangles[at++] = i + 1; triangles[at++] = i + nx + 2; triangles[at++] = i + nx + 1;
+                    }
+                    patch.mesh.uv = uv; patch.mesh.triangles = triangles;
+                }
                 patch.nx = nx; patch.ny = ny;
-                var vertices = new Vector3[(nx + 1) * (ny + 1)]; var uv = new Vector2[vertices.Length];
-                var triangles = new int[nx * ny * 6];
-                for (int y = 0; y <= ny; y++) for (int x = 0; x <= nx; x++)
-                {
-                    int i = y * (nx + 1) + x; uv[i] = new Vector2(x / (float)nx, y / (float)ny);
-                    vertices[i] = data.EvaluatePosition(c, r, uv[i].x, uv[i].y);
-                }
-                int at = 0;
-                for (int y = 0; y < ny; y++) for (int x = 0; x < nx; x++)
-                {
-                    int i = y * (nx + 1) + x;
-                    triangles[at++] = i; triangles[at++] = i + 1; triangles[at++] = i + nx + 1;
-                    triangles[at++] = i + 1; triangles[at++] = i + nx + 2; triangles[at++] = i + nx + 1;
-                }
-                patch.mesh ??= new Mesh { name = "Gradient Mesh Patch", hideFlags = HideFlags.HideAndDontSave };
-                patch.mesh.Clear(); patch.mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-                patch.mesh.vertices = vertices; patch.mesh.uv = uv; patch.mesh.triangles = triangles;
+            }
+            WhimTexProfiler.NativeCacheBytes(this, vertices.Length * 12L + controls.Length * 8L +
+                (horizontalBasis.Length + verticalBasis.Length) * 16L);
+        }
+
+        private void PrepareVertexBuffers(int nx, int ny, int count)
+        {
+            if (!controls.IsCreated)
+            {
+                controls = new NativeArray<Vector2>(16, Allocator.Persistent);
+                horizontalBasis = new NativeArray<Vector4>(257, Allocator.Persistent);
+                verticalBasis = new NativeArray<Vector4>(257, Allocator.Persistent);
+            }
+            if (!vertices.IsCreated || vertices.Length < count)
+            {
+                if (vertices.IsCreated) vertices.Dispose();
+                vertices = new NativeArray<Vector3>(count, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+            }
+            if (basisNx != nx)
+            {
+                for (int i = 0; i <= nx; i++) horizontalBasis[i] = MeshGradient.Basis(i / (float)nx);
+                basisNx = nx;
+            }
+            if (basisNy != ny)
+            {
+                for (int i = 0; i <= ny; i++) verticalBasis[i] = MeshGradient.Basis(i / (float)ny);
+                basisNy = ny;
             }
         }
+
         public void Dispose()
         {
             if (patches != null) foreach (var patch in patches) if (patch.mesh != null) UnityEngine.Object.DestroyImmediate(patch.mesh);
             patches = null;
+            if (vertices.IsCreated) vertices.Dispose();
+            if (controls.IsCreated) controls.Dispose();
+            if (horizontalBasis.IsCreated) horizontalBasis.Dispose();
+            if (verticalBasis.IsCreated) verticalBasis.Dispose();
+            basisNx = basisNy = 0;
+            WhimTexProfiler.NativeCacheBytes(this, 0);
         }
     }
 }

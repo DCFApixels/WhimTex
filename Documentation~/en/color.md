@@ -381,6 +381,9 @@ On a **Gradient** layer, choose **Gradient Type → Mesh**, then **Gradient Hand
 The grid lets you shape color transitions with connected curves. Each node has its
 own color and transparency.
 
+Dragging nodes, handles and edges retains full surface detail and overlap correction;
+there is no reduced-quality drag preview.
+
 To create one directly, choose **Mesh** in the Gradient tool, set **Rows** and
 **Columns** in the header, and drag a rectangle. The initial colors and alpha come
 from the current palette's two ends. Creation settings start at 2 × 2 cells and are

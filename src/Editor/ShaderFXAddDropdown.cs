@@ -97,6 +97,7 @@ namespace DCFApixels.WhimTex
             foreach (var child in node.children)
             {
                 var item = new AdvancedDropdownItem(child.Key);
+                ShaderFXIconCache.BindCategory(item);
                 Populate(item, child.Value, counts);
                 ungrouped.Add((child.Key, child.Key, item));
             }

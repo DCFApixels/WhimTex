@@ -44,7 +44,7 @@ next_page: "zh/preview.md"
 
 **Add FX** 保留 Color、Distortion、Lighting、Normal Map 和 Stylization 分类。每个分类内，功能相关的预设排列在一起，各组之间以分隔线区分。分组及组内预设均按名称排序。在 HLSL 预设头部添加 `// @group("Tone")` 可指定其在分类内的分组；未分组预设排在前面。带引号的声明不需要 `@endgroup`。详见[预设列表分组](../ShaderFX.md#preset-list-groups)。
 
-预设图标显示在 **Add FX** 的名称旁，以及各 FX 标题栏的 Enabled 复选框之前。内置效果按含义共享颜色、色调、渐变、遮罩、扭曲、光照、法线、图案和变换图标。图标缺失或加载失败时显示通用 FX 图标；将鼠标悬停在标题图标上可查看详情。
+分类及子分类使用低对比度的实心文件夹图标。预设图标显示在 **Add FX** 的名称旁，以及各 FX 标题栏的 Enabled 复选框之前。内置效果按含义共享颜色、色调、渐变、遮罩、扭曲、光照、法线、图案和变换图标。图标缺失或加载失败时显示通用 FX 图标；将鼠标悬停在标题图标上可查看详情。
 
 也可以将 WhimTex 效果 `.hlsl` 从 Project 拖到 **Layers** 的某一行。
 拖到画布视图或列表空白处会在合成顶部创建 **Shader Processor**。
@@ -404,6 +404,9 @@ Master 不参与平均。**Source Saturation (HSV)** 设置饱和度排除阈值
 **Offset** 移动网格而不移动图层。默认保留透明度；启用 **Alpha Clip** 后，**Alpha Cutoff** 决定透明与不透明的分界。同一组图案也可在 **Stylization → Posterize** 中逐像素使用。
 
 ### 边界轮廓
+
+Edge Outline 需要读取相邻像素。仅出现像素局部性警告并不表示编译失败：
+效果会使用完整输入图像来检测轮廓。
 
 选择 **FX → Add FX → Edge Outline**，在明显的变化处绘制轮廓。
 **Method → Boundary** 绘制均匀轮廓；**Scharr** 使较弱变化处的线条更透明。
