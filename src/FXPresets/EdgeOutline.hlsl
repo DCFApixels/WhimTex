@@ -49,7 +49,7 @@ float2 EdgeOutlineHueSaturation(float3 linearRgb)
 float4 EdgeOutlineSample(float2 pixel)
 {
     // Explicit LOD keeps sampling defined inside the data-dependent search loop.
-    return tex2Dlod(_MainTex, float4((pixel + 0.5) * _InputSize.zw, 0, 0));
+    return SampleInputLod((pixel + 0.5) * _InputSize.zw, 0);
 }
 
 float EdgeOutlineBoundary(float4 a, float4 b)

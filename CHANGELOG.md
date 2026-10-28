@@ -6,6 +6,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- FX HLSL adds `SampleInputLod` and `SampleTextureLod` for explicit mip-level reads with texture-view UV mapping. LOD reads are classified as spatial, including LOD 0; Shader Inputs and agent guides document the API. Edge Outline and Height to Distortion use the supported helpers for their neighbor reads, removing their unverified-read warnings while retaining full-input rendering and base-level sampling.
+
 - Mask, Chroma Key and Edge Outline add collapsible grayscale inspector previews for the processed mask, retained matte and contour coverage. Standalone previews use centered 96×96 squares instead of stretching across the inspector. Shared mask calculations retain the FX output; previews show coverage before header Opacity without switching the canvas output mode and use the existing reduced-resolution inspector path.
 
 - Color History has a shared User Settings limit (default 256, minimum 1). Adding or reusing colors evicts excess entries from the end of each document's history in one Undo step. Picker and gradient labels consistently use Color History; serialized data uses `colorHistory`. Lowering the limit takes effect on the next addition or reuse.

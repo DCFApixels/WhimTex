@@ -74,6 +74,7 @@ public static class ShaderFXCodeInfoTests
             }
             foreach (string token in new[] { "ApplyFX(float4 color)", "ApplyFX(PinnedUV uv, float4 color)",
                 "conversion back is forbidden", "SampleInput(uv)", "SampleTexture(_Mask, uv)", "Layer, Self and None",
+                "SampleInputLod(uv, 0)", "SampleTextureLod(_Mask, uv, 0)", "They do not generate mipmaps",
                 "_MainTex_TexelSize", "_InputSize", "_CanvasSize", "_RenderScale", "_PixelScale", "@param px",
                 "LayerToLocal", "_Name_Sample", "_Name_ToLocal", "#include", "FastNoiseLite", "bypass", "straight",
                 "WhimTexTexture", "_Mask.texelSize", "complete input", "ReadMask(WhimTexTexture source, PinnedUV uv)" })

@@ -61,7 +61,7 @@ namespace DCFApixels.WhimTex
         private static List<ShaderFXPreviewCache> pending = new(), processing = new();
         private static int epoch;
         internal static int Epoch => epoch;
-        private static readonly Regex Input = new(@"\b(SampleInput|_MainTex|_MainTex_TexelSize|LayerToLocal|_InputSize|_RenderScale)\b");
+        private static readonly Regex Input = new(@"\b(SampleInput(?:Lod)?|_MainTex|_MainTex_TexelSize|LayerToLocal|_InputSize|_RenderScale)\b");
         static ShaderFXPreviewCache()
         {
             EditorApplication.update += Update;

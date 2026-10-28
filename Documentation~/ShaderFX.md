@@ -244,8 +244,31 @@ is spatial even when UV is pinned. Preview callbacks retain their `float2` inter
 complete reduced inputs; their reads do not change the main function's typed sampling status.
 Direct low-level bypass detection remains conservative across the complete source.
 Its warning describes a full-input fallback, not a failed compilation or an invalid
-`PinnedUV` entry point. Neighborhood effects such as Edge Outline need this input
-and may intentionally use explicit-LOD texture reads inside dynamic loops.
+`PinnedUV` entry point.
+
+For explicit mip levels, use `SampleInputLod(float2 uv, float lod)` or
+`SampleTextureLod(WhimTexTexture source, float2 uv, float lod)`. Both return `float4`
+straight RGBA, preserve HDR and apply the input's own UV mapping. `PinnedUV` arguments
+convert to numeric coordinates automatically. These reads are **spatial**, even with
+unchanged `PinnedUV` and LOD 0, because a mip level can cover neighboring pixels.
+They produce a verified `spatial` result with the `spatial_sample` reason, rather than
+a bypass warning, unless the source contains another unverified operation.
+
+```hlsl
+float4 ApplyFX(PinnedUV uv, float4 color)
+{
+    return SampleInputLod(uv, 0);
+}
+// A declared texture is read with SampleTextureLod(_Mask, uv, 0).
+```
+
+LOD 0 means the base level of the **supplied texture**, including reduced inspector
+inputs; it does not request the document's native resolution. Available mip levels,
+fractional-LOD filtering and wrap behavior come from that texture and its sampler.
+The helpers do not generate mipmaps. They avoid automatic-LOD derivatives and can
+be used in data-dependent loops. Edge Outline uses `SampleInputLod(..., 0)` for its
+neighbor search and remains spatial without a bypass warning. Inspector callbacks
+may also use these functions with their complete reduced inputs.
 
 `_MainTex` and declared `texture2D` parameters are read-only **`WhimTexTexture`** values.
 Each value carries its sampler, its own mapping from whole-image UV to the stored region,
@@ -447,8 +470,9 @@ values; `_FlipX`/`_FlipY` independently reverse components.
 
 `_Edges` is Clamp (0), Repeat (1) or Mirror (2). Repeat interpolates across the map seam,
 including when the assigned texture uses Clamp. Stencil reads intentionally use explicit
-LOD 0 through `tex2Dlod`: wrapped texel-centre coordinates must not influence automatic
-mip/anisotropic footprint selection. This is a spatial FX, not pixel-local.
+LOD 0 through `SampleTextureLod(_HeightMap, uv, 0)`: wrapped texel-centre coordinates
+must not influence automatic mip/anisotropic footprint selection. This is a verified
+spatial FX, not pixel-local; it does not produce a bypass-read warning.
 
 For `g = gradient(height) * _Strength * axisSigns`, `_Output` has two values:
 

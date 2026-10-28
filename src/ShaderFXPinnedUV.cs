@@ -70,9 +70,9 @@ namespace DCFApixels.WhimTex
                 if (!macro.Success) continue;
                 string text = directive.Value, name = macro.Groups[1].Value;
                 macros.Add(name);
-                if (Regex.IsMatch(text, @"\bPinnedUV\b") || name == "SampleInput" || name == "SampleTexture")
+                if (Regex.IsMatch(text, @"\bPinnedUV\b") || IsSampling(name))
                     throw Error(directive.Index, "PinnedUV and the sampling API cannot be defined or aliased through macros.");
-                if (Regex.IsMatch(text, @"\b(?:SampleInput|SampleTexture)\b")) uncheckedReads.Add(directive.Index);
+                if (Regex.IsMatch(text, @"\b(?:SampleInput|SampleTexture)(?:Lod)?\b")) uncheckedReads.Add(directive.Index);
             }
             clean = Regex.Replace(clean, directivePattern, m => Regex.Replace(m.Value, @"[^\r\n]", " "));
             foreach (Match match in Lex.Matches(clean)) tokens.Add(new Token(match));
@@ -128,7 +128,7 @@ namespace DCFApixels.WhimTex
                     if (body < tokens.Count && tokens[body].text == "{")
                     {
                         var f = new Function { type = tokens[i].text, name = tokens[i + 1].text, start = body, end = pairs[body] };
-                        if (f.name == "SampleInput" || f.name == "SampleTexture") throw Error(tokens[i].start, "Sampling functions are reserved.");
+                        if (IsSampling(f.name)) throw Error(tokens[i].start, "Sampling functions are reserved.");
                         if (f.type == Pinned) consumedPinned.Add(i);
                         int p = i + 3;
                         while (p < close)
@@ -158,7 +158,7 @@ namespace DCFApixels.WhimTex
                     }
                 }
                 if (tokens[i].text == "{") i = pairs[i]; // Global structs/initializers are checked by HLSL.
-                else if (tokens[i].text == "SampleInput" || tokens[i].text == "SampleTexture") uncheckedReads.Add(tokens[i].start);
+                else if (IsSampling(tokens[i].text)) uncheckedReads.Add(tokens[i].start);
             }
         }
 
@@ -354,16 +354,21 @@ namespace DCFApixels.WhimTex
             }
             return value;
         }
+        static bool IsSampling(string name) => name == "SampleInput" || name == "SampleTexture" ||
+            name == "SampleInputLod" || name == "SampleTextureLod";
+
         Value Call(string name, int start)
         {
             var arguments = new List<Value>();
             if (Peek() != ")") do { arguments.Add(Expression(1)); } while (Take(","));
             Need(")"); int end = tokens[cursor - 1].end;
             if (macros.Contains(name)) current.unverifiedReads.Add(start);
-            if (name == "SampleInput" || name == "SampleTexture")
+            if (IsSampling(name))
             {
-                int uv = name == "SampleInput" ? 0 : 1;
-                bool pinned = arguments.Count == uv + 1 && arguments[uv].type == Pinned;
+                int uv = name == "SampleInput" || name == "SampleInputLod" ? 0 : 1;
+                // Mip levels can depend on an area even at an unchanged coordinate.
+                bool explicitLod = name == "SampleInputLod" || name == "SampleTextureLod";
+                bool pinned = !explicitLod && arguments.Count == uv + 1 && arguments[uv].type == Pinned;
                 if (!pinned) current.reads.Add(start);
                 for (int i = 0; i < arguments.Count; i++) if (!pinned || i != uv) Unpin(arguments[i]);
                 return new Value("float4", start, end);

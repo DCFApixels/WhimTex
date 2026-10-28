@@ -90,6 +90,10 @@ public static class HeightToDistortionTests
             t.Equal(ShaderFXTextureSource.Self, P(generator, "_HeightMap").textureSource, "Height source defaults to Self");
             t.Equal(0f, P(generator, "_Filter").floatValue, "Scharr default");
             t.True(!(bool)typeof(ShaderFX).GetProperty("IsPixelLocal", F).GetValue(generator), "Neighbour sampling is not pixel-local");
+            t.Equal("spatial", (string)typeof(ShaderFX).GetProperty("AppliedLocalityStatus", F).GetValue(generator),
+                "Explicit LOD reads use the verified spatial sampling API");
+            t.Equal("Applied successfully.", (string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(generator),
+                "Height to Distortion compiles without locality warnings");
             string source = (string)typeof(ShaderFX).GetProperty("Code", F).GetValue(generator);
             t.Equal("// @control(_Strength)", source.Split('\n')[1].TrimEnd('\r'), "Header controls gradient strength, not opacity");
 

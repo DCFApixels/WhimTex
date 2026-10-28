@@ -274,6 +274,9 @@ Pixel-local FX 在当前坐标读取纹理。仅处理颜色时使用 `ApplyFX(f
 仅用 UV 计算颜色不会失去局部性。
 
 `SampleInput(uv)` 和 `SampleTexture(_Mask, uv)` 是 WhimTex 读取纹理的主要接口。
+需要显式选择 mip 级别时，使用 `SampleInputLod(uv, lod)` 或 `SampleTextureLod(_Mask, uv, lod)`。
+这两个函数即使在 LOD 0 也属于空间采样，并可用于动态循环。
+LOD 0 读取所传入纹理的基础级别；函数本身不会生成 mipmap。
 当 `uv` 为 `PinnedUV` 时，`SampleTexture(_MainTex, uv)` 也保持 pixel-local，等同于 `SampleInput(uv)`；
 sampler 的名称本身并不构成绕过路径。
 后者支持 Texture、Layer、Self、None 遮罩来源；pixel-local 读取要求使用 `PinnedUV`。
@@ -405,8 +408,8 @@ Master 不参与平均。**Source Saturation (HSV)** 设置饱和度排除阈值
 
 ### 边界轮廓
 
-Edge Outline 需要读取相邻像素。仅出现像素局部性警告并不表示编译失败：
-效果会使用完整输入图像来检测轮廓。
+Edge Outline 读取相邻像素来检测轮廓，因此 **Pixel Local** 状态为 **No**。
+内置预设使用受支持的显式 LOD 采样函数，编译时不会产生局部性警告。
 
 选择 **FX → Add FX → Edge Outline**，在明显的变化处绘制轮廓。
 **Method → Boundary** 绘制均匀轮廓；**Scharr** 使较弱变化处的线条更透明。
@@ -505,6 +508,7 @@ Signed 应设为 8 才能得到相同位移。贴图图层使用 **Color Range �
 Scharr、Sobel 和 Central Difference；**Radius** 设置像素采样距离，**Edges** 提供 Clamp、
 Repeat 和 Mirror。**Flip X/Y** 分别反转两个轴。向量指向高度增加的方向，不进行单位长度归一化，
 因此较陡的斜坡仍产生较强的位移。
+由于滤波器需要读取相邻高度，**Pixel Local** 状态为 **No**；内置预设编译时不会产生局部性警告。
 
 **Output → Packed RG** 为默认模式，中性值为 `(0.5, 0.5)`；**Signed RG** 的中性值为 `(0, 0)`。
 将该图层指定为 **Displacement Map** 的贴图，选择 **VectorRG**，并将 **Neutral** 分别设为 0.5 或 0。

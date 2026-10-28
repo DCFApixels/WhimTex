@@ -41,6 +41,11 @@ public static class EdgeOutlineTests
                     selected = entry;
             t.True(selected != null, "Preset is automatically discovered in the FX catalog");
             var fx = Own((ShaderFX)typeof(ShaderFX).GetMethod("FromCatalog", Hidden).Invoke(null, new[] { (object)doc, selected }));
+            t.True(!fx.IsPixelLocal, "Neighbor reads require complete image inputs");
+            t.Equal("spatial", (string)typeof(ShaderFX).GetProperty("AppliedLocalityStatus", Hidden).GetValue(fx),
+                "Explicit LOD uses the verified spatial sampling API");
+            t.Equal("Applied successfully.", (string)typeof(ShaderFX).GetProperty("Diagnostics", Hidden).GetValue(fx),
+                "Edge Outline compiles without bypass warnings");
             var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", Hidden).GetValue(fx);
             t.Equal(12, parameters.Count, "Shared controls plus method-specific strength, hue sensitivity and FX opacity");
             ShaderFXParameter P(string name) => parameters.Find(p => p.name == name);
@@ -281,7 +286,7 @@ public static class EdgeOutlineTests
             var effectControl = (VisualElement)Activator.CreateInstance(viewType, Hidden, null, new object[] { fx, true, null, null, -1 }, null);
             try
             {
-                t.Equal(3, view.childCount, "Hidden FX opacity does not add a body row");
+                t.Equal(4, view.childCount, "Three groups and the contour preview, without a duplicate opacity row");
                 t.Equal(1, effectControl.Query<FloatField>().ToList().Count, "FX header exposes one opacity field");
                 t.True(effectControl.Q<VisualElement>(className: "whimtex-fx-effect-control-handle").GetType().Name == "LayerActionIcon",
                     "Opacity uses the shared alpha drag handle");
@@ -293,6 +298,9 @@ public static class EdgeOutlineTests
                     t.Near(amount, effectControl.Q<FloatField>().value, 0, "FX header reflects the current opacity");
                 }
                 var groups = view.Query<VisualElement>(className: "whimtex-fx-parameter-group").ToList();
+                t.Equal(1, view.Query<Foldout>(className: "whimtex-fx-parameter-foldout").ToList().Count,
+                    "Contour preview has its own foldout");
+                groups.RemoveAll(group => group.Q<Foldout>(className: "whimtex-fx-parameter-foldout") != null);
                 t.Equal(3, groups.Count, "Actual UI has three compact groups");
                 string[] titles = { "Detection", "Contour", "Output" };
                 string[] headers = { "_Detection", "_Shape", "_Output" };

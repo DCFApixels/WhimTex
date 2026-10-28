@@ -19,7 +19,7 @@ namespace DCFApixels.WhimTex
         // Conservative capability inference over expanded user code, including helpers.
         // Any explicit sampling, derivative or unresolved compiler input needs a full frame.
         private static readonly Regex SpatialInput = new Regex(
-            @"\b(SampleInput|_MainTex\w*|_ScreenParams|_ProjectionParams|UNITY\w*|Unity\w*|ddx\w*|ddy\w*|fwidth\w*|tex\w*|\w*Buffer\w*|\w*Texture\w*)\b|\.\s*(Load|Sample\w*|Gather\w*)\s*\(|##|#\s*(include\w*|pragma|line)\b",
+            @"\b(SampleInput(?:Lod)?|_MainTex\w*|_ScreenParams|_ProjectionParams|UNITY\w*|Unity\w*|ddx\w*|ddy\w*|fwidth\w*|tex\w*|\w*Buffer\w*|\w*Texture\w*)\b|\.\s*(Load|Sample\w*|Gather\w*)\s*\(|##|#\s*(include\w*|pragma|line)\b",
             RegexOptions.CultureInvariant);
 
         private static bool HasRegionalColorInput(string expanded, IReadOnlyList<ShaderFXParameter> parameters)
@@ -86,6 +86,7 @@ namespace DCFApixels.WhimTex
         private const string InputSamplingSource = @"
 float _WhimTex_InputFilter;
 float4 SampleInput(float2 uv) { return tex2D(_MainTex, uv); }
+float4 SampleInputLod(float2 uv, float lod) { return SampleTextureLod(_MainTex, uv, lod); }
 float4 SampleInput(float2 uv, float tiling)
 {
     float4 result = 0.0;

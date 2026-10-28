@@ -49,6 +49,8 @@ namespace DCFApixels.WhimTex
             Text(textures, "Locality follows the coordinate type at each reachable image read: " + Code("PinnedUV") + " is local; " + Code("float2") +
                 " or explicit tiling is spatial, including inside helpers. Numeric UV math without image reads remains local. Different texture resolutions use the same normalized coordinates.");
             Item(textures, Code("SampleInput(uv, tiling)") + " — spatial addressing: 0 Clamp, 1 Repeat, 2 Mirror, 3 Clip.");
+            Item(textures, Code("SampleInputLod(uv, 0)") + " — incoming image at an explicit mip level; 0 is the supplied texture's base level, including reduced previews.");
+            Item(textures, Code("SampleTextureLod(_Mask, uv, 0)") + " — explicit mip level of a declared texture, with its own UV mapping. Both Lod functions are spatial, including with PinnedUV or LOD 0, and work in dynamic loops without automatic LOD derivatives. They do not generate mipmaps.");
             Text(textures, Code("_MainTex") + " is the incoming " + Code("WhimTexTexture") + ". " + Code("SampleTexture(_MainTex, uv)") +
                 " is equivalent to " + Code("SampleInput(uv)") + " and remains pixel-local when " + Code("uv") + " is " + Code("PinnedUV") + ".");
             var bypassNote = Text(textures, "Low-level bypass paths: " + Code("tex2D") + ", " + Code(".Sample") + ", " + Code(".Load") +

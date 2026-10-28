@@ -788,6 +788,15 @@ without image reads remains local. Unverifiable macro/bypass dependencies use a 
 `SampleTexture(_Mask, uv)` reads a declared `texture2D` parameter, including Texture, Layer,
 Self and None sources. Both reading functions accept pinned or numeric coordinates;
 only unchanged pinned coordinates confirm a local read.
+`SampleInputLod(uv, lod)` and `SampleTextureLod(_Mask, uv, lod)` select an explicit mip
+level through the same texture-view mapping. Both return straight RGBA, preserve HDR,
+and accept `PinnedUV` through its numeric conversion. Both are always spatial, even
+at LOD 0 with unchanged coordinates: compilation reports `spatial` / `spatial_sample`
+without a bypass warning unless another operation is unverified. Use them for sampling
+inside data-dependent loops, as in Edge Outline, or for base-level derivatives, as in
+Height to Distortion. LOD 0 is the supplied texture's base
+level, including reduced previews; these functions do not create mipmaps or request
+native document resolution. Mip availability, filtering and wrapping follow the sampler.
 `_MainTex` and declared `texture2D` parameters have the read-only HLSL type
 `WhimTexTexture`. Use that type for helper/preview arguments and texture return values,
 not `sampler2D`. `SampleTexture` maps whole-input UV to each texture's own stored region;

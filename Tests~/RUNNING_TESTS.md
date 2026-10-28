@@ -197,6 +197,8 @@ The case verifies authoring/render behavior, not a sandbox against intentionally
 resolutions, with point/bilinear filtering and fractional sample phases. It covers signed HDR,
 alpha, logical 8192×8192 coordinates using a small Half texture, complete-input size metadata,
 texture copies/returns/helper arguments, typed inspector previews and rejected view mutation.
+Explicit-LOD checks cover independent mappings, actual and fractional mip levels, Half/HDR,
+alpha, spatial classification and conservative macro/bypass handling.
 It adds no persistent assets or user windows; deliberate invalid HLSL emits diagnostics.
 
 The `freeform-gradient` profile checks point interpolation against an independent CPU oracle,

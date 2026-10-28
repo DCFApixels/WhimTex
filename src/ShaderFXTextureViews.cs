@@ -25,9 +25,13 @@ float4 tex2D(WhimTexTexture source, float2 uv)
 {
     return tex2D(source.pixels, _WhimTex_TextureUV(source, uv));
 }
+float4 SampleTextureLod(WhimTexTexture source, float2 uv, float lod)
+{
+    return tex2Dlod(source.pixels, float4(_WhimTex_TextureUV(source, uv), 0.0, lod));
+}
 float4 tex2Dlod(WhimTexTexture source, float4 uv)
 {
-    return tex2Dlod(source.pixels, float4(_WhimTex_TextureUV(source, uv.xy), uv.zw));
+    return SampleTextureLod(source, uv.xy, uv.w);
 }
 float4 tex2Dbias(WhimTexTexture source, float4 uv)
 {

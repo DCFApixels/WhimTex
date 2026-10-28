@@ -97,7 +97,7 @@ namespace DCFApixels.WhimTex
                 reasons.Add(new ShaderFXLocalityReason { code = code, message = message, file = location.file, line = location.line });
             }
             foreach (int offset in analysis.spatialReads)
-                Add("spatial_sample", "Image sampling uses numeric coordinates or explicit addressing instead of an unchanged PinnedUV.", offset);
+                Add("spatial_sample", "Image sampling uses numeric coordinates, explicit addressing or explicit LOD and requires complete input.", offset);
             foreach (int offset in analysis.uncheckedReads)
                 Add("unverified_sampling", "Sampling outside a typed function body or through a macro cannot be verified as pixel-local.", offset);
 

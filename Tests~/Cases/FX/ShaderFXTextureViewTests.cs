@@ -25,6 +25,8 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 }";
         var fx = f.Fx(code);
         t.True(fx.IsPixelLocal, "Forwarding/copying texture views retains locality");
+        var lodFx = f.Fx(code.Replace("SampleTexture(Forward(source), uv)", "SampleTextureLod(Forward(source), uv, 0)"));
+        f.Spatial(lodFx, "Explicit LOD through a PinnedUV helper");
         var full = f.Pattern(64, 32, false);
         var mask = f.Pattern(32, 16, true);
         var crop = f.Crop(full, new RectInt(16, 8, 24, 12));
@@ -33,6 +35,7 @@ float4 ApplyFX(PinnedUV uv, float4 color)
         // at the first/last output pixels, rather than only texel-center lookups.
         var outputRegion = new Rect(17.25f / 64, 9.25f / 32, 20f / 64, 10f / 32);
         foreach (var filter in new[] { FilterMode.Point, FilterMode.Bilinear })
+        foreach (var reader in new[] { fx, lodFx })
         {
             full.filterMode = mask.filterMode = crop.filterMode = maskCrop.filterMode = filter;
             var expected = f.Render(fx, full, new Rect(0, 0, 1, 1), new Vector2(64, 32),
@@ -40,12 +43,12 @@ float4 ApplyFX(PinnedUV uv, float4 color)
             foreach (bool cropMain in new[] { false, true })
             foreach (bool cropMask in new[] { false, true })
             {
-                var actual = f.Render(fx, cropMain ? crop : full,
+                var actual = f.Render(reader, cropMain ? crop : full,
                     cropMain ? new Rect(16f / 64, 8f / 32, 24f / 64, 12f / 32) : new Rect(0, 0, 1, 1),
                     new Vector2(64, 32), cropMask ? maskCrop : mask,
                     cropMask ? new Rect(7f / 32, 3f / 16, 18f / 32, 10f / 16) : new Rect(0, 0, 1, 1),
                     new Vector2(32, 16), outputRegion);
-                f.EqualPixels(expected, actual, filter + " main=" + cropMain + " mask=" + cropMask);
+                f.EqualPixels(expected, actual, filter + " lod=" + (reader == lodFx) + " main=" + cropMain + " mask=" + cropMask);
             }
         }
         // Real 8K logical coordinates without a gratuitous 1 GiB allocation.
@@ -61,6 +64,33 @@ float4 ApplyFX(PinnedUV uv, float4 color) { return Read(_MainTex, uv); }");
         var region8K = new Rect(4600f / 8192, 2500f / 8192, 32f / 8192, 16f / 8192);
         var result8K = f.Render(pass, small, region8K, new Vector2(8192, 8192), null, default, default, region8K, 32, 16);
         f.EqualPixels(small.GetPixels(), result8K, "8K coordinates preserve stored Half/HDR values");
+        var lodPass = f.Fx("float4 ApplyFX(PinnedUV uv, float4 color) { return SampleInputLod(uv, 0); }");
+        f.Spatial(lodPass, "LOD zero at unchanged PinnedUV is spatial");
+        f.EqualPixels(small.GetPixels(), f.Render(lodPass, small, region8K, new Vector2(8192, 8192),
+            null, default, default, region8K, 32, 16), "LOD zero preserves Half/HDR and logical 8K UV mapping");
+
+        var mipColors = new[] { new Color(4, -2, .5f, .25f), new Color(-3, 6, 2, .75f), new Color(1, 2, -4, .5f) };
+        var mipMain = f.Mips(mipColors, false);
+        var mipMask = f.Mips(mipColors, true);
+        var whole = new Rect(0, 0, 1, 1);
+        foreach (string level in new[] { "0", "1", "1.5", "2" })
+        {
+            var mipFx = f.Fx("// @param texture2D _Mask\nfloat4 ApplyFX(PinnedUV uv, float4 color) { " +
+                "return (SampleInputLod(uv, " + level + ") + SampleTextureLod(_Mask, uv, " + level + ")) * .5; }");
+            f.Spatial(mipFx, "LOD " + level);
+            float lod = float.Parse(level, System.Globalization.CultureInfo.InvariantCulture);
+            int lower = Mathf.FloorToInt(lod), upper = Mathf.CeilToInt(lod);
+            Color expected = (Color.LerpUnclamped(mipColors[lower], mipColors[upper], lod - lower) +
+                Color.LerpUnclamped(mipColors[2 - lower], mipColors[2 - upper], lod - lower)) * .5f;
+            foreach (var pixel in f.Render(mipFx, mipMain, whole, new Vector2(4, 4), mipMask, whole, new Vector2(4, 4), whole))
+                for (int c = 0; c < 4; c++) t.Near(expected[c], pixel[c], .00005, "Explicit mip level preserves HDR and alpha: " + level);
+        }
+        var macroLod = f.Fx("#define READ(p) SampleInputLod(p, 0)\nfloat4 ApplyFX(PinnedUV uv, float4 color) { return READ(uv); }");
+        t.Equal("unverified", (string)typeof(ShaderFX).GetProperty("AppliedLocalityStatus", F).GetValue(macroLod),
+            "LOD sampling through an opaque macro retains conservative classification");
+        var unusedLod = f.Fx("float4 Unused(float2 uv) { return SampleInputLod(uv, 0); }\n" +
+            "float4 ApplyFX(PinnedUV uv, float4 color) { return SampleInput(uv); }");
+        t.True(unusedLod.IsPixelLocal, "Unreachable LOD helper does not make ApplyFX spatial");
         var sizes = f.Fx(@"float4 ApplyFX(float4 color) {
 return float4(_MainTex.texelSize.z / 8192.0, _MainTex_TexelSize.w / 8192.0,
 _MainTex.texelSize.x * 8192.0, _InputSize.x / 8192.0); }");
@@ -77,6 +107,24 @@ float4 PreviewTexture(float2 uv, WhimTexTexture source) { return SampleTexture(s
             mask, fullRegion, new Vector2(32, 16), fullRegion, 32, 16, preview: true);
         f.EqualPixels(mask.GetPixels(), previewPixels, "Inspector callback receives the texture view argument");
 
+        var lodPreview = f.Fx(@"// @param preview(PreviewInput) texture2D _Mask
+float4 ApplyFX(float4 color) { return color; }
+#ifdef WHIMTEX_PREVIEW
+float4 PreviewInput(float2 uv, WhimTexTexture source) { return SampleInputLod(uv, 0); }
+#endif");
+        t.True(lodPreview.IsPixelLocal, "Preview-only LOD reads do not change ApplyFX locality");
+        f.EqualPixels(full.GetPixels(), f.Render(lodPreview, full, fullRegion, new Vector2(64, 32),
+            mask, fullRegion, new Vector2(32, 16), fullRegion, 64, 32, preview: true), "Inspector supports explicit LOD input sampling");
+        var cacheType = Assembly.GetType("DCFApixels.WhimTex.ShaderFXPreviewCache", true);
+        var cache = cacheType.GetMethod("Acquire", F).Invoke(null, new object[] { lodPreview });
+        try
+        {
+            var parameter = ((IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(lodPreview))[0];
+            Call(cache, "GetProgram", parameter.controls[0], parameter);
+            t.True((bool)cacheType.GetProperty("NeedsInput", F).GetValue(cache), "LOD-only preview requests refreshed input");
+        }
+        finally { Call(cache, "Release"); }
+
         foreach (string body in new[] {
             "WhimTexTexture source = _MainTex; source.uvMap.z += .2; return SampleTexture(source, uv);",
             "WhimTexTexture source = (WhimTexTexture)0; return SampleTexture(source, uv);",
@@ -91,6 +139,8 @@ float4 PreviewTexture(float2 uv, WhimTexTexture source) { return SampleTexture(s
         }
         var bypass = f.Fx("float4 ApplyFX(PinnedUV uv, float4 color) { return tex2D(_MainTex.pixels, float2(uv.x, uv.y)); }");
         t.True(!bypass.IsPixelLocal, "Extracting the physical sampler is unconfirmed");
+        t.Equal("unverified", (string)typeof(ShaderFX).GetProperty("AppliedLocalityStatus", F).GetValue(bypass),
+            "Raw sampler bypass is not silently classified as an approved spatial read");
     });
 
     sealed class Fixture : IDisposable
@@ -126,6 +176,24 @@ float4 PreviewTexture(float2 uv, WhimTexTexture source) { return SampleTexture(s
                 pixels[y * w + x] = mask ? new Color(((x + y) % 5) / 4f, 0, 0, 1)
                     : new Color((x % 7) - 2, y / 8f, -x / 64f, (x + y) / 100f);
             texture.SetPixels(pixels); texture.Apply(); return texture;
+        }
+        internal void Spatial(ShaderFX fx, string message)
+        {
+            t.True(!fx.IsPixelLocal, message);
+            t.Equal("spatial", (string)typeof(ShaderFX).GetProperty("AppliedLocalityStatus", F).GetValue(fx), message + " is verified spatial");
+            t.Equal("Applied successfully.", (string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(fx), message + " has no compiler warnings");
+        }
+        internal Texture2D Mips(Color[] colors, bool reverse)
+        {
+            var texture = Own(new Texture2D(4, 4, TextureFormat.RGBAFloat, true, true)
+                { filterMode = FilterMode.Trilinear, wrapMode = TextureWrapMode.Clamp });
+            for (int mip = 0; mip < 3; mip++)
+            {
+                var pixels = new Color[(4 >> mip) * (4 >> mip)];
+                for (int i = 0; i < pixels.Length; i++) pixels[i] = colors[reverse ? 2 - mip : mip];
+                texture.SetPixels(pixels, mip);
+            }
+            texture.Apply(false, false); return texture;
         }
         internal Texture2D Crop(Texture2D source, RectInt rect)
         {

@@ -288,6 +288,9 @@ Sampling with pinned UV is local; sampling with numeric UV or tiling is spatial,
 inside helpers. UV math used only to calculate color does not remove locality.
 
 `SampleInput(uv)` and `SampleTexture(_Mask, uv)` are WhimTex's primary texture-reading functions.
+For an explicit mip level, use `SampleInputLod(uv, lod)` or `SampleTextureLod(_Mask, uv, lod)`.
+These functions are spatial even at LOD 0 and can sample inside dynamic loops.
+LOD 0 reads the supplied texture's base level; they do not create mipmaps.
 `SampleTexture(_MainTex, uv)` is also pixel-local with `PinnedUV`, equivalent to `SampleInput(uv)`;
 the sampler name itself does not make a read a bypass.
 The latter also supports masks from Texture, Layer, Self or None; pixel-local reads require
@@ -432,8 +435,9 @@ The same pattern list works per pixel in **Stylization → Posterize**.
 
 ### Edge contours
 
-Edge Outline reads neighboring pixels. A pixel-locality warning alone does not mean that
-the effect failed to compile; it uses the complete input image to find contours.
+Edge Outline reads neighboring pixels to find contours. Its **Pixel Local** status is
+**No**; the built-in preset uses the supported explicit-LOD sampling functions and
+compiles without a locality warning.
 
 Choose **FX → Add FX → Edge Outline** to draw lines along sharp transitions.
 **Method → Boundary** creates uniform contours; **Scharr** makes weaker transitions less opaque.
@@ -540,6 +544,8 @@ it and zero produces a neutral map. **Filter** offers Scharr (default), Sobel an
 Difference. **Radius** sets the sampling distance in pixels; **Edges** offers Clamp, Repeat
 and Mirror. **Flip X/Y** reverse individual directions. Positive vectors point toward
 increasing height; vector length is not normalized, so steep slopes remain stronger.
+Its **Pixel Local** status is **No** because the filters read neighboring heights;
+the built-in preset compiles without a locality warning.
 
 In **Output**, **Packed RG** (default) has neutral `(0.5, 0.5)`; **Signed RG** has neutral
 `(0, 0)`. Assign this layer to **Displacement Map**, choose **VectorRG**, and set **Neutral**

@@ -19,7 +19,7 @@ float4 DistortionHeightRead(float2 uv)
 {
     // A finite-difference stencil requires base-level samples. In particular, wrapped
     // texel-centre coordinates have discontinuous screen derivatives at repeat seams.
-    return tex2Dlod(_HeightMap, float4(uv, 0.0, 0.0));
+    return SampleTextureLod(_HeightMap, uv, 0);
 }
 
 float4 DistortionHeightSample(float2 uv)

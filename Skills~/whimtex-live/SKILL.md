@@ -283,6 +283,7 @@ Complete this job with `changes.fx` (add/replace/remove by FX index), optionally
 transform. Read the existing code before replacing an FX and preserve unrelated entries and uniforms.
 Replacing an external reference creates a local embedded FX, leaving the shared asset untouched.
 Implement `float4 ApplyFX(PinnedUV uv, float4 color)` in linear straight RGBA; use SampleInput for neighbours.
+Use `SampleInputLod(uv, lod)` or `SampleTextureLod(_Mask, uv, lod)` when an explicit mip level is needed, including data-dependent loops. Both are spatial even with pinned UV and LOD 0; approved reads report `spatial`, not a bypass warning. LOD 0 refers to the supplied texture, including reduced previews; mipmaps are not generated.
 Pinned copies/helpers retain locality; arithmetic and implicit/explicit conversion to `float2` lose the pin.
 Reverse conversion and mutation are forbidden. Locality follows coordinate types at reachable image reads,
 not procedural UV math alone. Read the compile/applied `locality` result and reasons instead of guessing.
