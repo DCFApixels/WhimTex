@@ -13,7 +13,7 @@ try {
       assert.doesNotMatch(source, /@formerlyserializedas/);
       assert.match(source, /@param hidden float _Opacity = 1 \[0 \.\. 1\]/);
       assert.match(source, /float amount = saturate\(_Opacity\)/);
-      assert.match(source, /@param bool _InvertAlpha = false/);
+      assert.match(source, /@param toggle(float) _InvertAlpha = false/);
       assert.match(source, /color\.rgb = lerp\(color\.rgb, 1\.0 - color\.rgb, amount\)/);
       assert.match(source, /float invertAlpha = step\(0\.5001, _InvertAlpha\)/);
       assert.match(source, /color\.a = lerp\(color\.a, 1\.0 - color\.a, amount \* invertAlpha\)/);

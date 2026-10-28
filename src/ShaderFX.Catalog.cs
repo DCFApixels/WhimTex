@@ -9,11 +9,21 @@ namespace DCFApixels.WhimTex
     {
         [SerializeField, HideInInspector] private string catalogGuid;
         [SerializeField, HideInInspector] private string catalogSourcePath;
+        [SerializeField, HideInInspector] private string presetOriginPath;
         [SerializeField, HideInInspector] private string catalogDependencyHash;
         [NonSerialized] private HashSet<string> catalogDependencies;
         [NonSerialized] private bool catalogReloadPending;
         internal bool IsCatalogLinked => !string.IsNullOrEmpty(catalogGuid);
         internal string CatalogPath => IsCatalogLinked ? AssetDatabase.GUIDToAssetPath(catalogGuid) : null;
+        internal string PresetSourcePath
+        {
+            get
+            {
+                if (!IsCatalogLinked) return presetOriginPath;
+                string path = CatalogPath;
+                return string.IsNullOrEmpty(path) ? catalogSourcePath : path;
+            }
+        }
 
         private void SetCatalogDependencies(HashSet<string> dependencies)
         {
@@ -74,6 +84,7 @@ namespace DCFApixels.WhimTex
             effect.name = entry.menuPath.Substring(entry.menuPath.LastIndexOf('/') + 1);
             effect.catalogGuid = entry.user ? null : entry.guid;
             effect.catalogSourcePath = entry.user ? null : entry.path;
+            effect.presetOriginPath = entry.path;
             effect.catalogDependencyHash = entry.user ? null : effect.CatalogHash(entry.path);
             try { effect.ApplyAgentDraft(); return effect; }
             catch { DestroyImmediate(effect); throw; }
@@ -88,6 +99,7 @@ namespace DCFApixels.WhimTex
             // Keep the source path as the include base when embedding a copy.
             ReleaseCatalogDependencies();
             catalogGuid = null;
+            presetOriginPath = null;
             catalogDependencyHash = null;
         }
 
@@ -109,6 +121,7 @@ namespace DCFApixels.WhimTex
                 ShaderFXMetadata.Parse(source, true, out string menuPath);
                 code = source;
                 catalogSourcePath = path;
+                presetOriginPath = path;
                 catalogDependencyHash = hash;
                 name = menuPath.Substring(menuPath.LastIndexOf('/') + 1);
                 ApplyCore(contentChanged);

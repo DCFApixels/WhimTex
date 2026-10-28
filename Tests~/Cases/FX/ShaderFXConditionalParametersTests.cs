@@ -33,7 +33,7 @@ public static class ShaderFXConditionalParametersTests
         int checks = 0;
         void Check(bool ok, string reason) { context.True(ok, reason); }
 
-        const string declarations = "// @param enum _Mode = 0 { Off: 0, On: 1 }\n// @if _Mode == 1\n// @header(Enabled only)\n// @helpbox(Only shown while this mode is active.)\n// @param float _Amount = 0.5 [0 .. 1]\n// @endif\n// @if _Mode != 0\n// @param bool _Extra = true\n// @endif\n";
+        const string declarations = "// @param enum _Mode = 0 { Off: 0, On: 1 }\n// @if _Mode == 1\n// @header(Enabled only)\n// @helpbox(Only shown while this mode is active.)\n// @param float _Amount = 0.5 [0 .. 1]\n// @endif\n// @if _Mode != 0\n// @param toggle(float) _Extra = true\n// @endif\n";
         var values = Parse(declarations);
         Check(values.Count == 3 && values[1].controls[0].visibleIfParameter == "_Mode" && values[1].controls[0].visibleIfValue == 1, "Conditional metadata parse");
         Check(values[1].controls[0].helpBoxes.Length == 1 && values[1].controls[0].helpBoxes[0] == "Only shown while this mode is active.", "Conditional helpbox metadata parse");
@@ -44,14 +44,14 @@ public static class ShaderFXConditionalParametersTests
         var preserveValues = metadata.GetMethod("PreserveValues", F);
         string ScalarDeclaration(ShaderFXParameterType type, string value) => type == ShaderFXParameterType.Enum
             ? "// @param enum _Value = " + (value == "1" ? "On" : "Off") + " { Off: 0, On: 1 }\n"
-            : "// @param " + (type == ShaderFXParameterType.Bool ? "bool" : "float") + " _Value = " + value + "\n";
+            : "// @param " + (type == ShaderFXParameterType.Toggle ? "bool" : "float") + " _Value = " + value + "\n";
         foreach (var transition in new[] {
-            (ShaderFXParameterType.Float, "1", ShaderFXParameterType.Bool),
-            (ShaderFXParameterType.Bool, "true", ShaderFXParameterType.Float),
+            (ShaderFXParameterType.Float, "1", ShaderFXParameterType.Toggle),
+            (ShaderFXParameterType.Toggle, "true", ShaderFXParameterType.Float),
             (ShaderFXParameterType.Float, "1", ShaderFXParameterType.Enum),
             (ShaderFXParameterType.Enum, "1", ShaderFXParameterType.Float),
-            (ShaderFXParameterType.Bool, "true", ShaderFXParameterType.Enum),
-            (ShaderFXParameterType.Enum, "1", ShaderFXParameterType.Bool)
+            (ShaderFXParameterType.Toggle, "true", ShaderFXParameterType.Enum),
+            (ShaderFXParameterType.Enum, "1", ShaderFXParameterType.Toggle)
         })
         {
             var previous = Parse(ScalarDeclaration(transition.Item1, transition.Item2));
@@ -62,7 +62,7 @@ public static class ShaderFXConditionalParametersTests
         }
 
         var fractionalScalar = Parse(ScalarDeclaration(ShaderFXParameterType.Float, "0.375"));
-        var fractionalBool = Parse(ScalarDeclaration(ShaderFXParameterType.Bool, "false"));
+        var fractionalBool = Parse(ScalarDeclaration(ShaderFXParameterType.Toggle, "false"));
         preserveValues.Invoke(null, new object[] { fractionalBool, fractionalScalar });
         Check(Mathf.Approximately(fractionalBool[0].floatValue, .375f) && fractionalBool[0].id == fractionalScalar[0].id,
             "Scalar migration preserves a fractional numeric value when the destination UI type is bool");
@@ -70,7 +70,7 @@ public static class ShaderFXConditionalParametersTests
         ShaderFX serializedSource = null, serializedCopy = null;
         try
         {
-            string boolSource = "// @param bool _Mode = true\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _Mode; }\n";
+            string boolSource = "// @param toggle(float) _Mode = true\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _Mode; }\n";
             string enumSource = "// @param enum _Mode = On { Off: 0, On: 1 }\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _Mode; }\n";
             serializedSource = (ShaderFX)createDraft.Invoke(null, new object[] { null, boolSource, Parse(boolSource) });
             string serialized = UnityEditor.EditorJsonUtility.ToJson(serializedSource);

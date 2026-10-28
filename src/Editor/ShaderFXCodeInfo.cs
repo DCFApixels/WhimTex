@@ -68,6 +68,11 @@ namespace DCFApixels.WhimTex
             var parameters = Section(reference, "Parameters & Helpers");
             Item(parameters, "Declare controls with " + Code("// @param") + "; do not redeclare their generated uniforms. A " + Code("texture2D") +
                 " parameter generates a " + Code("WhimTexTexture") + " and " + Code("_Name_TexelSize") + " (1/width, 1/height, width, height).");
+            Item(parameters, Code("// @param rgba toggle(float4) _Channels = (1, 1, 1, 0)") +
+                "\nFour switches with R/G/B/A labels; the HLSL value is float4 with 0/1 components.");
+            Text(parameters, Code("toggle(type)") + ", " + Code("color(type)") + ", " + Code("enum(type)") + " and " + Code("seed(type)") +
+                " separate the control from its numeric type. Defaults: float, float4, float and int respectively. Toggle/color support bool, int, uint, half and float with 1–4 components; enum accepts numeric scalars; seed accepts int, uint or float. " +
+                Code("rgba") + " changes component labels only. Use an explicit component in vector conditions, for example " + Code("// @enableif _Channels.a == 1") + ".");
             Item(textures, Code("float4 ReadMask(WhimTexTexture source, PinnedUV uv) { return SampleTexture(source, uv); }") +
                 "\nPass the texture view to your own helpers; its coordinate mapping travels with it.");
             Text(textures, Code("_Mask.texelSize") + " describes the complete input at its render scale, even when only a region is stored. " +

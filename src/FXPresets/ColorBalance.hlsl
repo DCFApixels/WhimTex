@@ -17,7 +17,7 @@
 // @param label(RGB Offset) float3 _Highlights = (0, 0, 0) // Add or subtract red, green and blue in highlights; zero leaves each channel unchanged.
 // @endif
 // @header(Luminance)
-// @param label(Preserve Luma) bool _PreserveLuma = true // Keep the original luminance while adjusting color; alpha is always unchanged.
+// @param label(Preserve Luma) toggle(float) _PreserveLuma = true // Keep the original luminance while adjusting color; alpha is always unchanged.
 // @endgroup
 
 float4 ApplyFX(float4 color)

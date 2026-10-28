@@ -147,7 +147,29 @@ namespace DCFApixels.WhimTex
             string editorPath = FindVsCodePath();
             if (string.IsNullOrEmpty(editorPath)) return;
 
-            string codePath = PrepareSession(effect);
+            OpenPathInVsCode(editorPath, PrepareSession(effect));
+        }
+
+        internal static void OpenPresetSource(string sourcePath)
+        {
+            try
+            {
+                string path = PresetLibraryPaths.PhysicalPath(sourcePath);
+                if (!File.Exists(path)) throw new FileNotFoundException("The preset source file could not be found.", path);
+                string editorPath = FindVsCodePath();
+                if (!string.IsNullOrEmpty(editorPath)) OpenPathInVsCode(editorPath, path);
+                else
+                {
+                    IExternalCodeEditor editor = CodeEditor.Editor.CurrentCodeEditor;
+                    if (editor == null || !editor.OpenProject(path, 1, 1))
+                        EditorUtility.DisplayDialog("Open FX Preset", "Could not open the preset with the script editor selected in Unity Preferences.", "OK");
+                }
+            }
+            catch (Exception error) { EditorUtility.DisplayDialog("Open FX Preset", error.Message, "OK"); }
+        }
+
+        private static void OpenPathInVsCode(string editorPath, string codePath)
+        {
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string profilePath = Path.Combine(projectRoot, "Library", "WhimTex", "VSCodeProfile");
             string extensionsPath = Path.Combine(profilePath, "extensions");

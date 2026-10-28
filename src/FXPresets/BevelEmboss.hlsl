@@ -21,7 +21,7 @@
 
 float BevelHeight(float2 uv)
 {
-    float4 source = tex2D(_HeightMap, uv);
+    float4 source = SampleTexture(_HeightMap, uv);
     float height = dot(source.rgb, float3(0.2126, 0.7152, 0.0722));
     if (_HeightChannel == 1) height = source.r;
     else if (_HeightChannel == 2) height = source.g;

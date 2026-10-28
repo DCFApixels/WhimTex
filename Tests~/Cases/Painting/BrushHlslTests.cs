@@ -434,7 +434,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
         object Get(object value, string field) => value.GetType().GetField(field, flags)?.GetValue(value)
             ?? value.GetType().GetProperty(field, flags)?.GetValue(value);
         string declarations = "// @whimtex-brush Tests/Shared Parameters\n// @control(_Enabled)\n" +
-            "// @group(Pattern; _Enabled)\n// @param bool _Enabled = true\n" +
+            "// @group(Pattern; _Enabled)\n// @param toggle(float) _Enabled = true\n" +
             "// @param enum _Mode = Soft {Soft: 0, Hard: 1}\n// @if _Mode == 1\n" +
             "// @header(Detail)\n// @helpbox(Conditional detail.)\n// @param label(\"Detail Amount\") float _Detail = 0.25 [0 .. ~1] // Detail tooltip.\n// @endif\n" +
             "// @param float _Gain = 0.5 [0 .. ~1]\n// @param enum _Gain {Half: 0.5, Full: 1}\n" +

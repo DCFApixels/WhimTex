@@ -255,7 +255,7 @@ namespace DCFApixels.WhimTex
             // known empty paths submit no pixels and should not acquire an elapsed GPU interval.
             bool empty = renderer is GroupLayerBehaviour || renderer is PendingLayerBehaviour ||
                 (renderer.RequiresInput || renderer is ShaderProcessorLayerBehaviour) && context.input == null ||
-                renderer is FileLayerBehaviour file && file.sourceTexture == null;
+                renderer is FileLayerBehaviour file && file.ResolveSourceTexture(context.activeDocument) == null;
             using var gpu = empty ? default : profile.Gpu();
             // Includes nested transform/FX intervals; it is not an exclusive GPU generation cost.
             return renderer.Render(context);
@@ -286,7 +286,7 @@ namespace DCFApixels.WhimTex
             inverse.SetShader(material, prefix);
         }
 
-        internal Texture SamplingSource => this?.Behaviour is FileLayerBehaviour file ? file.sourceTexture :
+        internal Texture SamplingSource => this?.Behaviour is FileLayerBehaviour file ? file.ResolvedTexture :
             this?.Behaviour is DrawingLayerBehaviour drawing ? drawing.StoredTexture : null;
 
         public TransformTilingMode EffectiveTiling => ResolveTiling(transform.tiling);
@@ -315,7 +315,7 @@ namespace DCFApixels.WhimTex
                 return false;
             Vector2 canvasSize = new Vector2(owner.width, owner.height);
             Vector2 sourceSize = canvasSize;
-            Texture source = this?.Behaviour is FileLayerBehaviour file ? file.sourceTexture :
+            Texture source = this?.Behaviour is FileLayerBehaviour file ? file.ResolveSourceTexture(owner) :
                 this?.Behaviour is DrawingLayerBehaviour drawing ? drawing.StoredTexture : null;
             if (this?.Behaviour is FileLayerBehaviour && source == null)
                 return false;

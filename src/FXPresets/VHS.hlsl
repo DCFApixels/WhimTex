@@ -15,7 +15,7 @@
 // @endif
 // @endgroup
 // @header(Playback)
-// @param seed float _Seed = 0 [0 .. ~10000] // Changes the deterministic line jitter and noise pattern.
+// @param seed(float) _Seed = 0 [0 .. ~10000] // Changes the deterministic line jitter and noise pattern.
 // @param float _EffectTime = 0 [0 .. ~3600] // Time in seconds; change it to inspect another animation frame.
 
 #include "Packages/com.dcfapixels.whimtex/src/Shaders/Dither.cginc"

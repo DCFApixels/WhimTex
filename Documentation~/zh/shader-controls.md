@@ -12,6 +12,12 @@ translations: "en/shader-controls.md,ru/shader-controls.md,zh/shader-controls.md
 
 用 `// @param` 在 Layer Settings 中添加字段。WhimTex 自动创建 uniform 和控件；修改声明或代码后点击 **Apply**。
 
+## 控件类型与通道标签
+
+`toggle(类型)`、`color(类型)`、`enum(类型)` 和 `seed(类型)` 将控件外观与 HLSL 数值类型分开。默认类型依次为 float、float4、float 和 int。Toggle/color 支持 bool、int、uint、half、float 及其 2/3/4 分量向量；enum 使用数值标量，seed 使用 int、uint 或 float。
+
+`// @param rgba toggle(float4) _Channels = (1, 1, 1, 0)` 在一行中显示四个独立的 R/G/B/A 开关。`rgba float4` 保留标准向量字段，只更改分量标签。`color(float4)`, `color(float3)`, `color(float2)` 或 `color(float)` 分别提供 RGBA、RGB、RG、R 颜色编辑。整数颜色取整，bool 使用 0.5 阈值，不自动转换为 0–255。Float 颜色保留 HDR 和原有颜色解释。Seed 只接受整数，Random 在包含两端的范围内取值。条件可通过 `_Channels.a` 指定单个分量。
+
 ## 从数字和颜色开始
 
 ```hlsl
@@ -52,7 +58,7 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 // @param enum _Mode = 0 { Basic: 0, Advanced: 1 }
 // @if _Mode == 1
 // @param float _Detail = 0.5 [0 .. 1]
-// @param bool _UseExtra = false
+// @param toggle(float) _UseExtra = false
 // @endif
 ```
 

@@ -9,11 +9,11 @@ using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
-    internal static class ShaderFXMetadata
+    internal static partial class ShaderFXMetadata
     {
         private static readonly Regex Header = new Regex(@"^//\s*@whimtex-effect\s+([^\r\n]+?)\s*$");
-        private static readonly Regex Parameter = new Regex(@"^\s*//\s*@param\s+(float|bool|float2|float3|float4|normal|point|color|texture2D|transform2D|gradient|curve)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^\[\];~]+?))?\s*(?:\[\s*(.*?)\s*(?<separator>\.\.|%)\s*(.*?)\s*\])?\s*$");
-        private static readonly Regex If = new Regex(@"^\s*//\s*@(?:if|enableif)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=)\s*([^\s]+)\s*$");
+        private static readonly Regex Parameter = new Regex(@"^\s*//\s*@param\s+(float|float2|float3|float4|normal|point|color|texture2D|transform2D|gradient|curve)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^\[\];~]+?))?\s*(?:\[\s*(.*?)\s*(?<separator>\.\.|%)\s*(.*?)\s*\])?\s*$");
+        private static readonly Regex If = new Regex(@"^\s*//\s*@(?:if|enableif)\s+([A-Za-z_][A-Za-z0-9_]*(?:\.[xyzwrgba])?)\s*(==|!=)\s*([^\s]+)\s*$");
         private static readonly Regex EndIf = new Regex(@"^\s*//\s*@endif\s*$");
         private static readonly Regex EndEnableIf = new Regex(@"^\s*//\s*@endenableif\s*$");
         private static readonly Regex ContainerStart = new Regex(@"^\s*//\s*@(?<kind>group|foldout|tabs|tab)(?:\s*\((.*)\))?\s*$");
@@ -160,7 +160,7 @@ namespace DCFApixels.WhimTex
             bool leadingComments = true;
             string visibleIfParameter = null;
             bool visibleIfNotEqual = false;
-            float visibleIfValue = 0f;
+            double visibleIfValue = 0;
             var enableConditions = new List<ShaderFXEnableCondition>();
             var conditionScopes = new List<(bool enable, int line)>();
             var pendingHeaders = new List<string>();
@@ -196,8 +196,8 @@ namespace DCFApixels.WhimTex
                     if (conditionScopes.Count >= 16) throw new FormatException($"Line {lineNumber}: at most 16 condition levels are supported.");
                     string directive = enableifDirective ? "enableif" : "if";
                     Match condition = If.Match(line);
-                    if (!condition.Success || !float.TryParse(condition.Groups[3].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out float value) ||
-                        float.IsNaN(value) || float.IsInfinity(value))
+                    if (!condition.Success || !double.TryParse(condition.Groups[3].Value == "true" ? "1" : condition.Groups[3].Value == "false" ? "0" : condition.Groups[3].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
+                        double.IsNaN(value) || double.IsInfinity(value))
                         throw new FormatException($"Line {lineNumber}: expected // @{directive} _Parameter == number or // @{directive} _Parameter != number.");
                     if (enableifDirective)
                         enableConditions.Add(new ShaderFXEnableCondition { parameter = condition.Groups[1].Value,
@@ -340,186 +340,31 @@ namespace DCFApixels.WhimTex
                 try
                 {
                     string parameterLine = line;
-                    ParseParameterModifiers(ref parameterLine, out bool hidden, out bool seed, out bool pixelUnits, out string displayLabel, out string previewFunction, out string[] previewParameters);
+                    ParseParameterModifiers(ref parameterLine, out bool hidden, out bool rgba, out bool pixelUnits, out string displayLabel, out string previewFunction, out string[] previewParameters);
                     string tooltip = ExtractTooltip(ref parameterLine);
-                    Match enumMatch = Regex.Match(parameterLine, @"^\s*//\s*@param\s+enum\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^{}]+?))?\s*\{([^{}]+)\}\s*$");
-                    Match match = Parameter.Match(enumMatch.Success ? "// @param float " + enumMatch.Groups[1].Value : parameterLine);
-                    if (!match.Success) throw new FormatException("Expected @param type name = value [min .. max] or [min % max], without a semicolon.");
-                    string kind = match.Groups[1].Value;
-                    string name = match.Groups[2].Value;
-                    var p = new ShaderFXParameter { name = name, floatValue = 0f, colorValue = Color.clear, pixelUnits = pixelUnits };
-                    string value = match.Groups[3].Value.Trim();
-                    bool explicitDefault = match.Groups[3].Success;
-                    bool bounded = match.Groups[4].Success;
-                    p.cyclicRange = bounded && match.Groups["separator"].Value == "%";
-                    switch (kind)
-                    {
-                        case "curve":
-                            p.type = ShaderFXParameterType.Curve;
-                            p.curveValue = explicitDefault ? WhimTexCurveTexture.Parse(value) : WhimTexCurveTexture.Default();
-                            break;
-                        case "gradient":
-                            p.type = ShaderFXParameterType.Gradient;
-                            p.gradientValue = explicitDefault ? ParseGradientDefault(value) : new WhimTexGradient();
-                            break;
-                        case "bool":
-                            p.type = ShaderFXParameterType.Bool;
-                            if (!explicitDefault) p.floatValue = 0f;
-                            else if (value == "true" || value == "1") p.floatValue = 1f;
-                            else if (value == "false" || value == "0") p.floatValue = 0f;
-                            else throw new FormatException("Expected true, false, 0 or 1 for bool.");
-                            break;
-                        case "float":
-                            p.type = ShaderFXParameterType.Float;
-                            p.floatValue = explicitDefault ? Number(value) : 0f;
-                            if (bounded)
-                            {
-                                string lower = match.Groups[4].Value.Trim(), upper = match.Groups[5].Value.Trim();
-                                p.softMinimum = lower.StartsWith("~"); p.softMaximum = upper.StartsWith("~");
-                                if (p.softMinimum) lower = lower.Substring(1).Trim();
-                                if (p.softMaximum) upper = upper.Substring(1).Trim();
-                                p.hasMinimum = lower.Length > 0;
-                                p.hasMaximum = upper.Length > 0;
-                                if (!p.hasMinimum && !p.hasMaximum) throw new FormatException("A range needs at least one boundary.");
-                                if (p.hasMinimum) p.minimum = Number(lower);
-                                if (p.hasMaximum) p.maximum = Number(upper);
-                                if (p.hasMinimum && p.hasMaximum && p.minimum > p.maximum) throw new FormatException("Minimum exceeds maximum.");
-                                if (p.HasSoftRange && (!p.hasMinimum || !p.hasMaximum || p.minimum >= p.maximum))
-                                    throw new FormatException("A range with soft boundaries requires two finite values with min < max. Put ~ before each soft value: [min .. ~max].");
-                                if (p.cyclicRange && (p.HasSoftRange || !p.hasMinimum || !p.hasMaximum || p.minimum >= p.maximum))
-                                    throw new FormatException("A % range needs two hard finite limits with min < max.");
-                            }
-                            // A default outside a hard bound is an authoring mistake; a soft bound only shapes the slider.
-                            if (explicitDefault && (p.hasMinimum && !p.softMinimum && p.floatValue < p.minimum ||
-                                p.hasMaximum && !p.softMaximum && p.floatValue > p.maximum))
-                                throw new FormatException("Default " + value + " is outside the declared range.");
-                            break;
-                        case "float2":
-                        case "float3":
-                        case "normal":
-                        case "point":
-                            int count = kind == "float2" || kind == "point" ? 2 : 3;
-                            p.type = kind == "normal" ? ShaderFXParameterType.Normal : kind == "point" ? ShaderFXParameterType.Point : count == 2 ? ShaderFXParameterType.Vector2 : ShaderFXParameterType.Vector3;
-                            p.vectorValue = kind == "normal" ? new Vector4(0,0,1,0) : kind == "point" ? new Vector4(.5f,.5f,0,0) : Vector4.zero;
-                            if (explicitDefault)
-                            {
-                                if (!value.StartsWith("(") || !value.EndsWith(")")) throw new FormatException("Expected components in parentheses.");
-                                var values = value.Substring(1,value.Length-2).Split(',');
-                                if (values.Length != count) throw new FormatException("Expected " + count + " components.");
-                                for (int i=0;i<count;i++) p.vectorValue[i] = Number(values[i]);
-                            }
-                            if (kind == "normal") p.vectorValue = ShaderFXParameter.NormalizeNormal(p.vectorValue);
-                            if (kind == "float2" && bounded)
-                            {
-                                p.hasMinimum = p.hasMaximum = true;
-                                p.minimum = Number(match.Groups[4].Value.Trim());
-                                p.maximum = Number(match.Groups[5].Value.Trim());
-                                if (p.minimum >= p.maximum) throw new FormatException("A float2 interval needs two hard finite limits with min < max.");
-                                if (!explicitDefault) p.vectorValue = new Vector4(p.minimum, p.maximum, 0, 0);
-                                if (!ShaderFXParameter.IsValidInterval(p.vectorValue, p.minimum, p.maximum, p.cyclicRange))
-                                    throw new FormatException(p.cyclicRange ? "Cyclic endpoints must be within the limits, or one period apart with at least one endpoint within the limits." : "A float2 interval default must satisfy min <= x <= y <= max.");
-                            }
-                            break;
-                        case "float4":
-                        case "color":
-                            if (!explicitDefault) value = "(0, 0, 0, 0)";
-                            Color parsedColor = kind == "color" && value.StartsWith("#", StringComparison.Ordinal)
-                                ? ParseHexColor(value)
-                                : ParseTupleColor(value);
-                            p.vectorValue = new Vector4(parsedColor.r, parsedColor.g, parsedColor.b, parsedColor.a);
-                            p.type = kind == "color" ? ShaderFXParameterType.Color : ShaderFXParameterType.Vector;
-                            p.colorValue = parsedColor;
-                            break;
-                        case "texture2D":
-                            p.type = ShaderFXParameterType.Texture2D;
-                            if (value == "none" || value == "self")
-                            {
-                                p.textureSource = value == "self" ? ShaderFXTextureSource.Self : ShaderFXTextureSource.None;
-                                break;
-                            }
-                            if (value.Length != 0)
-                            {
-                                var reference = Regex.Match(value, "^\"guid:([0-9a-fA-F]{32}):(-?[0-9]+)\"$");
-                                if (!reference.Success || !long.TryParse(reference.Groups[2].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long localId))
-                                    throw new FormatException("Expected a texture reference: \"guid:<asset GUID>:<local file ID>\".");
-                                string path = AssetDatabase.GUIDToAssetPath(reference.Groups[1].Value);
-                                if (!string.IsNullOrEmpty(path))
-                                    foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(path))
-                                        if (asset is Texture2D texture && AssetDatabase.TryGetGUIDAndLocalFileIdentifier(texture, out string _, out long id) && id == localId)
-                                        { p.textureValue = texture; break; }
-                            }
-                            break;
-                        case "transform2D":
-                            p.type = ShaderFXParameterType.Transform2D;
-                            if (value.Length != 0)
-                            {
-                                if (value.StartsWith("matrix(") && value.EndsWith(")"))
-                                {
-                                    string[] entries = value.Substring(7, value.Length - 8).Split(',');
-                                    if (entries.Length != 9) throw new FormatException("Expected nine row-major matrix components.");
-                                    double D(int i) => TransformNumber(entries[i]);
-                                    var matrix = new ProjectiveMatrix { m00=D(0),m01=D(1),m02=D(2),m10=D(3),m11=D(4),m12=D(5),m20=D(6),m21=D(7),m22=D(8) };
-                                    if (!p.transformValue.TrySetMatrix(matrix)) throw new FormatException("Transform matrix must be invertible with no horizon crossing its rectangle.");
-                                    break;
-                                }
-                                if (!value.StartsWith("(") || !value.EndsWith(")")) throw new FormatException("Expected (x, y, width, height, angle) or matrix(nine row-major values).");
-                                string[] components = value.Substring(1, value.Length - 2).Split(',');
-                                if (components.Length != 5) throw new FormatException("Expected five transform components.");
-                                p.transformValue = new ShaderFXTransform
-                                {
-                                    position = new Double2(TransformNumber(components[0]), TransformNumber(components[1])),
-                                    size = new Double2(TransformNumber(components[2]), TransformNumber(components[3])), rotation = TransformNumber(components[4])
-                                };
-                            }
-                            break;
-                    }
-                    if (kind != "float" && kind != "float2" && bounded) throw new FormatException("Ranges apply only to float and float2 parameters.");
-                    if (pixelUnits && (enumMatch.Success || seed || kind != "float" && kind != "float2" && kind != "float3" && kind != "float4"))
-                        throw new FormatException("The px modifier applies only to numeric float, float2, float3 or float4 lengths, without seed.");
-                    var control = new ShaderFXParameterControl { type = p.type, order = lineNumber, tooltip = tooltip, label = displayLabel, previewFunction = previewFunction, previewParameters = previewParameters,
-                        headers = pendingHeaders.ToArray(),
-                        helpBoxes = pendingHelpBoxes.ToArray(),
-                        hidden = hidden, seed = seed,
-                        inGroup = activeGroup != null,
-                        groupId = activeGroup?.id ?? 0,
-                        groupTitle = activeGroup?.title,
-                        groupHeaderParameter = activeGroup?.headerParameter,
-                        containers = ContainerPath(containers),
-                        enableIf = enableConditions.ToArray(),
-                        hasMinimum = p.hasMinimum, hasMaximum = p.hasMaximum, softMinimum = p.softMinimum, softMaximum = p.softMaximum, cyclicRange = p.cyclicRange, minimum = p.minimum, maximum = p.maximum,
-                        visibleIfParameter = visibleIfParameter, visibleIfNotEqual = visibleIfNotEqual, visibleIfValue = visibleIfValue };
-                    pendingHeaders.Clear();
-                    pendingHelpBoxes.Clear();
-                    CountContainerRow(containers, !hidden);
-                    if (enumMatch.Success)
-                    {
-                        control.type = ShaderFXParameterType.Enum;
-                        p.type = ShaderFXParameterType.Float;
-                        var labels = new List<string>();
-                        var numbers = new List<float>();
-                        foreach (string item in enumMatch.Groups[3].Value.Split(','))
-                        {
-                            Match option = Regex.Match(item.Trim(), @"^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.+)$");
-                            if (!option.Success) throw new FormatException("Enum items must be Name: number.");
-                            string label = option.Groups[1].Value;
-                            float number = Number(option.Groups[2].Value);
-                            if (labels.Contains(label) || numbers.Contains(number)) throw new FormatException("Enum names and values must be unique.");
-                            labels.Add(label); numbers.Add(number);
-                        }
-                        control.optionNames = labels.ToArray(); control.optionValues = numbers.ToArray();
-                        explicitDefault = enumMatch.Groups[2].Success;
-                        if (explicitDefault)
-                        {
-                            string initial = enumMatch.Groups[2].Value.Trim();
-                            int index = labels.IndexOf(initial);
-                            p.floatValue = index >= 0 ? numbers[index] : Number(initial);
-                        }
-                    }
-                    if (seed) ShaderFXSeed.Validate(control);
+                    ShaderFXParameter p = ParseTypedParameter(parameterLine, out bool explicitDefault, out ShaderFXParameterControl control)
+                        ?? ParseOrdinaryParameter(parameterLine, pixelUnits, out explicitDefault, out control);
+                    string name = p.name;
+                    if (pixelUnits && control.type != ShaderFXParameterType.Float && control.type != ShaderFXParameterType.Vector2 &&
+                        control.type != ShaderFXParameterType.Vector3 && control.type != ShaderFXParameterType.Vector)
+                        throw new FormatException("px applies only to ordinary numeric length fields.");
+                    p.pixelUnits = pixelUnits;
+                    if (rgba && (p.Components < 2 || control.type != ShaderFXParameterType.Toggle && control.type != ShaderFXParameterType.Color &&
+                        control.type != ShaderFXParameterType.Vector2 && control.type != ShaderFXParameterType.Vector3 && control.type != ShaderFXParameterType.Vector))
+                        throw new FormatException("rgba requires a vector field or vector toggle/color.");
+                    control.rgba = rgba || control.type == ShaderFXParameterType.Color;
+                    control.order = lineNumber; control.tooltip = tooltip; control.label = displayLabel;
+                    control.previewFunction = previewFunction; control.previewParameters = previewParameters;
+                    control.headers = pendingHeaders.ToArray(); control.helpBoxes = pendingHelpBoxes.ToArray(); control.hidden = hidden;
+                    control.inGroup = activeGroup != null; control.groupId = activeGroup?.id ?? 0;
+                    control.groupTitle = activeGroup?.title; control.groupHeaderParameter = activeGroup?.headerParameter;
+                    control.containers = ContainerPath(containers); control.enableIf = enableConditions.ToArray();
+                    control.visibleIfParameter = visibleIfParameter; control.visibleIfNotEqual = visibleIfNotEqual; control.visibleIfValue = visibleIfValue;
+                    pendingHeaders.Clear(); pendingHelpBoxes.Clear(); CountContainerRow(containers, !hidden);
                     p.controls.Add(control);
                     if (names.TryGetValue(name, out var existing))
                     {
-                        if (!Compatible(existing.type, p.type)) throw new FormatException("Conflicting storage types for " + name);
+                        if (!Compatible(existing.type, p.type) || existing.ValueType != p.ValueType) throw new FormatException("Conflicting storage types for " + name);
                         if (existing.pixelUnits != p.pixelUnits) throw new FormatException("Conflicting pixel units for " + name);
                         if (existing.cyclicRange != p.cyclicRange) throw new FormatException("Conflicting cyclic range declarations for " + name);
                         existing.controls.Add(control);
@@ -555,8 +400,8 @@ namespace DCFApixels.WhimTex
                 if (headerControl.containers.Length == 0 || headerControl.containers[headerControl.containers.Length - 1].id != group.id ||
                     !string.IsNullOrEmpty(headerControl.visibleIfParameter) || headerControl.enableIf.Length > 0)
                     throw new FormatException($"Line {group.line}: @{directive} header parameter {group.headerParameter} must be unconditional and directly inside its own container.");
-                if (group.kind == ShaderFXContainerKind.Tab && headerControl.type != ShaderFXParameterType.Bool)
-                    throw new FormatException($"Line {group.line}: @tab header parameter {group.headerParameter} must be bool.");
+                if (group.kind == ShaderFXContainerKind.Tab && (headerControl.type != ShaderFXParameterType.Toggle || headerParameter.Components != 1))
+                    throw new FormatException($"Line {group.line}: @tab header parameter {group.headerParameter} must be a scalar toggle.");
             }
             var conditions = new List<ShaderFXParameterControl>(previews);
             foreach (var parameter in result) conditions.AddRange(parameter.controls);
@@ -572,18 +417,18 @@ namespace DCFApixels.WhimTex
 
         private static void ValidateCondition(Dictionary<string, ShaderFXParameter> names, string name, string directive, int line)
         {
-            if (!names.TryGetValue(name, out var driver))
+            if (!names.TryGetValue(name.Split('.')[0], out var driver))
                 throw new FormatException($"Line {line}: @{directive} references undeclared parameter {name}.");
-            if (!IsScalar(driver.type))
-                throw new FormatException($"Line {line}: @{directive} parameter {name} must be float, bool or enum.");
+            if (!ShaderFXNumericValue.TryCondition(driver, name, out _))
+                throw new FormatException($"Line {line}: @{directive} parameter {name} must be a numeric scalar or an explicit vector component.");
             if (driver.controls.Exists(c => !string.IsNullOrEmpty(c.visibleIfParameter)))
                 throw new FormatException($"Line {line}: @{directive} parameter {name} must be declared outside visibility conditions.");
         }
 
-        private static void ParseParameterModifiers(ref string line, out bool hidden, out bool seed, out bool pixelUnits, out string label, out string previewFunction, out string[] previewParameters)
+        private static void ParseParameterModifiers(ref string line, out bool hidden, out bool rgba, out bool pixelUnits, out string label, out string previewFunction, out string[] previewParameters)
         {
             hidden = false;
-            seed = false;
+            rgba = false;
             pixelUnits = false;
             label = null;
             previewFunction = null;
@@ -616,13 +461,11 @@ namespace DCFApixels.WhimTex
                     continue;
                 }
 
-                if (line.IndexOf("seed", position, StringComparison.Ordinal) == position &&
+                if (line.IndexOf("rgba", position, StringComparison.Ordinal) == position &&
                     (position + 4 == line.Length || char.IsWhiteSpace(line[position + 4])))
                 {
-                    if (seed) throw new FormatException("The seed modifier may be specified only once.");
-                    seed = true;
-                    position += 4;
-                    continue;
+                    if (rgba) throw new FormatException("The rgba modifier may be specified only once.");
+                    rgba = true; position += 4; continue;
                 }
 
                 if (line.IndexOf("hidden", position, StringComparison.Ordinal) == position &&
@@ -772,14 +615,14 @@ namespace DCFApixels.WhimTex
                 var p = next[i];
                 ShaderFXParameter match = null;
                 foreach (var old in previous)
-                    if (old != null && old.name == p.name && (Compatible(old.type, p.type) || old.type == ShaderFXParameterType.Vector && p.type == ShaderFXParameterType.Vector3))
+                    if (old != null && old.name == p.name && ((Compatible(old.type, p.type) || old.type == ShaderFXParameterType.Vector && p.type == ShaderFXParameterType.Vector3) && old.ValueType == p.ValueType))
                     {
                         if (match == null)
                             match = old;
                     }
                 // A rename in place keeps identity. Do not guess across insertions/removals or reorders.
                 if (match == null && next.Count == previous.Count && previous[i] is ShaderFXParameter candidate &&
-                    candidate.type == p.type && !next.Exists(item => item.name == candidate.name))
+                    candidate.type == p.type && candidate.ValueType == p.ValueType && !next.Exists(item => item.name == candidate.name))
                 {
                     bool reusedName = false;
                     foreach (var old in previous) reusedName |= old != null && old.name == p.name;
@@ -787,6 +630,7 @@ namespace DCFApixels.WhimTex
                 }
                 if (match == null) continue;
                 p.id = match.id;
+                p.integerValues = match.integerValues == null ? new long[4] : (long[])match.integerValues.Clone();
                 p.floatValue = match.floatValue;
                 p.colorValue = match.colorValue;
                 p.vectorValue = p.ClampInterval(match.vectorValue);
@@ -799,11 +643,147 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        internal static bool IsScalar(ShaderFXParameterType type) => type == ShaderFXParameterType.Float || type == ShaderFXParameterType.Bool || type == ShaderFXParameterType.Enum;
+        private static ShaderFXParameter ParseOrdinaryParameter(string parameterLine, bool pixelUnits,
+            out bool explicitDefault, out ShaderFXParameterControl control)
+        {
+                    Match match = Parameter.Match(parameterLine);
+                    if (!match.Success) throw new FormatException("Expected @param type name = value [min .. max] or [min % max], without a semicolon.");
+                    string kind = match.Groups[1].Value;
+                    string name = match.Groups[2].Value;
+                    var p = new ShaderFXParameter { name = name, floatValue = 0f, colorValue = Color.clear, pixelUnits = pixelUnits };
+                    string value = match.Groups[3].Value.Trim();
+                    explicitDefault = match.Groups[3].Success;
+                    bool bounded = match.Groups[4].Success;
+                    p.cyclicRange = bounded && match.Groups["separator"].Value == "%";
+                    switch (kind)
+                    {
+                        case "curve":
+                            p.type = ShaderFXParameterType.Curve;
+                            p.curveValue = explicitDefault ? WhimTexCurveTexture.Parse(value) : WhimTexCurveTexture.Default();
+                            break;
+                        case "gradient":
+                            p.type = ShaderFXParameterType.Gradient;
+                            p.gradientValue = explicitDefault ? ParseGradientDefault(value) : new WhimTexGradient();
+                            break;
+                        case "float":
+                            p.type = ShaderFXParameterType.Float;
+                            p.floatValue = explicitDefault ? Number(value) : 0f;
+                            if (bounded)
+                            {
+                                string lower = match.Groups[4].Value.Trim(), upper = match.Groups[5].Value.Trim();
+                                p.softMinimum = lower.StartsWith("~"); p.softMaximum = upper.StartsWith("~");
+                                if (p.softMinimum) lower = lower.Substring(1).Trim();
+                                if (p.softMaximum) upper = upper.Substring(1).Trim();
+                                p.hasMinimum = lower.Length > 0;
+                                p.hasMaximum = upper.Length > 0;
+                                if (!p.hasMinimum && !p.hasMaximum) throw new FormatException("A range needs at least one boundary.");
+                                if (p.hasMinimum) p.minimum = Number(lower);
+                                if (p.hasMaximum) p.maximum = Number(upper);
+                                if (p.hasMinimum && p.hasMaximum && p.minimum > p.maximum) throw new FormatException("Minimum exceeds maximum.");
+                                if (p.HasSoftRange && (!p.hasMinimum || !p.hasMaximum || p.minimum >= p.maximum))
+                                    throw new FormatException("A range with soft boundaries requires two finite values with min < max. Put ~ before each soft value: [min .. ~max].");
+                                if (p.cyclicRange && (p.HasSoftRange || !p.hasMinimum || !p.hasMaximum || p.minimum >= p.maximum))
+                                    throw new FormatException("A % range needs two hard finite limits with min < max.");
+                            }
+                            // A default outside a hard bound is an authoring mistake; a soft bound only shapes the slider.
+                            if (explicitDefault && (p.hasMinimum && !p.softMinimum && p.floatValue < p.minimum ||
+                                p.hasMaximum && !p.softMaximum && p.floatValue > p.maximum))
+                                throw new FormatException("Default " + value + " is outside the declared range.");
+                            break;
+                        case "float2":
+                        case "float3":
+                        case "normal":
+                        case "point":
+                            int count = kind == "float2" || kind == "point" ? 2 : 3;
+                            p.type = kind == "normal" ? ShaderFXParameterType.Normal : kind == "point" ? ShaderFXParameterType.Point : count == 2 ? ShaderFXParameterType.Vector2 : ShaderFXParameterType.Vector3;
+                            p.vectorValue = kind == "normal" ? new Vector4(0,0,1,0) : kind == "point" ? new Vector4(.5f,.5f,0,0) : Vector4.zero;
+                            if (explicitDefault)
+                            {
+                                if (!value.StartsWith("(") || !value.EndsWith(")")) throw new FormatException("Expected components in parentheses.");
+                                var values = value.Substring(1,value.Length-2).Split(',');
+                                if (values.Length != count) throw new FormatException("Expected " + count + " components.");
+                                for (int i=0;i<count;i++) p.vectorValue[i] = Number(values[i]);
+                            }
+                            if (kind == "normal") p.vectorValue = ShaderFXParameter.NormalizeNormal(p.vectorValue);
+                            if (kind == "float2" && bounded)
+                            {
+                                p.hasMinimum = p.hasMaximum = true;
+                                p.minimum = Number(match.Groups[4].Value.Trim());
+                                p.maximum = Number(match.Groups[5].Value.Trim());
+                                if (p.minimum >= p.maximum) throw new FormatException("A float2 interval needs two hard finite limits with min < max.");
+                                if (!explicitDefault) p.vectorValue = new Vector4(p.minimum, p.maximum, 0, 0);
+                                if (!ShaderFXParameter.IsValidInterval(p.vectorValue, p.minimum, p.maximum, p.cyclicRange))
+                                    throw new FormatException(p.cyclicRange ? "Cyclic endpoints must be within the limits, or one period apart with at least one endpoint within the limits." : "A float2 interval default must satisfy min <= x <= y <= max.");
+                            }
+                            break;
+                        case "float4":
+                        case "color":
+                            if (!explicitDefault) value = "(0, 0, 0, 0)";
+                            Color parsedColor = kind == "color" && value.StartsWith("#", StringComparison.Ordinal)
+                                ? ParseHexColor(value)
+                                : ParseTupleColor(value);
+                            p.vectorValue = new Vector4(parsedColor.r, parsedColor.g, parsedColor.b, parsedColor.a);
+                            p.type = kind == "color" ? ShaderFXParameterType.Color : ShaderFXParameterType.Vector;
+                            p.colorValue = parsedColor;
+                            break;
+                        case "texture2D":
+                            p.type = ShaderFXParameterType.Texture2D;
+                            if (value == "none" || value == "self")
+                            {
+                                p.textureSource = value == "self" ? ShaderFXTextureSource.Self : ShaderFXTextureSource.None;
+                                break;
+                            }
+                            if (value.Length != 0)
+                            {
+                                var reference = Regex.Match(value, "^\"guid:([0-9a-fA-F]{32}):(-?[0-9]+)\"$");
+                                if (!reference.Success || !long.TryParse(reference.Groups[2].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long localId))
+                                    throw new FormatException("Expected a texture reference: \"guid:<asset GUID>:<local file ID>\".");
+                                string path = AssetDatabase.GUIDToAssetPath(reference.Groups[1].Value);
+                                if (!string.IsNullOrEmpty(path))
+                                    foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(path))
+                                        if (asset is Texture2D texture && AssetDatabase.TryGetGUIDAndLocalFileIdentifier(texture, out string _, out long id) && id == localId)
+                                        { p.textureValue = texture; break; }
+                            }
+                            break;
+                        case "transform2D":
+                            p.type = ShaderFXParameterType.Transform2D;
+                            if (value.Length != 0)
+                            {
+                                if (value.StartsWith("matrix(") && value.EndsWith(")"))
+                                {
+                                    string[] entries = value.Substring(7, value.Length - 8).Split(',');
+                                    if (entries.Length != 9) throw new FormatException("Expected nine row-major matrix components.");
+                                    double D(int i) => TransformNumber(entries[i]);
+                                    var matrix = new ProjectiveMatrix { m00=D(0),m01=D(1),m02=D(2),m10=D(3),m11=D(4),m12=D(5),m20=D(6),m21=D(7),m22=D(8) };
+                                    if (!p.transformValue.TrySetMatrix(matrix)) throw new FormatException("Transform matrix must be invertible with no horizon crossing its rectangle.");
+                                    break;
+                                }
+                                if (!value.StartsWith("(") || !value.EndsWith(")")) throw new FormatException("Expected (x, y, width, height, angle) or matrix(nine row-major values).");
+                                string[] components = value.Substring(1, value.Length - 2).Split(',');
+                                if (components.Length != 5) throw new FormatException("Expected five transform components.");
+                                p.transformValue = new ShaderFXTransform
+                                {
+                                    position = new Double2(TransformNumber(components[0]), TransformNumber(components[1])),
+                                    size = new Double2(TransformNumber(components[2]), TransformNumber(components[3])), rotation = TransformNumber(components[4])
+                                };
+                            }
+                            break;
+                    }
+                    if (kind != "float" && kind != "float2" && bounded) throw new FormatException("Ranges apply only to float and float2 parameters.");
+                    if (pixelUnits && (kind != "float" && kind != "float2" && kind != "float3" && kind != "float4"))
+                        throw new FormatException("The px modifier applies only to numeric float, float2, float3 or float4 lengths, without seed.");
+                    control = new ShaderFXParameterControl { type = p.type, valueType = p.ValueType,
+                        hasMinimum = p.hasMinimum, hasMaximum = p.hasMaximum, softMinimum = p.softMinimum, softMaximum = p.softMaximum,
+                        cyclicRange = p.cyclicRange, minimum = p.minimum, maximum = p.maximum };
+                    return p;
+        }
+
+        internal static bool IsScalar(ShaderFXParameterType type) => type == ShaderFXParameterType.Float || type == ShaderFXParameterType.Toggle || type == ShaderFXParameterType.Enum;
         internal static bool Compatible(ShaderFXParameterType a, ShaderFXParameterType b) => a == b || IsScalar(a) && IsScalar(b) ||
             a == ShaderFXParameterType.Vector2 && b == ShaderFXParameterType.Point || a == ShaderFXParameterType.Point && b == ShaderFXParameterType.Vector2;
         internal static void CopyValue(ShaderFXParameter source, ShaderFXParameter target)
         {
+            target.integerValues = source.integerValues == null ? new long[4] : (long[])source.integerValues.Clone();
             target.floatValue = source.floatValue; target.colorValue = source.colorValue;
             target.gradientValue = source.gradientValue?.Clone();
             target.curveValue = source.curveValue == null ? null : WhimTexCurveTexture.Copy(source.curveValue);

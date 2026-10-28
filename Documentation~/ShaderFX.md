@@ -611,6 +611,10 @@ Normal Lighting and Bevel Emboss share `SurfaceLighting.cginc`. `_BaseColor.a` b
 
 Lighting/Bevel Emboss is a regular FX over a `texture2D _HeightMap = self` input. It works on any layer, without raw SDF access or layer-specific outputs. Height Channel selects luminance, R, G, B or alpha; RGB channels are multiplied by image alpha before the 0–1 input is mapped through Profile. Depth controls relief strength/sign; Smoothing is the normal sampling radius in document pixels. Output selects Both, Highlight Only or Shadow Only. Output RGB is the light/shadow tint; straight alpha is lighting strength times tint alpha, independent of host alpha. Flat areas are transparent. Choose compositing through the layer blend mode; use separate light/shadow layers for independent modes. SDF bevel width comes from the visible height gradient and Max Distance, not an FX width parameter. The former raw-distance helpers are no longer provided; re-add the preset to replace an older embedded version.
 
+Bevel Emboss reads height with `SampleTexture(_HeightMap, uv)`, retaining automatic mip
+selection and the height texture's filtering. Numeric neighbor coordinates classify it
+as verified `spatial`, without a bypass-read warning.
+
 Normal Lighting alone adds `_SpecularEnabled=false`, `_SpecularColor=(1,1,1,1)`,
 `_SpecularIntensity=1`, `_Roughness=0.25` and `_Output=3` (SpecularOnly). The original
 shared lighting function and Bevel Emboss are unchanged. With Specular disabled, modes
@@ -697,6 +701,11 @@ keep its `.meta` when moving files. Source/include changes refresh loaded, unloc
 Missing or invalid source retains the last applied shader and reports diagnostics. **Compile** retries/reloads.
 **Code → Embed Copy** detaches the source link and enables local code editing; later source-file
 changes no longer update this FX. Values and the original include base are retained.
+The read-only **Code → Preset** object-style field above the source pings project/package assets
+on single click and opens the original HLSL in VS Code (or Unity's configured editor) on double click.
+Its context menu reveals the file in the OS file manager. User-library copies retain an optional
+`presetOriginPath` for this navigation only; it is serialized with the FX and creates no live source
+dependency. Detaching a linked preset hides the field. Missing original files do not affect embedded code.
 Included files remain external dependencies after detaching unless expanded into a snapshot/export.
 Only marked `.hlsl` files enter the catalog; ShaderFX `.asset`, Material and standalone ShaderLab
 sources are unsupported. No assets are created merely by adding an effect.
@@ -732,7 +741,7 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 }
 ```
 
-The compact, unlabeled field supports bool, enum, float, color, float2, float3 and float4. Its tooltip identifies the parameter. Unsupported types leave the header unchanged. The parameter must have a single declaration. `hidden` suppresses its normal body row, not this header field; omit `hidden` to display both controls editing the same value. This is UI metadata only: it neither declares a uniform nor adds automatic opacity blending. Use the parameter in your HLSL to define its behavior.
+The compact, unlabeled field supports toggle, enum, seed, float, color, float2, float3 and float4. Its tooltip identifies the parameter. Unsupported types leave the header unchanged. The parameter must have a single declaration. `hidden` suppresses its normal body row, not this header field; omit `hidden` to display both controls editing the same value. This is UI metadata only: it neither declares a uniform nor adds automatic opacity blending. Use the parameter in your HLSL to define its behavior.
 
 Only one control is selected. Multiple directives produce soft warnings and the last declaration wins, even if invalid (there is no fallback to an earlier declaration). Malformed syntax, unknown/ambiguous parameter references and misplaced directives also produce warnings rather than shader errors. Documents, preset exports and portable code preserve the binding; exports write one canonical directive after the catalog marker.
 
@@ -740,7 +749,7 @@ Only one control is selected. Multiple directives produce soft warnings and the 
 
 Use `// @if _Mode == 1` or `// @if _Mode != 1` before one or more `// @param` lines, then close the block with `// @endif`, to show controls conditionally. Use `// @enableif _Enabled == 1` or `// @enableif _Enabled != 1`, closed by `// @endenableif`, to keep rows visible while disabling editing when the condition is false. Fields, their headers/help boxes and standalone previews follow the enclosing conditions. All enclosing enable conditions must be true; a true inner condition cannot re-enable a disabled ancestor, including a read-only view.
 
-Both kinds compare a `float`, `bool` or `enum` parameter with a finite numeric literal using `==`/`!=`; bool conditions use 0/1, not true/false. Drivers may be declared later or inside `@enableif`, but cannot themselves have any declaration under `@if`. Unknown and vector drivers are invalid when a block contains an actual parameter or standalone preview, including nested rows and hidden declarations. Empty blocks create no driver dependencies; headings/help boxes alone are not rows. Comparison syntax and finite literals are still validated in empty blocks.
+Both kinds compare a numeric scalar or an explicit vector component (`_Channels.a` or `_Channels.w`) using `==`/`!=`. Literals may be finite numbers or true/false; integer comparisons are exact. A whole vector cannot be a condition driver. Drivers may be declared later or inside `@enableif`, but cannot themselves have any declaration under `@if`. Unknown drivers and vectors without an explicit valid component are invalid when a block contains an actual parameter or standalone preview, including nested rows and hidden declarations. Empty blocks create no driver dependencies; headings/help boxes alone are not rows. Comparison syntax and finite literals are still validated in empty blocks.
 
 `@enableif` may nest within itself and with `@if` in either order, to a combined maximum of 16 condition levels. A second active `@if` remains invalid even through an intervening `@enableif`. Each end directive takes no arguments and must close the innermost condition of the same kind. These directives change only the editor UI: values remain stored and uploaded, and rendering behavior comes from HLSL. Preset export preserves both kinds of condition blocks.
 
@@ -748,12 +757,12 @@ Both kinds compare a `float`, `bool` or `enum` parameter with a finite numeric l
 // @param enum _Mode = 0 { Basic: 0, Advanced: 1 }
 // @if _Mode == 1
 // @param float _Detail = 0.5 [0 .. 1]
-// @param bool _UseExtra = false
+// @param toggle(float) _UseExtra = false
 // @endif
 ```
 
 ```hlsl
-// @param bool _Enabled = false
+// @param toggle(float) _Enabled = false
 // @enableif _Enabled == 1
 // @header(Details)
 // @helpbox(Enable this section to edit its settings.)
@@ -766,7 +775,7 @@ Both kinds compare a `float`, `bool` or `enum` parameter with a finite numeric l
 
 Each `ShaderFXParameterControl`, including a standalone preview, carries an outer-to-inner
 `ShaderFXEnableCondition[] enableIf` array, empty outside enabled blocks. Each public
-`ShaderFXEnableCondition` struct has `string parameter`, `bool notEqual` and `float value`
+`ShaderFXEnableCondition` struct has `string parameter`, `bool notEqual` and `double value`
 fields. Visibility continues to use the existing `visibleIfParameter`, `visibleIfNotEqual`
 and `visibleIfValue` fields; preview-only rows carry the same condition metadata as fields.
 
@@ -785,11 +794,11 @@ Built-in Color Filter, Negative, Mask, Gradient Map and Hue & Saturation use `_O
 
 Use `@group` and `@endgroup` to visually contain several controls in a non-collapsible bordered block. An optional title appears in its header. `@foldout(Title)` / `@endfoldout` adds a collapsible body and requires a title. Both accept `; _Parameter` to bind a header field. Declare that parameter exactly once across the source, outside both `@if` and `@enableif` and directly inside its own group/foldout, rather than inside a descendant container.
 
-A bool is drawn as an unlabeled checkbox to the left of the title. It edits only the bool value, independently of collapse or tab selection. Use `@if` to hide dependent rows or `@enableif` to leave them visible and disabled; use the uniform in HLSL to enable or disable the effect. Supported compact values (enum, float, color, float2, float3, and float4) are drawn on the right without a separate label: the container title labels the value. Dragging the title of a float field changes its value and respects its hard/soft bounds. The linked control is omitted from the body even when declared `hidden`; a supported hidden header field is promoted into the header. Unlinked hidden controls remain invisible, while unsupported or multi-row controls stay in the body and do not alter the header. If all body rows are hidden by `@if`, the body occupies no space and only the header remains; `@enableif` retains the body's space.
+A scalar toggle is drawn as an unlabeled checkbox to the left of the title. It edits only the toggle value, independently of collapse or tab selection. Use `@if` to hide dependent rows or `@enableif` to leave them visible and disabled; use the uniform in HLSL to enable or disable the effect. Supported compact values (enum, float, color, float2, float3, and float4) are drawn on the right without a separate label: the container title labels the value. Dragging the title of a float field changes its value and respects its hard/soft bounds. The linked control is omitted from the body even when declared `hidden`; a supported hidden header field is promoted into the header. Unlinked hidden controls remain invisible, while unsupported or multi-row controls stay in the body and do not alter the header. If all body rows are hidden by `@if`, the body occupies no space and only the header remains; `@enableif` retains the body's space.
 
 ```hlsl
 // @group(Tint; _EnableTint)
-// @param bool _EnableTint = true
+// @param toggle(float) _EnableTint = true
 // @param color _Tint = (1, 1, 1, 1)
 // @param float _TintStrength = 1 [0 .. 1]
 // @endgroup
@@ -799,13 +808,13 @@ For example, `// @group(Quality; _Quality)` with `// @param hidden enum _Quality
 
 Right-click a named group/foldout header or an individual tab for **Copy**, **Paste**, a separator and **Reset**. Bodies, unnamed groups and the overall tabs heading have no parameter-set menu. Actions include the linked header value, hidden/conditional/disabled parameters and nested containers of that group or page; repeated controls for one uniform are handled once. Copy stores a session-local snapshot of values, not code or metadata. Paste requires the same number of parameters, matching names (or unique UI labels), compatible types and identical enum options, including when transferring between a group and a tab. Destination float hard bounds still apply; layer texture references can only be pasted within their source document. Reset restores only that group's or page's defaults from the current HLSL declarations, not sibling pages or shared fields outside the page. Paste and Reset each form one Undo operation and retain destination parameter identities, code, compiled shader and current tab selection. These actions use the shared FX/brush parameter view.
 
-Use `@tabs` or `@tabs(Title)` for pages, each opened by `@tab(Page title)` and closed with `@endtab`; close the whole block with `@endtabs`. The overall title is optional; page titles must be non-empty and unique within that tabs block (case-sensitive, after trimming). Empty parentheses are invalid; omit them for untitled tabs. An individual page can use `@tab(Page title; _Enabled)` to place a bool checkbox before its label. Declare that bool exactly once, unconditionally and directly inside the page, not inside a nested group/foldout; hidden bools are promoted, and no duplicate body row is drawn. Other parameter types are rejected for tab headers. Editing the checkbox does not select its page, and selecting a page does not change the bool. It does not automatically disable the page or its fields; use `@enableif` or `@if` for dependent rows and the uniform in HLSL for the actual effect. The overall `@tabs` heading accepts no header binding. Parameters and standalone previews must be inside pages, never directly under `@tabs`; groups/foldouts also belong inside pages.
+Use `@tabs` or `@tabs(Title)` for pages, each opened by `@tab(Page title)` and closed with `@endtab`; close the whole block with `@endtabs`. The overall title is optional; page titles must be non-empty and unique within that tabs block (case-sensitive, after trimming). Empty parentheses are invalid; omit them for untitled tabs. An individual page can use `@tab(Page title; _Enabled)` to place a scalar toggle before its label. Declare that toggle exactly once, unconditionally and directly inside the page, not inside a nested group/foldout; hidden toggles are promoted, and no duplicate body row is drawn. Other parameter types are rejected for tab headers. Editing the checkbox does not select its page, and selecting a page does not change the toggle. It does not automatically disable the page or its fields; use `@enableif` or `@if` for dependent rows and the uniform in HLSL for the actual effect. The overall `@tabs` heading accepts no header binding. Parameters and standalone previews must be inside pages, never directly under `@tabs`; groups/foldouts also belong inside pages.
 
 ```hlsl
 // @tabs
 // @tab(Color)
 // @foldout(Tint; _EnableTint)
-// @param hidden bool _EnableTint = true
+// @param hidden toggle(float) _EnableTint = true
 // @enableif _EnableTint == 1
 // @param color _Tint = (1, 1, 1, 1)
 // @endenableif
@@ -832,7 +841,7 @@ Each C# `ShaderFXParameterControl`, including a standalone preview, exposes a `S
 | `kind` | `ShaderFXContainerKind.Group`, `Foldout`, `Tabs` or `Tab`. |
 | `id` | Source-order container identity shared by controls in that container. |
 | `title` | Container/page title, absent for untitled groups/tabs. |
-| `headerParameter` | Linked header name for a group/foldout or bool checkbox for a tab page; absent for an overall tabs block. |
+| `headerParameter` | Linked header name for a group/foldout or scalar toggle for a tab page; absent for an overall tabs block. |
 
 The older flat fields `inGroup`, `groupId`, `groupTitle` and `groupHeaderParameter` remain a summary of the nearest group/foldout. They do not describe the complete layout or tab ancestry; use `containers` to reconstruct that path. These declarations describe UI layout without introducing additional parameter uniforms.
 
@@ -847,7 +856,7 @@ Use `label(...)` inline to override a parameter's generated UI label without cha
 // @param float3 _Direction = (1, 0, 0)
 // @param normal _Normal = (0, 0, 1)
 // @param float4 _Channels = (0, 0, 0.5, 1)
-// @param bool _IncludeAlpha = false
+// @param toggle(float) _IncludeAlpha = false
 // @param color _Tint = (1, 1, 1, 1)
 // @param texture2D _Input = self
 // @param texture2D _Optional = none
@@ -917,7 +926,7 @@ float4 PreviewMask(float2 uv) { float a = SampleInput(uv).a; return float4(a, a,
 
 Every entry returns straight linear `float4` RGBA and takes `float2 uv` first, bottom-left
 `(0,0)` to top-right `(1,1)`. Inline entries may optionally take a second argument matching
-the parameter's shader representation: `float` for float/enum, `bool` for bool, `float2`
+the parameter's shader representation: the declared numeric type for toggle/color/enum/seed, `float2`
 for float2/point, `float3` for float3/normal, and `float4` for float4/color. Texture
 parameters use `WhimTexTexture`; gradients and curves use `sampler2D`; transform2D uses its input-to-local `float3x3`.
 For gradients and curves, prefer UV-only entries with the normal named `_Name_Sample` helper
@@ -1030,24 +1039,12 @@ the shared lookup is not an alternate image-processing algorithm.
 ### Seed parameters
 
 ```hlsl
-// @param seed label(Seed) float _Seed = 0 [0 .. ~10000]
+// @param label(Seed) seed(uint) _Seed = 0 [0 .. ~10000]
 ```
 
-`seed` adds a Random button beside a numeric field; it does not change the HLSL `float`
-or infer anything from the uniform name. A click chooses an integer from `ceil(min)` through
-`floor(max)`, inclusive. Both bounds must be finite and within −16777216…16777216, with
-at least one integer between them. Equal hard bounds are valid. Soft bounds constrain random
-generation too, but manual entry/label dragging retains normal hard/soft rules and accepts fractions.
-Invalid declarations use the shared FX diagnostics.
+`seed(type)` adds a Random button beside an integer numeric field. It accepts int, uint or float; the default is int. Both manual values and range endpoints must be integers. Random chooses uniformly within the inclusive range; equal endpoints are valid. Without a range, int/uint use their full range and float uses −16777216…16777216, where every integer is exact. Float seeds cannot exceed that interval, including with soft limits. Soft limits constrain random generation while allowing manual edits outside the suggested range within the type's limits.
 
-The modifier works in FX and HLSL brush tips, with labels, conditions, groups, repeated declarations
-and `hidden`. A hidden body row has no button; an explicitly linked group/header control still does.
-Repeated seed controls use their own ranges. Preset export and copy/paste retain the modifier,
-range and chosen value. Random uses normal value editing, Undo and render invalidation; it does
-not recompile HLSL. Preview, save, load and bake never choose a new seed.
-Agent FX edits accept [`randomizeSeeds`](AgentAPI.md#fx-edits-and-presets); the first seed declaration
-of each named uniform supplies its range. Validation does not randomize. Multi-editing and bound
-document parameters remain separate deferred features.
+The field works in FX and HLSL brush tips, with labels, conditions, groups, repeated declarations and `hidden`. A hidden row has no button; an explicitly linked header still does. Repeated seed controls use their own ranges. Preset export retains the type, range and chosen value. Random uses normal value editing, Undo and render invalidation; preview, save, load and bake never choose a new seed. Agent FX edits accept [`randomizeSeeds`](AgentAPI.md#fx-edits-and-presets); the first seed declaration supplies its range. Validation does not randomize.
 
 ### Curve parameters
 
@@ -1139,7 +1136,30 @@ control. Each repeated declaration can have its own tooltip. The text is trimmed
 // @param enum _Strength { Subtle: 0.25, Full: 1 } // Choose a predefined strength.
 ```
 
-`bool` displays a toggle, stored in `floatValue` and sent as a float uniform (`0` or `1`), without shader keywords or recompilation on value changes. Optional defaults are `true`/`false` or `1`/`0`; ranges are not supported.
+### Field presentation and numeric type
+
+`toggle(type)`, `enum(type)`, `seed(type)` and `color(type)` separate the inspector control from its HLSL value. Omitting `(type)` uses the default below. `@param bool` and the former `seed float` modifier syntax are unsupported.
+
+| Field | Default type | Accepted HLSL types |
+| --- | --- | --- |
+| `toggle` | `float` | `bool`, `int`, `uint`, `half`, `float`, and their 2/3/4-component vectors |
+| `color` | `float4` | The same scalar/vector types |
+| `enum` | `float` | `int`, `uint`, `half`, `float` |
+| `seed` | `int` | `int`, `uint`, `float` |
+
+```hlsl
+// @param rgba toggle(float4) _Channels = (1, 1, 1, 0)
+// @param rgba float4 _Weights = (1, 0.5, 0.25, 0)
+// @param color(float2) _RedGreen = (0.5, 1)
+// @param enum(uint) _Mode = Second { First: 0, Second: 1 }
+// @param seed(uint) _Seed = 42 [0 .. 4294967295]
+```
+
+`rgba` changes component labels from X/Y/Z/W to R/G/B/A without changing the value, channel order or color space. It applies to ordinary float vectors, toggle and color fields. Vector toggles expose one independent checkbox per component, all in one row; values are exactly 0 or 1. Color fields naturally use RGBA labels.
+
+`color` opens the picker with four, three, two or one editable channels according to its type: RGBA, RGB, RG or R. Missing channels are not stored or supplied to HLSL. Float/half colors retain the existing encoded-RGB-to-linear shader conversion; alpha is unchanged and HDR is retained within the selected type's range. Integer/bool colors are raw numeric components: integers round to the nearest integer, bool uses a 0.5 threshold, with no automatic 0–255 scaling. The picker itself uses float precision; unchanged integer components retain their exact stored values.
+
+Integer components are stored separately and uploaded with integer material properties, preserving the full int/uint range. Bool is supplied as an actual HLSL bool. Main FX, brush tips and inspector preview arguments all use the declared type. Changes to values do not require compilation. `gradient`, `curve`, `transform2D`, `point`, `normal` and ordinary float/vector declarations keep their existing syntax.
 
 ```hlsl
 // @param float _Strength = 0.63 [0 .. 1]
@@ -1147,14 +1167,14 @@ control. Each repeated declaration can have its own tooltip. The text is trimmed
 // @param enum _Mode = SoftLight { SoftLight: 0, HardLight: 1, CustomBlend: 0.5 }
 ```
 
-`enum` is a float displayed as a dropdown. Every option needs an unquoted identifier and
-an explicit finite numeric value; fractional values are allowed. Names and values must be unique.
+`enum` is a typed numeric scalar displayed as a dropdown (float by default). Every option needs an unquoted identifier and
+an explicit finite numeric value; fractional values are allowed for float/half. Names and values must be unique.
 Option names are editor-only labels (for example, `SoftLight` displays as **Soft Light**), not HLSL
 constants. A default may be an option name or a number. An unmatched value displays **Custom**
 without changing the number.
 
 Repeated compatible declarations create linked controls in source order, but only one stored value
-and one uniform. `float`, `bool` and `enum` share scalar storage; other types must match exactly.
+and one uniform. Linked controls must have the same HLSL value type and compatible storage. Float, toggle(float), enum(float) and seed(float) can share one scalar; color storage stays separate from raw vectors.
 The last declaration **with an initializer** supplies the default. Defaultless declarations do not
 overwrite it. Ranges constrain edits through that control, not the shared value or its default.
 Saving a preset writes the current value into one declaration and omits other initializers.

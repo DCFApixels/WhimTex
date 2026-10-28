@@ -606,8 +606,8 @@ material Properties or `@param`. See [shared hue lookup](../ShaderFX.md#shared-h
 
 Wrap rows in `// @if _Mode == 1` / `// @endif` to hide them when false, or
 `// @enableif _Enabled == 1` / `// @endenableif` to leave them visible but disabled.
-Both accept `==` or `!=` against a finite numeric literal and a declared float/bool/enum
-driver; bool comparisons use 0/1. Drivers may be forward references or declared under
+Both accept `==` or `!=` against a finite numeric or true/false literal and a declared scalar
+or an explicit vector component such as `_Channels.a`. Drivers may be forward references or declared under
 `@enableif`, but no driver declaration may be under `@if`. Unknown/vector drivers are
 invalid when an actual parameter or standalone preview uses the condition; empty blocks
 and headings/help boxes alone add no driver dependencies. Literal syntax is always validated.
@@ -619,20 +619,20 @@ conditions must pass; an inner condition cannot override a disabled or read-only
 Fields, attached headings/help boxes and previews follow the same conditions. Values,
 uniform uploads and HLSL behavior do not change. Preset exports preserve the blocks.
 `ShaderFXParameterControl.enableIf` is an outer-to-inner `ShaderFXEnableCondition[]`, empty
-outside enabled blocks; each struct contains `string parameter`, `bool notEqual`, `float value`.
+outside enabled blocks; each struct contains `string parameter`, `bool notEqual`, `double value`.
 Standalone previews carry the same metadata. See [parameter declarations](../ShaderFX.md#parameter-declarations).
 
 ### FX layout metadata
 
 Keep `// @group`, `// @group(Title)` or `// @group(Title; _HeaderParameter)` paired with `// @endgroup` for non-collapsible bordered groups. Add `// @foldout(Title)` or `// @foldout(Title; _HeaderParameter)`, paired with `// @endfoldout`, for collapsible content; the foldout title is required. A header parameter must be declared exactly once in the source, outside both `@if` and `@enableif` and directly inside its own group/foldout. Supported hidden header fields are promoted into the header. Header checkboxes edit values independently of folding and tab selection; use `@if` for dependent row visibility, `@enableif` for editing availability and HLSL for the effect behavior.
 
-Use `// @tabs` or `// @tabs(Title)` around `// @tab(Page title)` / `// @endtab` pages, then `// @endtabs`. Page titles are required, non-empty and unique within one tabs block after trimming, with case-sensitive comparison. A page accepts `// @tab(Page title; _Enabled)` for a bool checkbox left of its label. Declare that bool exactly once, unconditionally and directly in that page; hidden bools are promoted and the body row is omitted. Other types are invalid. The checkbox changes only its value, without switching pages; page selection leaves it unchanged. Use `@enableif`/`@if` for dependent rows. The overall `@tabs` heading accepts no header binding. Put all parameters and standalone previews inside pages, never directly under `@tabs`. Empty `@tabs()` is invalid; omit parentheses to omit the overall title. Individual tab headers share group-header Copy/Paste/Reset actions for all values in that page, including hidden/disabled fields and descendants; sibling pages and shared fields are excluded.
+Use `// @tabs` or `// @tabs(Title)` around `// @tab(Page title)` / `// @endtab` pages, then `// @endtabs`. Page titles are required, non-empty and unique within one tabs block after trimming, with case-sensitive comparison. A page accepts `// @tab(Page title; _Enabled)` for a scalar toggle left of its label. Declare that toggle exactly once, unconditionally and directly in that page; hidden toggles are promoted and the body row is omitted. Other types are invalid. The checkbox changes only its value, without switching pages; page selection leaves it unchanged. Use `@enableif`/`@if` for dependent rows. The overall `@tabs` heading accepts no header binding. Put all parameters and standalone previews inside pages, never directly under `@tabs`. Empty `@tabs()` is invalid; omit parentheses to omit the overall title. Individual tab headers share group-header Copy/Paste/Reset actions for all values in that page, including hidden/disabled fields and descendants; sibling pages and shared fields are excluded.
 
 ```hlsl
 // @tabs
 // @tab(Color)
 // @foldout(Tint; _Enabled)
-// @param hidden bool _Enabled = true
+// @param hidden toggle(float) _Enabled = true
 // @enableif _Enabled == 1
 // @param color _Tint = (1, 1, 1, 1)
 // @endenableif
@@ -754,7 +754,7 @@ Output selects Result or source range masks (unaffected by Master), and `_Opacit
 that output with the input. See the
 [preset contract](../ShaderFX.md#hsv-preset) for boundary and alpha rules.
 
-Declare an explicitly randomizable seed as `// @param seed float _Seed = 0 [0 .. ~10000]`.
+Declare an explicitly randomizable seed as `// @param seed(float) _Seed = 0 [0 .. ~10000]`.
 It remains an ordinary uniform. Random chooses an integer within both declared bounds;
 the finite bounds must be within −16777216…16777216 and contain at least one integer.
 Manual input keeps normal hard/soft rules. Preview/save/load never randomize. Labels, groups,
@@ -855,7 +855,7 @@ are never suppressed. Errors and warnings retain their respective severity even 
 // @param float _Amount = 10
 // @param px float _Radius = 3 [0 .. ~64]
 // @param px float2 _PixelOffset = (0, 0)
-// @param bool _IncludeAlpha = false
+// @param toggle(float) _IncludeAlpha = false
 // @param float2 _Offset = (0, 0)
 // @param float3 _Direction = (1, 0, 0)
 // @param normal _Normal = (0, 0, 1)
@@ -872,7 +872,7 @@ are never suppressed. Errors and warnings retain their respective severity even 
 No semicolon on metadata lines. Ranges apply to floats only. Defaults must be finite.
 For canvas FX, the `px` modifier marks artistic lengths in logical document pixels. It supports `float`,
 `float2`, `float3` and `float4`, combined with `hidden` and `label(...)`; it cannot be combined
-with `seed`, enum, bool, color, normal, point or resource parameters. Every declaration of
+with seed, enum, toggle, color, normal, point or resource parameters. Every declaration of
 the same variable must agree on `px`. Stored values, UI values and declared ranges remain
 logical pixels; FX upload multiplies these numeric values by `_PixelScale` exactly once.
 Do not multiply marked parameters by `_PixelScale` again in HLSL. For unmarked custom
@@ -892,7 +892,7 @@ For example: `// @param float _Strength = 5 [0 .. ~2]` or `// @param float _Stre
 Ranges with a soft boundary require both values and `min < max`; one-sided or equal soft bounds are errors.
 The old `~[0 .. 2]` syntax is rejected. Boundary flags survive FX and HLSL brush preset export.
 Bounds written inside HLSL still apply independently.
-For FX and HLSL brush tips, `bool` displays a toggle and generates a `float` uniform with value `0` or `1`, not a shader keyword. An optional default is `true`/`false` or `1`/`0`; ranges are not allowed. Use `if (_IncludeAlpha > 0.5)` or use it directly in arithmetic.
+For FX and HLSL brush tips, `toggle` displays a checkbox and defaults to a `float` value of `0` or `1`. `toggle(type)` chooses its exact scalar or vector type. An optional default is `true`/`false` or `1`/`0`; ranges are not allowed. Use `if (_IncludeAlpha > 0.5)` or use it directly in arithmetic.
 
 FX and HLSL brush tips also support dropdown controls and repeated declarations of one variable:
 ```hlsl
@@ -908,8 +908,8 @@ Enum option names are unquoted identifiers, used only as nicified UI labels, nev
 Each option requires an explicit finite value, including fractional values; duplicate names or values
 are errors. Defaults may be option names or numbers. Unknown numeric values display as Custom.
 All parameter types allow omitting `= value`. The last explicit default for a variable wins; if none
-exists, scalar/vector/color defaults are zero. Repeated `float`/`bool`/`enum` controls share one float
-uniform. Other repeated types must match exactly. Control ranges do not clamp values set through
+exists, scalar/vector/color defaults are zero. Repeated `float`/`toggle(float)`/`enum(float)` controls share one float
+value. Linked controls must have matching HLSL value types and compatible storage; color storage stays separate. Control ranges do not clamp values set through
 another control. Preset export saves the current value once.
 Unbounded `float2`, `float3` and `float4` are raw vectors with two, three and four components. `point` is a `float2` position in normalized canvas UV: bottom-left `(0, 0)`, top-right `(1, 1)`. Coordinates and tuple defaults may lie outside these bounds. Its hand button (**Edit on Canvas**) activates a handle that can also be dragged outside the canvas. Its default is `(0.5, 0.5)`; an explicit tuple is optional and ranges are not accepted. `normal` generates a normalized `float3`; its default and zero-vector fallback are `(0, 0, 1)`. It also offers an on-canvas direction handle; no range is accepted. Defaults are optional. Unknown parameter types are rejected.
 
@@ -965,3 +965,7 @@ Copy as JSON expands project includes when possible; an expansion failure preser
 source for repair, so unresolved dependencies can still prevent compilation on another machine.
 
 For additional engine-specific authoring details, see [Shader authoring](../ShaderFX.md).
+
+### Typed numeric shader parameters
+
+The field syntax is `toggle(type)`, `color(type)`, `enum(type)` or `seed(type)`; defaults are float, float4, float and int. Toggle/color accept bool/int/uint/half/float scalars and vectors2/3/4; enum accepts numeric scalars; seed accepts int/uint/float. `rgba` changes component labels only. Use `rgba toggle(float4)` for channel switches and explicit vector components in conditions. `gradient`, `curve` and `transform2D` are unchanged. API parameter values use JSON booleans for bool, numbers for other scalar types and arrays of the exact component count for vectors. Integer endpoints remain exact. FX reads expose `valueType` and each control’s `field`, `valueType` and `componentLabels`. Float/half color values retain encoded-color semantics; integer/bool colors are raw numeric values, without 0–255 scaling. Seed values must be integral; float seeds stay within ±16777216. See [the shader parameter contract](../ShaderFX.md#field-presentation-and-numeric-type).

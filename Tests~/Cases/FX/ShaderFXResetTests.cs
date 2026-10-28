@@ -21,9 +21,9 @@ public static class ShaderFXResetTests
         const string code = "// @whimtex-effect Test/Reset\n// @control(_Amount)\n" +
             "// @param float _Amount = 0.25 [0 .. 1]\n" +
             "// @param label(Alternate) float _Amount [0 .. 1]\n" +
-            "// @param hidden bool _Enabled = true\n" +
+            "// @param hidden toggle(float) _Enabled = true\n" +
             "// @param enum _Mode = B {A:2, B:7}\n" +
-            "// @param seed float _Seed = 17 [0 .. 100]\n" +
+            "// @param seed(float) _Seed = 17 [0 .. 100]\n" +
             "// @param float2 _Vector2 = (2,3)\n" +
             "// @param float3 _Vector3 = (2,3,4)\n" +
             "// @param float4 _Vector4 = (2,3,4,5)\n" +

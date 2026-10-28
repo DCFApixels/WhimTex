@@ -4,7 +4,7 @@
 // @header(Normal Source)
 // @param texture2D _Normals = self // RGB normal map. Self reads the image before this FX.
 // @param enum _InputEncoding = Gamma {Linear: 0, Gamma: 1} // Match Normal Map Output Encoding. Gamma reads sRGB-encoded channel values; Linear reads raw channel values.
-// @param bool _FlipY = false // Reverse the green axis for maps using the opposite Y convention.
+// @param toggle(float) _FlipY = false // Reverse the green axis for maps using the opposite Y convention.
 // @group(Lighting Output; _Output)
 // @param hidden enum _Output = Both {Both: 0, HighlightOnly: 1, ShadowOnly: 2, SpecularOnly: 3} // Both/Highlight Only include enabled Specular. Shadow Only excludes it. Specular Only omits the surface and diffuse lighting.
 // @param normal _LightDirection = (-0.5, 0.5, 1) // Direction from the surface toward the light.
@@ -15,7 +15,7 @@
 // @param float _Ambient = 0.15 [0 .. ~1] // Ambient surface illumination, faded in by Base Color alpha.
 // @endgroup
 // @group(Specular; _SpecularEnabled)
-// @param hidden bool _SpecularEnabled = false // Enable an orthographic specular highlight; disabled preserves the original lighting.
+// @param hidden toggle(float) _SpecularEnabled = false // Enable an orthographic specular highlight; disabled preserves the original lighting.
 // @enableif _SpecularEnabled == 1
 // @param color _SpecularColor = (1, 1, 1, 1) // Highlight tint; alpha scales its strength.
 // @param float _SpecularIntensity = 1 [0 .. ~4] // Independent of the diffuse Intensity and Light Color.

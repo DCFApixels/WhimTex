@@ -9,7 +9,7 @@
 // @param transform2D _Transform = (0.5, 0.5, 1, 1, 0) // Position, scale and rotate the mask.
 // @endgroup
 // @group(Mask Shape)
-// @param label(Invert) bool _Invert = false
+// @param label(Invert) toggle(float) _Invert = false
 // @param curve _Profile // Remap mask values; linear preserves the source.
 // @endgroup
 // @foldout(Mask Preview)
@@ -18,10 +18,7 @@
 // @group(Apply To; _ApplyMode)
 // @param hidden enum _ApplyMode = Channels {Channels: 0, Color: 1}
 // @if _ApplyMode == 0
-// @param label(R) bool _ApplyRed = false
-// @param label(G) bool _ApplyGreen = false
-// @param label(B) bool _ApplyBlue = false
-// @param label(A) bool _ApplyAlpha = true
+// @param rgba label(Channels) toggle(float4) _Channels = (0, 0, 0, 1)
 // @endif
 // @if _ApplyMode == 1
 // @param label(Color) color _ApplyColor = (1, 1, 1, 0)
@@ -60,7 +57,7 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 {
 	float4 result = color;
     float multiplier = MaskCoverage(uv);
-    float4 channelMask = float4(_ApplyRed, _ApplyGreen, _ApplyBlue, _ApplyAlpha);
+    float4 channelMask = _Channels;
     float4 applyWeights = lerp(channelMask, 1 - _ApplyColor, _ApplyMode);
 	result *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);
 	return lerp(color, result, _Opacity);

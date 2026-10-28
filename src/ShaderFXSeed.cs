@@ -13,17 +13,20 @@ namespace DCFApixels.WhimTex
 
         internal static void Validate(ShaderFXParameterControl control)
         {
-            if (control.type != ShaderFXParameterType.Float || !control.hasMinimum || !control.hasMaximum ||
-                float.IsNaN(control.minimum) || float.IsInfinity(control.minimum) ||
-                float.IsNaN(control.maximum) || float.IsInfinity(control.maximum) ||
-                control.minimum < -Limit || control.maximum > Limit || Math.Ceiling(control.minimum) > Math.Floor(control.maximum))
-                throw new FormatException("seed requires float with two finite bounds in [-16777216 .. 16777216] containing at least one integer.");
+            if (control.type != ShaderFXParameterType.Seed || !control.hasMinimum || !control.hasMaximum ||
+                control.valueMinimum > control.valueMaximum || control.valueMinimum != Math.Truncate(control.valueMinimum) ||
+                control.valueMaximum != Math.Truncate(control.valueMaximum))
+                throw new FormatException("seed requires a valid integer range.");
         }
 
-        internal static float NextValue(ShaderFXParameterControl control)
+        internal static double NextValue(ShaderFXParameterControl control)
         {
             Validate(control);
-            return random.Next((int)Math.Ceiling(control.minimum), (int)Math.Floor(control.maximum) + 1);
+            ulong width = (ulong)(control.valueMaximum - control.valueMinimum) + 1;
+            ulong limit = (1UL << 32) / width * width;
+            ulong sample;
+            do { sample = ((ulong)random.Next(65536) << 16) | (uint)random.Next(65536); } while (sample >= limit);
+            return control.valueMinimum + (long)(sample % width);
         }
     }
 }

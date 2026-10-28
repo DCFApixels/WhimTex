@@ -45,10 +45,16 @@ namespace DCFApixels.WhimTex
                 hash = Mix(hash, value.nameFingerprint.Get(value.name)); hash = Mix(hash, value.idFingerprint.Get(value.id));
                 hash = Mix(hash, (ulong)value.type);
                 hash = Mix(hash, value.pixelUnits ? 1UL : 0UL);
+                hash = Mix(hash, HashText(value.ValueType));
+                if (value.IsInteger)
+                {
+                    for (int i = 0; i < value.Components; i++) hash = Mix(hash, unchecked((ulong)(long)value.GetNumber(i)));
+                    continue;
+                }
                 switch (value.type)
                 {
                     case ShaderFXParameterType.Float:
-                    case ShaderFXParameterType.Bool:
+                    case ShaderFXParameterType.Toggle:
                     case ShaderFXParameterType.Enum:
                         hash = MixFloat(hash, value.floatValue); break;
                     case ShaderFXParameterType.Color:

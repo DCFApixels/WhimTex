@@ -31,16 +31,18 @@ namespace DCFApixels.WhimTex
         protected bool CopyParameterValues(List<ShaderFXParameter> targets, IReadOnlyList<ShaderFXParameter> values)
         {
             foreach (var value in values)
-                if (value == null || !targets.Exists(p => p.id == value.id && p.type == value.type)) return false;
+                if (value == null || !targets.Exists(p => p.id == value.id && p.type == value.type && p.ValueType == value.ValueType)) return false;
             foreach (var value in values) ShaderFXMetadata.CopyValue(value, targets.Find(p => p.id == value.id));
             return true;
         }
 
         internal virtual WhimTexColorField CreateColorField(string label, string id, List<Action> refresh)
         {
-            var field = WhimTexColorInputs.Bind(new WhimTexColorField(label), () => Find(id).colorValue,
-                value => Change(id, p => p.colorValue = value));
-            refresh.Add(() => field.SetValueWithoutNotify(WhimTexColorInputs.DisplayColor(Find(id).colorValue)));
+            var field = WhimTexColorInputs.Bind(new WhimTexColorField(label), () => Find(id).GetNumericColor(),
+                value => Change(id, p => p.SetNumericColor(value)));
+            refresh.Add(() => field.SetValueWithoutNotify(WhimTexColorInputs.DisplayColor(Find(id).GetNumericColor())));
+            field.EditableComponents = Find(id).Components;
+            field.showAlpha = field.EditableComponents == 4;
             return field;
         }
 
@@ -114,13 +116,7 @@ namespace DCFApixels.WhimTex
         }
         internal override WhimTexColorField CreateColorField(string label, string id, List<Action> refresh)
         {
-            var data = new SerializedObject(effect);
-            int index = 0;
-            for (; index < Parameters.Count; index++) if (Parameters[index].id == id) break;
-            var property = data.FindProperty("parameters").GetArrayElementAtIndex(index).FindPropertyRelative("colorValue");
-            var field = WhimTexColorInputs.Bind(new WhimTexColorField(label), property, effect.NotifyValuesChanged);
-            field.RegisterCallback<DetachFromPanelEvent>(_ => data.Dispose());
-            return field;
+            return base.CreateColorField(label, id, refresh);
         }
         internal override VisualElement CreateTextureField(string label, string id, List<Action> refresh)
         {

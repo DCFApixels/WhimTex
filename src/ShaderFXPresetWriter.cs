@@ -31,7 +31,7 @@ namespace DCFApixels.WhimTex
             var rows = new System.Collections.Generic.List<(int order, string text, ShaderFXParameterControl control)>();
             foreach (var p in values)
             {
-                int defaultIndex = p.controls.FindIndex(c => c.type != ShaderFXParameterType.Bool && CanDeclareDefault(c, p));
+                int defaultIndex = p.controls.FindIndex(c => c.type != ShaderFXParameterType.Toggle && CanDeclareDefault(c, p));
                 if (defaultIndex < 0) defaultIndex = p.controls.FindIndex(c => CanDeclareDefault(c, p));
                 if (defaultIndex < 0)
                     throw new FormatException("No control can represent the current preset default for " + p.name + ".");
@@ -44,17 +44,14 @@ namespace DCFApixels.WhimTex
                     row.cyclicRange = control.cyclicRange;
                     row.minimum = control.minimum; row.maximum = control.maximum;
                     string declaration;
-                    if (control.type == ShaderFXParameterType.Enum)
-                    {
-                        var options = new System.Collections.Generic.List<string>();
-                        for (int n = 0; n < control.optionNames.Length; n++) options.Add(control.optionNames[n] + ": " + Number(control.optionValues[n]));
-                        declaration = "// @param enum " + p.name + " = " + Number(p.floatValue) + " { " + string.Join(", ", options) + " }";
-                    }
+                    if (control.type == ShaderFXParameterType.Enum || control.type == ShaderFXParameterType.Toggle ||
+                        control.type == ShaderFXParameterType.Seed || control.type == ShaderFXParameterType.Color)
+                        declaration = TypedDeclaration(p, control);
                     else declaration = Declaration(row);
-                    if (control.hidden || control.seed || !string.IsNullOrWhiteSpace(control.label) || !string.IsNullOrEmpty(control.previewFunction))
+                    if (control.hidden || control.rgba || !string.IsNullOrWhiteSpace(control.label) || !string.IsNullOrEmpty(control.previewFunction))
                     {
                         string modifiers = control.hidden ? "hidden " : string.Empty;
-                        if (control.seed) modifiers += "seed ";
+                        if (control.rgba && control.type != ShaderFXParameterType.Color) modifiers += "rgba ";
                         if (!string.IsNullOrEmpty(control.previewFunction)) modifiers += "preview(" + ShaderFXPreviewFunction.Declaration(control) + ") ";
                         if (!string.IsNullOrWhiteSpace(control.label))
                             modifiers += "label(\"" + control.label.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\") ";
@@ -134,12 +131,32 @@ namespace DCFApixels.WhimTex
             return source;
         }
 
+        private static string TypedDeclaration(ShaderFXParameter p, ShaderFXParameterControl control)
+        {
+            string[] components = new string[p.Components];
+            for (int i = 0; i < components.Length; i++) components[i] = p.IsBoolean ? p.GetNumber(i) == 0 ? "false" : "true" : Number(p.GetNumber(i));
+            string result = "// @param " + control.type.ToString().ToLowerInvariant() + "(" + p.ValueType + ") " + p.name + " = " +
+                (components.Length == 1 ? components[0] : "(" + string.Join(", ", components) + ")");
+            if (control.type == ShaderFXParameterType.Seed) result += " [" + (control.softMinimum ? "~" : "") + Number(control.valueMinimum) + " .. " + (control.softMaximum ? "~" : "") + Number(control.valueMaximum) + "]";
+            if (control.type == ShaderFXParameterType.Enum)
+            {
+                var options = new System.Collections.Generic.List<string>();
+                for (int i = 0; i < control.optionNames.Length; i++) options.Add(control.optionNames[i] + ": " + Number(control.optionValues[i]));
+                result += " { " + string.Join(", ", options) + " }";
+            }
+            return result;
+        }
+
         private static bool CanDeclareDefault(ShaderFXParameterControl control, ShaderFXParameter parameter)
         {
             float value = parameter.floatValue;
             if (control.type == ShaderFXParameterType.Vector2 && control.hasMinimum && control.hasMaximum)
                 return ShaderFXParameter.IsValidInterval(parameter.vectorValue, control.minimum, control.maximum, control.cyclicRange);
-            if (control.type == ShaderFXParameterType.Bool) return value == 0f || value == 1f;
+            if (control.type == ShaderFXParameterType.Toggle)
+            {
+                for (int i = 0; i < parameter.Components; i++) if (parameter.GetNumber(i) != 0 && parameter.GetNumber(i) != 1) return false;
+                return true;
+            }
             if (control.type != ShaderFXParameterType.Float) return true;
             return !(control.hasMinimum && !control.softMinimum && value < control.minimum ||
                 control.hasMaximum && !control.softMaximum && value > control.maximum);
@@ -173,8 +190,8 @@ namespace DCFApixels.WhimTex
                     if (!GradientUtility.IsTwoColorGradient(p.gradientValue, out var left, out var right))
                         throw new FormatException("Gradient preset defaults currently support two endpoint colors only. Simplify the gradient before saving this preset.");
                     return prefix + "gradient " + p.name + " = " + ColorDefault(left) + " -> " + ColorDefault(right);
-                case ShaderFXParameterType.Bool:
-                    return prefix + "bool " + p.name + " = " + (p.BoolValue ? "true" : "false");
+                case ShaderFXParameterType.Toggle:
+                    return prefix + "toggle(float) " + p.name + " = " + (p.BoolValue ? "true" : "false");
                 case ShaderFXParameterType.Float:
                 case ShaderFXParameterType.Enum:
                     return prefix + "float " + p.name + " = " + Number(p.floatValue) +

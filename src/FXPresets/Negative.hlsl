@@ -4,7 +4,7 @@
 // @icon("../Editor/Icons/FX/Tone.svg")
 // @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.
 // @group
-// @param bool _InvertAlpha = false // Also invert alpha instead of preserving it.
+// @param toggle(float) _InvertAlpha = false // Also invert alpha instead of preserving it.
 // @endgroup
 
 float4 ApplyFX(float4 color)

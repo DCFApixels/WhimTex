@@ -21,7 +21,7 @@ Use **+** at the bottom of Layers to choose a type:
 
 | Layer | Use it for |
 | :--- | :--- |
-| File | An existing texture from Project. |
+| File | A Project texture or a linked image outside the project. |
 | Drawing Layer | Painting, erasing and filling. |
 | Color Fill | A solid color, UV coordinates or a geometric distance-field pattern. |
 | Gradient | A smooth color transition, Freeform color points or an editable [Mesh](color.md#mesh-gradients). |
@@ -58,6 +58,15 @@ You can also drag a Project texture onto Canvas View to add it at the top,
 or drop it between rows to choose its position. A newly assigned image keeps its original proportions.
 Assigning an HDR texture to a File layer sets **Color Range** and **Blend Range** to **HDR**.
 You can change both afterwards in **Rendering**.
+
+File sources can also come from the system file manager: drop an image onto **Source Texture**,
+Canvas View or between layer rows. **Browse…** beside the source field opens the file picker.
+External files stay linked by absolute path; they are not copied into Assets or embedded in the document.
+PNG, JPEG, TGA, BMP, EXR and supported TIFF variants are decoded directly. TIFF requires little-endian,
+straight RGBA, 8-bit or 32-bit float, with no compression or Deflate and no predictor. Other project
+textures continue to use Unity importers. EXR and float TIFF retain HDR values. Missing or unsupported
+sources show an error; choose a replacement through the same field. Changes to the source image
+are picked up automatically, usually within a second.
 
 File layers linked to another WhimTex document have a thin orange line along the left edge of their row.
 Double-click its thumbnail or row background to open or focus that document without replacing the current one.

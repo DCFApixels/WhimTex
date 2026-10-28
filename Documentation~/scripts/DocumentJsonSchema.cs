@@ -159,6 +159,13 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                                 ("description", "Per-source-axis physical pixel metric accumulated by Scale, including nested rotations and quarter turns. Perspective uses the Jacobian at the source centre. Crop and Orientation retain it. Multiplies sourceCanvasSize only for pixel-sized Pattern/Grain parameters; source buffers and dimensionless Noise retain their original basis.")) :
                             type == typeof(ShaderFXParameter) && f.Name == "pixelUnits"
                             ? D(("type", "boolean"), ("default", false), ("description", "Numeric @param px declaration; the retained logical value is multiplied by document pixelScale once when uploaded.")) :
+                            (type == typeof(ShaderFXParameter) || type == typeof(ShaderFXParameterControl)) && f.Name == "valueType"
+                            ? D(("type", new[] { "string", "null" }), ("pattern", "^(bool|int|uint|half|float)[234]?$"),
+                                ("description", "Declared HLSL scalar/vector type, independent of the control presentation. Resource parameters have no numeric valueType.")) :
+                            type == typeof(ShaderFXParameter) && f.Name == "integerValues"
+                            ? D(("type", "array"), ("minItems", 4), ("maxItems", 4),
+                                ("items", D(("type", "integer"), ("minimum", int.MinValue), ("maximum", uint.MaxValue))),
+                                ("description", "Exact integer/bool components; active count and signedness follow valueType. Bool components are 0/1.")) :
                             type == typeof(ShaderFXParameterControl) && f.Name == "enableIf"
                             ? D(("type", "array"), ("default", Array.Empty<object>()), ("maxItems", 16),
                                 ("items", Schema(typeof(ShaderFXEnableCondition))),
@@ -290,6 +297,11 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                     ((Dictionary<string, object>)properties["brushDraft"])["description"] = "Last stroke's original coverage and editable rebuild controls. Retained in all write modes, Undo and TIFF until the next stroke replaces it.";
                     properties["shapes"] = D(("type", "array"), ("maxItems", 4096), ("items", D(("$ref", "#/$defs/VectorShape"))),
                         ("description", "One figure per authored layer; multiple contours, including holes, belong to that figure. Older arrays with several figures are accepted only for normalization into an ordinary group with one figure per child, retaining the original shell and shared transform/FX."));
+                }
+                if (type == typeof(FileLayerBehaviour))
+                {
+                    properties["externalSourcePath"] = D(("type", new[] { "string", "null" }),
+                        ("description", "Absolute linked external PNG/JPEG/TGA/BMP/EXR or compatible RGBA TIFF path; sourceTexture is null. Pixels are decoded on demand, cached per document and never embedded. Missing paths remain stored. Project sources use sourceTexture and leave this null."));
                 }
                 if (type == typeof(BooleanGroupLayerBehaviour))
                 {

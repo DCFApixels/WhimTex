@@ -18,7 +18,7 @@ public static class ShaderFXPreviewTests
         ExplicitBindings(test);
         BundledPreviews(test);
         const string code = @"
-// @param bool _Enabled = true
+// @param toggle(float) _Enabled = true
 // @group(Preview)
 // @param preview(ShowValue) float _Amount = 0.25 [-1 .. 1]
 // @param preview(ShowUV) float2 _Offset = (0.1, 0.2)

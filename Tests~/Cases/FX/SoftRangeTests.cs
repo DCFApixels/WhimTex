@@ -34,7 +34,7 @@ public static class SoftRangeTests
         Check(parsed.Count==1 && !parsed[0].controls[0].softMaximum && parsed[0].controls[1].softMaximum,"Per-control range metadata");
         Check(Parse("// @param float _X = 5 [~0 .. ~2]")[0].floatValue==5,"Out-of-range default");
         Check(Parse("// @param float _X [~-2 .. ~2]")[0].floatValue==0,"Optional default");
-        foreach(var bad in new[]{"// @param float _X [~0 ..]","// @param float _X [.. ~2]","// @param float _X [~2 .. 2]","// @param float _X [3 .. ~2]","// @param bool _X [~0 .. ~2]","// @param float _X [0 .. ~Infinity]", "// @param float _X ~[0 .. 2]", "// @param float _X [~ .. 2]"})
+        foreach(var bad in new[]{"// @param float _X [~0 ..]","// @param float _X [.. ~2]","// @param float _X [~2 .. 2]","// @param float _X [3 .. ~2]","// @param toggle(float) _X [~0 .. ~2]","// @param float _X [0 .. ~Infinity]", "// @param float _X ~[0 .. 2]", "// @param float _X [~ .. 2]"})
         {
             bool rejected=false;try{Parse(bad);}catch(TargetInvocationException e)when(e.InnerException is FormatException){rejected=true;}
             Check(rejected,"Accepted invalid soft range: "+bad);

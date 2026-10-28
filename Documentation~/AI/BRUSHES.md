@@ -446,8 +446,8 @@ shader target 3.5; avoid expensive per-pixel loops or noise stacks.
 ### Declared parameters
 
 Brush tips use the same [parameter syntax and fields as FX](../ShaderFX.md#parameter-declarations):
-**float**, **bool**, **enum**, **float2**, **float3**, **float4**, **point**, **normal**,
-**color**, **texture2D**, **transform2D**, **gradient** and **curve**. Defaults in the
+**float**, **toggle(type)**, **enum(type)**, **seed(type)**, **float2**, **float3**, **float4**, **point**, **normal**,
+**color(type)**, **texture2D**, **transform2D**, **gradient** and **curve**. Defaults in the
 declarations are used on JSON paste; there is no separate parameter-value object.
 Maximum 32 distinct parameters, 128 controls and 64 KiB UTF-8 of code.
 
@@ -460,7 +460,7 @@ with the same supported types and warning rules as FX.
 // @whimtex-brush Pattern/Striped Tip
 // @control(_Frequency)
 // @group(Pattern; _Enabled)
-// @param bool _Enabled = true
+// @param toggle(float) _Enabled = true
 // @param float _Frequency = 4 [1 .. ~16]
 // @if _Enabled == 1
 // @param gradient _Ramp = #FFFFFFFF -> #000000FF
@@ -521,3 +521,7 @@ Brush settings and `.sebrush` presets retain parameter texture GUID/local IDs, n
 of those texture images. Moving a preset to another project requires the referenced assets
 with the same identities. Missing saved parameter textures produce an error instead of
 silently replacing the image with white.
+
+### Typed numeric shader parameters
+
+The field syntax is `toggle(type)`, `color(type)`, `enum(type)` or `seed(type)`; defaults are float, float4, float and int. Toggle/color accept bool/int/uint/half/float scalars and vectors2/3/4; enum accepts numeric scalars; seed accepts int/uint/float. `rgba` changes component labels only. Use `rgba toggle(float4)` for channel switches and explicit vector components in conditions. `gradient`, `curve` and `transform2D` are unchanged. API parameter values use JSON booleans for bool, numbers for other scalar types and arrays of the exact component count for vectors. Integer endpoints remain exact. FX reads expose `valueType` and each control’s `field`, `valueType` and `componentLabels`. Float/half color values retain encoded-color semantics; integer/bool colors are raw numeric values, without 0–255 scaling. Seed values must be integral; float seeds stay within ±16777216. See [the shader parameter contract](../ShaderFX.md#field-presentation-and-numeric-type).

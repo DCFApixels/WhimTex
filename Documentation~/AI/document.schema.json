@@ -1220,6 +1220,12 @@
         "$name": {
           "type": "string"
         },
+        "presetOriginPath": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "active": {
           "type": "boolean"
         },
@@ -1274,14 +1280,15 @@
             "Vector",
             "Texture2D",
             "Transform2D",
-            "Bool",
+            "Toggle",
             "Enum",
             "Gradient",
             "Vector2",
             "Vector3",
             "Normal",
             "Curve",
-            "Point"
+            "Point",
+            "Seed"
           ]
         },
         "floatValue": {
@@ -1536,6 +1543,25 @@
               }
             ]
           }
+        },
+        "valueType": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(bool|int|uint|half|float)[234]?$",
+          "description": "Declared HLSL scalar/vector type, independent of the control presentation. Resource parameters have no numeric valueType."
+        },
+        "integerValues": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 4294967295
+          },
+          "description": "Exact integer/bool components; active count and signedness follow valueType. Bool components are 0/1."
         }
       }
     },
@@ -1979,14 +2005,15 @@
             "Vector",
             "Texture2D",
             "Transform2D",
-            "Bool",
+            "Toggle",
             "Enum",
             "Gradient",
             "Vector2",
             "Vector3",
             "Normal",
             "Curve",
-            "Point"
+            "Point",
+            "Seed"
           ]
         },
         "order": {
@@ -2039,10 +2066,25 @@
             "null"
           ],
           "items": {
-            "type": "number",
-            "minimum": -3.40282347E+38,
-            "maximum": 3.40282347E+38
+            "type": "number"
           }
+        },
+        "valueType": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(bool|int|uint|half|float)[234]?$",
+          "description": "Declared HLSL scalar/vector type, independent of the control presentation. Resource parameters have no numeric valueType."
+        },
+        "rgba": {
+          "type": "boolean"
+        },
+        "valueMinimum": {
+          "type": "number"
+        },
+        "valueMaximum": {
+          "type": "number"
         },
         "visibleIfParameter": {
           "type": [
@@ -2054,9 +2096,7 @@
           "type": "boolean"
         },
         "visibleIfValue": {
-          "type": "number",
-          "minimum": -3.40282347E+38,
-          "maximum": 3.40282347E+38
+          "type": "number"
         },
         "enableIf": {
           "type": "array",
@@ -2121,9 +2161,7 @@
           "type": "boolean"
         },
         "value": {
-          "type": "number",
-          "minimum": -3.40282347E+38,
-          "maximum": 3.40282347E+38
+          "type": "number"
         }
       }
     },
@@ -3741,6 +3779,13 @@
               }
             }
           ]
+        },
+        "externalSourcePath": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Absolute linked external PNG/JPEG/TGA/BMP/EXR or compatible RGBA TIFF path; sourceTexture is null. Pixels are decoded on demand, cached per document and never embedded. Missing paths remain stored. Project sources use sourceTexture and leave this null."
         },
         "sourceAssigned": {
           "type": "boolean"

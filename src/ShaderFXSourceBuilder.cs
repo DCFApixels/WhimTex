@@ -253,10 +253,11 @@ float4 SampleInput(float2 uv, float tiling)
                     !generatedNames && parameter.name.StartsWith("_WhimTex_", StringComparison.Ordinal) || !names.Add(parameter.name))
                     throw new InvalidOperationException($"Invalid, duplicate or reserved parameter name: '{parameter?.name}'. Use an HLSL identifier such as _Amount.");
                 string name = parameter.name;
+                if (ShaderFXNumericValue.NeedsTypedBinding(parameter)) { ShaderFXNumericValue.Declare(parameter, properties, uniforms); continue; }
                 switch (parameter.type)
                 {
                     case ShaderFXParameterType.Float:
-                    case ShaderFXParameterType.Bool:
+                    case ShaderFXParameterType.Toggle:
                     case ShaderFXParameterType.Enum:
                         properties.AppendLine($"{name} (\"{name}\", Float) = 0");
                         uniforms.AppendLine($"float {name};");

@@ -11,10 +11,7 @@
 // @group(Apply To; _ApplyMode)
 // @param hidden enum _ApplyMode = Channels {Channels: 0, Color: 1}
 // @if _ApplyMode == 0
-// @param label(R) bool _Red = true
-// @param label(G) bool _Green = true
-// @param label(B) bool _Blue = true
-// @param label(A) bool _Alpha = false
+// @param rgba label(Channels) toggle(float4) _Channels = (1, 1, 1, 0)
 // @endif
 // @if _ApplyMode == 1
 // @param label(Color) color _ApplyColor = (1, 1, 1, 0) // Per-channel blend weight from the source to the stepped result.
@@ -39,7 +36,7 @@ float4 ApplyFX(float4 color)
                                  color);
     }
 
-    float4 channelMask = float4(_Red, _Green, _Blue, _Alpha);
+    float4 channelMask = _Channels;
     float4 applyWeights = lerp(channelMask, _ApplyColor, _ApplyMode);
     return lerp(color, stepped, applyWeights);
 }

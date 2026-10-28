@@ -77,7 +77,7 @@ public static class EffectCacheStampTests
         Changed(() => { var transform = value.transformValue; transform.storage = TransformStorage.Projective;
             transform.matrix = ProjectiveMatrix.Identity; transform.matrix.m01 = .2; value.transformValue = transform; },
             "Projective parameter transforms invalidate");
-        foreach (var type in new[] { ShaderFXParameterType.Bool, ShaderFXParameterType.Enum, ShaderFXParameterType.Vector,
+        foreach (var type in new[] { ShaderFXParameterType.Toggle, ShaderFXParameterType.Enum, ShaderFXParameterType.Vector,
             ShaderFXParameterType.Vector2, ShaderFXParameterType.Vector3, ShaderFXParameterType.Normal, ShaderFXParameterType.Point })
         {
             value.type = type; previous = Stamp();

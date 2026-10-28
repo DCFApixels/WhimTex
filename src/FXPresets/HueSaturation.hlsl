@@ -10,7 +10,7 @@
 // @param label(Lightness) preview(PreviewMasterCorrection, _MasterHue, _MasterSaturation, _MasterLightness) float _MasterLightness = 0 [-100 .. 100] // Lightness adjustment: -100 is black, 0 unchanged, +100 white. This is not a brightness multiplier.
 // @endtab
 // @tab(Range 1; _Range1Enabled)
-// @param label(Enabled) bool _Range1Enabled = false // Override Master inside this range and include it in masks. Neutral settings preserve original colors; overlapping ranges are averaged.
+// @param label(Enabled) toggle(float) _Range1Enabled = false // Override Master inside this range and include it in masks. Neutral settings preserve original colors; overlapping ranges are averaged.
 // @enableif _Range1Enabled == 1
 // @param label("Hue Range (°)") preview(PreviewHueSelection, _Range1, _Range1Feather) float2 _Range1 = (330, 30) [0 % 360] // Cyclic hue interval. X > Y crosses red; (0, 360) selects all hues. Equal endpoints have zero width.
 // @param label("Feather (°)") float _Range1Feather = 15 [0 .. 180] // Extra smooth falloff on each side, limited at the opposite hue. Zero width and feather select nothing.
@@ -20,7 +20,7 @@
 // @endenableif
 // @endtab
 // @tab(Range 2; _Range2Enabled)
-// @param label(Enabled) bool _Range2Enabled = false // Override Master inside this range and include it in masks. Neutral settings preserve original colors; overlapping ranges are averaged.
+// @param label(Enabled) toggle(float) _Range2Enabled = false // Override Master inside this range and include it in masks. Neutral settings preserve original colors; overlapping ranges are averaged.
 // @enableif _Range2Enabled == 1
 // @param label("Hue Range (°)") preview(PreviewHueSelection, _Range2, _Range2Feather) float2 _Range2 = (90, 150) [0 % 360] // Cyclic hue interval. X > Y crosses red; (0, 360) selects all hues. Equal endpoints have zero width.
 // @param label("Feather (°)") float _Range2Feather = 15 [0 .. 180] // Extra smooth falloff on each side, limited at the opposite hue. Zero width and feather select nothing.
@@ -30,7 +30,7 @@
 // @endenableif
 // @endtab
 // @tab(Range 3; _Range3Enabled)
-// @param label(Enabled) bool _Range3Enabled = false // Override Master inside this range and include it in masks. Neutral settings preserve original colors; overlapping ranges are averaged.
+// @param label(Enabled) toggle(float) _Range3Enabled = false // Override Master inside this range and include it in masks. Neutral settings preserve original colors; overlapping ranges are averaged.
 // @enableif _Range3Enabled == 1
 // @param label("Hue Range (°)") preview(PreviewHueSelection, _Range3, _Range3Feather) float2 _Range3 = (210, 270) [0 % 360] // Cyclic hue interval. X > Y crosses red; (0, 360) selects all hues. Equal endpoints have zero width.
 // @param label("Feather (°)") float _Range3Feather = 15 [0 .. 180] // Extra smooth falloff on each side, limited at the opposite hue. Zero width and feather select nothing.
@@ -40,7 +40,7 @@
 // @endenableif
 // @endtab
 // @tab(Range 4; _Range4Enabled)
-// @param label(Enabled) bool _Range4Enabled = false // Override Master inside this range and include it in masks. Neutral settings preserve original colors; overlapping ranges are averaged.
+// @param label(Enabled) toggle(float) _Range4Enabled = false // Override Master inside this range and include it in masks. Neutral settings preserve original colors; overlapping ranges are averaged.
 // @enableif _Range4Enabled == 1
 // @param label("Hue Range (°)") preview(PreviewHueSelection, _Range4, _Range4Feather) float2 _Range4 = (30, 90) [0 % 360] // Cyclic hue interval. X > Y crosses red; (0, 360) selects all hues. Equal endpoints have zero width.
 // @param label("Feather (°)") float _Range4Feather = 15 [0 .. 180] // Extra smooth falloff on each side, limited at the opposite hue. Zero width and feather select nothing.

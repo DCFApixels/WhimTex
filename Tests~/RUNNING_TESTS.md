@@ -15,6 +15,12 @@ profiler, and ReadScreenPixel on test-created windows. It does not authorize oth
 
 ## Inspect and select
 
+`external-file-layer-v1` checks PNG/JPEG/TGA/BMP/EXR/TIFF sources in an owned OS temporary directory
+outside the project. It covers signed HDR, hidden RGB, alpha/orientation, composition parity, shared
+cache reuse/release, changed/missing/repaired files, rejected inputs, JSON/native-model roundtrips and
+owned Undo/Redo. It imports no assets, opens no windows and deletes its exact fixtures on completion.
+Native OS drag gestures and file-picker interaction remain manual checks.
+
 `color-history-limit-v1` checks the 256-color default, oldest-entry eviction, recency, reduced limits, exact HDR/alpha, per-document isolation, Undo/Redo and native-model/JSON roundtrips. It restores its user preference and opens no windows.
 
 `quick-selection-quality` compares analytical native contours with flat/weak/textured images,
@@ -108,6 +114,10 @@ include one warm-up; timed GPU completion reads only a separate 1×1 texture. Pi
 comparisons read at most 32×32. Reported texture sizes are per allocation, not total VRAM.
 The report is `Temp/WhimTex/regional-fx/benchmark.txt`. These cases do not drive the user's
 UI, finish strokes or change Undo history. Live inspector interaction remains a manual check.
+
+`unified-lighting-v2` also compares Bevel Emboss with a direct-read control across 180
+Self/Texture, point/bilinear/trilinear, channel, output and depth combinations. HDR colors,
+alpha, curved profiles and automatic mip sampling must retain exact rendered RGBA.
 
 `normal-specular-v1` checks the catalog-linked Normal Lighting preset against an independent
 CPU diffuse/specular oracle with Gamma and Linear encoding, original disabled behavior,

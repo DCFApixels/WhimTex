@@ -10,8 +10,8 @@
 // @param enum _Filter = Scharr {Scharr: 0, Sobel: 1, CentralDifference: 2}
 // @param px label(Radius (px)) float _Radius = 1 [0.5 .. ~32] // Sampling radius in document pixels. The derivative is divided by the radius, not normalized to unit length.
 // @param enum _Edges = Clamp {Clamp: 0, Repeat: 1, Mirror: 2} // Address the height map independently of its texture import settings.
-// @param bool _FlipX = false
-// @param bool _FlipY = false
+// @param toggle(float) _FlipX = false
+// @param toggle(float) _FlipY = false
 // @header(Output)
 // @param enum _Output = PackedRG {PackedRG: 0, SignedRG: 1} // Packed RG: Neutral 0.5 in Displacement Map. Signed RG: Neutral 0 and half the X/Y strengths for the same displacement. Use HDR Color Range to retain signed/out-of-range values.
 

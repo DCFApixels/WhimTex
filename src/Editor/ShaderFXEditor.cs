@@ -86,6 +86,8 @@ namespace DCFApixels.WhimTex
                 tooltip = "Edit HLSL and declarations here. Parameter values update live without recompiling." };
             var codeInfo = new ShaderFXCodeInfo(code);
             codeFoldout.Add(codeInfo.PixelLocalStatus);
+            var presetSource = new ShaderFXPresetField(effect);
+            codeFoldout.Add(presetSource);
             codeFoldout.Add(code);
             root.Add(codeFoldout);
             var externalCodeButtons = new VisualElement();
@@ -110,7 +112,7 @@ namespace DCFApixels.WhimTex
             codeFoldout.Add(externalCodeButtons);
             var sourceButtons = new VisualElement();
             sourceButtons.AddToClassList("whimtex-layer-fx-toolbar");
-            sourceButtons.Add(new Button(() => { string path = effect.CatalogPath; if (!string.IsNullOrEmpty(path)) AssetDatabase.OpenAsset(AssetDatabase.LoadMainAssetAtPath(path)); }) { text = "Open HLSL Source" });
+            sourceButtons.Add(new Button(() => ShaderFXExternalCode.OpenPresetSource(effect.PresetSourcePath)) { text = "Open HLSL Source" });
             var detach = new Button { text = "Embed Copy", tooltip = "Stop following the HLSL file and edit a copy in this document." };
             sourceButtons.Add(detach);
             codeFoldout.Add(sourceButtons);
@@ -173,6 +175,7 @@ namespace DCFApixels.WhimTex
                 if (effect == null)
                     return;
                 code.SyncFromModel();
+                presetSource.Refresh();
                 code.SetEnabled(!effect.IsCatalogLinked);
                 externalCodeButtons.EnableInClassList("whimtex-shader-fx-hidden", effect.IsCatalogLinked);
                 sourceButtons.EnableInClassList("whimtex-shader-fx-hidden", !effect.IsCatalogLinked);

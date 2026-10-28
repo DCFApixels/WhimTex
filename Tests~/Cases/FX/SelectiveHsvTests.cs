@@ -84,7 +84,7 @@ public static class SelectiveHsvTests
             string prefix = "_Range" + n;
             var enabled = images.P(prefix + "Enabled");
             Page(enabled.controls[0], "Range " + n);
-            t.Equal(ShaderFXParameterType.Bool, enabled.controls[0].type, "Range Enabled uses a checkbox");
+            t.Equal(ShaderFXParameterType.Toggle, enabled.controls[0].type, "Range Enabled uses a checkbox");
             t.Equal(prefix + "Enabled", enabled.controls[0].containers[1].headerParameter, "Range Enabled is linked to its tab header");
             t.True(!enabled.controls[0].hidden && enabled.controls[0].enableIf.Length == 0 && string.IsNullOrEmpty(enabled.controls[0].visibleIfParameter),
                 "Enabled remains available outside its availability block");

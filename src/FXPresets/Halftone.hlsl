@@ -5,13 +5,13 @@
 // @param hidden enum _Mode = 1 {Monochrome: 0, CMYKTriangle: 2, CMYKSquare: 3, CMYKManual: 1, RGBTriangle: 4, RGBManual: 5}
 // @param px float _DotSize = 8 [1 .. ~64] // Screen-cell size in canvas pixels.
 // @param enum _DotShape = 0 {Round: 0, Square: 1, Line: 2} // Round and square dots, or a line screen.
-// @param bool _FixedShape = false // Sample one color per screen cell to keep dots and lines undeformed; screen angles and plate registration are respected.
+// @param toggle(float) _FixedShape = false // Sample one color per screen cell to keep dots and lines undeformed; screen angles and plate registration are respected.
 // @param float _InkDensity = 1 [0 .. ~2] // Overall ink amount; values above 1 deepen the darkest tones.
 // @if _Mode == 0
 // @header(Monochrome Screen)
 // @param color _PaperColor = (1, 1, 1, 1) // Paper tint; alpha is ignored.
 // @param float _Angle = 0 [~-180 .. ~180] // Screen angle in degrees.
-// @param bool _InvertPattern = false // Reverse dot polarity while preserving the average tone.
+// @param toggle(float) _InvertPattern = false // Reverse dot polarity while preserving the average tone.
 // @param color _InkColor = (0, 0, 0, 1) // Dot color; alpha is ignored.
 // @endif
 // @if _Mode == 1

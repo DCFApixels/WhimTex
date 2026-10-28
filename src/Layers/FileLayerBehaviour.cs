@@ -7,6 +7,12 @@ namespace DCFApixels.WhimTex
     public sealed class FileLayerBehaviour : LayerBehaviour
     {
         public Texture2D sourceTexture;
+        public string externalSourcePath;
+        internal bool HasExternalSource => !string.IsNullOrEmpty(externalSourcePath);
+        internal Texture2D ResolvedTexture => ResolveSourceTexture(BoundOwner?.transformCache?.document);
+        internal Texture2D ResolveSourceTexture(WhimTexDocument owner) => HasExternalSource
+            ? owner != null ? owner.ResolveExternalFileTexture(externalSourcePath) : null
+            : sourceTexture;
         public override TransformTilingMode SourceTiling => TransformTilingMode.Source;
         [SerializeField] private bool sourceAssigned;
         [SerializeField, HideInInspector] internal string portableAssetGuid;
@@ -14,10 +20,11 @@ namespace DCFApixels.WhimTex
 
         internal void AssignSourceTexture(Texture2D texture, WhimTexDocument owner, bool initializeCanvas = false)
         {
+            bool wasEmpty = sourceTexture == null && !HasExternalSource;
+            bool changed = HasExternalSource || sourceTexture != texture;
+            externalSourcePath = null;
             portableAssetGuid = null;
             portableAssetLocalId = null;
-            bool wasEmpty = sourceTexture == null;
-            bool changed = sourceTexture != texture;
             Texture2D sourceForSizing = texture;
             if (texture != null && owner != null)
                 sourceForSizing = owner.ResolveOriginalFileTexture(texture);
@@ -37,6 +44,29 @@ namespace DCFApixels.WhimTex
                 transform = fitted;
         }
 
+        internal void AssignSourcePath(string path, WhimTexDocument owner, bool initializeCanvas = false)
+        {
+            var texture = FileLayerSource.Prepare(owner, path);
+            var asset = FileLayerSource.ProjectTexture(path);
+            if (asset != null)
+            {
+                AssignSourceTexture(asset, owner, initializeCanvas);
+                return;
+            }
+            path = FileLayerSource.NormalizeExternalPath(path);
+            bool wasEmpty = sourceTexture == null && !HasExternalSource;
+            bool changed = sourceTexture != null || externalSourcePath != path;
+            if (initializeCanvas && wasEmpty && !sourceAssigned && CanInitializeCanvas(owner))
+            { owner.width = texture.width; owner.height = texture.height; }
+            sourceAssigned = true;
+            sourceTexture = null;
+            portableAssetGuid = portableAssetLocalId = null;
+            externalSourcePath = path;
+            if (changed && GraphicsFormatUtility.IsHDRFormat(texture.graphicsFormat))
+            { colorRange = LayerColorRange.HDR; blendRange = LayerBlendRange.HDR; }
+            if (wasEmpty && TryGetOriginalAspectTransform(owner, out TextureTransform fitted)) transform = fitted;
+        }
+
         private bool CanInitializeCanvas(WhimTexDocument owner)
         {
             if (owner == null) return false;
@@ -49,17 +79,17 @@ namespace DCFApixels.WhimTex
 
         public override Texture2D GetPreviewTexture(int size)
         {
-            return sourceTexture;
+            return ResolvedTexture;
         }
 
         internal override RenderTexture Render(in LayerRenderContext context)
         {
-            if (sourceTexture == null)
+            Texture2D input = ResolveSourceTexture(context.activeDocument);
+            if (input == null)
                 return null;
-            Texture2D source = context.activeDocument != null
-                ? context.activeDocument.ResolveOriginalFileTexture(sourceTexture)
-                : sourceTexture;
-            return ApplyTransformAndFx(source != null ? source : sourceTexture, context);
+            Texture2D source = !HasExternalSource && context.activeDocument != null
+                ? context.activeDocument.ResolveOriginalFileTexture(input) : input;
+            return ApplyTransformAndFx(source != null ? source : input, context);
         }
     }
 }

@@ -11,7 +11,7 @@
 // @header(Output Levels)
 // @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.
 // @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.
-// @param bool _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.
+// @param toggle(float) _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.
 // @endgroup
 // @group(Curves; _CurveChannel)
 // @param hidden enum _CurveChannel = RGB {RGB:0,R:1,G:2,B:3,Alpha:4} // Select the curve to edit. All curves remain active.

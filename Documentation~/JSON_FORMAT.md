@@ -10,6 +10,15 @@ permalink: /reference/json-format/
 
 `whimtex.document`, version **3**, is the shared editable format for `.json` files,
 layer clipboard data and agent serialization. It stores settings, not rendered pixels.
+
+`FileLayerBehaviour.externalSourcePath` stores an absolute external image link; `sourceTexture`
+is null for that source. Project textures use `sourceTexture` and leave `externalSourcePath` null.
+Decoded external pixels are runtime cache data and are never embedded by JSON, clipboard or the
+native TIFF model. Supported inputs are PNG/JPEG/TGA/BMP/EXR and little-endian straight RGBA TIFF
+(8-bit unsigned or 32-bit float, None/Deflate compression, no predictor). EXR/float TIFF retain HDR.
+Native TIFF carrier encoding flags are honored; other 8-bit images are decoded as sRGB.
+Missing files retain their link and report a source error. Relocate links explicitly when sharing documents.
+
 TIFF remains the image-backed format; its tagged binary encoding is version 3.
 New saves and exports use `.json`; existing `.whimtex.json` names remain readable without renaming.
 Previous JSON, layer clipboard and TIFF document versions are unsupported by this checkout.

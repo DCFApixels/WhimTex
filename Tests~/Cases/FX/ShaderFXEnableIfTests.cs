@@ -16,10 +16,10 @@ public static class ShaderFXEnableIfTests
         .Invoke(null, new object[] { code, false, null });
     const string Code = @"
 // @control(_Amount)
-// @param bool _Visible = true
+// @param toggle(float) _Visible = true
 // @param enum _Mode = Basic {Basic: 0, Advanced: 1}
 // @group(Settings; _Enabled)
-// @param hidden bool _Enabled = false
+// @param hidden toggle(float) _Enabled = false
 // @enableif _Enabled == 1
 // @header(Correction)
 // @helpbox(Conditional controls)
@@ -60,15 +60,15 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
         foreach (string invalid in new[] {
             "// @endenableif",
             "// @enableif _Enabled == 1\n// @param float _Amount",
-            "// @param bool _Enabled\n// @enableif _Enabled > 0\n// @param float _Amount\n// @endenableif",
-            "// @param bool _Enabled\n// @enableif _Enabled == NaN\n// @param float _Amount\n// @endenableif",
+            "// @param toggle(float) _Enabled\n// @enableif _Enabled > 0\n// @param float _Amount\n// @endenableif",
+            "// @param toggle(float) _Enabled\n// @enableif _Enabled == NaN\n// @param float _Amount\n// @endenableif",
             "// @enableif _Missing == 1\n// @param float _Amount\n// @endenableif",
             "// @param float2 _Vector\n// @enableif _Vector == 1\n// @param float _Amount\n// @endenableif",
-            "// @param bool _Enabled\n// @if _Enabled == 1\n// @enableif _Enabled == 1\n// @param float _Amount\n// @endif\n// @endenableif",
-            "// @param bool _Enabled\n// @enableif _Enabled == 1\n// @group(A)\n// @param float _Amount\n// @endgroup\n// @endenableif",
-            "// @group(A)\n// @param bool _Enabled\n// @enableif _Enabled == 1\n// @param float _Amount\n// @endgroup\n// @endenableif",
-            "// @param bool _Driver\n// @group(A; _Enabled)\n// @enableif _Driver == 1\n// @param bool _Enabled\n// @endenableif\n// @endgroup",
-            "// @param bool _Enabled\n// @enableif _Enabled == 1\n// @param float _Amount\n// @endenableif extra"
+            "// @param toggle(float) _Enabled\n// @if _Enabled == 1\n// @enableif _Enabled == 1\n// @param float _Amount\n// @endif\n// @endenableif",
+            "// @param toggle(float) _Enabled\n// @enableif _Enabled == 1\n// @group(A)\n// @param float _Amount\n// @endgroup\n// @endenableif",
+            "// @group(A)\n// @param toggle(float) _Enabled\n// @enableif _Enabled == 1\n// @param float _Amount\n// @endgroup\n// @endenableif",
+            "// @param toggle(float) _Driver\n// @group(A; _Enabled)\n// @enableif _Driver == 1\n// @param toggle(float) _Enabled\n// @endenableif\n// @endgroup",
+            "// @param toggle(float) _Enabled\n// @enableif _Enabled == 1\n// @param float _Amount\n// @endenableif extra"
         })
         {
             bool rejected = false;

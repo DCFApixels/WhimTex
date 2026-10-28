@@ -64,6 +64,7 @@
 - FX are independent plugins over the shared effect contract. Adding a preset must not change layer generation/behavior, inspect its shader in layer code, or introduce layer-specific hidden outputs for that effect. Use ordinary input images and explicit parameters. Changes to layer behavior require an explicit user request; general FX infrastructure is not permission for preset-specific coupling.
 
 - Prefer compact Unity-style controls, restrained decoration, minimal help text and meaningful changes. Avoid fragile internal APIs for cosmetic features.
+- For Editor fields, use the corresponding standard Unity control, USS classes and theme styles wherever possible. Match custom/composite fields to a real native reference for row height, component-label width, padding, margins and alignment; never guess these dimensions. If a native value must be copied, obtain it from the standard field in the target Editor and record its origin. Check narrow layouts for clipped labels/inputs and compare both height and component alignment with the native field.
 - Preserve appearance during refactoring unless asked otherwise.
 - Read applicable skills from the available `.agents` installation; do not assume an older `.codex` copy is current.
 - Rendering changes: check composite, group/Target input, clipping, thumbnails and export; preserve caller render state and temporary-texture ownership.

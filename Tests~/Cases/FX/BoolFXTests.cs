@@ -19,13 +19,13 @@ static System.Threading.CancellationToken Cancellation;
         var parse = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata").GetMethod("Parse", hidden);
         foreach (string value in new[] { "false", "true", "0", "1" })
         {
-            var parsed = (List<ShaderFXParameter>)parse.Invoke(null, new object[] { "// @param bool _Flag = " + value, false, null });
-            T.True(!(parsed[0].type != ShaderFXParameterType.Bool || parsed[0].floatValue != (value == "true" || value == "1" ? 1f : 0f)), "Bool default parsing failed");
+            var parsed = (List<ShaderFXParameter>)parse.Invoke(null, new object[] { "// @param toggle(float) _Flag = " + value, false, null });
+            T.True(!(parsed[0].type != ShaderFXParameterType.Toggle || parsed[0].floatValue != (value == "true" || value == "1" ? 1f : 0f)), "Bool default parsing failed");
         }
         foreach (string invalid in new[] { " = 0.5", " = true [0 .. 1]", " = yes" })
         {
             bool rejected = false;
-            try { parse.Invoke(null, new object[] { "// @param bool _Flag" + invalid, false, null }); }
+            try { parse.Invoke(null, new object[] { "// @param toggle(float) _Flag" + invalid, false, null }); }
             catch (TargetInvocationException error) when (error.InnerException is FormatException) { rejected = true; }
             T.True(!(!rejected), "Invalid bool accepted");
         }
@@ -38,7 +38,7 @@ static System.Threading.CancellationToken Cancellation;
         var pixels = new Texture2D(4, 4, TextureFormat.RGBAFloat, false, true);
         try
         {
-            string source = "// @param bool _Flag = false\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(_Flag, 0, 0, 1); }";
+            string source = "// @param toggle(float) _Flag = false\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(_Flag, 0, 0, 1); }";
             fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", hidden, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, source, new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", hidden).Invoke(fx, null);
             var list = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", hidden).GetValue(fx);
@@ -68,9 +68,9 @@ static System.Threading.CancellationToken Cancellation;
             T.True(!(!ReferenceEquals(shader, shaderField.GetValue(fx))), "Toggle recompiled shader");
             var writer = assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter");
             string declaration = (string)writer.GetMethod("Declaration", hidden).Invoke(null, new object[] { list[0] });
-            T.True(!(declaration != "// @param bool _Flag = true"), "Export lost bool value");
+            T.True(!(declaration != "// @param toggle(float) _Flag = true"), "Export lost bool value");
             var copy = JsonUtility.FromJson<ShaderFXParameter>(JsonUtility.ToJson(list[0]));
-            T.True(!(copy.type != ShaderFXParameterType.Bool || copy.floatValue != 1f), "Serialization failed");
+            T.True(!(copy.type != ShaderFXParameterType.Toggle || copy.floatValue != 1f), "Serialization failed");
             return null;
         }
         finally

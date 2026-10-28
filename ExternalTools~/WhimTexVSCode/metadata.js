@@ -1,12 +1,13 @@
 // Editor-independent mirror of ShaderFXMetadata's declaration rules. Unity still
 // resolves assets, validates generated uniforms and compiles the actual shader.
-const types = new Set(['float', 'bool', 'enum', 'float2', 'float3', 'float4', 'normal',
-  'point', 'color', 'texture2D', 'transform2D', 'gradient', 'curve']);
+const types = new Set(['float', 'float2', 'float3', 'float4', 'normal',
+  'point', 'texture2D', 'transform2D', 'gradient', 'curve']);
 const identifier = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const numeric = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
-const scalar = type => ['float', 'bool', 'enum'].includes(type);
-const compatible = (a, b) => a === b || scalar(a) && scalar(b) ||
-  (a === 'point' && b === 'float2') || (a === 'float2' && b === 'point');
+const nativeType = type => ({normal:'float3', point:'float2', toggle:'float', enum:'float', seed:'int', color:'float4'}[type] || type);
+const components = type => /^(bool|int|uint|half|float)[234]?$/.test(type) ? Number(type.slice(-1)) || 1 : 0;
+const compatible = (a, b) => (a.valueType || nativeType(a.type)) === (b.valueType || nativeType(b.type)) &&
+  (a.type === 'color') === (b.type === 'color');
 const fail = message => { throw new Error(message); };
 
 function number(text, double = false) {
@@ -94,7 +95,7 @@ function previewBinding(text) {
 }
 
 function modifiers(text) {
-  let hidden = false, seed = false, pixelUnits = false, label = null, preview = null;
+  let hidden = false, rgba = false, pixelUnits = false, label = null, preview = null;
   for (;;) {
     text = text.trimStart();
     if (/^preview\b/.test(text)) {
@@ -107,9 +108,9 @@ function modifiers(text) {
       if (pixelUnits) fail('The px modifier may be specified only once.');
       pixelUnits = true; text = text.slice(2); continue;
     }
-    if (/^seed(?:\s|$)/.test(text)) {
-      if (seed) fail('The seed modifier may be specified only once.');
-      seed = true; text = text.slice(4); continue;
+    if (/^rgba(?:\s|$)/.test(text)) {
+      if (rgba) fail('The rgba modifier may be specified only once.');
+      rgba = true; text = text.slice(4); continue;
     }
     if (/^hidden(?:\s|$)/.test(text)) {
       if (hidden) fail('The hidden modifier may be specified only once.');
@@ -133,15 +134,75 @@ function modifiers(text) {
     if (!label.trim()) fail('The label modifier must contain non-empty text.');
     text = text.slice(end + 1);
   }
-  return { text, hidden, seed, pixelUnits, ...(preview || {previewFunction: null, previewParameters: []}) };
+  return { text, hidden, rgba, pixelUnits, ...(preview || {previewFunction: null, previewParameters: []}) };
+}
+
+function typedNumber(text, type) {
+  const n = text.trim() === 'true' ? 1 : text.trim() === 'false' ? 0 : number(text, true);
+  const family = type.replace(/[234]$/, '');
+  const bounds = {bool:[0,1], int:[-2147483648,2147483647], uint:[0,4294967295], half:[-65504,65504], float:[-3.4028234663852886e38,3.4028234663852886e38]}[family];
+  if (!bounds || n < bounds[0] || n > bounds[1] || ['bool','int','uint'].includes(family) && !Number.isInteger(n)) fail(`Value is outside the range of ${type}.`);
+  return family === 'float' || family === 'half' ? Math.fround(n) : n;
+}
+
+function parseTyped(text, modifiers) {
+  const m = text.match(/^(toggle|enum|seed|color)(?:\s*\(\s*([A-Za-z0-9]+)\s*\))?\s+([A-Za-z_]\w*)\s*(.*?)\s*$/);
+  if (!m) return null;
+  const [,type,explicitType,name] = m, valueType = explicitType || nativeType(type), count = components(valueType);
+  if (!count || type === 'enum' && (count !== 1 || valueType === 'bool') || type === 'seed' && !['int','uint','float'].includes(valueType)) fail(`Unsupported ${type} value type: ${valueType}.`);
+  if (modifiers.pixelUnits) fail('px applies only to ordinary numeric float fields.');
+  if (modifiers.rgba && (count < 2 || type !== 'color' && type !== 'toggle')) fail('rgba requires a vector field or vector toggle/color.');
+  let rest = m[4], options, bounds, soft;
+  if (type === 'enum') {
+    const e = rest.match(/^(.*?)\{([^{}]+)\}\s*$/);
+    if (!e) fail('enum requires {Name: value, ...}.');
+    rest = e[1].trim(); options = new Map(); const values = new Set();
+    for (const item of e[2].split(',')) {
+      const option = item.trim().match(/^([A-Za-z_]\w*)\s*:\s*(.+)$/);
+      if (!option) fail('Enum items must be Name: number.');
+      const value = typedNumber(option[2], valueType);
+      if (options.has(option[1]) || values.has(value)) fail('Enum names and values must be unique.');
+      options.set(option[1], value); values.add(value);
+    }
+  }
+  if (type === 'seed') {
+    bounds = valueType === 'float' ? [-16777216,16777216] : valueType === 'uint' ? [0,4294967295] : [-2147483648,2147483647];
+    soft = [false,false];
+    const r = rest.match(/^(.*?)\[\s*(.*?)\s*\.\.\s*(.*?)\s*\]\s*$/);
+    if (r) {
+      rest = r[1].trim(); soft = [r[2],r[3]].map(v => v.trim().startsWith('~'));
+      bounds = [r[2],r[3]].map(v => typedNumber(v.trim().replace(/^~/,''),valueType));
+    }
+    if (bounds[0] > bounds[1] || bounds.some(v => !Number.isInteger(v) || valueType === 'float' && Math.abs(v) > 16777216)) fail('seed requires an ordered, exactly representable integer range.');
+  }
+  if (rest) {
+    if (!rest.startsWith('=')) fail('Expected = default value.');
+    const value = rest.slice(1).trim();
+    if (type === 'color' && value.startsWith('#')) color(value);
+    else if (!options?.has(value)) {
+      const parts = count === 1 ? [value] : value.startsWith('(') && value.endsWith(')') ? value.slice(1,-1).split(',') : [];
+      if (parts.length !== count) fail(`Expected ${count} components.`);
+      for (const part of parts) {
+        const v = typedNumber(part,valueType);
+        if (type === 'toggle' && v !== 0 && v !== 1) fail('toggle values must be 0/1 or false/true.');
+        if (type === 'seed' && (!Number.isInteger(v) || !soft[0] && v < bounds[0] || !soft[1] && v > bounds[1] || valueType === 'float' && Math.abs(v) > 16777216)) fail('seed default must be an integer inside its range.');
+      }
+    }
+  }
+  return {...modifiers, type, name, valueType, rgba:modifiers.rgba || type === 'color', seed:type === 'seed'};
 }
 
 function parseParameter(body) {
-  const { text: modified, hidden, seed, pixelUnits, previewFunction, previewParameters } = modifiers(body);
+  const mods = modifiers(body);
+  const { text: modified, hidden, rgba, pixelUnits, previewFunction, previewParameters } = mods;
   const text = stripTooltip(modified);
+  const typed = parseTyped(text, mods);
+  if (typed) return typed;
+  const seed = false;
   const head = text.match(/^([A-Za-z0-9]+)\s+([A-Za-z_][A-Za-z0-9_]*)(.*)$/);
   if (!head || !types.has(head[1])) fail('Expected a supported @param type and parameter name.');
   const [, type, name] = head;
+  if (rgba && !['float2','float3','float4'].includes(type)) fail('rgba requires a vector, toggle or color field.');
   if (seed && type !== 'float') fail('seed applies only to float parameters.');
   if (pixelUnits && (seed || !['float', 'float2', 'float3', 'float4'].includes(type)))
     fail('The px modifier applies only to numeric float, float2, float3 or float4 lengths, without seed.');
@@ -226,7 +287,7 @@ function parseParameter(body) {
       }
     }
   }
-  return { type, name, hidden, seed, pixelUnits, cyclicRange, previewFunction, previewParameters };
+  return { type, name, hidden, rgba, seed, pixelUnits, cyclicRange, previewFunction, previewParameters };
 }
 
 // Match Unity's line-oriented metadata scanner, ignoring commented-out examples.
@@ -297,7 +358,7 @@ function validate(source) {
           const p = { ...parseParameter(body), d, container: parent(), condition,
             enableIf: conditionStack.filter(c => c.kind === 'enableif') };
           const existing = names.get(p.name);
-          if (existing && existing.some(other => !compatible(other.type, p.type)))
+          if (existing && existing.some(other => !compatible(other, p)))
             fail(`Conflicting storage types for ${p.name}.`);
           if (existing && existing.some(other => other.pixelUnits !== p.pixelUnits))
             fail(`Conflicting pixel units for ${p.name}.`);
@@ -324,9 +385,9 @@ function validate(source) {
         case 'if': case 'enableif': {
           if (name === 'if' && condition) fail('Nested @if blocks are not supported.');
           if (conditionStack.length >= 16) fail('At most 16 condition levels are supported.');
-          const match = body.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=)\s*(\S+)$/);
+          const match = body.match(/^([A-Za-z_][A-Za-z0-9_]*(?:\.[xyzwrgba])?)\s*(==|!=)\s*(\S+)$/);
           if (!match) fail(`Expected @${name} _Parameter == number or @${name} _Parameter != number.`);
-          const scope = { kind: name, name: match[1], d, notEqual: match[2] === '!=', value: number(match[3]) };
+          const scope = { kind: name, name: match[1], d, notEqual: match[2] === '!=', value: match[3] === 'true' ? 1 : match[3] === 'false' ? 0 : number(match[3],true) };
           conditions.push(scope); conditionStack.push(scope);
           if (name === 'if') condition = scope;
           break;
@@ -400,16 +461,19 @@ function validate(source) {
       else if (controls.length !== 1) report(g.d, `@${g.kind} header parameter ${g.header} must be declared once.`);
       else if (controls[0].container !== g || controls[0].condition || controls[0].enableIf.length)
         report(g.d, `@${g.kind} header parameter ${g.header} must be unconditional and directly inside its own container.`);
-      else if (g.kind === 'tab' && controls[0].type !== 'bool')
-        report(g.d, `@tab header parameter ${g.header} must be bool.`);
+      else if (g.kind === 'tab' && (controls[0].type !== 'toggle' || components(controls[0].valueType) !== 1))
+        report(g.d, `@tab header parameter ${g.header} must be a scalar toggle.`);
     }
   }
   for (const c of conditions) {
     // Like Unity, conditions attached to no declarations have no dependencies.
     if (!c.hasRow) continue;
-    const controls = names.get(c.name);
+    const [name, channel] = c.name.split('.');
+    const controls = names.get(name);
+    const count = controls ? components(controls[0].valueType || nativeType(controls[0].type)) : 0;
+    const index = channel ? Math.max('xyzw'.indexOf(channel),'rgba'.indexOf(channel)) : 0;
     if (!controls) report(c.d, `@${c.kind} refers to undeclared parameter ${c.name}.`);
-    else if (!scalar(controls[0].type)) report(c.d, `@${c.kind} can reference only float, bool or enum parameters.`);
+    else if (!count || channel && index >= count || !channel && count !== 1) report(c.d, `@${c.kind} requires a scalar or an explicit valid vector component.`);
     else if (controls.some(p => p.condition)) report(c.d, `@${c.kind} must reference a parameter outside @if blocks.`);
   }
   for (const preview of previews)

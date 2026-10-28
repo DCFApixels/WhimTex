@@ -15,6 +15,7 @@ namespace DCFApixels.WhimTex
         internal Action OpenPickerOverride;
         internal object PickerContext;
         public bool UseCanvasChannels { get; set; }
+        internal int EditableComponents { get; set; } = 4;
         internal Func<int> ReadCanvasChannels;
         private Func<int> attachedChannelSource;
         private VisualElement channelSwatch;
@@ -64,6 +65,7 @@ namespace DCFApixels.WhimTex
             var picker = WhimTexColorPicker.Open(ReadPickerColor != null ? ReadPickerColor() : value, hdr, showAlpha, Range, document,
                 ApplyPickerColor, next => { hdr = next; HdrChanged?.Invoke(next); },
                 () => panel != null && enabledInHierarchy && ReadDocument() == document);
+            picker.SetEditableComponents(EditableComponents);
             picker.SourceContext = PickerContext;
             picker.SetChannelSource(ResolveChannelSource());
         }

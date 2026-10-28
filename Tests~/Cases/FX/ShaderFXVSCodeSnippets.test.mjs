@@ -40,7 +40,7 @@ try {
   context.case('enableif snippet supplies comparisons and composes with visibility and enabled blocks', async () => {
     const snippet = snippets['WhimTex enabled block'];
     assert.deepEqual(snippet.body, ['@enableif ${1:_Enabled} ${2|==,!=|} ${3:1}', '// $0', '// @endenableif']);
-    const drivers = '// @param bool _Enabled = true\n// @param enum _Mode {Off: 0, On: 1}\n';
+    const drivers = '// @param toggle(float) _Enabled = true\n// @param enum _Mode {Off: 0, On: 1}\n';
     for (const op of ['==', '!=']) {
       const body = '// ' + defaults(snippet).replace('==', op).replace('// \n', '// @preview(P)\n');
       assert.deepEqual(validate(drivers + body), []);
@@ -54,7 +54,7 @@ try {
     const snippet = snippets['WhimTex parameter group'];
     assert.deepEqual(snippet.body, ['@group(${1:Title})', '// $0', '// @endgroup']);
     // Groups must contain a parameter: the inserted body is intentionally left for the author.
-    const body = defaults(snippet).replace('// \n', '// @param hidden bool _Enabled = true\n// @param float _Amount = 1\n');
+    const body = defaults(snippet).replace('// \n', '// @param hidden toggle(float) _Enabled = true\n// @param float _Amount = 1\n');
     assert.deepEqual(validate('// ' + body.replace('Title', 'Tint; _Enabled')), []);
     assert.deepEqual(validate('// ' + body), []);
   });

@@ -75,6 +75,8 @@ namespace DCFApixels.WhimTex
 
         private void OnEnable()
         {
+            EditorApplication.update -= PollExternalFiles;
+            EditorApplication.update += PollExternalFiles;
             NormalizeModel();
             undoDeserialized = Undo.isProcessing;
             CaptureNativeUndoVersions();
@@ -87,6 +89,8 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            EditorApplication.update -= PollExternalFiles;
+            ReleaseExternalFileTextures();
             ForgetLayerPreviewCache();
             WhimTexDocumentSession.StopFor(this, "document disabled");
             ReleaseLayerThumbnails();
@@ -97,6 +101,8 @@ namespace DCFApixels.WhimTex
 
         private void OnDestroy()
         {
+            EditorApplication.update -= PollExternalFiles;
+            ReleaseExternalFileTextures();
             if (documentBinding != null && documentBinding.owner == this) DestroyImmediate(documentBinding);
             ReleaseLayerThumbnails();
             ReleaseOriginalFileTextureCache();
@@ -560,6 +566,7 @@ namespace DCFApixels.WhimTex
             RefreshTransformHierarchy();
             NormalizeShapeCorners(layers);
             SynchronizeNextAutomaticNumbers();
+            PruneExternalFileTextures();
         }
 
         private void NormalizeShapeCorners(List<Layer> list)

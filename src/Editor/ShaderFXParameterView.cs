@@ -8,7 +8,7 @@ using ColorField = DCFApixels.WhimTex.WhimTexColorField;
 
 namespace DCFApixels.WhimTex
 {
-    internal sealed class ShaderFXParameterView : VisualElement
+    internal sealed partial class ShaderFXParameterView : VisualElement
     {
         private sealed class ParameterGroupView
         {
@@ -105,7 +105,7 @@ namespace DCFApixels.WhimTex
                         }
                         AddGroupHeaderParameter(this, parameter, control);
                         EnableInClassList("whimtex-fx-effect-control--seed", control.seed);
-                        EnableInClassList("whimtex-fx-effect-control--bool", control.type == ShaderFXParameterType.Bool);
+                        EnableInClassList("whimtex-fx-effect-control--bool", control.type == ShaderFXParameterType.Toggle);
                         EnableInClassList("whimtex-fx-effect-control--vector", control.type == ShaderFXParameterType.Vector2 ||
                             control.type == ShaderFXParameterType.Vector3 || control.type == ShaderFXParameterType.Vector);
                         tooltip = string.IsNullOrEmpty(control.tooltip) ? control.label ?? ObjectNames.NicifyVariableName(parameter.name) : control.tooltip;
@@ -187,7 +187,7 @@ namespace DCFApixels.WhimTex
             for (int i = 0; i < a.controls.Count; i++)
             {
                 var x = a.controls[i]; var y = b.controls[i];
-                if (x.type != y.type || x.order != y.order || x.tooltip != y.tooltip || x.label != y.label || x.seed != y.seed || x.previewFunction != y.previewFunction ||
+                if (x.type != y.type || x.valueType != y.valueType || x.rgba != y.rgba || x.valueMinimum != y.valueMinimum || x.valueMaximum != y.valueMaximum || x.order != y.order || x.tooltip != y.tooltip || x.label != y.label || x.seed != y.seed || x.previewFunction != y.previewFunction ||
                     !SameArray(x.previewParameters, y.previewParameters) || x.hasMinimum != y.hasMinimum || x.hasMaximum != y.hasMaximum ||
                     x.softMinimum != y.softMinimum || x.softMaximum != y.softMaximum || x.cyclicRange != y.cyclicRange ||
                     !x.minimum.Equals(y.minimum) || !x.maximum.Equals(y.maximum) ||
@@ -210,7 +210,7 @@ namespace DCFApixels.WhimTex
                 hasMinimum = p.hasMinimum, hasMaximum = p.hasMaximum,
                 softMinimum = p.softMinimum, softMaximum = p.softMaximum, cyclicRange = p.cyclicRange, minimum = p.minimum, maximum = p.maximum };
             foreach (var c in p.controls)
-                copy.controls.Add(new ShaderFXParameterControl { type = c.type, order = c.order, tooltip = c.tooltip, label = c.label, previewFunction = c.previewFunction,
+                copy.controls.Add(new ShaderFXParameterControl { type = c.type, valueType = c.valueType, rgba = c.rgba, valueMinimum = c.valueMinimum, valueMaximum = c.valueMaximum, order = c.order, tooltip = c.tooltip, label = c.label, previewFunction = c.previewFunction,
                     previewParameters = c.previewParameters == null ? Array.Empty<string>() : (string[])c.previewParameters.Clone(),
                     headers = c.headers == null ? null : (string[])c.headers.Clone(),
                     helpBoxes = c.helpBoxes == null ? null : (string[])c.helpBoxes.Clone(),
@@ -220,7 +220,7 @@ namespace DCFApixels.WhimTex
                     hasMinimum = c.hasMinimum, hasMaximum = c.hasMaximum,
                     softMinimum = c.softMinimum, softMaximum = c.softMaximum, cyclicRange = c.cyclicRange, minimum = c.minimum, maximum = c.maximum,
                     optionNames = c.optionNames == null ? null : (string[])c.optionNames.Clone(),
-                    optionValues = c.optionValues == null ? null : (float[])c.optionValues.Clone(),
+                    optionValues = c.optionValues == null ? null : (double[])c.optionValues.Clone(),
                     visibleIfParameter = c.visibleIfParameter, visibleIfNotEqual = c.visibleIfNotEqual, visibleIfValue = c.visibleIfValue,
                     enableIf = c.enableIf == null ? Array.Empty<ShaderFXEnableCondition>() : (ShaderFXEnableCondition[])c.enableIf.Clone() });
             return copy;
@@ -237,14 +237,12 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
-        private bool MatchesCondition(string parameter, bool notEqual, float value)
+        private bool MatchesCondition(string parameter, bool notEqual, double value)
         {
-            parametersByName.TryGetValue(parameter, out var driver);
-            if (driver == null) return false;
-            bool floatDriver = false;
-            foreach (var control in driver.controls)
-                if (control.type == ShaderFXParameterType.Float) { floatDriver = true; break; }
-            bool equal = floatDriver ? Mathf.Approximately(driver.floatValue, value) : driver.floatValue == value;
+            if (string.IsNullOrEmpty(parameter)) return true;
+            parametersByName.TryGetValue(parameter.Split('.')[0], out var driver);
+            if (driver == null || !ShaderFXNumericValue.TryCondition(driver, parameter, out double actual)) return false;
+            bool equal = driver.IsInteger ? actual == value : Mathf.Approximately((float)actual, (float)value);
             return notEqual ? !equal : equal;
         }
 
@@ -302,14 +300,14 @@ namespace DCFApixels.WhimTex
                     linkedControl = linkedParameter.controls[0];
 
                 if (linkedParameter != null && linkedControl != null &&
-                    linkedControl.type == ShaderFXParameterType.Bool)
+                    linkedControl.type == ShaderFXParameterType.Toggle && linkedParameter.Components == 1)
                 {
                     var toggle = new Toggle();
                     toggle.AddToClassList("whimtex-fx-parameter-group-toggle");
                     toggle.tooltip = linkedControl.tooltip;
                     string id = linkedParameter.id;
                     headerParameterId = id;
-                    toggle.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = e.newValue ? 1f : 0f));
+                    toggle.RegisterValueChangedCallback(e => Change(id, p => p.SetNumber(0, e.newValue ? 1 : 0)));
                     header.Add(WithPreview(toggle, linkedParameter, linkedControl));
                     refresh.Add(() => toggle.SetValueWithoutNotify(Find(id)?.BoolValue ?? false));
                 }
@@ -322,7 +320,7 @@ namespace DCFApixels.WhimTex
                     header.Add(title);
                 }
                 if (linkedParameter != null && linkedControl != null &&
-                    linkedControl.type != ShaderFXParameterType.Bool &&
+                    (linkedControl.type != ShaderFXParameterType.Toggle || linkedParameter.Components != 1) &&
                     AddGroupHeaderParameter(header, linkedParameter, linkedControl))
                     headerParameterId = linkedParameter.id;
                 if (foldout != null)
@@ -427,14 +425,14 @@ namespace DCFApixels.WhimTex
             string headerParameterId = null;
             if (!string.IsNullOrEmpty(definition.headerParameter) &&
                 parametersByName.TryGetValue(definition.headerParameter, out var linkedParameter) &&
-                linkedParameter.controls.Count == 1 && linkedParameter.controls[0].type == ShaderFXParameterType.Bool)
+                linkedParameter.controls.Count == 1 && linkedParameter.controls[0].type == ShaderFXParameterType.Toggle)
             {
                 string id = linkedParameter.id;
                 headerParameterId = id;
                 var toggle = new Toggle { tooltip = linkedParameter.controls[0].tooltip };
                 toggle.AddToClassList("whimtex-fx-parameter-group-toggle");
                 toggle.AddToClassList("whimtex-fx-tab-toggle");
-                toggle.RegisterValueChangedCallback(evt => Change(id, p => p.floatValue = evt.newValue ? 1f : 0f));
+                toggle.RegisterValueChangedCallback(evt => Change(id, p => p.SetNumber(0, evt.newValue ? 1 : 0)));
                 refresh.Add(() => toggle.SetValueWithoutNotify(Find(id)?.BoolValue ?? false));
                 tab.AddToClassList("whimtex-fx-tab--toggle");
                 header = new VisualElement();
@@ -594,13 +592,14 @@ namespace DCFApixels.WhimTex
 
         private bool AddGroupHeaderParameter(VisualElement header, ShaderFXParameter parameter, ShaderFXParameterControl control)
         {
+            if (TryAddTypedField(header, parameter, control, true)) return true;
             string id = parameter.id;
             VisualElement field;
             switch (control.type)
             {
-                case ShaderFXParameterType.Bool:
+                case ShaderFXParameterType.Toggle:
                     var toggle = new Toggle();
-                    toggle.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = e.newValue ? 1 : 0));
+                    toggle.RegisterValueChangedCallback(e => Change(id, p => p.SetNumber(0, e.newValue ? 1 : 0)));
                     refresh.Add(() => toggle.SetValueWithoutNotify(Find(id).BoolValue));
                     field = toggle;
                     break;
@@ -619,11 +618,11 @@ namespace DCFApixels.WhimTex
                     dropdown.RegisterValueChangedCallback(e =>
                     {
                         int index = choices.IndexOf(e.newValue);
-                        if (index >= 0) Change(id, p => p.floatValue = control.optionValues[index]);
+                        if (index >= 0) Change(id, p => p.SetNumber(0, control.optionValues[index]));
                     });
                     refresh.Add(() =>
                     {
-                        int index = Array.IndexOf(control.optionValues, Find(id).floatValue);
+                        int index = Array.IndexOf(control.optionValues, Find(id).GetNumber());
                         dropdown.SetValueWithoutNotify(index >= 0 ? choices[index] : "Custom (" + Find(id).floatValue.ToString("G9") + ")");
                     });
                     field = dropdown;
@@ -669,6 +668,7 @@ namespace DCFApixels.WhimTex
                     return false;
             }
 
+            if (control.rgba) RenameComponents(field);
             if (control.seed) field = SeedField(field, id, control);
             field.AddToClassList("whimtex-fx-group-header-field");
             if (!string.IsNullOrEmpty(control.tooltip)) field.tooltip = control.tooltip;
@@ -701,7 +701,7 @@ namespace DCFApixels.WhimTex
         }
 
         private void RandomizeSeed(string id, ShaderFXParameterControl control) =>
-            Change(id, p => p.floatValue = ShaderFXSeed.NextValue(control));
+            Change(id, p => p.SetNumber(0, ShaderFXSeed.NextValue(control)));
 
         private static void AddCanvasField(VisualElement parent, VisualElement field, Button edit)
         {
@@ -749,6 +749,7 @@ namespace DCFApixels.WhimTex
                 return;
             }
             int firstChild = rowRoot.childCount;
+            if (TryAddTypedField(rowRoot, declaration, control, false)) return;
             declaration = declaration.Copy();
             declaration.type = control.type;
             declaration.hasMinimum = control.hasMinimum; declaration.hasMaximum = control.hasMaximum;
@@ -788,18 +789,18 @@ namespace DCFApixels.WhimTex
                     dropdown.RegisterValueChangedCallback(e =>
                     {
                         int index = choices.IndexOf(e.newValue);
-                        if (index >= 0) Change(id, p => p.floatValue = control.optionValues[index]);
+                        if (index >= 0) Change(id, p => p.SetNumber(0, control.optionValues[index]));
                     });
                     rowRoot.Add(dropdown);
                     refresh.Add(() =>
                     {
-                        int index = Array.IndexOf(control.optionValues, Find(id).floatValue);
+                        int index = Array.IndexOf(control.optionValues, Find(id).GetNumber());
                         dropdown.SetValueWithoutNotify(index >= 0 ? choices[index] : "Custom (" + Find(id).floatValue.ToString("G9") + ")");
                     });
                     break;
-                case ShaderFXParameterType.Bool:
+                case ShaderFXParameterType.Toggle:
                     var toggle = new Toggle(label);
-                    toggle.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = e.newValue ? 1f : 0f));
+                    toggle.RegisterValueChangedCallback(e => Change(id, p => p.SetNumber(0, e.newValue ? 1 : 0)));
                     rowRoot.Add(toggle);
                     refresh.Add(() => toggle.SetValueWithoutNotify(Find(id).BoolValue));
                     break;
@@ -923,6 +924,7 @@ namespace DCFApixels.WhimTex
                     refresh.Add(() => { var p = Find(id); p.transformValue.GetDisplay(Dimensions(), out var location, out var scale, out var angle); position.SetValueWithoutNotify(location); size.SetValueWithoutNotify(scale); rotation.SetValueWithoutNotify(angle); });
                     break;
             }
+            if (control.rgba) RenameComponents(rowRoot);
             if (!string.IsNullOrEmpty(control.tooltip))
                 for (int i = firstChild; i < rowRoot.childCount; i++) rowRoot[i].tooltip = control.tooltip;
             if (!string.IsNullOrEmpty(control.previewFunction) && rowRoot.childCount > firstChild)

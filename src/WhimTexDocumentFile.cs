@@ -77,6 +77,7 @@ namespace DCFApixels.WhimTex
             if (wasLive) deferImport = false;
             Undo.FlushUndoRecordObjects();
             document.NormalizeModel();
+            document.RefreshExternalFiles();
             document.SyncDrawingLayerTextures();
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             long modelMs = 0, carrierMs = 0, writeMs = 0, importMs = 0;

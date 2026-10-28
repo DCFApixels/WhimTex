@@ -47,9 +47,9 @@ try {
       const close = `// @end${kind}`;
       const outer = kind === 'tab' ? '// @tabs\n' : '';
       const row = kind === 'tabs' ? '// @tab(Page)\n// @preview(P)\n// @endtab\n' : '// @preview(P)\n';
-      const insideIf = `// @param bool _Enabled\n${outer}// @${condition} _Enabled == 1\n${open}\n`;
+      const insideIf = `// @param toggle(float) _Enabled\n${outer}// @${condition} _Enabled == 1\n${open}\n`;
       assert.ok(validate(insideIf).some(d => !d.warning && d.message === `@${kind} must be outside conditional blocks.`));
-      const closingIf = `// @param bool _Enabled\n${outer}${open}\n${row}// @${condition} _Enabled == 1\n${close}`;
+      const closingIf = `// @param toggle(float) _Enabled\n${outer}${open}\n${row}// @${condition} _Enabled == 1\n${close}`;
       assert.ok(validate(closingIf).some(d => !d.warning && d.message === `Conditional block must end before @end${kind}.`));
       assert.ok(validate(close).some(d => !d.warning && /no matching open/.test(d.message)));
       assert.ok(validate(`${outer}${open}\n${row}${close}(extra)`).some(d => !d.warning && /takes no arguments/.test(d.message)));
@@ -59,16 +59,16 @@ try {
   context.case('conditional standalone previews retain dependency validation inside pages', async () => {
     for (const kind of ['if', 'enableif']) {
       const page = driver => `// @tabs\n// @tab(Page)\n// @${kind} ${driver} == 1\n// @preview(P)\n// @end${kind}\n// @endtab\n// @endtabs`;
-      assert.deepEqual(validate('// @param bool _Enabled\n' + page('_Enabled')), []);
+      assert.deepEqual(validate('// @param toggle(float) _Enabled\n' + page('_Enabled')), []);
       assert.ok(validate(page('_Missing')).some(d => !d.warning && /undeclared parameter _Missing/.test(d.message)));
-      assert.ok(validate('// @param float2 _Vector\n' + page('_Vector')).some(d => !d.warning && /only float, bool or enum/.test(d.message)));
+      assert.ok(validate('// @param float2 _Vector\n' + page('_Vector')).some(d => !d.warning && /requires a scalar/.test(d.message)));
     }
     assert.deepEqual(validate('/*\n// @tabs\n// @tab()\n// @foldout\n// @endgroup\n*/'), []);
   });
 
   context.case('conditions enforce combined depth, row dependencies and matching innermost ends', async () => {
     const block = (kind, driver, content) => `// @${kind} ${driver} != -1e-2\n${content}\n// @end${kind}`;
-    const drivers = '// @param bool _Enabled\n// @param enum _Mode {Off: 0, On: 1}\n';
+    const drivers = '// @param toggle(float) _Enabled\n// @param enum _Mode {Off: 0, On: 1}\n';
     for (const outer of ['if', 'enableif']) {
       const inner = outer === 'if' ? 'enableif' : 'if';
       assert.deepEqual(validate(drivers + block(outer, '_Enabled', block(inner, '_Mode', '// @preview(P)'))), []);
@@ -96,12 +96,12 @@ try {
   context.case('enableif drivers may be disabled but neither condition accepts a driver declared under if', async () => {
     for (const kind of ['if', 'enableif']) {
       const use = `// @${kind} _Driver == 1\n// @param float _Value\n// @end${kind}`;
-      assert.deepEqual(validate('// @param bool _Enabled\n// @enableif _Enabled == 1\n// @param bool _Driver\n// @endenableif\n' + use), []);
-      assert.ok(validate('// @param bool _Enabled\n// @if _Enabled == 1\n// @param bool _Driver\n// @endif\n' + use)
+      assert.deepEqual(validate('// @param toggle(float) _Enabled\n// @enableif _Enabled == 1\n// @param toggle(float) _Driver\n// @endenableif\n' + use), []);
+      assert.ok(validate('// @param toggle(float) _Enabled\n// @if _Enabled == 1\n// @param toggle(float) _Driver\n// @endif\n' + use)
         .some(d => !d.warning && /outside @if blocks/.test(d.message)));
     }
     for (const kind of ['group', 'foldout']) {
-      const source = `// @param bool _Enabled\n// @${kind}(Title; _Header)\n// @enableif _Enabled == 1\n// @param hidden bool _Header\n// @param float _Value\n// @endenableif\n// @end${kind}`;
+      const source = `// @param toggle(float) _Enabled\n// @${kind}(Title; _Header)\n// @enableif _Enabled == 1\n// @param hidden toggle(float) _Header\n// @param float _Value\n// @endenableif\n// @end${kind}`;
       assert.ok(validate(source).some(d => !d.warning && /must be unconditional/.test(d.message)));
     }
   });
@@ -133,7 +133,7 @@ try {
         assert.deepEqual(validate('// ' + body.replace('@tabs\n', '@tabs(Settings)\n')), []);
       }
       if (snippet.prefix === '@group' || snippet.prefix === '@foldout') {
-        const bound = body.replace('Title', 'Title; _Enabled').replace('// @preview(P)', '// @param hidden bool _Enabled\n// @preview(P)');
+        const bound = body.replace('Title', 'Title; _Enabled').replace('// @preview(P)', '// @param hidden toggle(float) _Enabled\n// @preview(P)');
         assert.deepEqual(validate('// ' + bound), []);
       }
     }
@@ -150,15 +150,15 @@ try {
     assert.deepEqual(validate('// @param curve _Profile // @param broken ;\n/*\n// @param bad _Bad\n*/'), []);
   });
 
-  context.case('seed modifiers enforce Unity float integer bounds without name inference', async () => {
+  context.case('typed seed fields enforce exact integer bounds without name inference', async () => {
     const { parseParameter } = require('../../../ExternalTools~/WhimTexVSCode/metadata.js');
-    assert.equal(parseParameter('label(Seed) seed hidden float _Seed = 2.5 [~2.1 .. ~3.8]').seed, true);
+    assert.equal(parseParameter('label(Seed) hidden seed(float) _Seed = 2 [~2 .. ~3]').seed, true);
     assert.equal(parseParameter('float _Seed = 0 [0 .. 10]').seed, false);
-    for (const declaration of ['seed bool _Seed', 'seed enum _Seed {A:0}', 'seed float _Seed',
-      'seed float _Seed [0 ..]', 'seed float _Seed [0.1 .. 0.9]', 'seed seed float _Seed [0 .. 10]',
-      'seed float _Seed [-16777218 .. 0]', 'seed float _Seed [0 .. 16777218]'])
+    for (const declaration of ['seed bool _Seed', 'seed enum _Seed {A:0}', 'seed(float) _Seed = 0.5',
+      'seed(float) _Seed [0 ..]', 'seed(float) _Seed [0.1 .. 0.9]', 'seed seed(float) _Seed [0 .. 10]',
+      'seed(float) _Seed [-16777218 .. 0]', 'seed(float) _Seed [0 .. 16777218]'])
       assert.throws(() => parseParameter(declaration), undefined, declaration);
-    for (const n of [-16777216, 0, 16777216]) assert.equal(parseParameter(`seed float _Seed = ${n} [${n} .. ${n}]`).seed, true);
+    for (const n of [-16777216, 0, 16777216]) assert.equal(parseParameter(`seed(float) _Seed = ${n} [${n} .. ${n}]`).seed, true);
   });
 
   context.case('preview arguments refer to declared parameters and permit forward references', async () => {
@@ -196,7 +196,7 @@ try {
     assert.ok(validate('// @param px float _A\n// @param float _A').some(d => !d.warning));
     for (const declaration of ['px bool _A', 'px color _A', 'px normal _A', 'px point _A',
       'px texture2D _A', 'px curve _A', 'px gradient _A', 'px transform2D _A', 'px enum _A {A:0}',
-      'px seed float _A [0 .. 100]', 'px px float _A'])
+      'px seed(float) _A [0 .. 100]', 'px px float _A'])
       assert.throws(() => parseParameter(declaration), undefined, declaration);
   });
 

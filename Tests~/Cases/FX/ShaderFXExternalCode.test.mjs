@@ -124,7 +124,7 @@ try {
           '// @param label(Detail Level) hidden float _Detail = 0.5 [0 .. 1]',
           '// @endif',
           '// @group(Tint; _EnableTint)',
-          '// @param bool _EnableTint = true',
+          '// @param toggle(float) _EnableTint = true',
           '// @param color _Tint = (1, 1, 1, 1)',
           '// @endgroup'
       ].join('\n'));

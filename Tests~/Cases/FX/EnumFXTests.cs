@@ -44,10 +44,10 @@ public static class EnumFXTests
         Check(p[0].controls[0].tooltip == "Точная сила эффекта" && p[0].controls[1].tooltip == "Quick values // keep this", "Per-control tooltip parsing");
         foreach(string declaration in new[]{ "bool _B", "float4 _V", "color _C", "texture2D _T", "transform2D _Area" })
             Check(Parse("// @param " + declaration + " // Help [0 .. 1]; {text}")[0].controls[0].tooltip == "Help [0 .. 1]; {text}", "Tooltip punctuation/type");
-        Check(Parse(declarations + "// @param bool _Strength = true")[0].floatValue == 1, "Last explicit default");
+        Check(Parse(declarations + "// @param toggle(float) _Strength = true")[0].floatValue == 1, "Last explicit default");
         Check(Parse("// @param enum _Mode = SoftLight { SoftLight: 0.25, HardLight: 1 }")[0].floatValue == .25f, "Named default");
         Check(Parse("// @param enum _Mode = 0.7 { SoftLight: 0.25, HardLight: 1 }")[0].floatValue == .7f, "Custom default");
-        Check(Parse("// @param float _X [1 .. 2]\n// @param color _C\n// @param float4 _V\n// @param bool _B")[0].floatValue == 0, "Zero default");
+        Check(Parse("// @param float _X [1 .. 2]\n// @param color _C\n// @param float4 _V\n// @param toggle(float) _B")[0].floatValue == 0, "Zero default");
         foreach (var invalid in new[] { "// @param enum _X { A, B }", "// @param enum _X { A: 0, A: 1 }", "// @param enum _X { A: 0, B: 0 }", "// @param float _X\n// @param float4 _X" })
         {
             bool rejected = false;

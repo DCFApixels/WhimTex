@@ -1,32 +1,32 @@
 [
   {
     "name": "layout: tab bool header",
-    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @param bool _Enabled = true\n// @param float _Value\n// @endtab\n// @endtabs",
+    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @param toggle(float) _Enabled = true\n// @param float _Value\n// @endtab\n// @endtabs",
     "valid": true
   },
   {
     "name": "layout: tab hidden bool header with disabled body",
-    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @param hidden bool _Enabled = false\n// @enableif _Enabled == 1\n// @param float _Value\n// @endenableif\n// @endtab\n// @endtabs",
+    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @param hidden toggle(float) _Enabled = false\n// @enableif _Enabled == 1\n// @param float _Value\n// @endenableif\n// @endtab\n// @endtabs",
     "valid": true
   },
   {
     "name": "layout: tab header must belong directly to page",
-    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @foldout(Details)\n// @param bool _Enabled\n// @endfoldout\n// @endtab\n// @endtabs",
+    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @foldout(Details)\n// @param toggle(float) _Enabled\n// @endfoldout\n// @endtab\n// @endtabs",
     "valid": false
   },
   {
     "name": "layout: tab header cannot belong to another page",
-    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @param float _Value\n// @endtab\n// @tab(Other)\n// @param bool _Enabled\n// @endtab\n// @endtabs",
+    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @param float _Value\n// @endtab\n// @tab(Other)\n// @param toggle(float) _Enabled\n// @endtab\n// @endtabs",
     "valid": false
   },
   {
     "name": "layout: tab header cannot be conditional",
-    "source": "// @param bool _Show\n// @tabs\n// @tab(Page; _Enabled)\n// @enableif _Show == 1\n// @param bool _Enabled\n// @endenableif\n// @endtab\n// @endtabs",
+    "source": "// @param toggle(float) _Show\n// @tabs\n// @tab(Page; _Enabled)\n// @enableif _Show == 1\n// @param toggle(float) _Enabled\n// @endenableif\n// @endtab\n// @endtabs",
     "valid": false
   },
   {
     "name": "layout: tab header cannot be repeated",
-    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @param bool _Enabled\n// @param bool _Enabled\n// @endtab\n// @endtabs",
+    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @param toggle(float) _Enabled\n// @param toggle(float) _Enabled\n// @endtab\n// @endtabs",
     "valid": false
   },
   {
@@ -36,7 +36,7 @@
   },
   {
     "name": "layout: hidden tab header still needs visible content",
-    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @param hidden bool _Enabled\n// @endtab\n// @endtabs",
+    "source": "// @tabs\n// @tab(Page; _Enabled)\n// @param hidden toggle(float) _Enabled\n// @endtab\n// @endtabs",
     "valid": false
   },
   {
@@ -46,7 +46,7 @@
   },
   {
     "name": "enableif: bool inequality",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled != 0\n// @header(Details)\n// @helpbox(Hint)\n// @param float _Value\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled != 0\n// @header(Details)\n// @helpbox(Hint)\n// @param float _Value\n// @endenableif",
     "valid": true
   },
   {
@@ -56,37 +56,37 @@
   },
   {
     "name": "enableif: nested enabled blocks",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @enableif _Enabled != 0\n// @param float _Value\n// @endenableif\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled == 1\n// @enableif _Enabled != 0\n// @param float _Value\n// @endenableif\n// @endenableif",
     "valid": true
   },
   {
     "name": "enableif: inside visibility block",
-    "source": "// @param bool _Enabled = true\n// @if _Enabled == 1\n// @enableif _Enabled != 0\n// @param float _Value\n// @endenableif\n// @endif",
+    "source": "// @param toggle(float) _Enabled = true\n// @if _Enabled == 1\n// @enableif _Enabled != 0\n// @param float _Value\n// @endenableif\n// @endif",
     "valid": true
   },
   {
     "name": "enableif: around visibility block",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @if _Enabled != 0\n// @param float _Value\n// @endif\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled == 1\n// @if _Enabled != 0\n// @param float _Value\n// @endif\n// @endenableif",
     "valid": true
   },
   {
     "name": "enableif: preview-only page with unconditional header",
-    "source": "// @tabs\n// @tab(Page)\n// @group(Range; _Enabled)\n// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @preview(P)\n// @endenableif\n// @endgroup\n// @endtab\n// @endtabs",
+    "source": "// @tabs\n// @tab(Page)\n// @group(Range; _Enabled)\n// @param toggle(float) _Enabled = true\n// @enableif _Enabled == 1\n// @preview(P)\n// @endenableif\n// @endgroup\n// @endtab\n// @endtabs",
     "valid": true
   },
   {
     "name": "enableif: driver declared under enableif",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @param bool _Driver\n// @endenableif\n// @enableif _Driver == 1\n// @param float _Value\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled == 1\n// @param toggle(float) _Driver\n// @endenableif\n// @enableif _Driver == 1\n// @param float _Value\n// @endenableif",
     "valid": true
   },
   {
     "name": "enableif: visibility driver declared under enableif",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @param bool _Driver\n// @endenableif\n// @if _Driver == 1\n// @param float _Value\n// @endif",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled == 1\n// @param toggle(float) _Driver\n// @endenableif\n// @if _Driver == 1\n// @param float _Value\n// @endif",
     "valid": true
   },
   {
     "name": "enableif: self driver under enableif",
-    "source": "// @enableif _Enabled == 1\n// @param bool _Enabled = true\n// @endenableif",
+    "source": "// @enableif _Enabled == 1\n// @param toggle(float) _Enabled = true\n// @endenableif",
     "valid": true
   },
   {
@@ -111,17 +111,17 @@
   },
   {
     "name": "enableif: 16 condition levels",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @preview(P)\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @preview(P)\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif",
     "valid": true
   },
   {
     "name": "enableif: 17 condition levels",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @preview(P)\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @enableif _Enabled == 1\n// @preview(P)\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif\n// @endenableif",
     "valid": false
   },
   {
     "name": "enableif: missing closing directive",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @param float _Value",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled == 1\n// @param float _Value",
     "valid": false
   },
   {
@@ -131,52 +131,52 @@
   },
   {
     "name": "enableif: closing directive rejects arguments",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @param float _Value\n// @endenableif(extra)",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled == 1\n// @param float _Value\n// @endenableif(extra)",
     "valid": false
   },
   {
     "name": "enableif: if cannot close enableif",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @param float _Value\n// @endif",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled == 1\n// @param float _Value\n// @endif",
     "valid": false
   },
   {
     "name": "enableif: enableif cannot close if",
-    "source": "// @param bool _Enabled = true\n// @if _Enabled == 1\n// @param float _Value\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @if _Enabled == 1\n// @param float _Value\n// @endenableif",
     "valid": false
   },
   {
     "name": "enableif: mixed blocks cannot cross",
-    "source": "// @param bool _Enabled = true\n// @if _Enabled == 1\n// @enableif _Enabled == 1\n// @param float _Value\n// @endif\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @if _Enabled == 1\n// @enableif _Enabled == 1\n// @param float _Value\n// @endif\n// @endenableif",
     "valid": false
   },
   {
     "name": "enableif: enableif does not permit nested if",
-    "source": "// @param bool _Enabled = true\n// @if _Enabled == 1\n// @enableif _Enabled == 1\n// @if _Enabled == 1\n// @param float _Value\n// @endif\n// @endenableif\n// @endif",
+    "source": "// @param toggle(float) _Enabled = true\n// @if _Enabled == 1\n// @enableif _Enabled == 1\n// @if _Enabled == 1\n// @param float _Value\n// @endif\n// @endenableif\n// @endif",
     "valid": false
   },
   {
     "name": "enableif: invalid operator",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled >= 1\n// @param float _Value\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled >= 1\n// @param float _Value\n// @endenableif",
     "valid": false
   },
   {
-    "name": "enableif: non-numeric bool",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == true\n// @param float _Value\n// @endenableif",
-    "valid": false
+    "name": "enableif: boolean comparison",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled == true\n// @param float _Value\n// @endenableif",
+    "valid": true
   },
   {
     "name": "enableif: nonfinite comparison",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == NaN\n// @param float _Value\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled == NaN\n// @param float _Value\n// @endenableif",
     "valid": false
   },
   {
     "name": "enableif: overflow comparison",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1e50\n// @param float _Value\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled == 1e350\n// @param float _Value\n// @endenableif",
     "valid": false
   },
   {
     "name": "enableif: infinite comparison",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == Infinity\n// @param float _Value\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled == Infinity\n// @param float _Value\n// @endenableif",
     "valid": false
   },
   {
@@ -196,7 +196,7 @@
   },
   {
     "name": "enableif: outer missing driver reaches nested preview",
-    "source": "// @param bool _Enabled = true\n// @enableif _Missing == 1\n// @enableif _Enabled == 1\n// @preview(P)\n// @endenableif\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Missing == 1\n// @enableif _Enabled == 1\n// @preview(P)\n// @endenableif\n// @endenableif",
     "valid": false
   },
   {
@@ -211,37 +211,37 @@
   },
   {
     "name": "enableif: driver declared under if",
-    "source": "// @param bool _Enabled = true\n// @if _Enabled == 1\n// @param bool _Driver\n// @endif\n// @enableif _Driver == 1\n// @preview(P)\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @if _Enabled == 1\n// @param toggle(float) _Driver\n// @endif\n// @enableif _Driver == 1\n// @preview(P)\n// @endenableif",
     "valid": false
   },
   {
     "name": "enableif: group header must be unconditional",
-    "source": "// @param bool _Enabled = true\n// @group(Title; _Header)\n// @enableif _Enabled == 1\n// @param hidden bool _Header\n// @param float _Value\n// @endenableif\n// @endgroup",
+    "source": "// @param toggle(float) _Enabled = true\n// @group(Title; _Header)\n// @enableif _Enabled == 1\n// @param hidden toggle(float) _Header\n// @param float _Value\n// @endenableif\n// @endgroup",
     "valid": false
   },
   {
     "name": "enableif: group cannot open inside condition",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @group(Title)\n// @param float _Value\n// @endgroup\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled == 1\n// @group(Title)\n// @param float _Value\n// @endgroup\n// @endenableif",
     "valid": false
   },
   {
     "name": "enableif: group cannot close inside condition",
-    "source": "// @param bool _Enabled = true\n// @group(Title)\n// @enableif _Enabled == 1\n// @param float _Value\n// @endgroup\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @group(Title)\n// @enableif _Enabled == 1\n// @param float _Value\n// @endgroup\n// @endenableif",
     "valid": false
   },
   {
     "name": "enableif: foldout header must be unconditional",
-    "source": "// @param bool _Enabled = true\n// @foldout(Title; _Header)\n// @enableif _Enabled == 1\n// @param hidden bool _Header\n// @param float _Value\n// @endenableif\n// @endfoldout",
+    "source": "// @param toggle(float) _Enabled = true\n// @foldout(Title; _Header)\n// @enableif _Enabled == 1\n// @param hidden toggle(float) _Header\n// @param float _Value\n// @endenableif\n// @endfoldout",
     "valid": false
   },
   {
     "name": "enableif: foldout cannot open inside condition",
-    "source": "// @param bool _Enabled = true\n// @enableif _Enabled == 1\n// @foldout(Title)\n// @param float _Value\n// @endfoldout\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @enableif _Enabled == 1\n// @foldout(Title)\n// @param float _Value\n// @endfoldout\n// @endenableif",
     "valid": false
   },
   {
     "name": "enableif: foldout cannot close inside condition",
-    "source": "// @param bool _Enabled = true\n// @foldout(Title)\n// @enableif _Enabled == 1\n// @param float _Value\n// @endfoldout\n// @endenableif",
+    "source": "// @param toggle(float) _Enabled = true\n// @foldout(Title)\n// @enableif _Enabled == 1\n// @param float _Value\n// @endfoldout\n// @endenableif",
     "valid": false
   },
   {
@@ -256,7 +256,7 @@
   },
   {
     "name": "layout: foldout with hidden header",
-    "source": "// @foldout(Advanced; _Enabled)\n// @param hidden bool _Enabled = true\n// @param float _Value\n// @endfoldout",
+    "source": "// @foldout(Advanced; _Enabled)\n// @param hidden toggle(float) _Enabled = true\n// @param float _Value\n// @endfoldout",
     "valid": true
   },
   {
@@ -286,12 +286,12 @@
   },
   {
     "name": "layout: conditional page rows",
-    "source": "// @param bool _Enabled\n// @tabs\n// @tab(Page)\n// @if _Enabled == 1\n// @preview(P, _Enabled)\n// @param float _Value\n// @endif\n// @endtab\n// @endtabs",
+    "source": "// @param toggle(float) _Enabled\n// @tabs\n// @tab(Page)\n// @if _Enabled == 1\n// @preview(P, _Enabled)\n// @param float _Value\n// @endif\n// @endtab\n// @endtabs",
     "valid": true
   },
   {
     "name": "layout: foldout header direct while body nested",
-    "source": "// @foldout(Outer; _Enabled)\n// @param hidden bool _Enabled\n// @group(Inner)\n// @param float _Value\n// @endgroup\n// @endfoldout",
+    "source": "// @foldout(Outer; _Enabled)\n// @param hidden toggle(float) _Enabled\n// @group(Inner)\n// @param float _Value\n// @endgroup\n// @endfoldout",
     "valid": true
   },
   {
@@ -346,27 +346,27 @@
   },
   {
     "name": "layout: foldout header outside",
-    "source": "// @param bool _Enabled\n// @foldout(Title; _Enabled)\n// @preview(P)\n// @endfoldout",
+    "source": "// @param toggle(float) _Enabled\n// @foldout(Title; _Enabled)\n// @preview(P)\n// @endfoldout",
     "valid": false
   },
   {
     "name": "layout: foldout header duplicated across pages",
-    "source": "// @tabs\n// @tab(One)\n// @foldout(Title; _Enabled)\n// @param bool _Enabled\n// @param float _Value\n// @endfoldout\n// @endtab\n// @tab(Two)\n// @param bool _Enabled\n// @endtab\n// @endtabs",
+    "source": "// @tabs\n// @tab(One)\n// @foldout(Title; _Enabled)\n// @param toggle(float) _Enabled\n// @param float _Value\n// @endfoldout\n// @endtab\n// @tab(Two)\n// @param toggle(float) _Enabled\n// @endtab\n// @endtabs",
     "valid": false
   },
   {
     "name": "layout: foldout header conditional",
-    "source": "// @param bool _Mode\n// @foldout(Title; _Enabled)\n// @if _Mode == 1\n// @param bool _Enabled\n// @endif\n// @endfoldout",
+    "source": "// @param toggle(float) _Mode\n// @foldout(Title; _Enabled)\n// @if _Mode == 1\n// @param toggle(float) _Enabled\n// @endif\n// @endfoldout",
     "valid": false
   },
   {
     "name": "layout: foldout header in child group",
-    "source": "// @foldout(Outer; _Enabled)\n// @group(Inner)\n// @param bool _Enabled\n// @endgroup\n// @endfoldout",
+    "source": "// @foldout(Outer; _Enabled)\n// @group(Inner)\n// @param toggle(float) _Enabled\n// @endgroup\n// @endfoldout",
     "valid": false
   },
   {
     "name": "layout: group header in child foldout",
-    "source": "// @group(Outer; _Enabled)\n// @foldout(Inner)\n// @param bool _Enabled\n// @endfoldout\n// @endgroup",
+    "source": "// @group(Outer; _Enabled)\n// @foldout(Inner)\n// @param toggle(float) _Enabled\n// @endfoldout\n// @endgroup",
     "valid": false
   },
   {
@@ -376,7 +376,7 @@
   },
   {
     "name": "layout: hidden only foldout",
-    "source": "// @foldout(Title; _Enabled)\n// @param hidden bool _Enabled\n// @endfoldout",
+    "source": "// @foldout(Title; _Enabled)\n// @param hidden toggle(float) _Enabled\n// @endfoldout",
     "valid": false
   },
   {
@@ -679,27 +679,59 @@
     "source": "// @param float2 _R [0 % 360]\n// @param float2 _R [0 .. 360]",
     "valid": false
   },
-  { "name": "float2 interval", "source": "// @param preview(P) float2 _Range = (0.2, 0.8) [0 .. 1]", "valid": true },
-  { "name": "defaultless float2 interval", "source": "// @param float2 _Range [-180 .. 540]", "valid": true },
-  { "name": "coincident interval endpoints", "source": "// @param float2 _Range = (0.5, 0.5) [0 .. 1]", "valid": true },
-  { "name": "reversed float2 endpoints", "source": "// @param float2 _Range = (0.8, 0.2) [0 .. 1]", "valid": false },
-  { "name": "out-of-bound float2 endpoint", "source": "// @param float2 _Range = (-1, 0.2) [0 .. 1]", "valid": false },
-  { "name": "soft float2 limit", "source": "// @param float2 _Range [0 .. ~1]", "valid": false },
-  { "name": "missing float2 limit", "source": "// @param float2 _Range [ .. 1]", "valid": false },
-  { "name": "equal float2 limits", "source": "// @param float2 _Range [1 .. 1]", "valid": false },
   {
-    "name": "seed fractional bounds and modifiers",
-    "source": "// @param label(Seed) seed hidden float _Seed = 2.5 [~2.1 .. ~3.8]",
+    "name": "float2 interval",
+    "source": "// @param preview(P) float2 _Range = (0.2, 0.8) [0 .. 1]",
+    "valid": true
+  },
+  {
+    "name": "defaultless float2 interval",
+    "source": "// @param float2 _Range [-180 .. 540]",
+    "valid": true
+  },
+  {
+    "name": "coincident interval endpoints",
+    "source": "// @param float2 _Range = (0.5, 0.5) [0 .. 1]",
+    "valid": true
+  },
+  {
+    "name": "reversed float2 endpoints",
+    "source": "// @param float2 _Range = (0.8, 0.2) [0 .. 1]",
+    "valid": false
+  },
+  {
+    "name": "out-of-bound float2 endpoint",
+    "source": "// @param float2 _Range = (-1, 0.2) [0 .. 1]",
+    "valid": false
+  },
+  {
+    "name": "soft float2 limit",
+    "source": "// @param float2 _Range [0 .. ~1]",
+    "valid": false
+  },
+  {
+    "name": "missing float2 limit",
+    "source": "// @param float2 _Range [ .. 1]",
+    "valid": false
+  },
+  {
+    "name": "equal float2 limits",
+    "source": "// @param float2 _Range [1 .. 1]",
+    "valid": false
+  },
+  {
+    "name": "typed seed and modifiers",
+    "source": "// @param label(Seed) hidden seed(float) _Seed = 2 [~2 .. ~3]",
     "valid": true
   },
   {
     "name": "seed exact float integer maximum",
-    "source": "// @param seed float _Seed = 16777216 [16777216 .. 16777216]",
+    "source": "// @param seed(float) _Seed = 16777216 [16777216 .. 16777216]",
     "valid": true
   },
   {
     "name": "seed does not require the Seed uniform name",
-    "source": "// @param seed float _Pattern = 0 [-2 .. 2]",
+    "source": "// @param seed(float) _Pattern = 0 [-2 .. 2]",
     "valid": true
   },
   {
@@ -714,32 +746,32 @@
   },
   {
     "name": "invalid seed declaration 2",
-    "source": "// @param seed float _Seed",
+    "source": "// @param seed(float) _Seed = 0.5",
     "valid": false
   },
   {
     "name": "invalid seed declaration 3",
-    "source": "// @param seed float _Seed [0 ..]",
+    "source": "// @param seed(float) _Seed [0 ..]",
     "valid": false
   },
   {
     "name": "invalid seed declaration 4",
-    "source": "// @param seed float _Seed [0.1 .. 0.9]",
+    "source": "// @param seed(float) _Seed [0.1 .. 0.9]",
     "valid": false
   },
   {
     "name": "invalid seed declaration 5",
-    "source": "// @param seed seed float _Seed [0 .. 10]",
+    "source": "// @param seed seed(float) _Seed [0 .. 10]",
     "valid": false
   },
   {
     "name": "invalid seed declaration 6",
-    "source": "// @param seed float _Seed [-16777218 .. 0]",
+    "source": "// @param seed(float) _Seed [-16777218 .. 0]",
     "valid": false
   },
   {
     "name": "invalid seed declaration 7",
-    "source": "// @param seed float _Seed [0 .. 16777218]",
+    "source": "// @param seed(float) _Seed [0 .. 16777218]",
     "valid": false
   },
   {
@@ -749,7 +781,7 @@
   },
   {
     "name": "defaultless bool",
-    "source": "// @param bool _Value // A hint with punctuation; [0 .. 1] and // more text.",
+    "source": "// @param toggle(float) _Value // A hint with punctuation; [0 .. 1] and // more text.",
     "valid": true
   },
   {
@@ -809,7 +841,7 @@
   },
   {
     "name": "initialized bool",
-    "source": "// @param label(\"Value (px)\") hidden bool _Value = true // tooltip",
+    "source": "// @param label(\"Value (px)\") hidden toggle(float) _Value = true // tooltip",
     "valid": true
   },
   {
@@ -924,7 +956,7 @@
   },
   {
     "name": "scalar linked controls",
-    "source": "// @param float _Mode = .5\n// @param bool _Mode = true\n// @param enum _Mode = Custom {Off: 0, Custom: .5, On: 1}",
+    "source": "// @param float _Mode = .5\n// @param toggle(float) _Mode = true\n// @param enum _Mode = Custom {Off: 0, Custom: .5, On: 1}",
     "valid": true
   },
   {
@@ -1034,12 +1066,12 @@
   },
   {
     "name": "bool value",
-    "source": "// @param bool _Value = .5",
+    "source": "// @param toggle(float) _Value = .5",
     "valid": false
   },
   {
     "name": "bool range",
-    "source": "// @param bool _Value = true [0 .. 1]",
+    "source": "// @param toggle(float) _Value = true [0 .. 1]",
     "valid": false
   },
   {
@@ -1284,7 +1316,7 @@
   },
   {
     "name": "group header conditional",
-    "source": "// @param bool _Mode\n// @group(Test; _Value)\n// @if _Mode == 1\n// @param float _Value\n// @endif\n// @endgroup",
+    "source": "// @param toggle(float) _Mode\n// @group(Test; _Value)\n// @if _Mode == 1\n// @param float _Value\n// @endif\n// @endgroup",
     "valid": false
   },
   {
@@ -1336,7 +1368,215 @@
     "name": "control limit",
     "source": "// @param float _P0\n// @param float _P1\n// @param float _P2\n// @param float _P3\n// @param float _P4\n// @param float _P5\n// @param float _P6\n// @param float _P7\n// @param float _P8\n// @param float _P9\n// @param float _P10\n// @param float _P11\n// @param float _P12\n// @param float _P13\n// @param float _P14\n// @param float _P15\n// @param float _P16\n// @param float _P17\n// @param float _P18\n// @param float _P19\n// @param float _P20\n// @param float _P21\n// @param float _P22\n// @param float _P23\n// @param float _P24\n// @param float _P25\n// @param float _P26\n// @param float _P27\n// @param float _P28\n// @param float _P29\n// @param float _P30\n// @param float _P31\n// @param float _P32\n// @param float _P33\n// @param float _P34\n// @param float _P35\n// @param float _P36\n// @param float _P37\n// @param float _P38\n// @param float _P39\n// @param float _P40\n// @param float _P41\n// @param float _P42\n// @param float _P43\n// @param float _P44\n// @param float _P45\n// @param float _P46\n// @param float _P47\n// @param float _P48\n// @param float _P49\n// @param float _P50\n// @param float _P51\n// @param float _P52\n// @param float _P53\n// @param float _P54\n// @param float _P55\n// @param float _P56\n// @param float _P57\n// @param float _P58\n// @param float _P59\n// @param float _P60\n// @param float _P61\n// @param float _P62\n// @param float _P63\n// @param float _P64\n// @param float _P65\n// @param float _P66\n// @param float _P67\n// @param float _P68\n// @param float _P69\n// @param float _P70\n// @param float _P71\n// @param float _P72\n// @param float _P73\n// @param float _P74\n// @param float _P75\n// @param float _P76\n// @param float _P77\n// @param float _P78\n// @param float _P79\n// @param float _P80\n// @param float _P81\n// @param float _P82\n// @param float _P83\n// @param float _P84\n// @param float _P85\n// @param float _P86\n// @param float _P87\n// @param float _P88\n// @param float _P89\n// @param float _P90\n// @param float _P91\n// @param float _P92\n// @param float _P93\n// @param float _P94\n// @param float _P95\n// @param float _P96\n// @param float _P97\n// @param float _P98\n// @param float _P99\n// @param float _P100\n// @param float _P101\n// @param float _P102\n// @param float _P103\n// @param float _P104\n// @param float _P105\n// @param float _P106\n// @param float _P107\n// @param float _P108\n// @param float _P109\n// @param float _P110\n// @param float _P111\n// @param float _P112\n// @param float _P113\n// @param float _P114\n// @param float _P115\n// @param float _P116\n// @param float _P117\n// @param float _P118\n// @param float _P119\n// @param float _P120\n// @param float _P121\n// @param float _P122\n// @param float _P123\n// @param float _P124\n// @param float _P125\n// @param float _P126\n// @param float _P127\n// @param float _P128",
     "valid": false
+  },
+  {
+    "name": "typed toggle bool",
+    "source": "// @param toggle(bool) _Value = true",
+    "valid": true
+  },
+  {
+    "name": "typed toggle bool2",
+    "source": "// @param rgba toggle(bool2) _Value = (true,true)",
+    "valid": true
+  },
+  {
+    "name": "typed toggle bool3",
+    "source": "// @param rgba toggle(bool3) _Value = (true,true,true)",
+    "valid": true
+  },
+  {
+    "name": "typed toggle bool4",
+    "source": "// @param rgba toggle(bool4) _Value = (true,true,true,true)",
+    "valid": true
+  },
+  {
+    "name": "typed toggle int",
+    "source": "// @param toggle(int) _Value = 1",
+    "valid": true
+  },
+  {
+    "name": "typed toggle int2",
+    "source": "// @param rgba toggle(int2) _Value = (1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed toggle int3",
+    "source": "// @param rgba toggle(int3) _Value = (1,1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed toggle int4",
+    "source": "// @param rgba toggle(int4) _Value = (1,1,1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed toggle uint",
+    "source": "// @param toggle(uint) _Value = 1",
+    "valid": true
+  },
+  {
+    "name": "typed toggle uint2",
+    "source": "// @param rgba toggle(uint2) _Value = (1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed toggle uint3",
+    "source": "// @param rgba toggle(uint3) _Value = (1,1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed toggle uint4",
+    "source": "// @param rgba toggle(uint4) _Value = (1,1,1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed toggle half",
+    "source": "// @param toggle(half) _Value = 1",
+    "valid": true
+  },
+  {
+    "name": "typed toggle half2",
+    "source": "// @param rgba toggle(half2) _Value = (1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed toggle half3",
+    "source": "// @param rgba toggle(half3) _Value = (1,1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed toggle half4",
+    "source": "// @param rgba toggle(half4) _Value = (1,1,1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed toggle float",
+    "source": "// @param toggle(float) _Value = 1",
+    "valid": true
+  },
+  {
+    "name": "typed toggle float2",
+    "source": "// @param rgba toggle(float2) _Value = (1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed toggle float3",
+    "source": "// @param rgba toggle(float3) _Value = (1,1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed toggle float4",
+    "source": "// @param rgba toggle(float4) _Value = (1,1,1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed color bool",
+    "source": "// @param color(bool) _Value = true",
+    "valid": true
+  },
+  {
+    "name": "typed color bool2",
+    "source": "// @param rgba color(bool2) _Value = (true,true)",
+    "valid": true
+  },
+  {
+    "name": "typed color bool3",
+    "source": "// @param rgba color(bool3) _Value = (true,true,true)",
+    "valid": true
+  },
+  {
+    "name": "typed color bool4",
+    "source": "// @param rgba color(bool4) _Value = (true,true,true,true)",
+    "valid": true
+  },
+  {
+    "name": "typed color int",
+    "source": "// @param color(int) _Value = 1",
+    "valid": true
+  },
+  {
+    "name": "typed color int2",
+    "source": "// @param rgba color(int2) _Value = (1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed color int3",
+    "source": "// @param rgba color(int3) _Value = (1,1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed color int4",
+    "source": "// @param rgba color(int4) _Value = (1,1,1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed color uint",
+    "source": "// @param color(uint) _Value = 1",
+    "valid": true
+  },
+  {
+    "name": "typed color uint2",
+    "source": "// @param rgba color(uint2) _Value = (1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed color uint3",
+    "source": "// @param rgba color(uint3) _Value = (1,1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed color uint4",
+    "source": "// @param rgba color(uint4) _Value = (1,1,1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed color half",
+    "source": "// @param color(half) _Value = 1",
+    "valid": true
+  },
+  {
+    "name": "typed color half2",
+    "source": "// @param rgba color(half2) _Value = (1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed color half3",
+    "source": "// @param rgba color(half3) _Value = (1,1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed color half4",
+    "source": "// @param rgba color(half4) _Value = (1,1,1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed color float",
+    "source": "// @param color(float) _Value = 1",
+    "valid": true
+  },
+  {
+    "name": "typed color float2",
+    "source": "// @param rgba color(float2) _Value = (1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed color float3",
+    "source": "// @param rgba color(float3) _Value = (1,1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed color float4",
+    "source": "// @param rgba color(float4) _Value = (1,1,1,1)",
+    "valid": true
+  },
+  {
+    "name": "typed component condition",
+    "source": "// @param rgba toggle(uint4) _Flags = (1,0,1,0)\n// @if _Flags.a == 0\n// @param float _Value\n// @endif",
+    "valid": true
+  },
+  {
+    "name": "old bool field rejected",
+    "source": "// @param bool _Value",
+    "valid": false
   }
 ]
-
-

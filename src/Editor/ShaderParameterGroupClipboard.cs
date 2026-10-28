@@ -46,7 +46,7 @@ namespace DCFApixels.WhimTex
 
         private static bool Compatible(ShaderFXParameter target, int targetGroup, ShaderFXParameter value, int valueGroup)
         {
-            if (target.type != value.type) return false;
+            if (target.type != value.type || target.ValueType != value.ValueType) return false;
             var a = ContainerControl(target, targetGroup); var b = ContainerControl(value, valueGroup);
             if (a.type != b.type) return false;
             if (a.type != ShaderFXParameterType.Enum) return true;

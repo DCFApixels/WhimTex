@@ -292,9 +292,12 @@ namespace DCFApixels.WhimTex
             }
             if (value is ShaderFXParameter p)
             {
+                if (field == "valueType") return p.ValueType != null;
+                if (field == "integerValues") return p.IsInteger;
+                if (p.IsInteger && (field == "floatValue" || field == "colorValue" || field == "vectorValue")) return false;
                 switch (field)
                 {
-                    case "floatValue": return p.type == ShaderFXParameterType.Float || p.type == ShaderFXParameterType.Enum || p.type == ShaderFXParameterType.Bool;
+                    case "floatValue": return p.type == ShaderFXParameterType.Float || p.type == ShaderFXParameterType.Enum || p.type == ShaderFXParameterType.Toggle;
                     case "colorValue": return p.type == ShaderFXParameterType.Color;
                     case "vectorValue": return p.type == ShaderFXParameterType.Vector || p.type == ShaderFXParameterType.Vector2 || p.type == ShaderFXParameterType.Vector3 || p.type == ShaderFXParameterType.Normal || p.type == ShaderFXParameterType.Point;
                     case "gradientValue": return p.type == ShaderFXParameterType.Gradient;

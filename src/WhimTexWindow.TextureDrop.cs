@@ -7,22 +7,18 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexWindow
     {
-        private bool HasProjectTextureDrag()
+        private bool HasFileTextureDrag()
         {
             if (activeDocument == null || DragAndDrop.GetGenericData(DraggedDocumentIdKey) != null) return false;
-            var objects = DragAndDrop.objectReferences;
-            if (objects.Length == 0) return false;
-            foreach (var item in objects)
-                if (!(item is Texture2D) || !AssetDatabase.Contains(item)) return false;
-            return true;
+            return FileLayerSource.DragPaths() != null;
         }
 
-        private sealed class ProjectTextureDropManipulator : PointerManipulator
+        private sealed class FileTextureDropManipulator : PointerManipulator
         {
             private readonly WhimTexWindow owner;
             private readonly bool prependToRoot;
 
-            public ProjectTextureDropManipulator(WhimTexWindow owner, bool prependToRoot = false)
+            public FileTextureDropManipulator(WhimTexWindow owner, bool prependToRoot = false)
             {
                 this.owner = owner;
                 this.prependToRoot = prependToRoot;
@@ -42,8 +38,8 @@ namespace DCFApixels.WhimTex
                 target.UnregisterCallback<DragLeaveEvent>(OnDragLeave);
             }
 
-            private bool HasProjectTextures()
-                => owner.HasProjectTextureDrag();
+            private bool HasTextures()
+                => owner.HasFileTextureDrag();
 
             private bool ResolveTarget(VisualElement element, Vector2 mousePosition,
                 out List<Layer> container, out int index, out Layer group,
@@ -69,7 +65,7 @@ namespace DCFApixels.WhimTex
 
             private void OnDragUpdated(DragUpdatedEvent evt)
             {
-                if (!HasProjectTextures())
+                if (!HasTextures())
                     return;
                 if (!ResolveTarget(evt.target as VisualElement, evt.mousePosition,
                     out _, out _, out Layer group, out VisualElement indicator, out bool before, out int depth))
@@ -84,12 +80,20 @@ namespace DCFApixels.WhimTex
 
             private void OnDragPerform(DragPerformEvent evt)
             {
-                if (!HasProjectTextures())
+                if (!HasTextures())
                     return;
                 if (!ResolveTarget(evt.target as VisualElement, evt.mousePosition,
                     out List<Layer> container, out int index, out Layer group, out _, out _, out _))
                 { owner.ClearToolkitDropIndicator(); return; }
-                UnityEngine.Object[] textures = DragAndDrop.objectReferences;
+                string[] paths = FileLayerSource.DragPaths();
+                try { foreach (string path in paths) FileLayerSource.Prepare(owner.activeDocument, path); }
+                catch (System.Exception error)
+                {
+                    owner.ClearToolkitDropIndicator();
+                    evt.StopImmediatePropagation();
+                    EditorUtility.DisplayDialog("Source Image", error.Message, "OK");
+                    return;
+                }
                 DragAndDrop.AcceptDrag();
                 evt.StopImmediatePropagation();
                 owner.ClearToolkitDropIndicator();
@@ -103,15 +107,15 @@ namespace DCFApixels.WhimTex
                     {
                         owner.SelectOnlyLayer(null);
                         index = Mathf.Clamp(index, 0, container.Count);
-                        foreach (Texture2D texture in textures)
+                        foreach (string path in paths)
                         {
                             FileLayerBehaviour layer = new FileLayerBehaviour();
                             layer.layerName = owner.activeDocument.AllocateLayerName(layer);
-                            layer.AssignSourceTexture(texture, owner.activeDocument, initializeCanvas: true);
+                            layer.AssignSourcePath(path, owner.activeDocument, initializeCanvas: true);
                             container.Insert(index++, layer);
-                            owner.activeDocument.NormalizeModel();
-                            owner.ActivateSelectedLayer(layer.Id);
                         }
+                        owner.activeDocument.NormalizeModel();
+                        owner.ActivateSelectedLayer(container[index - 1].Id);
                         owner.selectionAnchorId = owner.selectedLayerId;
                         if (group != null)
                             owner.groupExpansion[group.Id] = true;
@@ -130,7 +134,7 @@ namespace DCFApixels.WhimTex
 
             private void OnDragLeave(DragLeaveEvent evt)
             {
-                if (HasProjectTextures())
+                if (HasTextures())
                 {
                     owner.ClearToolkitDropIndicator();
                     if (evt.target == target) owner.layerDragAutoScroll?.Stop();

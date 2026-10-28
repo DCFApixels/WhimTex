@@ -5,7 +5,7 @@
 // @param hidden float _Strength = 1 [~-4 .. ~4] // Domain-warp amplitude. Zero outputs a neutral map. Negative values reverse the warp amplitude; progressive octaves can also change the pattern.
 // @group(Warp)
 // @param enum _WarpType = OpenSimplex2 {OpenSimplex2: 0, OpenSimplex2Reduced: 1, BasicGrid: 2}
-// @param seed float _Seed = 1337 [0 .. ~10000]
+// @param seed(float) _Seed = 1337 [0 .. ~10000]
 // @param float _Scale = 4 [0.01 .. ~64] // Frequency in canvas UV coordinates. Higher values create finer patterns; this is not output-vector normalization.
 // @param float2 _Offset = (0, 0) // Offset the procedural coordinates before warping. Does not add a constant displacement to the output.
 // @endgroup
@@ -19,8 +19,8 @@
 // @endgroup
 // @group(Output; _Output)
 // @param hidden enum _Output = PackedRG {PackedRG: 0, SignedRG: 1} // Packed RG: Neutral 0.5 in Displacement Map. Signed RG: Neutral 0 and half the X/Y strengths for the same displacement. Use HDR Color Range to retain signed/out-of-range values.
-// @param bool _FlipX = false
-// @param bool _FlipY = false
+// @param toggle(float) _FlipX = false
+// @param toggle(float) _FlipY = false
 // @endgroup
 
 float4 ApplyFX(PinnedUV uv, float4 color)

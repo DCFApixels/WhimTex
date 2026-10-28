@@ -269,6 +269,7 @@ namespace DCFApixels.WhimTex
             {
                 if (value == null) { _writer.Write(TagNull); return; }
                 if (value is ShaderFX) _container.HasExternalInputs = true;
+                if (value is FileLayerBehaviour file && file.HasExternalSource) _container.HasExternalInputs = true;
                 if (value is string text && System.Text.Encoding.UTF8.GetByteCount(text) > 1024 * 1024)
                     throw new WhimTexDocumentException("Document string exceeds the 1 MiB budget.");
                 Type type = value.GetType();

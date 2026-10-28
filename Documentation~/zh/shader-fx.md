@@ -289,6 +289,8 @@ sampler 的名称本身并不构成绕过路径。
 
 ## 在外部编辑器中编辑
 
+预设的代码上方有只读 **Preset** 文件字段。单击会在 Project 中定位项目或包资源；外部文件没有单击操作。双击在 VS Code 中打开原文件；若不可用，则使用 Unity 设置的脚本编辑器。右键 → **Show in Explorer** 在文件管理器中显示文件（macOS 为 Finder）。外部库预设仍是嵌入副本，编辑原文件不会更新文档中已有的副本。
+
 - **Open Code** 在 Unity 所选的脚本编辑器中打开工作文件。保存会更新 WhimTex 中的草稿；点击 **Compile** 编译。
 - **Open in VS Code** 使用独立配置，自动安装 WhimTex 指令高亮、补全和检查。保存工作文件会向 Unity 请求 **Compile**，无需返回 WhimTex 窗口。语言模式仍为 **HLSL**，内置扩展支持 Restricted Mode。
 - 若没有 VS Code 按钮，可设置 **User Settings → External Code Editor → VS Code Command**。WhimTex 先检查 Unity 注册的编辑器和 PATH，再使用此备用路径。
@@ -445,6 +447,8 @@ Thickness 为零时不绘制轮廓。
 两个效果均通过 **Base Color 的透明度** 在透明光影（0）和完整受光表面（1）之间平滑混合，中间值采用考虑透明度的混合。RGB 设置表面颜色，**Ambient** 随填充逐渐显现。**Output** 为透明光影选择 Both、Highlight Only 或 Shadow Only；Base Color 透明度为 1 时无影响。Light Color/Shadow Color 的透明度控制该部分的强度。整体不透明度与混合模式由图层控制。两个效果的 Base Color 默认透明度均为 0。旧的嵌入版本需重新添加预设。
 
 **Normal Map → Lighting** 还提供默认关闭的 **Specular** 区块，使用相同的 **Light Direction** 添加镜面高光。**Specular Color** 设置颜色（透明度缩放强度），**Specular Intensity** 独立控制强度，**Roughness** 越大，高光越宽；零值采用有限的锐度上限。Both 和 Highlight Only 包含启用的高光，Shadow Only 不包含。新增的 **Specular Only** 只输出镜面高光，即使 Base Color 透明度为 1 也不输出表面或漫反射；关闭 Specular 时结果透明。高光遵循输入透明度，以加光方式保留漫反射，并在 HDR 中保留大于 1 的强度。正交观察方向为 +Z，因此正面光可在整个平坦区域产生高光，而不仅是边缘。Bevel Emboss 保持不变。
+
+Bevel Emboss 读取相邻高度，因此 **Pixel Local** 为 **No**。内置预设编译时不会产生局部性警告。
 
 ### 法线贴图归一化
 **Normal Map → Normalize** 恢复法线的单位长度，同时保留透明度。

@@ -53,6 +53,6 @@
       "// $0",
       "// @endtab"
     ],
-    "description": "After // inside @tabs: a page with a unique title and @endtab. Add ; _Enabled for a bool checkbox before the label."
+    "description": "After // inside @tabs: a page with a unique title and @endtab. Add ; _Enabled for a scalar toggle before the label."
   }
 }

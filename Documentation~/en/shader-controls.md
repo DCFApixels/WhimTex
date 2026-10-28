@@ -12,6 +12,12 @@ translations: "en/shader-controls.md,ru/shader-controls.md,zh/shader-controls.md
 
 Use `// @param` to expose a value in Layer Settings. WhimTex creates the uniform and its control; click **Apply** after changing declarations or code.
 
+## Typed controls and channel labels
+
+Use `toggle(type)`, `color(type)`, `enum(type)` and `seed(type)` to choose the control and HLSL value independently. Defaults are float, float4, float and int respectively. Toggle/color accept bool, int, uint, half and float with one to four components; enum accepts numeric scalars; seed accepts int, uint or float.
+
+`// @param rgba toggle(float4) _Channels = (1, 1, 1, 0)` shows four independent R/G/B/A switches on one row. `rgba float4` keeps the standard vector field and only changes its labels. `color(float4)`, `color(float3)`, `color(float2)` or `color(float)` opens the picker for RGBA, RGB, RG or R respectively. Integer colors round; bool colors use a 0.5 threshold, without a 0–255 scale conversion. Float colors retain HDR and the existing color interpretation. Seed entry is integral; Random respects the inclusive range. Use `_Channels.a` in conditions to select one component.
+
 ## Start with a value and a color
 
 ```hlsl
@@ -38,7 +44,7 @@ For input textures, coordinate spaces and all parameter types, see the [HLSL ref
 | `// @helpbox(Your hint text.)` | Add an informational hint before the next parameter. |
 
 Place `@control` immediately after `// @whimtex-effect Category/Name`, or on the first line if there is no catalog marker.
-It supports bool, enum, float, color and float2/3/4. Without `hidden`, the header and body fields edit the same value.
+It supports toggle, enum, float, color and float2/3/4. Without `hidden`, the header and body fields edit the same value.
 Unsupported types leave the header unchanged. Repeated control directives warn and the last wins.
 
 These directives describe the UI, not the effect: an opacity control does not add blending by itself.
@@ -52,11 +58,11 @@ Use `@if` to show options only for a selected mode:
 // @param enum _Mode = 0 { Basic: 0, Advanced: 1 }
 // @if _Mode == 1
 // @param float _Detail = 0.5 [0 .. 1]
-// @param bool _UseExtra = false
+// @param toggle(float) _UseExtra = false
 // @endif
 ```
 
-Conditions accept numeric `==` and `!=` comparisons against an unconditional float, bool or enum parameter.
+Conditions accept numeric `==` and `!=` comparisons against an unconditional scalar or an explicit vector component.
 They cannot be nested. Hidden values still exist and affect HLSL; branch in the shader too if the mode should change its calculation.
 Preset export retains the conditions.
 
@@ -65,7 +71,7 @@ The linked parameter must be declared unconditionally inside that group.
 
 | Linked type | Header behavior |
 | --- | --- |
-| bool | Checkbox to the left of the title. It changes the value; use `@if` to hide dependent fields. |
+| toggle | Checkbox to the left of the title. It changes the value; use `@if` to hide dependent fields. |
 | enum, float, color, float2/3/4 | Compact field on the right, labeled by the group title; dragging a float title adjusts it. |
 | Unsupported or multi-row type | Remains in the body; the header stays plain. |
 

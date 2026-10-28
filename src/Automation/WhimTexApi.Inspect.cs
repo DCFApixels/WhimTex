@@ -314,8 +314,8 @@ namespace DCFApixels.WhimTex
                         ["pivot"] = new JArray(layer.transform.pivot.x, layer.transform.pivot.y), ["tiling"] = layer.transform.tiling.ToString()
                     };
                     entry["effectiveTiling"] = layer.EffectiveTiling.ToString();
-                    if (layer.Behaviour is FileLayerBehaviour sourceFile && sourceFile.sourceTexture != null)
-                        entry["sourceWrap"] = new JObject { ["u"] = sourceFile.sourceTexture.wrapModeU.ToString(), ["v"] = sourceFile.sourceTexture.wrapModeV.ToString() };
+                    if (layer.Behaviour is FileLayerBehaviour sourceFile && sourceFile.ResolveSourceTexture(document) is Texture2D sourceImage)
+                        entry["sourceWrap"] = new JObject { ["u"] = sourceImage.wrapModeU.ToString(), ["v"] = sourceImage.wrapModeV.ToString() };
                     var transformJson = (JObject)entry["transform"];
                     var t = layer.transform;
                     if (t.storage == TransformStorage.Projective)
@@ -332,13 +332,16 @@ namespace DCFApixels.WhimTex
                     entry["fxCount"] = layer.fx?.Count ?? 0;
                     if (layer?.Behaviour is FileLayerBehaviour file)
                     {
-                        settings["source"] = file.sourceTexture != null ? AssetDatabase.GetAssetPath(file.sourceTexture) : "";
-                        if (file.sourceTexture != null)
+                        settings["source"] = file.HasExternalSource ? file.externalSourcePath : file.sourceTexture != null ? AssetDatabase.GetAssetPath(file.sourceTexture) : "";
+                        var input = file.ResolveSourceTexture(document);
+                        if (input != null)
                         {
-                            var renderedSource = document.ResolveOriginalFileTexture(file.sourceTexture) ?? file.sourceTexture;
+                            var renderedSource = document.ResolveOriginalFileTexture(input) ?? input;
                             entry["sourceSize"] = new JArray(renderedSource.width, renderedSource.height);
-                            entry["importedSourceSize"] = new JArray(file.sourceTexture.width, file.sourceTexture.height);
+                            if (!file.HasExternalSource) entry["importedSourceSize"] = new JArray(input.width, input.height);
                         }
+                        if (file.HasExternalSource && document.ExternalFileError(file.externalSourcePath) is string sourceError)
+                            entry["sourceError"] = sourceError;
                     }
                     if (layer?.Behaviour is ColorFillLayerBehaviour fill)
                     {

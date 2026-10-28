@@ -266,11 +266,9 @@ namespace DCFApixels.WhimTex
             layer.filterMode = Enum(settings, "filter", layer.filterMode);
             if (layer?.Behaviour is FileLayerBehaviour file && settings["source"] != null)
             {
-                string path = ReadAssetPath(Text(settings, "source"));
-                var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-                Require(texture != null, "No imported Texture2D at " + path + ". Import the image first.", "texture_not_found");
-                Require(!WhimTexDocumentService.IsOwnOutput(document, texture), "A document cannot sample its own output texture.");
-                file.AssignSourceTexture(texture, document);
+                string path = Text(settings, "source");
+                if (!System.IO.Path.IsPathRooted(path)) path = ReadAssetPath(path);
+                file.AssignSourcePath(path, document);
             }
             layer.colorRange = Enum(settings, "colorRange", layer.colorRange);
             layer.blendRange = Enum(settings, "blendRange", layer.blendRange);

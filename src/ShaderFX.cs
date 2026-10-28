@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
 {
     public enum ShaderFXTextureSource { Texture = 0, Layer = 1, None = 2, Self = 3 }
 
-    public enum ShaderFXParameterType { Float, Color, Vector, Texture2D, Transform2D, Bool, Enum, Gradient, Vector2, Vector3, Normal, Curve, Point }
+    public enum ShaderFXParameterType { Float, Color, Vector, Texture2D, Transform2D, Toggle, Enum, Gradient, Vector2, Vector3, Normal, Curve, Point, Seed }
 
     public enum ShaderFXContainerKind { Group, Foldout, Tabs, Tab }
 
@@ -31,7 +31,7 @@ namespace DCFApixels.WhimTex
     {
         public string parameter;
         public bool notEqual;
-        public float value;
+        public double value;
         public bool Equals(ShaderFXEnableCondition other) => parameter == other.parameter && notEqual == other.notEqual && value.Equals(other.value);
         public override bool Equals(object obj) => obj is ShaderFXEnableCondition other && Equals(other);
         public override int GetHashCode() => parameter?.GetHashCode() ?? 0;
@@ -60,16 +60,19 @@ namespace DCFApixels.WhimTex
         public bool cyclicRange;
         public float minimum, maximum;
         public string[] optionNames = Array.Empty<string>();
-        public float[] optionValues = Array.Empty<float>();
+        public double[] optionValues = Array.Empty<double>();
+        public string valueType;
+        public bool rgba;
+        public double valueMinimum, valueMaximum;
         // Editor-only visibility condition. Values remain serialized and applied to the shader.
         public string visibleIfParameter;
         public bool visibleIfNotEqual;
-        public float visibleIfValue;
+        public double visibleIfValue;
         public ShaderFXEnableCondition[] enableIf = Array.Empty<ShaderFXEnableCondition>();
     }
 
     [Serializable]
-    public sealed class ShaderFXParameter
+    public sealed partial class ShaderFXParameter
     {
         public string name = "_Amount";
         public ShaderFXParameterType type;
@@ -171,16 +174,18 @@ namespace DCFApixels.WhimTex
             var v = new Vector3(value.x, value.y, value.z);
             return v.sqrMagnitude > 1e-12f && !float.IsInfinity(v.sqrMagnitude) ? v.normalized : Vector3.forward;
         }
-        internal bool BoolValue => floatValue >= 0.5f;
+        internal bool BoolValue => GetNumber() >= 0.5;
 
         internal ShaderFXParameter Copy()
         {
             var copy = (ShaderFXParameter)MemberwiseClone();
+            copy.integerValues = integerValues == null ? new long[4] : (long[])integerValues.Clone();
+            copy.typedPropertyIds = null;
             copy.gradientValue = gradientValue?.Clone();
             copy.curveValue = curveValue == null ? null : WhimTexCurveTexture.Copy(curveValue);
             copy.controls = new List<ShaderFXParameterControl>(controls.Count);
             foreach (var c in controls)
-                copy.controls.Add(new ShaderFXParameterControl { type = c.type, order = c.order, tooltip = c.tooltip, label = c.label, previewFunction = c.previewFunction,
+                copy.controls.Add(new ShaderFXParameterControl { type = c.type, valueType = c.valueType, rgba = c.rgba, valueMinimum = c.valueMinimum, valueMaximum = c.valueMaximum, order = c.order, tooltip = c.tooltip, label = c.label, previewFunction = c.previewFunction,
                     previewParameters = c.previewParameters == null ? Array.Empty<string>() : (string[])c.previewParameters.Clone(),
                     headers = c.headers == null ? Array.Empty<string>() : (string[])c.headers.Clone(),
                     helpBoxes = c.helpBoxes == null ? Array.Empty<string>() : (string[])c.helpBoxes.Clone(),
@@ -188,7 +193,7 @@ namespace DCFApixels.WhimTex
                     groupTitle = c.groupTitle, groupHeaderParameter = c.groupHeaderParameter,
                     containers = c.containers == null ? Array.Empty<ShaderFXLayoutContainer>() : (ShaderFXLayoutContainer[])c.containers.Clone(),
                     hasMinimum = c.hasMinimum, hasMaximum = c.hasMaximum, softMinimum = c.softMinimum, softMaximum = c.softMaximum, cyclicRange = c.cyclicRange, minimum = c.minimum, maximum = c.maximum,
-                    optionNames = (string[])c.optionNames.Clone(), optionValues = (float[])c.optionValues.Clone(),
+                    optionNames = (string[])c.optionNames.Clone(), optionValues = (double[])c.optionValues.Clone(),
                     visibleIfParameter = c.visibleIfParameter, visibleIfNotEqual = c.visibleIfNotEqual, visibleIfValue = c.visibleIfValue,
                     enableIf = c.enableIf == null ? Array.Empty<ShaderFXEnableCondition>() : (ShaderFXEnableCondition[])c.enableIf.Clone() });
             return copy;
@@ -196,13 +201,14 @@ namespace DCFApixels.WhimTex
 
         internal void SetValue(Material material, ShaderFXParameter declaration, Vector2 dimensions, float pixelScale = 1f)
         {
+            if (ShaderFXNumericValue.NeedsTypedBinding(declaration)) { SetTypedValue(material, declaration); return; }
             int property = declaration.PropertyId;
             float units = declaration.pixelUnits ? pixelScale : 1f;
             switch (type)
             {
                 case ShaderFXParameterType.Enum:
                 case ShaderFXParameterType.Float: material.SetFloat(property, floatValue * units); break;
-                case ShaderFXParameterType.Bool: material.SetFloat(property, BoolValue ? 1f : 0f); break;
+                case ShaderFXParameterType.Toggle: material.SetFloat(property, BoolValue ? 1f : 0f); break;
                 case ShaderFXParameterType.Color: HdrUtility.SetShaderColor(material, declaration.name, colorValue); break;
                 case ShaderFXParameterType.Vector2:
                 case ShaderFXParameterType.Point:

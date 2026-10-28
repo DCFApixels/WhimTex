@@ -6,6 +6,12 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- File layers accept linked external images through the source field, Browse, canvas/layer-list drops and agent `settings.source`. Direct parsers support PNG, JPEG, TGA, BMP, EXR and compatible RGBA TIFF, including HDR. Links survive Undo and document/JSON saves, report missing sources and refresh changed files; decoded textures are cached per document without importing or embedding them.
+
+- FX presets show a read-only source-file field above their code: click to ping project assets, double-click to open the original in VS Code or Unity's configured editor, and use the context menu to reveal the file. External library copies retain their origin for navigation without becoming linked effects.
+
+- HLSL parameters separate controls from numeric types through `toggle(type)`, `color(type)`, `enum(type)` and `seed(type)`. Toggle/color support bool, int, uint, half and float scalars/vectors; integer values retain their full range. Color editing adapts to R/RG/RGB/RGBA, and `rgba` labels vector components without changing values. Mask and Step use one RGBA toggle row. The inspector, presets, document/agent API, shader-input help and VS Code tooling share the new syntax; old `@param bool` and seed modifier syntax are unsupported.
+
 - FX HLSL adds `SampleInputLod` and `SampleTextureLod` for explicit mip-level reads with texture-view UV mapping. LOD reads are classified as spatial, including LOD 0; Shader Inputs and agent guides document the API. Edge Outline and Height to Distortion use the supported helpers for their neighbor reads, removing their unverified-read warnings while retaining full-input rendering and base-level sampling.
 
 - Mask, Chroma Key and Edge Outline add collapsible grayscale inspector previews for the processed mask, retained matte and contour coverage. Standalone previews use centered 96×96 squares instead of stretching across the inspector. Shared mask calculations retain the FX output; previews show coverage before header Opacity without switching the canvas output mode and use the existing reduced-resolution inspector path.
@@ -120,7 +126,7 @@ All notable changes to WhimTex are documented in this file.
 - Named shader parameter groups offer header-only Copy/Paste/Reset menus, with Reset separated by a line. Compatible groups can share values, including hidden fields and linked header controls; Paste and Reset support batch Undo.
 - FX block menus offer Reset to restore declared parameter defaults without changing code, the preset link or enabled state.
 - Color/Hue & Saturation replaces HSV, with whole-image Master controls, four feathered hue overrides and source range-mask outputs. Saturation scales distance from weighted gray instead of HSV S; Lightness replaces Value with -100…100 darkening/lightening and neutral 0. Source Saturation (HSV) retains the original selection metric. Master opens first, all Ranges start disabled, and the no-range fast path is retained. Slider previews share the correction math. The source GUID is retained; Value parameters are not aliased to Lightness.
-- The seed modifier adds bounded integer Random actions to numeric FX/brush parameters, with Undo, preset export and agent randomizeSeeds support.
+- The `seed(type)` field adds integer Random actions to FX/brush parameters, with optional bounds, Undo, preset export and agent randomizeSeeds support. int/uint retain their full ranges; float seeds stay within the exact-integer interval.
 - Noise adds Curl, Gradient Vector and Cell Direction fields with packed/signed vector output, Normalize and Strength. Applicable fields share Fractal and Domain Warp controls; Warp has an independent Seed and a Z scale multiplier in 3D. Layer controls, JSON and agent APIs expose the same settings.
 - Levels adds separate RGB, R, G, B and Alpha curves. Threshold offers Luminance/R/G/B/Alpha source selection and Transition Width; Halftone's Fixed Shape samples one source color per rotated cell.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
@@ -216,6 +222,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Bevel Emboss reads its height map through `SampleTexture`, retaining automatic mip selection and filtered relief while reporting verified spatial locality without a bypass warning.
+
 - Collapsed FX parameter foldouts remove the header-to-content gap and divider, leaving only the header; expanded spacing is preserved, including restored foldout state.
 
 - The FX locality warning now explains complete-input rendering instead of treating every PinnedUV entry as a pixel-local declaration. Explicit-LOD neighborhood reads in Edge Outline remain supported; compilation, classification and rendering are unchanged.
@@ -292,6 +300,8 @@ All notable changes to WhimTex are documented in this file.
 - Removed nullable-annotation and obsolete UI-event warnings in the Clipper2 helper, layer-name field and slider controls.
 
 ### Upgrade notes
+
+- FX/brush metadata uses `toggle(type)`, `color(type)`, `enum(type)` and `seed(type)`. Former `@param bool` and `seed float` declarations are rejected; no automatic rewrite of user HLSL is performed. Seed values and explicit range endpoints must now be integers.
 
 - Mesh gradient rendering requires Shader Model 4.5, two color targets and floating-point blending. Stored priority slopes retain subdivision intervals; effective priorities are reconstructed continuously instead of using independent cell offsets.
 - Mesh payloads require `nodeModes`: one Smooth/Corner entry per node, or explicit `null` for all Smooth. Finite positions are no longer limited to 0–1 or an unfolded grid. Optional `patchPriorities` retains overlap order after subdivision and must be preserved by raw API/document roundtrips. Missing node modes are diagnosed; no automatic file migration is performed.

@@ -210,7 +210,7 @@ namespace DCFApixels.WhimTex
             toolkitSettingsScroll.AddToClassList("whimtex-layer-list");
             toolkitSettingsScroll.EnableInClassList("whimtex-layer-list--light", !EditorGUIUtility.isProSkin);
             toolkitSettingsScroll.AddManipulator(new HlslEffectDropManipulator(this));
-            toolkitSettingsScroll.AddManipulator(new ProjectTextureDropManipulator(this));
+            toolkitSettingsScroll.AddManipulator(new FileTextureDropManipulator(this));
             toolkitSettingsScroll.AddManipulator(layerDragAutoScroll = new LayerDragAutoScrollManipulator(this, toolkitSettingsScroll));
             toolkitSettingsScroll.contentViewport.AddManipulator(new LayerListEndDropManipulator(this));
             toolkitSettingsScroll.style.minHeight = 0f;
@@ -273,7 +273,7 @@ namespace DCFApixels.WhimTex
 
             toolkitCanvas = new CanvasElement(canvasViewport);
             toolkitCanvas.AddManipulator(new HlslEffectDropManipulator(this));
-            toolkitCanvas.AddManipulator(new ProjectTextureDropManipulator(this, prependToRoot: true));
+            toolkitCanvas.AddManipulator(new FileTextureDropManipulator(this, prependToRoot: true));
             toolkitCanvas.style.flexGrow = 1f;
             BuildGradientCanvasTool();
             BuildCanvasGuides();

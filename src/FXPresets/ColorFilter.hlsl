@@ -5,7 +5,7 @@
 // @param hidden float _Opacity = 1 [0 .. 1] // Blend with the tinted result; zero leaves the input unchanged.
 // @group
 // @param color _FilterColor = (1.0, 0.6, 0.3, 0.3) // Multiplicative RGB tint; color alpha is ignored.
-// @param bool _PreserveLuminosity = true // Preserve luminance; a black tint falls back to the source color.
+// @param toggle(float) _PreserveLuminosity = true // Preserve luminance; a black tint falls back to the source color.
 // @endgroup
 
 float4 ApplyFX(float4 color)

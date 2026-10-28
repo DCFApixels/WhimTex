@@ -377,7 +377,7 @@
               "$type": "ShaderFX",
               "$id": "fx1",
               "active": true,
-              "code": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param bool _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+              "code": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param toggle(float) _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
               "parameters": [
                 {
                   "name": "_Opacity",
@@ -446,7 +446,7 @@
                 },
                 {
                   "name": "_PreserveColor",
-                  "type": "Bool",
+                  "type": "Toggle",
                   "floatValue": 1.0,
                   "id": "dd002b53f65b418d8af5233ee8fcbd29"
                 }
@@ -458,7 +458,7 @@
               "$type": "ShaderFX",
               "$id": "fx2",
               "active": true,
-              "code": "// @whimtex-effect Color/Mask\r\n// @control(_Opacity)\r\n// @formerlyserializedas(_Amount)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group(Mask Channel; _MaskChannel)\r\n// @param hidden enum _MaskChannel = R {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}\r\n// @param texture2D _Mask = self // Mask source. Self uses the image before this FX.\r\n// @param transform2D _Transform = (0.5, 0.5, 1, 1, 0) // Position, scale and rotate the mask.\r\n// @endgroup\r\n// @group(Mask Shape)\r\n// @param label(Invert) bool _Invert = false\r\n// @param curve _Profile // Remap mask values; linear preserves the source.\r\n// @endgroup\r\n// @group(Apply To; _ApplyMode)\r\n// @param hidden enum _ApplyMode = Channels {Channels: 0, Color: 1}\r\n// @if _ApplyMode == 0\r\n// @param label(R) bool _ApplyRed = false\r\n// @param label(G) bool _ApplyGreen = false\r\n// @param label(B) bool _ApplyBlue = false\r\n// @param label(A) bool _ApplyAlpha = true\r\n// @endif\r\n// @if _ApplyMode == 1\r\n// @param label(Color) color _ApplyColor = (1, 1, 1, 0)\r\n// @endif\r\n// @endgroup\r\n\r\nfloat ReadMaskInput(float4 value)\r\n{\r\n    if (_MaskChannel < 0.5) return value.a;\r\n    if (_MaskChannel < 1.5) return dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    if (_MaskChannel < 2.5) return value.r;\r\n    if (_MaskChannel < 3.5) return value.g;\r\n    return value.b;\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float2 maskUV = _Transform_ToLocal(uv);\r\n    float2 halfTexel = 0.5 * _Mask_TexelSize.xy;\r\n    maskUV = clamp(maskUV, halfTexel, 1.0 - halfTexel);\r\n\r\n    float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(tex2D(_Mask, maskUV)))));\r\n    if (_Invert > 0.5) mask = 1.0 - mask;\r\n\tfloat multiplier = mask;\r\n    float4 channelMask = float4(_ApplyRed, _ApplyGreen, _ApplyBlue, _ApplyAlpha);\r\n    float4 applyWeights = lerp(channelMask, 1 - _ApplyColor, _ApplyMode);\r\n\tresult *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+              "code": "// @whimtex-effect Color/Mask\r\n// @control(_Opacity)\r\n// @formerlyserializedas(_Amount)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group(Mask Channel; _MaskChannel)\r\n// @param hidden enum _MaskChannel = R {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}\r\n// @param texture2D _Mask = self // Mask source. Self uses the image before this FX.\r\n// @param transform2D _Transform = (0.5, 0.5, 1, 1, 0) // Position, scale and rotate the mask.\r\n// @endgroup\r\n// @group(Mask Shape)\r\n// @param label(Invert) toggle(float) _Invert = false\r\n// @param curve _Profile // Remap mask values; linear preserves the source.\r\n// @endgroup\r\n// @group(Apply To; _ApplyMode)\r\n// @param hidden enum _ApplyMode = Channels {Channels: 0, Color: 1}\r\n// @if _ApplyMode == 0\r\n// @param label(R) toggle(float) _ApplyRed = false\r\n// @param label(G) toggle(float) _ApplyGreen = false\r\n// @param label(B) toggle(float) _ApplyBlue = false\r\n// @param label(A) toggle(float) _ApplyAlpha = true\r\n// @endif\r\n// @if _ApplyMode == 1\r\n// @param label(Color) color _ApplyColor = (1, 1, 1, 0)\r\n// @endif\r\n// @endgroup\r\n\r\nfloat ReadMaskInput(float4 value)\r\n{\r\n    if (_MaskChannel < 0.5) return value.a;\r\n    if (_MaskChannel < 1.5) return dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    if (_MaskChannel < 2.5) return value.r;\r\n    if (_MaskChannel < 3.5) return value.g;\r\n    return value.b;\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float2 maskUV = _Transform_ToLocal(uv);\r\n    float2 halfTexel = 0.5 * _Mask_TexelSize.xy;\r\n    maskUV = clamp(maskUV, halfTexel, 1.0 - halfTexel);\r\n\r\n    float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(tex2D(_Mask, maskUV)))));\r\n    if (_Invert > 0.5) mask = 1.0 - mask;\r\n\tfloat multiplier = mask;\r\n    float4 channelMask = float4(_ApplyRed, _ApplyGreen, _ApplyBlue, _ApplyAlpha);\r\n    float4 applyWeights = lerp(channelMask, 1 - _ApplyColor, _ApplyMode);\r\n\tresult *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
               "parameters": [
                 {
                   "name": "_Opacity",
@@ -509,7 +509,7 @@
                 },
                 {
                   "name": "_Invert",
-                  "type": "Bool",
+                  "type": "Toggle",
                   "floatValue": 0.0,
                   "id": "8c623bb6a42a4524a8ec95420078ee55"
                 },
@@ -550,25 +550,25 @@
                 },
                 {
                   "name": "_ApplyRed",
-                  "type": "Bool",
+                  "type": "Toggle",
                   "floatValue": 0.0,
                   "id": "4b0d90b8b8e441249ab57db3f6273a3d"
                 },
                 {
                   "name": "_ApplyGreen",
-                  "type": "Bool",
+                  "type": "Toggle",
                   "floatValue": 0.0,
                   "id": "b1742bb6bde34b169fb5f4fdb9ee444c"
                 },
                 {
                   "name": "_ApplyBlue",
-                  "type": "Bool",
+                  "type": "Toggle",
                   "floatValue": 0.0,
                   "id": "d1c50f4e4bc142e5aee69ff62a463514"
                 },
                 {
                   "name": "_ApplyAlpha",
-                  "type": "Bool",
+                  "type": "Toggle",
                   "floatValue": 1.0,
                   "id": "3dbc5209a5db40ba9fd74c3ba3aa7469"
                 },
@@ -640,7 +640,7 @@
                   "$type": "ShaderFX",
                   "$id": "fx3",
                   "active": true,
-                  "code": "// @whimtex-effect Color/Mask\r\n// @control(_Opacity)\r\n// @formerlyserializedas(_Amount)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group(Mask Channel; _MaskChannel)\r\n// @param hidden enum _MaskChannel = R {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}\r\n// @param texture2D _Mask = self // Mask source. Self uses the image before this FX.\r\n// @param transform2D _Transform = (0.5, 0.5, 1, 1, 0) // Position, scale and rotate the mask.\r\n// @endgroup\r\n// @group(Mask Shape)\r\n// @param label(Invert) bool _Invert = false\r\n// @param curve _Profile // Remap mask values; linear preserves the source.\r\n// @endgroup\r\n// @group(Apply To; _ApplyMode)\r\n// @param hidden enum _ApplyMode = Channels {Channels: 0, Color: 1}\r\n// @if _ApplyMode == 0\r\n// @param label(R) bool _ApplyRed = false\r\n// @param label(G) bool _ApplyGreen = false\r\n// @param label(B) bool _ApplyBlue = false\r\n// @param label(A) bool _ApplyAlpha = true\r\n// @endif\r\n// @if _ApplyMode == 1\r\n// @param label(Color) color _ApplyColor = (1, 1, 1, 0)\r\n// @endif\r\n// @endgroup\r\n\r\nfloat ReadMaskInput(float4 value)\r\n{\r\n    if (_MaskChannel < 0.5) return value.a;\r\n    if (_MaskChannel < 1.5) return dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    if (_MaskChannel < 2.5) return value.r;\r\n    if (_MaskChannel < 3.5) return value.g;\r\n    return value.b;\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float2 maskUV = _Transform_ToLocal(uv);\r\n    float2 halfTexel = 0.5 * _Mask_TexelSize.xy;\r\n    maskUV = clamp(maskUV, halfTexel, 1.0 - halfTexel);\r\n\r\n    float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(tex2D(_Mask, maskUV)))));\r\n    if (_Invert > 0.5) mask = 1.0 - mask;\r\n\tfloat multiplier = mask;\r\n    float4 channelMask = float4(_ApplyRed, _ApplyGreen, _ApplyBlue, _ApplyAlpha);\r\n    float4 applyWeights = lerp(channelMask, 1 - _ApplyColor, _ApplyMode);\r\n\tresult *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+                  "code": "// @whimtex-effect Color/Mask\r\n// @control(_Opacity)\r\n// @formerlyserializedas(_Amount)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group(Mask Channel; _MaskChannel)\r\n// @param hidden enum _MaskChannel = R {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}\r\n// @param texture2D _Mask = self // Mask source. Self uses the image before this FX.\r\n// @param transform2D _Transform = (0.5, 0.5, 1, 1, 0) // Position, scale and rotate the mask.\r\n// @endgroup\r\n// @group(Mask Shape)\r\n// @param label(Invert) toggle(float) _Invert = false\r\n// @param curve _Profile // Remap mask values; linear preserves the source.\r\n// @endgroup\r\n// @group(Apply To; _ApplyMode)\r\n// @param hidden enum _ApplyMode = Channels {Channels: 0, Color: 1}\r\n// @if _ApplyMode == 0\r\n// @param label(R) toggle(float) _ApplyRed = false\r\n// @param label(G) toggle(float) _ApplyGreen = false\r\n// @param label(B) toggle(float) _ApplyBlue = false\r\n// @param label(A) toggle(float) _ApplyAlpha = true\r\n// @endif\r\n// @if _ApplyMode == 1\r\n// @param label(Color) color _ApplyColor = (1, 1, 1, 0)\r\n// @endif\r\n// @endgroup\r\n\r\nfloat ReadMaskInput(float4 value)\r\n{\r\n    if (_MaskChannel < 0.5) return value.a;\r\n    if (_MaskChannel < 1.5) return dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    if (_MaskChannel < 2.5) return value.r;\r\n    if (_MaskChannel < 3.5) return value.g;\r\n    return value.b;\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float2 maskUV = _Transform_ToLocal(uv);\r\n    float2 halfTexel = 0.5 * _Mask_TexelSize.xy;\r\n    maskUV = clamp(maskUV, halfTexel, 1.0 - halfTexel);\r\n\r\n    float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(tex2D(_Mask, maskUV)))));\r\n    if (_Invert > 0.5) mask = 1.0 - mask;\r\n\tfloat multiplier = mask;\r\n    float4 channelMask = float4(_ApplyRed, _ApplyGreen, _ApplyBlue, _ApplyAlpha);\r\n    float4 applyWeights = lerp(channelMask, 1 - _ApplyColor, _ApplyMode);\r\n\tresult *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
                   "parameters": [
                     {
                       "name": "_Opacity",
@@ -691,7 +691,7 @@
                     },
                     {
                       "name": "_Invert",
-                      "type": "Bool",
+                      "type": "Toggle",
                       "floatValue": 1.0,
                       "id": "ffb9c0a96b154e8c8cd292206b2b4d44"
                     },
@@ -732,25 +732,25 @@
                     },
                     {
                       "name": "_ApplyRed",
-                      "type": "Bool",
+                      "type": "Toggle",
                       "floatValue": 0.0,
                       "id": "33fedaf55e9642238899f3370d9c0559"
                     },
                     {
                       "name": "_ApplyGreen",
-                      "type": "Bool",
+                      "type": "Toggle",
                       "floatValue": 0.0,
                       "id": "151fd45423a846dd81f6b6685d785d8d"
                     },
                     {
                       "name": "_ApplyBlue",
-                      "type": "Bool",
+                      "type": "Toggle",
                       "floatValue": 0.0,
                       "id": "041604fc9e6d4483899844a241b23f44"
                     },
                     {
                       "name": "_ApplyAlpha",
-                      "type": "Bool",
+                      "type": "Toggle",
                       "floatValue": 1.0,
                       "id": "c2193d72f84b409f91288a5636494356"
                     },
@@ -1085,7 +1085,7 @@
                   "$type": "ShaderFX",
                   "$id": "fx4",
                   "active": true,
-                  "code": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param bool _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+                  "code": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param toggle(float) _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
                   "parameters": [
                     {
                       "name": "_Opacity",
@@ -1154,7 +1154,7 @@
                     },
                     {
                       "name": "_PreserveColor",
-                      "type": "Bool",
+                      "type": "Toggle",
                       "floatValue": 1.0,
                       "id": "f23b6a56797149fe8a24b0bbd2453f79"
                     }

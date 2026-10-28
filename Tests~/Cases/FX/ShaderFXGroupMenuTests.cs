@@ -26,7 +26,7 @@ public static class ShaderFXGroupMenuTests
     }
     static string Declarations(string prefix, string title, string maximum) =>
         "// @group(" + title + "; " + prefix + "Enabled)\n" +
-        "// @param hidden label(Enabled) bool " + prefix + "Enabled = true\n" +
+        "// @param hidden label(Enabled) toggle(float) " + prefix + "Enabled = true\n" +
         "// @if " + prefix + "Enabled == 1\n" +
         "// @param label(Amount) float " + prefix + "Amount = 0.1 [0 .. " + maximum + "]\n// @endif\n" +
         "// @param hidden label(Secret) float " + prefix + "Secret = 0.2\n" +
@@ -38,7 +38,7 @@ public static class ShaderFXGroupMenuTests
 
     static string TabDeclarations(string prefix, string title, string maximum, bool header) =>
         "// @tab(" + title + (header ? "; " + prefix + "Enabled" : "") + ")\n" +
-        "// @param label(Enabled) bool " + prefix + "Enabled = false\n" +
+        "// @param label(Enabled) toggle(float) " + prefix + "Enabled = false\n" +
         "// @enableif " + prefix + "Enabled == 1\n" +
         "// @param label(Amount) float " + prefix + "Amount = 0.1 [0 .. " + maximum + "]\n// @endenableif\n" +
         "// @foldout(Details)\n// @param label(Detail) float " + prefix + "Detail = 0.3\n" +
@@ -59,7 +59,7 @@ public static class ShaderFXGroupMenuTests
             otherDocument = ScriptableObject.CreateInstance<WhimTexDocument>(); otherDocument.hideFlags = HideFlags.HideAndDontSave;
             string code = Declarations("_A", "First", "1") + Declarations("_B", "Second", "0.5") +
                 "// @group\n// @param float _Plain = 42\n// @endgroup\n" +
-                "// @group(Different)\n// @param bool _Different = false\n// @endgroup\n" +
+                "// @group(Different)\n// @param toggle(float) _Different = false\n// @endgroup\n" +
                 "// @tabs\n" + TabDeclarations("_TabA", "One", "1", false) + TabDeclarations("_TabB", "Two", "0.5", true) + "// @endtabs\n" +
                 "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _AAmount; }";
             ShaderFX Create(WhimTexDocument owner)

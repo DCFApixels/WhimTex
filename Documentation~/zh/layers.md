@@ -21,7 +21,7 @@ next_page: "zh/transform.md"
 
 | 图层 | 用途 |
 | :--- | :--- |
-| File | Project 中已有的纹理。 |
+| File | Project 纹理或项目外图像的链接。 |
 | Drawing Layer | 绘制、擦除和填充。 |
 | Color Fill | 纯色、UV 坐标或几何距离场图案。 |
 | Gradient | 平滑颜色过渡、Freeform 颜色点或可编辑的 [Mesh 网格](color.md#mesh-gradients)。 |
@@ -54,6 +54,13 @@ Spring 会先对轮廓进行弹簧松弛。**Miter Limit** 可切平过长的已
 或将它放到行与行之间来选择位置。新指定的图像会保持其原始比例。
 将 HDR 纹理指定给 File 图层会把 **Color Range** 和 **Blend Range** 设置为 **HDR**。
 之后你可以在 **Rendering** 中更改这两项。
+
+也可以从系统文件管理器将图像拖到 **Source Texture**、画布或图层行之间。
+源字段旁的 **Browse…** 可选择文件。外部文件以绝对路径引用，不复制到 Assets，也不嵌入文档。
+支持直接解码 PNG、JPEG、TGA、BMP、EXR，以及解析器支持的 TIFF：小端、非预乘 RGBA、
+8 位或 32 位浮点、无压缩或 Deflate，且不使用 predictor。Project 纹理仍使用 Unity 导入器。
+EXR 和浮点 TIFF 保留 HDR。文件缺失或格式不支持时显示错误，可在同一字段中重新指定。
+源图像更改会自动更新，通常在一秒内生效。
 
 引用其他 WhimTex 文档的 File 图层在行左侧显示细橙线。
 双击缩略图或行背景可打开或切换到该文档，不替换当前文档。

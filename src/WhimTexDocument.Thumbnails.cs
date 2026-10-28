@@ -10,8 +10,8 @@ namespace DCFApixels.WhimTex
 
         internal Texture2D GetLayerThumbnail(Layer layer, int size, bool deferUpdates = false)
         {
-            if (layer?.Behaviour is FileLayerBehaviour file && file.sourceTexture != null)
-                return ResolveOriginalFileTexture(file.sourceTexture);
+            if (layer?.Behaviour is FileLayerBehaviour file)
+                return ResolveOriginalFileTexture(file.ResolveSourceTexture(this));
             if (LayerThumbnailCache.Supports(layer))
             {
                 layerThumbnails ??= new LayerThumbnailCache(this);

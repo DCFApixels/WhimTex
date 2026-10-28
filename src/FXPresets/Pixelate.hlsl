@@ -4,7 +4,7 @@
 // @header(Pixel Grid)
 // @param px float _PixelSize = 4 [1 .. ~64] // Block size in canvas pixels.
 // @param px float2 _Offset = (0, 0) // Shift the pixel grid origin in canvas pixels without moving the layer.
-// @param bool _Average = false // Average the block over a 4x4 grid instead of sampling its center; ignored for single-pixel blocks.
+// @param toggle(float) _Average = false // Average the block over a 4x4 grid instead of sampling its center; ignored for single-pixel blocks.
 /*
 // Disabled experimental upscalers; kept here for later rework.
 // @param enum _Scaler = None {None: 0, ScaleFX: 1, HQ3x: 2} // Single-pass edge smoothing on the pixel grid; these are visual styles, not bit-exact ports.
@@ -34,7 +34,7 @@
 // @endif
 // @endgroup
 // @group(Alpha Clip; _AlphaClip)
-// @param hidden bool _AlphaClip = false // Convert partially transparent pixels to a hard transparent/opaque edge.
+// @param hidden toggle(float) _AlphaClip = false // Convert partially transparent pixels to a hard transparent/opaque edge.
 // @if _AlphaClip == 1
 // @param float _AlphaCutoff = 0.5 [0 .. 1] // Alpha at or above this value becomes opaque; lower alpha becomes transparent.
 // @endif

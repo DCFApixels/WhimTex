@@ -34,10 +34,10 @@
 // @param float _ViewAngle = 0 [~-180 .. ~180] // Direction of the virtual view ray in the canvas plane.
 // @param float _ViewElevation = 60 [5 .. 85] // 90 degrees is head-on; lower values increase parallax.
 // @param enum _ParallaxSteps = Balanced {Fast: 4, Balanced: 8, High: 16, Ultra: 32}
-// @param bool _InvertHeight = false // Use black as the raised surface and white as the recessed surface.
+// @param toggle(float) _InvertHeight = false // Use black as the raised surface and white as the recessed surface.
 // Self-shadowing controls are temporarily disabled; keep their source here for later iteration.
 // // @header(Self-Shadowing)
-// // @param bool _SelfShadow = false // Trace the height field toward a virtual light and darken occluded areas.
+// // @param toggle(float) _SelfShadow = false // Trace the height field toward a virtual light and darken occluded areas.
 // // @param float _LightAngle = 45 [~-180 .. ~180] // Direction toward the virtual light in the canvas plane.
 // // @param float _LightElevation = 45 [5 .. 85]
 // // @param enum _ShadowSteps = Balanced {Low: 4, Balanced: 8, High: 16}
@@ -48,7 +48,7 @@
 // @group(Strength Mask Source; _MaskSource)
 // @param hidden enum _MaskSource = Constant1 {Constant1: 0, MapChannel: 1, InputAlpha: 2, SeparateTexture: 3} // Constant1 needs no second texture; MapChannel reuses the displacement map.
 // @if _MaskSource != 0
-// @param bool _InvertMask = false
+// @param toggle(float) _InvertMask = false
 // @param curve _MaskProfile // Remaps mask values; the default linear curve preserves them.
 // @endif
 // @if _MaskSource == 1

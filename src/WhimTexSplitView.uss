@@ -1911,7 +1911,8 @@
     background-color: #555555;
 }
 
-.whimtex-effect-target.whimtex-effect-target--drop > .unity-base-field__input {
+.whimtex-effect-target.whimtex-effect-target--drop > .unity-base-field__input,
+.whimtex-file-source--drop > .unity-base-field__input {
     border-width: 1px;
     border-color: #5688b8;
     background-color: #315c85;
@@ -2126,6 +2127,11 @@
     margin-bottom: 4px;
     border-bottom-width: 1px;
     border-bottom-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Matches native disabled ObjectField opacity in Unity 6000.7; navigation stays enabled. */
+.whimtex-shader-fx-preset-source {
+    opacity: 0.5;
 }
 
 .whimtex-shader-fx-hidden {

@@ -132,7 +132,7 @@ namespace DCFApixels.WhimTex
             }
 
             private bool HasScrollableDrag() => owner.GetDraggedLayer() != null ||
-                owner.IsCrossWindowLayerDrag() || owner.HasProjectTextureDrag();
+                owner.IsCrossWindowLayerDrag() || owner.HasFileTextureDrag();
 
             private void OnDragPerform(DragPerformEvent evt) => Stop();
             private void OnDragExited(DragExitedEvent evt) => Stop();
@@ -179,7 +179,7 @@ namespace DCFApixels.WhimTex
             private void RefreshDropIndicator()
             {
                 if (owner.IsCrossWindowLayerDrag()) { owner.UpdateCrossWindowLayerDrop(pointer); return; }
-                if (owner.HasProjectTextureDrag())
+                if (owner.HasFileTextureDrag())
                 {
                     if (owner.TryResolveLayerDropTarget(pointer, out var textureDrop))
                     { owner.ShowLayerDropTarget(textureDrop); DragAndDrop.visualMode = DragAndDropVisualMode.Copy; }

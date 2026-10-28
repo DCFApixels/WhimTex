@@ -37,8 +37,8 @@ namespace DCFApixels.WhimTex
         internal void GetLayerContentSize(Layer layer, out int w, out int h)
         {
             Texture source = layer.SamplingSource;
-            if (layer.Behaviour is FileLayerBehaviour file && file.sourceTexture != null)
-                source = ResolveOriginalFileTexture(file.sourceTexture) ?? file.sourceTexture;
+            if (layer.Behaviour is FileLayerBehaviour file)
+                source = ResolveOriginalFileTexture(file.ResolveSourceTexture(this));
             w = source != null ? source.width : width;
             h = source != null ? source.height : height;
         }
@@ -56,7 +56,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 if (!TryFindLayer(layer, out var container, out int index)) return false;
-                if (layer.Behaviour is FileLayerBehaviour file && file.sourceTexture == null) return false;
+                if (layer.Behaviour is FileLayerBehaviour file && file.ResolveSourceTexture(this) == null) return false;
                 if (!intrinsic && layer.clippingMask && !CanInspectLayerContentCore(GetClippingBase(layer), visited, false, canvasSpace)) return false;
                 if (layer.IsGroup)
                 {

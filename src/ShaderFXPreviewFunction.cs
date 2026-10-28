@@ -58,7 +58,7 @@ namespace DCFApixels.WhimTex
                         foreach (var candidate in declarations)
                             if (candidate != null && candidate.name == name) { declared = candidate; break; }
                     if (declared == null) throw new FormatException("Preview " + function + " references undeclared @param " + name + ".");
-                    string expected = ValueType(declared.type);
+                    string expected = declared.ValueType ?? ValueType(declared.type);
                     if (expected == null || !Argument(arguments[i + 1], expected))
                         throw new FormatException("Preview " + function + " argument " + (i + 1) + " for " + name + " must be " + expected + ".");
                     bool sweep = parameter != null && parameter.name == name && controlType == ShaderFXParameterType.Float;
@@ -71,7 +71,7 @@ namespace DCFApixels.WhimTex
             if (arguments.Length == 1) return function + "(input.uv)";
             if (parameter == null)
                 throw new FormatException("Standalone preview " + function + " accepts only float2 uv.");
-            string type = ValueType(controlType);
+            string type = parameter.ValueType ?? ValueType(controlType);
             if (type == null || !Argument(arguments[1], type))
                 throw new FormatException("Preview " + function + " value must be " + (type ?? "omitted for this parameter type") + ".");
             return function + "(input.uv, " + Value(parameter, controlType, true) + ")";
@@ -85,7 +85,7 @@ namespace DCFApixels.WhimTex
                 case ShaderFXParameterType.Float:
                     if (sweep) value = "lerp(" + value + ", lerp(_WhimTex_PreviewRange.x, _WhimTex_PreviewRange.y, input.uv.x), _WhimTex_PreviewRange.z)";
                     break;
-                case ShaderFXParameterType.Bool: value = "(" + value + " >= 0.5)"; break;
+                case ShaderFXParameterType.Toggle: break;
                 case ShaderFXParameterType.Gradient: value = parameter.InternalPrefix + "Gradient"; break;
                 case ShaderFXParameterType.Curve: value = parameter.InternalPrefix + "Curve"; break;
                 case ShaderFXParameterType.Transform2D:
@@ -105,7 +105,7 @@ namespace DCFApixels.WhimTex
             {
                 case ShaderFXParameterType.Float:
                 case ShaderFXParameterType.Enum: return "float";
-                case ShaderFXParameterType.Bool: return "bool";
+                case ShaderFXParameterType.Toggle: case ShaderFXParameterType.Seed: return "float";
                 case ShaderFXParameterType.Point:
                 case ShaderFXParameterType.Vector2: return "float2";
                 case ShaderFXParameterType.Normal:

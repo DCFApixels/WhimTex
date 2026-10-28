@@ -46,8 +46,8 @@ namespace DCFApixels.WhimTex
                     for (char y = '1'; y <= '4'; y++) Add(scalar + x + "x" + y, Kind.Type);
                 }
             }
-            foreach (string word in "color curve enum gradient normal point texture2D transform2D".Split(' ')) Add(word, Kind.Type, true);
-            foreach (string word in "hidden label preview px seed".Split(' ')) Add(word, Kind.Directive, true);
+            foreach (string word in "color curve enum gradient normal point seed texture2D toggle transform2D".Split(' ')) Add(word, Kind.Type, true);
+            foreach (string word in "hidden label preview px rgba".Split(' ')) Add(word, Kind.Directive, true);
             return result;
         }
 

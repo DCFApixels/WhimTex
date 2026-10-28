@@ -18,11 +18,11 @@ public static class ShaderFXContainersTests
     static List<ShaderFXParameter> Parse(string code) => (List<ShaderFXParameter>)T("ShaderFXMetadata")
         .GetMethod("Parse", F).Invoke(null, new object[] { code, false, null });
     const string Code = @"
-// @param bool _Show = true
+// @param toggle(float) _Show = true
 // @tabs
 // @tab(Color)
 // @foldout(Advanced; _Enabled)
-// @param hidden bool _Enabled = true
+// @param hidden toggle(float) _Enabled = true
 // @param preview(Preview) float _Amount = 0.25 [0 .. 1]
 // @group(Tint)
 // @param color _Tint = #FFFFFFFF
@@ -30,7 +30,7 @@ public static class ShaderFXContainersTests
 // @endfoldout
 // @endtab
 // @tab(Mask; _MaskEnabled)
-// @param hidden bool _MaskEnabled = false
+// @param hidden toggle(float) _MaskEnabled = false
 // @if _Show == 1
 // @param float _Threshold = 0.5 [0 .. 1]
 // @endif
@@ -120,7 +120,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
             "// @foldout\n// @param float _X\n// @endfoldout",
             "// @foldout(A; _X)\n// @group(B)\n// @param float _X\n// @endgroup\n// @endfoldout",
             "// @foldout(A)\n// @param float _X\n// @endgroup",
-            "// @param bool _Enabled\n// @if _Enabled == 1\n// @foldout(A)\n// @param float _X\n// @endfoldout\n// @endif"
+            "// @param toggle(float) _Enabled\n// @if _Enabled == 1\n// @foldout(A)\n// @param float _X\n// @endfoldout\n// @endif"
         })
         {
             bool rejected = false;

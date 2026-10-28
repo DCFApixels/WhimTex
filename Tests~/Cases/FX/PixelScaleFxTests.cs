@@ -36,7 +36,7 @@ public static class PixelScaleFxTests
             "Repeated controls agree on units");
         foreach (string body in new[] { "px bool _A", "px enum _A {A:0,B:1}", "px normal _A", "px point _A",
             "px color _A", "px texture2D _A", "px transform2D _A", "px curve _A", "px gradient _A",
-            "px seed float _A [0 .. 100]", "px px float _A", "px float _A\n// @param float _A" })
+            "px seed(float) _A [0 .. 100]", "px px float _A", "px float _A\n// @param float _A" })
         {
             bool rejected = false;
             try { Parse("// @param " + body); }

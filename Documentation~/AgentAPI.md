@@ -1237,7 +1237,7 @@ All resulting FX instances are document-owned, with independent values and enabl
 | `applyAll` | Bake the complete nonempty stack |
 
 `add`, `replace`, `set` and `copy` also accept `randomizeSeeds:["_Seed"]`. Names must identify
-explicit `seed float` declarations; the first seed control defines each inclusive integer range.
+explicit `seed(float)` declarations; the first seed control defines each inclusive integer range.
 Do not include the same name in `parameters`. Each FX gets an independent choice when executed;
 validation/dry runs do not randomize. This uses the ordinary copy-on-write, Undo and invalidation
 path without recompiling a `set`. Catalog/live parameter snapshots expose `seed`, `seedMinimum`
@@ -1245,16 +1245,17 @@ and `seedMaximum`; bounds are null for other parameters. Values remain fixed unt
 
 `parameters` is a **name/value object**, not a replacement list. Types are inferred from existing
 declarations; unknown names, invalid enum values and hard-range violations fail. Use numbers for
-enums, booleans for bools and the value formats below. Unmentioned values remain.
+enums, booleans only for declared bool types and the value formats below. Unmentioned values remain.
 Indices refer to the latest inspected stack and change after each edit. Limits: 32 edits per
 operation, 32 FX per layer, 128 parameters per effect, 65,536 characters of raw HLSL.
 
 | Parameter type | Shared `fx.edits[].parameters` value |
 | --- | --- |
-| `Bool` | JSON boolean |
+| `toggle(type)` | Boolean for bool; numeric 0/1 for int/uint/half/float. Vectors use arrays of exactly the declared component count. |
 | `Float` | Finite number within -1000000..1000000 (−16777216…16777216 for explicit `seed`) and the declaration's hard bounds; soft bounds may be exceeded |
-| `Enum` | Number matching an explicitly declared option value; fractional option values are supported |
-| `Color` | `[r,g,b,a]`: RGB -107..107, alpha 0..1 |
+| `enum(type)` | Number matching a declared option, within the chosen scalar type range; float/half permit fractions. |
+| `seed(type)` | Integral number within its type and hard limits; float additionally stays within ±16777216. Soft limits may be exceeded. |
+| `color(type)` | Scalar or exact-length array according to `valueType`; booleans for bool, numbers within the declared type range otherwise. Integer values remain exact; float/half RGB retains encoded-color semantics. |
 | `Vector2`, `Point` | Two numeric components, each -1000000..1000000 |
 | `Vector3`, `Normal` | Three numeric components, each -1000000..1000000; Normal is normalized by the API |
 | `Vector` | Four numeric components, each -1000000..1000000; this is HLSL `float4` |
@@ -1572,7 +1573,7 @@ Current Sharp/MTSDF quality prototype: closed raster contours use line fits over
 | All | `name` (string), `enabled` / `clippingMask` (boolean), `opacity` (0..1), `blend`, `colorRange` / `blendRange` (`Standard`, `HDR`), `channelMapping` (four channel names in output RGBA order) |
 | Non-group | `filter` (`Source`, `Point`, `Bilinear`, `Trilinear`) |
 | Group | `compositing` (`PassThrough`, `Isolated`); ranges are active only when isolated |
-| File | `source` (already imported Texture2D path in Assets or Packages) |
+| File | `source`: imported Texture2D path in Assets/Packages, or an absolute external image path. External PNG/JPEG/TGA/BMP/EXR and supported TIFF are decoded without importing. TIFF: little-endian straight RGBA, 8-bit or 32-bit float, None/Deflate compression, no predictor. Inspection returns the same path, `sourceSize` and `sourceError` when unavailable; `importedSourceSize` applies only to project textures. Assignment validates the decoder before changing the link. External links remain absolute and are not embedded; another machine must have the source at that path or replace it. |
 | Color | `color` (`[r,g,b,a]`, encoded RGB -107..107, alpha 0..1), `fillMode` (`Color`, `UV`, `Pattern`), `fillPattern` (partial settings below) |
 | Drawing | `brush` (partial brush settings below) |
 | Gradient | `gradientType` (`Linear`, `Radial`, `Angular`, `Square`, `Freeform`, `Mesh`), `gradient` (ordinary palette), `freeform` (point settings below), `mesh` (complete control lattice below) |
@@ -3125,3 +3126,7 @@ test for mutually exclusive Mirror/Repeat modes, file-baseline normalization, mo
 source stamps under the cursor and JSON round-trips. It creates no assets or GPU resources; run only
 after the updated plugin is compiled. Acknowledge each selected scenario's declared effects;
 this does not grant asset or user-state authority. It does not replace visual painting checks.
+
+### Typed numeric shader parameters
+
+The field syntax is `toggle(type)`, `color(type)`, `enum(type)` or `seed(type)`; defaults are float, float4, float and int. Toggle/color accept bool/int/uint/half/float scalars and vectors2/3/4; enum accepts numeric scalars; seed accepts int/uint/float. `rgba` changes component labels only. Use `rgba toggle(float4)` for channel switches and explicit vector components in conditions. `gradient`, `curve` and `transform2D` are unchanged. API parameter values use JSON booleans for bool, numbers for other scalar types and arrays of the exact component count for vectors. Integer endpoints remain exact. FX reads expose `valueType` and each control’s `field`, `valueType` and `componentLabels`. Float/half color values retain encoded-color semantics; integer/bool colors are raw numeric values, without 0–255 scaling. Seed values must be integral; float seeds stay within ±16777216. See [the shader parameter contract](ShaderFX.md#field-presentation-and-numeric-type).

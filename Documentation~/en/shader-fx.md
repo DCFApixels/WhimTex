@@ -305,6 +305,8 @@ See the [signatures, restrictions and mask example](../ShaderFX.md#pixel-local-e
 
 ## Editing in an external editor
 
+For a preset, **Code → Preset** shows its source file in a read-only object-style field. Click to ping a project/package asset; external library files have no Project selection. Double-click opens the original file in VS Code, or Unity's selected script editor when VS Code is unavailable. Right-click → **Show in Explorer** reveals the file (Finder on macOS). External library presets remain embedded copies: editing their original file does not update existing copies in the document.
+
 - **Open Code** opens a working file in Unity's selected script editor. Saving updates the draft in WhimTex; click **Compile** to compile it.
 - **Open in VS Code** also installs WhimTex directive highlighting, completions and checks automatically in an isolated profile. Saving this working file requests **Compile** in Unity, without returning to the WhimTex window. The language mode remains **HLSL**; the bundled extension supports Restricted Mode.
 - If the VS Code button is missing, set **User Settings → External Code Editor → VS Code Command**. WhimTex checks Unity's registered editors and PATH before this fallback.
@@ -475,6 +477,9 @@ especially with Scharr.
 Both effects use **Base Color alpha** to blend transparent lighting (0) into the filled, shaded surface (1). Intermediate values crossfade with alpha-aware mixing. RGB tints the surface; **Ambient** fades in with it. **Output** selects Both, Highlight Only or Shadow Only for the transparent component and has no effect at Base Color alpha = 1. Light Color/Shadow Color alpha controls that component's strength. Overall opacity and blending belong to the layer. Both effects default to Base Color alpha 0. Re-add the preset to update an older embedded copy.
 
 **Normal Map → Lighting** also has an optional **Specular** block, disabled by default. Enable it to add a reflective highlight using the same **Light Direction**. **Specular Color** sets its tint (alpha scales strength), **Specular Intensity** controls strength independently of the diffuse light, and **Roughness** widens the highlight as it increases. Zero Roughness uses a finite sharpness limit. Both and Highlight Only include the enabled highlight; Shadow Only excludes it. The additional **Specular Only** output omits the surface and diffuse light even when Base Color alpha is 1; with Specular disabled it is transparent. Specular follows input alpha, adds light without darkening the diffuse result and retains intensities above 1 in HDR. The orthographic viewer faces +Z, so frontal light can illuminate an entire flat region rather than only the rim. Bevel Emboss is unchanged.
+
+Bevel Emboss reads neighboring heights, so **Pixel Local** is **No**. The built-in preset
+compiles without a locality warning.
 
 ### Normal map normalization
 **Normal Map → Normalize** restores unit-length normals while preserving alpha.

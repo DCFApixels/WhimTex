@@ -179,6 +179,12 @@ namespace DCFApixels.WhimTex
         private static ShaderFXParameter ReadFxParameterValue(ShaderFXParameter target, JToken token, WhimTexDocument owner)
         {
             var value = target.Copy();
+            if (target.controls.Any(c => c.type == ShaderFXParameterType.Toggle || c.type == ShaderFXParameterType.Color ||
+                c.type == ShaderFXParameterType.Enum || c.type == ShaderFXParameterType.Seed))
+            {
+                ReadTypedFxValue(value, token);
+                return value;
+            }
             var spec = new JObject { ["value"] = token };
                 switch (value.type)
                 {
@@ -187,7 +193,7 @@ namespace DCFApixels.WhimTex
                         value.curveValue = WhimTexCurveTexture.Parse((string)spec["value"]);
                         break;
                     case ShaderFXParameterType.Gradient: value.gradientValue = ReadGradient(spec["value"]); break;
-                    case ShaderFXParameterType.Bool:
+                    case ShaderFXParameterType.Toggle:
                         Require(spec["value"].Type == JTokenType.Boolean, "Bool value must be true or false.");
                         value.floatValue = (bool)spec["value"] ? 1f : 0f;
                         break;
@@ -290,7 +296,7 @@ namespace DCFApixels.WhimTex
                 Require(control != null, "Parameter is not declared seed: " + name);
                 ShaderFXSeed.Validate(control);
                 // Validation/dry runs must not consume randomness or change the stored value.
-                if (execute) parameter.floatValue = ShaderFXSeed.NextValue(control);
+                if (execute) parameter.SetNumber(0, ShaderFXSeed.NextValue(control));
             }
         }
 
@@ -305,10 +311,11 @@ namespace DCFApixels.WhimTex
                 var parsed = ReadFxParameterValue(target, property.Value.DeepClone(), document);
                 if (target.type == ShaderFXParameterType.Float || target.type == ShaderFXParameterType.Enum)
                 {
-                    Require(target.Clamp(parsed.floatValue) == parsed.floatValue, "Parameter outside its hard range: " + target.name);
+                    Require(target.IsInteger || target.Clamp(parsed.floatValue) == parsed.floatValue, "Parameter outside its hard range: " + target.name);
                     if (target.type == ShaderFXParameterType.Enum)
-                        Require(target.controls.Any(c => Array.IndexOf(c.optionValues, parsed.floatValue) >= 0), "Invalid enum value: " + target.name);
+                        Require(target.controls.Any(c => Array.IndexOf(c.optionValues, parsed.GetNumber()) >= 0), "Invalid enum value: " + target.name);
                 }
+                target.integerValues = parsed.integerValues;
                 target.floatValue = parsed.floatValue; target.colorValue = parsed.colorValue; target.vectorValue = parsed.vectorValue;
                 target.textureValue = parsed.textureValue; target.textureSource = parsed.textureSource; target.textureLayerId = parsed.textureLayerId;
                 target.gradientValue = parsed.gradientValue; target.curveValue = parsed.curveValue; target.transformValue = parsed.transformValue;

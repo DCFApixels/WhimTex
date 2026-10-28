@@ -15,6 +15,7 @@ namespace DCFApixels.WhimTex
         private static WhimTexColorPicker current;
         internal object SourceContext;
         private Color original, color;
+        private int editableComponents = 4;
         private bool hdr, initialHdr, alphaVisible, finished, edited, syncing, mixedValue;
         private WhimTexColorRange range;
         private WhimTexDocument document;
@@ -134,10 +135,14 @@ namespace DCFApixels.WhimTex
             hueRing.AddToClassList("whimtex-picker-ring"); wheel.Add(hueRing);
             hueRing.AddManipulator(new ColorDrag(p => { hue = Mathf.Repeat(Mathf.Atan2(.5f-p.y,p.x-.5f)/(2*Mathf.PI),1); FromHsv(); },
                 p => { float radius = (p-new Vector2(.5f,.5f)).magnitude; return radius >= .39f && radius <= .5f; }));
-            plane = new ColorSurface(ColorSurface.Kind.Plane, () => hue, () => new Vector2(saturation, brightness), () => PickerChannelMask, () => color.a,
+            plane = new ColorSurface(ColorSurface.Kind.Plane, () => hue, () => editableComponents == 2 ? new Vector2(WhimTexColorInputs.StandardColor(color).r, WhimTexColorInputs.StandardColor(color).g) : new Vector2(saturation, brightness), () => PickerChannelMask, () => color.a,
                 c => PreviewColor(WithColorExposure(c)));
             plane.AddToClassList("whimtex-picker-plane"); wheel.Add(plane);
-            plane.AddManipulator(new ColorDrag(p => { saturation = p.x; brightness = 1 - p.y; FromHsv(); }));
+            plane.AddManipulator(new ColorDrag(p =>
+            {
+                if (editableComponents == 2) { var next = WithColorExposure(new Color(p.x, 1 - p.y, 0, 1)); SetColor(next); }
+                else { saturation = p.x; brightness = 1 - p.y; FromHsv(); }
+            }));
             BuildEyedropperPreview(wheel);
             int savedMode = EditorPrefs.GetInt(ColorModePreference, 2);
             mode = new PopupField<string>(new List<string> { "RGB 0–255", "RGB 0–1", "HSV" }, savedMode >= 0 && savedMode <= 2 ? savedMode : 2);
@@ -273,8 +278,17 @@ namespace DCFApixels.WhimTex
         {
             if (!IsFinite(next) || finished || valid != null && !valid()) return;
             next = Limit(next, hdr, alphaVisible, original.a);
+            for (int i = editableComponents; i < 3; i++) next[i] = 0;
+            if (editableComponents < 4) next.a = 1;
             if (mixedValue || !color.Equals(next)) { mixedValue = false; color = next; edited = true; changed?.Invoke(color); }
             if (decode) Decode(); Refresh();
+        }
+        internal void SetEditableComponents(int count)
+        {
+            editableComponents = Mathf.Clamp(count, 1, 4);
+            alphaVisible = editableComponents == 4 && alphaVisible;
+            if (plane != null) plane.rg = () => editableComponents == 2;
+            Refresh();
         }
         private void Refresh()
         {
@@ -283,9 +297,14 @@ namespace DCFApixels.WhimTex
             try
             {
                 hdrControl.SetValueWithoutNotify(hdr);
+                if (editableComponents < 3 && mode.index == 2) mode.SetValueWithoutNotify("RGB 0–1");
+                mode.SetEnabled(editableComponents >= 3);
+                hueRing.style.display = editableComponents < 3 ? DisplayStyle.None : DisplayStyle.Flex;
+                plane.parent.style.display = editableComponents == 1 ? DisplayStyle.None : DisplayStyle.Flex;
                 var display = hdr ? color : WhimTexColorInputs.StandardColor(color);
                 for (int i = 0; i < 3; i++)
                 {
+                    channels[i].style.display = i < editableComponents ? DisplayStyle.Flex : DisplayStyle.None;
                     channels[i].label = mode.index == 2 ? new[] { "H", "S", "V" }[i] : new[] { "R", "G", "B" }[i];
                     float v = mode.index == 2 ? (i == 0 ? hue * 360 : i == 1 ? saturation * 100 : brightness * 100) : display[i] * (mode.index == 0 ? 255 : 1);
                     channels[i].SetValueWithoutNotify(0);
@@ -512,6 +531,7 @@ namespace DCFApixels.WhimTex
 
         private sealed class ColorSurface : VisualElement
         {
+            internal Func<bool> rg;
             internal enum Kind { Swatch, Plane }
             private readonly Kind kind; private readonly Func<float> hue; private readonly Func<Vector2> marker; private readonly Func<Color> color;
             private readonly bool showPlus;
@@ -550,7 +570,7 @@ namespace DCFApixels.WhimTex
                 var mesh = context.Allocate((nx + 1) * (ny + 1), nx * ny * 6);
                 for (int y = 0; y <= ny; y++) for (int x = 0; x <= nx; x++)
                 {
-                    Color c = Color.HSVToRGB(hue(), x / (float)nx, 1-y/(float)ny);
+                    Color c = rg?.Invoke() == true ? new Color(x / (float)nx, 1-y/(float)ny, 0, 1) : Color.HSVToRGB(hue(), x / (float)nx, 1-y/(float)ny);
                     if (preview != null) c = preview(c);
                     if (mask >= 0)
                     {

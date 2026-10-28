@@ -7,7 +7,7 @@
 // @param enum _SourceChannel = Luminance {Luminance: 0, R: 1, G: 2, B: 3, Alpha: 4} // Select the input used to look up the full gradient color. RGB uses sRGB values; alpha is read directly.
 // @param gradient _Gradient // Colors from shadows to highlights; gradient alpha multiplies source alpha.
 // @param curve _Mapping // Remap the selected input before sampling the gradient; the default is unchanged.
-// @param bool _Reverse = false // Map highlights to the beginning of the gradient instead of shadows.
+// @param toggle(float) _Reverse = false // Map highlights to the beginning of the gradient instead of shadows.
 // @endgroup
 
 #include "Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc"

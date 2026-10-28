@@ -33,7 +33,7 @@ public static class ShaderFXGroupTests
 
         const string declarations =
             "// @group(Tint; _EnableTint)\n" +
-            "// @param bool _EnableTint = true\n" +
+            "// @param toggle(float) _EnableTint = true\n" +
             "// @param color _Tint = #80C0FFFF\n" +
             "// @if _EnableTint == 1\n" +
             "// @param label(Tint Strength) float _Strength = 0.75 [0 .. 1]\n" +
@@ -48,7 +48,7 @@ public static class ShaderFXGroupTests
             "// @param float _AmountScale = 1\n" +
             "// @endgroup\n" +
             "// @group(Internal; _Internal)\n" +
-            "// @param hidden label(\"Internal (Advanced) Toggle\") bool _Internal = true\n" +
+            "// @param hidden label(\"Internal (Advanced) Toggle\") toggle(float) _Internal = true\n" +
             "// @param float _Extra = 2\n" +
             "// @endgroup\n" +
             "// @group(Color; _Color)\n" +
@@ -72,7 +72,7 @@ public static class ShaderFXGroupTests
             "// @endgroup\n";
         var values = Parse(declarations);
         var enabled = values.Find(p => p.name == "_EnableTint");
-        Check(values.Count == 16 && enabled.type == ShaderFXParameterType.Bool, "Group header bool remains a shader parameter");
+        Check(values.Count == 16 && enabled.type == ShaderFXParameterType.Toggle, "Group header bool remains a shader parameter");
         Check(enabled.controls.Count == 1 && !enabled.controls[0].hidden && enabled.controls[0].inGroup &&
             enabled.controls[0].groupTitle == "Tint" && enabled.controls[0].groupHeaderParameter == "_EnableTint", "Group header parameter metadata parse");
         Check(values.Find(p => p.name == "_Mode").controls[0].groupHeaderParameter == "_Mode" &&
@@ -87,8 +87,8 @@ public static class ShaderFXGroupTests
             "// @group()\n// @param float _X\n// @endgroup",
             "// @group(A; _Missing)\n// @param float _X\n// @endgroup",
             "// @param float _External\n// @group(A; _External)\n// @param float _X\n// @endgroup",
-            "// @group(A; _Enabled)\n// @param bool _Enabled = true\n// @param bool _Enabled = false\n// @param float _X\n// @endgroup",
-            "// @group(A; _Enabled)\n// @if _Enabled == 1\n// @param bool _Enabled = true\n// @endif\n// @param float _X\n// @endgroup",
+            "// @group(A; _Enabled)\n// @param toggle(float) _Enabled = true\n// @param toggle(float) _Enabled = false\n// @param float _X\n// @endgroup",
+            "// @group(A; _Enabled)\n// @if _Enabled == 1\n// @param toggle(float) _Enabled = true\n// @endif\n// @param float _X\n// @endgroup",
             "// @param hidden label(First) label(Second) float _X",
             "// @param label() float _X"
         })
@@ -174,7 +174,7 @@ public static class ShaderFXGroupTests
 
             string saved = (string)assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter").GetMethod("BuildSource", F)
                 .Invoke(null, new object[] { fx, "Test/Grouped" });
-            Check(saved.Contains("// @group(Tint; _EnableTint)") && saved.Contains("// @param bool _EnableTint = false") &&
+            Check(saved.Contains("// @group(Tint; _EnableTint)") && saved.Contains("// @param toggle(float) _EnableTint = 0") &&
                 saved.Contains("hidden label(\"Internal (Advanced) Toggle\")") &&
                 saved.Contains("hidden label(\"Optional Mode\") enum") &&
                 saved.Contains("// @group(Advanced; _Mode)") && saved.Contains("// @group(Offset; _Amount)") &&
@@ -260,15 +260,12 @@ public static class ShaderFXGroupTests
             CheckTitle("Mask", "_ApplyMode", "Apply To");
             CheckTitle("Mask", "_Profile", "Mask Shape");
             var maskParameters = PresetParameters("Mask");
-            Check(Array.TrueForAll(new[] { "_ApplyAlpha", "_ApplyRed", "_ApplyGreen", "_ApplyBlue" }, name =>
-                Parameter(maskParameters, name).type == ShaderFXParameterType.Bool && Control(maskParameters, name).groupTitle == "Apply To") &&
-                Parameter(maskParameters, "_ApplyAlpha").floatValue == 1f &&
-                Parameter(maskParameters, "_ApplyRed").floatValue == 0f &&
-                Parameter(maskParameters, "_ApplyGreen").floatValue == 0f &&
-                Parameter(maskParameters, "_ApplyBlue").floatValue == 0f,
+            Check(Control(maskParameters, "_Channels").type == ShaderFXParameterType.Toggle &&
+                Control(maskParameters, "_Channels").rgba && Control(maskParameters, "_Channels").groupTitle == "Apply To" &&
+                Parameter(maskParameters, "_Channels").vectorValue == new Vector4(0,0,0,1),
                 "Mask exposes four independent target-channel toggles, with Alpha enabled by default");
-            Check(Control(maskParameters, "_ApplyRed").visibleIfParameter == "_ApplyMode" &&
-                Control(maskParameters, "_ApplyRed").visibleIfValue == 0f &&
+            Check(Control(maskParameters, "_Channels").visibleIfParameter == "_ApplyMode" &&
+                Control(maskParameters, "_Channels").visibleIfValue == 0f &&
                 Control(maskParameters, "_ApplyColor").visibleIfParameter == "_ApplyMode" &&
                 Control(maskParameters, "_ApplyColor").visibleIfValue == 1f &&
                 Control(maskParameters, "_Opacity").hidden && Control(maskParameters, "_Opacity").visibleIfParameter == null,
@@ -281,8 +278,9 @@ public static class ShaderFXGroupTests
                 "Mask inverts the selected color into per-channel mask application weights");
             CheckTitle("Step", "_ApplyMode", "Apply To");
             var stepParameters = PresetParameters("Step");
-            Check(Array.TrueForAll(new[] { "_Red", "_Green", "_Blue", "_Alpha" }, name =>
-                Parameter(stepParameters, name).type == ShaderFXParameterType.Bool && Control(stepParameters, name).groupTitle == "Apply To") &&
+            Check(Control(stepParameters, "_Channels").type == ShaderFXParameterType.Toggle &&
+                Control(stepParameters, "_Channels").rgba && Control(stepParameters, "_Channels").groupTitle == "Apply To" &&
+                Parameter(stepParameters, "_Channels").vectorValue == new Vector4(1,1,1,0) &&
                 Control(stepParameters, "_ApplyColor").visibleIfParameter == "_ApplyMode" &&
                 Control(stepParameters, "_ApplyColor").visibleIfValue == 1f,
                 "Step switches between channel toggles and a per-channel color weight");

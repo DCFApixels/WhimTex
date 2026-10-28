@@ -165,7 +165,7 @@ namespace DCFApixels.WhimTex
                     {
                         if (p == null) continue;
                         var seed = ShaderFXSeed.Control(p);
-                        JToken value = p.type == ShaderFXParameterType.Bool ? new JValue(p.BoolValue) :
+                        JToken value = p.Components > 0 ? TypedFxValue(p) :
                             p.type == ShaderFXParameterType.Curve ? new JValue(WhimTexCurveTexture.Format(p.curveValue)) :
                             p.type == ShaderFXParameterType.Gradient ? GradientSnapshot(p.gradientValue ?? new WhimTexGradient()) :
                             p.type == ShaderFXParameterType.Transform2D ? FxTransformSnapshot(p.transformValue) :
@@ -179,13 +179,15 @@ namespace DCFApixels.WhimTex
                                 : p.textureSource == ShaderFXTextureSource.Self ? new JValue("self")
                                 : p.textureSource == ShaderFXTextureSource.None ? new JValue("none")
                                 : new JValue(p.textureValue == null ? "" : AssetDatabase.GetAssetPath(p.textureValue))) : new JValue(p.floatValue);
-                        parameters.Add(new JObject { ["name"] = p.name, ["id"] = p.id, ["type"] = p.type.ToString(), ["value"] = value,
+                        parameters.Add(new JObject { ["name"] = p.name, ["id"] = p.id, ["type"] = p.type.ToString(), ["valueType"] = p.ValueType, ["value"] = value,
+                            ["controls"] = new JArray(p.controls.Select(c => new JObject { ["field"] = c.type.ToString().ToLowerInvariant(),
+                                ["valueType"] = p.ValueType, ["componentLabels"] = p.Components > 1 ? (JToken)new JArray((c.rgba ? "RGBA" : "XYZW").Substring(0, p.Components).Select(x => x.ToString())) : null })),
                             ["seed"] = seed != null,
-                            ["seedMinimum"] = seed != null ? (JToken)new JValue(Math.Ceiling(seed.minimum)) : JValue.CreateNull(),
-                            ["seedMaximum"] = seed != null ? (JToken)new JValue(Math.Floor(seed.maximum)) : JValue.CreateNull(),
+                            ["seedMinimum"] = seed != null ? (JToken)new JValue(seed.valueMinimum) : JValue.CreateNull(),
+                            ["seedMaximum"] = seed != null ? (JToken)new JValue(seed.valueMaximum) : JValue.CreateNull(),
                             ["softMinimum"] = p.softMinimum, ["softMaximum"] = p.softMaximum,
                             ["cyclicRange"] = p.cyclicRange,
-                            ["options"] = p.type == ShaderFXParameterType.Enum ? new JArray(p.controls.SelectMany(c => c.optionNames.Zip(c.optionValues, (n, v) => new JObject { ["name"] = n, ["value"] = v }))) : null,
+                            ["options"] = p.controls.Any(c => c.type == ShaderFXParameterType.Enum) ? new JArray(p.controls.SelectMany(c => c.optionNames.Zip(c.optionValues, (n, v) => new JObject { ["name"] = n, ["value"] = v }))) : null,
                             ["minimum"] = p.hasMinimum ? (JToken)new JValue(p.minimum) : JValue.CreateNull(),
                             ["maximum"] = p.hasMaximum ? (JToken)new JValue(p.maximum) : JValue.CreateNull() });
                     }

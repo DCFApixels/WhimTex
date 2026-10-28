@@ -229,7 +229,7 @@ context.case('displacement map supports a single map with an optional strength m
         assert.match(code, /tex2Dgrad\(_DisplacementMap, mapUV, mapDDX, mapDDY\)/);
         assert.match(code, /float2 mapDDX = ddx\(mapUV\)/);
         assert.match(code, /for \(int i = 0; i < 32; i\+\+\)/);
-        assert.match(code, /^\/\/ \/\/ @param bool _SelfShadow = false/m, 'Self-shadow settings remain commented out');
+        assert.match(code, /^\/\/ \/\/ @param toggle(float) _SelfShadow = false/m, 'Self-shadow settings remain commented out');
         assert.match(code, /^\/\/ float TraceParallaxSelfShadow\(/m, 'Self-shadow tracing remains commented out');
         assert.match(code, /^    \/\/ if \(_Mode > 1\.5 && _SelfShadow > 0\.5\)/m, 'Self-shadow application remains disabled');
         assert.doesNotMatch(code, /^\s*if \(_Mode > 1\.5 && _SelfShadow > 0\.5\)/m);

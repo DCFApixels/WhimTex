@@ -50,11 +50,11 @@
         },
         {
           "name": "storage.modifier.whimtex",
-          "match": "\\b(?:hidden|seed|px)\\b"
+          "match": "\\b(?:hidden|rgba|px)\\b"
         },
         {
           "name": "storage.type.whimtex",
-          "match": "\\b(?:float[234]?|bool|enum|normal|point|color|texture2D|transform2D|gradient|curve)\\b"
+          "match": "\\b(?:(?:bool|int|uint|half|float)[234]?|toggle|seed|enum|normal|point|color|texture2D|transform2D|gradient|curve)\\b"
         },
         {
           "name": "constant.language.whimtex",
