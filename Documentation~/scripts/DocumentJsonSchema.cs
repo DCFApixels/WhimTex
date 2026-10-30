@@ -186,6 +186,20 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                                 ("anyOf", new[] { D(("const", new[] { 0, 0 })), D(("items", D(("type", "integer"), ("minimum", 1), ("maximum", 16384)))) }),
                                 ("description", "Source reference canvas dimensions retained by Crop. [0,0] uses the current canvas; otherwise both dimensions must be positive and their product at most 16,777,216. Keeps Noise, ordinary Pattern and uninitialized Drawing sources at their original pixel scale. Not a source-image resolution, crop rectangle or rendering cache.")) :
                             type == typeof(Layer) && f.Name == "id" ? D(("type", "string"), ("minLength", 1)) : Schema(f.FieldType);
+                if (type == typeof(ShaderFX))
+                {
+                    properties["presetId"] = D(("type", new[] { "string", "null" }), ("default", null),
+                        ("description", "Optional @preset GUID in N or D form; editor writes lowercase N. A nonempty ID requires presetVersion >= 1. No Unity asset GUID or content/path matching."));
+                    properties["presetVersion"] = D(("type", "integer"), ("minimum", 0), ("default", 0),
+                        ("description", "Exact expected preset version. Zero/omitted only without a preset ID. Missing, invalid or differently versioned sources use saved code and retain this reference."));
+                    ((Dictionary<string, object>)definitions[name])["oneOf"] = new[] {
+                        D(("properties", D(("presetId", D(("enum", new object[] { null, "" }))), ("presetVersion", D(("const", 0)))))),
+                        D(("required", new[] { "presetId", "presetVersion" }), ("properties", D(
+                            ("presetId", D(("type", "string"), ("pattern", "^(?:[0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"),
+                                ("not", D(("enum", new[] { "00000000000000000000000000000000", "00000000-0000-0000-0000-000000000000" }))))),
+                            ("presetVersion", D(("minimum", 1))))))
+                    };
+                }
                 if (type == typeof(WhimTexGradient))
                 {
                     ((Dictionary<string, object>)definitions[name])["description"] = "Independent color model and scalar interpolation. colors/alphas/colorMode retain automatic data. Custom uses independent customKeys/customColorMode; inactive automatic and manual data remain stored in every write mode. huePath, smoothness, midpoint and chromaCorrection do not change Custom curves. Retired mode and transition fields are unsupported.";

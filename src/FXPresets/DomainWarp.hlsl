@@ -1,4 +1,5 @@
 // @whimtex-effect Distortion/Domain Warp
+// @preset("f2e167887467449dae2e55d2fec65d1f", 1)
 // @control(_Strength)
 // @group("Distortion")
 // @icon("../Editor/Icons/FX/Distortion.svg")

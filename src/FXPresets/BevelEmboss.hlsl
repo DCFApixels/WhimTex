@@ -1,4 +1,5 @@
 // @whimtex-effect Lighting/Bevel Emboss
+// @preset("f36b43186e8644a7a90a421307e9cc44", 1)
 // @group("Lighting")
 // @icon("../Editor/Icons/FX/Lighting.svg")
 // @header(Height Source)

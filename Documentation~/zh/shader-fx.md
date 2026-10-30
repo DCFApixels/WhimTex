@@ -62,6 +62,16 @@ Repeat 或 Mirror 则用重复图像填充边框外的区域。
 
 ## 参数控件
 
+**Color → Color Space** 在 **Linear**、**Gamma** 和 **HSV** 之间转换通道值。
+**Input Space** 应匹配来源的输出，**Output Space** 指定目标结果，默认为 Gamma → Linear。
+名称与 Noise 和 Normal Map 一致：Noise Linear 后添加 Linear → Gamma 的 Color Space，
+结果与直接将 Noise 设置为 Gamma 相同，反向也成立。HSV 基于 Linear RGB，将色相、饱和度、
+明度存入 R、G、B，不对 HSV 通道做伽马编码；色相范围为 0 到 1。
+Alpha 保持不变，输入输出空间相同时所有通道原样通过。
+要保留大于 1 的值，请使用 HDR Color Range。HSV 的 Value 可以大于 1，转换到 HSV 时
+负 RGB 会被截为零；Linear ↔ Gamma 保留负值。此效果转换像素值，不修改导出编码。
+要保留 Linear 或 HSV 通道数据而不再进行 sRGB 转换，请使用线性导出，例如 EXR。
+
 使用 **⋮ → Reset**，或右键点击 FX 标题并选择 **Reset**，可恢复所有参数的默认值，包括隐藏字段和变换。代码、预设链接和启用状态保持不变。重置仅影响当前效果，且可以撤销。
 
 右键点击有名称的组、折叠区域标题或单个标签页，可使用 **Copy**、**Paste** 和 **Reset**；Reset 前有分隔线。Paste 可在兼容的组或页面之间传递值，例如 Hue & Saturation 的各个范围。隐藏和禁用字段、嵌套设置及标题复选框也会复制和重置。Reset 只影响当前组或页面，不改变相邻页面和共享字段；粘贴和重置均可撤销。内容区域、无名称的组和标签页总标题没有此菜单。
@@ -188,7 +198,7 @@ Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已
 
 每个 FX 都属于文档，参数值和启用状态相互独立。选择 **⋮ → Copy FX**，然后在另一行选择 **Paste FX As New**，即可在该行后插入独立副本。同一文档内粘贴时保留图层纹理引用，粘贴到其他文档时会清除这些引用。菜单还包含 **Move Up**、**Move Down** 和 **Remove**。
 
-项目和包内预设的代码会随源 `.hlsl` 文件更新，参数值仍各自独立。使用 **Open HLSL Source** 编辑源文件。要独立编辑当前效果的代码，点击 **Code → Embed Copy**：它会断开 `.hlsl` 链接，在文档中保留当前代码和参数值，并允许本地编辑代码。此后源文件的修改不会再更新该效果。用户库预设已经在文档中保留快照。要编写自己的代码，添加 **Add FX → Custom Shader FX**，输入 inline HLSL 并点击 **Compile**。参数显示在标题下方；**Code** 提供适用的代码操作、**Save Preset…** 和 **Shader Inputs** 参考。存在消息时才显示诊断。
+在开头注释中声明 `// @preset("GUID", 1)` 的预设，仅在源 `.hlsl` 的版本与文档保存的版本一致时跟随源码更新。项目、包和用户库预设都遵循此规则，参数值仍各自独立。使用 **Open HLSL Source** 编辑源文件。要独立编辑当前效果的代码，点击 **Code → Embed Copy**：它会断开 `.hlsl` 链接，在文档中保留当前代码和参数值，并允许本地编辑代码。此后源文件的修改不会再更新该效果。没有 `@preset` 的预设会作为独立副本添加，与文件所在位置无关。如果关联源码丢失、损坏或版本不同，效果会使用文档保存的代码，并保留链接，待匹配的源码重新可用时重试。要编写自己的代码，添加 **Add FX → Custom Shader FX**，输入 inline HLSL 并点击 **Compile**。参数显示在标题下方；**Code** 提供适用的代码操作、**Save Preset…** 和 **Shader Inputs** 参考。存在消息时才显示诊断。
 
 仅支持带标记的 `.hlsl` 预设和 inline HLSL，不能添加外部 Material、Shader 或 Shader FX `.asset` 引用。包含外部 FX 引用的旧 JSON/TIFF 会被拒绝并给出诊断，不会自动迁移或重写文档。请保留原件，并使用匹配的旧 checkout 打开。
 
@@ -198,14 +208,19 @@ Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已
 其中以当前参数值作为默认值，包括颜色和 Transform 2D。
 文件名会成为预设名称。你可以保存到用户库的 **ShaderFX**
 子文件夹中，或项目 **Assets** 文件夹下的任意位置。覆盖保存会保留一份 `.bak` 副本。
+新文件会获得新的预设 ID 和版本 1。覆盖已有文件时，保留目标文件已声明的 ID 和版本。
+保存不会将当前效果切换到导出的文件。
 
 在 **User Settings → Presets → Presets Folder** 中设置共享库位置。其 **Brushes**
 和 **ShaderFX** 子文件夹分别存放两类预设。你也可以将现有的
 HLSL 预设放入 ShaderFX 或其子文件夹，它们会显示在 **Add FX → User** 中。
 返回 Unity 时，列表会在后台刷新。如果菜单打开时刷新尚未完成，请关闭后重新打开。
 首次启动时可能会短暂显示 **Loading effect presets…**。
-用户预设会被复制到文档中，后续文件修改不会影响已添加的效果。
-从项目 **Assets** 添加预设会创建关联实例，修改文件会更新与其关联的效果。导出预设本身不会将当前效果重新关联到新文件。
+是否关联由可选的 `@preset` 头部指令决定，与文件夹无关。在 HLSL 代码之前声明一次，
+建议紧接 `@whimtex-effect Category/Name`；GUID 和正整数版本必须同时提供。
+没有此指令时，修改文件不会影响已添加的效果；有此指令时，只跟随文档保存的版本。
+如果文件副本使用相同 ID，可写的重复文件会获得新 ID；只读文件冲突会显示在 Diagnostics 中。
+详见[预设标识与版本](../ShaderFX.md#preset-identity-and-version)。
 
 纹理默认值是引用，而不是内嵌图像。要在另一个项目中使用它们，
 还需一并转移被引用的纹理资源及其 `.meta` 文件，或指定替换资源。
@@ -289,11 +304,12 @@ sampler 的名称本身并不构成绕过路径。
 
 ## 在外部编辑器中编辑
 
-预设的代码上方有只读 **Preset** 文件字段。单击会在 Project 中定位项目或包资源；外部文件没有单击操作。双击在 VS Code 中打开原文件；若不可用，则使用 Unity 设置的脚本编辑器。右键 → **Show in Explorer** 在文件管理器中显示文件（macOS 为 Finder）。外部库预设仍是嵌入副本，编辑原文件不会更新文档中已有的副本。
+预设的代码上方有只读 **Preset** 文件字段。单击会在 Project 中定位项目或包资源；外部文件没有单击操作。双击在 VS Code 中打开原文件；若不可用，则使用 Unity 设置的脚本编辑器。右键 → **Show in Explorer** 在文件管理器中显示文件（macOS 为 Finder）。带 `@preset` 的外部库预设会跟随保存版本对应的源码；独立副本则保留文档中的代码。
 
 - **Open Code** 在 Unity 所选的脚本编辑器中打开工作文件。保存会更新 WhimTex 中的草稿；点击 **Compile** 编译。
 - **Open in VS Code** 使用独立配置，自动安装 WhimTex 指令高亮、补全和检查。保存工作文件会向 Unity 请求 **Compile**，无需返回 WhimTex 窗口。语言模式仍为 **HLSL**，内置扩展支持 Restricted Mode。
 - 若没有 VS Code 按钮，可设置 **User Settings → External Code Editor → VS Code Command**。WhimTex 先检查 Unity 注册的编辑器和 PATH，再使用此备用路径。
+- VS Code 路径旁的文件夹图标可打开文件所在的文件夹。它位于浏览和重置按钮之间，仅在所选文件存在时可用。
 
 扩展不仅高亮指令名称，也区分类型、修饰符、参数名、数值和范围。它检查默认值、提示注释、关联控件、条件和分组；着色器编译错误仍由 Unity 检查。更新后通过 **Open in VS Code** 重新打开代码；已经运行的窗口可能需要执行 **Developer: Reload Window**。
 

@@ -575,7 +575,11 @@ namespace DCFApixels.WhimTex
                     _writer.Write(field.Name);
                     object fieldValue = field.GetValue(value);
                     if (value is ShaderFX effect && field.Name == "code")
-                        fieldValue = ShaderFXSourceBuilder.DocumentCode(ShaderFXIconMetadata.MakePortable((string)fieldValue, effect.SourcePath), effect.SourcePath);
+                    {
+                        string source = ShaderFXIconMetadata.MakePortable((string)fieldValue, effect.SourcePath);
+                        fieldValue = effect.IsCatalogLinked ? ShaderFXSourceBuilder.ExportIncludes(source, effect.SourcePath)
+                            : ShaderFXSourceBuilder.DocumentCode(source, effect.SourcePath);
+                    }
                     Write(fieldValue, field.FieldType);
                 }
             }

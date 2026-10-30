@@ -160,6 +160,7 @@ Change it in the tool settings in Canvas View or **User Settings → Layer Selec
 Even at 0%, fully transparent pixels are ignored.
 
 - `Shift+click` toggles a layer in the selection. `Shift+click` on empty space leaves the selection unchanged.
+- Repeat clicks in the same place to select covered layers from top to bottom, then wrap to the first hit. Clicking elsewhere or changing tools restarts at the top.
 - Click a group to select it, then click again to pick a child under the cursor. Repeated clicks enter nested groups one level at a time; `Ctrl+click` picks a nested layer directly. Its parent groups open in Layers.
 - Click empty space to deselect. Picking does not move or paint anything.
 

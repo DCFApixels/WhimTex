@@ -16,6 +16,7 @@ try {
   // generated source, not VS Code's own snippet engine or interactive keybindings.
   function defaults(snippet) {
     return snippet.body.join('\n').replace(/\$\{\d+:([^}]*)\}/g, '$1')
+      .replace(/\$UUID/g, '12bc047d-f5b2-43e4-91fd-84e0c2276cde')
       .replace(/\$\{\d+\|([^|]*)\|\}/g, (_, values) => values.split(',')[0]).replace(/\$0/g, '');
   }
 
@@ -25,7 +26,10 @@ try {
     assert.deepEqual(manifest.contributes.configurationDefaults, {
       '[hlsl]': { 'editor.tabCompletion': 'onlySnippets' }
     });
-    assert.deepEqual(Object.values(snippets).map(s => s.prefix), ['@if', '@enableif', '@group', '@foldout', '@tabs', '@tab']);
+    assert.deepEqual(Object.values(snippets).map(s => s.prefix), ['@preset', '@if', '@enableif', '@group', '@foldout', '@tabs', '@tab']);
+    const preset = snippets['WhimTex preset identity'];
+    assert.deepEqual(preset.body, ['@preset("${1:$UUID}", ${2:1})$0']);
+    assert.deepEqual(validate('// @whimtex-effect Color/Test\n// ' + defaults(preset)), []);
   });
 
   context.case('conditional snippet supplies comparison choices, ordered placeholders and matching end', async () => {
@@ -60,7 +64,7 @@ try {
   });
 
   context.case('native suffix replacement preserves comment markers, spacing and surrounding code', async () => {
-    const ends = { '@if': ['@endif'], '@enableif': ['@endenableif'], '@group': ['@endgroup'], '@foldout': ['@endfoldout'],
+    const ends = { '@preset': [], '@if': ['@endif'], '@enableif': ['@endenableif'], '@group': ['@endgroup'], '@foldout': ['@endfoldout'],
       '@tabs': ['@endtab', '@endtabs'], '@tab': ['@endtab'] };
     for (const snippet of Object.values(snippets)) {
       for (const prefix of ['//', '// ', '    // ', '\t//']) {

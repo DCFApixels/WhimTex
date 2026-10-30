@@ -22,7 +22,8 @@ namespace DCFApixels.WhimTex
             hash = Mix(hash, includeFingerprint.Get(documentIncludeBasePath));
             hash = Mix(hash, keyFingerprint.Get(shaderKey));
             hash = Mix(hash, shaderCreationRecorded ? 1UL : 0UL);
-            hash = Mix(hash, guidFingerprint.Get(catalogGuid));
+            hash = Mix(hash, guidFingerprint.Get(presetId));
+            hash = Mix(hash, unchecked((ulong)presetVersion));
             hash = Mix(hash, pathFingerprint.Get(catalogSourcePath));
             hash = Mix(hash, dependencyFingerprint.Get(catalogDependencyHash));
             hash = HashParameters(hash, parameters);

@@ -124,7 +124,7 @@ namespace DCFApixels.WhimTex
                     destinationDocument.CanInsertInto(parsed.Document.layers[0], replacementContainer),
                     "Replacing a Boolean operand requires closed Shape/Vector geometry, editable Text or a Boolean Group.");
             }
-            var copies = destinationDocument.CopyLayersFrom(parsed.Document, parsed.Document.layers, false, null);
+            var copies = destinationDocument.CopyLayersFrom(parsed.Document, parsed.Document.layers, WhimTexDocument.LayerCopyMode.Import, null);
             if (replace != null)
             {
                 var prepared = copies[parsed.Document.layers[0]];

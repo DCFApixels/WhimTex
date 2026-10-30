@@ -1,4 +1,5 @@
 // @whimtex-effect Color/Color Balance
+// @preset("caa64fcaeda64f88a8355c97e6053778", 1)
 // @control(_Opacity)
 // @group("Color")
 // @icon("../Editor/Icons/FX/Color.svg")
@@ -7,14 +8,14 @@
 // @header(Shadows)
 // @param label(Range) float _ShadowRange = 0.5 [0 .. 1] // Extend the shadow correction into brighter tones; zero disables it.
 // @if _ShadowRange != 0
-// @param label(RGB Offset) float3 _Shadows = (0, 0, 0) // Add or subtract red, green and blue in shadows; zero leaves each channel unchanged.
+// @param label(Offset) rgba float3 _Shadows = (0, 0, 0) // Add or subtract red, green and blue in shadows; zero leaves each channel unchanged.
 // @endif
 // @header(Midtones)
-// @param label(RGB Offset) float3 _Midtones = (0, 0, 0) // Add or subtract red, green and blue between the shadow and highlight ranges.
+// @param label(Offset) rgba float3 _Midtones = (0, 0, 0) // Add or subtract red, green and blue between the shadow and highlight ranges.
 // @header(Highlights)
 // @param label(Range) float _HighlightRange = 0.5 [0 .. 1] // Extend the highlight correction into darker tones; zero disables it.
 // @if _HighlightRange != 0
-// @param label(RGB Offset) float3 _Highlights = (0, 0, 0) // Add or subtract red, green and blue in highlights; zero leaves each channel unchanged.
+// @param label(Offset) rgba float3 _Highlights = (0, 0, 0) // Add or subtract red, green and blue in highlights; zero leaves each channel unchanged.
 // @endif
 // @header(Luminance)
 // @param label(Preserve Luma) toggle(float) _PreserveLuma = true // Keep the original luminance while adjusting color; alpha is always unchanged.

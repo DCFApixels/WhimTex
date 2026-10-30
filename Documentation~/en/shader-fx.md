@@ -43,7 +43,7 @@ Unlike [Post FX preview](post-fx.md), both are included in the saved image.
 2. Click **Add FX** below the effect stack, or **+** beside **⋮** in the FX section header, including when the section is collapsed. Both open the same menu. Search by name or open a category to choose a preset; **Custom Shader FX** creates an effect for your own HLSL.
 3. Adjust its sliders, colors, textures, toggles and dropdowns. Changes appear immediately.
 
-In **Add FX**, the 31 built-in presets keep the Color, Distortion, Lighting, Normal Map and Stylization categories. Inside each category, related effects sit together, separated from other groups by a line. Groups and presets sort alphabetically. Add `// @group("Tone")` to an HLSL preset header to choose its group within its category. Presets without a group appear first. The quoted declaration does not need `@endgroup`. See [preset list groups](../ShaderFX.md#preset-list-groups).
+In **Add FX**, built-in presets keep the Color, Distortion, Lighting, Normal Map and Stylization categories. Inside each category, related effects sit together, separated from other groups by a line. Groups and presets sort alphabetically. Add `// @group("Tone")` to an HLSL preset header to choose its group within its category. Presets without a group appear first. The quoted declaration does not need `@endgroup`. See [preset list groups](../ShaderFX.md#preset-list-groups).
 
 Categories and nested categories use subdued filled folder icons. Preset icons appear beside names in **Add FX** and before the Enabled checkbox in each FX header. Related built-in effects share icons for color, tone, gradient, mask, distortion, lighting, normals, patterns and transforms. A missing or invalid icon uses the general FX symbol; hover over the header icon for details.
 
@@ -62,6 +62,17 @@ Find settings for [color correction](#levels-contrast-and-color-balance), [masks
 [edge outlines](#edge-contours) or [distortion](#distortion-presets) in the preset guide below.
 
 ## Parameter controls
+
+**Color → Color Space** converts channel values between **Linear**, **Gamma** and **HSV**.
+Choose **Input Space** to match the source's output and **Output Space** for the desired result;
+the default is Gamma → Linear. The names match Noise and Normal Map: Noise Linear followed by
+Color Space Linear → Gamma matches Noise set to Gamma directly, and the reverse works too.
+HSV stores hue, saturation and value in R, G and B, based on Linear RGB, without gamma-encoding
+the HSV channels. Hue runs from 0 to 1. Alpha stays unchanged; equal spaces leave all channels unchanged.
+Use HDR Color Range for values above 1. HSV Value can exceed 1; conversion to HSV clamps
+negative RGB to zero. Linear ↔ Gamma retains negative values. This effect transforms
+pixel values; it does not change export encoding. Use a linear export, such as EXR, to retain
+Linear or HSV channel data without additional sRGB conversion.
 
 Use **⋮ → Reset** or right-click the FX header and choose **Reset** to restore all parameter defaults, including hidden fields and transforms. Code, the preset link and enabled state stay unchanged. Reset affects only this effect and can be undone.
 
@@ -196,7 +207,7 @@ Effect order matters. Drag an FX header to reorder effects, or drop it onto anot
 
 Every FX belongs to the document and has independent parameter values and enabled state. Use **⋮ → Copy FX**, then **Paste FX As New** on another row to insert an independent copy after it. Layer-texture links stay within the same document and are cleared when pasted into another document. The menu also contains **Move Up**, **Move Down** and **Remove**.
 
-Project/package presets receive code changes from their source `.hlsl` file; their parameter values remain independent. Use **Open HLSL Source** to edit that source. To edit this effect independently, choose **Code → Embed Copy**: it disconnects the `.hlsl` link, keeps the current code and values in the document, and enables local code editing. Later source-file changes no longer update this effect. User-library presets already keep a snapshot in the document. For custom code, add **Add FX → Custom Shader FX**, write inline HLSL and click **Compile**. Parameters appear below the header; **Code** provides the applicable code controls, **Save Preset…** and **Shader Inputs**. Diagnostics appear when there is something to report.
+Presets with `// @preset("GUID", 1)` in their initial comment header receive code changes from their source `.hlsl` file only while the declared version matches the version saved in the document. This applies to project, package and user-library presets; their parameter values remain independent. Use **Open HLSL Source** to edit that source. To edit this effect independently, choose **Code → Embed Copy**: it disconnects the `.hlsl` link, keeps the current code and values in the document, and enables local code editing. Later source-file changes no longer update this effect. Presets without `@preset` are independent copies, wherever their files are stored. If a linked source is missing, broken or has a different version, the effect uses the code saved in the document and keeps the link so it can retry when a matching source returns. For custom code, add **Add FX → Custom Shader FX**, write inline HLSL and click **Compile**. Parameters appear below the header; **Code** provides the applicable code controls, **Save Preset…** and **Shader Inputs**. Diagnostics appear when there is something to report.
 
 Only marked `.hlsl` presets and inline HLSL are supported. External Material, Shader and Shader FX `.asset` references cannot be added. Older JSON/TIFF documents containing external FX references are rejected with a diagnostic; there is no automatic migration or document rewrite. Keep the originals and use a matching older checkout to open them.
 
@@ -206,15 +217,19 @@ In the effect's code editor, click **Save Preset…**. This creates an `.hlsl` f
 with the current parameter values as defaults, including colors and Transform 2D.
 The file name becomes the preset name. You can save in the user library's **ShaderFX**
 subfolder or anywhere under the project's **Assets** folder. Overwriting keeps a `.bak` copy.
+A new file gets a fresh preset ID and version 1. Overwriting preserves the destination file’s
+ID and version when present. Saving does not switch the current effect to the exported file.
 
 Set the shared library location in **User Settings → Presets → Presets Folder**. Its **Brushes**
 and **ShaderFX** subfolders hold the two kinds of presets. You can also place existing
 HLSL presets in ShaderFX or its subfolders; they appear under **User** in **Add FX**.
 The list refreshes in the background when you return to Unity. If you open it before the
 refresh finishes, close and reopen it to see the new presets. On first startup it may briefly show **Loading effect presets…**.
-User presets are copied into the document; later changes to their files do not change
-effects you have already added. Adding a preset from the project's **Assets** creates a linked instance:
-editing its file updates the effects linked to it. Saving a preset does not relink the effect you exported.
+Linking depends on the optional `@preset` header, not the folder. Write it once before HLSL,
+preferably immediately after `@whimtex-effect Category/Name`, with both a GUID and a positive
+integer version. Without it, later file edits do not change effects already added. With it, only
+the saved version is followed. If copied files share an ID, writable duplicates receive new IDs;
+read-only conflicts appear in Diagnostics. See [preset identity and version](../ShaderFX.md#preset-identity-and-version).
 
 Texture defaults are references, not embedded images. To use them in another project,
 also transfer the referenced texture assets with their `.meta` files, or assign replacements.
@@ -305,11 +320,12 @@ See the [signatures, restrictions and mask example](../ShaderFX.md#pixel-local-e
 
 ## Editing in an external editor
 
-For a preset, **Code → Preset** shows its source file in a read-only object-style field. Click to ping a project/package asset; external library files have no Project selection. Double-click opens the original file in VS Code, or Unity's selected script editor when VS Code is unavailable. Right-click → **Show in Explorer** reveals the file (Finder on macOS). External library presets remain embedded copies: editing their original file does not update existing copies in the document.
+For a preset, **Code → Preset** shows its source file in a read-only object-style field. Click to ping a project/package asset; external library files have no Project selection. Double-click opens the original file in VS Code, or Unity's selected script editor when VS Code is unavailable. Right-click → **Show in Explorer** reveals the file (Finder on macOS). External library presets with `@preset` follow the linked source at the saved version; independent copies keep their document code.
 
 - **Open Code** opens a working file in Unity's selected script editor. Saving updates the draft in WhimTex; click **Compile** to compile it.
 - **Open in VS Code** also installs WhimTex directive highlighting, completions and checks automatically in an isolated profile. Saving this working file requests **Compile** in Unity, without returning to the WhimTex window. The language mode remains **HLSL**; the bundled extension supports Restricted Mode.
 - If the VS Code button is missing, set **User Settings → External Code Editor → VS Code Command**. WhimTex checks Unity's registered editors and PATH before this fallback.
+- The folder icon beside the VS Code path opens its containing folder. It sits between Browse and Reset and is available when the chosen file exists.
 
 The VS Code extension highlights types, modifiers, parameter names, values and ranges as well as directive names. It checks defaults, tooltips, linked controls, conditions and groups; shader compilation errors still come from Unity. After an extension update, reopen code through **Open in VS Code**; an already-running window may need **Developer: Reload Window**.
 

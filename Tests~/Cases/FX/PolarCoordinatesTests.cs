@@ -163,8 +163,12 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color)
             translated.position = new Double2(.4, .6); translated.size = new Double2(.7, 1.2); translated.rotation = 23;
             var projective = ShaderFXTransform.Default; projective.storage = TransformStorage.Projective;
             projective.matrix = new ProjectiveMatrix { m00 = .9, m01 = .1, m02 = .04, m10 = -.05, m11 = 1.1, m12 = -.1, m20 = .2, m21 = -.15, m22 = 1 };
-            string guid = AssetDatabase.AssetPathToGUID("Packages/com.dcfapixels.whimtex/src/FXPresets/PolarCoordinates.hlsl");
-            t.True(!string.IsNullOrEmpty(guid), "Polar Coordinates catalog GUID exists");
+            var identityType = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetIdentity", true);
+            object identity = identityType.GetMethod("Read", F).Invoke(null, new object[] {
+                File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/PolarCoordinates.hlsl") });
+            string presetId = (string)identityType.GetField("id", F).GetValue(identity);
+            int presetVersion = (int)identityType.GetField("version", F).GetValue(identity);
+            t.True(!string.IsNullOrEmpty(presetId) && presetVersion > 0, "Polar Coordinates preset ID/version exists");
             var reload = typeof(ShaderFX).GetMethod("ReloadCatalogSource", F);
             var reference = (ShaderFX)draft.Invoke(null, new object[] { doc, FramesReference, new List<ShaderFXParameter>() });
             effects.Add(reference); typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(reference, null);
@@ -204,7 +208,8 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color)
                         t.Equal(pair[1], Parameters(fx).Find(p => p.name == "_Output").transformValue, "Saved full Output frame");
                         Compare(expected, Render(fx), "Current JSON render parity");
                     }
-                    typeof(ShaderFX).GetField("catalogGuid", F).SetValue(effects[0], guid);
+                    typeof(ShaderFX).GetField("presetId", F).SetValue(effects[0], presetId);
+                    typeof(ShaderFX).GetField("presetVersion", F).SetValue(effects[0], presetVersion);
                     reload.Invoke(effects[0], new object[] { true });
                     var next = Parameters(effects[0]);
                     t.True(next.Find(p => p.name == "_Area" || p.name == "_Center") == null, "Only current frame names");

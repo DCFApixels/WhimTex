@@ -156,6 +156,7 @@ namespace DCFApixels.WhimTex
 
         private void ChangeCanvasTool(CanvasTool tool)
         {
+            lastPickedLayer = null;
             if (tool != CanvasTool.GradientHandles && !IsTemporaryCanvasTool(tool))
                 gradientHandlesSelectedManually = false;
             CanvasTool previous = IsTemporaryCanvasTool(canvasTool) ? ResolveTemporaryReturnTool() : canvasTool;

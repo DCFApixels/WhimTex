@@ -55,7 +55,7 @@ namespace DCFApixels.WhimTex
             WhimTexApi.PreparePortableDestination(data, activeDocument);
             if (data.Warnings.Count > 0 && !EditorUtility.DisplayDialog("Paste with warnings",
                 string.Join("\n\n", data.Warnings), "Paste", "Cancel")) return;
-            PasteCopiedLayers(data.Document, resize);
+            PasteCopiedLayers(data.Document, resize, preserveNames: true);
         }
 
         private void PollImageUrl()

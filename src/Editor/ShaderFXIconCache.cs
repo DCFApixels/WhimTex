@@ -5,6 +5,7 @@ using System.Text;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
+using UnityEngine.Rendering;
 #if UNITY_6000_3_OR_NEWER
 using Unity.VectorGraphics;
 #endif
@@ -166,29 +167,36 @@ namespace DCFApixels.WhimTex
             if (shader == null) throw new InvalidOperationException("FX icon renderer is unavailable.");
             var mesh = new Mesh { hideFlags = HideFlags.HideAndDontSave };
             var material = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
-            var target = RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear, 4);
+            // Downsample single-sample targets: the first MSAA readback can be transparent
+            // in editor rendering, which would persist for every preset sharing this icon.
+            var target = RenderTexture.GetTemporary(size * 2, size * 2, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+            target.filterMode = FilterMode.Bilinear;
+            var resolved = RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+            var commands = new CommandBuffer { name = "WhimTex FX Icon" };
             var previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;
             Texture2D result = null;
             try
             {
+                if (!ShaderUtil.IsPassCompiled(material, 0)) ShaderUtil.CompilePass(material, 0, true);
                 VectorUtils.FillMesh(mesh, geometry, 1, false);
                 if (mesh.vertexCount == 0) throw new FormatException("SVG icon contains no supported vector geometry.");
                 Rect viewport = scene.SceneViewport;
                 if (viewport.width <= 0 || viewport.height <= 0) throw new FormatException("SVG icon needs a non-empty viewport.");
                 float extent = Mathf.Max(viewport.width, viewport.height);
                 Vector2 center = viewport.center;
-                RenderTexture.active = target;
                 GL.sRGBWrite = false;
-                GL.Clear(true, true, Color.clear);
-                GL.PushMatrix();
-                try
-                {
-                    GL.LoadPixelMatrix(center.x - extent / 2, center.x + extent / 2, center.y + extent / 2, center.y - extent / 2);
-                    material.SetPass(0);
-                    Graphics.DrawMeshNow(mesh, Matrix4x4.identity);
-                }
-                finally { GL.PopMatrix(); }
+                var projection = Matrix4x4.Ortho(center.x - extent / 2, center.x + extent / 2,
+                    center.y + extent / 2, center.y - extent / 2, -1, 1);
+                material.SetMatrix("_IconProjection", GL.GetGPUProjectionMatrix(projection, true));
+                commands.SetRenderTarget(target);
+                commands.SetViewport(new Rect(0, 0, target.width, target.height));
+                commands.DisableScissorRect();
+                commands.ClearRenderTarget(false, true, Color.clear);
+                commands.DrawMesh(mesh, Matrix4x4.identity, material, 0, 0);
+                commands.Blit(target, resolved);
+                Graphics.ExecuteCommandBuffer(commands);
+                RenderTexture.active = resolved;
                 result = new Texture2D(size, size, TextureFormat.RGBA32, false);
                 result.ReadPixels(new Rect(0, 0, size, size), 0, 0, false);
                 var pixels = result.GetPixels32();
@@ -208,6 +216,8 @@ namespace DCFApixels.WhimTex
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
                 RenderTexture.ReleaseTemporary(target);
+                RenderTexture.ReleaseTemporary(resolved);
+                commands.Release();
                 UnityEngine.Object.DestroyImmediate(mesh);
                 UnityEngine.Object.DestroyImmediate(material);
             }

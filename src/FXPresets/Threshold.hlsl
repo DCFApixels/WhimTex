@@ -1,4 +1,5 @@
 // @whimtex-effect Stylization/Threshold
+// @preset("154870bca9af4c608a508662f6c6572a", 1)
 // @group("Tone")
 // @icon("../Editor/Icons/FX/Tone.svg")
 // @header(Threshold)

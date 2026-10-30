@@ -1,4 +1,5 @@
 // @whimtex-effect Stylization/Posterize
+// @preset("590b20541c3b465abb849ab663d7790b", 1)
 // @control(_Opacity)
 // @group("Tone")
 // @icon("../Editor/Icons/FX/Tone.svg")

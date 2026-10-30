@@ -6,11 +6,11 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexDocument
     {
-        internal Layer PickLayerAtPixel(int x, int y, float threshold, bool insideGroups, Layer selectedLayer = null)
-            => PickLayerAtPixelWithGeometry(x, y, threshold, insideGroups, null, selectedLayer);
+        internal Layer PickLayerAtPixel(int x, int y, float threshold, bool insideGroups, Layer selectedLayer = null, bool cycle = false)
+            => PickLayerAtPixelWithGeometry(x, y, threshold, insideGroups, null, selectedLayer, cycle);
 
         internal Layer PickLayerAtPixelWithGeometry(int x, int y, float threshold, bool insideGroups,
-            Func<Layer, bool> geometryHit, Layer selectedLayer = null)
+            Func<Layer, bool> geometryHit, Layer selectedLayer = null, bool cycle = false)
         {
             if (x < 0 || y < 0 || x >= width || y >= height || layers == null) return null;
             threshold = float.IsNaN(threshold) || float.IsInfinity(threshold) ? .1f : Mathf.Clamp01(threshold);
@@ -33,6 +33,7 @@ namespace DCFApixels.WhimTex
             var coverage = new Dictionary<Layer, float>();
             var geometryCoverage = new Dictionary<Layer, float>();
             var stack = new HashSet<Layer>();
+            bool takeNext = !cycle || selectedLayer == null;
             try
             {
                 collectingErrors = false;
@@ -41,7 +42,14 @@ namespace DCFApixels.WhimTex
                 cache.BeginFrame(this);
                 sample = new Texture2D(1, 1, TextureFormat.RGBAFloat, false, true)
                     { hideFlags = HideFlags.HideAndDontSave };
-                return Pick(layers, 1f);
+                Layer first = null;
+                foreach (Layer hit in Pick(layers, 1f))
+                {
+                    first ??= hit;
+                    if (takeNext) return hit;
+                    if (hit == selectedLayer) takeNext = true;
+                }
+                return first;
             }
             finally
             {
@@ -77,9 +85,9 @@ namespace DCFApixels.WhimTex
                 }
             }
 
-            Layer Pick(List<Layer> container, float inheritedOpacity)
+            IEnumerable<Layer> Pick(List<Layer> container, float inheritedOpacity)
             {
-                if (container == null) return null;
+                if (container == null) yield break;
                 for (int i = 0; i < container.Count; i++)
                 {
                     Layer layer = container[i];
@@ -97,12 +105,17 @@ namespace DCFApixels.WhimTex
                         !MeetsPickThreshold(Alpha(container, i) * opacity, threshold)) continue;
                     if (layer.IsGroup && (insideGroups || enteredGroups?.Contains(layer) == true))
                     {
-                        Layer child = Pick(layer.layers, opacity);
-                        if (child != null) return child;
+                        if (layer == selectedLayer) takeNext = true;
+                        bool hasChild = false;
+                        foreach (Layer child in Pick(layer.layers, opacity))
+                        {
+                            hasChild = true;
+                            yield return child;
+                        }
+                        if (hasChild) continue;
                     }
-                    return layer;
+                    yield return layer;
                 }
-                return null;
             }
 
             float GeometryAlpha(Layer layer)

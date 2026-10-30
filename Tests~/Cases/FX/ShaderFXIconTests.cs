@@ -67,6 +67,7 @@ public static class ShaderFXIconTests
         bool srgbState = GL.sRGBWrite;
         try
         {
+            Call("ShaderFXIconCache", "Clear");
             const string path = "Packages/com.dcfapixels.whimtex/src/FXPresets/HueSaturation.hlsl";
             const string file = "Packages/com.dcfapixels.whimtex/src/Editor/Icons/FX/Color.svg";
             const string body = "\nfloat4 ApplyFX(float4 color) { return color; }\n";
@@ -129,6 +130,8 @@ public static class ShaderFXIconTests
 
             var entries = (IList)Call("ShaderFXCatalog", "GetEntries");
             var unique = new HashSet<Texture2D>();
+            var iconFailures = new List<string>();
+            var diagnosticIcons = new List<Texture2D>();
             int builtin = 0;
             foreach (var entry in entries)
             {
@@ -138,9 +141,23 @@ public static class ShaderFXIconTests
                 context.True(icon != null, "Built-in preset has icon: " + entryPath);
                 var texture = Texture(icon, entryPath);
                 var pixels = Pixels(texture);
-                context.True(pixels.Any(p => p.a > 192) && pixels.Any(p => p.a == 0), "Icon has visible content and transparent padding: " + entryPath);
-                unique.Add(texture); builtin++;
+                if (unique.Add(texture))
+                {
+                    diagnosticIcons.Add(texture);
+                    var readArgs = new object[] { icon, entryPath, false };
+                    byte[] svg = (byte[])Call("ShaderFXIconMetadata", "ReadImage", readArgs);
+                    var fresh = (Texture2D)Call("ShaderFXIconCache", "RenderSvg", System.Text.Encoding.UTF8.GetString(svg), texture.width, EditorGUIUtility.isProSkin);
+                    owned.Add(fresh); diagnosticIcons.Add(fresh);
+                    var freshPixels = Pixels(fresh);
+                    if (!pixels.Any(p => p.a > 192) || !pixels.Any(p => p.a == 0) ||
+                        !freshPixels.Any(p => p.a > 192) || !freshPixels.Any(p => p.a == 0))
+                        iconFailures.Add(entryPath + ": cached alpha " + pixels.Min(p => p.a) + ".." + pixels.Max(p => p.a) +
+                            ", fresh alpha " + freshPixels.Min(p => p.a) + ".." + freshPixels.Max(p => p.a));
+                }
+                builtin++;
             }
+            SavePreview(diagnosticIcons);
+            context.True(iconFailures.Count == 0, "Cached/fresh icon visibility: " + string.Join("; ", iconFailures));
             context.True(builtin >= 31 && unique.Count == 9, "Built-in presets share nine rendered textures");
             int effectsBefore = Resources.FindObjectsOfTypeAll<ShaderFX>().Length;
             int shadersBefore = Resources.FindObjectsOfTypeAll<Shader>().Length;

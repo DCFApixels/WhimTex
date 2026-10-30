@@ -95,7 +95,7 @@ public static class HeightToDistortionTests
             t.Equal("Applied successfully.", (string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(generator),
                 "Height to Distortion compiles without locality warnings");
             string source = (string)typeof(ShaderFX).GetProperty("Code", F).GetValue(generator);
-            t.Equal("// @control(_Strength)", source.Split('\n')[1].TrimEnd('\r'), "Header controls gradient strength, not opacity");
+            t.Equal("// @control(_Strength)", source.Split('\n')[2].TrimEnd('\r'), "Header controls gradient strength after preset identity");
 
             var pixels = new Color[W * H];
             for (int y = 0; y < H; y++) for (int x = 0; x < W; x++) pixels[y * W + x] = new Color((x + .5f) / W, (y + .5f) / H, .2f, 1);

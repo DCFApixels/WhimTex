@@ -1,4 +1,5 @@
 // @whimtex-effect Stylization/Edge Outline
+// @preset("ccf5485820224b3caf50d9ae827a43cf", 1)
 // @control(_Opacity)
 // @group("Pattern")
 // @icon("../Editor/Icons/FX/Pattern.svg")

@@ -1,4 +1,5 @@
 // @whimtex-effect Distortion/Height to Distortion
+// @preset("e426cf774feb4fe9a593c667f2981846", 1)
 // @control(_Strength)
 // @group("Normal")
 // @icon("../Editor/Icons/FX/Normal.svg")

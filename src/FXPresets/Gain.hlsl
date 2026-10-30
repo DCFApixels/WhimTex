@@ -1,4 +1,5 @@
 // @whimtex-effect Color/Gain
+// @preset("c6c64ac0946d46bbadc8c1475121db0c", 1)
 // @control(_Opacity)
 // @group("Tone")
 // @icon("../Editor/Icons/FX/Tone.svg")

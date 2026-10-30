@@ -1,4 +1,5 @@
 // @whimtex-effect Distortion/UV Transform
+// @preset("8e70c9d86d4a4d08b7ddd9bf7d00dfd0", 1)
 // @group("Transform")
 // @icon("../Editor/Icons/FX/Transform.svg")
 // @param transform2D _Area

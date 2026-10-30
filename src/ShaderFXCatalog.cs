@@ -9,12 +9,13 @@ using UnityEngine;
 namespace DCFApixels.WhimTex
 {
     [InitializeOnLoad]
-    internal static class ShaderFXCatalog
+    internal static partial class ShaderFXCatalog
     {
         [Serializable]
         internal sealed class Entry
         {
-            [SerializeField] internal string guid, path, menuPath, group, error;
+            [SerializeField] internal string id, path, menuPath, group, error;
+            [SerializeField] internal int version;
             [SerializeField] internal bool user;
             [SerializeField] internal ShaderFXIconMetadata.Descriptor icon;
             internal bool HasError => !string.IsNullOrEmpty(error);
@@ -23,7 +24,7 @@ namespace DCFApixels.WhimTex
         [Serializable]
         private sealed class Snapshot { public List<Entry> entries = new List<Entry>(); }
         // SessionState survives domain reloads but is discarded when the Editor closes.
-        private const string SessionKey = "WhimTex.ShaderFXCatalog.Headers.v4";
+        private const string SessionKey = "WhimTex.ShaderFXCatalog.Headers.v5";
 
         internal static string Folder => Path.GetFullPath(Path.Combine(WhimTexUserSettings.PresetsFolder, "ShaderFX"));
 
@@ -129,6 +130,9 @@ namespace DCFApixels.WhimTex
             var previousFiles = new Dictionary<string, (long length, long modified)>(userFiles, StringComparer.Ordinal);
             string assets = Path.GetFullPath(Application.dataPath) + Path.DirectorySeparatorChar;
             var comparison = Application.platform == RuntimePlatform.WindowsEditor ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            var projectFiles = new HashSet<string>(Application.platform == RuntimePlatform.WindowsEditor ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+            foreach (var source in sources.Values) projectFiles.Add(Path.GetFullPath(source));
+            foreach (var entry in scan.entries.Values) projectFiles.Add(PresetLibraryPaths.PhysicalPath(entry.path));
             // Initialize the shared path helper on the main thread before its file-only iterator runs.
             PresetLibraryPaths.IsInside(scan.folder, Application.dataPath);
             return () =>
@@ -140,7 +144,7 @@ namespace DCFApixels.WhimTex
                 }
                 foreach (string path in PresetLibraryPaths.UserFiles(scan.folder, "hlsl"))
                 {
-                    if (Path.GetFullPath(path).StartsWith(assets, comparison)) continue;
+                    if (Path.GetFullPath(path).StartsWith(assets, comparison) || projectFiles.Contains(Path.GetFullPath(path))) continue;
                     try
                     {
                         var file = new FileInfo(path);
@@ -187,10 +191,7 @@ namespace DCFApixels.WhimTex
 
         private static void Publish(HeaderScan scan)
         {
-            foreach (var entry in scan.entries.Values)
-            {
-                if (!entry.user && string.IsNullOrEmpty(entry.guid)) entry.guid = AssetDatabase.AssetPathToGUID(entry.path);
-            }
+            ResolveIdentities(scan.entries);
             var previous = new Dictionary<string, Entry>(entries, StringComparer.Ordinal);
             entries.Clear();
             foreach (var pair in scan.entries)
@@ -202,6 +203,7 @@ namespace DCFApixels.WhimTex
             userFolder = scan.folder;
             SortEntries();
             if (scan.project) SaveHeaders();
+            QueueLinkedRefresh();
         }
 
         private static void SaveHeaders()
@@ -234,6 +236,13 @@ namespace DCFApixels.WhimTex
                 if (!ShaderFXMetadata.TryHeader(firstLine.ReadLine(), out string menuPath)) return null;
                 var entry = new Entry { path = path, menuPath = menuPath, user = user, icon = ShaderFXIconMetadata.Read(header) };
                 entry.group = ShaderFXMetadata.ReadPresetGroup(header, out entry.error);
+                try
+                {
+                    var identity = ShaderFXPresetIdentity.Read(header);
+                    entry.id = identity.id;
+                    entry.version = identity.version;
+                }
+                catch (FormatException error) { entry.error = error.Message; }
                 foreach (string segment in menuPath.Split('/'))
                     if (string.IsNullOrWhiteSpace(segment)) entry.error = "Effect category/name must not contain empty segments.";
                 return entry;
@@ -249,7 +258,6 @@ namespace DCFApixels.WhimTex
             {
                 var entry = ReadHeader(path, PresetLibraryPaths.PhysicalPath(path), user);
                 if (entry == null) return;
-                entry.guid = user ? null : AssetDatabase.AssetPathToGUID(path);
                 entries[path] = entry;
             }
         }
@@ -277,6 +285,7 @@ namespace DCFApixels.WhimTex
             if (string.IsNullOrEmpty(path) || !path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase)) return null;
             Inspect(path);
             revision++;
+            GetEntries();
             SortEntries();
             return entries.TryGetValue(path, out var entry) ? entry : null;
         }
@@ -360,9 +369,11 @@ namespace DCFApixels.WhimTex
                 }
                 shaderSourceChanged |= IsHlsl(path) || IsInclude(path);
             }
+            if (initialized && catalogChanged) ResolveIdentities(entries);
             if (shaderSourceChanged) ReloadShaderDependents(changed);
             changed.Clear();
             if (initialized && catalogChanged) { SortEntries(); SaveHeaders(); }
+            if (catalogChanged) QueueLinkedRefresh();
             if (pendingScan != null || refreshProject) QueueRefresh();
         }
 
@@ -404,7 +415,7 @@ namespace DCFApixels.WhimTex
         {
             if (ReferenceEquals(a, b)) return true;
             if (a == null || b == null) return false;
-            return string.Equals(a.guid, b.guid, StringComparison.Ordinal) &&
+            return string.Equals(a.id, b.id, StringComparison.Ordinal) && a.version == b.version &&
                 string.Equals(a.path, b.path, StringComparison.Ordinal) &&
                 string.Equals(a.menuPath, b.menuPath, StringComparison.Ordinal) &&
                 string.Equals(a.group, b.group, StringComparison.Ordinal) &&
@@ -425,6 +436,7 @@ namespace DCFApixels.WhimTex
         private static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved, string[] movedFrom, bool didDomainReload)
         {
             if (didDomainReload) ShaderFXCatalog.DomainReloaded();
+            ShaderFXCatalog.AssetsMoved(moved, movedFrom);
             ShaderFXCatalog.AssetsChanged(imported, deleted, moved, movedFrom);
         }
     }

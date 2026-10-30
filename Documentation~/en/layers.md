@@ -85,6 +85,11 @@ Groups keep their foldout arrow and do not display the empty-content icon.
 Click a row to select it. Hold `Ctrl` to select several layers or `Shift` to select a range.
 The **last selected layer is active**: this is the layer you paint on and edit in Layer Settings.
 
+Hold the left mouse button on an eye icon and sweep across other eyes to show or hide several rows.
+The first eye sets the action for the whole gesture; crossing a row again does not reverse it.
+Selection stays unchanged, and one Undo restores the whole pass. Groups keep their usual visibility behavior.
+The visibility control fills its column to the header divider and the row edges. You cannot start dragging a layer there, but you can still drop layers there.
+
 Drag a row or its name to move the selected layers; hold near the list's top or bottom edge to scroll.
 Finish editing a name before dragging it.
 
@@ -229,7 +234,10 @@ formatting and advanced text shaping are not provided.
 
 ## Keep related parts in a group
 
-Select layers and click **Folder**, or drag layers into an existing group.
+Click **Folder** to create an empty group immediately before the active layer, at the same nesting level.
+With no selection, it is added at the top. Selected layers stay where they are.
+Drop layers onto **Folder** to create a group containing them, or drag them into an existing group.
+Ordinary groups are created through this button; the **+** type menu still offers **Boolean Group**.
 Use the group's arrow to expand or collapse it.
 
 Ordinary groups start in **Pass Through**, so their layers can blend with layers outside the group.
@@ -241,11 +249,15 @@ Add **FX** to a group to process its combined image. FX automatically isolate a 
 Right-click a row or open **⋮** for actions on the selection.
 **Duplicate** makes a copy you can edit separately. File layers still use the same source texture.
 
+Duplicate, `Ctrl+C` / `Ctrl+V` and copies between windows append **Copy N** using the destination
+document's shared counter, including children of copied groups. Each paste gets new numbers;
+Undo/Redo restores the same names. JSON imports retain their supplied names.
+
 | Footer icon | Click | Drop selected layers |
 | :--- | :--- | :--- |
 | **+** (type menu) | Choose a layer type. | Duplicate. |
 | **Page +** (page with a plus) | Add a Drawing layer. | Make a merged Drawing copy. |
-| **Folder** | Group the selection. | Group. |
+| **Folder** | Create an empty group at the selection. | Create a group containing the dropped layers. |
 | **Trash** | Delete the selection. | Delete. |
 
 See [merging and conversion](transform.md#merge-layers-or-convert-them-to-drawing)

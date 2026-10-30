@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 
 const metadata = require('./metadata');
-// Block directives come from contributed snippets, including native Tab completion.
+// Block directives and @preset come from contributed snippets, including native Tab completion.
 const completionDirectives = [
   '@param', '@endif', '@endgroup', '@header()', '@control()', '@helpbox()', '@whimtex-effect'
 ];

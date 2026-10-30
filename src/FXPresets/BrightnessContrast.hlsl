@@ -1,4 +1,5 @@
 // @whimtex-effect Color/Brightness Contrast
+// @preset("fecec279bc0b467da534ded447eb4b40", 1)
 // @control(_Opacity)
 // @group("Tone")
 // @icon("../Editor/Icons/FX/Tone.svg")

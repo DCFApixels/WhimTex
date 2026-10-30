@@ -72,7 +72,7 @@ public static class ProceduralClipboardTests
         var destination = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         destination.hideFlags = HideFlags.HideAndDontSave;
         destination.width = 128; destination.height = 128;
-        var paste = typeof(WhimTexDocument).GetMethod("PasteLayers", Hidden);
+        var paste = typeof(WhimTexDocument).GetMethod("ImportLayers", Hidden);
         int undo = -1;
         try
         {
@@ -134,7 +134,7 @@ public static class ProceduralClipboardTests
             FilterMode oldFilter = document.outputFilter;
             using var data = (IDisposable)Build("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}],\"document\":{\"width\":64,\"height\":96,\"outputFilter\":\"Point\"}}");
             var method = typeof(WhimTexWindow).GetMethod("PasteCopiedLayers", Hidden);
-            method.Invoke(window, new object[] { Document(data), true });
+            method.Invoke(window, new object[] { Document(data), true, true });
             Check(document.outputFilter == oldFilter, "JSON paste must preserve destination output filter.");
             Check(document.width == 64 && document.height == 96 && document.layers.Count == 1, "Window resize paste failed.");
             Undo.PerformUndo();
@@ -144,9 +144,9 @@ public static class ProceduralClipboardTests
             Check(document.outputFilter == oldFilter, "Redo changed destination filter.");
             Check(document.width == 64 && document.layers.Count == 1, "Window paste Redo failed.");
             Document(data).width = 32;
-            method.Invoke(window, new object[] { Document(data), false });
+            method.Invoke(window, new object[] { Document(data), false, true });
             Check(document.outputFilter == oldFilter, "Keep-size paste changed filter.");
-            method.Invoke(window, new object[] { Document(data), false });
+            method.Invoke(window, new object[] { Document(data), false, true });
             Check(document.width == 64 && document.outputFilter == oldFilter, "Keep-size paste changed document context.");
             Undo.PerformUndo();
             Check(document.width == 64 && document.layers.Count == 2, "Keep-size paste failed.");

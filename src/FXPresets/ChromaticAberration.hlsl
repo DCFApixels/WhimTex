@@ -1,4 +1,5 @@
 // @whimtex-effect Stylization/Chromatic Aberration
+// @preset("418f7e3753414fd3b13889c4f8c3a624", 1)
 // @group("Color")
 // @icon("../Editor/Icons/FX/Color.svg")
 // @group(Separation Mode; _Mode)

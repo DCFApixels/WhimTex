@@ -36,6 +36,11 @@ Standalone gradients likewise retain their separate `whimtex.gradient` value for
 
 For shader-only requests return HLSL for **+ Shader FX**, not ShaderLab. Follow the
 [HLSL interface](Documentation~/AI/README.md#hlsl-interface--shader-only-or-inside-json).
+Omit `@preset` for independent document code. Reusable linked `.hlsl` presets declare one
+`// @preset("GUID", 1)` in the initial comment header, preferably after `@whimtex-effect Category/Name`.
+The GUID and positive integer version are required together; links use the exact version in project,
+package or user-library sources. Missing, broken or differently versioned sources use the document
+code while retaining the link for a later retry. See [preset identity](Documentation~/ShaderFX.md#preset-identity-and-version).
 For connected operations use [AgentAPI](Documentation~/AgentAPI.md) or the live skill, not a
 command envelope inside document JSON.
 

@@ -65,7 +65,7 @@ namespace DCFApixels.WhimTex
             "lastApplyFailed", "shaderCreationRecorded", "embeddedOwner", "transformCache", "jsonWriteMode",
             "outputTexture", "documentLoadWarning", "documentBinding",
             "embeddedShaderFX", "jsonMissingAssets",
-            "catalogGuid", "catalogSourcePath", "catalogDependencyHash", "documentIncludeBasePath"
+            "catalogSourcePath", "catalogDependencyHash", "documentIncludeBasePath"
         };
         private static readonly Dictionary<Type, FieldInfo[]> FieldCache = new();
         private static readonly ConditionalWeakTable<object, Dictionary<string, JToken>> MissingAssets = new();
@@ -174,6 +174,7 @@ namespace DCFApixels.WhimTex
                 CaptureMissingAssets(result.Document);
                 foreach (var effect in result.Effects)
                 {
+                    effect.ValidatePresetReference();
                     effect.RestoreDocumentOwner(result.Document);
                     result.Document.AdoptAgentShaderFX(effect, null);
                     effect.SuspendDocumentCatalogReload();

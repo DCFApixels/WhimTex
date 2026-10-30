@@ -65,6 +65,11 @@ try {
         assert.match(scopesAt('// @param px float _Radius = 2', 'px'), /storage.modifier/);
         assert.match(scopesAt('// @param enum _Mode = A {A: 0, B: 1}', 'B:'), /constant.other.enum/);
         assert.match(scopesAt('// @whimtex-effect Color/Mask', '@whimtex-effect'), /keyword.control/);
+        const preset = '// @preset("12bc047df5b243e491fd84e0c2276cde", 1)';
+        assert.match(scopesAt(preset, '@preset'), /keyword.control/);
+        assert.match(scopesAt(preset, '12bc047d'), /string.quoted/);
+        assert.match(scopesAt(preset, ','), /punctuation.separator/);
+        assert.match(scopesAt(preset, '1)'), /constant.numeric/);
         assert.doesNotMatch(scopesAt('// A note about @param float _A = 1', 'float'), /storage.type.whimtex/);
         let stack = grammar.tokenizeLine('/*', tm.INITIAL).ruleStack;
         const disabled = grammar.tokenizeLine('// @param float _A = 1', stack);

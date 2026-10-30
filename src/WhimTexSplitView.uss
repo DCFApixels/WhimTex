@@ -97,7 +97,7 @@
     align-items: center;
     flex-shrink: 0;
     min-height: 24px;
-    padding: 0 3px;
+    padding: 0 3px 0 0;
     background-color: var(--whimtex-header);
     border-bottom-width: 1px;
     border-bottom-color: rgba(0, 0, 0, 0.4);
@@ -1408,7 +1408,7 @@
     align-items: center;
     flex-shrink: 0;
     height: 26px;
-    padding: 0 3px;
+    padding: 0 3px 0 0;
     border-bottom-width: 1px;
     border-bottom-color: var(--layer-row-divider);
     background-color: var(--layer-row-background);
@@ -1436,13 +1436,15 @@
 }
 
 .unity-button.whimtex-layer-enabled {
-    width: 26px;
+    width: 29px;
     min-width: 0;
-    height: 22px;
+    height: auto;
+    align-self: stretch;
     flex-shrink: 0;
-    margin: 0;
+    margin: 0 0 -1px 0;
     padding: 0;
     border-width: 0;
+    border-radius: 0;
     background-color: rgba(0, 0, 0, 0);
     background-image: none;
     align-items: center;
@@ -3216,6 +3218,11 @@
     margin-left: 0;
     padding-left: 0;
     padding-right: 0;
+}
+
+.whimtex-user-settings-open-folder {
+    align-items: center;
+    justify-content: center;
 }
 
 .whimtex-user-settings-note {

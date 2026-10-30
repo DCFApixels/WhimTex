@@ -327,7 +327,14 @@ namespace DCFApixels.WhimTex
 
         internal bool TryPrepareDocumentEffect(out string warning)
         {
-            try { ApplyAgentDraft(); warning = DiagnosticNotice; return true; }
+            try
+            {
+                ValidatePresetReference();
+                if (IsCatalogLinked) ReloadCatalogSource(true);
+                else ApplyAgentDraft();
+                warning = DiagnosticNotice;
+                return !IsUnavailable;
+            }
             catch (Exception) when (lastApplyFailed) { warning = UnavailableReason; return false; }
         }
         internal bool UsesUnityTimeInputs
@@ -434,6 +441,7 @@ namespace DCFApixels.WhimTex
 
         internal void RestoreDocumentShader()
         {
+            ValidatePresetReference();
             EditorApplication.delayCall -= ReloadCatalogAfterEnable;
             RefreshGeneratedWrapper();
             if (AssetDatabase.Contains(this) || HasAppliedShader || lastApplyFailed) return;
@@ -444,20 +452,8 @@ namespace DCFApixels.WhimTex
                 // not the current source file, so prefer the catalog when it is still available.
                 if (IsCatalogLinked)
                 {
-                    string fallback = code;
-                    bool locked = WhimTexApi.IsShaderFXContentLocked(this);
                     ReloadCatalogSource(true);
                     if (HasAppliedShader && !lastApplyFailed) return;
-
-                    // A live edit lock only postpones catalog refresh; retain the link so the
-                    // unlock callback can retry it. A deleted or broken preset, however, must
-                    // detach and use the source snapshot stored in the TIFF.
-                    if (!locked)
-                    {
-                        DetachCatalog();
-                        NotifyValuesChanged();
-                    }
-                    code = fallback;
                 }
                 ApplyAgentDraft();
                 QueueNotification(false);

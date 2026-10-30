@@ -1,4 +1,5 @@
 // @whimtex-effect Distortion/Spherize
+// @preset("9282c53b6b5744ba9e78053b56e6d67d", 1)
 // @control(_Strength)
 // @group("Distortion")
 // @icon("../Editor/Icons/FX/Distortion.svg")

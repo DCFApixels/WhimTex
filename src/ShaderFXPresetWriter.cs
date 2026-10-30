@@ -24,6 +24,8 @@ namespace DCFApixels.WhimTex
             var values = ShaderFXMetadata.ParseWithPreviews(code, false, out _, out var previews);
             ShaderFXMetadata.PreserveValues(values, parameters);
             var result = new StringBuilder("// @" + marker + " " + menuPath + "\n");
+            var identity = ShaderFXPresetIdentity.Read(code);
+            if (identity.IsDefined) result.AppendLine(identity.Directive);
             string mainControl = ShaderFXMetadata.ReadControl(code, out _);
             if (mainControl != null) result.AppendLine("// @control(" + mainControl + ")");
             string presetGroup = ShaderFXMetadata.ReadPresetGroup(code, out _);
@@ -119,7 +121,7 @@ namespace DCFApixels.WhimTex
             while ((line = reader.ReadLine()) != null)
             {
                 lineNumber++;
-                bool metadata = !block && ((lineNumber == 1 && Regex.IsMatch(line.TrimStart('\uFEFF'), @"^//\s*@" + Regex.Escape(marker) + @"\s+")) || Regex.IsMatch(line.TrimStart('\uFEFF'), @"^\s*//\s*@(?:control\b|param\b|preview\b|\s*(?:header|helpbox|group|endgroup|foldout|endfoldout|tabs|endtabs|tab|endtab)\b|if\b|endif\b|enableif\b|endenableif\b)"));
+                bool metadata = !block && ((lineNumber == 1 && Regex.IsMatch(line.TrimStart('\uFEFF'), @"^//\s*@" + Regex.Escape(marker) + @"\s+")) || Regex.IsMatch(line.TrimStart('\uFEFF'), @"^\s*//\s*@(?:preset\b|control\b|param\b|preview\b|\s*(?:header|helpbox|group|endgroup|foldout|endfoldout|tabs|endtabs|tab|endtab)\b|if\b|endif\b|enableif\b|endenableif\b)"));
                 ShaderFXSourceBuilder.MaskComments(line, ref block);
                 if (!metadata) body.AppendLine(line);
             }
@@ -240,6 +242,9 @@ namespace DCFApixels.WhimTex
             int slash = menuPath?.LastIndexOf('/') ?? -1;
             menuPath = (slash >= 0 ? menuPath.Substring(0, slash + 1) : "") + Path.GetFileNameWithoutExtension(path);
             string source = BuildSource(effect, menuPath);
+            var identity = File.Exists(path) ? ShaderFXPresetIdentity.Read(File.ReadAllText(path)) : default;
+            if (!identity.IsDefined) identity = ShaderFXPresetIdentity.Create();
+            source = ShaderFXPresetIdentity.Write(source, identity);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try

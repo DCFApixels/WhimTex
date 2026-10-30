@@ -155,10 +155,11 @@ public static class ShaderFXDiagnosticsTests
             test.True(HasMessage(Items(unusable), "Warning", "time-dependent"), "Unsupported shader does not erase collected warnings");
 
             var missingPreset = Create(clean, path + ".catalog");
-            typeof(ShaderFX).GetField("catalogGuid", All).SetValue(missingPreset, Guid.NewGuid().ToString("N"));
+            typeof(ShaderFX).GetField("presetId", All).SetValue(missingPreset, Guid.NewGuid().ToString("N"));
+            typeof(ShaderFX).GetField("presetVersion", All).SetValue(missingPreset, 1);
             typeof(ShaderFX).GetMethod("ReloadCatalogSource", All).Invoke(missingPreset, new object[] { true });
-            test.Equal("Error", Read(missingPreset, "DiagnosticSeverity").ToString(), "Catalog reload failure enters the shared mechanism");
-            test.True(HasSeverityLog(logs, "effect source is missing", LogType.Error), "Catalog failure uses common Console severity");
+            test.Equal("Warning", Read(missingPreset, "DiagnosticSeverity").ToString(), "Catalog fallback enters the shared mechanism");
+            test.True(HasSeverityLog(logs, "preset link is retained", LogType.Warning), "Catalog fallback uses common Console severity");
         }
         finally
         {

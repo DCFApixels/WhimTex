@@ -513,11 +513,19 @@ namespace DCFApixels.WhimTex
 
         private void BuildToolkitSettings()
         {
+            layerVisibilityDrag?.Release();
             toolkitSettingsScroll.Clear();
 
             toolkitLayerHierarchyRoot = new VisualElement();
             toolkitLayerHierarchyRoot.style.flexShrink = 0f;
             toolkitSettingsScroll.Add(toolkitLayerHierarchyRoot);
+            layerVisibilityButtons.Clear();
+            layerVisibilityDrag = new ToggleDragManipulator(layerVisibilityButtons,
+                i => ((Layer)layerVisibilityButtons[i].userData).enabled,
+                i => { var layer = (Layer)layerVisibilityButtons[i].userData; layer.enabled = !layer.enabled; },
+                BeginLayerVisibilityDrag, RefreshLayerVisibilityDrag, EndLayerVisibilityDrag,
+                () => toolkitSettingsScroll.contentViewport.worldBound);
+            toolkitLayerHierarchyRoot.AddManipulator(layerVisibilityDrag);
 
             toolkitSettingsScroll.scrollOffset = scrollPosition;
             BuildToolkitLayerFooter();
@@ -583,13 +591,13 @@ namespace DCFApixels.WhimTex
                 AddDrawingLayerForSelection);
             drawing.name = "whimTexAddDrawingLayer";
             Button group = CreateLayerActionButton(
-                LayerActionIcon.Kind.Group, "Group selected layers", GroupSelectedLayer);
+                LayerActionIcon.Kind.Group, "Create an empty group. Drop layers here to group them.", AddGroupForSelection);
+            group.name = "whimTexAddGroup";
             Button delete = CreateLayerActionButton(
                 LayerActionIcon.Kind.Delete, "Delete selected layers", DeleteSelectedLayers);
             drawing.AddToClassList("whimtex-layer-action--separated");
             group.AddToClassList("whimtex-layer-action--separated");
             delete.AddToClassList("whimtex-layer-action--separated");
-            group.tooltip = "Group selected layers. You can also drop layers here.";
             delete.tooltip = "Delete selected layers. You can also drop layers here.";
             add.AddManipulator(new LayerFooterDropManipulator(this, LayerFooterDropAction.Duplicate));
             drawing.AddManipulator(new LayerFooterDropManipulator(this, LayerFooterDropAction.MergeCopy));
@@ -602,7 +610,7 @@ namespace DCFApixels.WhimTex
             toolkitSettingsBindings.Add(() =>
             {
                 bool hasTarget = GetSelectedLayer() != null || GetDraggedLayer() != null;
-                group.SetEnabled(hasTarget);
+                group.SetEnabled(activeDocument != null);
                 delete.SetEnabled(hasTarget);
             });
         }
@@ -633,6 +641,8 @@ namespace DCFApixels.WhimTex
             }
 
             ClearToolkitDropIndicator();
+            layerVisibilityDrag?.Release();
+            layerVisibilityButtons.Clear();
             toolkitLayerBindings.Clear();
             toolkitInspectorEffectTarget?.Invalidate();
             toolkitLayerTree.Clear();
@@ -785,11 +795,16 @@ namespace DCFApixels.WhimTex
             return element == row;
         }
 
+        private static bool IsLayerVisibilityArea(VisualElement row, Vector2 position)
+        {
+            var button = row.Q<Button>(className: "whimtex-layer-enabled");
+            return button != null && row.worldBound.Contains(position) && position.x < button.worldBound.xMax;
+        }
+
         private static VisualElement FindLayerDragControl(VisualElement row, VisualElement element)
         {
             for (; element != null && element != row; element = element.parent)
-                if (element.ClassListContains("whimtex-layer-name") ||
-                    element.ClassListContains("whimtex-layer-enabled"))
+                if (element.ClassListContains("whimtex-layer-name"))
                     return element;
             return null;
         }
@@ -1103,7 +1118,8 @@ namespace DCFApixels.WhimTex
 
         private Button CreateLayerVisibilityButton(Layer layer)
         {
-            var button = new Button(() => ToggleLayerVisibility(layer));
+            var button = new Button(() => ToggleLayerVisibility(layer)) { userData = layer };
+            layerVisibilityButtons.Add(button);
             button.AddToClassList("whimtex-layer-enabled");
             var eye = new LayerActionIcon(LayerActionIcon.Kind.Eye);
             eye.AddToClassList("whimtex-layer-eye");
@@ -1127,6 +1143,34 @@ namespace DCFApixels.WhimTex
         {
             ApplyToolkitChange(layer?.IsGroup == true ? "Toggle Sprite Group" : "Toggle Sprite Layer",
                 () => layer.enabled = !layer.enabled);
+        }
+
+        private readonly List<Button> layerVisibilityButtons = new List<Button>();
+        private ToggleDragManipulator layerVisibilityDrag;
+        private int layerVisibilityUndoGroup = -1;
+
+        private void BeginLayerVisibilityDrag()
+        {
+            FinishCanvasTransform();
+            FinishPaintingStroke();
+            activeLayerDrag?.Cancel();
+            Undo.IncrementCurrentGroup();
+            layerVisibilityUndoGroup = Undo.GetCurrentGroup();
+            Undo.RegisterCompleteObjectUndo(activeDocument, "Change Layer Visibility");
+        }
+
+        private void RefreshLayerVisibilityDrag()
+        {
+            CommitModelChange();
+            RefreshToolkitInterface();
+        }
+
+        private void EndLayerVisibilityDrag()
+        {
+            if (layerVisibilityUndoGroup < 0) return;
+            Undo.CollapseUndoOperations(layerVisibilityUndoGroup);
+            Undo.IncrementCurrentGroup();
+            layerVisibilityUndoGroup = -1;
         }
 
         private static Button CreateLayerMenuButton(Action clicked)
@@ -1155,7 +1199,6 @@ namespace DCFApixels.WhimTex
             private Vector2 start;
             private int pointerId = -1;
             private VisualElement pressedFoldout;
-            private VisualElement pressedControl;
 
             public LayerDragManipulator(WhimTexWindow owner, Layer layer)
             {
@@ -1186,7 +1229,8 @@ namespace DCFApixels.WhimTex
 
             private void OnPointerDown(PointerDownEvent evt)
             {
-                if (evt.button != 0 || pointerId >= 0 || !IsLayerDragArea(target, evt.target as VisualElement))
+                if (evt.button != 0 || pointerId >= 0 || IsLayerVisibilityArea(target, evt.position) ||
+                    !IsLayerDragArea(target, evt.target as VisualElement))
                     return;
                 VisualElement control = FindLayerDragControl(target, evt.target as VisualElement);
                 if (IsFocusedLayerTextControl(control)) return;
@@ -1211,7 +1255,6 @@ namespace DCFApixels.WhimTex
                     return;
                 }
                 owner.activeLayerDrag = this;
-                pressedControl = control;
                 for (var element = evt.target as VisualElement; element != null && element != target; element = element.parent)
                     if (element.ClassListContains("whimtex-group-foldout"))
                     {
@@ -1262,7 +1305,6 @@ namespace DCFApixels.WhimTex
                     return;
                 WhimTexUI.ConsumeEvent(evt);
                 VisualElement foldout = pressedFoldout;
-                VisualElement control = pressedControl;
                 Release();
                 if (foldout != null)
                 {
@@ -1277,9 +1319,6 @@ namespace DCFApixels.WhimTex
                     owner.SelectOnlyLayer(layer.Id);
                 owner.selectionAnchorId = layer.Id;
                 owner.RefreshToolkitInterface();
-                if (control == null || !control.worldBound.Contains(evt.position)) return;
-                if (control.ClassListContains("whimtex-layer-enabled"))
-                    owner.ToggleLayerVisibility(layer);
             }
 
             private void OnCaptureOut(PointerCaptureOutEvent evt)
@@ -1302,7 +1341,6 @@ namespace DCFApixels.WhimTex
                 int previousPointer = pointerId;
                 pointerId = -1;
                 pressedFoldout = null;
-                pressedControl = null;
                 if (owner.activeLayerDrag == this)
                     owner.activeLayerDrag = null;
                 if (previousPointer >= 0 && target.HasPointerCapture(previousPointer))

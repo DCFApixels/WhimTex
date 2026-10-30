@@ -99,7 +99,7 @@ try
     foreach (object candidate in catalog) if ((string)Field(candidate, "path") == saved) entry = candidate;
     Check(entry != null && (bool)Field(entry, "user"), "User HLSL recursive discovery");
     var instance = (DCFApixels.WhimTex.ShaderFX)Call("ShaderFX", "FromCatalog", null, entry); owned.Add(instance);
-    Check(!(bool)Type("ShaderFX").GetProperty("IsCatalogLinked", Hidden).GetValue(instance), "User preset embedded independently");
+    Check((bool)Type("ShaderFX").GetProperty("IsCatalogLinked", Hidden).GetValue(instance), "Saved user preset links through its declared ID/version");
     Check((bool)Type("ShaderFX").GetProperty("HasAppliedShader", Hidden).GetValue(instance), "User preset compiles");
     Check(((System.Collections.Generic.IReadOnlyList<DCFApixels.WhimTex.ShaderFXParameter>)Type("ShaderFX").GetProperty("Parameters", Hidden).GetValue(instance))[0].floatValue == 2.75f, "Applied instance uses saved defaults");
     System.IO.File.WriteAllText(System.IO.Path.Combine(fxFolder, "Unmarked.hlsl"), "float Unmarked() { return 1; }");

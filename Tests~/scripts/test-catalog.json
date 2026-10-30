@@ -1837,7 +1837,9 @@
       "paint-undo-block-size-correctness",
       "paint-history-native-pages",
       "paint-history-native-no-burst",
-      "gradient-debug-curves-v1"
+      "gradient-debug-curves-v1",
+      "layer-interaction-v1",
+      "layer-copy-naming-v1"
     ],
     "source-guards": [
       "agent-command-inventory-v2",
@@ -2792,7 +2794,9 @@
       "noise-vector-seam-v3",
       "noise-grain-v3",
       "layer-name-field-v1",
-      "layer-drop-target-v1"
+      "layer-drop-target-v1",
+      "layer-interaction-v1",
+      "layer-copy-naming-v1"
     ],
     "contracts": [
       "branding-v2",
@@ -2830,7 +2834,8 @@
       "layer-clipboard-v2",
       "layer-clipboard-window-v2",
       "portable-clipboard-v2",
-      "procedural-clipboard-unity-v2"
+      "procedural-clipboard-unity-v2",
+      "layer-copy-naming-v1"
     ],
     "painting": [
       "brush-preview-cache",
@@ -40362,6 +40367,117 @@
       },
       "supportFiles": [
         "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "layer-group-button-v1",
+      "file": "Tests~/Cases/Layers/LayerGroupButtonTests.cs",
+      "runner": "run_script",
+      "entry": "LayerGroupButtonTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "layers"
+      ],
+      "prerequisites": "Idle matching Editor; no concurrent compilation.",
+      "setup": "Owned unshown WhimTex window and temporary document. No pointer automation, visible windows or project assets.",
+      "teardown": "Clear only owned Undo and destroy the owned window/document; disable its preference session before edits.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "color-space-fx-v1",
+      "file": "Tests~/Cases/FX/ColorSpaceTests.cs",
+      "runner": "run_script",
+      "entry": "ColorSpaceTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "assets"
+      ],
+      "groups": [
+        "fx"
+      ],
+      "prerequisites": "Idle matching Editor; imports only the newly requested ColorSpace.hlsl preset.",
+      "setup": "Owned transient FX, document and 16-pixel GPU textures. No windows or user-document changes.",
+      "teardown": "Destroy owned objects and restore caller render state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/FXPresets/ColorSpace.hlsl",
+        "src/Shaders/HdrColor.cginc",
+        "src/Shaders/HueGradient.cginc"
+      ]
+    },
+    {
+      "id": "layer-interaction-v1",
+      "file": "Tests~/Cases/Layers/LayerInteractionTests.cs",
+      "runner": "run_script",
+      "entry": "LayerInteractionTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "groups": [
+        "layers"
+      ],
+      "prerequisites": "Connected Test6.6 Editor and reviewed sources.",
+      "setup": "Owned unshown window and 16px document. Check visibility gesture state, geometry, selection, grouped Undo/Redo and canvas cycle reset; no OS input or user window interaction.",
+      "teardown": "Clear only owned document Undo; dispose owned objects and restore fixture state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "layer-copy-naming-v1",
+      "file": "Tests~/Cases/Clipboard/LayerClipboardTests.cs",
+      "runner": "run_script",
+      "entry": "LayerClipboardTests.RunNaming",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "groups": [
+        "clipboard",
+        "layers"
+      ],
+      "prerequisites": "Connected Test6.6 Editor; reviewed case and explicit support sources.",
+      "setup": "Owned unshown window and small in-memory documents. Exercise the same window paste and duplicate handlers, group child names, counters, preserved import names and Undo/Redo. Does not read or write system clipboard contents or simulate native input.",
+      "teardown": "Clear only owned Undo, destroy owned resources and restore fixture state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
       ],
       "reviewFiles": []
     }

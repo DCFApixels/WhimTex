@@ -1,4 +1,5 @@
 // @whimtex-effect Color/Gradient Map
+// @preset("a06470ea795745479a31ac5edbe6bb72", 1)
 // @control(_Opacity)
 // @group("Color")
 // @icon("../Editor/Icons/FX/Gradient.svg")

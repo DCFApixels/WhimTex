@@ -959,10 +959,25 @@ frame with green canvas handles. Never reference reserved `_WhimTex_` internal u
 
 For a `.hlsl` catalog preset the **first physical line** must be `// @whimtex-effect Category/Name`:
 no blank line or license header before it. For inline/JSON FX this header is optional.
+
+Linked presets also declare `// @preset("12bc047d-f5b2-43e4-91fd-84e0c2276cde", 1)` once in
+the initial comment header, preferably immediately after the marker. The ID and positive integer
+version are required together; nonzero GUID D and N forms are accepted and stored as lowercase N.
+Omit this directive for an independent embedded copy, including project/package presets; Unity
+asset GUIDs do not supply a missing preset ID. Project/package and external user-library links
+both require an exact version match. Missing, broken, conflicting or differently versioned sources
+use the saved document code while retaining the link for later retry. TIFF/JSON store `presetId`
+and `presetVersion` with the dependency-expanded fallback code; source paths and dependency hashes
+are transient. `shaderKey` remains the separate FX instance identity. For connected operations,
+use the ID returned by `whimtex_fx_catalog`: declared preset ID when available, otherwise source
+path. Do not copy an example GUID when creating a new source; generate a new GUID or use
+**Save Preset…**, which creates a new ID/version 1 and preserves an overwritten destination’s
+valid ID/version. See [preset identity and version](../ShaderFX.md#preset-identity-and-version).
 To encode HLSL inside JSON, use a string with `\n` for newlines; escape quotes normally. JSON escaping
 is decoded before compilation. Keep generated FX self-contained and use the built-in helpers.
-Copy as JSON expands project includes when possible; an expansion failure preserves the original
-source for repair, so unresolved dependencies can still prevent compilation on another machine.
+The render fallback expands custom project/package and user-library includes; engine includes and
+external texture inputs remain dependencies. Code whose dependencies cannot be expanded still needs
+repair before it can serve as a usable fallback on another machine.
 
 For additional engine-specific authoring details, see [Shader authoring](../ShaderFX.md).
 

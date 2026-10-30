@@ -318,10 +318,24 @@ function directiveLines(source) {
   return result;
 }
 
+function parsePreset(body) {
+  const match = body.match(/^\(\s*"([^"]+)"\s*,\s*([0-9]+)\s*\)$/);
+  if (!match) fail('Expected // @preset("GUID", 1) with both an ID and a positive integer version.');
+  const id = match[1].trim();
+  if (!/^(?:[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(id))
+    fail('Preset ID must be a GUID in D (hyphenated) or N (32 hex digits) format.');
+  const presetId = id.replace(/-/g, '').toLowerCase();
+  if (/^0{32}$/.test(presetId)) fail('Preset ID must not be the empty GUID.');
+  const version = Number(match[2]);
+  if (!Number.isInteger(version) || version < 1 || version > 2147483647)
+    fail('Preset version must be a positive integer from 1 to 2147483647.');
+  return { presetId, presetVersion: version };
+}
+
 function validate(source) {
   const diagnostics = [], names = new Map(), declarations = [], containers = [], stack = [], conditions = [], conditionStack = [], previews = [];
   const directives = directiveLines(source);
-  let condition = null, headers = 0, helpBoxes = 0, control = null, controlCount = 0, previewCount = 0, presetGroupCount = 0;
+  let condition = null, headers = 0, helpBoxes = 0, control = null, controlCount = 0, previewCount = 0, presetGroupCount = 0, presetCount = 0;
   const parent = () => stack[stack.length - 1];
   const nearestGroup = () => {
     for (let i = stack.length - 1; i >= 0; i--)
@@ -336,13 +350,19 @@ function validate(source) {
     const { name, body } = d;
     try {
       switch (name) {
+        case 'preset':
+          if (++presetCount > 1) fail('Declare only one @preset.');
+          if (!d.leading) fail('Preset @preset must appear in the initial comment header before HLSL code.');
+          parsePreset(body);
+          break;
         case 'control': {
           const match = body.match(/^\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)$/);
           control = match ? { name: match[1], d } : null;
           if (!match) report(d, 'Expected // @control(_Parameter).', true);
-          const expected = /^\uFEFF?\/\/\s*@whimtex-effect\s+/.test(source) ? 1 : 0;
+          let expected = /^\uFEFF?\/\/\s*@whimtex-effect\s+/.test(source) ? 1 : 0;
+          if (directives.some(item => item.line === expected && item.name === 'preset' && item.leading)) expected++;
           if (++controlCount > 1) report(d, 'Multiple @control declarations; the last declaration wins.', true);
-          else if (d.line !== expected) report(d, `Place @control on line ${expected + 1}, immediately after the effect marker or first when no marker exists.`, true);
+          else if (d.line !== expected) report(d, `Place @control on line ${expected + 1}, after the effect marker and optional @preset, or first when neither exists.`, true);
           break;
         }
         case 'whimtex-effect':
@@ -487,4 +507,4 @@ function validate(source) {
   return diagnostics;
 }
 
-module.exports = { validate, parseParameter, directiveLines };
+module.exports = { validate, parseParameter, parsePreset, directiveLines };

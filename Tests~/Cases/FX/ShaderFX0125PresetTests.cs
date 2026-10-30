@@ -98,10 +98,13 @@ public static class ShaderFX0125PresetTests
                     try { expected = reference.GetPixels(); }
                     finally { Object.DestroyImmediate(reference); }
                     // A catalog refresh replaces the stored tag source, retaining values by canonical name.
-                    string presetPath = "Packages/com.dcfapixels.whimtex/src/FXPresets/" + name + ".hlsl";
-                    string guid = AssetDatabase.AssetPathToGUID(presetPath);
-                    Check(!string.IsNullOrEmpty(guid), "Built-in catalog GUID: " + name);
-                    typeof(ShaderFX).GetField("catalogGuid", F).SetValue(fx, guid);
+                    var identityType = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetIdentity", true);
+                    object identity = identityType.GetMethod("Read", F).Invoke(null, new object[] { current });
+                    string presetId = (string)identityType.GetField("id", F).GetValue(identity);
+                    int presetVersion = (int)identityType.GetField("version", F).GetValue(identity);
+                    Check(!string.IsNullOrEmpty(presetId) && presetVersion > 0, "Built-in preset ID/version: " + name);
+                    typeof(ShaderFX).GetField("presetId", F).SetValue(fx, presetId);
+                    typeof(ShaderFX).GetField("presetVersion", F).SetValue(fx, presetVersion);
                     Call(fx, "ReloadCatalogSource", true);
                     Check((bool)typeof(ShaderFX).GetProperty("HasAppliedShader", F).GetValue(fx), "Catalog refresh compiled: " + name);
                     VerifyValues(fx, id);

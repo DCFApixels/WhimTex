@@ -97,7 +97,7 @@ try {
       const param = items.find(item => item.label === '@param');
       assert.equal(param.insertText, '@param ');
       assert.deepEqual(param.range, new Range(4, 3, 4, 6));
-      assert.ok(items.every(item => !['@if', '@group()'].includes(item.label)), 'Block snippets must not have duplicate plain completions.');
+      assert.ok(items.every(item => !['@preset', '@if', '@group()'].includes(item.label)), 'Contributed snippets must not have duplicate plain completions.');
 
       const requestApplyAfterSave = saveCallbacks[saveCallbacks.length - 1];
       const document = {

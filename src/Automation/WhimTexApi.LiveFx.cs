@@ -193,6 +193,9 @@ namespace DCFApixels.WhimTex
                     }
                     entry["parameters"] = parameters;
                     entry["catalogPath"] = fx.CatalogPath;
+                    entry["presetId"] = fx.PresetId;
+                    entry["presetVersion"] = fx.PresetVersion;
+                    entry["presetFallback"] = fx.UsingPresetFallback;
                     entry["icon"] = FxIconSnapshot(fx.IconMetadata, fx.SourcePath);
                 }
                 else entry["type"] = "empty";

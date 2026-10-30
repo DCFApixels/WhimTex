@@ -1,4 +1,5 @@
 // @whimtex-effect Stylization/CRT
+// @preset("1fb7b29cda844bb7aae941db33619b16", 1)
 // @group("Pattern")
 // @icon("../Editor/Icons/FX/Pattern.svg")
 // @header(Screen)

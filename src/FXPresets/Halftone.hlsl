@@ -1,4 +1,5 @@
 // @whimtex-effect Stylization/Halftone
+// @preset("468fc5066c5542108725913b7502ffe9", 1)
 // @group("Pattern")
 // @icon("../Editor/Icons/FX/Pattern.svg")
 // @group(Screen Mode; _Mode)

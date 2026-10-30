@@ -1,4 +1,5 @@
 // @whimtex-effect Distortion/Displacement Map
+// @preset("c9cc5007b6e14aa0b7465d63eec5fa80", 1)
 // @control(_Amount)
 // @group("Distortion")
 // @icon("../Editor/Icons/FX/Distortion.svg")

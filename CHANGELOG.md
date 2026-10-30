@@ -6,9 +6,15 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- HLSL `// @preset("GUID", 1)` opts project/package and user-library presets into exact-version linking. TIFF/JSON retain the link and portable code when a source is missing, broken or differently versioned, and retry when a matching source returns. Without the directive, presets are independent embedded copies; Unity GUIDs are not used. Built-in presets declare ID/version 1. New Save Preset files receive a new ID/version 1; overwrites keep the destination pair. Duplicate writable copies receive new IDs; read-only conflicts report diagnostics. External HLSL tools add validation, highlighting and a fresh-GUID snippet.
+
+- User Settings path rows include a folder button between Browse and Reset: open the preset library or the folder containing the configured VS Code executable.
+
+- Color Space FX converts between Linear, Gamma and HSV with input/output selectors, defaulting to Gamma → Linear. Linear/Gamma match the output modes of Noise and Normal Map: converting a Linear generator to Gamma matches generating Gamma directly, and vice versa. HSV uses Linear RGB and stores raw H/S/V in RGB. Alpha is preserved, equal spaces bypass conversion, and HDR values remain available.
+
 - File layers accept linked external images through the source field, Browse, canvas/layer-list drops and agent `settings.source`. Direct parsers support PNG, JPEG, TGA, BMP, EXR and compatible RGBA TIFF, including HDR. Links survive Undo and document/JSON saves, report missing sources and refresh changed files; decoded textures are cached per document without importing or embedding them.
 
-- FX presets show a read-only source-file field above their code: click to ping project assets, double-click to open the original in VS Code or Unity's configured editor, and use the context menu to reveal the file. External library copies retain their origin for navigation without becoming linked effects.
+- FX presets show a read-only source-file field above their code: click to ping project assets, double-click to open the original in VS Code or Unity's configured editor, and use the context menu to reveal the file. Source navigation does not itself create a link; external presets follow the same optional `@preset` contract.
 
 - HLSL parameters separate controls from numeric types through `toggle(type)`, `color(type)`, `enum(type)` and `seed(type)`. Toggle/color support bool, int, uint, half and float scalars/vectors; integer values retain their full range. Color editing adapts to R/RG/RGB/RGBA, and `rgba` labels vector components without changing values. Mask and Step use one RGBA toggle row. The inspector, presets, document/agent API, shader-input help and VS Code tooling share the new syntax; old `@param bool` and seed modifier syntax are unsupported.
 
@@ -18,7 +24,7 @@ All notable changes to WhimTex are documented in this file.
 
 - Color History has a shared User Settings limit (default 256, minimum 1). Adding or reusing colors evicts excess entries from the end of each document's history in one Undo step. Picker and gradient labels consistently use Color History; serialized data uses `colorHistory`. Lowering the limit takes effect on the next addition or reuse.
 
-- HLSL preset headers accept `@group("Name")` for flat Add FX blocks separated by lines. All 31 built-in presets use category submenus, with semantic groups inside each category. UV Transform is in Distortion. Groups and presets sort alphabetically without numeric priorities; submenus remain independent. Export and cached catalog discovery retain groups, and agent catalog results expose/search their names.
+- HLSL preset headers accept `@group("Name")` for flat Add FX blocks separated by lines. Built-in presets use category submenus, with semantic groups inside each category. UV Transform is in Distortion. Groups and presets sort alphabetically without numeric priorities; submenus remain independent. Export and cached catalog discovery retain groups, and agent catalog results expose/search their names.
 
 - FX icon metadata supports inline SVG, relative SVG/PNG paths including parent directories, and Unity asset GUIDs. Add FX categories and nested categories use subdued filled folder icons. Add FX results and effect headers share cached icons; 31 built-in presets reuse nine semantic SVGs. External icons embed with preset/document export and FX copies; missing images fall back without disabling effects. Agent inspection includes icon source and warnings.
 
@@ -133,6 +139,12 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Color Balance labels its per-channel Offset fields R/G/B for Shadows, Midtones and Highlights; correction values and calculations are unchanged.
+
+- Layer Select cycles through overlapping hits on repeated clicks, retaining group drill-down and Shift selection. Layers visibility supports left-button sweeps with a consistent show/hide state, unchanged selection and one Undo for the whole gesture.
+
+- The Layers folder button creates an empty group before the active layer, or at the top without a selection. Dropping layers onto it groups those layers while retaining their canvas placement. Ordinary Group creation is removed from the type/context menus; Boolean Group remains a separate type.
+
 - Mesh gradient vertex preparation uses Jobs/Burst with strict floating-point evaluation and a shared reusable native workspace. Moving nodes, handles or edges updates vertex positions without rebuilding unchanged UVs and triangle indices. Tessellation density, surface shading and overlap reconstruction are unchanged; the profiler exposes `render.mesh.prepare` and retained workspace memory.
 
 - Noise and Normal Map encoding choices use Linear/Gamma consistently in UI, native documents, JSON and the agent API. Normal Lighting replaces Packed Color with Input Encoding; Normalize uses Encoding, both Linear/Gamma enums defaulting to Gamma. Color calculations and defaults are unchanged. Former enum names and FX parameter names have no aliases or migration; sRGB settings, SDF and Blend Range are unchanged.
@@ -221,6 +233,12 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Layer visibility controls fill their column to the row edges and header divider. The entire area excludes layer drag initiation while still accepting drops.
+
+- Pasted layer copies use the same Copy N naming and document counter as Duplicate, including group children and cross-window copies. Undo/Redo preserves names; clipboard capture and JSON import retain source names.
+
+- SVG FX icons use explicit offscreen rendering and supersampling instead of MSAA readback, fixing transparent cached icons in Add FX and effect headers, including Gradient Map.
 
 - Bevel Emboss reads its height map through `SampleTexture`, retaining automatic mip selection and filtered relief while reporting verified spatial locality without a bypass warning.
 

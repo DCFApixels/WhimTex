@@ -37,7 +37,8 @@ context.case("LayerPicking original assertion inputs and source contracts", asyn
   assert.match(window, /selectedLayerIds.Remove\(hit.Id\)/);
   assert.match(window, /else SelectOnlyLayer\(hit\?\.Id\)/);
   assert.match(window, /evt.ctrlKey \|\| evt.commandKey/);
-  assert.match(window, /!evt.shiftKey && selectedLayerIds.Count == 1 \? GetSelectedLayer\(\) : null/);
+  assert.match(window, /GetLayerPickContinuation\(evt.localPosition, insideGroups, evt.shiftKey\)/);
+  assert.match(window, /continuation, cycle: true/);
   assert.match(renderer, /enteredGroups.Add\(selectedLayer\)/);
   assert.match(renderer, /enteredGroups.Add\(parent\)/);
   assert.match(renderer, /insideGroups \|\| enteredGroups\?\.Contains\(layer\) == true/);

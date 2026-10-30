@@ -1,4 +1,5 @@
 // @whimtex-effect Stylization/Step
+// @preset("05a708a86821472faceb2da480661744", 1)
 // @group("Tone")
 // @icon("../Editor/Icons/FX/Tone.svg")
 // @group(Step; _Mode)

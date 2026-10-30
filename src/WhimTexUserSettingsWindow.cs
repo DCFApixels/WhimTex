@@ -25,6 +25,7 @@ namespace DCFApixels.WhimTex
         private ColorField guideActiveColor;
         private ColorField healingStrokeColor;
         private TextField vsCodeExecutable;
+        private Button openVsCodeFolder;
         private CurveField tabletPressureCurve;
         private TextField commentAuthorName;
         private Label commentAuthorStatus;
@@ -156,6 +157,9 @@ namespace DCFApixels.WhimTex
             }) { text = "…", tooltip = "Choose the VS Code command or executable" };
             browseVsCode.AddToClassList("whimtex-user-settings-folder-button");
             vsCodeRow.Add(browseVsCode);
+            openVsCodeFolder = CreateOpenFolderButton("openVsCodeFolder", "Open the containing folder",
+                () => System.IO.Path.GetDirectoryName(WhimTexUserSettings.VsCodeExecutable));
+            vsCodeRow.Add(openVsCodeFolder);
             var resetVsCode = new Button(WhimTexUserSettings.ResetVsCodeExecutable)
                 { text = "↺", tooltip = "Clear the custom path and use automatic detection" };
             resetVsCode.AddToClassList("whimtex-user-settings-folder-button");
@@ -268,6 +272,8 @@ namespace DCFApixels.WhimTex
             }) { text = "…", tooltip = "Choose presets folder" };
             browse.AddToClassList("whimtex-user-settings-folder-button");
             folderRow.Add(browse);
+            folderRow.Add(CreateOpenFolderButton("openPresetsFolder", "Open presets folder",
+                () => WhimTexUserSettings.PresetsFolder, createIfMissing: true));
             var defaultFolder = new Button(WhimTexUserSettings.ResetPresetsFolder)
                 { text = "↺", tooltip = "Use the default presets folder. Existing files are left untouched." };
             defaultFolder.AddToClassList("whimtex-user-settings-folder-button");
@@ -306,6 +312,35 @@ namespace DCFApixels.WhimTex
             resetAll.AddToClassList("whimtex-user-settings-reset");
             scroll.Add(resetAll);
             RefreshValues();
+        }
+
+        private static Button CreateOpenFolderButton(string name, string tooltip, System.Func<string> getFolder,
+            bool createIfMissing = false)
+        {
+            var button = new Button(() =>
+            {
+                try
+                {
+                    string folder = getFolder();
+                    if (string.IsNullOrWhiteSpace(folder)) return;
+                    folder = System.IO.Path.GetFullPath(folder);
+                    if (createIfMissing) System.IO.Directory.CreateDirectory(folder);
+                    if (!System.IO.Directory.Exists(folder))
+                    {
+                        EditorUtility.DisplayDialog("Open Folder", "The folder no longer exists:\n" + folder, "OK");
+                        return;
+                    }
+                    Application.OpenURL(new System.Uri(folder + System.IO.Path.DirectorySeparatorChar).AbsoluteUri);
+                }
+                catch (System.Exception error)
+                {
+                    EditorUtility.DisplayDialog("Open Folder", "Cannot open the folder: " + error.Message, "OK");
+                }
+            }) { name = name, tooltip = tooltip };
+            button.AddToClassList("whimtex-user-settings-folder-button");
+            button.AddToClassList("whimtex-user-settings-open-folder");
+            button.Add(new LayerActionIcon(LayerActionIcon.Kind.Group));
+            return button;
         }
 
         private void SetPresetsFolder(string path)
@@ -373,6 +408,7 @@ namespace DCFApixels.WhimTex
             checkerSize?.SetValueWithoutNotify(WhimTexUserSettings.CheckerSize);
             presetsFolder?.SetValueWithoutNotify(WhimTexUserSettings.PresetsFolder);
             vsCodeExecutable?.SetValueWithoutNotify(WhimTexUserSettings.VsCodeExecutable);
+            openVsCodeFolder?.SetEnabled(System.IO.File.Exists(WhimTexUserSettings.VsCodeExecutable));
         }
         private void ChangeUndoLimits(System.Action change)
         {

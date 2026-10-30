@@ -6,6 +6,18 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexWindow
     {
+        private WhimTexDocument lastLayerPickDocument;
+        private Layer lastPickedLayer;
+        private Vector2 lastLayerPickPosition;
+        private bool lastLayerPickInsideGroups;
+
+        private Layer GetLayerPickContinuation(Vector2 position, bool insideGroups, bool shift)
+        {
+            return !shift && lastLayerPickDocument == activeDocument && lastLayerPickInsideGroups == insideGroups &&
+                selectedLayerIds.Count == 1 && GetSelectedLayer() == lastPickedLayer &&
+                (position - lastLayerPickPosition).sqrMagnitude <= 16f ? lastPickedLayer : null;
+        }
+
         private void AddLayerPickSettings(VisualElement row)
         {
             var threshold = new FloatField("Alpha ≥ %")
@@ -40,12 +52,18 @@ namespace DCFApixels.WhimTex
             if (tiledCanvas) uv = new Vector2(Mathf.Repeat(uv.x, 1f), Mathf.Repeat(uv.y, 1f));
             try
             {
+                bool insideGroups = evt.ctrlKey || evt.commandKey;
+                Layer continuation = GetLayerPickContinuation(evt.localPosition, insideGroups, evt.shiftKey);
                 Vector2 geometryPoint = tiledCanvas ? toolkitCanvas.ToView(new Vector2(image.x + uv.x * image.width, image.yMax - uv.y * image.height)) : evt.localPosition;
                 Layer hit = activeDocument.PickLayerAtPixelWithGeometry(Mathf.FloorToInt(uv.x * activeDocument.width), Mathf.FloorToInt(uv.y * activeDocument.height),
-                    WhimTexUserSettings.LayerPickAlphaThreshold, evt.ctrlKey || evt.commandKey,
+                    WhimTexUserSettings.LayerPickAlphaThreshold, insideGroups,
                     layer => layer.Behaviour is VectorLayerBehaviour vector && PickVectorGeometry(vector, geometryPoint,
                         p => VectorLayerPointToView(layer, p)) != null,
-                    !evt.shiftKey && selectedLayerIds.Count == 1 ? GetSelectedLayer() : null);
+                    continuation, cycle: true);
+                lastLayerPickDocument = activeDocument;
+                lastPickedLayer = evt.shiftKey ? null : hit;
+                lastLayerPickPosition = evt.localPosition;
+                lastLayerPickInsideGroups = insideGroups;
                 if (evt.shiftKey)
                 {
                     if (hit == null) return true;

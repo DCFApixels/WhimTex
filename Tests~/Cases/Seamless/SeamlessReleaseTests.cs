@@ -101,7 +101,7 @@ public static class SeamlessReleaseTests
                     target=WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<WhimTexWindow>());target.ShowUtility();
                     var dest=(WhimTexDocument)Get(target,"activeDocument");dest.layers.Clear();dest.width=96;dest.height=64;
                     snapshot=(WhimTexDocument)Call(doc,"CaptureLayerClipboard",new List<Layer>(doc.layers));
-                    Call(target,"PasteCopiedLayersAt",snapshot,dest.layers,0,null,false);
+                    Call(target,"PasteCopiedLayersAt",snapshot,dest.layers,0,null,false,false);
                     Check(dest.layers.Count==2,"Window copy count");
                     var copied=(MakeSeamlessLayerBehaviour)dest.layers[0].Behaviour;
                     Settings((MakeSeamlessLayerBehaviour)doc.layers[0].Behaviour,copied);

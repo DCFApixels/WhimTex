@@ -1,4 +1,5 @@
 // @whimtex-effect Distortion/Twirl
+// @preset("5206d7bbf4dc4c74914a49149ad21009", 1)
 // @control(_Angle)
 // @group("Distortion")
 // @icon("../Editor/Icons/FX/Distortion.svg")

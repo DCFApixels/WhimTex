@@ -11,6 +11,62 @@ using Object = UnityEngine.Object;
 // Independent port: complete original body, assertion inputs and finally cleanup retained.
 public static class LayerClipboardTests
 {
+    public static string RunNaming() => WhimTex.Tests.UnityC.FixtureContext.Run("Shared copy naming", () =>
+    {
+        const BindingFlags f = BindingFlags.Instance | BindingFlags.NonPublic;
+        var scope = WhimTex.Tests.UnityC.FixtureContext.Scope;
+        var t = WhimTex.Tests.UnityC.FixtureContext.Context;
+        object Call(object owner, string method, params object[] args) => owner.GetType().GetMethod(method, f).Invoke(owner, args);
+        var source = scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
+        var target = scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
+        var window = scope.Own(ScriptableObject.CreateInstance<WhimTexWindow>());
+        source.width = source.height = target.width = target.height = 16;
+        typeof(WhimTexWindow).GetField("activeDocument", f).SetValue(window, target);
+        Layer group = new GroupLayerBehaviour { layerName = "Group" };
+        group.children.Add(new ColorFillLayerBehaviour { layerName = "First" });
+        group.children.Add(new ColorFillLayerBehaviour { layerName = "Second" });
+        source.layers.Add(group); Call(source, "NormalizeModel");
+        string original = EditorJsonUtility.ToJson(source);
+        var snapshot = scope.Own((WhimTexDocument)Call(source, "CaptureLayerClipboard", new List<Layer> { group, group.children[0] }));
+        string clipboard = EditorJsonUtility.ToJson(snapshot);
+        target.layers.Add(new ColorFillLayerBehaviour { layerName = "Existing Copy 40" });
+        Call(target, "NormalizeModel");
+        Undo.FlushUndoRecordObjects(); Undo.IncrementCurrentGroup();
+        try
+        {
+            void Paste(bool preserve = false) => Call(window, "PasteCopiedLayers", snapshot, false, preserve);
+            void Names(string root, string first, string second)
+            {
+                t.Equal(root, target.layers[0].layerName, "Root copy name");
+                t.Equal(first, target.layers[0].children[0].layerName, "First child copy name");
+                t.Equal(second, target.layers[0].children[1].layerName, "Second child copy name");
+            }
+            Paste(); Names("Group Copy 41", "First Copy 42", "Second Copy 43");
+            string pastedId = target.layers[0].Id;
+            Undo.PerformUndo(); t.Equal(1, target.layers.Count, "One Undo removes the paste");
+            Undo.PerformRedo(); Names("Group Copy 41", "First Copy 42", "Second Copy 43");
+            t.Equal(pastedId, target.layers[0].Id, "Redo keeps identities and allocated names");
+            Call(window, "DuplicateLayers", new List<Layer> { target.layers[0] });
+            Names("Group Copy 41 Copy 44", "First Copy 42 Copy 45", "Second Copy 43 Copy 46");
+            Paste(); Names("Group Copy 47", "First Copy 48", "Second Copy 49");
+            Undo.PerformUndo();
+            Paste(); Names("Group Copy 47", "First Copy 48", "Second Copy 49");
+            t.Equal(original, EditorJsonUtility.ToJson(source), "Copying does not rename or advance the source document");
+            t.Equal(clipboard, EditorJsonUtility.ToJson(snapshot), "Repeated pastes never rename the clipboard snapshot");
+            Paste(preserve: true); Names("Group", "First", "Second");
+            Paste(); Names("Group Copy 50", "First Copy 51", "Second Copy 52");
+            var another = scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
+            another.width = another.height = 16;
+            try
+            {
+                Call(another, "PasteLayers", snapshot);
+                t.Equal("Group Copy 1", another.layers[0].layerName, "Other documents use their own copy counter");
+            }
+            finally { Undo.ClearUndo(another); }
+        }
+        finally { Undo.FlushUndoRecordObjects(); Undo.ClearUndo(target); Undo.IncrementCurrentGroup(); }
+    });
+
     public static string Run() => WhimTex.Tests.UnityC.FixtureContext.Run("LayerClipboardTests", Body);
     static void Body()
     {
@@ -110,7 +166,7 @@ public static class LayerClipboardTests
             WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(source); source = null;
             Check(Pixels(snapshotPaint) != null && Pixels(snapshotPaint).GetPixel(0, 0).r == 4, "Clipboard survives source document destruction");
             Call(destination, "PasteLayers", snapshot);
-            Check(destination.layers.Count == 1 && destination.layers[0].layerName == "Group", "Paste inserts original named root");
+            Check(destination.layers.Count == 1 && destination.layers[0].layerName == "Group Copy 1", "Paste assigns the shared Copy number to the root");
             var pasted = destination.layers[0].children[1];
             Check(pasted.Id != snapshotPaint.Id, "Paste generates new IDs");
             Check(Pixels(pasted) != Pixels(snapshotPaint) && Pixels(pasted).GetPixel(0, 0).r == 4, "Paste owns independent HDR pixels");

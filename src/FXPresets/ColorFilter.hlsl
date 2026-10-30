@@ -1,4 +1,5 @@
 // @whimtex-effect Color/Color Filter
+// @preset("6b5f2ca531e046a5a83e381f6f479228", 1)
 // @control(_Opacity)
 // @group("Color")
 // @icon("../Editor/Icons/FX/Color.svg")

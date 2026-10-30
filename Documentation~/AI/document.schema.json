@@ -1220,11 +1220,19 @@
         "$name": {
           "type": "string"
         },
-        "presetOriginPath": {
+        "presetId": {
           "type": [
             "string",
             "null"
-          ]
+          ],
+          "default": null,
+          "description": "Optional @preset GUID in N or D form; editor writes lowercase N. A nonempty ID requires presetVersion >= 1. No Unity asset GUID or content/path matching."
+        },
+        "presetVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Exact expected preset version. Zero/omitted only without a preset ID. Missing, invalid or differently versioned sources use saved code and retain this reference."
         },
         "active": {
           "type": "boolean"
@@ -1257,7 +1265,43 @@
             "null"
           ]
         }
-      }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "presetId": {
+              "enum": [
+                null,
+                ""
+              ]
+            },
+            "presetVersion": {
+              "const": 0
+            }
+          }
+        },
+        {
+          "required": [
+            "presetId",
+            "presetVersion"
+          ],
+          "properties": {
+            "presetId": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$",
+              "not": {
+                "enum": [
+                  "00000000000000000000000000000000",
+                  "00000000-0000-0000-0000-000000000000"
+                ]
+              }
+            },
+            "presetVersion": {
+              "minimum": 1
+            }
+          }
+        }
+      ]
     },
     "ShaderFXParameter": {
       "type": "object",

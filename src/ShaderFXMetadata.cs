@@ -109,6 +109,7 @@ namespace DCFApixels.WhimTex
                 lineNumber++;
                 if (lineNumber == 1 && (TryHeader(line, out _) ||
                     Regex.IsMatch(line.TrimStart('\uFEFF'), @"^//\s*@whimtex-brush\s+"))) expectedLine = 2;
+                if (!block && lineNumber == expectedLine && ShaderFXPresetIdentity.IsDirective(line)) expectedLine++;
                 bool directive = !block && Regex.IsMatch(line.TrimStart('\uFEFF'), @"^\s*//\s*@control\b");
                 ShaderFXSourceBuilder.MaskComments(line, ref block);
                 if (!directive) continue;
@@ -140,6 +141,7 @@ namespace DCFApixels.WhimTex
         internal static List<ShaderFXParameter> ParseWithPreviews(string source, bool requireHeader, out string menuPath,
             out List<ShaderFXParameterControl> previews)
         {
+            ShaderFXPresetIdentity.Read(source);
             previews = new List<ShaderFXParameterControl>();
             string presetGroup = ReadPresetGroup(source, out string presetGroupError);
             if (presetGroupError != null) throw new FormatException(presetGroupError);

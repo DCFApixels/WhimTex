@@ -1,4 +1,5 @@
 // @whimtex-effect Normal Map/Normalize
+// @preset("c1cd81e1dcb14c5a8ca6eb3d0ec94065", 1)
 // @group("Normal")
 // @icon("../Editor/Icons/FX/Normal.svg")
 // @param enum _Encoding = Gamma {Linear: 0, Gamma: 1} // Input and output encoding. Gamma interprets channels as sRGB values; Linear uses raw values.

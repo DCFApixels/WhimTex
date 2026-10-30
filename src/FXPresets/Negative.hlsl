@@ -1,4 +1,5 @@
 // @whimtex-effect Color/Negative
+// @preset("9fdffd30c44c4a53867586ec6125c01c", 1)
 // @control(_Opacity)
 // @group("Tone")
 // @icon("../Editor/Icons/FX/Tone.svg")

@@ -205,7 +205,8 @@ public static class ShaderFXDocumentDirtyTests
                     Call(fx, "ReloadCatalogSource", true); Drain(fx);
                     AssertDirty(window, doc, false, "same catalog force-recompile");
                     Check(changes == 0 && refreshes == 1, "same catalog emits render only");
-                    // Simulate an older saved dependency revision without modifying a real preset.
+                    // Simulate an older portable source snapshot without modifying a real preset.
+                    Set(fx, "code", (string)Get(fx, "code") + "\n// Older saved source snapshot.\n");
                     Set(fx, "catalogDependencyHash", "old-saved-revision");
                     Call(fx, "ReloadCatalogSource", false); Drain(fx);
                     AssertDirty(window, doc, true, "catalog revision changed");
@@ -213,22 +214,24 @@ public static class ShaderFXDocumentDirtyTests
             }
             // A changed catalog revision during OPEN (notification queued before SetDocument).
             var stale = Source("Levels.hlsl");
-            Set(stale.layers[0].fx[0], "catalogDependencyHash", "old-saved-revision");
+            Set(stale.layers[0].fx[0], "code", (string)Get(stale.layers[0].fx[0], "code") + "\n// Older saved source snapshot.\n");
             var updated = RoundTrip(stale);
             Invoke(typeof(WhimTexDocumentFile), null, "CompileEmbeddedEffects", updated);
             var updatedWindow = Window(updated);
             Drain((ShaderFX)updated.layers[0].fx[0]);
             AssertDirty(updatedWindow, updated, true, "changed catalog on open");
 
-            // Missing source detaches to saved fallback: that IS a document change.
-            Set(stale.layers[0].fx[0], "catalogGuid", "missing-dirty-smoke-guid");
+            // Missing source retains the link and saved fallback without changing document content.
+            Set(stale.layers[0].fx[0], "presetId", Guid.NewGuid().ToString("N"));
+            Set(stale.layers[0].fx[0], "presetVersion", 1);
             var fallback = RoundTrip(stale);
             Invoke(typeof(WhimTexDocumentFile), null, "CompileEmbeddedEffects", fallback);
             var fallbackWindow = Window(fallback);
             Drain((ShaderFX)fallback.layers[0].fx[0]);
-            AssertDirty(fallbackWindow, fallback, true, "missing catalog fallback");
+            AssertDirty(fallbackWindow, fallback, false, "missing catalog fallback");
             Check((Shader)Get(fallback.layers[0].fx[0], "compiledShader") != null, "fallback compiled");
-            Check((string)Get(fallback.layers[0].fx[0], "catalogGuid") == null, "fallback detached");
+            Check((bool)typeof(ShaderFX).GetProperty("IsCatalogLinked", Any).GetValue(fallback.layers[0].fx[0]) &&
+                (bool)typeof(ShaderFX).GetProperty("UsingPresetFallback", Any).GetValue(fallback.layers[0].fx[0]), "fallback retains source link");
 
             foreach (var item in originals)
                 Check(item.window != null && ReferenceEquals(Get(item.window, "activeDocument"), item.document) &&

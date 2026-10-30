@@ -1,4 +1,5 @@
 // @whimtex-effect Color/Chroma Key
+// @preset("71e3ce1e37984c3bbf8e894f0279c187", 1)
 // @control(_Opacity)
 // @group("Mask")
 // @icon("../Editor/Icons/FX/Mask.svg")

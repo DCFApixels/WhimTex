@@ -1,4 +1,5 @@
 // @whimtex-effect Color/Hue & Saturation
+// @preset("7d65518083fa4efd924f9770bc3e2ade", 1)
 // @control(_Opacity)
 // @group("Color")
 // @icon("../Editor/Icons/FX/Color.svg")

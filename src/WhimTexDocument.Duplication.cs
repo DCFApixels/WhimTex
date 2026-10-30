@@ -7,10 +7,12 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexDocument
     {
+        internal enum LayerCopyMode { Import, Duplicate, Paste }
+
         internal Dictionary<Layer, Layer> DuplicateLayers(List<Layer> requested) => DuplicateLayersForAgent(requested, true);
 
         internal Dictionary<Layer, Layer> DuplicateLayersForAgent(List<Layer> requested, bool recordUndo)
-            => CopyLayersFrom(this, requested, true, recordUndo ? "Duplicate Sprite Layers" : null);
+            => CopyLayersFrom(this, requested, LayerCopyMode.Duplicate, recordUndo ? "Duplicate Sprite Layers" : null);
 
         internal WhimTexDocument CaptureLayerClipboard(List<Layer> requested)
         {
@@ -22,18 +24,22 @@ namespace DCFApixels.WhimTex
             snapshot.pixelScale = GetPixelScale();
             try
             {
-                snapshot.CopyLayersFrom(this, requested, false, null);
+                snapshot.CopyLayersFrom(this, requested, LayerCopyMode.Import, null);
                 return snapshot;
             }
             catch { DestroyImmediate(snapshot); throw; }
         }
 
         internal Dictionary<Layer, Layer> PasteLayers(WhimTexDocument snapshot)
-            => CopyLayersFrom(snapshot, snapshot.layers, false, "Paste Layers");
+            => CopyLayersFrom(snapshot, snapshot.layers, LayerCopyMode.Paste, "Paste Layers");
+
+        internal Dictionary<Layer, Layer> ImportLayers(WhimTexDocument snapshot)
+            => CopyLayersFrom(snapshot, snapshot.layers, LayerCopyMode.Import, "Paste Layers");
 
         internal Dictionary<Layer, Layer> CopyLayersFrom(WhimTexDocument sourceDocument,
-            List<Layer> requested, bool duplicate, string undoName)
+            List<Layer> requested, LayerCopyMode mode, string undoName)
         {
+            bool duplicate = mode == LayerCopyMode.Duplicate;
             bool recordUndo = undoName != null;
             HashSet<Layer> selected = new HashSet<Layer>(requested);
             List<Layer> roots = new List<Layer>();
@@ -86,7 +92,7 @@ namespace DCFApixels.WhimTex
                         effect.RegisterCreatedCopyUndo(undoName);
                     Undo.RegisterCompleteObjectUndo(this, undoName);
                 }
-                if (duplicate)
+                if (mode != LayerCopyMode.Import)
                     foreach (KeyValuePair<Layer, Layer> pair in copies)
                         pair.Value.layerName = AllocateDuplicateName(pair.Key);
                 embeddedShaderFX.AddRange(effects.Values);

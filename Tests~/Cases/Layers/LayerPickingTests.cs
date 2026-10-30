@@ -21,8 +21,8 @@ public static class LayerPickingTests
         var method = document.GetType().GetMethod("PickLayerAtPixel", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         int checks = 0;
         void Check(bool ok, string message) { WhimTex.Tests.UnityC.FixtureContext.Context.True(ok, message); checks++; }
-        DCFApixels.WhimTex.Layer Pick(int x = 16, int y = 16, float threshold = .1f, bool deep = false, DCFApixels.WhimTex.Layer selected = null) =>
-            (DCFApixels.WhimTex.Layer)method.Invoke(document, new object[] { x, y, threshold, deep, selected });
+        DCFApixels.WhimTex.Layer Pick(int x = 16, int y = 16, float threshold = .1f, bool deep = false, DCFApixels.WhimTex.Layer selected = null, bool cycle = false) =>
+            (DCFApixels.WhimTex.Layer)method.Invoke(document, new object[] { x, y, threshold, deep, selected, cycle });
         var ownedLayers = new List<Layer>();
         DCFApixels.WhimTex.Layer NewLayer(DCFApixels.WhimTex.LayerBehaviour behaviour)
         {
@@ -38,6 +38,13 @@ public static class LayerPickingTests
         try
         {
             Check(Pick() == front, "10% inclusive, including half-float roundoff");
+            Check(Pick(selected: front, cycle: true) == back, "Repeat click selects the next covered layer");
+            Check(Pick(selected: back, cycle: true) == front, "Bottom wraps to the first covered layer");
+            Check(Pick(cycle: true) == front, "First click starts at the top");
+            front.enabled = false;
+            Check(Pick(selected: front, cycle: true) == back && Pick(selected: back, cycle: true) == back,
+                "Missing hit restarts at top; a sole hit stays selected");
+            front.enabled = true;
             Check(Pick(threshold: .11f) == back, "alpha below threshold passes through");
             front.enabled = false; Check(Pick() == back, "hidden layer ignored"); front.enabled = true;
             front.opacity = .5f; Check(Pick() == back, "layer opacity included"); front.opacity = 1f;
@@ -90,6 +97,10 @@ public static class LayerPickingTests
             Check(Pick(deep: true) == front && Pick() == group, "nested groups");
             Check(Pick(selected: group) == childGroup, "repeat click enters only one group level");
             Check(Pick(selected: childGroup) == front, "next click enters nested group");
+            Check(Pick(selected: group, cycle: true) == childGroup, "Cycling enters a group one level at a time");
+            Check(Pick(selected: childGroup, cycle: true) == front, "Cycling enters a nested group");
+            Check(Pick(selected: front, cycle: true) == back, "Cycling leaves exhausted nested groups for the next layer");
+            Check(Pick(deep: true, selected: back, cycle: true) == front, "Deep cycle wraps to the first child");
             Check(Pick(selected: front) == front, "selected child does not bounce back to its parent");
             Check(Pick(selected: back) == group, "unrelated selection does not enter group");
             Check(Pick(selected: NewLayer(new DCFApixels.WhimTex.GroupLayerBehaviour())) == group, "detached selection ignored");
@@ -135,11 +146,13 @@ public static class LayerPickingTests
             Vector2 point = new Vector2(50, 50);
             Func<Vector2, Vector2> map = p => p * 100;
             bool Hit(Layer layer) => layer == vectorLayer && hitGeometry.Invoke(null, new object[] { vector, point, map }) != null;
-            Layer GeometryPick(bool deep = false, Layer selected = null) => (Layer)pickGeometry.Invoke(document,
-                new object[] { 16, 16, .1f, deep, (Func<Layer, bool>)Hit, selected });
+            Layer GeometryPick(bool deep = false, Layer selected = null, bool cycle = false) => (Layer)pickGeometry.Invoke(document,
+                new object[] { 16, 16, .1f, deep, (Func<Layer, bool>)Hit, selected, cycle });
             document.layers.Clear(); document.layers.Add(vectorLayer); document.layers.Add(back);
             Check(Pick() == back, "Raster selection still ignores a transparent fill");
             Check(GeometryPick() == vectorLayer, "Layer Select can pick transparent Vector fill by geometry");
+            Check(GeometryPick(selected: vectorLayer, cycle: true) == back && GeometryPick(selected: back, cycle: true) == vectorLayer,
+                "Geometry-only figures participate in the cycle");
             var before = EditorJsonUtility.ToJson(document);
             point = new Vector2(6, 50); Check(GeometryPick() == vectorLayer, "Contour has six view-point hit tolerance");
             point = new Vector2(3, 50); Check(GeometryPick() == back, "Outside geometry and hit tolerance passes through");

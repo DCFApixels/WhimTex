@@ -1,4 +1,11 @@
 {
+  "WhimTex preset identity": {
+    "prefix": "@preset",
+    "body": [
+      "@preset(\"${1:$UUID}\", ${2:1})$0"
+    ],
+    "description": "After // in the initial header: a fresh preset GUID and version 1. Omit for an independent embedded copy; linked sources require an exact version match."
+  },
   "WhimTex conditional block": {
     "prefix": "@if",
     "body": [

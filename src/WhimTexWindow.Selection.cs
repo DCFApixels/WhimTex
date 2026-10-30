@@ -379,11 +379,11 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private void PasteCopiedLayers(WhimTexDocument snapshot, bool resizeCanvas = false)
-            => PasteCopiedLayersAt(snapshot, null, 0, null, resizeCanvas);
+        private void PasteCopiedLayers(WhimTexDocument snapshot, bool resizeCanvas = false, bool preserveNames = false)
+            => PasteCopiedLayersAt(snapshot, null, 0, null, resizeCanvas, preserveNames);
 
         private void PasteCopiedLayersAt(WhimTexDocument snapshot, List<Layer> destination, int index,
-            Layer expand, bool resizeCanvas = false)
+            Layer expand, bool resizeCanvas = false, bool preserveNames = false)
         {
             applyingToolkitChange = true;
             Undo.IncrementCurrentGroup();
@@ -399,7 +399,7 @@ namespace DCFApixels.WhimTex
                     activeDocument.height = snapshot.height;
                     if (!HasCanvasLayers) activeDocument.pixelScale = snapshot.GetPixelScale();
                 }
-                Dictionary<Layer, Layer> copies = activeDocument.PasteLayers(snapshot);
+                Dictionary<Layer, Layer> copies = preserveNames ? activeDocument.ImportLayers(snapshot) : activeDocument.PasteLayers(snapshot);
                 if (destination != null)
                 {
                     Undo.RegisterCompleteObjectUndo(activeDocument, "Paste Layers");

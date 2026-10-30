@@ -131,7 +131,10 @@ public static class SelectiveHsvTests
             }
         }
         string source = (string)typeof(ShaderFX).GetField("code", Hidden).GetValue(images.Selective);
-        t.True(source.Replace("\r\n", "\n").StartsWith("// @whimtex-effect Color/Hue & Saturation\n// @control(_Opacity)\n", StringComparison.Ordinal),
+        var identityType = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetIdentity", true);
+        object identity = identityType.GetMethod("Read", Hidden).Invoke(null, new object[] { System.IO.File.ReadAllText(PresetPath) });
+        string presetDirective = (string)identityType.GetProperty("Directive", Hidden).GetValue(identity);
+        t.True(source.Replace("\r\n", "\n").StartsWith("// @whimtex-effect Color/Hue & Saturation\n" + presetDirective + "\n// @control(_Opacity)\n", StringComparison.Ordinal),
             "One HSV preset retains the header control contract");
         int hsvEntries = 0;
         var catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog", true);
@@ -143,8 +146,9 @@ public static class SelectiveHsvTests
             t.True(menu != "Color/Selective HSV", "No second selective catalog entry");
             if (menu != "Color/Hue & Saturation") continue;
             hsvEntries++;
-            t.Equal("c7a3baa679367ed449c56370276c2a57", (string)entry.GetType().GetField("guid", Hidden).GetValue(entry),
-                "Unified HSV preserves the selective preset identity, not the removed compact preset identity");
+            t.Equal(((string)identityType.GetField("id", Hidden).GetValue(identity), (int)identityType.GetField("version", Hidden).GetValue(identity)),
+                ((string)entry.GetType().GetField("id", Hidden).GetValue(entry), (int)entry.GetType().GetField("version", Hidden).GetValue(entry)),
+                "Unified HSV catalog identity matches the current declared preset ID/version");
         }
         t.Equal(1, hsvEntries, "Exactly one built-in HSV");
         t.True(!System.IO.File.Exists(PresetPath.Replace("/HueSaturation.hlsl", "/SelectiveHSV.hlsl")) &&
@@ -559,7 +563,8 @@ public static class SelectiveHsvTests
         var parsed = (List<ShaderFXParameter>)assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata", true)
             .GetMethod("Parse", Hidden).Invoke(null, new object[] { exported, true, null });
         Stored(t, images.Parameters, parsed, "Preset export");
-        t.True(exported.Replace("\r\n", "\n").StartsWith("// @whimtex-effect Color/Hue & Saturation\n// @control(_Opacity)\n", StringComparison.Ordinal),
+        string presetDirective = System.IO.File.ReadAllLines(PresetPath)[1];
+        t.True(exported.Replace("\r\n", "\n").StartsWith("// @whimtex-effect Color/Hue & Saturation\n" + presetDirective + "\n// @control(_Opacity)\n", StringComparison.Ordinal),
             "Preset export retains the opacity header binding");
         t.Equal("_Range4Enabled", parsed.Find(p => p.name == "_Range4Hue").controls[0].enableIf[0].parameter,
             "Preset export retains range availability conditions");

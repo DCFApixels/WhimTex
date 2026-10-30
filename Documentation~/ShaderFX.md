@@ -333,8 +333,9 @@ it is not an editable user setting or a serialized promise independent of the so
 ### Document-owned HLSL effects
 
 `Layer.fx` is a `List<ShaderFX>`. Every FX instance is owned by the document, with independent parameter
-values and enabled state. Source modes are a linked, marked project/package `.hlsl` preset, an
-embedded snapshot of a marked user-library `.hlsl` preset, or inline HLSL. A shared HLSL source
+values and enabled state. A marked project/package or user-library `.hlsl` preset links only when
+its header declares `@preset("GUID", version)`; without it, the document stores an independent copy.
+Inline HLSL is also supported. A shared HLSL source
 does not share mutable FX values. Save As, layer duplication and FX copying preserve independent
 instances. FX run in order after Transform; changing values does not regenerate shaders.
 
@@ -546,6 +547,28 @@ Zero Thickness or zero tint alpha removes the contour. Sampling stops at the can
 it does not add a frame or wrap to the opposite edge. Earlier FX, group input and Shader
 Processor input follow the ordinary effect input contract.
 
+## Color Space preset
+
+`Color/Color Space` (`ColorSpace.hlsl`) is pixel-local and declares two enum parameters:
+`_InputSpace` defaults to Gamma (1), `_OutputSpace` to Linear (0). Both use Linear=0,
+Gamma=1, HSV=2. The selectors describe the source/target **generator output modes**, matching
+Noise and Normal Map, rather than the encoding of raw numbers inside the working buffer.
+Alpha is copied unchanged, including at zero alpha. Equal enums return the input exactly.
+
+Linear generators retain raw RGB values. Gamma generators place `SpriteDecode(raw)` in the
+linear working buffer. Therefore the FX recovers raw Linear data with `SpriteEncode` for
+Input Gamma, passes Input Linear through, or unpacks Input HSV. It then returns raw values
+for Output Linear, `SpriteDecode(raw)` for Output Gamma, or HSV computed from raw Linear RGB.
+For example, Linear → Gamma maps 0.5 to approximately 0.214, matching the generator; the
+reverse restores 0.5. No layer-type inspection or generator-specific branch is used.
+
+Transfer functions preserve signed HDR without a 0–1 clamp. HSV is based on Linear RGB:
+R=H in [0,1), G=S in [0,1], B=V with no upper clamp. HSV channels are stored as raw data.
+RGB→HSV clamps negative channels to zero; achromatic hue and black saturation are zero.
+HSV→RGB wraps hue, clamps saturation to [0,1] and clamps negative Value to zero.
+HDR storage is needed to retain values beyond [0,1]. The FX does not change export encoding;
+Linear/HSV data requires a linear export path when raw values must survive in the file.
+
 <a id="hsv-preset"></a>
 
 ## Hue & Saturation preset
@@ -656,11 +679,11 @@ when pasting into another document; they are not the JSON export path.
 
 For document-owned code, **Open Code** opens a working `.hlsl` file through Unity's selected external script editor. Saving synchronizes the draft; **Compile** in WhimTex compiles it. **Open in VS Code** uses a project-local isolated profile and installs the bundled extension automatically. Detection checks Unity's registered editors, then PATH, then **User Settings → External Code Editor → VS Code Command**.
 
-The extension augments the existing **HLSL** language mode with highlighting for directives, types, modifiers, parameter names, values, enum options and ranges. Validation checks declaration defaults, finite numbers, hard/soft bounds, tuples, hex colors, two-color gradients, curve keys, transform matrices, texture-reference syntax, compatible repeated controls, conditions, groups, foldouts, tabs and seed modifiers; trailing tooltips and block-commented examples are handled separately. Layout diagnostics include title/header rules, page placement, matching ends, nested tabs and the 16-level limit. It supports Restricted Mode without disabling Workspace Trust. It does not resolve Unity assets/includes or compile HLSL; Unity remains the authority for generated shader identifiers and compilation.
+The extension augments the existing **HLSL** language mode with highlighting for directives, types, modifiers, parameter names, values, enum options and ranges. Validation checks declaration defaults, finite numbers, hard/soft bounds, tuples, hex colors, two-color gradients, curve keys, transform matrices, texture-reference syntax, compatible repeated controls, conditions, groups, foldouts, tabs and seed modifiers; trailing tooltips and block-commented examples are handled separately. Layout diagnostics include title/header rules, page placement, matching ends, nested tabs and the 16-level limit. `@preset` diagnostics check the required GUID/version pair, D/N GUID forms, positive integer version, single declaration and initial-header placement; source resolution and ID conflicts remain Unity checks. It supports Restricted Mode without disabling Workspace Trust. It does not resolve Unity assets/includes or compile HLSL; Unity remains the authority for generated shader identifiers and compilation.
 
 WhimTex checks the bundled VSIX content when opening code, so a changed bundle can be installed without changing the package version. After reinstalling into an already-running VS Code window, use **Developer: Reload Window** to activate the update.
 
-The bundled HLSL snippets expand `// @if`, `// @enableif`, `// @group`, `// @foldout`, `// @tabs` and `// @tab` with **Tab**, adding matching end directives. Compact spellings such as `//@foldout` also work. Tab visits each placeholder, then the body. Group/foldout titles may include `; _Parameter` for a header control. The tabs snippet starts with no overall title: optionally enter `(Title)` in its first placeholder, then name the first page. Add further pages with the tab snippet inside that tabs block. The extension contributes the HLSL default `editor.tabCompletion: onlySnippets`; it does not write user settings. Explicit overrides can disable direct Tab expansion; the snippets remain available through **Ctrl+Space** or **Insert Snippet** after `// `.
+Type `// @preset` and press **Tab** for a fresh GUID/version 1 header declaration; remove it for an independent embedded copy. The bundled HLSL snippets expand `// @if`, `// @enableif`, `// @group`, `// @foldout`, `// @tabs` and `// @tab` with **Tab**, adding matching end directives. Compact spellings such as `//@foldout` also work. Tab visits each placeholder, then the body. Group/foldout titles may include `; _Parameter` for a header control. The tabs snippet starts with no overall title: optionally enter `(Title)` in its first placeholder, then name the first page. Add further pages with the tab snippet inside that tabs block. The extension contributes the HLSL default `editor.tabCompletion: onlySnippets`; it does not write user settings. Explicit overrides can disable direct Tab expansion; the snippets remain available through **Ctrl+Space** or **Insert Snippet** after `// `.
 
 Working files and their last synchronized baselines live in `Library/WhimTex/ExternalCode`. The VS Code save handler writes a neighboring `.apply` request for these files. Unity polls active sessions every 0.35 seconds, imports the saved draft and calls the internal `Apply` method, including when the code is unchanged. Ordinary external writes synchronize after two stable observations and do not request compilation. FX locks defer synchronization; conflicting document/file changes ask which version to keep. A failed compilation preserves source and parameter values but skips the FX, including any older compiled version, and reports diagnostics until a successful compilation.
 
@@ -696,23 +719,25 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 }
 ```
 
-Use **FX → Add FX** to add an independent document-owned instance. The HLSL source is referenced by asset GUID;
-keep its `.meta` when moving files. Source/include changes refresh loaded, unlocked instances.
-Missing or invalid source retains the last applied shader and reports diagnostics. **Compile** retries/reloads.
+Use **FX → Add FX** to add an independent document-owned instance. A declared `@preset` ID/version
+links its source; without that pair the source is embedded. Source/include changes refresh loaded,
+unlocked linked instances only at the saved version. Missing, invalid or differently versioned source
+uses document fallback code without discarding the link. **Compile** retries/reloads.
 **Code → Embed Copy** detaches the source link and enables local code editing; later source-file
 changes no longer update this FX. Values and the original include base are retained.
 The read-only **Code → Preset** object-style field above the source pings project/package assets
 on single click and opens the original HLSL in VS Code (or Unity's configured editor) on double click.
-Its context menu reveals the file in the OS file manager. User-library copies retain an optional
-`presetOriginPath` for this navigation only; it is serialized with the FX and creates no live source
-dependency. Detaching a linked preset hides the field. Missing original files do not affect embedded code.
-Included files remain external dependencies after detaching unless expanded into a snapshot/export.
+Its context menu reveals the file in the OS file manager. User-library sources can be linked by
+`@preset` too. Embedded copies may retain `presetOriginPath` for navigation only; this path is not
+a source identity or a live dependency. Detaching a linked preset hides the field. Missing original
+files do not affect independent embedded code. Saved render fallback code expands custom includes.
 Only marked `.hlsl` files enter the catalog; ShaderFX `.asset`, Material and standalone ShaderLab
 sources are unsupported. No assets are created merely by adding an effect.
 
 The user library's `ShaderFX` subfolder is also scanned recursively when opening the catalog.
-The same first-line marker is required. These external presets are embedded copies, not GUID-linked
-sources. Custom includes are expanded when adding a user preset; Unity includes stay external.
+The same first-line marker is required. `@preset` opts these external files into the same exact-version
+linking contract as project/package sources; without it they are embedded copies. Custom includes
+are expanded for document fallback code; Unity includes stay external.
 Relative includes in a user preset must stay within the configured `ShaderFX` folder.
 Project/catalog discovery still uses AssetDatabase and import notifications.
 
@@ -722,13 +747,57 @@ Custom includes are expanded for portability (cyclic or oversized include trees 
 Engine includes remain external. Files can be saved under user `ShaderFX` or project `Assets`.
 Existing effects are not detached or switched to the saved file.
 
+### Preset identity and version
+
+Linking is opt-in through one directive in the initial comment header, before any HLSL token,
+declaration or preprocessor line. Prefer placing it immediately after the catalog marker:
+
+```hlsl
+// @whimtex-effect Color/Example
+// @preset("12bc047d-f5b2-43e4-91fd-84e0c2276cde", 1)
+```
+
+The quoted ID and version are required together. Accept GUID D (hyphenated) or N (32 hex digits),
+case-insensitively; normalize IDs to lowercase N. The all-zero GUID is invalid. The version is a positive integer from 1 to
+2147483647. Missing arguments, invalid GUIDs, non-positive/non-integer versions, duplicate directives
+and declarations after HLSL are errors. Block-commented examples are ignored. Blank lines and
+ordinary comments may precede the directive, but the catalog marker still requires the first physical line.
+
+Without `@preset`, adding any catalog entry creates a standalone embedded copy. A Unity `.meta`
+GUID never supplies a missing preset identity. With the pair, project/package and external user-library
+sources both link by declared ID and **exact** version. Renaming or moving a discoverable source does
+not change its identity. A higher version is not implicitly compatible. If the source is missing,
+broken, conflicted or has a different version, use the document's saved code and retain the pair;
+retry when a matching usable source becomes available. A path hint must never select a different ID.
+Diagnostics explain the source failure even when fallback code renders successfully.
+
+TIFF and JSON persist `presetId`, `presetVersion` and fallback code. Resolved source path and dependency
+hash are transient lookup/cache state. Render fallback code expands custom dependencies for both
+project/package and user-library sources; engine includes and external texture inputs remain dependencies.
+Icon stripping is deferred and is not part of this change. `shaderKey` remains the FX instance identity;
+this source contract introduces no document-wide migration or shared mutable parameter values.
+The catalog API identifies entries by declared preset ID, or by source path when no valid identity exists.
+
+Duplicate IDs are conflicts even when file contents are identical or versions differ. Keep the previously
+known owner; if none is known, choose the oldest `CreationTimeUtc`, breaking ties by normalized path.
+Assign each other writable copy a new GUID and version 1. A read-only conflict produces a diagnostic;
+never silently choose an arbitrary source for an unresolved conflict. These rules do not introduce
+a version range or a separate follow-latest policy.
+
+**Save Preset…** generates a fresh GUID/version 1 for a new file, even when exporting an existing linked
+effect. Overwriting a destination preserves that destination's valid ID/version, not the exporting
+effect's identity. A destination without the directive receives a new pair; malformed declarations
+are errors. Saving a preset does not relink
+the effect being exported. Use **Code → Embed Copy** to stop following a source while retaining code
+and parameter values.
+
 ### FX block control
 
 If the parameter name contains `Opacity` or `Alpha` (case-insensitive), the numeric drag handle uses the same alpha icon as the Layers header instead of arrows; dragging behaves identically.
 
 Float controls have a **↔** handle before the field: drag horizontally to adjust the value, hold Shift for finer changes or Ctrl for faster changes. The gesture respects hard/soft limits and forms one Undo step.
 
-Use `// @control(_Opacity)` immediately after the catalog marker, or on the first line when there is no marker, to expose one existing parameter in the FX block header before **⋮**:
+Use `// @control(_Opacity)` after the catalog marker and optional `@preset`, or on the first line when neither exists, to expose one existing parameter in the FX block header before **⋮**:
 
 ```hlsl
 // @whimtex-effect Color/My Effect
@@ -743,7 +812,7 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 
 The compact, unlabeled field supports toggle, enum, seed, float, color, float2, float3 and float4. Its tooltip identifies the parameter. Unsupported types leave the header unchanged. The parameter must have a single declaration. `hidden` suppresses its normal body row, not this header field; omit `hidden` to display both controls editing the same value. This is UI metadata only: it neither declares a uniform nor adds automatic opacity blending. Use the parameter in your HLSL to define its behavior.
 
-Only one control is selected. Multiple directives produce soft warnings and the last declaration wins, even if invalid (there is no fallback to an earlier declaration). Malformed syntax, unknown/ambiguous parameter references and misplaced directives also produce warnings rather than shader errors. Documents, preset exports and portable code preserve the binding; exports write one canonical directive after the catalog marker.
+Only one control is selected. Multiple directives produce soft warnings and the last declaration wins, even if invalid (there is no fallback to an earlier declaration). Malformed syntax, unknown/ambiguous parameter references and misplaced directives also produce warnings rather than shader errors. Documents, preset exports and portable code preserve the binding; exports write one canonical directive after the catalog marker and optional `@preset`.
 
 ### Parameter declarations
 
@@ -1345,7 +1414,7 @@ The 31 built-in presets use the Color, Distortion, Lighting, Normal Map and Styl
 category submenus. UV Transform is in Distortion. Inside each category, related presets
 use the same group (for example Color, Mask or Tone). Gradient Map shares the Color group
 while retaining its gradient icon. Separators divide these
-blocks without adding another navigation level. Grouping does not change catalog paths or asset GUIDs.
+blocks without adding another navigation level. Grouping does not change catalog paths or declared preset IDs.
 
 Groups and the effects inside each group sort alphabetically, ignoring case. Group names
 are trimmed and matched without case sensitivity. Blocks are separated by a line; they
@@ -1355,7 +1424,7 @@ Ungrouped effects and existing submenus occupy the first alphabetically sorted b
 menu, including the User library. A slash inside the quoted group name is literal.
 Duplicate effect names retain their source-path suffix.
 
-Keep the marker on line 1 and optional `@control` immediately after it. Put `@group("Name")`
+Keep the marker on line 1, followed by optional `@preset` and `@control`. Put `@group("Name")`
 after these and before HLSL declarations/includes. Empty, malformed or duplicate preset
 groups are errors. Double quotes are required and cannot occur inside the group name.
 This quoted declaration has no `@endgroup`; the existing unquoted `@group(Title)` /
@@ -1403,6 +1472,10 @@ The catalog reads icon metadata without compiling effects. Preparation is queued
 construction, with one request per Editor update. Shared image content reuses cached textures;
 SVG is rendered for the current display scale. File icons refresh after project changes or
 returning to the Editor. The same image is used in the searchable Add FX picker and FX header.
+SVG rasterization uses an explicit offscreen projection and a ready shared shader pass.
+It renders at twice the requested width and height, then downsamples into a single-sample
+texture before CPU readback. This avoids transparent first-render results from the MSAA
+path while retaining antialiased edges. Preparing icons does not compile preset FX shaders.
 A missing or invalid icon does not disable the effect; the header icon tooltip reports its error.
 
 Embed Copy, FX clipboard copies, user-library imports, preset export and document JSON/TIFF

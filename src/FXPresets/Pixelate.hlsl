@@ -1,4 +1,5 @@
 // @whimtex-effect Stylization/Pixelate
+// @preset("c5c2cba1fb5a4aa6aa260c1ac0d853fb", 1)
 // @group("Pattern")
 // @icon("../Editor/Icons/FX/Pattern.svg")
 // @header(Pixel Grid)

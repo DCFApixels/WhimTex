@@ -109,7 +109,7 @@ try {
   context.case('layout grammar recognizes new opening and closing directives', async () => {
     const grammar = JSON.parse(readFileSync(new URL('../../../ExternalTools~/WhimTexVSCode/syntaxes/whimtex-hlsl.tmLanguage.json', import.meta.url), 'utf8'));
     const begin = new RegExp(grammar.patterns[0].begin);
-    for (const name of ['group', 'endgroup', 'foldout', 'endfoldout', 'tabs', 'endtabs', 'tab', 'endtab', 'if', 'endif', 'enableif', 'endenableif']) {
+    for (const name of ['preset', 'group', 'endgroup', 'foldout', 'endfoldout', 'tabs', 'endtabs', 'tab', 'endtab', 'if', 'endif', 'enableif', 'endenableif']) {
       for (const spacing of ['', ' ', '\t'])
         assert.equal(begin.exec(`//${spacing}@${name}`)?.[1], '@' + name);
       assert.equal(begin.test(`// @${name}Extra`), false);
@@ -118,8 +118,9 @@ try {
 
   context.case('layout snippets preserve native suffix expansion and generate balanced containers', async () => {
     const snippets = JSON.parse(readFileSync(new URL('../../../ExternalTools~/WhimTexVSCode/snippets/whimtex.json', import.meta.url), 'utf8'));
-    assert.deepEqual(Object.values(snippets).map(s => s.prefix), ['@if', '@enableif', '@group', '@foldout', '@tabs', '@tab']);
-    const expand = snippet => snippet.body.join('\n').replace(/\$\{\d+:([^}]*)\}/g, '$1').replace(/\$0/g, '');
+    assert.deepEqual(Object.values(snippets).map(s => s.prefix), ['@preset', '@if', '@enableif', '@group', '@foldout', '@tabs', '@tab']);
+    const expand = snippet => snippet.body.join('\n').replace(/\$\{\d+:([^}]*)\}/g, '$1')
+      .replace(/\$UUID/g, '12bc047d-f5b2-43e4-91fd-84e0c2276cde').replace(/\$0/g, '');
     for (const snippet of Object.values(snippets).filter(s => !['@if', '@enableif'].includes(s.prefix))) {
       const body = expand(snippet).replace('// \n', '// @preview(P)\n');
       for (const prefix of ['//', '// ', '    // ', '\t//']) {
@@ -172,6 +173,25 @@ try {
   context.case('catalog marker is recognized and reports misplaced markers as a warning', async () => {
     assert.deepEqual(validate('// @whimtex-effect Color/Mask'), []);
     assert.equal(validate('\n// @whimtex-effect Color/Mask')[0].warning, true);
+    const { parsePreset } = require('../../../ExternalTools~/WhimTexVSCode/metadata.js');
+    const id = '12bc047df5b243e491fd84e0c2276cde';
+    const preset = '// @preset("12BC047D-F5B2-43E4-91FD-84E0C2276CDE", 1)';
+    assert.deepEqual(parsePreset('( "12BC047D-F5B2-43E4-91FD-84E0C2276CDE", 1 )'), { presetId: id, presetVersion: 1 });
+    assert.deepEqual(parsePreset(`(" ${id} ", 1)`), { presetId: id, presetVersion: 1 });
+    assert.deepEqual(parsePreset(`("${id}", 2147483647)`), { presetId: id, presetVersion: 2147483647 });
+    for (const prefix of ['', '\uFEFF', '\n// License\n/* comment */\n', '// @whimtex-effect Color/Mask\n'])
+      assert.deepEqual(validate(prefix + preset + '\nfloat4 ApplyFX(float4 c) { return c; }'), []);
+    assert.deepEqual(validate('/*\n' + preset + '\n*/\nfloat _A;'), []);
+    for (const body of ['()', `("${id}")`, '(1)', '("", 1)', '("not-a-guid", 1)',
+      '("00000000000000000000000000000000", 1)', '("00000000-0000-0000-0000-000000000000", 1)',
+      `("{${id}}", 1)`, `("${id}", 0)`, `("${id}", -1)`, `("${id}", 1.5)`,
+      `("${id}", "1")`, `("${id}", 1e2)`, `("${id}", 2147483648)`, `("${id}", 1, 2)`])
+      assert.ok(validate('// @preset' + body).some(d => !d.warning), body);
+    for (const prefix of ['float _A;\n', '#include "Library.hlsl"\n', preset + '\n']) {
+      const errors = validate(prefix + preset).filter(d => !d.warning);
+      assert.equal(errors.length, 1);
+      assert.equal(errors[0].line, 1);
+    }
   });
 
   context.case('quoted preset groups do not open parameter containers', async () => {
@@ -213,6 +233,9 @@ try {
     const param = '\n// @param hidden float _Opacity = 1 [0..1]';
     assert.deepEqual(validate('// @control(_Opacity)' + param), []);
     assert.deepEqual(validate('// @whimtex-effect Color/Test\n// @control(_Opacity)' + param), []);
+    const preset = '// @preset("12bc047df5b243e491fd84e0c2276cde", 1)\n';
+    assert.deepEqual(validate('// @whimtex-effect Color/Test\n' + preset + '// @control(_Opacity)' + param), []);
+    assert.deepEqual(validate(preset + '// @control(_Opacity)' + param), []);
     const duplicate = validate('// @control(_Missing)\n// @control(_Opacity)' + param);
     assert.equal(duplicate.length, 1);
     assert.ok(duplicate[0].warning && /last declaration wins/.test(duplicate[0].message));

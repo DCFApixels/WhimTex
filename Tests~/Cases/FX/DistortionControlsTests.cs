@@ -112,7 +112,7 @@ public static class DistortionControlsTests
                 effects.Add(name, fx);
                 string controlName = bindings[name];
                 string code = (string)typeof(ShaderFX).GetProperty("Code", F).GetValue(fx);
-                t.Equal("// @control(" + controlName + ")", code.Split('\n')[1].TrimEnd('\r'), "Header directive follows catalog marker");
+                t.Equal("// @control(" + controlName + ")", code.Split('\n')[2].TrimEnd('\r'), "Header directive follows catalog marker and preset identity");
                 var parameter = P(fx, controlName);
                 t.Equal(1, parameter.controls.Count, "Header points to one scalar control");
                 t.Equal(ShaderFXParameterType.Float, parameter.controls[0].type, "Header is a numeric strength control");
@@ -132,7 +132,7 @@ public static class DistortionControlsTests
                 Set(fx, controlName, defaults[name] * .4f);
                 string exported = (string)writer.Invoke(null, new object[] { fx, "Tests/Distortion Control" });
                 var copy = Create(exported);
-                t.Equal("// @control(" + controlName + ")", exported.Split('\n')[1].TrimEnd('\r'), "Preset export retains header binding");
+                t.Equal("// @control(" + controlName + ")", exported.Split('\n')[2].TrimEnd('\r'), "Preset export retains header binding after preset identity");
                 t.Near(P(fx, controlName).floatValue, P(copy, controlName).floatValue, 0, "Preset export stores the edited default");
                 Same(Render(fx), Render(copy), "Preset export render parity: " + name);
                 Set(fx, controlName, 0);

@@ -1,4 +1,5 @@
 // @whimtex-effect Normal Map/Lighting
+// @preset("507629ef0061414fac94d51a8c2485af", 1)
 // @group("Lighting")
 // @icon("../Editor/Icons/FX/Lighting.svg")
 // @header(Normal Source)

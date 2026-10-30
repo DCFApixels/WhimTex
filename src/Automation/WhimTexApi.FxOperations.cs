@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
 {
     public static partial class WhimTexApi
     {
-        // Preset IDs are GUIDs for project/package assets and paths for user-library files.
+        // Declared preset IDs work in both libraries; anonymous entries use paths for selection only.
         public static string FxCatalog(string query = null, string presetId = null) => Respond(() =>
         {
             var result = Success();
@@ -23,7 +23,8 @@ namespace DCFApixels.WhimTex
                 if (!string.IsNullOrEmpty(query) && entry.menuPath.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0 &&
                     (entry.group == null || entry.group.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0)) continue;
                 var item = new JObject { ["id"] = id, ["path"] = entry.path, ["name"] = entry.menuPath,
-                    ["kind"] = "hlsl", ["group"] = entry.group, ["error"] = entry.error };
+                    ["kind"] = "hlsl", ["group"] = entry.group, ["error"] = entry.error,
+                    ["presetId"] = entry.id, ["presetVersion"] = entry.version, ["linkable"] = !entry.HasError && !string.IsNullOrEmpty(entry.id) };
                 item["icon"] = FxIconSnapshot(entry.icon, entry.path);
                 if (presetId != null && !entry.HasError)
                 {
@@ -45,7 +46,7 @@ namespace DCFApixels.WhimTex
             return result;
         });
 
-        private static string PresetId(ShaderFXCatalog.Entry entry) => string.IsNullOrEmpty(entry.guid) ? entry.path : entry.guid;
+        private static string PresetId(ShaderFXCatalog.Entry entry) => entry.HasError || string.IsNullOrEmpty(entry.id) ? entry.path : entry.id;
 
         private static JObject FxIconSnapshot(ShaderFXIconMetadata.Descriptor icon, string source)
         {

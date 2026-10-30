@@ -1,4 +1,5 @@
 // @whimtex-effect Stylization/Digital Glitch
+// @preset("b330af2796ec467780b759f3de6c4c26", 1)
 // @group("Pattern")
 // @icon("../Editor/Icons/FX/Pattern.svg")
 // @param float _Blend = 1 [0 .. 1] // Blend the corrupted signal with the original image.

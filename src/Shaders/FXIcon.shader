@@ -10,12 +10,13 @@ Shader "Hidden/WhimTex/FXIcon"
             #pragma vertex Vert
             #pragma fragment Frag
             #include "UnityCG.cginc"
+            float4x4 _IconProjection;
             struct Input { float4 vertex : POSITION; float4 color : COLOR; };
             struct Output { float4 vertex : SV_POSITION; float4 color : COLOR; };
             Output Vert(Input input)
             {
                 Output output;
-                output.vertex = UnityObjectToClipPos(input.vertex);
+                output.vertex = mul(_IconProjection, input.vertex);
                 output.color = input.color;
                 return output;
             }

@@ -1,4 +1,5 @@
 // @whimtex-effect Distortion/Radial Shear
+// @preset("8c42d3f0031d45b792e1afbd766a1cd8", 1)
 // @control(_Strength)
 // @group("Distortion")
 // @icon("../Editor/Icons/FX/Distortion.svg")

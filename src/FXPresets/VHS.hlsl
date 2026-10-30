@@ -1,4 +1,5 @@
 // @whimtex-effect Stylization/VHS
+// @preset("1654fc4e05f242f7a5d33e402a41d2b0", 1)
 // @group("Pattern")
 // @icon("../Editor/Icons/FX/Pattern.svg")
 // @header(Tape Signal)

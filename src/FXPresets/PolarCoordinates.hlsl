@@ -1,4 +1,5 @@
 // @whimtex-effect Distortion/Polar Coordinates
+// @preset("fd77ff73846743ea904983844d1577f8", 1)
 // @control(_Amount)
 // @group("Distortion")
 // @icon("../Editor/Icons/FX/Distortion.svg")

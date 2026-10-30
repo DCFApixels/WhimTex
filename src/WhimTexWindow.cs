@@ -226,6 +226,7 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            layerVisibilityDrag?.Release();
             DrainQuickSelection();
             CancelVectorMaskRebuild(false);
             vectorManipulator?.Cancel();
@@ -762,6 +763,7 @@ namespace DCFApixels.WhimTex
             int section = 0;
             foreach (var descriptor in LayerTypeRegistry.Entries)
             {
+                if (descriptor.BehaviourType == typeof(GroupLayerBehaviour)) continue;
                 if (section != descriptor.Section) menu.AddSeparator(string.Empty);
                 section = descriptor.Section;
                 menu.AddItem(new GUIContent(descriptor.MenuName), false,
@@ -792,9 +794,16 @@ namespace DCFApixels.WhimTex
             }, completeUndo);
         }
 
-        private void GroupSelectedLayer()
+        private void AddGroupForSelection()
         {
-            GroupLayers(GetSelectedRoots());
+            if (activeDocument == null) return;
+            FinishCanvasTransform();
+            FinishPaintingStroke();
+            Layer selected = GetSelectedLayer();
+            if (selected != null && activeDocument.TryFindLayer(selected, out List<Layer> container, out int index))
+                AddLayer(container, index, new GroupLayerBehaviour());
+            else
+                AddLayer(activeDocument.layers, 0, new GroupLayerBehaviour());
         }
 
         private void GroupLayers(List<Layer> selected)
@@ -861,7 +870,6 @@ namespace DCFApixels.WhimTex
             else
                 menu.AddDisabledItem(new GUIContent("Move Out Of Group"));
 
-            menu.AddItem(new GUIContent("Group Selected"), false, () => GroupLayers(roots));
             foreach (VectorBooleanOperation operation in Enum.GetValues(typeof(VectorBooleanOperation)))
             {
                 var choice = operation;
@@ -903,8 +911,11 @@ namespace DCFApixels.WhimTex
             {
                 menu.AddSeparator(string.Empty);
                 foreach (var descriptor in LayerTypeRegistry.Entries)
+                {
+                    if (descriptor.BehaviourType == typeof(GroupLayerBehaviour)) continue;
                     menu.AddItem(new GUIContent("Add Inside/" + descriptor.InsideMenuName), false,
                         () => AddInsideContextGroups(targets, descriptor.CreateLayer));
+                }
                 menu.AddItem(new GUIContent("Ungroup"), false, () => UngroupContextLayers(targets));
             }
 
