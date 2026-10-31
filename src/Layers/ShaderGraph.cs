@@ -12,7 +12,7 @@ namespace DCFApixels.WhimTex
         Parameter, Constant, UV, ImageSize, TextureSize, SampleTexture, SampleGradient, SampleCurve,
         Split, Combine, Add, Subtract, Multiply, Divide, Min, Max, Clamp, Abs, OneMinus, Negate,
         Power, SquareRoot, Floor, Ceil, Round, Fraction, Sine, Cosine, Lerp, Remap, Step, Smoothstep,
-        Length, Distance, Dot, Normalize, Compare, Select, TransformUV, Noise, Shape, Blend, Output, Reroute
+        Length, Distance, Dot, Normalize, Compare, Select, TransformUV, Noise, Shape, Blend, Output, Reroute, CustomFunction
     }
 
     [Serializable]
@@ -37,6 +37,10 @@ namespace DCFApixels.WhimTex
         public ShaderGraphWrap wrap;
         public ShaderGraphFilter filter = ShaderGraphFilter.Bilinear;
         public List<ShaderGraphInput> inputs = new List<ShaderGraphInput>();
+        public string functionId;
+        public Vector2 codeSize;
+        public bool codeExpanded = true;
+        [NonSerialized] internal ShaderGraphFunction function;
 
         public ShaderGraphInput FindInput(string port)
         {
@@ -58,6 +62,33 @@ namespace DCFApixels.WhimTex
         public List<ShaderFXParameter> parameters = new List<ShaderFXParameter>();
         public List<ShaderGraphNode> nodes = new List<ShaderGraphNode>();
         public List<ShaderGraphEdge> edges = new List<ShaderGraphEdge>();
+        public List<ShaderGraphFunction> functions = new List<ShaderGraphFunction>();
+        public List<ShaderGraphSource> sources = new List<ShaderGraphSource>();
+
+        public ShaderGraphFunction FindFunction(string id) => functions?.Find(f => f != null && f.id == id);
+        internal void BindFunctions()
+        {
+            if (nodes != null) foreach (var node in nodes)
+                if (node != null) node.function = node.kind == ShaderGraphNodeKind.CustomFunction ? FindFunction(node.functionId) : null;
+        }
+        internal void PruneFunctions()
+        {
+            var used = new HashSet<string>();
+            foreach (var node in nodes) if (node.kind == ShaderGraphNodeKind.CustomFunction) used.Add(node.functionId);
+            functions.RemoveAll(f => f != null && !used.Contains(f.id));
+            used.Clear();
+            var byId = new Dictionary<string, ShaderGraphSource>();
+            foreach (var source in sources) if (source?.id != null) byId.TryAdd(source.id, source);
+            var pending = new Stack<string>();
+            foreach (var f in functions) if (!string.IsNullOrEmpty(f.sourceId)) pending.Push(f.sourceId);
+            while (pending.Count != 0)
+            {
+                string id = pending.Pop();
+                if (!used.Add(id) || !byId.TryGetValue(id, out var source) || source.includes == null) continue;
+                foreach (var include in source.includes) if (include?.sourceId != null) pending.Push(include.sourceId);
+            }
+            sources.RemoveAll(s => s != null && !used.Contains(s.id));
+        }
 
         public static ShaderGraph CreateDefault()
         {
@@ -131,10 +162,12 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.Combine] = new[] { P("X", ShaderGraphValueType.Float), P("Y", ShaderGraphValueType.Float), P("Z", ShaderGraphValueType.Float), P("W", ShaderGraphValueType.Float, 1) };
             return map;
         }
-        internal static IReadOnlyList<ShaderGraphPort> Inputs(ShaderGraphNode node) => ports.TryGetValue(node.kind, out var result) ? result : none;
+        internal static IReadOnlyList<ShaderGraphPort> Inputs(ShaderGraphNode node) => node.kind == ShaderGraphNodeKind.CustomFunction
+            ? node.function?.InputPorts() ?? none : ports.TryGetValue(node.kind, out var result) ? result : none;
         internal static string[] Outputs(ShaderGraphNode node) => node.kind switch
         {
             ShaderGraphNodeKind.Output => Array.Empty<string>(),
+            ShaderGraphNodeKind.CustomFunction => node.function?.OutputPorts() ?? Array.Empty<string>(),
             ShaderGraphNodeKind.Split => new[] { "X", "Y", "Z", "W" },
             ShaderGraphNodeKind.ImageSize or ShaderGraphNodeKind.TextureSize => new[] { "Size", "Texel" },
             _ => new[] { "Out" }
@@ -149,17 +182,27 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Blend => "Color",
             ShaderGraphNodeKind.Output => "Output",
             ShaderGraphNodeKind.Reroute => "Utility",
+            ShaderGraphNodeKind.CustomFunction => "Utility",
             _ => "Math"
         };
         internal static ShaderGraphNode Create(ShaderGraphNodeKind kind, Vector2 position)
         {
             var node = new ShaderGraphNode { kind = kind, position = position };
+            if (kind == ShaderGraphNodeKind.CustomFunction) { node.function = ShaderGraphFunction.CreateInline(); node.functionId = node.function.id; }
             if (kind == ShaderGraphNodeKind.Reroute) return node;
             if (kind == ShaderGraphNodeKind.Combine) node.valueType = ShaderGraphValueType.Float4;
             foreach (var p in Inputs(node))
                 if (!p.uvDefault && p.type is not (ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve))
                     node.inputs.Add(new ShaderGraphInput { port = p.name, type = p.type ?? ShaderGraphValueType.Float, value = p.value });
             return node;
+        }
+        internal static void SetFunction(ShaderGraphNode node, ShaderGraphFunction function)
+        {
+            node.function = function; node.functionId = function.id;
+            node.inputs.RemoveAll(input => !function.ports.Exists(p => p.name == input.port && p.direction != ShaderGraphFunctionDirection.Output && p.type == input.type));
+            foreach (var p in Inputs(node))
+                if (node.FindInput(p.name) == null && !p.uvDefault && p.type != ShaderGraphValueType.Texture)
+                    node.inputs.Add(new ShaderGraphInput { port = p.name, type = p.type ?? ShaderGraphValueType.Float, value = p.value });
         }
         internal static ShaderGraphValueType ParameterType(ShaderFXParameter p) => p.type switch
         {

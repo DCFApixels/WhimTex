@@ -6,6 +6,36 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Library HLSL nodes use ordinary node styling without a code panel. Their context menu can
+  convert them to independent editable Custom Functions, preserving ports, wiring, values and
+  include backups. Converted functions edit the main source and compile without the original files.
+
+- Shader Graph supports copying, pasting and duplicating selected nodes with their settings,
+  internal connections and HLSL/include backups. Parameter nodes share existing parameters in
+  the same graph and carry parameter values into other graphs. Paste and Duplicate support Undo/Redo.
+
+- Hovering a Shader Graph parameter highlights its row and all matching Parameter nodes without
+  changing selection. Layer Preview is now a movable, resizable overlay, initially at the graph's
+  bottom-right, with R/G/B/A controls in its header and placement retained in the window state.
+  Dragging either its header or image snaps it flush to viewport edges and corners; attachments follow
+  viewport resizing and can be released by dragging away. Channel controls and resize handles
+  retain their separate actions.
+
+- Shader Graph parameter headers support drag reordering and dropping onto the graph to create
+  Parameter nodes. Their context menu contains Use in Graph, Duplicate (including the assigned
+  value) and Remove. A matching output-port indicator shows each parameter's type.
+
+- Shader layers add HLSL library nodes and Utility/Custom Function, with configurable ports,
+  an inline body editor and explicit Compile that retains saved drafts and the last applied
+  signature. File functions and inline includes keep full source/include backups; file refresh
+  is explicit. Native TIFF deduplicates HLSL sources across graphs in a shared compressed table;
+  restored graphs compile from the embedded include archive without the original files.
+  The cached project/user catalog supports @whimtex-node, typed @param metadata, exact preset
+  identity/version, return/out/inout ports, UV defaults and visible diagnostics. Unity 6.5+
+  optionally imports public reflection metadata into the portable model. A Colors/Contrast
+  library example is included; EN/RU/ZH and AI authoring guides describe the workflow. External
+  HLSL tooling highlights node markers and validates metadata separately for each function.
+
 - Dragging a Shader Graph output connection onto empty space opens compatible node/input choices named `NodeName(InputName)`, with the menu's left edge anchored at the cursor. Selecting creates and connects the node at the drop position in one Undo operation; cancelling leaves the graph unchanged.
 
 - Generated HLSL uses an initially collapsed draggable footer with the same 20-pixel caption

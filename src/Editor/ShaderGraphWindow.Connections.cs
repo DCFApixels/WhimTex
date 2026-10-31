@@ -55,7 +55,8 @@ namespace DCFApixels.WhimTex
         {
             internal readonly ShaderGraphNodeKind kind;
             internal readonly string input;
-            internal ConnectedNodeChoice(ShaderGraphNodeKind kind, string input) { this.kind = kind; this.input = input; }
+            internal readonly ShaderGraphFunctionCatalog.Entry function;
+            internal ConnectedNodeChoice(ShaderGraphNodeKind kind, string input, ShaderGraphFunctionCatalog.Entry function = null) { this.kind = kind; this.input = input; this.function = function; }
         }
 
         private sealed partial class Canvas
@@ -67,6 +68,7 @@ namespace DCFApixels.WhimTex
                 panel.PickAll(position, hits);
                 foreach (var hit in hits)
                 {
+                    if (hit is LayerPreviewOverlay || hit.GetFirstAncestorOfType<LayerPreviewOverlay>() != null) return false;
                     if (hit is GraphNodeView || hit.GetFirstAncestorOfType<GraphNodeView>() != null) return false;
                     var edge = EdgeAt(hit);
                     if (edge?.userData is ShaderGraphEdge) return false;
@@ -122,6 +124,7 @@ namespace DCFApixels.WhimTex
                     result.Add(new SearchTreeGroupEntry(new GUIContent(category.Key), 1));
                     result.AddRange(category.Value);
                 }
+                AddFunctionSearchEntries(result, type);
                 return result;
             }
 
@@ -130,12 +133,26 @@ namespace DCFApixels.WhimTex
                 if (!CanAddConnection() || !CurrentSource(graph, source, out var type)) return false;
                 if (choice.kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Reroute) return false;
                 var node = ShaderGraphNodes.Create(choice.kind, position);
+                ShaderGraph staged = null;
+                if (choice.function != null)
+                {
+                    try
+                    {
+                        staged = new ShaderGraph { sources = new List<ShaderGraphSource>(graph.sources) };
+                        var function = choice.function.Import(staged);
+                        CheckFunction(function, staged.sources);
+                        ShaderGraphNodes.SetFunction(node, function);
+                    }
+                    catch (Exception error) { window.ShowError(error.Message); return false; }
+                }
                 foreach (var input in ShaderGraphNodes.Inputs(node))
                 {
                     if (input.name != choice.input || !Compatible(type, input.type ?? ShaderGraphValueType.Float, !input.type.HasValue)) continue;
                     window.Edit("Create Connected Shader Node", current =>
                     {
                         current.nodes.Add(node);
+                        if (node.function != null) current.functions.Add(node.function);
+                        if (staged != null) current.sources = staged.sources;
                         current.edges.Add(new ShaderGraphEdge { outputNode = source.nodeId, outputPort = source.name, inputNode = node.id, inputPort = input.name });
                         selectAfterRebuild = node.id;
                     });

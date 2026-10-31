@@ -12,6 +12,7 @@ namespace DCFApixels.WhimTex
                 shader.graph.Validate();
             }
             else if (value is ShaderGraph graph) graph.Validate();
+            else if (value is ShaderGraphSource source) ShaderGraphSources.ValidateSource(source);
         }
 
         internal static JObject ShaderGraphSnapshot(ShaderGraph graph, WhimTexDocument document)

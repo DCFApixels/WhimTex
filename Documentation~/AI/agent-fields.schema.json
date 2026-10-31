@@ -9,7 +9,7 @@
       "properties": {
         "graph": {
           "$ref": "document.schema.json#/$defs/ShaderGraph",
-          "description": "Complete graph replacement. Stable node and parameter IDs, typed inputs, edges and parameter controls are retained. Texture parameters accept asset identities or document layer IDs."
+          "description": "Complete graph replacement. Stable node and parameter IDs, typed inputs, edges and parameter controls are retained. Texture parameters accept asset identities or document layer IDs. CustomFunction node functionId references graph.functions, including staged draft/draftPorts. File-backed function sourceId references graph.sources: plain original code plus per-module requested/sourceId include bindings. Embedded backups load without source files; only exact whitelisted engine includes may remain unresolved."
         }
       }
     },

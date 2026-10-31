@@ -7,6 +7,175 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class ShaderGraphWindow
     {
+        [Flags]
+        private enum PreviewAnchor { None = 0, Left = 1, Right = 2, Top = 4, Bottom = 8 }
+
+        private sealed class LayerPreviewOverlay : VisualElement
+        {
+            private const float SnapDistance = 16f;
+            private static readonly Vector2 MinimumSize = new Vector2(200, 100);
+            private readonly ShaderGraphWindow window;
+            private VisualElement viewport;
+            private Rect bounds;
+
+            internal LayerPreviewOverlay(ShaderGraphWindow window, LayerPreviewPanel preview)
+            {
+                this.window = window;
+                name = "shader-layer-preview";
+                usageHints = UsageHints.DynamicTransform;
+                AddToClassList("whimtex-shader-graph-layer-preview");
+                Add(preview);
+                this.AddManipulator(new PreviewGesture(this, 0, preview.Header.Q("layer-preview-channels")));
+                AddHandle("left", 1); AddHandle("right", 2);
+                AddHandle("top", 4); AddHandle("bottom", 8);
+                AddHandle("top-left", 5); AddHandle("top-right", 6);
+                AddHandle("bottom-left", 9); AddHandle("bottom-right", 10);
+                RegisterCallback<AttachToPanelEvent>(_ =>
+                {
+                    viewport = parent;
+                    viewport.RegisterCallback<GeometryChangedEvent>(OnViewportGeometry);
+                    Place();
+                });
+                RegisterCallback<DetachFromPanelEvent>(_ =>
+                {
+                    viewport?.UnregisterCallback<GeometryChangedEvent>(OnViewportGeometry);
+                    viewport = null;
+                });
+            }
+
+            private void AddHandle(string side, int edges)
+            {
+                var handle = new VisualElement { name = "preview-resize-" + side };
+                handle.AddToClassList("whimtex-shader-graph-preview-resize");
+                handle.AddToClassList("whimtex-shader-graph-preview-resize--" + side);
+                handle.AddManipulator(new PreviewGesture(this, edges, null));
+                Add(handle);
+            }
+
+            private void OnViewportGeometry(GeometryChangedEvent evt) => Place();
+            private Vector2 Available => viewport?.contentRect.size ?? Vector2.zero;
+            private Vector2 Minimum => Vector2.Min(MinimumSize, Available);
+            private PreviewAnchor Anchor => window.previewPositioned ? window.previewAnchor : PreviewAnchor.Right | PreviewAnchor.Bottom;
+            private void Place()
+            {
+                Vector2 available = Available;
+                if (!ProjectiveMatrix.Finite(available.x) || !ProjectiveMatrix.Finite(available.y) || available.x <= 0 || available.y <= 0) return;
+                Rect next = window.previewBounds;
+                next.size = Vector2.Min(Vector2.Max(next.size, Minimum), available);
+                Vector2 room = available - next.size;
+                PreviewAnchor anchor = Anchor;
+                if ((anchor & PreviewAnchor.Left) != 0) next.x = 0;
+                else if ((anchor & PreviewAnchor.Right) != 0) next.x = room.x;
+                if ((anchor & PreviewAnchor.Top) != 0) next.y = 0;
+                else if ((anchor & PreviewAnchor.Bottom) != 0) next.y = room.y;
+                next.x = Mathf.Clamp(next.x, 0, available.x - next.width);
+                next.y = Mathf.Clamp(next.y, 0, available.y - next.height);
+                EnableInClassList("whimtex-shader-graph-preview--left", (anchor & PreviewAnchor.Left) != 0);
+                EnableInClassList("whimtex-shader-graph-preview--right", (anchor & PreviewAnchor.Right) != 0);
+                EnableInClassList("whimtex-shader-graph-preview--top", (anchor & PreviewAnchor.Top) != 0);
+                EnableInClassList("whimtex-shader-graph-preview--bottom", (anchor & PreviewAnchor.Bottom) != 0);
+                bounds = next;
+                style.width = next.width; style.height = next.height;
+                style.translate = new Translate(next.x, next.y);
+            }
+
+            private void Drag(Rect start, Vector2 delta, int edges)
+            {
+                Rect next = start;
+                if (edges == 0)
+                {
+                    Vector2 position = start.position + delta, room = Available - next.size;
+                    window.previewAnchor = SnapAxis(ref position.x, room.x, PreviewAnchor.Left, PreviewAnchor.Right)
+                        | SnapAxis(ref position.y, room.y, PreviewAnchor.Top, PreviewAnchor.Bottom);
+                    next.position = position;
+                }
+                else
+                {
+                    window.previewAnchor = Anchor & ~(PreviewAnchor)edges;
+                    Vector2 min = Minimum, available = Available;
+                    if ((edges & 1) != 0) next.xMin = Mathf.Clamp(start.xMin + delta.x, 0, start.xMax - min.x);
+                    if ((edges & 2) != 0) next.xMax = Mathf.Clamp(start.xMax + delta.x, start.xMin + min.x, available.x);
+                    if ((edges & 4) != 0) next.yMin = Mathf.Clamp(start.yMin + delta.y, 0, start.yMax - min.y);
+                    if ((edges & 8) != 0) next.yMax = Mathf.Clamp(start.yMax + delta.y, start.yMin + min.y, available.y);
+                }
+                window.previewPositioned = true;
+                window.previewBounds = next;
+                Place();
+                window.previewBounds = bounds;
+            }
+
+            private static PreviewAnchor SnapAxis(ref float position, float room, PreviewAnchor near, PreviewAnchor far)
+            {
+                room = Mathf.Max(0, room);
+                position = Mathf.Clamp(position, 0, room);
+                float nearDistance = position, farDistance = room - position;
+                if (Mathf.Min(nearDistance, farDistance) > SnapDistance) return PreviewAnchor.None;
+                if (nearDistance <= farDistance) { position = 0; return near; }
+                position = room; return far;
+            }
+
+            private sealed class PreviewGesture : PointerManipulator
+            {
+                private readonly LayerPreviewOverlay overlay;
+                private readonly int edges;
+                private readonly VisualElement ignore;
+                private int pointer = -1;
+                private Vector2 origin;
+                private Rect start;
+                private bool dragging;
+                internal PreviewGesture(LayerPreviewOverlay overlay, int edges, VisualElement ignore)
+                { this.overlay = overlay; this.edges = edges; this.ignore = ignore; }
+                protected override void RegisterCallbacksOnTarget()
+                {
+                    target.RegisterCallback<PointerDownEvent>(Down, TrickleDown.TrickleDown);
+                    target.RegisterCallback<PointerMoveEvent>(Move);
+                    target.RegisterCallback<PointerUpEvent>(Up);
+                    target.RegisterCallback<PointerCaptureOutEvent>(Lost);
+                    target.RegisterCallback<DetachFromPanelEvent>(Detached);
+                }
+                protected override void UnregisterCallbacksFromTarget()
+                {
+                    Release();
+                    target.UnregisterCallback<PointerDownEvent>(Down, TrickleDown.TrickleDown);
+                    target.UnregisterCallback<PointerMoveEvent>(Move);
+                    target.UnregisterCallback<PointerUpEvent>(Up);
+                    target.UnregisterCallback<PointerCaptureOutEvent>(Lost);
+                    target.UnregisterCallback<DetachFromPanelEvent>(Detached);
+                }
+                private void Down(PointerDownEvent e)
+                {
+                    if (e.button != 0 || pointer >= 0 || overlay.viewport == null) return;
+                    var element = e.target as VisualElement;
+                    if (ignore != null && (element == ignore || ignore.Contains(element))) return;
+                    if (edges == 0 && element?.ClassListContains("whimtex-shader-graph-preview-resize") == true) return;
+                    pointer = e.pointerId;
+                    dragging = false;
+                    origin = overlay.viewport.WorldToLocal(e.position); start = overlay.bounds;
+                    overlay.BringToFront(); target.CapturePointer(pointer); e.StopPropagation();
+                }
+                private void Move(PointerMoveEvent e)
+                {
+                    if (e.pointerId != pointer || !target.HasPointerCapture(pointer)) return;
+                    Vector2 delta = overlay.viewport.WorldToLocal(e.position) - origin;
+                    dragging |= delta.sqrMagnitude >= 1;
+                    if (dragging) overlay.Drag(start, delta, edges);
+                    e.StopPropagation();
+                }
+                private void Up(PointerUpEvent e)
+                {
+                    if (e.pointerId != pointer || e.button != 0) return;
+                    Release(); e.StopPropagation();
+                }
+                private void Lost(PointerCaptureOutEvent e) => pointer = -1;
+                private void Detached(DetachFromPanelEvent e) => Release();
+                private void Release()
+                {
+                    int id = pointer; pointer = -1;
+                    if (id >= 0 && target.HasPointerCapture(id)) target.ReleasePointer(id);
+                }
+            }
+        }
+
         private sealed class NodePreview : Foldout, IDisposable
         {
             private const int Size = 128;

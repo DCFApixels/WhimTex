@@ -14,6 +14,9 @@ namespace DCFApixels.WhimTex
         [SerializeField] private Vector3 viewPosition;
         [SerializeField] private Vector3 viewScale = Vector3.one;
         [SerializeField] private LayerPreviewPanel.ViewState previewState = new LayerPreviewPanel.ViewState();
+        [SerializeField] private Rect previewBounds = new Rect(0, 0, 256, 276);
+        [SerializeField] private bool previewPositioned;
+        [SerializeField] private PreviewAnchor previewAnchor;
         [SerializeField] private float codeHeight = 220f;
         [SerializeField] private bool codeCollapsed = true;
         private Canvas canvas;
@@ -28,7 +31,6 @@ namespace DCFApixels.WhimTex
         private VisualElement codePanel;
         private int codeCursor, codeSelection;
         private IVisualElementScheduledItem codeSelectionCapture;
-        private ShaderGraph boundGraph;
         private ulong boundLayout;
         private bool applying, refreshRequested, rebuildRequested, compileRequested, ready;
 
@@ -81,6 +83,7 @@ namespace DCFApixels.WhimTex
             toolbar.Add(new ToolbarButton(() => Compile()) { text = "Compile" });
             toolbar.Add(new ToolbarButton(() => canvas?.FrameAll()) { text = "Frame All" });
             toolbar.Add(new ToolbarButton(() => canvas?.FrameSelection()) { text = "Frame Selection" });
+            toolbar.Add(new ToolbarButton(RefreshFunctionCatalog) { text = "Refresh HLSL" });
             status = new Label(); status.AddToClassList("whimtex-shader-graph-status"); toolbar.Add(status);
             rootVisualElement.Add(toolbar);
 
@@ -99,6 +102,10 @@ namespace DCFApixels.WhimTex
             scroll.AddToClassList("whimtex-shader-graph-properties");
             declarations = new VisualElement();
             declarations.AddToClassList("whimtex-shader-graph-declarations");
+            declarations.RegisterCallback<DragUpdatedEvent>(OnParameterDragUpdated, TrickleDown.TrickleDown);
+            declarations.RegisterCallback<DragPerformEvent>(OnParameterDragPerform, TrickleDown.TrickleDown);
+            declarations.RegisterCallback<DragLeaveEvent>(_ => HideParameterInsertion());
+            declarations.RegisterCallback<DragExitedEvent>(_ => HideParameterInsertion());
             // One scroll surface contains both declarations and their native value controls.
             scroll.Add(declarations);
             parameterSource = new ShaderGraphParameterViewSource(document, layerId);
@@ -107,9 +114,12 @@ namespace DCFApixels.WhimTex
             values.Add(parameterValues); scroll.Add(values);
             sidebar.Add(scroll);
             previewState ??= new LayerPreviewPanel.ViewState();
-            preview = new LayerPreviewPanel(previewState); sidebar.Add(preview);
             body.Add(sidebar);
-            canvas = new Canvas(this); body.Add(canvas);
+            var graphArea = new VisualElement(); graphArea.AddToClassList("whimtex-shader-graph-area");
+            canvas = new Canvas(this); graphArea.Add(canvas);
+            preview = new LayerPreviewPanel(previewState, docked: false);
+            graphArea.Add(new LayerPreviewOverlay(this, preview));
+            body.Add(graphArea);
             rootVisualElement.Add(body);
             diagnostics = new HelpBox(string.Empty, HelpBoxMessageType.Error);
             diagnostics.AddToClassList("whimtex-hidden"); rootVisualElement.Add(diagnostics);
@@ -149,7 +159,7 @@ namespace DCFApixels.WhimTex
         private void OnLocksChanged() { if (ready) body.SetEnabled(Editable); }
         private void OnUndoRedo()
         {
-            refreshRequested = rebuildRequested = compileRequested = true;
+            refreshRequested = compileRequested = true;
             canvas?.InvalidatePreviews();
             // Undo may replace the serialized behaviour; always resolve it from the owning document.
             preview?.RequestLayerPreview(true);
@@ -167,10 +177,11 @@ namespace DCFApixels.WhimTex
             }
             body.SetEnabled(Editable);
             titleContent = WhimTexBranding.WindowTitle("Shader Graph — " + behaviour.layerName);
+            Graph.BindFunctions();
             ulong layout = LayoutFingerprint(Graph);
-            if (rebuildRequested || !ReferenceEquals(boundGraph, Graph) || boundLayout != layout)
+            if (rebuildRequested || boundLayout != layout)
             {
-                boundGraph = Graph; boundLayout = layout; rebuildRequested = false;
+                boundLayout = layout; rebuildRequested = false;
                 RebuildParameters(); canvas.Rebuild();
             }
             else canvas.RefreshValues();
@@ -187,7 +198,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 change(Graph);
-                if (structural) Behaviour.InvalidateGraph();
+                if (structural) { Graph.PruneFunctions(); Behaviour.InvalidateGraph(); }
                 if (layoutOnly)
                 {
                     EditorUtility.SetDirty(document);
@@ -299,12 +310,25 @@ namespace DCFApixels.WhimTex
             Edit("Add Shader Node", graph =>
             {
                 var node = ShaderGraphNodes.Create(kind, position);
+                if (node.function != null) graph.functions.Add(node.function);
                 node.parameterId = parameterId; graph.nodes.Add(node);
             });
         }
         private static ulong LayoutFingerprint(ShaderGraph graph)
         {
             ulong hash = ShaderGraphCompiler.CodeFingerprint(graph);
+            void Text(string value) { unchecked { if (value != null) foreach (char c in value) hash = (hash ^ c) * 1099511628211UL; hash = (hash ^ 255UL) * 1099511628211UL; } }
+            if (graph?.functions != null) foreach (var f in graph.functions)
+            {
+                if (f == null) continue;
+                Text(f.name);
+                if (f.ports != null) foreach (var p in f.ports)
+                {
+                    if (p == null) continue;
+                    Text(p.label);
+                    unchecked { hash = (hash ^ (p.hasRange ? 1UL : 0UL) ^ (uint)p.minimum.GetHashCode()) * 1099511628211UL; hash = (hash ^ (uint)p.maximum.GetHashCode()) * 1099511628211UL; }
+                }
+            }
             if (graph?.parameters != null) foreach (var p in graph.parameters)
             {
                 if (p == null) continue;

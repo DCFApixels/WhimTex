@@ -33,6 +33,18 @@ The result uses the usual layer **Transform**, **Rendering**, **FX** and blendin
 To use another image in the calculation, declare a **Texture** parameter and read it with
 **Sample Texture**. Placing a Shader layer above an image does not automatically make that image its input.
 
+## Copy nodes
+
+Select nodes and use **Ctrl+C / Ctrl+V** to copy and paste, or **Ctrl+D** to duplicate
+(**Cmd** on macOS). The same commands are available in the graph's context menu.
+Settings, relative positions and connections between selected nodes are retained, including
+Reroutes and HLSL functions. Output is not copied. Paste and Duplicate support **Undo/Redo**.
+
+In the same graph, copied Parameter nodes use the existing parameters. In another graph,
+the required parameters are copied with their values. Layer texture inputs must be reassigned
+when pasting into another document. Copying while editing a field copies its text.
+The node clipboard lasts until scripts reload or the Editor closes.
+
 ## Choose nodes
 
 | Nodes | Use them for |
@@ -98,6 +110,12 @@ changes and deletion support **Undo/Redo**.
 
 ## Preview a node
 
+**Layer Preview** floats above the graph, initially at the bottom-right. Drag its header or image
+to move it and its sides or corners to resize it. Near the viewport edges it snaps flush and stays
+attached when the window changes size; near a corner it attaches to both edges. Highlighted borders
+show the attachment. Drag away to detach. The window retains placement, attachments and size;
+graph zoom and panning do not move it. The header's **R/G/B/A** buttons change only the preview channels.
+
 Calculation nodes other than **Output** have their own collapsible **128 × 128** previews inside
 the node. **Output**, **Parameter** and **Reroute** have no per-node preview. The sidebar has no
 shared selected-node preview. If a node has several outputs, use its preview's
@@ -115,6 +133,13 @@ and FX. A node-preview error clears its image and shows a message,
 so it does not display an old image as the result of the selected calculation.
 
 ## Parameters and color
+
+Drag a parameter header within **Parameters** to reorder it, or onto the graph to create a
+Parameter node at the drop position. Right-click the header for **Use in Graph**, **Duplicate**
+and **Remove**. Duplicate creates an independent parameter with the same settings and value;
+Remove also removes its nodes and connections. The indicator on the right matches the shape
+and color of the parameter's output port.
+Hover over a parameter to highlight its row and all its Parameter nodes without changing selection.
 
 Parameters include numbers, vectors, Boolean values, colors, textures, gradients and curves.
 Multiple Parameter nodes can use the same declared parameter, so one Properties field can control
@@ -162,7 +187,7 @@ Alpha controls transparency; do not multiply the RGB channels by alpha before Ou
 ## Inspect Generated HLSL
 
 Drag the **Generated HLSL** footer upward to read the graph's generated code. Its caption and
-horizontal grip lines work like the Layer Preview handle. The panel starts collapsed and opens
+horizontal grip lines work like the preview handle in Layer Settings. The panel starts collapsed and opens
 after more than 14 logical pixels of upward dragging, regardless of graph zoom. Clicking alone
 does nothing. Continue dragging to adjust its height; drag downward to hide the code. The panel
 fits the available window space while leaving room for the graph, and the window remembers
@@ -172,6 +197,38 @@ The panel uses the same code field as FX Code in read-only mode: you can select 
 with the same syntax highlighting, line numbers and horizontal/vertical scrolling supported
 by your Editor version. Reopening shows the current generated code and keeps your selection
 if the source is unchanged. Change the graph to change the generated code.
+
+## HLSL and Custom Function nodes
+
+Choose **Utility/Custom Function** to write a calculation inside a node. Open **Ports** to set
+input/output names, types and directions, then edit the function body in **Code** and press
+**Compile**. Code uses the same HLSL editor as FX. Collapse it when you need graph space, or drag
+its resize handle to change node width and code height; width stops at the ordinary node minimum.
+
+Body and port edits remain saved drafts until Compile succeeds. The previous applied code and
+ports keep working if compilation fails, including when checking an unconnected node.
+Float/half vectors, Boolean and Color are supported; Texture is an input type. A function return
+appears as **Result**; output arguments keep their names, and an inout argument has both ports.
+Inputs named **UV** or **uv** with two numeric components use current-pixel coordinates by
+default; switch **Custom / UV** to enter a fixed value.
+
+Marked HLSL libraries appear by category in node search. **Colors/Contrast** is provided in
+`Packages/com.dcfapixels.whimtex/src/ShaderGraphFunctions.hlsl`; Amount 1 keeps the color,
+and other amounts change contrast while retaining alpha and HDR values. **Refresh HLSL**
+rescans the catalog. **File…** on a Custom Function also lets you choose an `.hlsl` file and
+select a supported function without a catalog marker.
+
+Library nodes look like ordinary nodes: title, ports and preview, without a code panel.
+Their context menu provides **Refresh HLSL** and **Choose HLSL File…**. The document uses its
+source backup until an explicit refresh compiles successfully; missing or incompatible files
+leave it intact. Editing a library does not automatically change an existing document.
+
+Choose **Convert to Custom Function** from a library node's context menu to make an independent,
+editable copy. Ports, values, connections and the current image are preserved, and the file link
+is removed. **Code** contains the complete main source, including helper declarations; include
+backups stay with the document. Edit the function declarations in Code to change its ports, then
+press **Compile**. Existing include backups are retained, so editing works without the original
+files. Conversion supports **Undo/Redo**. See the [function declaration contract](../ShaderLayer.md#hlsl-functions).
 
 ## Scope
 
@@ -184,6 +241,6 @@ that has not been assigned a parameter. If it cannot compile, the editor reports
 keeps the last working result when available. That image does not represent the unfinished
 changes. The document saves the editable graph, so you can complete it later.
 
-This first version does not include custom HLSL nodes, subgraphs, Blur or Time nodes.
+This first version does not include subgraphs, Blur or Time nodes.
 Use the layer's normal FX stack for additional processing. For port types and execution rules,
 see the [Shader layer contract](../ShaderLayer.md).

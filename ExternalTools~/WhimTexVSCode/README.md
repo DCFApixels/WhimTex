@@ -4,6 +4,14 @@
 
 WhimTex FX source uses HLSL with `// @param` metadata directives. This bundled extension adds directive highlighting, completions and validation to VS Code's HLSL language support. Types, modifiers, parameter names, numbers, colors, enum options, ranges and operators are highlighted too; tooltip comments retain comment styling. It does not register a separate language mode or replace the HLSL grammar.
 
+Shader graph libraries use `// @whimtex-node Category/Name` before each function. The marker
+has highlighting and completion; its following `@param` and optional `@preset` metadata are
+validated separately for each function, so one file can contain several node declarations.
+Only those two directives belong in a node header. Unity validates the actual argument names,
+supported port types and signatures, including return **Result**, `out` and `inout` ports.
+See the [function contract](../../Documentation~/ShaderLayer.md#hlsl-functions) and
+[`src/ShaderGraphFunctions.hlsl`](../../src/ShaderGraphFunctions.hlsl) for a complete example.
+
 Diagnostics cover optional defaults and tooltips, color/gradient defaults, curves, transforms, texture-reference syntax, numeric bounds, enum options, compatible repeated controls, conditions, layout containers and typed numeric controls. The catalog marker is recognized. `// @preset("GUID", 1)` declares optional source identity and exact version: both arguments are required, nonzero GUID D/N forms normalize to lowercase N, and the version must be an integer from 1 to 2147483647. Declare it once in the initial comment header before HLSL, preferably immediately after `@whimtex-effect Category/Name`. Invalid, duplicate and misplaced declarations are errors. Without it, adding a project/package or user-library preset embeds an independent copy; Unity GUIDs do not substitute for it. With it, both kinds of sources link by exact version, falling back to document code while retaining the link if a source is missing, broken or differently versioned. Unity handles source resolution and duplicate-ID conflicts. Asset existence, generated shader identifiers, includes and shader compilation are still checked by Unity.
 
 `// @group("Color")` in the leading preset comments creates a flat group in Add FX.

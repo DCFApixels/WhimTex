@@ -105,6 +105,12 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                             ? D(("type", "array"), ("maxItems", 4096), ("items", Schema(typeof(ShaderGraphEdge)))) :
                             type == typeof(ShaderGraph) && f.Name == "parameters"
                             ? D(("type", "array"), ("maxItems", 256), ("items", Schema(typeof(ShaderFXParameter)))) :
+                            type == typeof(ShaderGraph) && f.Name == "sources"
+                            ? D(("type", "array"), ("default", Array.Empty<object>()), ("maxItems", 4096),
+                                ("items", D(("allOf", new[] { Schema(typeof(ShaderGraphSource)), D(("type", "object")) }))),
+                                ("description", "Embedded HLSL source archive. At most 32 MiB of UTF-8 text across all entries, 8 MiB per entry, 32768 include directives and 64 nested modules. Capture and validation retain every source, including inactive preprocessor branches. TIFF deduplicates/compresses text across all graphs; JSON retains plain code.")) :
+                            type == typeof(ShaderGraph) && f.Name == "functions"
+                            ? D(("type", "array"), ("default", Array.Empty<object>()), ("maxItems", 512), ("items", Schema(f.FieldType.GetGenericArguments()[0]))) :
                             type == typeof(MeshGradient) && (f.Name == "columns" || f.Name == "rows")
                             ? D(("type", "integer"), ("minimum", 1), ("maximum", MeshGradient.MaxCells)) :
                             (type == typeof(MeshGradient) || type == typeof(FreeformGradient)) && f.Name == "colorMode"
@@ -202,6 +208,25 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                                 ("anyOf", new[] { D(("const", new[] { 0, 0 })), D(("items", D(("type", "integer"), ("minimum", 1), ("maximum", 16384)))) }),
                                 ("description", "Source reference canvas dimensions retained by Crop. [0,0] uses the current canvas; otherwise both dimensions must be positive and their product at most 16,777,216. Keeps Noise, ordinary Pattern and uninitialized Drawing sources at their original pixel scale. Not a source-image resolution, crop rectangle or rendering cache.")) :
                             type == typeof(Layer) && f.Name == "id" ? D(("type", "string"), ("minLength", 1)) : Schema(f.FieldType);
+                if (type == typeof(ShaderGraphSource))
+                {
+                    var definition = (Dictionary<string, object>)definitions[name];
+                    definition["required"] = new[] { "id", "code" };
+                    definition["description"] = "Portable HLSL module. code retains original include directives; includes binds each distinct requested spelling within this module to another source ID. Missing non-engine bindings, unused bindings and cycles are rejected. Captured IDs hash code plus dependency bindings; IDs are opaque references and may be retained during explicit edits.";
+                    properties["id"] = D(("type", "string"), ("minLength", 1), ("maxLength", 128), ("pattern", "^[A-Za-z0-9_-]+$"));
+                    properties["code"] = D(("type", "string"), ("maxLength", 8 * 1024 * 1024),
+                        ("description", "Unexpanded source text, limited to 8 MiB when encoded as UTF-8. Preserved verbatim in JSON/Undo. Native TIFF stores this string in a shared content-digest block."));
+                    properties["includes"] = D(("type", "array"), ("default", Array.Empty<object>()), ("maxItems", 32768),
+                        ("items", D(("allOf", new[] { Schema(typeof(ShaderGraphInclude)), D(("type", "object")) }))));
+                }
+                if (type == typeof(ShaderGraphInclude))
+                {
+                    ((Dictionary<string, object>)definitions[name])["required"] = new[] { "requested", "sourceId" };
+                    properties["requested"] = D(("type", "string"), ("minLength", 1), ("maxLength", 4096),
+                        ("pattern", "^[^\\u0000\\r\\n\"<>]+$"),
+                        ("description", "Exact include string without quotes/angle brackets, scoped to the including module. Duplicate requested spellings use one binding."));
+                    properties["sourceId"] = D(("type", "string"), ("minLength", 1), ("maxLength", 128), ("pattern", "^[A-Za-z0-9_-]+$"));
+                }
                 if (type == typeof(ShaderFX))
                 {
                     properties["presetId"] = D(("type", new[] { "string", "null" }), ("default", null),

@@ -172,7 +172,8 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const identities = new Set(['$type', '$id', '$name', 'contentOmitted', 'id', 'recoveryId', 'shaderKey']);
     // These models have no DefaultsFor table: the reader retains their constructors.
     // Mesh additionally requires its explicit lattice; Shader graphs validate their stored structure.
-    const constructorDefaults = new Set(['MeshGradient', 'ShaderLayerBehaviour', 'ShaderGraph', 'ShaderGraphNode', 'ShaderGraphInput', 'ShaderGraphEdge']);
+    const constructorDefaults = new Set(['MeshGradient', 'ShaderLayerBehaviour', 'ShaderGraph', 'ShaderGraphNode', 'ShaderGraphInput', 'ShaderGraphEdge',
+      'ShaderGraphFunction', 'ShaderGraphFunctionPort', 'ShaderGraphSource', 'ShaderGraphInclude']);
     for (const [type, definition] of Object.entries(schema.$defs)) {
       if (constructorDefaults.has(type)) continue;
       assert(type in defaults, `${type}: missing frozen default object`);

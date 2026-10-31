@@ -5,7 +5,7 @@ using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
 {
-    /// <summary>Shared, bottom-docked layer preview. View state belongs to the window, not the document.</summary>
+    /// <summary>Shared layer preview. View state belongs to the window, not the document.</summary>
     internal sealed class LayerPreviewPanel : VisualElement, IDisposable
     {
         [Serializable]
@@ -20,7 +20,9 @@ namespace DCFApixels.WhimTex
         private const int PreviewSize = 256;
         private const float MaximumHeight = 256f;
         private readonly ViewState state;
-        private readonly VerticalRevealHandle header;
+        private readonly VisualElement header;
+        private readonly bool docked;
+        internal VisualElement Header => header;
         private readonly VisualElement surface;
         private readonly Image image;
         private readonly VisualElement channels;
@@ -36,14 +38,22 @@ namespace DCFApixels.WhimTex
         private double renderAt;
         private VisualElement layoutParent;
 
-        internal LayerPreviewPanel(ViewState state)
+        internal LayerPreviewPanel(ViewState state, bool docked = true)
         {
             this.state = state ?? throw new ArgumentNullException(nameof(state));
+            this.docked = docked;
             name = "layer-preview";
             AddToClassList("whimtex-output-preview-footer");
-            header = new VerticalRevealHandle("Layer Preview", () => resolvedStyle.height, Resize,
-                element => disposed || element == channels || channels.Contains(element))
-                { name = "layer-preview-resizer", tooltip = "Drag up to reveal the layer preview; drag down to hide it." };
+            if (docked)
+                header = new VerticalRevealHandle("Layer Preview", () => resolvedStyle.height, Resize,
+                    element => disposed || element == channels || channels.Contains(element))
+                    { name = "layer-preview-resizer", tooltip = "Drag up to reveal the layer preview; drag down to hide it." };
+            else
+            {
+                header = new UnityEditor.UIElements.Toolbar { name = "layer-preview-header" };
+                header.Add(new Label("Layer Preview") { pickingMode = PickingMode.Ignore });
+                header.Add(new UnityEditor.UIElements.ToolbarSpacer { flex = true, pickingMode = PickingMode.Ignore });
+            }
             state.channelMask &= 15;
             channels = new VisualElement { name = "layer-preview-channels" };
             channels.AddToClassList("whimtex-layer-preview-channels");
@@ -127,7 +137,7 @@ namespace DCFApixels.WhimTex
 
         private bool CanDisplay()
         {
-            if (disposed || !attached || state.collapsed || resolvedStyle.height <= HeaderHeight) return false;
+            if (disposed || !attached || docked && state.collapsed || resolvedStyle.height <= HeaderHeight) return false;
             for (VisualElement ancestor = this; ancestor != null; ancestor = ancestor.parent)
                 if (ancestor.resolvedStyle.display == DisplayStyle.None || ancestor.resolvedStyle.visibility == Visibility.Hidden) return false;
             return true;
@@ -216,7 +226,7 @@ namespace DCFApixels.WhimTex
 
         private void UpdateLayout()
         {
-            if (disposed) return;
+            if (disposed || !docked) return;
             float maximum = MaxHeight();
             float minimum = Mathf.Min(VerticalRevealHandle.MinimumExpandedHeight, maximum);
             style.height = state.collapsed ? HeaderHeight : Mathf.Clamp(state.height, minimum, maximum);
@@ -307,7 +317,7 @@ namespace DCFApixels.WhimTex
 
         private void Stop()
         {
-            header.Release();
+            (header as VerticalRevealHandle)?.Release();
             attached = false;
             EditorApplication.update -= Tick;
             WhimTexDocument.Changed -= OnChanged;

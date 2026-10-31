@@ -127,11 +127,15 @@ namespace DCFApixels.WhimTex
                 material = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
                 if (material.passCount > 0) ShaderUtil.CompilePass(material, 0, true);
                 var errors = new StringBuilder();
+                string errorNode = null;
                 foreach (var message in ShaderUtil.GetShaderMessages(shader))
                     if (message.severity == UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error)
+                    {
                         errors.AppendLine(message.message + " (line " + message.line + ")");
+                        if (graph.FindNode(message.file) != null) errorNode ??= message.file;
+                    }
                 if (!shader.isSupported || material.passCount == 0 || errors.Length > 0)
-                    throw new InvalidOperationException(errors.Length > 0 ? errors.ToString() : "Graph shader is not supported by this graphics device.");
+                    throw new ShaderGraphException(errorNode, errors.Length > 0 ? errors.ToString() : "Graph shader is not supported by this graphics device.");
                 return new ShaderGraphProgram(shader, material, compilation, graph);
             }
             catch

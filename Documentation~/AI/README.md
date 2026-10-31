@@ -32,6 +32,28 @@ model schema. Its embedded graph generates the layer's own image; **Shader Proce
 the composite below it. Graph parameters appear in Properties and use the shared parameter
 types. FX HLSL directives are not the serialization format for a Shader graph.
 
+HLSL nodes reference definitions in `graph.functions` through `node.functionId`; file functions
+and inline bodies with includes reference complete embedded modules in `graph.sources` through
+`sourceId`. Use the current schema for exact fields and preserve source IDs, original include text and per-module include
+maps. Do not replace this archive with a pruned function body or generated shader output.
+Inline Custom Function keeps the applied `body`/`ports` separate from saved `draft`/`draftPorts`;
+`inline: true, fullSource: true` represents an independent editable module converted from a
+library node. Its `body`/`draft` contain the main module and `entryPoint` selects the function;
+preserve its include archive. With `fullSource: false`, `body` contains only a function body.
+Compile applies the candidate only after validation. File refresh is explicit and preserves
+the document backup on failure. Inline includes require an archive whose root `code` equals
+the applied `body`; API/JSON loading rejects missing archives instead of fetching source files.
+Prefer explicit `Assets/...` or `Packages/...` include paths.
+
+Catalog syntax starts with `// @whimtex-node Category/Name`, followed by optional `@param`
+metadata and an optional exact `@preset("GUID", version)` pair before the function definition.
+Metadata names refer to actual arguments or the non-void return port Result. Return values,
+out arguments and inout arguments define outputs; inputs support float/half scalar-vectors,
+Boolean, Color metadata on four-component values, and WhimTexTexture. Input-only float2/half2
+arguments named UV or uv default to current-pixel UV. Follow the [HLSL function contract](../ShaderLayer.md#hlsl-functions)
+for declaration syntax and the separate [source archive contract](../ShaderLayer.md#embedded-hlsl-source-archive)
+for backups; do not infer new JSON fields from HLSL metadata.
+
 ## Instructions for an AI assistant
 
 - Return one complete JSON object in a `json` code block, without comments or trailing commas.

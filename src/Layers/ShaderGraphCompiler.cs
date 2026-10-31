@@ -18,7 +18,7 @@ namespace DCFApixels.WhimTex
         internal ShaderGraphException(string nodeId, string message) : base(message) { this.nodeId = nodeId; }
     }
 
-    internal sealed class ShaderGraphCompiler
+    internal sealed partial class ShaderGraphCompiler
     {
         readonly ShaderGraph graph;
         readonly ShaderGraphCompilation result = new ShaderGraphCompilation();
@@ -64,7 +64,7 @@ namespace DCFApixels.WhimTex
                 ShaderFXSourceBuilder.NoiseLibraryInclude + ShaderFXSourceBuilder.ColorLibraryInclude +
                 "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"\n" +
                 "static float _HdrBlend = 1.0;\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"\n" +
-                "float4 _GraphImageSize;\n" + compiler.uniforms + ShaderFXTextureViews.Types + textureViews + Helpers +
+                "float4 _GraphImageSize;\n" + compiler.uniforms + ShaderFXTextureViews.Types + textureViews + Helpers + compiler.functionCode +
                 "float4 GraphFragment(v2f_img input) : SV_Target {\nfloat2 graphUV = ProceduralSourceUv(input.uv);\n" +
                 compiler.body + "}\nENDCG\n} } Fallback Off }";
             return compiler.result;
@@ -76,6 +76,7 @@ namespace DCFApixels.WhimTex
                 throw new FormatException("Unsupported or incomplete Shader graph.");
             if (graph.nodes.Count > 512 || graph.edges.Count > 4096 || graph.parameters.Count > 256)
                 throw new FormatException("Shader graph exceeds the supported limits (512 nodes, 4096 edges, 256 parameters).");
+            ValidateFunctions();
             var ids = new HashSet<string>();
             foreach (var p in graph.parameters)
             {
@@ -92,8 +93,11 @@ namespace DCFApixels.WhimTex
                 if (n == null || !Identifier(n.id) || !nodes.TryAdd(n.id, n) || !Enum.IsDefined(typeof(ShaderGraphNodeKind), n.kind))
                     throw new FormatException("Invalid or duplicate Shader node.");
                 if (n.kind == ShaderGraphNodeKind.Output) outputs++;
+                if (n.kind == ShaderGraphNodeKind.CustomFunction && n.function == null) Error(n, "Function definition is missing.");
                 if (n.inputs == null || !Finite(n.value) || !ProjectiveMatrix.Finite(n.position.x) || !ProjectiveMatrix.Finite(n.position.y))
                     Error(n, "Invalid node data.");
+                if (!ProjectiveMatrix.Finite(n.codeSize.x) || !ProjectiveMatrix.Finite(n.codeSize.y) || n.codeSize.x < 0 || n.codeSize.y < 0)
+                    Error(n, "Invalid function editor size.");
                 if (!Enum.IsDefined(typeof(ShaderGraphValueType), n.valueType) || !Enum.IsDefined(typeof(ShaderGraphWrap), n.wrap) || !Enum.IsDefined(typeof(ShaderGraphFilter), n.filter)) Error(n, "Unknown node option.");
                 if (n.kind == ShaderGraphNodeKind.Parameter && !string.IsNullOrEmpty(n.parameterId) && graph.FindParameter(n.parameterId) == null) Error(n, "Parameter is missing.");
                 if (n.kind == ShaderGraphNodeKind.Constant && ShaderGraphNodes.Components(n.valueType) == 0) Error(n, "Constants must be numeric or Boolean.");
@@ -202,6 +206,7 @@ namespace DCFApixels.WhimTex
             }
             switch (n.kind)
             {
+                case ShaderGraphNodeKind.CustomFunction: return EmitFunction(n, port);
                 case ShaderGraphNodeKind.Reroute:
                     if (!incoming.TryGetValue(n.id + ":In", out var source)) { Error(n, "Connect the In input."); return default; }
                     resultValue = Emit(source.outputNode, source.outputPort);
@@ -288,14 +293,21 @@ namespace DCFApixels.WhimTex
             if (graph.nodes != null) foreach (var n in graph.nodes)
             {
                 if (n == null) { Number(-1); continue; }
-                Add(n.id); Number((int)n.kind); Number((int)n.valueType); Add(n.parameterId); Number(n.option); Number(n.hdr ? 1 : 0); Number((int)n.wrap); Number((int)n.filter);
+                Add(n.id); Number((int)n.kind); Number((int)n.valueType); Add(n.parameterId); Add(n.functionId); Number(n.option); Number(n.hdr ? 1 : 0); Number((int)n.wrap); Number((int)n.filter);
                 if (n.inputs != null) foreach (var p in n.inputs) { if (p == null) { Number(-1); continue; } Add(p.port); Number((int)p.type); }
             }
             if (graph.edges != null) foreach (var e in graph.edges) { if (e == null) { Number(-1); continue; } Add(e.outputNode); Add(e.outputPort); Add(e.inputNode); Add(e.inputPort); }
+            if (graph.functions != null) foreach (var f in graph.functions)
+            {
+                if (f == null) { Number(-1); continue; }
+                Add(f.id); Number(f.inline ? 1 : 0); Number(f.fullSource ? 1 : 0); Add(f.sourceId); if (f.inline) Add(f.body); Add(f.entryPoint); Add(f.returnType); Add(f.returnName); Number((int)f.returnValueType);
+                if (f.ports != null) foreach (var p in f.ports) { if (p == null) { Number(-1); continue; } Add(p.name); Number((int)p.type); Number((int)p.direction); Number(p.uvDefault ? 1 : 0); }
+            }
             return hash;
         }
 
         const string Helpers = @"
+float4 SampleTexture(WhimTexTexture tex, float2 uv) { return SampleTextureLod(tex, uv, 0); }
 float2 GraphTransform(float2 uv, float2 offset, float2 scale, float rotation, float2 center)
 {
     float s, c; sincos(radians(rotation), s, c); float2 p = (uv-center)*scale;

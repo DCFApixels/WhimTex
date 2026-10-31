@@ -43,6 +43,9 @@ namespace DCFApixels.WhimTex
                 this.AddManipulator(new RectangleSelector());
                 var grid = new GridBackground(); Insert(0, grid); grid.StretchToParentSize();
                 graphViewChanged = Changed;
+                serializeGraphElements = CopyNodes;
+                canPasteSerializedData = CanPasteNodes;
+                unserializeAndPaste = PasteNodes;
                 nodeCreationRequest = context => ShowSearch(context.screenMousePosition);
                 viewTransformChanged = _ =>
                 {
@@ -119,6 +122,12 @@ namespace DCFApixels.WhimTex
                         e.menu.AppendAction("Add/Parameters/" + parameter.name,
                             _ => window.AddNode(ShaderGraphNodeKind.Parameter, graphPosition, id));
                     }
+                    foreach (var entry in ShaderGraphFunctionCatalog.Entries)
+                    {
+                        var chosen = entry;
+                        e.menu.AppendAction("Add/HLSL/" + entry.menuPath, _ => window.AddFunctionNode(chosen, graphPosition),
+                            _ => window.Editable ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                    }
                 }
             }
             internal void Rebuild()
@@ -148,7 +157,7 @@ namespace DCFApixels.WhimTex
                             _ => new NodeView(window, this, data)
                         };
                         nodeViews[data.id] = view; AddElement(view);
-                        if (selected.Contains(data.id))
+                        if (selected.Contains(data.id) && !selection.Contains(view))
                         {
                             // Rebuilding after Undo must not register a new selection Undo and clear Redo.
                             selection.Add(view); view.selected = true; view.OnSelected();
@@ -164,6 +173,12 @@ namespace DCFApixels.WhimTex
                     UpdateViewTransform(window.viewPosition, window.viewScale == Vector3.zero ? Vector3.one : window.viewScale);
                 }
                 finally { rebuilding = false; }
+            }
+            internal void HighlightParameter(string id)
+            {
+                foreach (var view in nodeViews.Values)
+                    if (view is ParameterView parameter)
+                        parameter.EnableInClassList("whimtex-shader-graph-parameter-highlight", id != null && parameter.ParameterId == id);
             }
             internal void RegisterPort(Port port, bool input)
             {
@@ -314,12 +329,13 @@ namespace DCFApixels.WhimTex
             }
             private void OnDragUpdated(DragUpdatedEvent e)
             {
-                if (DragAndDrop.GetGenericData(ParameterDragKey) is not ParameterDragData data || data.window != window || !window.Editable) return;
+                if (!window.ReadParameterDrag(out _)) return;
+                window.HideParameterInsertion();
                 DragAndDrop.visualMode = DragAndDropVisualMode.Copy; e.StopPropagation();
             }
             private void OnDragPerform(DragPerformEvent e)
             {
-                if (DragAndDrop.GetGenericData(ParameterDragKey) is not ParameterDragData data || data.window != window || !window.Editable) return;
+                if (!window.ReadParameterDrag(out var data)) return;
                 DragAndDrop.AcceptDrag();
                 window.AddNode(ShaderGraphNodeKind.Parameter, contentViewContainer.WorldToLocal(e.mousePosition), data.id);
                 DragAndDrop.SetGenericData(ParameterDragKey, null); e.StopPropagation();
@@ -355,6 +371,7 @@ namespace DCFApixels.WhimTex
                         foreach (var parameter in canvas.window.Graph.parameters)
                             result.Add(new SearchTreeEntry(new GUIContent(parameter.name)) { level = 2, userData = parameter.id });
                     }
+                    AddFunctionSearchEntries(result, null);
                     return result;
                 }
                 public bool OnSelectEntry(SearchTreeEntry entry, SearchWindowContext context)
@@ -363,6 +380,7 @@ namespace DCFApixels.WhimTex
                     Vector2 local = context.screenMousePosition - canvas.window.position.position;
                     Vector2 point = canvas.window.rootVisualElement.ChangeCoordinatesTo(canvas.contentViewContainer, local);
                     if (entry.userData is ShaderGraphNodeKind kind) canvas.window.AddNode(kind, point);
+                    else if (entry.userData is ShaderGraphFunctionCatalog.Entry function) canvas.window.AddFunctionNode(function, point);
                     else if (entry.userData is string parameter) canvas.window.AddNode(ShaderGraphNodeKind.Parameter, point, parameter);
                     else return false;
                     return true;
@@ -381,6 +399,7 @@ namespace DCFApixels.WhimTex
             {
                 switch (node.kind)
                 {
+                    case ShaderGraphNodeKind.CustomFunction: return Graph.FindFunction(node.functionId)?.OutputType(port) ?? ShaderGraphValueType.Float;
                     case ShaderGraphNodeKind.Reroute: return InputType(node, "In", visiting);
                     case ShaderGraphNodeKind.Parameter: return Graph.FindParameter(node.parameterId) is ShaderFXParameter p ? ShaderGraphNodes.ParameterType(p) : ShaderGraphValueType.Float;
                     case ShaderGraphNodeKind.Constant: case ShaderGraphNodeKind.Combine: return node.valueType;

@@ -19,13 +19,14 @@ namespace DCFApixels.WhimTex
         private sealed class ParameterView : TokenNode, INodeView
         {
             public string Id { get; }
+            internal string ParameterId { get; private set; }
             private readonly ShaderGraphWindow window;
             internal ParameterView(ShaderGraphWindow window, Canvas canvas, ShaderGraphNode node)
                 : base(null, NodeView.CreatePort(node.id, "Out", Direction.Output, window.OutputType(node, "Out"), false))
             {
                 this.window = window; Id = node.id; viewDataKey = Id;
                 AddToClassList("whimtex-shader-graph-parameter-node");
-                capabilities &= ~(Capabilities.Copiable | Capabilities.Groupable);
+                capabilities = (capabilities | Capabilities.Copiable) & ~Capabilities.Groupable;
                 this.Q("title-label")?.RemoveFromHierarchy();
                 this.Q("icon")?.RemoveFromHierarchy();
                 canvas.RegisterPort(output, false);
@@ -46,6 +47,7 @@ namespace DCFApixels.WhimTex
             {
                 var node = window.Graph?.FindNode(Id);
                 if (node == null) return;
+                ParameterId = node.parameterId;
                 output.portName = window.Graph.FindParameter(node.parameterId)?.name ?? "Missing Parameter";
                 if ((GetPosition().position - node.position).sqrMagnitude > .01f) SetPosition(new Rect(node.position, GetPosition().size));
             }
@@ -60,7 +62,7 @@ namespace DCFApixels.WhimTex
             {
                 this.window = window; Id = node.id; viewDataKey = Id; title = string.Empty;
                 AddToClassList("whimtex-shader-graph-reroute");
-                capabilities &= ~(Capabilities.Copiable | Capabilities.Groupable | Capabilities.Collapsible);
+                capabilities = (capabilities | Capabilities.Copiable) & ~(Capabilities.Groupable | Capabilities.Collapsible);
                 titleContainer.RemoveFromHierarchy(); extensionContainer.RemoveFromHierarchy();
                 foreach (var divider in mainContainer.Query<VisualElement>("divider").ToList()) divider.RemoveFromHierarchy();
                 var type = window.OutputType(node, "Out");
@@ -79,12 +81,12 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private sealed class NodeView : UnityEditor.Experimental.GraphView.Node, INodeView
+        private sealed partial class NodeView : UnityEditor.Experimental.GraphView.Node, INodeView
         {
             public string Id { get; }
-            private readonly ShaderGraphWindow window;
+            internal readonly ShaderGraphWindow window;
             private readonly List<Action> refresh = new List<Action>();
-            private ShaderGraphNode Data => window.Graph?.FindNode(Id);
+            internal ShaderGraphNode Data => window.Graph?.FindNode(Id);
             internal NodeView(ShaderGraphWindow window, Canvas canvas, ShaderGraphNode node)
             {
                 this.window = window; Id = node.id;
@@ -93,10 +95,10 @@ namespace DCFApixels.WhimTex
                 AddToClassList("whimtex-shader-graph-node");
                 // Clear the base Node's inline clipping so the external input fields can use USS overflow.
                 mainContainer.style.overflow = StyleKeyword.Null;
-                capabilities &= ~(Capabilities.Copiable | Capabilities.Groupable);
+                capabilities = (capabilities | Capabilities.Copiable) & ~Capabilities.Groupable;
                 if (node.kind == ShaderGraphNodeKind.Output)
                 {
-                    capabilities &= ~(Capabilities.Deletable | Capabilities.Collapsible);
+                    capabilities &= ~(Capabilities.Deletable | Capabilities.Collapsible | Capabilities.Copiable);
                     AddToClassList("whimtex-shader-graph-output");
                 }
                 SetPosition(new Rect(node.position, Vector2.zero));
@@ -122,11 +124,17 @@ namespace DCFApixels.WhimTex
                     canvas.RegisterPort(port, false); outputContainer.Add(port);
                 }
                 if (node.kind != ShaderGraphNodeKind.Output) extensionContainer.Add(canvas.GetPreview(node));
+                if (node.kind == ShaderGraphNodeKind.CustomFunction) BuildFunctionEditor();
                 RefreshExpandedState(); RefreshPorts();
                 RefreshValues();
             }
             private Port MakePort(string name, Direction direction, ShaderGraphValueType type, bool dynamic)
-                => CreatePort(Id, name, direction, type, dynamic);
+            {
+                var port = CreatePort(Id, name, direction, type, dynamic);
+                var definition = Data?.function?.ports.Find(p => p.name == name);
+                if (!string.IsNullOrEmpty(definition?.label)) port.portName = definition.label;
+                return port;
+            }
             internal static Port CreatePort(string id, string name, Direction direction, ShaderGraphValueType type, bool dynamic)
             {
                 var port = new GraphPort(direction, PortType(type));
@@ -223,6 +231,20 @@ namespace DCFApixels.WhimTex
                 }
                 var value = node.FindInput(name);
                 ShaderGraphValueType type = value?.type ?? input.type ?? ShaderGraphValueType.Float;
+                var definition = node.function?.ports.Find(p => p.name == name);
+                if (type == ShaderGraphValueType.Float && definition?.hasRange == true)
+                {
+                    var slider = new Slider(definition.minimum, definition.maximum) { showInputField = true, value = value?.value.x ?? input.value.x };
+                    fields.style.flexGrow = 1; slider.style.flexGrow = 1; slider.style.minWidth = 0;
+                    slider.RegisterValueChangedCallback(e => Change(n =>
+                    {
+                        var item = n.FindInput(name);
+                        if (item == null) n.inputs.Add(item = new ShaderGraphInput { port = name, type = type });
+                        item.value.x = e.newValue;
+                    }, structural: Data.FindInput(name) == null, rebuild: false));
+                    refresh.Add(() => slider.SetValueWithoutNotify(Data.FindInput(name)?.value.x ?? input.value.x));
+                    AddOption(slider, fields); return;
+                }
                 if (!input.type.HasValue)
                 {
                     fields.tooltip = "Unconnected value. Right-click to choose its numeric type.";

@@ -333,6 +333,34 @@ function parsePreset(body) {
 }
 
 function validate(source) {
+  const markers = directiveLines(source).filter(d => d.name === 'whimtex-node');
+  if (!markers.length) return validateFx(source);
+
+  const lines = source.split(/\r\n|\n|\r/);
+  const diagnostics = validateFx(lines.slice(0, markers[0].line).join('\n'));
+  for (let i = 0; i < markers.length; i++) {
+    const marker = markers[i];
+    const report = (d, message) => diagnostics.push({ line: d.line, start: d.start, end: d.length, message, warning: false });
+    if (!marker.body || marker.body.split('/').some(part => !part.trim()))
+      report(marker, 'Node category/name must not contain empty segments.');
+
+    // Each function owns its comment header. HLSL signatures and bodies remain
+    // the Unity parser/compiler's responsibility; do not treat later code as FX.
+    const end = i + 1 < markers.length ? markers[i + 1].line : lines.length;
+    const header = directiveLines(lines.slice(marker.line + 1, end).join('\n'))
+      .filter(d => d.leading).map(d => ({ ...d, line: d.line + marker.line + 1 }));
+    const metadata = [];
+    for (const d of header) {
+      if (d.name === 'param' || d.name === 'preset') metadata.push(d);
+      else report(d, 'Only @param and @preset may follow a node marker.');
+    }
+    for (const diagnostic of validateFx(metadata.map(d => d.text).join('\n')))
+      diagnostics.push({ ...diagnostic, line: metadata[diagnostic.line].line });
+  }
+  return diagnostics;
+}
+
+function validateFx(source) {
   const diagnostics = [], names = new Map(), declarations = [], containers = [], stack = [], conditions = [], conditionStack = [], previews = [];
   const directives = directiveLines(source);
   let condition = null, headers = 0, helpBoxes = 0, control = null, controlCount = 0, previewCount = 0, presetGroupCount = 0, presetCount = 0;

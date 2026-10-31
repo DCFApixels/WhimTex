@@ -16,11 +16,74 @@
     border-bottom-color: rgba(128, 128, 128, 0.25);
     padding-bottom: 4px;
 }
-.whimtex-shader-graph-parameter-actions {
-    flex-direction: row;
+.whimtex-shader-graph-parameter:hover {
+    background-color: rgba(128, 128, 128, 0.14);
 }
-.whimtex-shader-graph-parameter-actions > Button {
+.whimtex-shader-graph-parameter-highlight #node-border {
+    background-color: rgba(128, 180, 205, 0.28);
+    border-color: var(--unity-colors-highlight-background);
+}
+.whimtex-shader-graph-area {
     flex-grow: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+.whimtex-shader-graph-layer-preview {
+    position: absolute;
+    left: 0;
+    top: 0;
+    border-width: 1px;
+    border-color: var(--unity-colors-default-border);
+    background-color: var(--unity-colors-window-background);
+    cursor: move-arrow;
+}
+.whimtex-shader-graph-preview--left { border-left-color: var(--unity-colors-highlight-background); }
+.whimtex-shader-graph-preview--right { border-right-color: var(--unity-colors-highlight-background); }
+.whimtex-shader-graph-preview--top { border-top-color: var(--unity-colors-highlight-background); }
+.whimtex-shader-graph-preview--bottom { border-bottom-color: var(--unity-colors-highlight-background); }
+.whimtex-shader-graph-layer-preview > #layer-preview { flex-grow: 1; min-height: 0; }
+.whimtex-shader-graph-layer-preview #layer-preview-header { flex-shrink: 0; cursor: move-arrow; }
+.whimtex-shader-graph-layer-preview #layer-preview-header > Label { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.whimtex-shader-graph-preview-resize { position: absolute; }
+.whimtex-shader-graph-preview-resize--left { left: 0; top: 8px; bottom: 8px; width: 6px; cursor: resize-horizontal; }
+.whimtex-shader-graph-preview-resize--right { right: 0; top: 8px; bottom: 8px; width: 6px; cursor: resize-horizontal; }
+.whimtex-shader-graph-preview-resize--top { left: 8px; right: 8px; top: 0; height: 4px; cursor: resize-vertical; }
+.whimtex-shader-graph-preview-resize--bottom { left: 8px; right: 8px; bottom: 0; height: 6px; cursor: resize-vertical; }
+.whimtex-shader-graph-preview-resize--top-left { left: 0; top: 0; width: 8px; height: 8px; cursor: resize-up-left; }
+.whimtex-shader-graph-preview-resize--top-right { right: 0; top: 0; width: 8px; height: 8px; cursor: resize-up-right; }
+.whimtex-shader-graph-preview-resize--bottom-left { left: 0; bottom: 0; width: 8px; height: 8px; cursor: resize-up-right; }
+.whimtex-shader-graph-preview-resize--bottom-right { right: 0; bottom: 0; width: 8px; height: 8px; cursor: resize-up-left; }
+.whimtex-shader-graph-parameter-header .unity-toggle__text {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.whimtex-shader-graph-parameter-header > .unity-base-field__input {
+    min-width: 0;
+    flex-shrink: 1;
+}
+.whimtex-shader-graph-parameter-header > .whimtex-shader-graph-parameter-port {
+    height: auto;
+    padding: 0;
+    flex-shrink: 0;
+}
+.whimtex-shader-graph-parameter-port #type { display: none; }
+.whimtex-shader-graph-parameter-port #connector {
+    /* Same connector metrics as the parameter node below (native ShaderPort.uss). */
+    width: 8px;
+    height: 8px;
+    margin-left: 4px;
+    margin-right: 4px;
+}
+.whimtex-shader-graph-parameter-insertion {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: var(--unity-colors-highlight-background);
 }
 .whimtex-shader-graph-status {
     flex-grow: 1;
@@ -40,6 +103,16 @@
     min-width: 200px;
     overflow: visible;
 }
+.whimtex-shader-graph-function-actions { flex-direction: row; flex-wrap: wrap; }
+/* Same default width as the node minimum above. Content scrolls instead of sizing the node. */
+.whimtex-shader-graph-function { width: 200px; }
+.whimtex-shader-graph-function-port { flex-direction: column; }
+.whimtex-shader-graph-function-port > .unity-base-field { min-width: 0; }
+.whimtex-shader-graph-function-port > .unity-button { flex-shrink: 0; }
+.whimtex-shader-graph-function-signature { white-space: normal; opacity: 0.65; }
+.whimtex-shader-graph-function-code { min-width: 0; flex-shrink: 1; min-height: 80px; height: 160px; }
+.whimtex-shader-graph-function-code > .unity-text-field__input { min-width: 0; }
+.whimtex-shader-graph-function-resize { align-self: flex-end; opacity: 0.6; cursor: resize-up-left; }
 .whimtex-shader-graph-node--error #node-border {
     border-color: rgb(225, 90, 80);
     border-width: 2px;
@@ -70,7 +143,11 @@
 .whimtex-shader-graph #node-border .whimtex-shader-graph-port--resource #connector,
 .whimtex-shader-graph #node-border .whimtex-shader-graph-port--resource #connector #cap,
 .whimtex-shader-graph #node-border .whimtex-shader-graph-port--boolean #connector,
-.whimtex-shader-graph #node-border .whimtex-shader-graph-port--boolean #connector #cap {
+.whimtex-shader-graph #node-border .whimtex-shader-graph-port--boolean #connector #cap,
+.whimtex-shader-graph-parameter-header .whimtex-shader-graph-port--resource #connector,
+.whimtex-shader-graph-parameter-header .whimtex-shader-graph-port--resource #cap,
+.whimtex-shader-graph-parameter-header .whimtex-shader-graph-port--boolean #connector,
+.whimtex-shader-graph-parameter-header .whimtex-shader-graph-port--boolean #cap {
     border-radius: 0;
 }
 .whimtex-shader-graph-port--boolean #connector {

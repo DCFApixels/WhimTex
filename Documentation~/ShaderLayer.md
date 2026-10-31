@@ -25,6 +25,13 @@ transform, FX and composition pipeline; Output is not the final document composi
 
 ## Parameters and ports
 
+Parameter headers can be dragged to reorder `graph.parameters` or dropped on the graph to
+create a Parameter node at the transformed canvas position. Header context actions are
+Use in Graph, Duplicate and Remove. Duplicate deep-copies parameter settings and values
+(retaining texture/layer references), assigns a new ID and unique name, and inserts after
+the original. Remove deletes its Parameter nodes and incident edges. These operations support
+Undo/Redo. Header indicators reuse output-port types, colors and shapes.
+
 Parameter declarations define the fields shown in the layer's Properties. A Parameter node reads
 a declaration, and multiple nodes can read the same declaration. Constant holds a graph-local
 value. Texture, Gradient and Curve parameters use the shared parameter controls and bindings.
@@ -89,6 +96,23 @@ restores the field. Unconnected UV ports retain implicit `PixelUV` coordinates. 
 **Custom / UV** option selects an explicit numeric value or the implicit current-pixel UV;
 Custom fields follow the same external placement and connection visibility rules. These are
 editor controls over the existing input semantics, not changes to graph math or storage.
+
+## Node clipboard
+
+Native GraphView Copy/Paste/Cut/Duplicate commands use a session-scoped JSON fragment.
+The fragment includes selected nodes, edges whose endpoints are both selected, required
+parameter values, functions (including drafts and editor sizes), and their include closure.
+Output is not copyable. Text-field commands retain normal text editing behavior.
+
+Paste assigns new node/function IDs, remaps internal edges, and selects the inserted nodes.
+In the same graph, compatible Parameter IDs are reused; otherwise parameters are copied
+with new IDs and unique display names. Unusable layer texture references are cleared, including
+references across documents. Unity texture object references are retained within the Editor domain.
+Includes are deduplicated by ID and matching content/bindings; conflicting content is rejected.
+The merged graph is validated before one document Undo mutation, so invalid data or capacity
+limits do not partially insert nodes. Repeated paste offsets the selection; cross-graph paste
+starts at the visible graph center. Duplicate leaves the system clipboard unchanged.
+The clipboard is invalidated by script reload or Editor restart and is not a document format.
 
 ## Node movement and deletion
 
@@ -178,6 +202,19 @@ remains the editable source; this view does not edit the generated program.
 
 ## Node previews
 
+Layer Preview uses the shared `LayerPreviewPanel` in a floating overlay beside the graph canvas,
+outside its content transform. It starts at the bottom-right, supports dragging the header or image and edge
+or corner resizing, and keeps the existing R/G/B/A channel controls. Placement, size and channels
+belong to window state, never graph/document data. Viewport resizing keeps the panel reachable.
+Dragging within 16 logical pixels of an edge snaps each axis independently, allowing edge
+and corner attachments. Attached edges sit flush with the viewport, follow viewport
+resizing and show an accent border. Dragging away releases them. Attachment flags are window state;
+resizing from a free edge preserves the opposite attachment, while resizing an attached edge releases it.
+The docked Layer Settings preview retains its existing reveal/resize behavior.
+
+Hovering a parameter declaration highlights its row and all matching Parameter nodes by ID.
+This transient feedback does not alter selection, Undo history or rendering.
+
 Calculation nodes other than Output own collapsible previews inside their nodes. Output,
 Parameter and Reroute have no per-node preview.
 There is no shared Selected Node preview in the sidebar, and selecting a node does not retarget
@@ -203,6 +240,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Operations | Purpose |
 | --- | --- |
 | Parameter, Constant | Shared parameter reads and graph-local values. |
+| Custom Function, cataloged HLSL functions | Inline function bodies or functions imported from an HLSL library. |
 | Reroute | Forward a typed connection unchanged; insert on an existing edge, not through Add Node or search. |
 | UV, Image Size, Texture Size | Coordinates and image dimensions. |
 | Sample Texture, Sample Gradient, Sample Curve | Read typed resources. |
@@ -221,8 +259,132 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Blend | RGBA blending using the existing blend semantics. |
 | Output | Final straight RGBA through a fixed Color input; modest visual distinction and no per-node preview. |
 
-Custom HLSL nodes, reusable subgraphs, Blur and Time nodes are outside this first version.
+Reusable subgraphs, Blur and Time nodes are outside this first version.
 HLSL FX authoring continues to use the [separate effect contract](ShaderFX.md).
+
+## HLSL functions
+
+### File declarations and ports
+
+Declare a catalog entry with `// @whimtex-node Category/Name`, followed by optional existing
+`@param` metadata and an optional `@preset("GUID", version)` pair, then the HLSL function
+definition. Metadata belongs to that function; multiple marked functions may share one file.
+The preset pair uses a nonempty GUID and a positive integer version. Without it, a saved file
+path and exact function variant identify an explicit refresh candidate.
+
+Inputs accept `float`/`half` scalars and vectors of two to four components, `bool`, and
+`WhimTexTexture`. `float1`/`half1` are scalar aliases. The return value becomes **Result**;
+`out` arguments become named outputs and `inout` arguments expose both input and output ports.
+`void` functions need at least one output argument. Texture values are input-only. Arrays,
+matrices, arbitrary structs and default argument expressions are not supported port declarations.
+
+`@param` names must match actual argument names. For a non-void function, `@param ... Result`
+may describe the return port; an argument also named Result makes that metadata ambiguous.
+Metadata and HLSL must have the same component count and numeric/Boolean/resource type;
+float and half precision aliases normalize to the same port width. `color(float4)` or
+`color(half4)` selects Color semantics for a four-component argument or return value.
+Metadata supplies defaults, labels and numeric bounds to the portable port definition.
+For Boolean metadata use the existing `toggle(bool)` syntax. Texture inputs require graph
+connections; texture metadata cannot bind an external image.
+
+Input-only `float2`/`half2` arguments named exactly `UV` or `uv` default to the current pixel UV.
+The port's **Custom / UV** control can select a numeric value instead. Other input names have
+ordinary defaults; there is no automatic UV binding for `out` or `inout` arguments.
+
+The bundled **Colors/Contrast** example is
+[`src/ShaderGraphFunctions.hlsl`](https://github.com/DCFApixels/WhimTex/blob/main/src/ShaderGraphFunctions.hlsl),
+at `Packages/com.dcfapixels.whimtex/src/ShaderGraphFunctions.hlsl` in the project. It changes
+contrast around 0.5, retains alpha and leaves HDR values unclamped. Its declaration follows
+this pattern (the library also declares its own preset identity):
+
+```hlsl
+// @whimtex-node Colors/Contrast
+// @param color(float4) Color = (1, 1, 1, 1)
+// @param float Amount = 1 [0 .. 4]
+// @param color(float4) Result
+void WhimTexNodeContrast(float4 Color, float Amount, out float4 Result)
+{
+    Result = float4((Color.rgb - 0.5) * Amount + 0.5, Color.a);
+}
+```
+
+### Custom Function editing
+
+**Utility/Custom Function** creates an inline node. Configure its **Ports**, edit the function
+body in **Code**, then choose **Compile**. The node reuses the existing HLSL code editor.
+Code can be expanded or collapsed; its resize handle changes node width and code height,
+with the ordinary node width as the minimum. The displayed signature and active graph ports
+continue to describe the applied function while body or port edits remain drafts.
+
+`draft` and optional `draftPorts` are saved independently from `body` and `ports`. Compile
+validates a standalone invocation even when the node is unconnected, then applies body and
+signature together on success. An error leaves the last applied definition intact.
+**File…** selects a supported function from an `.hlsl` file, including unmarked functions.
+Catalog entries use ordinary node styling and preview, without constructing a code field,
+function toolbar or resize control. **Refresh HLSL**, **Choose HLSL File…** and **Convert to
+Custom Function** are available in their context menu.
+
+Conversion clones the applied definition into an independent local function (`inline: true`,
+`fullSource: true`), clears preset/path/fingerprint identity and preserves node ID, values,
+ports, connections and include closure. Shared definitions stay unchanged for other nodes.
+`body` and `draft` initially contain the archived main module, not an expanded include bundle.
+The code editor edits the full source; its entry point remains `entryPoint`. On Compile the
+portable parser resolves that declaration and applies signature changes with the code.
+Module declarations replace the separate Ports editor. The compiler emits the full module
+inside its own namespace, without wrapping it as a function body. Other local Custom Functions
+keep `fullSource: false` and their existing body/Ports workflow. Conversion is one Undo operation.
+
+An inline body may contain `#include` snippets. Compile captures the applied body and its
+complete dependency closure in `graph.sources`, assigning the inline function a `sourceId`;
+without includes, `sourceId` is null. The archived root's `code` must exactly equal the applied
+`body`, otherwise validation fails. Compilation expands the archived body. API/JSON input
+with inline includes but no archive is rejected; loading never fetches dependencies from disk.
+New inline functions resolve relative includes from `Assets`; prefer explicit `Assets/...` or
+`Packages/...` paths. Source cleanup follows every function's `sourceId`, including inline ones.
+For converted full-source functions, Compile retains archived bindings for unchanged include
+names, even if the original files changed or disappeared. Newly added includes are captured
+from disk using the same path rules. Source changes are staged and validated before applying.
+
+### Discovery and explicit refresh
+
+`ShaderGraphFunctionCatalog.Entries` caches project/package and user-library discovery.
+**Refresh HLSL** rescans it explicitly. Ordinary discovery parses only marked files; it does
+not capture include archives. File picking uses `LoadFile(path)` with unmarked functions
+enabled. Duplicate menu paths receive signature/path suffixes so every entry remains selectable.
+`Errors` exposes catalog diagnostics for the editor.
+
+`Entry.Import(graph)` clones the definition, captures the full source dependency closure and
+adds a new function to the graph. Each import has its own definition and values; equal source
+modules may share the archive. `sourceFingerprint` records the captured root content key,
+including dependency bindings. Link checks cache closure fingerprints until the next refresh.
+
+`Find(definition)` requires a unique identity/version and matching function variant plus an
+exact backup fingerprint. `FindForRefresh(definition)` permits changed code for the same unique
+identity/version and variant; it also checks the saved path for unmarked or external functions.
+The library node's **Refresh HLSL** action validates the candidate before applying it. Rendering always uses
+the document archive. Missing, changed, incompatible or ambiguous sources do not automatically
+replace it; failed refresh retains the backup. Use **Choose HLSL File…** for an intentional replacement.
+
+On Unity 6.5+, the optional adapter reads only public `ShaderInclude.Reflection.ReflectedFunctions`.
+Functions marked with `UNITY_EXPORT_REFLECTION` can be converted into the same portable model;
+WhimTex declarations take precedence. Automatic native discovery excludes `Packages/com.unity.*`
+engine libraries. Explicit file import still reports unsupported signatures or missing includes.
+The adapter maps native display/search names, category, provider key, Color, default, range and
+UV hints. A native provider key is retained as an opaque identity with version 0. Unsupported
+native functions report individual diagnostics. Unity 6.3 uses the portable declarations and
+archived source without depending on the native reflection API.
+
+### Archived module compilation
+
+`ShaderGraphModuleSource.Prepare` prepares archived code for an isolated namespace per root.
+It preserves macro names and token pasting (`##`), using ownership markers and conditional
+cleanup. An active `#define` or `#undef` that collides with an already global macro produces a
+diagnostic instead of changing that macro. This preparation does not rewrite the saved source.
+
+Unity expands engine includes at module scope outside the wrapper namespace, retaining their
+preprocessor conditions. Engine includes inside nested namespaces or functions are rejected,
+as are scope-changing macros used with engine includes. Include placement and macro scope
+must therefore remain explicit in an imported module.
 
 ## Authoring and persistence
 
@@ -241,6 +403,56 @@ Use the [document format](JSON_FORMAT.md) and [generated model schema](AI/docume
 for exact serialized fields, and the [Agent API](AgentAPI.md) for supported operations. This
 contract does not introduce a separate JSON envelope or new `@param` syntax. Effect directives
 describe HLSL FX and must not be substituted for the Shader layer's graph declarations.
+
+### Embedded HLSL source archive
+
+Custom Function definitions are stored in `graph.functions`; nodes refer to them by
+`functionId`. A file-backed definition refers to its embedded backup through `sourceId`.
+The optional `draftPorts` list stores pending signature edits alongside `draft`; the existing
+`ports` and compiled body remain separate from those pending edits.
+
+`graph.sources` is a list of `{ id, code, includes }` modules. `code` is the original text,
+including its include directives. Each `includes` entry is `{ requested, sourceId }`, where
+`requested` is the exact include string without its quotes or angle brackets. Bindings belong
+to the including module: two files may resolve `"common.hlsl"` to different dependencies.
+Repeated directives with the same requested spelling use one binding and still expand at
+each original directive location. The archive service does not prune sources, branches or
+unreferenced entries; editor structural cleanup may remove obsolete function versions separately.
+
+`ShaderGraphSources.Capture(source, path, destination)` accepts an absolute source-file path
+(including the user node library), or an `Assets/...` or `Packages/...` path. Package paths
+resolve through the public package API. The source string may contain unsaved edits; the
+supplied path establishes the relative-include base. A null path permits inline source with
+explicit project/package includes. Capture returns an opaque `src_<sha256>` ID and merges
+modules only when their code and dependency bindings match. It publishes additions only after
+the entire capture succeeds; existing entries remain unchanged on failure.
+
+`Expand(sourceId, sources)` validates and expands only the saved archive, without reading any
+source files. Preprocessor order and conditions are retained, including includes in inactive
+branches. Capture therefore requires every non-engine literal include to resolve, even inside
+`#if 0`. Macro-generated includes and unknown missing filenames fail with diagnostics.
+Only exact names in the engine whitelist may remain unbundled, including `UnityCG.cginc` and
+`ShaderApiReflectionSupport.hlsl`; arbitrary path prefixes or matching filename suffixes do
+not qualify. Unity 6.3 compilation removes the optional reflection support include and export
+marker in the compiler adapter, without changing the archived text.
+
+Explicit include guards are preserved. Top-level `#pragma once` is represented by a stable
+module guard during expansion; the stored directive remains unchanged. Conditional
+`#pragma once` and all include cycles, including guarded cycles, are rejected explicitly.
+
+Limits are measured in UTF-8 bytes: 8 MiB per source, 32 MiB per archive and expanded result,
+4,096 modules, 32,768 include directives and 64 nested modules. Expansion also limits include
+visits to 65,536. Capture limits inspected input to 256 MiB and 65,536 file visits, even when
+duplicate modules reduce the final archive size. Source IDs contain 1–128 ASCII letters,
+digits, underscores or hyphens; saved IDs are opaque and can remain stable during explicit edits.
+
+JSON, clipboard and Unity Undo retain plain `code` strings. Native TIFF encodes those fields
+using tagged value 33 and container blocks named `shader-source:sha256:<text digest>`.
+Compression uses the existing container codec; identical text is stored once across every
+graph in the TIFF, even when the modules have different include bindings. Bindings and source
+IDs stay in the document model. Reads check the block size and SHA-256 before reconstructing
+ordinary strings, with a 32 MiB limit on the unique shared text table. Older readers fail on
+the unknown tag instead of interpreting the block reference as source code.
 
 ### Create from an output connection
 

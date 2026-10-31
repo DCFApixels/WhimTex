@@ -14,6 +14,10 @@ layer clipboard data and agent serialization. It stores settings, not rendered p
 `ShaderLayerBehaviour.graph` stores the editable per-pixel graph. See the
 [Shader graph example](ShaderLayer.md#api-and-document-json) for exact fields and the distinction
 between the API operation wrapper and the stored behavior object.
+HLSL function backups use `graph.sources`: original plain `code` plus per-module
+`includes` bindings (`requested`, `sourceId`). JSON preserves these strings and mappings;
+only native TIFF shares and compresses source text blocks across graphs. See the
+[source archive contract](ShaderLayer.md#embedded-hlsl-source-archive) for limits and include resolution.
 
 `FileLayerBehaviour.externalSourcePath` stores an absolute external image link; `sourceTexture`
 is null for that source. Project textures use `sourceTexture` and leave `externalSourcePath` null.

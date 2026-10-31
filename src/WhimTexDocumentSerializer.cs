@@ -60,6 +60,9 @@ namespace DCFApixels.WhimTex
         private const byte TagObjectRef = 31;
         // Coverage masks are a single bounded blob, not a million graph values.
         private const byte TagBytes = 32;
+        // A source string stored once per container, independent of graph/module identity.
+        private const byte TagShaderSource = 33;
+        private const string ShaderSourceBlockPrefix = "shader-source:sha256:";
         private const int MaxByteArrayLength = 64 * 1024 * 1024;
 
         /// <summary>Derived or transient state: rebuilt from the rest of the document, never stored.</summary>
@@ -235,6 +238,8 @@ namespace DCFApixels.WhimTex
             private int _textureIndex;
             private long _textureBytes;
             private int _depth, _values;
+            private readonly Dictionary<string, string> _shaderSourceBlocks = new Dictionary<string, string>(StringComparer.Ordinal);
+            private long _shaderSourceBytes;
 
             private readonly HashSet<Texture2D> _ownedTextures = new();
             private readonly WhimTexDocument _owner;
@@ -575,6 +580,11 @@ namespace DCFApixels.WhimTex
                 {
                     _writer.Write(field.Name);
                     object fieldValue = field.GetValue(value);
+                    if (value is ShaderGraphSource && field.Name == "code")
+                    {
+                        WriteShaderSource((string)fieldValue);
+                        continue;
+                    }
                     if (value is ShaderFX effect && field.Name == "code")
                     {
                         string source = ShaderFXIconMetadata.MakePortable((string)fieldValue, effect.SourcePath);
@@ -583,6 +593,28 @@ namespace DCFApixels.WhimTex
                     }
                     Write(fieldValue, field.FieldType);
                 }
+            }
+
+            private void WriteShaderSource(string code)
+            {
+                int length = ShaderGraphSources.CodeByteCount(code);
+                if (!_shaderSourceBlocks.TryGetValue(code, out string block))
+                {
+                    if (length > ShaderGraphSources.MaximumArchiveBytes - _shaderSourceBytes)
+                        throw new WhimTexDocumentException("The shared shader source table exceeds 32 MiB.");
+                    byte[] bytes = ShaderGraphSources.Utf8.GetBytes(code);
+                    block = ShaderSourceBlockPrefix + ShaderGraphSources.Digest(bytes);
+                    if (_container.Contains(block))
+                    {
+                        if (_container.LengthOf(block) != bytes.Length || !_container.Get(block).AsSpan().SequenceEqual(bytes))
+                            throw new WhimTexDocumentException("Shader source block digest conflict: " + block);
+                    }
+                    else _container.SetCompressed(block, block, bytes, System.IO.Compression.CompressionLevel.Optimal);
+                    _shaderSourceBlocks.Add(code, block);
+                    _shaderSourceBytes += length;
+                }
+                _writer.Write(TagShaderSource);
+                _writer.Write(block);
             }
         }
 
@@ -688,6 +720,8 @@ namespace DCFApixels.WhimTex
             private int _depth, _values;
             private long _textureBytes;
             private const int MaxValues = 1000000;
+            private readonly Dictionary<string, string> _shaderSources = new Dictionary<string, string>(StringComparer.Ordinal);
+            private long _shaderSourceBytes;
 
             private sealed class DeferredTextureReference
             {
@@ -760,6 +794,7 @@ namespace DCFApixels.WhimTex
                     case TagDouble: return _reader.ReadDouble();
                     case TagChar: return _reader.ReadChar();
                     case TagString: return ReadText();
+                    case TagShaderSource: return ReadShaderSource(declared);
                     case TagBytes: return _reader.ReadBytes(ReadCount(MaxByteArrayLength, 1));
                     case TagVector2: return new Vector2(_reader.ReadSingle(), _reader.ReadSingle());
                     case TagVector3: return new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
@@ -787,6 +822,29 @@ namespace DCFApixels.WhimTex
                         return _objects[id] is DeferredTextureReference deferred ? deferred.Resolve() : _objects[id];
                     default: throw new WhimTexDocumentException("Unknown value tag " + tag + " in the document.");
                 }
+            }
+
+            private string ReadShaderSource(Type declared)
+            {
+                if (declared != null && declared != typeof(string))
+                    throw new WhimTexDocumentException("A shader source block must decode to a string.");
+                string block = ReadText();
+                if (!block.StartsWith(ShaderSourceBlockPrefix, StringComparison.Ordinal) || block.Length != ShaderSourceBlockPrefix.Length + 64)
+                    throw new WhimTexDocumentException("Invalid shader source block name.");
+                for (int i = ShaderSourceBlockPrefix.Length; i < block.Length; i++)
+                    if (!(block[i] >= '0' && block[i] <= '9' || block[i] >= 'a' && block[i] <= 'f'))
+                        throw new WhimTexDocumentException("Invalid shader source block digest.");
+                if (_shaderSources.TryGetValue(block, out string code)) return code;
+                long length = _container.LengthOf(block);
+                if (length < 0 || length > ShaderGraphSources.MaximumSourceBytes || length > ShaderGraphSources.MaximumArchiveBytes - _shaderSourceBytes)
+                    throw new WhimTexDocumentException("Shader source blocks exceed the 8 MiB per-file or 32 MiB shared-table limit.");
+                byte[] bytes = _container.Get(block);
+                if (bytes.LongLength != length || block != ShaderSourceBlockPrefix + ShaderGraphSources.Digest(bytes))
+                    throw new WhimTexDocumentException("Shader source block content does not match its digest.");
+                code = ShaderGraphSources.Utf8.GetString(bytes);
+                _shaderSources.Add(block, code);
+                _shaderSourceBytes += length;
+                return code;
             }
 
             private object ReadCurve()

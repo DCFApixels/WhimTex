@@ -43,10 +43,15 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static readonly ConditionalWeakTable<ShaderFX, CaretHistory> Carets = new ConditionalWeakTable<ShaderFX, CaretHistory>();
+        private static readonly ConditionalWeakTable<object, CaretHistory> Carets = new ConditionalWeakTable<object, CaretHistory>();
         private static readonly Regex Definition = new Regex(@"\b\w+\s+ApplyFX\s*\(([^()]*)\)(?=\s*(?::[^;{}]+)?\{)", RegexOptions.CultureInvariant);
         private static readonly Regex Argument = new Regex(@"\b(float4|float2|PinnedUV)\s+(\w+)\s*$", RegexOptions.CultureInvariant);
         private readonly ShaderFX effect;
+        private readonly UnityEngine.Object undoOwner;
+        private readonly Func<string> readCode;
+        private readonly Action<string> writeCode;
+        private readonly Func<bool> editable;
+        private string Source => readCode?.Invoke() ?? string.Empty;
         private readonly CaretHistory history;
         private readonly ShaderFXCodeSyntax syntax;
 #if UNITY_6000_7_OR_NEWER
@@ -61,17 +66,25 @@ namespace DCFApixels.WhimTex
         private int beforeCursor, beforeSelect, beforeLength;
         private SelectionStep activeStep;
 
-        internal ShaderFXCodeField(ShaderFX effect = null)
+        internal ShaderFXCodeField(ShaderFX effect = null) : this(effect, effect,
+            effect == null ? null : () => effect.Code, effect == null ? null : code => effect.SetDraftCode(code),
+            effect == null ? null : () => !effect.IsCatalogLinked && !WhimTexApi.IsShaderFXContentLocked(effect), effect) { }
+
+        internal ShaderFXCodeField(UnityEngine.Object owner, object historyKey, Func<string> read, Action<string> write, Func<bool> editable)
+            : this(owner, historyKey, read, write, editable, null) { }
+
+        private ShaderFXCodeField(UnityEngine.Object owner, object historyKey, Func<string> read, Action<string> write, Func<bool> editable, ShaderFX effect)
         {
             this.effect = effect;
+            undoOwner = owner; readCode = read; writeCode = write; this.editable = editable;
             name = "shaderFXCode";
             multiline = true;
-            isReadOnly = effect == null;
+            isReadOnly = write == null;
             verticalScrollerVisibility = ScrollerVisibility.Auto;
             textSelection.selectAllOnFocus = false;
             textSelection.selectAllOnMouseUp = false;
             AddToClassList("whimtex-shader-fx-code");
-            SetValueWithoutNotify(effect?.Code ?? string.Empty);
+            SetValueWithoutNotify(Source);
             syntax = new ShaderFXCodeSyntax(this, effect);
 #if UNITY_6000_7_OR_NEWER
             lineNumbers = new ShaderFXCodeLineNumbers(this, effect);
@@ -84,8 +97,8 @@ namespace DCFApixels.WhimTex
                 scroll.mode = ScrollViewMode.VerticalAndHorizontal;
                 scroll.horizontalScrollerVisibility = ScrollerVisibility.Auto;
             });
-            if (effect == null) return;
-            history = Carets.GetValue(effect, _ => new CaretHistory());
+            if (write == null) return;
+            history = Carets.GetValue(historyKey ?? owner, _ => new CaretHistory());
             if (history.source == value)
                 textSelection.SelectRange(Mathf.Clamp(history.cursor, 0, value.Length), Mathf.Clamp(history.select, 0, value.Length));
             CaptureBefore();
@@ -135,10 +148,10 @@ namespace DCFApixels.WhimTex
 
         internal void SyncFromModel()
         {
-            if (effect == null || value == effect.Code)
+            if (readCode == null || value == Source)
                 return;
             string previous = value ?? string.Empty;
-            string next = effect.Code ?? string.Empty;
+            string next = Source;
             int cursor = 0;
             while (cursor < previous.Length && cursor < next.Length && previous[cursor] == next[cursor])
                 cursor++;
@@ -162,8 +175,7 @@ namespace DCFApixels.WhimTex
             history.select = Mathf.Clamp(textSelection.selectIndex, 0, history.source.Length);
         }
 
-        internal bool CanUseReference => effect != null && enabledInHierarchy && !isReadOnly && !effect.IsCatalogLinked &&
-            !WhimTexApi.IsShaderFXContentLocked(effect);
+        internal bool CanUseReference => writeCode != null && enabledInHierarchy && !isReadOnly && (editable?.Invoke() ?? true);
 
         internal bool UseReference(string snippet)
         {
@@ -373,8 +385,8 @@ namespace DCFApixels.WhimTex
                     beforeCursor = originalCursor, beforeSelect = originalSelect, beforeLength = previous.Length,
                     afterCursor = cursor, afterSelect = select, afterLength = next.Length
                 });
-                Undo.RecordObject(effect, UndoName);
-                effect.SetDraftCode(next);
+                Undo.RecordObject(undoOwner, UndoName);
+                writeCode(next);
                 SetValueWithoutNotify(next);
                 Undo.FlushUndoRecordObjects();
                 Undo.IncrementCurrentGroup();
@@ -403,10 +415,10 @@ namespace DCFApixels.WhimTex
 
         private void OnChanged(ChangeEvent<string> evt)
         {
-            if (evt.target != this || effect == null || evt.newValue == effect.Code)
+            if (evt.target != this || writeCode == null || evt.newValue == Source)
                 return;
-            using var timing = WhimTexProfiler.Measure("ui.code.change", effect.EmbeddedOwner, detail: "HLSL");
-            if (evt.previousValue != effect.Code)
+            using var timing = WhimTexProfiler.Measure("ui.code.change", effect != null ? effect.EmbeddedOwner : null, detail: "HLSL");
+            if (evt.previousValue != Source)
             {
                 SyncFromModel();
                 return;
@@ -439,8 +451,8 @@ namespace DCFApixels.WhimTex
                 };
                 history.Add(editGroup, activeStep);
             }
-            Undo.RecordObject(effect, UndoName);
-            effect.SetDraftCode(next);
+            Undo.RecordObject(undoOwner, UndoName);
+            writeCode(next);
             Undo.FlushUndoRecordObjects();
             editKind = kind;
             lastEditTime = now;
@@ -551,7 +563,7 @@ namespace DCFApixels.WhimTex
 
         private void OnUndoRedo(in UndoRedoInfo info)
         {
-            if (effect == null)
+            if (writeCode == null)
                 return;
             editGroup = -1;
             activeStep = null;
