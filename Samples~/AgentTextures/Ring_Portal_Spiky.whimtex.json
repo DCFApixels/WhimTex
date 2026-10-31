@@ -884,7 +884,7 @@
                 "gain": 0.5,
                 "weightedStrength": 0.0,
                 "warp": "None",
-                "encoding": "LinearData",
+                "encoding": "Linear",
                 "inverted": false,
                 "recoveryId": "0ac5a473e5e94765aa8bfef9032fcd00"
               },

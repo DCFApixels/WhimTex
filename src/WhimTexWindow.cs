@@ -1119,6 +1119,9 @@ namespace DCFApixels.WhimTex
                 case ShaderProcessorLayerBehaviour processor:
                     ShaderProcessorLayerEditorWindow.Open(processor, activeDocument);
                     break;
+                case ShaderLayerBehaviour shader:
+                    ShaderLayerEditorWindow.Open(shader, activeDocument);
+                    break;
             }
         }
 

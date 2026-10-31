@@ -103,6 +103,11 @@ namespace DCFApixels.WhimTex
             result["noiseDimensions"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.NoiseDimensions)));
             result["noisePeriodicAxes"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.PeriodicAxes)));
             result["noiseDefaults"] = NoiseSnapshot(new NoiseLayerBehaviour());
+            result["shaderDefaults"] = ShaderSnapshot(new ShaderLayerBehaviour(), null);
+            result["shaderNodes"] = ShaderNodeCatalog();
+            result["shaderValueTypes"] = new JArray(System.Enum.GetNames(typeof(ShaderGraphValueType)));
+            result["shaderWrapModes"] = new JArray(System.Enum.GetNames(typeof(ShaderGraphWrap)));
+            result["shaderFilterModes"] = new JArray(System.Enum.GetNames(typeof(ShaderGraphFilter)));
             result["fillModes"] = new JArray(System.Enum.GetNames(typeof(ColorFillLayerBehaviour.FillMode)));
             result["fillPatternDefaults"] = FillPatternSnapshot(new FillPatternSettings());
             result["shapeDefaults"] = ShapeSnapshot(new ShapeLayerBehaviour());
@@ -395,6 +400,7 @@ namespace DCFApixels.WhimTex
                     if (layer?.Behaviour is SharpenLayerBehaviour sharpen) settings["sharpen"] = SharpenSnapshot(sharpen);
                     if (layer?.Behaviour is MakeSeamlessLayerBehaviour seamless) settings["makeSeamless"] = MakeSeamlessSnapshot(seamless);
                     if (layer?.Behaviour is NoiseLayerBehaviour noise) settings["noise"] = NoiseSnapshot(noise);
+                    if (layer?.Behaviour is ShaderLayerBehaviour shader) settings["shader"] = ShaderSnapshot(shader, document);
                     if (layer?.Behaviour is ShapeLayerBehaviour shape) settings["shape"] = ShapeSnapshot(shape);
                     if (layer?.Behaviour is VectorLayerBehaviour vector) settings["vector"] = WhimTexDocumentJson.VectorSnapshot(vector, document);
                     if (layer?.Behaviour is BooleanGroupLayerBehaviour booleanGroup) settings["booleanGroup"] = WhimTexDocumentJson.BooleanGroupSnapshot(booleanGroup, document);

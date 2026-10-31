@@ -17,8 +17,15 @@ namespace DCFApixels.WhimTex
             internal RenderTexture pixels, errors;
             internal long bytes, used;
         }
+        private sealed class SettingsEntry
+        {
+            internal string source, normalized;
+            internal long usedFrame;
+        }
         private readonly Dictionary<string, Entry> entries = new Dictionary<string, Entry>();
         private readonly Dictionary<Layer, ulong> stamps = new Dictionary<Layer, ulong>();
+        private readonly Dictionary<Layer, SettingsEntry> normalizedSettings = new Dictionary<Layer, SettingsEntry>();
+        private readonly List<Layer> unusedSettings = new List<Layer>();
         private readonly HashSet<Layer> visiting = new HashSet<Layer>();
         private readonly HashSet<Layer> colorSources = new HashSet<Layer>();
         private readonly HashSet<string> requiredEntries = new HashSet<string>();
@@ -50,6 +57,12 @@ namespace DCFApixels.WhimTex
             owner.RefreshTransformHierarchy();
             liveDrawing = painting;
             frame++;
+            // Retain normalization across frames, but release deleted/unused layer data.
+            unusedSettings.Clear();
+            foreach (var pair in normalizedSettings)
+                if (pair.Value.usedFrame < frame - 1) unusedSettings.Add(pair.Key);
+            foreach (var layer in unusedSettings) normalizedSettings.Remove(layer);
+            unusedSettings.Clear();
             stamps.Clear(); visiting.Clear(); colorSources.Clear(); requiredEntries.Clear();
             VisitVisible(owner.layers);
             ReleaseUnusedDistancePreparation(owner.layers);
@@ -121,6 +134,15 @@ namespace DCFApixels.WhimTex
             }
             else if (CanCacheLayer(layer))
                 RequireEntry(layer, "effect");
+            if (layer.Behaviour is ShaderLayerBehaviour shader)
+                foreach (var parameter in ShaderGraphStorage.TextureLayerParameters(shader.graph))
+                {
+                    Layer input = document.FindLayer(parameter.textureLayerId);
+                    if (input == null) continue;
+                    RequireEntry(input, "fx-input");
+                    colorSources.Add(input);
+                    VisitRequired(input);
+                }
             if (layer.fx != null)
                 foreach (var fxEntry in layer.fx)
                     if (fxEntry is ShaderFX fx && fx.Active)
@@ -166,7 +188,7 @@ namespace DCFApixels.WhimTex
 
         internal static bool CanCacheLayer(Layer layer)
         {
-            if (layer?.Behaviour is TargetedLayerBehaviour || layer?.Behaviour is ShaderProcessorLayerBehaviour)
+            if (layer?.Behaviour is TargetedLayerBehaviour || layer?.Behaviour is ShaderProcessorLayerBehaviour || layer?.Behaviour is ShaderLayerBehaviour)
                 return true;
             if (layer?.fx == null) return false;
             bool found = false;
@@ -203,6 +225,10 @@ namespace DCFApixels.WhimTex
         {
             if (layer == null) return 1;
             if (stamps.TryGetValue(layer, out ulong ready)) return ready;
+            // A failed draft may retain a compiled program whose inputs are no longer
+            // present in the editable graph. Do not reuse a stamp for that fallback.
+            if (layer.Behaviour is ShaderLayerBehaviour shaderLayer && shaderLayer.HasCompileError)
+                return stamps[layer] = 0;
             // Live stroke pixels change every input batch. Avoid serializing/hashing
             // their entire Drawing state and retaining a single-frame FX cache.
             if (layer.Behaviour is DrawingLayerBehaviour live &&
@@ -244,7 +270,7 @@ namespace DCFApixels.WhimTex
                     dependencies = Mix(dependencies, dependency);
                 }
                 ulong hash = Mix(Mix(14695981039346656037UL, layer.transformCache?.version ?? 0), dependencies);
-                string settings = JsonUtility.ToJson(layer);
+                string settings = CachedLayerSettings(layer);
                 WhimTexProfiler.ObserveSettings(document, layer, settings);
                 foreach (char c in settings) hash = Mix(hash, c);
                 if (layer.Behaviour is TextLayerBehaviour text)
@@ -252,6 +278,18 @@ namespace DCFApixels.WhimTex
                     hash = Mix(hash, unchecked((uint)SystemFontCatalog.Revision));
                     hash = Mix(hash, text.FontAvailable ? 1UL : 0UL);
                 }
+                if (layer.Behaviour is ShaderLayerBehaviour shader)
+                    foreach (var parameter in ShaderGraphStorage.AllTextureParameters(shader.graph))
+                    {
+                        if (parameter.textureSource == ShaderFXTextureSource.Texture && parameter.textureValue != null)
+                            hash = MixTexture(hash, parameter.textureValue);
+                        else if (parameter.textureSource == ShaderFXTextureSource.Layer && !string.IsNullOrEmpty(parameter.textureLayerId))
+                        {
+                            ulong dependency = DependencyStamp(layer, document.FindLayer(parameter.textureLayerId), "Shader texture input");
+                            if (dependency == 0) return stamps[layer] = 0;
+                            hash = Mix(hash, dependency);
+                        }
+                    }
                 if (layer.fx != null)
                     foreach (var fxEntry in layer.fx)
                     {
@@ -409,6 +447,25 @@ namespace DCFApixels.WhimTex
             finally { GL.sRGBWrite = srgb; RenderTexture.active = previous; }
         }
 
+        private string CachedLayerSettings(Layer layer)
+        {
+            string json = JsonUtility.ToJson(layer);
+            if (!RenderFingerprint.ContainsShaderGraph(layer))
+            {
+                normalizedSettings.Remove(layer);
+                return json;
+            }
+            if (!normalizedSettings.TryGetValue(layer, out var cached))
+                normalizedSettings.Add(layer, cached = new SettingsEntry());
+            cached.usedFrame = frame;
+            // Compare content, not string identity: ToJson returns a fresh string.
+            if (string.Equals(cached.source, json, StringComparison.Ordinal)) return cached.normalized;
+            string normalized = RenderFingerprint.NormalizeLayerSettings(layer, json);
+            cached.source = json;
+            cached.normalized = normalized;
+            return normalized;
+        }
+
         private void TrimToBudget(long additionalBytes)
         {
             while (Bytes + additionalBytes > Math.Max(0, BudgetBytes) && entries.Count > 0)
@@ -448,6 +505,7 @@ namespace DCFApixels.WhimTex
                 WhimTexProfiler.Reason("cache.invalidate", "cache.disposed", document, count: entries.Count);
             foreach (Entry entry in entries.Values) Destroy(entry);
             entries.Clear(); stamps.Clear(); visiting.Clear(); colorSources.Clear(); requiredEntries.Clear(); unused.Clear();
+            normalizedSettings.Clear(); unusedSettings.Clear();
             Bytes = 0; document = null; liveDrawing = null;
         }
 

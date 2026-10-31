@@ -34,6 +34,7 @@ next_page: "ru/getting-started.md"
 ## Собрать процедурный эффект
 
 - [Noise](noise.md): узоры, искривление и бесшовное повторение.
+- [Слой Shader](shader-layer.md): процедурные изображения из узлов и настраиваемых параметров.
 - [Слои эффектов](effects.md): Outline, SDF, Blur и Make Seamless.
 - [Normal Map](normal-map.md): рельеф из изображения.
 - [Смешивание и обтравка](blending.md): объединение слоёв и ограничение области видимости.

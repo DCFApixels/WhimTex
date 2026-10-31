@@ -5,7 +5,7 @@
 // @icon("../Editor/Icons/FX/Mask.svg")
 // @param hidden float _Opacity = 1 [0 .. 1] // Blend the selected RGBA output with the input. Zero preserves the input, including in Matte mode.
 // @group(Key)
-// @param color _KeyColor = (0, 1, 0, 1) // Background color to remove. Alpha is ignored.
+// @param color(float3) _KeyColor = (0, 1, 0) // Background RGB color to remove.
 // @param enum _Distance = Chroma {Chroma: 0, RGB: 1} // Chroma compares color differences with less sensitivity to brightness. Use RGB for black, white or gray backgrounds.
 // @param float _Tolerance = 0.1 [0 .. 1] // Colors within this distance are removed completely.
 // @param float _Softness = 0.05 [0 .. 1] // Smooth transition outside Tolerance. Zero gives a hard color threshold, not a spatial blur.
@@ -14,10 +14,12 @@
 // @preview(PreviewChromaKeyMatte)
 // @endfoldout
 // @group(Spill)
+// @enableif _Output == 0
 // @param float _Despill = 0 [0 .. 1] // Remove color contamination in the key direction without changing the matte. Zero preserves RGB.
 // @if _Despill != 0
 // @param float _SpillRange = 0.1 [0 .. 1] // Extend color similarity for spill suppression beyond the key transition. Does not change alpha.
 // @endif
+// @endenableif
 // @endgroup
 // @header(Output)
 // @param enum _Output = Result {Result: 0, Matte: 1} // Matte shows final coverage as opaque grayscale, including the input alpha.

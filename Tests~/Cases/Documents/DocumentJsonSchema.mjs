@@ -11,11 +11,15 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
     const schema = JSON.parse(fs.readFileSync(path.join(root, 'Documentation~/AI/document.schema.json')));
     // The generated schema deliberately uses this small, dependency-free Draft 2020-12 vocabulary.
-    const keywords = new Set(['$schema', '$ref', '$defs', 'title', 'type', 'enum', 'const', 'anyOf', 'allOf', 'if', 'then', 'else',
+    const keywords = new Set(['$schema', '$ref', '$defs', 'title', 'type', 'enum', 'const', 'anyOf', 'oneOf', 'allOf', 'if', 'then', 'else',
       'properties', 'additionalProperties', 'required', 'items', 'prefixItems', 'minItems', 'maxItems', 'minLength', 'maxLength', 'pattern', 'minimum', 'exclusiveMinimum', 'maximum', 'deprecated', 'description', 'default', 'not', 'contentEncoding']);
     function validate(value, rule, location = '$') {
       for (const key of Object.keys(rule)) assert(keywords.has(key), `Unsupported schema keyword ${key}`);
       if (rule.$ref) validate(value, schema.$defs[rule.$ref.slice('#/$defs/'.length)], location);
+      if (rule.oneOf) {
+        const matches = rule.oneOf.filter(r => { try { validate(value, r, location); return true; } catch { return false; } });
+        assert.equal(matches.length, 1, `${location}: exactly one schema variant must match`);
+      }
       if (rule.anyOf) {
         const errors = [];
         const valid = rule.anyOf.some(r => { try { validate(value, r, location); return true; } catch (e) { errors.push(e.message); return false; } });
@@ -68,9 +72,16 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const defaultsLiteral = defaultsSource.match(/internal const string Data = @"((?:[^"]|"")*)";/);
     assert(defaultsLiteral, 'Frozen JSON defaults must be available independently of Unity');
     const defaults = JSON.parse(defaultsLiteral[1].replaceAll('""', '"'));
+    defaults.ShaderFX.presetId = null;
+    defaults.ShaderFX.presetVersion = 0;
+    defaults.FileLayerBehaviour.externalSourcePath = null;
+    Object.assign(defaults.ShaderFXParameter, JSON.parse(defaultsSource.match(/internal const string NumericParameterData = @"((?:[^"]|"")*)";/)[1].replaceAll('""', '"')));
+    Object.assign(defaults.WhimTexGradient, JSON.parse(defaultsSource.match(/internal const string CustomGradientData = @"((?:[^"]|"")*)";/)[1].replaceAll('""', '"')));
+    defaults.WhimTexGradientCurveKey = JSON.parse(defaultsSource.match(/internal const string CustomGradientKeyData = @"((?:[^"]|"")*)";/)[1].replaceAll('""', '"'));
     const layoutLiteral = defaultsSource.match(/internal const string LayoutData = @"((?:[^"]|"")*)";/);
     assert(layoutLiteral, 'FX layout defaults must be frozen independently of runtime initializers');
     Object.assign(defaults, JSON.parse(layoutLiteral[1].replaceAll('""', '"')));
+    Object.assign(defaults.ShaderFXParameterControl, JSON.parse(defaultsSource.match(/internal const string NumericControlData = @"((?:[^"]|"")*)";/)[1].replaceAll('""', '"')));
     const vectorDefaultsLiteral = defaultsSource.match(/internal const string VectorData = @"((?:[^"]|"")*)";/);
     assert(vectorDefaultsLiteral, 'Vector defaults must be frozen independently of runtime initializers');
     for (const [type, value] of Object.entries(JSON.parse(vectorDefaultsLiteral[1].replaceAll('""', '"')))) {
@@ -159,10 +170,16 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
       assert.throws(() => validate({ strokeGradientEnd: [0,Infinity] }, rule));
     }
     const identities = new Set(['$type', '$id', '$name', 'contentOmitted', 'id', 'recoveryId', 'shaderKey']);
+    // These models have no DefaultsFor table: the reader retains their constructors.
+    // Mesh additionally requires its explicit lattice; Shader graphs validate their stored structure.
+    const constructorDefaults = new Set(['MeshGradient', 'ShaderLayerBehaviour', 'ShaderGraph', 'ShaderGraphNode', 'ShaderGraphInput', 'ShaderGraphEdge']);
     for (const [type, definition] of Object.entries(schema.$defs)) {
+      if (constructorDefaults.has(type)) continue;
       assert(type in defaults, `${type}: missing frozen default object`);
       for (const [field, rule] of Object.entries(definition.properties)) {
         if (identities.has(field)) continue;
+        // The reader explicitly retains the initial grid when inactive mesh data is omitted.
+        if (type === 'GradientLayerBehaviour' && field === 'mesh') continue;
         assert(field in defaults[type], `${type}.${field}: omitted input would use an unfrozen initializer or zero/null`);
         // A layer must explicitly supply its behaviour, despite the unused null baseline.
         if (type === 'Layer' && field === 'behaviour') continue;

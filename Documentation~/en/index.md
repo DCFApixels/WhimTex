@@ -34,6 +34,7 @@ covers file formats, integrations and full shader syntax; it is optional for ord
 ## Build procedural effects
 
 - [Noise](noise.md): patterns, distortion and seamless repetition.
+- [Shader layer](shader-layer.md): create procedural images with nodes and adjustable parameters.
 - [Effect layers](effects.md): Outline, SDF, Blur and Make Seamless.
 - [Normal Map](normal-map.md): surface relief from images.
 - [Blending and clipping](blending.md): combine layers and constrain their coverage.

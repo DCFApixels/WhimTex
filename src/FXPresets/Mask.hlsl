@@ -7,7 +7,6 @@
 // @group(Mask Channel; _MaskChannel)
 // @param hidden enum _MaskChannel = R {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}
 // @param texture2D _Mask = self // Mask source. Self uses the image before this FX.
-// @param transform2D _Transform = (0.5, 0.5, 1, 1, 0) // Position, scale and rotate the mask.
 // @endgroup
 // @group(Mask Shape)
 // @param label(Invert) toggle(float) _Invert = false
@@ -35,13 +34,9 @@ float ReadMaskInput(float4 value)
     return value.b;
 }
 
-float MaskCoverage(float2 uv)
+float MaskCoverage(float4 value)
 {
-    float2 maskUV = _Transform_ToLocal(uv);
-    float2 halfTexel = 0.5 * _Mask_TexelSize.xy;
-    maskUV = clamp(maskUV, halfTexel, 1.0 - halfTexel);
-
-    float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(SampleTexture(_Mask, maskUV)))));
+    float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(value))));
     if (_Invert > 0.5) mask = 1.0 - mask;
     return mask;
 }
@@ -49,7 +44,7 @@ float MaskCoverage(float2 uv)
 #ifdef WHIMTEX_PREVIEW
 float4 PreviewMask(float2 uv)
 {
-    float mask = MaskCoverage(uv);
+    float mask = MaskCoverage(SampleTexture(_Mask, uv));
     return float4(mask.xxx, 1.0);
 }
 #endif
@@ -57,7 +52,7 @@ float4 PreviewMask(float2 uv)
 float4 ApplyFX(PinnedUV uv, float4 color)
 {
 	float4 result = color;
-    float multiplier = MaskCoverage(uv);
+    float multiplier = MaskCoverage(SampleTexture(_Mask, uv));
     float4 channelMask = _Channels;
     float4 applyWeights = lerp(channelMask, 1 - _ApplyColor, _ApplyMode);
 	result *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);

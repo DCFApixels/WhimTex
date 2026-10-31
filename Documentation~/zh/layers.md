@@ -26,6 +26,7 @@ next_page: "zh/transform.md"
 | Color Fill | 纯色、UV 坐标或几何距离场图案。 |
 | Gradient | 平滑颜色过渡、Freeform 颜色点或可编辑的 [Mesh 网格](color.md#mesh-gradients)。 |
 | Noise | 生成的图案。参见 [Noise](noise.md)。 |
+| Shader | 由节点图生成的程序化图像，参数在 Properties 中调整。参见 [Shader 图层](shader-layer.md)。 |
 | Shape | 可编辑的矩形、椭圆、多边形、星形、直线、圆弧或扇形。 |
 | Vector | 一个拥有独立变换、节点、曲线、填充和描边的图形；复合轮廓可以包含孔洞。参见[矢量路径](vector.md)。 |
 | Boolean Group | Union、Subtract、Intersect 和 Xor 使用统一填充和描边；Combine 保留独立图形，可选择组或子图层样式。参见[组合图形](vector.md#组合图形并保留独立编辑)。 |

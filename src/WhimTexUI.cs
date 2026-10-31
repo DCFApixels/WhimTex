@@ -245,7 +245,7 @@ namespace DCFApixels.WhimTex
             warning.tooltip = reason;
         }
 
-        internal static Foldout CreateInspectorSection(string title, string name, LayerActionIcon.Kind icon,
+        internal static Foldout CreateInspectorSection(string title, string name, LayerActionIcon.Kind? icon,
             bool expanded, Action<bool> expansionChanged = null, bool available = true)
         {
             var section = new Foldout { text = title, name = name, value = available && expanded };
@@ -254,9 +254,12 @@ namespace DCFApixels.WhimTex
             section.AddToClassList("whimtex-inspector-section");
             section.EnableInClassList("whimtex-inspector-section--light", !EditorGUIUtility.isProSkin);
             section.contentContainer.AddToClassList("whimtex-inspector-section-content");
-            var headerIcon = new LayerActionIcon(icon);
-            headerIcon.AddToClassList("whimtex-inspector-section-icon");
-            section.hierarchy.Add(headerIcon);
+            if (icon.HasValue)
+            {
+                var headerIcon = new LayerActionIcon(icon.Value);
+                headerIcon.AddToClassList("whimtex-inspector-section-icon");
+                section.hierarchy.Add(headerIcon);
+            }
             if (expansionChanged != null)
                 section.RegisterValueChangedCallback(evt =>
                 {
@@ -337,7 +340,7 @@ namespace DCFApixels.WhimTex
             return view;
         }
 
-        private static void AddInspectorSectionMenu(Foldout section, Action<DropdownMenu> buildMenu)
+        internal static void AddInspectorSectionMenu(Foldout section, Action<DropdownMenu> buildMenu)
         {
             section.AddToClassList("whimtex-inspector-section--menu");
             var menu = new ToolbarMenu { name = section.name + "Menu", tooltip = section.text + " actions" };
@@ -352,6 +355,13 @@ namespace DCFApixels.WhimTex
                 visual.Add(dot);
             }
             buildMenu(menu.menu);
+            void RefreshMenu()
+            {
+                menu.menu.MenuItems().Clear();
+                buildMenu(menu.menu);
+            }
+            menu.RegisterCallback<PointerDownEvent>(_ => RefreshMenu(), TrickleDown.TrickleDown);
+            menu.RegisterCallback<KeyDownEvent>(_ => RefreshMenu(), TrickleDown.TrickleDown);
             section.hierarchy.Add(menu);
             void Populate(ContextualMenuPopulateEvent evt)
             {

@@ -9,18 +9,24 @@
 // @group(Lighting Output; _Output)
 // @param hidden enum _Output = Both {Both: 0, HighlightOnly: 1, ShadowOnly: 2, SpecularOnly: 3} // Both/Highlight Only include enabled Specular. Shadow Only excludes it. Specular Only omits the surface and diffuse lighting.
 // @param normal _LightDirection = (-0.5, 0.5, 1) // Direction from the surface toward the light.
+// @enableif _Output != 3
 // @param color _BaseColor = (1, 1, 1, 0) // RGB tints the surface. Alpha blends lighting only (0) into the filled surface (1); use layer opacity for overall opacity.
 // @param color _LightColor = (1, 1, 1, 1) // Highlight tint; alpha controls strength in Lighting Only mode.
 // @param color _ShadowColor = (0.05, 0.05, 0.05, 1) // Shadow tint; alpha controls strength in Lighting Only mode.
 // @param float _Intensity = 1 [0 .. ~4]
+// @enableif _BaseColor.a != 0
 // @param float _Ambient = 0.15 [0 .. ~1] // Ambient surface illumination, faded in by Base Color alpha.
+// @endenableif
+// @endenableif
 // @endgroup
 // @group(Specular; _SpecularEnabled)
 // @param hidden toggle(float) _SpecularEnabled = false // Enable an orthographic specular highlight; disabled preserves the original lighting.
+// @enableif _Output != 2
 // @enableif _SpecularEnabled == 1
 // @param color _SpecularColor = (1, 1, 1, 1) // Highlight tint; alpha scales its strength.
 // @param float _SpecularIntensity = 1 [0 .. ~4] // Independent of the diffuse Intensity and Light Color.
 // @param float _Roughness = 0.25 [0 .. 1] // Low values make a tight highlight; high values make it broad. Zero uses a finite sharpness limit.
+// @endenableif
 // @endenableif
 // @endgroup
 

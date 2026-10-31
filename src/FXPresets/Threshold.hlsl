@@ -7,8 +7,8 @@
 // @param float _Threshold = 0.25 [0 .. ~1] // Threshold in the source channel.
 // @param label(Transition Width) float _Smooth = 0.0 [0 .. ~0.2] // Transition width; zero gives a hard threshold.
 // @header(Output Colors)
-// @param color _LowColor = (0, 0, 0, 1) // RGB below the threshold; color alpha is ignored.
-// @param color _HighColor = (1, 1, 1, 1) // RGB above the threshold; color alpha is ignored.
+// @param color(float3) _LowColor = (0, 0, 0) // RGB below the threshold; source alpha is preserved.
+// @param color(float3) _HighColor = (1, 1, 1) // RGB above the threshold; source alpha is preserved.
 
 float4 ApplyFX(float4 color)
 {

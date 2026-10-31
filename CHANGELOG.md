@@ -6,6 +6,38 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Dragging a Shader Graph output connection onto empty space opens compatible node/input choices named `NodeName(InputName)`, with the menu's left edge anchored at the cursor. Selecting creates and connects the node at the drop position in one Undo operation; cancelling leaves the graph unchanged.
+
+- Generated HLSL uses an initially collapsed draggable footer with the same 20-pixel caption
+  and horizontal grip lines as Layer Preview. Drag upward by more than 14 logical pixels
+  (requested height > 34 pixels, independent of graph zoom) to reveal the code; drag downward
+  to hide it. Clicking alone does nothing. Height is adjustable within the available window
+  space, leaving 80 pixels; the window saves the open/closed state and height. The shared FX
+  code field is created on first opening and retained but detached while closed, with no code
+  drawing, syntax/line-number callbacks or source updates. Reopening shows the current source
+  and preserves text selection when the source is unchanged.
+
+- Shader graph Output has a modest visual distinction and no per-node preview.
+  Numeric widths convert by truncation or zero-extension, retaining scalar splats; float4 → float2
+  drops Z/W. Color is a distinct float4-backed port type: scalar → (x, x, x, 1),
+  float2 → (x, y, 0, 1), float3 → (x, y, z, 1), and float4 retains all components.
+  Output and Blend color ports, Sample Texture/Sample Gradient color outputs and Color parameters
+  use fixed Color types; Constant adds Color with a color picker. Dynamic math normalizes Color
+  to float4 and uses the widest numeric operand width, with scalar splats and zero-extension,
+  without alpha-one defaults. Numeric/Color ports are circles, Boolean ports are diamonds, and
+  Texture/Gradient/Curve ports are squares. Generated HLSL reuses the actual FX code field in
+  read-only mode, retaining selection, copying, highlighting, line numbers and scrolling.
+
+- Shader graph dragging adds a weak Y snap between connected input/output connector centers,
+  accounting for zoom. Native node-rectangle Y snapping takes priority; connector snapping
+  leaves X unchanged. Shift disables snapping, and nodes moved together keep their relative positions.
+
+- Shader graph Reroute mini-nodes are inserted by double-clicking an existing connection or choosing Add Reroute from its context menu; they are absent from Add Node and node search. They have no header, preview or parameter controls and forward the source type and value through In → Out for numbers, vectors, Color, Boolean, Texture, Gradient and Curve without adding HLSL calculations. Move them to arrange wires and branch their output to multiple inputs. Deleting a Reroute reconnects its source directly to downstream inputs, including along Reroute chains; ordinary edge deletion breaks the connection. Positions and connections are saved, and edits support Undo/Redo. JSON uses kind Reroute; In is required for compilation, while valueType retains the display type for a disconnected node.
+
+- The Shader graph editor gives calculation nodes other than Output their own collapsible 128 × 128 previews, with an output selector only for nodes with multiple outputs; Output, Parameter and Reroute have no per-node preview. The shared Selected Node sidebar preview is removed. Previews render only when dirty, expanded and visible in the graph viewport. Resource outputs require a sampling node; node-preview errors clear the image and show diagnostics. Parameter nodes use one name/output-connector row with native padding and label/port spacing, without an Out label, extra indicator, internal preview or dropdown; their context menu selects another declared parameter. Unconnected numeric fields sit outside the node body, to the left of unobstructed ports, disappear on connection and return on disconnection. UV ports retain implicit PixelUV with a local Custom/UV option. These preview and field-layout changes leave graph math, layer rendering and storage unchanged.
+
+- Shader layers generate their own image from an embedded node graph, with Edit Graph and shared parameters in Properties. The first node set covers numeric/vector math, conditions, UV transforms, texture/gradient/curve sampling, noise, shapes, RGBA blending and Output. Graphs compile to a single HLSL generation pass; parameter-value changes update bindings without recompilation. Color parameters expose Color ports with four numeric components, HDR and negative values remain available, and the result uses the normal layer Transform, FX and composition pipeline. Incomplete graphs remain editable and saveable; compilation errors retain the last working shader when available and report diagnostics without treating the draft as valid output. Shader Processor retains its separate lower-stack processing role.
+
 - HLSL `// @preset("GUID", 1)` opts project/package and user-library presets into exact-version linking. TIFF/JSON retain the link and portable code when a source is missing, broken or differently versioned, and retry when a matching source returns. Without the directive, presets are independent embedded copies; Unity GUIDs are not used. Built-in presets declare ID/version 1. New Save Preset files receive a new ID/version 1; overwrites keep the destination pair. Duplicate writable copies receive new IDs; read-only conflicts report diagnostics. External HLSL tools add validation, highlighting and a fresh-GUID snippet.
 
 - User Settings path rows include a folder button between Browse and Reset: open the preset library or the folder containing the configured VS Code executable.
@@ -20,7 +52,7 @@ All notable changes to WhimTex are documented in this file.
 
 - FX HLSL adds `SampleInputLod` and `SampleTextureLod` for explicit mip-level reads with texture-view UV mapping. LOD reads are classified as spatial, including LOD 0; Shader Inputs and agent guides document the API. Edge Outline and Height to Distortion use the supported helpers for their neighbor reads, removing their unverified-read warnings while retaining full-input rendering and base-level sampling.
 
-- Mask, Chroma Key and Edge Outline add collapsible grayscale inspector previews for the processed mask, retained matte and contour coverage. Standalone previews use centered 96×96 squares instead of stretching across the inspector. Shared mask calculations retain the FX output; previews show coverage before header Opacity without switching the canvas output mode and use the existing reduced-resolution inspector path.
+- Mask, Chroma Key and Edge Outline add collapsible grayscale inspector previews for the processed mask, retained matte and contour coverage. Standalone previews preserve canvas proportions, fit the available Layer Settings width and cap their height at 128 logical pixels. They resize with the panel and canvas and remain centered. Magnified small canvases retain their native pixel grid and use Point filtering, accounting for Editor DPI; reduced previews retain Bilinear and bounded GPU targets. Shared mask calculations retain the FX output; previews show coverage before header Opacity without switching the canvas output mode and use the existing reduced-resolution inspector path.
 
 - Color History has a shared User Settings limit (default 256, minimum 1). Adding or reusing colors evicts excess entries from the end of each document's history in one Undo step. Picker and gradient labels consistently use Color History; serialized data uses `colorHistory`. Lowering the limit takes effect on the next addition or reuse.
 
@@ -139,6 +171,14 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Mask FX removes its separate Transform and samples the current pixel through PinnedUV, enabling pixel-local rendering. Channel selection, Profile, Invert, Apply To, Opacity and the independent grayscale inspector preview remain available.
+
+- Built-in FX inspectors disable inactive lighting and spill settings without discarding values. Bevel Emboss uses three open parameter groups; Digital Glitch keeps its shared grid and line jitter editable at zero corruption density. Chroma Key, Halftone, Pixelate and Threshold use RGB-only color fields where alpha was unused, retaining existing RGB values on recompilation. Color Filter's tooltip now describes its active alpha strength. FX calculations and rendered output are unchanged.
+
+- FX section menus offer Copy All. The shared paste action shows the copied effect count, appends to the stack or inserts after an effect, preserves order, parameters and enabled state, and undoes the whole insertion in one step.
+
+- FX entries share the native inspector-section foldout and menu styling, with an enabled checkbox after the icon and a darker header. Click the header to collapse; dragging still reorders effects.
+
 - Color Balance labels its per-channel Offset fields R/G/B for Shadows, Midtones and Highlights; correction values and calculations are unchanged.
 
 - Layer Select cycles through overlapping hits on repeated clicks, retaining group drill-down and Shift selection. Layers visibility supports left-button sweeps with a consistent show/hide state, unchanged selection and one Undo for the whole gesture.
@@ -233,6 +273,17 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Shader graph numeric input fields already existed but were hidden by Node's built-in inline
+  clipping; unconnected fields are now visible and editable to the left of their ports.
+- Del deletes selected Shader graph nodes and Reroutes, retaining Reroute reconnection and
+  the required Output node. In a text or numeric field, Del edits the value without deleting the node.
+
+- Omitted shared FX numeric fields now restore constructor defaults when reading JSON, including four zero integer components instead of null. Control defaults and an omitted external image path are explicit; the schema generator records the numeric defaults.
+
+- FX parameter foldouts expose the shared Group Copy/Paste/Reset menu across the entire header, including the arrow and collapsed state; value actions preserve expansion.
+
+- Nested Code foldouts and boolean controls no longer desynchronize the parent FX arrow from its actual expanded state.
 
 - Layer visibility controls fill their column to the row edges and header divider. The entire area excludes layer drag initiation while still accepting drops.
 

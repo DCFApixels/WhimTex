@@ -3,6 +3,16 @@
   "title": "WhimTex live API field definitions",
   "description": "Reusable field shapes for live API patches and brush authoring. Not a document or clipboard envelope; use document.schema.json for stored layers.",
   "$defs": {
+    "shader": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "graph": {
+          "$ref": "document.schema.json#/$defs/ShaderGraph",
+          "description": "Complete graph replacement. Stable node and parameter IDs, typed inputs, edges and parameter controls are retained. Texture parameters accept asset identities or document layer IDs."
+        }
+      }
+    },
     "gradientType": {
       "type": "string",
       "enum": [

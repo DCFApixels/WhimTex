@@ -6,23 +6,23 @@
 // @group(Spatial Glitch)
 // @header(Line Tearing)
 // @param float _TearDensity = 0.035 [0 .. 1] // Fraction of scanline bands that receive a large displacement.
-// @if _TearDensity != 0
 // @param px float _TearLineHeight = 2 [1 .. ~32] // Height of each independently randomized horizontal band in pixels.
 // @param px float _TearJitter = 0.25 [0 .. ~12] // Small horizontal wobble applied to every band in pixels.
+// @enableif _TearDensity != 0
 // @param px float _TearShift = 24 [0 .. ~128] // Maximum extra horizontal shift on selected bands in pixels.
-// @endif
+// @endenableif
 // @header(Block Corruption)
 // @param float _BlockDensity = 0.025 [0 .. 1] // Fraction of grid cells that become corrupted blocks.
-// @if _BlockDensity != 0
 // @param px float _BlockWidth = 48 [2 .. ~256] // Width of the block grid in canvas pixels.
 // @param px float _BlockHeight = 8 [2 .. ~128] // Height of the block grid in canvas pixels.
 // @param float _BlockSizeRandomness = 0.75 [0 .. 1] // Randomize shared grid boundaries while keeping blocks packed without gaps.
 // @param enum _BlockOrder = RowsFirst {RowsFirst: 0, ColumnsFirst: 1} // RowsFirst jitters line heights, then gives each line an independent width layout. ColumnsFirst jitters column widths, then gives each column an independent height layout.
+// @enableif _BlockDensity != 0
 // @param px float _BlockShiftX = 24 [0 .. ~256] // Maximum horizontal block displacement in pixels.
 // @param px float _BlockShiftY = 4 [0 .. ~128] // Maximum vertical block displacement in pixels.
 // @param float _Dropout = 0 [0 .. 1] // Chance for a selected block to drop to black.
 // @param float _BlockVoidChance = 0 [0 .. 1] // Chance for a selected block to become transparent instead of black.
-// @endif
+// @endenableif
 // @endgroup
 // @group(Signal Artifacts)
 // @param float _ColorJitterDensity = 0.025 [0 .. 1] // Chance per block for random color jitter, independent of Block Density.

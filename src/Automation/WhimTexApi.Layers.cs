@@ -206,7 +206,7 @@ namespace DCFApixels.WhimTex
         {
             Keys(settings, "name", "enabled", "clippingMask", "opacity", "blend", "filter", "source", "colorRange", "blendRange", "channelMapping", "compositing", "color", "brush",
                 "fillMode", "fillPattern", "metric", "sharpMode", "miterLimit", "contourMergeDistance", "outlineWidth", "outlineSoftness", "outlinePosition", "outlineOffset", "fillCenter", "fillColor", "sourceChannel", "threshold",
-                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "encoding", "gradient", "gradientType", "freeform", "mesh", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape", "vector", "booleanGroup", "booleanOperation", "text");
+                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "encoding", "gradient", "gradientType", "freeform", "mesh", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape", "vector", "booleanGroup", "booleanOperation", "text", "shader");
             foreach (var property in settings.Properties())
             {
                 string key = property.Name;
@@ -225,6 +225,7 @@ namespace DCFApixels.WhimTex
                     key == "sharpen" && layer?.Behaviour is SharpenLayerBehaviour ||
                     key == "makeSeamless" && layer?.Behaviour is MakeSeamlessLayerBehaviour ||
                     key == "noise" && layer?.Behaviour is NoiseLayerBehaviour ||
+                    key == "shader" && layer?.Behaviour is ShaderLayerBehaviour ||
                     key == "shape" && layer?.Behaviour is ShapeLayerBehaviour ||
                     key == "vector" && layer?.Behaviour is VectorLayerBehaviour ||
                     key == "text" && layer?.Behaviour is TextLayerBehaviour ||
@@ -289,6 +290,8 @@ namespace DCFApixels.WhimTex
                 SetMakeSeamless(seamless, Obj(settings["makeSeamless"], "makeSeamless"));
             if (layer?.Behaviour is NoiseLayerBehaviour noise && settings["noise"] != null)
                 SetNoise(noise, Obj(settings["noise"], "noise"));
+            if (layer?.Behaviour is ShaderLayerBehaviour shader && settings["shader"] != null)
+                SetShader(shader, Obj(settings["shader"], "shader"));
             if (layer?.Behaviour is ShapeLayerBehaviour shape && settings["shape"] != null)
                 SetShape(shape, Obj(settings["shape"], "shape"));
             if (layer?.Behaviour is VectorLayerBehaviour vector && settings["vector"] != null)

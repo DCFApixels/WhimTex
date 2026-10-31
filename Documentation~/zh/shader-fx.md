@@ -82,6 +82,12 @@ Shader FX 标题栏中的无标签复选框可启用或跳过效果，并保留�
 
 ### 分组、折叠区域与标签页
 
+内置预设会禁用不影响当前输出的设置，但保留其值。Normal Lighting 的 Specular Only 禁用漫反射设置，Shadow Only 禁用高光设置。Base Color 的 alpha 非零时可编辑 Ambient；Bevel Emboss 在 Base Color alpha 为 1 时禁用 Output。Chroma Key 的 Matte 模式禁用 Spill 设置。Digital Glitch 在损坏密度为零时仍可编辑共享块网格和行抖动。
+
+Chroma Key 的 Key Color、Halftone 的 Paper/Ink 颜色以及 Pixelate/Threshold 的 Low/High Color 仅编辑 RGB。Color Filter 保留 alpha，因为它与 Blend 一起控制染色强度。
+
+Group 与 Foldout 的整个标题区域共用同一个右键菜单，包括 Foldout 箭头。折叠时仍可使用菜单，Paste 和 Reset 不会改变展开或折叠状态。仅包含预览的区域（例如 Mask Preview）没有可复制、粘贴或重置的参数值，因此不显示此菜单。
+
 效果作者可以将设置放入不可折叠的边框组、可折叠区域或标签页。点击区域旁的箭头可展开或折叠设置，点击标签可查看对应页面。这些操作只改变控件的显示：折叠区域和其他页面中的参数仍会影响图像。区域标题旁的复选框单独修改一个参数；作者可以用它控制相关设置的显示或启用部分效果。
 
 编写 HLSL 时，使用 `@group` / `@endgroup`、`@foldout(Title)` / `@endfoldout`，以及包含 `@tab(Page title)` / `@endtab` 页面的 `@tabs`，最后用 `@endtabs` 结束。foldout 必须有标题。需要总标题时可写为 `@tabs(Title)`；直接使用 `@tabs` 不会留下空白标题行。参阅[布局语法与示例](../ShaderFX.md#layout-containers)。
@@ -92,9 +98,9 @@ Shader FX 标题栏中的无标签复选框可启用或跳过效果，并保留�
 
 ### 参数预览
 
-独立预览以正方形居中显示，不会随检查器变宽而拉伸。
+独立预览保持画布比例，适应 Layer Settings 的可用宽度，高度最多为 128 像素。达到高度上限后，若两侧仍有空余空间，预览保持居中。面板宽度或画布尺寸变化时，预览尺寸会随之调整。放大小画布时使用 Point 过滤以保持像素清晰；缩小时使用 Bilinear 过滤。
 
-**Mask**、**Chroma Key** 和 **Edge Outline** 提供可折叠的 **Mask Preview**、**Matte Preview** 和 **Contour Preview**。白色表示完整的遮罩值或覆盖率，黑色表示零。Mask 显示经过 Transform、Profile 和 Invert 的所选通道；Chroma Key 显示计入原始 alpha 的保留覆盖率；Edge Outline 显示计入原图与线条 alpha 的轮廓覆盖率。这些预览显示应用 FX 标题栏 Opacity 之前的遮罩，不切换画布输出。折叠区域可停止绘制对应预览。小预览可能省略细节，应在画布上判断最终边缘。
+**Mask**、**Chroma Key** 和 **Edge Outline** 提供可折叠的 **Mask Preview**、**Matte Preview** 和 **Contour Preview**。白色表示完整的遮罩值或覆盖率，黑色表示零。Mask 显示经过 Profile 和 Invert 的所选通道；Chroma Key 显示计入原始 alpha 的保留覆盖率；Edge Outline 显示计入原图与线条 alpha 的轮廓覆盖率。这些预览显示应用 FX 标题栏 Opacity 之前的遮罩，不切换画布输出。折叠区域可停止绘制对应预览。小预览可能省略细节，应在画布上判断最终边缘。
 
 修改参数后，预览在下一次编辑器更新时刷新，无需等待 100 毫秒。
 连续修改会合并，每个预览在一次编辑器更新中最多重绘一次。
@@ -195,8 +201,9 @@ Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已
 在 Layer Settings 中右键点击 **FX** 分区标题或点击右侧的 **⋮**，折叠时也可打开堆栈菜单。**Paste FX As New** 将复制的效果追加到末尾；**Apply All** 烘焙整个堆栈；**Remove All** 删除全部效果而不烘焙，可通过 Undo 撤销。空堆栈的 Apply 和 Remove 不可用。
 
 效果顺序会影响结果。拖动 FX 标题可以调整顺序，也可将其拖到其他图层行上以移动到该图层。标题的右键菜单也提供 **Move Up** 和 **Move Down**。
+点击箭头或标题可折叠效果。标题沿用 Layer Settings 分区的样式：图标、启用复选框、名称、可选主参数和 **⋮**。单个效果保留较暗的背景。**Code** 独立折叠，启用或禁用效果不会折叠其内容。
 
-每个 FX 都属于文档，参数值和启用状态相互独立。选择 **⋮ → Copy FX**，然后在另一行选择 **Paste FX As New**，即可在该行后插入独立副本。同一文档内粘贴时保留图层纹理引用，粘贴到其他文档时会清除这些引用。菜单还包含 **Move Up**、**Move Down** 和 **Remove**。
+每个 FX 都属于文档，参数值和启用状态相互独立。**⋮ → Copy FX** 复制单个效果，FX 分区菜单中的 **Copy All** 复制整个堆栈，包括禁用的效果。**Paste FX As New** 在所选效果后插入独立副本；分区菜单中的同一命令将副本追加到堆栈末尾。复制多个效果时，命令显示数量，例如 **Paste 3 FX As New**。副本保留顺序、参数和启用状态，一次 Undo 即可撤销整次粘贴。同一文档内粘贴时保留图层纹理引用，粘贴到其他文档时会清除这些引用。效果菜单还包含 **Move Up**、**Move Down** 和 **Remove**。
 
 在开头注释中声明 `// @preset("GUID", 1)` 的预设，仅在源 `.hlsl` 的版本与文档保存的版本一致时跟随源码更新。项目、包和用户库预设都遵循此规则，参数值仍各自独立。使用 **Open HLSL Source** 编辑源文件。要独立编辑当前效果的代码，点击 **Code → Embed Copy**：它会断开 `.hlsl` 链接，在文档中保留当前代码和参数值，并允许本地编辑代码。此后源文件的修改不会再更新该效果。没有 `@preset` 的预设会作为独立副本添加，与文件所在位置无关。如果关联源码丢失、损坏或版本不同，效果会使用文档保存的代码，并保留链接，待匹配的源码重新可用时重试。要编写自己的代码，添加 **Add FX → Custom Shader FX**，输入 inline HLSL 并点击 **Compile**。参数显示在标题下方；**Code** 提供适用的代码操作、**Save Preset…** 和 **Shader Inputs** 参考。存在消息时才显示诊断。
 
@@ -403,7 +410,7 @@ Master 不参与平均。**Source Saturation (HSV)** 设置饱和度排除阈值
 默认保留 Alpha；启用 **Invert Alpha** 后，Alpha 也会按相同强度反相。
 
 ### 遮罩
-**Color → Mask** 读取 **Mask**（默认 Self）的所选通道。**Transform** 定位遮罩，**Profile** 重映射数值，**Invert** 反转结果。**Apply To → Channels** 选择要乘以遮罩的通道；初始仅启用 Alpha。**Color** 模式的各分量控制保留原通道的程度：1 保持不变，0 完整应用遮罩，而不是染色。**Amount** 控制整体强度。
+**Color → Mask** 读取 **Mask**（默认 Self）的所选通道。遮罩在当前像素位置采样，没有独立的变换。**Profile** 重映射数值，**Invert** 反转结果。**Apply To → Channels** 选择要乘以遮罩的通道；初始仅启用 Alpha。**Color** 模式的各分量控制保留原通道的程度：1 保持不变，0 完整应用遮罩，而不是染色。FX 标题栏中的 **Opacity** 控制整体强度。
 
 ### 渐变映射
 **Color → Gradient Map** 使用渐变为阴影、中间调和高光重新着色。

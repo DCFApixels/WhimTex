@@ -253,7 +253,7 @@
         "gain": 0.5,
         "weightedStrength": 0.0,
         "warp": "None",
-        "encoding": "LinearData",
+        "encoding": "Linear",
         "inverted": false,
         "recoveryId": "1f5caba86a344c9ea288e532ff11bb1d"
       },
@@ -397,7 +397,7 @@
         "warpScale": 1.0,
         "warpScaleY": 1.0,
         "linkWarpScale": true,
-        "encoding": "LinearData",
+        "encoding": "Linear",
         "inverted": false,
         "recoveryId": "36a3ebef169740389f48f7f46be5df79"
       },
@@ -673,7 +673,7 @@
         "warpScale": 1.0,
         "warpScaleY": 1.0,
         "linkWarpScale": true,
-        "encoding": "LinearData",
+        "encoding": "Linear",
         "inverted": false,
         "recoveryId": "483b9699a3604b819c76fd5e6fb50fbf"
       },

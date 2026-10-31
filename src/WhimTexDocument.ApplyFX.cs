@@ -77,7 +77,8 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private bool capturingInspectorFX;
         internal bool CapturingInspectorFX => capturingInspectorFX;
 
-        internal void CaptureInspectorFXPrefix(Layer layer, int count) => RasterizeFXPrefixCore(layer, count, false, 512);
+        internal void CaptureInspectorFXPrefix(Layer layer, int count, bool nativeResolution = false)
+            => RasterizeFXPrefixCore(layer, count, false, nativeResolution ? Mathf.Max(width, height) : 512);
 
         private Texture2D RasterizeFXPrefixCore(Layer layer, int count, bool readback, int previewSize)
         {

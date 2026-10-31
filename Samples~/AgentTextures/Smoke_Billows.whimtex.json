@@ -133,7 +133,7 @@
         "warpScale": 1.0,
         "warpScaleY": 1.0,
         "linkWarpScale": true,
-        "encoding": "LinearData",
+        "encoding": "Linear",
         "inverted": false,
         "recoveryId": "9d10dd7db27646bc9213764ced12988a"
       },
@@ -255,7 +255,7 @@
         "warpScale": 1.0,
         "warpScaleY": 1.0,
         "linkWarpScale": true,
-        "encoding": "LinearData",
+        "encoding": "Linear",
         "inverted": false,
         "recoveryId": "e17de5ed8a104abcb193c0174ffc0cc4"
       },
@@ -377,7 +377,7 @@
         "warpScale": 1.0,
         "warpScaleY": 1.0,
         "linkWarpScale": true,
-        "encoding": "LinearData",
+        "encoding": "Linear",
         "inverted": false,
         "recoveryId": "42433ff19cc34cc88bcab1a1554f5445"
       },
@@ -499,7 +499,7 @@
         "warpScale": 1.0,
         "warpScaleY": 1.0,
         "linkWarpScale": true,
-        "encoding": "LinearData",
+        "encoding": "Linear",
         "inverted": false,
         "recoveryId": "2f60774ff4cb4b37aeb9bb88f0e066de"
       },
@@ -621,7 +621,7 @@
         "warpScale": 1.0,
         "warpScaleY": 1.0,
         "linkWarpScale": true,
-        "encoding": "LinearData",
+        "encoding": "Linear",
         "inverted": false,
         "recoveryId": "76365d6fa7f049e2a4eacc93f466414c"
       },
@@ -743,7 +743,7 @@
         "warpScale": 1.0,
         "warpScaleY": 1.0,
         "linkWarpScale": true,
-        "encoding": "LinearData",
+        "encoding": "Linear",
         "inverted": false,
         "recoveryId": "2ab61dd6ff7840daa5115cb919d950a8"
       },
@@ -865,7 +865,7 @@
         "warpScale": 1.0,
         "warpScaleY": 1.0,
         "linkWarpScale": true,
-        "encoding": "LinearData",
+        "encoding": "Linear",
         "inverted": false,
         "recoveryId": "cfb931c7a40947cbbd6d3dd4f9da09c2"
       },
@@ -987,7 +987,7 @@
         "warpScale": 1.0,
         "warpScaleY": 1.0,
         "linkWarpScale": true,
-        "encoding": "LinearData",
+        "encoding": "Linear",
         "inverted": false,
         "recoveryId": "29f7d1d4defe4e3e990949a318395f17"
       },
@@ -1109,7 +1109,7 @@
         "warpScale": 1.0,
         "warpScaleY": 1.0,
         "linkWarpScale": true,
-        "encoding": "LinearData",
+        "encoding": "Linear",
         "inverted": false,
         "recoveryId": "cd16183cf6b14a19b912b1cca90ef1d7"
       },
@@ -1231,7 +1231,7 @@
         "warpScale": 1.0,
         "warpScaleY": 1.0,
         "linkWarpScale": true,
-        "encoding": "LinearData",
+        "encoding": "Linear",
         "inverted": false,
         "recoveryId": "9bbedc78e1254997b5518dc013f3e71f"
       },
@@ -1353,7 +1353,7 @@
         "warpScale": 1.0,
         "warpScaleY": 1.0,
         "linkWarpScale": true,
-        "encoding": "LinearData",
+        "encoding": "Linear",
         "inverted": false,
         "recoveryId": "b8e81e44f7ff43198cdf983e28283f0d"
       },
@@ -1475,7 +1475,7 @@
         "warpScale": 1.0,
         "warpScaleY": 1.0,
         "linkWarpScale": true,
-        "encoding": "LinearData",
+        "encoding": "Linear",
         "inverted": false,
         "recoveryId": "9e92d3c4223040acbf26b9f345660bf2"
       },

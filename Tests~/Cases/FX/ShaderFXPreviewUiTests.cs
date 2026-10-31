@@ -18,7 +18,7 @@ public static class ShaderFXPreviewUiTests
     {
         if (AppDomain.CurrentDomain.GetData(Key(runId)) != null)
             return TestContext.Result("failed", 0, "Duplicate preview test", "Owned state was not replaced").ToJson();
-        var state = new object[7];
+        var state = new object[9];
         AppDomain.CurrentDomain.SetData(Key(runId), state);
         try
         {
@@ -30,15 +30,18 @@ public static class ShaderFXPreviewUiTests
 // @preview(U)
 float4 P(float2 uv, float value) { return float4(value, _Hard, uv.y, 1); }
 float4 C(float2 uv, float4 value) { return value; }
-float4 U(float2 uv) { return float4(uv, 0, 1); }
+float4 U(float2 uv) { float2 pixel = floor(uv * _CanvasSize.xy); return float4(fmod(pixel.x + pixel.y, 2), uv.y, 0, 1); }
 float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }
 ";
             var assembly = typeof(ShaderFX).Assembly;
+            var document = ScriptableObject.CreateInstance<WhimTexDocument>();
+            state[7] = document; document.hideFlags = HideFlags.HideAndDontSave;
+            document.width = 1024; document.height = 512;
             var metadata = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata", true);
             var parameters = (List<ShaderFXParameter>)metadata.GetMethod("Parse", F).Invoke(null, new object[] { code, false, null });
             var effect = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
                 new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
-                .Invoke(null, new object[] { null, code, parameters });
+                .Invoke(null, new object[] { document, code, parameters });
             state[1] = effect;
             state[2] = EditorWindow.focusedWindow;
             var window = ScriptableObject.CreateInstance<ShaderFXPreviewTestWindow>();
@@ -47,11 +50,11 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
             assembly.GetType("DCFApixels.WhimTex.WhimTexUI", true).GetMethod("ApplyWindowStyles", F)
                 .Invoke(null, new object[] { window.rootVisualElement });
             var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView", true);
-            var view = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { effect }, null);
+            var view = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { effect, false, document, null, -1 }, null);
             window.rootVisualElement.Add(view);
             window.rootVisualElement.Add(new Slider("Native reference", 0, 1) { name = "nativeSliderReference", showInputField = true });
             window.ShowUtility();
-            window.position = new Rect(100, 100, 480, 340);
+            window.position = new Rect(100, 100, 480, 650);
             state[4] = window.rootVisualElement.schedule.Execute(() => Check(state)).StartingIn(1000);
             return Poll(runId);
         }
@@ -109,6 +112,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
                 test.Equal(2, tracks, "Hard and soft Slider both embed");
                 test.Equal(2, fields, "Other fields keep their native UI");
                 test.Equal(1, standalone, "Standalone preview occupies its own row");
+                CheckStandalone(test, root, (WhimTexDocument)state[7]);
                 CheckSliderColumns(test, root);
                 var type = previews[0].GetType();
                 var cache = type.GetField("cache", F).GetValue(previews[0]);
@@ -136,7 +140,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
             parameters[0].floatValue = .75f;
             parameters[1].floatValue = 12345.678f;
             var window = (EditorWindow)state[0];
-            window.position = new Rect(window.position.x, window.position.y, 340, 340);
+            window.position = new Rect(window.position.x, window.position.y, 340, 650);
             state[4] = window.rootVisualElement.schedule.Execute(() => CheckUpdated(state)).StartingIn(400);
             pending = true;
         }
@@ -145,6 +149,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
 
     static void CheckUpdated(object[] state)
     {
+        bool pending = false;
         try
         {
             string second = TestContext.Run("FX preview update, narrow layout and resource release", test =>
@@ -168,14 +173,118 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
                     test.Near(preview.parent.worldBound.yMax, marker.worldBound.center.y, .6, "Narrow marker still straddles the edge");
                     CheckPixel(test, preview);
                 }
-                root.Clear();
-                test.Equal(0, (int)cache.GetType().GetProperty("ProgramCount", F).GetValue(cache), "Last detach releases shared shader programs");
-                foreach (var preview in previews) test.True(preview.image == null, "Detach releases each surface image");
+                CheckStandalone(test, root, (WhimTexDocument)state[7]);
             });
             var result = JsonUtility.FromJson<TestResult>(second);
-            result.checks += (int)state[6]; state[3] = result.ToJson();
+            result.checks += (int)state[6]; state[6] = result.checks;
+            if (result.status != "passed") { state[3] = result.ToJson(); return; }
+            state[8] = 0;
+            ScheduleAspect(state);
+            pending = true;
         }
-        finally { Release(state); }
+        finally { if (!pending) Release(state); }
+    }
+
+    static readonly Vector3Int[] AspectCases = {
+        new Vector3Int(800, 512, 512), new Vector3Int(800, 512, 2048),
+        new Vector3Int(800, 4096, 1024), new Vector3Int(180, 2048, 512),
+        new Vector3Int(180, 256, 4096), new Vector3Int(800, 8192, 256),
+        new Vector3Int(800, 64, 64), new Vector3Int(180, 64, 128),
+        new Vector3Int(180, 256, 256), new Vector3Int(800, 128, 64),
+        new Vector3Int(800, 768, 64), new Vector3Int(180, 768, 64)
+    };
+
+    static void ScheduleAspect(object[] state)
+    {
+        var config = AspectCases[(int)state[8]];
+        var window = (EditorWindow)state[0];
+        var document = (WhimTexDocument)state[7];
+        document.width = config.y; document.height = config.z;
+        window.position = new Rect(window.position.x, window.position.y, config.x, 650);
+        state[4] = window.rootVisualElement.schedule.Execute(() => CheckAspect(state)).StartingIn(400);
+    }
+
+    static void CheckAspect(object[] state)
+    {
+        bool pending = false;
+        try
+        {
+            var result = JsonUtility.FromJson<TestResult>(TestContext.Run("Standalone preview canvas aspect and panel limits", test =>
+            {
+                var root = ((EditorWindow)state[0]).rootVisualElement;
+                CheckStandalone(test, root, (WhimTexDocument)state[7]);
+                var cache = state[5];
+                test.Equal(4, (int)cache.GetType().GetProperty("ProgramCount", F).GetValue(cache), "Resizing reuses compiled programs");
+                if ((int)state[8] == AspectCases.Length - 1)
+                {
+                    var previews = root.Query<Image>(className: "whimtex-fx-preview").ToList();
+                    root.Clear();
+                    test.Equal(0, (int)cache.GetType().GetProperty("ProgramCount", F).GetValue(cache), "Last detach releases shared programs");
+                    foreach (var preview in previews) test.True(preview.image == null, "Detach releases each surface image");
+                }
+            }));
+            result.checks += (int)state[6]; state[6] = result.checks;
+            if (result.status != "passed" || (int)state[8] == AspectCases.Length - 1) { state[3] = result.ToJson(); return; }
+            state[8] = (int)state[8] + 1; ScheduleAspect(state); pending = true;
+        }
+        finally { if (!pending) Release(state); }
+    }
+
+    static void CheckStandalone(TestContext test, VisualElement root, WhimTexDocument document)
+    {
+        var preview = root.Q<Image>(className: "whimtex-fx-preview--standalone");
+        var style = preview.resolvedStyle;
+        float aspect = document.width / (float)document.height;
+        test.True(preview.layout.height <= 128.01f, "Standalone height is capped at 128 logical pixels");
+        float available = preview.parent.contentRect.width - style.marginLeft - style.marginRight;
+        test.True(preview.layout.width <= available + .1f, "Standalone fits available inspector width including margins");
+        test.Near(preview.parent.worldBound.center.x, preview.worldBound.center.x, .6, "Capped preview stays centered");
+        if (aspect >= 1)
+            test.Near(preview.contentRect.width / aspect, preview.contentRect.height, .6, "Image content preserves canvas aspect within layout pixel rounding");
+        else
+            test.Near(preview.contentRect.height * aspect, preview.contentRect.width, .6, "Image content preserves canvas aspect within layout pixel rounding");
+        test.True(Mathf.Abs(preview.layout.width - available) < .6f || Mathf.Abs(preview.layout.height - 128) < .6f,
+            "Preview uses available width or reaches its height cap");
+        var texture = preview.image as RenderTexture;
+        test.True(texture != null && texture.IsCreated(), "Standalone image renders after resize");
+        bool magnified = preview.contentRect.width * EditorGUIUtility.pixelsPerPoint > document.width ||
+            preview.contentRect.height * EditorGUIUtility.pixelsPerPoint > document.height;
+        test.Equal(magnified ? FilterMode.Point : FilterMode.Bilinear, texture.filterMode, "Only canvas magnification uses Point");
+        if (magnified)
+        {
+            test.Equal(document.width, texture.width, "Magnified preview renders one texel per canvas pixel");
+            test.Equal(document.height, texture.height, "Magnified preview retains native canvas height");
+            if (document.width <= 128 && document.height <= 128) CheckPointPixels(test, texture);
+        }
+        else test.True(texture.width <= 1024 && texture.height <= 256, "Reduced standalone GPU allocation remains bounded");
+        test.Near(texture.height * aspect, texture.width, Mathf.Max(1.1f, aspect), "GPU aspect follows canvas within integer texel rounding");
+    }
+
+    static void CheckPointPixels(TestContext test, RenderTexture preview)
+    {
+        var previous = RenderTexture.active;
+        bool srgb = GL.sRGBWrite;
+        int width = preview.width * 3 + 1, height = preview.height * 3 + 1;
+        var enlarged = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+        var pixels = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
+        try
+        {
+            enlarged.Create(); GL.sRGBWrite = false;
+            Graphics.Blit(preview, enlarged);
+            RenderTexture.active = enlarged; pixels.ReadPixels(new Rect(0, 0, width, height), 0, 0); pixels.Apply();
+            bool black = false, white = false, exact = true;
+            foreach (var pixel in pixels.GetPixels32())
+            {
+                black |= pixel.r == 0; white |= pixel.r == 255;
+                exact &= pixel.r == 0 || pixel.r == 255;
+            }
+            test.True(black && white && exact, "Noninteger Point enlargement preserves checker texels without blended edges");
+        }
+        finally
+        {
+            RenderTexture.active = previous; GL.sRGBWrite = srgb;
+            enlarged.Release(); UnityEngine.Object.DestroyImmediate(enlarged); UnityEngine.Object.DestroyImmediate(pixels);
+        }
     }
 
     static void CheckSliderColumns(TestContext test, VisualElement root)
@@ -278,6 +387,11 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
                 finally { UnityEngine.Object.DestroyImmediate(effect); }
             }
             state[1] = null;
+        });
+        ReleaseOwned(() =>
+        {
+            if (state[7] is WhimTexDocument document && document != null) UnityEngine.Object.DestroyImmediate(document);
+            state[7] = null;
         });
         ReleaseOwned(() =>
         {

@@ -173,6 +173,11 @@ namespace DCFApixels.WhimTex
                 defaultsV3 = JObject.Parse(WhimTexJsonDefaultsV3.Data);
                 defaultsV3["ShaderFX"]["presetId"] = JValue.CreateNull();
                 defaultsV3["ShaderFX"]["presetVersion"] = 0;
+                defaultsV3["FileLayerBehaviour"]["externalSourcePath"] = JValue.CreateNull();
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.NumericParameterData).Properties())
+                    defaultsV3["ShaderFXParameter"][entry.Name] = entry.Value;
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.NumericControlData).Properties())
+                    defaultsV3["ShaderFXParameterControl"][entry.Name] = entry.Value;
                 foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.CustomGradientData).Properties())
                     defaultsV3["WhimTexGradient"][entry.Name] = entry.Value;
                 defaultsV3["WhimTexGradientCurveKey"] = JObject.Parse(WhimTexJsonDefaultsV3.CustomGradientKeyData);

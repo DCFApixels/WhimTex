@@ -2,21 +2,28 @@
 // @preset("f36b43186e8644a7a90a421307e9cc44", 1)
 // @group("Lighting")
 // @icon("../Editor/Icons/FX/Lighting.svg")
-// @header(Height Source)
+// @group(Height Source)
 // @param texture2D _HeightMap = self // Height image before this FX, or another layer. No raw distance data is used.
 // @param enum _HeightChannel = Luminance {Luminance: 0, R: 1, G: 2, B: 3, Alpha: 4} // Channel mapped to height in the 0 to 1 range.
-// @header(Surface Profile)
+// @endgroup
+// @group(Surface Profile)
 // @param px float _Depth = 6 [~-64 .. ~64] // Positive raises the surface; negative engraves it.
 // @param curve _Profile // Map the selected channel from 0 to 1 into height. Linear preserves the input profile.
 // @param px label(Normal Radius (px)) float _Smoothing = 2 [0 .. ~8] // Normal sampling radius in document pixels; reduces contour stair steps.
-// @header(Lighting)
+// @endgroup
+// @group(Lighting)
+// @enableif _BaseColor.a != 1
 // @param enum _Output = Both {Both: 0, HighlightOnly: 1, ShadowOnly: 2} // Select the transparent lighting component. No effect when Base Color alpha is 1.
+// @endenableif
 // @param normal _LightDirection = (-0.5, 0.5, 1) // Direction from the surface toward the light.
 // @param color _BaseColor = (1, 1, 1, 0) // RGB tints the surface. Alpha blends lighting only (0) into the filled surface (1); use layer opacity for overall opacity.
 // @param color _LightColor = (1, 1, 1, 1) // Highlight tint; alpha controls strength in Lighting Only mode.
 // @param color _ShadowColor = (0.05, 0.05, 0.05, 1) // Shadow tint; alpha controls strength in Lighting Only mode.
 // @param float _Intensity = 1 [0 .. ~4]
+// @enableif _BaseColor.a != 0
 // @param float _Ambient = 0.15 [0 .. ~1] // Ambient surface illumination, faded in by Base Color alpha.
+// @endenableif
+// @endgroup
 
 #include "Packages/com.dcfapixels.whimtex/src/Shaders/SurfaceLighting.cginc"
 

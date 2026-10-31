@@ -1060,6 +1060,26 @@
                 {
                   "anyOf": [
                     {
+                      "$ref": "#/$defs/ShaderLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
                       "$ref": "#/$defs/ShaderProcessorLayerBehaviour"
                     },
                     {
@@ -1593,6 +1613,7 @@
             "string",
             "null"
           ],
+          "default": null,
           "pattern": "^(bool|int|uint|half|float)[234]?$",
           "description": "Declared HLSL scalar/vector type, independent of the control presentation. Resource parameters have no numeric valueType."
         },
@@ -1600,6 +1621,12 @@
           "type": "array",
           "minItems": 4,
           "maxItems": 4,
+          "default": [
+            0,
+            0,
+            0,
+            0
+          ],
           "items": {
             "type": "integer",
             "minimum": -2147483648,
@@ -2118,17 +2145,21 @@
             "string",
             "null"
           ],
+          "default": null,
           "pattern": "^(bool|int|uint|half|float)[234]?$",
           "description": "Declared HLSL scalar/vector type, independent of the control presentation. Resource parameters have no numeric valueType."
         },
         "rgba": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": false
         },
         "valueMinimum": {
-          "type": "number"
+          "type": "number",
+          "default": 0
         },
         "valueMaximum": {
-          "type": "number"
+          "type": "number",
+          "default": 0
         },
         "visibleIfParameter": {
           "type": [
@@ -5168,6 +5199,303 @@
           }
         }
       ]
+    },
+    "ShaderLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderLayerBehaviour"
+        },
+        "graph": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ShaderGraph"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Procedural Shader layer. Its graph is independent of the document layer hierarchy. Output is RGBA, followed by the usual layer transform, FX and composition."
+    },
+    "ShaderGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraph"
+        },
+        "version": {
+          "const": 1
+        },
+        "parameters": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderFXParameter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphNode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "edges": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphEdge"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "description": "Shader-layer fragment graph, version 1. Parameters retain their control declarations and stable IDs; node parameterId refers to one of those IDs. Edges connect named ports by graph-local node ID. HDR values are retained. Arrays replace the complete corresponding graph data."
+    },
+    "ShaderGraphNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphNode"
+        },
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "Parameter",
+            "Constant",
+            "UV",
+            "ImageSize",
+            "TextureSize",
+            "SampleTexture",
+            "SampleGradient",
+            "SampleCurve",
+            "Split",
+            "Combine",
+            "Add",
+            "Subtract",
+            "Multiply",
+            "Divide",
+            "Min",
+            "Max",
+            "Clamp",
+            "Abs",
+            "OneMinus",
+            "Negate",
+            "Power",
+            "SquareRoot",
+            "Floor",
+            "Ceil",
+            "Round",
+            "Fraction",
+            "Sine",
+            "Cosine",
+            "Lerp",
+            "Remap",
+            "Step",
+            "Smoothstep",
+            "Length",
+            "Distance",
+            "Dot",
+            "Normalize",
+            "Compare",
+            "Select",
+            "TransformUV",
+            "Noise",
+            "Shape",
+            "Blend",
+            "Output",
+            "Reroute"
+          ]
+        },
+        "position": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "valueType": {
+          "type": "string",
+          "enum": [
+            "Float",
+            "Float2",
+            "Float3",
+            "Float4",
+            "Boolean",
+            "Texture",
+            "Gradient",
+            "Curve",
+            "Color"
+          ]
+        },
+        "value": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "parameterId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "option": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "hdr": {
+          "type": "boolean"
+        },
+        "wrap": {
+          "type": "string",
+          "enum": [
+            "Clamp",
+            "Repeat",
+            "Mirror",
+            "Transparent"
+          ]
+        },
+        "filter": {
+          "type": "string",
+          "enum": [
+            "Point",
+            "Bilinear"
+          ]
+        },
+        "inputs": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "ShaderGraphInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphInput"
+        },
+        "port": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "Float",
+            "Float2",
+            "Float3",
+            "Float4",
+            "Boolean",
+            "Texture",
+            "Gradient",
+            "Curve",
+            "Color"
+          ]
+        },
+        "value": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        }
+      }
+    },
+    "ShaderGraphEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphEdge"
+        },
+        "outputNode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "outputPort": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputNode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputPort": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
     },
     "ShaderProcessorLayerBehaviour": {
       "type": "object",

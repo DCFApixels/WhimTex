@@ -33,6 +33,7 @@ next_page: "zh/getting-started.md"
 ## 构建程序化效果
 
 - [噪声](noise.md)：图案、扭曲和无缝重复。
+- [Shader 图层](shader-layer.md)：用节点和可调参数创建程序化图像。
 - [效果图层](effects.md)：Outline、SDF、Blur 与 Make Seamless。
 - [Normal Map](normal-map.md)：从图像创建表面起伏。
 - [混合与剪贴](blending.md)：组合图层、约束覆盖范围。

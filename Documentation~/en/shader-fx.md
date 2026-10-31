@@ -84,6 +84,12 @@ Hover over a parameter to read its description, if the effect's author supplied 
 
 ### Groups, foldouts and tabs
 
+Built-in presets disable settings that do not affect the current output while retaining their values. Normal Lighting disables diffuse settings in Specular Only and specular settings in Shadow Only. Ambient is available when Base Color alpha is nonzero; Bevel Emboss disables Output at full Base Color alpha. Chroma Key disables spill controls in Matte mode. Digital Glitch keeps its shared block grid and line jitter available at zero corruption density.
+
+Chroma Key's Key Color, Halftone's Paper/Ink colors and Pixelate/Threshold's Low/High colors edit RGB only. Color Filter retains alpha because it scales the tint strength, together with Blend.
+
+Group and foldout headers share the same context menu across the entire header, including the foldout arrow. The menu also works while collapsed; Paste and Reset preserve the open/closed state. Sections containing only a preview, such as Mask Preview, have no parameter values to copy, paste or reset, so they do not show this menu.
+
 An effect can organize settings into non-collapsible bordered groups, collapsible sections and tab pages. Click a foldout's arrow to show or hide its settings, or click a tab to view that page. These choices only change which controls you see: values in collapsed sections and other pages still affect the image. A checkbox beside a section title changes its parameter independently; the author can use it to show dependent settings or enable part of the effect.
 
 For custom HLSL, use `@group` / `@endgroup`, `@foldout(Title)` / `@endfoldout`, and `@tabs` containing `@tab(Page title)` / `@endtab`, closed by `@endtabs`. Foldouts require a title. Tabs can have an overall title with `@tabs(Title)`; plain `@tabs` leaves no blank heading row. See the [layout syntax and examples](../ShaderFX.md#layout-containers).
@@ -94,9 +100,9 @@ Dependent fields and previews can stay visible but gray while their section is d
 
 ### Parameter previews
 
-Standalone previews are square and centered; widening the inspector does not stretch them.
+Standalone previews preserve the canvas proportions and fit the available Layer Settings width, with a maximum height of 128 pixels. They stay centered when the height limit leaves space at the sides and resize when the panel or canvas dimensions change. Enlarged small canvases use Point filtering to show sharp pixels; reduced previews use Bilinear.
 
-**Mask**, **Chroma Key** and **Edge Outline** include collapsible **Mask Preview**, **Matte Preview** and **Contour Preview** sections. White represents full mask value or coverage, black represents zero. Mask shows the selected channel after Transform, Profile and Invert. Chroma Key shows retained coverage including source alpha; Edge Outline shows contour coverage including source and line alpha. These previews show the mask before the FX header Opacity and do not switch the canvas output. Collapse the section to stop drawing its preview. Small previews can omit fine details; use the canvas to judge final edges.
+**Mask**, **Chroma Key** and **Edge Outline** include collapsible **Mask Preview**, **Matte Preview** and **Contour Preview** sections. White represents full mask value or coverage, black represents zero. Mask shows the selected channel after Profile and Invert. Chroma Key shows retained coverage including source alpha; Edge Outline shows contour coverage including source and line alpha. These previews show the mask before the FX header Opacity and do not switch the canvas output. Collapse the section to stop drawing its preview. Small previews can omit fine details; use the canvas to judge final edges.
 
 Changing a parameter refreshes previews on the next Editor update, without a 100 ms wait.
 Rapid changes are combined, and each preview redraws at most once per Editor update.
@@ -204,8 +210,9 @@ but **UV Transform** with **Input Tiling → Clip** leaves pixels outside the fr
 Right-click the **FX** section header in Layer Settings or click **⋮** at its right to open stack actions, even while collapsed. **Paste FX As New** appends the copied effect; **Apply All** bakes the stack; **Remove All** removes every effect without baking. Removal can be undone. Apply and Remove are disabled for an empty stack.
 
 Effect order matters. Drag an FX header to reorder effects, or drop it onto another layer's row to move it there. **Move Up** and **Move Down** in the header context menu also change the order.
+Click the arrow or header to collapse an effect. Its header follows the Layer Settings sections: icon, enabled checkbox, name, optional main control and **⋮**. The dark background distinguishes individual effects. **Code** folds independently, and enabling or disabling an effect does not collapse it.
 
-Every FX belongs to the document and has independent parameter values and enabled state. Use **⋮ → Copy FX**, then **Paste FX As New** on another row to insert an independent copy after it. Layer-texture links stay within the same document and are cleared when pasted into another document. The menu also contains **Move Up**, **Move Down** and **Remove**.
+Every FX belongs to the document and has independent parameter values and enabled state. Use **⋮ → Copy FX** for one effect or **Copy All** in the FX section menu for the entire stack, including disabled effects. **Paste FX As New** inserts independent copies after the chosen effect; the same command in the section menu appends them to the stack. For multiple effects, the command shows the count, for example **Paste 3 FX As New**. Copies retain their order, parameters and enabled state; one Undo removes the entire insertion. Layer-texture links stay within the same document and are cleared when pasted into another document. The effect menu also contains **Move Up**, **Move Down** and **Remove**.
 
 Presets with `// @preset("GUID", 1)` in their initial comment header receive code changes from their source `.hlsl` file only while the declared version matches the version saved in the document. This applies to project, package and user-library presets; their parameter values remain independent. Use **Open HLSL Source** to edit that source. To edit this effect independently, choose **Code → Embed Copy**: it disconnects the `.hlsl` link, keeps the current code and values in the document, and enables local code editing. Later source-file changes no longer update this effect. Presets without `@preset` are independent copies, wherever their files are stored. If a linked source is missing, broken or has a different version, the effect uses the code saved in the document and keeps the link so it can retry when a matching source returns. For custom code, add **Add FX → Custom Shader FX**, write inline HLSL and click **Compile**. Parameters appear below the header; **Code** provides the applicable code controls, **Save Preset…** and **Shader Inputs**. Diagnostics appear when there is something to report.
 
@@ -427,7 +434,7 @@ Lightness can lift black to white; positive values also draw HDR highlights towa
 Alpha is preserved by default; enable **Invert Alpha** to apply the same blend to it.
 
 ### Mask
-**Color → Mask** reads a chosen channel from **Mask** (Self by default). **Transform** positions the mask, **Profile** remaps its values, and **Invert** reverses the result. **Apply To → Channels** selects which channels to multiply; only alpha is enabled initially. In **Color** mode, each color component controls how much of the original channel to preserve: 1 leaves it unchanged, 0 applies the full mask. This is not a tint. **Amount** scales the overall effect.
+**Color → Mask** reads a chosen channel from **Mask** (Self by default). The mask is sampled at the current pixel without a separate transform. **Profile** remaps its values, and **Invert** reverses the result. **Apply To → Channels** selects which channels to multiply; only alpha is enabled initially. In **Color** mode, each color component controls how much of the original channel to preserve: 1 leaves it unchanged, 0 applies the full mask. This is not a tint. **Opacity** in the FX header scales the overall effect.
 
 ### Gradient mapping
 **Color → Gradient Map** recolors shadows, midtones and highlights using a gradient.

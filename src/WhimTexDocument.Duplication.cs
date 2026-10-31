@@ -78,6 +78,13 @@ namespace DCFApixels.WhimTex
                 foreach (var effect in effects.Values)
                     effect.RemapTextureLayers(copiedIds, !duplicate);
 
+                foreach (Layer copy in copies.Values)
+                    if (copy?.Behaviour is ShaderLayerBehaviour shader)
+                    {
+                        ShaderGraphStorage.RemapTextureLayers(shader.graph, copiedIds, !duplicate);
+                        shader.InvalidateGraph();
+                    }
+
                 if (recordUndo)
                 {
                     Undo.IncrementCurrentGroup();

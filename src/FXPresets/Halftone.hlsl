@@ -10,14 +10,14 @@
 // @param float _InkDensity = 1 [0 .. ~2] // Overall ink amount; values above 1 deepen the darkest tones.
 // @if _Mode == 0
 // @header(Monochrome Screen)
-// @param color _PaperColor = (1, 1, 1, 1) // Paper tint; alpha is ignored.
+// @param color(float3) _PaperColor = (1, 1, 1) // Paper RGB tint.
 // @param float _Angle = 0 [~-180 .. ~180] // Screen angle in degrees.
 // @param toggle(float) _InvertPattern = false // Reverse dot polarity while preserving the average tone.
-// @param color _InkColor = (0, 0, 0, 1) // Dot color; alpha is ignored.
+// @param color(float3) _InkColor = (0, 0, 0) // Dot RGB color.
 // @endif
 // @if _Mode == 1
 // @header(CMYK Screen Angles)
-// @param color _PaperColor = (1, 1, 1, 1) // Paper tint; alpha is ignored.
+// @param color(float3) _PaperColor = (1, 1, 1) // Paper RGB tint.
 // @param float _CyanAngle = 0 [~-180 .. ~180]
 // @param float _MagentaAngle = 0 [~-180 .. ~180]
 // @param float _YellowAngle = 0 [~-180 .. ~180]
@@ -30,7 +30,7 @@
 // @endif
 // @if _Mode == 2
 // @header(CMYK Screen Angles)
-// @param color _PaperColor = (1, 1, 1, 1) // Paper tint; alpha is ignored.
+// @param color(float3) _PaperColor = (1, 1, 1) // Paper RGB tint.
 // @param float _CyanAngle = 0 [~-180 .. ~180]
 // @param float _MagentaAngle = 0 [~-180 .. ~180]
 // @param float _YellowAngle = 0 [~-180 .. ~180]
@@ -41,7 +41,7 @@
 // @endif
 // @if _Mode == 3
 // @header(CMYK Screen Angles)
-// @param color _PaperColor = (1, 1, 1, 1) // Paper tint; alpha is ignored.
+// @param color(float3) _PaperColor = (1, 1, 1) // Paper RGB tint.
 // @param float _CyanAngle = 0 [~-180 .. ~180]
 // @param float _MagentaAngle = 0 [~-180 .. ~180]
 // @param float _YellowAngle = 0 [~-180 .. ~180]

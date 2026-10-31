@@ -23,8 +23,8 @@ context.case('AgentDocumentation original assertions and branches', async () => 
     const limit = read('src/Automation/WhimTexApi.cs').match(/MaxFxParameters\s*=\s*(\d+)/)[1];
     assert.ok(live.includes(`at most ${limit} parameters`) && live.includes('`@param`'), 'Live declaration limit must match the parser');
     assert.ok(api.includes(`${limit} parameters per effect`), 'Shared FX parameter limit must match the parser');
-    for (const type of ['Bool', 'Float', 'Enum', 'Color', 'Vector2', 'Vector3', 'Vector', 'Normal', 'Point', 'Texture2D', 'Curve', 'Gradient', 'Transform2D'])
-      assert.ok(api.includes('`' + type + '`'), `Shared FX parameter type ${type} must be documented`);
+    for (const type of ['toggle(type)', 'Float', 'enum(type)', 'color(type)', 'Vector2', 'Vector3', 'Vector', 'Normal', 'Point', 'Texture2D', 'Curve', 'Gradient', 'Transform2D'])
+      assert.ok(api.includes('`' + type + '`'), `Shared FX parameter type/control ${type} must be documented`);
     assert.ok(live.includes('AgentAPI.md#fx-edits-and-presets'), 'Live jobs link to the shared FX value contract');
     
     let examples = 0;

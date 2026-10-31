@@ -30,6 +30,7 @@ namespace DCFApixels.WhimTex
             new Entry("color", "Color Fill", "Color Fill", "Color Fill Layer", typeof(ColorFillLayerBehaviour), 0, () => new ColorFillLayerBehaviour()),
             new Entry("gradient", "Gradient", "Gradient", "Gradient Layer", typeof(GradientLayerBehaviour), 0, () => new GradientLayerBehaviour()),
             new Entry("noise", "Noise", "Noise", "Noise Layer", typeof(NoiseLayerBehaviour), 0, () => new NoiseLayerBehaviour()),
+            new Entry("shader", "Shader", "Shader", "Shader Layer", typeof(ShaderLayerBehaviour), 0, () => new ShaderLayerBehaviour()),
             new Entry("shape", "Shape", "Shape", "Shape", typeof(ShapeLayerBehaviour), 0, () => new ShapeLayerBehaviour()),
             new Entry("vector", "Vector", "Vector", "Vector", typeof(VectorLayerBehaviour), 0, () => new VectorLayerBehaviour()),
             new Entry("text", "Text", "Text", "Text Layer", typeof(TextLayerBehaviour), 0, () => new TextLayerBehaviour()),

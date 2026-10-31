@@ -16,6 +16,12 @@ public static class ShaderFXPixelLocalTests
     static Type Type(string name) => A.GetType("DCFApixels.WhimTex." + name, true);
     static List<ShaderFXParameter> Values(ShaderFX fx) => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
 
+    public static string RunMasks() => TestContext.Run("Built-in pixel-local Mask and inspector preview", t =>
+    {
+        using (var state = new MigrationD())
+        using (var f = new Fixture(t)) Masks(t, f);
+    });
+
     public static string Run() => TestContext.Run("ApplyFX signatures, immutable PinnedUV, mask sampling and pixel-local queries", t =>
     {
         using (var state = new MigrationD())
@@ -197,9 +203,41 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
         f.Pixel(f.Render(spatial, source, 0, 0), pixels[7], "Spatial SampleTexture keeps arbitrary UV support");
         t.True(!spatial.IsPixelLocal, "Transformed sampling does not claim pixel locality");
         var preset = f.Fx(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/Mask.hlsl"));
-        t.True(!preset.IsPixelLocal, "Existing transformable Mask retains spatial signature");
+        t.True(preset.IsPixelLocal, "Built-in Mask reads pinned coordinates");
+        t.True(!Values(preset).Exists(v => v.name == "_Transform"), "Mask no longer exposes a transform");
+        t.Equal("Applied successfully.", (string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(preset), "Mask has no compilation warnings");
         var neutral = new Color(.3f, .4f, .6f, .5f);
         f.Pixel(f.Render(preset, neutral), new Color(neutral.r, neutral.g, neutral.b, neutral.a * neutral.r), "Built-in Mask primary sampling parity");
+
+        string previewSource = (string)Type("ShaderFXSourceBuilder").GetMethod("BuildPreview", F).Invoke(null,
+            new object[] { preset, new ShaderFXParameterControl { previewFunction = "PreviewMask" }, null });
+        var previewShader = f.Own(ShaderUtil.CreateShaderAsset(previewSource, true));
+        var previewMaterial = f.Own(new Material(previewShader)); ShaderUtil.CompilePass(previewMaterial, 0, true);
+        t.True(previewShader.isSupported && !ShaderUtil.ShaderHasError(previewShader), "Mask preview compiles independently with float2 UV");
+        var hdr = new Color(-.2f, 1.7f, .37f, .4f);
+        ShaderFXParameter Param(string name) => Values(preset).Find(v => v.name == name);
+        Param("_Channels").vectorValue = new Vector4(1, 0, 1, 1);
+        Param("_ApplyColor").colorValue = new Color(.2f, .3f, .4f, .7f);
+        Param("_Opacity").floatValue = .65f;
+        for (int channel = 0; channel < 5; channel++) for (int invert = 0; invert < 2; invert++)
+        for (int profile = 0; profile < 2; profile++) for (int mode = 0; mode < 2; mode++)
+        {
+            Param("_MaskChannel").floatValue = channel; Param("_Invert").floatValue = invert;
+            Param("_Profile").curveValue = AnimationCurve.Linear(0, profile, 1, 1 - profile);
+            Param("_ApplyMode").floatValue = mode;
+            float maskValue = channel == 0 ? hdr.a : channel == 1 ? Vector3.Dot(new Vector3(hdr.r, hdr.g, hdr.b), new Vector3(.2126f, .7152f, .0722f)) : hdr[channel - 2];
+            maskValue = Mathf.Clamp01(maskValue); if (profile == 1) maskValue = 1 - maskValue; if (invert == 1) maskValue = 1 - maskValue;
+            var colorWeight = Param("_ApplyColor").colorValue.linear;
+            var expected = hdr;
+            for (int c = 0; c < 4; c++)
+            {
+                float weight = mode == 0 ? Param("_Channels").vectorValue[c] : 1 - colorWeight[c];
+                expected[c] *= Mathf.Lerp(1, maskValue, weight * .65f);
+            }
+            f.Pixel(f.Render(preset, hdr), expected, "Mask preserves channel selection, Profile, Invert, target weights, HDR and Opacity");
+            f.Pixel(f.Render(preset, hdr, 4, 2, previewMaterial), new Color(maskValue, maskValue, maskValue, 1), "Preview shares coverage and ignores output weights/Opacity");
+        }
+        t.True(preset.IsPixelLocal, "Preview compilation does not change production locality");
     }
 
     static void Persistence(TestContext t, Fixture f)
@@ -275,7 +313,7 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
     {
         var local = new HashSet<string>(StringComparer.Ordinal) {
             "BrightnessContrast", "ColorBalance", "ColorFilter", "Gain", "GradientMap", "HueSaturation",
-            "Levels", "Negative", "Normalize", "Step", "Threshold", "NormalLighting", "Posterize", "ChromaKey", "DomainWarp"
+            "Levels", "Negative", "Normalize", "Step", "Threshold", "NormalLighting", "Posterize", "ChromaKey", "DomainWarp", "Mask"
         };
         int localCount = 0;
         var paths = Directory.GetFiles("Packages/com.dcfapixels.whimtex/src/FXPresets", "*.hlsl");
@@ -381,7 +419,7 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
             }
             return fx;
         }
-        internal Color Render(ShaderFX fx, Color color, int x = 4, int y = 2)
+        internal Color Render(ShaderFX fx, Color color, int x = 4, int y = 2, Material preview = null)
         {
             var pixels = new Color[Width * Height]; for (int i = 0; i < pixels.Length; i++) pixels[i] = color;
             input.SetPixels(pixels); input.Apply();
@@ -392,6 +430,7 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
                 GL.sRGBWrite = false; Graphics.Blit(input, self);
                 var material = (Material)Call(fx, "GetMaterial", context);
                 t.True(material != null, "Applied effect has a material");
+                if (preview != null) { preview.CopyPropertiesFromMaterial(material); material = preview; }
                 bindings = Call(Document, "BindShaderTextureLayers", fx, Consumer, context, self);
                 if (bindings != null) Call(bindings, "Apply", material);
                 Graphics.Blit(input, target, material); RenderTexture.active = target;

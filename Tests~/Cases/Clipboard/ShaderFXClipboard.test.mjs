@@ -13,24 +13,25 @@ try {
     const shaderFx = read('src/ShaderFX.cs');
     const undo = read('src/WhimTexDocument.Api.cs');
 
-    assert.match(view, /GUIContent\("Copy FX"\)/);
-    assert.match(view, /GUIContent\("Paste FX As New"\)/);
     assert.match(view, /toolbar\.AddManipulator\(new ContextualMenuManipulator\(evt =>/);
     assert.match(view, /menu\.AppendAction\("Copy FX"/);
-    assert.match(view, /menu\.AppendAction\("Paste FX As New"/);
-    assert.match(view, /actions\.AddToClassList\("whimtex-layer-menu-button"\)/);
-    assert.match(view, /dot\.AddToClassList\("whimtex-layer-menu-dot"\)/);
+    assert.match(view, /menu\.AppendAction\("Copy All"/);
+    assert.match(view, /ShaderFXClipboard\.CopyAll\(owner, layer\.fx\)/);
+    assert.match(view, /menu\.AppendAction\(ShaderFXClipboard\.PasteLabel/);
+    assert.match(view, /WhimTexUI\.AddInspectorSectionMenu\(card/);
     assert.doesNotMatch(view, /text = "⋮"/);
     assert.doesNotMatch(view, /text = "Paste FX"/);
     assert.doesNotMatch(view, /ShaderFXClipboard\.Changed \+= RefreshClipboardActionState/);
     assert.match(view, /ShaderFXClipboard\.Copy\(owner, fxEntry\)/);
-    assert.match(view, /layer\.fx\.Insert\(destinationIndex, pasted\)/);
+    assert.match(view, /layer\.fx\.InsertRange\(destinationIndex, pasted\)/);
     assert.match(view, /owner\.AdoptAgentShaderFX\(effect, "Paste FX"\)/);
     assert.match(view, /Undo\.SetCurrentGroupName\("Paste FX"\)/);
     assert.match(view, /Undo\.CollapseUndoOperations\(undoGroup\)/);
     assert.match(view, /Undo\.FlushUndoRecordObjects\(\)/);
 
     assert.match(clipboard, /value\.CloneForClipboard\(\)/);
+    assert.match(clipboard, /CopyAll\(document, new\[\] \{ value \}\)/);
+    assert.match(clipboard, /IReadOnlyList<ShaderFX> Current/);
     assert.match(clipboard, /source\.CloneForDocument\(destination\)/);
     assert.match(clipboard, /copy\.RemapTextureLayers\(new Dictionary<string, string>\(\), clearExternal: true\)/);
     assert.match(clipboard, /GUIUtility\.systemCopyBuffer != marker/);

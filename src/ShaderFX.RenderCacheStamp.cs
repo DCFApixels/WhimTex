@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace DCFApixels.WhimTex
@@ -132,6 +134,36 @@ namespace DCFApixels.WhimTex
     // Content, not revisions: direct mutable-data edits and Undo must invalidate too.
     internal static class RenderFingerprint
     {
+        internal static string LayerSettings(Layer layer) => NormalizeLayerSettings(layer, JsonUtility.ToJson(layer));
+
+        internal static string NormalizeLayerSettings(Layer layer, string json)
+        {
+            if (!ContainsShaderGraph(layer)) return json;
+            // The cache already hashes serialized layer settings. Normalize only editor
+            // positions, including graphs nested in groups; keep all rendering data.
+            var settings = JObject.Parse(json);
+            RemoveNodePositions(layer, settings);
+            return settings.ToString(Formatting.None);
+        }
+
+        internal static bool ContainsShaderGraph(Layer layer)
+        {
+            if (layer?.BehaviourWithoutBinding is ShaderLayerBehaviour) return true;
+            if (layer?.children != null)
+                foreach (var child in layer.children) if (ContainsShaderGraph(child)) return true;
+            return false;
+        }
+
+        private static void RemoveNodePositions(Layer layer, JObject settings)
+        {
+            if (layer?.BehaviourWithoutBinding is ShaderLayerBehaviour && settings["behaviour"]?["graph"]?["nodes"] is JArray nodes)
+                foreach (var node in nodes)
+                    if (node is JObject data) data.Remove(nameof(ShaderGraphNode.position));
+            if (layer?.children != null && settings["children"] is JArray children)
+                for (int i = 0; i < layer.children.Count && i < children.Count; i++)
+                    if (children[i] is JObject child) RemoveNodePositions(layer.children[i], child);
+        }
+
         internal static ulong Mix(ulong hash, ulong value) => unchecked((hash ^ value) * 1099511628211UL);
         internal static ulong Float(ulong hash, float value) => Mix(hash, unchecked((uint)BitConverter.SingleToInt32Bits(value)));
         internal static ulong Double(ulong hash, double value) => Mix(hash, unchecked((ulong)BitConverter.DoubleToInt64Bits(value)));

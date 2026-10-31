@@ -538,6 +538,7 @@ namespace DCFApixels.WhimTex
             {
                 WhimTexDocumentJson.ValidateVectorStorage(value);
                 WhimTexDocumentJson.ValidateMeshStorage(value);
+                WhimTexDocumentJson.ValidateShaderGraphStorage(value);
                 if (IsUnityType(type))
                     throw new WhimTexDocumentException("Unsupported Unity field type: " + type.FullName + ".");
                 if (TryWriteBackReference(value)) return;
@@ -1004,6 +1005,7 @@ namespace DCFApixels.WhimTex
                 if (instance is ISerializationCallbackReceiver receiver) receiver.OnAfterDeserialize();
                 WhimTexDocumentJson.ValidateVectorStorage(instance);
                 WhimTexDocumentJson.ValidateMeshStorage(instance);
+                WhimTexDocumentJson.ValidateShaderGraphStorage(instance);
                 if (instance is WhimTexGradient gradient) WhimTexDocumentJson.ValidateGradientStorage(gradient);
                 // This reader reconstructs a file/copy, not a Unity Undo operation. Keep the
                 // deserialization hooks, but establish a clean baseline for later Undo events.

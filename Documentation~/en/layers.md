@@ -26,6 +26,7 @@ Use **+** at the bottom of Layers to choose a type:
 | Color Fill | A solid color, UV coordinates or a geometric distance-field pattern. |
 | Gradient | A smooth color transition, Freeform color points or an editable [Mesh](color.md#mesh-gradients). |
 | Noise | A generated pattern. See [Noise](noise.md). |
+| Shader | A procedural image built from a node graph, with parameters in Properties. See [Shader layer](shader-layer.md). |
 | Shape | An editable rectangle, ellipse, polygon, star, line, arc or sector. |
 | Vector | One editable figure with its own transform, nodes, curves, fill and stroke; compound contours can include holes. See [Vector paths](vector.md). |
 | Boolean Group | Union, Subtract, Intersect and Xor use a common fill and stroke. Combine keeps separate figures with group or layer styling. See [Boolean figures](vector.md#combine-figures-without-merging-them). |

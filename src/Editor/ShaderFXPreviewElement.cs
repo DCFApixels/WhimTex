@@ -295,7 +295,9 @@ namespace DCFApixels.WhimTex
         private double lastInputDraw;
         private ulong values;
         private int drawWidth, drawHeight;
+        private Vector2Int drawCanvasSize;
         private int lastDrawEpoch = int.MinValue;
+        private VisualElement sizeHost;
         internal int DrawCount { get; private set; }
         private readonly IVisualElementScheduledItem update;
 
@@ -314,6 +316,12 @@ namespace DCFApixels.WhimTex
             update.Pause();
             RegisterCallback<AttachToPanelEvent>(_ =>
             {
+                if (!slider && parameter == null)
+                {
+                    sizeHost = parent;
+                    sizeHost?.RegisterCallback<GeometryChangedEvent>(UpdateStandaloneGeometry);
+                    UpdateStandaloneSize();
+                }
                 if (effect != null)
                 {
                     cache = ShaderFXPreviewCache.Acquire(effect);
@@ -326,12 +334,52 @@ namespace DCFApixels.WhimTex
             });
             RegisterCallback<DetachFromPanelEvent>(_ =>
             {
+                sizeHost?.UnregisterCallback<GeometryChangedEvent>(UpdateStandaloneGeometry);
+                sizeHost = null;
                 ShaderFXPreviewRendering.Frame -= Capture;
                 AssemblyReloadEvents.beforeAssemblyReload -= Release;
                 EditorApplication.quitting -= Release;
                 update.Pause(); Release(); cache?.Detach(this); cache?.Release(); cache = null;
             });
-            RegisterCallback<GeometryChangedEvent>(_ => cache?.RequestUpdate());
+            RegisterCallback<GeometryChangedEvent>(_ => { UpdateStandaloneSize(); cache?.RequestUpdate(); });
+        }
+
+        private void UpdateStandaloneGeometry(GeometryChangedEvent _) => UpdateStandaloneSize();
+
+        private void UpdateStandaloneSize()
+        {
+            if (slider || parameter != null || parent == null) return;
+            var resolved = resolvedStyle;
+            float available = parent.contentRect.width - resolved.marginLeft - resolved.marginRight;
+            if (!(available > 0) || float.IsInfinity(available)) return;
+            float horizontal = resolved.borderLeftWidth + resolved.borderRightWidth + resolved.paddingLeft + resolved.paddingRight;
+            float vertical = resolved.borderTopWidth + resolved.borderBottomWidth + resolved.paddingTop + resolved.paddingBottom;
+            float aspect = document != null ? Mathf.Max(1, document.width) / (float)Mathf.Max(1, document.height) : 1f;
+            float height = Mathf.Min(Mathf.Max(0, available - horizontal) / aspect, Mathf.Max(0, 128f - vertical));
+            float width = Mathf.Min(available, height * aspect + horizontal);
+            height += vertical;
+            if (style.width.value.value != width) style.width = width;
+            if (style.height.value.value != height) style.height = height;
+        }
+
+        private Vector2Int CanvasSize => document != null
+            ? new Vector2Int(Mathf.Max(1, document.width), Mathf.Max(1, document.height)) : Vector2Int.one;
+
+        private bool MagnifiesCanvas => !slider && parameter == null && document != null &&
+            (contentRect.width * EditorGUIUtility.pixelsPerPoint > document.width ||
+             contentRect.height * EditorGUIUtility.pixelsPerPoint > document.height);
+
+        private Vector2Int PreviewSize()
+        {
+            if (MagnifiesCanvas) return CanvasSize;
+            float width = Mathf.Max(1, contentRect.width * EditorGUIUtility.pixelsPerPoint);
+            float height = Mathf.Max(1, contentRect.height * EditorGUIUtility.pixelsPerPoint);
+            if (!slider && parameter == null)
+            {
+                float scale = Mathf.Min(1, Mathf.Min(1024f / width, 256f / height));
+                width *= scale; height *= scale;
+            }
+            return new Vector2Int(Mathf.Clamp(Mathf.CeilToInt(width), 1, 1024), Mathf.Clamp(Mathf.CeilToInt(height), 1, 256));
         }
 
         private bool Visible()
@@ -357,18 +405,21 @@ namespace DCFApixels.WhimTex
 
         internal void UpdatePreview()
         {
+            UpdateStandaloneSize();
             if (lastDrawEpoch == ShaderFXPreviewCache.Epoch) return;
             if (!Prepare()) return;
-            int width = Mathf.Clamp(Mathf.CeilToInt(contentRect.width * EditorGUIUtility.pixelsPerPoint), 1, 1024);
-            int height = Mathf.Clamp(Mathf.CeilToInt(contentRect.height * EditorGUIUtility.pixelsPerPoint), 1, 256);
+            var size = PreviewSize();
+            int width = size.x, height = size.y;
             ulong stamp = cache.Stamp;
-            bool unchanged = hasFrame && values == stamp && width == drawWidth && height == drawHeight && !effect.UsesUnityTimeInputs;
+            var filter = MagnifiesCanvas ? FilterMode.Point : FilterMode.Bilinear;
+            bool unchanged = hasFrame && values == stamp && width == drawWidth && height == drawHeight &&
+                drawCanvasSize == CanvasSize && result.filterMode == filter && !effect.UsesUnityTimeInputs;
             if (unchanged && (!inputDirty || EditorApplication.timeSinceStartup - lastInputDraw < .1)) return;
             if (needsInput && document != null && layer != null && effect.Active && !effect.IsUnavailable &&
                 fxIndex >= 0 && fxIndex < layer.fx.Count && layer.fx[fxIndex] == effect && document.TryFindLayer(layer, out _, out _))
             {
                 // One prefix render refreshes all visible previews at this exact stack position.
-                try { document.CaptureInspectorFXPrefix(layer, fxIndex + 1); }
+                try { document.CaptureInspectorFXPrefix(layer, fxIndex + 1, MagnifiesCanvas); }
                 catch (Exception error) { tooltip = "Preview " + control.previewFunction + ": " + error.Message; }
                 return;
             }
@@ -393,6 +444,7 @@ namespace DCFApixels.WhimTex
                 return;
             }
             if (lastDrawEpoch == ShaderFXPreviewCache.Epoch || !Prepare() || !needsInput) return;
+            if (MagnifiesCanvas && (context.width < document.width || context.height < document.height)) return;
             try
             {
                 material.CopyPropertiesFromMaterial(bound);
@@ -413,8 +465,8 @@ namespace DCFApixels.WhimTex
         private void Draw(Texture input, float pixelScale, ulong stamp)
         {
             if (lastDrawEpoch == ShaderFXPreviewCache.Epoch) return;
-            int width = Mathf.Clamp(Mathf.CeilToInt(contentRect.width * EditorGUIUtility.pixelsPerPoint), 1, 1024);
-            int height = Mathf.Clamp(Mathf.CeilToInt(contentRect.height * EditorGUIUtility.pixelsPerPoint), 1, 256);
+            var size = PreviewSize();
+            int width = size.x, height = size.y;
             if (result == null || result.width != width || result.height != height)
             {
                 if (result != null) { result.Release(); UnityEngine.Object.DestroyImmediate(result); }
@@ -422,6 +474,7 @@ namespace DCFApixels.WhimTex
                 { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp };
                 result.Create(); image = result;
             }
+            result.filterMode = MagnifiesCanvas ? FilterMode.Point : FilterMode.Bilinear;
             float units = parameter != null && parameter.pixelUnits ? pixelScale : 1f;
             material.SetVector("_WhimTex_PreviewRange", new Vector4(control.minimum * units, control.maximum * units, slider ? 1f : 0f, 0f));
             RenderTexture previous = RenderTexture.active;
@@ -429,6 +482,7 @@ namespace DCFApixels.WhimTex
             try { GL.sRGBWrite = QualitySettings.activeColorSpace == ColorSpace.Linear; Graphics.Blit(input, result, material); }
             finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
             drawWidth = width; drawHeight = height; values = stamp; hasFrame = true;
+            drawCanvasSize = CanvasSize;
             lastDrawEpoch = ShaderFXPreviewCache.Epoch;
             DrawCount++;
             // Graphics.Blit binds its source to the material. Do not retain a temporary layer RT.

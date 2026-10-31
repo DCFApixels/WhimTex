@@ -32,6 +32,8 @@ namespace DCFApixels.WhimTex
             var tiling = layer.EffectiveTiling;
             switch (layer.Behaviour)
             {
+                // Graph UV math and texture reads require the complete logical image.
+                case ShaderLayerBehaviour: return false;
                 case ShaderProcessorLayerBehaviour: return CanGenerateRegionalProcessor(layer);
                 case GroupLayerBehaviour: return true;
                 case BooleanGroupLayerBehaviour:

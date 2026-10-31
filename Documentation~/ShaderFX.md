@@ -314,7 +314,8 @@ not the primary API. Detected bypass reads, derivatives and unresolved compiler 
 leave the shader usable but prevent confirmation of pixel locality and produce a shared warning.
 This is an authoring contract, not a sandbox against deliberately hidden HLSL bypasses.
 Generated curve/gradient lookups and the reserved hue lookup are independent of image-neighbor reads.
-The transformable Mask preset remains spatial because it samples displaced mask coordinates.
+The built-in Mask preset is pixel-local: it samples the current `PinnedUV` without a transform.
+Its `PreviewMask(float2 uv)` entry remains isolated under `WHIMTEX_PREVIEW` and uses complete preview inputs.
 
 Built-in Brightness Contrast, Color Balance, Color Filter, Gain, Gradient Map, Hue & Saturation,
 Levels, Negative, Normalize, Step and Threshold use the color-only entry point. Posterize uses
@@ -968,10 +969,10 @@ For Slider (including soft-range sliders), it fills the track beneath the thumb.
 a small rectangle to their right; their native controls are not replaced. Use a standalone
 `// @preview(FunctionName)` for a separate image at that position in the inspector.
 Both forms respect groups and conditions; neither creates another shader parameter.
-Standalone previews use a centered 96×96 logical-pixel square; inline field and slider previews retain their own dimensions.
+Standalone previews preserve the document canvas aspect ratio, fit the available inspector width and have a maximum outer height of 128 logical pixels. They remain centered when the height limit leaves unused width and resize with the panel or canvas dimensions. Without a document, they use a square aspect. When the displayed image exceeds the canvas resolution (including Editor DPI scaling), the standalone preview renders at native canvas resolution and uses Point filtering. Its inspector inputs also retain native resolution. At equal or smaller display sizes it uses Bilinear filtering and a GPU target proportionally capped at 1024×256 pixels, subject to integer texel rounding. Inline field and slider previews retain their own dimensions and filtering.
 
 Built-in Mask, Chroma Key and Edge Outline use standalone previews in collapsible sections.
-They render opaque grayscale: Mask evaluates the selected channel after Transform/Profile/Invert,
+They render opaque grayscale: Mask evaluates the selected channel after Profile/Invert,
 Chroma Key evaluates retained alpha, and Edge Outline evaluates contour coverage including source
 and line alpha. They use the production mask helpers and ignore header Opacity and output mode.
 No additional parameters or rendering contract are introduced; the existing bounded inspector

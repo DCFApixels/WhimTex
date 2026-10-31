@@ -15,6 +15,16 @@ profiler, and ReadScreenPixel on test-created windows. It does not authorize oth
 
 ## Inspect and select
 
+`shader-fx-preview-ui-v1` checks native field/slider layout and standalone preview proportions in one owned temporary window. Square, portrait, landscape and panoramic canvases exercise panel resizing, the 128-pixel height cap, available-width fitting, bounded GPU targets, shader reuse and detach cleanup. Small-canvas and resize cases also verify Point/Bilinear transitions, native output dimensions and sharp checker pixels after noninteger magnification. `shader-fx-preview-resolution-v1` separately checks native and reduced inspector inputs, a 768×64 pixel checker and restoration of caller render state. It does not edit user documents or simulate mouse/keyboard input.
+
+`shader-fx-mask-local-v1` checks the built-in Mask's pinned locality, removal of Transform and warning-free compilation. It renders channel/Profile/Invert/Apply To/Opacity combinations with HDR and separately checks grayscale inspector preview output. Shared input checks cover Texture/Self/None/Layer and different resolutions. It uses small owned float textures and detached models without windows or user documents.
+
+`builtin-fx-inspector-v1` checks the eight adjusted preset declarations, their warning-free compilation, detached inspector availability, open Bevel sections and preservation of HDR RGB when an unused alpha component is removed. `builtin-fx-inspector-comparison` is a separate opt-in diagnostic: it needs the original eight HLSL files captured in `Temp/WhimTex/fx-inspector-before-20261030` before these edits. It compares unchanged executable HLSL and exact RGBA output across 56 small HDR/alpha/mode cases. Missing baseline files are a prerequisite failure; never recreate them from edited sources. Neither case opens windows or edits user documents.
+
+`shader-fx-header-v1` compares FX and section header geometry and checks parent/Code independence in one owned temporary window. It sends right-button pointer-down/up events over the Group header and Foldout arrow/title/checkbox, verifies that Unity requests the populated menu exactly once, and checks access while collapsed. A callback records and clears the menu before any popup opens. Separate population checks cover body exclusion and shared Paste/Reset with Undo while preserving expansion; a capture-only menu manager prevents popup windows. The package parameter clipboard snapshot is isolated without writing the system clipboard.
+
+`shader-fx-stack-clipboard-v1` checks list snapshots, count-aware menus, insertion after a row and at the end, disabled FX, HDR/alpha parameters, same/cross-document layer links, independent repeated pastes and one-step Undo/Redo with an adjacent parameter edit. It temporarily isolates the package clipboard fields and calls the production snapshot builder without writing to the OS clipboard. No windows are opened; only owned document/effect Undo entries are cleared.
+
 `external-file-layer-v1` checks PNG/JPEG/TGA/BMP/EXR/TIFF sources in an owned OS temporary directory
 outside the project. It covers signed HDR, hidden RGB, alpha/orientation, composition parity, shared
 cache reuse/release, changed/missing/repaired files, rejected inputs, JSON/native-model roundtrips and

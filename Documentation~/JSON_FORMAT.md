@@ -11,6 +11,10 @@ permalink: /reference/json-format/
 `whimtex.document`, version **3**, is the shared editable format for `.json` files,
 layer clipboard data and agent serialization. It stores settings, not rendered pixels.
 
+`ShaderLayerBehaviour.graph` stores the editable per-pixel graph. See the
+[Shader graph example](ShaderLayer.md#api-and-document-json) for exact fields and the distinction
+between the API operation wrapper and the stored behavior object.
+
 `FileLayerBehaviour.externalSourcePath` stores an absolute external image link; `sourceTexture`
 is null for that source. Project textures use `sourceTexture` and leave `externalSourcePath` null.
 Decoded external pixels are runtime cache data and are never embedded by JSON, clipboard or the
@@ -638,7 +642,11 @@ Compiled shaders, rendering caches, catalog refresh state and code-derived contr
 are not document settings and are never saved. HLSL source and parameter values are separate;
 changing a value does not rewrite its declaration into the source code.
 
-Omitted values use the frozen defaults in `WhimTexJsonDefaultsV3`, not the current UI factory defaults.
+For models with a version-3 defaults table, omitted values use the frozen defaults in
+`WhimTexJsonDefaultsV3`, not the current UI factory defaults. Mesh and Shader graph models have
+no such table and retain constructor values for omitted fields, subject to their storage
+validation. Mesh requires its explicit control lattice; an omitted inactive gradient mesh
+retains its initial grid. Shader-layer graph data remains the editable source of truth.
 For insertion/paste only, omitted canvas dimensions instead inherit the corresponding destination axes.
 Re-enabling an omitted feature restores those defaults, not the previously inactive user value.
 

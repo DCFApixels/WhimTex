@@ -16,15 +16,15 @@ namespace DCFApixels.WhimTex
             public int channelMask = 15;
         }
 
-        private const float HeaderHeight = 20f;
+        private const float HeaderHeight = VerticalRevealHandle.HeaderHeight;
         private const int PreviewSize = 256;
         private const float MaximumHeight = 256f;
         private readonly ViewState state;
-        private readonly VisualElement header, surface;
+        private readonly VerticalRevealHandle header;
+        private readonly VisualElement surface;
         private readonly Image image;
         private readonly VisualElement channels;
         private readonly Button[] channelButtons = new Button[4];
-        private readonly ResizeManipulator resize;
         private WhimTexDocument document;
         private Layer boundLayer;
         private LayerBehaviour boundBehaviour;
@@ -41,12 +41,9 @@ namespace DCFApixels.WhimTex
             this.state = state ?? throw new ArgumentNullException(nameof(state));
             name = "layer-preview";
             AddToClassList("whimtex-output-preview-footer");
-            header = new VisualElement { name = "layer-preview-resizer", tooltip = "Drag up to reveal the layer preview; drag down to hide it." };
-            header.AddToClassList("whimtex-output-preview-title");
-            header.Add(new Label("Layer Preview") { pickingMode = PickingMode.Ignore });
-            var grip = new VisualElement { pickingMode = PickingMode.Ignore };
-            grip.AddToClassList("whimtex-output-preview-grip");
-            header.Add(grip);
+            header = new VerticalRevealHandle("Layer Preview", () => resolvedStyle.height, Resize,
+                element => disposed || element == channels || channels.Contains(element))
+                { name = "layer-preview-resizer", tooltip = "Drag up to reveal the layer preview; drag down to hide it." };
             state.channelMask &= 15;
             channels = new VisualElement { name = "layer-preview-channels" };
             channels.AddToClassList("whimtex-layer-preview-channels");
@@ -70,8 +67,6 @@ namespace DCFApixels.WhimTex
             channels.AddManipulator(new ChannelDragManipulator(channelButtons, () => state.channelMask, ToggleChannel));
             channels.SetEnabled(false);
             header.Add(channels);
-            resize = new ResizeManipulator(this);
-            header.AddManipulator(resize);
             Add(header);
             surface = new VisualElement { name = "layer-preview-surface" };
             surface.AddToClassList("whimtex-output-preview-surface");
@@ -223,7 +218,7 @@ namespace DCFApixels.WhimTex
         {
             if (disposed) return;
             float maximum = MaxHeight();
-            float minimum = Mathf.Min(60f, maximum);
+            float minimum = Mathf.Min(VerticalRevealHandle.MinimumExpandedHeight, maximum);
             style.height = state.collapsed ? HeaderHeight : Mathf.Clamp(state.height, minimum, maximum);
             bool hidden = state.collapsed || maximum <= HeaderHeight;
             surface.EnableInClassList("whimtex-output-preview-surface--hidden", hidden);
@@ -233,10 +228,9 @@ namespace DCFApixels.WhimTex
         private void Resize(float requestedHeight)
         {
             float maximum = MaxHeight();
-            float threshold = Mathf.Min(34f, HeaderHeight + (maximum - HeaderHeight) * .5f);
             bool wasCollapsed = state.collapsed;
-            state.collapsed = requestedHeight <= threshold;
-            if (!state.collapsed) state.height = Mathf.Clamp(requestedHeight, Mathf.Min(60f, maximum), maximum);
+            state.collapsed = VerticalRevealHandle.ShouldCollapse(requestedHeight, maximum);
+            if (!state.collapsed) state.height = Mathf.Clamp(requestedHeight, Mathf.Min(VerticalRevealHandle.MinimumExpandedHeight, maximum), maximum);
             UpdateLayout();
             if (wasCollapsed && !state.collapsed) RequestLayerPreview(true);
         }
@@ -313,7 +307,7 @@ namespace DCFApixels.WhimTex
 
         private void Stop()
         {
-            resize.Release();
+            header.Release();
             attached = false;
             EditorApplication.update -= Tick;
             WhimTexDocument.Changed -= OnChanged;
@@ -328,51 +322,5 @@ namespace DCFApixels.WhimTex
 
         public void Dispose() { if (disposed) return; Stop(); disposed = true; }
 
-        private sealed class ResizeManipulator : PointerManipulator
-        {
-            private readonly LayerPreviewPanel owner;
-            private int pointer = -1;
-            private float startY, startHeight;
-            internal ResizeManipulator(LayerPreviewPanel owner) { this.owner = owner; }
-            protected override void RegisterCallbacksOnTarget()
-            {
-                target.RegisterCallback<PointerDownEvent>(Down);
-                target.RegisterCallback<PointerMoveEvent>(Move);
-                target.RegisterCallback<PointerUpEvent>(Up);
-                target.RegisterCallback<PointerCaptureOutEvent>(Lost);
-            }
-            protected override void UnregisterCallbacksFromTarget()
-            {
-                Release();
-                target.UnregisterCallback<PointerDownEvent>(Down);
-                target.UnregisterCallback<PointerMoveEvent>(Move);
-                target.UnregisterCallback<PointerUpEvent>(Up);
-                target.UnregisterCallback<PointerCaptureOutEvent>(Lost);
-            }
-            private void Down(PointerDownEvent evt)
-            {
-                if (owner.disposed || evt.button != 0 || pointer >= 0) return;
-                var element = evt.target as VisualElement;
-                if (element == owner.channels || owner.channels.Contains(element)) return;
-                pointer = evt.pointerId; startY = evt.position.y; startHeight = owner.resolvedStyle.height;
-                target.CapturePointer(pointer); evt.StopPropagation();
-            }
-            private void Move(PointerMoveEvent evt)
-            {
-                if (evt.pointerId != pointer || !target.HasPointerCapture(pointer)) return;
-                owner.Resize(startHeight + startY - evt.position.y); evt.StopPropagation();
-            }
-            private void Up(PointerUpEvent evt)
-            {
-                if (evt.pointerId != pointer || evt.button != 0) return;
-                Release(); evt.StopPropagation();
-            }
-            private void Lost(PointerCaptureOutEvent evt) { pointer = -1; }
-            internal void Release()
-            {
-                int id = pointer; pointer = -1;
-                if (id >= 0 && target != null && target.HasPointerCapture(id)) target.ReleasePointer(id);
-            }
-        }
     }
 }

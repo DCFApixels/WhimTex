@@ -27,6 +27,11 @@ inserted it unless you actually did so.
 For brushes use the separate [brush contract](BRUSHES.md) and [brush examples](../Examples/Brushes/README.md).
 Brush JSON replaces the brush rather than creating layers.
 
+For a procedural **Shader** layer, use the [node-graph contract](../ShaderLayer.md) and generated
+model schema. Its embedded graph generates the layer's own image; **Shader Processor** processes
+the composite below it. Graph parameters appear in Properties and use the shared parameter
+types. FX HLSL directives are not the serialization format for a Shader graph.
+
 ## Instructions for an AI assistant
 
 - Return one complete JSON object in a `json` code block, without comments or trailing commas.
@@ -585,6 +590,7 @@ before HLSL code. Icons do not change shader sampling or compilation. See the
 
 FX inspector previews use `// @preview(Function)` for an independent image, or
 `// @param preview(Function) float _Amount = 0.5 [0 .. 1]` for a Slider track.
+Standalone images preserve the canvas aspect, fit the available Layer Settings width and cap their height at 128 logical pixels; no size metadata is required. Magnified canvases render at native canvas resolution with Point filtering, including native inspector inputs; reduced previews retain Bilinear filtering. Magnification includes Editor DPI scaling.
 Other inline fields show a small right-side rectangle. Functions return linear straight
 `float4` RGBA, take `float2 uv` first and optionally the declared parameter's shader value
 second (standalone previews take UV only). Alternatively, `preview(Function, _A, _B)` or
@@ -623,6 +629,10 @@ outside enabled blocks; each struct contains `string parameter`, `bool notEqual`
 Standalone previews carry the same metadata. See [parameter declarations](../ShaderFX.md#parameter-declarations).
 
 ### FX layout metadata
+
+Named groups and foldouts share Copy/Paste/Reset on the entire header, including the foldout arrow and collapsed state. The commands include hidden and nested values and preserve expansion state; no extra metadata is needed. Containers holding only standalone previews and no parameters do not show a parameter context menu.
+
+Built-in Chroma Key `_KeyColor`, Halftone `_PaperColor`/`_InkColor`, and Pixelate/Threshold `_LowColor`/`_HighColor` use `color(float3)`; supply three RGB components. Color Filter `_FilterColor` remains RGBA: its alpha scales tint strength. Inspector availability conditions never reset values or change HLSL execution.
 
 Keep `// @group`, `// @group(Title)` or `// @group(Title; _HeaderParameter)` paired with `// @endgroup` for non-collapsible bordered groups. Add `// @foldout(Title)` or `// @foldout(Title; _HeaderParameter)`, paired with `// @endfoldout`, for collapsible content; the foldout title is required. A header parameter must be declared exactly once in the source, outside both `@if` and `@enableif` and directly inside its own group/foldout. Supported hidden header fields are promoted into the header. Header checkboxes edit values independently of folding and tab selection; use `@if` for dependent row visibility, `@enableif` for editing availability and HLSL for the effect behavior.
 
@@ -819,6 +829,11 @@ disabling an otherwise valid shader. This is an authoring contract, not a sandbo
 `ShaderFX.IsPixelLocal` describes the applied usable shader, not pending edits;
 `Layer.AreActiveFxPixelLocal()` checks active non-null FX on that layer only, with an empty chain true.
 Unavailable/unconfirmed active FX return false; disabled FX are ignored.
+The built-in Mask preset samples `SampleTexture(_Mask, uv)` with `PinnedUV` and is pixel-local.
+It has no `_Transform` parameter; channel selection, Profile, Invert and Apply To remain available.
+Its inspector preview has a separate float2 entry and does not change production locality.
+A spatial FX in the referenced mask layer can still require a full render of that dependency.
+
 See [pixel-local rules and mask example](../ShaderFX.md#pixel-local-entry-points-and-texture-reads).
 
 `color` is the incoming straight (not premultiplied) RGBA. `SampleInput(uv)` reads that same

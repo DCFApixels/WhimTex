@@ -617,7 +617,9 @@ namespace DCFApixels.WhimTex
                 var p = next[i];
                 ShaderFXParameter match = null;
                 foreach (var old in previous)
-                    if (old != null && old.name == p.name && ((Compatible(old.type, p.type) || old.type == ShaderFXParameterType.Vector && p.type == ShaderFXParameterType.Vector3) && old.ValueType == p.ValueType))
+                    if (old != null && old.name == p.name &&
+                        ((Compatible(old.type, p.type) || old.type == ShaderFXParameterType.Vector && p.type == ShaderFXParameterType.Vector3) && old.ValueType == p.ValueType ||
+                         old.type == ShaderFXParameterType.Color && p.type == ShaderFXParameterType.Color && old.ValueType == "float4" && p.ValueType == "float3"))
                     {
                         if (match == null)
                             match = old;

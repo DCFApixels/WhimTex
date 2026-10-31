@@ -69,6 +69,8 @@ bool Mutate(object target, Type type, int depth)
     bool touched = false;
     foreach (var field in Fields(type))
     {
+        // A format version is not mutable user data; retain the supported graph version.
+        if (target is ShaderGraph && field.Name == "version") continue;
         Type fieldType = field.FieldType;
         if (typeof(UnityEngine.Object).IsAssignableFrom(fieldType)) continue;
         if (typeof(System.Collections.IList).IsAssignableFrom(fieldType)) continue;

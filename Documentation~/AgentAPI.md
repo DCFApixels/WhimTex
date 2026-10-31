@@ -1552,7 +1552,7 @@ HDR texture data is distinct from physical HDR monitor output; rendered PNG prev
 {"op":"target", "layer":"@outline", "input":"Previous"}
 ```
 
-- `add`: types `file`, `drawing`, `group`, `color`, `gradient`, `noise`, `shape`, `text`, `outline`, `sdf`, `normalMap`, `blur`, `sharpen`, `makeSeamless`, `shaderProcessor`.
+- `add`: types `file`, `drawing`, `group`, `color`, `gradient`, `noise`, `shader`, `shape`, `text`, `outline`, `sdf`, `normalMap`, `blur`, `sharpen`, `makeSeamless`, `shaderProcessor`.
   Optional `parent` defaults to root, `index` to 0. `settings` and `transform` are optional patches.
 - `set`: requires `layer` and `settings`.
 - `transform`: requires `layer` and `transform`.
@@ -1576,6 +1576,7 @@ Current Sharp/MTSDF quality prototype: closed raster contours use line fits over
 | File | `source`: imported Texture2D path in Assets/Packages, or an absolute external image path. External PNG/JPEG/TGA/BMP/EXR and supported TIFF are decoded without importing. TIFF: little-endian straight RGBA, 8-bit or 32-bit float, None/Deflate compression, no predictor. Inspection returns the same path, `sourceSize` and `sourceError` when unavailable; `importedSourceSize` applies only to project textures. Assignment validates the decoder before changing the link. External links remain absolute and are not embedded; another machine must have the source at that path or replace it. |
 | Color | `color` (`[r,g,b,a]`, encoded RGB -107..107, alpha 0..1), `fillMode` (`Color`, `UV`, `Pattern`), `fillPattern` (partial settings below) |
 | Drawing | `brush` (partial brush settings below) |
+| Shader | `shader.graph` (complete graph replacement, including parameter declarations and values); see the [exact JSON example and discovery fields](ShaderLayer.md#api-and-document-json). |
 | Gradient | `gradientType` (`Linear`, `Radial`, `Angular`, `Square`, `Freeform`, `Mesh`), `gradient` (ordinary palette), `freeform` (point settings below), `mesh` (complete control lattice below) |
 | Outline | `color`, `metric` (`EuclideanAntialiased` default; ten modes below), `miterLimit` (float, 1..64, default 4; Sharp/CornerFit/Spring), `sourceChannel` (`Alpha` default, `Red`, `Green`, `Blue`, `Luminance`), `outlineWidth`, `outlineSoftness` (0..16384), `outlinePosition` (`Outside`, `Inside`, `Center`), `outlineOffset` (-16384..16384), `fillCenter` (bool), `fillColor` (`[r,g,b,a]`) |
 | SDF | `metric` (`EuclideanAntialiased` default; ten modes below), `miterLimit` (float, 1..64, default 4; Sharp/CornerFit/Spring), `contourMergeDistance` (finite float, 0..2 inclusive, default 0/off; experimental, Sharp/MTSDF only, current render px), `sourceChannel` (`Alpha`, `Red`, `Green`, `Blue`, `Luminance`), `threshold` (integer 0..255), `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`), `encoding` (`Gradient` default, `LinearData`, `MultiChannelData`), `inverted` (bool; Gradient/LinearData), `maxDistance` (0..16384; zero = automatic), `sourceOffset` ([x,y], each -16384..16384 px), `sourceEdges` (`Transparent`, `Clamp`, `Repeat`, `Mirror`), `contourOffset` (-16384..16384 px; positive expands; Gradient/LinearData only), `insideDistance`/`outsideDistance` (Signed Gradient/LinearData only, 0..16384; 0 inherits maxDistance/auto), `profile` (FX curve string syntax, at most 4096 characters; default `linear`; Gradient/LinearData only) |

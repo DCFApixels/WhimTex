@@ -29,6 +29,7 @@ Technical specifications are maintained in English.
 ## Write shaders or inspect rendering
 
 - [Shader authoring](ShaderFX.md): code, parameters, inputs and shared libraries.
+- [Shader layer contract](ShaderLayer.md): embedded procedural graphs, typed ports, parameters and HLSL generation.
 - [Color range, HDR and groups](HDR.md): color spaces, storage, isolation and diagnostics.
 - [Gaussian Blur and caching](GaussianBlur.md): source representations, quality and memory.
 - [Motion Blur](MotionBlur.md): sampling, density and working-buffer costs.

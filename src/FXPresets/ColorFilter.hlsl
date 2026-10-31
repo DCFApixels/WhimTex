@@ -5,7 +5,7 @@
 // @icon("../Editor/Icons/FX/Color.svg")
 // @param hidden float _Opacity = 1 [0 .. 1] // Blend with the tinted result; zero leaves the input unchanged.
 // @group
-// @param color _FilterColor = (1.0, 0.6, 0.3, 0.3) // Multiplicative RGB tint; color alpha is ignored.
+// @param color _FilterColor = (1.0, 0.6, 0.3, 0.3) // Multiplicative RGB tint. Color alpha scales the tint strength together with Blend; input alpha is preserved.
 // @param toggle(float) _PreserveLuminosity = true // Preserve luminance; a black tint falls back to the source color.
 // @endgroup
 

@@ -313,6 +313,11 @@ namespace DCFApixels.WhimTex
                         throw new WhimTexDocumentException("Unsupported Boolean operation: " + layer.Id);
                     if (layer?.Behaviour is BooleanGroupLayerBehaviour booleanGroup) ValidateVectorStorage(booleanGroup);
                     if (layer?.Behaviour is TextLayerBehaviour text) text.Validate();
+                    if (layer?.Behaviour is ShaderLayerBehaviour shader)
+                    {
+                        ValidateShaderGraphStorage(shader);
+                        ShaderGraphStorage.ValidateInputs(document, layer, shader.graph);
+                    }
                     if (layer?.Behaviour is ShapeLayerBehaviour shape)
                     {
                         FigureFill.ValidateFreeform(shape.fillMode, shape.freeform);
@@ -402,9 +407,10 @@ namespace DCFApixels.WhimTex
             private int depth, count;
             internal Writer(WhimTexJsonWriteOptions options, WhimTexDocument document) { this.options = options; this.document = document; }
 
-            internal JObject ObjectFields(object value)
+            internal JObject ObjectFields(object value, bool preserveParameterMetadata = false)
             {
                 ValidateVectorStorage(value);
+                ValidateShaderGraphStorage(value);
                 if (value is TextLayerBehaviour textLayer)
                 {
                     textLayer.PrepareSavedAppearance(document.width, document.height);
@@ -414,7 +420,7 @@ namespace DCFApixels.WhimTex
                 var node = new JObject();
                 foreach (var field in Fields(value.GetType()))
                 {
-                    if (value is ShaderFXParameter parameter && parameter.controls?.Count > 0 &&
+                    if (!preserveParameterMetadata && value is ShaderFXParameter parameter && parameter.controls?.Count > 0 &&
                         (field.Name == "controls" || field.Name == "hasMinimum" || field.Name == "hasMaximum" ||
                          field.Name == "softMinimum" || field.Name == "softMaximum" || field.Name == "cyclicRange" || field.Name == "minimum" || field.Name == "maximum")) continue;
                     if (value is WhimTexDocument && field.Name == "layers") continue;
@@ -430,7 +436,7 @@ namespace DCFApixels.WhimTex
                         }
                         continue;
                     }
-                    if (options.Mode != WhimTexJsonWriteMode.Full && !IsActive(value, field.Name)) continue;
+                    if (!preserveParameterMetadata && options.Mode != WhimTexJsonWriteMode.Full && !IsActive(value, field.Name)) continue;
                     object item = field.GetValue(value);
                     if (value is MeshGradient && (field.Name == "nodeModes" || field.Name == "patchPriorities" || field.Name == "hueChroma") &&
                         item is Array array && array.Length == 0) item = null;
@@ -452,6 +458,14 @@ namespace DCFApixels.WhimTex
                     JToken encoded;
                     if (IsNull(item) && MissingAssets.TryGetValue(value, out var missing) && missing.TryGetValue(field.Name, out var identity))
                         encoded = identity.DeepClone();
+                    else if (value is ShaderGraph graph && field.Name == "parameters")
+                    {
+                        // Graph declarations have no HLSL metadata to reconstruct their controls.
+                        var declarations = new JArray();
+                        foreach (var declaration in graph.parameters)
+                            declarations.Add(ObjectFields(declaration, preserveParameterMetadata: true));
+                        encoded = declarations;
+                    }
                     else if (value is ShaderFX fx && field.Name == "code")
                     {
                         try { encoded = new JValue(ShaderFXSourceBuilder.ExportIncludes(ShaderFXIconMetadata.MakePortable(fx.Code, fx.SourcePath), fx.SourcePath)); }
@@ -663,6 +677,7 @@ namespace DCFApixels.WhimTex
                     throw JsonError(node["amount"] ?? node, "Corner amount must be between 0 and 1.");
                 if (result is TextLayerBehaviour text && text.Notice != null) Warnings.Add(text.Notice);
                 if (result is FreeformGradient freeform) freeform.Validate();
+                ValidateShaderGraphStorage(result);
                 ValidateMeshStorage(result);
                 if (result is MeshGradient mesh) result = mesh.Clone();
                 if (result is WhimTexGradient gradient)

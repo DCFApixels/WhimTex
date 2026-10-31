@@ -580,7 +580,7 @@
               0.0
             ],
             "periodic1D": false,
-            "encoding": "LinearData",
+            "encoding": "Linear",
             "inverted": false,
             "recoveryId": "6806a7e73ee641fb8f10b2862d4f0918"
           },

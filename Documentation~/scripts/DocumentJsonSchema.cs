@@ -77,6 +77,10 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
             {
                 var properties = new Dictionary<string, object>();
                 definitions[name] = D(("type", "object"), ("additionalProperties", false), ("properties", properties));
+                if (type == typeof(ShaderGraph))
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Shader-layer fragment graph, version 1. Parameters retain their control declarations and stable IDs; node parameterId refers to one of those IDs. Edges connect named ports by graph-local node ID. HDR values are retained. Arrays replace the complete corresponding graph data.";
+                if (type == typeof(ShaderLayerBehaviour))
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Procedural Shader layer. Its graph is independent of the document layer hierarchy. Output is RGBA, followed by the usual layer transform, FX and composition.";
                 if (type == typeof(GradientLayerBehaviour)) ((Dictionary<string, object>)definitions[name])["required"] = new[] { "gradientType" };
                 if (type == typeof(MeshGradient))
                 {
@@ -93,7 +97,15 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 if (type == typeof(DrawingLayerBehaviour)) properties["contentOmitted"] = D(("const", true));
                 foreach (FieldInfo f in (FieldInfo[])fields.Invoke(null, new object[] { type }))
                     if (!(type == typeof(WhimTexDocument) && f.Name == "layers") && !(type == typeof(DrawingLayerBehaviour) && f.Name == "pixels"))
-                        properties[f.Name] = type == typeof(MeshGradient) && (f.Name == "columns" || f.Name == "rows")
+                        properties[f.Name] = type == typeof(ShaderGraph) && f.Name == "version"
+                            ? D(("const", 1)) :
+                            type == typeof(ShaderGraph) && f.Name == "nodes"
+                            ? D(("type", "array"), ("maxItems", 512), ("items", Schema(typeof(ShaderGraphNode)))) :
+                            type == typeof(ShaderGraph) && f.Name == "edges"
+                            ? D(("type", "array"), ("maxItems", 4096), ("items", Schema(typeof(ShaderGraphEdge)))) :
+                            type == typeof(ShaderGraph) && f.Name == "parameters"
+                            ? D(("type", "array"), ("maxItems", 256), ("items", Schema(typeof(ShaderFXParameter)))) :
+                            type == typeof(MeshGradient) && (f.Name == "columns" || f.Name == "rows")
                             ? D(("type", "integer"), ("minimum", 1), ("maximum", MeshGradient.MaxCells)) :
                             (type == typeof(MeshGradient) || type == typeof(FreeformGradient)) && f.Name == "colorMode"
                             ? D(("type", "string"), ("enum", new[] { "Linear", "Gamma", "Perceptual", "Hue" })) :
@@ -160,12 +172,16 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                             type == typeof(ShaderFXParameter) && f.Name == "pixelUnits"
                             ? D(("type", "boolean"), ("default", false), ("description", "Numeric @param px declaration; the retained logical value is multiplied by document pixelScale once when uploaded.")) :
                             (type == typeof(ShaderFXParameter) || type == typeof(ShaderFXParameterControl)) && f.Name == "valueType"
-                            ? D(("type", new[] { "string", "null" }), ("pattern", "^(bool|int|uint|half|float)[234]?$"),
+                            ? D(("type", new[] { "string", "null" }), ("default", null), ("pattern", "^(bool|int|uint|half|float)[234]?$"),
                                 ("description", "Declared HLSL scalar/vector type, independent of the control presentation. Resource parameters have no numeric valueType.")) :
                             type == typeof(ShaderFXParameter) && f.Name == "integerValues"
-                            ? D(("type", "array"), ("minItems", 4), ("maxItems", 4),
+                            ? D(("type", "array"), ("minItems", 4), ("maxItems", 4), ("default", new long[4]),
                                 ("items", D(("type", "integer"), ("minimum", int.MinValue), ("maximum", uint.MaxValue))),
                                 ("description", "Exact integer/bool components; active count and signedness follow valueType. Bool components are 0/1.")) :
+                            type == typeof(ShaderFXParameterControl) && f.Name == "rgba"
+                            ? D(("type", "boolean"), ("default", false)) :
+                            type == typeof(ShaderFXParameterControl) && (f.Name == "valueMinimum" || f.Name == "valueMaximum")
+                            ? D(("type", "number"), ("default", 0)) :
                             type == typeof(ShaderFXParameterControl) && f.Name == "enableIf"
                             ? D(("type", "array"), ("default", Array.Empty<object>()), ("maxItems", 16),
                                 ("items", Schema(typeof(ShaderFXEnableCondition))),

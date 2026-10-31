@@ -184,36 +184,53 @@ namespace DCFApixels.WhimTex
             try
             {
                 foreach (var parameter in effect.TextureParameters())
-                {
-                    if (parameter.textureSource == ShaderFXTextureSource.Texture) continue;
-                    bindings ??= ShaderTextureBindings.Rent();
-                    if (parameter.textureSource == ShaderFXTextureSource.Self && self != null)
-                    {
-                        bindings.inputs.Add((parameter, ShaderTextureView.ForContext(self, context)));
-                        continue;
-                    }
-                    // Validate each distinct requested layer only once in this binding scope.
-                    // Never retain graph validity between renders: layers/FX may change directly.
-                    string request = parameter.textureSource == ShaderFXTextureSource.Layer ? parameter.textureLayerId ?? "" : "";
-                    if (bindings.requests.TryGetValue(request, out var requested))
-                    {
-                        bindings.inputs.Add((parameter, ShaderTextureView.ForContext(requested, context))); continue;
-                    }
-                    string key = parameter.textureSource == ShaderFXTextureSource.Layer && IsUsableShaderTexture(consumer, parameter.textureLayerId) ? parameter.textureLayerId : "";
-                    if (!bindings.sources.TryGetValue(key, out var pixels))
-                    {
-                        var source = key.Length == 0 ? null : FindLayer(key);
-                        if (source != null) pixels = RenderShaderTextureSource(source, consumer, context.width, context.height, context.scaleMultiplier);
-                        pixels ??= GetClearRenderTexture(context.width, context.height);
-                        bindings.sources.Add(key, pixels);
-                    }
-                    bindings.requests.Add(request, pixels);
-                    bindings.inputs.Add((parameter, ShaderTextureView.ForContext(pixels, context)));
-                }
+                    BindShaderTextureParameter(parameter, consumer, context, self, ref bindings);
                 return bindings;
             }
             catch { bindings?.Dispose(); throw; }
             finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
+        }
+
+        internal ShaderTextureBindings BindShaderTextureLayers(IReadOnlyList<ShaderFXParameter> parameters, Layer consumer, in LayerRenderContext context, RenderTexture self)
+        {
+            ShaderTextureBindings bindings = null;
+            var previous = RenderTexture.active;
+            bool srgb = GL.sRGBWrite;
+            try
+            {
+                for (int i = 0; i < parameters.Count; i++)
+                    BindShaderTextureParameter(parameters[i], consumer, context, self, ref bindings);
+                return bindings;
+            }
+            catch { bindings?.Dispose(); throw; }
+            finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
+        }
+
+        private void BindShaderTextureParameter(ShaderFXParameter parameter, Layer consumer, in LayerRenderContext context,
+            RenderTexture self, ref ShaderTextureBindings bindings)
+        {
+            if (parameter == null || parameter.type != ShaderFXParameterType.Texture2D || parameter.textureSource == ShaderFXTextureSource.Texture) return;
+            bindings ??= ShaderTextureBindings.Rent();
+            if (parameter.textureSource == ShaderFXTextureSource.Self && self != null)
+            {
+                bindings.inputs.Add((parameter, ShaderTextureView.ForContext(self, context))); return;
+            }
+            // Validate once per source per render, without retaining graph validity between renders.
+            string request = parameter.textureSource == ShaderFXTextureSource.Layer ? parameter.textureLayerId ?? "" : "";
+            if (bindings.requests.TryGetValue(request, out var requested))
+            {
+                bindings.inputs.Add((parameter, ShaderTextureView.ForContext(requested, context))); return;
+            }
+            string key = parameter.textureSource == ShaderFXTextureSource.Layer && IsUsableShaderTexture(consumer, parameter.textureLayerId) ? parameter.textureLayerId : "";
+            if (!bindings.sources.TryGetValue(key, out var pixels))
+            {
+                var source = key.Length == 0 ? null : FindLayer(key);
+                if (source != null) pixels = RenderShaderTextureSource(source, consumer, context.width, context.height, context.scaleMultiplier);
+                pixels ??= GetClearRenderTexture(context.width, context.height);
+                bindings.sources.Add(key, pixels);
+            }
+            bindings.requests.Add(request, pixels);
+            bindings.inputs.Add((parameter, ShaderTextureView.ForContext(pixels, context)));
         }
 
         // Isolate the render factory's captured state from the allocation-free None/Self path.

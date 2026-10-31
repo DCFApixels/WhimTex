@@ -29,7 +29,7 @@ public static class HlslOnlyFXTests
             test.Equal(typeof(List<ShaderFX>), typeof(Layer).GetField("fx").FieldType, "FX model cannot accept arbitrary Unity objects");
             test.True(typeof(ShaderFX).GetCustomAttribute<CreateAssetMenuAttribute>() == null, "No standalone ShaderFX asset creation menu");
             test.True(typeof(WhimTexDocument).GetMethod("EmbedShaderFX", F) == null, "External-reference embedding path removed");
-            test.Equal(typeof(ShaderFX), Type("ShaderFXClipboard").GetProperty("Current", F).PropertyType, "FX clipboard is HLSL-only");
+            test.Equal(typeof(IReadOnlyList<ShaderFX>), Type("ShaderFXClipboard").GetProperty("Current", F).PropertyType, "FX clipboard is an HLSL-only list");
             test.Equal(typeof(ShaderFX), Type("ShaderFXClipboard").GetMethod("Copy", F).GetParameters()[1].ParameterType, "Clipboard cannot accept a Material");
             object preset = null;
             foreach (var entry in (IEnumerable)Static("ShaderFXCatalog", "GetEntries"))

@@ -277,7 +277,7 @@
         "warpScale": 1.0,
         "warpScaleY": 1.0,
         "linkWarpScale": true,
-        "encoding": "LinearData",
+        "encoding": "Linear",
         "inverted": false,
         "recoveryId": "e195ba8cec09414bb6e519dac46cf212"
       },

@@ -61,21 +61,31 @@ namespace DCFApixels.WhimTex
         private int beforeCursor, beforeSelect, beforeLength;
         private SelectionStep activeStep;
 
-        internal ShaderFXCodeField(ShaderFX effect)
+        internal ShaderFXCodeField(ShaderFX effect = null)
         {
             this.effect = effect;
-            history = Carets.GetValue(effect, _ => new CaretHistory());
             name = "shaderFXCode";
             multiline = true;
+            isReadOnly = effect == null;
             verticalScrollerVisibility = ScrollerVisibility.Auto;
             textSelection.selectAllOnFocus = false;
             textSelection.selectAllOnMouseUp = false;
             AddToClassList("whimtex-shader-fx-code");
-            SetValueWithoutNotify(effect.Code ?? string.Empty);
+            SetValueWithoutNotify(effect?.Code ?? string.Empty);
             syntax = new ShaderFXCodeSyntax(this, effect);
 #if UNITY_6000_7_OR_NEWER
             lineNumbers = new ShaderFXCodeLineNumbers(this, effect);
 #endif
+            RegisterCallback<AttachToPanelEvent>(evt =>
+            {
+                if (evt.target != this) return;
+                var scroll = this.Q<ScrollView>();
+                if (scroll == null) return;
+                scroll.mode = ScrollViewMode.VerticalAndHorizontal;
+                scroll.horizontalScrollerVisibility = ScrollerVisibility.Auto;
+            });
+            if (effect == null) return;
+            history = Carets.GetValue(effect, _ => new CaretHistory());
             if (history.source == value)
                 textSelection.SelectRange(Mathf.Clamp(history.cursor, 0, value.Length), Mathf.Clamp(history.select, 0, value.Length));
             CaptureBefore();
@@ -104,12 +114,6 @@ namespace DCFApixels.WhimTex
                 if (evt.target != this)
                     return;
                 Undo.undoRedoEvent += OnUndoRedo;
-                var scroll = this.Q<ScrollView>();
-                if (scroll != null)
-                {
-                    scroll.mode = ScrollViewMode.VerticalAndHorizontal;
-                    scroll.horizontalScrollerVisibility = ScrollerVisibility.Auto;
-                }
                 SyncFromModel();
             });
             RegisterCallback<DetachFromPanelEvent>(evt =>
@@ -149,6 +153,7 @@ namespace DCFApixels.WhimTex
         // Reference labels must not replace the last code selection with their own focus state.
         internal void RememberSelection(bool force = false)
         {
+            if (history == null) return;
             var focused = panel?.focusController?.focusedElement as VisualElement;
             if (!force && panel != null && focused != this && (focused == null || !Contains(focused)))
                 return;

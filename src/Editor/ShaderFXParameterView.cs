@@ -261,7 +261,6 @@ namespace DCFApixels.WhimTex
             parent.Add(root);
 
             string headerParameterId = null;
-            VisualElement content;
             Foldout foldout = null;
             if (definition.kind == ShaderFXContainerKind.Foldout)
             {
@@ -284,12 +283,14 @@ namespace DCFApixels.WhimTex
             {
                 var header = new VisualElement();
                 header.AddToClassList("whimtex-fx-parameter-group-header");
+                VisualElement menuHeader = header;
                 if (foldout != null)
                 {
                     var toggle = foldout.Q<Toggle>();
                     toggle.AddToClassList("whimtex-fx-parameter-foldout-toggle");
                     toggle.Add(header);
                     header.AddToClassList("whimtex-fx-parameter-foldout-header");
+                    menuHeader = toggle;
                 }
                 else root.Add(header);
                 ShaderFXParameter linkedParameter = null;
@@ -331,21 +332,11 @@ namespace DCFApixels.WhimTex
                     });
                     header.RegisterCallback<NavigationSubmitEvent>(evt => evt.StopPropagation());
                 }
-                if (!string.IsNullOrEmpty(definition.title)) header.AddManipulator(new ContextualMenuManipulator(evt =>
-                {
-                    BuildContainerMenu(evt.menu, definition.id);
-                    evt.StopPropagation();
-                }));
-                content = new VisualElement();
-                content.AddToClassList("whimtex-fx-parameter-group-content");
-                if (foldout != null) foldout.Add(content); else root.Add(content);
+                AddContainerMenu(menuHeader, definition);
             }
-            else
-            {
-                content = new VisualElement();
-                content.AddToClassList("whimtex-fx-parameter-group-content");
-                root.Add(content);
-            }
+            var content = new VisualElement();
+            content.AddToClassList("whimtex-fx-parameter-group-content");
+            (foldout != null ? (VisualElement)foldout : root).Add(content);
 
             postRefresh.Add(() =>
             {
@@ -440,11 +431,7 @@ namespace DCFApixels.WhimTex
                 header.Add(tab);
                 header.Add(toggle);
             }
-            header.AddManipulator(new ContextualMenuManipulator(evt =>
-            {
-                BuildContainerMenu(evt.menu, definition.id);
-                evt.StopPropagation();
-            }));
+            AddContainerMenu(header, definition);
             parent.content.Add(header);
             var view = new ParameterGroupView { id = definition.id, headerParameterId = headerParameterId, root = page, content = page, tab = tab };
             int index = parent.pages.Count;
@@ -456,6 +443,16 @@ namespace DCFApixels.WhimTex
                 foreach (var update in postRefresh) update();
             };
             return view;
+        }
+
+        private void AddContainerMenu(VisualElement header, ShaderFXLayoutContainer definition)
+        {
+            if (string.IsNullOrEmpty(definition.title)) return;
+            header.AddManipulator(new ContextualMenuManipulator(evt =>
+            {
+                BuildContainerMenu(evt.menu, definition.id);
+                evt.StopPropagation();
+            }));
         }
 
         private bool HasContainerHeader(int groupId)

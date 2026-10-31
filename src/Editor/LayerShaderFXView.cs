@@ -56,11 +56,15 @@ namespace DCFApixels.WhimTex
 
         internal void BuildStackContextMenu(DropdownMenu menu)
         {
+            menu.AppendAction("Copy All", _ => ShaderFXClipboard.CopyAll(owner, layer.fx),
+                _ => layer.fx.Exists(effect => effect != null)
+                    ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            menu.AppendAction(ShaderFXClipboard.PasteLabel, _ => PasteAt(layer.fx.Count),
+                _ => CanEditStack() && ShaderFXClipboard.Current != null
+                    ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            menu.AppendSeparator();
             menu.AppendAction("Apply All", _ => ApplyThrough(layer.fx.Count - 1),
                 _ => CanEditStack() && owner.ApplyFXUnavailable(layer, layer.fx.Count - 1) == null
-                    ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-            menu.AppendAction("Paste FX As New", _ => { if (CanEditStack()) PasteAt(layer.fx.Count); },
-                _ => CanEditStack() && ShaderFXClipboard.Current != null
                     ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
             menu.AppendSeparator();
             menu.AppendAction("Remove All", _ => RemoveAll(),
@@ -81,35 +85,20 @@ namespace DCFApixels.WhimTex
         {
             ShaderFX fxEntry = layer.fx[index];
             ShaderFX effect = fxEntry;
-            VisualElement card = new VisualElement();
+            string title = $"{index + 1}. {(effect != null ? effect.name : "Missing HLSL FX")}";
+            Foldout card = WhimTexUI.CreateInspectorSection(title, "fxEntry" + index, null, true);
             card.AddToClassList("whimtex-layer-fx-entry");
+            card.AddToClassList("whimtex-layer-fx-foldout");
+            card.viewDataKey = $"whimtex-layer-fx-{layer.Id}-{UnityObjectID.FromObject(fxEntry)}";
             if (effect != null) card.AddToClassList("whimtex-layer-fx-entry--shader");
             if (index > 0 && layer.fx[index - 1] is ShaderFX)
                 card.AddToClassList("whimtex-layer-fx-entry--after-shader");
-            Foldout foldout = null;
-            Toggle foldoutToggle = null;
-            if (effect != null)
-            {
-                foldout = new Foldout { value = true };
-                foldout.AddToClassList("whimtex-layer-fx-foldout");
-                foldout.viewDataKey = $"whimtex-layer-fx-{layer.Id}-{UnityObjectID.FromObject(fxEntry)}";
-                foldoutToggle = foldout.Q<Toggle>();
-                foldoutToggle.AddToClassList("whimtex-fx-hidden-foldout-toggle");
-            }
             VisualElement toolbar = new VisualElement();
             toolbar.AddToClassList("whimtex-layer-fx-toolbar");
             toolbar.AddToClassList("whimtex-layer-fx-entry-toolbar");
             toolbar.AddToClassList("whimtex-layer-fx-header");
             if (effect != null)
             {
-                var foldoutButton = new Button { text = foldout.value ? "▾" : "▸", tooltip = "Collapse or expand this FX" };
-                foldoutButton.AddToClassList("whimtex-fx-foldout-toggle");
-                foldoutButton.clicked += () => foldout.value = !foldout.value;
-                foldout.RegisterValueChangedCallback(evt => foldoutButton.text = evt.newValue ? "▾" : "▸");
-                foldout.RegisterCallback<AttachToPanelEvent>(_ =>
-                    foldout.schedule.Execute(() => foldoutButton.text = foldout.value ? "▾" : "▸"));
-                toolbar.Add(foldoutButton);
-
                 var icon = new Image { name = "fxIcon", scaleMode = ScaleMode.ScaleToFit };
                 icon.AddToClassList("whimtex-fx-icon");
                 void RefreshIcon()
@@ -156,7 +145,7 @@ namespace DCFApixels.WhimTex
                 });
             }
             toolbar.tooltip = "Drag the header to reorder this FX or move it to another layer";
-            Label name = new Label($"{index + 1}. {(effect != null ? effect.name : "Missing HLSL FX")}");
+            Label name = new Label(title);
             name.AddToClassList("whimtex-layer-fx-name");
             toolbar.Add(name);
             if (effect != null)
@@ -166,55 +155,20 @@ namespace DCFApixels.WhimTex
                 toolbar.Add(control);
                 refreshActivity.Add(control.Refresh);
             }
-            var actions = new Button(() =>
+            toolbar.AddManipulator(new ContextualMenuManipulator(evt =>
             {
-                var menu = new GenericMenu();
-                if (effect != null)
-                    menu.AddItem(new GUIContent("Copy FX"), false, () => ShaderFXClipboard.Copy(owner, fxEntry));
-                else
-                    menu.AddDisabledItem(new GUIContent("Copy FX"));
-                if (ShaderFXClipboard.Current != null)
-                    menu.AddItem(new GUIContent("Paste FX As New"), false, () => PasteAt(index + 1));
-                else
-                    menu.AddDisabledItem(new GUIContent("Paste FX As New"));
-                menu.AddSeparator(string.Empty);
-                string unavailable = owner.ApplyFXUnavailable(layer, index);
-                if (unavailable == null) menu.AddItem(new GUIContent("Apply"), false, () => ApplyThrough(index));
-                else menu.AddDisabledItem(new GUIContent("Apply", unavailable));
-                if (CanReset(index)) menu.AddItem(new GUIContent("Reset"), false, () => Reset(index));
-                else menu.AddDisabledItem(new GUIContent("Reset"));
-                menu.AddSeparator(string.Empty);
-                if (index > 0) menu.AddItem(new GUIContent("Move Up"), false, () => Move(index, -1));
-                else menu.AddDisabledItem(new GUIContent("Move Up"));
-                if (index + 1 < layer.fx.Count) menu.AddItem(new GUIContent("Move Down"), false, () => Move(index, 1));
-                else menu.AddDisabledItem(new GUIContent("Move Down"));
-                menu.AddSeparator(string.Empty);
-                menu.AddItem(new GUIContent("Remove"), false, () => Change("Remove FX", () => layer.fx.RemoveAt(index)));
-                menu.ShowAsContext();
-            }) { tooltip = "Copy, paste, apply, reset, reorder or remove this effect" };
-            actions.AddToClassList("whimtex-layer-menu-button");
-            actions.EnableInClassList("whimtex-layer-menu-button--light", !EditorGUIUtility.isProSkin);
-            for (int i = 0; i < 3; i++)
-            {
-                VisualElement dot = new VisualElement { pickingMode = PickingMode.Ignore };
-                dot.AddToClassList("whimtex-layer-menu-dot");
-                actions.Add(dot);
-            }
-            toolbar.Add(actions);
-            toolbar.AddManipulator(new ContextualMenuManipulator(evt => BuildContextMenu(evt.menu, index)));
+                BuildContextMenu(evt.menu, index);
+                evt.StopPropagation();
+            }));
             toolbar.AddManipulator(new ReorderManipulator(
                 index, UpdateDropMarker, MoveTo, CanReorderLayer,
-                FindLayerDropTarget, CanMoveToLayer, UpdateLayerDropMarker, MoveToLayer));
-            card.Add(toolbar);
-            VisualElement body = new VisualElement();
+                FindLayerDropTarget, CanMoveToLayer, UpdateLayerDropMarker, MoveToLayer,
+                () => card.value = !card.value));
+            card.hierarchy.Add(toolbar);
+            WhimTexUI.AddInspectorSectionMenu(card, menu => BuildContextMenu(menu, index));
             if (effect != null)
             {
-                body.Add(ShaderFXEditor.CreateInlineView(effect, owner, layer, index));
-            }
-            if (foldout != null)
-            {
-                foldout.Add(body);
-                card.Add(foldout);
+                card.Add(ShaderFXEditor.CreateInlineView(effect, owner, layer, index));
             }
             entries.Add(card);
         }
@@ -228,8 +182,8 @@ namespace DCFApixels.WhimTex
                 menu.AppendAction("Copy FX", _ => ShaderFXClipboard.Copy(owner, fxEntry));
             else
                 menu.AppendAction("Copy FX", _ => { }, DropdownMenuAction.Status.Disabled);
-            menu.AppendAction("Paste FX As New", _ => PasteAt(index + 1),
-                ShaderFXClipboard.Current != null && canEdit ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            menu.AppendAction(ShaderFXClipboard.PasteLabel, _ => PasteAt(index + 1),
+                _ => ShaderFXClipboard.Current != null && CanEditStack() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
             menu.AppendSeparator();
             menu.AppendAction("Apply", _ => ApplyThrough(index),
                 owner.ApplyFXUnavailable(layer, index) == null ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
@@ -286,7 +240,7 @@ namespace DCFApixels.WhimTex
 
         private void PasteAt(int insertionIndex)
         {
-            if (ShaderFXClipboard.Current == null)
+            if (!CanEditStack() || ShaderFXClipboard.Current == null)
                 return;
 
             Undo.FlushUndoRecordObjects();
@@ -297,13 +251,13 @@ namespace DCFApixels.WhimTex
             {
                 Change("Paste FX", () =>
                 {
-                    ShaderFX pasted = ShaderFXClipboard.CreatePasteValue(owner);
+                    List<ShaderFX> pasted = ShaderFXClipboard.CreatePasteValues(owner);
                     if (pasted == null)
                         return;
                     int destinationIndex = Mathf.Clamp(insertionIndex, 0, layer.fx.Count);
-                    if (pasted is ShaderFX effect)
+                    foreach (ShaderFX effect in pasted)
                         owner.AdoptAgentShaderFX(effect, "Paste FX");
-                    layer.fx.Insert(destinationIndex, pasted);
+                    layer.fx.InsertRange(destinationIndex, pasted);
                 });
             }
             finally
@@ -436,6 +390,7 @@ namespace DCFApixels.WhimTex
             private readonly Func<Layer, bool> canMoveToLayer;
             private readonly Action<VisualElement> updateLayerDropMarker;
             private readonly Action<int, Layer> moveToLayer;
+            private readonly Action click;
             private VisualElement eventRoot;
             private EditorWindow dragWindow;
             private Vector2 pointerDownPosition;
@@ -456,7 +411,7 @@ namespace DCFApixels.WhimTex
                 Func<Vector2, LayerDropTarget> findLayerDropTarget,
                 Func<Layer, bool> canMoveToLayer,
                 Action<VisualElement> updateLayerDropMarker,
-                Action<int, Layer> moveToLayer)
+                Action<int, Layer> moveToLayer, Action click = null)
             {
                 this.sourceIndex = sourceIndex;
                 this.updateDropMarker = updateDropMarker;
@@ -466,6 +421,7 @@ namespace DCFApixels.WhimTex
                 this.canMoveToLayer = canMoveToLayer;
                 this.updateLayerDropMarker = updateLayerDropMarker;
                 this.moveToLayer = moveToLayer;
+                this.click = click;
             }
 
             protected override void RegisterCallbacksOnTarget()
@@ -491,7 +447,7 @@ namespace DCFApixels.WhimTex
 
             private void OnPointerDown(PointerDownEvent evt)
             {
-                if (evt.button != 0 || pointerId != -1 || !canReorder())
+                if (evt.button != 0 || pointerId != -1 || (click == null && !canReorder()))
                     return;
                 for (VisualElement element = evt.target as VisualElement; element != null && element != target; element = element.parent)
                     if (element is Button || element is Toggle || element.ClassListContains("whimtex-fx-effect-control"))
@@ -543,7 +499,7 @@ namespace DCFApixels.WhimTex
 
             private void OnPanelPointerUp(PointerUpEvent evt)
             {
-                if (evt.pointerId != pointerId)
+                if (evt.pointerId != pointerId || evt.button != 0)
                     return;
                 bool shouldMove = dragging;
                 int destination;
@@ -570,6 +526,7 @@ namespace DCFApixels.WhimTex
                         move(sourceIndex, destination);
                     evt.StopPropagation();
                 }
+                else if (target.worldBound.Contains(evt.position)) click?.Invoke();
             }
 
             private void OnPanelPointerCancel(PointerCancelEvent evt)

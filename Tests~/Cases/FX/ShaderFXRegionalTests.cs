@@ -21,8 +21,41 @@ public static partial class ShaderFXRegionalTests
     const string Local = "// @param texture2D _Map\nfloat4 ApplyFX(PinnedUV uv,float4 color){return float4(color.rgb*SampleTexture(_Map,uv).rgb,color.a);}";
     const string Spatial = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return SampleInput(uv+float2(19.0/_InputSize.x,0));}";
 
+    public static string RunPreviewResolution() => TestContext.Run("Native magnified inspector inputs", PreviewResolution);
+
+    static void PreviewResolution(TestContext t)
+    {
+        using var f = new Fixture();
+        f.doc.width = 768; f.doc.height = 64;
+        var layer = new Layer(new ColorFillLayerBehaviour()); f.doc.layers.Add(layer);
+        layer.fx.Add(f.Fx("float4 ApplyFX(PinnedUV uv,float4 color){float2 p=floor(uv*_CanvasSize.xy);float v=fmod(p.x+p.y,2);return float4(v,v,v,1);}"));
+        var consumer = f.Fx("float4 ApplyFX(float4 color){return color;}"); layer.fx.Add(consumer);
+        Call(f.doc, "NormalizeModel");
+        foreach (bool native in new[] { false, true, false })
+        {
+            int captured = 0;
+            var active = RenderTexture.active; bool srgb = GL.sRGBWrite;
+            using (f.Capture((fx, owner, context, material, input) =>
+            {
+                if (fx != consumer) return;
+                captured++;
+                t.Equal(native ? 768 : 512, input.width, "Native inputs bypass the reduced inspector cap only when requested");
+                t.Equal(native ? 64 : 43, input.height, "Inspector input retains canvas proportions");
+                if (!native) return;
+                var pixels = f.Read(input);
+                bool exact = true;
+                for (int y = 0; y < input.height; y++) for (int x = 0; x < input.width; x++)
+                    exact &= Mathf.Abs(pixels[y * input.width + x].r - ((x + y) % 2)) < .001f;
+                t.True(exact, "Native inspector input retains every checker pixel before preview sampling");
+            })) Call(f.doc, "CaptureInspectorFXPrefix", layer, 2, native);
+            t.Equal(1, captured, "One input frame captured");
+            t.True(RenderTexture.active == active && GL.sRGBWrite == srgb, "Inspector capture restores caller graphics state");
+        }
+    }
+
     public static string Run() => TestContext.Run("Regional FX dependencies, complete inspector inputs and render isolation", t =>
     {
+        PreviewResolution(t);
         using var f = new Fixture();
         var source = new Layer(new GradientLayerBehaviour()) { enabled = false };
         var consumer = new Layer(new ColorFillLayerBehaviour { color = new Color(2, .7f, .4f, .63f) })
@@ -192,16 +225,16 @@ public static partial class ShaderFXRegionalTests
                             t.Equal(512, input.width, "Inspector is bounded without cropping");
                         }))
                         {
-                            Call(f.doc, "CaptureInspectorFXPrefix", layer, 1);
+                            Call(f.doc, "CaptureInspectorFXPrefix", layer, 1, false);
                             if (active)
                             {
                                 Call(drawing, "PaintPoint", new Vector2(.7f, .6f), w, h, parameters);
                                 Call(drawing, "BlitStraightSurface", native, 1f); expected = f.Read(native);
                                 dirty = (int)Field(drawing, "brushPreviewTiles").GetType().GetProperty("Count", F).GetValue(Field(drawing, "brushPreviewTiles"));
-                                Call(f.doc, "CaptureInspectorFXPrefix", layer, 1);
+                                Call(f.doc, "CaptureInspectorFXPrefix", layer, 1, false);
                                 // Compare both incremental and forced full rebuild with the same oracle.
                                 Set(drawing, "brushInspectorValid", false);
-                                Call(f.doc, "CaptureInspectorFXPrefix", layer, 1);
+                                Call(f.doc, "CaptureInspectorFXPrefix", layer, 1, false);
                             }
                         }
                         t.Equal(active ? 3 : 1, captured, "Inspector inputs captured");
@@ -276,7 +309,7 @@ float4 Show(float2 uv){return SampleInput(float2(.05,.5));}
                 bool viewport = (bool)typeof(WhimTexDocument).GetProperty("RenderingViewport", F).GetValue(f.doc);
                 t.True(viewport, "Canvas frame is regional");
                 var active = RenderTexture.active; bool srgb = GL.sRGBWrite;
-                Call(f.doc, "CaptureInspectorFXPrefix", layer, 1);
+                Call(f.doc, "CaptureInspectorFXPrefix", layer, 1, false);
                 t.True((bool)typeof(WhimTexDocument).GetProperty("RenderingViewport", F).GetValue(f.doc), "Nested inspector restores viewport");
                 t.True(RenderTexture.active == active && GL.sRGBWrite == srgb, "Nested inspector restores graphics state");
                 return;
@@ -312,7 +345,7 @@ float4 Show(float2 uv){return SampleInput(float2(.05,.5));}
         backdrop.fx.Add(backdropFx); f.doc.layers.Add(processor); f.doc.layers.Add(backdrop); Call(f.doc, "NormalizeModel");
         int backdropWidth = 0;
         using (f.Capture((effect, owner, ctx, bound, input) => { if (effect == backdropFx) backdropWidth = input.width; }))
-            Call(f.doc, "CaptureInspectorFXPrefix", processor, 1);
+            Call(f.doc, "CaptureInspectorFXPrefix", processor, 1, false);
         t.Equal(512, backdropWidth, "Processor inspector does not construct full-size backdrop");
     }
 

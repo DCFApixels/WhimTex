@@ -1,0 +1,251 @@
+.whimtex-shader-graph-body {
+    flex-grow: 1;
+    min-height: 0;
+}
+.whimtex-shader-graph-sidebar {
+    min-width: 230px;
+    border-right-width: 1px;
+    border-right-color: rgba(0, 0, 0, 0.4);
+}
+.whimtex-shader-graph-properties {
+    flex-grow: 1;
+    min-height: 0;
+}
+.whimtex-shader-graph-parameter {
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(128, 128, 128, 0.25);
+    padding-bottom: 4px;
+}
+.whimtex-shader-graph-parameter-actions {
+    flex-direction: row;
+}
+.whimtex-shader-graph-parameter-actions > Button {
+    flex-grow: 1;
+}
+.whimtex-shader-graph-status {
+    flex-grow: 1;
+    -unity-text-align: middle-right;
+    padding-right: 6px;
+}
+.whimtex-shader-graph-canvas {
+    flex-grow: 1;
+    min-width: 0;
+    min-height: 0;
+    background-color: rgb(32, 32, 32);
+}
+.whimtex-shader-graph--light .whimtex-shader-graph-canvas {
+    background-color: rgb(170, 170, 170);
+}
+.whimtex-shader-graph-node {
+    min-width: 200px;
+    overflow: visible;
+}
+.whimtex-shader-graph-node--error #node-border {
+    border-color: rgb(225, 90, 80);
+    border-width: 2px;
+}
+.whimtex-shader-graph-node-field {
+    min-width: 0;
+}
+.whimtex-shader-graph-node-field > .unity-base-field__label {
+    min-width: 0;
+    flex-shrink: 1;
+}
+.whimtex-shader-graph-properties .unity-base-field__label {
+    min-width: 0;
+    flex-shrink: 1;
+}
+.whimtex-shader-graph-source {
+    height: auto;
+    min-height: 0;
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+.whimtex-shader-graph-output #title {
+    background-color: rgba(88, 147, 157, 0.22);
+}
+.whimtex-shader-graph-output #title-label {
+    -unity-font-style: bold;
+}
+.whimtex-shader-graph #node-border .whimtex-shader-graph-port--resource #connector,
+.whimtex-shader-graph #node-border .whimtex-shader-graph-port--resource #connector #cap,
+.whimtex-shader-graph #node-border .whimtex-shader-graph-port--boolean #connector,
+.whimtex-shader-graph #node-border .whimtex-shader-graph-port--boolean #connector #cap {
+    border-radius: 0;
+}
+.whimtex-shader-graph-port--boolean #connector {
+    rotate: 45deg;
+    scale: 0.8 0.8;
+}
+.whimtex-shader-graph-node-preview {
+    width: 128px;
+    height: 128px;
+    align-self: center;
+    flex-shrink: 0;
+}
+.whimtex-shader-graph-node-preview-image {
+    flex-grow: 1;
+}
+.whimtex-shader-graph-preview-message {
+    white-space: normal;
+}
+.whimtex-shader-graph-preview {
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+.whimtex-shader-graph-preview > .unity-foldout__content {
+    margin-left: 0;
+}
+.whimtex-shader-graph-parameter-node {
+    min-width: 0;
+}
+.whimtex-shader-graph-parameter-node #output {
+    flex-grow: 1;
+}
+/* Match native ShaderPort.uss inside TokenNode; override Pill's compact Port rules. */
+.whimtex-shader-graph-parameter-node #node-border .whimtex-shader-graph-port {
+    height: 24px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+.whimtex-shader-graph-parameter-node #node-border #type {
+    font-size: 11px;
+    height: 16px;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: 4px;
+    margin-right: 4px;
+    margin-top: 4px;
+    margin-bottom: 0;
+}
+.whimtex-shader-graph-parameter-node #node-border #connector {
+    width: 8px;
+    height: 8px;
+    margin-left: 4px;
+    margin-right: 4px;
+}
+.whimtex-shader-graph-port {
+    /* Native ShaderPort.uss row metrics in Unity 6000.7. */
+    height: 24px;
+    align-items: center;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+.whimtex-shader-graph-port-row {
+    flex-direction: row;
+    overflow: visible;
+}
+.whimtex-shader-graph-node #input,
+.whimtex-shader-graph-node #contents,
+.whimtex-shader-graph-node #top,
+.whimtex-shader-graph-node #node-border,
+.whimtex-shader-graph-node #collapsible-area {
+    overflow: visible;
+}
+.whimtex-shader-graph-port-value {
+    /* Native PortInputView.uss layout in Unity 6000.7. */
+    position: absolute;
+    left: -224px;
+    width: 232px;
+    height: 24px;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+}
+.whimtex-shader-graph-value-fields {
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(63, 63, 63, 0.8);
+    border-color: rgba(25, 25, 25, 0.8);
+    border-width: 1px;
+    border-radius: 2px;
+    padding-left: 4px;
+    padding-right: 4px;
+    margin-right: 16px;
+    max-width: 216px;
+}
+.whimtex-shader-graph--light .whimtex-shader-graph-value-fields {
+    background-color: rgba(194, 194, 194, 0.95);
+}
+.whimtex-shader-graph-value-fields > .unity-float-field {
+    /* Native MultiFloatSlotControlView.uss input width in Unity 6000.7. */
+    width: 30px;
+}
+.whimtex-shader-graph-value-fields > .unity-color-field {
+    /* Native ColorRGBASlotControlView.uss width in Unity 6000.7. */
+    width: 41px;
+}
+/* Measured native composite fields: label 17 + input 30, component spacing 4. */
+.whimtex-shader-graph-value-fields > .unity-vector2-field {
+    width: 98px;
+}
+.whimtex-shader-graph-value-fields > .unity-vector3-field {
+    width: 149px;
+}
+.whimtex-shader-graph-value-fields > .unity-vector4-field {
+    width: 200px;
+}
+.whimtex-shader-graph-value-fields .unity-base-field__input {
+    margin-left: 0;
+    margin-right: 0;
+}
+.whimtex-shader-graph-uv-mode {
+    width: 74px;
+}
+.whimtex-shader-graph-value-stub {
+    position: absolute;
+    right: 0;
+    width: 16px;
+    height: 1px;
+    top: 11px;
+}
+/* Native RedirectNode.uss spacing, with a narrower body and a 24px port row. */
+.node.whimtex-shader-graph-reroute {
+    width: 48px;
+    height: 24px;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border-width: 0;
+    border-radius: 8px;
+}
+.whimtex-shader-graph-reroute #node-border {
+    margin: 0;
+    padding: 0;
+    border-width: 0;
+    border-radius: 8px;
+}
+.whimtex-shader-graph-reroute #selection-border {
+    margin: 0;
+    border-radius: 8px;
+}
+.whimtex-shader-graph-reroute #node-border #contents #top #input,
+.whimtex-shader-graph-reroute #node-border #contents #top #output {
+    width: 50%;
+    padding: 0;
+    justify-content: center;
+}
+.whimtex-shader-graph-reroute #top {
+    height: 24px;
+    align-items: center;
+}
+.whimtex-shader-graph-reroute .port {
+    width: 100%;
+    height: 24px;
+    padding: 0;
+    margin: 0;
+    align-items: center;
+}
+.whimtex-shader-graph-reroute #connector {
+    margin-top: 0;
+    margin-bottom: 0;
+    align-self: center;
+}
+.whimtex-shader-graph-reroute .input > #connector {
+    margin-left: 6px;
+    margin-right: 0;
+}
+.whimtex-shader-graph-reroute .output > #connector {
+    margin-left: 0;
+    margin-right: 6px;
+}

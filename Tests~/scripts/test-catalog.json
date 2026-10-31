@@ -38,6 +38,7 @@
     "fx-cyclic-range": [
       "shader-fx-cyclic-range-v1",
       "shader-fx-interval-v1",
+      "shader-fx-header-v1",
       "shader-fx-preview-ui-v1",
       "selective-hsv"
     ],
@@ -802,6 +803,7 @@
       "shader-fx-preview-updates-v1",
       "shader-fx-cyclic-range-v1",
       "shader-fx-interval-v1",
+      "shader-fx-header-v1",
       "shader-fx-preview-ui-v1",
       "shader-fx-preview-v1",
       "shader-fx-parameter-identity",
@@ -880,6 +882,7 @@
       "brush-hlsl-v2",
       "brush-preset-asset-v2",
       "brush-vertex-transport-v2",
+      "builtin-fx-inspector-v1",
       "builtin-fx-fields-v2",
       "canvas-filter-v2",
       "canvas-margins-v2",
@@ -1213,7 +1216,8 @@
       "paint-undo-block-size-correctness",
       "paint-history-native-pages",
       "paint-history-native-no-burst",
-      "gradient-debug-curves-v1"
+      "gradient-debug-curves-v1",
+      "shader-fx-stack-clipboard-v1"
     ],
     "regressions": [
       "shader-processor-regional-v1",
@@ -1430,6 +1434,7 @@
       "shader-fx-preview-updates-v1",
       "shader-fx-cyclic-range-v1",
       "shader-fx-interval-v1",
+      "shader-fx-header-v1",
       "shader-fx-preview-ui-v1",
       "shader-fx-preview-v1",
       "shader-fx-parameter-identity",
@@ -1508,6 +1513,7 @@
       "brush-hlsl-v2",
       "brush-preset-asset-v2",
       "brush-vertex-transport-v2",
+      "builtin-fx-inspector-v1",
       "builtin-fx-fields-v2",
       "canvas-filter-v2",
       "canvas-margins-v2",
@@ -1839,7 +1845,8 @@
       "paint-history-native-no-burst",
       "gradient-debug-curves-v1",
       "layer-interaction-v1",
-      "layer-copy-naming-v1"
+      "layer-copy-naming-v1",
+      "shader-fx-stack-clipboard-v1"
     ],
     "source-guards": [
       "agent-command-inventory-v2",
@@ -2378,6 +2385,7 @@
       "brush-dynamics-v2",
       "brush-hlsl-v2",
       "brush-vertex-transport-v2",
+      "builtin-fx-inspector-v1",
       "builtin-fx-fields-v2",
       "canvas-render-naming-unity-v2",
       "document-window-naming",
@@ -2563,6 +2571,7 @@
       "shader-fx-preview-updates-v1",
       "shader-fx-cyclic-range-v1",
       "shader-fx-interval-v1",
+      "shader-fx-header-v1",
       "shader-fx-preview-ui-v1",
       "shader-fx-preview-v1",
       "shader-fx-parameter-identity",
@@ -2587,6 +2596,7 @@
       "distortion-controls-v2",
       "input-tiling-v2",
       "edge-outline-v2",
+      "builtin-fx-inspector-v1",
       "builtin-fx-fields-v2",
       "enum-fx-smoke-v2",
       "gaussian-blur-api-smoke-v2",
@@ -2605,7 +2615,8 @@
       "polar-coordinates-unity-v2",
       "portable-includes-v2",
       "shader-fx-icons-v1",
-      "shader-fx-preset-groups-v1"
+      "shader-fx-preset-groups-v1",
+      "shader-fx-stack-clipboard-v1"
     ],
     "export": [
       "psd-writer-v2",
@@ -2835,7 +2846,8 @@
       "layer-clipboard-window-v2",
       "portable-clipboard-v2",
       "procedural-clipboard-unity-v2",
-      "layer-copy-naming-v1"
+      "layer-copy-naming-v1",
+      "shader-fx-stack-clipboard-v1"
     ],
     "painting": [
       "brush-preview-cache",
@@ -3596,6 +3608,22 @@
         "src/ShaderFX.cs",
         "src/ShaderParameterBindings.cs"
       ]
+    },
+    {
+      "id": "shader-fx-preview-resolution-v1",
+      "file": "Tests~/Cases/FX/ShaderFXRegionalTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXRegionalTests.RunPreviewResolution",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["fx", "rendering"],
+      "prerequisites": "Idle graphical Editor with current package scripts.",
+      "setup": "Owned 768x64 document and procedural checker FX; compare native and reduced inspector inputs without opening windows.",
+      "teardown": "Release owned effects, caches and document; restore caller graphics state.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs"]
     },
     {
       "id": "shader-fx-regional-v1",
@@ -20574,6 +20602,22 @@
       ]
     },
     {
+      "id": "shader-fx-mask-local-v1",
+      "file": "Tests~/Cases/FX/ShaderFXPixelLocalTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXPixelLocalTests.RunMasks",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["fx", "shader-fx", "regression"],
+      "prerequisites": "Idle matching graphical Editor with current imported package scripts and shaders.",
+      "setup": "Owned detached document, small float textures and transient FX; no windows, user documents or assets.",
+      "teardown": "Destroy owned models, shaders and textures; restore graphics state through MigrationD.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs"]
+    },
+    {
       "id": "shader-fx-pixel-local-v1",
       "file": "Tests~/Cases/FX/ShaderFXPixelLocalTests.cs",
       "runner": "run_script",
@@ -21806,6 +21850,56 @@
       },
       "supportFiles": [
         "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "shader-fx-header-v1",
+      "file": "Tests~/Cases/FX/ShaderFXHeaderTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXHeaderTests.Start",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "groups": [
+        "shader-fx",
+        "fx"
+      ],
+      "prerequisites": "Connected Test6.6 Editor; permission to show one temporary test window.",
+      "setup": "Owned 16px document, transient FX and utility window. Native foldout events and synthetic pointer events target only this window; no OS input.",
+      "teardown": "Close owned window, clear owned Undo and restore fixture state.",
+      "async": {
+        "entry": "WhimTex.Tests.UnityC.AsyncFixture.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
+      },
+      "cancel": {
+        "entry": "WhimTex.Tests.UnityC.AsyncFixture.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "WhimTex.Tests.UnityC.AsyncFixture.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
       ],
       "reviewFiles": []
     },
@@ -24290,6 +24384,40 @@
         "Tests~/Framework/TestApi.cs",
         "Tests~/Framework/Unity/UnityAScope.cs"
       ],
+      "reviewFiles": []
+    },
+    {
+      "id": "builtin-fx-inspector-v1",
+      "file": "Tests~/Cases/FX/BuiltinFXInspectorTests.cs",
+      "runner": "run_script",
+      "entry": "BuiltinFXInspectorTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["fx"],
+      "prerequisites": "Idle graphical Test6.6 Editor; no user window or document mutations.",
+      "setup": "Owned transient FX compile and detached inspector trees verify mode-dependent availability, open Bevel groups, RGB-only colors and retained HDR RGB identity.",
+      "teardown": "Destroy owned FX and document; restore caller GPU state. No assets, user clipboard or windows.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "builtin-fx-inspector-comparison",
+      "file": "Tests~/Cases/FX/BuiltinFXInspectorTests.cs",
+      "runner": "run_script",
+      "entry": "BuiltinFXInspectorTests.Compare",
+      "args": ["Temp/WhimTex/fx-inspector-before-20261030"],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["fx"],
+      "prerequisites": "Idle graphical Test6.6 Editor and original eight HLSL files captured before inspector edits in Temp/WhimTex/fx-inspector-before-20261030; never recreate the baseline from edited sources.",
+      "setup": "Compare unchanged executable HLSL and rendered RGBA against original presets across 56 small HDR/alpha/mode scenarios. No user windows or documents.",
+      "teardown": "Destroy owned FX, images and document; restore caller GPU state. Retain original comparison input files.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
       "reviewFiles": []
     },
     {
@@ -40478,6 +40606,33 @@
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": []
+    },
+    {
+      "id": "shader-fx-stack-clipboard-v1",
+      "file": "Tests~/Cases/Clipboard/ShaderFXStackClipboardTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderFXStackClipboardTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "clipboard",
+        "shader-fx",
+        "fx"
+      ],
+      "prerequisites": "Connected Test6.6 Editor; reviewed case and support sources.",
+      "setup": "Owned in-memory documents and detached UI. Isolates package clipboard fields; never writes OS clipboard or opens windows. Exercises production list snapshots, menu actions and Undo/Redo.",
+      "teardown": "Restore borrowed clipboard fields; clear owned Undo and destroy owned effects/documents.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
       ],
       "reviewFiles": []
     }

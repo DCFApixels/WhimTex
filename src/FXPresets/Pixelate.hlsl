@@ -30,8 +30,8 @@
 // @endif
 // @if _ColorMode == 1
 // @header(One-bit Colors)
-// @param color _LowColor = (0, 0, 0, 1) // Dark color in One-bit mode; color alpha is ignored.
-// @param color _HighColor = (1, 1, 1, 1) // Light color in One-bit mode; color alpha is ignored.
+// @param color(float3) _LowColor = (0, 0, 0) // Dark RGB color in One-bit mode; source alpha is preserved.
+// @param color(float3) _HighColor = (1, 1, 1) // Light RGB color in One-bit mode; source alpha is preserved.
 // @endif
 // @endgroup
 // @group(Alpha Clip; _AlphaClip)
