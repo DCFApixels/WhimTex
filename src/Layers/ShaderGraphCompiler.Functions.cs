@@ -86,10 +86,12 @@ namespace DCFApixels.WhimTex
                 {
                     string variable = "n" + node.id + "_" + p.name;
                     string initial = p.direction == ShaderGraphFunctionDirection.InOut ? Input(node, p.name).text : "(" + Type(p.type) + ")0";
+                    body.Append("#line 1 \"").Append(node.id).AppendLine("\"");
                     body.Append(Type(p.type)).Append(' ').Append(variable).Append(" = ").Append(initial).AppendLine(";");
                     arguments.Append(variable); outputs.Add((p.name, new Value(p.type, variable)));
                 }
             }
+            body.Append("#line 1 \"").Append(node.id).AppendLine("\"");
             if (f.returnType != "void")
             {
                 string variable = "n" + node.id + "_" + f.returnName;

@@ -24,7 +24,7 @@ function enumeration(file, name) {
 const noiseEnum = name => enumeration('Layers/NoiseLayerBehaviour.cs', name);
 const normalEnum = name => enumeration('Layers/NormalMapLayerBehaviour.cs', name);
 const defs = {
-  shader: object({ graph: { $ref: 'document.schema.json#/$defs/ShaderGraph', description: 'Complete graph replacement. Stable node and parameter IDs, typed inputs, edges and parameter controls are retained. Texture parameters accept asset identities or document layer IDs. CustomFunction node functionId references graph.functions, including staged draft/draftPorts. File-backed function sourceId references graph.sources: plain original code plus per-module requested/sourceId include bindings. Embedded backups load without source files; only exact whitelisted engine includes may remain unresolved.' } }),
+  shader: object({ graph: { $ref: 'document.schema.json#/$defs/ShaderGraph', description: 'Complete graph replacement. Stable node and parameter IDs, typed inputs, edges and parameter controls are retained. Texture parameters accept asset identities or document layer IDs. CustomFunction node functionId references graph.functions, including staged draft/draftPorts and hasDraftPorts for intentionally empty port drafts. File-backed function sourceId references graph.sources: plain original code plus per-module requested/sourceId include bindings. Embedded backups load without source files; only exact whitelisted engine includes may remain unresolved.' } }),
   gradientType: enumeration('Layers/GradientLayerBehaviour.cs', 'GradientType'),
   mesh: {
     ...object({ columns: integer(1, 16), rows: integer(1, 16), colorMode: choice('Linear Gamma Perceptual Hue'),

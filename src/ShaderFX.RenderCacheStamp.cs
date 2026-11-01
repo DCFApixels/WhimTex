@@ -140,9 +140,15 @@ namespace DCFApixels.WhimTex
         {
             if (!ContainsShaderGraph(layer)) return json;
             // The cache already hashes serialized layer settings. Normalize only editor
-            // positions, including graphs nested in groups; keep all rendering data.
+            // positions and annotations, including graphs nested in layer groups; keep all rendering data.
             var settings = JObject.Parse(json);
             RemoveNodePositions(layer, settings);
+            // JsonUtility stores SerializeReference behaviours in a root reference table.
+            if (settings["references"]?["RefIds"] is JArray references)
+                foreach (var entry in references)
+                    if ((string)entry["type"]?["class"] == nameof(ShaderLayerBehaviour) &&
+                        (string)entry["type"]?["ns"] == typeof(ShaderLayerBehaviour).Namespace && entry["data"]?["graph"] is JObject graph)
+                        RemoveGraphEditorData(graph);
             return settings.ToString(Formatting.None);
         }
 
@@ -156,12 +162,17 @@ namespace DCFApixels.WhimTex
 
         private static void RemoveNodePositions(Layer layer, JObject settings)
         {
-            if (layer?.BehaviourWithoutBinding is ShaderLayerBehaviour && settings["behaviour"]?["graph"]?["nodes"] is JArray nodes)
-                foreach (var node in nodes)
-                    if (node is JObject data) data.Remove(nameof(ShaderGraphNode.position));
+            if (layer?.BehaviourWithoutBinding is ShaderLayerBehaviour && settings["behaviour"]?["graph"] is JObject graph)
+                RemoveGraphEditorData(graph);
             if (layer?.children != null && settings["children"] is JArray children)
                 for (int i = 0; i < layer.children.Count && i < children.Count; i++)
                     if (children[i] is JObject child) RemoveNodePositions(layer.children[i], child);
+        }
+        private static void RemoveGraphEditorData(JObject graph)
+        {
+            graph.Remove(nameof(ShaderGraph.notes)); graph.Remove(nameof(ShaderGraph.groups));
+            if (graph["nodes"] is JArray nodes) foreach (var node in nodes)
+                if (node is JObject data) data.Remove(nameof(ShaderGraphNode.position));
         }
 
         internal static ulong Mix(ulong hash, ulong value) => unchecked((hash ^ value) * 1099511628211UL);

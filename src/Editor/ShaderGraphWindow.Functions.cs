@@ -90,6 +90,7 @@ namespace DCFApixels.WhimTex
                         : ShaderGraphSources.Capture(candidate.body, path, sources);
                 }
                 CheckFunction(candidate, sources);
+                canvas.SetMessages("function:" + nodeId, null);
                 Edit("Compile Shader Function", graph =>
                 {
                     var node = graph.FindNode(nodeId);
@@ -103,7 +104,7 @@ namespace DCFApixels.WhimTex
                         e.outputNode == nodeId && Array.IndexOf(candidate.OutputPorts(), e.outputPort) < 0);
                 });
             }
-            catch (Exception error) { ShowError(error.Message); canvas.ShowError(nodeId, error.Message); }
+            catch (Exception error) { canvas.ShowError(nodeId, error.Message); }
         }
         internal void AddFunctionNode(ShaderGraphFunctionCatalog.Entry entry, Vector2 position)
         {
@@ -134,10 +135,11 @@ namespace DCFApixels.WhimTex
                 if (source == null) throw new InvalidOperationException("The function source backup is missing.");
                 var candidate = CopyFunctionData(function);
                 candidate.inline = true; candidate.fullSource = true;
-                candidate.body = candidate.draft = source.code; candidate.draftPorts = null;
+                candidate.body = candidate.draft = source.code; candidate.draftPorts = null; candidate.hasDraftPorts = false;
                 candidate.sourcePath = candidate.presetId = candidate.sourceFingerprint = null;
                 candidate.presetVersion = 0; candidate.reflected = false;
                 CheckFunction(candidate, Graph.sources);
+                canvas.SetMessages("function:" + nodeId, null);
                 Edit("Convert to Custom Function", graph =>
                 {
                     var target = graph.FindNode(nodeId);
@@ -147,7 +149,7 @@ namespace DCFApixels.WhimTex
                     target.functionId = candidate.id; target.function = candidate; target.codeExpanded = true;
                 });
             }
-            catch (Exception error) { ShowError(error.Message); canvas.ShowError(nodeId, error.Message); }
+            catch (Exception error) { canvas.ShowError(nodeId, error.Message); }
         }
 
         private sealed partial class NodeView
@@ -160,7 +162,9 @@ namespace DCFApixels.WhimTex
                 window.Edit("Edit Function Ports", graph =>
                 {
                     var f = graph.FindFunction(graph.FindNode(Id).functionId);
-                    f.draftPorts ??= CopyFunctionData(f).ports;
+                    if (!f.HasDraftPorts) f.draftPorts = CopyFunctionData(f).ports;
+                    f.draftPorts ??= new List<ShaderGraphFunctionPort>();
+                    f.hasDraftPorts = true;
                     change(f.draftPorts);
                 }, structural: false, rebuild: false, layoutOnly: true);
             }
@@ -183,7 +187,6 @@ namespace DCFApixels.WhimTex
                     return;
                 }
                 AddToClassList("whimtex-shader-graph-function");
-                if (Data.codeSize.x > 0) style.width = Data.codeSize.x;
                 var actions = new VisualElement(); actions.AddToClassList("whimtex-shader-graph-function-actions");
                 actions.Add(new Button(ChooseFunctionFile) { text = "File…" });
                 extensionContainer.Add(actions);
@@ -194,7 +197,7 @@ namespace DCFApixels.WhimTex
                     void RebuildPorts()
                     {
                         portRows.Clear();
-                        var ports = Function.draftPorts ?? Function.ports;
+                        var ports = Function.EditingPorts;
                         for (int i = 0; i < ports.Count; i++)
                         {
                             int index = i; var p = ports[i];
@@ -213,11 +216,11 @@ namespace DCFApixels.WhimTex
                         }
                     }
                     RebuildPorts();
-                    var shownPorts = Function.draftPorts ?? Function.ports;
-                    refresh.Add(() => { var current = Function.draftPorts ?? Function.ports; if (!ReferenceEquals(shownPorts, current)) { shownPorts = current; RebuildPorts(); } });
+                    var shownPorts = Function.EditingPorts;
+                    refresh.Add(() => { var current = Function.EditingPorts; if (!ReferenceEquals(shownPorts, current)) { shownPorts = current; RebuildPorts(); } });
                     configuration.Add(new Button(() =>
                     {
-                        if ((Function.draftPorts ?? Function.ports).Count >= 64) return;
+                        if (Function.EditingPorts.Count >= 64) return;
                         EditDraftPorts(list => { string name = "Value" + list.Count; while (list.Exists(p => p.name == name)) name += "_"; list.Add(new ShaderGraphFunctionPort { name = name }); });
                         RebuildPorts();
                     }) { text = "Add Port" });
@@ -225,26 +228,34 @@ namespace DCFApixels.WhimTex
                 }
                 actions.Add(new Button(CompileFunctionDraft) { text = "Compile" });
                 var codeFoldout = new Foldout { text = "Code", value = Data.codeExpanded };
+                codeFoldout.AddToClassList("whimtex-shader-graph-function-code-foldout");
                 codeFoldout.RegisterValueChangedCallback(e =>
                 {
                     if (e.target != codeFoldout) return;
                     window.Edit("Toggle Function Code", g => g.FindNode(Id).codeExpanded = e.newValue, false, false, true);
+                    RefreshCodeLayout();
                 });
                 var signature = new Label(f.Signature()); signature.AddToClassList("whimtex-shader-graph-function-signature"); codeFoldout.Add(signature);
                 functionCode = new ShaderFXCodeField(window.document, window.FunctionCaretKey(Id), () => Function?.draft ?? "",
                     code => { if (window.Editable && Function != null) { Function.draft = code; window.DirtyFunctionDraft(); } }, () => window.Editable);
                 functionCode.AddToClassList("whimtex-shader-graph-function-code");
-                if (Data.codeSize.y > 0) functionCode.style.height = Data.codeSize.y;
-                codeFoldout.Add(functionCode);
+                var codeArea = new VisualElement();
+                codeArea.Add(functionCode);
                 var resize = new Label("◢"); resize.AddToClassList("whimtex-shader-graph-function-resize");
-                resize.AddManipulator(new FunctionResizer(this)); codeFoldout.Add(resize);
+                resize.AddManipulator(new FunctionResizer(this)); codeArea.Add(resize);
+                codeFoldout.Add(codeArea);
                 extensionContainer.Add(codeFoldout);
+                void RefreshCodeLayout()
+                {
+                    var data = Data;
+                    style.width = data.codeExpanded && data.codeSize.x > 0 ? new StyleLength(data.codeSize.x) : StyleKeyword.Null;
+                    functionCode.style.height = data.codeExpanded && data.codeSize.y > 0 ? new StyleLength(data.codeSize.y) : StyleKeyword.Null;
+                    codeFoldout.SetValueWithoutNotify(data.codeExpanded);
+                }
                 refresh.Add(() =>
                 {
                     functionCode.SyncFromModel();
-                    if (Data.codeSize.x > 0) style.width = Data.codeSize.x; else style.width = StyleKeyword.Null;
-                    functionCode.style.height = Data.codeSize.y > 0 ? new StyleLength(Data.codeSize.y) : StyleKeyword.Null;
-                    codeFoldout.SetValueWithoutNotify(Data.codeExpanded);
+                    RefreshCodeLayout();
                 });
             }
             void CompileFunctionDraft()
@@ -268,11 +279,11 @@ namespace DCFApixels.WhimTex
                             candidate.returnName = definition.returnName; candidate.returnValueType = definition.returnValueType;
                         }
                     }
-                    else if (candidate.draftPorts != null) candidate.ports = candidate.draftPorts;
-                    candidate.draftPorts = null;
+                    else if (candidate.HasDraftPorts) candidate.ports = candidate.draftPorts ?? new List<ShaderGraphFunctionPort>();
+                    candidate.draftPorts = null; candidate.hasDraftPorts = false;
                     window.ApplyFunction(Id, candidate, new List<ShaderGraphSource>(window.Graph.sources));
                 }
-                catch (Exception error) { window.ShowError(error.Message); window.canvas.ShowError(Id, error.Message); }
+                catch (Exception error) { window.canvas.ShowError(Id, error.Message); }
             }
             void ChooseFunctionFile()
             {
@@ -285,12 +296,12 @@ namespace DCFApixels.WhimTex
                     void Select(ShaderGraphFunctionCatalog.Entry entry)
                     {
                         try { var staged = new ShaderGraph { sources = new List<ShaderGraphSource>(window.Graph.sources) }; var candidate = entry.Import(staged); window.ApplyFunction(Id, candidate, staged.sources); }
-                        catch (Exception error) { window.ShowError(error.Message); }
+                        catch (Exception error) { window.canvas.ShowError(Id, error.Message); }
                     }
                     if (entries.Count == 1) Select(entries[0]);
                     else { var menu = new GenericMenu(); foreach (var entry in entries) { var chosen = entry; menu.AddItem(new GUIContent(entry.menuPath), false, () => Select(chosen)); } menu.ShowAsContext(); }
                 }
-                catch (Exception error) { window.ShowError(error.Message); }
+                catch (Exception error) { window.canvas.ShowError(Id, error.Message); }
             }
             void RefreshFunctionFile()
             {
@@ -303,7 +314,7 @@ namespace DCFApixels.WhimTex
                     var staged = new ShaderGraph { sources = new List<ShaderGraphSource>(window.Graph.sources) };
                     var candidate = entry.Import(staged); window.ApplyFunction(Id, candidate, staged.sources);
                 }
-                catch (Exception error) { window.ShowError(error.Message); }
+                catch (Exception error) { window.canvas.ShowError(Id, error.Message); }
             }
         }
         private sealed class FunctionResizer : PointerManipulator

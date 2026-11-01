@@ -596,7 +596,7 @@ namespace DCFApixels.WhimTex
             private static void RectFill(Painter2D p, Rect r, Color c)
             { p.fillColor=c; p.BeginPath(); p.MoveTo(r.min); p.LineTo(new Vector2(r.xMax,r.y)); p.LineTo(r.max); p.LineTo(new Vector2(r.x,r.yMax)); p.ClosePath(); p.Fill(); }
         }
-        private sealed class ChannelRamp : VisualElement
+        internal sealed class ChannelRamp : VisualElement
         {
             private readonly Func<float,Color> sample;
             internal ChannelRamp(Func<float,Color> sample) { this.sample=sample; generateVisualContent+=Draw; }

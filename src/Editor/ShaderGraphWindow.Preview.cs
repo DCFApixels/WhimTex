@@ -176,7 +176,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private sealed class NodePreview : Foldout, IDisposable
+        private sealed class NodePreview : VisualElement, IDisposable
         {
             private const int Size = 128;
             private readonly ShaderGraphWindow window;
@@ -184,38 +184,81 @@ namespace DCFApixels.WhimTex
             private readonly DropdownField output;
             private readonly VisualElement surface;
             private readonly Image image;
-            private readonly Label message;
+            private readonly VisualElement content;
+            private readonly Button expand;
             private ShaderGraphProgram program;
             private RenderTexture texture;
             private readonly string nodeId;
             private string compiledPort;
             private ulong fingerprint;
             private bool dirty = true, attempted, disposed;
+            private bool expanded = true;
+            internal bool Expanded => expanded;
+
+            internal static bool Supports(ShaderGraphWindow window, ShaderGraphNode node)
+            {
+                if (node == null || node.kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or
+                    ShaderGraphNodeKind.Reroute or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.InstanceIndex or
+                    ShaderGraphNodeKind.Time or ShaderGraphNodeKind.ImageSize or
+                    ShaderGraphNodeKind.TextureSize or ShaderGraphNodeKind.Split or ShaderGraphNodeKind.Compare) return false;
+                foreach (string port in ShaderGraphNodes.Outputs(node))
+                    if (ShaderGraphNodes.IsNumeric(window.OutputType(node, port))) return true;
+                return false;
+            }
 
             internal NodePreview(ShaderGraphWindow window, Canvas canvas, string nodeId)
             {
-                this.window = window; this.canvas = canvas; this.nodeId = nodeId; text = "Preview"; value = true;
+                this.window = window; this.canvas = canvas; this.nodeId = nodeId;
                 AddToClassList("whimtex-shader-graph-preview");
                 userData = nodeId;
+                content = new VisualElement(); Add(content);
                 output = new DropdownField("Output", new List<string> { "Out" }, 0);
-                output.RegisterValueChangedCallback(_ => dirty = true); Add(output);
+                output.RegisterValueChangedCallback(_ => dirty = true); content.Add(output);
                 surface = new VisualElement(); surface.AddToClassList("whimtex-shader-graph-node-preview");
                 surface.generateVisualContent += WhimTexGradientWindow.DrawCheckerboard;
                 image = new Image { scaleMode = ScaleMode.ScaleToFit, pickingMode = PickingMode.Ignore };
-                image.AddToClassList("whimtex-shader-graph-node-preview-image"); surface.Add(image); Add(surface);
-                message = new Label(); message.AddToClassList("whimtex-shader-graph-preview-message"); Add(message);
-                message.AddToClassList("whimtex-hidden");
-                this.RegisterValueChangedCallback(e => { if (e.target == this && e.newValue) dirty = true; });
+                image.AddToClassList("whimtex-shader-graph-node-preview-image"); surface.Add(image); content.Add(surface);
+                var collapse = new Button(() => SetExpanded(false)) { name = "collapse-preview" };
+                collapse.AddToClassList("whimtex-shader-graph-preview-collapse"); collapse.Add(Chevron(true)); surface.Add(collapse);
+                expand = new Button(() => SetExpanded(true)) { name = "expand-preview" };
+                expand.AddToClassList("whimtex-shader-graph-preview-expand"); expand.Add(Chevron(false)); Add(expand);
+                SetExpanded(true);
+            }
+            private static VisualElement Chevron(bool up)
+            {
+                var icon = new VisualElement { pickingMode = PickingMode.Ignore };
+                icon.AddToClassList("whimtex-shader-graph-preview-chevron");
+                icon.generateVisualContent += context =>
+                {
+                    Vector2 center = icon.contentRect.center;
+                    var painter = context.painter2D;
+                    painter.lineWidth = 2; painter.lineCap = LineCap.Round; painter.lineJoin = LineJoin.Round;
+                    painter.strokeColor = icon.resolvedStyle.color;
+                    float direction = up ? -1 : 1;
+                    painter.BeginPath(); painter.MoveTo(center + new Vector2(-4, -2 * direction));
+                    painter.LineTo(center + new Vector2(0, 2 * direction));
+                    painter.LineTo(center + new Vector2(4, -2 * direction)); painter.Stroke();
+                };
+                return icon;
+            }
+            private void SetExpanded(bool value)
+            {
+                expanded = value;
+                content.style.display = value ? DisplayStyle.Flex : DisplayStyle.None;
+                expand.style.display = value ? DisplayStyle.None : DisplayStyle.Flex;
+                EnableInClassList("whimtex-shader-graph-preview--collapsed", !value);
+                GetFirstAncestorOfType<NodeView>()?.EnableInClassList("whimtex-shader-graph-node--preview", value);
+                if (value) dirty = true;
             }
             internal void Invalidate() => dirty = true;
             internal void RefreshOutputs()
             {
                 var node = window.Graph?.FindNode(nodeId);
-                var choices = node == null || node.kind == ShaderGraphNodeKind.Output ? new List<string> { "RGBA" } : new List<string>(ShaderGraphNodes.Outputs(node));
-                if (node?.kind == ShaderGraphNodeKind.Split)
-                    choices.RemoveAll(port => "XYZW".IndexOf(port, StringComparison.Ordinal) >= ShaderGraphNodes.Components(window.InputType(node, "In")));
+                var choices = new List<string>();
+                if (node != null) foreach (string port in ShaderGraphNodes.Outputs(node))
+                    if (ShaderGraphNodes.IsNumeric(window.OutputType(node, port))) choices.Add(port);
                 output.choices = choices;
-                if (!choices.Contains(output.value)) output.SetValueWithoutNotify(choices[0]);
+                if (!choices.Contains(output.value)) output.SetValueWithoutNotify(choices.Count == 0 ? null : choices[0]);
                 output.EnableInClassList("whimtex-hidden", choices.Count <= 1);
                 dirty = true;
             }
@@ -228,7 +271,7 @@ namespace DCFApixels.WhimTex
                 var current = window.Graph?.FindNode(nodeId);
                 if (current == null) { Release(); return false; }
                 if (ShaderGraphNodes.Components(window.OutputType(current, output.value)) == 0)
-                { message.text = "Connect a sampling node to preview this resource."; message.RemoveFromClassList("whimtex-hidden"); Release(); return false; }
+                { canvas.SetMessages("preview:" + nodeId, new[] { new ShaderGraphMessage(nodeId, "Connect a sampling node to preview this resource.", ShaderGraphMessageLevel.Info) }); Release(); return false; }
 
                 var previous = RenderTexture.active;
                 bool srgb = GL.sRGBWrite;
@@ -250,19 +293,35 @@ namespace DCFApixels.WhimTex
                     bindings?.Apply(program.Material);
                     GL.sRGBWrite = false;
                     Graphics.Blit(null, texture, program.Material, 0);
-                    image.image = texture; message.text = string.Empty;
+                    image.image = texture;
+                    SetMessages(program.Messages);
                 }
-                catch (Exception error) { image.image = null; message.text = error.Message; }
+                catch (Exception error)
+                {
+                    image.image = null;
+                    SetMessages((error as ShaderGraphException)?.messages ??
+                        new[] { new ShaderGraphMessage(nodeId, error.Message, ShaderGraphMessageLevel.Error) });
+                }
                 finally
                 {
-                    message.EnableInClassList("whimtex-hidden", string.IsNullOrEmpty(message.text));
                     RenderTexture.active = previous; GL.sRGBWrite = srgb;
                 }
                 return compile;
             }
+            private void SetMessages(IReadOnlyList<ShaderGraphMessage> messages)
+            {
+                // A preview-only device/render failure still belongs to the preview's node.
+                List<ShaderGraphMessage> local = null;
+                for (int i = 0; i < messages.Count; i++) if (messages[i].nodeId == null)
+                {
+                    local ??= new List<ShaderGraphMessage>(messages);
+                    local[i] = new ShaderGraphMessage(nodeId, messages[i].text, messages[i].level);
+                }
+                canvas.SetMessages("preview:" + nodeId, local ?? messages);
+            }
             private bool CanDisplay()
             {
-                if (!value || panel == null || surface.contentRect.width < 1) return false;
+                if (!expanded || panel == null || surface.contentRect.width < 1) return false;
                 Rect bounds = surface.worldBound;
                 for (VisualElement element = this; element != null; element = element.parent)
                 {

@@ -23,6 +23,9 @@ Shader does not implicitly sample the lower stack. Images enter through declared
 parameters and Sample Texture nodes. The generated image participates in the ordinary layer
 transform, FX and composition pipeline; Output is not the final document composite.
 
+Create nodes through the graph context menu's **Create Node**, **Space**, or by dropping an output
+connection on empty graph space. Notes, groups and edge reroutes have separate context actions.
+
 ## Parameters and ports
 
 Parameter headers can be dragged to reorder `graph.parameters` or dropped on the graph to
@@ -33,8 +36,8 @@ the original. Remove deletes its Parameter nodes and incident edges. These opera
 Undo/Redo. Header indicators reuse output-port types, colors and shapes.
 
 Parameter declarations define the fields shown in the layer's Properties. A Parameter node reads
-a declaration, and multiple nodes can read the same declaration. Constant holds a graph-local
-value. Texture, Gradient and Curve parameters use the shared parameter controls and bindings.
+a declaration, and multiple nodes can read the same declaration. Constant selects PI, TAU,
+PHI, E or SQRT2 and always outputs Float. Texture, Gradient and Curve parameters use the shared controls and bindings.
 
 In the graph editor, Parameter nodes use one compact row containing the parameter name and
 output connector. There is no visible `Out` label, internal preview or dropdown. Choose another
@@ -72,8 +75,7 @@ Color port follows these rules:
 
 Conversion from Color to a numeric port follows the ordinary `float4` rules. Output's `RGBA`
 input, Blend's color inputs and result, Sample Texture and Sample Gradient color outputs, and
-Color Parameter outputs have fixed Color types. Sample Curve remains numeric. Constant's type
-menu includes Color, with a color picker for its value.
+Color Parameter outputs have fixed Color types. Sample Curve remains numeric.
 
 Dynamic math normalizes Color to `float4` before choosing the widest numeric operand width.
 Scalars splat to that width; shorter vectors are zero-extended. The Color destination's
@@ -81,7 +83,7 @@ alpha-one defaults do not apply in math. For example, Add of Color `(r, g, b, a)
 uses `(x, x, x, x)`, and Add with `float2(x, y)` uses `(x, y, 0, 0)`. Dynamic numeric results use
 numeric types, not Color; operations with fixed scalar or Boolean results retain those results.
 
-Constant and unconnected Color values store linear RGBA; their picker displays encoded RGB
+Unconnected Color values store linear RGBA; their picker displays encoded RGB
 and converts edits back to linear RGB without changing alpha. Color parameters retain their
 existing encoded storage and color preparation into linear working values.
 Connecting Color and numeric ports does not insert a color-space conversion, and numeric
@@ -92,14 +94,55 @@ operation before numeric use; Boolean conditions remain distinct from numeric an
 Unconnected numeric input fields sit outside the node body, to the left of their ports, leaving
 the port dots unobstructed for wiring. These fields already existed but were hidden by `Node`'s
 built-in inline clipping; they are now visible and editable. Connecting an input hides its field; disconnecting it
-restores the field. Unconnected UV ports retain implicit `PixelUV` coordinates. Their local
+restores the field. Single Float fields use an X component label; dragging it adjusts the value
+through Unity's native numeric control. Unconnected UV ports retain implicit `PixelUV` coordinates. Their local
 **Custom / UV** option selects an explicit numeric value or the implicit current-pixel UV;
 Custom fields follow the same external placement and connection visibility rules. These are
 editor controls over the existing input semantics, not changes to graph math or storage.
 
+Visible inputs that do not apply to the selected mode are disabled together with their fields:
+Noise/DomainWarp Octaves, Lacunarity and Gain with Fractal None; Noise PingPongStrength outside
+PingPong; Shape Radius outside Rounded Rectangle; Stripes Width outside Square; GradientFactor
+Angle in Radial mode. A tooltip explains the dependency. Split outputs beyond the input width
+are disabled. Connection candidates and create-connected-node search exclude inactive ports.
+Changing modes preserves values and wires for ports that remain present; reactivating a port
+restores editing. This editor availability state adds no serialized fields or evaluation rules.
+
+## Notes, groups and node messages
+
+`ShaderGraph.notes` and `groups` are optional arrays (empty by default, at most 512 each).
+A note stores `id`, `title`, `contents`, `position`, `size`, `theme` (0 Classic, 1 Black) and
+`fontSize` (0 Small, 1 Medium, 2 Large, 3 Huge), and `hueShift` (−180…180 degrees, default 0).
+The Hue context action opens a rainbow slider without a label. It rotates the native background,
+outline and text palette in HSV, retaining each color’s saturation, value and alpha plus non-color
+styles. Zero removes overrides entirely; changing the native note theme retains the shift and
+applies it to the new theme’s palette. Selection and resize affordances keep their standard colors. Note selection uses the native node’s
+2-pixel outward gap and 8-pixel corner radius, measured in Unity 6000.7. A group stores `id`, `title`, `position` and
+`elements`: IDs of nodes or notes. IDs are unique across all three element kinds. Each element
+belongs to at most one group; groups cannot contain groups. Deleting a member prunes its IDs.
+Deleting the group only removes its frame. Notes use native StickyNote sizing and editing;
+groups use native GraphView Group layout. Note text editors copy the visible label’s measured
+rectangle and typography into the native TextField and nested input, preserving the text area and
+font size when entering edit mode or typing longer content. Both are created through separate context-menu actions,
+not node search. They support document Undo/Redo and clipboard; copying a group expands its
+members, remaps their IDs and preserves internal edges. Notes can be copied independently.
+Annotations are excluded from shader and render fingerprints and do not request compilation or
+rendering when edited. TIFF and document JSON retain their layout and text.
+
+Shader diagnostics retain node ID, text and Info/Warning/Error level, including Unity compiler
+warnings. Emitted node expressions and HLSL modules map source locations to node IDs. A node's
+compile, preview and function-draft messages share a badge at its right, using the highest severity.
+Only hovering that badge opens the message panel to its right. Preview errors no longer add text
+below the preview, and node errors do not repeat in the bottom message area. Global compilation
+errors remain in the graph message area. An unsuccessful compile retains the last valid layer
+program; an unsuccessful preview clears its image.
+
 ## Node clipboard
 
 Native GraphView Copy/Paste/Cut/Duplicate commands use a session-scoped JSON fragment.
+The canvas also handles Ctrl/Cmd+C/V/X/D key events through those same native callbacks,
+so fresh clipboard operations do not depend on Editor command forwarding after script reload.
+Handled keys are consumed once; text fields and active pointer gestures keep their own input.
 The fragment includes selected nodes, edges whose endpoints are both selected, required
 parameter values, functions (including drafts and editor sizes), and their include closure.
 Output is not copyable. Text-field commands retain normal text editing behavior.
@@ -107,12 +150,15 @@ Output is not copyable. Text-field commands retain normal text editing behavior.
 Paste assigns new node/function IDs, remaps internal edges, and selects the inserted nodes.
 In the same graph, compatible Parameter IDs are reused; otherwise parameters are copied
 with new IDs and unique display names. Unusable layer texture references are cleared, including
-references across documents. Unity texture object references are retained within the Editor domain.
+references across documents. Unity texture object references are retained within the Editor session.
 Includes are deduplicated by ID and matching content/bindings; conflicting content is rejected.
 The merged graph is validated before one document Undo mutation, so invalid data or capacity
-limits do not partially insert nodes. Repeated paste offsets the selection; cross-graph paste
-starts at the visible graph center. Duplicate leaves the system clipboard unchanged.
-The clipboard is invalidated by script reload or Editor restart and is not a document format.
+limits do not partially insert nodes. Copy records the combined laid-out rectangles of nodes,
+notes and group frames in graph coordinates. Paste and Duplicate align that rectangle's center
+with the current viewport center, accounting for pan and zoom. Repeated paste uses the same
+centering rule without an accumulating offset. Duplicate leaves the system clipboard unchanged.
+The clipboard survives script reload: its Editor-session marker is retained in SessionState.
+An Editor restart invalidates it; this is not a document format.
 
 ## Node movement and deletion
 
@@ -131,7 +177,7 @@ relative positions.
 Double-clicking an existing edge inserts a Reroute at that location, replacing the edge with
 source → `In` and `Out` → destination connections. The edge context menu offers **Add Reroute**
 with the same behavior. In the editor, Reroute is created only on an existing edge and is
-absent from **Add Node** and node search.
+absent from node search.
 
 Reroute is a movable mini-node with no header, preview or parameter controls. Its `In` → `Out`
 path forwards the source's exact type and value: `float`, `float2`, `float3`, `float4`, Color, Boolean,
@@ -168,8 +214,8 @@ the subsequent layer FX and document composition remain separate from this gener
 
 Changing parameter values updates bindings and the rendered result without recompiling the
 shader. Changes to operations, connections or parameter types change the generated program and
-require compilation. A Constant is edited inside the graph rather than exposed as a Properties
-parameter; its numeric value is also bound separately from the generated code.
+require compilation. Constant emits the selected mathematical value as a float literal rather
+than a material uniform; changing `constant` or a Swizzle's `swizzle` mask changes the code fingerprint.
 Moving nodes in the editor only changes layout. The computation must be acyclic and connections
 must satisfy the port types to compile. If compilation fails, diagnostics remain explicit and
 the runtime retains its last successfully compiled shader when one is available. That shader's
@@ -200,6 +246,28 @@ remains the editable source; this view does not edit the generated program.
 
 <a id="selected-node-preview"></a>
 
+## Constant and Swizzle
+
+`Constant` uses `constant: "PI"` (default), `"TAU"` (2π), `"PHI"` (golden ratio),
+`"E"` or `"SQRT2"`. `Out` is always Float; the selected value is emitted directly into HLSL.
+Arbitrary numbers/colors belong to parameters or unconnected input values. The old node-level
+`value` field is removed; JSON/TIFF graphs containing it are unsupported, without migration.
+
+`Swizzle` has one dynamic numeric/Color input `In` and numeric output `Out`. Its `swizzle`
+string defaults to `"xxxx"`. Valid masks have 1–4 characters: `xyzw`, `rgba` (case-insensitive,
+aliases may be mixed) and `_` for literal zero. Components may repeat. Output is Float through
+Float4 according to mask length, including when the input is Color; no color conversion occurs.
+For Float2 `(x,y)`, `"_x_y"` produces `float4(0,x,0,y)`. `"_"` produces Float zero.
+Input width is the maximum of the connected source width (or the stored unconnected input type)
+and the highest component referenced by the mask: y/g requires Float2, z/b Float3 and w/a Float4.
+`_` does not increase input width. Color sources count as four numeric components.
+Connected sources use the usual numeric conversions: scalars repeat, shorter vectors gain zeros.
+Unconnected fields expose all inferred components directly and retain their stored values.
+An empty/oversized mask or unsupported character is a node-specific compilation error.
+Invalid masks remain saveable drafts.
+The Mask field commits on Enter or focus loss before rebuilding typed ports. Choice/mask edits,
+Undo/Redo, clipboard and JSON/TIFF persistence use the ordinary graph mechanisms.
+
 ## Node previews
 
 Layer Preview uses the shared `LayerPreviewPanel` in a floating overlay beside the graph canvas,
@@ -215,10 +283,24 @@ The docked Layer Settings preview retains its existing reveal/resize behavior.
 Hovering a parameter declaration highlights its row and all matching Parameter nodes by ID.
 This transient feedback does not alter selection, Undo history or rendering.
 
-Calculation nodes other than Output own collapsible previews inside their nodes. Output,
-Parameter and Reroute have no per-node preview.
+Preview availability is shared by node construction and cache cleanup. Constant, Image Size,
+Texture Size, Split, Compare, Output, Parameter and Reroute do not create a preview or GPU target.
+UV, sampling, generators and numeric image-processing operations retain previews.
+Nodes with an expanded preview retain the 200-pixel minimum width. Collapsing the preview
+removes that constraint, so the node sizes to its contents like an ordinary node without a preview;
+expanding it restores the minimum. Rebuilding the node view respects the cached preview state.
+Only numeric and Color output ports are offered; Boolean/resource-only HLSL functions have no preview.
+This is a node-kind/output-type policy, not an analysis of whether the current inputs vary with UV.
 There is no shared Selected Node preview in the sidebar, and selecting a node does not retarget
-another node's preview. An output selector appears only when the node has multiple outputs.
+another node's preview. An output selector appears only when multiple previewable outputs exist.
+The preview has no Foldout or heading. Its collapse button overlays the image at the top and
+appears on node hover (or button focus). A collapsed preview leaves only an expand row.
+Control heights and icon dimensions come from installed `com.unity.shadergraph` 17.7.0,
+`Editor/Resources/Styles/MaterialNodeView.uss`: collapse 20 × 20 with a 4-pixel top inset,
+expand 56 × 16 and icon 16 × 16 logical pixels. The expand button is centered without
+margins or padding; its chevron is centered. Scoped button selectors override the native node's
+button margins. Chevrons are drawn locally; there is no package
+asset dependency. Expansion state remains local to the window's cached preview across node rebuilds.
 Resource ports require a Sample node; scalar values become opaque grayscale, `float2` becomes
 `(x, y, 0, 1)`, `float3` gains alpha 1, and `float4` and Color are displayed as RGBA. These display
 conversions do not change numeric wire conversions or math results.
@@ -239,12 +321,13 @@ Names below identify operations; grouped rows do not imply a single combined nod
 
 | Operations | Purpose |
 | --- | --- |
-| Parameter, Constant | Shared parameter reads and graph-local values. |
+| Parameter, Constant | Shared parameter reads and named mathematical constants. |
+| Instance Index, Time | Input nodes with one Float output, Out. Both currently return 0, with no controls or preview. |
 | Custom Function, cataloged HLSL functions | Inline function bodies or functions imported from an HLSL library. |
-| Reroute | Forward a typed connection unchanged; insert on an existing edge, not through Add Node or search. |
+| Reroute | Forward a typed connection unchanged; insert on an existing edge, not through node search. |
 | UV, Image Size, Texture Size | Coordinates and image dimensions. |
 | Sample Texture, Sample Gradient, Sample Curve | Read typed resources. |
-| Split, Combine | Component access and vector construction. |
+| Split, Combine, Swizzle | Component access, vector construction, reordering and zero insertion. |
 | Add, Subtract, Multiply, Divide | Basic arithmetic. |
 | Min, Max, Clamp, Abs, One Minus, Negate | Bounds, absolute value, `1 − x` and sign inversion. |
 | Power, Square Root | Exponentiation and square root. |
@@ -253,14 +336,157 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Lerp, Remap, Step, Smoothstep | Interpolation, range mapping and thresholds. |
 | Length, Distance, Dot, Normalize | Vector calculations. |
 | Compare, Select | Conditions and conditional values. |
-| Transform UV | Translation, scale and rotation of coordinates. |
-| Noise | Procedural sampling using the shared noise library. |
-| Shape | Ellipse, rectangle and rounded-rectangle masks with antialiased edges. |
+| Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope | Coordinate transforms in the UV category. |
+| Domain Warp, Vector Displacement, Twirl, Bulge / Pinch, Wave, Ripple | UV distortions for downstream sampling and procedural nodes. |
+| Noise, Cellular, Random | Spatial noise, cellular distances and deterministic random values. |
+| Checkerboard, Stripes, Grid, Rings, Gradient Factor | Procedural masks and scalar gradient coordinates. |
+| Shape, Combine Distance | Antialiased shape masks and signed-distance operations. |
 | Blend | RGBA blending using the existing blend semantics. |
 | Output | Final straight RGBA through a fixed Color input; modest visual distinction and no per-node preview. |
 
-Reusable subgraphs, Blur and Time nodes are outside this first version.
+Reusable subgraphs and Blur are outside this first version. Time exists but currently returns 0.
 HLSL FX authoring continues to use the [separate effect contract](ShaderFX.md).
+
+### Procedural and UV nodes
+
+Use the exact `kind` and output-port names below when authoring graph JSON. Spaces in editor
+labels are not part of serialized kinds. All listed outputs have fixed numeric types.
+
+| Category | `kind` | Outputs | Purpose |
+| --- | --- | --- | --- |
+| Procedural/Noise | `Noise` | `Out`: Float | Noise with None, FBm, Ridged or PingPong fractals. |
+| Procedural/Noise | `Cellular` | `F1`, `F2`, `Cell`: Float | Nearest and second-nearest feature distances and a cell value. |
+| Procedural/Noise | `Random` | `Out`: Float | Deterministic random values from coordinates and seed. |
+| Procedural/Pattern | `Checkerboard`, `Stripes`, `Grid`, `Rings` | `Out`: Float | Antialiased pattern masks. |
+| Procedural/Pattern | `GradientFactor` | `Out`: Float | Scalar position for `SampleGradient.T`. |
+| Procedural/Shape | `Shape` | `Out`, `Distance`: Float | Smoothed mask and signed distance for Ellipse, Rectangle, Rounded Rectangle, Polygon, Star, Capsule or Line Segment. |
+| Procedural/Shape | `CombineDistance` | `Out`, `Mask`: Float | Combine signed distances and produce a smoothed mask. |
+| UV | `TransformUV`, `PolarCoordinates`, `Mirror`, `Kaleidoscope` | `Out`: Float2 | Transform, remap or fold coordinates. |
+| UV | `Repeat` | `Out`, `Cell`: Float2 | Repeated coordinates and the corresponding cell coordinates. |
+| UV/Distortion | `DomainWarp` | `Out`, `Displacement`: Float2 | Warped UV and its displacement. |
+| UV/Distortion | `VectorDisplacement`, `Twirl`, `BulgePinch`, `Wave`, `Ripple` | `Out`: Float2 | Offset or deform coordinates. |
+
+Categories are nested branches in Create Node and the connection search. Discovery represents
+each path with `/` separators. Cellular's default output is `F1`; it has no `Out` port. Set an
+edge's `outputPort` to `F1`, `F2` or `Cell` explicitly when using Cellular in JSON.
+
+UV distortion nodes return coordinates, not sampled colors or masks. Connect their `Out` to
+the `UV` input of a procedural or sampling node. They do not clamp coordinates to `0..1`;
+`SampleTexture` wrap settings determine how out-of-range image coordinates are sampled.
+`Strength = 0` leaves the input UV unchanged. Displacement vectors retain their magnitude;
+they are not normalized. `TransformUV` belongs to **UV**, independently of the layer Transform.
+
+`Wave`, `Ripple`, `Stripes` and `Rings` expose a separate Float `Phase` input. Supply a parameter
+or another scalar expression to shift the pattern; the current `Time.Out` is always zero.
+Mask edges are smoothed. A signed-distance output is negative inside, zero on the boundary
+and positive outside; do not treat it as a `0..1` mask. `Shape.Distance` retains the existing
+approximate ellipse distance, so an ellipse is not guaranteed to have an exact Euclidean SDF.
+Connect two `Shape.Distance` outputs to `CombineDistance` and use its `Mask` for coverage.
+
+For a colored gradient, connect `GradientFactor.Out` to `SampleGradient.T`, a Gradient parameter
+to `SampleGradient.Gradient`, and its color `Out` to `Output.RGBA`. `GradientFactor` supplies
+the position; it does not hold or sample a gradient resource.
+
+#### Serialized modes and inputs
+
+`node.option` is a zero-based integer, default `0`. The following labels are listed in that
+integer order; they are not string values to write into `option`.
+
+| `kind` | `option`: label |
+| --- | --- |
+| `Noise` | 0: OpenSimplex2; 1: OpenSimplex2S; 2: Cellular; 3: Perlin; 4: ValueCubic; 5: Value |
+| `Cellular` | 0: Euclidean; 1: Euclidean Squared; 2: Manhattan; 3: Hybrid |
+| `Stripes` | 0: Square; 1: Triangle; 2: Sine |
+| `GradientFactor` | 0: Linear; 1: Radial; 2: Angular |
+| `Shape` | 0: Ellipse; 1: Rectangle; 2: Rounded Rectangle; 3: Polygon; 4: Star; 5: Capsule; 6: Line Segment |
+| `CombineDistance` | 0: Union; 1: Intersection; 2: Subtract |
+| `PolarCoordinates` | 0: To Polar; 1: From Polar |
+| `Mirror` | 0: X; 1: Y; 2: Both |
+| `DomainWarp` | 0: OpenSimplex2; 1: OpenSimplex2Reduced; 2: BasicGrid |
+| `VectorDisplacement` | 0: Signed RG; 1: Packed RG |
+
+`node.fractal` is separate from `option`. Use enum names in JSON: Noise accepts `None`, `FBm`,
+`Ridged`, `PingPong`; DomainWarp accepts `None`, `Progressive`, `Independent`. Their underlying
+enum values are respectively `0`, `1`, `2`, `3`, `4`, `5`; both nodes default to `None`.
+The UI label **Ping Pong** serializes as `PingPong`. Progressive warps each octave's sampling
+position using previous octaves; Independent samples each octave from the original position.
+
+All inputs below are Float unless marked Float2. Every `UV` input is Float2 and defaults to
+current-pixel UV; `Random.Coordinates` is an ordinary Float2 input with a constant zero default.
+Input values belong in `node.inputs`, with exact case-sensitive port names. Discovery returns
+their types and defaults; a mode's controls are not additional node-level JSON fields.
+
+| `kind` | Inputs |
+| --- | --- |
+| `Noise` | UV, Scale (Float2), Seed, Octaves, Lacunarity, Gain, PingPongStrength |
+| `Cellular` | UV, Scale (Float2), Seed, Jitter |
+| `Random` | Coordinates (Float2), Seed |
+| `Checkerboard` | UV, Scale (Float2), Offset (Float2) |
+| `Stripes` | UV, Frequency, Width, Angle, Phase |
+| `Grid` | UV, Scale (Float2), Width (Float2), Offset (Float2) |
+| `Rings` | UV, Center (Float2), Frequency, Width, Phase |
+| `GradientFactor` | UV, Center (Float2), Scale (Float2), Angle |
+| `CombineDistance` | A, B, Smoothness, Feather |
+| `TransformUV` | UV, Offset (Float2), Scale (Float2), Rotation, Center (Float2) |
+| `PolarCoordinates` | UV, Center (Float2), Angle |
+| `Repeat` | UV, Scale (Float2), Offset (Float2) |
+| `Mirror` | UV, Center (Float2) |
+| `Kaleidoscope` | UV, Center (Float2), Sectors, Angle |
+| `DomainWarp` | UV, Scale (Float2), Seed, Strength, Offset (Float2), Octaves, Lacunarity, Gain |
+| `VectorDisplacement` | UV, Displacement (Float2), Strength (Float2) |
+| `Twirl`, `BulgePinch` | UV, Center (Float2), Strength, Radius |
+| `Wave` | UV, Strength, Frequency, Direction, Phase |
+| `Ripple` | UV, Center (Float2), Strength, Frequency, Radius, Phase |
+
+Shape inputs depend on `option`. Use the active mode's port set when wiring or serializing
+inputs. Changing Shape mode in the editor removes inputs and incoming edges absent from the
+new mode and initializes newly introduced inputs with their defaults.
+
+| Shape `option` | Inputs |
+| --- | --- |
+| 0, 1, 2 | UV, Center (Float2), Size (Float2), Radius, Feather |
+| 3: Polygon | UV, Center (Float2), Size (Float2), Sides, Rotation, Feather |
+| 4: Star | UV, Center (Float2), Size (Float2), Sides, InnerRadius, Rotation, Feather |
+| 5: Capsule | UV, Center (Float2), Size (Float2), Rotation, Feather |
+| 6: Line Segment | UV, Start (Float2), End (Float2), Width, Feather |
+
+#### Units and evaluation
+
+- `Angle`, `Rotation` and `Direction` are degrees. `Twirl.Strength` is also degrees.
+  `Phase` is cycles: Stripes, Rings and Wave add it to their periodic coordinate; Ripple
+  subtracts it. `Frequency` is cycles per input-coordinate unit. No implicit time is read.
+- Noise and DomainWarp round and clamp `Octaves` to `1..8`, clamp `Lacunarity` to `0.01..16`
+  and `Gain` to `0..1`. `Noise.PingPongStrength` is clamped to nonnegative values.
+  DomainWarp with `fractal: "None"` always evaluates one octave. Its Scale and Offset change
+  noise sampling; `Out = UV + Displacement`, with the displacement retaining its magnitude.
+- Cellular evaluates a shared 5 × 5 cell neighborhood for F1, F2 and Cell. F1/F2 are
+  nonnegative distances in `UV * Scale` coordinates using the selected metric, without
+  FastNoiseLite's `-1` distance offset. Hybrid adds Manhattan distance and squared Euclidean
+  distance. `Jitter` clamps to `0..1`. `Cell` is a deterministic value in `[0,1)`, not a unique ID.
+- Random returns a deterministic scalar in `[0,1)`. Its default Coordinates produce a constant;
+  connect `UV.Out` for spatial variation or `Repeat.Cell` for one value per repeated cell.
+  Repeat computes `p = UV * Scale + Offset`, `Out = frac(p)`, `Cell = floor(p)`, including
+  negative cell coordinates. `Cell` is unrelated to the currently constant `InstanceIndex`.
+- Stripes uses Width only in Square mode. Width is the filled fraction of a period for Square
+  Stripes and Rings; Grid has independent X/Y widths. Pattern filtering smooths pixel coverage.
+  Shape.Out and CombineDistance.Mask use derivative antialiasing with optional Feather.
+  CombineDistance subtracts **B from A**; positive Smoothness blends the distance operation,
+  while Feather only affects Mask. Sides rounds/clamps to `3..64` for Polygon and `2..64` for Star;
+  Star.InnerRadius clamps to `0.001..1`. Shape.Radius affects Rounded Rectangle only.
+  Line Segment's Width is its full thickness.
+- GradientFactor first computes `p = (UV - Center) * Scale`. Linear returns its projection
+  along Angle plus `0.5`; Radial returns `2 * length(p)`; Angular returns a wrapped turn minus
+  `Angle / 360`. Linear and Radial can exceed `0..1`.
+- To Polar returns `(wrapped angle in turns, 2 * distance from Center)`, subtracting Angle
+  from the angular coordinate. From Polar reads `UV.x` as turns, adds Angle, and uses
+  `UV.y * 0.5` as radius around Center. Mirror folds selected axes onto the positive
+  half-planes relative to Center. Kaleidoscope rounds/clamps Sectors to `1..128`.
+- VectorDisplacement applies `UV + decoded Displacement * Strength` component-wise. Signed RG
+  uses the vector directly; Packed RG decodes `2 * Displacement - 1`, making `(0.5,0.5)` neutral.
+  Both Strength components must be zero for identity. No vector normalization is performed.
+- Twirl, Bulge / Pinch and Ripple have smooth radial falloff and preserve UV when Radius is
+  nonpositive. Positive Bulge / Pinch Strength magnifies the sampled image; negative values pinch
+  it. Wave displaces along Direction while its phase varies along the perpendicular axis.
 
 ## HLSL functions
 
@@ -312,9 +538,12 @@ void WhimTexNodeContrast(float4 Color, float Amount, out float4 Result)
 
 **Utility/Custom Function** creates an inline node. Configure its **Ports**, edit the function
 body in **Code**, then choose **Compile**. The node reuses the existing HLSL code editor.
-Code can be expanded or collapsed; its resize handle changes node width and code height,
+Code fills the node width without a bottom gap. It can be expanded or collapsed; the resize
+handle in its lower-right corner changes node width and code height,
 with the ordinary node width as the minimum. The displayed signature and active graph ports
 continue to describe the applied function while body or port edits remain drafts.
+Collapsing Code restores the normal node width; expanding restores the resized dimensions.
+Both the expansion state and custom dimensions are saved per node in the document.
 
 `draft` and optional `draftPorts` are saved independently from `body` and `ports`. Compile
 validates a standalone invocation even when the node is unconnected, then applies body and
@@ -409,7 +638,11 @@ describe HLSL FX and must not be substituted for the Shader layer's graph declar
 Custom Function definitions are stored in `graph.functions`; nodes refer to them by
 `functionId`. A file-backed definition refers to its embedded backup through `sourceId`.
 The optional `draftPorts` list stores pending signature edits alongside `draft`; the existing
-`ports` and compiled body remain separate from those pending edits.
+`ports` and compiled body remain separate from those pending edits. A nonempty `draftPorts`
+implies an active draft; `hasDraftPorts: true` also represents an intentionally empty draft.
+An empty/null list without the flag is not a draft. This distinction survives Unity domain reload,
+Undo and JsonUtility copies, which can materialize null lists as empty lists. The UI displays the
+applied ports in that case. Successful Compile clears the draft list and its flag.
 
 `graph.sources` is a list of `{ id, code, includes }` modules. `code` is the original text,
 including its include directives. Each `includes` entry is `{ requested, sourceId }`, where
@@ -511,7 +744,16 @@ For an existing layer, use `op:"set"`, its `layer` ID or alias, and the same
 `settings.shader.graph` object. The graph is replaced completely, not patched by array index;
 preserve existing parameter/node IDs and include every retained node, parameter and edge.
 Inspection returns the graph at `settings.shader.graph`. Discovery supplies `shaderDefaults`,
-`shaderNodes` (exact port names), `shaderValueTypes`, `shaderWrapModes` and `shaderFilterModes`.
+`shaderNodes`, `shaderValueTypes`, `shaderWrapModes` and `shaderFilterModes`.
+Each node catalog entry includes `category`, exact `inputs` and the existing string-array
+`outputs`. Procedural/UV entries additionally expose `outputTypes`, an output-name-to-type map.
+Nodes with shared mode metadata provide `modeLabel`, `defaultOption` and `modes` entries
+containing `{ option, name }`. Shape marks `dynamicInputs:true`; every Shape mode also contains
+its own `inputs` array, while the entry's top-level inputs describe the default mode.
+Noise and DomainWarp provide `fractalModes` (serialized enum names) and `defaultFractal`.
+Names, categories, mode labels, port sets and procedural output types come from the shared
+node model; descriptions explain units and evaluation. These discovery fields are not extra
+fields to copy into a serialized node.
 
 In stored `whimtex.document` JSON, place this same graph at `layers[].behaviour.graph`, with
 `behaviour.$type` set to `ShaderLayerBehaviour`; the API's `op`, `as` and `settings` wrapper is

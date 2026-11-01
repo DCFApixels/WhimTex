@@ -10,9 +10,9 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class ShaderGraphWindow
     {
-        private interface INodeView
+        private interface IGraphItemView { string Id { get; } }
+        private interface INodeView : IGraphItemView
         {
-            string Id { get; }
             void RefreshValues();
         }
 
@@ -26,7 +26,7 @@ namespace DCFApixels.WhimTex
             {
                 this.window = window; Id = node.id; viewDataKey = Id;
                 AddToClassList("whimtex-shader-graph-parameter-node");
-                capabilities = (capabilities | Capabilities.Copiable) & ~Capabilities.Groupable;
+                capabilities |= Capabilities.Copiable | Capabilities.Groupable;
                 this.Q("title-label")?.RemoveFromHierarchy();
                 this.Q("icon")?.RemoveFromHierarchy();
                 canvas.RegisterPort(output, false);
@@ -62,7 +62,7 @@ namespace DCFApixels.WhimTex
             {
                 this.window = window; Id = node.id; viewDataKey = Id; title = string.Empty;
                 AddToClassList("whimtex-shader-graph-reroute");
-                capabilities = (capabilities | Capabilities.Copiable) & ~(Capabilities.Groupable | Capabilities.Collapsible);
+                capabilities = (capabilities | Capabilities.Copiable | Capabilities.Groupable) & ~Capabilities.Collapsible;
                 titleContainer.RemoveFromHierarchy(); extensionContainer.RemoveFromHierarchy();
                 foreach (var divider in mainContainer.Query<VisualElement>("divider").ToList()) divider.RemoveFromHierarchy();
                 var type = window.OutputType(node, "Out");
@@ -95,7 +95,7 @@ namespace DCFApixels.WhimTex
                 AddToClassList("whimtex-shader-graph-node");
                 // Clear the base Node's inline clipping so the external input fields can use USS overflow.
                 mainContainer.style.overflow = StyleKeyword.Null;
-                capabilities = (capabilities | Capabilities.Copiable) & ~Capabilities.Groupable;
+                capabilities |= Capabilities.Copiable | Capabilities.Groupable;
                 if (node.kind == ShaderGraphNodeKind.Output)
                 {
                     capabilities &= ~(Capabilities.Deletable | Capabilities.Collapsible | Capabilities.Copiable);
@@ -112,18 +112,37 @@ namespace DCFApixels.WhimTex
                     row.Add(port); inputContainer.Add(row);
                     canvas.RegisterPort(port, true);
                     if (!window.Graph.edges.Exists(e => e.inputNode == Id && e.inputPort == input.name)) BuildInput(node, input, row, port);
+                    string activeTooltip = port.tooltip;
+                    refresh.Add(() =>
+                    {
+                        string reason = ShaderGraphNodes.InputInactiveReason(Data, input.name);
+                        row.SetEnabled(reason == null);
+                        port.tooltip = reason ?? activeTooltip;
+                        row.tooltip = reason;
+                    });
                 }
                 foreach (string output in ShaderGraphNodes.Outputs(node))
                 {
                     var type = window.OutputType(node, output);
                     var port = MakePort(output, Direction.Output, type, false);
-                    if (node.kind == ShaderGraphNodeKind.Split && "XYZW".IndexOf(output, StringComparison.Ordinal) >= ShaderGraphNodes.Components(window.InputType(node, "In")))
+                    if (node.kind == ShaderGraphNodeKind.Split)
                     {
-                        port.SetEnabled(false); port.tooltip = "This component is not present in the input.";
+                        string activeTooltip = port.tooltip;
+                        refresh.Add(() =>
+                        {
+                            bool active = "XYZW".IndexOf(output, StringComparison.Ordinal) < ShaderGraphNodes.Components(window.InputType(Data, "In"));
+                            port.SetEnabled(active);
+                            port.tooltip = active ? activeTooltip : "This component is not present in the input.";
+                        });
                     }
                     canvas.RegisterPort(port, false); outputContainer.Add(port);
                 }
-                if (node.kind != ShaderGraphNodeKind.Output) extensionContainer.Add(canvas.GetPreview(node));
+                if (NodePreview.Supports(window, node))
+                {
+                    var preview = canvas.GetPreview(node);
+                    EnableInClassList("whimtex-shader-graph-node--preview", preview.Expanded);
+                    extensionContainer.Add(preview);
+                }
                 if (node.kind == ShaderGraphNodeKind.CustomFunction) BuildFunctionEditor();
                 RefreshExpandedState(); RefreshPorts();
                 RefreshValues();
@@ -131,6 +150,8 @@ namespace DCFApixels.WhimTex
             private Port MakePort(string name, Direction direction, ShaderGraphValueType type, bool dynamic)
             {
                 var port = CreatePort(Id, name, direction, type, dynamic);
+                if (Data?.kind == ShaderGraphNodeKind.Swizzle && direction == Direction.Input)
+                    port.tooltip = "Numeric or Color. Width is the maximum required by the source and mask; _ inserts zero.";
                 var definition = Data?.function?.ports.Find(p => p.name == name);
                 if (!string.IsNullOrEmpty(definition?.label)) port.portName = definition.label;
                 return port;
@@ -170,26 +191,32 @@ namespace DCFApixels.WhimTex
 
             private void BuildOptions(ShaderGraphNode node)
             {
+                var modes = ShaderGraphNodes.ModeNames(node.kind);
+                if (modes != null) Choice(ShaderGraphNodes.ModeLabel(node.kind), modes, node.option, value =>
+                    window.Edit("Change Shader Mode", graph => ShaderGraphNodes.ChangeMode(graph, graph.FindNode(Id), value)));
+                if (node.kind == ShaderGraphNodeKind.Noise)
+                    Choice("Fractal", ShaderGraphNodes.NoiseFractals, (int)node.fractal, value => Change(n => n.fractal = (ShaderGraphFractal)value));
+                if (node.kind == ShaderGraphNodeKind.DomainWarp)
+                    Choice("Fractal", ShaderGraphNodes.WarpFractals, node.fractal == ShaderGraphFractal.None ? 0 : (int)node.fractal - 3,
+                        value => Change(n => n.fractal = value == 0 ? ShaderGraphFractal.None : (ShaderGraphFractal)(value + 3)));
                 switch (node.kind)
                 {
                     case ShaderGraphNodeKind.Constant:
-                        TypeChoice("Type", node.valueType, true, false, type => Change(n =>
-                        {
-                            if (type == ShaderGraphValueType.Color && ShaderGraphNodes.Components(n.valueType) < 4) n.value.w = 1;
-                            n.valueType = type;
-                        }));
-                        ValueField("Value", node.valueType, () => Data.value,
-                            value => Change(n => n.value = value, structural: false, rebuild: false)); break;
+                        var constant = new EnumField(node.constant);
+                        constant.RegisterValueChangedCallback(e => Change(n => n.constant = (ShaderGraphConstant)e.newValue));
+                        AddOption(constant); break;
+                    case ShaderGraphNodeKind.Swizzle:
+                        var mask = new TextField("Mask") { value = node.swizzle, isDelayed = true };
+                        mask.tooltip = "1–4 components: xyzw or rgba. _ inserts zero. Example: _x_y produces (0, x, 0, y).";
+                        mask.RegisterValueChangedCallback(e => Change(n => n.swizzle = e.newValue));
+                        AddOption(mask); break;
                     case ShaderGraphNodeKind.Combine:
                         TypeChoice("Type", node.valueType, false, true, type => window.Edit("Change Combine Width", graph =>
                         {
                             graph.FindNode(Id).valueType = type;
                             graph.edges.RemoveAll(e => e.inputNode == Id && "XYZW".IndexOf(e.inputPort, StringComparison.Ordinal) >= ShaderGraphNodes.Components(type));
                         })); break;
-                    case ShaderGraphNodeKind.Noise:
-                        Choice("Type", new[] { "OpenSimplex2", "OpenSimplex2S", "Cellular", "Perlin", "ValueCubic", "Value" }, node.option, value => Change(n => n.option = value)); break;
-                    case ShaderGraphNodeKind.Shape:
-                        Choice("Shape", new[] { "Ellipse", "Rectangle", "Rounded Rectangle" }, node.option, value => Change(n => n.option = value)); break;
+
                     case ShaderGraphNodeKind.Compare:
                         Choice("Compare", new[] { "Less", "Less or Equal", "Greater", "Greater or Equal", "Equal", "Not Equal" }, node.option, value => Change(n => n.option = value)); break;
                     case ShaderGraphNodeKind.Blend:
@@ -231,6 +258,7 @@ namespace DCFApixels.WhimTex
                 }
                 var value = node.FindInput(name);
                 ShaderGraphValueType type = value?.type ?? input.type ?? ShaderGraphValueType.Float;
+                if (node.kind == ShaderGraphNodeKind.Swizzle) type = window.InputType(node, name);
                 var definition = node.function?.ports.Find(p => p.name == name);
                 if (type == ShaderGraphValueType.Float && definition?.hasRange == true)
                 {
@@ -247,7 +275,9 @@ namespace DCFApixels.WhimTex
                 }
                 if (!input.type.HasValue)
                 {
-                    fields.tooltip = "Unconnected value. Right-click to choose its numeric type.";
+                    fields.tooltip = node.kind == ShaderGraphNodeKind.Swizzle
+                        ? "Unconnected value. The mask sets the minimum width; right-click to choose a wider type."
+                        : "Unconnected value. Right-click to choose its numeric type.";
                     fields.AddManipulator(new ContextualMenuManipulator(e =>
                     {
                         foreach (var next in new[] { ShaderGraphValueType.Float, ShaderGraphValueType.Float2, ShaderGraphValueType.Float3, ShaderGraphValueType.Float4, ShaderGraphValueType.Color })
@@ -276,7 +306,8 @@ namespace DCFApixels.WhimTex
                 window.EditNode(Id, "Change Shader " + title, edit, structural, rebuild);
             private void AddOption(VisualElement element, VisualElement target = null)
             {
-                element.AddToClassList("whimtex-shader-graph-node-field");
+                if (!element.ClassListContains(BaseCompositeField<Vector2, FloatField, float>.fieldUssClassName))
+                    element.AddToClassList("whimtex-shader-graph-node-field");
                 element.RegisterCallback<KeyDownEvent>(e =>
                 {
                     if (e.keyCode is KeyCode.Backspace or KeyCode.Delete or KeyCode.Space or KeyCode.LeftArrow or KeyCode.RightArrow or KeyCode.UpArrow or KeyCode.DownArrow)
@@ -309,7 +340,9 @@ namespace DCFApixels.WhimTex
                 switch (type)
                 {
                     case ShaderGraphValueType.Float:
-                        var number = new FloatField(label) { value = read().x };
+                        var number = new FloatField(label ?? "X") { value = read().x };
+                        number.AddToClassList(BaseCompositeField<Vector2, FloatField, float>.fieldUssClassName);
+                        number.AddToClassList(BaseCompositeField<Vector2, FloatField, float>.firstFieldVariantUssClassName);
                         number.RegisterValueChangedCallback(e => { var value = read(); value.x = e.newValue; Apply(value); });
                         refresh.Add(() => number.SetValueWithoutNotify(read().x)); AddOption(number, target); break;
                     case ShaderGraphValueType.Float2:

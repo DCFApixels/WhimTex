@@ -27,7 +27,7 @@ namespace DCFApixels.WhimTex
             public void OnDropOutsidePort(Edge edge, Vector2 position)
             {
                 var dragged = edge.output?.edgeConnector.edgeDragHelper.draggedPort ?? edge.input?.edgeConnector.edgeDragHelper.draggedPort;
-                if (dragged?.direction != Direction.Output || dragged.userData is not PortData source) return;
+                if (dragged?.direction != Direction.Output || !dragged.enabledInHierarchy || dragged.userData is not PortData source) return;
                 var canvas = dragged.GetFirstAncestorOfType<Canvas>();
                 if (canvas != null && canvas.IsEmptyDrop(position)) canvas.ShowConnectedSearch(source, position);
             }
@@ -96,7 +96,7 @@ namespace DCFApixels.WhimTex
                 if (!ReferenceEquals(graph, window.Graph) || source == null || !window.Editable) return false;
                 var node = graph.FindNode(source.nodeId);
                 if (node == null || Array.IndexOf(ShaderGraphNodes.Outputs(node), source.name) < 0) return false;
-                if (!outputPorts.TryGetValue(source.nodeId + ":" + source.name, out var port) || !port.enabledSelf) return false;
+                if (!outputPorts.TryGetValue(source.nodeId + ":" + source.name, out var port) || !port.enabledInHierarchy) return false;
                 type = window.OutputType(node, source.name);
                 return true;
             }
@@ -112,6 +112,7 @@ namespace DCFApixels.WhimTex
                     var node = ShaderGraphNodes.Create(kind, default);
                     foreach (var input in ShaderGraphNodes.Inputs(node))
                     {
+                        if (ShaderGraphNodes.InputInactiveReason(node, input.name) != null) continue;
                         if (!Compatible(type, input.type ?? ShaderGraphValueType.Float, !input.type.HasValue)) continue;
                         string category = ShaderGraphNodes.Category(kind);
                         if (!categories.TryGetValue(category, out var list)) categories.Add(category, list = new List<SearchTreeEntry>());
@@ -119,10 +120,11 @@ namespace DCFApixels.WhimTex
                             { level = 2, userData = new ConnectedNodeChoice(kind, input.name) });
                     }
                 }
+                string previousCategory = "";
                 foreach (var category in categories)
                 {
-                    result.Add(new SearchTreeGroupEntry(new GUIContent(category.Key), 1));
-                    result.AddRange(category.Value);
+                    int level = AddSearchCategory(result, category.Key, ref previousCategory);
+                    foreach (var entry in category.Value) { entry.level = level + 1; result.Add(entry); }
                 }
                 AddFunctionSearchEntries(result, type);
                 return result;
@@ -147,6 +149,7 @@ namespace DCFApixels.WhimTex
                 }
                 foreach (var input in ShaderGraphNodes.Inputs(node))
                 {
+                    if (ShaderGraphNodes.InputInactiveReason(node, input.name) != null) continue;
                     if (input.name != choice.input || !Compatible(type, input.type ?? ShaderGraphValueType.Float, !input.type.HasValue)) continue;
                     window.Edit("Create Connected Shader Node", current =>
                     {

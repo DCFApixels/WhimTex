@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
 {
@@ -13,29 +15,59 @@ namespace DCFApixels.WhimTex
         {
             public string document, layer;
             public ShaderGraph graph;
+            public Rect bounds;
+            public bool hasBounds;
         }
 
         private sealed partial class Canvas
         {
-            // Unity object references in this clipboard belong to the current Editor domain.
-            private static readonly string ClipboardPrefix = "WhimTex Shader Nodes v1 " + Guid.NewGuid().ToString("N") + "\n";
-            private string lastPastedNodes;
-            private int pasteCount;
+            // Native object references survive script reload, but not an Editor restart.
+            private static readonly string ClipboardPrefix = GetClipboardPrefix();
 
-            protected override bool canCopySelection => selection.Any(item => item is INodeView && item is GraphElement element &&
+            private static string GetClipboardPrefix()
+            {
+                const string key = "WhimTex.ShaderGraph.ClipboardSession";
+                string session = SessionState.GetString(key, "");
+                if (string.IsNullOrEmpty(session))
+                {
+                    session = Guid.NewGuid().ToString("N");
+                    SessionState.SetString(key, session);
+                }
+                return "WhimTex Shader Nodes v1 " + session + "\n";
+            }
+
+            protected override bool canCopySelection => selection.Any(item => item is IGraphItemView && item is GraphElement element &&
                 (element.capabilities & Capabilities.Copiable) != 0);
             protected override bool canCutSelection => window.Editable && canCopySelection;
             protected override bool canDuplicateSelection => window.Editable && canCopySelection;
             protected override bool canDeleteSelection => window.Editable && base.canDeleteSelection;
+
+            private bool HandleClipboardShortcut(KeyDownEvent e)
+            {
+                if (!e.actionKey || e.altKey || e.shiftKey || panel?.GetCapturingElement(PointerId.mousePointerId) != null) return false;
+                switch (e.keyCode)
+                {
+                    case KeyCode.C when canCopySelection: CopySelectionCallback(); break;
+                    case KeyCode.V when canPaste: PasteCallback(); break;
+                    case KeyCode.X when canCutSelection: CutSelectionCallback(); break;
+                    case KeyCode.D when canDuplicateSelection: DuplicateSelectionCallback(); break;
+                    default: return false;
+                }
+                e.StopImmediatePropagation();
+                e.imguiEvent?.Use();
+                return true;
+            }
 
             private string CopyNodes(IEnumerable<GraphElement> elements)
             {
                 if (window.Graph == null) return string.Empty;
                 var ids = new HashSet<string>();
                 foreach (var element in elements)
-                    if (element is INodeView view && (element.capabilities & Capabilities.Copiable) != 0 &&
+                    if (element is IGraphItemView view && (element.capabilities & Capabilities.Copiable) != 0 &&
                         window.Graph.FindNode(view.Id)?.kind != ShaderGraphNodeKind.Output) ids.Add(view.Id);
                 if (ids.Count == 0) return string.Empty;
+                foreach (var group in window.Graph.groups) if (ids.Contains(group.id))
+                    foreach (string id in group.elements) if (window.Graph.FindNode(id)?.kind != ShaderGraphNodeKind.Output) ids.Add(id);
                 var fragment = new ShaderGraph();
                 var parameters = new HashSet<string>();
                 foreach (var node in window.Graph.nodes)
@@ -48,14 +80,57 @@ namespace DCFApixels.WhimTex
                     if (ids.Contains(edge.inputNode) && ids.Contains(edge.outputNode)) fragment.edges.Add(edge);
                 foreach (var parameter in window.Graph.parameters)
                     if (parameters.Contains(parameter.id)) fragment.parameters.Add(parameter);
+                foreach (var note in window.Graph.notes) if (ids.Contains(note.id)) fragment.notes.Add(note);
+                foreach (var group in window.Graph.groups) if (ids.Contains(group.id))
+                    fragment.groups.Add(new ShaderGraphGroup { id = group.id, title = group.title, position = group.position,
+                        elements = group.elements.Where(id => ids.Contains(id)).ToList() });
                 fragment.functions.AddRange(window.Graph.functions);
                 fragment.sources.AddRange(window.Graph.sources);
                 fragment.PruneFunctions();
+                bool hasBounds = TryClipboardBounds(fragment, out Rect bounds);
                 return ClipboardPrefix + JsonUtility.ToJson(new NodeClipboardData
                 {
                     document = UnityObjectID.FromObject(window.document).ToString(), layer = window.layerId,
-                    graph = fragment
+                    graph = fragment, bounds = bounds, hasBounds = hasBounds
                 });
+            }
+
+            private bool TryClipboardBounds(ShaderGraph fragment, out Rect bounds)
+            {
+                Rect combined = default;
+                bool any = false;
+                bool Include(string id)
+                {
+                    var view = ItemView(id);
+                    if (view == null) return false;
+                    Rect rect = view.GetPosition();
+                    if (!ValidClipboardBounds(rect)) return false;
+                    combined = any ? Rect.MinMaxRect(Mathf.Min(combined.xMin, rect.xMin), Mathf.Min(combined.yMin, rect.yMin),
+                        Mathf.Max(combined.xMax, rect.xMax), Mathf.Max(combined.yMax, rect.yMax)) : rect;
+                    any = true;
+                    return true;
+                }
+                bounds = default;
+                foreach (var node in fragment.nodes) if (!Include(node.id)) return false;
+                foreach (var note in fragment.notes) if (!Include(note.id)) return false;
+                foreach (var group in fragment.groups) if (!Include(group.id)) return false;
+                bounds = combined;
+                return any;
+            }
+
+            private static bool ValidClipboardBounds(Rect rect) => rect.width > 0 && rect.height > 0 &&
+                ProjectiveMatrix.Finite(rect.xMin) && ProjectiveMatrix.Finite(rect.yMin) &&
+                ProjectiveMatrix.Finite(rect.xMax) && ProjectiveMatrix.Finite(rect.yMax);
+
+            private static Rect ClipboardBounds(NodeClipboardData copied)
+            {
+                if (copied.hasBounds && ValidClipboardBounds(copied.bounds)) return copied.bounds;
+                // A fragment already on the clipboard can recover its bounds from its still-open source.
+                foreach (var source in Resources.FindObjectsOfTypeAll<ShaderGraphWindow>())
+                    if (source.document != null && source.layerId == copied.layer &&
+                        UnityObjectID.FromObject(source.document).ToString() == copied.document &&
+                        source.canvas != null && source.canvas.TryClipboardBounds(copied.graph, out Rect bounds)) return bounds;
+                throw new FormatException("Copy the nodes again after their layout is ready.");
             }
 
             private bool CanPasteNodes(string text) => window.Editable && text != null && text.StartsWith(ClipboardPrefix, StringComparison.Ordinal);
@@ -67,7 +142,8 @@ namespace DCFApixels.WhimTex
                 {
                     var copied = JsonUtility.FromJson<NodeClipboardData>(text.Substring(ClipboardPrefix.Length));
                     var fragment = copied?.graph;
-                    if (fragment == null || fragment.version != 1 || fragment.nodes == null || fragment.nodes.Count == 0 ||
+                    if (fragment == null || fragment.version != 1 || fragment.nodes == null || fragment.notes == null || fragment.groups == null ||
+                        fragment.nodes.Count + fragment.notes.Count + fragment.groups.Count == 0 || fragment.notes.Count > 512 || fragment.groups.Count > 512 ||
                         fragment.nodes.Count > 512 || fragment.edges == null || fragment.edges.Count > 4096 ||
                         fragment.parameters == null || fragment.parameters.Count > 256 || fragment.functions == null || fragment.sources == null)
                         throw new FormatException("The Shader node clipboard is incomplete or no longer available.");
@@ -80,7 +156,8 @@ namespace DCFApixels.WhimTex
                         version = current.version,
                         nodes = new List<ShaderGraphNode>(current.nodes), edges = new List<ShaderGraphEdge>(current.edges),
                         parameters = new List<ShaderFXParameter>(current.parameters), functions = new List<ShaderGraphFunction>(current.functions),
-                        sources = new List<ShaderGraphSource>(current.sources)
+                        sources = new List<ShaderGraphSource>(current.sources),
+                        notes = new List<ShaderGraphNote>(current.notes), groups = new List<ShaderGraphGroup>(current.groups)
                     };
                     bool sameDocument = copied.document == UnityObjectID.FromObject(window.document).ToString();
                     bool sameGraph = sameDocument && copied.layer == window.layerId;
@@ -114,10 +191,9 @@ namespace DCFApixels.WhimTex
                         else { next.sources.Add(source); sourceIds.Add(source.id, source); }
                     }
 
-                    int repeat = text == lastPastedNodes ? pasteCount + 1 : 1;
-                    Vector2 min = fragment.nodes[0].position, max = min;
-                    foreach (var node in fragment.nodes) { min = Vector2.Min(min, node.position); max = Vector2.Max(max, node.position); }
-                    Vector2 offset = sameGraph ? new Vector2(30, 30) * repeat : CenterPosition - (min + max) * .5f + new Vector2(30, 30) * (repeat - 1);
+                    Vector2 offset = CenterPosition - ClipboardBounds(copied).center;
+                    if (!ProjectiveMatrix.Finite(offset.x) || !ProjectiveMatrix.Finite(offset.y))
+                        throw new InvalidOperationException("The graph view layout is not ready for paste.");
                     var nodeIds = new Dictionary<string, string>();
                     foreach (var node in fragment.nodes)
                     {
@@ -139,6 +215,24 @@ namespace DCFApixels.WhimTex
                         }
                         next.nodes.Add(node);
                     }
+                    foreach (var note in fragment.notes)
+                    {
+                        if (note == null || string.IsNullOrEmpty(note.id) || nodeIds.ContainsKey(note.id)) throw new FormatException("Invalid Shader clipboard note ID.");
+                        string oldId = note.id; note.id = Guid.NewGuid().ToString("N"); nodeIds.Add(oldId, note.id);
+                        note.position += offset; next.notes.Add(note);
+                    }
+                    foreach (var group in fragment.groups)
+                    {
+                        if (group == null || string.IsNullOrEmpty(group.id) || nodeIds.ContainsKey(group.id) || group.elements == null)
+                            throw new FormatException("Invalid Shader clipboard group.");
+                        for (int i = 0; i < group.elements.Count; i++)
+                        {
+                            if (!nodeIds.TryGetValue(group.elements[i], out var id)) throw new FormatException("Shader clipboard group leaves the copied selection.");
+                            group.elements[i] = id;
+                        }
+                        string oldId = group.id; group.id = Guid.NewGuid().ToString("N"); nodeIds.Add(oldId, group.id);
+                        group.position += offset; next.groups.Add(group);
+                    }
                     foreach (var edge in fragment.edges)
                     {
                         if (edge == null || !nodeIds.TryGetValue(edge.inputNode ?? "", out var input) || !nodeIds.TryGetValue(edge.outputNode ?? "", out var output))
@@ -150,12 +244,14 @@ namespace DCFApixels.WhimTex
                     {
                         graph.parameters = next.parameters; graph.nodes = next.nodes; graph.edges = next.edges;
                         graph.functions = next.functions; graph.sources = next.sources;
-                    }, rebuild: false);
+                        graph.notes = next.notes; graph.groups = next.groups;
+                    }, structural: fragment.nodes.Count > 0, rebuild: false, layoutOnly: fragment.nodes.Count == 0);
                     // Native selection state must change in the same Undo group as the paste.
                     Rebuild();
                     ClearSelection();
                     foreach (var node in fragment.nodes) AddToSelection(nodeViews[node.id]);
-                    lastPastedNodes = text; pasteCount = repeat;
+                    foreach (var note in fragment.notes) AddToSelection(noteViews[note.id]);
+                    foreach (var group in fragment.groups) AddToSelection(groupViews[group.id]);
                 }
                 catch (Exception error) { window.ShowError("Cannot paste Shader nodes: " + error.Message); }
             }

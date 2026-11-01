@@ -101,6 +101,22 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                             ? D(("const", 1)) :
                             type == typeof(ShaderGraph) && f.Name == "nodes"
                             ? D(("type", "array"), ("maxItems", 512), ("items", Schema(typeof(ShaderGraphNode)))) :
+                            type == typeof(ShaderGraph) && (f.Name == "notes" || f.Name == "groups")
+                            ? D(("type", "array"), ("default", Array.Empty<object>()), ("maxItems", 512), ("items", Schema(f.FieldType.GetGenericArguments()[0])),
+                                ("description", "Editor annotations only; excluded from shader/render fingerprints. IDs are unique across nodes, notes and groups. Groups contain node/note IDs in elements; one group per element, no nesting.")) :
+                            (type == typeof(ShaderGraphNote) || type == typeof(ShaderGraphGroup)) && f.Name == "id"
+                            ? D(("type", "string"), ("pattern", "^[A-Za-z0-9_]{1,64}$")) :
+                            type == typeof(ShaderGraphGroup) && f.Name == "elements"
+                            ? D(("type", "array"), ("default", Array.Empty<object>()), ("uniqueItems", true), ("items", D(("type", "string")))) :
+                            type == typeof(ShaderGraphNote) && f.Name == "theme"
+                            ? D(("type", "integer"), ("minimum", 0), ("maximum", 1), ("default", 0)) :
+                            type == typeof(ShaderGraphNote) && f.Name == "fontSize"
+                            ? D(("type", "integer"), ("minimum", 0), ("maximum", 3), ("default", 1)) :
+                            type == typeof(ShaderGraphNote) && f.Name == "hueShift"
+                            ? D(("type", "number"), ("minimum", -180), ("maximum", 180), ("default", 0),
+                                ("description", "HSV hue rotation in degrees, applied to the native note background, outlines and text palette. Saturation, value, alpha and non-color styling stay unchanged. Retained across note theme changes. Zero uses the unmodified native colors.")) :
+                            type == typeof(ShaderGraphNote) && f.Name == "size"
+                            ? D(("type", "array"), ("minItems", 2), ("maxItems", 2), ("items", D(("type", "number"), ("exclusiveMinimum", 0))), ("default", new[] { 200, 160 })) :
                             type == typeof(ShaderGraph) && f.Name == "edges"
                             ? D(("type", "array"), ("maxItems", 4096), ("items", Schema(typeof(ShaderGraphEdge)))) :
                             type == typeof(ShaderGraph) && f.Name == "parameters"
@@ -111,6 +127,18 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                                 ("description", "Embedded HLSL source archive. At most 32 MiB of UTF-8 text across all entries, 8 MiB per entry, 32768 include directives and 64 nested modules. Capture and validation retain every source, including inactive preprocessor branches. TIFF deduplicates/compresses text across all graphs; JSON retains plain code.")) :
                             type == typeof(ShaderGraph) && f.Name == "functions"
                             ? D(("type", "array"), ("default", Array.Empty<object>()), ("maxItems", 512), ("items", Schema(f.FieldType.GetGenericArguments()[0]))) :
+                            type == typeof(ShaderGraphFunction) && f.Name == "hasDraftPorts"
+                            ? D(("type", "boolean"), ("default", false),
+                                ("description", "Marks a pending port draft, including an intentionally empty draftPorts list. A nonempty draftPorts also implies a draft. An empty/null draftPorts without this flag uses the applied ports, including after Unity domain reload or JsonUtility copying.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "constant"
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphConstant))), ("default", "PI"),
+                                ("description", "Constant node selection. Emits a Float HLSL literal; arbitrary values use parameters or unconnected inputs.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "fractal"
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphFractal))), ("default", "None"),
+                                ("description", "Noise accepts None, FBm, Ridged or PingPong. DomainWarp accepts None, Progressive or Independent. Octaves, Lacunarity, Gain and PingPongStrength are numeric input ports, not additional mode fields.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "swizzle"
+                            ? D(("type", new[] { "string", "null" }), ("default", "xxxx"),
+                                ("description", "Swizzle node mask: 1–4 xyzw/rgba letters (case-insensitive) or _ for zero. Output width is mask length. Input width is max(source width, highest mask component); connected scalars repeat and shorter vectors gain zeros. Unconnected values expose inferred components directly. Invalid masks may be retained as uncompiled drafts.")) :
                             type == typeof(MeshGradient) && (f.Name == "columns" || f.Name == "rows")
                             ? D(("type", "integer"), ("minimum", 1), ("maximum", MeshGradient.MaxCells)) :
                             (type == typeof(MeshGradient) || type == typeof(FreeformGradient)) && f.Name == "colorMode"

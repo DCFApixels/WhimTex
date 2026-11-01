@@ -1230,6 +1230,8 @@ namespace DCFApixels.WhimTex
                         readLayerMesh = true;
                     }
                     FieldInfo field = FindField(type, fieldName);
+                    if (value is ShaderGraphNode && field == null)
+                        throw new WhimTexDocumentException("Unsupported Shader node field: " + fieldName);
                     if (gradientFields != null && field == null)
                         throw new WhimTexDocumentException("Unsupported gradient field: " + fieldName);
                     object fieldValue = type == typeof(DrawingLayerBehaviour) && field?.FieldType == typeof(Texture2D) &&

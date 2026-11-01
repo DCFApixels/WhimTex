@@ -7,12 +7,16 @@ namespace DCFApixels.WhimTex
     public enum ShaderGraphValueType { Float, Float2, Float3, Float4, Boolean, Texture, Gradient, Curve, Color }
     public enum ShaderGraphWrap { Clamp, Repeat, Mirror, Transparent }
     public enum ShaderGraphFilter { Point, Bilinear }
+    public enum ShaderGraphConstant { PI, TAU, PHI, E, SQRT2 }
     public enum ShaderGraphNodeKind
     {
         Parameter, Constant, UV, ImageSize, TextureSize, SampleTexture, SampleGradient, SampleCurve,
         Split, Combine, Add, Subtract, Multiply, Divide, Min, Max, Clamp, Abs, OneMinus, Negate,
         Power, SquareRoot, Floor, Ceil, Round, Fraction, Sine, Cosine, Lerp, Remap, Step, Smoothstep,
-        Length, Distance, Dot, Normalize, Compare, Select, TransformUV, Noise, Shape, Blend, Output, Reroute, CustomFunction
+        Length, Distance, Dot, Normalize, Compare, Select, TransformUV, Noise, Shape, Blend, Output, Reroute, CustomFunction, Swizzle,
+        InstanceIndex, Time,
+        Cellular, Random, Checkerboard, Stripes, Grid, Rings, GradientFactor, CombineDistance,
+        PolarCoordinates, Repeat, Mirror, Kaleidoscope, DomainWarp, VectorDisplacement, Twirl, BulgePinch, Wave, Ripple
     }
 
     [Serializable]
@@ -30,9 +34,11 @@ namespace DCFApixels.WhimTex
         public ShaderGraphNodeKind kind;
         public Vector2 position;
         public ShaderGraphValueType valueType;
-        public Vector4 value;
+        public ShaderGraphConstant constant;
+        public string swizzle = "xxxx";
         public string parameterId;
         public int option;
+        public ShaderGraphFractal fractal;
         public bool hdr = true;
         public ShaderGraphWrap wrap;
         public ShaderGraphFilter filter = ShaderGraphFilter.Bilinear;
@@ -56,6 +62,25 @@ namespace DCFApixels.WhimTex
     }
 
     [Serializable]
+    public sealed class ShaderGraphNote
+    {
+        public string id = Guid.NewGuid().ToString("N");
+        public string title = "Note", contents = "";
+        public Vector2 position, size = new Vector2(200, 160);
+        public int theme, fontSize = 1;
+        public float hueShift;
+    }
+
+    [Serializable]
+    public sealed class ShaderGraphGroup
+    {
+        public string id = Guid.NewGuid().ToString("N");
+        public string title = "Group";
+        public Vector2 position;
+        public List<string> elements = new List<string>();
+    }
+
+    [Serializable]
     public sealed class ShaderGraph
     {
         public int version = 1;
@@ -64,6 +89,16 @@ namespace DCFApixels.WhimTex
         public List<ShaderGraphEdge> edges = new List<ShaderGraphEdge>();
         public List<ShaderGraphFunction> functions = new List<ShaderGraphFunction>();
         public List<ShaderGraphSource> sources = new List<ShaderGraphSource>();
+        public List<ShaderGraphNote> notes = new List<ShaderGraphNote>();
+        public List<ShaderGraphGroup> groups = new List<ShaderGraphGroup>();
+
+        internal void PruneGroups()
+        {
+            var ids = new HashSet<string>();
+            foreach (var node in nodes) ids.Add(node.id);
+            foreach (var note in notes) ids.Add(note.id);
+            foreach (var group in groups) group.elements.RemoveAll(id => !ids.Contains(id));
+        }
 
         public ShaderGraphFunction FindFunction(string id) => functions?.Find(f => f != null && f.id == id);
         internal void BindFunctions()
@@ -126,7 +161,7 @@ namespace DCFApixels.WhimTex
         { this.name = name; this.type = type; this.value = value; this.uvDefault = uvDefault; }
     }
 
-    internal static class ShaderGraphNodes
+    internal static partial class ShaderGraphNodes
     {
         static ShaderGraphPort P(string name, ShaderGraphValueType? type = null, float value = 0) => new ShaderGraphPort(name, type, Vector4.one * value);
         static ShaderGraphPort UV() => new ShaderGraphPort("UV", ShaderGraphValueType.Float2, default, true);
@@ -154,31 +189,42 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.SampleGradient] = new[] { P("Gradient", ShaderGraphValueType.Gradient), P("T", ShaderGraphValueType.Float) };
             map[ShaderGraphNodeKind.SampleCurve] = new[] { P("Curve", ShaderGraphValueType.Curve), P("T", ShaderGraphValueType.Float) };
             map[ShaderGraphNodeKind.TransformUV] = new[] { UV(), P("Offset", ShaderGraphValueType.Float2), P("Scale", ShaderGraphValueType.Float2, 1), P("Rotation", ShaderGraphValueType.Float), P("Center", ShaderGraphValueType.Float2, .5f) };
-            map[ShaderGraphNodeKind.Noise] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), P("Seed", ShaderGraphValueType.Float, 1337) };
             map[ShaderGraphNodeKind.Shape] = new[] { UV(), P("Center", ShaderGraphValueType.Float2, .5f), P("Size", ShaderGraphValueType.Float2, .5f), P("Radius", ShaderGraphValueType.Float, .1f), P("Feather", ShaderGraphValueType.Float) };
             map[ShaderGraphNodeKind.Blend] = new[] { P("Background", ShaderGraphValueType.Color), P("Foreground", ShaderGraphValueType.Color, 1), P("Opacity", ShaderGraphValueType.Float, 1) };
             map[ShaderGraphNodeKind.Output] = new[] { P("RGBA", ShaderGraphValueType.Color, 1) };
             map[ShaderGraphNodeKind.Reroute] = new[] { P("In") };
+            map[ShaderGraphNodeKind.Swizzle] = new[] { P("In") };
             map[ShaderGraphNodeKind.Combine] = new[] { P("X", ShaderGraphValueType.Float), P("Y", ShaderGraphValueType.Float), P("Z", ShaderGraphValueType.Float), P("W", ShaderGraphValueType.Float, 1) };
+            BuildProceduralPorts(map);
             return map;
         }
         internal static IReadOnlyList<ShaderGraphPort> Inputs(ShaderGraphNode node) => node.kind == ShaderGraphNodeKind.CustomFunction
-            ? node.function?.InputPorts() ?? none : ports.TryGetValue(node.kind, out var result) ? result : none;
+            ? node.function?.InputPorts() ?? none : node.kind == ShaderGraphNodeKind.Shape ? ShapeInputs(node) : ports.TryGetValue(node.kind, out var result) ? result : none;
         internal static string[] Outputs(ShaderGraphNode node) => node.kind switch
         {
             ShaderGraphNodeKind.Output => Array.Empty<string>(),
             ShaderGraphNodeKind.CustomFunction => node.function?.OutputPorts() ?? Array.Empty<string>(),
             ShaderGraphNodeKind.Split => new[] { "X", "Y", "Z", "W" },
             ShaderGraphNodeKind.ImageSize or ShaderGraphNodeKind.TextureSize => new[] { "Size", "Texel" },
+            ShaderGraphNodeKind.Cellular => new[] { "F1", "F2", "Cell" },
+            ShaderGraphNodeKind.Repeat => new[] { "Out", "Cell" },
+            ShaderGraphNodeKind.DomainWarp => new[] { "Out", "Displacement" },
+            ShaderGraphNodeKind.Shape => new[] { "Out", "Distance" },
+            ShaderGraphNodeKind.CombineDistance => new[] { "Out", "Mask" },
             _ => new[] { "Out" }
         };
-        internal static string Name(ShaderGraphNodeKind kind) => UnityEditor.ObjectNames.NicifyVariableName(kind.ToString());
+        internal static string Name(ShaderGraphNodeKind kind) => kind == ShaderGraphNodeKind.BulgePinch ? "Bulge / Pinch" : UnityEditor.ObjectNames.NicifyVariableName(kind.ToString());
         internal static string Category(ShaderGraphNodeKind kind) => kind switch
         {
-            ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.UV or ShaderGraphNodeKind.ImageSize => "Input",
+            ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.UV or ShaderGraphNodeKind.ImageSize or
+            ShaderGraphNodeKind.InstanceIndex or ShaderGraphNodeKind.Time => "Input",
             ShaderGraphNodeKind.TextureSize or ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleGradient or ShaderGraphNodeKind.SampleCurve => "Sampling",
-            ShaderGraphNodeKind.Split or ShaderGraphNodeKind.Combine or ShaderGraphNodeKind.Length or ShaderGraphNodeKind.Distance or ShaderGraphNodeKind.Dot or ShaderGraphNodeKind.Normalize => "Vector",
-            ShaderGraphNodeKind.TransformUV or ShaderGraphNodeKind.Noise or ShaderGraphNodeKind.Shape => "Procedural",
+            ShaderGraphNodeKind.Split or ShaderGraphNodeKind.Combine or ShaderGraphNodeKind.Swizzle or ShaderGraphNodeKind.Length or ShaderGraphNodeKind.Distance or ShaderGraphNodeKind.Dot or ShaderGraphNodeKind.Normalize => "Vector",
+            ShaderGraphNodeKind.Noise or ShaderGraphNodeKind.Cellular or ShaderGraphNodeKind.Random => "Procedural/Noise",
+            ShaderGraphNodeKind.Checkerboard or ShaderGraphNodeKind.Stripes or ShaderGraphNodeKind.Grid or ShaderGraphNodeKind.Rings or ShaderGraphNodeKind.GradientFactor => "Procedural/Pattern",
+            ShaderGraphNodeKind.Shape or ShaderGraphNodeKind.CombineDistance => "Procedural/Shape",
+            ShaderGraphNodeKind.TransformUV or ShaderGraphNodeKind.PolarCoordinates or ShaderGraphNodeKind.Repeat or ShaderGraphNodeKind.Mirror or ShaderGraphNodeKind.Kaleidoscope => "UV",
+            ShaderGraphNodeKind.DomainWarp or ShaderGraphNodeKind.VectorDisplacement or ShaderGraphNodeKind.Twirl or ShaderGraphNodeKind.BulgePinch or ShaderGraphNodeKind.Wave or ShaderGraphNodeKind.Ripple => "UV/Distortion",
             ShaderGraphNodeKind.Blend => "Color",
             ShaderGraphNodeKind.Output => "Output",
             ShaderGraphNodeKind.Reroute => "Utility",
@@ -214,6 +260,18 @@ namespace DCFApixels.WhimTex
             _ => p.Components switch { 1 => ShaderGraphValueType.Float, 2 => ShaderGraphValueType.Float2, 3 => ShaderGraphValueType.Float3, 4 => ShaderGraphValueType.Float4, _ => throw new InvalidOperationException("Unsupported graph parameter: " + p.name) }
         };
         internal static bool IsNumeric(ShaderGraphValueType type) => type >= ShaderGraphValueType.Float && type <= ShaderGraphValueType.Float4 || type == ShaderGraphValueType.Color;
+        internal static ShaderGraphValueType SwizzleType(string mask) => (ShaderGraphValueType)(Mathf.Clamp(mask?.Length ?? 1, 1, 4) - 1);
+        internal static ShaderGraphValueType SwizzleInputType(string mask, ShaderGraphValueType input)
+        {
+            if (!IsNumeric(input)) return input;
+            int width = Components(input);
+            if (mask != null) foreach (char component in mask) width = Math.Max(width, SwizzleComponent(component) + 1);
+            return (ShaderGraphValueType)(width - 1);
+        }
+        internal static int SwizzleComponent(char component) => char.ToLowerInvariant(component) switch
+        {
+            'x' or 'r' => 0, 'y' or 'g' => 1, 'z' or 'b' => 2, 'w' or 'a' => 3, '_' => -1, _ => -2
+        };
         internal static ShaderGraphValueType NumericType(ShaderGraphValueType type) => type == ShaderGraphValueType.Color ? ShaderGraphValueType.Float4 : type;
         internal static int Components(ShaderGraphValueType type) => type == ShaderGraphValueType.Color ? 4 : type <= ShaderGraphValueType.Float4 ? (int)type + 1 : type == ShaderGraphValueType.Boolean ? 1 : 0;
     }

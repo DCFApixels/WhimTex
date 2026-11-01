@@ -5315,6 +5315,38 @@
             ]
           },
           "description": "Embedded HLSL source archive. At most 32 MiB of UTF-8 text across all entries, 8 MiB per entry, 32768 include directives and 64 nested modules. Capture and validation retain every source, including inactive preprocessor branches. TIFF deduplicates/compresses text across all graphs; JSON retains plain code."
+        },
+        "notes": {
+          "type": "array",
+          "default": [],
+          "maxItems": 512,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphNote"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Editor annotations only; excluded from shader/render fingerprints. IDs are unique across nodes, notes and groups. Groups contain node/note IDs in elements; one group per element, no nesting."
+        },
+        "groups": {
+          "type": "array",
+          "default": [],
+          "maxItems": 512,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphGroup"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Editor annotations only; excluded from shader/render fingerprints. IDs are unique across nodes, notes and groups. Groups contain node/note IDs in elements; one group per element, no nesting."
         }
       },
       "description": "Shader-layer fragment graph, version 1. Parameters retain their control declarations and stable IDs; node parameterId refers to one of those IDs. Edges connect named ports by graph-local node ID. HDR values are retained. Arrays replace the complete corresponding graph data."
@@ -5379,7 +5411,28 @@
             "Blend",
             "Output",
             "Reroute",
-            "CustomFunction"
+            "CustomFunction",
+            "Swizzle",
+            "InstanceIndex",
+            "Time",
+            "Cellular",
+            "Random",
+            "Checkerboard",
+            "Stripes",
+            "Grid",
+            "Rings",
+            "GradientFactor",
+            "CombineDistance",
+            "PolarCoordinates",
+            "Repeat",
+            "Mirror",
+            "Kaleidoscope",
+            "DomainWarp",
+            "VectorDisplacement",
+            "Twirl",
+            "BulgePinch",
+            "Wave",
+            "Ripple"
           ]
         },
         "position": {
@@ -5406,15 +5459,25 @@
             "Color"
           ]
         },
-        "value": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 4,
-          "items": {
-            "type": "number",
-            "minimum": -3.40282347E+38,
-            "maximum": 3.40282347E+38
-          }
+        "constant": {
+          "type": "string",
+          "enum": [
+            "PI",
+            "TAU",
+            "PHI",
+            "E",
+            "SQRT2"
+          ],
+          "default": "PI",
+          "description": "Constant node selection. Emits a Float HLSL literal; arbitrary values use parameters or unconnected inputs."
+        },
+        "swizzle": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": "xxxx",
+          "description": "Swizzle node mask: 1–4 xyzw/rgba letters (case-insensitive) or _ for zero. Output width is mask length. Input width is max(source width, highest mask component); connected scalars repeat and shorter vectors gain zeros. Unconnected values expose inferred components directly. Invalid masks may be retained as uncompiled drafts."
         },
         "parameterId": {
           "type": [
@@ -5426,6 +5489,19 @@
           "type": "integer",
           "minimum": -2147483648,
           "maximum": 2147483647
+        },
+        "fractal": {
+          "type": "string",
+          "enum": [
+            "None",
+            "FBm",
+            "Ridged",
+            "PingPong",
+            "Progressive",
+            "Independent"
+          ],
+          "default": "None",
+          "description": "Noise accepts None, FBm, Ridged or PingPong. DomainWarp accepts None, Progressive or Independent. Octaves, Lacunarity, Gain and PingPongStrength are numeric input ports, not additional mode fields."
         },
         "hdr": {
           "type": "boolean"
@@ -5650,6 +5726,11 @@
             ]
           }
         },
+        "hasDraftPorts": {
+          "type": "boolean",
+          "default": false,
+          "description": "Marks a pending port draft, including an intentionally empty draftPorts list. A nonempty draftPorts also implies a draft. An empty/null draftPorts without this flag uses the applied ports, including after Unity domain reload or JsonUtility copying."
+        },
         "body": {
           "type": [
             "string",
@@ -5837,6 +5918,110 @@
         "requested",
         "sourceId"
       ]
+    },
+    "ShaderGraphNote": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphNote"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_]{1,64}$"
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "contents": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "position": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "size": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "default": [
+            200,
+            160
+          ]
+        },
+        "theme": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
+        },
+        "fontSize": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 1
+        },
+        "hueShift": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180,
+          "default": 0,
+          "description": "HSV hue rotation in degrees, applied to the native note background, outlines and text palette. Saturation, value, alpha and non-color styling stay unchanged. Retained across note theme changes. Zero uses the unmodified native colors."
+        }
+      }
+    },
+    "ShaderGraphGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphGroup"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_]{1,64}$"
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "position": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "elements": {
+          "type": "array",
+          "default": [],
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     },
     "ShaderProcessorLayerBehaviour": {
       "type": "object",

@@ -18,6 +18,7 @@ namespace DCFApixels.WhimTex
         internal string GeneratedSource => program?.Source ?? "";
         internal bool HasCompileError { get; private set; }
         internal string ErrorNodeId { get; private set; }
+        internal IReadOnlyList<ShaderGraphMessage> Messages { get; private set; } = Array.Empty<ShaderGraphMessage>();
         public override TransformTilingMode SourceTiling => TransformTilingMode.Unbounded;
         public override string ToString() => "Shader";
         internal override void InitializeLayer(Layer layer)
@@ -36,6 +37,7 @@ namespace DCFApixels.WhimTex
             {
                 var compiled = ShaderGraphProgram.Create(graph);
                 program?.Dispose(); program = compiled;
+                Messages = compiled.Messages;
                 HasCompileError = false; ErrorNodeId = null;
                 diagnostics = "Compiled successfully.";
                 return true;
@@ -44,6 +46,7 @@ namespace DCFApixels.WhimTex
             {
                 HasCompileError = true;
                 ErrorNodeId = (error as ShaderGraphException)?.nodeId;
+                Messages = (error as ShaderGraphException)?.messages ?? new[] { new ShaderGraphMessage(null, error.Message, ShaderGraphMessageLevel.Error) };
                 diagnostics = error.Message + (program == null ? "" : "\nShowing the last successfully compiled graph.");
                 return false;
             }
@@ -92,6 +95,7 @@ namespace DCFApixels.WhimTex
         readonly Dictionary<string, ShaderFXParameter> liveParameters = new Dictionary<string, ShaderFXParameter>();
         readonly ulong fingerprint;
         internal readonly Material Material;
+        internal IReadOnlyList<ShaderGraphMessage> Messages { get; private set; }
         internal string Source => compilation.source;
         internal IReadOnlyList<ShaderFXParameter> Parameters => compilation.parameters;
         readonly struct Uniform
@@ -108,8 +112,6 @@ namespace DCFApixels.WhimTex
             fingerprint = ShaderGraphCompiler.CodeFingerprint(graph);
             foreach (var n in graph.nodes)
             {
-                if (n.kind == ShaderGraphNodeKind.Constant)
-                    uniforms.Add(new Uniform(Shader.PropertyToID(ShaderGraphCompiler.ConstantName(n)), n.id, null, n.value));
                 foreach (var port in ShaderGraphNodes.Inputs(n))
                     if (port.type is not (ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve))
                         uniforms.Add(new Uniform(Shader.PropertyToID(ShaderGraphCompiler.InputName(n, port.name)), n.id, port.name, n.FindInput(port.name)?.value ?? port.value));
@@ -127,16 +129,28 @@ namespace DCFApixels.WhimTex
                 material = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
                 if (material.passCount > 0) ShaderUtil.CompilePass(material, 0, true);
                 var errors = new StringBuilder();
+                var messages = new List<ShaderGraphMessage>();
                 string errorNode = null;
                 foreach (var message in ShaderUtil.GetShaderMessages(shader))
+                {
+                    var level = message.severity == UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error ? ShaderGraphMessageLevel.Error :
+                        message.severity == UnityEditor.Rendering.ShaderCompilerMessageSeverity.Warning ? ShaderGraphMessageLevel.Warning : ShaderGraphMessageLevel.Info;
+                    string nodeId = graph.FindNode(message.file)?.id;
+                    string text = message.message + " (line " + message.line + ")";
+                    messages.Add(new ShaderGraphMessage(nodeId, text, level));
                     if (message.severity == UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error)
                     {
-                        errors.AppendLine(message.message + " (line " + message.line + ")");
-                        if (graph.FindNode(message.file) != null) errorNode ??= message.file;
+                        errors.AppendLine(text);
+                        errorNode ??= nodeId;
                     }
+                }
                 if (!shader.isSupported || material.passCount == 0 || errors.Length > 0)
-                    throw new ShaderGraphException(errorNode, errors.Length > 0 ? errors.ToString() : "Graph shader is not supported by this graphics device.");
-                return new ShaderGraphProgram(shader, material, compilation, graph);
+                {
+                    string message = errors.Length > 0 ? errors.ToString() : "Graph shader is not supported by this graphics device.";
+                    if (errors.Length == 0) messages.Add(new ShaderGraphMessage(null, message, ShaderGraphMessageLevel.Error));
+                    throw new ShaderGraphException(errorNode, message, messages);
+                }
+                return new ShaderGraphProgram(shader, material, compilation, graph) { Messages = messages };
             }
             catch
             {
@@ -174,7 +188,7 @@ namespace DCFApixels.WhimTex
                 var uniform = uniforms[i];
                 ShaderGraphNode node = null;
                 if (current) liveNodes.TryGetValue(uniform.node, out node);
-                Vector4 value = node == null ? uniform.fallback : uniform.port == null ? node.value : node.FindInput(uniform.port)?.value ?? uniform.fallback;
+                Vector4 value = node == null ? uniform.fallback : node.FindInput(uniform.port)?.value ?? uniform.fallback;
                 Material.SetVector(uniform.property, value);
                 if (current) uniforms[i] = new Uniform(uniform.property, uniform.node, uniform.port, value);
             }

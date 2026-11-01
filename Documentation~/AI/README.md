@@ -32,11 +32,62 @@ model schema. Its embedded graph generates the layer's own image; **Shader Proce
 the composite below it. Graph parameters appear in Properties and use the shared parameter
 types. FX HLSL directives are not the serialization format for a Shader graph.
 
+`InstanceIndex` and `Time` are Input nodes with no inputs and one Float `Out`.
+Both currently emit the constant `0`; no instance or time source is evaluated.
+
+The graph's [procedural and UV nodes](../ShaderLayer.md#procedural-and-uv-nodes) are grouped as follows:
+
+| Category | Serialized `kind` values |
+| --- | --- |
+| Procedural/Noise | `Noise`, `Cellular`, `Random` |
+| Procedural/Pattern | `Checkerboard`, `Stripes`, `Grid`, `Rings`, `GradientFactor` |
+| Procedural/Shape | `Shape`, `CombineDistance` |
+| UV | `TransformUV`, `PolarCoordinates`, `Repeat`, `Mirror`, `Kaleidoscope` |
+| UV/Distortion | `DomainWarp`, `VectorDisplacement`, `Twirl`, `BulgePinch`, `Wave`, `Ripple` |
+
+Discover exact ports and defaults through `shaderNodes`, including `category`, `outputTypes`
+and `modes` entries with numeric `option` and display `name`. Set the node's `option` to the
+selected integer, not its label. Shape has mode-specific inputs: read `modes[].inputs`, including
+Start/End/Width for Line Segment (`option: 6`), instead of copying only the default-mode inputs.
+Noise's `fractal` accepts `None`, `FBm`, `Ridged`, `PingPong`; DomainWarp accepts `None`,
+`Progressive`, `Independent`. Discovery exposes these strings as `fractalModes`; defaults are
+`option: 0` and `fractal: "None"`. DomainWarp with None uses one octave.
+The [shared contract](../ShaderLayer.md#serialized-modes-and-inputs) lists all modes and inputs.
+
+Do not assume every node has only an `Out` port: `Cellular` has Float `F1`, `F2` and `Cell`;
+`Repeat` has Float2 `Out` and `Cell`; `DomainWarp` has Float2 `Out` and `Displacement`;
+`Shape` has Float `Out` (mask) and `Distance` (signed); `CombineDistance` has Float `Out`
+(signed) and `Mask`. `Random.Out` and `GradientFactor.Out` are Float.
+Cellular's default output is F1; it has no Out, so write the intended `outputPort` explicitly.
+Its Cell is a repeatable `0..1` value, not a unique ID. Repeat.Cell is `floor(UV * Scale + Offset)`,
+unrelated to **Input/Instance Index**, which still returns zero. Random.Coordinates defaults to
+constant zero; connect UV for per-pixel variation or Repeat.Cell for one value per cell.
+
+Distortions return Float2 UV, with no `0..1` clamp. `Strength = 0` preserves input UV and
+displacement vectors are not normalized. Connect the resulting UV to a procedural or sampling
+node. VectorDisplacement decodes Signed RG directly or Packed RG as `2*v-1`; Packed RG's neutral
+value is `(0.5,0.5)`. `Wave`, `Ripple`, `Stripes` and `Rings` expose Float `Phase` in cycles;
+Angle/Rotation/Direction use degrees. Drive Phase explicitly because
+Time is still zero. Pattern and shape masks have smoothed edges. Signed distances are negative
+inside; the ellipse distance remains approximate. Use `Shape.Distance` for distance operations
+and `CombineDistance.Mask` for coverage. To color a gradient field, connect `GradientFactor.Out`
+to `SampleGradient.T` and a Gradient parameter to `SampleGradient.Gradient`.
+
+Graph `Constant` nodes select `constant: "PI"`, `"TAU"`, `"PHI"`, `"E"` or `"SQRT2"`
+and output Float. Arbitrary values use parameters or unconnected inputs, not a node-level `value`.
+`Swizzle` takes numeric/Color `In`; `swizzle` is 1–4 case-insensitive `xyzw`/`rgba` characters
+or `_` for zero. Its numeric output width equals mask length: Float2 with `"_x_y"` yields
+Float4 `(0,x,0,y)`. Input width is the maximum of source width and the mask's highest component
+(y/g: 2, z/b: 3, w/a: 4). Connected scalars repeat; shorter vectors gain zeros. Unconnected
+values expose the inferred components directly. `_` does not increase input width.
+
 HLSL nodes reference definitions in `graph.functions` through `node.functionId`; file functions
 and inline bodies with includes reference complete embedded modules in `graph.sources` through
 `sourceId`. Use the current schema for exact fields and preserve source IDs, original include text and per-module include
 maps. Do not replace this archive with a pruned function body or generated shader output.
-Inline Custom Function keeps the applied `body`/`ports` separate from saved `draft`/`draftPorts`;
+Inline Custom Function keeps the applied `body`/`ports` separate from saved `draft`/`draftPorts`.
+A nonempty `draftPorts` implies a pending signature. Set `hasDraftPorts: true` to preserve an
+intentionally empty port draft; an empty/null list without that flag uses the applied ports.
 `inline: true, fullSource: true` represents an independent editable module converted from a
 library node. Its `body`/`draft` contain the main module and `entryPoint` selects the function;
 preserve its include archive. With `fullSource: false`, `body` contains only a function body.
@@ -1021,3 +1072,8 @@ For additional engine-specific authoring details, see [Shader authoring](../Shad
 ### Typed numeric shader parameters
 
 The field syntax is `toggle(type)`, `color(type)`, `enum(type)` or `seed(type)`; defaults are float, float4, float and int. Toggle/color accept bool/int/uint/half/float scalars and vectors2/3/4; enum accepts numeric scalars; seed accepts int/uint/float. `rgba` changes component labels only. Use `rgba toggle(float4)` for channel switches and explicit vector components in conditions. `gradient`, `curve` and `transform2D` are unchanged. API parameter values use JSON booleans for bool, numbers for other scalar types and arrays of the exact component count for vectors. Integer endpoints remain exact. FX reads expose `valueType` and each control’s `field`, `valueType` and `componentLabels`. Float/half color values retain encoded-color semantics; integer/bool colors are raw numeric values, without 0–255 scaling. Seed values must be integral; float seeds stay within ±16777216. See [the shader parameter contract](../ShaderFX.md#field-presentation-and-numeric-type).
+
+Shader graph annotations use optional `notes` and `groups` arrays, separate from executable
+`nodes`. Notes store title/text and a position/size; groups store member node/note IDs in `elements`.
+A member belongs to one group, and groups cannot nest. Both arrays are limited to 512 entries.
+See [the annotation contract](../ShaderLayer.md#notes-groups-and-node-messages) for fields and defaults.

@@ -79,7 +79,6 @@ namespace DCFApixels.WhimTex
             rootVisualElement.EnableInClassList("whimtex-shader-graph--light", !EditorGUIUtility.isProSkin);
 
             var toolbar = new Toolbar();
-            toolbar.Add(new ToolbarButton(() => canvas?.ShowSearch(position.position + position.size * .5f)) { text = "Add Node" });
             toolbar.Add(new ToolbarButton(() => Compile()) { text = "Compile" });
             toolbar.Add(new ToolbarButton(() => canvas?.FrameAll()) { text = "Frame All" });
             toolbar.Add(new ToolbarButton(() => canvas?.FrameSelection()) { text = "Frame Selection" });
@@ -198,9 +197,10 @@ namespace DCFApixels.WhimTex
             try
             {
                 change(Graph);
-                if (structural) { Graph.PruneFunctions(); Behaviour.InvalidateGraph(); }
+                if (structural) { Graph.PruneFunctions(); Graph.PruneGroups(); Behaviour.InvalidateGraph(); }
                 if (layoutOnly)
                 {
+                    if (!rebuild) boundLayout = LayoutFingerprint(Graph);
                     EditorUtility.SetDirty(document);
                     if (document.documentBinding != null) document.documentBinding.dirty = true;
                 }
@@ -229,16 +229,27 @@ namespace DCFApixels.WhimTex
         private void RefreshDiagnostics()
         {
             bool error = Behaviour?.HasCompileError == true;
-            string message = error ? Behaviour.Diagnostics : string.Empty;
+            var global = new System.Text.StringBuilder();
+            var level = ShaderGraphMessageLevel.Info;
+            if (Behaviour != null) foreach (var item in Behaviour.Messages)
+            {
+                if (item.nodeId != null && Graph?.FindNode(item.nodeId) != null) continue;
+                if (global.Length > 0) global.AppendLine();
+                global.Append(item.text);
+                if (item.level > level) level = item.level;
+            }
+            string message = global.ToString();
+            diagnostics.messageType = level == ShaderGraphMessageLevel.Error ? HelpBoxMessageType.Error :
+                level == ShaderGraphMessageLevel.Warning ? HelpBoxMessageType.Warning : HelpBoxMessageType.Info;
             diagnostics.text = message;
             diagnostics.EnableInClassList("whimtex-hidden", message.Length == 0);
             status.text = error ? "Compile error" : compileRequested ? "Compile pending" : Behaviour?.Diagnostics ?? "Fragment · RGBA";
             RefreshGeneratedSource();
-            canvas.ClearErrors();
-            if (error) canvas.ShowError(Behaviour.ErrorNodeId, message);
+            canvas.SetMessages("compile", Behaviour?.Messages);
         }
         internal void ShowError(string message)
         {
+            diagnostics.messageType = HelpBoxMessageType.Error;
             diagnostics.text = message; diagnostics.RemoveFromClassList("whimtex-hidden"); status.text = "Graph error";
         }
         private float MaxCodeHeight() => Mathf.Max(VerticalRevealHandle.HeaderHeight, rootVisualElement.contentRect.height - 80f);
@@ -337,6 +348,12 @@ namespace DCFApixels.WhimTex
                     if (p.name != null) foreach (char c in p.name) hash = (hash ^ c) * 1099511628211UL;
                     hash = (hash ^ (p.hasMinimum ? 1UL : 0UL) ^ (p.hasMaximum ? 2UL : 0UL)) * 1099511628211UL;
                 }
+            }
+            if (graph?.notes != null) foreach (var note in graph.notes) Text(note.id);
+            if (graph?.groups != null) foreach (var group in graph.groups)
+            {
+                Text(group.id);
+                foreach (var id in group.elements) Text(id);
             }
             return hash;
         }

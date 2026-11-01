@@ -31,6 +31,12 @@ namespace DCFApixels.WhimTex
         public ShaderGraphValueType returnValueType;
         public List<ShaderGraphFunctionPort> ports = new List<ShaderGraphFunctionPort>();
         public List<ShaderGraphFunctionPort> draftPorts;
+        public bool hasDraftPorts;
+        // Unity serializes null lists as empty lists during reload and JsonUtility copying.
+        // A nonempty list is self-describing; the flag preserves an intentionally empty draft.
+        internal bool HasDraftPorts => hasDraftPorts || draftPorts?.Count > 0;
+        internal IReadOnlyList<ShaderGraphFunctionPort> EditingPorts => HasDraftPorts
+            ? (IReadOnlyList<ShaderGraphFunctionPort>)draftPorts ?? Array.Empty<ShaderGraphFunctionPort>() : ports;
         public string body = "Result = In;", draft = "Result = In;";
         public string sourceId, sourcePath, presetId, sourceFingerprint;
         public int presetVersion;

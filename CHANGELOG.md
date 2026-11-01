@@ -6,6 +6,34 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader Graph keeps mode-inapplicable input fields and ports visible but disabled, with
+  an explanation on hover. Noise/Domain Warp fractal settings, Shape Radius, Stripes Width
+  and radial Gradient Factor Angle follow their modes. Unavailable Split components and
+  inactive inputs cannot receive new connections; stored values and existing wires remain.
+
+- Unconnected Float inputs in Shader Graph show an X label matching vector components;
+  dragging the label adjusts the value through the native numeric field.
+
+- Shader Graph adds Cellular, Random, Checkerboard, Stripes, Grid, Rings, Gradient Factor,
+  Combine Distance, Polar Coordinates, Repeat, Mirror, Kaleidoscope, Domain Warp,
+  Vector Displacement, Twirl, Bulge / Pinch, Wave and Ripple. Noise gains fractal modes;
+  Shape gains Polygon, Star, Capsule, Line Segment and signed-distance output.
+  Procedural/Noise, Procedural/Pattern, Procedural/Shape and UV/Distortion are nested search
+  categories; Transform UV is under UV. Distortions retain out-of-range UVs, zero strength
+  is neutral, and displacement magnitude is preserved. Multi-output generators share calculations.
+
+- Shader Graph adds Input/Instance Index and Input/Time nodes. Both currently output Float 0
+  and have no controls or preview.
+
+- Shader Graph now supports editable notes and groups through separate context-menu actions.
+  Both save with the document, support Undo/Redo and copying; copying a group includes its contents.
+  Notes provide a rainbow Hue slider for background, outline and text colors, preserving saturation,
+  brightness and non-color styling; the hue shift survives note theme changes. Note selection uses
+  an outward frame matching ordinary nodes; editing keeps the displayed font size and text area.
+  Annotation edits do not invalidate shader/render caches.
+  Node messages use Info/Warning/Error icons on the right, with hover-only text beside the icon.
+  Compiler warnings are retained; node diagnostics no longer repeat below previews or the graph.
+
 - Library HLSL nodes use ordinary node styling without a code panel. Their context menu can
   convert them to independent editable Custom Functions, preserving ports, wiring, values and
   include backups. Converted functions edit the main source and compile without the original files.
@@ -52,7 +80,7 @@ All notable changes to WhimTex are documented in this file.
   drops Z/W. Color is a distinct float4-backed port type: scalar → (x, x, x, 1),
   float2 → (x, y, 0, 1), float3 → (x, y, z, 1), and float4 retains all components.
   Output and Blend color ports, Sample Texture/Sample Gradient color outputs and Color parameters
-  use fixed Color types; Constant adds Color with a color picker. Dynamic math normalizes Color
+  use fixed Color types. Dynamic math normalizes Color
   to float4 and uses the widest numeric operand width, with scalar splats and zero-extension,
   without alpha-one defaults. Numeric/Color ports are circles, Boolean ports are diamonds, and
   Texture/Gradient/Curve ports are squares. Generated HLSL reuses the actual FX code field in
@@ -62,9 +90,26 @@ All notable changes to WhimTex are documented in this file.
   accounting for zoom. Native node-rectangle Y snapping takes priority; connector snapping
   leaves X unchanged. Shift disables snapping, and nodes moved together keep their relative positions.
 
-- Shader graph Reroute mini-nodes are inserted by double-clicking an existing connection or choosing Add Reroute from its context menu; they are absent from Add Node and node search. They have no header, preview or parameter controls and forward the source type and value through In → Out for numbers, vectors, Color, Boolean, Texture, Gradient and Curve without adding HLSL calculations. Move them to arrange wires and branch their output to multiple inputs. Deleting a Reroute reconnects its source directly to downstream inputs, including along Reroute chains; ordinary edge deletion breaks the connection. Positions and connections are saved, and edits support Undo/Redo. JSON uses kind Reroute; In is required for compilation, while valueType retains the display type for a disconnected node.
+- Shader graph Reroute mini-nodes are inserted by double-clicking an existing connection or choosing Add Reroute from its context menu; they are absent from node search. They have no header, preview or parameter controls and forward the source type and value through In → Out for numbers, vectors, Color, Boolean, Texture, Gradient and Curve without adding HLSL calculations. Move them to arrange wires and branch their output to multiple inputs. Deleting a Reroute reconnects its source directly to downstream inputs, including along Reroute chains; ordinary edge deletion breaks the connection. Positions and connections are saved, and edits support Undo/Redo. JSON uses kind Reroute; In is required for compilation, while valueType retains the display type for a disconnected node.
 
-- The Shader graph editor gives calculation nodes other than Output their own collapsible 128 × 128 previews, with an output selector only for nodes with multiple outputs; Output, Parameter and Reroute have no per-node preview. The shared Selected Node sidebar preview is removed. Previews render only when dirty, expanded and visible in the graph viewport. Resource outputs require a sampling node; node-preview errors clear the image and show diagnostics. Parameter nodes use one name/output-connector row with native padding and label/port spacing, without an Out label, extra indicator, internal preview or dropdown; their context menu selects another declared parameter. Unconnected numeric fields sit outside the node body, to the left of unobstructed ports, disappear on connection and return on disconnection. UV ports retain implicit PixelUV with a local Custom/UV option. These preview and field-layout changes leave graph math, layer rendering and storage unchanged.
+- Shader Graph Constant selects PI, TAU, PHI, E or SQRT2 as a scalar HLSL literal.
+  Swizzle rearranges/repeats numeric or Color components with 1–4 xyzw/rgba characters;
+  `_` inserts zero, so Float2 with `_x_y` yields Float4 `(0,x,0,y)`.
+  Input width follows the maximum required by the source and mask; unconnected fields expose
+  the inferred components, connected scalars repeat and shorter vectors gain zeros.
+  Invalid mask expressions produce node diagnostics. Choice/mask edits retain Undo/Redo
+  and JSON/TIFF storage. The former arbitrary-value Constant format is unsupported without migration;
+  use parameters or unconnected input fields for those values.
+
+- Shader Graph previews are reserved for UV, sampling, generators and numeric image-processing
+  operations. Constant, Image Size, Texture Size, Split, Compare, Output, Parameter and Reroute
+  do not allocate previews. HLSL nodes offer only numeric/Color outputs. The Preview heading is
+  replaced by a centered collapse arrow over the image, visible on node hover, and a thin,
+  expand row with a compact centered button when collapsed. Previews remain 128 × 128
+  and render only when dirty, expanded and visible.
+  Nodes without previews size to their contents without the shared 200-pixel minimum width.
+  Parameter nodes use a single name/output row; unconnected numeric input fields appear beside
+  their ports, while UV inputs retain implicit PixelUV with a Custom/UV choice.
 
 - Shader layers generate their own image from an embedded node graph, with Edit Graph and shared parameters in Properties. The first node set covers numeric/vector math, conditions, UV transforms, texture/gradient/curve sampling, noise, shapes, RGBA blending and Output. Graphs compile to a single HLSL generation pass; parameter-value changes update bindings without recompilation. Color parameters expose Color ports with four numeric components, HDR and negative values remain available, and the result uses the normal layer Transform, FX and composition pipeline. Incomplete graphs remain editable and saveable; compilation errors retain the last working shader when available and report diagnostics without treating the draft as valid output. Shader Processor retains its separate lower-stack processing role.
 
@@ -201,6 +246,9 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Removed the duplicate Shader Graph Add submenu and toolbar Add Node button. Create Node,
+  Space, connection-drop creation and the separate note, group and reroute actions remain.
+
 - Mask FX removes its separate Transform and samples the current pixel through PinnedUV, enabling pixel-local rendering. Channel selection, Profile, Invert, Apply To, Opacity and the independent grayscale inspector preview remain available.
 
 - Built-in FX inspectors disable inactive lighting and spill settings without discarding values. Bevel Emboss uses three open parameter groups; Digital Glitch keeps its shared grid and line jitter editable at zero corruption density. Chroma Key, Halftone, Pixelate and Threshold use RGB-only color fields where alpha was unused, retaining existing RGB values on recompilation. Color Filter's tooltip now describes its active alpha strength. FX calculations and rendered output are unchanged.
@@ -303,6 +351,27 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Collapsed Shader Graph previews no longer impose the 200-pixel node minimum width.
+  Nodes size to their contents while collapsed and restore the minimum when expanded,
+  including after the node view is rebuilt.
+
+- Shader Graph Paste and Duplicate center the copied selection's full bounding rectangle
+  in the current viewport, including node/note sizes and group frames, at any pan and zoom.
+  Repeated paste no longer adds a cumulative offset.
+
+- Shader Graph handles Copy/Paste/Cut/Duplicate keyboard shortcuts directly through its native
+  command callbacks, keeping new clipboard operations available after script recompilation.
+  Text fields retain their own shortcuts, and handled keys are consumed once. The clipboard
+  marker remains stable for the Editor session; another Editor session's object references are rejected.
+
+- Custom Function port settings no longer disappear after script reload or copying. An absent
+  port draft stays distinct from an intentionally empty one; recompiling unchanged code preserves
+  the applied port declarations and input values.
+- Custom Function code fills the node width without a bottom gap; its resize handle overlays
+  the lower-right corner of the editor. The custom size applies only while Code is expanded;
+  collapsing restores normal node width, and reopening restores the saved size. Code expansion
+  and size are retained in the document.
 
 - Shader graph numeric input fields already existed but were hidden by Node's built-in inline
   clipping; unconnected fields are now visible and editable to the left of their ports.
