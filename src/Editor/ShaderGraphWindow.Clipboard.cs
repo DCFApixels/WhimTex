@@ -259,6 +259,9 @@ namespace DCFApixels.WhimTex
                         next.subGraphs[index] = candidate; next.activeSubGraph = candidate;
                     }
                     next.Validate();
+                    // Keep the live definition referenced by sidebar callbacks after validation.
+                    if (next.activeSubGraph != null)
+                        next.subGraphs[next.subGraphs.FindIndex(item => item.id == current.activeSubGraph.id)] = current.activeSubGraph;
                     window.Edit(operation == "Duplicate" ? "Duplicate Shader Nodes" : "Paste Shader Nodes", graph =>
                     {
                         graph.parameters = next.parameters; graph.nodes = next.nodes; graph.edges = next.edges;

@@ -41,6 +41,8 @@ namespace DCFApixels.WhimTex
         public string sourceId, sourcePath, presetId, sourceFingerprint;
         public int presetVersion;
         public bool reflected;
+        [NonSerialized] private RenderFingerprint.TextStamp bodyStamp;
+        internal ulong BodyFingerprint => bodyStamp.Get(body);
 
         internal static ShaderGraphFunction CreateInline() => new ShaderGraphFunction
         {

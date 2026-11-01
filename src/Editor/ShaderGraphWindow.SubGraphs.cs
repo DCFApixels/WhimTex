@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
         [SerializeField] string editingSubGraphId;
         ShaderGraph subGraphView, subGraphRoot;
         ToolbarButton backToGraph;
-        readonly List<Action> interfaceRefresh = new List<Action>();
+        readonly List<Action> declarationRefresh = new List<Action>();
         internal ShaderGraph RootGraph => Behaviour?.graph;
         ShaderGraph ResolveGraph()
         {
@@ -65,7 +65,6 @@ namespace DCFApixels.WhimTex
         }
         void RebuildSubGraphInterface()
         {
-            interfaceRefresh.Clear();
             var definition = Graph?.activeSubGraph;
             if (definition == null) return;
             var name = new TextField("Sub Graph") { value = definition.name, isDelayed = true };
@@ -105,25 +104,35 @@ namespace DCFApixels.WhimTex
                     row.AddManipulator(new ContextualMenuManipulator(e =>
                     {
                         if (!output) e.menu.AppendAction("Use in Graph", _ => AddNode(ShaderGraphNodeKind.SubGraphInput, canvas.contentViewContainer.WorldToLocal(canvas.worldBound.center), pin.id));
-                        e.menu.AppendAction("Remove", _ => Edit("Remove Sub Graph Port", graph =>
-                        {
-                            list.Remove(pin);
-                            var removed = new HashSet<string>(definition.nodes.Where(n => n.kind == ShaderGraphNodeKind.SubGraphInput && n.parameterId == pin.id).Select(n => n.id));
-                            definition.nodes.RemoveAll(n => removed.Contains(n.id));
-                            definition.edges.RemoveAll(edge => removed.Contains(edge.outputNode) || edge.inputPort == pin.id);
-                            void Clear(ShaderGraph scope)
-                            {
-                                var instances = new HashSet<string>(scope.nodes.Where(n => n.kind == ShaderGraphNodeKind.SubGraph && n.subGraphId == definition.id).Select(n => n.id));
-                                scope.edges.RemoveAll(edge => output ? instances.Contains(edge.outputNode) && edge.outputPort == pin.id : instances.Contains(edge.inputNode) && edge.inputPort == pin.id);
-                                foreach (var node in scope.nodes) if (instances.Contains(node.id)) node.inputs.RemoveAll(i => i.port == pin.id);
-                            }
-                            Clear(RootGraph); foreach (var other in RootGraph.subGraphs) Clear(RootGraph.SubGraphView(other));
-                        }), _ => output && list.Count <= 1 ? DropdownMenuAction.Status.Disabled : DropdownMenuAction.Status.Normal);
+                        e.menu.AppendAction("Remove", _ => RemoveSubGraphPort(definition, pin, output),
+                            _ => output && list.Count <= 1 ? DropdownMenuAction.Status.Disabled : DropdownMenuAction.Status.Normal);
                     }));
                     declarations.Add(row);
                 }
             }
             Ports("Inputs", false); Ports("Outputs", true);
+        }
+
+        void RemoveSubGraphPort(ShaderGraphSubGraph definition, ShaderGraphInterfacePort pin, bool output)
+        {
+            var list = output ? definition.outputs : definition.inputs;
+            if (!list.Contains(pin) || output && list.Count <= 1) return;
+            Edit("Remove Sub Graph Port", graph =>
+            {
+                list.Remove(pin);
+                var removed = new HashSet<string>(definition.nodes.Where(n => n.kind == ShaderGraphNodeKind.SubGraphInput && n.parameterId == pin.id).Select(n => n.id));
+                definition.nodes.RemoveAll(n => removed.Contains(n.id));
+                definition.edges.RemoveAll(edge => removed.Contains(edge.outputNode) || edge.inputPort == pin.id);
+                if (output) foreach (var node in definition.nodes)
+                    if (node.kind == ShaderGraphNodeKind.SubGraphOutput) node.inputs.RemoveAll(i => i.port == pin.id);
+                void Clear(ShaderGraph scope)
+                {
+                    var instances = new HashSet<string>(scope.nodes.Where(n => n.kind == ShaderGraphNodeKind.SubGraph && n.subGraphId == definition.id).Select(n => n.id));
+                    scope.edges.RemoveAll(edge => output ? instances.Contains(edge.outputNode) && edge.outputPort == pin.id : instances.Contains(edge.inputNode) && edge.inputPort == pin.id);
+                    foreach (var node in scope.nodes) if (instances.Contains(node.id)) node.inputs.RemoveAll(i => i.port == pin.id);
+                }
+                Clear(RootGraph); foreach (var other in RootGraph.subGraphs) Clear(RootGraph.SubGraphView(other));
+            });
         }
 
         void AddInterfaceDefault(VisualElement row, ShaderGraphInterfacePort pin)
@@ -138,22 +147,22 @@ namespace DCFApixels.WhimTex
             {
                 case ShaderGraphValueType.Float:
                     var number = new FloatField("Default") { value = pin.value.x };
-                    number.RegisterValueChangedCallback(e => Set(new Vector4(e.newValue, 0, 0, 0))); interfaceRefresh.Add(() => number.SetValueWithoutNotify(pin.value.x)); row.Add(number); break;
+                    number.RegisterValueChangedCallback(e => Set(new Vector4(e.newValue, 0, 0, 0))); declarationRefresh.Add(() => number.SetValueWithoutNotify(pin.value.x)); row.Add(number); break;
                 case ShaderGraphValueType.Float2:
                     var pair = new Vector2Field("Default") { value = pin.value };
-                    pair.RegisterValueChangedCallback(e => Set(new Vector4(e.newValue.x, e.newValue.y, 0, 0))); interfaceRefresh.Add(() => pair.SetValueWithoutNotify(pin.value)); row.Add(pair); break;
+                    pair.RegisterValueChangedCallback(e => Set(new Vector4(e.newValue.x, e.newValue.y, 0, 0))); declarationRefresh.Add(() => pair.SetValueWithoutNotify(pin.value)); row.Add(pair); break;
                 case ShaderGraphValueType.Float3:
                     var triple = new Vector3Field("Default") { value = pin.value };
-                    triple.RegisterValueChangedCallback(e => Set(e.newValue)); interfaceRefresh.Add(() => triple.SetValueWithoutNotify(pin.value)); row.Add(triple); break;
+                    triple.RegisterValueChangedCallback(e => Set(e.newValue)); declarationRefresh.Add(() => triple.SetValueWithoutNotify(pin.value)); row.Add(triple); break;
                 case ShaderGraphValueType.Float4:
                     var vector = new Vector4Field("Default") { value = pin.value };
-                    vector.RegisterValueChangedCallback(e => Set(e.newValue)); interfaceRefresh.Add(() => vector.SetValueWithoutNotify(pin.value)); row.Add(vector); break;
+                    vector.RegisterValueChangedCallback(e => Set(e.newValue)); declarationRefresh.Add(() => vector.SetValueWithoutNotify(pin.value)); row.Add(vector); break;
                 case ShaderGraphValueType.Boolean:
                     var toggle = new Toggle("Default") { value = pin.value.x != 0 };
-                    toggle.RegisterValueChangedCallback(e => Set(new Vector4(e.newValue ? 1 : 0, 0, 0, 0))); interfaceRefresh.Add(() => toggle.SetValueWithoutNotify(pin.value.x != 0)); row.Add(toggle); break;
+                    toggle.RegisterValueChangedCallback(e => Set(new Vector4(e.newValue ? 1 : 0, 0, 0, 0))); declarationRefresh.Add(() => toggle.SetValueWithoutNotify(pin.value.x != 0)); row.Add(toggle); break;
                 case ShaderGraphValueType.Color:
                     var color = new WhimTexColorField("Default") { value = HdrUtility.Encode(pin.value), hdr = true, showAlpha = true, Document = () => document };
-                    color.RegisterValueChangedCallback(e => Set(HdrUtility.Decode(e.newValue))); interfaceRefresh.Add(() => color.SetValueWithoutNotify(HdrUtility.Encode(pin.value))); row.Add(color); break;
+                    color.RegisterValueChangedCallback(e => Set(HdrUtility.Decode(e.newValue))); declarationRefresh.Add(() => color.SetValueWithoutNotify(HdrUtility.Encode(pin.value))); row.Add(color); break;
             }
         }
 

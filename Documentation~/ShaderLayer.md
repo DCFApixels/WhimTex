@@ -1007,13 +1007,16 @@ visits to 65,536. Capture limits inspected input to 256 MiB and 65,536 file visi
 duplicate modules reduce the final archive size. Source IDs contain 1–128 ASCII letters,
 digits, underscores or hyphens; saved IDs are opaque and can remain stable during explicit edits.
 
-JSON, clipboard and Unity Undo retain plain `code` strings. Native TIFF encodes those fields
-using tagged value 33 and container blocks named `shader-source:sha256:<text digest>`.
+JSON, clipboard and Unity Undo retain plain source strings. Native TIFF encodes source `code`
+and function `body`/`draft` strings using tagged value 33 and container blocks named
+`shader-source:sha256:<text digest>`; null drafts remain null.
 Compression uses the existing container codec; identical text is stored once across every
 graph in the TIFF, even when the modules have different include bindings. Bindings and source
 IDs stay in the document model. Reads check the block size and SHA-256 before reconstructing
 ordinary strings, with a 32 MiB limit on the unique shared text table. Older readers fail on
 the unknown tag instead of interpreting the block reference as source code.
+Compilation and node-preview fingerprints include module text and include bindings, even
+when source IDs remain unchanged. Text hashes are cached until the string changes.
 
 ### Create from a connection
 
@@ -1077,6 +1080,8 @@ For an existing layer, use `op:"set"`, its `layer` ID or alias, and the same
 `settings.shader.graph` object. The graph is replaced completely, not patched by array index;
 preserve existing IDs and include every retained node, parameter, edge, Sub Graph definition,
 function, source and annotation.
+Missing texture `$asset` identities supplied by this operation survive native save/reopen;
+an explicit null replacement clears the old identity for that parameter.
 Inspection returns the graph at `settings.shader.graph`. Discovery supplies `shaderDefaults`,
 `shaderNodes`, `shaderValueTypes`, `shaderWrapModes` and `shaderFilterModes`.
 Each node catalog entry includes `category`, exact `inputs` and the existing string-array

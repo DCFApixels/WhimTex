@@ -191,7 +191,7 @@ namespace DCFApixels.WhimTex
                 RebuildParameters(); canvas.Rebuild();
             }
             else canvas.RefreshValues();
-            foreach (var update in interfaceRefresh) update();
+            foreach (var update in declarationRefresh) update();
             parameterSource.RefreshParameters(); parameterValues.Refresh();
             preview.Bind(document, behaviour.Owner);
             RefreshDiagnostics();

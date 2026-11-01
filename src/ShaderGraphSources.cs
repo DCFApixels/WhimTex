@@ -22,6 +22,8 @@ namespace DCFApixels.WhimTex
         public string id;
         public string code;
         public List<ShaderGraphInclude> includes = new List<ShaderGraphInclude>();
+        [NonSerialized] private RenderFingerprint.TextStamp codeStamp;
+        internal ulong CodeFingerprint => codeStamp.Get(code);
     }
 
     // Archive operations never rewrite the stored code or consult files during expansion.

@@ -75,7 +75,7 @@ namespace DCFApixels.WhimTex
             });
         }
 
-        private static void RestoreMissingAssets(WhimTexDocument document)
+        internal static void RestoreMissingAssets(WhimTexDocument document)
         {
             if (document.jsonMissingAssets == null || document.jsonMissingAssets.Count == 0) return;
             var owners = new Dictionary<string, object>(StringComparer.Ordinal);

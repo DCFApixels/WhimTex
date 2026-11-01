@@ -448,8 +448,15 @@ namespace DCFApixels.WhimTex
             if (graph.functions != null) foreach (var f in graph.functions)
             {
                 if (f == null) { Number(-1); continue; }
-                Add(f.id); Number(f.inline ? 1 : 0); Number(f.fullSource ? 1 : 0); Add(f.sourceId); if (f.inline) Add(f.body); Add(f.entryPoint); Add(f.returnType); Add(f.returnName); Number((int)f.returnValueType);
+                Add(f.id); Number(f.inline ? 1 : 0); Number(f.fullSource ? 1 : 0); Add(f.sourceId); if (f.inline) hash = RenderFingerprint.Mix(hash, f.BodyFingerprint); Add(f.entryPoint); Add(f.returnType); Add(f.returnName); Number((int)f.returnValueType);
                 if (f.ports != null) foreach (var p in f.ports) { if (p == null) { Number(-1); continue; } Add(p.name); Number((int)p.type); Number((int)p.direction); Number(p.uvDefault ? 1 : 0); }
+            }
+            if (graph.sources != null) foreach (var source in graph.sources)
+            {
+                if (source == null) { Number(-1); continue; }
+                Add(source.id); hash = RenderFingerprint.Mix(hash, source.CodeFingerprint);
+                if (source.includes != null) foreach (var include in source.includes)
+                { if (include == null) { Number(-1); continue; } Add(include.requested); Add(include.sourceId); }
             }
             return hash;
         }

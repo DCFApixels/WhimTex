@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
         private static JObject ShaderSnapshot(ShaderLayerBehaviour shader, WhimTexDocument document)
             => new JObject { ["graph"] = WhimTexDocumentJson.ShaderGraphSnapshot(shader.graph, document) };
 
-        private static void SetShader(ShaderLayerBehaviour shader, JObject settings)
+        private static void SetShader(WhimTexDocument document, ShaderLayerBehaviour shader, JObject settings)
         {
             Keys(settings, "graph");
             if (settings["graph"] == null) return;
@@ -16,7 +16,9 @@ namespace DCFApixels.WhimTex
             // Function definitions and their plain-text source archive use the same codec;
             // loading a graph never refreshes its embedded backups from sourcePath.
             var graph = WhimTexDocumentJson.ReadShaderGraph(Obj(settings["graph"], "shader.graph"));
+            WhimTexDocumentJson.RestoreMissingAssets(document);
             shader.graph = graph;
+            WhimTexDocumentJson.CaptureMissingAssets(document);
             shader.InvalidateGraph();
         }
 

@@ -49,6 +49,8 @@ namespace DCFApixels.WhimTex
                 container.Insert(index, added);
                 if (alias != null) aliases.Add(alias, added);
                 if (operation["transform"] != null) SetTransform(document, added, Obj(operation["transform"], "transform"));
+                if (added.Behaviour is ShaderLayerBehaviour && operation["settings"]?["shader"]?["graph"] != null)
+                    WhimTexDocumentJson.CaptureMissingAssets(document);
                 if (execute && added?.Behaviour is DrawingLayerBehaviour drawing)
                 {
                     drawing.InitializeCanvas(document.width, document.height);
@@ -291,7 +293,7 @@ namespace DCFApixels.WhimTex
             if (layer?.Behaviour is NoiseLayerBehaviour noise && settings["noise"] != null)
                 SetNoise(noise, Obj(settings["noise"], "noise"));
             if (layer?.Behaviour is ShaderLayerBehaviour shader && settings["shader"] != null)
-                SetShader(shader, Obj(settings["shader"], "shader"));
+                SetShader(document, shader, Obj(settings["shader"], "shader"));
             if (layer?.Behaviour is ShapeLayerBehaviour shape && settings["shape"] != null)
                 SetShape(shape, Obj(settings["shape"], "shape"));
             if (layer?.Behaviour is VectorLayerBehaviour vector && settings["vector"] != null)

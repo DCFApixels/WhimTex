@@ -218,6 +218,8 @@ HLSL nodes reference definitions in `graph.functions` through `node.functionId`;
 and inline bodies with includes reference complete embedded modules in `graph.sources` through
 `sourceId`. Use the current schema for exact fields and preserve source IDs, original include text and per-module include
 maps. Do not replace this archive with a pruned function body or generated shader output.
+Source IDs may remain stable when explicitly replacing module text or include bindings;
+both participate in compilation and preview cache invalidation.
 Inline Custom Function keeps the applied `body`/`ports` separate from saved `draft`/`draftPorts`.
 A nonempty `draftPorts` implies a pending signature. Set `hasDraftPorts: true` to preserve an
 intentionally empty port draft; an empty/null list without that flag uses the applied ports.

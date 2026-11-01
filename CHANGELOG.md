@@ -408,6 +408,18 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Shader Graph API updates retain missing texture identities through native save/reopen.
+  Deleting a shared parameter also removes its nodes from groups in every Sub Graph;
+  deleting an output removes its saved local value from the definition's Output node.
+- Custom Function source and drafts use the shared compressed source table in native TIFF,
+  allowing valid full-source functions larger than 1 MiB to save without raising the general
+  document string limit. Identical source, applied code and draft text share one block.
+- Shader Graph compilation and node-preview caches now account for embedded HLSL text and
+  include bindings when source IDs stay unchanged. Text fingerprints are reused until the
+  corresponding string changes.
+- Undo refreshes Shader parameter Limits fields. Pasting only notes/groups inside a Sub Graph
+  preserves sidebar bindings, so the first subsequent rename or port edit updates the document.
+
 - Collapsed Shader Graph previews no longer impose the 200-pixel node minimum width.
   Nodes size to their contents while collapsed and restore the minimum when expanded,
   including after the node view is rebuilt.

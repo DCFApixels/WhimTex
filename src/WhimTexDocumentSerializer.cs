@@ -580,9 +580,10 @@ namespace DCFApixels.WhimTex
                 {
                     _writer.Write(field.Name);
                     object fieldValue = field.GetValue(value);
-                    if (value is ShaderGraphSource && field.Name == "code")
+                    if (fieldValue is string code && (value is ShaderGraphSource && field.Name == "code" ||
+                        value is ShaderGraphFunction && (field.Name is "body" or "draft")))
                     {
-                        WriteShaderSource((string)fieldValue);
+                        WriteShaderSource(code);
                         continue;
                     }
                     if (value is ShaderFX effect && field.Name == "code")

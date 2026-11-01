@@ -46,6 +46,7 @@ namespace DCFApixels.WhimTex
         {
             SetHoveredParameter(null);
             declarations.Clear();
+            declarationRefresh.Clear();
             RebuildSubGraphInterface();
             parameterInsertion = null;
             if (Graph == null) return;
@@ -133,6 +134,11 @@ namespace DCFApixels.WhimTex
                             Edit("Change Shader Parameter Limits", graph =>
                             { var p = graph.FindParameter(id); p.minimum = e.newValue.x; p.maximum = e.newValue.y; }, structural: false, rebuild: false);
                         });
+                        declarationRefresh.Add(() =>
+                        {
+                            var p = Graph?.FindParameter(id);
+                            if (p != null) limits.SetValueWithoutNotify(new Vector2(p.minimum, p.maximum));
+                        });
                         foldout.Add(limits);
                     }
                 }
@@ -169,6 +175,7 @@ namespace DCFApixels.WhimTex
                 {
                     scope.edges.RemoveAll(e => removed.Contains(e.inputNode) || removed.Contains(e.outputNode));
                     scope.nodes.RemoveAll(n => removed.Contains(n.id));
+                    scope.PruneGroups();
                 }
                 Remove(RootGraph);
                 foreach (var definition in RootGraph.subGraphs) Remove(RootGraph.SubGraphView(definition));
