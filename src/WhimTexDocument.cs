@@ -186,6 +186,9 @@ namespace DCFApixels.WhimTex
         internal RenderTexture RenderLayerPreview(Layer layer, int maxSize) =>
             RenderLayerPreviewCore(layer, maxSize, false, false);
 
+        internal RenderTexture RenderShaderGraphPreview(Layer layer, int maxSize, float time) =>
+            RenderLayerPreviewCore(layer, maxSize, false, false, time);
+
         internal RenderTexture RenderLayerAndBelow(Layer layer, int outputWidth, int outputHeight)
         {
             using var profile = WhimTexProfiler.Measure("document.layer_and_below", this, layer);
@@ -214,7 +217,8 @@ namespace DCFApixels.WhimTex
         internal RenderTexture RenderAgentLayerPreview(Layer layer, int maxSize) =>
             RenderLayerPreviewCore(layer, maxSize, true, true);
 
-        private RenderTexture RenderLayerPreviewCore(Layer layer, int maxSize, bool includeDisabled, bool preserveGroupColor)
+        private RenderTexture RenderLayerPreviewCore(Layer layer, int maxSize, bool includeDisabled, bool preserveGroupColor,
+            float? shaderGraphPreviewTime = null)
         {
             using var profile = WhimTexProfiler.Measure("document.layer_preview", this, layer);
             if (layer == null || !TryFindLayer(layer, out List<Layer> container, out int index))
@@ -227,6 +231,10 @@ namespace DCFApixels.WhimTex
             try
             {
                 GetCanvasRenderSize(maxSize, out int renderWidth, out int renderHeight, out float scaleMultiplier);
+                // Animated graph previews must neither consume nor populate the layer's time-zero caches.
+                if (shaderGraphPreviewTime.HasValue && layer.Behaviour is ShaderLayerBehaviour)
+                    return RenderStandaloneUncached(container, index, renderWidth, renderHeight, scaleMultiplier,
+                        new HashSet<Layer>(), includeDisabled: includeDisabled, shaderGraphPreviewTime: shaderGraphPreviewTime);
                 if (preserveGroupColor && layer?.AsGroup() is Layer group)
                     return RenderGroupEffectInput(group, renderWidth, renderHeight, scaleMultiplier,
                         new HashSet<Layer>(), preserveColor: true, includeDisabled: includeDisabled);
@@ -864,7 +872,7 @@ namespace DCFApixels.WhimTex
             bool applyFx = true,
             bool includeDisabled = false,
             bool applyClipping = true,
-            bool finishLayer = true, RenderTexture accumulatedInput = null)
+            bool finishLayer = true, RenderTexture accumulatedInput = null, float? shaderGraphPreviewTime = null)
         {
             if (container == null || index < 0 || index >= container.Count)
                 return null;
@@ -931,13 +939,13 @@ namespace DCFApixels.WhimTex
                     outputHeight,
                     scaleMultiplier,
                     applyTransform,
-                    applyFx);
+                    applyFx).WithShaderGraphPreviewTime(shaderGraphPreviewTime);
                 RenderTexture raw = layer.Render(context);
                 try
                 {
                     if (finishLayer)
                         raw = FinishStage(raw, layer.colorRange == LayerColorRange.Standard, applyFx ? layer.channelMapping : default);
-                    if (finishLayer && applyFx) OfferLayerContent(layer, raw, applyTransform, scaleMultiplier);
+                    if (finishLayer && applyFx && !shaderGraphPreviewTime.HasValue) OfferLayerContent(layer, raw, applyTransform, scaleMultiplier);
                     if (applyClipping && raw != null && layer.clippingMask)
                         ApplyClippingCoverage(ref raw, container, index, outputWidth, outputHeight, scaleMultiplier, renderStack);
                     return raw;

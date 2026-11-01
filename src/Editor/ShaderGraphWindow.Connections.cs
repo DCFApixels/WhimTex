@@ -27,7 +27,7 @@ namespace DCFApixels.WhimTex
             public void OnDropOutsidePort(Edge edge, Vector2 position)
             {
                 var dragged = edge.output?.edgeConnector.edgeDragHelper.draggedPort ?? edge.input?.edgeConnector.edgeDragHelper.draggedPort;
-                if (dragged?.direction != Direction.Output || !dragged.enabledInHierarchy || dragged.userData is not PortData source) return;
+                if (dragged == null || !dragged.enabledInHierarchy || dragged.userData is not PortData source) return;
                 var canvas = dragged.GetFirstAncestorOfType<Canvas>();
                 if (canvas != null && canvas.IsEmptyDrop(position)) canvas.ShowConnectedSearch(source, position);
             }
@@ -54,9 +54,12 @@ namespace DCFApixels.WhimTex
         private readonly struct ConnectedNodeChoice
         {
             internal readonly ShaderGraphNodeKind kind;
-            internal readonly string input;
+            internal readonly string port, parameterId;
             internal readonly ShaderGraphFunctionCatalog.Entry function;
-            internal ConnectedNodeChoice(ShaderGraphNodeKind kind, string input, ShaderGraphFunctionCatalog.Entry function = null) { this.kind = kind; this.input = input; this.function = function; }
+            internal readonly ShaderGraphSubGraph subGraph;
+            internal readonly bool heightValue;
+            internal ConnectedNodeChoice(ShaderGraphNodeKind kind, string port, ShaderGraphFunctionCatalog.Entry function = null, string parameterId = null, ShaderGraphSubGraph subGraph = null, bool heightValue = false)
+            { this.kind = kind; this.port = port; this.function = function; this.parameterId = parameterId; this.subGraph = subGraph; this.heightValue = heightValue; }
         }
 
         private sealed partial class Canvas
@@ -78,7 +81,7 @@ namespace DCFApixels.WhimTex
 
             internal void ShowConnectedSearch(PortData source, Vector2 panelPosition)
             {
-                if (!window.Editable || !CanAddConnection()) return;
+                if (!window.Editable || !CanAddConnection(source)) return;
                 if (search == null) search = ScriptableObject.CreateInstance<NodeSearch>();
                 search.canvas = this; search.sourceGraph = window.Graph;
                 search.source = source;
@@ -88,53 +91,109 @@ namespace DCFApixels.WhimTex
                 SearchWindow.Open(new SearchWindowContext(screen + Vector2.right * (width * 0.5f), width), search);
             }
 
-            bool CanAddConnection() => window.Graph != null && window.Graph.nodes.Count < 512 && window.Graph.edges.Count < 4096;
+            bool CanAddConnection(PortData source) => window.Graph != null && window.Graph.nodes.Count < 512 &&
+                (window.Graph.edges.Count < 4096 || source?.direction == Direction.Input &&
+                    window.Graph.edges.Exists(e => e.inputNode == source.nodeId && e.inputPort == source.name));
 
-            bool CurrentSource(ShaderGraph graph, PortData source, out ShaderGraphValueType type)
+            bool CurrentSource(ShaderGraph graph, PortData source, out PortData current)
             {
-                type = default;
+                current = null;
                 if (!ReferenceEquals(graph, window.Graph) || source == null || !window.Editable) return false;
                 var node = graph.FindNode(source.nodeId);
-                if (node == null || Array.IndexOf(ShaderGraphNodes.Outputs(node), source.name) < 0) return false;
-                if (!outputPorts.TryGetValue(source.nodeId + ":" + source.name, out var port) || !port.enabledInHierarchy) return false;
-                type = window.OutputType(node, source.name);
+                if (node == null) return false;
+                if (source.direction == Direction.Output)
+                {
+                    if (Array.IndexOf(ShaderGraphNodes.Outputs(node), source.name) < 0) return false;
+                }
+                else if (!ShaderGraphNodes.Inputs(node).Any(p => p.name == source.name) ||
+                    ShaderGraphNodes.InputInactiveReason(node, source.name) != null) return false;
+                var ports = source.direction == Direction.Input ? inputPorts : outputPorts;
+                if (!ports.TryGetValue(source.nodeId + ":" + source.name, out var port) || !port.enabledInHierarchy) return false;
+                current = (PortData)port.userData;
                 return true;
+            }
+
+            IEnumerable<string> ConnectingPorts(ShaderGraphNode node, PortData source)
+            {
+                if (source.direction == Direction.Output)
+                {
+                    var type = window.OutputType(window.Graph.FindNode(source.nodeId), source.name);
+                    foreach (var input in ShaderGraphNodes.Inputs(node))
+                        if (ShaderGraphNodes.InputInactiveReason(node, input.name) == null &&
+                            Compatible(type, input.type ?? ShaderGraphValueType.Float, !input.type.HasValue)) yield return input.name;
+                }
+                else foreach (string output in ShaderGraphNodes.Outputs(node))
+                {
+                    if (node.kind == ShaderGraphNodeKind.Split && "XYZW".IndexOf(output, StringComparison.Ordinal) >=
+                        ShaderGraphNodes.Components(window.InputType(node, "In"))) continue;
+                    if (Accepts(node.function?.OutputType(output) ?? window.OutputType(node, output), source)) yield return output;
+                }
             }
 
             internal List<SearchTreeEntry> ConnectedSearchTree(ShaderGraph graph, PortData source)
             {
                 var result = new List<SearchTreeEntry> { new SearchTreeGroupEntry(new GUIContent("Create Connected Node"), 0) };
-                if (!CanAddConnection() || !CurrentSource(graph, source, out var type)) return result;
+                if (!CanAddConnection(source) || !CurrentSource(graph, source, out var current)) return result;
                 var categories = new SortedDictionary<string, List<SearchTreeEntry>>();
                 foreach (var kind in ShaderGraphNodes.Kinds)
                 {
-                    if (kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Reroute) continue;
+                    if (kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Reroute or ShaderGraphNodeKind.SubGraph || ShaderGraphNodes.IsSubGraphInterface(kind)) continue;
                     var node = ShaderGraphNodes.Create(kind, default);
-                    foreach (var input in ShaderGraphNodes.Inputs(node))
+                    bool heightValue = ShaderGraphNodes.UsesHeightTexture(kind) && current.direction == Direction.Output && ShaderGraphNodes.IsNumeric(current.type);
+                    if (heightValue) node.heightSource = ShaderGraphHeightSource.Value;
+                    foreach (string port in ConnectingPorts(node, current))
                     {
-                        if (ShaderGraphNodes.InputInactiveReason(node, input.name) != null) continue;
-                        if (!Compatible(type, input.type ?? ShaderGraphValueType.Float, !input.type.HasValue)) continue;
                         string category = ShaderGraphNodes.Category(kind);
                         if (!categories.TryGetValue(category, out var list)) categories.Add(category, list = new List<SearchTreeEntry>());
-                        list.Add(new SearchTreeEntry(new GUIContent(ShaderGraphNodes.Name(kind) + "(" + input.name + ")"))
-                            { level = 2, userData = new ConnectedNodeChoice(kind, input.name) });
+                        list.Add(new SearchTreeEntry(new GUIContent(ShaderGraphNodes.Name(kind) + "(" + port + ")"))
+                            { level = 2, userData = new ConnectedNodeChoice(kind, port, heightValue: heightValue) });
                     }
                 }
+                if (current.direction == Direction.Input)
+                    foreach (var parameter in graph.parameters)
+                    {
+                        if (!Accepts(ShaderGraphNodes.ParameterType(parameter), current)) continue;
+                        if (!categories.TryGetValue("Parameters", out var list)) categories.Add("Parameters", list = new List<SearchTreeEntry>());
+                        list.Add(new SearchTreeEntry(new GUIContent(parameter.name + "(Out)"))
+                            { userData = new ConnectedNodeChoice(ShaderGraphNodeKind.Parameter, "Out", parameterId: parameter.id) });
+                    }
                 string previousCategory = "";
                 foreach (var category in categories)
                 {
                     int level = AddSearchCategory(result, category.Key, ref previousCategory);
                     foreach (var entry in category.Value) { entry.level = level + 1; result.Add(entry); }
                 }
-                AddFunctionSearchEntries(result, type);
+                if (current.direction == Direction.Output) AddFunctionSearchEntries(result, window.OutputType(graph.FindNode(current.nodeId), current.name));
+                else AddFunctionSearchEntries(result, null, type => Accepts(type, current));
+                bool subHeading = false;
+                foreach (var definition in graph.subGraphs)
+                {
+                    if (window.WouldRecurse(definition.id)) continue;
+                    var node = new ShaderGraphNode { kind = ShaderGraphNodeKind.SubGraph, subGraphId = definition.id, subGraph = definition };
+                    foreach (string port in ConnectingPorts(node, current))
+                    {
+                        if (!subHeading) { result.Add(new SearchTreeGroupEntry(new GUIContent("Sub Graphs"), 1)); subHeading = true; }
+                        result.Add(new SearchTreeEntry(new GUIContent(definition.name + "(" + ShaderGraphNodes.PortDisplayName(node, port, current.direction == Direction.Input) + ")"))
+                            { level = 2, userData = new ConnectedNodeChoice(ShaderGraphNodeKind.SubGraph, port, subGraph: definition) });
+                    }
+                }
                 return result;
             }
 
             internal bool CreateConnectedNode(ShaderGraph graph, PortData source, ConnectedNodeChoice choice, Vector2 position)
             {
-                if (!CanAddConnection() || !CurrentSource(graph, source, out var type)) return false;
-                if (choice.kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Reroute) return false;
+                if (!CanAddConnection(source) || !CurrentSource(graph, source, out var currentPort)) return false;
+                if (choice.kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Reroute) return false;
+                if (choice.kind == ShaderGraphNodeKind.Parameter &&
+                    (currentPort.direction != Direction.Input || graph.FindParameter(choice.parameterId) == null)) return false;
                 var node = ShaderGraphNodes.Create(choice.kind, position);
+                node.parameterId = choice.parameterId;
+                if (choice.subGraph != null)
+                {
+                    if (window.WouldRecurse(choice.subGraph.id)) return false;
+                    node.subGraphId = choice.subGraph.id; node.subGraph = graph.FindSubGraph(choice.subGraph.id);
+                }
+                if (choice.heightValue) node.heightSource = ShaderGraphHeightSource.Value;
                 ShaderGraph staged = null;
                 if (choice.function != null)
                 {
@@ -147,16 +206,20 @@ namespace DCFApixels.WhimTex
                     }
                     catch (Exception error) { window.ShowError(error.Message); return false; }
                 }
-                foreach (var input in ShaderGraphNodes.Inputs(node))
+                foreach (string port in ConnectingPorts(node, currentPort))
                 {
-                    if (ShaderGraphNodes.InputInactiveReason(node, input.name) != null) continue;
-                    if (input.name != choice.input || !Compatible(type, input.type ?? ShaderGraphValueType.Float, !input.type.HasValue)) continue;
+                    if (port != choice.port) continue;
                     window.Edit("Create Connected Shader Node", current =>
                     {
                         current.nodes.Add(node);
                         if (node.function != null) current.functions.Add(node.function);
                         if (staged != null) current.sources = staged.sources;
-                        current.edges.Add(new ShaderGraphEdge { outputNode = source.nodeId, outputPort = source.name, inputNode = node.id, inputPort = input.name });
+                        if (currentPort.direction == Direction.Input)
+                        {
+                            current.edges.RemoveAll(e => e.inputNode == currentPort.nodeId && e.inputPort == currentPort.name);
+                            current.edges.Add(new ShaderGraphEdge { outputNode = node.id, outputPort = port, inputNode = currentPort.nodeId, inputPort = currentPort.name });
+                        }
+                        else current.edges.Add(new ShaderGraphEdge { outputNode = currentPort.nodeId, outputPort = currentPort.name, inputNode = node.id, inputPort = port });
                         selectAfterRebuild = node.id;
                     });
                     return true;

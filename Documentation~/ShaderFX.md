@@ -125,6 +125,36 @@ Declare an ordinary enum to expose the choice:
 Distortion presets use `_Tiling`; UV Transform uses `_InputTiling`. Previous parameter
 names and old linked-preset layouts are not migrated. Detached source is not rewritten.
 The original one-argument helper is unchanged. `Unbounded` is not a raster addressing mode.
+
+### Evaluation time and instance index
+
+FX, Shader graph HLSL libraries and Custom Function share two automatically declared inputs:
+
+```hlsl
+// Read these built-ins; do not redeclare them or add them through @param.
+float time = _WhimTexTime;          // Seconds for this evaluation.
+uint index = _WhimTexInstanceIndex; // Zero-based instance index, not a Unity object ID.
+```
+
+Values are bound per material evaluation, never through global shader state. Graph previews
+advance one shared time sample, including the Shader layer's active FX. Canvas, ordinary layer
+and FX inspector previews, referenced layers, thumbnails and exports use time 0. Instance index
+is currently 0 in all editor render paths; instance creation and a document timeline are separate
+features. Index does not alter Seed automatically. These inputs do not affect pixel locality.
+
+`ShaderFX.UsesTime` and `UsesInstanceIndex` are read-only C# properties of the applied, usable
+shader (false when unavailable). `ShaderLayerBehaviour` exposes the compiled graph dependencies;
+on a failed draft it retains those of the last successful program. `Layer.UsesTime` and
+`UsesInstanceIndex` aggregate source generation, active usable FX and enabled group children.
+Texture references retain their own evaluation context and are not included in that aggregation.
+These properties are not HLSL variables and are not saved parameters.
+
+Dependency analysis scans expanded author source, including helpers and captured function
+libraries, before generated declarations are inserted. Comments and strings do not count.
+It is conservative: unused helpers or inactive branches can count, and token pasting or
+unresolved includes mark both dependencies. A false flag must not be inferred from an opaque
+library. `UsesTime` concerns `_WhimTexTime`; uncontrolled Unity time remains a separate bypass.
+
 Unity time inputs such as `_Time`, `_SinTime`, `_CosTime`, `_TimeParameters` and
 `unity_DeltaTime` are allowed: their use does not block compilation. WhimTex does not
 control their updates, so results may differ between Canvas, thumbnails and export.
@@ -132,7 +162,7 @@ Compilation adds a warning to Diagnostics and disables reusable result caching f
 Agent compilation returns the same warning in `diagnostics` and `warnings`, not `errors`.
 The warning uses the same diagnostic and Console mechanism as other FX warnings; there is no
 time-specific reporting path. Repeated compilation, agent preflight and rendering do not repeat it;
-Diagnostics and API warnings remain available every time. Use an explicit parameter for
+Diagnostics and API warnings remain available every time. Use `_WhimTexTime` or an explicit parameter for
 predictable time-dependent behavior. This is the current warning-only policy, not a legacy exception.
 
 Standard `#include` supports project/package paths and relative paths. Relative paths start in

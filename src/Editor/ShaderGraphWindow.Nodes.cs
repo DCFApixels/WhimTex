@@ -48,7 +48,7 @@ namespace DCFApixels.WhimTex
                 var node = window.Graph?.FindNode(Id);
                 if (node == null) return;
                 ParameterId = node.parameterId;
-                output.portName = window.Graph.FindParameter(node.parameterId)?.name ?? "Missing Parameter";
+                output.portName = NodeView.PortLabel(window.Graph.FindParameter(node.parameterId)?.name ?? "Missing Parameter", ((PortData)output.userData).type);
                 if ((GetPosition().position - node.position).sqrMagnitude > .01f) SetPosition(new Rect(node.position, GetPosition().size));
             }
         }
@@ -91,12 +91,19 @@ namespace DCFApixels.WhimTex
             {
                 this.window = window; Id = node.id;
                 title = node.kind == ShaderGraphNodeKind.Parameter ? window.Graph.FindParameter(node.parameterId)?.name ?? "Missing Parameter" : ShaderGraphNodes.Name(node.kind);
+                if (node.kind == ShaderGraphNodeKind.SubGraph) title = node.subGraph?.name ?? "Missing Sub Graph";
+                if (node.kind == ShaderGraphNodeKind.SubGraphInput) title = node.interfacePort?.name ?? "Missing Input";
+                if (node.kind == ShaderGraphNodeKind.SubGraph)
+                {
+                    this.AddManipulator(new ContextualMenuManipulator(e => e.menu.AppendAction("Edit Sub Graph", _ => window.OpenSubGraph(Data.subGraphId))));
+                    titleContainer.RegisterCallback<MouseDownEvent>(e => { if (e.button == 0 && e.clickCount == 2) { window.OpenSubGraph(Data.subGraphId); e.StopPropagation(); } });
+                }
                 viewDataKey = Id;
                 AddToClassList("whimtex-shader-graph-node");
                 // Clear the base Node's inline clipping so the external input fields can use USS overflow.
                 mainContainer.style.overflow = StyleKeyword.Null;
                 capabilities |= Capabilities.Copiable | Capabilities.Groupable;
-                if (node.kind == ShaderGraphNodeKind.Output)
+                if (node.kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.SubGraphOutput)
                 {
                     capabilities &= ~(Capabilities.Deletable | Capabilities.Collapsible | Capabilities.Copiable);
                     AddToClassList("whimtex-shader-graph-output");
@@ -108,6 +115,7 @@ namespace DCFApixels.WhimTex
                     if (node.kind == ShaderGraphNodeKind.Combine && "XYZW".IndexOf(input.name, StringComparison.Ordinal) >= ShaderGraphNodes.Components(node.valueType)) continue;
                     var type = input.type ?? window.InputType(node, input.name);
                     var port = MakePort(input.name, Direction.Input, type, !input.type.HasValue);
+                    if (ShaderGraphNodes.IsOptionalCurve(node, input.name)) port.tooltip = "Optional curve. Unconnected uses a linear curve.";
                     var row = new VisualElement(); row.AddToClassList("whimtex-shader-graph-port-row");
                     row.Add(port); inputContainer.Add(row);
                     canvas.RegisterPort(port, true);
@@ -150,23 +158,37 @@ namespace DCFApixels.WhimTex
             private Port MakePort(string name, Direction direction, ShaderGraphValueType type, bool dynamic)
             {
                 var port = CreatePort(Id, name, direction, type, dynamic);
+                port.portName = PortLabel(ShaderGraphNodes.PortDisplayName(Data, name, direction == Direction.Output), type);
                 if (Data?.kind == ShaderGraphNodeKind.Swizzle && direction == Direction.Input)
                     port.tooltip = "Numeric or Color. Width is the maximum required by the source and mask; _ inserts zero.";
                 var definition = Data?.function?.ports.Find(p => p.name == name);
-                if (!string.IsNullOrEmpty(definition?.label)) port.portName = definition.label;
+                if (!string.IsNullOrEmpty(definition?.label)) port.portName = PortLabel(definition.label, type);
                 return port;
             }
             internal static Port CreatePort(string id, string name, Direction direction, ShaderGraphValueType type, bool dynamic)
             {
                 var port = new GraphPort(direction, PortType(type));
-                port.portName = name;
-                port.userData = new PortData { nodeId = id, name = name, type = type, dynamic = dynamic };
+                port.portName = PortLabel(name, type);
+                port.userData = new PortData { nodeId = id, name = name, direction = direction, type = type, dynamic = dynamic };
                 port.AddToClassList("whimtex-shader-graph-port");
                 if (!ShaderGraphNodes.IsNumeric(type))
                     port.AddToClassList(type == ShaderGraphValueType.Boolean ? "whimtex-shader-graph-port--boolean" : "whimtex-shader-graph-port--resource");
                 port.portColor = PortColor(type);
                 port.tooltip = dynamic ? "Numeric or Color. Scalars expand to the vector width; missing vector components are zero." : TypeName(type);
                 return port;
+            }
+            internal static string PortLabel(string name, ShaderGraphValueType type)
+            {
+                if (string.IsNullOrEmpty(name)) return string.Empty;
+                string suffix = type switch
+                {
+                    ShaderGraphValueType.Float => "1", ShaderGraphValueType.Float2 => "2",
+                    ShaderGraphValueType.Float3 => "3", ShaderGraphValueType.Float4 => "4",
+                    ShaderGraphValueType.Texture => "T2", ShaderGraphValueType.Gradient => "G",
+                    ShaderGraphValueType.Curve => "C", ShaderGraphValueType.Color => "col",
+                    ShaderGraphValueType.Boolean => "bool", _ => type.ToString()
+                };
+                return name + "(" + suffix + ")";
             }
             private static Type PortType(ShaderGraphValueType type) => type switch
             {
@@ -194,6 +216,26 @@ namespace DCFApixels.WhimTex
                 var modes = ShaderGraphNodes.ModeNames(node.kind);
                 if (modes != null) Choice(ShaderGraphNodes.ModeLabel(node.kind), modes, node.option, value =>
                     window.Edit("Change Shader Mode", graph => ShaderGraphNodes.ChangeMode(graph, graph.FindNode(Id), value)));
+                if (node.kind == ShaderGraphNodeKind.ConvertColor)
+                {
+                    const string spaces = "HSV and HSL use sRGB-encoded RGB and hue in turns. HSV preserves HDR Value but excludes negative RGB; HSL is limited to 0–1. Linear RGB, sRGB and Oklab retain HDR and negative values.";
+                    Choice("From", ShaderGraphNodes.ColorSpaceNames, (int)node.inputColorSpace, value => Change(n => n.inputColorSpace = (ShaderGraphColorSpace)value), spaces);
+                    Choice("To", ShaderGraphNodes.ColorSpaceNames, (int)node.outputColorSpace, value => Change(n => n.outputColorSpace = (ShaderGraphColorSpace)value), spaces);
+                }
+                if (ShaderGraphNodes.UsesHeightTexture(node.kind))
+                    Choice("Source", new[] { "Texture", "Value" }, (int)node.heightSource, value => window.Edit("Change Height Source", graph =>
+                    {
+                        var changed = graph.FindNode(Id); changed.heightSource = (ShaderGraphHeightSource)value;
+                        changed.inputs.RemoveAll(p => p.port == "Height");
+                        graph.edges.RemoveAll(e => e.inputNode == Id && e.inputPort == "Height");
+                    }), "Value evaluates the connected branch at neighboring UV coordinates. Radius uses output pixels; Texture uses source texels.");
+                if (ShaderGraphNodes.UsesChannel(node.kind) && (!ShaderGraphNodes.UsesHeightTexture(node.kind) || node.heightSource == ShaderGraphHeightSource.Texture))
+                    Choice("Channel", ShaderGraphNodes.ChannelNames, (int)node.channel, value => Change(n => n.channel = (ShaderGraphChannel)value));
+                if (ShaderGraphNodes.UsesHeightTexture(node.kind))
+                    Choice("Derivative", ShaderGraphNodes.DerivativeNames, (int)node.derivative, value => Change(n => n.derivative = (ShaderGraphDerivative)value));
+                if (ShaderGraphNodes.UsesNormalEncoding(node.kind))
+                    Choice(node.kind == ShaderGraphNodeKind.HeightToNormal ? "Output Encoding" : "Normal Encoding", ShaderGraphNodes.NormalEncodingNames,
+                        (int)node.normalEncoding, value => Change(n => ShaderGraphNodes.ChangeNormalEncoding(n, (ShaderGraphNormalEncoding)value)));
                 if (node.kind == ShaderGraphNodeKind.Noise)
                     Choice("Fractal", ShaderGraphNodes.NoiseFractals, (int)node.fractal, value => Change(n => n.fractal = (ShaderGraphFractal)value));
                 if (node.kind == ShaderGraphNodeKind.DomainWarp)
@@ -224,7 +266,10 @@ namespace DCFApixels.WhimTex
                         blend.RegisterValueChangedCallback(e => Change(n => n.option = (int)(BlendMode)e.newValue)); AddOption(blend);
                         var hdr = new Toggle("HDR") { value = node.hdr };
                         hdr.RegisterValueChangedCallback(e => Change(n => n.hdr = e.newValue)); AddOption(hdr); break;
+                    case ShaderGraphNodeKind.HeightToNormal:
+                    case ShaderGraphNodeKind.HeightToDistortion:
                     case ShaderGraphNodeKind.SampleTexture:
+                        if (ShaderGraphNodes.UsesHeightTexture(node.kind) && node.heightSource == ShaderGraphHeightSource.Value) break;
                         var wrap = new EnumField("Wrap", node.wrap);
                         wrap.RegisterValueChangedCallback(e => Change(n => n.wrap = (ShaderGraphWrap)e.newValue)); AddOption(wrap);
                         var filter = new EnumField("Filter", node.filter);
@@ -259,6 +304,8 @@ namespace DCFApixels.WhimTex
                 var value = node.FindInput(name);
                 ShaderGraphValueType type = value?.type ?? input.type ?? ShaderGraphValueType.Float;
                 if (node.kind == ShaderGraphNodeKind.Swizzle) type = window.InputType(node, name);
+                if (node.kind == ShaderGraphNodeKind.ConvertColor && node.inputColorSpace != ShaderGraphColorSpace.LinearRGB)
+                    type = ShaderGraphValueType.Float4;
                 var definition = node.function?.ports.Find(p => p.name == name);
                 if (type == ShaderGraphValueType.Float && definition?.hasRange == true)
                 {
@@ -294,7 +341,7 @@ namespace DCFApixels.WhimTex
                         e.StopPropagation();
                     }));
                 }
-                ValueField(null, type, () => Data.FindInput(name)?.value ?? input.value,
+                ValueField(null, type, () => ShaderGraphNodes.InputValue(Data, name, input.value),
                     next => Change(n =>
                     {
                         var item = n.FindInput(name);
@@ -315,9 +362,9 @@ namespace DCFApixels.WhimTex
                 });
                 (target ?? extensionContainer).Add(element);
             }
-            private void Choice(string label, string[] options, int selected, Action<int> changed)
+            private void Choice(string label, string[] options, int selected, Action<int> changed, string tooltip = null)
             {
-                var field = new DropdownField(label, new List<string>(options), Mathf.Clamp(selected, 0, options.Length - 1));
+                var field = new DropdownField(label, new List<string>(options), Mathf.Clamp(selected, 0, options.Length - 1)) { tooltip = tooltip };
                 field.RegisterValueChangedCallback(e => { int i = Array.IndexOf(options, e.newValue); if (i >= 0) changed(i); });
                 AddOption(field);
             }

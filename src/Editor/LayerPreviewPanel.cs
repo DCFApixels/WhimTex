@@ -22,6 +22,8 @@ namespace DCFApixels.WhimTex
         private readonly ViewState state;
         private readonly VisualElement header;
         private readonly bool docked;
+        private readonly bool animateShaderGraph;
+        private bool AnimatedGraph => animateShaderGraph && boundBehaviour is ShaderLayerBehaviour && boundLayer.UsesTime;
         internal VisualElement Header => header;
         private readonly VisualElement surface;
         private readonly Image image;
@@ -36,12 +38,14 @@ namespace DCFApixels.WhimTex
         private bool dirty = true, attached, disposed;
         private bool awaitingCanvasRender;
         private double renderAt;
+        private ulong renderedFrame;
         private VisualElement layoutParent;
 
-        internal LayerPreviewPanel(ViewState state, bool docked = true)
+        internal LayerPreviewPanel(ViewState state, bool docked = true, bool animateShaderGraph = false)
         {
             this.state = state ?? throw new ArgumentNullException(nameof(state));
             this.docked = docked;
+            this.animateShaderGraph = animateShaderGraph;
             name = "layer-preview";
             AddToClassList("whimtex-output-preview-footer");
             if (docked)
@@ -145,7 +149,7 @@ namespace DCFApixels.WhimTex
 
         private void OnLayerPreviewRendered(Layer layer, RenderTexture pixels)
         {
-            if (!ReferenceEquals(layer, boundLayer) || !CanDisplay()) return;
+            if (!ReferenceEquals(layer, boundLayer) || !CanDisplay() || AnimatedGraph) return;
             try { AcceptCachedLayerPreview(pixels); }
             catch (Exception ex) { surface.tooltip = "Layer preview unavailable: " + ex.Message; Debug.LogException(ex); }
         }
@@ -189,11 +193,12 @@ namespace DCFApixels.WhimTex
                 return;
             }
             if (!CanDisplay()) return;
-            if (!dirty || EditorApplication.timeSinceStartup < renderAt) return;
+            bool animated = AnimatedGraph;
+            if (animated ? !dirty && renderedFrame == ShaderGraphClock.Frame : !dirty || EditorApplication.timeSinceStartup < renderAt) return;
             try
             {
-                if (document.TryGetCachedLayerPreview(layer, out var cached)) { AcceptCachedLayerPreview(cached); return; }
-                if (!awaitingCanvasRender)
+                if (!animated && document.TryGetCachedLayerPreview(layer, out var cached)) { AcceptCachedLayerPreview(cached); return; }
+                if (!animated && !awaitingCanvasRender)
                 {
                     awaitingCanvasRender = true;
                     renderAt = EditorApplication.timeSinceStartup + .12d;
@@ -201,8 +206,10 @@ namespace DCFApixels.WhimTex
                     return;
                 }
                 dirty = awaitingCanvasRender = false;
+                renderedFrame = ShaderGraphClock.Frame;
                 ReleaseTextures();
-                source = document.RenderLayerPreviewFallback(layer, PreviewSize);
+                source = animated ? document.RenderShaderGraphPreview(layer, PreviewSize, ShaderGraphClock.Seconds) :
+                    document.RenderLayerPreviewFallback(layer, PreviewSize);
                 UpdateChannels();
                 surface.tooltip = source == null ? "Preview unavailable" : string.Empty;
                 UpdateLayout();

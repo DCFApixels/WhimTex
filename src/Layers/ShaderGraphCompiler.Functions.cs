@@ -52,6 +52,7 @@ namespace DCFApixels.WhimTex
                 name = module + "::" + (f.fullSource ? f.entryPoint : "Function");
                 string source = string.IsNullOrEmpty(f.sourceId) ? f.body : ShaderGraphSources.Expand(f.sourceId, graph.sources);
                 if (!f.fullSource) source = f.Signature("Function") + "\n{\n" + source + "\n}";
+                result.contextDependencies |= ShaderContextUsage.Analyze(source);
                 var prepared = ShaderGraphModuleSource.Prepare(source, module);
                 AppendModule(prepared, node);
             }
@@ -61,6 +62,7 @@ namespace DCFApixels.WhimTex
                 {
                     module = "_GraphModule_" + modules.Count;
                     string source = ShaderGraphSources.Expand(f.sourceId, graph.sources);
+                    result.contextDependencies |= ShaderContextUsage.Analyze(source);
                     var prepared = ShaderGraphModuleSource.Prepare(source, module);
                     AppendModule(prepared, node);
                     modules.Add(f.sourceId, module);

@@ -23,13 +23,15 @@ namespace DCFApixels.WhimTex
             [ShaderGraphNodeKind.DomainWarp] = new[] { "OpenSimplex2", "OpenSimplex2Reduced", "BasicGrid" },
             [ShaderGraphNodeKind.VectorDisplacement] = new[] { "Signed RG", "Packed RG" }
         };
-        internal static string[] ModeNames(ShaderGraphNodeKind kind) => proceduralModes.TryGetValue(kind, out var modes) ? modes : null;
-        internal static string ModeLabel(ShaderGraphNodeKind kind) => kind switch
+        internal static string[] ModeNames(ShaderGraphNodeKind kind) => IsFilter(kind) && kind != ShaderGraphNodeKind.EdgeDetection ? filterKernels : proceduralModes.TryGetValue(kind, out var modes) || colorModes.TryGetValue(kind, out modes) || extendedModes.TryGetValue(kind, out modes) ? modes : null;
+        internal static string ModeLabel(ShaderGraphNodeKind kind) => IsFilter(kind) ? "Kernel" : kind switch
         {
             ShaderGraphNodeKind.Noise or ShaderGraphNodeKind.DomainWarp => "Type",
             ShaderGraphNodeKind.Shape => "Shape", ShaderGraphNodeKind.Cellular => "Metric",
             ShaderGraphNodeKind.Stripes => "Profile", ShaderGraphNodeKind.CombineDistance => "Operation",
-            ShaderGraphNodeKind.Mirror => "Axes", _ => "Mode"
+            ShaderGraphNodeKind.Mirror => "Axes", ShaderGraphNodeKind.MixColor => "Color Model",
+            ShaderGraphNodeKind.ColorMask => "Distance", ShaderGraphNodeKind.GradientMap => "Alpha",
+            ShaderGraphNodeKind.HeightToDistortion or ShaderGraphNodeKind.NormalToDistortion => "Output", _ => "Mode"
         };
         internal static string InputInactiveReason(ShaderGraphNode node, string input) => node.kind switch
         {
@@ -62,7 +64,7 @@ namespace DCFApixels.WhimTex
         {
             map[ShaderGraphNodeKind.Noise] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), N("Seed", 1337), N("Octaves", 3), N("Lacunarity", 2), N("Gain", .5f), N("PingPongStrength", 2) };
             map[ShaderGraphNodeKind.Cellular] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), N("Seed", 1337), N("Jitter", 1) };
-            map[ShaderGraphNodeKind.Random] = new[] { P("Coordinates", ShaderGraphValueType.Float2), N("Seed", 1337) };
+            map[ShaderGraphNodeKind.Random] = new[] { new ShaderGraphPort("Coordinates", ShaderGraphValueType.Float2, uvDefault: true), N("Seed", 1337) };
             map[ShaderGraphNodeKind.Checkerboard] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), P("Offset", ShaderGraphValueType.Float2) };
             map[ShaderGraphNodeKind.Stripes] = new[] { UV(), N("Frequency", 8), N("Width", .5f), N("Angle"), N("Phase") };
             map[ShaderGraphNodeKind.Grid] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), P("Width", ShaderGraphValueType.Float2, .1f), P("Offset", ShaderGraphValueType.Float2) };
@@ -104,7 +106,7 @@ namespace DCFApixels.WhimTex
             node.inputs.RemoveAll(p => !Has(p.port));
             graph.edges.RemoveAll(e => e.inputNode == node.id && !Has(e.inputPort));
             foreach (var p in current)
-                if (!p.uvDefault && node.FindInput(p.name) == null)
+                if (!p.uvDefault && p.type is not (ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve) && node.FindInput(p.name) == null)
                     node.inputs.Add(new ShaderGraphInput { port = p.name, type = p.type ?? ShaderGraphValueType.Float, value = p.value });
         }
     }

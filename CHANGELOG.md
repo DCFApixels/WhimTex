@@ -6,6 +6,55 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader Graph adds Sign, Saturate, Modulo, Atan2, Asin, Acos, Exp, Log, Cross, Reflect,
+  Refract, And, Or and Not; Normal Encode, Normal Decode, Normal Strength and Normal Lighting
+  with specular; Premultiply, Unpremultiply, Flipbook, Tileable Noise, Voronoi Edge and Dither.
+- Height to Normal and Height to Distortion add Height Source: Texture or Value. Texture
+  remains the default with Radius in bound-source texels; Value reevaluates a scalar branch
+  at neighboring UVs with Radius in output pixels. Both retain Strength, Flip X/Y and the
+  Scharr, Sobel and Central Difference derivatives.
+- Shader Graph adds Blur, Sharpen, Edge Detection, Dilate and Erode over numeric/Color
+  branches, evaluated at neighboring UVs without intermediate textures or extra rendering
+  passes. Radius uses output pixels; Blur/Sharpen/Dilate/Erode offer 3 × 3, 5 × 5 and 9 × 9
+  kernels. Blur uses normalized Gaussian weights, Sharpen controls the input-minus-blur
+  detail, Edge Detection uses fixed 3 × 3 Sobel, and morphology works per component.
+  Results are not implicitly clamped; large radii spread a fixed sample count.
+- Embedded Sub Graph definitions provide reusable calculations with stable typed interface
+  ports and shared parameters/HLSL sources. Convert a selection, edit by double-clicking,
+  return with Back to Graph, adjust sidebar inputs/outputs and reuse definitions from node
+  creation. Node copies carry nested definitions, reusing definitions in the same graph and
+  importing copies into another. Edits affect all instances; definitions persist in snapshots, JSON and TIFF.
+  Nesting is bounded and recursion is rejected. Discovery distinguishes definition-dependent
+  instances from ordinary nodes and excludes interface-only nodes from ordinary creation.
+
+- Shader Graph port labels show compact types in parentheses: 1–4 for numeric widths,
+  T2 for textures, G for gradients, C for curves, col for colors and bool for Booleans.
+  Parameter nodes and HLSL port labels use the same notation without a space before the
+  parentheses; labels follow inferred types.
+
+- Shader Graph adds Hue, Saturation, Exposure, Lightness, Levels, Color Balance, Posterize,
+  Convert Color, Luminance, Gradient Map, Color Curves, Color Mask, Hue Range, Mix Color and
+  Set Alpha under Color. Mix Color supports Perceptual interpolation; curves retain HDR at
+  identity and unconnected curve inputs are neutral. Alpha is preserved unless explicitly
+  edited; color-space conversion is explicit, with HSV/HSL range limits documented in controls.
+  The existing Contrast HLSL node moves into Color/Adjustments.
+- Shader Graph adds Height to Normal, Normal Blend, Height to Distortion and Normal to
+  Distortion. Height nodes offer source-texel sampling, channel selection and Scharr/Sobel/
+  Central Difference. Normal blending supports Reoriented/Whiteout and packed/signed encoding;
+  distortion outputs retain vector magnitude and support Signed RG and Packed RG.
+
+- FX, HLSL nodes and Custom Function share automatically supplied `_WhimTexTime` (float seconds)
+  and `_WhimTexInstanceIndex` (uint) inputs, bound per evaluation. Graph-result FX share preview
+  time; ordinary document/inspector rendering remains at zero, and instance index currently
+  defaults to zero. C# dependency properties cover compiled graph output, FX and layer aggregation;
+  expanded helper/include analysis conservatively handles macros and opaque dependencies.
+  Controlled context inputs retain pixel locality and do not rewrite saved parameters or Seed.
+
+- Dropping a wire from a Shader Graph input onto empty space opens compatible source-node choices,
+  with a separate entry for each output, including declared parameters and HLSL functions.
+  Creation and connection share one Undo operation; choosing a source replaces an occupied input's
+  old connection, while cancelling leaves it intact. The menu retains its cursor-aligned placement.
+
 - Shader Graph keeps mode-inapplicable input fields and ports visible but disabled, with
   an explanation on hover. Noise/Domain Warp fractal settings, Shape Radius, Stripes Width
   and radial Gradient Factor Angle follow their modes. Unavailable Split components and
@@ -22,8 +71,12 @@ All notable changes to WhimTex are documented in this file.
   categories; Transform UV is under UV. Distortions retain out-of-range UVs, zero strength
   is neutral, and displacement magnitude is preserved. Multi-output generators share calculations.
 
-- Shader Graph adds Input/Instance Index and Input/Time nodes. Both currently output Float 0
-  and have no controls or preview.
+- Shader Graph adds Input/Instance Index and Input/Time nodes with a Float output and no own
+  preview. Time has a Float Scale input (default 1) that multiplies elapsed time. It animates
+  dependent node previews and the result inside the graph window
+  using Editor time in seconds, without recompilation or document edits. Hidden and static node
+  previews remain idle. Layer rendering, Canvas, thumbnails and export evaluate Time as 0;
+  Instance Index remains 0 everywhere.
 
 - Shader Graph now supports editable notes and groups through separate context-menu actions.
   Both save with the document, support Undo/Redo and copying; copying a group includes its contents.
@@ -245,6 +298,9 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- Random nodes now use current-pixel UV for unconnected Coordinates by default. The input
+  supports UV/Custom selection; explicit saved coordinates and connections retain their values.
 
 - Removed the duplicate Shader Graph Add submenu and toolbar Add Node button. Create Node,
   Space, connection-drop creation and the separate note, group and reroute actions remain.

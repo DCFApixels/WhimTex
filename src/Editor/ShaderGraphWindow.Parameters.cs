@@ -46,6 +46,7 @@ namespace DCFApixels.WhimTex
         {
             SetHoveredParameter(null);
             declarations.Clear();
+            RebuildSubGraphInterface();
             parameterInsertion = null;
             if (Graph == null) return;
             foreach (var parameter in Graph.parameters)
@@ -163,9 +164,14 @@ namespace DCFApixels.WhimTex
             Edit("Remove Shader Parameter", graph =>
             {
                 var removed = new HashSet<string>();
-                foreach (var node in graph.nodes) if (node.kind == ShaderGraphNodeKind.Parameter && node.parameterId == id) removed.Add(node.id);
-                graph.edges.RemoveAll(e => removed.Contains(e.inputNode) || removed.Contains(e.outputNode));
-                graph.nodes.RemoveAll(n => removed.Contains(n.id));
+                foreach (var node in RootGraph.AllNodes()) if (node.kind == ShaderGraphNodeKind.Parameter && node.parameterId == id) removed.Add(node.id);
+                void Remove(ShaderGraph scope)
+                {
+                    scope.edges.RemoveAll(e => removed.Contains(e.inputNode) || removed.Contains(e.outputNode));
+                    scope.nodes.RemoveAll(n => removed.Contains(n.id));
+                }
+                Remove(RootGraph);
+                foreach (var definition in RootGraph.subGraphs) Remove(RootGraph.SubGraphView(definition));
                 graph.parameters.RemoveAll(p => p.id == id);
                 expandedParameters.Remove(id);
             });

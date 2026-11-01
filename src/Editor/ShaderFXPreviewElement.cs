@@ -431,6 +431,7 @@ namespace DCFApixels.WhimTex
 
         private void Capture(ShaderFX captured, Layer owner, int index, LayerRenderContext context, Material bound, RenderTexture input)
         {
+            if (context.shaderGraphPreview) return;
             if (captured != effect || document == null || context.activeDocument != document ||
                 owner != layer || index != fxIndex) return;
             if (!document.CapturingInspectorFX)
@@ -477,6 +478,7 @@ namespace DCFApixels.WhimTex
             result.filterMode = MagnifiesCanvas ? FilterMode.Point : FilterMode.Bilinear;
             float units = parameter != null && parameter.pixelUnits ? pixelScale : 1f;
             material.SetVector("_WhimTex_PreviewRange", new Vector4(control.minimum * units, control.maximum * units, slider ? 1f : 0f, 0f));
+            default(ShaderEvaluationContext).Bind(material);
             RenderTexture previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;
             try { GL.sRGBWrite = QualitySettings.activeColorSpace == ColorSpace.Linear; Graphics.Blit(input, result, material); }

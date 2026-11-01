@@ -32,8 +32,17 @@ model schema. Its embedded graph generates the layer's own image; **Shader Proce
 the composite below it. Graph parameters appear in Properties and use the shared parameter
 types. FX HLSL directives are not the serialization format for a Shader graph.
 
-`InstanceIndex` and `Time` are Input nodes with no inputs and one Float `Out`.
-Both currently emit the constant `0`; no instance or time source is evaluated.
+`InstanceIndex` and `Time` are Input nodes with one Float `Out`.
+`InstanceIndex` has no inputs: it casts the shared uint `_WhimTexInstanceIndex` to Float, with
+ordinary floating-point precision; standard rendering currently supplies `0`.
+`Time` has a Float `Scale` input (default `1`): `Out = _WhimTexTime * Scale`.
+`Time` supplies Editor seconds only to node/result previews in the
+graph window. Normal layer rendering, Canvas, thumbnails, referenced layers and export use `0`.
+FX, HLSL nodes and Custom Function can read the automatically supplied `_WhimTexTime` (float
+seconds) and `_WhimTexInstanceIndex` (uint, currently 0). Do not redeclare these uniforms or
+create `@param` controls with their names. Graph-result FX receive the graph preview time;
+ordinary FX inspector previews use 0. Seed is not modified implicitly. See the
+[evaluation context and C# dependency flags](../ShaderFX.md#evaluation-time-and-instance-index).
 
 The graph's [procedural and UV nodes](../ShaderLayer.md#procedural-and-uv-nodes) are grouped as follows:
 
@@ -61,14 +70,15 @@ Do not assume every node has only an `Out` port: `Cellular` has Float `F1`, `F2`
 Cellular's default output is F1; it has no Out, so write the intended `outputPort` explicitly.
 Its Cell is a repeatable `0..1` value, not a unique ID. Repeat.Cell is `floor(UV * Scale + Offset)`,
 unrelated to **Input/Instance Index**, which still returns zero. Random.Coordinates defaults to
-constant zero; connect UV for per-pixel variation or Repeat.Cell for one value per cell.
+current-pixel UV when no edge or explicit input value is supplied. Set an explicit Float2 for
+constant coordinates, or connect Repeat.Cell for one value per cell.
 
-Distortions return Float2 UV, with no `0..1` clamp. `Strength = 0` preserves input UV and
+The UV distortions listed above return Float2 UV, with no `0..1` clamp. `Strength = 0` preserves input UV and
 displacement vectors are not normalized. Connect the resulting UV to a procedural or sampling
 node. VectorDisplacement decodes Signed RG directly or Packed RG as `2*v-1`; Packed RG's neutral
 value is `(0.5,0.5)`. `Wave`, `Ripple`, `Stripes` and `Rings` expose Float `Phase` in cycles;
-Angle/Rotation/Direction use degrees. Drive Phase explicitly because
-Time is still zero. Pattern and shape masks have smoothed edges. Signed distances are negative
+Angle/Rotation/Direction use degrees. Drive Phase with a parameter or connect Time to animate
+graph previews (the layer itself uses Time = 0). Pattern and shape masks have smoothed edges. Signed distances are negative
 inside; the ellipse distance remains approximate. Use `Shape.Distance` for distance operations
 and `CombineDistance.Mask` for coverage. To color a gradient field, connect `GradientFactor.Out`
 to `SampleGradient.T` and a Gradient parameter to `SampleGradient.Gradient`.
@@ -80,6 +90,129 @@ or `_` for zero. Its numeric output width equals mask length: Float2 with `"_x_y
 Float4 `(0,x,0,y)`. Input width is the maximum of source width and the mask's highest component
 (y/g: 2, z/b: 3, w/a: 4). Connected scalars repeat; shorter vectors gain zeros. Unconnected
 values expose the inferred components directly. `_` does not increase input width.
+
+Additional native kinds use one `Out` and the following input keys. Discover exact defaults
+through `shaderNodes`; fixed outputs use `outputTypes`, while dynamic numeric math treats Color
+as Float4 and infers the widest numeric width.
+
+| `kind` | Inputs | Behavior |
+| --- | --- | --- |
+| `Sign`, `Saturate`, `Asin`, `Acos`, `Exp`, `Log` | In | Component-wise sign, 0..1 clamp, inverse sine/cosine, natural exponential/logarithm. Asin/Acos require -1..1; Log requires positive input. Domains are not silently clipped. |
+| `Modulo` | A, B | Floor modulo `A-B*floor(A/B)`, not truncating remainder; B=0 is undefined. |
+| `Atan2` | Y, X | `atan2(Y,X)` in radians; Asin/Acos also return radians. |
+| `Cross` | A, B | Float3 cross product. |
+| `Reflect`, `Refract` | Incident, Normal; Refract adds scalar Eta | Dynamic numeric result; supply unit vectors explicitly. Refract returns zero for total internal reflection. |
+| `And`, `Or`, `Not` | A/B for And/Or, In for Not | Boolean inputs and output, without numeric coercion. |
+| `NormalEncode`, `NormalDecode` | Normal | Fixed Float3 signed→packed (`n*0.5+0.5`) or packed→signed (`n*2-1`). No normalization, clamp or normalEncoding setting. |
+| `NormalStrength` | Normal, Strength | Float3; Strength 0 is flat, 1 preserves the unit normal, negatives reverse XY. |
+| `NormalLighting` | Color, Normal, LightDirection, LightColor, Intensity, Ambient, SpecularColor, SpecularIntensity, Roughness, SpecularOnly | Color with preserved surface alpha; specular defaults off (SpecularIntensity=0), fixed view direction (0,0,1). |
+| `Premultiply`, `Unpremultiply` | Color | Color RGB times/divided by alpha; alpha unchanged. Unpremultiply returns zero RGB at exactly zero alpha, otherwise divides by alpha without an epsilon cutoff. Output expects straight RGBA. |
+| `Flipbook` | UV, Columns, Rows, Frame | Float2 atlas UV. Dimensions floor/clamp to 1..4096, floored frames wrap including negatives. option 0 Bottom to Top, 1 Top to Bottom. |
+| `TileableNoise` | UV, Period, Cells, Offset, Seed | Float periodic Perlin. Period is UV repeat length, Cells is integer lattice count (rounded/clamped 1..4096), Offset uses UV units. No ordinary Noise fractal/option. |
+| `VoronoiEdge` | UV, Scale, Seed, Jitter | Float distance to the nearest cell boundary in UV*Scale units, not F2-F1; Jitter clamps to 0..1. |
+| `Dither` | Color, UV, Levels, PixelSize | Color with Bayer-quantized RGB and unchanged alpha. option 0/1/2: Bayer 4x4/2x2/8x8. Levels rounds to at least 2, absolute PixelSize is at least one output pixel. |
+
+NormalStrength and NormalLighting accept `normalEncoding: "PackedRGB"` (default) or `"SignedXYZ"`;
+discovery lists encoding-specific neutral inputs. NormalLighting normalizes Normal/LightDirection,
+uses LightColor alpha for diffuse light strength and SpecularColor alpha for specular strength.
+SpecularOnly removes ambient/diffuse, and Roughness controls highlight width. RGB/intensities
+remain signed/HDR; Dither and alpha conversion also have no implicit RGB clamp. See
+[exact extended-node defaults and evaluation](../ShaderLayer.md#extended-math-normals-and-generators).
+
+For image color processing, use the native [color and normal nodes](../ShaderLayer.md#color-and-normal-nodes).
+All of these native nodes have a single `Out`; use exact `kind` identifiers in JSON:
+
+| Category | `kind` | `Out` type |
+| --- | --- | --- |
+| Color/Adjustments | `Hue`, `Saturation`, `Exposure`, `Lightness`, `Levels`, `ColorBalance`, `Posterize` | Color |
+| Color/Conversion | `ConvertColor` / `Luminance` | Color / Float |
+| Color/Mapping | `GradientMap`, `ColorCurves` | Color |
+| Color/Selection | `ColorMask`, `HueRange` | Float |
+| Color/Mixing | `MixColor`, existing `Blend` | Color |
+| Color/Alpha | `SetAlpha`, `Premultiply`, `Unpremultiply` | Color |
+| Normal | `HeightToNormal`, `NormalBlend`, `NormalEncode`, `NormalDecode`, `NormalStrength` | Float3 |
+| Normal | `NormalLighting` | Color |
+| UV/Distortion | `HeightToDistortion`, `NormalToDistortion` | Float2 |
+
+Contrast remains a cataloged HLSL function at **Color/Adjustments/Contrast**, with output `Result`;
+do not invent a native `Contrast` kind. Color modes use integer `option`, listed in discovery's
+`modes`. MixColor uses `0: Perceptual` (default, including omitted `option`), `1: Linear RGB`,
+`2: sRGB`; discovery's `defaultOption` matches the editor.
+
+Discovery's `settings` object lists applicable node-level enum fields as
+`{ default, values: [{ value, name }] }`. Write `value` identifiers into the corresponding node
+field, not the UI `name` and not `node.inputs`. ConvertColor uses `inputColorSpace` (default
+`LinearRGB`) and `outputColorSpace` (default `SRGB`), accepting `LinearRGB`, `SRGB`, `HSV`, `HSL`,
+`Oklab`. GradientMap and height nodes use `channel`, default `Luminance`; height nodes also use
+`derivative`, default `Scharr`, and `wrap`/`filter`, default `Clamp`/`Bilinear`.
+HeightToNormal, NormalBlend, NormalToDistortion, NormalStrength and NormalLighting use
+`normalEncoding`, default `PackedRGB`. NormalBlend, NormalToDistortion, NormalStrength and
+NormalLighting list encoding-specific input defaults in
+`settings.normalEncoding.values[].inputs`. The [shared reference](../ShaderLayer.md#color-inputs-and-modes)
+lists every port, enum and default.
+
+Connections never convert color spaces implicitly. Ordinary color operations expect linear RGB;
+ConvertColor explicitly changes component representation and retains alpha. Adjustments preserve
+alpha, with dedicated exceptions: GradientMap alpha modes Preserve/Multiply/Replace,
+ColorCurves with a connected Alpha curve, MixColor's alpha interpolation, SetAlpha and Blend.
+ColorMask and HueRange masks do not multiply by alpha. HDR and negative RGB are not generally
+clipped: Levels has an explicit Clamp input, default true; false allows signed-gamma extrapolation.
+Hue/Saturation/Lightness work internally in encoded sRGB and return linear RGB without a final
+SDR clamp. Exposure multiplies linear RGB by `exp2(Stops)`. Posterize quantizes each channel with
+at least two endpoint-inclusive levels without clipping RGB. MixColor.T and SetAlpha.Alpha are
+unbounded. ColorCurves marks Master/Red/Green/Blue/Alpha as `optional:true`: disconnected curves
+are identity. Connected curves extend with `x + curve(saturate(x)) - saturate(x)`, preserving HDR
+and negative values at identity. GradientMap needs a connected Gradient resource.
+
+ConvertColor's HSV/HSL use sRGB-encoded RGB and hue in turns. HSV clamps negative RGB to zero
+but preserves HDR V; conversion from HSV bounds S to `0..1` and V to nonnegative values.
+HSL clamps encoded RGB, L and S to `0..1`, so it cannot roundtrip HDR or negative RGB.
+LinearRGB/SRGB/Oklab retain signed/HDR values. A same-space conversion bypasses exactly.
+Its unconnected input uses a color picker for LinearRGB and raw Float4 numeric components for other spaces.
+
+HeightToNormal and HeightToDistortion use `heightSource: "Texture"` by default: Height requires
+a Texture resource and Radius is in bound-source texels. With `heightSource: "Value"`, Height
+is Float and the connected branch is reevaluated at neighboring UVs; Radius is in output pixels.
+Read `settings.heightSource.values[].inputs` and `radiusUnits` in discovery for the two layouts.
+Value mode retains Strength, Radius, FlipX/FlipY and derivative (Scharr/Sobel/CentralDifference).
+Channel/wrap/filter apply to Texture mode; sampling nodes inside a Value branch use their own settings.
+HeightToNormal and NormalBlend return normalized Float3 normals in PackedRGB or SignedXYZ;
+normal vectors have no implicit sRGB encoding. HeightToDistortion preserves the finite-difference
+gradient magnitude. NormalToDistortion decodes XY without normalizing and applies Float2 Strength.
+Both distortion nodes output displacement, not UV. Connect Out to VectorDisplacement.Displacement
+with matching Signed RG (`option: 0`) or Packed RG (`option: 1`), then use VectorDisplacement.Out
+as sampling UV. Packed neutral is `(0.5,0.5)`; packing does not clamp the displacement.
+For height slope `(dx,dy)`, HeightToNormal uses `normalize(-dx,-dy,1)`; HeightToDistortion uses
+`(dx,dy)`. NormalToDistortion takes the normal's XY directly, so reverse Strength or FlipX/Y
+to change direction when needed; the two routes also differ in magnitude after normalizing.
+
+`Blur`, `Sharpen`, `EdgeDetection`, `Dilate` and `Erode` sample numeric/Color **In** by reevaluating
+its upstream branch at UV offsets. All accept UV (current pixel by default) and Radius (default 1,
+in output pixels); Sharpen and EdgeDetection add Strength (default 1). Out preserves In's type
+and processes every component, including alpha. Discovery uses `sampledInputs: ["In"]`,
+`outputTypeFromInput: "In"` and `radiusUnits: "OutputPixels"` for these nodes.
+For Blur/Sharpen/Dilate/Erode, `option` is 0: 3 × 3, 1: 5 × 5 or 2: 9 × 9. Blur uses a normalized
+finite Gaussian kernel; Sharpen is `input + (input - blur) * Strength`; Dilate/Erode take
+component-wise max/min. EdgeDetection uses fixed 3 × 3 Sobel magnitude times Strength.
+These are generated HLSL branch functions, without intermediate GPU textures or multipass rendering.
+There is no implicit output clamp. Larger radii retain a fixed sample count and can miss thin
+detail; nested filters multiply branch evaluation cost. Fixed upstream UVs remain fixed.
+See [sampled filters](../ShaderLayer.md#sampled-branch-filters).
+
+Reusable definitions live in `graph.subGraphs`, not a separate asset. Each `ShaderGraphSubGraph`
+has `id`, `name`, `inputs`, `outputs`, `nodes`, `edges`, `notes`, `groups`; each interface pin has
+`id`, `name`, `type`, `value`, `uvDefault`. A `SubGraph` node's `subGraphId` references a definition.
+Connect using **interface IDs**, never display names. Inside the definition, `SubGraphInput`
+uses `parameterId` for an input pin and exposes `Out`; exactly one `SubGraphOutput` has dynamic
+input pins keyed by output interface IDs and no outputs. These interface nodes are invalid at root.
+Definitions share root parameters/functions/sources and expand during compilation; edits affect
+all instances. Snapshots, JSON and TIFF retain the table. Preserve it when replacing a graph.
+Limits are 128 definitions, 64 input and 64 output pins per definition (at least one output),
+16 nesting levels, no recursion and 4096 expanded nodes. Node IDs are unique across all scopes.
+Discovery omits interface-only kinds and marks SubGraph `requiresDefinition: true` with
+`definitionField: "subGraphId"`, `definitionTable: "subGraphs"` and dynamic input/output flags;
+its empty port lists do not describe an instantiable standalone node.
+See the [Sub Graph contract](../ShaderLayer.md#reusable-sub-graphs).
 
 HLSL nodes reference definitions in `graph.functions` through `node.functionId`; file functions
 and inline bodies with includes reference complete embedded modules in `graph.sources` through

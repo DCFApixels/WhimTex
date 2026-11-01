@@ -20,10 +20,10 @@ layer's behavior; it is not a document-wide graph or an FX preset. The artist wo
 - **Shader Processor:** process the composite below its stack position with FX.
 
 Shader does not implicitly sample the lower stack. Images enter through declared Texture
-parameters and Sample Texture nodes. The generated image participates in the ordinary layer
+parameters, read by Sample Texture or the height-processing nodes. The generated image participates in the ordinary layer
 transform, FX and composition pipeline; Output is not the final document composite.
 
-Create nodes through the graph context menu's **Create Node**, **Space**, or by dropping an output
+Create nodes through the graph context menu's **Create Node**, **Space**, or by dropping an input or output
 connection on empty graph space. Notes, groups and edge reroutes have separate context actions.
 
 ## Parameters and ports
@@ -56,6 +56,11 @@ serialized `Out` port or change parameter declarations and values.
 Numeric and Color ports use circular connectors, Boolean ports use diamonds, and Texture,
 Gradient and Curve ports use squares. The shape follows the port type, including Parameter
 outputs and Reroutes.
+
+Visible port labels append the inferred type in parentheses: `1`, `2`, `3`, `4` for numeric
+widths, `T2` for Texture, `G` for Gradient, `C` for Curve, `col` for Color and `bool` for Boolean.
+Parameter names and custom HLSL labels use the same notation. Reroutes remain label-free;
+the suffix is display-only and never changes a stored port name or connection.
 
 Numeric connections allow different widths. Narrowing keeps the leading components and drops
 the rest: `float4(x, y, z, w)` → `float2(x, y)`. Widening a vector fills missing components with
@@ -145,7 +150,10 @@ so fresh clipboard operations do not depend on Editor command forwarding after s
 Handled keys are consumed once; text fields and active pointer gestures keep their own input.
 The fragment includes selected nodes, edges whose endpoints are both selected, required
 parameter values, functions (including drafts and editor sizes), and their include closure.
-Output is not copyable. Text-field commands retain normal text editing behavior.
+Sub Graph instances also carry their referenced definitions and nested definition closure,
+including required parameters and HLSL sources. Same-graph paste reuses existing definitions;
+cross-graph paste imports definitions and remaps node/reference IDs while retaining interface IDs.
+Output and definition-only interface nodes are not copyable. Text-field commands retain normal text editing behavior.
 
 Paste assigns new node/function IDs, remaps internal edges, and selects the inserted nodes.
 In the same graph, compatible Parameter IDs are reused; otherwise parameters are copied
@@ -204,6 +212,75 @@ RGB is straight, not premultiplied by alpha. The graph adds no blanket
 selected operation and the normal layer Rendering settings. Alpha retains the existing layer
 coverage semantics. Lerp interpolates numeric components; Blend performs color compositing
 with the chosen blend mode and alpha handling.
+
+## Sampled branch filters
+
+`Blur`, `Sharpen`, `EdgeDetection`, `Dilate` and `Erode` take numeric or Color `In`,
+Float2 `UV` (current-pixel UV by default) and Float `Radius` (default 1). Sharpen and
+EdgeDetection also take Float `Strength` (default 1). Each has one `Out` with the same
+type as In; all components, including alpha, participate. Resource and Boolean inputs
+must be converted to a numeric/Color branch first.
+
+The compiler emits an HLSL function for the upstream branch and calls it at `UV + offset`.
+This reevaluates UV-dependent calculations, including procedural generation and texture
+sampling. It does not allocate intermediate GPU textures or add rendering passes. Explicit
+constant coordinates in the branch remain constant. Nested filters reevaluate their upstream
+filters for each sample and can be expensive even when generated function code is shared.
+
+Radius is measured in **output pixels**, using reciprocal output dimensions for UV offsets;
+it is not measured in a bound texture's texels. It uses the current evaluation resolution,
+so a 128 × 128 node preview and a larger layer result need not have the same normalized footprint.
+Radius uses its absolute value; at zero, Blur/Sharpen/Dilate/Erode return In and EdgeDetection
+returns zero. UVs are not implicitly clipped; upstream texture samplers determine edge behavior.
+
+| `kind` | Kernel and result |
+| --- | --- |
+| `Blur` | Normalized finite Gaussian kernel; constant inputs stay constant. |
+| `Sharpen` | `input + (input - blur) * Strength`, using the same Gaussian kernel. |
+| `Dilate` | Component-wise maximum over the kernel. |
+| `Erode` | Component-wise minimum over the kernel. |
+| `EdgeDetection` | Fixed 3 × 3 Sobel gradient magnitude per component, multiplied by Strength. No implicit luminance conversion. |
+
+For Blur, Sharpen, Dilate and Erode, `option` selects **0: 3 × 3**, **1: 5 × 5** or
+**2: 9 × 9** (default 0). Samples span `[-Radius, Radius]` in each axis. Increasing Radius
+spreads the same fixed number of samples farther apart; it does not increase quality or
+guarantee that thin features will be captured. EdgeDetection always uses its 3 × 3 stencil.
+None of these nodes clamps its result to `0..1`.
+
+## Reusable Sub Graphs
+
+`graph.subGraphs` is an embedded `List<ShaderGraphSubGraph>`, empty by default. Each definition
+stores `id`, `name`, `inputs`, `outputs`, `nodes`, `edges`, `notes` and `groups`.
+Each interface port stores `id`, `name`, `type`, `value` and `uvDefault`. `value` is the
+unconnected default; `uvDefault` is valid only for Float2 and supplies the evaluation UV.
+Resource ports require resource connections. Input and output IDs must be unique across
+the definition's interface; display names can change without changing wiring keys.
+
+- A `SubGraph` node references a definition through `subGraphId`. Its input/output port keys
+  are the definition's stable interface IDs, not its display names.
+- A definition's `SubGraphInput` node uses `parameterId` to reference one declared input
+  and exposes `Out`. This does not reference `graph.parameters`.
+- Exactly one `SubGraphOutput` terminates each definition. Its dynamic input keys are the
+  definition's output interface IDs. It has no outputs. Root graphs use ordinary Output;
+  definition-only interface nodes cannot be added to the root graph.
+
+Definitions share root `parameters`, `functions` and `sources`; these are not copied into
+each definition. Compilation expands instances into the enclosing calculation. Editing a
+definition affects all its instances; it introduces no external file or asset dependency.
+Snapshots, document JSON and native TIFF retain the embedded table with the graph.
+
+Limits: at most **128 definitions**, **64 input pins** and **64 output pins** per definition
+(at least one output), **16 nesting levels**, and **4096 expanded nodes**. Recursion is forbidden.
+The ordinary limits of 512 nodes and 4096 edges apply within each scope; node IDs must be
+unique across the root and every definition. Notes/groups retain their ordinary per-scope rules.
+
+Select a connected calculation and use **Convert Selection to Sub Graph** in the context menu. Double-click
+an instance to edit its definition, use **Back to Graph** to return to the root, and edit
+**Inputs**/**Outputs** in the sidebar. Existing definitions are available in the creation menu.
+Discovery marks SubGraph with `requiresDefinition`, `definitionField: "subGraphId"`,
+`definitionTable: "subGraphs"`, `dynamicInputs` and `dynamicOutputs`. Its empty catalog port
+lists are placeholders; inspect the referenced definition. SubGraphInput/SubGraphOutput are
+not ordinary catalog creation entries.
 
 ## Compilation and invalidation
 
@@ -315,37 +392,123 @@ parameter values rebind without recompilation. A preview compilation/render erro
 preview's image and displays a diagnostic. This differs from retaining the last successful
 shader for the layer itself. Layer rendering, graph math and storage are unchanged by this UI.
 
-## Initial node set
+## Node set
 
 Names below identify operations; grouped rows do not imply a single combined node.
 
 | Operations | Purpose |
 | --- | --- |
 | Parameter, Constant | Shared parameter reads and named mathematical constants. |
-| Instance Index, Time | Input nodes with one Float output, Out. Both currently return 0, with no controls or preview. |
+| Instance Index, Time | Input nodes with one Float output, Out, and no own preview. Instance Index converts the shared uint index to Float; standard rendering supplies 0. Time multiplies Editor seconds by Float Scale (default 1) only inside graph previews; other renders use 0. |
 | Custom Function, cataloged HLSL functions | Inline function bodies or functions imported from an HLSL library. |
 | Reroute | Forward a typed connection unchanged; insert on an existing edge, not through node search. |
 | UV, Image Size, Texture Size | Coordinates and image dimensions. |
 | Sample Texture, Sample Gradient, Sample Curve | Read typed resources. |
 | Split, Combine, Swizzle | Component access, vector construction, reordering and zero insertion. |
 | Add, Subtract, Multiply, Divide | Basic arithmetic. |
-| Min, Max, Clamp, Abs, One Minus, Negate | Bounds, absolute value, `1 − x` and sign inversion. |
-| Power, Square Root | Exponentiation and square root. |
+| Min, Max, Clamp, Saturate, Abs, Sign, One Minus, Negate | Bounds, absolute value, sign, `1 − x` and sign inversion. |
+| Power, Square Root, Exp, Log, Modulo | Powers, roots, exponentials, logarithms and remainders. |
 | Floor, Ceil, Round, Fraction | Integer boundaries and fractional part. |
-| Sine, Cosine | Periodic functions. |
+| Sine, Cosine, Atan2, Asin, Acos | Trigonometric functions. |
 | Lerp, Remap, Step, Smoothstep | Interpolation, range mapping and thresholds. |
-| Length, Distance, Dot, Normalize | Vector calculations. |
-| Compare, Select | Conditions and conditional values. |
-| Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope | Coordinate transforms in the UV category. |
+| Length, Distance, Dot, Normalize, Cross, Reflect, Refract | Vector calculations. |
+| Compare, Select, And, Or, Not | Boolean conditions and conditional values. |
+| Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope, Flipbook | Coordinate transforms and atlas-frame UVs. |
 | Domain Warp, Vector Displacement, Twirl, Bulge / Pinch, Wave, Ripple | UV distortions for downstream sampling and procedural nodes. |
-| Noise, Cellular, Random | Spatial noise, cellular distances and deterministic random values. |
-| Checkerboard, Stripes, Grid, Rings, Gradient Factor | Procedural masks and scalar gradient coordinates. |
+| Noise, Cellular, Random, Tileable Noise, Voronoi Edge | Spatial and repeating noise, cellular distances and cell boundaries. |
+| Checkerboard, Stripes, Grid, Rings, Gradient Factor, Dither | Procedural masks, gradient coordinates and dithering. |
 | Shape, Combine Distance | Antialiased shape masks and signed-distance operations. |
+| Hue, Saturation, Exposure, Lightness, Levels, Color Balance, Posterize | Color adjustments that preserve source alpha. Contrast is the existing cataloged HLSL function. |
+| Convert Color, Luminance, Gradient Map, Color Curves | Explicit color conversion, luminance extraction and resource-based remapping. |
+| Color Mask, Hue Range, Mix Color, Set Alpha, Premultiply, Unpremultiply | Color selection, interpolation, alpha control and alpha representation. |
+| Height to Normal, Normal Blend, Height to Distortion, Normal to Distortion | Normals and displacement from textures or height branches. |
+| Normal Encode, Normal Decode, Normal Strength, Normal Lighting | Normal representation, detail strength and lighting with specular. |
+| Blur, Sharpen, Edge Detection, Dilate, Erode | Sample an upstream numeric/Color branch at neighboring UVs. |
+| Sub Graph | Reuse an embedded definition through its declared interface. |
 | Blend | RGBA blending using the existing blend semantics. |
 | Output | Final straight RGBA through a fixed Color input; modest visual distinction and no per-node preview. |
 
-Reusable subgraphs and Blur are outside this first version. Time exists but currently returns 0.
 HLSL FX authoring continues to use the [separate effect contract](ShaderFX.md).
+
+`Time` uses one shared Editor-time sample per update in visible node previews and the graph's
+result preview, including active FX. It reads `_WhimTexTime * Scale`; Instance Index reads
+`_WhimTexInstanceIndex` converted to Float. HLSL libraries and Custom Function can read the same
+automatically declared `float _WhimTexTime` and `uint _WhimTexInstanceIndex` directly. The HLSL
+uint keeps all 32 bits; the graph's Float output has ordinary floating-point precision.
+Only compiled outputs that may depend on time update continuously; hidden/collapsed
+previews do not render. Time is a uniform, so animation does not change the code fingerprint,
+recompile shaders, or dirty the document. Graph result previews bypass the layer output/content
+caches and retain transforms, FX and clipping. Referenced layers, Canvas, ordinary layer previews,
+thumbnails and export evaluate Time at 0. No clock value is saved in the document.
+`ShaderLayerBehaviour.UsesTime` / `UsesInstanceIndex` describe the compiled output, including
+reachable HLSL modules; node previews analyze their own reachable subgraph. Within a module,
+analysis is conservative over its complete expanded source. See the [shared context contract](ShaderFX.md#evaluation-time-and-instance-index)
+for FX, dependency flags and unresolved macros/includes.
+
+### Extended math, normals and generators
+
+Use these exact `kind` and port identifiers in JSON. Every node in this section has one
+`Out`. Dynamic numeric nodes infer the widest numeric operand width, treating Color as Float4;
+Boolean and resource values do not enter numeric math implicitly. Angles returned by inverse
+trigonometric nodes are **radians**, unlike the degree controls on UV transforms.
+
+| Category | `kind` | Inputs and defaults | Result |
+| --- | --- | --- | --- |
+| Math | `Sign`, `Saturate` | numeric In = 0 | Component-wise sign (-1, 0, 1), or clamp to `0..1`. |
+| Math | `Modulo` | numeric A = 0, B = 1 | `A - B * floor(A/B)`; nonzero results have B's sign. B = 0 is undefined. |
+| Math | `Atan2` | numeric Y = 0, X = 1 | `atan2(Y,X)` in radians; `(0,0)` is undefined. |
+| Math | `Asin`, `Acos` | numeric In = 0 | Inverse sine/cosine in radians; requires `[-1,1]`, without implicit domain clipping. |
+| Math | `Exp`, `Log` | numeric In = 0 for Exp, 1 for Log | Natural exponential/logarithm; Log requires positive input without implicit domain clipping. |
+| Vector | `Cross` | Float3 A = (1,0,0), B = (0,1,0) | Float3 cross product, without normalization. |
+| Vector | `Reflect` | numeric Incident = -1, Normal = 1 | Reflection at their widest numeric width; supply a unit Normal. |
+| Vector | `Refract` | numeric Incident = -1, Normal = 1; Float Eta = 1 | Refraction at their widest numeric width; supply unit vectors. Total internal reflection returns zero. |
+| Logic | `And`, `Or` | Boolean A = false, B = false | Boolean conjunction/disjunction. |
+| Logic | `Not` | Boolean In = false | Boolean negation. |
+| Normal | `NormalEncode` | Float3 Normal = (0,0,1) | Float3 `Normal * 0.5 + 0.5`, signed XYZ to packed RGB. |
+| Normal | `NormalDecode` | Float3 Normal = (0.5,0.5,1) | Float3 `Normal * 2 - 1`, packed RGB to signed XYZ. |
+| Normal | `NormalStrength` | Float3 Normal = encoding-dependent flat normal; Float Strength = 1 | Normalized Float3 in the selected encoding; 0 is flat, 1 preserves the unit normal, negative values reverse XY. |
+| Normal | `NormalLighting` | Color = white; Float3 Normal = encoding-dependent flat normal; LightDirection: Float3 = (-0.5,0.5,1); LightColor: Color = white; Intensity = 1; Ambient = 0.15; SpecularColor: Color = white; SpecularIntensity = 0; Roughness = 0.25; SpecularOnly: Boolean = false | Color lit by ambient, diffuse and optional specular; surface alpha passes through. |
+| Color/Alpha | `Premultiply`, `Unpremultiply` | Color = white | Color with RGB multiplied/divided by alpha; alpha is retained. |
+| UV | `Flipbook` | UV; Columns = 4; Rows = 4; Frame = 0 | Float2 atlas coordinates for one frame. |
+| Procedural/Noise | `TileableNoise` | UV; Period: Float2 = (1,1); Cells: Float2 = (8,8); Offset: Float2 = (0,0); Seed = 1337 | Float periodic Perlin noise with a wrapped gradient lattice. |
+| Procedural/Noise | `VoronoiEdge` | UV; Scale: Float2 = (8,8); Seed = 1337; Jitter = 1 | Float nonnegative distance to the nearest cell boundary in `UV * Scale` coordinates. |
+| Color/Adjustments | `Dither` | Color = white; UV; Levels = 8; PixelSize = 1 | Color with Bayer-quantized RGB and unchanged alpha. |
+
+Unqualified scalar inputs are Float; UV is Float2 with current-pixel coordinates by default.
+Cross, Reflect and Refract do not normalize automatically. NormalEncode/NormalDecode have
+fixed directions and do not use `normalEncoding`, normalize, clamp or convert color spaces.
+NormalStrength and NormalLighting use `normalEncoding: "PackedRGB"` by default, with
+`"SignedXYZ"` as the alternative. Their neutral input defaults are `(0.5,0.5,1)` and `(0,0,1)`.
+NormalStrength decodes and normalizes, scales XY by Strength, blends Z from 1 to the unit normal's
+Z by `saturate(abs(Strength))`, then normalizes and reencodes.
+
+NormalLighting normalizes Normal and LightDirection. Its diffuse term is
+`Color.rgb * (Ambient + LightColor.rgb * max(dot(N,L),0) * Intensity * LightColor.a)`.
+Specular uses the fixed view direction `(0,0,1)` and the normalized halfway vector with L.
+Roughness is bounded to `0.01..1`; smaller values sharpen the highlight. SpecularColor alpha
+scales SpecularIntensity, independently of the diffuse light tint and intensity. SpecularOnly
+omits ambient/diffuse while preserving Color alpha. No final RGB clamp is applied, including
+for negative intensities or HDR inputs. SpecularIntensity defaults to zero, so enable it explicitly.
+
+Unpremultiply returns zero RGB at exactly zero alpha; any other alpha, including tiny or negative
+values, is used directly as the divisor. Premultiply/Unpremultiply do not clamp. Output expects
+straight RGBA; restore straight color before connecting a premultiplied branch to Output.
+
+Flipbook floors Columns/Rows and clamps them to `1..4096`; Frame is floored and wraps across
+the frame count, including negative frames. `option: 0` is Bottom to Top (frame 0 at bottom-left),
+`option: 1` is Top to Bottom. Row order does not flip local UV orientation. Flipbook returns UV,
+without sampling or clipping it; connect Out to SampleTexture.UV.
+
+TileableNoise's Period is a UV repeat length: its absolute value is bounded below by `1e-5`.
+Cells is rounded and clamped to `1..4096` per axis; Offset is measured in UV units. It wraps
+gradient-lattice indices, not completed images; ordinary Noise's `option` and `fractal` do not
+apply. VoronoiEdge clamps Jitter to `0..1` and returns distance to the cell boundary, not `F2-F1`
+or a coverage mask. Threshold that distance explicitly for cell-border lines.
+
+Dither's `option` values are **0: Bayer 4x4**, **1: Bayer 2x2**, **2: Bayer 8x8**. Levels rounds
+to at least 2; RGB quantization spacing is `1 / (Levels - 1)`, continuing beyond `0..1` without
+clipping signed/HDR values. PixelSize uses its absolute value, at least one output pixel.
+Its pattern follows the current output resolution; alpha is not quantized.
 
 ### Procedural and UV nodes
 
@@ -370,14 +533,14 @@ Categories are nested branches in Create Node and the connection search. Discove
 each path with `/` separators. Cellular's default output is `F1`; it has no `Out` port. Set an
 edge's `outputPort` to `F1`, `F2` or `Cell` explicitly when using Cellular in JSON.
 
-UV distortion nodes return coordinates, not sampled colors or masks. Connect their `Out` to
+The UV distortion nodes in this table return coordinates, not sampled colors or masks. Connect their `Out` to
 the `UV` input of a procedural or sampling node. They do not clamp coordinates to `0..1`;
 `SampleTexture` wrap settings determine how out-of-range image coordinates are sampled.
 `Strength = 0` leaves the input UV unchanged. Displacement vectors retain their magnitude;
 they are not normalized. `TransformUV` belongs to **UV**, independently of the layer Transform.
 
 `Wave`, `Ripple`, `Stripes` and `Rings` expose a separate Float `Phase` input. Supply a parameter
-or another scalar expression to shift the pattern; the current `Time.Out` is always zero.
+or another scalar expression to shift the pattern; `Time.Out` animates it inside graph previews.
 Mask edges are smoothed. A signed-distance output is negative inside, zero on the boundary
 and positive outside; do not treat it as a `0..1` mask. `Shape.Distance` retains the existing
 approximate ellipse distance, so an ellipse is not guaranteed to have an exact Euclidean SDF.
@@ -412,7 +575,7 @@ The UI label **Ping Pong** serializes as `PingPong`. Progressive warps each octa
 position using previous octaves; Independent samples each octave from the original position.
 
 All inputs below are Float unless marked Float2. Every `UV` input is Float2 and defaults to
-current-pixel UV; `Random.Coordinates` is an ordinary Float2 input with a constant zero default.
+current-pixel UV; `Random.Coordinates` is Float2 and uses the same current-pixel UV default.
 Input values belong in `node.inputs`, with exact case-sensitive port names. Discovery returns
 their types and defaults; a mode's controls are not additional node-level JSON fields.
 
@@ -463,8 +626,9 @@ new mode and initializes newly introduced inputs with their defaults.
   nonnegative distances in `UV * Scale` coordinates using the selected metric, without
   FastNoiseLite's `-1` distance offset. Hybrid adds Manhattan distance and squared Euclidean
   distance. `Jitter` clamps to `0..1`. `Cell` is a deterministic value in `[0,1)`, not a unique ID.
-- Random returns a deterministic scalar in `[0,1)`. Its default Coordinates produce a constant;
-  connect `UV.Out` for spatial variation or `Repeat.Cell` for one value per repeated cell.
+- Random returns a deterministic scalar in `[0,1)`. Coordinates use current-pixel UV when no
+  edge or explicit input literal is present. Custom sets constant coordinates; existing explicit coordinates remain Custom.
+  Connect `Repeat.Cell` for one value per repeated cell, or another source to override the default.
   Repeat computes `p = UV * Scale + Offset`, `Out = frac(p)`, `Cell = floor(p)`, including
   negative cell coordinates. `Cell` is unrelated to the currently constant `InstanceIndex`.
 - Stripes uses Width only in Square mode. Width is the filled fraction of a period for Square
@@ -487,6 +651,170 @@ new mode and initializes newly introduced inputs with their defaults.
 - Twirl, Bulge / Pinch and Ripple have smooth radial falloff and preserve UV when Radius is
   nonpositive. Positive Bulge / Pinch Strength magnifies the sampled image; negative values pinch
   it. Wave displaces along Direction while its phase varies along the perpendicular axis.
+
+### Color and normal nodes
+
+All native nodes below have a single `Out` port. The existing Contrast HLSL function appears
+at **Color/Adjustments/Contrast** and keeps its `Result` port; there is no native `Contrast` kind.
+
+| Category | Serialized `kind` | `Out` type |
+| --- | --- | --- |
+| Color/Adjustments | `Hue`, `Saturation`, `Exposure`, `Lightness`, `Levels`, `ColorBalance`, `Posterize` | Color |
+| Color/Conversion | `ConvertColor` | Color |
+| Color/Conversion | `Luminance` | Float |
+| Color/Mapping | `GradientMap`, `ColorCurves` | Color |
+| Color/Selection | `ColorMask`, `HueRange` | Float |
+| Color/Mixing | `MixColor`, existing `Blend` | Color |
+| Color/Alpha | `SetAlpha`, `Premultiply`, `Unpremultiply` | Color |
+| Normal | `HeightToNormal`, `NormalBlend`, `NormalEncode`, `NormalDecode`, `NormalStrength` | Float3 |
+| Normal | `NormalLighting` | Color |
+| UV/Distortion | `HeightToDistortion`, `NormalToDistortion` | Float2 |
+
+#### Color inputs and modes
+
+Inputs belong in `node.inputs`. Unless a type is stated, a numeric input is Float. `Color`
+is a Color input, default opaque white `(1,1,1,1)`. Resource inputs require a connection except
+the explicitly optional ColorCurves inputs. The defaults below describe newly created nodes.
+
+| `kind` | Inputs and defaults |
+| --- | --- |
+| `Hue` | Color; Degrees = 0 |
+| `Saturation` | Color; Amount = 1 |
+| `Exposure` | Color; Stops = 0 |
+| `Lightness` | Color; Amount = 0 |
+| `Levels` | Color; InputRange: Float2 = (0,1); Gamma = 1; OutputRange: Float2 = (0,1); Clamp: Boolean = true |
+| `ColorBalance` | Color; Shadows, Midtones, Highlights: Float3 = (0,0,0); ShadowRange, HighlightRange = 0.5; PreserveLuminance: Boolean = true |
+| `Posterize` | Color; Levels = 8 |
+| `ConvertColor`, `Luminance` | Color |
+| `GradientMap` | Color; Gradient: required Gradient resource |
+| `ColorCurves` | Color; Master, Red, Green, Blue, Alpha: optional Curve resources, each identity when disconnected |
+| `ColorMask` | Color; KeyColor: Color = (0,1,0,1); Tolerance = 0.1; Softness = 0.05 |
+| `HueRange` | Color; Range: Float2 = (330,30); Feather = 15; SaturationRange: Float2 = (0.05,0.1) |
+| `MixColor` | A: Color = (0,0,0,1); B: Color = (1,1,1,1); T = 0.5 |
+| `SetAlpha` | Color; Alpha = 1 |
+| `HeightToNormal`, `HeightToDistortion` | Height: required Texture for `heightSource: "Texture"`, Float = 0 for `"Value"`; UV: Float2 = current-pixel UV; Strength = 8; Radius = 1; FlipX, FlipY: Boolean = false |
+| `NormalBlend` | Base, Detail: Float3 = (0.5,0.5,1) for PackedRGB or (0,0,1) for SignedXYZ; Strength = 1 |
+| `NormalToDistortion` | Normal: Float3 with the same encoding-dependent neutral default; Strength: Float2 = (1,1); FlipX, FlipY: Boolean = false |
+
+`option` remains a zero-based integer. Mode labels are not serialized strings.
+
+| `kind` | `option`: label | New-node default |
+| --- | --- | --- |
+| `Levels` | 0: Luminance; 1: RGB | 0 |
+| `ColorCurves` | 0: RGB; 1: Luminance | 0 |
+| `ColorMask` | 0: Chroma; 1: RGB; 2: Perceptual | 0 |
+| `MixColor` | 0: Perceptual; 1: Linear RGB; 2: sRGB | 0 |
+| `GradientMap` | 0: Preserve; 1: Multiply; 2: Replace | 0 |
+| `SetAlpha` | 0: Replace; 1: Multiply | 0 |
+| `NormalBlend` | 0: Reoriented; 1: Whiteout | 0 |
+| `HeightToDistortion`, `NormalToDistortion` | 0: Signed RG; 1: Packed RG | 0 |
+
+An omitted `MixColor.option` is `0` (Perceptual), matching the editor's default.
+
+The following are node-level enum fields, separate from `inputs` and `option`. Write enum
+identifiers, not their spaced UI labels. Discovery's `settings` object supplies both spellings.
+
+| Field | Applies to | Values in enum order | Default |
+| --- | --- | --- | --- |
+| `inputColorSpace` | ConvertColor | `LinearRGB`, `SRGB`, `HSV`, `HSL`, `Oklab` | `LinearRGB` |
+| `outputColorSpace` | ConvertColor | same as inputColorSpace | `SRGB` |
+| `channel` | GradientMap, HeightToNormal, HeightToDistortion | `Luminance`, `Red`, `Green`, `Blue`, `Alpha` | `Luminance` |
+| `heightSource` | HeightToNormal, HeightToDistortion | `Texture`, `Value` | `Texture` |
+| `derivative` | HeightToNormal, HeightToDistortion | `Scharr`, `Sobel`, `CentralDifference` | `Scharr` |
+| `normalEncoding` | HeightToNormal, NormalBlend, NormalToDistortion, NormalStrength, NormalLighting | `PackedRGB`, `SignedXYZ` | `PackedRGB` |
+| `wrap` | HeightToNormal, HeightToDistortion | `Clamp`, `Repeat`, `Mirror`, `Transparent` | `Clamp` |
+| `filter` | HeightToNormal, HeightToDistortion | `Point`, `Bilinear` | `Bilinear` |
+
+#### Color, alpha and numeric range
+
+Connections do not convert color spaces. Color ports carry RGBA components without a space
+tag; `ConvertColor` performs an explicit conversion, preserving alpha. Ordinary color
+operations expect linear RGB. When working with encoded RGB, HSV, HSL or Oklab components,
+convert them back to LinearRGB before those operations or Output.
+ConvertColor's unconnected input uses a color picker for LinearRGB and raw Float4 numeric
+components for every other input space.
+
+ConvertColor uses sRGB-encoded RGB for HSV/HSL, with hue in turns (`1` is a full revolution),
+not degrees. HSV conversion clamps negative encoded RGB to zero, but V retains values above 1;
+conversion from HSV clamps S to `0..1` and V to nonnegative values. HSL is an SDR representation:
+conversion to HSL clamps encoded RGB to `0..1`, and conversion from it clamps L and S to `0..1`.
+HSL cannot roundtrip HDR or negative RGB, and HSV cannot retain negative RGB. LinearRGB, SRGB
+and Oklab conversions retain signed/HDR values through signed transfer functions and signed
+cube roots. Converting a space to itself is an exact bypass, including its out-of-range values.
+
+Hue, Saturation and Lightness use sRGB-encoded calculations internally and return linear RGB.
+Hue rotates by Degrees; Saturation clamps Amount to nonnegative values. Lightness clamps its
+Amount to `-100..100`. These operations retain signed/HDR results without a final RGB `0..1`
+clamp. Exposure multiplies linear RGB by `exp2(Stops)`. Color Balance applies the three Float3
+adjustments according to tonal weights and optionally preserves luminance. Posterize uses
+`max(2, floor(Levels))` steps including the 0 and 1 endpoints, without clipping RGB to that range.
+Luminance computes `dot(rgb, (0.2126,0.7152,0.0722))` from linear RGB, without alpha or a `0..1` clamp.
+
+Levels maps InputRange through Gamma into OutputRange. In Luminance mode it adjusts the
+brightness of RGB together; RGB mode maps channels independently. Its explicit Clamp input
+defaults to true and bounds values to InputRange. With Clamp false, signed-gamma extrapolation
+allows negative values and values above the range. OutputRange is a remapping range, not a
+general output clamp. Gamma is bounded below by `0.0001`; an equal or reversed InputRange
+becomes a step at its first endpoint. Luminance mapping scales RGB by the new/old luminance
+ratio; near zero luminance it adds the luminance difference instead.
+
+Gradient Map samples the chosen channel through the connected Gradient, whose wrap settings
+govern coordinates outside `0..1`. Preserve keeps source alpha; Multiply multiplies it by the
+gradient alpha; Replace uses gradient alpha. Color Curves applies Master in RGB or Luminance
+mode, then the individual channel curves. A connected curve uses
+`x + curve(saturate(x)) - saturate(x)`: the input to the curve is limited to `0..1`, but values
+outside that interval retain their excess. Identity curves therefore preserve HDR and negative
+values. Disconnected curves are identity; alpha changes only when the Alpha curve is connected.
+
+Color Mask outputs 1 for a matching KeyColor. Tolerance controls the selected region and
+Softness its falloff. Chroma and RGB modes analyze sRGB-encoded components without SDR clipping;
+Perceptual compares Oklab. Hue Range selects a cyclic degree interval: `(330,30)` crosses red,
+an absolute span of at least 360 degrees selects the full cycle, and equal endpoints select
+nothing unless Feather is positive. Feather is in degrees; SaturationRange fades selection
+for low-saturation colors, even with a full hue interval. Feather clamps to `0..180` and cannot
+extend past the opposite hue; SaturationRange endpoints clamp to `0..1`. Neither mask multiplies
+by input alpha. ColorMask clamps Tolerance to nonnegative values; Softness at or below zero
+selects a hard threshold.
+
+Mix Color interpolates RGB in Linear RGB, sRGB or Perceptual space and interpolates alpha
+linearly. T is unbounded, so values outside `0..1` extrapolate. This differs from Blend's
+alpha compositing and Lerp's raw component interpolation. Set Alpha replaces or multiplies
+alpha without changing RGB or clamping the result. Other color adjustments preserve source
+alpha. Color ports do not add a general clamp; use an explicit Clamp and the layer's Rendering
+color-range controls when a limited result is required.
+
+#### Height, normals and displacement
+
+Height to Normal and Height to Distortion use node-level `heightSource`, default `Texture`.
+In Texture mode, connect a **Texture** resource to Height. Channel selects its height component;
+Radius measures bound-source texels, independent of graph-preview size or document Pixel Scale.
+Wrap/Filter control those texture reads. In Value mode, Height is **Float**: connect a noise,
+mask or other scalar branch. The compiler reevaluates that branch at neighboring UVs;
+Radius measures pixels of the current output, including a node preview's output resolution.
+Texture Channel/Wrap/Filter do not apply to Value; upstream sampling nodes keep their own settings.
+UV defaults to the current pixel in both modes. Strength, FlipX/FlipY and the Scharr, Sobel or
+Central Difference derivative remain available. The finite difference is divided by the
+sampling distance, so Radius changes the neighborhood without directly multiplying the slope.
+An upstream branch with fixed coordinates remains constant when reevaluated at another UV.
+
+Height to Normal returns a normalized Float3 normal. Normal Blend combines Base and Detail
+using Reoriented or Whiteout, with Strength controlling Detail, and normalizes its result.
+Output Encoding on Height to Normal and Normal Encoding on Normal Blend select packed RGB
+(`n * 0.5 + 0.5`) or signed XYZ. Flat normals are
+`(0.5,0.5,1)` and `(0,0,1)` respectively. These are raw vector encodings, with no implicit
+sRGB conversion. In the editor, changing Normal Encoding converts literal normal inputs;
+wired inputs must already use the selected encoding.
+
+Height to Distortion keeps the finite-difference gradient's magnitude. Normal to Distortion
+decodes Normal, takes XY without normalization and scales its components by Strength. FlipX
+and FlipY reverse the corresponding displacement components. Both return **displacement**,
+not UV: connect Out to `VectorDisplacement.Displacement`, match its Signed RG/Packed RG mode,
+then connect `VectorDisplacement.Out` to a sampling node's UV. Signed neutral is `(0,0)`;
+packed neutral is `(0.5,0.5)`. Packing does not clamp strong or negative displacements to `0..1`.
+For a slope `(dx,dy)`, Height to Normal builds `normalize(-dx,-dy,1)`, while Height to Distortion
+uses `(dx,dy)`. Routing a generated normal through Normal to Distortion therefore changes both
+the sign and magnitude compared with direct height displacement. Reverse Strength or FlipX/Y
+when the desired distortion direction requires it.
 
 ## HLSL functions
 
@@ -517,14 +845,14 @@ Input-only `float2`/`half2` arguments named exactly `UV` or `uv` default to the 
 The port's **Custom / UV** control can select a numeric value instead. Other input names have
 ordinary defaults; there is no automatic UV binding for `out` or `inout` arguments.
 
-The bundled **Colors/Contrast** example is
+The bundled **Color/Adjustments/Contrast** node is
 [`src/ShaderGraphFunctions.hlsl`](https://github.com/DCFApixels/WhimTex/blob/main/src/ShaderGraphFunctions.hlsl),
 at `Packages/com.dcfapixels.whimtex/src/ShaderGraphFunctions.hlsl` in the project. It changes
 contrast around 0.5, retains alpha and leaves HDR values unclamped. Its declaration follows
 this pattern (the library also declares its own preset identity):
 
 ```hlsl
-// @whimtex-node Colors/Contrast
+// @whimtex-node Color/Adjustments/Contrast
 // @param color(float4) Color = (1, 1, 1, 1)
 // @param float Amount = 1 [0 .. 4]
 // @param color(float4) Result
@@ -687,15 +1015,20 @@ IDs stay in the document model. Reads check the block size and SHA-256 before re
 ordinary strings, with a 32 MiB limit on the unique shared text table. Older readers fail on
 the unknown tag instead of interpreting the block reference as source code.
 
-### Create from an output connection
+### Create from a connection
 
-Dropping a new wire from an output on empty graph space opens the existing search window,
+Dropping a new wire from an input or output on empty graph space opens the existing search window,
 filtered with the same numeric/color conversions and resource-type rules as ordinary wiring.
 The menu opens to the right of the cursor with its left edge anchored there; native screen-edge fitting still applies.
-Every compatible input gets a separate `NodeName(InputName)` entry. Creation and connection
+Dragging from an output lists compatible inputs as `NodeName(InputName)`; dragging from an input
+lists compatible outputs as `NodeName(OutputName)`, including declared parameters and HLSL functions.
+Each compatible port is a separate choice. Input searches respect downstream Reroute constraints
+and exclude disabled outputs. Creation and connection
 share one document Undo operation; cancellation changes no model data. The node uses the drop
 position in graph coordinates. Selection revalidates the source and current type, graph identity,
-editability and capacity limits. Output, Parameter and Reroute are excluded from this creation
+editability and capacity limits. Choosing a source for an occupied input replaces its old connection
+in the same Undo operation; cancelling keeps it. Parameter choices create a node using the existing
+parameter, without duplicating its declaration. Output and Reroute are excluded from this creation
 menu; the existing Output remains unique and Reroute still inserts into an existing connection.
 
 ### Reroute storage and compilation
@@ -742,16 +1075,26 @@ to Output. Put it in the request's `operations` array:
 
 For an existing layer, use `op:"set"`, its `layer` ID or alias, and the same
 `settings.shader.graph` object. The graph is replaced completely, not patched by array index;
-preserve existing parameter/node IDs and include every retained node, parameter and edge.
+preserve existing IDs and include every retained node, parameter, edge, Sub Graph definition,
+function, source and annotation.
 Inspection returns the graph at `settings.shader.graph`. Discovery supplies `shaderDefaults`,
 `shaderNodes`, `shaderValueTypes`, `shaderWrapModes` and `shaderFilterModes`.
 Each node catalog entry includes `category`, exact `inputs` and the existing string-array
-`outputs`. Procedural/UV entries additionally expose `outputTypes`, an output-name-to-type map.
+`outputs`. Nodes with fixed procedural, normal, color, vector or Boolean outputs additionally
+expose `outputTypes`, an output-name-to-type map; dynamic numeric types remain inferred from inputs.
 Nodes with shared mode metadata provide `modeLabel`, `defaultOption` and `modes` entries
 containing `{ option, name }`. Shape marks `dynamicInputs:true`; every Shape mode also contains
 its own `inputs` array, while the entry's top-level inputs describe the default mode.
 Noise and DomainWarp provide `fractalModes` (serialized enum names) and `defaultFractal`.
-Names, categories, mode labels, port sets and procedural output types come from the shared
+Color/normal nodes also expose applicable node-level `settings`: each field maps to
+`{ default, values: [{ value, name }] }`, where `value` is the serialized enum identifier and
+`name` is its UI label. For NormalBlend, NormalToDistortion, NormalStrength and NormalLighting, each normalEncoding value also
+includes `inputs` with that encoding's neutral defaults; top-level inputs use the default encoding.
+Height nodes mark `dynamicInputs:true`; `settings.heightSource.values[]` supplies the input layout
+and `radiusUnits` (SourceTexels or OutputPixels) for each source mode. Sampled filters expose
+`sampledInputs:["In"]`, `outputTypeFromInput:"In"` and `radiusUnits:"OutputPixels"`.
+ColorCurves resource inputs carry `optional:true` and evaluate as identity when disconnected.
+Names, categories, mode labels, port sets, defaults and these fixed output types come from the shared
 node model; descriptions explain units and evaluation. These discovery fields are not extra
 fields to copy into a serialized node.
 

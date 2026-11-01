@@ -320,6 +320,25 @@ namespace DCFApixels.WhimTex
             appliedSource.StartsWith(ShaderFXSourceBuilder.ViewportWrapperMarker + ShaderFXEntryPoint.WrapperMarker +
                 ShaderFXEntryPoint.PixelLocalMarker, StringComparison.Ordinal);
 
+        [NonSerialized] private string contextDependencySource;
+        [NonSerialized] private ShaderContextDependencies contextDependencies;
+        private ShaderContextDependencies ContextDependencies
+        {
+            get
+            {
+                if (IsUnavailable) return ShaderContextDependencies.None;
+                if (!ReferenceEquals(contextDependencySource, appliedSource))
+                {
+                    contextDependencySource = appliedSource;
+                    contextDependencies = ShaderContextUsage.ReadMarker(appliedSource);
+                }
+                return contextDependencies;
+            }
+        }
+        /// <summary>Conservative dependencies of the applied, usable shader, including its libraries.</summary>
+        public bool UsesTime => (ContextDependencies & ShaderContextDependencies.Time) != 0;
+        public bool UsesInstanceIndex => (ContextDependencies & ShaderContextDependencies.InstanceIndex) != 0;
+
         internal string AppliedLocalityStatus => IsUnavailable || appliedSource == null ? null :
             IsPixelLocal ? "pixelLocal" : appliedSource.StartsWith(ShaderFXSourceBuilder.ViewportWrapperMarker +
                 ShaderFXEntryPoint.WrapperMarker + ShaderFXEntryPoint.UnverifiedMarker, StringComparison.Ordinal) ? "unverified" : "spatial";
@@ -694,6 +713,7 @@ namespace DCFApixels.WhimTex
                 1f / context.activeDocument.width, 1f / context.activeDocument.height));
             material.SetFloat("_RenderScale", context.scaleMultiplier);
             material.SetFloat("_PixelScale", context.pixelScale);
+            context.shaderContext.Bind(material);
             if (document.RenderingViewport)
                 ShaderTextureView.ForContext(null, context).BindMetadata(material, ShaderTextureView.MainMapId, ShaderTextureView.MainSizeId);
             else

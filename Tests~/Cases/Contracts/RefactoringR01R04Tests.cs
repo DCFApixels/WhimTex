@@ -34,7 +34,7 @@ public static class RefactoringR01R04Tests
         {
             object state = Activator.CreateInstance(stateType, true);
             maskField.SetValue(state, input);
-            var panel = (VisualElement)Activator.CreateInstance(panelType, Any, null, new[] { state }, null);
+            var panel = (VisualElement)Activator.CreateInstance(panelType, Any, null, new object[] { state, true, false }, null);
             try
             {
                 int mask = input & 15;

@@ -15,7 +15,7 @@ namespace DCFApixels.WhimTex
         internal const string ColorLibraryInclude = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc\"\n";
         private const int MaximumCharacters = 2 * 1024 * 1024;
         internal const string RegionalColorMarker = "// WhimTex regional color input v1\n";
-        internal const string ViewportWrapperMarker = "// WhimTex viewport wrapper v3\n";
+        internal const string ViewportWrapperMarker = "// WhimTex viewport wrapper v4\n";
         // Conservative capability inference over expanded user code, including helpers.
         // Any explicit sampling, derivative or unresolved compiler input needs a full frame.
         private static readonly Regex SpatialInput = new Regex(
@@ -171,7 +171,7 @@ float4 SampleInput(float2 uv, float tiling)
             var names = new List<string>(found);
             names.Sort(StringComparer.Ordinal);
             return "Warning: time-dependent Unity inputs (" + string.Join(", ", names) +
-                ") are allowed, but WhimTex does not control their updates. Results may differ between Canvas, thumbnails and export. Result caching is disabled; use an explicit parameter for predictable behavior.";
+                ") are allowed, but WhimTex does not control their updates. Results may differ between Canvas, thumbnails and export. Result caching is disabled; use _WhimTexTime or an explicit parameter for predictable behavior.";
         }
 
         internal static string Build(ShaderFX effect, string assetPath) => BuildCore(effect, assetPath, null, null, out _);
@@ -195,6 +195,7 @@ float4 SampleInput(float2 uv, float tiling)
             HashSet<string> names = new HashSet<string>(StringComparer.Ordinal)
             {
                 "_MainTex", "_MainTex_TexelSize", "_InputSize", "_CanvasSize", "_RenderScale", "_PixelScale",
+                "_WhimTexTime", "_WhimTexInstanceIndex",
                 "ApplyFX", "SampleInput", "SampleTexture", "PinnedUV", "WhimTexTexture", "LayerToLocal", "SpriteFXFragment", "vert_img", "v2f_img"
             };
             BuildParameterDeclarations(effect.Parameters, properties, uniforms, names);
@@ -207,6 +208,7 @@ float4 SampleInput(float2 uv, float tiling)
             if (Regex.IsMatch(expanded, @"\b_WhimTex_[A-Za-z0-9_]*"))
                 throw new InvalidOperationException("The _WhimTex_ prefix is reserved for generated shader data.");
             string contractSource = ExpandExportIncludes(expanded, assetPath, true);
+            var contextDependencies = ShaderContextUsage.Analyze(contractSource);
             var entry = ShaderFXEntryPoint.ParseWithSource(contractSource, assetPath);
             reasons = entry.reasons;
             // Expand before lowering so helper functions in project/package includes receive
@@ -223,7 +225,7 @@ float4 SampleInput(float2 uv, float tiling)
                 catch (IOException) { } // Unknown dependencies keep the complete-input path.
                 catch (InvalidOperationException) { }
             }
-            return ViewportWrapperMarker + entry.Marker + "Shader \"Hidden/WhimTex/ShaderFX/" + effect.ShaderKey + (preview == null ? "" : "/Preview/" + preview.previewFunction) + "\"\n{\n" +
+            return ViewportWrapperMarker + entry.Marker + ShaderContextUsage.Marker(contextDependencies) + "Shader \"Hidden/WhimTex/ShaderFX/" + effect.ShaderKey + (preview == null ? "" : "/Preview/" + preview.previewFunction) + "\"\n{\n" +
                 (regional ? RegionalColorMarker : "") +
                 "Properties {\n_MainTex (\"Input\", 2D) = \"white\" {}\n[HideInInspector] _WhimTex_Viewport (\"Viewport\", Vector) = (0,0,1,1)\n" +
                 "[HideInInspector] _WhimTex_InputFilter (\"Input Filter\", Float) = 1\n" + properties + "}\n" +
@@ -231,7 +233,7 @@ float4 SampleInput(float2 uv, float tiling)
                 "#pragma vertex vert_img\n#pragma fragment SpriteFXFragment\n#pragma target 3.5\n" +
                 (preview == null ? "" : "#define WHIMTEX_PREVIEW 1\nfloat4 _WhimTex_PreviewRange;\n") +
                 "#include \"UnityCG.cginc\"\n" + NoiseLibraryInclude + ColorLibraryInclude + "sampler2D _MainTex;\nfloat4 _MainTex_TexelSize;\n" +
-                "float4 _WhimTex_Viewport;\nfloat4 _InputSize;\nfloat4 _CanvasSize;\nfloat _RenderScale;\nfloat _PixelScale;\n" + uniforms +
+                "float4 _WhimTex_Viewport;\nfloat4 _InputSize;\nfloat4 _CanvasSize;\nfloat _RenderScale;\nfloat _PixelScale;\n" + ShaderEvaluationContext.Declarations + uniforms +
                 "float4 _WhimTex_LayerToLocalRow0, _WhimTex_LayerToLocalRow1, _WhimTex_LayerToLocalRow2;\n" +
                 "float2 LayerToLocal(float2 uv) { float3 p = float3(uv, 1); float w = dot(_WhimTex_LayerToLocalRow2.xyz, p); w = abs(w) < 1e-8 ? (w < 0 ? -1e-8 : 1e-8) : w; return float2(dot(_WhimTex_LayerToLocalRow0.xyz, p), dot(_WhimTex_LayerToLocalRow1.xyz, p)) / w; }\n" +
                 ShaderFXTextureViews.Types + textureViews +

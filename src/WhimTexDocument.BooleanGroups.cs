@@ -48,7 +48,8 @@ namespace DCFApixels.WhimTex
                 }
                 if (context.applyFx)
                     group.ApplyFx(ref result, new LayerRenderContext(this, context.input, context.width, context.height,
-                        context.scaleMultiplier, applyTransform: false, transformFxCoordinates: false));
+                        context.scaleMultiplier, applyTransform: false, transformFxCoordinates: false)
+                        .WithShaderContext(context.shaderContext, context.shaderGraphPreview));
                 var output = result; result = null; return output;
             }
             finally

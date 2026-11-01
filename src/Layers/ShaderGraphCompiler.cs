@@ -8,8 +8,12 @@ namespace DCFApixels.WhimTex
     internal sealed class ShaderGraphCompilation
     {
         internal string source;
+        internal ShaderContextDependencies contextDependencies;
+        internal bool usesTime => (contextDependencies & ShaderContextDependencies.Time) != 0;
+        internal bool usesInstanceIndex => (contextDependencies & ShaderContextDependencies.InstanceIndex) != 0;
         internal readonly List<ShaderFXParameter> parameters = new List<ShaderFXParameter>();
         internal readonly Dictionary<string, ShaderGraphValueType> outputTypes = new Dictionary<string, ShaderGraphValueType>();
+        internal List<ShaderGraphNode> uniformNodes;
     }
 
     internal enum ShaderGraphMessageLevel { Info, Warning, Error }
@@ -34,10 +38,11 @@ namespace DCFApixels.WhimTex
         readonly ShaderGraphCompilation result = new ShaderGraphCompilation();
         readonly Dictionary<string, ShaderGraphNode> nodes = new Dictionary<string, ShaderGraphNode>();
         readonly Dictionary<string, ShaderGraphEdge> incoming = new Dictionary<string, ShaderGraphEdge>();
-        readonly Dictionary<string, Value> values = new Dictionary<string, Value>();
+        Dictionary<string, Value> values = new Dictionary<string, Value>();
         readonly HashSet<string> visiting = new HashSet<string>();
         readonly HashSet<string> declarations = new HashSet<string>();
-        readonly StringBuilder uniforms = new StringBuilder(), body = new StringBuilder();
+        readonly StringBuilder uniforms = new StringBuilder();
+        StringBuilder body = new StringBuilder();
         readonly HashSet<string> usedParameters = new HashSet<string>();
         readonly struct Value
         {
@@ -52,6 +57,16 @@ namespace DCFApixels.WhimTex
         {
             var compiler = new ShaderGraphCompiler(graph);
             compiler.ValidateStructure();
+            if (graph.subGraphs.Count != 0 || graph.activeSubGraph != null)
+            {
+                var expansion = ShaderGraphExpansion.Expand(graph);
+                if (previewNode != null && expansion.rootOutputs.TryGetValue(previewNode + ":" + previewPort, out var endpoint))
+                { previewNode = endpoint.node; previewPort = endpoint.port; }
+                graph = expansion.graph;
+                compiler = new ShaderGraphCompiler(graph);
+                compiler.ValidateStructure(false, true);
+            }
+            compiler.result.uniformNodes = graph.nodes;
             var output = graph.nodes.Find(n => n.kind == ShaderGraphNodeKind.Output);
             Value color = previewNode == null ? compiler.Input(output, "RGBA") : compiler.Emit(previewNode, previewPort);
             if (ShaderGraphNodes.Components(color.type) == 0) throw new ShaderGraphException(previewNode, "Resource outputs cannot be displayed as an image.");
@@ -74,19 +89,20 @@ namespace DCFApixels.WhimTex
                 ShaderFXSourceBuilder.NoiseLibraryInclude + ShaderFXSourceBuilder.ColorLibraryInclude +
                 "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"\n" +
                 "static float _HdrBlend = 1.0;\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"\n" +
-                "float4 _GraphImageSize;\n" + compiler.uniforms + ShaderFXTextureViews.Types + textureViews + Helpers + (compiler.usesProcedural ? ProceduralHelpers : "") + compiler.functionCode +
+                "float4 _GraphImageSize;\n" + ShaderEvaluationContext.Declarations + compiler.uniforms + ShaderFXTextureViews.Types + textureViews + Helpers + (compiler.usesProcedural ? ProceduralHelpers : "") + (compiler.usesColor ? ColorHelpers : "") + (compiler.usesExtended ? ExtendedHelpers : "") + compiler.functionCode + compiler.samplingCode +
                 "float4 GraphFragment(v2f_img input) : SV_Target {\nfloat2 graphUV = ProceduralSourceUv(input.uv);\n" +
                 compiler.body + "}\nENDCG\n} } Fallback Off }";
             return compiler.result;
         }
 
-        void ValidateStructure()
+        void ValidateStructure(bool includeDefinitions = true, bool expanded = false)
         {
             if (graph == null || graph.version != 1 || graph.nodes == null || graph.edges == null || graph.parameters == null)
                 throw new FormatException("Unsupported or incomplete Shader graph.");
-            if (graph.nodes.Count > 512 || graph.edges.Count > 4096 || graph.parameters.Count > 256)
+            if (graph.nodes.Count > (expanded ? 4096 : 512) || graph.edges.Count > (expanded ? 32768 : 4096) || graph.parameters.Count > 256)
                 throw new FormatException("Shader graph exceeds the supported limits (512 nodes, 4096 edges, 256 parameters).");
-            ValidateFunctions();
+            if (includeDefinitions || expanded) ValidateFunctions();
+            if (includeDefinitions) ValidateSubGraphs();
             var ids = new HashSet<string>();
             foreach (var p in graph.parameters)
             {
@@ -102,7 +118,10 @@ namespace DCFApixels.WhimTex
             {
                 if (n == null || !Identifier(n.id) || !nodes.TryAdd(n.id, n) || !Enum.IsDefined(typeof(ShaderGraphNodeKind), n.kind))
                     throw new FormatException("Invalid or duplicate Shader node.");
-                if (n.kind == ShaderGraphNodeKind.Output) outputs++;
+                if (n.kind == (graph.activeSubGraph == null ? ShaderGraphNodeKind.Output : ShaderGraphNodeKind.SubGraphOutput)) outputs++;
+                if (n.kind == ShaderGraphNodeKind.SubGraph && n.subGraph == null) Error(n, "Sub Graph definition is missing.");
+                if (n.kind == ShaderGraphNodeKind.SubGraphInput && n.interfacePort == null) Error(n, "Sub Graph input declaration is missing.");
+                if (!expanded && (graph.activeSubGraph == null && ShaderGraphNodes.IsSubGraphInterface(n.kind) || graph.activeSubGraph != null && n.kind == ShaderGraphNodeKind.Output)) Error(n, "Output or interface node belongs to a different graph scope.");
                 if (n.kind == ShaderGraphNodeKind.CustomFunction && n.function == null) Error(n, "Function definition is missing.");
                 if (n.inputs == null || !ProjectiveMatrix.Finite(n.position.x) || !ProjectiveMatrix.Finite(n.position.y))
                     Error(n, "Invalid node data.");
@@ -119,13 +138,15 @@ namespace DCFApixels.WhimTex
                     n.kind == ShaderGraphNodeKind.Noise && n.fractal > ShaderGraphFractal.PingPong ||
                     n.kind == ShaderGraphNodeKind.DomainWarp && n.fractal != ShaderGraphFractal.None && n.fractal < ShaderGraphFractal.Progressive) Error(n, "Unknown fractal mode.");
                 if (n.kind == ShaderGraphNodeKind.Blend && !Enum.IsDefined(typeof(BlendMode), n.option)) Error(n, "Unknown blend mode.");
+                ValidateColorOptions(n);
                 var inputNames = new HashSet<string>();
                 foreach (var input in n.inputs)
                 {
                     if (input == null || !inputNames.Add(input.port ?? "") || !Finite(input.value) || !Enum.IsDefined(typeof(ShaderGraphValueType), input.type) || ShaderGraphNodes.Components(input.type) == 0 || !HasInput(n, input.port)) Error(n, "Invalid or duplicate input value.");
                 }
             }
-            if (outputs != 1) throw new FormatException("A Shader graph requires exactly one Output node.");
+            if (outputs != 1) throw new FormatException(graph.activeSubGraph == null
+                ? "A Shader graph requires exactly one Output node." : "A Sub Graph definition requires exactly one SubGraphOutput node.");
             foreach (var edge in graph.edges)
             {
                 if (edge == null || !nodes.TryGetValue(edge.outputNode ?? "", out var from) || !nodes.TryGetValue(edge.inputNode ?? "", out var to) ||
@@ -178,7 +199,7 @@ namespace DCFApixels.WhimTex
         static bool HasInput(ShaderGraphNode n, string name) { foreach (var p in ShaderGraphNodes.Inputs(n)) if (p.name == name) return true; return false; }
         static void Error(ShaderGraphNode n, string message) => throw new ShaderGraphException(n.id, ShaderGraphNodes.Name(n.kind) + ": " + message);
         static string Type(ShaderGraphValueType t) => t == ShaderGraphValueType.Boolean ? "bool" : "float" + (t == ShaderGraphValueType.Float ? "" : ShaderGraphNodes.Components(t).ToString());
-        internal static string InputName(ShaderGraphNode n, string port) => "_GraphI" + n.id + "_" + port;
+        internal static string InputName(ShaderGraphNode n, string port) => "_GraphI" + (n.uniformNodeId ?? n.id) + "_" + (n.uniformPort ?? port);
         static string Swizzle(ShaderGraphValueType type) => type switch { ShaderGraphValueType.Float2 => ".xy", ShaderGraphValueType.Float3 => ".xyz", ShaderGraphValueType.Float4 or ShaderGraphValueType.Color => "", _ => ".x" };
         Value Uniform(string name, ShaderGraphValueType type)
         {
@@ -247,6 +268,7 @@ namespace DCFApixels.WhimTex
             switch (n.kind)
             {
                 case ShaderGraphNodeKind.CustomFunction: return EmitFunction(n, port);
+                case ShaderGraphNodeKind.SubGraphInput: resultValue = Input(n, "In"); break;
                 case ShaderGraphNodeKind.Reroute:
                     if (!incoming.TryGetValue(n.id + ":In", out var source)) { Error(n, "Connect the In input."); return default; }
                     resultValue = Emit(source.outputNode, source.outputPort);
@@ -270,7 +292,11 @@ namespace DCFApixels.WhimTex
                     }); break;
                 case ShaderGraphNodeKind.Swizzle: resultValue = EmitSwizzle(n); break;
                 case ShaderGraphNodeKind.InstanceIndex:
-                case ShaderGraphNodeKind.Time: resultValue = new Value(ShaderGraphValueType.Float, "0.0"); break;
+                    result.contextDependencies |= ShaderContextDependencies.InstanceIndex;
+                    resultValue = new Value(ShaderGraphValueType.Float, "(float)_WhimTexInstanceIndex"); break;
+                case ShaderGraphNodeKind.Time:
+                    result.contextDependencies |= ShaderContextDependencies.Time;
+                    resultValue = new Value(ShaderGraphValueType.Float, "(_WhimTexTime * " + V("Scale").text + ")"); break;
                 case ShaderGraphNodeKind.UV: resultValue = new Value(ShaderGraphValueType.Float2, "graphUV"); break;
                 case ShaderGraphNodeKind.ImageSize: resultValue = new Value(ShaderGraphValueType.Float2, "_GraphImageSize" + (port == "Size" ? ".xy" : ".zw")); break;
                 case ShaderGraphNodeKind.TextureSize: resultValue = new Value(ShaderGraphValueType.Float2, V("Texture").text + "_TexelSize" + (port == "Size" ? ".zw" : ".xy")); break;
@@ -340,7 +366,11 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Wave:
                 case ShaderGraphNodeKind.Ripple: resultValue = EmitProcedural(n, port); break;
                 case ShaderGraphNodeKind.Blend: resultValue = new Value(ShaderGraphValueType.Color, $"GraphBlend({V("Background").text},{V("Foreground").text},{V("Opacity").text},{n.option},{(n.hdr ? 1 : 0)})"); break;
-                default: Error(n, "This node has no value output."); return default;
+                default:
+                    if (ShaderGraphNodes.IsExtended(n.kind)) { resultValue = EmitExtended(n); break; }
+                    if (ShaderGraphNodes.IsFilter(n.kind)) { resultValue = EmitFilter(n); break; }
+                    if (ShaderGraphNodes.TryColorOutputType(n.kind, out _)) { resultValue = EmitColor(n); break; }
+                    Error(n, "This node has no value output."); return default;
             }
             if (ShaderGraphNodes.Components(resultValue.type) > 0)
             {
@@ -388,16 +418,33 @@ namespace DCFApixels.WhimTex
             if (graph == null) return 0;
             Number(graph.version);
             if (graph.parameters != null) foreach (var p in graph.parameters) { if (p == null) { Number(-1); continue; } Add(p.id); Number((int)p.type); Add(p.valueType); }
-            if (graph.nodes != null) foreach (var n in graph.nodes)
+            void AddNodes(List<ShaderGraphNode> nodeList)
+            {
+            if (nodeList != null) foreach (var n in nodeList)
             {
                 if (n == null) { Number(-1); continue; }
-                Add(n.id); Number((int)n.kind); Number((int)n.valueType); Add(n.parameterId); Add(n.functionId); Number(n.option); Number(n.hdr ? 1 : 0); Number((int)n.wrap); Number((int)n.filter);
+                Add(n.id); Number((int)n.kind); Number((int)n.valueType); Add(n.parameterId); Add(n.functionId); Add(n.subGraphId); Number(n.option); Number(n.hdr ? 1 : 0); Number((int)n.wrap); Number((int)n.filter);
                 if (n.kind is ShaderGraphNodeKind.Noise or ShaderGraphNodeKind.DomainWarp) Number((int)n.fractal);
                 if (n.kind == ShaderGraphNodeKind.Constant) Number((int)n.constant);
                 if (n.kind == ShaderGraphNodeKind.Swizzle) Add(n.swizzle);
+                if (n.kind == ShaderGraphNodeKind.ConvertColor) { Number((int)n.inputColorSpace); Number((int)n.outputColorSpace); }
+                if (ShaderGraphNodes.UsesChannel(n.kind)) Number((int)n.channel);
+                if (ShaderGraphNodes.UsesHeightTexture(n.kind)) { Number((int)n.derivative); Number((int)n.heightSource); }
+                if (ShaderGraphNodes.UsesNormalEncoding(n.kind)) Number((int)n.normalEncoding);
                 if (n.inputs != null) foreach (var p in n.inputs) { if (p == null) { Number(-1); continue; } Add(p.port); Number((int)p.type); }
             }
-            if (graph.edges != null) foreach (var e in graph.edges) { if (e == null) { Number(-1); continue; } Add(e.outputNode); Add(e.outputPort); Add(e.inputNode); Add(e.inputPort); }
+            }
+            void AddEdges(List<ShaderGraphEdge> edgeList)
+            { if (edgeList != null) foreach (var e in edgeList) { if (e == null) { Number(-1); continue; } Add(e.outputNode); Add(e.outputPort); Add(e.inputNode); Add(e.inputPort); } }
+            AddNodes(graph.nodes); AddEdges(graph.edges);
+            if (graph.subGraphs != null) foreach (var definition in graph.subGraphs)
+            {
+                if (definition == null) { Number(-1); continue; }
+                Add(definition.id); AddNodes(definition.nodes); AddEdges(definition.edges);
+                void Pins(List<ShaderGraphInterfacePort> pins)
+                { if (pins != null) foreach (var pin in pins) { if (pin == null) { Number(-1); continue; } Add(pin.id); Number((int)pin.type); Number(pin.uvDefault ? 1 : 0); } }
+                Pins(definition.inputs); Pins(definition.outputs);
+            }
             if (graph.functions != null) foreach (var f in graph.functions)
             {
                 if (f == null) { Number(-1); continue; }

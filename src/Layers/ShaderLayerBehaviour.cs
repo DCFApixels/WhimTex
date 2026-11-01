@@ -16,6 +16,8 @@ namespace DCFApixels.WhimTex
         [NonSerialized] string diagnostics;
         internal string Diagnostics => diagnostics ?? "Not compiled yet.";
         internal string GeneratedSource => program?.Source ?? "";
+        public override bool UsesTime => program?.UsesTime == true;
+        public override bool UsesInstanceIndex => program?.UsesInstanceIndex == true;
         internal bool HasCompileError { get; private set; }
         internal string ErrorNodeId { get; private set; }
         internal IReadOnlyList<ShaderGraphMessage> Messages { get; private set; } = Array.Empty<ShaderGraphMessage>();
@@ -92,11 +94,14 @@ namespace DCFApixels.WhimTex
         readonly ShaderParameterBindings bindings = new ShaderParameterBindings();
         readonly List<Uniform> uniforms = new List<Uniform>();
         readonly Dictionary<string, ShaderGraphNode> liveNodes = new Dictionary<string, ShaderGraphNode>();
+        readonly Dictionary<string, ShaderGraphSubGraph> liveNodeDefinitions = new Dictionary<string, ShaderGraphSubGraph>();
         readonly Dictionary<string, ShaderFXParameter> liveParameters = new Dictionary<string, ShaderFXParameter>();
         readonly ulong fingerprint;
         internal readonly Material Material;
         internal IReadOnlyList<ShaderGraphMessage> Messages { get; private set; }
         internal string Source => compilation.source;
+        internal bool UsesTime => compilation.usesTime;
+        internal bool UsesInstanceIndex => compilation.usesInstanceIndex;
         internal IReadOnlyList<ShaderFXParameter> Parameters => compilation.parameters;
         readonly struct Uniform
         {
@@ -110,11 +115,15 @@ namespace DCFApixels.WhimTex
         {
             this.shader = shader; Material = material; this.compilation = compilation;
             fingerprint = ShaderGraphCompiler.CodeFingerprint(graph);
-            foreach (var n in graph.nodes)
+            var added = new HashSet<int>();
+            foreach (var n in compilation.uniformNodes)
             {
                 foreach (var port in ShaderGraphNodes.Inputs(n))
                     if (port.type is not (ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve))
-                        uniforms.Add(new Uniform(Shader.PropertyToID(ShaderGraphCompiler.InputName(n, port.name)), n.id, port.name, n.FindInput(port.name)?.value ?? port.value));
+                    {
+                        int property = Shader.PropertyToID(ShaderGraphCompiler.InputName(n, port.name));
+                        if (added.Add(property)) uniforms.Add(new Uniform(property, n.uniformNodeId ?? n.id, n.uniformPort ?? port.name, n.FindInput(port.name)?.value ?? port.value));
+                    }
             }
         }
         internal static ShaderGraphProgram Create(ShaderGraph graph, string previewNode = null, string previewPort = "Out")
@@ -161,8 +170,11 @@ namespace DCFApixels.WhimTex
         }
         internal void Bind(ShaderGraph graph, in LayerRenderContext context)
         {
-            liveNodes.Clear(); liveParameters.Clear();
+            liveNodes.Clear(); liveNodeDefinitions.Clear(); liveParameters.Clear();
             if (graph?.nodes != null) foreach (var node in graph.nodes) if (node?.id != null) liveNodes[node.id] = node;
+            if (graph?.subGraphs != null) foreach (var definition in graph.subGraphs)
+                if (definition?.nodes != null) foreach (var node in definition.nodes) if (node?.id != null)
+                { liveNodes[node.id] = node; liveNodeDefinitions[node.id] = definition; }
             if (graph?.parameters != null) foreach (var parameter in graph.parameters) if (parameter?.id != null) liveParameters[parameter.id] = parameter;
             var dimensions = new Vector2(context.activeDocument.width, context.activeDocument.height);
             foreach (var declaration in compilation.parameters)
@@ -188,11 +200,27 @@ namespace DCFApixels.WhimTex
                 var uniform = uniforms[i];
                 ShaderGraphNode node = null;
                 if (current) liveNodes.TryGetValue(uniform.node, out node);
-                Vector4 value = node == null ? uniform.fallback : node.FindInput(uniform.port)?.value ?? uniform.fallback;
+                ShaderGraphSubGraph definition = null;
+                if (node?.kind == ShaderGraphNodeKind.SubGraph) definition = graph.FindSubGraph(node.subGraphId);
+                else if (node != null) liveNodeDefinitions.TryGetValue(node.id, out definition);
+                Vector4 value = UniformValue(node, uniform.port, uniform.fallback, definition);
                 Material.SetVector(uniform.property, value);
                 if (current) uniforms[i] = new Uniform(uniform.property, uniform.node, uniform.port, value);
             }
             Material.SetVector("_GraphImageSize", new Vector4(context.width, context.height, 1f / context.width, 1f / context.height));
+            context.shaderContext.Bind(Material);
+        }
+        static Vector4 UniformValue(ShaderGraphNode node, string port, Vector4 fallback, ShaderGraphSubGraph definition)
+        {
+            if (node == null) return fallback;
+            var input = node.FindInput(port);
+            if (input != null) return input.value;
+            if (definition != null)
+            {
+                foreach (var pin in definition.inputs) if (pin.id == port) return pin.value;
+                foreach (var pin in definition.outputs) if (pin.id == port) return pin.value;
+            }
+            return fallback;
         }
         public void Dispose()
         {

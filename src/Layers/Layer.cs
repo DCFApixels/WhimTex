@@ -19,6 +19,8 @@ namespace DCFApixels.WhimTex
         public readonly bool applyTransform;
         public readonly bool applyFx;
         public readonly bool transformFxCoordinates;
+        public readonly ShaderEvaluationContext shaderContext;
+        public readonly bool shaderGraphPreview;
 
         public LayerRenderContext(
             WhimTexDocument activeDocument,
@@ -39,7 +41,17 @@ namespace DCFApixels.WhimTex
             this.applyTransform = applyTransform;
             this.applyFx = applyFx;
             this.transformFxCoordinates = transformFxCoordinates ?? applyTransform;
+            shaderContext = default;
+            shaderGraphPreview = false;
         }
+
+        private LayerRenderContext(in LayerRenderContext context, ShaderEvaluationContext shaderContext, bool preview)
+        { this = context; this.shaderContext = shaderContext; shaderGraphPreview = preview; }
+
+        internal LayerRenderContext WithShaderGraphPreviewTime(float? time) =>
+            new LayerRenderContext(this, new ShaderEvaluationContext(time ?? 0f, shaderContext.InstanceIndex), time.HasValue);
+        internal LayerRenderContext WithShaderContext(ShaderEvaluationContext value, bool preview = false) =>
+            new LayerRenderContext(this, value, preview);
     }
     [Serializable]
     public sealed class Layer
@@ -196,6 +208,23 @@ namespace DCFApixels.WhimTex
         public static explicit operator TargetedLayerBehaviour(Layer value) => (TargetedLayerBehaviour)value?.Behaviour;
 
         public string Id => id;
+
+        /// <summary>Compiled source, active usable FX and enabled group children. Texture references have their own evaluation context.</summary>
+        public bool UsesTime => UsesShaderContext(time: true);
+        public bool UsesInstanceIndex => UsesShaderContext(time: false);
+
+        private bool UsesShaderContext(bool time)
+        {
+            if (time ? Behaviour?.UsesTime == true : Behaviour?.UsesInstanceIndex == true) return true;
+            if (fx != null)
+                foreach (var effect in fx)
+                    if (effect != null && effect.Active && !effect.IsUnavailable &&
+                        (time ? effect.UsesTime : effect.UsesInstanceIndex)) return true;
+            if (IsGroup && children != null)
+                foreach (var child in children)
+                    if (child?.enabled == true && child.UsesShaderContext(time)) return true;
+            return false;
+        }
 
         /// <summary>Checks this layer's active FX only, not child layers or source generation.</summary>
         public bool AreActiveFxPixelLocal()
@@ -530,6 +559,9 @@ namespace DCFApixels.WhimTex
     [Serializable]
     public abstract class LayerBehaviour
     {
+        /// <summary>Context inputs used by this source generator, before its layer FX.</summary>
+        public virtual bool UsesTime => false;
+        public virtual bool UsesInstanceIndex => false;
         [NonSerialized] private Layer owner;
         [SerializeField] private string recoveryId = Guid.NewGuid().ToString("N");
         internal string RecoveryId => recoveryId ??= Guid.NewGuid().ToString("N");

@@ -16,7 +16,14 @@ namespace DCFApixels.WhimTex
         Length, Distance, Dot, Normalize, Compare, Select, TransformUV, Noise, Shape, Blend, Output, Reroute, CustomFunction, Swizzle,
         InstanceIndex, Time,
         Cellular, Random, Checkerboard, Stripes, Grid, Rings, GradientFactor, CombineDistance,
-        PolarCoordinates, Repeat, Mirror, Kaleidoscope, DomainWarp, VectorDisplacement, Twirl, BulgePinch, Wave, Ripple
+        PolarCoordinates, Repeat, Mirror, Kaleidoscope, DomainWarp, VectorDisplacement, Twirl, BulgePinch, Wave, Ripple,
+        Hue, Saturation, Exposure, Lightness, Levels, ColorBalance, Posterize, ConvertColor, Luminance,
+        GradientMap, ColorCurves, ColorMask, HueRange, MixColor, SetAlpha,
+        HeightToNormal, NormalBlend, HeightToDistortion, NormalToDistortion,
+        Sign, Saturate, Modulo, Atan2, Asin, Acos, Exp, Log, Cross, Reflect, Refract, And, Or, Not,
+        NormalEncode, NormalDecode, NormalStrength, NormalLighting, Premultiply, Unpremultiply,
+        Flipbook, TileableNoise, VoronoiEdge, Dither,
+        Blur, Sharpen, EdgeDetection, Dilate, Erode, SubGraph, SubGraphInput, SubGraphOutput
     }
 
     [Serializable]
@@ -39,14 +46,26 @@ namespace DCFApixels.WhimTex
         public string parameterId;
         public int option;
         public ShaderGraphFractal fractal;
+        public ShaderGraphColorSpace inputColorSpace;
+        public ShaderGraphColorSpace outputColorSpace = ShaderGraphColorSpace.SRGB;
+        public ShaderGraphChannel channel;
+        public ShaderGraphDerivative derivative;
+        public ShaderGraphNormalEncoding normalEncoding;
+        public ShaderGraphHeightSource heightSource;
         public bool hdr = true;
         public ShaderGraphWrap wrap;
         public ShaderGraphFilter filter = ShaderGraphFilter.Bilinear;
         public List<ShaderGraphInput> inputs = new List<ShaderGraphInput>();
         public string functionId;
+        public string subGraphId;
         public Vector2 codeSize;
         public bool codeExpanded = true;
         [NonSerialized] internal ShaderGraphFunction function;
+        [NonSerialized] internal ShaderGraphSubGraph subGraph;
+        [NonSerialized] internal ShaderGraphInterfacePort interfacePort;
+        [NonSerialized] internal string uniformNodeId, uniformPort;
+        [NonSerialized] internal bool expandedInterface;
+        internal ShaderGraphNode CopyForCompilation() => (ShaderGraphNode)MemberwiseClone();
 
         public ShaderGraphInput FindInput(string port)
         {
@@ -81,7 +100,7 @@ namespace DCFApixels.WhimTex
     }
 
     [Serializable]
-    public sealed class ShaderGraph
+    public sealed partial class ShaderGraph
     {
         public int version = 1;
         public List<ShaderFXParameter> parameters = new List<ShaderFXParameter>();
@@ -91,6 +110,8 @@ namespace DCFApixels.WhimTex
         public List<ShaderGraphSource> sources = new List<ShaderGraphSource>();
         public List<ShaderGraphNote> notes = new List<ShaderGraphNote>();
         public List<ShaderGraphGroup> groups = new List<ShaderGraphGroup>();
+        public List<ShaderGraphSubGraph> subGraphs = new List<ShaderGraphSubGraph>();
+        [NonSerialized] internal ShaderGraphSubGraph activeSubGraph;
 
         internal void PruneGroups()
         {
@@ -103,13 +124,13 @@ namespace DCFApixels.WhimTex
         public ShaderGraphFunction FindFunction(string id) => functions?.Find(f => f != null && f.id == id);
         internal void BindFunctions()
         {
-            if (nodes != null) foreach (var node in nodes)
-                if (node != null) node.function = node.kind == ShaderGraphNodeKind.CustomFunction ? FindFunction(node.functionId) : null;
+            BindNodeDefinitions(nodes, activeSubGraph);
+            if (subGraphs != null) foreach (var definition in subGraphs) if (definition != null) BindNodeDefinitions(definition.nodes, definition);
         }
         internal void PruneFunctions()
         {
             var used = new HashSet<string>();
-            foreach (var node in nodes) if (node.kind == ShaderGraphNodeKind.CustomFunction) used.Add(node.functionId);
+            foreach (var node in AllNodes()) if (node.kind == ShaderGraphNodeKind.CustomFunction) used.Add(node.functionId);
             functions.RemoveAll(f => f != null && !used.Contains(f.id));
             used.Clear();
             var byId = new Dictionary<string, ShaderGraphSource>();
@@ -171,6 +192,7 @@ namespace DCFApixels.WhimTex
         static Dictionary<ShaderGraphNodeKind, ShaderGraphPort[]> BuildPorts()
         {
             var map = new Dictionary<ShaderGraphNodeKind, ShaderGraphPort[]>();
+            map[ShaderGraphNodeKind.Time] = new[] { P("Scale", ShaderGraphValueType.Float, 1) };
             foreach (var kind in new[] { ShaderGraphNodeKind.Add, ShaderGraphNodeKind.Subtract, ShaderGraphNodeKind.Min, ShaderGraphNodeKind.Max, ShaderGraphNodeKind.Distance, ShaderGraphNodeKind.Dot })
                 map[kind] = new[] { P("A"), P("B") };
             foreach (var kind in new[] { ShaderGraphNodeKind.Multiply, ShaderGraphNodeKind.Divide, ShaderGraphNodeKind.Power })
@@ -196,14 +218,21 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.Swizzle] = new[] { P("In") };
             map[ShaderGraphNodeKind.Combine] = new[] { P("X", ShaderGraphValueType.Float), P("Y", ShaderGraphValueType.Float), P("Z", ShaderGraphValueType.Float), P("W", ShaderGraphValueType.Float, 1) };
             BuildProceduralPorts(map);
+            BuildColorPorts(map);
+            BuildSamplingPorts(map);
+            BuildExtendedPorts(map);
             return map;
         }
         internal static IReadOnlyList<ShaderGraphPort> Inputs(ShaderGraphNode node) => node.kind == ShaderGraphNodeKind.CustomFunction
-            ? node.function?.InputPorts() ?? none : node.kind == ShaderGraphNodeKind.Shape ? ShapeInputs(node) : ports.TryGetValue(node.kind, out var result) ? result : none;
+            ? node.function?.InputPorts() ?? none : SubGraphInputs(node) ?? (node.kind == ShaderGraphNodeKind.Shape ? ShapeInputs(node) :
+            UsesHeightTexture(node.kind) && node.heightSource == ShaderGraphHeightSource.Value ? heightValuePorts :
+            ExtendedInputs(node) ?? NormalInputs(node) ?? (ports.TryGetValue(node.kind, out var result) ? result : none));
         internal static string[] Outputs(ShaderGraphNode node) => node.kind switch
         {
             ShaderGraphNodeKind.Output => Array.Empty<string>(),
             ShaderGraphNodeKind.CustomFunction => node.function?.OutputPorts() ?? Array.Empty<string>(),
+            ShaderGraphNodeKind.SubGraph => node.subGraph?.OutputNames() ?? Array.Empty<string>(),
+            ShaderGraphNodeKind.SubGraphOutput => Array.Empty<string>(),
             ShaderGraphNodeKind.Split => new[] { "X", "Y", "Z", "W" },
             ShaderGraphNodeKind.ImageSize or ShaderGraphNodeKind.TextureSize => new[] { "Size", "Texel" },
             ShaderGraphNodeKind.Cellular => new[] { "F1", "F2", "Cell" },
@@ -214,7 +243,7 @@ namespace DCFApixels.WhimTex
             _ => new[] { "Out" }
         };
         internal static string Name(ShaderGraphNodeKind kind) => kind == ShaderGraphNodeKind.BulgePinch ? "Bulge / Pinch" : UnityEditor.ObjectNames.NicifyVariableName(kind.ToString());
-        internal static string Category(ShaderGraphNodeKind kind) => kind switch
+        internal static string Category(ShaderGraphNodeKind kind) => ExtendedCategory(kind) ?? kind switch
         {
             ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.UV or ShaderGraphNodeKind.ImageSize or
             ShaderGraphNodeKind.InstanceIndex or ShaderGraphNodeKind.Time => "Input",
@@ -225,10 +254,20 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Shape or ShaderGraphNodeKind.CombineDistance => "Procedural/Shape",
             ShaderGraphNodeKind.TransformUV or ShaderGraphNodeKind.PolarCoordinates or ShaderGraphNodeKind.Repeat or ShaderGraphNodeKind.Mirror or ShaderGraphNodeKind.Kaleidoscope => "UV",
             ShaderGraphNodeKind.DomainWarp or ShaderGraphNodeKind.VectorDisplacement or ShaderGraphNodeKind.Twirl or ShaderGraphNodeKind.BulgePinch or ShaderGraphNodeKind.Wave or ShaderGraphNodeKind.Ripple => "UV/Distortion",
-            ShaderGraphNodeKind.Blend => "Color",
+            ShaderGraphNodeKind.Hue or ShaderGraphNodeKind.Saturation or ShaderGraphNodeKind.Exposure or ShaderGraphNodeKind.Lightness or
+            ShaderGraphNodeKind.Levels or ShaderGraphNodeKind.ColorBalance or ShaderGraphNodeKind.Posterize => "Color/Adjustments",
+            ShaderGraphNodeKind.ConvertColor or ShaderGraphNodeKind.Luminance => "Color/Conversion",
+            ShaderGraphNodeKind.GradientMap or ShaderGraphNodeKind.ColorCurves => "Color/Mapping",
+            ShaderGraphNodeKind.ColorMask or ShaderGraphNodeKind.HueRange => "Color/Selection",
+            ShaderGraphNodeKind.MixColor or ShaderGraphNodeKind.Blend => "Color/Mixing",
+            ShaderGraphNodeKind.SetAlpha => "Color/Alpha",
+            ShaderGraphNodeKind.HeightToNormal or ShaderGraphNodeKind.NormalBlend => "Normal",
+            ShaderGraphNodeKind.HeightToDistortion or ShaderGraphNodeKind.NormalToDistortion => "UV/Distortion",
             ShaderGraphNodeKind.Output => "Output",
             ShaderGraphNodeKind.Reroute => "Utility",
             ShaderGraphNodeKind.CustomFunction => "Utility",
+            ShaderGraphNodeKind.SubGraph or ShaderGraphNodeKind.SubGraphInput or ShaderGraphNodeKind.SubGraphOutput => "Sub Graph",
+            ShaderGraphNodeKind.Blur or ShaderGraphNodeKind.Sharpen or ShaderGraphNodeKind.EdgeDetection or ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode => "Filter",
             _ => "Math"
         };
         internal static ShaderGraphNode Create(ShaderGraphNodeKind kind, Vector2 position)

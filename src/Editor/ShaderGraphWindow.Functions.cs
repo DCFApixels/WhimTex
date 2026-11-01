@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
@@ -10,12 +11,18 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class ShaderGraphWindow
     {
-        static void AddFunctionSearchEntries(List<SearchTreeEntry> tree, ShaderGraphValueType? source)
+        static void AddFunctionSearchEntries(List<SearchTreeEntry> tree, ShaderGraphValueType? source, Func<ShaderGraphValueType, bool> acceptsOutput = null)
         {
             var choices = new SortedDictionary<string, object>(StringComparer.Ordinal);
             foreach (var entry in ShaderGraphFunctionCatalog.Entries)
             {
-                if (source.HasValue)
+                if (acceptsOutput != null)
+                {
+                    foreach (string port in entry.definition.OutputPorts())
+                        if (acceptsOutput(entry.definition.OutputType(port)))
+                            choices[entry.menuPath + "(" + port + ")"] = new ConnectedNodeChoice(ShaderGraphNodeKind.CustomFunction, port, entry);
+                }
+                else if (source.HasValue)
                 {
                     foreach (var p in entry.definition.InputPorts())
                         if (Compatible(source.Value, p.type ?? ShaderGraphValueType.Float, !p.type.HasValue))
@@ -96,7 +103,7 @@ namespace DCFApixels.WhimTex
                     var node = graph.FindNode(nodeId);
                     string previous = node.functionId;
                     // A function shared by imported nodes becomes independent when explicitly edited.
-                    if (graph.nodes.Exists(n => n.id != nodeId && n.functionId == previous)) candidate.id = Guid.NewGuid().ToString("N");
+                    if (RootGraph.AllNodes().Any(n => n.id != nodeId && n.functionId == previous)) candidate.id = Guid.NewGuid().ToString("N");
                     else { candidate.id = previous; graph.functions.RemoveAll(f => f.id == previous); }
                     graph.functions.Add(candidate); graph.sources = sources;
                     ShaderGraphNodes.SetFunction(node, candidate);
@@ -143,7 +150,7 @@ namespace DCFApixels.WhimTex
                 Edit("Convert to Custom Function", graph =>
                 {
                     var target = graph.FindNode(nodeId);
-                    if (graph.nodes.Exists(n => n.id != nodeId && n.functionId == target.functionId)) candidate.id = Guid.NewGuid().ToString("N");
+                    if (RootGraph.AllNodes().Any(n => n.id != nodeId && n.functionId == target.functionId)) candidate.id = Guid.NewGuid().ToString("N");
                     else graph.functions.RemoveAll(f => f.id == target.functionId);
                     graph.functions.Add(candidate);
                     target.functionId = candidate.id; target.function = candidate; target.codeExpanded = true;

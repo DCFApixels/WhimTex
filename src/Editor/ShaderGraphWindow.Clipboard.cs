@@ -64,10 +64,11 @@ namespace DCFApixels.WhimTex
                 var ids = new HashSet<string>();
                 foreach (var element in elements)
                     if (element is IGraphItemView view && (element.capabilities & Capabilities.Copiable) != 0 &&
-                        window.Graph.FindNode(view.Id)?.kind != ShaderGraphNodeKind.Output) ids.Add(view.Id);
+                        window.Graph.FindNode(view.Id)?.kind != ShaderGraphNodeKind.Output && !ShaderGraphNodes.IsSubGraphInterface(window.Graph.FindNode(view.Id)?.kind ?? ShaderGraphNodeKind.Output)) ids.Add(view.Id);
                 if (ids.Count == 0) return string.Empty;
                 foreach (var group in window.Graph.groups) if (ids.Contains(group.id))
                     foreach (string id in group.elements) if (window.Graph.FindNode(id)?.kind != ShaderGraphNodeKind.Output) ids.Add(id);
+                ids.RemoveWhere(id => ShaderGraphNodes.IsSubGraphInterface(window.Graph.FindNode(id)?.kind ?? ShaderGraphNodeKind.Output));
                 var fragment = new ShaderGraph();
                 var parameters = new HashSet<string>();
                 foreach (var node in window.Graph.nodes)
@@ -78,6 +79,7 @@ namespace DCFApixels.WhimTex
                     }
                 foreach (var edge in window.Graph.edges)
                     if (ids.Contains(edge.inputNode) && ids.Contains(edge.outputNode)) fragment.edges.Add(edge);
+                CollectSubGraphs(fragment, window.Graph, parameters);
                 foreach (var parameter in window.Graph.parameters)
                     if (parameters.Contains(parameter.id)) fragment.parameters.Add(parameter);
                 foreach (var note in window.Graph.notes) if (ids.Contains(note.id)) fragment.notes.Add(note);
@@ -147,7 +149,7 @@ namespace DCFApixels.WhimTex
                         fragment.nodes.Count > 512 || fragment.edges == null || fragment.edges.Count > 4096 ||
                         fragment.parameters == null || fragment.parameters.Count > 256 || fragment.functions == null || fragment.sources == null)
                         throw new FormatException("The Shader node clipboard is incomplete or no longer available.");
-                    if (fragment.nodes.Exists(n => n == null || n.kind == ShaderGraphNodeKind.Output))
+                    if (fragment.nodes.Exists(n => n == null || n.kind == ShaderGraphNodeKind.Output || ShaderGraphNodes.IsSubGraphInterface(n.kind)))
                         throw new FormatException("Output cannot be pasted; a graph has one Output node.");
 
                     var current = window.Graph;
@@ -157,6 +159,7 @@ namespace DCFApixels.WhimTex
                         nodes = new List<ShaderGraphNode>(current.nodes), edges = new List<ShaderGraphEdge>(current.edges),
                         parameters = new List<ShaderFXParameter>(current.parameters), functions = new List<ShaderGraphFunction>(current.functions),
                         sources = new List<ShaderGraphSource>(current.sources),
+                        subGraphs = new List<ShaderGraphSubGraph>(current.subGraphs), activeSubGraph = current.activeSubGraph,
                         notes = new List<ShaderGraphNote>(current.notes), groups = new List<ShaderGraphGroup>(current.groups)
                     };
                     bool sameDocument = copied.document == UnityObjectID.FromObject(window.document).ToString();
@@ -194,12 +197,18 @@ namespace DCFApixels.WhimTex
                     Vector2 offset = CenterPosition - ClipboardBounds(copied).center;
                     if (!ProjectiveMatrix.Finite(offset.x) || !ProjectiveMatrix.Finite(offset.y))
                         throw new InvalidOperationException("The graph view layout is not ready for paste.");
+                    var definitionIds = ImportSubGraphs(fragment, next, sameGraph, parameterIds);
                     var nodeIds = new Dictionary<string, string>();
                     foreach (var node in fragment.nodes)
                     {
                         if (string.IsNullOrEmpty(node.id) || nodeIds.ContainsKey(node.id)) throw new FormatException("Duplicate or missing Shader clipboard node ID.");
                         string oldId = node.id; node.id = Guid.NewGuid().ToString("N"); nodeIds.Add(oldId, node.id);
                         node.position += offset;
+                        if (node.kind == ShaderGraphNodeKind.SubGraph)
+                        {
+                            if (!definitionIds.TryGetValue(node.subGraphId ?? "", out string definitionId)) throw new FormatException("Shader clipboard Sub Graph is missing.");
+                            node.subGraphId = definitionId;
+                        }
                         if (node.kind == ShaderGraphNodeKind.Parameter)
                         {
                             if (!parameterIds.TryGetValue(node.parameterId ?? "", out var id)) throw new FormatException("Shader clipboard parameter is missing.");
@@ -239,11 +248,22 @@ namespace DCFApixels.WhimTex
                             throw new FormatException("Shader clipboard connection leaves the copied selection.");
                         edge.inputNode = input; edge.outputNode = output; next.edges.Add(edge);
                     }
+                    if (next.activeSubGraph is ShaderGraphSubGraph definition)
+                    {
+                        var candidate = new ShaderGraphSubGraph
+                        {
+                            id = definition.id, name = definition.name, inputs = definition.inputs, outputs = definition.outputs,
+                            nodes = next.nodes, edges = next.edges, notes = next.notes, groups = next.groups
+                        };
+                        int index = next.subGraphs.FindIndex(item => item.id == definition.id);
+                        next.subGraphs[index] = candidate; next.activeSubGraph = candidate;
+                    }
                     next.Validate();
                     window.Edit(operation == "Duplicate" ? "Duplicate Shader Nodes" : "Paste Shader Nodes", graph =>
                     {
                         graph.parameters = next.parameters; graph.nodes = next.nodes; graph.edges = next.edges;
                         graph.functions = next.functions; graph.sources = next.sources;
+                        graph.subGraphs = next.subGraphs;
                         graph.notes = next.notes; graph.groups = next.groups;
                     }, structural: fragment.nodes.Count > 0, rebuild: false, layoutOnly: fragment.nodes.Count == 0);
                     // Native selection state must change in the same Undo group as the paste.

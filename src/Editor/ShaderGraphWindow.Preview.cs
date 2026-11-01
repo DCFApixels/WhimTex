@@ -1,10 +1,25 @@
 using System;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
 {
+    // All graph previews sample the same time within an Editor update.
+    [InitializeOnLoad]
+    internal static class ShaderGraphClock
+    {
+        internal static ulong Frame { get; private set; } = 1;
+        internal static float Seconds { get; private set; } = (float)EditorApplication.timeSinceStartup;
+        static ShaderGraphClock() => EditorApplication.update += Tick;
+        static void Tick()
+        {
+            Seconds = (float)EditorApplication.timeSinceStartup;
+            Frame++;
+        }
+    }
+
     public sealed partial class ShaderGraphWindow
     {
         [Flags]
@@ -191,13 +206,15 @@ namespace DCFApixels.WhimTex
             private readonly string nodeId;
             private string compiledPort;
             private ulong fingerprint;
+            private ulong renderedFrame;
             private bool dirty = true, attempted, disposed;
+            private bool renderError;
             private bool expanded = true;
             internal bool Expanded => expanded;
 
             internal static bool Supports(ShaderGraphWindow window, ShaderGraphNode node)
             {
-                if (node == null || node.kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or
+                if (node == null || ShaderGraphNodes.IsSubGraphInterface(node.kind) || node.kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or
                     ShaderGraphNodeKind.Reroute or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.InstanceIndex or
                     ShaderGraphNodeKind.Time or ShaderGraphNodeKind.ImageSize or
                     ShaderGraphNodeKind.TextureSize or ShaderGraphNodeKind.Split or ShaderGraphNodeKind.Compare) return false;
@@ -213,6 +230,9 @@ namespace DCFApixels.WhimTex
                 userData = nodeId;
                 content = new VisualElement(); Add(content);
                 output = new DropdownField("Output", new List<string> { "Out" }, 0);
+                string DisplayOutput(string port) => ShaderGraphNodes.PortDisplayName(window.Graph?.FindNode(nodeId), port, true);
+                output.formatListItemCallback = DisplayOutput;
+                output.formatSelectedValueCallback = DisplayOutput;
                 output.RegisterValueChangedCallback(_ => dirty = true); content.Add(output);
                 surface = new VisualElement(); surface.AddToClassList("whimtex-shader-graph-node-preview");
                 surface.generateVisualContent += WhimTexGradientWindow.DrawCheckerboard;
@@ -264,10 +284,13 @@ namespace DCFApixels.WhimTex
             }
             internal bool Tick(ulong next, bool allowCompile)
             {
-                if (disposed || !dirty || !CanDisplay()) return false;
+                if (disposed || !CanDisplay()) return false;
+                bool animated = program?.UsesTime == true;
+                if (!dirty && (!animated || renderedFrame == ShaderGraphClock.Frame)) return false;
                 bool compile = !attempted || next != fingerprint || output.value != compiledPort;
                 if (compile && !allowCompile) return false;
                 dirty = false;
+                renderedFrame = ShaderGraphClock.Frame;
                 var current = window.Graph?.FindNode(nodeId);
                 if (current == null) { Release(); return false; }
                 if (ShaderGraphNodes.Components(window.OutputType(current, output.value)) == 0)
@@ -286,7 +309,8 @@ namespace DCFApixels.WhimTex
                     if (program == null) return compile;
                     texture ??= CreateTexture();
                     var context = new LayerRenderContext(window.document, null, Size, Size,
-                        (float)Size / Mathf.Max(window.document.width, window.document.height), applyTransform: false, applyFx: false);
+                        (float)Size / Mathf.Max(window.document.width, window.document.height), applyTransform: false, applyFx: false)
+                        .WithShaderGraphPreviewTime(ShaderGraphClock.Seconds);
                     program.Bind(window.Graph, context);
                     ProceduralUv.Prepare(program.Material, window.Behaviour.Owner, context);
                     using var bindings = window.document.BindShaderTextureLayers(program.Parameters, window.Behaviour.Owner, context, null);
@@ -294,10 +318,13 @@ namespace DCFApixels.WhimTex
                     GL.sRGBWrite = false;
                     Graphics.Blit(null, texture, program.Material, 0);
                     image.image = texture;
-                    SetMessages(program.Messages);
+                    image.MarkDirtyRepaint();
+                    if (compile || renderError) SetMessages(program.Messages);
+                    renderError = false;
                 }
                 catch (Exception error)
                 {
+                    renderError = true;
                     image.image = null;
                     SetMessages((error as ShaderGraphException)?.messages ??
                         new[] { new ShaderGraphMessage(nodeId, error.Message, ShaderGraphMessageLevel.Error) });

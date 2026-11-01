@@ -66,6 +66,8 @@ namespace DCFApixels.WhimTex
             Item(dimensions, Code("LayerToLocal(uv)") + " — convert canvas coordinates to the layer's local space; accepts and returns " + Code("float2") + ".");
 
             var parameters = Section(reference, "Parameters & Helpers");
+            Item(parameters, Code("_WhimTexTime") + " — float seconds for this evaluation. Advances in graph previews, including their FX; ordinary layer rendering and inspector previews use 0.");
+            Item(parameters, Code("_WhimTexInstanceIndex") + " — uint instance index for this evaluation; currently 0. Both inputs are supplied automatically; do not redeclare them or add them through " + Code("@param") + ".");
             Item(parameters, "Declare controls with " + Code("// @param") + "; do not redeclare their generated uniforms. A " + Code("texture2D") +
                 " parameter generates a " + Code("WhimTexTexture") + " and " + Code("_Name_TexelSize") + " (1/width, 1/height, width, height).");
             Item(parameters, Code("// @param rgba toggle(float4) _Channels = (1, 1, 1, 0)") +

@@ -35,7 +35,12 @@ To use another image in the calculation, declare a **Texture** parameter and rea
 ## Mathematical constants and Swizzle
 
 **Input/Instance Index** and **Input/Time** each provide a Float output named **Out**.
-Both currently return `0`, with no controls or preview.
+Neither has its own preview. **Instance Index** returns `0`.
+**Time** supplies Editor time in seconds to dependent node previews and the result in the graph window.
+Its Float input **Scale** defaults to `1`: **Out = time × Scale**. Set it manually or connect another node.
+The layer itself, Canvas, thumbnails and export always use **Time = 0**.
+HLSL nodes and Custom Function can read `_WhimTexTime` and `_WhimTexInstanceIndex` directly.
+FX on the Shader layer share its animated time inside the graph's result preview.
 
 **Constant** outputs a number selected from **PI**, **TAU** (2π), **PHI** (golden ratio),
 **E** and **SQRT2** (√2). PI is selected initially.
@@ -47,6 +52,27 @@ The mask length sets the output width. Commit with Enter or by leaving the field
 The input uses the larger width required by its source and mask: `y` needs Float2, `z` Float3,
 and `w` Float4. Unconnected inputs show that many editable components. Connected scalars repeat
 across components; shorter vectors gain zeros. `_` always inserts zero.
+
+## More math and pattern controls
+
+**Sign** separates negative, zero and positive values; **Saturate** limits a value to `0..1`.
+Use **Modulo** for repeated numeric intervals, **Atan2** for an angle from Y and X, and
+**Asin**/**Acos** for inverse trigonometry. These angles are radians. Asin/Acos need values
+within `-1..1`; **Log** needs positive values. **Exp** and Log use the natural base.
+**Cross** returns a 3D perpendicular vector. **Reflect** and **Refract** change an incident
+direction around a normal; supply unit vectors and use Eta for the refraction ratio.
+Combine Boolean conditions with **And**, **Or** and **Not** before Select.
+
+For repeating noise, use **Tileable Noise**: Period sets the repeat length in UV, Cells sets
+the detail count within that period, and Offset shifts the pattern. **Voronoi Edge** produces
+distance to cell boundaries; pass it through a threshold to draw cell-border lines.
+**Flipbook** selects a cell of an atlas with Columns, Rows and Frame. Connect its Out to
+Sample Texture.UV. Frames wrap, including negative values; choose bottom-to-top or top-to-bottom
+row order without flipping the image inside each frame.
+
+**Dither** reduces color levels with a Bayer 2 × 2, 4 × 4 or 8 × 8 pattern. Levels sets the
+number of levels, and PixelSize sets the pattern scale in output pixels. Alpha is preserved;
+HDR and negative colors are not clipped automatically.
 
 ## Notes and groups
 
@@ -74,7 +100,9 @@ Errors that concern the whole graph remain in the graph's message area.
 Select nodes and use **Ctrl+C / Ctrl+V** to copy and paste, or **Ctrl+D** to duplicate
 (**Cmd** on macOS). The same commands are available in the graph's context menu.
 Settings, relative positions and connections between selected nodes are retained, including
-Reroutes and HLSL functions. Output is not copied. Paste and Duplicate support **Undo/Redo**.
+Reroutes and HLSL functions. Sub Graph copies carry their nested definitions; copies in the same
+graph reuse the existing definitions, while another graph receives its own copies.
+Output and Sub Graph interface nodes are not copied. Paste and Duplicate support **Undo/Redo**.
 Copies appear at the center of the current graph view. Centering uses the combined rectangle
 of nodes, notes and group frames, including their sizes. Repeated paste stays centered.
 
@@ -106,7 +134,11 @@ The node clipboard also survives recompilation and remains valid until the Edito
 | **Shape**, **Combine Distance** | Create shape masks and combine their signed distances. |
 | **Polar Coordinates**, **Repeat**, **Mirror**, **Kaleidoscope** | Remap or fold coordinates to repeat and reflect motifs. |
 | **Domain Warp**, **Vector Displacement**, **Twirl**, **Bulge / Pinch**, **Wave**, **Ripple** | Distort coordinates before generating a pattern or sampling an image. |
-| **Blend** | Composite two colors with a blend mode and alpha. Lerp is ordinary numeric interpolation. |
+| **Hue**, **Saturation**, **Exposure**, **Lightness**, **Contrast**, **Levels**, **Color Balance**, **Posterize** | Adjust color, brightness and tonal steps. |
+| **Convert Color**, **Luminance**, **Gradient Map**, **Color Curves** | Convert color components or remap an image's tones. |
+| **Color Mask**, **Hue Range**, **Mix Color**, **Set Alpha** | Select colors, mix them and control transparency. |
+| **Height to Normal**, **Normal Blend**, **Height to Distortion**, **Normal to Distortion** | Turn a texture or height calculation into normals or displacement and combine normal detail. |
+| **Blend** | Composite two colors with a blend mode and alpha. Mix Color interpolates colors; Lerp interpolates numeric components. |
 | **Output** | Produce the final RGBA image. |
 
 For colored noise, connect **UV → Noise → Sample Gradient → Output** and supply a
@@ -124,11 +156,13 @@ only for Ping Pong. Hover a port to see why it is inactive. Inactive ports, incl
 Split components, cannot accept new wires. Existing values and wires remain when the port stays
 present, and become editable again when its mode applies.
 
-Drag a wire from an output port onto empty graph space to open the compatible-node search.
+Drag a wire from an input or output port onto empty graph space to open the compatible-node search.
 The menu opens to the right of the cursor with its left edge aligned to it.
-Each entry names the node and input, for example `Multiply(A)` and `Multiply(B)`. Selecting
-an entry creates the node at the drop position and connects that input in one Undo operation.
-Cancel the search to leave the graph unchanged.
+Dragging from an output lists compatible inputs, such as `Multiply(A)` and `Multiply(B)`.
+Dragging from an input lists compatible outputs, such as `Cellular(F1)` and `Cellular(F2)`,
+including matching parameters and HLSL functions. Selecting creates and connects the node at the
+drop position in one Undo operation. An occupied input receives the new connection instead of
+the old one. Cancel the search to leave the graph unchanged.
 
 ## Build procedural patterns and distortions
 
@@ -148,8 +182,9 @@ Lacunarity changes the frequency between octaves, and Gain controls their relati
 **Domain Warp** offers **None**, **Progressive** and **Independent** fractals; None uses one octave.
 **Cellular** provides nonnegative **F1** and **F2** distances using the selected Metric,
 and a repeatable **Cell** value in `0..1`. Cell is not a unique identifier; Cellular has no Out port.
-**Random** starts with constant Coordinates and a uniform preview. Connect **UV** to Coordinates
-for variation across pixels, or **Repeat.Cell** for one random value per repeated cell.
+**Random** uses the current pixel's **UV** for unconnected Coordinates by default. Choose **Custom**
+for constant coordinates, or connect **Repeat.Cell** for one random value per repeated cell.
+Previously saved constant coordinates remain Custom; choose UV to switch them.
 
 **Shape** offers Ellipse, Rectangle, Rounded Rectangle, Polygon, Star, Capsule and Line Segment.
 Its **Out** is a smooth mask; **Distance** is negative inside and positive outside the shape.
@@ -163,7 +198,7 @@ For a colored gradient, connect **Gradient Factor.Out → Sample Gradient.T** an
 parameter to **Sample Gradient.Gradient**; connect the sampled color to **Output**.
 Checkerboard, Stripes, Grid, Rings and shape masks have smoothed edges.
 **Stripes**, **Rings**, **Wave** and **Ripple** have a separate **Phase** input to shift the
-pattern in cycles. Drive it with a parameter; **Time** currently returns zero.
+pattern in cycles. Drive it with a parameter, or connect **Time** to animate it in the graph preview.
 Stripes offers Square, Triangle and Sine profiles; Width affects Square only.
 Angle, Rotation and Direction use degrees; Twirl's Strength is also an angle in degrees.
 
@@ -181,6 +216,125 @@ Positive **Bulge / Pinch** Strength magnifies the sampled image; negative values
 **Polar Coordinates** maps to angle in turns and twice the distance from Center, or back to UV.
 **Mirror** folds selected axes onto the positive side of Center; **Kaleidoscope** repeats radial sectors.
 See the [procedural node contract](../ShaderLayer.md#procedural-and-uv-nodes) for exact ports and modes.
+
+## Adjust color and transparency
+
+To recolor a texture, connect **Sample Texture → Hue → Saturation → Output**. Find the
+adjustments under **Color/Adjustments** in Create Node. Start with **Degrees = 0** and
+**Amount = 1**, then change the hue angle or reduce saturation toward zero for grayscale.
+These adjustments preserve the image's transparency.
+
+| Controls | Visible effect |
+| --- | --- |
+| **Exposure / Stops** | Brightens or darkens linear RGB; +1 doubles it, −1 halves it. |
+| **Lightness / Amount** | Adjusts lightness from −100 to 100; 0 leaves it unchanged. |
+| **Contrast / Amount** | Changes contrast around 0.5; 1 leaves it unchanged. |
+| **Levels / Input Range, Gamma, Output Range** | Sets black/white points and midtones. Luminance adjusts brightness together; RGB adjusts channels separately. Disable Clamp to keep values beyond Input Range. |
+| **Color Balance / Shadows, Midtones, Highlights** | Tints different tonal regions. Range controls adjust their reach; Preserve Luminance retains brightness. |
+| **Posterize / Levels** | Reduces smooth shading to steps; at least two levels are used. |
+
+For a palette-driven result, add **Color/Mapping/Gradient Map**. Connect the image to Color
+and a **Gradient** parameter to Gradient, then choose Channel. Luminance maps dark-to-bright
+tones across the gradient. The default Preserve mode keeps the image's alpha; Multiply combines
+it with gradient alpha, and Replace uses gradient alpha alone.
+
+Use **Color Curves** to reshape tones with Curve parameters. Master affects RGB together or
+luminance, then Red, Green and Blue refine individual channels. Leave a curve disconnected for
+no change. Alpha changes only if its own curve is connected. Identity curves retain values above
+white and below black.
+
+To select a color, add **Color/Selection/Color Mask**, choose Key Color and adjust Tolerance
+and Softness. Chroma compares color difference, RGB includes brightness differences, and
+Perceptual measures Oklab difference. **Hue Range** selects a hue interval in degrees; `(330,30)`
+crosses red. Feather softens its edges and Saturation Range excludes or fades near-gray colors.
+Both nodes output a mask with white for selected colors. They do not apply the image's alpha.
+Connect the mask to **Color/Alpha/Set Alpha.Alpha**: Replace uses it directly; Multiply also
+keeps the source transparency. Set Alpha leaves RGB unchanged.
+
+**Color/Mixing/Mix Color** blends A and B by T, with Perceptual selected initially. Linear RGB
+and sRGB give different intermediate colors. T = 0 gives A and T = 1 gives B; values outside
+that range extrapolate. Alpha is interpolated too. Use **Blend** for alpha compositing.
+
+Color connections perform no automatic color-space conversion. **Color/Conversion/Convert Color**
+explicitly converts Linear RGB, sRGB, HSV, HSL or Oklab; convert back to Linear RGB before ordinary
+color processing or Output. HSV and HSL use sRGB-encoded RGB with hue measured in turns.
+An unconnected Convert Color input shows a color picker for Linear RGB and raw Float4 fields for other spaces.
+HSV loses negative RGB but keeps HDR brightness; HSL limits values to `0..1` and loses both
+HDR and negative RGB. Linear RGB/sRGB/Oklab retain them. **Luminance** extracts a brightness value from linear RGB.
+Color adjustments generally retain HDR and negative values. Levels has its explicit Clamp switch;
+Set Alpha does not clamp transparency. Use Clamp where needed and choose the desired color range
+in the layer's Rendering settings.
+
+## Build normals and displacement
+
+For a normal map, add **Normal/Height to Normal**. Keep **Source: Texture** to connect
+a Texture parameter directly to Height and choose its Channel. Radius measures source texture
+texels in this mode; Wrap and Filter control sampling at edges.
+Choose **Source: Value** to connect a noise, mask or other scalar height calculation.
+The node reads that calculation at neighboring coordinates, with Radius measured in output pixels.
+This also works on **Height to Distortion**. Adjust Strength for relief and Radius for the
+sampling distance. Both sources support Scharr, Sobel and Central Difference derivatives;
+Flip X and Flip Y reverse the slope direction. A branch with fixed coordinates has no varying height.
+
+**Packed RGB** produces a flat normal of `(0.5,0.5,1)` and is convenient for a visible normal map.
+**Signed XYZ** produces `(0,0,1)`. Match **Output Encoding** on Height to Normal to
+**Normal Encoding** on connected normal nodes; the graph does not apply color conversion to these vectors.
+Add **Normal Blend** to combine Base and Detail using Reoriented or Whiteout, and adjust Strength
+for the detail. Its output is normalized and uses the selected encoding.
+
+For image distortion, use **UV/Distortion/Height to Distortion** with a height texture, or
+**Normal to Distortion** with a normal vector. Connect its output to
+**Vector Displacement.Displacement**, choose the same Signed RG or Packed RG mode on both nodes,
+then connect **Vector Displacement.Out → Sample Texture.UV**. These two source nodes produce
+offsets; they do not supply the final UV. Their vectors retain strength instead of being normalized.
+Normal to Distortion scales X and Y separately. Signed neutral is `(0,0)`; packed neutral is `(0.5,0.5)`.
+Height to Normal points opposite the height slope, while Height to Distortion follows it.
+If distortion from a normal goes in the wrong direction, reverse Strength or use Flip X/Flip Y;
+its amount also differs because the normal was normalized.
+See the [color and normal node contract](../ShaderLayer.md#color-and-normal-nodes) for exact inputs and modes.
+
+**Normal Encode** converts signed normals to packed RGB; **Normal Decode** converts them back.
+They change representation without normalizing. **Normal Strength** flattens detail at 0,
+preserves a unit normal at 1 and reverses XY with negative values.
+To shade the result, connect it to **Normal Lighting.Normal**, match Normal Encoding, and choose
+the surface Color, LightDirection, LightColor, Intensity and Ambient. Raise **SpecularIntensity**
+from its default 0 to add a highlight; SpecularColor tints it, Roughness widens it, and
+SpecularOnly shows only that contribution. Surface alpha is preserved.
+
+**Premultiply** multiplies RGB by alpha; **Unpremultiply** restores straight RGB for nonzero
+alpha and returns black RGB at zero alpha. Alpha itself stays unchanged. The layer's Output
+expects straight color, so use Unpremultiply after calculations that produce premultiplied color.
+
+## Filter a calculation
+
+Connect a pattern or **Sample Texture.Out** to **Blur.In**, then connect Blur.Out to Output
+to soften the image. **Sharpen** restores local contrast, **Edge Detection** extracts changes,
+and **Dilate**/**Erode** expand or shrink bright areas. For colored inputs, each channel and alpha
+is processed separately; connect a scalar mask when you want one shared contour.
+
+Radius sets the sampling distance in output pixels. Blur, Sharpen, Dilate and Erode offer
+**3 × 3**, **5 × 5** and **9 × 9** kernels. More samples retain more detail at the same radius;
+a large radius with a small kernel can miss narrow features. Edge Detection uses a fixed
+3 × 3 Sobel kernel. Strength adjusts Sharpen and Edge Detection. Results can exceed `0..1`;
+use Clamp or Saturate if you need a bounded mask.
+
+Filters read the connected calculation at neighboring coordinates. Keep the upstream pattern
+dependent on UV; fixed coordinates produce a constant result. Chaining large kernels can slow
+previews. Radius follows the current output resolution, so the small node preview can look
+softer than the full layer result at the same setting.
+
+## Reuse a Sub Graph
+
+Select a calculation and choose **Convert Selection to Sub Graph** from the context menu.
+Its external connections become the new node's inputs and outputs. Double-click the node to
+edit the calculation, adjust **Inputs** and **Outputs** in the sidebar, then use **Back to Graph**.
+Choose the definition from **Sub Graphs** in the creation menu to reuse it.
+
+Editing a definition updates every instance in this Shader graph. Rename interface pins to
+describe their purpose; their existing connections use stable identities. Definitions stay with
+the document. Sub Graphs can contain other definitions, but cannot call themselves directly or
+indirectly. Use ordinary parameters for controls shared by all instances, and interface inputs
+for values that should differ between instances.
 
 ## Move and delete nodes
 
@@ -257,6 +411,10 @@ A **Parameter** node is a compact single row with the parameter name and an outp
 an **Out** label, an internal preview or a dropdown. To choose another declared parameter, use
 the node's context menu; adjust the parameter's value in the layer's **Properties**.
 
+Port labels show the type in parentheses: `1`–`4` for numeric widths, `T2` for textures,
+`G` for gradients, `C` for curves, `col` for colors and `bool` for Boolean values.
+For example, `UV(2)` and `Color(col)`. The suffix follows the current port type.
+
 Numeric and **Color** ports are circles, **Boolean** ports are diamonds, and **Texture**,
 **Gradient** and **Curve** ports are squares.
 
@@ -324,7 +482,7 @@ appears as **Result**; output arguments keep their names, and an inout argument 
 Inputs named **UV** or **uv** with two numeric components use current-pixel coordinates by
 default; switch **Custom / UV** to enter a fixed value.
 
-Marked HLSL libraries appear by category in node search. **Colors/Contrast** is provided in
+Marked HLSL libraries appear by category in node search. **Color/Adjustments/Contrast** is provided in
 `Packages/com.dcfapixels.whimtex/src/ShaderGraphFunctions.hlsl`; Amount 1 keeps the color,
 and other amounts change contrast while retaining alpha and HDR values. **Refresh HLSL**
 rescans the catalog. **File…** on a Custom Function also lets you choose an `.hlsl` file and
@@ -353,6 +511,5 @@ that has not been assigned a parameter. If it cannot compile, the editor reports
 keeps the last working result when available. That image does not represent the unfinished
 changes. The document saves the editable graph, so you can complete it later.
 
-This first version does not include subgraphs or Blur. Time currently returns zero.
 Use the layer's normal FX stack for additional processing. For port types and execution rules,
 see the [Shader layer contract](../ShaderLayer.md).

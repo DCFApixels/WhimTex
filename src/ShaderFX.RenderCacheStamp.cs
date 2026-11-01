@@ -171,6 +171,8 @@ namespace DCFApixels.WhimTex
         private static void RemoveGraphEditorData(JObject graph)
         {
             graph.Remove(nameof(ShaderGraph.notes)); graph.Remove(nameof(ShaderGraph.groups));
+            if (graph[nameof(ShaderGraph.subGraphs)] is JArray definitions)
+                foreach (var definition in definitions) if (definition is JObject nested) RemoveGraphEditorData(nested);
             if (graph["nodes"] is JArray nodes) foreach (var node in nodes)
                 if (node is JObject data) data.Remove(nameof(ShaderGraphNode.position));
         }

@@ -111,7 +111,7 @@ namespace DCFApixels.WhimTex
             foreach (var figure in result.shapes) figure.CopyAppearanceFrom(style);
             return result.RenderWithOwner(new LayerRenderContext(context.activeDocument, context.input,
                 context.width, context.height, context.scaleMultiplier, context.applyTransform, context.applyFx,
-                transformFxCoordinates: false), Owner);
+                transformFxCoordinates: false).WithShaderContext(context.shaderContext, context.shaderGraphPreview), Owner);
         }
 
         private readonly struct GeometryPart

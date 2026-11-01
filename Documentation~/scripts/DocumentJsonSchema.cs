@@ -78,7 +78,21 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 var properties = new Dictionary<string, object>();
                 definitions[name] = D(("type", "object"), ("additionalProperties", false), ("properties", properties));
                 if (type == typeof(ShaderGraph))
-                    ((Dictionary<string, object>)definitions[name])["description"] = "Shader-layer fragment graph, version 1. Parameters retain their control declarations and stable IDs; node parameterId refers to one of those IDs. Edges connect named ports by graph-local node ID. HDR values are retained. Arrays replace the complete corresponding graph data.";
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Shader-layer fragment graph, version 1. Parameters retain their control declarations and stable IDs. Parameter.parameterId refers to a root parameter; SubGraphInput.parameterId refers to an input interface ID. Sub Graph instances reference the embedded subGraphs table and use stable interface IDs as port keys. Definitions share root parameters/functions/sources; nesting is limited to 16, recursion is forbidden, and compilation expands at most 4096 nodes. HDR values are retained. Arrays replace the complete corresponding graph data.";
+                if (type == typeof(ShaderGraphSubGraph))
+                {
+                    var definition = (Dictionary<string, object>)definitions[name];
+                    definition["description"] = "Embedded reusable definition: id, name, inputs, outputs, nodes, edges, notes and groups. Contains exactly one SubGraphOutput, with input port keys from outputs[].id. SubGraphInput nodes reference inputs[].id through parameterId and expose Out. Node IDs must be unique across the root and all definitions. No separate parameter/function/source tables or external dependency.";
+                    definition["required"] = new[] { "nodes", "outputs" };
+                }
+                if (type == typeof(ShaderGraphInterfacePort))
+                {
+                    var definition = (Dictionary<string, object>)definitions[name];
+                    definition["description"] = "Typed Sub Graph interface pin. id is the stable wiring key, name is a display label, value is the unconnected default. uvDefault is valid only for Float2; resource types need a resource connection. IDs are unique across the definition's input and output pins.";
+                    definition["anyOf"] = new[] {
+                        D(("properties", D(("uvDefault", D(("const", false)))))),
+                        D(("required", new[] { "type" }), ("properties", D(("type", D(("const", "Float2")))))) };
+                }
                 if (type == typeof(ShaderLayerBehaviour))
                     ((Dictionary<string, object>)definitions[name])["description"] = "Procedural Shader layer. Its graph is independent of the document layer hierarchy. Output is RGBA, followed by the usual layer transform, FX and composition.";
                 if (type == typeof(GradientLayerBehaviour)) ((Dictionary<string, object>)definitions[name])["required"] = new[] { "gradientType" };
@@ -99,9 +113,9 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                     if (!(type == typeof(WhimTexDocument) && f.Name == "layers") && !(type == typeof(DrawingLayerBehaviour) && f.Name == "pixels"))
                         properties[f.Name] = type == typeof(ShaderGraph) && f.Name == "version"
                             ? D(("const", 1)) :
-                            type == typeof(ShaderGraph) && f.Name == "nodes"
+                            (type == typeof(ShaderGraph) || type == typeof(ShaderGraphSubGraph)) && f.Name == "nodes"
                             ? D(("type", "array"), ("maxItems", 512), ("items", Schema(typeof(ShaderGraphNode)))) :
-                            type == typeof(ShaderGraph) && (f.Name == "notes" || f.Name == "groups")
+                            (type == typeof(ShaderGraph) || type == typeof(ShaderGraphSubGraph)) && (f.Name == "notes" || f.Name == "groups")
                             ? D(("type", "array"), ("default", Array.Empty<object>()), ("maxItems", 512), ("items", Schema(f.FieldType.GetGenericArguments()[0])),
                                 ("description", "Editor annotations only; excluded from shader/render fingerprints. IDs are unique across nodes, notes and groups. Groups contain node/note IDs in elements; one group per element, no nesting.")) :
                             (type == typeof(ShaderGraphNote) || type == typeof(ShaderGraphGroup)) && f.Name == "id"
@@ -117,8 +131,18 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                                 ("description", "HSV hue rotation in degrees, applied to the native note background, outlines and text palette. Saturation, value, alpha and non-color styling stay unchanged. Retained across note theme changes. Zero uses the unmodified native colors.")) :
                             type == typeof(ShaderGraphNote) && f.Name == "size"
                             ? D(("type", "array"), ("minItems", 2), ("maxItems", 2), ("items", D(("type", "number"), ("exclusiveMinimum", 0))), ("default", new[] { 200, 160 })) :
-                            type == typeof(ShaderGraph) && f.Name == "edges"
+                            (type == typeof(ShaderGraph) || type == typeof(ShaderGraphSubGraph)) && f.Name == "edges"
                             ? D(("type", "array"), ("maxItems", 4096), ("items", Schema(typeof(ShaderGraphEdge)))) :
+                            type == typeof(ShaderGraph) && f.Name == "subGraphs"
+                            ? D(("type", "array"), ("default", Array.Empty<object>()), ("maxItems", 128), ("items", Schema(typeof(ShaderGraphSubGraph)))) :
+                            type == typeof(ShaderGraphSubGraph) && (f.Name == "inputs" || f.Name == "outputs")
+                            ? D(("type", "array"), ("minItems", f.Name == "outputs" ? 1 : 0), ("maxItems", 64), ("items", Schema(typeof(ShaderGraphInterfacePort)))) :
+                            (type == typeof(ShaderGraphSubGraph) || type == typeof(ShaderGraphInterfacePort)) && f.Name == "id"
+                            ? D(("type", "string"), ("pattern", "^[A-Za-z0-9_]{1,64}$")) :
+                            (type == typeof(ShaderGraphSubGraph) || type == typeof(ShaderGraphInterfacePort)) && f.Name == "name"
+                            ? D(("type", "string"), ("pattern", "\\S")) :
+                            type == typeof(ShaderGraphInterfacePort) && f.Name == "uvDefault"
+                            ? D(("type", "boolean"), ("default", false), ("description", "Use current evaluation UV when unconnected. Valid only with type Float2.")) :
                             type == typeof(ShaderGraph) && f.Name == "parameters"
                             ? D(("type", "array"), ("maxItems", 256), ("items", Schema(typeof(ShaderFXParameter)))) :
                             type == typeof(ShaderGraph) && f.Name == "sources"
@@ -130,12 +154,35 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                             type == typeof(ShaderGraphFunction) && f.Name == "hasDraftPorts"
                             ? D(("type", "boolean"), ("default", false),
                                 ("description", "Marks a pending port draft, including an intentionally empty draftPorts list. A nonempty draftPorts also implies a draft. An empty/null draftPorts without this flag uses the applied ports, including after Unity domain reload or JsonUtility copying.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "subGraphId"
+                            ? D(("type", new[] { "string", "null" }), ("description", "SubGraph node reference to graph.subGraphs[].id. Ports are stable interface IDs from that definition, not pin display names.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "parameterId"
+                            ? D(("type", new[] { "string", "null" }), ("description", "Parameter: root graph.parameters[].id. SubGraphInput: the enclosing definition's inputs[].id; output port is Out. Interface nodes cannot be created in the root graph.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "heightSource"
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphHeightSource))), ("default", "Texture"),
+                                ("description", "HeightToNormal/HeightToDistortion: Texture requires a Height resource, source-texel Radius and channel/wrap/filter; Value accepts Float Height and reevaluates its branch at neighboring UVs with output-pixel Radius. Both retain derivative, Strength and FlipX/FlipY.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "option"
+                            ? D(("type", "integer"), ("default", 0),
+                                ("description", "Zero-based node mode; use discovery modes for kind-specific values. Blur/Sharpen/Dilate/Erode: 0=3x3, 1=5x5, 2=9x9; EdgeDetection has a fixed 3x3 Sobel kernel. Flipbook: 0=Bottom to Top, 1=Top to Bottom. Dither: 0=Bayer 4x4, 1=Bayer 2x2, 2=Bayer 8x8.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "constant"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphConstant))), ("default", "PI"),
                                 ("description", "Constant node selection. Emits a Float HLSL literal; arbitrary values use parameters or unconnected inputs.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "fractal"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphFractal))), ("default", "None"),
                                 ("description", "Noise accepts None, FBm, Ridged or PingPong. DomainWarp accepts None, Progressive or Independent. Octaves, Lacunarity, Gain and PingPongStrength are numeric input ports, not additional mode fields.")) :
+                            type == typeof(ShaderGraphNode) && (f.Name == "inputColorSpace" || f.Name == "outputColorSpace")
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphColorSpace))),
+                                ("default", f.Name == "inputColorSpace" ? "LinearRGB" : "SRGB"),
+                                ("description", "ConvertColor's explicit source/destination space. HSV/HSL use sRGB-encoded RGB and hue in turns. HSV excludes negative RGB but preserves HDR Value; HSL is SDR (0..1). LinearRGB, SRGB and Oklab retain signed/HDR values. Alpha is unchanged.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "channel"
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphChannel))), ("default", "Luminance"),
+                                ("description", "GradientMap source channel, or HeightToNormal/HeightToDistortion channel when heightSource is Texture. Ignored for Value. Luminance uses linear RGB weights, without color conversion.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "derivative"
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphDerivative))), ("default", "Scharr"),
+                                ("description", "Height node finite-difference stencil. Radius uses bound-source texels for heightSource Texture or output pixels for Value; gradient magnitude is retained before normal encoding.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "normalEncoding"
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphNormalEncoding))), ("default", "PackedRGB"),
+                                ("description", "HeightToNormal output; NormalBlend/NormalStrength input/output; NormalToDistortion/NormalLighting input encoding. PackedRGB decodes as 2*x-1; SignedXYZ is unchanged. NormalToDistortion never normalizes XY. Unconnected defaults follow the selected encoding. NormalEncode/NormalDecode have fixed directions and do not use this setting.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "swizzle"
                             ? D(("type", new[] { "string", "null" }), ("default", "xxxx"),
                                 ("description", "Swizzle node mask: 1–4 xyzw/rgba letters (case-insensitive) or _ for zero. Output width is mask length. Input width is max(source width, highest mask component); connected scalars repeat and shorter vectors gain zeros. Unconnected values expose inferred components directly. Invalid masks may be retained as uncompiled drafts.")) :

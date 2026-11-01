@@ -35,7 +35,12 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 ## 数学常量与 Swizzle
 
 **Input/Instance Index** 和 **Input/Time** 各提供一个名为 **Out** 的 Float 输出。
-目前两者都返回 `0`，没有设置控件或预览。
+两者都没有自身预览。**Instance Index** 返回 `0`。
+**Time** 将编辑器运行时间（秒）传给相关节点的预览及图窗口中的结果预览。
+Float 输入 **Scale** 默认为 `1`：**Out = 时间 × Scale**。可以手动输入数值或连接其他节点。
+图层本身、Canvas、缩略图和导出始终按 **Time = 0** 计算。
+HLSL 节点和 Custom Function 可直接读取 `_WhimTexTime` 与 `_WhimTexInstanceIndex`。
+Shader 图层的 FX 在图结果预览中使用相同的动画时间。
 
 **Constant** 输出所选数字：**PI**、**TAU**（2π）、**PHI**（黄金比例）、**E** 或 **SQRT2**（√2），默认选择 PI。
 
@@ -44,6 +49,22 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 表达式长度决定输出分量数。按 Enter 或离开字段后应用修改。
 输入宽度取来源宽度和表达式所需宽度的最大值：`y` 需要 Float2，`z` 需要 Float3，`w` 需要 Float4。
 未连接的输入显示相应数量的可编辑分量。连接的标量会重复到各分量，较短向量以零补齐；`_` 始终插入零。
+
+## 更多数学与图案控制
+
+**Sign** 区分负值、零和正值；**Saturate** 将数值限制在 `0..1`。**Modulo** 用于重复数值
+区间，**Atan2** 根据 Y 和 X 计算角度，**Asin** 和 **Acos** 执行反三角运算。这些角度
+使用弧度。Asin/Acos 的输入须在 `-1..1` 内；**Log** 需要正值。**Exp** 和 Log 使用自然底数。
+**Cross** 计算三维垂直向量。**Reflect** 和 **Refract** 根据法线反射或折射入射方向；
+请提供单位向量，通过 Eta 设置折射率比。在 Select 前用 **And**、**Or** 和 **Not** 组合布尔条件。
+
+重复噪声使用 **Tileable Noise**：Period 设置 UV 中的重复周期，Cells 设置周期内的单元数，
+Offset 移动图案。**Voronoi Edge** 输出到单元边界的距离，经过阈值处理即可画出边界线。
+**Flipbook** 根据 Columns、Rows 和 Frame 选择图集单元，将 Out 连接到 Sample Texture.UV。
+帧号循环，包括负值；行顺序可从下到上或从上到下，单帧内的图像方向保持不变。
+
+**Dither** 用 Bayer 2 × 2、4 × 4 或 8 × 8 图案减少颜色级数。Levels 设置级数，PixelSize
+以输出像素设置图案大小。Alpha 保持不变；HDR 和负颜色值不会自动裁剪。
 
 ## 便签与分组
 
@@ -67,7 +88,8 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 选择节点后，使用 **Ctrl+C / Ctrl+V** 复制和粘贴，或 **Ctrl+D** 直接创建副本
 （macOS 使用 **Cmd**）。节点图的右键菜单也提供这些命令。
 副本保留设置、相对位置和所选节点之间的连接，包括 Reroute 和 HLSL 函数。
-Output 不会被复制。粘贴和创建副本支持 **Undo/Redo**。
+Sub Graph 会携带嵌套定义；在同一节点图中复用原定义，其他节点图则获得独立副本。
+Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支持 **Undo/Redo**。
 副本位于当前节点图视图的中心。居中使用节点、便笺和分组框的整体边界矩形，并计入其尺寸。
 重复粘贴仍然保持居中，不会逐次偏移。
 
@@ -98,7 +120,11 @@ Output 不会被复制。粘贴和创建副本支持 **Undo/Redo**。
 | **Shape**、**Combine Distance** | 创建形状遮罩并组合有符号距离。 |
 | **Polar Coordinates**、**Repeat**、**Mirror**、**Kaleidoscope** | 变换或折叠坐标，让图案重复或镜像。 |
 | **Domain Warp**、**Vector Displacement**、**Twirl**、**Bulge / Pinch**、**Wave**、**Ripple** | 在生成图案或采样图像前扭曲坐标。 |
-| **Blend** | 按混合模式与 Alpha 合成两个颜色。Lerp 仅进行普通数值插值。 |
+| **Hue**、**Saturation**、**Exposure**、**Lightness**、**Contrast**、**Levels**、**Color Balance**、**Posterize** | 调整颜色、亮度与色阶数量。 |
+| **Convert Color**、**Luminance**、**Gradient Map**、**Color Curves** | 转换颜色分量或重新映射图像色调。 |
+| **Color Mask**、**Hue Range**、**Mix Color**、**Set Alpha** | 选择颜色、混合颜色并控制透明度。 |
+| **Height to Normal**、**Normal Blend**、**Height to Distortion**、**Normal to Distortion** | 将纹理或高度计算转为法线或位移，并叠加法线细节。 |
+| **Blend** | 按混合模式与 Alpha 合成颜色。Mix Color 对颜色插值，Lerp 对数值分量插值。 |
 | **Output** | 输出最终 RGBA 图像。 |
 
 要创建彩色噪声，连接 **UV → Noise → Sample Gradient → Output**，并向 Sample Gradient
@@ -114,9 +140,11 @@ Octaves、Lacunarity 和 Gain 不可用；PingPongStrength 仅在 Ping Pong 模�
 悬停端口可查看原因。禁用的端口（包括 Split 中不存在的分量）不能建立新连接。
 只要端口仍存在，其数值和已有连线都会保留；切换到适用模式后即可继续编辑。
 
-从输出端口拖出连线并放到图中的空白处，即可搜索兼容节点。菜单在光标右侧打开，左边缘与光标对齐。每个选项都标明节点和具体输入，
-例如 `Multiply(A)` 与 `Multiply(B)`。选择后会在放下位置创建节点并连接指定输入，
-一次 Undo 即可撤销这两个操作。取消搜索不会改变图。
+从输入或输出端口拖出连线并放到图中的空白处，即可搜索兼容节点。菜单在光标右侧打开，左边缘与光标对齐。
+从输出拖动时，列出兼容输入，例如 `Multiply(A)` 与 `Multiply(B)`；从输入拖动时，列出兼容输出，
+例如 `Cellular(F1)` 与 `Cellular(F2)`，也包括匹配的参数和 HLSL 函数。
+选择后会在放下位置创建节点并连接指定端口；已连接的输入会用新连线替换旧连线。
+一次 Undo 即可撤销创建和连接操作。取消搜索不会改变图。
 
 ## 创建程序化图案与扭曲
 
@@ -135,8 +163,8 @@ Lacunarity 控制各倍频层之间的频率变化，Gain 控制它们的相对�
 **Domain Warp** 提供 **None**、**Progressive** 和 **Independent** 分形模式；None 仅使用一层噪声。
 **Cellular** 按所选 Metric 输出非负的 **F1**、**F2** 距离，以及 `0..1` 内可重复的 **Cell** 值。
 Cell 不是唯一标识符；Cellular 没有 Out 端口。
-**Random** 的 Coordinates 默认为常量，因此预览均匀。将 **UV** 接到 Coordinates 可让数值随
-像素变化；连接 **Repeat.Cell** 则让每个重复单元使用一个随机值。
+**Random** 未连接的 Coordinates 默认使用当前像素的 **UV**。选择 **Custom** 可设置常量坐标；
+连接 **Repeat.Cell** 则让每个重复单元使用一个随机值。已保存的常量坐标保留为 Custom，可切换到 UV。
 
 **Shape** 提供 Ellipse、Rectangle、Rounded Rectangle、Polygon、Star、Capsule 和 Line Segment。
 **Out** 是平滑遮罩；**Distance** 在形状内部为负，外部为正。
@@ -150,7 +178,7 @@ Feather 柔化遮罩边缘。Capsule 使用 Center、Size 和 Rotation；Line Se
 连接到 **Sample Gradient.Gradient**，再将采样颜色连接到 **Output**。
 Checkerboard、Stripes、Grid、Rings 和形状遮罩的边缘均经过平滑处理。
 **Stripes**、**Rings**、**Wave** 和 **Ripple** 提供独立的 **Phase** 输入，以周期为单位移动图案。
-可以用参数控制 Phase；**Time** 目前返回零。
+可以用参数控制 Phase，或连接 **Time** 来查看图预览中的动画。
 Stripes 提供 Square、Triangle 和 Sine 波形，Width 仅影响 Square。
 Angle、Rotation、Direction 和 Twirl 的 Strength 均以度为单位。
 
@@ -167,6 +195,113 @@ Angle、Rotation、Direction 和 Twirl 的 Strength 均以度为单位。
 **Polar Coordinates** 可将坐标转换为以圈数表示的角度和距 Center 的两倍距离，也可转换回 UV。
 **Mirror** 将所选轴折叠到 Center 的正方向一侧；**Kaleidoscope** 重复径向扇区。
 准确的端口与模式见[程序化节点契约](../ShaderLayer.md#procedural-and-uv-nodes)。
+
+## 调整颜色与透明度
+
+要改变纹理颜色，连接 **Sample Texture → Hue → Saturation → Output**。
+这些调整节点位于 Create Node 的 **Color/Adjustments** 分类。先保留 **Degrees = 0**
+和 **Amount = 1**，再调整色相角度，或将饱和度降至零以获得灰度图像。
+这些调整会保留输入颜色的透明度。
+
+| 控件 | 图像变化 |
+| --- | --- |
+| **Exposure / Stops** | 调亮或调暗线性 RGB；+1 将其加倍，−1 将其减半。 |
+| **Lightness / Amount** | 在 −100 到 100 之间调整明度；0 保持原值。 |
+| **Contrast / Amount** | 围绕 0.5 调整对比度；1 保持原色。 |
+| **Levels / Input Range, Gamma, Output Range** | 设置黑白点和中间调。Luminance 整体调整亮度，RGB 分别调整通道。关闭 Clamp 可保留超出 Input Range 的数值。 |
+| **Color Balance / Shadows, Midtones, Highlights** | 为暗部、中间调和亮部调色。Range 控制各区域的范围；Preserve Luminance 保留亮度。 |
+| **Posterize / Levels** | 将平滑过渡变为阶梯，至少使用两个级别。 |
+
+要用渐变重新着色，添加 **Color/Mapping/Gradient Map**，将图像连接到 Color，
+将 **Gradient** 参数连接到 Gradient，再选择 Channel。Luminance 将暗到亮的色调映射到渐变。
+默认 Preserve 模式保留图像 Alpha；Multiply 将它与渐变 Alpha 相乘；Replace 仅使用渐变 Alpha。
+
+**Color Curves** 使用 Curve 参数调整色调。Master 先调整整体 RGB 或亮度，
+Red、Green 和 Blue 再调整各通道。不连接某条曲线就不改变对应值。
+只有连接 Alpha 曲线才会改变透明度。恒等曲线可保留高于白色和低于黑色的数值。
+
+要选择颜色，添加 **Color/Selection/Color Mask**，设置 Key Color，并调整 Tolerance
+和 Softness。Chroma 比较色度，RGB 也考虑亮度差异，Perceptual 比较 Oklab 差异。
+**Hue Range** 按度数选择色相区间，例如 `(330,30)` 会跨过红色。Feather 柔化边缘，
+Saturation Range 排除或淡化接近灰色的区域。两个节点均输出遮罩，白色表示选中；
+图像 Alpha 不会影响遮罩。将它连接到 **Color/Alpha/Set Alpha.Alpha**：Replace 直接使用遮罩，
+Multiply 同时保留源图透明度。Set Alpha 不改变 RGB。
+
+**Color/Mixing/Mix Color** 按 T 混合 A 和 B，默认选择 Perceptual。Linear RGB 和 sRGB
+会产生不同的中间颜色。T = 0 得到 A，T = 1 得到 B，超出范围则进行外推。
+Alpha 也会插值。需要按 Alpha 合成时，使用 **Blend**。
+
+颜色端口的连线不会自动转换颜色空间。**Color/Conversion/Convert Color** 可显式转换
+Linear RGB、sRGB、HSV、HSL 和 Oklab；在普通颜色处理或 Output 前，应先转回 Linear RGB。
+未连接的输入在 Linear RGB 模式下显示颜色选择器，其他空间则显示原始 Float4 数值字段。
+HSV 和 HSL 基于 sRGB 编码的 RGB，色相以圈数表示。HSV 会丢失负 RGB，但保留 HDR 亮度；
+HSL 限制在 `0..1`，会丢失 HDR 和负 RGB。Linear RGB/sRGB/Oklab 则可保留这些值。
+**Luminance** 从线性 RGB 提取亮度。颜色调整通常保留 HDR 和负值；Levels 提供显式的
+Clamp 开关，Set Alpha 不限制透明度。需要限制范围时添加 Clamp，并在图层 Rendering
+中选择所需的颜色范围。
+
+## 创建法线与位移
+
+要生成法线贴图，添加 **Normal/Height to Normal**。使用默认的 **Source: Texture**，
+将 Texture 参数连接到 Height，再选择 Channel。此时 Radius 以源纹理的纹素为单位；
+Wrap 和 Filter 控制边缘采样。
+选择 **Source: Value**，即可连接噪声、遮罩或其他标量高度计算。节点会在相邻坐标
+重新计算该分支，此时 Radius 以输出像素为单位。**Height to Distortion** 也支持这两种来源。
+Strength 调整凹凸强度，Radius 调整采样距离。两种来源均支持 Scharr、Sobel 和
+Central Difference；Flip X 和 Flip Y 反转对应的倾斜方向。使用固定坐标的分支会产生恒定高度。
+
+**Packed RGB** 的平坦法线为 `(0.5,0.5,1)`，适合显示为法线贴图；**Signed XYZ** 则为
+`(0,0,1)`。Height to Normal 的 **Output Encoding** 应与后续节点的 **Normal Encoding** 一致；
+节点图不会对这些向量进行颜色转换。
+**Normal Blend** 通过 Reoriented 或 Whiteout 合并 Base 和 Detail，Strength 控制细节强度。
+输出经过归一化，并使用选定的编码。
+
+要扭曲图像，使用 **UV/Distortion/Height to Distortion** 读取高度纹理，或用
+**Normal to Distortion** 读取法线向量。将其输出连接到 **Vector Displacement.Displacement**，
+在两个节点中选择相同的 Signed RG 或 Packed RG，再连接
+**Vector Displacement.Out → Sample Texture.UV**。前两个节点输出偏移量，最终 UV 由
+Vector Displacement 生成。位移向量保留强度，不会归一化。Normal to Distortion 可分别缩放 X 和 Y。
+Signed RG 的零位移为 `(0,0)`，Packed RG 为 `(0.5,0.5)`。
+Height to Normal 的 XY 指向高度梯度的反方向，Height to Distortion 则沿梯度方向。
+如果法线产生的扭曲方向相反，可反转 Strength 的符号或使用 Flip X/Flip Y；
+法线经过归一化，因此位移强度也会与直接使用高度时不同。
+准确的输入与模式见[颜色与法线节点契约](../ShaderLayer.md#color-and-normal-nodes)。
+
+**Normal Encode** 将有符号法线转为 Packed RGB，**Normal Decode** 执行反向转换；
+这两个节点不进行归一化。**Normal Strength** 在 0 时将法线压平，在 1 时保留单位法线，
+负值会反转 XY。需要着色时，将结果连接到 **Normal Lighting.Normal**，匹配 Normal Encoding，
+再调整表面 Color、LightDirection、LightColor、Intensity 和 Ambient。
+将 **SpecularIntensity** 从默认的 0 调高可添加高光；SpecularColor 控制颜色，Roughness
+扩大高光，SpecularOnly 只显示高光部分。表面 Alpha 保持不变。
+
+**Premultiply** 将 RGB 乘以 Alpha；**Unpremultiply** 在 Alpha 非零时恢复直通 RGB，
+Alpha 为零时返回黑色 RGB。Alpha 本身不变。Output 需要直通颜色，因此使用预乘颜色
+完成计算后，应通过 Unpremultiply 再连接到 Output。
+
+## 对计算结果应用滤镜
+
+将图案或 **Sample Texture.Out** 连接到 **Blur.In**，再将 Blur.Out 连接到 Output，即可柔化
+图像。**Sharpen** 增强局部对比度，**Edge Detection** 提取变化边缘，**Dilate** 扩大亮区，
+**Erode** 缩小亮区。颜色通道和 Alpha 分别处理；需要统一轮廓时，连接标量遮罩。
+
+Radius 以输出像素为单位设置采样距离。Blur、Sharpen、Dilate 和 Erode 提供 **3 × 3**、
+**5 × 5** 和 **9 × 9** 核。相同半径下，更多采样可保留更多细节；较大半径搭配较小核时，
+可能漏掉细线。Edge Detection 使用固定的 3 × 3 Sobel 核。Strength 调整 Sharpen 和
+Edge Detection 的强度。结果可以超出 `0..1`；需要限制遮罩范围时，添加 Clamp 或 Saturate。
+
+滤镜在相邻坐标重新计算输入分支。上游图案需要随 UV 变化；固定坐标只会得到恒定结果。
+多个大核滤镜串联可能使预览变慢。Radius 使用当前输出分辨率，因此相同设置下，小尺寸
+节点预览可能比完整图层结果更模糊。
+
+## 复用 Sub Graph
+
+选择一组运算，在上下文菜单中选择 **Convert Selection to Sub Graph**。外部连线会成为
+新节点的输入和输出。双击节点可编辑内部运算，在侧栏调整 **Inputs** 和 **Outputs**，
+通过 **Back to Graph** 返回。在创建菜单的 **Sub Graphs** 中选择已有定义，即可再次使用。
+
+编辑定义会更新当前 Shader 节点图中的所有实例。端口名称可以修改，连线使用的稳定标识
+不会因此改变。定义随文档保存。Sub Graph 可以包含其他定义，但不能直接或间接调用自身。
+所有实例共用的控制值使用普通参数；各实例需要不同值时，使用 Sub Graph 的接口输入。
 
 ## 移动与删除节点
 
@@ -230,6 +365,9 @@ Duplicate 创建独立参数并复制设置和当前值；Remove 同时删除该
 **Parameter** 节点仅占一行，显示参数名和输出端口，不显示 **Out** 标签，内部也没有预览或下拉框。
 通过节点的右键菜单选择其他已声明的参数；参数值在图层的 **Properties** 中调整。
 
+端口标签在括号内显示类型：数值分量数为 `1`–`4`，纹理为 `T2`，渐变为 `G`，曲线为 `C`，
+颜色为 `col`，布尔值为 `bool`。例如 `UV(2)`、`Color(col)`；标签会随端口类型更新。
+
 数值和 **Color** 端口为圆形，**Boolean** 端口为菱形，**Texture**、**Gradient** 和 **Curve** 端口为方形。
 
 数值向量可以连接到分量数不同的输入。`float4` 连接到 `float2` 输入时保留 X、Y，舍弃 Z、W。
@@ -289,7 +427,7 @@ Alpha 控制透明度；在 Output 前无需将 RGB 乘以 Alpha。
 函数返回值对应 **Result**，输出参数保留原名，inout 参数同时具有输入和输出端口。
 名为 **UV** 或 **uv** 的二维数值输入默认使用当前像素坐标，可通过 **Custom / UV** 改为固定值。
 
-带标记的 HLSL 库按分类出现在节点搜索中。**Colors/Contrast** 示例位于
+带标记的 HLSL 库按分类出现在节点搜索中。**Color/Adjustments/Contrast** 节点位于
 `Packages/com.dcfapixels.whimtex/src/ShaderGraphFunctions.hlsl`：Amount 为 1 时保持原色，
 其他值调整对比度，同时保留 Alpha 和 HDR。**Refresh HLSL** 重新扫描目录。
 Custom Function 的 **File…** 按钮也可选择 `.hlsl` 文件及其中受支持的函数，无需目录标记。
@@ -304,7 +442,7 @@ include 备份保留在文档中。修改端口时，在 Code 中编辑函数声
 已有 include 备份不会被重新读取，因此原文件缺失时仍可编辑。转换支持 **Undo/Redo**。
 元数据与库文件编写规则见 [函数契约](../ShaderLayer.md#hlsl-functions)。
 
-## 首版范围
+## 功能范围
 
 节点图属于 Shader 图层，随文档保持可编辑。更改参数会调整图像；更改运算或连接会改变计算本身。
 连接必须朝向 Output，不能形成循环。
@@ -313,5 +451,4 @@ include 备份保留在文档中。修改端口时，在 Code 中编辑函数声
 如果无法编译，编辑器会显示错误，并在已有可用结果时保留上一次正常结果。
 该图像不代表尚未完成的修改。文档保存的是可编辑节点图，之后可以继续完成它。
 
-首版不包含子图或 Blur。Time 目前返回零。
 需要额外处理时，使用图层的普通 FX 列表。端口类型与执行规则见 [Shader 图层契约](../ShaderLayer.md)。

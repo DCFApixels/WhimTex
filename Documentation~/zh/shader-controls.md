@@ -101,9 +101,13 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 
 `LayerToLocal(uv)` 让程序化形状跟随图层变换。详见[坐标约定](../ShaderFX.md)。
 
+`_WhimTexTime` 提供时间（秒），`_WhimTexInstanceIndex` 提供整数实例索引，目前为 0。
+直接读取即可，无需 `@param` 或重复声明。时间仅在图预览中推进，包括 Shader 图层的 FX。
+Canvas、普通 FX 预览和导出使用 0。索引不会自动改变 Seed，须由代码明确使用。
+
 允许使用 Unity 时间输入（`_Time`、`_SinTime`、`_CosTime`、`_TimeParameters`、`unity_DeltaTime`），不会阻止 **Apply**。
 使用它们会产生警告：WhimTex 不控制其更新，因此 Canvas、缩略图和导出结果可能不同。
-需要可预测的结果时，声明自己的数值参数，用它代替 Unity 时钟。
+需要可预测的结果时，使用 `_WhimTexTime` 或自己的数值参数代替 Unity 时钟。
 
 通常，FX 在输入或参数变化前复用结果；时间输入会停用此缓存。
 警告通过[统一的 FX 诊断](shader-fx.md#编译错误)显示，也能在 Console 和代理检查中读取。

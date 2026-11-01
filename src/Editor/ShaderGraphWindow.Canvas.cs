@@ -14,6 +14,7 @@ namespace DCFApixels.WhimTex
         private sealed class PortData
         {
             internal string nodeId, name;
+            internal Direction direction;
             internal ShaderGraphValueType type;
             internal bool dynamic;
         }
@@ -101,6 +102,7 @@ namespace DCFApixels.WhimTex
             {
                 base.BuildContextualMenu(e);
                 AnnotationMenu(e);
+                SubGraphMenu(e);
                 var edge = EdgeAt(e.target);
                 if (edge != null)
                 {
@@ -212,7 +214,7 @@ namespace DCFApixels.WhimTex
                     window.rebuildRequested = true; return change;
                 }
                 change.edgesToCreate?.RemoveAll(e => e.input == null || e.output == null || !e.input.enabledInHierarchy || !e.output.enabledInHierarchy);
-                change.elementsToRemove?.RemoveAll(e => e is INodeView n && window.Graph.FindNode(n.Id)?.kind == ShaderGraphNodeKind.Output);
+                change.elementsToRemove?.RemoveAll(e => e is INodeView n && window.Graph.FindNode(n.Id)?.kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.SubGraphOutput);
                 bool topology = change.edgesToCreate?.Count > 0 || change.elementsToRemove?.Any(e => e is INodeView || e is Edge) == true;
                 bool annotations = change.elementsToRemove?.Any(e => e is NoteView || e is GroupView) == true;
                 bool positions = change.movedElements?.Count > 0;
@@ -334,7 +336,7 @@ namespace DCFApixels.WhimTex
                     var categories = new SortedDictionary<string, List<ShaderGraphNodeKind>>();
                     foreach (var kind in ShaderGraphNodes.Kinds)
                     {
-                        if (kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Reroute) continue;
+                        if (kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Reroute or ShaderGraphNodeKind.SubGraph || ShaderGraphNodes.IsSubGraphInterface(kind)) continue;
                         string category = ShaderGraphNodes.Category(kind);
                         if (!categories.TryGetValue(category, out var list)) categories.Add(category, list = new List<ShaderGraphNodeKind>());
                         list.Add(kind);
@@ -353,6 +355,12 @@ namespace DCFApixels.WhimTex
                             result.Add(new SearchTreeEntry(new GUIContent(parameter.name)) { level = 2, userData = parameter.id });
                     }
                     AddFunctionSearchEntries(result, null);
+                    var definitions = canvas.window.Graph.subGraphs.Where(d => !canvas.window.WouldRecurse(d.id)).ToList();
+                    if (definitions.Count != 0)
+                    {
+                        result.Add(new SearchTreeGroupEntry(new GUIContent("Sub Graphs"), 1));
+                        foreach (var definition in definitions) result.Add(new SearchTreeEntry(new GUIContent(definition.name)) { level = 2, userData = definition });
+                    }
                     return result;
                 }
                 public bool OnSelectEntry(SearchTreeEntry entry, SearchWindowContext context)
@@ -361,6 +369,7 @@ namespace DCFApixels.WhimTex
                     Vector2 local = context.screenMousePosition - canvas.window.position.position;
                     Vector2 point = canvas.window.rootVisualElement.ChangeCoordinatesTo(canvas.contentViewContainer, local);
                     if (entry.userData is ShaderGraphNodeKind kind) canvas.window.AddNode(kind, point);
+                    else if (entry.userData is ShaderGraphSubGraph definition) canvas.window.AddSubGraph(definition, point);
                     else if (entry.userData is ShaderGraphFunctionCatalog.Entry function) canvas.window.AddFunctionNode(function, point);
                     else if (entry.userData is string parameter) canvas.window.AddNode(ShaderGraphNodeKind.Parameter, point, parameter);
                     else return false;
@@ -390,11 +399,13 @@ namespace DCFApixels.WhimTex
         {
             visiting ??= new HashSet<string>();
             if (node == null || !visiting.Add(node.id)) return ShaderGraphValueType.Float;
-            if (ShaderGraphNodes.TryProceduralOutputType(node.kind, out var fixedType)) { visiting.Remove(node.id); return fixedType; }
+            if (ShaderGraphNodes.TryProceduralOutputType(node.kind, out var fixedType) || ShaderGraphNodes.TryColorOutputType(node.kind, out fixedType) || ShaderGraphNodes.TryExtendedOutputType(node.kind, out fixedType)) { visiting.Remove(node.id); return fixedType; }
             try
             {
                 switch (node.kind)
                 {
+                    case ShaderGraphNodeKind.SubGraph: return node.subGraph?.outputs.Find(p => p.id == port)?.type ?? ShaderGraphValueType.Float;
+                    case ShaderGraphNodeKind.SubGraphInput: return node.interfacePort?.type ?? ShaderGraphValueType.Float;
                     case ShaderGraphNodeKind.CustomFunction: return Graph.FindFunction(node.functionId)?.OutputType(port) ?? ShaderGraphValueType.Float;
                     case ShaderGraphNodeKind.Reroute: return InputType(node, "In", visiting);
                     case ShaderGraphNodeKind.Parameter: return Graph.FindParameter(node.parameterId) is ShaderFXParameter p ? ShaderGraphNodes.ParameterType(p) : ShaderGraphValueType.Float;
@@ -409,6 +420,7 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.SampleCurve: case ShaderGraphNodeKind.Noise: case ShaderGraphNodeKind.Shape: return ShaderGraphValueType.Float;
                     case ShaderGraphNodeKind.Compare: return ShaderGraphValueType.Boolean;
                 }
+                if (ShaderGraphNodes.IsFilter(node.kind)) return InputType(node, "In", visiting);
                 ShaderGraphValueType result = ShaderGraphValueType.Float;
                 foreach (var input in ShaderGraphNodes.Inputs(node))
                 {

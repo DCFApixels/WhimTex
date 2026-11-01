@@ -47,7 +47,7 @@ public static class LayerPreviewReuseTests
         var panelType = asm.GetType("DCFApixels.WhimTex.LayerPreviewPanel");
         var cache = job.Scope.OwnDisposable((IDisposable)Activator.CreateInstance(asm.GetType("DCFApixels.WhimTex.EffectRenderCache"), true));
         var state = Activator.CreateInstance(stateType, true); Set(state, "height", 256f);
-        var mini = (VisualElement)Activator.CreateInstance(panelType, F, null, new[] { state }, null);
+        var mini = (VisualElement)Activator.CreateInstance(panelType, F, null, new object[] { state, true, false }, null);
         job.Scope.OwnDisposable((IDisposable)mini);
         var noise = new NoiseLayerBehaviour { noiseType = NoiseLayerBehaviour.NoiseType.WhiteNoise, grainColor = NoiseLayerBehaviour.GrainColor.Color, seed = 7189 };
         var ownedLayers = new System.Collections.Generic.List<Layer>();

@@ -5347,9 +5347,24 @@
             ]
           },
           "description": "Editor annotations only; excluded from shader/render fingerprints. IDs are unique across nodes, notes and groups. Groups contain node/note IDs in elements; one group per element, no nesting."
+        },
+        "subGraphs": {
+          "type": "array",
+          "default": [],
+          "maxItems": 128,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphSubGraph"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
         }
       },
-      "description": "Shader-layer fragment graph, version 1. Parameters retain their control declarations and stable IDs; node parameterId refers to one of those IDs. Edges connect named ports by graph-local node ID. HDR values are retained. Arrays replace the complete corresponding graph data."
+      "description": "Shader-layer fragment graph, version 1. Parameters retain their control declarations and stable IDs. Parameter.parameterId refers to a root parameter; SubGraphInput.parameterId refers to an input interface ID. Sub Graph instances reference the embedded subGraphs table and use stable interface IDs as port keys. Definitions share root parameters/functions/sources; nesting is limited to 16, recursion is forbidden, and compilation expands at most 4096 nodes. HDR values are retained. Arrays replace the complete corresponding graph data."
     },
     "ShaderGraphNode": {
       "type": "object",
@@ -5432,7 +5447,58 @@
             "Twirl",
             "BulgePinch",
             "Wave",
-            "Ripple"
+            "Ripple",
+            "Hue",
+            "Saturation",
+            "Exposure",
+            "Lightness",
+            "Levels",
+            "ColorBalance",
+            "Posterize",
+            "ConvertColor",
+            "Luminance",
+            "GradientMap",
+            "ColorCurves",
+            "ColorMask",
+            "HueRange",
+            "MixColor",
+            "SetAlpha",
+            "HeightToNormal",
+            "NormalBlend",
+            "HeightToDistortion",
+            "NormalToDistortion",
+            "Sign",
+            "Saturate",
+            "Modulo",
+            "Atan2",
+            "Asin",
+            "Acos",
+            "Exp",
+            "Log",
+            "Cross",
+            "Reflect",
+            "Refract",
+            "And",
+            "Or",
+            "Not",
+            "NormalEncode",
+            "NormalDecode",
+            "NormalStrength",
+            "NormalLighting",
+            "Premultiply",
+            "Unpremultiply",
+            "Flipbook",
+            "TileableNoise",
+            "VoronoiEdge",
+            "Dither",
+            "Blur",
+            "Sharpen",
+            "EdgeDetection",
+            "Dilate",
+            "Erode",
+            "SubGraph",
+            "SubGraphInput",
+            "SubGraphOutput"
           ]
         },
         "position": {
@@ -5483,12 +5549,13 @@
           "type": [
             "string",
             "null"
-          ]
+          ],
+          "description": "Parameter: root graph.parameters[].id. SubGraphInput: the enclosing definition's inputs[].id; output port is Out. Interface nodes cannot be created in the root graph."
         },
         "option": {
           "type": "integer",
-          "minimum": -2147483648,
-          "maximum": 2147483647
+          "default": 0,
+          "description": "Zero-based node mode; use discovery modes for kind-specific values. Blur/Sharpen/Dilate/Erode: 0=3x3, 1=5x5, 2=9x9; EdgeDetection has a fixed 3x3 Sobel kernel. Flipbook: 0=Bottom to Top, 1=Top to Bottom. Dither: 0=Bayer 4x4, 1=Bayer 2x2, 2=Bayer 8x8."
         },
         "fractal": {
           "type": "string",
@@ -5502,6 +5569,70 @@
           ],
           "default": "None",
           "description": "Noise accepts None, FBm, Ridged or PingPong. DomainWarp accepts None, Progressive or Independent. Octaves, Lacunarity, Gain and PingPongStrength are numeric input ports, not additional mode fields."
+        },
+        "inputColorSpace": {
+          "type": "string",
+          "enum": [
+            "LinearRGB",
+            "SRGB",
+            "HSV",
+            "HSL",
+            "Oklab"
+          ],
+          "default": "LinearRGB",
+          "description": "ConvertColor's explicit source/destination space. HSV/HSL use sRGB-encoded RGB and hue in turns. HSV excludes negative RGB but preserves HDR Value; HSL is SDR (0..1). LinearRGB, SRGB and Oklab retain signed/HDR values. Alpha is unchanged."
+        },
+        "outputColorSpace": {
+          "type": "string",
+          "enum": [
+            "LinearRGB",
+            "SRGB",
+            "HSV",
+            "HSL",
+            "Oklab"
+          ],
+          "default": "SRGB",
+          "description": "ConvertColor's explicit source/destination space. HSV/HSL use sRGB-encoded RGB and hue in turns. HSV excludes negative RGB but preserves HDR Value; HSL is SDR (0..1). LinearRGB, SRGB and Oklab retain signed/HDR values. Alpha is unchanged."
+        },
+        "channel": {
+          "type": "string",
+          "enum": [
+            "Luminance",
+            "Red",
+            "Green",
+            "Blue",
+            "Alpha"
+          ],
+          "default": "Luminance",
+          "description": "GradientMap source channel, or HeightToNormal/HeightToDistortion channel when heightSource is Texture. Ignored for Value. Luminance uses linear RGB weights, without color conversion."
+        },
+        "derivative": {
+          "type": "string",
+          "enum": [
+            "Scharr",
+            "Sobel",
+            "CentralDifference"
+          ],
+          "default": "Scharr",
+          "description": "Height node finite-difference stencil. Radius uses bound-source texels for heightSource Texture or output pixels for Value; gradient magnitude is retained before normal encoding."
+        },
+        "normalEncoding": {
+          "type": "string",
+          "enum": [
+            "PackedRGB",
+            "SignedXYZ"
+          ],
+          "default": "PackedRGB",
+          "description": "HeightToNormal output; NormalBlend/NormalStrength input/output; NormalToDistortion/NormalLighting input encoding. PackedRGB decodes as 2*x-1; SignedXYZ is unchanged. NormalToDistortion never normalizes XY. Unconnected defaults follow the selected encoding. NormalEncode/NormalDecode have fixed directions and do not use this setting."
+        },
+        "heightSource": {
+          "type": "string",
+          "enum": [
+            "Texture",
+            "Value"
+          ],
+          "default": "Texture",
+          "description": "HeightToNormal/HeightToDistortion: Texture requires a Height resource, source-texel Radius and channel/wrap/filter; Value accepts Float Height and reevaluates its branch at neighboring UVs with output-pixel Radius. Both retain derivative, Strength and FlipX/FlipY."
         },
         "hdr": {
           "type": "boolean"
@@ -5543,6 +5674,13 @@
             "string",
             "null"
           ]
+        },
+        "subGraphId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "SubGraph node reference to graph.subGraphs[].id. Ports are stable interface IDs from that definition, not pin display names."
         },
         "codeSize": {
           "type": "array",
@@ -6022,6 +6160,184 @@
           }
         }
       }
+    },
+    "ShaderGraphSubGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphSubGraph"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_]{1,64}$"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "inputs": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 64,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphInterfacePort"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphInterfacePort"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphNode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "edges": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphEdge"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "notes": {
+          "type": "array",
+          "default": [],
+          "maxItems": 512,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphNote"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Editor annotations only; excluded from shader/render fingerprints. IDs are unique across nodes, notes and groups. Groups contain node/note IDs in elements; one group per element, no nesting."
+        },
+        "groups": {
+          "type": "array",
+          "default": [],
+          "maxItems": 512,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphGroup"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Editor annotations only; excluded from shader/render fingerprints. IDs are unique across nodes, notes and groups. Groups contain node/note IDs in elements; one group per element, no nesting."
+        }
+      },
+      "description": "Embedded reusable definition: id, name, inputs, outputs, nodes, edges, notes and groups. Contains exactly one SubGraphOutput, with input port keys from outputs[].id. SubGraphInput nodes reference inputs[].id through parameterId and expose Out. Node IDs must be unique across the root and all definitions. No separate parameter/function/source tables or external dependency.",
+      "required": [
+        "nodes",
+        "outputs"
+      ]
+    },
+    "ShaderGraphInterfacePort": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphInterfacePort"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_]{1,64}$"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "Float",
+            "Float2",
+            "Float3",
+            "Float4",
+            "Boolean",
+            "Texture",
+            "Gradient",
+            "Curve",
+            "Color"
+          ]
+        },
+        "value": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "uvDefault": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use current evaluation UV when unconnected. Valid only with type Float2."
+        }
+      },
+      "description": "Typed Sub Graph interface pin. id is the stable wiring key, name is a display label, value is the unconnected default. uvDefault is valid only for Float2; resource types need a resource connection. IDs are unique across the definition's input and output pins.",
+      "anyOf": [
+        {
+          "properties": {
+            "uvDefault": {
+              "const": false
+            }
+          }
+        },
+        {
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "Float2"
+            }
+          }
+        }
+      ]
     },
     "ShaderProcessorLayerBehaviour": {
       "type": "object",

@@ -35,7 +35,7 @@ namespace DCFApixels.WhimTex
         private bool applying, refreshRequested, rebuildRequested, compileRequested, ready;
 
         internal ShaderLayerBehaviour Behaviour => document != null ? document.FindLayer(layerId)?.Behaviour as ShaderLayerBehaviour : null;
-        internal ShaderGraph Graph => Behaviour?.graph;
+        internal ShaderGraph Graph => ResolveGraph();
         internal bool Editable => Behaviour != null && !WhimTexApi.IsLayerContentLocked(document, Behaviour.Owner);
 
         public static void Open(ShaderLayerBehaviour layer, WhimTexDocument document)
@@ -79,6 +79,9 @@ namespace DCFApixels.WhimTex
             rootVisualElement.EnableInClassList("whimtex-shader-graph--light", !EditorGUIUtility.isProSkin);
 
             var toolbar = new Toolbar();
+            backToGraph = new ToolbarButton(() => OpenSubGraph(null)) { text = "Back to Graph" };
+            backToGraph.style.display = Graph?.activeSubGraph != null ? DisplayStyle.Flex : DisplayStyle.None;
+            toolbar.Add(backToGraph);
             toolbar.Add(new ToolbarButton(() => Compile()) { text = "Compile" });
             toolbar.Add(new ToolbarButton(() => canvas?.FrameAll()) { text = "Frame All" });
             toolbar.Add(new ToolbarButton(() => canvas?.FrameSelection()) { text = "Frame Selection" });
@@ -116,7 +119,7 @@ namespace DCFApixels.WhimTex
             body.Add(sidebar);
             var graphArea = new VisualElement(); graphArea.AddToClassList("whimtex-shader-graph-area");
             canvas = new Canvas(this); graphArea.Add(canvas);
-            preview = new LayerPreviewPanel(previewState, docked: false);
+            preview = new LayerPreviewPanel(previewState, docked: false, animateShaderGraph: true);
             graphArea.Add(new LayerPreviewOverlay(this, preview));
             body.Add(graphArea);
             rootVisualElement.Add(body);
@@ -145,6 +148,8 @@ namespace DCFApixels.WhimTex
         private void OnDocumentChanged(WhimTexDocument changed)
         {
             if (changed != document || applying) return;
+            subGraphView = null;
+            if (!string.IsNullOrEmpty(editingSubGraphId)) rebuildRequested = true;
             refreshRequested = true;
             canvas?.InvalidatePreviews();
             preview?.RequestLayerPreview();
@@ -158,6 +163,8 @@ namespace DCFApixels.WhimTex
         private void OnLocksChanged() { if (ready) body.SetEnabled(Editable); }
         private void OnUndoRedo()
         {
+            subGraphView = null;
+            if (!string.IsNullOrEmpty(editingSubGraphId)) rebuildRequested = true;
             refreshRequested = compileRequested = true;
             canvas?.InvalidatePreviews();
             // Undo may replace the serialized behaviour; always resolve it from the owning document.
@@ -184,6 +191,7 @@ namespace DCFApixels.WhimTex
                 RebuildParameters(); canvas.Rebuild();
             }
             else canvas.RefreshValues();
+            foreach (var update in interfaceRefresh) update();
             parameterSource.RefreshParameters(); parameterValues.Refresh();
             preview.Bind(document, behaviour.Owner);
             RefreshDiagnostics();
@@ -197,7 +205,8 @@ namespace DCFApixels.WhimTex
             try
             {
                 change(Graph);
-                if (structural) { Graph.PruneFunctions(); Graph.PruneGroups(); Behaviour.InvalidateGraph(); }
+                CommitGraphView();
+                if (structural) { RootGraph.PruneFunctions(); Graph.PruneGroups(); Behaviour.InvalidateGraph(); }
                 if (layoutOnly)
                 {
                     if (!rebuild) boundLayout = LayoutFingerprint(Graph);
@@ -348,6 +357,12 @@ namespace DCFApixels.WhimTex
                     if (p.name != null) foreach (char c in p.name) hash = (hash ^ c) * 1099511628211UL;
                     hash = (hash ^ (p.hasMinimum ? 1UL : 0UL) ^ (p.hasMaximum ? 2UL : 0UL)) * 1099511628211UL;
                 }
+            }
+            if (graph?.subGraphs != null) foreach (var definition in graph.subGraphs)
+            {
+                Text(definition.id); Text(definition.name);
+                foreach (var pin in definition.inputs) Text(pin.name);
+                foreach (var pin in definition.outputs) Text(pin.name);
             }
             if (graph?.notes != null) foreach (var note in graph.notes) Text(note.id);
             if (graph?.groups != null) foreach (var group in graph.groups)

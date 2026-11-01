@@ -101,9 +101,14 @@ Preset aliases and automatic previous-name migration are not supported.
 
 `LayerToLocal(uv)` makes procedural shapes follow the layer transform. See the [coordinate contract](../ShaderFX.md).
 
+`_WhimTexTime` supplies time in seconds; `_WhimTexInstanceIndex` supplies the integer instance
+index, currently 0. They are built in: read them directly without `@param` or a new declaration.
+Time advances only inside graph previews, including the Shader layer's FX. Canvas, ordinary
+FX previews and export use 0. Using the index does not change Seed unless your code does so.
+
 Unity time inputs (`_Time`, `_SinTime`, `_CosTime`, `_TimeParameters`, `unity_DeltaTime`) are allowed and do not block **Apply**.
 They produce a warning: WhimTex does not control their updates, so Canvas, thumbnails and export may differ.
-For a predictable result, declare your own numeric parameter and use its value instead of Unity's clock.
+For a predictable result, use `_WhimTexTime` or your own numeric parameter instead of Unity's clock.
 
 FX normally reuse the result until an input or parameter changes; time inputs disable that caching.
 The warning appears through the [shared FX diagnostics](shader-fx.md#compilation-warnings), including Console and agent inspection.
