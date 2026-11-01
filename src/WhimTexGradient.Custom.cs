@@ -1,30 +1,43 @@
 using System;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
-    public enum WhimTexGradientTangentMode { Auto, Smooth, Broken, Linear, Constant }
+    public enum WhimTexGradientTangentMode { Free, ClampedAuto, Linear, Constant, ConstantNext }
 
     [Serializable]
     public struct WhimTexGradientCurveKey : IEquatable<WhimTexGradientCurveKey>
     {
         public int id, channel;
-        public float time, value, inTangent, outTangent;
-        public WhimTexGradientTangentMode tangentMode;
+        public float time, value, inTangent, outTangent, inWeight, outWeight;
+        public WhimTexGradientTangentMode inMode, outMode;
+        public bool broken;
+        public WeightedMode weightedMode;
         public bool Equals(WhimTexGradientCurveKey other) => id == other.id && channel == other.channel &&
             time == other.time && value == other.value &&
-            inTangent == other.inTangent && outTangent == other.outTangent && tangentMode == other.tangentMode;
+            inTangent == other.inTangent && outTangent == other.outTangent &&
+            inWeight == other.inWeight && outWeight == other.outWeight && inMode == other.inMode &&
+            outMode == other.outMode && broken == other.broken && weightedMode == other.weightedMode;
         public override int GetHashCode()
         {
-            unchecked { return ((((id * 397 ^ channel) * 397 ^ time.GetHashCode()) *
-                397 ^ value.GetHashCode()) * 397 ^ inTangent.GetHashCode()) * 397 ^ outTangent.GetHashCode() ^ (int)tangentMode; }
+            unchecked
+            {
+                int hash = id * 397 ^ channel;
+                hash = hash * 397 ^ time.GetHashCode(); hash = hash * 397 ^ value.GetHashCode();
+                hash = hash * 397 ^ inTangent.GetHashCode(); hash = hash * 397 ^ outTangent.GetHashCode();
+                hash = hash * 397 ^ inWeight.GetHashCode(); hash = hash * 397 ^ outWeight.GetHashCode();
+                hash = hash * 397 ^ (int)inMode; hash = hash * 397 ^ (int)outMode;
+                return (hash * 397 ^ broken.GetHashCode()) * 397 ^ (int)weightedMode;
+            }
         }
     }
 
     public sealed partial class WhimTexGradient
     {
         [SerializeField] private WhimTexGradientCurveKey[] customKeys;
+        [SerializeField] private int customCurveFormat;
         [SerializeField] private WhimTexGradientColorMode customColorMode = WhimTexGradientColorMode.Perceptual;
         [SerializeField] private float customApproximationError;
         [NonSerialized] private CustomPrepared customPrepared;
@@ -51,7 +64,7 @@ namespace DCFApixels.WhimTex
                 var track = customPrepared.tracks[3];
                 foreach (var key in track.keys) if (key.value != 1f) return false;
                 for (int i = 0; i + 1 < track.keys.Length; i++)
-                    if (track.keys[i].tangentMode != WhimTexGradientTangentMode.Constant &&
+                    if (!IsCustomStep(track.keys[i].outMode) && !IsCustomStep(track.keys[i + 1].inMode) &&
                         (track.outgoing[i] < 0 || track.incoming[i + 1] > 0)) return false;
                 // Between unit endpoints these signs guarantee a cubic >= 1; output alpha clamps to one.
                 return true;
@@ -74,6 +87,7 @@ namespace DCFApixels.WhimTex
         {
             internal WhimTexGradientCurveKey[] keys;
             internal double[] incoming, outgoing;
+            internal AnimationCurve curve;
             internal double Value(double time)
             {
                 int last = keys.Length - 1;
@@ -83,11 +97,9 @@ namespace DCFApixels.WhimTex
                 while (high - low > 1) { int middle = (low + high) / 2; if (time < keys[middle].time) high = middle; else low = middle; }
                 var a = keys[low]; var b = keys[high];
                 if (time == a.time) return a.value;
-                // Same right-key convention as Fixed, including exact values at the knots.
-                if (a.tangentMode == WhimTexGradientTangentMode.Constant) return b.value;
-                double span = b.time - a.time, u = (time - a.time) / span, u2 = u * u, u3 = u2 * u;
-                return (2*u3-3*u2+1)*a.value + (u3-2*u2+u)*span*outgoing[low] +
-                    (-2*u3+3*u2)*b.value + (u3-u2)*span*incoming[high];
+                // Fixed conversion and reversed constant segments retain their step direction.
+                if (a.outMode == WhimTexGradientTangentMode.ConstantNext || b.inMode == WhimTexGradientTangentMode.ConstantNext) return b.value;
+                return curve.Evaluate((float)time);
             }
         }
 
@@ -110,15 +122,17 @@ namespace DCFApixels.WhimTex
             if (keys == null || keys.Length == 0)
             {
                 if (interpolation == WhimTexGradientInterpolation.Custom) throw new ArgumentException("Active Custom curves cannot be empty.");
-                customKeys = null; customColorMode = mode; customApproximationError = 0; Invalidate(); return;
+                customKeys = null; customCurveFormat = 0; customColorMode = mode; customApproximationError = 0; Invalidate(); return;
             }
             var copy = (WhimTexGradientCurveKey[])keys.Clone();
             Array.Sort(copy, CompareCustomKeys);
             ValidateCustom(copy);
+            for (int i = 0; i < copy.Length; i++)
+                if (!copy[i].broken && copy[i].inMode == WhimTexGradientTangentMode.Free) copy[i].inTangent = copy[i].outTangent;
             var candidate = (WhimTexGradient)MemberwiseClone();
-            candidate.customKeys = copy; candidate.customColorMode = mode; candidate.customPrepared = null;
+            candidate.customKeys = copy; candidate.customCurveFormat = 1; candidate.customColorMode = mode; candidate.customPrepared = null;
             candidate.PrepareCustom();
-            customKeys = copy; customColorMode = mode; customApproximationError = 0; Invalidate();
+            customKeys = copy; customCurveFormat = 1; customColorMode = mode; customApproximationError = 0; Invalidate();
             customPrepared = candidate.customPrepared;
         }
         private static int CompareCustomKeys(WhimTexGradientCurveKey a, WhimTexGradientCurveKey b)
@@ -138,9 +152,13 @@ namespace DCFApixels.WhimTex
                     throw new ArgumentException("Invalid Custom key identity or channel.");
                 CheckTime(key.time, previous[key.channel]); previous[key.channel] = key.time;
                 if (++count[key.channel] > 64 || !Finite(key.value) || !Finite(key.inTangent) || !Finite(key.outTangent) ||
-                    !Enum.IsDefined(typeof(WhimTexGradientTangentMode), key.tangentMode) ||
+                    !Enum.IsDefined(typeof(WhimTexGradientTangentMode), key.inMode) ||
+                    !Enum.IsDefined(typeof(WhimTexGradientTangentMode), key.outMode) ||
+                    !Enum.IsDefined(typeof(WeightedMode), key.weightedMode) ||
+                    !Finite(key.inWeight) || !Finite(key.outWeight) || key.inWeight < 0 || key.inWeight > 1 || key.outWeight < 0 || key.outWeight > 1 ||
+                    (!key.broken && (key.inMode != key.outMode || (key.inMode != WhimTexGradientTangentMode.Free && key.inMode != WhimTexGradientTangentMode.ClampedAuto))) ||
                     (key.channel == 3 && (key.value < 0 || key.value > 1)))
-                    throw new ArgumentException("Custom values/tangents must be finite; alpha is 0..1, each channel has at most 64 keys.");
+                    throw new ArgumentException("Invalid Custom key: finite values/tangents, weights and alpha in 0..1, valid side modes, at most 64 keys per channel. Joined sides must both be Free or ClampedAuto.");
                 if (key.channel < 3) positions.Add(key.time);
             }
             foreach (int n in count) if (n == 0) throw new ArgumentException("Each Custom channel requires at least one key.");
@@ -222,10 +240,116 @@ namespace DCFApixels.WhimTex
             if (channel == 3) value = Mathf.Clamp01(value);
             float derivative = (float)SampleDerivative(track.Value, time);
             int id = NextCustomId(customKeys);
-            list.Add(new WhimTexGradientCurveKey { id = id, channel = channel, time = time, value = value,
-                inTangent = derivative, outTangent = derivative, tangentMode = WhimTexGradientTangentMode.Smooth });
+            var inserted = new WhimTexGradientCurveKey { id = id, channel = channel, time = time, value = value,
+                inTangent = derivative, outTangent = derivative, inWeight = 1f / 3, outWeight = 1f / 3, weightedMode = WeightedMode.Both };
+            SplitCustomSegment(track, time, list, ref inserted);
+            list.Add(inserted);
             SetCustomData(list.ToArray(), customColorMode);
             return id;
+        }
+        private static void SplitCustomSegment(CustomTrack track, float time, List<WhimTexGradientCurveKey> list, ref WhimTexGradientCurveKey inserted)
+        {
+            int left = -1;
+            for (int i = 0; i + 1 < track.keys.Length; i++)
+                if (track.keys[i].time < time && time < track.keys[i + 1].time) { left = i; break; }
+            if (left < 0)
+            {
+                inserted.inTangent = inserted.outTangent = 0;
+                int endpoint = time < track.keys[0].time ? 0 : track.keys.Length - 1;
+                var boundary = track.keys[endpoint];
+                bool before = time < boundary.time;
+                boundary.broken = true;
+                if (before)
+                {
+                    boundary.outTangent = Finite((float)track.outgoing[endpoint]) ? (float)track.outgoing[endpoint] : 0;
+                    if (boundary.outMode == WhimTexGradientTangentMode.ClampedAuto) boundary.outMode = WhimTexGradientTangentMode.Free;
+                    boundary.inMode = WhimTexGradientTangentMode.Free; boundary.inTangent = 0;
+                }
+                else
+                {
+                    boundary.inTangent = Finite((float)track.incoming[endpoint]) ? (float)track.incoming[endpoint] : 0;
+                    if (boundary.inMode == WhimTexGradientTangentMode.ClampedAuto) boundary.inMode = WhimTexGradientTangentMode.Free;
+                    boundary.outMode = WhimTexGradientTangentMode.Free; boundary.outTangent = 0;
+                }
+                for (int i = 0; i < list.Count; i++) if (list[i].id == boundary.id) list[i] = boundary;
+                return;
+            }
+            var a = track.keys[left]; var b = track.keys[left + 1];
+            if (IsCustomStep(a.outMode) || IsCustomStep(b.inMode))
+            {
+                var mode = a.outMode == WhimTexGradientTangentMode.ConstantNext || b.inMode == WhimTexGradientTangentMode.ConstantNext ?
+                    WhimTexGradientTangentMode.ConstantNext : WhimTexGradientTangentMode.Constant;
+                inserted.inMode = inserted.outMode = mode; inserted.broken = true;
+                inserted.inTangent = inserted.outTangent = 0; return;
+            }
+            // Split the actual weighted Bezier, not a finite-difference approximation of its slope.
+            double span = b.time - (double)a.time;
+            double w0 = (a.weightedMode & WeightedMode.Out) != 0 ? a.outWeight : 1.0 / 3;
+            double w1 = (b.weightedMode & WeightedMode.In) != 0 ? b.inWeight : 1.0 / 3;
+            var p0 = new Double2(a.time, a.value);
+            var p1 = new Double2(a.time + span * w0, a.value + span * w0 * track.outgoing[left]);
+            var p2 = new Double2(b.time - span * w1, b.value - span * w1 * track.incoming[left + 1]);
+            var p3 = new Double2(b.time, b.value);
+            double lo = 0, hi = 1;
+            for (int i = 0; i < 48; i++)
+            {
+                double u = (lo + hi) * .5;
+                double x = BezierLerp(BezierLerp(BezierLerp(p0, p1, u), BezierLerp(p1, p2, u), u),
+                    BezierLerp(BezierLerp(p1, p2, u), BezierLerp(p2, p3, u), u), u).x;
+                if (x < time) lo = u; else hi = u;
+            }
+            double t = (lo + hi) * .5;
+            var q0 = BezierLerp(p0, p1, t); var q1 = BezierLerp(p1, p2, t); var q2 = BezierLerp(p2, p3, t);
+            var r0 = BezierLerp(q0, q1, t); var r1 = BezierLerp(q1, q2, t); var point = BezierLerp(r0, r1, t);
+            // Alpha knots cannot be outside 0..1; insertion in a clipped lobe remains bounded.
+            inserted.value = inserted.channel == 3 ? Mathf.Clamp01((float)point.y) : (float)point.y;
+            inserted.broken = true;
+            inserted.inTangent = BezierSlope(r0, point); inserted.outTangent = BezierSlope(point, r1);
+            inserted.inWeight = Mathf.Clamp01((float)((point.x - r0.x) / (time - a.time)));
+            inserted.outWeight = Mathf.Clamp01((float)((r1.x - point.x) / (b.time - time)));
+            // Freeze auto slopes on the two affected keys before replacing either side.
+            a.inTangent = Finite((float)track.incoming[left]) ? (float)track.incoming[left] : 0;
+            a.outTangent = BezierSlope(p0, q0); a.outMode = WhimTexGradientTangentMode.Free; a.broken = true;
+            if (a.inMode == WhimTexGradientTangentMode.ClampedAuto) a.inMode = WhimTexGradientTangentMode.Free;
+            a.outWeight = Mathf.Clamp01((float)((q0.x - p0.x) / (time - a.time))); a.weightedMode |= WeightedMode.Out;
+            b.outTangent = Finite((float)track.outgoing[left + 1]) ? (float)track.outgoing[left + 1] : 0;
+            b.inTangent = BezierSlope(q2, p3); b.inMode = WhimTexGradientTangentMode.Free; b.broken = true;
+            if (b.outMode == WhimTexGradientTangentMode.ClampedAuto) b.outMode = WhimTexGradientTangentMode.Free;
+            b.inWeight = Mathf.Clamp01((float)((p3.x - q2.x) / (b.time - time))); b.weightedMode |= WeightedMode.In;
+            for (int i = 0; i < list.Count; i++)
+            { if (list[i].id == a.id) list[i] = a; else if (list[i].id == b.id) list[i] = b; }
+        }
+        private static Double2 BezierLerp(Double2 a, Double2 b, double t) => new Double2(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+        private static float BezierSlope(Double2 a, Double2 b) => Math.Abs(b.x - a.x) > 1e-15 ? (float)((b.y - a.y) / (b.x - a.x)) : 0;
+
+        public void SetCustomHandle(int id, bool incoming, float time, float value, bool breakTangents = false)
+        {
+            RequireCustom();
+            if (!Finite(time) || !Finite(value) || !TryGetCustomKey(id, out var key)) throw new ArgumentException("Invalid Custom handle.");
+            float span = CustomHandleSpan(id, incoming);
+            if (span <= 0) return;
+            key.inTangent = Finite(CustomKeyTangent(id, true)) ? CustomKeyTangent(id, true) : 0;
+            key.outTangent = Finite(CustomKeyTangent(id, false)) ? CustomKeyTangent(id, false) : 0;
+            key.broken |= breakTangents;
+            bool weighted = (key.weightedMode & (incoming ? WeightedMode.In : WeightedMode.Out)) != 0;
+            float distance = Mathf.Max(.000001f, (incoming ? key.time - time : time - key.time) / span);
+            if (weighted) distance = Mathf.Min(1, distance);
+            float slope = (value - key.value) / (distance * span * (incoming ? -1 : 1));
+            if (incoming) { key.inMode = WhimTexGradientTangentMode.Free; key.inTangent = slope; if (weighted) key.inWeight = distance; }
+            else { key.outMode = WhimTexGradientTangentMode.Free; key.outTangent = slope; if (weighted) key.outWeight = distance; }
+            if (!key.broken) { key.inMode = key.outMode = WhimTexGradientTangentMode.Free; key.inTangent = key.outTangent = slope; }
+            UpdateCustomKey(key);
+        }
+        public float CustomHandleSpan(int id, bool incoming)
+        {
+            if (!TryGetCustomKey(id, out var key)) return 0;
+            float span = float.PositiveInfinity;
+            foreach (var other in customKeys) if (other.channel == key.channel)
+            {
+                float delta = incoming ? key.time - other.time : other.time - key.time;
+                if (delta > 0) span = Math.Min(span, delta);
+            }
+            return float.IsPositiveInfinity(span) ? 0 : span;
         }
         public int AddCustomColorKeys(float time)
         {
@@ -329,7 +453,7 @@ namespace DCFApixels.WhimTex
             for (int i = 0; i < keys.Length; i++) if (keys[i].id == key.id)
             {
                 key.time = keys[i].time;
-                if (key.tangentMode == WhimTexGradientTangentMode.Smooth) key.inTangent = key.outTangent;
+                if (!key.broken && key.inMode == WhimTexGradientTangentMode.Free) key.inTangent = key.outTangent;
                 keys[i] = key; break;
             }
             SetCustomData(keys, customColorMode);
@@ -353,6 +477,7 @@ namespace DCFApixels.WhimTex
         private void PrepareCustom()
         {
             if (customPrepared != null) return;
+            if (customCurveFormat != 1) throw new ArgumentException("Unsupported Custom gradient curve format. This version requires weighted Bezier keys (customCurveFormat 1).");
             ValidateCustom(customKeys);
             if (!Enum.IsDefined(typeof(WhimTexGradientColorMode), customColorMode)) throw new ArgumentException("Invalid Custom color mode.");
             var state = new CustomPrepared { tracks = new CustomTrack[4] };
@@ -387,24 +512,37 @@ namespace DCFApixels.WhimTex
         private static CustomTrack MakeCustomTrack(WhimTexGradientCurveKey[] keys)
         {
             var result = new CustomTrack { keys = keys, incoming = new double[keys.Length], outgoing = new double[keys.Length] };
+            var native = new Keyframe[keys.Length];
             for (int i = 0; i < keys.Length; i++)
             {
-                double left = i > 0 ? (keys[i].value - (double)keys[i-1].value) / (keys[i].time - (double)keys[i-1].time) : 0;
-                double right = i + 1 < keys.Length ? (keys[i+1].value - (double)keys[i].value) / (keys[i+1].time - (double)keys[i].time) : 0;
-                double incoming = keys[i].inTangent, outgoing = keys[i].outTangent;
-                switch (keys[i].tangentMode)
-                {
-                    case WhimTexGradientTangentMode.Auto:
-                        incoming = outgoing = i == 0 ? right : i == keys.Length - 1 ? left :
-                            left * right <= 0 ? 0 : 2 * left * right / (left + right);
-                        break;
-                    case WhimTexGradientTangentMode.Linear: incoming = left; outgoing = right; break;
-                    case WhimTexGradientTangentMode.Smooth: incoming = outgoing; break;
-                    case WhimTexGradientTangentMode.Constant: incoming = outgoing = 0; break;
-                }
-                result.incoming[i] = incoming; result.outgoing[i] = outgoing;
+                var key = keys[i];
+                native[i] = new Keyframe(key.time, key.value, key.broken ? key.inTangent : key.outTangent,
+                    key.outTangent, key.inWeight, key.outWeight) { weightedMode = key.weightedMode };
             }
+            result.curve = new AnimationCurve(native) { preWrapMode = UnityEngine.WrapMode.ClampForever, postWrapMode = UnityEngine.WrapMode.ClampForever };
+            for (int i = 0; i < keys.Length; i++)
+            {
+                AnimationUtility.SetKeyBroken(result.curve, i, keys[i].broken);
+                AnimationUtility.SetKeyLeftTangentMode(result.curve, i, NativeCustomMode(keys[i].inMode));
+                AnimationUtility.SetKeyRightTangentMode(result.curve, i, NativeCustomMode(keys[i].outMode));
+            }
+            native = result.curve.keys;
+            for (int i = 0; i < keys.Length; i++)
+            { result.incoming[i] = native[i].inTangent; result.outgoing[i] = native[i].outTangent; }
             return result;
+        }
+        private static bool IsCustomStep(WhimTexGradientTangentMode mode) =>
+            mode == WhimTexGradientTangentMode.Constant || mode == WhimTexGradientTangentMode.ConstantNext;
+        private static AnimationUtility.TangentMode NativeCustomMode(WhimTexGradientTangentMode mode)
+        {
+            switch (mode)
+            {
+                case WhimTexGradientTangentMode.ClampedAuto: return AnimationUtility.TangentMode.ClampedAuto;
+                case WhimTexGradientTangentMode.Linear: return AnimationUtility.TangentMode.Linear;
+                case WhimTexGradientTangentMode.Constant:
+                case WhimTexGradientTangentMode.ConstantNext: return AnimationUtility.TangentMode.Constant;
+                default: return AnimationUtility.TangentMode.Free;
+            }
         }
         private GradientVector CustomEncoded(CustomPrepared state, double time) => FromCustomWorking(
             new GradientVector(state.tracks[0].Value(time), state.tracks[1].Value(time), state.tracks[2].Value(time)), customColorMode);
@@ -489,9 +627,17 @@ namespace DCFApixels.WhimTex
             {
                 keys[i].time = 1 - keys[i].time;
                 float old = keys[i].inTangent; keys[i].inTangent = -keys[i].outTangent; keys[i].outTangent = -old;
+                old = keys[i].inWeight; keys[i].inWeight = keys[i].outWeight; keys[i].outWeight = old;
+                var mode = keys[i].inMode; keys[i].inMode = ReverseCustomMode(keys[i].outMode); keys[i].outMode = ReverseCustomMode(mode);
+                var weighted = keys[i].weightedMode;
+                keys[i].weightedMode = ((weighted & WeightedMode.In) != 0 ? WeightedMode.Out : WeightedMode.None) |
+                    ((weighted & WeightedMode.Out) != 0 ? WeightedMode.In : WeightedMode.None);
             }
             SetCustomData(keys, customColorMode);
         }
+        private static WhimTexGradientTangentMode ReverseCustomMode(WhimTexGradientTangentMode mode) =>
+            mode == WhimTexGradientTangentMode.Constant ? WhimTexGradientTangentMode.ConstantNext :
+            mode == WhimTexGradientTangentMode.ConstantNext ? WhimTexGradientTangentMode.Constant : mode;
         private bool EqualsCustom(WhimTexGradient other)
         {
             if (HasCustomCurves != other.HasCustomCurves) return false;
@@ -513,9 +659,11 @@ namespace DCFApixels.WhimTex
             foreach (var key in customKeys)
             {
                 hash = RenderFingerprint.Mix(hash, (ulong)key.id); hash = RenderFingerprint.Mix(hash, (ulong)key.channel);
-                hash = RenderFingerprint.Mix(hash, (ulong)key.tangentMode);
+                hash = RenderFingerprint.Mix(hash, (ulong)key.inMode); hash = RenderFingerprint.Mix(hash, (ulong)key.outMode);
+                hash = RenderFingerprint.Mix(hash, key.broken ? 1UL : 0UL); hash = RenderFingerprint.Mix(hash, (ulong)key.weightedMode);
                 hash = RenderFingerprint.Float(hash, key.time); hash = RenderFingerprint.Float(hash, key.value);
                 hash = RenderFingerprint.Float(hash, key.inTangent); hash = RenderFingerprint.Float(hash, key.outTangent);
+                hash = RenderFingerprint.Float(hash, key.inWeight); hash = RenderFingerprint.Float(hash, key.outWeight);
             }
             return hash;
         }

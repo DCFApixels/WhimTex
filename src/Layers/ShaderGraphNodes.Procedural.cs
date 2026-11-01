@@ -23,8 +23,8 @@ namespace DCFApixels.WhimTex
             [ShaderGraphNodeKind.DomainWarp] = new[] { "OpenSimplex2", "OpenSimplex2Reduced", "BasicGrid" },
             [ShaderGraphNodeKind.VectorDisplacement] = new[] { "Signed RG", "Packed RG" }
         };
-        internal static string[] ModeNames(ShaderGraphNodeKind kind) => IsFilter(kind) && kind != ShaderGraphNodeKind.EdgeDetection ? filterKernels : proceduralModes.TryGetValue(kind, out var modes) || colorModes.TryGetValue(kind, out modes) || extendedModes.TryGetValue(kind, out modes) ? modes : null;
-        internal static string ModeLabel(ShaderGraphNodeKind kind) => IsFilter(kind) ? "Kernel" : kind switch
+        internal static string[] ModeNames(ShaderGraphNodeKind kind) => UsesFilterKernel(kind) ? filterKernels : kind == ShaderGraphNodeKind.RadialBlur ? radialBlurModes : proceduralModes.TryGetValue(kind, out var modes) || colorModes.TryGetValue(kind, out modes) || extendedModes.TryGetValue(kind, out modes) ? modes : null;
+        internal static string ModeLabel(ShaderGraphNodeKind kind) => UsesFilterKernel(kind) ? "Minimum Kernel" : kind switch
         {
             ShaderGraphNodeKind.Noise or ShaderGraphNodeKind.DomainWarp => "Type",
             ShaderGraphNodeKind.Shape => "Shape", ShaderGraphNodeKind.Cellular => "Metric",
@@ -47,6 +47,8 @@ namespace DCFApixels.WhimTex
                 "Used only by the Square profile.",
             ShaderGraphNodeKind.GradientFactor when input == "Angle" && node.option == 1 =>
                 "The Radial gradient has no angle.",
+            ShaderGraphNodeKind.RadialBlur when input == "Angle" && node.option == 1 => "Used only by Spin.",
+            ShaderGraphNodeKind.RadialBlur when input == "Strength" && node.option == 0 => "Used only by Zoom.",
             _ => null
         };
         static ShaderGraphPort P2(string name, float x, float y) => new ShaderGraphPort(name, ShaderGraphValueType.Float2, new Vector4(x, y, 0, 0));
@@ -62,6 +64,7 @@ namespace DCFApixels.WhimTex
         };
         static void BuildProceduralPorts(Dictionary<ShaderGraphNodeKind, ShaderGraphPort[]> map)
         {
+            map[ShaderGraphNodeKind.PixelateUV] = new[] { UV(), P("CellSize", ShaderGraphValueType.Float2, 8), P("Offset", ShaderGraphValueType.Float2) };
             map[ShaderGraphNodeKind.Noise] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), N("Seed", 1337), N("Octaves", 3), N("Lacunarity", 2), N("Gain", .5f), N("PingPongStrength", 2) };
             map[ShaderGraphNodeKind.Cellular] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), N("Seed", 1337), N("Jitter", 1) };
             map[ShaderGraphNodeKind.Random] = new[] { new ShaderGraphPort("Coordinates", ShaderGraphValueType.Float2, uvDefault: true), N("Seed", 1337) };
@@ -93,7 +96,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Rings: case ShaderGraphNodeKind.GradientFactor: case ShaderGraphNodeKind.CombineDistance: return true;
                 case ShaderGraphNodeKind.PolarCoordinates: case ShaderGraphNodeKind.Repeat: case ShaderGraphNodeKind.Mirror:
                 case ShaderGraphNodeKind.Kaleidoscope: case ShaderGraphNodeKind.DomainWarp: case ShaderGraphNodeKind.VectorDisplacement:
-                case ShaderGraphNodeKind.Twirl: case ShaderGraphNodeKind.BulgePinch: case ShaderGraphNodeKind.Wave: case ShaderGraphNodeKind.Ripple:
+                case ShaderGraphNodeKind.Twirl: case ShaderGraphNodeKind.BulgePinch: case ShaderGraphNodeKind.Wave: case ShaderGraphNodeKind.Ripple: case ShaderGraphNodeKind.PixelateUV:
                     type = ShaderGraphValueType.Float2; return true;
                 default: return false;
             }

@@ -67,11 +67,13 @@ keep both datasets, including inactive manual keys. The additive fields do not c
 the document version (3) or standalone gradient envelope version (2).
 
 `customKeys` is a flat array of `WhimTexGradientCurveKey` values: `id`, `channel`,
-`time`, `value`, `inTangent`, `outTangent`, `tangentMode`. IDs, tangents and
-channel values survive a roundtrip. `customColorMode` is required with nonempty curves;
+`time`, `value`, `inTangent`, `outTangent`, `inMode`, `outMode`, `broken`, `inWeight`,
+`outWeight`, `weightedMode`. IDs, handles and channel values survive a roundtrip.
+`customColorMode` and `customCurveFormat:1` are required with nonempty curves;
 active Custom requires saved curves and is never reconstructed silently on load.
 The [shared curve contract](AI/README.md#custom-channel-curves) describes limits, channel
-meaning, automatic time-cluster markers and the right-key Constant convention. Native Compact
+meaning, automatic time-cluster markers and weighted Bezier/step behavior. Old `tangentMode`
+records are rejected rather than migrated. Native Compact
 JSON may omit default-valued key fields; the standalone/API contract requires the fields
 listed in that reference. Unknown fields and invalid dormant data are rejected too.
 There is no persistent marker/group field. Explicit obsolete `link` fields (including zero)

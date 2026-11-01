@@ -558,9 +558,9 @@ namespace DCFApixels.WhimTex
             for (int i = 0; i < data.Count; i++)
             {
                 var key = Obj(data[i], "custom gradient key");
-                Keys(key, "id", "channel", "time", "value", "inTangent", "outTangent", "tangentMode");
-                Require(key["id"] != null && key["channel"] != null && key["time"] != null && key["value"] != null && key["tangentMode"] != null,
-                    "Custom keys require id, channel, time, value and tangentMode.");
+                Keys(key, "id", "channel", "time", "value", "inTangent", "outTangent", "inMode", "outMode", "broken", "inWeight", "outWeight", "weightedMode");
+                Require(key["id"] != null && key["channel"] != null && key["time"] != null && key["value"] != null && key["inMode"] != null && key["outMode"] != null && key["broken"] != null,
+                    "Custom Bezier keys require id, channel, time, value, inMode, outMode and broken.");
                 int channel = Int(key, "channel", 0, 0, 3);
                 result[i] = new WhimTexGradientCurveKey
                 {
@@ -569,7 +569,10 @@ namespace DCFApixels.WhimTex
                     value = Number(key["value"], "value", channel == 3 ? 0 : -float.MaxValue, channel == 3 ? 1 : float.MaxValue),
                     inTangent = Number(key, "inTangent", 0, -float.MaxValue, float.MaxValue),
                     outTangent = Number(key, "outTangent", 0, -float.MaxValue, float.MaxValue),
-                    tangentMode = Enum(key, "tangentMode", WhimTexGradientTangentMode.Auto)
+                    inMode = Enum(key, "inMode", WhimTexGradientTangentMode.Free),
+                    outMode = Enum(key, "outMode", WhimTexGradientTangentMode.Free), broken = Bool(key, "broken", false),
+                    inWeight = Number(key, "inWeight", 1f / 3, 0, 1), outWeight = Number(key, "outWeight", 1f / 3, 0, 1),
+                    weightedMode = Enum(key, "weightedMode", WeightedMode.None)
                 };
             }
             // SetCustomData validates IDs, channel coverage and collision spacing.
@@ -601,7 +604,9 @@ namespace DCFApixels.WhimTex
                 foreach (var key in gradient.CustomKeys)
                     keys.Add(new JObject { ["id"] = key.id, ["channel"] = key.channel,
                         ["time"] = key.time, ["value"] = key.value, ["inTangent"] = key.inTangent,
-                        ["outTangent"] = key.outTangent, ["tangentMode"] = key.tangentMode.ToString() });
+                        ["outTangent"] = key.outTangent, ["inMode"] = key.inMode.ToString(), ["outMode"] = key.outMode.ToString(),
+                        ["broken"] = key.broken, ["inWeight"] = key.inWeight, ["outWeight"] = key.outWeight,
+                        ["weightedMode"] = key.weightedMode.ToString() });
                 result["customColorMode"] = gradient.CustomColorMode.ToString();
                 result["customKeys"] = keys;
             }

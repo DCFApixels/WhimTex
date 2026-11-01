@@ -35,10 +35,11 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 ## 数学常量与 Swizzle
 
 **Input/Instance Index** 和 **Input/Time** 各提供一个名为 **Out** 的 Float 输出。
-两者都没有自身预览。**Instance Index** 返回 `0`。
+两者都没有自身预览，均提供 Float 输入 **Start**（默认 `0`）和 **Scale**（默认 `1`）。
+**Instance Index** 返回 **Start + 索引 × Scale**；当前索引为 `0`，因此结果等于 Start。
 **Time** 将编辑器运行时间（秒）传给相关节点的预览及图窗口中的结果预览。
-Float 输入 **Scale** 默认为 `1`：**Out = 时间 × Scale**。可以手动输入数值或连接其他节点。
-图层本身、Canvas、缩略图和导出始终按 **Time = 0** 计算。
+输出为 **Start + 时间 × Scale**。两个输入均可手动设置或连接其他节点。
+图层本身、Canvas、缩略图和导出始终使用时间 `0`，因此这些位置的 Time 输出等于 Start。
 HLSL 节点和 Custom Function 可直接读取 `_WhimTexTime` 与 `_WhimTexInstanceIndex`。
 Shader 图层的 FX 在图结果预览中使用相同的动画时间。
 
@@ -64,7 +65,7 @@ Offset 移动图案。**Voronoi Edge** 输出到单元边界的距离，经过�
 帧号循环，包括负值；行顺序可从下到上或从上到下，单帧内的图像方向保持不变。
 
 **Dither** 用 Bayer 2 × 2、4 × 4 或 8 × 8 图案减少颜色级数。Levels 设置级数，PixelSize
-以输出像素设置图案大小。Alpha 保持不变；HDR 和负颜色值不会自动裁剪。
+以文档像素设置图案大小。Alpha 保持不变；HDR 和负颜色值不会自动裁剪。
 
 ## 便签与分组
 
@@ -103,7 +104,7 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 | 节点 | 用途 |
 | --- | --- |
 | **Parameter**、**Constant** | 读取图层可调参数，或使用 PI、TAU、PHI、E、SQRT2 数学常量。 |
-| **UV**、**Image Size**、**Texture Size** | 获取图像内的位置、输出尺寸或输入纹理的尺寸。 |
+| **UV**、**Image Size**、**Texture Size** | 获取图像内的位置、文档尺寸或输入纹理的尺寸。 |
 | **Sample Texture** | 按 UV 读取图像；更改坐标可产生扭曲。 |
 | **Sample Gradient**、**Sample Curve** | 将数值映射为渐变颜色，或用曲线调整数值。 |
 | **Split**、**Combine**、**Swizzle** | 分离、组合或重排向量/颜色通道。 |
@@ -112,9 +113,11 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 | **Power**、**Square Root**、**Floor**、**Ceil**、**Round**、**Fraction** | 调整过渡形状、创建阶梯或重复数值区间。 |
 | **Sine**、**Cosine** | 创建波形和重复图案。 |
 | **Lerp**、**Remap**、**Step**、**Smoothstep** | 混合数值、转换范围并生成硬边或柔和阈值。 |
+| **Unlerp** | 计算 T 在 A–B 范围中的位置：`(T-A)/(B-A)`，不限制输出范围。默认 A = 0、B = 1、T = 0。支持逐分量向量计算；两端相等时结果未定义。 |
 | **Length**、**Distance**、**Dot**、**Normalize** | 计算距离与方向。 |
 | **Compare**、**Select** | 根据条件在两个值之间选择。 |
 | **Transform UV** | 平移、缩放或旋转供后续节点使用的坐标。 |
+| **Pixelate UV** | 将坐标吸附到网格中心，再采样纹理或生成图案。 |
 | **Noise**、**Cellular**、**Random** | 根据坐标与 Seed 生成噪声、单元距离或可重复的随机值。 |
 | **Checkerboard**、**Stripes**、**Grid**、**Rings**、**Gradient Factor** | 创建边缘平滑的图案遮罩，或生成渐变采样位置。 |
 | **Shape**、**Combine Distance** | 创建形状遮罩并组合有符号距离。 |
@@ -123,6 +126,8 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 | **Hue**、**Saturation**、**Exposure**、**Lightness**、**Contrast**、**Levels**、**Color Balance**、**Posterize** | 调整颜色、亮度与色阶数量。 |
 | **Convert Color**、**Luminance**、**Gradient Map**、**Color Curves** | 转换颜色分量或重新映射图像色调。 |
 | **Color Mask**、**Hue Range**、**Mix Color**、**Set Alpha** | 选择颜色、混合颜色并控制透明度。 |
+| **Channel Mixer**、**White Balance** | 混合 RGB 通道，或调整 Temperature 和 Tint，同时保留 Alpha 与 HDR。 |
+| **Directional Blur**、**Radial Blur** | 沿直线、绕中心旋转或沿中心径向模糊连接的分支。 |
 | **Height to Normal**、**Normal Blend**、**Height to Distortion**、**Normal to Distortion** | 将纹理或高度计算转为法线或位移，并叠加法线细节。 |
 | **Blend** | 按混合模式与 Alpha 合成颜色。Mix Color 对颜色插值，Lerp 对数值分量插值。 |
 | **Output** | 输出最终 RGBA 图像。 |
@@ -130,6 +135,18 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 要创建彩色噪声，连接 **UV → Noise → Sample Gradient → Output**，并向 Sample Gradient
 提供 **Gradient** 参数。之后在 Properties 中调整渐变。
 要创建阈值遮罩，在 Noise 后接 **Smoothstep**，再通过 **Combine** 将其结果设为 Alpha。
+
+**Pixelate UV** 的 **CellSize** 默认 `(8,8)`，**Offset** 默认 `(0,0)`，单位均为文档像素。
+每个轴的最小单元尺寸为一个像素。将 Out 连接到纹理或图案的 UV 输入。
+**Channel Mixer** 的 Red、Green、Blue 向量指定各 RGB 通道的贡献；`1` 表示完整贡献。
+默认设置保持原色，也支持负权重与 HDR。**White Balance** 的 Temperature 和 Tint 默认均为 `0`，
+范围为 `-1..1`。正 Temperature 使颜色偏暖，负值偏冷；正 Tint 偏洋红，负值偏绿。
+
+**Directional Blur** 的 Radius 使用文档像素，Angle 使用度数；路径向两侧各延伸 Radius。
+**Radial Blur** 提供 **Spin**（绕 Center 旋转 ±Angle）和 **Zoom**（半径乘以 `1 ± abs(Strength)`）。
+默认 Strength = `0.1`，对应半径的 `0.9..1.1` 倍。不适用的字段仍显示，但不可用。
+两种模糊均正确处理 Color 的透明度，避免隐藏 RGB 形成色边。**Samples** 默认为 `17`，
+向上取整为 `3..129` 之间的奇数。较长路径或细节需要更多 Samples，计算成本也随之增加。
 
 未连接的数值输入字段显示在节点主体外、端口左侧，可直接编辑，且不会遮挡端口连线。
 连接后字段隐藏，断开后重新显示。未连接的 UV 端口保留隐式的当前像素坐标（`PixelUV`）：
@@ -168,6 +185,7 @@ Cell 不是唯一标识符；Cellular 没有 Out 端口。
 
 **Shape** 提供 Ellipse、Rectangle、Rounded Rectangle、Polygon、Star、Capsule 和 Line Segment。
 **Out** 是平滑遮罩；**Distance** 在形状内部为负，外部为正。
+Polygon 和 Star 沿单轴拉伸时，仍保持均匀的距离和 Feather 宽度。
 将两个 Distance 输出连接到 **Combine Distance**，再使用其 **Mask** 作为覆盖度。
 可选择 Union、Intersection 或 Subtract（从 A 中减去 B）；Smoothness 平滑形状接合处，
 Feather 柔化遮罩边缘。Capsule 使用 Center、Size 和 Rotation；Line Segment 使用 Start、End
@@ -179,11 +197,13 @@ Feather 柔化遮罩边缘。Capsule 使用 Center、Size 和 Rotation；Line Se
 Checkerboard、Stripes、Grid、Rings 和形状遮罩的边缘均经过平滑处理。
 **Stripes**、**Rings**、**Wave** 和 **Ripple** 提供独立的 **Phase** 输入，以周期为单位移动图案。
 可以用参数控制 Phase，或连接 **Time** 来查看图预览中的动画。
+Phase 每个周期重复，也支持负值。Grid 的 Offset 在每个轴上以 1 为周期，
+Checkerboard 则以 2 为周期。较大的偏移仍可保持均匀的填充和清晰的图案边缘。
 Stripes 提供 Square、Triangle 和 Sine 波形，Width 仅影响 Square。
 Angle、Rotation、Direction 和 Twirl 的 Strength 均以度为单位。
 
 将 UV 节点的 **Out** 连接到下一个图案节点或 **Sample Texture.UV**。
-**Repeat.Cell** 包含单元坐标，也可以为负。**Input/Instance Index** 仍返回零，与 Cell 无关。
+**Repeat.Cell** 包含单元坐标，也可以为负。**Input/Instance Index** 使用独立索引（当前为零），与 Cell 无关。
 **Domain Warp** 除了输出扭曲后的 UV，还通过
 **Displacement** 输出偏移向量。**Strength = 0** 时，扭曲节点保持输入坐标不变；
 位移向量保留自身长度。UV 可以超出 `0..1`，图像边界外的采样方式由 Sample Texture
@@ -246,7 +266,7 @@ Clamp 开关，Set Alpha 不限制透明度。需要限制范围时添加 Clamp�
 将 Texture 参数连接到 Height，再选择 Channel。此时 Radius 以源纹理的纹素为单位；
 Wrap 和 Filter 控制边缘采样。
 选择 **Source: Value**，即可连接噪声、遮罩或其他标量高度计算。节点会在相邻坐标
-重新计算该分支，此时 Radius 以输出像素为单位。**Height to Distortion** 也支持这两种来源。
+重新计算该分支，此时 Radius 以文档像素为单位，不受预览尺寸影响。**Height to Distortion** 也支持这两种来源。
 Strength 调整凹凸强度，Radius 调整采样距离。两种来源均支持 Scharr、Sobel 和
 Central Difference；Flip X 和 Flip Y 反转对应的倾斜方向。使用固定坐标的分支会产生恒定高度。
 
@@ -282,16 +302,17 @@ Alpha 为零时返回黑色 RGB。Alpha 本身不变。Output 需要直通颜色
 
 将图案或 **Sample Texture.Out** 连接到 **Blur.In**，再将 Blur.Out 连接到 Output，即可柔化
 图像。**Sharpen** 增强局部对比度，**Edge Detection** 提取变化边缘，**Dilate** 扩大亮区，
-**Erode** 缩小亮区。颜色通道和 Alpha 分别处理；需要统一轮廓时，连接标量遮罩。
+**Erode** 缩小亮区。Blur 会考虑 Color 的 Alpha，避免透明像素中的隐藏颜色产生光晕；输入和输出均为直通 RGBA。
+Sharpen 和 Edge Detection 保留 Color 的 Alpha。数值向量及 Dilate/Erode 仍逐分量处理；需要统一轮廓时，连接标量遮罩。
 
-Radius 以输出像素为单位设置采样距离。Blur、Sharpen、Dilate 和 Erode 提供 **3 × 3**、
-**5 × 5** 和 **9 × 9** 核。相同半径下，更多采样可保留更多细节；较大半径搭配较小核时，
-可能漏掉细线。Edge Detection 使用固定的 3 × 3 Sobel 核。Strength 调整 Sharpen 和
+Radius 以文档像素为单位设置采样距离。Blur、Sharpen、Dilate 和 Erode 的 **Minimum Kernel**
+可选 **3 × 3**、**5 × 5** 或 **9 × 9**。较大半径会自动增加采样，使间距不超过一个像素；
+更密的最小核有助于捕捉亚像素细节。Edge Detection 使用固定的 3 × 3 Sobel 核。Strength 调整 Sharpen 和
 Edge Detection 的强度。结果可以超出 `0..1`；需要限制遮罩范围时，添加 Clamp 或 Saturate。
 
 滤镜在相邻坐标重新计算输入分支。上游图案需要随 UV 变化；固定坐标只会得到恒定结果。
-多个大核滤镜串联可能使预览变慢。Radius 使用当前输出分辨率，因此相同设置下，小尺寸
-节点预览可能比完整图层结果更模糊。
+大半径，尤其是多个滤镜串联时，可能使预览变慢。节点预览和完整图层渲染使用相同的文档像素尺度。
+Radius 可以随图像位置变化；内置形状和图案在滤镜内仍保留抗锯齿。Radius 为零时，Blur、Sharpen、Dilate 和 Erode 保留原始输入。
 
 ## 复用 Sub Graph
 
@@ -400,6 +421,9 @@ Add、Multiply、Lerp 等动态类型运算先将 Color 视为 `float4`，再采
 Alpha 控制透明度；在 Output 前无需将 RGB 乘以 Alpha。
 
 ## 查看 Generated HLSL
+
+面板显示由节点图生成的 WhimTex FX 脚本，包括 `@param` 声明和 `ApplyFX`。
+这是添加 Unity ShaderLab 包装之前的代码。
 
 向上拖动底部的 **Generated HLSL** 横条，即可查看节点图生成的代码。
 横条带有标题和水平抓握线，操作方式与 Layer Settings 中预览的拖动手柄相同。

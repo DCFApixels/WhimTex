@@ -27,7 +27,7 @@ namespace DCFApixels.WhimTex
             { endMin = Math.Min(endMin, minimum); endMax = Math.Max(endMax, maximum); }
         }
 
-        internal static Prepared Prepare(string source, string moduleName)
+        internal static Prepared Prepare(string source, string moduleName, string preamble = null)
         {
             if (source == null || source.Length > ShaderGraphSources.MaximumArchiveBytes ||
                 ShaderGraphSources.Utf8.GetByteCount(source) > ShaderGraphSources.MaximumArchiveBytes)
@@ -193,7 +193,7 @@ namespace DCFApixels.WhimTex
                 prefix.Append("#ifdef ").Append(marker).Append("\n#error WhimTex ownership marker conflicts with a global macro\n#endif\n");
                 cleanup.Append("#ifdef ").Append(marker).Append("\n#undef ").Append(name).Append("\n#undef ").Append(marker).Append("\n#endif\n");
             }
-            prefix.Append("namespace ").Append(moduleName).Append(" {\n");
+            prefix.Append("namespace ").Append(moduleName).Append(" {\n").Append(preamble);
             string prefixText = prefix.ToString(), cleanupText = cleanup.ToString();
             long total = bodyBytes + ShaderGraphSources.Utf8.GetByteCount(prefixText) + ShaderGraphSources.Utf8.GetByteCount(cleanupText) + 3L;
             if (total > ShaderGraphSources.MaximumArchiveBytes) throw new FormatException("Prepared HLSL module and cleanup exceed 32 MiB.");

@@ -15,7 +15,7 @@ namespace DCFApixels.WhimTex
         internal const string ColorLibraryInclude = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc\"\n";
         private const int MaximumCharacters = 2 * 1024 * 1024;
         internal const string RegionalColorMarker = "// WhimTex regional color input v1\n";
-        internal const string ViewportWrapperMarker = "// WhimTex viewport wrapper v4\n";
+        internal const string ViewportWrapperMarker = "// WhimTex viewport wrapper v5\n";
         // Conservative capability inference over expanded user code, including helpers.
         // Any explicit sampling, derivative or unresolved compiler input needs a full frame.
         private static readonly Regex SpatialInput = new Regex(
@@ -187,6 +187,15 @@ float4 SampleInput(float2 uv, float tiling)
 
         private static string BuildCore(ShaderFX effect, string assetPath, ShaderFXParameterControl preview, ShaderFXParameter previewParameter,
             out ShaderFXLocalityReason[] reasons, string resolvedSource = null, string previewCall = null)
+            => BuildCore(effect.Code, effect.Parameters, "Hidden/WhimTex/ShaderFX/" + effect.ShaderKey,
+                assetPath, preview, previewParameter, out reasons, resolvedSource, previewCall);
+
+        internal static string BuildGenerated(string source, IReadOnlyList<ShaderFXParameter> parameters, string shaderName, string sourcePath, int maximumCharacters)
+            => BuildCore(source, parameters, shaderName, sourcePath, null, null, out _, maximumCharacters: maximumCharacters);
+
+        private static string BuildCore(string code, IReadOnlyList<ShaderFXParameter> parameters, string shaderName,
+            string assetPath, ShaderFXParameterControl preview, ShaderFXParameter previewParameter,
+            out ShaderFXLocalityReason[] reasons, string resolvedSource = null, string previewCall = null, int maximumCharacters = MaximumCharacters)
         {
             WhimTexHueGradient.Ensure();
             ShaderFXSourceBuilder builder = new ShaderFXSourceBuilder();
@@ -198,16 +207,16 @@ float4 SampleInput(float2 uv, float tiling)
                 "_WhimTexTime", "_WhimTexInstanceIndex",
                 "ApplyFX", "SampleInput", "SampleTexture", "PinnedUV", "WhimTexTexture", "LayerToLocal", "SpriteFXFragment", "vert_img", "v2f_img"
             };
-            BuildParameterDeclarations(effect.Parameters, properties, uniforms, names);
+            BuildParameterDeclarations(parameters, properties, uniforms, names);
             var textureViews = new StringBuilder();
             ShaderFXTextureViews.Declare("_MainTex", properties, textureViews);
-            foreach (var parameter in effect.Parameters)
+            foreach (var parameter in parameters)
                 if (parameter.type == ShaderFXParameterType.Texture2D)
                     ShaderFXTextureViews.Declare(parameter.name, properties, textureViews);
-            string expanded = resolvedSource ?? builder.ResolveIncludes(effect.Code ?? string.Empty, assetPath);
+            string expanded = resolvedSource ?? builder.ResolveIncludes(code ?? string.Empty, assetPath, maximumCharacters);
             if (Regex.IsMatch(expanded, @"\b_WhimTex_[A-Za-z0-9_]*"))
                 throw new InvalidOperationException("The _WhimTex_ prefix is reserved for generated shader data.");
-            string contractSource = ExpandExportIncludes(expanded, assetPath, true);
+            string contractSource = ExpandExportIncludes(expanded, assetPath, true, maximumCharacters);
             var contextDependencies = ShaderContextUsage.Analyze(contractSource);
             var entry = ShaderFXEntryPoint.ParseWithSource(contractSource, assetPath);
             reasons = entry.reasons;
@@ -217,15 +226,15 @@ float4 SampleInput(float2 uv, float tiling)
             lowered = ShaderFXTextureViews.Prepare(lowered);
             string imageUv = "_WhimTex_Viewport.xy + input.uv * _WhimTex_Viewport.zw";
             string fragment = preview == null ? entry.Call(imageUv, "tex2D(_MainTex, " + imageUv + ")")
-                : previewCall ?? ShaderFXPreviewFunction.Call(expanded, preview.previewFunction, previewParameter, preview.type, preview.previewParameters, effect.Parameters);
+                : previewCall ?? ShaderFXPreviewFunction.Call(expanded, preview.previewFunction, previewParameter, preview.type, preview.previewParameters, parameters);
             bool regional = false;
             if (preview == null)
             {
-                try { regional = HasRegionalColorInput(ExportIncludes(expanded, assetPath), effect.Parameters); }
+                try { regional = HasRegionalColorInput(ExpandExportIncludes(expanded, assetPath, false, maximumCharacters), parameters); }
                 catch (IOException) { } // Unknown dependencies keep the complete-input path.
                 catch (InvalidOperationException) { }
             }
-            return ViewportWrapperMarker + entry.Marker + ShaderContextUsage.Marker(contextDependencies) + "Shader \"Hidden/WhimTex/ShaderFX/" + effect.ShaderKey + (preview == null ? "" : "/Preview/" + preview.previewFunction) + "\"\n{\n" +
+            return ViewportWrapperMarker + entry.Marker + ShaderContextUsage.Marker(contextDependencies) + "Shader \"" + shaderName + (preview == null ? "" : "/Preview/" + preview.previewFunction) + "\"\n{\n" +
                 (regional ? RegionalColorMarker : "") +
                 "Properties {\n_MainTex (\"Input\", 2D) = \"white\" {}\n[HideInInspector] _WhimTex_Viewport (\"Viewport\", Vector) = (0,0,1,1)\n" +
                 "[HideInInspector] _WhimTex_InputFilter (\"Input Filter\", Float) = 1\n" + properties + "}\n" +
@@ -339,10 +348,10 @@ float4 SampleInput(float2 uv, float tiling)
             return false;
         }
 
-        private string ResolveIncludes(string source, string sourcePath)
+        private string ResolveIncludes(string source, string sourcePath, int maximumCharacters = MaximumCharacters)
         {
-            if (source.Length > MaximumCharacters)
-                throw new InvalidOperationException("Shader FX source exceeds the 2 MiB character limit.");
+            if (source.Length > maximumCharacters)
+                throw new InvalidOperationException("Shader FX source exceeds its character limit (" + maximumCharacters + ").");
             StringBuilder result = new StringBuilder();
             bool blockComment = false;
             using (StringReader reader = new StringReader(source))
@@ -385,7 +394,7 @@ float4 SampleInput(float2 uv, float tiling)
 
         internal static string ExportIncludes(string source, string sourcePath) => ExpandExportIncludes(source, sourcePath, false);
 
-        private static string ExpandExportIncludes(string source, string sourcePath, bool lineDirectives)
+        private static string ExpandExportIncludes(string source, string sourcePath, bool lineDirectives, int maximumCharacters = MaximumCharacters)
         {
             var builder = new ShaderFXSourceBuilder();
             var active = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -394,7 +403,7 @@ float4 SampleInput(float2 uv, float tiling)
             {
                 if (depth > 32 || !active.Add(path)) throw new IOException("Cyclic or excessively nested shader includes cannot be exported.");
                 characters += text.Length;
-                if (characters > MaximumCharacters) throw new IOException("Exported HLSL exceeds 2 MiB.");
+                if (characters > maximumCharacters) throw new IOException("Expanded HLSL exceeds its character limit (" + maximumCharacters + ").");
                 var result = new StringBuilder();
                 using var reader = new StringReader(text);
                 bool block = false;
@@ -411,7 +420,7 @@ float4 SampleInput(float2 uv, float tiling)
                         string physical = builder.PhysicalPath(resolved);
                         if (File.Exists(physical))
                         {
-                            if (new FileInfo(physical).Length > MaximumCharacters) throw new IOException("Included HLSL exceeds 2 MiB.");
+                            if (new FileInfo(physical).Length > maximumCharacters) throw new IOException("Included HLSL exceeds its size limit (" + maximumCharacters + ").");
                             if (lineDirectives) result.Append(LineDirective(1, resolved));
                             result.AppendLine(Expand(File.ReadAllText(physical), resolved, depth + 1));
                             if (lineDirectives) result.Append(LineDirective(lineNumber + 1, path));

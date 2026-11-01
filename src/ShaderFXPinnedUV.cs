@@ -50,7 +50,7 @@ namespace DCFApixels.WhimTex
             internal Value(string type, int start, int end, bool writable = false)
             { this.type = type; this.start = start; this.end = end; this.writable = writable; }
         }
-        static readonly Regex Lex = new Regex(@"[A-Za-z_]\w*|0[xX][0-9a-fA-F]+[uUlL]*|(?:\d*\.\d+|\d+\.?\d*)(?:[eE][+-]?\d+)?[fFuU]?|<<=|>>=|\+\+|--|\+=|-=|\*=|/=|%=|==|!=|<=|>=|&&|\|\||<<|>>|&=|\|=|\^=|[^\s]", RegexOptions.CultureInvariant);
+        static readonly Regex Lex = new Regex(@"[A-Za-z_]\w*|0[xX][0-9a-fA-F]+[uUlL]*|(?:\d*\.\d+|\d+\.?\d*)(?:[eE][+-]?\d+)?[fFuU]?|::|<<=|>>=|\+\+|--|\+=|-=|\*=|/=|%=|==|!=|<=|>=|&&|\|\||<<|>>|&=|\|=|\^=|[^\s]", RegexOptions.CultureInvariant);
         static bool Identifier(string text) => text.Length > 0 && (char.IsLetter(text[0]) || text[0] == '_');
         static bool Numeric(string type) => Regex.IsMatch(type, @"^(?:float|half|double|int|uint|bool)(?:[1-4](?:x[1-4])?)?$");
         static bool Qualifier(string text) => text == "const" || text == "in" || text == "out" || text == "inout" || text == "static" || text == "uniform" || text == "inline" || text == "precise";
@@ -320,8 +320,22 @@ namespace DCFApixels.WhimTex
                 while (Peek() != "}" && cursor < limit) { var item = Expression(1); Unpin(item); if (!Take(",")) break; }
                 Need("}"); value = new Value("?", start, tokens[cursor - 1].end);
             }
-            else if (Identifier(token))
+            else if (Identifier(token) || token == "::")
             {
+                bool qualified = token == "::";
+                if (qualified)
+                {
+                    if (!Identifier(Peek())) throw Error(Offset(), "Expected a qualified HLSL name.");
+                    token += Peek(); cursor++;
+                }
+                while (Take("::"))
+                {
+                    if (!Identifier(Peek())) throw Error(Offset(), "Expected a qualified HLSL name.");
+                    token += "::" + Peek(); cursor++; qualified = true;
+                }
+                // Namespace bodies are opaque to this narrow coordinate pass. HLSL
+                // resolves them; never certify a qualified call as pixel-local.
+                if (qualified) current.unverifiedReads.Add(start);
                 if (token == Pinned) throw Error(start, "PinnedUV cannot be constructed or cast from components.");
                 if (Take("(")) value = Call(token, start);
                 else value = new Value(Lookup(token), start, tokens[cursor - 1].end, Lookup(token) != Pinned);

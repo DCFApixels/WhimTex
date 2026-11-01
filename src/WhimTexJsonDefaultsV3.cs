@@ -4,8 +4,8 @@ namespace DCFApixels.WhimTex
     {
         internal const string NumericParameterData = @"{""valueType"":null,""integerValues"":[0,0,0,0]}";
         internal const string NumericControlData = @"{""valueType"":null,""rgba"":false,""valueMinimum"":0,""valueMaximum"":0}";
-        internal const string CustomGradientData = @"{""customKeys"":null,""customColorMode"":""Perceptual"",""customApproximationError"":0}";
-        internal const string CustomGradientKeyData = @"{""id"":0,""channel"":0,""time"":0,""value"":0,""inTangent"":0,""outTangent"":0,""tangentMode"":""Auto""}";
+        internal const string CustomGradientData = @"{""customKeys"":null,""customCurveFormat"":0,""customColorMode"":""Perceptual"",""customApproximationError"":0}";
+        internal const string CustomGradientKeyData = @"{""id"":0,""channel"":0,""time"":0,""value"":0,""inTangent"":0,""outTangent"":0,""inMode"":""Free"",""outMode"":""Free"",""broken"":false,""inWeight"":0.33333334,""outWeight"":0.33333334,""weightedMode"":""None""}";
         internal const string LayerBooleanData = @"{""booleanOperation"":""Union"",""groupFxInLayerSpace"":false}";
         internal const string PreviewControlData = @"{""previewFunction"":null,""previewParameters"":[]}";
         internal const string CyclicRangeData = @"{""cyclicRange"":false}";

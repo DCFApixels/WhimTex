@@ -140,6 +140,15 @@ namespace DCFApixels.WhimTex
 
         internal static List<ShaderFXParameter> ParseWithPreviews(string source, bool requireHeader, out string menuPath,
             out List<ShaderFXParameterControl> previews)
+            => ParseCore(source, requireHeader, out menuPath, out previews, 128);
+
+        // Generated graphs have their own node/port limits and can expose more than
+        // 128 uniforms. Keep the ordinary authoring limit unchanged.
+        internal static List<ShaderFXParameter> ParseGenerated(string source, int maximumParameters)
+            => ParseCore(source, true, out _, out _, maximumParameters);
+
+        private static List<ShaderFXParameter> ParseCore(string source, bool requireHeader, out string menuPath,
+            out List<ShaderFXParameterControl> previews, int maximumParameters)
         {
             ShaderFXPresetIdentity.Read(source);
             previews = new List<ShaderFXParameterControl>();
@@ -374,8 +383,8 @@ namespace DCFApixels.WhimTex
                         if (explicitDefault) CopyValue(p, existing);
                     }
                     else { names.Add(name, p); result.Add(p); }
-                    if (++declarationCount > 128) throw new FormatException("At most 128 parameter controls are supported.");
-                    if (result.Count > 128) throw new FormatException("At most 128 parameters are supported.");
+                    if (++declarationCount > maximumParameters) throw new FormatException("At most " + maximumParameters + " parameter controls are supported.");
+                    if (result.Count > maximumParameters) throw new FormatException("At most " + maximumParameters + " parameters are supported.");
                 }
                 catch (FormatException error) { throw new FormatException($"Line {lineNumber}: {error.Message}"); }
             } while ((line = reader.ReadLine()) != null);

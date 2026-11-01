@@ -75,7 +75,7 @@ namespace DCFApixels.WhimTex
                         if (value["customColorMode"] == null)
                             throw new FormatException("Saved Custom gradient requires customColorMode at " + value.Path + ".");
                         foreach (var item in custom)
-                            AgentJson.Keys(AgentJson.Obj(item, "Custom gradient key"), "id", "channel", "time", "value", "inTangent", "outTangent", "tangentMode");
+                            AgentJson.Keys(AgentJson.Obj(item, "Custom gradient key"), "id", "channel", "time", "value", "inTangent", "outTangent", "inMode", "outMode", "broken", "inWeight", "outWeight", "weightedMode");
                     }
                     if (value["customKeys"] != null && value["customKeys"].Type != JTokenType.Null && !(value["customKeys"] is JArray))
                         throw new FormatException("Saved customKeys must be an array at " + value.Path + ".");

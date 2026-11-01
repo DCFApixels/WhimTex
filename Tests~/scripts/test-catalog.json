@@ -23427,6 +23427,23 @@
       "reviewFiles": []
     },
     {
+      "id": "gradient-bezier-v1",
+      "file": "Tests~/Cases/Color/GradientBezierTests.cs",
+      "runner": "run_script",
+      "entry": "GradientBezierTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["regression", "gradient", "color"],
+      "prerequisites": "Connected idle Editor with current WhimTex compiled and a graphics device.",
+      "setup": "Owned gradients, transient documents/textures and one unshown ScriptableObject Undo owner. No windows, assets, clipboard or user document edits.",
+      "teardown": "Destroy owned objects, clear only owned Undo and restore RenderTexture.active/GL.sRGBWrite.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": []
+    },
+    {
       "id": "gradient-reverse-v1",
       "file": "Tests~/Cases/Color/GradientReverseTests.cs",
       "runner": "run_script",

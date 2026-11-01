@@ -163,7 +163,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                                 ("description", "HeightToNormal/HeightToDistortion: Texture requires a Height resource, source-texel Radius and channel/wrap/filter; Value accepts Float Height and reevaluates its branch at neighboring UVs with output-pixel Radius. Both retain derivative, Strength and FlipX/FlipY.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "option"
                             ? D(("type", "integer"), ("default", 0),
-                                ("description", "Zero-based node mode; use discovery modes for kind-specific values. Blur/Sharpen/Dilate/Erode: 0=3x3, 1=5x5, 2=9x9; EdgeDetection has a fixed 3x3 Sobel kernel. Flipbook: 0=Bottom to Top, 1=Top to Bottom. Dither: 0=Bayer 4x4, 1=Bayer 2x2, 2=Bayer 8x8.")) :
+                                ("description", "Zero-based node mode; use discovery modes for kind-specific values. Blur/Sharpen/Dilate/Erode: 0=3x3, 1=5x5, 2=9x9; EdgeDetection has a fixed 3x3 Sobel kernel. RadialBlur: 0=Spin, 1=Zoom; DirectionalBlur has no mode. Flipbook: 0=Bottom to Top, 1=Top to Bottom. Dither: 0=Bayer 4x4, 1=Bayer 2x2, 2=Bayer 8x8.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "constant"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphConstant))), ("default", "PI"),
                                 ("description", "Constant node selection. Emits a Float HLSL literal; arbitrary values use parameters or unconnected inputs.")) :
@@ -339,11 +339,12 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                         ("properties", D(("interpolation", D(("const", "Custom"))))));
                     var hasManualKeys = D(("required", new[] { "customKeys" }),
                         ("properties", D(("customKeys", D(("type", "array"), ("minItems", 1))))));
-                    var requiresManualKeys = D(("required", new[] { "customKeys", "customColorMode" }),
+                    properties["customCurveFormat"] = D(("type", "integer"), ("enum", new[] { 0, 1 }), ("default", 0), ("description", "1 is required with Custom Bezier keys; 0 means no manual data."));
+                    var requiresManualKeys = D(("required", new[] { "customKeys", "customColorMode", "customCurveFormat" }),
                         ("properties", D(("customKeys", D(("type", "array"), ("minItems", 4))))));
                     ((Dictionary<string, object>)definitions[name])["allOf"] = new[] {
                         D(("if", customSelected), ("then", requiresManualKeys)),
-                        D(("if", hasManualKeys), ("then", D(("required", new[] { "customColorMode" }))))
+                        D(("if", hasManualKeys), ("then", D(("required", new[] { "customColorMode", "customCurveFormat" }), ("properties", D(("customCurveFormat", D(("const", 1))))))))
                     };
                 }
                 if (type == typeof(GradientLayerBehaviour))
@@ -360,7 +361,10 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                     properties["id"] = D(("type", "integer"), ("minimum", 1), ("maximum", int.MaxValue));
                     properties["channel"] = D(("type", "integer"), ("minimum", 0), ("maximum", 3), ("default", 0));
                     properties["time"] = D(("type", "number"), ("minimum", 0), ("maximum", 1), ("default", 0));
-                    ((Dictionary<string, object>)properties["tangentMode"])["description"] = "Auto, Smooth, Broken, Linear or Constant. Constant uses the right key between knots, matching Fixed; exact knots keep their values.";
+                    foreach (string side in new[] { "inMode", "outMode" })
+                        ((Dictionary<string, object>)properties[side])["description"] = "Free, ClampedAuto, Linear, Constant (previous value) or ConstantNext (next value). Joined sides must both be Free or ClampedAuto. Weighted Bezier evaluation uses AnimationCurve.";
+                    foreach (string weight in new[] { "inWeight", "outWeight" })
+                        properties[weight] = D(("type", "number"), ("minimum", 0), ("maximum", 1), ("default", 1f / 3), ("description", "Fraction of adjacent time span; unweighted sides use 1/3."));
                     ((Dictionary<string, object>)definitions[name])["required"] = new[] { "id" };
                     var alphaChannel = D(("required", new[] { "channel" }), ("properties", D(("channel", D(("const", 3))))));
                     var alphaValue = D(("properties", D(("value", D(("type", "number"), ("minimum", 0), ("maximum", 1))))));

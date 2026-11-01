@@ -51,15 +51,16 @@ float4 tex2Dproj(WhimTexTexture source, float4 uv)
 }
 ";
 
-        // The macro creates a value, not a writable global struct. Ordinary HLSL
-        // functions pass it by value without rewriting their calls or arguments.
+        // A read-only global keeps the sampler identity static through helper calls
+        // inside dynamic loops. UV mapping and logical size still use live uniforms.
         internal static void Declare(string name, StringBuilder properties, StringBuilder source)
         {
             string prefix = Prefix(name);
             properties.AppendLine($"[HideInInspector] {prefix}_UvMap (\"Input UV\", Vector) = (1,1,0,0)");
             properties.AppendLine($"[HideInInspector] {prefix}_Size (\"Logical Texel Size\", Vector) = (0,0,0,0)");
             source.AppendLine($"float4 {prefix}_UvMap, {prefix}_Size;");
-            source.AppendLine($"WhimTexTexture {prefix}_Get() {{ WhimTexTexture _WhimTex_View; _WhimTex_View.pixels = {name}; _WhimTex_View.uvMap = {prefix}_UvMap; _WhimTex_View.texelSize = {prefix}_Size.z > 0 ? {prefix}_Size : {name}_TexelSize; return _WhimTex_View; }}");
+            source.AppendLine($"static const WhimTexTexture {prefix}_View = {{ {name}, {prefix}_UvMap, {prefix}_Size.z > 0 ? {prefix}_Size : {name}_TexelSize }};");
+            source.AppendLine($"WhimTexTexture {prefix}_Get() {{ return {prefix}_View; }}");
             source.AppendLine($"#define {name} {prefix}_Get()");
             source.AppendLine($"#define {name}_TexelSize ({prefix}_Get().texelSize)");
         }

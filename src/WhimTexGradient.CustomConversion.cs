@@ -101,7 +101,9 @@ namespace DCFApixels.WhimTex
                 }
                 keys[i] = new WhimTexGradientCurveKey { channel = channel, time = times[i], value = (float)value,
                     inTangent = (float)incoming, outTangent = (float)outgoing,
-                    tangentMode = fixedSource ? WhimTexGradientTangentMode.Constant : WhimTexGradientTangentMode.Broken };
+                    inMode = fixedSource ? WhimTexGradientTangentMode.ConstantNext : WhimTexGradientTangentMode.Free,
+                    outMode = fixedSource ? WhimTexGradientTangentMode.ConstantNext : WhimTexGradientTangentMode.Free,
+                    broken = true, inWeight = 1f / 3, outWeight = 1f / 3, weightedMode = WeightedMode.Both };
             }
             return keys;
         }

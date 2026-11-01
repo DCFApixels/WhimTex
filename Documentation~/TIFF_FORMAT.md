@@ -45,7 +45,9 @@ parameters or marked HLSL source links.
 The native model retains both automatic gradient data and independent manual
 `customKeys`/`customColorMode`, including inactive curves and the conversion diagnostic
 `customApproximationError`. A manual key stores `id`, `channel`, `time`, `value`,
-`inTangent`, `outTangent` and `tangentMode`. Values, tangents and IDs are preserved;
+`inTangent`, `outTangent`, `inMode`, `outMode`, `broken`, `inWeight`, `outWeight` and
+`weightedMode`. `customCurveFormat:1` identifies weighted Bezier data; unsupported older
+Custom records are rejected without migration. Values, handles and IDs are preserved;
 there are no persistent links or marker groups. The strict gradient-field reader rejects
 an explicit obsolete `link` field, including zero, without migration or rewriting the file.
 

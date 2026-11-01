@@ -1,5 +1,11 @@
 # Running WhimTex tests
 
+`gradient-bezier-v1` checks Custom curves against native weighted AnimationCurve samples,
+independent/linked handles, interval constraints, shape-preserving insertion, reversal,
+Fixed conversion, HDR/alpha, allocation-free evaluation, native/JSON/API roundtrips and
+owned Undo/Redo. Small GPU fixtures check LUT/thumbnail invalidation, composition, groups,
+Target input, clipping and export. No windows, user documents, clipboard or assets are changed.
+
 Start with the [test map](README.md): `Cases/` is organized by subsystem, `Framework/`
 contains shared support, and `Fixtures/` contains required inputs. The explicit
 `scripts/test-catalog.json` owns IDs, invocation metadata and limited profiles; directory

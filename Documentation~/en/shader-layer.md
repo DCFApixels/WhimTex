@@ -35,10 +35,11 @@ To use another image in the calculation, declare a **Texture** parameter and rea
 ## Mathematical constants and Swizzle
 
 **Input/Instance Index** and **Input/Time** each provide a Float output named **Out**.
-Neither has its own preview. **Instance Index** returns `0`.
+Neither has its own preview. Both have Float inputs **Start** (default `0`) and **Scale** (default `1`).
+**Instance Index** returns **Start + index × Scale**; the current index is `0`, so the result equals Start.
 **Time** supplies Editor time in seconds to dependent node previews and the result in the graph window.
-Its Float input **Scale** defaults to `1`: **Out = time × Scale**. Set it manually or connect another node.
-The layer itself, Canvas, thumbnails and export always use **Time = 0**.
+Its output is **Start + time × Scale**. Set either input manually or connect another node.
+The layer itself, Canvas, thumbnails and export always use time `0`, so Time returns Start there.
 HLSL nodes and Custom Function can read `_WhimTexTime` and `_WhimTexInstanceIndex` directly.
 FX on the Shader layer share its animated time inside the graph's result preview.
 
@@ -71,7 +72,7 @@ Sample Texture.UV. Frames wrap, including negative values; choose bottom-to-top 
 row order without flipping the image inside each frame.
 
 **Dither** reduces color levels with a Bayer 2 × 2, 4 × 4 or 8 × 8 pattern. Levels sets the
-number of levels, and PixelSize sets the pattern scale in output pixels. Alpha is preserved;
+number of levels, and PixelSize sets the pattern scale in document pixels. Alpha is preserved;
 HDR and negative colors are not clipped automatically.
 
 ## Notes and groups
@@ -117,7 +118,7 @@ The node clipboard also survives recompilation and remains valid until the Edito
 | Nodes | Use them for |
 | --- | --- |
 | **Parameter**, **Constant** | Adjustable layer values or mathematical constants: PI, TAU, PHI, E, SQRT2. |
-| **UV**, **Image Size**, **Texture Size** | Position within the image, output dimensions or an input texture's dimensions. |
+| **UV**, **Image Size**, **Texture Size** | Position within the image, document dimensions or an input texture's dimensions. |
 | **Sample Texture** | Read an image at chosen UV coordinates. Change the coordinates to distort it. |
 | **Sample Gradient**, **Sample Curve** | Turn a number into a gradient color or reshape it with a curve. |
 | **Split**, **Combine**, **Swizzle** | Separate, assemble or reorder vector/color channels. |
@@ -126,9 +127,11 @@ The node clipboard also survives recompilation and remains valid until the Edito
 | **Power**, **Square Root**, **Floor**, **Ceil**, **Round**, **Fraction** | Shape transitions, create steps or repeat a numeric interval. |
 | **Sine**, **Cosine** | Create waves and repeating patterns. |
 | **Lerp**, **Remap**, **Step**, **Smoothstep** | Mix values, change ranges and create hard or soft thresholds. |
+| **Unlerp** | Find the position of T within A–B: `(T-A)/(B-A)`, without clamping. Defaults: A = 0, B = 1, T = 0. Supports vectors component by component; equal bounds are undefined. |
 | **Length**, **Distance**, **Dot**, **Normalize** | Calculate distances and directions. |
 | **Compare**, **Select** | Choose between two values using a condition. |
 | **Transform UV** | Move, scale or rotate the coordinates used by downstream nodes. |
+| **Pixelate UV** | Snap coordinates to cell centers before sampling a texture or generating a pattern. |
 | **Noise**, **Cellular**, **Random** | Generate noise, cell distances or repeatable random values from coordinates and a seed. |
 | **Checkerboard**, **Stripes**, **Grid**, **Rings**, **Gradient Factor** | Create smooth pattern masks or a position for sampling a gradient. |
 | **Shape**, **Combine Distance** | Create shape masks and combine their signed distances. |
@@ -137,6 +140,8 @@ The node clipboard also survives recompilation and remains valid until the Edito
 | **Hue**, **Saturation**, **Exposure**, **Lightness**, **Contrast**, **Levels**, **Color Balance**, **Posterize** | Adjust color, brightness and tonal steps. |
 | **Convert Color**, **Luminance**, **Gradient Map**, **Color Curves** | Convert color components or remap an image's tones. |
 | **Color Mask**, **Hue Range**, **Mix Color**, **Set Alpha** | Select colors, mix them and control transparency. |
+| **Channel Mixer**, **White Balance** | Mix RGB channel contributions or adjust Temperature and Tint while retaining alpha and HDR. |
+| **Directional Blur**, **Radial Blur** | Blur a connected branch along a line, around a center or toward/away from that center. |
 | **Height to Normal**, **Normal Blend**, **Height to Distortion**, **Normal to Distortion** | Turn a texture or height calculation into normals or displacement and combine normal detail. |
 | **Blend** | Composite two colors with a blend mode and alpha. Mix Color interpolates colors; Lerp interpolates numeric components. |
 | **Output** | Produce the final RGBA image. |
@@ -144,6 +149,20 @@ The node clipboard also survives recompilation and remains valid until the Edito
 For colored noise, connect **UV → Noise → Sample Gradient → Output** and supply a
 **Gradient** parameter to Sample Gradient. Adjust the palette in Properties.
 For a threshold mask, place **Smoothstep** after Noise; use its result as alpha with **Combine**.
+
+**Pixelate UV** uses **CellSize** `(8,8)` and **Offset** `(0,0)` in document pixels. Each cell
+dimension has a minimum of one pixel. Connect Out to a texture or pattern's UV input.
+**Channel Mixer** exposes Red, Green and Blue coefficient vectors: `1` means full contribution.
+Its defaults preserve the original RGB; negative weights and HDR values are supported.
+**White Balance** starts at Temperature = Tint = `0`. Both controls use `-1..1`;
+positive Temperature warms, negative cools, positive Tint adds magenta and negative adds green.
+
+**Directional Blur** uses Radius in document pixels and Angle in degrees; the path extends
+by Radius on either side. **Radial Blur** offers **Spin** (±Angle degrees around Center) and
+**Zoom** (radius factors `1 ± abs(Strength)`). Strength defaults to `0.1`, giving `0.9..1.1` of the
+distance from Center. The unused control stays visible but inactive. Both blurs preserve Color
+transparency without bleeding hidden RGB. **Samples** defaults to `17` and rounds upward to an
+odd count between `3` and `129`. Increase it for longer paths or thin detail; more samples cost more.
 
 Unconnected numeric inputs have visible, editable fields outside the node body, to the
 left of their ports. The ports stay unobstructed for wiring. Connecting a wire hides the field;
@@ -188,6 +207,7 @@ Previously saved constant coordinates remain Custom; choose UV to switch them.
 
 **Shape** offers Ellipse, Rectangle, Rounded Rectangle, Polygon, Star, Capsule and Line Segment.
 Its **Out** is a smooth mask; **Distance** is negative inside and positive outside the shape.
+Polygon and Star keep a uniform distance and Feather when stretched along either axis.
 Connect two Distance outputs to **Combine Distance**, then use its **Mask** as coverage.
 Choose Union, Intersection or Subtract (A minus B); Smoothness blends the join, while Feather
 softens the mask edge. Capsule uses Center, Size and Rotation; Line Segment uses Start, End
@@ -199,12 +219,14 @@ parameter to **Sample Gradient.Gradient**; connect the sampled color to **Output
 Checkerboard, Stripes, Grid, Rings and shape masks have smoothed edges.
 **Stripes**, **Rings**, **Wave** and **Ripple** have a separate **Phase** input to shift the
 pattern in cycles. Drive it with a parameter, or connect **Time** to animate it in the graph preview.
+Phase repeats every cycle, including negative values. Grid's Offset repeats every unit per axis;
+Checkerboard's repeats every two units per axis. Large offsets retain clean pattern fills and edges.
 Stripes offers Square, Triangle and Sine profiles; Width affects Square only.
 Angle, Rotation and Direction use degrees; Twirl's Strength is also an angle in degrees.
 
 Connect a UV node's **Out** to the next pattern or **Sample Texture.UV**.
 **Repeat.Cell** contains cell coordinates, including negative coordinates; **Input/Instance Index**
-remains zero and is unrelated to it. **Domain Warp.Displacement** exposes the offset
+uses a separate index (currently zero) and is unrelated to it. **Domain Warp.Displacement** exposes the offset
 as well as the warped UV. Distortions leave coordinates unchanged at **Strength = 0**;
 displacement vectors keep their length. UV can extend beyond `0..1`, so choose the desired
 wrap setting on Sample Texture. Transform UV changes the coordinates within the graph,
@@ -271,7 +293,8 @@ For a normal map, add **Normal/Height to Normal**. Keep **Source: Texture** to c
 a Texture parameter directly to Height and choose its Channel. Radius measures source texture
 texels in this mode; Wrap and Filter control sampling at edges.
 Choose **Source: Value** to connect a noise, mask or other scalar height calculation.
-The node reads that calculation at neighboring coordinates, with Radius measured in output pixels.
+The node reads that calculation at neighboring coordinates, with Radius measured in document pixels,
+independent of preview size.
 This also works on **Height to Distortion**. Adjust Strength for relief and Radius for the
 sampling distance. Both sources support Scharr, Sobel and Central Difference derivatives;
 Flip X and Flip Y reverse the slope direction. A branch with fixed coordinates has no varying height.
@@ -309,19 +332,22 @@ expects straight color, so use Unpremultiply after calculations that produce pre
 
 Connect a pattern or **Sample Texture.Out** to **Blur.In**, then connect Blur.Out to Output
 to soften the image. **Sharpen** restores local contrast, **Edge Detection** extracts changes,
-and **Dilate**/**Erode** expand or shrink bright areas. For colored inputs, each channel and alpha
-is processed separately; connect a scalar mask when you want one shared contour.
+and **Dilate**/**Erode** expand or shrink bright areas. Blur accounts for Color alpha to avoid
+halos from invisible colors; its Color input and output use straight RGBA. Sharpen and Edge
+Detection preserve Color alpha. Numeric vectors and Dilate/Erode still process components
+independently; use a scalar mask for one shared contour.
 
-Radius sets the sampling distance in output pixels. Blur, Sharpen, Dilate and Erode offer
-**3 × 3**, **5 × 5** and **9 × 9** kernels. More samples retain more detail at the same radius;
-a large radius with a small kernel can miss narrow features. Edge Detection uses a fixed
+Radius sets the sampling distance in document pixels. Blur, Sharpen, Dilate and Erode offer
+**3 × 3**, **5 × 5** and **9 × 9** as a Minimum Kernel. Larger radii automatically add samples
+to keep their spacing within one pixel. A denser minimum helps with subpixel details. Edge Detection uses a fixed
 3 × 3 Sobel kernel. Strength adjusts Sharpen and Edge Detection. Results can exceed `0..1`;
 use Clamp or Saturate if you need a bounded mask.
 
 Filters read the connected calculation at neighboring coordinates. Keep the upstream pattern
-dependent on UV; fixed coordinates produce a constant result. Chaining large kernels can slow
-previews. Radius follows the current output resolution, so the small node preview can look
-softer than the full layer result at the same setting.
+dependent on UV; fixed coordinates produce a constant result. Large radii, especially in chained
+filters, can slow previews. Radius uses the same document scale in node previews and full layer renders.
+Radius can vary across the image; built-in shapes and patterns retain antialiasing inside
+the filter. At zero Radius, Blur, Sharpen, Dilate and Erode preserve the original input.
 
 ## Reuse a Sub Graph
 
@@ -450,6 +476,9 @@ and check the layer's **Rendering** color-range settings when you need HDR outpu
 Alpha controls transparency; do not multiply the RGB channels by alpha before Output.
 
 ## Inspect Generated HLSL
+
+The panel shows the WhimTex FX script generated from your graph, including `@param` declarations
+and `ApplyFX`. This is the code before it is wrapped in ShaderLab for Unity.
 
 Drag the **Generated HLSL** footer upward to read the graph's generated code. Its caption and
 horizontal grip lines work like the preview handle in Layer Settings. The panel starts collapsed and opens

@@ -27,8 +27,10 @@ namespace DCFApixels.WhimTex
         private WhimTexGradient previewSnapshot;
         private readonly Color[] previewRamp = new Color[512];
         private readonly Color32[] previewPixels = new Color32[512 * 2];
-        private FloatField timeField, valueField, incomingField, outgoingField;
-        private EnumField tangentField, convertMode;
+        private FloatField timeField, valueField, incomingField, outgoingField, inWeightField, outWeightField;
+        private EnumField weightedField, convertMode, wrapMode;
+        private PopupField<string> tangentField;
+        private static readonly List<string> TangentChoices = new List<string> { "Clamped Auto", "Free Smooth", "Flat", "Broken" };
         private Label status, keyLabel;
         private readonly Button[] channels = new Button[4];
         private readonly List<Label> xLabels = new List<Label>(), yLabels = new List<Label>();
@@ -42,7 +44,7 @@ namespace DCFApixels.WhimTex
         private struct AxisTick { internal double value; internal float position; }
         private bool updating, showOutput = true, pointerDown, panning, boxSelecting;
         private int pointerId, tangentSide, undoGroup, mutationUndoGroup;
-        private Vector2 downPoint, boxPoint;
+        private Vector2 downPoint, boxPoint, tangentDragOrigin;
         private CurveView downView;
         private WhimTexGradient dragStart;
         private int[] dragSelection;
@@ -138,6 +140,14 @@ namespace DCFApixels.WhimTex
             var output = new Toggle("Output") { name = "gradientCurvesOutput", value = showOutput };
             output.RegisterValueChangedCallback(e => { showOutput = e.newValue; plot.MarkDirtyRepaint(); });
             footer.Add(output);
+            wrapMode = new EnumField("Wrap", WhimTexGradientWrapMode.Clamp)
+            {
+                name = "gradientCurvesWrap",
+                tooltip = "How values outside 0..1 are sampled: clamp, repeat, or mirror."
+            };
+            TwoChoiceDropdown.Attach(wrapMode);
+            wrapMode.RegisterValueChangedCallback(e => Mutate("Change Gradient Wrap", g => g.WrapMode = (WhimTexGradientWrapMode)e.newValue));
+            footer.Add(wrapMode);
             var footerSpacer = new VisualElement(); footerSpacer.style.flexGrow = 1; footer.Add(footerSpacer);
             var channelGroup = new VisualElement { name = "gradientCurvesChannels" };
             channelGroup.AddToClassList("whimtex-gradient-curves-channels");
@@ -160,9 +170,16 @@ namespace DCFApixels.WhimTex
             var fields = new VisualElement(); fields.style.flexDirection = FlexDirection.Row; fields.style.flexWrap = Wrap.Wrap;
             keyLabel = new Label(); keyLabel.style.minWidth = 90; keyLabel.style.unityTextAlign = TextAnchor.MiddleLeft; fields.Add(keyLabel);
             timeField = Field("t", fields, 115); valueField = Field("Value", fields, 150);
-            tangentField = new EnumField("Tangents", WhimTexGradientTangentMode.Auto); tangentField.style.width = 220;
+            tangentField = new PopupField<string>("Tangents", TangentChoices, 0); tangentField.style.width = 220;
             tangentField.labelElement.style.minWidth = 65; tangentField.labelElement.style.width = 65; fields.Add(tangentField);
             incomingField = Field("In", fields, 135); outgoingField = Field("Out", fields, 135);
+            weightedField = new EnumField("Weighted", WeightedMode.Both);
+            weightedField.style.width = tangentField.style.width;
+            weightedField.labelElement.style.minWidth = tangentField.labelElement.style.minWidth;
+            weightedField.labelElement.style.width = tangentField.labelElement.style.width;
+            fields.Add(weightedField);
+            inWeightField = Field("In W", fields, 135); outWeightField = Field("Out W", fields, 135);
+            inWeightField.tooltip = outWeightField.tooltip = "Handle length as a fraction of the adjacent key interval (0–1).";
             timeField.RegisterValueChangedCallback(e =>
             {
                 if (stripSelection && !updating && gradient != null && gradient.TryGetCustomKey(activeId, out var key))
@@ -170,15 +187,12 @@ namespace DCFApixels.WhimTex
                 else EditKey(k => { k.time = e.newValue; return k; });
             });
             valueField.RegisterValueChangedCallback(e => EditKey(k => { k.value = k.channel == 3 ? Mathf.Clamp01(e.newValue) : e.newValue; return k; }));
-            tangentField.RegisterValueChangedCallback(e => EditKey(k =>
-            {
-                k.inTangent = gradient.CustomKeyTangent(k.id, true); k.outTangent = gradient.CustomKeyTangent(k.id, false);
-                k.tangentMode = (WhimTexGradientTangentMode)e.newValue;
-                if (k.tangentMode == WhimTexGradientTangentMode.Smooth) k.inTangent = k.outTangent;
-                return k;
-            }));
-            incomingField.RegisterValueChangedCallback(e => EditKey(k => { k.inTangent = e.newValue; if (k.tangentMode == WhimTexGradientTangentMode.Smooth) k.outTangent = e.newValue; return k; }));
-            outgoingField.RegisterValueChangedCallback(e => EditKey(k => { k.outTangent = e.newValue; if (k.tangentMode == WhimTexGradientTangentMode.Smooth) k.inTangent = e.newValue; return k; }));
+            tangentField.RegisterValueChangedCallback(e => EditKey(k => SetTangentPreset(gradient, k, e.newValue)));
+            incomingField.RegisterValueChangedCallback(e => EditKey(k => { k.inTangent = e.newValue; if (!k.broken) k.outTangent = e.newValue; return k; }));
+            outgoingField.RegisterValueChangedCallback(e => EditKey(k => { k.outTangent = e.newValue; if (!k.broken) k.inTangent = e.newValue; return k; }));
+            weightedField.RegisterValueChangedCallback(e => EditKey(k => SetWeights(k, (WeightedMode)e.newValue)));
+            inWeightField.RegisterValueChangedCallback(e => EditKey(k => { k.inWeight = Mathf.Clamp01(e.newValue); return k; }));
+            outWeightField.RegisterValueChangedCallback(e => EditKey(k => { k.outWeight = Mathf.Clamp01(e.newValue); return k; }));
             root.Add(fields);
             var conversion = new VisualElement(); conversion.style.flexDirection = FlexDirection.Row; conversion.style.marginTop = 4;
             convertMode = new EnumField("Color Mode", WhimTexGradientColorMode.Perceptual); convertMode.style.width = 250;
@@ -193,6 +207,31 @@ namespace DCFApixels.WhimTex
         {
             var field = new FloatField(label) { isDelayed = true }; field.style.width = width;
             field.labelElement.style.minWidth = 38; field.labelElement.style.width = 38; parent.Add(field); return field;
+        }
+        private static WhimTexGradientCurveKey CaptureSlopes(WhimTexGradient g, WhimTexGradientCurveKey key)
+        {
+            float incoming = g.CustomKeyTangent(key.id, true), outgoing = g.CustomKeyTangent(key.id, false);
+            key.inTangent = float.IsFinite(incoming) ? incoming : 0; key.outTangent = float.IsFinite(outgoing) ? outgoing : 0;
+            return key;
+        }
+        private static WhimTexGradientCurveKey SetTangentPreset(WhimTexGradient g, WhimTexGradientCurveKey key, string preset)
+        {
+            key = CaptureSlopes(g, key); key.broken = preset == "Broken";
+            if (key.broken)
+            {
+                if (key.inMode == WhimTexGradientTangentMode.ClampedAuto) key.inMode = WhimTexGradientTangentMode.Free;
+                if (key.outMode == WhimTexGradientTangentMode.ClampedAuto) key.outMode = WhimTexGradientTangentMode.Free;
+                return key;
+            }
+            key.inMode = key.outMode = preset == "Clamped Auto" ? WhimTexGradientTangentMode.ClampedAuto : WhimTexGradientTangentMode.Free;
+            if (preset == "Flat") key.outTangent = 0;
+            key.inTangent = key.outTangent; return key;
+        }
+        private static WhimTexGradientCurveKey SetWeights(WhimTexGradientCurveKey key, WeightedMode mode)
+        {
+            if ((mode & WeightedMode.In) != 0 && (key.weightedMode & WeightedMode.In) == 0) key.inWeight = 1f / 3;
+            if ((mode & WeightedMode.Out) != 0 && (key.weightedMode & WeightedMode.Out) == 0) key.outWeight = 1f / 3;
+            key.weightedMode = mode; return key;
         }
         private void ToggleCurveChannel(int bit)
         {
@@ -214,16 +253,23 @@ namespace DCFApixels.WhimTex
             }
             bool valid = gradient.TryGetCustomKey(activeId, out var key);
             timeField.SetEnabled(valid); valueField.SetEnabled(valid); tangentField.SetEnabled(valid);
-            incomingField.SetEnabled(valid && (key.tangentMode == WhimTexGradientTangentMode.Smooth || key.tangentMode == WhimTexGradientTangentMode.Broken));
-            outgoingField.SetEnabled(incomingField.enabledSelf);
+            incomingField.SetEnabled(valid && key.inMode == WhimTexGradientTangentMode.Free);
+            outgoingField.SetEnabled(valid && key.outMode == WhimTexGradientTangentMode.Free);
+            weightedField.SetEnabled(valid);
+            inWeightField.SetEnabled(valid && (key.weightedMode & WeightedMode.In) != 0);
+            outWeightField.SetEnabled(valid && (key.weightedMode & WeightedMode.Out) != 0);
             if (valid)
             {
                 keyLabel.text = gradient.CustomChannelName(key.channel);
                 timeField.SetValueWithoutNotify(key.time); valueField.SetValueWithoutNotify(key.value);
-                tangentField.SetValueWithoutNotify(key.tangentMode);
+                tangentField.SetValueWithoutNotify(key.broken ? "Broken" : key.inMode == WhimTexGradientTangentMode.ClampedAuto ? "Clamped Auto" : "Free Smooth");
+                weightedField.SetValueWithoutNotify(key.weightedMode);
+                inWeightField.SetValueWithoutNotify((key.weightedMode & WeightedMode.In) != 0 ? key.inWeight : 1f / 3);
+                outWeightField.SetValueWithoutNotify((key.weightedMode & WeightedMode.Out) != 0 ? key.outWeight : 1f / 3);
                 incomingField.SetValueWithoutNotify(gradient.CustomKeyTangent(key.id, true)); outgoingField.SetValueWithoutNotify(gradient.CustomKeyTangent(key.id, false));
             }
             else keyLabel.text = "No key";
+            wrapMode.SetValueWithoutNotify(gradient.WrapMode);
             convertMode.SetValueWithoutNotify(gradient.CustomColorMode);
             status.text = gradient.CustomApproximationError > 0 ?
                 "Conversion: observed error " + gradient.CustomApproximationError.ToString("G3", CultureInfo.InvariantCulture) +
@@ -411,11 +457,27 @@ namespace DCFApixels.WhimTex
         }
         private Vector2 TangentPoint(WhimTexGradientCurveKey key, bool incoming)
         {
-            float span = (float)(.15 * view.width);
-            foreach (var other in keys) if (other.channel == key.channel &&
-                (incoming ? other.time < key.time : other.time > key.time)) span = Mathf.Min(span, Mathf.Abs(other.time - key.time) / 3);
-            span = Mathf.Max(.0000001f, span) * (incoming ? -1 : 1);
-            return ToPoint(key.time + span, key.value + span * gradient.CustomKeyTangent(key.id, incoming));
+            float span = gradient.CustomHandleSpan(key.id, incoming);
+            bool weighted = (key.weightedMode & (incoming ? WeightedMode.In : WeightedMode.Out)) != 0;
+            float weight = weighted ? (incoming ? key.inWeight : key.outWeight) : 1f / 3;
+            float dx = span * weight * (incoming ? -1 : 1);
+            Vector2 origin = ToPoint(key.time, key.value);
+            Vector2 delta = ToPoint(key.time + dx, key.value + dx * gradient.CustomKeyTangent(key.id, incoming)) - origin;
+            if (delta.sqrMagnitude < .000001f)
+            {
+                dx = span / 3 * (incoming ? -1 : 1);
+                delta = ToPoint(key.time + dx, key.value + dx * gradient.CustomKeyTangent(key.id, incoming)) - origin;
+            }
+            // Unity CurveEditor uses 50 screen points for unweighted handles, a 10-point minimum for weighted ones.
+            if (!weighted) delta = delta.normalized * 50;
+            else if (delta.sqrMagnitude < 100) delta = delta.normalized * 10;
+            return origin + delta;
+        }
+        private bool HasTangent(WhimTexGradientCurveKey key, bool incoming)
+        {
+            var mode = incoming ? key.inMode : key.outMode;
+            return gradient.CustomHandleSpan(key.id, incoming) > 0 &&
+                (mode == WhimTexGradientTangentMode.Free || mode == WhimTexGradientTangentMode.ClampedAuto);
         }
         private void Down(PointerDownEvent e)
         {
@@ -427,10 +489,10 @@ namespace DCFApixels.WhimTex
                 e.StopPropagation(); return;
             }
             tangentSide = 0;
-            if (e.button == 0 && gradient.TryGetCustomKey(activeId, out var active) && active.tangentMode != WhimTexGradientTangentMode.Constant)
+            if (e.button == 0 && gradient.TryGetCustomKey(activeId, out var active) && (visibleChannels & (1 << active.channel)) != 0)
             {
-                if ((TangentPoint(active, true) - (Vector2)point).sqrMagnitude < 49) tangentSide = -1;
-                else if ((TangentPoint(active, false) - (Vector2)point).sqrMagnitude < 49) tangentSide = 1;
+                if (HasTangent(active, true) && (TangentPoint(active, true) - (Vector2)point).sqrMagnitude < 49) tangentSide = -1;
+                else if (HasTangent(active, false) && (TangentPoint(active, false) - (Vector2)point).sqrMagnitude < 49) tangentSide = 1;
             }
             int hit = tangentSide == 0 ? Hit(point) : activeId;
             if (e.button == 0 && hit == 0)
@@ -453,6 +515,16 @@ namespace DCFApixels.WhimTex
             rootVisualElement.EnableInClassList("whimtex-gradient-curves-panning", panning);
             if (boxSelecting && !e.ctrlKey && !e.commandKey) selected.Clear();
             pointerDown = true; pointerId = e.pointerId; downPoint = boxPoint = point; downView = view;
+            if (tangentSide != 0 && gradient.TryGetCustomKey(activeId, out var handleKey))
+            {
+                bool incoming = tangentSide < 0;
+                if ((handleKey.weightedMode & (incoming ? WeightedMode.In : WeightedMode.Out)) != 0)
+                {
+                    float dx = gradient.CustomHandleSpan(handleKey.id, incoming) * (incoming ? -handleKey.inWeight : handleKey.outWeight);
+                    tangentDragOrigin = new Vector2(handleKey.time + dx, handleKey.value + dx * gradient.CustomKeyTangent(handleKey.id, incoming));
+                }
+                else tangentDragOrigin = ToValue(TangentPoint(handleKey, incoming));
+            }
             dragStart = gradient.Clone(); dragSelection = new List<int>(selected).ToArray();
             Undo.IncrementCurrentGroup(); undoGroup = Undo.GetCurrentGroup();
             if (!panning && !boxSelecting) Undo.RegisterCompleteObjectUndo(undoOwner != null ? undoOwner : this, "Move Gradient Curve Key");
@@ -494,14 +566,8 @@ namespace DCFApixels.WhimTex
                 {
                     if (tangentSide != 0 && next.TryGetCustomKey(activeId, out var key))
                     {
-                        float dt = target.x - key.time;
-                        dt = tangentSide < 0 ? Mathf.Min(-.000001f, dt) : Mathf.Max(.000001f, dt);
-                        float slope = (target.y - key.value) / dt;
-                        key.tangentMode = e.altKey || key.tangentMode == WhimTexGradientTangentMode.Broken ?
-                            WhimTexGradientTangentMode.Broken : WhimTexGradientTangentMode.Smooth;
-                        if (tangentSide < 0) key.inTangent = slope; else key.outTangent = slope;
-                        if (key.tangentMode == WhimTexGradientTangentMode.Smooth) key.inTangent = key.outTangent = slope;
-                        next.UpdateCustomKey(key);
+                        target = tangentDragOrigin + target - origin;
+                        next.SetCustomHandle(key.id, tangentSide < 0, target.x, target.y, e.altKey);
                     }
                     else
                     {
@@ -578,18 +644,52 @@ namespace DCFApixels.WhimTex
             if (hit != 0 && !selected.Contains(hit)) Select(hit, false);
             else if (hit != 0 && gradient.TryGetCustomKey(hit, out var clicked)) { activeId = hit; channel = clicked.channel; Refresh(); }
             e.menu.AppendAction("Delete Selected Keys", _ => Delete(), selected.Count > 0 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-            foreach (WhimTexGradientTangentMode mode in Enum.GetValues(typeof(WhimTexGradientTangentMode)))
+            foreach (string preset in TangentChoices)
             {
-                var choice = mode;
-                e.menu.AppendAction("Tangents/" + mode, _ => Mutate("Set Curve Tangents", g =>
+                string choice = preset;
+                e.menu.AppendAction("Tangents/" + choice, _ => Mutate("Set Curve Tangents", g =>
                 {
                     foreach (int id in selected) if (g.TryGetCustomKey(id, out var item))
-                    {
-                        item.inTangent = g.CustomKeyTangent(id, true); item.outTangent = g.CustomKeyTangent(id, false);
-                        item.tangentMode = choice; g.UpdateCustomKey(item);
-                    }
+                        g.UpdateCustomKey(SetTangentPreset(g, item, choice));
                 }), selected.Count > 0 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
             }
+            foreach (int side in new[] { -1, 1, 0 })
+            {
+                string prefix = side < 0 ? "Left Tangent/" : side > 0 ? "Right Tangent/" : "Both Tangents/";
+                foreach (WhimTexGradientTangentMode mode in Enum.GetValues(typeof(WhimTexGradientTangentMode)))
+                {
+                    var choice = mode;
+                    e.menu.AppendAction(prefix + ObjectNames.NicifyVariableName(mode.ToString()), _ => Mutate("Set Curve Tangents", g =>
+                    {
+                        var changed = g.CustomKeys;
+                        for (int i = 0; i < changed.Length; i++) if (selected.Contains(changed[i].id))
+                        {
+                            var item = CaptureSlopes(g, changed[i]); item.broken = true;
+                            if (side <= 0) item.inMode = choice; if (side >= 0) item.outMode = choice; changed[i] = item;
+                        }
+                        g.SetCustomData(changed, g.CustomColorMode);
+                    }), MenuSideStatus(k => (side <= 0 ? k.inMode : k.outMode) == choice && (side != 0 || k.outMode == choice)));
+                }
+                e.menu.AppendAction(prefix + "Weighted", _ => Mutate("Set Curve Weights", g =>
+                {
+                    var bits = side < 0 ? WeightedMode.In : side > 0 ? WeightedMode.Out : WeightedMode.Both;
+                    bool turnOff = AllSelected(k => (k.weightedMode & bits) == bits);
+                    foreach (int id in selected) if (g.TryGetCustomKey(id, out var item))
+                        g.UpdateCustomKey(SetWeights(item, turnOff ? item.weightedMode & ~bits : item.weightedMode | bits));
+                }), MenuSideStatus(k => (k.weightedMode & (side < 0 ? WeightedMode.In : side > 0 ? WeightedMode.Out : WeightedMode.Both)) ==
+                    (side < 0 ? WeightedMode.In : side > 0 ? WeightedMode.Out : WeightedMode.Both)));
+            }
+        }
+        private bool AllSelected(Func<WhimTexGradientCurveKey, bool> predicate)
+        {
+            if (selected.Count == 0) return false;
+            foreach (var item in keys) if (selected.Contains(item.id) && !predicate(item)) return false;
+            return true;
+        }
+        private DropdownMenuAction.Status MenuSideStatus(Func<WhimTexGradientCurveKey, bool> predicate)
+        {
+            if (selected.Count == 0) return DropdownMenuAction.Status.Disabled;
+            return AllSelected(predicate) ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal;
         }
         private static void Line(Painter2D painter, Vector2 a, Vector2 b)
         { painter.BeginPath(); painter.MoveTo(a); painter.LineTo(b); painter.Stroke(); }
@@ -613,13 +713,13 @@ namespace DCFApixels.WhimTex
                     DrawWrappedCurve(p, c, showOutput && pass == 1, color, samples);
                 }
             }
-            if (gradient.TryGetCustomKey(activeId, out var active) && (visibleChannels & (1 << active.channel)) != 0 &&
-                active.tangentMode != WhimTexGradientTangentMode.Constant)
+            if (gradient.TryGetCustomKey(activeId, out var active) && (visibleChannels & (1 << active.channel)) != 0)
             {
                 p.strokeColor = new Color(.8f,.8f,.8f,.8f); p.fillColor = new Color(.2f,.2f,.2f); p.lineWidth = 1;
                 Vector2 point = ToPoint(active.time,active.value);
                 foreach (bool incoming in new[] { true, false })
                 {
+                    if (!HasTangent(active, incoming)) continue;
                     Vector2 handle = TangentPoint(active,incoming);
                     if (float.IsFinite(point.x) && float.IsFinite(point.y) && float.IsFinite(handle.x) && float.IsFinite(handle.y))
                         Line(p, new Vector2(Mathf.Clamp(point.x, -100000, 100000), Mathf.Clamp(point.y, -100000, 100000)),

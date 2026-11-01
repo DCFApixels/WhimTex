@@ -132,7 +132,12 @@ namespace DCFApixels.WhimTex
             Shader shader = null; Material material = null;
             try
             {
-                shader = ShaderUtil.CreateShaderAsset(compilation.source, true);
+                var parameters = ShaderFXMetadata.ParseGenerated(compilation.source, compilation.parameterCount);
+                ShaderFXMetadata.PreserveValues(parameters, compilation.parameters);
+                string shaderSource = ShaderFXSourceBuilder.BuildGenerated(compilation.source, parameters,
+                    "Hidden/WhimTex/ShaderGraph", "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl",
+                    ShaderGraphSources.MaximumArchiveBytes + 1024 * 1024);
+                shader = ShaderUtil.CreateShaderAsset(shaderSource, true);
                 if (shader == null) throw new InvalidOperationException("Unity could not create the graph shader.");
                 shader.hideFlags = HideFlags.HideAndDontSave;
                 material = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
@@ -207,7 +212,10 @@ namespace DCFApixels.WhimTex
                 Material.SetVector(uniform.property, value);
                 if (current) uniforms[i] = new Uniform(uniform.property, uniform.node, uniform.port, value);
             }
-            Material.SetVector("_GraphImageSize", new Vector4(context.width, context.height, 1f / context.width, 1f / context.height));
+            Material.SetVector("_InputSize", new Vector4(context.width, context.height, 1f / context.width, 1f / context.height));
+            Material.SetVector("_CanvasSize", new Vector4(dimensions.x, dimensions.y, 1f / dimensions.x, 1f / dimensions.y));
+            Material.SetFloat("_RenderScale", context.scaleMultiplier);
+            Material.SetFloat("_PixelScale", context.pixelScale);
             context.shaderContext.Bind(Material);
         }
         static Vector4 UniformValue(ShaderGraphNode node, string port, Vector4 fallback, ShaderGraphSubGraph definition)

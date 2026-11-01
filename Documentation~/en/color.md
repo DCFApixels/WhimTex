@@ -191,9 +191,18 @@ double-click near it to add a key on the curve.
 Keep the second click held to drag the new key immediately; this also works on the curve-window strip.
 The nearest visible channel at that time is used; coincident curves prefer the active channel.
 Empty space and Wrap continuations do not add keys. Output remains a result preview.
-Adjust the key's position, value and tangents; negative and HDR values remain available. Tangent modes are
-**Auto**, **Smooth**, **Broken**, **Linear** and **Constant**. Constant uses the next key's
-value between keys, matching Fixed; a key at its exact position keeps its own value.
+Adjust the key's position, value and Bezier handles; negative and HDR values remain available.
+New curves have weighted handles: drag to change both angle and length. **Free Smooth**
+joins the angles while keeping lengths independent; **Broken** or Alt-drag separates the sides.
+**Clamped Auto** automatically smooths the keys; **Flat** makes both tangents horizontal.
+Right-click a key for **Left Tangent**, **Right Tangent** or **Both Tangents**:
+Free, Clamped Auto, Linear, Constant and Weighted. **In W / Out W** edit handle lengths
+as fractions of the neighbouring interval. Disabling Weighted fixes that side's weight at 1/3.
+Handles stay on their own side of the key and cannot go beyond the neighbouring key in time.
+Adding a key subdivides the Bezier segment, preserving its shape within numeric precision;
+inserting into an alpha overshoot clamps the new key to 0–1 and can change that lobe.
+Constant holds the previous value. Constant Next holds the next value and is used when
+converting Fixed or reversing a constant step. Exact keys retain their own values.
 Very sharp Custom steps can appear slightly softened in the rendered result.
 
 Grid divisions stay anchored to curve coordinates when panning. The maximum main line step is
@@ -224,7 +233,9 @@ Wheel zoom and scrollbar grips have no preset minimum or maximum zoom. Only nume
 precision limits remain. At extreme zoom-out, subpixel Wrap repetitions appear as a faint
 value-range band instead of drawing every repetition.
 
-**Output** sits below the graph; channel buttons are on the right of the same row. They use
+**Output** sits below the graph. **Wrap** beside it switches Clamp, Repeat or Mirror for
+the gradient and the displayed continuations; the change supports Undo. Channel buttons
+are on the right of the same row. They use
 the Canvas View footer style and behavior: click to toggle a channel or drag across several
 buttons to apply the first button's new state to all crossed buttons. Channel names follow
 the selected color mode. There is no Fit button.

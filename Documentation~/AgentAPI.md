@@ -1896,14 +1896,22 @@ The public `WhimTexGradient` C# API adds:
 - `Interpolation = Custom` initially fits the current gradient and subsequently restores
   saved manual curves. `ConvertCustomColorMode(mode)` explicitly refits active Custom;
   changing `ColorMode` to a different mode directly while Custom is active is rejected.
-- `AddCustomKey(channel,time)` samples the current channel curve to create one key, or
+- `AddCustomKey(channel,time)` subdivides the current weighted Bezier to create one key, or
   returns the existing key within the minimum time spacing. `AddCustomColorKeys(time)`
   atomically adds/reuses three independent color-channel keys at the same time; it returns
   the channel-0 key ID. It creates no persistent association between them.
   These edit operations clamp the requested time to 0..1.
+  Subdivision preserves continuous shape within float precision, freezing affected automatic
+  tangents. Inserting in an alpha overshoot clamps the new value and can change that lobe.
+- `SetCustomHandle(id,incoming,time,value,breakTangents=false)` moves a handle in curve
+  coordinates. Weighted sides update angle and length; unweighted sides update angle only.
+  Joined Free sides share slopes, with independent weights. Automatic sides become Free;
+  `breakTangents:true` separates the sides. Handles stay on their side of the key; weighted
+  lengths stop at the adjacent time span. A missing endpoint handle is a no-op.
+  `CustomHandleSpan(id,incoming)` returns the adjacent time span, or zero if absent.
 - `MoveCustomKey(id,time)` moves only that key, stopping at 0..1 and the nearest unselected
   same-channel neighbours. `UpdateCustomKey(key)` retains identity/channel, edits its
-  values/tangents/mode and uses this independent movement for time changes.
+  values/tangents/side modes/weights and uses this independent movement for time changes.
 - `MoveCustomKeys(int[] ids,float deltaTime)` atomically moves exactly the supplied IDs by
   one common delta. It clamps that delta so every selected key stays in 0..1 and at least
   0.000001 from its nearest unselected same-channel neighbours, preserving order and

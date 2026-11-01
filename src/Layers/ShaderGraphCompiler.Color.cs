@@ -30,6 +30,8 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Lightness: text = $"GraphLightness({V("Color")},{V("Amount")})"; break;
                 case ShaderGraphNodeKind.Levels: text = $"GraphLevels({V("Color")},{V("InputRange")},{V("Gamma")},{V("OutputRange")},{V("Clamp")},{node.option})"; break;
                 case ShaderGraphNodeKind.ColorBalance: text = $"GraphColorBalance({V("Color")},{V("Shadows")},{V("Midtones")},{V("Highlights")},{V("ShadowRange")},{V("HighlightRange")},{V("PreserveLuminance")})"; break;
+                case ShaderGraphNodeKind.ChannelMixer: text = $"float4(dot({V("Color")}.rgb,{V("Red")}),dot({V("Color")}.rgb,{V("Green")}),dot({V("Color")}.rgb,{V("Blue")}),{V("Color")}.a)"; break;
+                case ShaderGraphNodeKind.WhiteBalance: text = $"GraphWhiteBalance({V("Color")},{V("Temperature")},{V("Tint")})"; break;
                 case ShaderGraphNodeKind.Posterize: text = $"GraphPosterize({V("Color")},{V("Levels")})"; break;
                 case ShaderGraphNodeKind.ConvertColor: text = $"GraphConvertColor({V("Color")},{(int)node.inputColorSpace},{(int)node.outputColorSpace})"; break;
                 case ShaderGraphNodeKind.Luminance: text = $"GraphLuminance({V("Color")}.rgb)"; break;
@@ -90,6 +92,23 @@ namespace DCFApixels.WhimTex
 
         const string ColorHelpers = @"
 float GraphLuminance(float3 rgb) { return dot(rgb,float3(0.2126,0.7152,0.0722)); }
+float3 GraphWhiteResponse(float x,float y)
+{
+    float3 xyz=float3(x/y,1,(1-x-y)/y);
+    return float3(dot(xyz,float3(.8951,.2664,-.1614)),dot(xyz,float3(-.7502,1.7135,.0367)),dot(xyz,float3(.0389,-.0685,1.0296)));
+}
+float4 GraphWhiteBalance(float4 color,float temperature,float tint)
+{
+    temperature=clamp(temperature,-1,1); tint=clamp(tint,-1,1);
+    if(temperature==0 && tint==0) return color;
+    float x=.3127-temperature*.05;
+    float y=2.87*x-3*x*x-.27509507+tint*.05;
+    float3 gain=GraphWhiteResponse(.3127,.3290)/GraphWhiteResponse(x,y);
+    float3 response=float3(dot(color.rgb,float3(.4227252927,.4913453244,.0273579445)),
+        dot(color.rgb,float3(.0556997770,.9615340509,.0231838105)),dot(color.rgb,float3(.0213826437,.0876418678,.9805081326)))*gain;
+    return float4(dot(response,float3(2.5380445168,-1.2932769979,-.0402368843)),
+        dot(response,float3(-.1460040576,1.1166483055,-.0223290262)),dot(response,float3(-.0422985104,-.0716072203,1.0227526883)),color.a);
+}
 float GraphChannel(float4 c,int channel)
 {
     if(channel == 0) return GraphLuminance(c.rgb);

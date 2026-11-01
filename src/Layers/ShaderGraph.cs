@@ -23,7 +23,8 @@ namespace DCFApixels.WhimTex
         Sign, Saturate, Modulo, Atan2, Asin, Acos, Exp, Log, Cross, Reflect, Refract, And, Or, Not,
         NormalEncode, NormalDecode, NormalStrength, NormalLighting, Premultiply, Unpremultiply,
         Flipbook, TileableNoise, VoronoiEdge, Dither,
-        Blur, Sharpen, EdgeDetection, Dilate, Erode, SubGraph, SubGraphInput, SubGraphOutput
+        Blur, Sharpen, EdgeDetection, Dilate, Erode, SubGraph, SubGraphInput, SubGraphOutput,
+        Unlerp, PixelateUV, ChannelMixer, WhiteBalance, DirectionalBlur, RadialBlur
     }
 
     [Serializable]
@@ -192,7 +193,8 @@ namespace DCFApixels.WhimTex
         static Dictionary<ShaderGraphNodeKind, ShaderGraphPort[]> BuildPorts()
         {
             var map = new Dictionary<ShaderGraphNodeKind, ShaderGraphPort[]>();
-            map[ShaderGraphNodeKind.Time] = new[] { P("Scale", ShaderGraphValueType.Float, 1) };
+            map[ShaderGraphNodeKind.InstanceIndex] = new[] { P("Start", ShaderGraphValueType.Float), P("Scale", ShaderGraphValueType.Float, 1) };
+            map[ShaderGraphNodeKind.Time] = new[] { P("Start", ShaderGraphValueType.Float), P("Scale", ShaderGraphValueType.Float, 1) };
             foreach (var kind in new[] { ShaderGraphNodeKind.Add, ShaderGraphNodeKind.Subtract, ShaderGraphNodeKind.Min, ShaderGraphNodeKind.Max, ShaderGraphNodeKind.Distance, ShaderGraphNodeKind.Dot })
                 map[kind] = new[] { P("A"), P("B") };
             foreach (var kind in new[] { ShaderGraphNodeKind.Multiply, ShaderGraphNodeKind.Divide, ShaderGraphNodeKind.Power })
@@ -201,6 +203,7 @@ namespace DCFApixels.WhimTex
                 map[kind] = new[] { P("In") };
             map[ShaderGraphNodeKind.Clamp] = new[] { P("In"), P("Min"), P("Max", null, 1) };
             map[ShaderGraphNodeKind.Lerp] = new[] { P("A"), P("B", null, 1), P("T", ShaderGraphValueType.Float, .5f) };
+            map[ShaderGraphNodeKind.Unlerp] = new[] { P("A"), P("B", null, 1), P("T") };
             map[ShaderGraphNodeKind.Remap] = new[] { P("In"), P("InMin", ShaderGraphValueType.Float), P("InMax", ShaderGraphValueType.Float, 1), P("OutMin", ShaderGraphValueType.Float), P("OutMax", ShaderGraphValueType.Float, 1) };
             map[ShaderGraphNodeKind.Step] = new[] { P("Edge", null, .5f), P("In") };
             map[ShaderGraphNodeKind.Smoothstep] = new[] { P("Min"), P("Max", null, 1), P("In") };
@@ -252,10 +255,10 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Noise or ShaderGraphNodeKind.Cellular or ShaderGraphNodeKind.Random => "Procedural/Noise",
             ShaderGraphNodeKind.Checkerboard or ShaderGraphNodeKind.Stripes or ShaderGraphNodeKind.Grid or ShaderGraphNodeKind.Rings or ShaderGraphNodeKind.GradientFactor => "Procedural/Pattern",
             ShaderGraphNodeKind.Shape or ShaderGraphNodeKind.CombineDistance => "Procedural/Shape",
-            ShaderGraphNodeKind.TransformUV or ShaderGraphNodeKind.PolarCoordinates or ShaderGraphNodeKind.Repeat or ShaderGraphNodeKind.Mirror or ShaderGraphNodeKind.Kaleidoscope => "UV",
+            ShaderGraphNodeKind.TransformUV or ShaderGraphNodeKind.PixelateUV or ShaderGraphNodeKind.PolarCoordinates or ShaderGraphNodeKind.Repeat or ShaderGraphNodeKind.Mirror or ShaderGraphNodeKind.Kaleidoscope => "UV",
             ShaderGraphNodeKind.DomainWarp or ShaderGraphNodeKind.VectorDisplacement or ShaderGraphNodeKind.Twirl or ShaderGraphNodeKind.BulgePinch or ShaderGraphNodeKind.Wave or ShaderGraphNodeKind.Ripple => "UV/Distortion",
             ShaderGraphNodeKind.Hue or ShaderGraphNodeKind.Saturation or ShaderGraphNodeKind.Exposure or ShaderGraphNodeKind.Lightness or
-            ShaderGraphNodeKind.Levels or ShaderGraphNodeKind.ColorBalance or ShaderGraphNodeKind.Posterize => "Color/Adjustments",
+            ShaderGraphNodeKind.Levels or ShaderGraphNodeKind.ColorBalance or ShaderGraphNodeKind.Posterize or ShaderGraphNodeKind.ChannelMixer or ShaderGraphNodeKind.WhiteBalance => "Color/Adjustments",
             ShaderGraphNodeKind.ConvertColor or ShaderGraphNodeKind.Luminance => "Color/Conversion",
             ShaderGraphNodeKind.GradientMap or ShaderGraphNodeKind.ColorCurves => "Color/Mapping",
             ShaderGraphNodeKind.ColorMask or ShaderGraphNodeKind.HueRange => "Color/Selection",
@@ -267,7 +270,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Reroute => "Utility",
             ShaderGraphNodeKind.CustomFunction => "Utility",
             ShaderGraphNodeKind.SubGraph or ShaderGraphNodeKind.SubGraphInput or ShaderGraphNodeKind.SubGraphOutput => "Sub Graph",
-            ShaderGraphNodeKind.Blur or ShaderGraphNodeKind.Sharpen or ShaderGraphNodeKind.EdgeDetection or ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode => "Filter",
+            ShaderGraphNodeKind.Blur or ShaderGraphNodeKind.Sharpen or ShaderGraphNodeKind.EdgeDetection or ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode or ShaderGraphNodeKind.DirectionalBlur or ShaderGraphNodeKind.RadialBlur => "Filter",
             _ => "Math"
         };
         internal static ShaderGraphNode Create(ShaderGraphNodeKind kind, Vector2 position)

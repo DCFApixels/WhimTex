@@ -6,19 +6,28 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader Graph adds Pixelate UV with document-pixel Cell Size/Offset, Channel Mixer with
+  RGB coefficient rows, White Balance with Temperature/Tint, Directional Blur and Radial Blur
+  with Spin/Zoom modes. Path blurs expose Samples, preserve numeric types and filter Color
+  with premultiplied alpha. Color adjustments retain alpha, signed RGB and HDR.
+
+- Shader Graph adds Unlerp: component-wise `(T-A)/(B-A)` with dynamic numeric inputs and
+  no result clamping. Instance Index adds Float Start (0) and Scale (1) inputs, producing
+  `Start + index * Scale`; Time also adds Start (0), producing `Start + time * Scale`.
+
 - Shader Graph adds Sign, Saturate, Modulo, Atan2, Asin, Acos, Exp, Log, Cross, Reflect,
   Refract, And, Or and Not; Normal Encode, Normal Decode, Normal Strength and Normal Lighting
   with specular; Premultiply, Unpremultiply, Flipbook, Tileable Noise, Voronoi Edge and Dither.
 - Height to Normal and Height to Distortion add Height Source: Texture or Value. Texture
   remains the default with Radius in bound-source texels; Value reevaluates a scalar branch
-  at neighboring UVs with Radius in output pixels. Both retain Strength, Flip X/Y and the
+  at neighboring UVs with Radius in document pixels. Both retain Strength, Flip X/Y and the
   Scharr, Sobel and Central Difference derivatives.
 - Shader Graph adds Blur, Sharpen, Edge Detection, Dilate and Erode over numeric/Color
   branches, evaluated at neighboring UVs without intermediate textures or extra rendering
-  passes. Radius uses output pixels; Blur/Sharpen/Dilate/Erode offer 3 × 3, 5 × 5 and 9 × 9
-  kernels. Blur uses normalized Gaussian weights, Sharpen controls the input-minus-blur
+  passes. Radius uses document pixels; Blur/Sharpen/Dilate/Erode offer 3 × 3, 5 × 5 and 9 × 9
+  minimum kernels and increase sampling density with Radius. Blur uses normalized Gaussian weights, Sharpen controls the input-minus-blur
   detail, Edge Detection uses fixed 3 × 3 Sobel, and morphology works per component.
-  Results are not implicitly clamped; large radii spread a fixed sample count.
+  Results are not implicitly clamped.
 - Embedded Sub Graph definitions provide reusable calculations with stable typed interface
   ports and shared parameters/HLSL sources. Convert a selection, edit by double-clicking,
   return with Back to Graph, adjust sidebar inputs/outputs and reuse definitions from node
@@ -299,6 +308,17 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Custom gradient curves use weighted cubic Bezier handles evaluated by Unity AnimationCurve.
+  Handle angles and lengths, joined/broken sides, Clamped Auto, Flat and per-side tangent modes
+  are editable. Key insertion subdivides the existing curve; weights survive Undo and saving.
+  The curve window also exposes Wrap (Clamp/Repeat/Mirror) beside Output, with Undo support.
+  Custom curve storage now requires format 1 and per-side metadata; older Custom records are
+  rejected without migration. Automatic gradients and GPU palette formats are unchanged.
+
+- Shader Graph generates a WhimTex FX script and compiles it through the shared FX source
+  builder. Generated HLSL displays that intermediate script with `@param` declarations and
+  `ApplyFX`; layer and node previews retain their parameter and resource bindings.
+
 - Random nodes now use current-pixel UV for unconnected Coordinates by default. The input
   supports UV/Custom selection; explicit saved coordinates and connections retain their values.
 
@@ -407,6 +427,27 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Animated Rings no longer develop stripes inside filled regions at large Phase values.
+  Periodic coordinates and coverage calculations also stabilize Stripes, Grid, Checkerboard,
+  Wave and Ripple, including negative phases and sampled filter branches. Stripes' Sine profile
+  retains accurate brightness at zero and near-zero frequency. Preview time is unchanged.
+
+- Sampled procedural shapes and patterns use explicit pixel footprints for antialiasing,
+  avoiding undefined derivatives when filter Radius varies across the image. Zero-radius
+  Blur, Sharpen, Dilate and Erode preserve their unfiltered input. Voronoi Edge no longer reports loop-variable
+  shadowing warnings; Polygon/Star edge iteration avoids signed-modulus warnings.
+
+- Texture inputs retain their sampler binding inside dynamic HLSL loops, fixing
+  compilation of textured Blur, Sharpen, Dilate and Erode branches in Shader Graph.
+
+- Shader Graph Color Blur excludes hidden transparent RGB; Color Sharpen and Edge Detection
+  retain source alpha. Numeric vectors keep component-wise filtering. Blur, Sharpen, Dilate and
+  Erode increase sampling density with Radius instead of leaving gaps between sparse samples;
+  the kernel selector now sets the minimum density. Large radii and nested filters cost more.
+- Shader Graph filters, Value-based height derivatives, Image Size and Dither use document pixel
+  dimensions consistently in node previews and layer renders. Polygon/Star Distance measures the
+  actual stretched edges, preserving uniform Feather under nonuniform Size.
 
 - Shader Graph API updates retain missing texture identities through native save/reopen.
   Deleting a shared parameter also removes its nodes from groups in every Sub Graph;

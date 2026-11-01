@@ -735,9 +735,10 @@ Channel 3 is alpha in every mode. `colorSpace` remains the output/key encoding, 
 manual curve's color model. Custom does not apply midpoint, Smoothness, Hue Path or Chroma Correction.
 
 Each `customKeys` entry is an object such as
-`{"id":1,"channel":0,"time":0,"value":0,"inTangent":0,"outTangent":0,"tangentMode":"Auto"}`.
-`id`, `channel`, `time`, `value` and `tangentMode` are required in API/clipboard input;
-`inTangent` and `outTangent` default to zero. IDs are unique positive 32-bit integers.
+`{"id":1,"channel":0,"time":0,"value":0,"inTangent":0,"outTangent":0,"inMode":"Free","outMode":"Free","broken":false,"inWeight":0.33333334,"outWeight":0.33333334,"weightedMode":"Both"}`.
+`id`, `channel`, `time`, `value`, `inMode`, `outMode` and `broken` are required in API/clipboard input.
+Tangents default to zero; weights default to 1/3, and `weightedMode` defaults to `None`.
+IDs are unique positive 32-bit integers.
 `channel` is 0..3. Times are 0..1, strictly increasing within each channel with spacing
 at least 0.000001. Each channel has 1..64 keys; the union of times of channels 0..2 has
 at most 64 distinct positions, and alpha has at most 64. Values and tangents are finite
@@ -757,14 +758,23 @@ Curve edits move/remove only the addressed key; marker gestures freeze their ID 
 gesture start and move it with a common delta limited by 0..1 and unselected same-channel
 neighbours. Deletion must keep every channel nonempty. See the exact atomic movement,
 rounding and selection contract in the [C# API](../AgentAPI.md#custom-gradient-settings).
-Tangent modes are `Auto`, `Smooth`,
-`Broken`, `Linear`, `Constant`. On the CPU, Constant follows Fixed: between two keys it uses the
-right key's value, while exact keys keep their own values.
+Each side has `Free`, `ClampedAuto`, `Linear`, `Constant` or `ConstantNext` mode.
+Evaluation uses Unity `AnimationCurve` weighted cubic Bezier segments. `weightedMode` is
+`None`, `In`, `Out` or `Both`. A weighted handle's horizontal length is its weight (0..1)
+times the adjacent time interval; an unweighted side uses 1/3. The slope controls its height.
+`broken:false` requires both modes to be `Free` or both `ClampedAuto`. Joined Free sides
+share `outTangent`; their lengths remain independent. Auto slopes use Unity's ClampedAuto.
+`Constant` holds the previous key; `ConstantNext` holds the next key and preserves Fixed
+conversion and reversal of steps. Exact keys retain their own values. The latter mode wins
+if both step directions are assigned to the same segment. Legacy `tangentMode` is rejected.
+Native document/TIFF storage also requires `customCurveFormat:1` whenever manual data exists;
+the API/standalone palette reader sets this from the validated key body. Older Custom data
+is rejected explicitly, without conversion or overwriting documents.
 
 Custom still uses the existing GPU palette resolutions and ordinary filtering; a Constant
 tangent does not select the dedicated Fixed GPU path. Sharp Custom steps are therefore
 limited by LUT sampling and may soften or shift within a sampling interval. The CPU
-right-key convention does not promise the same rendered step behavior as GPU Fixed.
+step convention does not promise the same rendered step behavior as GPU Fixed.
 
 Active Custom requires explicit nonempty `customKeys` and `customColorMode`. Switching
 or fitting automatic data is a UI/C# operation, not an implicit import conversion.

@@ -77,9 +77,10 @@ const defs = {
   gradientCurveKey: { ...object({ id:integer(1,2147483647), channel:integer(0,3),
     time:number(0,1), value:number(-3.4028234663852886e38,3.4028234663852886e38),
     inTangent:{...number(-3.4028234663852886e38,3.4028234663852886e38),default:0}, outTangent:{...number(-3.4028234663852886e38,3.4028234663852886e38),default:0},
-    tangentMode:enumeration('WhimTexGradient.Custom.cs','WhimTexGradientTangentMode') }, ['id','channel','time','value','tangentMode']),
+    inMode:enumeration('WhimTexGradient.Custom.cs','WhimTexGradientTangentMode'), outMode:enumeration('WhimTexGradient.Custom.cs','WhimTexGradientTangentMode'),
+    broken:bool, inWeight:{...number(0,1),default:1/3}, outWeight:{...number(0,1),default:1/3}, weightedMode:{...choice('None In Out Both'),default:'None'} }, ['id','channel','time','value','inMode','outMode','broken']),
     allOf:[{if:{properties:{channel:{const:3}},required:['channel']},then:{properties:{value:number(0,1)}}}],
-    description:'Stable positive unique id; channels 0..2 follow customColorMode, channel 3 is alpha. Keys are independent; no persistent links. Markers cluster all channels by time/id within 0.00001 of each earliest anchor, not transitively. Constant uses the right key between knots, like Fixed.' },
+    description:'Weighted cubic Bezier keys evaluated by AnimationCurve. Stable positive unique id; channels 0..2 follow customColorMode, channel 3 is alpha. No persistent links. Joined sides must both be Free or ClampedAuto; Free joins share outTangent. Weights are fractions of the adjacent time span; an unweighted side uses 1/3. Constant holds the previous key, ConstantNext the next key (Fixed conversion/reversal). Markers cluster by time/id within 0.00001 of each earliest anchor, not transitively. Obsolete tangentMode is rejected.' },
   gradient: { oneOf: [{ $ref: '#/$defs/gradientStops' }, {
     ...object({ colors: { $ref: '#/$defs/gradientStops' }, alphas: {type:'array', minItems:1, maxItems:64, items:object({time:number(0,1),alpha:number(0,1),midpoint:number(.01,.99)},['time','alpha'])},
       colorMode:{ ...enumeration('WhimTexGradient.cs', 'WhimTexGradientColorMode'), default:'Perceptual', description:'Retained automatic color mode; Custom uses customColorMode.' },

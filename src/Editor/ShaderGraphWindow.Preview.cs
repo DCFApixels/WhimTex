@@ -309,7 +309,7 @@ namespace DCFApixels.WhimTex
                     if (program == null) return compile;
                     texture ??= CreateTexture();
                     var context = new LayerRenderContext(window.document, null, Size, Size,
-                        (float)Size / Mathf.Max(window.document.width, window.document.height), applyTransform: false, applyFx: false)
+                        (float)Mathf.Max(window.document.width, window.document.height) / Size, applyTransform: false, applyFx: false)
                         .WithShaderGraphPreviewTime(ShaderGraphClock.Seconds);
                     program.Bind(window.Graph, context);
                     ProceduralUv.Prepare(program.Material, window.Behaviour.Owner, context);

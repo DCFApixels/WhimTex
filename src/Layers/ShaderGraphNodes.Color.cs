@@ -49,6 +49,11 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.Levels] = new[] { ColorPort(), P2("InputRange", 0, 1), N("Gamma", 1), P2("OutputRange", 0, 1), BoolPort("Clamp", true) };
             map[ShaderGraphNodeKind.ColorBalance] = new[] { ColorPort(), P("Shadows", ShaderGraphValueType.Float3), P("Midtones", ShaderGraphValueType.Float3),
                 P("Highlights", ShaderGraphValueType.Float3), N("ShadowRange", .5f), N("HighlightRange", .5f), BoolPort("PreserveLuminance", true) };
+            map[ShaderGraphNodeKind.ChannelMixer] = new[] { ColorPort(),
+                new ShaderGraphPort("Red", ShaderGraphValueType.Float3, new Vector4(1, 0, 0, 0)),
+                new ShaderGraphPort("Green", ShaderGraphValueType.Float3, new Vector4(0, 1, 0, 0)),
+                new ShaderGraphPort("Blue", ShaderGraphValueType.Float3, new Vector4(0, 0, 1, 0)) };
+            map[ShaderGraphNodeKind.WhiteBalance] = new[] { ColorPort(), N("Temperature"), N("Tint") };
             map[ShaderGraphNodeKind.Posterize] = new[] { ColorPort(), N("Levels", 8) };
             map[ShaderGraphNodeKind.ConvertColor] = new[] { ColorPort() };
             map[ShaderGraphNodeKind.Luminance] = new[] { ColorPort() };
@@ -72,6 +77,7 @@ namespace DCFApixels.WhimTex
             {
                 case ShaderGraphNodeKind.Hue: case ShaderGraphNodeKind.Saturation: case ShaderGraphNodeKind.Exposure:
                 case ShaderGraphNodeKind.Lightness: case ShaderGraphNodeKind.Levels: case ShaderGraphNodeKind.ColorBalance:
+                case ShaderGraphNodeKind.ChannelMixer: case ShaderGraphNodeKind.WhiteBalance:
                 case ShaderGraphNodeKind.Posterize: case ShaderGraphNodeKind.ConvertColor: case ShaderGraphNodeKind.GradientMap:
                 case ShaderGraphNodeKind.ColorCurves: case ShaderGraphNodeKind.MixColor: case ShaderGraphNodeKind.SetAlpha: return true;
                 case ShaderGraphNodeKind.Luminance: case ShaderGraphNodeKind.ColorMask: case ShaderGraphNodeKind.HueRange:

@@ -177,10 +177,10 @@ float GraphVoronoiEdge(float2 p,float seed,float jitter)
     // Adjacent sites are at most 2*sqrt(2) apart by the same covering bound.
     // Every cell that can contribute a facet is inside this 7x7 neighborhood
     // of the closest site's cell. Work in local coordinates for precision.
-    [loop] for(int y=-3;y<=3;y++) [loop] for(int x=-3;x<=3;x++)
+    [loop] for(int edgeY=-3;edgeY<=3;edgeY++) [loop] for(int edgeX=-3;edgeX<=3;edgeX++)
     {
-        if(x==0 && y==0) continue;
-        float2 cell=nearestCell+float2(x,y);
+        if(edgeX==0 && edgeY==0) continue;
+        float2 cell=nearestCell+float2(edgeX,edgeY);
         float2 r=cell+GraphVoronoiFeature(baseCell+cell,seed,jitter)-local;
         float2 between=r-nearestVector;
         float lengthSquared=dot(between,between);
@@ -215,7 +215,7 @@ float GraphBayerThreshold(float2 pixel,int mode)
 float4 GraphDither(float4 color,float2 uv,float levels,float pixelSize,int mode)
 {
     float steps=max(floor(levels+0.5),2)-1;
-    float2 pixel=floor(uv*max(_GraphImageSize.xy,1)/max(abs(pixelSize),1));
+    float2 pixel=floor(uv*max(_CanvasSize.xy,1)/max(abs(pixelSize),1));
     float threshold=GraphBayerThreshold(pixel,mode);
     // Quantization continues beyond [0,1] with spacing 1/(Levels-1). Alpha is
     // untouched, including for transparent colors with nonzero RGB.

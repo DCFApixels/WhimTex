@@ -200,7 +200,7 @@ insertion, movement, connection edits and deletion support Undo/Redo.
 ## Coordinate and output contract
 
 UV supplies the current pixel's local layer coordinates, with the ordinary image domain at
-`0..1`. Image Size describes the generated image; Texture Size describes a selected texture.
+`0..1`. Image Size describes document dimensions; Texture Size describes a selected texture.
 Both expose `Size` (width, height) and `Texel` (reciprocal width, reciprocal height) as `float2`.
 Transform UV changes coordinates for subsequent calculations, independently of the layer's
 ordinary Transform. Sampling uses the supplied coordinates.
@@ -218,7 +218,10 @@ with the chosen blend mode and alpha handling.
 `Blur`, `Sharpen`, `EdgeDetection`, `Dilate` and `Erode` take numeric or Color `In`,
 Float2 `UV` (current-pixel UV by default) and Float `Radius` (default 1). Sharpen and
 EdgeDetection also take Float `Strength` (default 1). Each has one `Out` with the same
-type as In; all components, including alpha, participate. Resource and Boolean inputs
+type as In. Numeric vectors are processed component-wise. For Color, Blur filters premultiplied
+RGB and alpha, then returns straight RGB (zero at exactly zero alpha); Sharpen and EdgeDetection
+process RGB while retaining center alpha, independent of Strength. Dilate/Erode remain component-wise.
+Resource and Boolean inputs
 must be converted to a numeric/Color branch first.
 
 The compiler emits an HLSL function for the upstream branch and calls it at `UV + offset`.
@@ -227,25 +230,70 @@ sampling. It does not allocate intermediate GPU textures or add rendering passes
 constant coordinates in the branch remain constant. Nested filters reevaluate their upstream
 filters for each sample and can be expensive even when generated function code is shared.
 
-Radius is measured in **output pixels**, using reciprocal output dimensions for UV offsets;
-it is not measured in a bound texture's texels. It uses the current evaluation resolution,
-so a 128 × 128 node preview and a larger layer result need not have the same normalized footprint.
+Radius is measured in **document pixels**, using reciprocal document dimensions for UV offsets;
+it is not measured in a bound texture's texels. Node previews and layer renders use the same
+pixel metric; reducing preview resolution does not enlarge the filter footprint. Image Size
+also reports document dimensions. `_InputSize` remains the actual render-target size for HLSL.
 Radius uses its absolute value; at zero, Blur/Sharpen/Dilate/Erode return In and EdgeDetection
-returns zero. UVs are not implicitly clipped; upstream texture samplers determine edge behavior.
+returns zero RGB with center alpha for Color, or zero for numeric inputs.
+UVs are not implicitly clipped; upstream texture samplers determine edge behavior.
 
 | `kind` | Kernel and result |
 | --- | --- |
 | `Blur` | Normalized finite Gaussian kernel; constant inputs stay constant. |
-| `Sharpen` | `input + (input - blur) * Strength`, using the same Gaussian kernel. |
+| `Sharpen` | `input + (input - blur) * Strength`, using the same Gaussian kernel; Color alpha is retained. |
 | `Dilate` | Component-wise maximum over the kernel. |
 | `Erode` | Component-wise minimum over the kernel. |
-| `EdgeDetection` | Fixed 3 × 3 Sobel gradient magnitude per component, multiplied by Strength. No implicit luminance conversion. |
+| `EdgeDetection` | Fixed 3 × 3 Sobel gradient magnitude, multiplied by Strength. Color retains alpha; numeric vectors process every component. No implicit luminance conversion. |
 
 For Blur, Sharpen, Dilate and Erode, `option` selects **0: 3 × 3**, **1: 5 × 5** or
-**2: 9 × 9** (default 0). Samples span `[-Radius, Radius]` in each axis. Increasing Radius
-spreads the same fixed number of samples farther apart; it does not increase quality or
-guarantee that thin features will be captured. EdgeDetection always uses its 3 × 3 stencil.
+**2: 9 × 9** (default 0) as the **Minimum Kernel**. Samples span `[-Radius, Radius]` in each axis;
+the actual half-extent is `max(selectedHalfExtent, ceil(abs(Radius)))`, keeping the step at most
+one document pixel. Large radii increase sample count quadratically, and nested filters multiply
+that cost. This samples the pixel neighborhood; subpixel features can still require a denser
+minimum kernel. EdgeDetection always uses its 3 × 3 stencil.
 None of these nodes clamps its result to `0..1`.
+
+Built-in antialiasing in sampled Shape/Combine Distance masks, Checkerboard, Stripes, Grid
+and Rings uses centered field differences over the render pixel's UV footprint. The entry
+point captures that footprint before filter loops; connected UV transforms and field inputs
+are reevaluated at the neighboring coordinates. Thus a spatially varying Radius does not
+require hardware derivatives inside divergent loops. Direct, unfiltered evaluation keeps its
+hardware derivatives. This adds field evaluations to sampled antialiasing, including nested
+branches. Custom HLSL retains its own derivative semantics: `SampleTexture`/`SampleTextureLod`
+can be sampled in these loops; raw implicit-LOD `tex2D`/`tex2Dbias` or explicit derivatives
+inside varying control flow still need care in the function's implementation.
+
+## Pixelate UV, color adjustments and path blurs
+
+| Category / kind | Inputs and defaults | Output |
+| --- | --- | --- |
+| UV / `PixelateUV` | UV: current pixel; CellSize: Float2=(8,8); Offset: Float2=(0,0) | Float2 |
+| Color/Adjustments / `ChannelMixer` | Color; Red: Float3=(1,0,0); Green=(0,1,0); Blue=(0,0,1) | Color |
+| Color/Adjustments / `WhiteBalance` | Color; Temperature=0; Tint=0 | Color |
+| Filter / `DirectionalBlur` | In: dynamic numeric/Color; UV: current pixel; Radius=8; Angle=0; Samples=17 | Same as In |
+| Filter / `RadialBlur` | In: dynamic numeric/Color; UV: current pixel; Center: Float2=(0.5,0.5); Angle=10; Strength=0.1; Samples=17 | Same as In |
+
+Pixelate UV snaps to cell centers using `(floor((UV*CanvasSize-Offset)/size)+0.5)*size+Offset`,
+then divides by CanvasSize. CellSize and Offset use document pixels, independently of preview
+resolution. Each effective cell dimension is `max(abs(CellSize),1)`; coordinates are not clamped.
+Channel Mixer computes three dot products with its coefficient rows; 1 is full contribution,
+weights may be negative, and neither weights nor output are normalized or clamped. Alpha is retained.
+White Balance applies Bradford chromatic adaptation in linear RGB. Temperature and Tint clamp
+to -1..1; zero is neutral, positive Temperature warms, positive Tint shifts toward magenta.
+The source white uses `x=0.3127-Temperature*0.05`,
+`y=2.87*x-3*x*x-0.27509507+Tint*0.05`, adapted to D65. RGB remains signed/HDR and alpha is retained.
+
+Directional Blur samples a symmetric line over ±Radius document pixels at Angle degrees.
+Radial Blur's `option` is 0=Spin (default), 1=Zoom. Spin samples ±Angle degrees around Center
+in document-pixel space, so rectangular documents retain circular rotation. Zoom samples radius
+factors `1 ± abs(Strength)`. Angle is inactive in Zoom and Strength is inactive in Spin; inactive
+branches do not affect the compiled output. A zero amount or the radial center returns the input.
+Both use normalized Gaussian weights over a single path, reevaluate the connected branch without
+an intermediate texture, and preserve its numeric type. Color filters premultiplied RGB/alpha and
+returns straight RGBA; numeric vectors process components independently. Samples rounds upward
+to an odd count in 3..129. Longer paths or finer detail require more samples; nested filters multiply
+the work. Sampling retains the existing explicit AA footprint rules. Results are not clamped.
 
 ## Reusable Sub Graphs
 
@@ -284,7 +332,9 @@ not ordinary catalog creation entries.
 
 ## Compilation and invalidation
 
-The connected calculation compiles to HLSL for a single fragment-shader generation pass.
+The connected calculation generates a WhimTex FX script (`@param` declarations, helper functions
+and `ApplyFX`). The shared FX source builder then produces ShaderLab for a single
+fragment-shader generation pass. Layer rendering and individual node previews use this same path.
 Intermediate numeric node values are shader expressions or variables, not an image allocated
 for every node. Declared resource inputs retain their normal resource preparation requirements;
 the subsequent layer FX and document composition remain separate from this generation pass.
@@ -299,6 +349,14 @@ the runtime retains its last successfully compiled shader when one is available.
 result is not proof that the current draft compiled or produced valid output.
 
 ### Generated HLSL
+
+The displayed source is the intermediate FX script passed to the shared source builder, before
+the ShaderLab wrapper. Only reachable exposed parameters and required hidden input uniforms are
+declared. Library metadata inside HLSL nodes remains inert comments; it does not declare extra FX
+parameters or a preset identity. Resource values and IDs remain bound from the graph document,
+including multi-key/Custom gradients, curves and layer texture sources. The script is not a
+resource export. Numeric declaration defaults are captured at compilation; subsequent value-only
+edits update material bindings without regenerating the script.
 
 **Generated HLSL** uses a draggable footer with the shared `VerticalRevealHandle` extracted from
 `LayerPreviewPanel`. The handle keeps the same 20-logical-pixel height, caption and horizontal
@@ -399,7 +457,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Operations | Purpose |
 | --- | --- |
 | Parameter, Constant | Shared parameter reads and named mathematical constants. |
-| Instance Index, Time | Input nodes with one Float output, Out, and no own preview. Instance Index converts the shared uint index to Float; standard rendering supplies 0. Time multiplies Editor seconds by Float Scale (default 1) only inside graph previews; other renders use 0. |
+| Instance Index, Time | Input nodes with one Float output, Out, and no own preview. Both have Float Start (default 0) and Scale (default 1) inputs. Instance Index returns `Start + (float)_WhimTexInstanceIndex * Scale`; the supplied index currently defaults to 0. Time returns `Start + _WhimTexTime * Scale`; Editor seconds animate graph previews, while other renders supply time 0. |
 | Custom Function, cataloged HLSL functions | Inline function bodies or functions imported from an HLSL library. |
 | Reroute | Forward a typed connection unchanged; insert on an existing edge, not through node search. |
 | UV, Image Size, Texture Size | Coordinates and image dimensions. |
@@ -411,6 +469,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Floor, Ceil, Round, Fraction | Integer boundaries and fractional part. |
 | Sine, Cosine, Atan2, Asin, Acos | Trigonometric functions. |
 | Lerp, Remap, Step, Smoothstep | Interpolation, range mapping and thresholds. |
+| Unlerp | Component-wise `(T-A)/(B-A)` without clamping. Dynamic numeric inputs A=0, B=1, T=0; Out uses the widest input width, with Color treated as Float4. Equal bounds are undefined. |
 | Length, Distance, Dot, Normalize, Cross, Reflect, Refract | Vector calculations. |
 | Compare, Select, And, Or, Not | Boolean conditions and conditional values. |
 | Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope, Flipbook | Coordinate transforms and atlas-frame UVs. |
@@ -431,15 +490,16 @@ Names below identify operations; grouped rows do not imply a single combined nod
 HLSL FX authoring continues to use the [separate effect contract](ShaderFX.md).
 
 `Time` uses one shared Editor-time sample per update in visible node previews and the graph's
-result preview, including active FX. It reads `_WhimTexTime * Scale`; Instance Index reads
-`_WhimTexInstanceIndex` converted to Float. HLSL libraries and Custom Function can read the same
+result preview, including active FX. It returns `Start + _WhimTexTime * Scale`; Instance Index returns
+`Start + (float)_WhimTexInstanceIndex * Scale`. HLSL libraries and Custom Function can read the same
 automatically declared `float _WhimTexTime` and `uint _WhimTexInstanceIndex` directly. The HLSL
 uint keeps all 32 bits; the graph's Float output has ordinary floating-point precision.
 Only compiled outputs that may depend on time update continuously; hidden/collapsed
 previews do not render. Time is a uniform, so animation does not change the code fingerprint,
 recompile shaders, or dirty the document. Graph result previews bypass the layer output/content
 caches and retain transforms, FX and clipping. Referenced layers, Canvas, ordinary layer previews,
-thumbnails and export evaluate Time at 0. No clock value is saved in the document.
+thumbnails and export supply time 0, so Time.Out equals Start there. Start and Scale are saved as
+ordinary node inputs; no clock value is saved in the document.
 `ShaderLayerBehaviour.UsesTime` / `UsesInstanceIndex` describe the compiled output, including
 reachable HLSL modules; node previews analyze their own reachable subgraph. Within a module,
 analysis is conservative over its complete expanded source. See the [shared context contract](ShaderFX.md#evaluation-time-and-instance-index)
@@ -507,8 +567,8 @@ or a coverage mask. Threshold that distance explicitly for cell-border lines.
 
 Dither's `option` values are **0: Bayer 4x4**, **1: Bayer 2x2**, **2: Bayer 8x8**. Levels rounds
 to at least 2; RGB quantization spacing is `1 / (Levels - 1)`, continuing beyond `0..1` without
-clipping signed/HDR values. PixelSize uses its absolute value, at least one output pixel.
-Its pattern follows the current output resolution; alpha is not quantized.
+clipping signed/HDR values. PixelSize uses its absolute value, at least one document pixel.
+Its pattern follows document dimensions, independent of preview size; alpha is not quantized.
 
 ### Procedural and UV nodes
 
@@ -541,9 +601,19 @@ they are not normalized. `TransformUV` belongs to **UV**, independently of the l
 
 `Wave`, `Ripple`, `Stripes` and `Rings` expose a separate Float `Phase` input. Supply a parameter
 or another scalar expression to shift the pattern; `Time.Out` animates it inside graph previews.
+Periodic patterns reduce spatial coordinates and Phase/Offset separately before combining them,
+so a large uniform offset does not erase the spatial fraction. Antialiasing uses the signed
+differences of the unwrapped components, including in sampled branches, rather than derivatives
+across wrapped seams. Pulse and triangle coverage integrate local intervals plus complete periods
+without subtracting large accumulated integrals. Phase repeats every cycle; Grid Offset repeats
+every unit and Checkerboard every two units per axis. Sine's narrow-footprint attenuation uses
+the near-zero sinc limit to avoid dividing an inaccurate tiny sine by its argument. This preserves the supplied float values;
+it cannot recover precision already lost in upstream arithmetic or change Time's precision.
 Mask edges are smoothed. A signed-distance output is negative inside, zero on the boundary
 and positive outside; do not treat it as a `0..1` mask. `Shape.Distance` retains the existing
 approximate ellipse distance, so an ellipse is not guaranteed to have an exact Euclidean SDF.
+Polygon and Star measure the nearest actual edge in rotated UV space, including nonuniform Size;
+their Distance and Feather no longer inherit the shorter axis's scale as an approximation.
 Connect two `Shape.Distance` outputs to `CombineDistance` and use its `Mask` for coverage.
 
 For a colored gradient, connect `GradientFactor.Out` to `SampleGradient.T`, a Gradient parameter
@@ -630,7 +700,7 @@ new mode and initializes newly introduced inputs with their defaults.
   edge or explicit input literal is present. Custom sets constant coordinates; existing explicit coordinates remain Custom.
   Connect `Repeat.Cell` for one value per repeated cell, or another source to override the default.
   Repeat computes `p = UV * Scale + Offset`, `Out = frac(p)`, `Cell = floor(p)`, including
-  negative cell coordinates. `Cell` is unrelated to the currently constant `InstanceIndex`.
+  negative cell coordinates. `Cell` is unrelated to the index supplied to `InstanceIndex` (currently zero).
 - Stripes uses Width only in Square mode. Width is the filled fraction of a period for Square
   Stripes and Rings; Grid has independent X/Y widths. Pattern filtering smooths pixel coverage.
   Shape.Out and CombineDistance.Mask use derivative antialiasing with optional Feather.
@@ -790,7 +860,7 @@ In Texture mode, connect a **Texture** resource to Height. Channel selects its h
 Radius measures bound-source texels, independent of graph-preview size or document Pixel Scale.
 Wrap/Filter control those texture reads. In Value mode, Height is **Float**: connect a noise,
 mask or other scalar branch. The compiler reevaluates that branch at neighboring UVs;
-Radius measures pixels of the current output, including a node preview's output resolution.
+Radius measures document pixels, independent of node-preview resolution.
 Texture Channel/Wrap/Filter do not apply to Value; upstream sampling nodes keep their own settings.
 UV defaults to the current pixel in both modes. Strength, FlipX/FlipY and the Scharr, Sobel or
 Central Difference derivative remain available. The finite difference is divided by the

@@ -1260,7 +1260,7 @@ namespace DCFApixels.WhimTex
                 if (value is WhimTexGradient gradient && gradient.HasCustomCurves && !gradientFields.Contains("customColorMode"))
                     throw new WhimTexDocumentException("customColorMode is required with saved customKeys.");
                 if (value is WhimTexGradientCurveKey)
-                    foreach (string required in new[] { "id", "channel", "time", "value", "tangentMode" })
+                    foreach (string required in new[] { "id", "channel", "time", "value", "inMode", "outMode", "broken" })
                         if (!gradientFields.Contains(required)) throw new WhimTexDocumentException("Missing Custom key field: " + required);
                 if (value is MeshGradient)
                     foreach (string required in new[] { "columns", "rows", "colorMode", "positions", "colors", "nodeModes" })

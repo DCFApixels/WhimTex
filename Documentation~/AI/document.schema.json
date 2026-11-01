@@ -1655,6 +1655,15 @@
           },
           "description": "Optional retained manual data. When nonempty: one to 64 keys in each channel, at most 64 distinct color times across channels 0..2, unique positive IDs, channel times increasing by at least 0.000001. Keys are independent. Markers cluster all channels sorted by time/id within 0.00001 of each earliest anchor, not transitively; color/alpha filtering happens inside these clusters. Groups are never serialized; the obsolete link field is rejected. Empty/null allowed only outside Custom."
         },
+        "customCurveFormat": {
+          "type": "integer",
+          "enum": [
+            0,
+            1
+          ],
+          "default": 0,
+          "description": "1 is required with Custom Bezier keys; 0 means no manual data."
+        },
         "customColorMode": {
           "type": "string",
           "enum": [
@@ -1770,7 +1779,8 @@
           "then": {
             "required": [
               "customKeys",
-              "customColorMode"
+              "customColorMode",
+              "customCurveFormat"
             ],
             "properties": {
               "customKeys": {
@@ -1794,8 +1804,14 @@
           },
           "then": {
             "required": [
-              "customColorMode"
-            ]
+              "customColorMode",
+              "customCurveFormat"
+            ],
+            "properties": {
+              "customCurveFormat": {
+                "const": 1
+              }
+            }
           }
         }
       ]
@@ -1839,16 +1855,53 @@
           "minimum": -3.40282347E+38,
           "maximum": 3.40282347E+38
         },
-        "tangentMode": {
+        "inWeight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.333333343,
+          "description": "Fraction of adjacent time span; unweighted sides use 1/3."
+        },
+        "outWeight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.333333343,
+          "description": "Fraction of adjacent time span; unweighted sides use 1/3."
+        },
+        "inMode": {
           "type": "string",
           "enum": [
-            "Auto",
-            "Smooth",
-            "Broken",
+            "Free",
+            "ClampedAuto",
             "Linear",
-            "Constant"
+            "Constant",
+            "ConstantNext"
           ],
-          "description": "Auto, Smooth, Broken, Linear or Constant. Constant uses the right key between knots, matching Fixed; exact knots keep their values."
+          "description": "Free, ClampedAuto, Linear, Constant (previous value) or ConstantNext (next value). Joined sides must both be Free or ClampedAuto. Weighted Bezier evaluation uses AnimationCurve."
+        },
+        "outMode": {
+          "type": "string",
+          "enum": [
+            "Free",
+            "ClampedAuto",
+            "Linear",
+            "Constant",
+            "ConstantNext"
+          ],
+          "description": "Free, ClampedAuto, Linear, Constant (previous value) or ConstantNext (next value). Joined sides must both be Free or ClampedAuto. Weighted Bezier evaluation uses AnimationCurve."
+        },
+        "broken": {
+          "type": "boolean"
+        },
+        "weightedMode": {
+          "type": "string",
+          "enum": [
+            "None",
+            "In",
+            "Out",
+            "Both"
+          ]
         }
       },
       "required": [
@@ -5498,7 +5551,13 @@
             "Erode",
             "SubGraph",
             "SubGraphInput",
-            "SubGraphOutput"
+            "SubGraphOutput",
+            "Unlerp",
+            "PixelateUV",
+            "ChannelMixer",
+            "WhiteBalance",
+            "DirectionalBlur",
+            "RadialBlur"
           ]
         },
         "position": {
@@ -5555,7 +5614,7 @@
         "option": {
           "type": "integer",
           "default": 0,
-          "description": "Zero-based node mode; use discovery modes for kind-specific values. Blur/Sharpen/Dilate/Erode: 0=3x3, 1=5x5, 2=9x9; EdgeDetection has a fixed 3x3 Sobel kernel. Flipbook: 0=Bottom to Top, 1=Top to Bottom. Dither: 0=Bayer 4x4, 1=Bayer 2x2, 2=Bayer 8x8."
+          "description": "Zero-based node mode; use discovery modes for kind-specific values. Blur/Sharpen/Dilate/Erode: 0=3x3, 1=5x5, 2=9x9; EdgeDetection has a fixed 3x3 Sobel kernel. RadialBlur: 0=Spin, 1=Zoom; DirectionalBlur has no mode. Flipbook: 0=Bottom to Top, 1=Top to Bottom. Dither: 0=Bayer 4x4, 1=Bayer 2x2, 2=Bayer 8x8."
         },
         "fractal": {
           "type": "string",

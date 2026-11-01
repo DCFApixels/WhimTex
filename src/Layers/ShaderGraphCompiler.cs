@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using UnityEngine;
 
@@ -8,6 +9,7 @@ namespace DCFApixels.WhimTex
     internal sealed class ShaderGraphCompilation
     {
         internal string source;
+        internal int parameterCount;
         internal ShaderContextDependencies contextDependencies;
         internal bool usesTime => (contextDependencies & ShaderContextDependencies.Time) != 0;
         internal bool usesInstanceIndex => (contextDependencies & ShaderContextDependencies.InstanceIndex) != 0;
@@ -41,7 +43,7 @@ namespace DCFApixels.WhimTex
         Dictionary<string, Value> values = new Dictionary<string, Value>();
         readonly HashSet<string> visiting = new HashSet<string>();
         readonly HashSet<string> declarations = new HashSet<string>();
-        readonly StringBuilder uniforms = new StringBuilder();
+        readonly StringBuilder inputDeclarations = new StringBuilder();
         StringBuilder body = new StringBuilder();
         readonly HashSet<string> usedParameters = new HashSet<string>();
         readonly struct Value
@@ -78,21 +80,62 @@ namespace DCFApixels.WhimTex
                 _ => "float4((" + color.text + ").xxx, 1)"
             };
             compiler.body.Append("return ").Append(rgba).AppendLine(";");
-            var properties = new StringBuilder();
-            ShaderFXSourceBuilder.BuildParameterDeclarations(compiler.result.parameters, properties, compiler.uniforms, new HashSet<string>());
-            var textureViews = new StringBuilder();
+            var source = new StringBuilder("// @whimtex-effect Shader Graph\n");
             foreach (var parameter in compiler.result.parameters)
-                if (parameter.type == ShaderFXParameterType.Texture2D) ShaderFXTextureViews.Declare(parameter.name, properties, textureViews);
-            compiler.result.source = "Shader \"Hidden/WhimTex/ShaderGraph\" { Properties {\n" + properties +
-                "}\nSubShader { Cull Off ZWrite Off ZTest Always Blend Off Pass { CGPROGRAM\n" +
-                "#pragma target 3.5\n#pragma vertex vert_img\n#pragma fragment GraphFragment\n#include \"UnityCG.cginc\"\n" +
-                ShaderFXSourceBuilder.NoiseLibraryInclude + ShaderFXSourceBuilder.ColorLibraryInclude +
-                "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"\n" +
-                "static float _HdrBlend = 1.0;\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"\n" +
-                "float4 _GraphImageSize;\n" + ShaderEvaluationContext.Declarations + compiler.uniforms + ShaderFXTextureViews.Types + textureViews + Helpers + (compiler.usesProcedural ? ProceduralHelpers : "") + (compiler.usesColor ? ColorHelpers : "") + (compiler.usesExtended ? ExtendedHelpers : "") + compiler.functionCode + compiler.samplingCode +
-                "float4 GraphFragment(v2f_img input) : SV_Target {\nfloat2 graphUV = ProceduralSourceUv(input.uv);\n" +
-                compiler.body + "}\nENDCG\n} } Fallback Off }";
+                AppendParameter(source, parameter);
+            source.Append(compiler.inputDeclarations).AppendLine()
+                .AppendLine("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"")
+                .AppendLine("static float _HdrBlend = 1.0;")
+                .AppendLine("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"")
+                .Append(compiler.usesSampleFootprint ? "static float2 _GraphSampleDx, _GraphSampleDy;\n" : "")
+                .Append(Helpers).Append(compiler.usesProcedural ? ProceduralHelpers : "")
+                .Append(compiler.usesColor ? ColorHelpers : "").Append(compiler.usesExtended ? ExtendedHelpers : "")
+                .Append(compiler.functionCode)
+                .Append(compiler.samplingCode)
+                .AppendLine("float4 ApplyFX(PinnedUV uv, float4 color)")
+                .AppendLine("{").AppendLine("    float2 graphUV = ProceduralSourceUv(uv);");
+            if (compiler.usesSampleFootprint)
+                source.AppendLine("    _GraphSampleDx = ddx(graphUV); _GraphSampleDy = ddy(graphUV);");
+            using (var lines = new System.IO.StringReader(compiler.body.ToString()))
+                for (string line; (line = lines.ReadLine()) != null;) source.Append("    ").AppendLine(line);
+            compiler.result.source = source.AppendLine("}").ToString();
+            compiler.result.parameterCount = compiler.result.parameters.Count + compiler.declarations.Count;
             return compiler.result;
+        }
+
+        static void AppendParameter(StringBuilder source, ShaderFXParameter parameter)
+        {
+            source.Append("// @param ");
+            if (parameter.pixelUnits) source.Append("px ");
+            if (parameter.ValueType == null)
+            {
+                source.Append(parameter.type == ShaderFXParameterType.Texture2D ? "texture2D" :
+                    parameter.type == ShaderFXParameterType.Gradient ? "gradient" : "curve").Append(' ').AppendLine(parameter.name);
+                return;
+            }
+            // Preserve the storage type as well as Color/Boolean semantics. Resource
+            // contents remain bound from the document, including arbitrary gradients.
+            string declarationType = parameter.type == ShaderFXParameterType.Color ? "color(" + parameter.ValueType + ")" :
+                parameter.type == ShaderFXParameterType.Toggle || parameter.IsBoolean ||
+                    parameter.controls.Exists(control => control.type == ShaderFXParameterType.Toggle) ? "toggle(" + parameter.ValueType + ")" :
+                parameter.type == ShaderFXParameterType.Enum ? "enum(" + parameter.ValueType + ")" :
+                parameter.IsInteger ? "seed(" + parameter.ValueType + ")" :
+                parameter.type == ShaderFXParameterType.Normal ? "normal" :
+                parameter.type == ShaderFXParameterType.Point ? "point" : parameter.ValueType;
+            source.Append(declarationType).Append(' ').Append(parameter.name).Append(" = ");
+            if (parameter.Components > 1) source.Append('(');
+            for (int i = 0; i < parameter.Components; i++)
+            {
+                if (i > 0) source.Append(", ");
+                source.Append(parameter.IsBoolean ? parameter.GetNumber(i) == 0 ? "false" : "true" :
+                    parameter.GetNumber(i).ToString("R", CultureInfo.InvariantCulture));
+            }
+            if (parameter.Components > 1) source.Append(')');
+            if (parameter.type == ShaderFXParameterType.Enum)
+            {
+                source.Append(" { Current: ").Append(parameter.GetNumber().ToString("R", CultureInfo.InvariantCulture)).Append(" }");
+            }
+            source.AppendLine();
         }
 
         void ValidateStructure(bool includeDefinitions = true, bool expanded = false)
@@ -201,9 +244,18 @@ namespace DCFApixels.WhimTex
         static string Type(ShaderGraphValueType t) => t == ShaderGraphValueType.Boolean ? "bool" : "float" + (t == ShaderGraphValueType.Float ? "" : ShaderGraphNodes.Components(t).ToString());
         internal static string InputName(ShaderGraphNode n, string port) => "_GraphI" + (n.uniformNodeId ?? n.id) + "_" + (n.uniformPort ?? port);
         static string Swizzle(ShaderGraphValueType type) => type switch { ShaderGraphValueType.Float2 => ".xy", ShaderGraphValueType.Float3 => ".xyz", ShaderGraphValueType.Float4 or ShaderGraphValueType.Color => "", _ => ".x" };
-        Value Uniform(string name, ShaderGraphValueType type)
+        Value Uniform(string name, ShaderGraphValueType type, Vector4 value)
         {
-            if (declarations.Add(name)) uniforms.Append("float4 ").Append(name).AppendLine(";");
+            if (declarations.Add(name))
+            {
+                inputDeclarations.Append("// @param hidden float4 ").Append(name).Append(" = (");
+                for (int i = 0; i < 4; i++)
+                {
+                    if (i > 0) inputDeclarations.Append(", ");
+                    inputDeclarations.Append(value[i].ToString("R", CultureInfo.InvariantCulture));
+                }
+                inputDeclarations.AppendLine(")");
+            }
             return new Value(type, type == ShaderGraphValueType.Boolean ? "(" + name + ".x != 0)" : name + Swizzle(type));
         }
         Value Cast(Value value, ShaderGraphValueType type, ShaderGraphNode node)
@@ -236,7 +288,7 @@ namespace DCFApixels.WhimTex
                     if (port.type is ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve) Error(node, "Connect the " + name + " input.");
                     var type = node.FindInput(name)?.type ?? port.type ?? ShaderGraphValueType.Float;
                     if (node.kind == ShaderGraphNodeKind.Swizzle) type = ShaderGraphNodes.SwizzleInputType(node.swizzle, type);
-                    value = Uniform(InputName(node, name), type);
+                    value = Uniform(InputName(node, name), type, node.FindInput(name)?.value ?? port.value);
                 }
                 return port.type.HasValue ? Cast(value, port.type.Value, node) : value;
             }
@@ -293,12 +345,12 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Swizzle: resultValue = EmitSwizzle(n); break;
                 case ShaderGraphNodeKind.InstanceIndex:
                     result.contextDependencies |= ShaderContextDependencies.InstanceIndex;
-                    resultValue = new Value(ShaderGraphValueType.Float, "(float)_WhimTexInstanceIndex"); break;
+                    resultValue = new Value(ShaderGraphValueType.Float, $"({V("Start").text} + (float)_WhimTexInstanceIndex * {V("Scale").text})"); break;
                 case ShaderGraphNodeKind.Time:
                     result.contextDependencies |= ShaderContextDependencies.Time;
-                    resultValue = new Value(ShaderGraphValueType.Float, "(_WhimTexTime * " + V("Scale").text + ")"); break;
+                    resultValue = new Value(ShaderGraphValueType.Float, $"({V("Start").text} + _WhimTexTime * {V("Scale").text})"); break;
                 case ShaderGraphNodeKind.UV: resultValue = new Value(ShaderGraphValueType.Float2, "graphUV"); break;
-                case ShaderGraphNodeKind.ImageSize: resultValue = new Value(ShaderGraphValueType.Float2, "_GraphImageSize" + (port == "Size" ? ".xy" : ".zw")); break;
+                case ShaderGraphNodeKind.ImageSize: resultValue = new Value(ShaderGraphValueType.Float2, "_CanvasSize" + (port == "Size" ? ".xy" : ".zw")); break;
                 case ShaderGraphNodeKind.TextureSize: resultValue = new Value(ShaderGraphValueType.Float2, V("Texture").text + "_TexelSize" + (port == "Size" ? ".zw" : ".xy")); break;
                 case ShaderGraphNodeKind.SampleTexture: resultValue = new Value(ShaderGraphValueType.Color, $"GraphSample({V("Texture").text}, {V("UV").text}, {(int)n.wrap}, {(int)n.filter})"); break;
                 case ShaderGraphNodeKind.SampleGradient: resultValue = new Value(ShaderGraphValueType.Color, V("Gradient").text + "_Sample(" + V("T").text + ")"); break;
@@ -338,6 +390,10 @@ namespace DCFApixels.WhimTex
                     var a = V(select ? "True" : "A"); var b = V(select ? "False" : "B"); var common = Common(n, a, b);
                     string aa = Cast(a, common, n).text, bb = Cast(b, common, n).text;
                     resultValue = new Value(common, select ? $"({V("Condition").text} ? {aa} : {bb})" : $"lerp({aa},{bb},{V("T").text})"); break;
+                case ShaderGraphNodeKind.Unlerp:
+                    var unlerpA = V("A"); var unlerpB = V("B"); var unlerpT = V("T"); var unlerpType = Common(n, unlerpA, unlerpB, unlerpT);
+                    string ua = Cast(unlerpA, unlerpType, n).text, ub = Cast(unlerpB, unlerpType, n).text, ut = Cast(unlerpT, unlerpType, n).text;
+                    resultValue = new Value(unlerpType, $"(({ut} - {ua}) / ({ub} - {ua}))"); break;
                 case ShaderGraphNodeKind.Remap:
                     var remap = V("In"); Common(n, remap);
                     resultValue = new Value(ShaderGraphNodes.NumericType(remap.type), $"({V("OutMin").text} + ({remap.text} - {V("InMin").text}) / ({V("InMax").text} - {V("InMin").text}) * ({V("OutMax").text} - {V("OutMin").text}))"); break;
@@ -356,6 +412,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.GradientFactor:
                 case ShaderGraphNodeKind.CombineDistance:
                 case ShaderGraphNodeKind.PolarCoordinates:
+                case ShaderGraphNodeKind.PixelateUV:
                 case ShaderGraphNodeKind.Repeat:
                 case ShaderGraphNodeKind.Mirror:
                 case ShaderGraphNodeKind.Kaleidoscope:
@@ -462,7 +519,6 @@ namespace DCFApixels.WhimTex
         }
 
         const string Helpers = @"
-float4 SampleTexture(WhimTexTexture tex, float2 uv) { return SampleTextureLod(tex, uv, 0); }
 float2 GraphTransform(float2 uv, float2 offset, float2 scale, float rotation, float2 center)
 {
     float s, c; sincos(radians(rotation), s, c); float2 p = (uv-center)*scale;
