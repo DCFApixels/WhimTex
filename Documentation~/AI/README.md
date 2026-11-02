@@ -27,19 +27,38 @@ inserted it unless you actually did so.
 For brushes use the separate [brush contract](BRUSHES.md) and [brush examples](../Examples/Brushes/README.md).
 Brush JSON replaces the brush rather than creating layers.
 
-For a procedural **Shader** layer, use the [Shader layer contract](../ShaderLayer.md) and generated
-model schema. It has independent `Graph` (default) and `Code` modes; switching converts nothing
+Shader layers and Shader FX store the same serializable `program`: `mode`, `graph`, `code`,
+`compiledCode`, `codeParameters`, `presetId` and `presetVersion`. Use the
+[shared program contract](../ShaderLayer.md#shared-shaderprogram) and generated model schema.
+It has independent `Graph` and `Code` modes; Graph is the Shader layer default. Switching converts nothing
 and retains both modes' parameters. Code uses WhimTex HLSL `ApplyFX`/`@param`: `code` is a draft,
 `compiledCode` is the applied source, and `codeParameters` stores its accepted declarations and values.
-API `settings.shader.compile:true` explicitly applies the draft after successful GPU compilation;
-document JSON restores the applied pair directly and never applies the draft. Code UV is local
-procedural UV. Shared `inputMode` selects `None` (default transparent black), `Texture`
+API `settings.shader.compile:true` compiles the selected mode; in Code it applies the draft only
+after successful GPU compilation. The stored applied pair lives inside `program`, separately
+from the draft. A code-only recipe has no saved applied program. Shader-layer restoration uses
+`compiledCode`; current unlinked FX preparation on JSON/clipboard load can apply `code` instead.
+Do not promise that Code can never be applied automatically; see [FX preparation](../ShaderFX.md#shared-program-in-an-fx).
+Shader-layer Code UV is local procedural UV. The behavior's
+`inputMode`, outside `program`, selects `None` (default transparent black), `Texture`
 (`inputTexture` asset identity), `Layer` (`inputLayerId`), or `CompositeBelow` (lower composition,
 including external backdrops through Pass Through ancestors). Code `color`/`SampleInput` and Graph's **Sample Input** read this source;
 additional textures use parameters and `SampleTexture`. Input changes reading only: ordinary
 blending remains. Select **Crossfade** to mix the lower image with processed RGBA without accumulating alpha.
 Passthrough Code (`return color`) followed by the ordinary FX list replaces the former Processor workflow. Graph and Code each
 generate their own image, with parameters for the selected mode shown in Properties.
+
+In an FX, Graph **Sample Input** and Code `SampleInput` read the preceding chain image.
+Graph public parameters use ordinary FX controls and **Edit Graph** reuses the existing graph
+window. Host Input, transform and blending are not portable program fields; changing placement
+does not guarantee pixel-identical results under all transforms. PixelLocal is determined
+conservatively from generated HLSL; do not infer it merely from Graph mode.
+
+Graph presets use [`.whimtexshader`](../ShaderFX.md#portable-shader-presets), portable JSON
+`whimtex.shader-preset` v1 with `program`, `menuPath`, `group`, `icon` and a compressed shared
+source archive. Code presets remain `.hlsl`. Both use the same project/user catalog and exact
+GUID/version linking. Embedded programs retain both modes, functions, Sub Graphs and captured
+includes for offline editing; a missing preset must not erase the graph. Clear document-layer
+texture references, including inactive ones, before preset export. Atomic saves preserve drafts.
 
 `InstanceIndex` and `Time` are Input nodes with one Float `Out`.
 `InstanceIndex` has no inputs: it casts the shared uint `_WhimTexInstanceIndex` to Float, with
@@ -329,7 +348,7 @@ Every layer requires `id` and `behaviour`. Settings belong to their native model
 | Layer | `layerName`, `enabled`, `opacity`, `blendMode`, `colorRange`, `blendRange`, `filterMode`, `clippingMask` |
 | `behaviour` | `$type` and type-specific persistent fields |
 | `transform` | Native `TextureTransform` fields; inspect the schema and an exported example |
-| `fx` | FX with `$type: "ShaderFX"`, `code`, `parameters`, `active`, optional `$name` |
+| `fx` | FX with `$type: "ShaderFX"`, nested `program`, `active`, optional `$name`; Code parameters live in `program.codeParameters`, Graph parameters in `program.graph.parameters` |
 | `children` | Group children in top-to-bottom order |
 
 `$type` is an allowlisted model name, not an arbitrary assembly-qualified type.
@@ -341,7 +360,7 @@ For targeted effects, use `behaviour.inputMode` and `behaviour.targetLayerId` wi
 this tree. `Previous`, `Specific` and `AllBelow` have their usual stack semantics;
 include required sources and clipping bases when copying a selection. Do not use `@aliases`.
 Every FX model instance owns its parameter values and enabled state in the document. Reuse a marked
-HLSL preset source or write inline HLSL; supply independent FX models for separate effects.
+Code/Graph preset source or author an embedded program; supply independent FX models for separate effects.
 JSON `fx` items may only be `ShaderFX` model objects, `null`, or internal `$ref` references to
 `ShaderFX` models in this document. `$id`/`$ref` are serialization identities, separate from layer
 IDs; a `$ref` refers to the same model instance. `$asset` is not allowed as an FX list item.
@@ -644,7 +663,7 @@ Command envelopes are separate from content; see the [JSON agent API](../AgentAP
 | A remote Drawing `url` or Base64 pixels | TIFF for Drawing pixels, or a verified File asset reference |
 | `opacity: 80` for 80% | `opacity: 0.8` |
 | ShaderLab, GLSL `mix`, invented helpers | HLSL `ApplyFX`, `lerp`, documented helpers below |
-| Live FX operations (`op`, `presetId`, `set`) inside stored content | `fx[]` with `$type: "ShaderFX"`, `code` and native parameter values |
+| Live FX operations (`op`, `presetId`, `set`) inside stored content | `fx[]` with `$type: "ShaderFX"` and nested `program`, including both modes and native parameter values |
 
 ## Upgrading old clipboard data
 
@@ -1169,7 +1188,7 @@ Curve defaults also accept `easeIn` (`t²`) and `easeOut` (`1-(1-t)²`), for exa
 `_Profile_Sample(t)`. Default: linear (0,0) to (1,1). Input clamps to 0..1; output is unrestricted.
 Named defaults: `// @param curve _Profile = linear` or `// @param curve _Profile = easeInOut`.
 The latter smoothly eases between the same endpoints with horizontal endpoint tangents.
-For clipboard FX, an optional default can be included directly in `fx[].code`:
+For clipboard FX, an optional default can be included directly in `fx[].program.code`:
 `// @param curve _Profile = keys((0, 0, 1, 1, 0, 0, 0), (1, 1, 1, 1, 0, 0, 0))`.
 Each tuple is `(time, value, inTangent, outTangent, inWeight, outWeight, weightedMode)`.
 Use strictly increasing finite times, finite values, weights 0..1 and mode 0/1/2/3
@@ -1208,8 +1227,8 @@ version are required together; nonzero GUID D and N forms are accepted and store
 Omit this directive for an independent embedded copy, including project/package presets; Unity
 asset GUIDs do not supply a missing preset ID. Project/package and external user-library links
 both require an exact version match. Missing, broken, conflicting or differently versioned sources
-use the saved document code while retaining the link for later retry. TIFF/JSON store `presetId`
-and `presetVersion` with the dependency-expanded fallback code; source paths and dependency hashes
+use the saved document program while retaining the link for later retry. TIFF/JSON store
+`program.presetId` and `program.presetVersion` with both modes and captured sources; source paths and dependency hashes
 are transient. `shaderKey` remains the separate FX instance identity. For connected operations,
 use the ID returned by `whimtex_fx_catalog`: declared preset ID when available, otherwise source
 path. Do not copy an example GUID when creating a new source; generate a new GUID or use

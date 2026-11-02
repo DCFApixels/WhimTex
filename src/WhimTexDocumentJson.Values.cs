@@ -171,8 +171,9 @@ namespace DCFApixels.WhimTex
             if (defaultsV3 == null)
             {
                 defaultsV3 = JObject.Parse(WhimTexJsonDefaultsV3.Data);
-                defaultsV3["ShaderFX"]["presetId"] = JValue.CreateNull();
-                defaultsV3["ShaderFX"]["presetVersion"] = 0;
+                // Program is mandatory and retains its own constructor defaults. Old flat FX
+                // fields must not supply defaults or erase the inactive program branch.
+                defaultsV3["ShaderFX"] = JObject.Parse(WhimTexJsonDefaultsV3.ShaderFxData);
                 defaultsV3["FileLayerBehaviour"]["externalSourcePath"] = JValue.CreateNull();
                 foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.NumericParameterData).Properties())
                     defaultsV3["ShaderFXParameter"][entry.Name] = entry.Value;

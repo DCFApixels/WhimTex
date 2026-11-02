@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using UnityEditor;
 using UnityEngine;
 
@@ -8,48 +7,32 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class ShaderFX
     {
-        [SerializeField, HideInInspector] private string presetId;
-        [SerializeField, HideInInspector] private int presetVersion;
+        private string presetId { get => Program.presetId; set => Program.presetId = value; }
+        private int presetVersion { get => Program.presetVersion; set => Program.presetVersion = value; }
         [NonSerialized] private string catalogSourcePath;
         [NonSerialized] private string presetOriginPath;
-        [NonSerialized] private string catalogDependencyHash;
-        [NonSerialized] private bool usingPresetFallback;
-        [NonSerialized] private HashSet<string> catalogDependencies;
+        [NonSerialized] private ShaderPresetLink presetLink;
         [NonSerialized] private bool catalogReloadPending;
-        internal bool IsCatalogLinked => !string.IsNullOrEmpty(presetId);
+        private ShaderPresetLink PresetLink => presetLink ??= new ShaderPresetLink(() => ReloadCatalogSource());
+        internal bool IsCatalogLinked => ShaderPresetLink.IsLinked(Program);
         internal string PresetId => presetId;
         internal int PresetVersion => presetVersion;
-        internal bool UsingPresetFallback => usingPresetFallback;
-        internal string CatalogPath => IsCatalogLinked ? ShaderFXCatalog.FindPreset(presetId)?.path : null;
-        internal void ValidatePresetReference()
-        {
-            if (!IsCatalogLinked && presetVersion == 0) return;
-            if (!(Guid.TryParseExact(presetId, "N", out var guid) || Guid.TryParseExact(presetId, "D", out guid)) ||
-                guid == Guid.Empty || presetVersion < 1)
-                throw new FormatException("An FX preset reference requires both presetId (GUID) and presetVersion (positive integer).");
-            presetId = guid.ToString("N");
-        }
-        internal string PresetSourcePath
+        internal bool UsingPresetFallback => presetLink?.UsingFallback == true;
+        internal string CatalogPath
         {
             get
             {
-                if (!IsCatalogLinked) return presetOriginPath;
-                string path = CatalogPath;
-                return string.IsNullOrEmpty(path) ? catalogSourcePath : path;
+                var entry = IsCatalogLinked ? ShaderFXCatalog.FindPreset(presetId) : null;
+                return entry?.version == presetVersion ? entry.path : null;
             }
         }
-
-        private void SetCatalogDependencies(HashSet<string> dependencies)
-        {
-            ShaderFXCatalog.RemoveShaderDependencies(this, catalogDependencies);
-            catalogDependencies = dependencies;
-            if (IsCatalogLinked) ShaderFXCatalog.SetShaderDependencies(this, catalogDependencies);
-        }
+        internal void ValidatePresetReference() => ShaderPresetLink.ValidateReference(Program);
+        internal string PresetSourcePath => IsCatalogLinked ? CatalogPath ?? catalogSourcePath : presetOriginPath;
 
         internal void ReleaseCatalogDependencies()
         {
-            SetCatalogDependencies(null);
-            ShaderFXCatalog.UntrackLinked(this);
+            presetLink?.Dispose();
+            presetLink = null;
         }
 
         private void RetryCatalogAfterUnlock()
@@ -57,37 +40,9 @@ namespace DCFApixels.WhimTex
             if (catalogReloadPending) ReloadCatalogSource(true);
         }
 
-        private string CatalogHash(string path, string source = null)
-        {
-            if (string.IsNullOrEmpty(path))
-            {
-                SetCatalogDependencies(null);
-                return "missing";
-            }
-            var dependencies = ShaderFXSourceBuilder.GetDependencies(source ?? code, path);
-            SetCatalogDependencies(dependencies);
-            var sorted = new List<string>(dependencies);
-            sorted.Sort(StringComparer.Ordinal);
-            var hashSource = new System.Text.StringBuilder();
-            hashSource.Append(source ?? code);
-            foreach (string dependency in sorted)
-            {
-                if (string.Equals(dependency, path, StringComparison.Ordinal)) continue;
-                hashSource.Append(dependency).Append(':');
-                string physical = PresetLibraryPaths.PhysicalPath(dependency);
-                if (File.Exists(physical))
-                {
-                    if (new FileInfo(physical).Length > 2 * 1024 * 1024) throw new IOException("Included HLSL exceeds 2 MiB.");
-                    hashSource.Append(Hash128.Compute(File.ReadAllText(physical)));
-                }
-                else hashSource.Append("missing");
-                hashSource.Append('\n');
-            }
-            return Hash128.Compute(hashSource.ToString()).ToString();
-        }
-
         internal void PrepareParameterDeclarations()
         {
+            if (Mode == ShaderLayerMode.Graph) return;
             // The stored fallback is an embedded shader, not necessarily a catalog file.
             // Catalog sources are separately validated with requireHeader before attachment.
             var next = ShaderFXMetadata.Parse(code, false, out _);
@@ -107,28 +62,16 @@ namespace DCFApixels.WhimTex
 
         internal static ShaderFX FromCatalog(WhimTexDocument owner, ShaderFXCatalog.Entry entry)
         {
-            if (entry == null || entry.HasError || string.IsNullOrEmpty(entry.path) || !entry.path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("An FX preset must be a marked .hlsl file.");
-            if (!string.IsNullOrEmpty(entry.id) && ShaderFXCatalog.FindPreset(entry.id)?.path != entry.path)
-                throw new InvalidOperationException("The preset ID is ambiguous or its owner changed. Refresh the preset catalog.");
-            string source = ShaderFXCatalog.ReadSource(entry.path);
-            string originalSource = source;
-            ShaderFXMetadata.Parse(source, true, out _);
-            var identity = ShaderFXPresetIdentity.Read(source);
-            if (identity.id != entry.id || identity.version != entry.version)
-                throw new InvalidOperationException("The preset identity changed. Refresh the preset catalog.");
-            source = ShaderFXSourceBuilder.ExportIncludes(ShaderFXIconMetadata.MakePortable(source, entry.path), entry.path);
-            var effect = CreateAgentDraft(owner, source, new List<ShaderFXParameter>());
-            effect.name = entry.menuPath.Substring(entry.menuPath.LastIndexOf('/') + 1);
-            effect.presetId = entry.id;
-            effect.presetVersion = entry.version;
-            effect.catalogSourcePath = entry.path;
-            effect.presetOriginPath = entry.path;
+            var loaded = ShaderPresetIO.Load(entry);
+            var effect = CreateAgentDraft(owner, loaded.program.code, loaded.program.codeParameters, loaded.path);
+            effect.ReplaceProgram(loaded.program);
+            effect.name = loaded.menuPath.Substring(loaded.menuPath.LastIndexOf('/') + 1);
+            effect.catalogSourcePath = loaded.path;
+            effect.presetOriginPath = loaded.path;
             try
             {
-                effect.catalogDependencyHash = effect.IsCatalogLinked ? effect.CatalogHash(entry.path, originalSource) : null;
-                ShaderFXCatalog.TrackLinked(effect);
-                effect.ApplyAgentDraft();
+                effect.RestoreSavedProgram();
+                if (effect.IsCatalogLinked) effect.PresetLink.Adopt(loaded);
                 return effect;
             }
             catch { DestroyImmediate(effect); throw; }
@@ -138,67 +81,78 @@ namespace DCFApixels.WhimTex
         {
             string basePath = SourcePath;
             bool applied = code == appliedCode;
-            code = ShaderFXSourceBuilder.ExportIncludes(ShaderFXIconMetadata.MakePortable(code, basePath), basePath);
-            appliedCode = applied ? code : string.IsNullOrEmpty(appliedCode) ? appliedCode :
-                ShaderFXSourceBuilder.ExportIncludes(ShaderFXIconMetadata.MakePortable(appliedCode, basePath), basePath);
+            code = WhimTexDocumentJson.PortableShaderCode(code, basePath, true);
+            if (!string.IsNullOrEmpty(Program.compiledCode))
+                Program.compiledCode = WhimTexDocumentJson.PortableShaderCode(Program.compiledCode, basePath, false);
+            if (Mode == ShaderLayerMode.Code)
+                appliedCode = applied ? code : string.IsNullOrEmpty(appliedCode) ? appliedCode :
+                    ShaderFXSourceBuilder.ExportIncludes(ShaderFXIconMetadata.MakePortable(appliedCode, basePath), basePath);
             ReleaseCatalogDependencies();
-            presetId = null;
-            presetVersion = 0;
-            usingPresetFallback = false;
+            ShaderPresetLink.Detach(Program);
             presetOriginPath = null;
-            catalogDependencyHash = null;
+            catalogSourcePath = null;
+            catalogReloadPending = false;
         }
 
         internal void ReloadCatalogSource(bool force = false)
         {
             if (!IsCatalogLinked) return;
-            ShaderFXCatalog.TrackLinked(this);
             if (WhimTexApi.IsShaderFXContentLocked(this)) { catalogReloadPending = true; return; }
             catalogReloadPending = false;
-            string fallback = code;
-            string previousPath = catalogSourcePath;
-            try
+            var link = PresetLink;
+            bool restoreFallback = false;
+            bool restored = link.Refresh(Program, candidate =>
             {
-                var entry = ShaderFXCatalog.FindPreset(presetId);
-                if (entry == null) throw new IOException("The linked preset is missing, invalid or has a conflicting ID.");
-                if (entry.version != presetVersion)
-                    throw new IOException($"Preset version {entry.version} differs from the saved version {presetVersion}.");
-                string path = entry.path;
-                string source = ShaderFXCatalog.ReadSource(path);
-                var identity = ShaderFXPresetIdentity.Read(source);
-                if (identity.id != presetId || identity.version != presetVersion)
-                    throw new IOException("The preset identity changed during restoration.");
-                string hash = CatalogHash(path, source);
-                if (!force && !usingPresetFallback && HasAppliedShader && hash == catalogDependencyHash && path == catalogSourcePath) return;
-                var declarations = ShaderFXMetadata.Parse(source, true, out string menuPath);
-                foreach (var value in parameters)
-                    if (value != null && !declarations.Exists(p => p.name == value.name && p.ValueType == value.ValueType))
-                        throw new IOException("The preset no longer declares the saved parameter " + value.name + " with the same type.");
-                code = ShaderFXSourceBuilder.ExportIncludes(ShaderFXIconMetadata.MakePortable(source, path), path);
-                catalogSourcePath = path;
-                bool contentChanged = code != fallback;
-                // Publish content changes only after the candidate compiles. A failed
-                // source refresh must not dirty the document that keeps its fallback.
-                if (!ApplyCore(false)) throw new InvalidOperationException("The linked preset could not be compiled.");
-                presetOriginPath = path;
-                catalogDependencyHash = hash;
-                usingPresetFallback = false;
-                name = menuPath.Substring(menuPath.LastIndexOf('/') + 1);
-                if (contentChanged)
+                var fallback = Program;
+                string previousPath = catalogSourcePath;
+                bool applied = false;
+                try
+                {
+                    restoreFallback = true;
+                    ReplaceProgram(candidate);
+                    catalogSourcePath = ShaderFXCatalog.FindPreset(candidate.presetId)?.path;
+                    RestoreCatalogProgram();
+                    applied = true;
+                    restoreFallback = false;
+                    return true;
+                }
+                finally
+                {
+                    if (!applied) { ReplaceProgram(fallback); catalogSourcePath = previousPath; }
+                }
+            }, force || !HasAppliedShader || LastApplyFailed);
+            if (restored)
+            {
+                catalogSourcePath = link.SourcePath;
+                presetOriginPath = link.SourcePath;
+                if (!string.IsNullOrEmpty(link.MenuPath)) name = link.MenuPath.Substring(link.MenuPath.LastIndexOf('/') + 1);
+                if (link.ContentChanged)
                 {
                     EditorUtility.SetDirty(this);
                     NotifyValuesChanged();
                 }
+                return;
             }
-            catch (Exception error)
+            // ReplaceProgram retains the same-mode shader and clears LastApplyFailed. Neither
+            // flag proves that rollback restored the saved program's derived resources.
+            if (restoreFallback || !HasAppliedShader || LastApplyFailed)
             {
-                code = fallback;
-                catalogSourcePath = previousPath;
-                usingPresetFallback = true;
-                if (!HasAppliedShader && !ApplyCore(false)) return;
-                SetDiagnostics(new[] { new ShaderFXDiagnostic(ShaderFXDiagnosticSeverity.Warning,
-                    error.Message + " Using the saved code; the preset link is retained.") }, false);
-                QueueNotification(false);
+                try { RestoreCatalogProgram(); }
+                catch (Exception) { return; } // RestoreSavedProgram already recorded the failure.
+            }
+            SetDiagnostics(new[] { new ShaderFXDiagnostic(ShaderFXDiagnosticSeverity.Warning,
+                link.Error + " Using the saved program; the preset link is retained.") }, false);
+            QueueNotification(false);
+        }
+
+        private void RestoreCatalogProgram()
+        {
+            Shader previous = compiledShader;
+            try { RestoreSavedProgram(); }
+            finally
+            {
+                if (previous != null && previous != compiledShader && !AssetDatabase.Contains(previous))
+                    DestroyImmediate(previous);
             }
         }
     }

@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
     public enum ShaderLayerInputMode { None, Texture, Layer, CompositeBelow }
 
     [Serializable]
-    public sealed class ShaderLayerBehaviour : LayerBehaviour
+    public sealed class ShaderLayerBehaviour : LayerBehaviour, ISerializationCallbackReceiver
     {
         public const string DefaultCode = "// @whimtex-effect Shader\n\nfloat4 ApplyFX(PinnedUV uv, float4 color)\n{\n    return float4(1, 1, 1, 1);\n}\n";
         public const string PassthroughCode = "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n";
@@ -26,14 +26,31 @@ namespace DCFApixels.WhimTex
             return shader;
         }
         internal bool IsPassthrough => mode == ShaderLayerMode.Code && compiledCode == PassthroughCode;
-        public ShaderLayerMode mode;
+        public ShaderProgram program = new ShaderProgram();
+        [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("mode")] private ShaderLayerMode reloadShaderMode;
+        [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("graph")] private ShaderGraph reloadShaderGraph;
+        [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("code")] private string reloadShaderCode;
+        [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("compiledCode")] private string reloadShaderCompiledCode;
+        [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("codeParameters")] private List<ShaderFXParameter> reloadShaderParameters;
+        [SerializeField, HideInInspector] private bool hasSerializedProgram;
+        void ISerializationCallbackReceiver.OnBeforeSerialize() => hasSerializedProgram = true;
+        void ISerializationCallbackReceiver.OnAfterDeserialize()
+        {
+            if (!hasSerializedProgram && (reloadShaderGraph?.nodes?.Count > 0 || !string.IsNullOrEmpty(reloadShaderCode)))
+                program = new ShaderProgram { mode = reloadShaderMode, graph = reloadShaderGraph ?? ShaderGraph.CreateDefault(),
+                    code = reloadShaderCode ?? DefaultCode, compiledCode = reloadShaderCompiledCode ?? DefaultCode,
+                    codeParameters = reloadShaderParameters ?? new List<ShaderFXParameter>() };
+            hasSerializedProgram = true;
+            reloadShaderGraph = null; reloadShaderCode = reloadShaderCompiledCode = null; reloadShaderParameters = null;
+        }
+        public ShaderLayerMode mode { get => program.mode; set => program.mode = value; }
+        public ShaderGraph graph { get => program.graph; set => program.graph = value; }
+        public string code { get => program.code; set => program.code = value; }
+        public string compiledCode { get => program.compiledCode; set => program.compiledCode = value; }
+        public List<ShaderFXParameter> codeParameters { get => program.codeParameters; set => program.codeParameters = value; }
         public ShaderLayerInputMode inputMode;
         public Texture2D inputTexture;
         public string inputLayerId;
-        public ShaderGraph graph = ShaderGraph.CreateDefault();
-        public string code = DefaultCode;
-        public string compiledCode = DefaultCode;
-        public List<ShaderFXParameter> codeParameters = new List<ShaderFXParameter>();
         sealed class CompilationState
         {
             internal ShaderGraphProgram program;
@@ -67,13 +84,15 @@ namespace DCFApixels.WhimTex
         internal void InvalidateGraph() => CurrentState.attempted = false;
         internal string CodeSourcePath(WhimTexDocument document)
         {
+            string presetPath = ShaderPresetLink.LayerSourcePath(this);
+            if (!string.IsNullOrEmpty(presetPath)) return presetPath;
             string path = WhimTexDocumentService.PathOf(document);
             return string.IsNullOrEmpty(path) ? "Assets/Untitled.hlsl" : path;
         }
         ulong Fingerprint(ShaderLayerMode selected)
         {
             if (selected == ShaderLayerMode.Graph) return ShaderGraphCompiler.CodeFingerprint(graph);
-            ulong hash = codeFingerprint.Get(compiledCode);
+            ulong hash = codeFingerprint.Get(string.IsNullOrEmpty(compiledCode) ? code : compiledCode);
             foreach (var parameter in codeParameters)
                 if (parameter != null) hash = RenderFingerprint.Mix(hash, parameter.idFingerprint.Get(parameter.id));
             return hash;
@@ -91,14 +110,15 @@ namespace DCFApixels.WhimTex
                 ShaderGraphProgram compiled;
                 if (selected == ShaderLayerMode.Code)
                 {
-                    string source = applyCode ? code : compiledCode;
+                    bool restoreInitialCode = string.IsNullOrEmpty(compiledCode);
+                    string source = applyCode || restoreInitialCode ? code : compiledCode;
                     var parameters = ShaderFXMetadata.Parse(source, false, out _);
                     ShaderFXMetadata.PreserveValues(parameters, codeParameters);
                     foreach (var parameter in parameters)
                         if (parameter.type == ShaderFXParameterType.Texture2D && parameter.textureSource == ShaderFXTextureSource.Self)
                             throw new InvalidOperationException("Self is not available for Shader layers. Choose Texture, Layer or None.");
                     compiled = ShaderGraphProgram.CreateCode(source, parameters, CodeSourcePath(document));
-                    if (applyCode)
+                    if (applyCode || restoreInitialCode)
                     {
                         WhimTexDocumentJson.PreserveShaderCodeParameterAssets(codeParameters, parameters);
                         compiledCode = source; codeParameters = parameters;
@@ -127,6 +147,7 @@ namespace DCFApixels.WhimTex
         }
         internal override RenderTexture Render(in LayerRenderContext context)
         {
+            ShaderPresetLink.EnsureLayer(this, context.activeDocument);
             if (IsPassthrough && inputMode == ShaderLayerInputMode.CompositeBelow)
             {
                 using var input = context.activeDocument.ResolveShaderInput(this, context);
@@ -166,234 +187,10 @@ namespace DCFApixels.WhimTex
         }
         internal override void ReleaseTransientResources()
         {
+            ShaderPresetLink.ReleaseLayer(this);
             graphState?.program?.Dispose(); graphState = null;
             codeState?.program?.Dispose(); codeState = null;
         }
     }
 
-    internal sealed partial class ShaderGraphProgram : IDisposable
-    {
-        readonly Shader shader;
-        readonly ShaderGraphCompilation compilation;
-        readonly ShaderParameterBindings bindings = new ShaderParameterBindings();
-        readonly List<Uniform> uniforms = new List<Uniform>();
-        readonly ShaderGraphBindingState bindingState = new ShaderGraphBindingState();
-        readonly ulong fingerprint;
-        internal readonly Material Material;
-        internal IReadOnlyList<ShaderGraphMessage> Messages { get; private set; }
-        internal string Source => compilation.source;
-        internal bool UsesTime => compilation.usesTime;
-        internal bool UsesInstanceIndex => compilation.usesInstanceIndex;
-        internal IReadOnlyList<ShaderFXParameter> Parameters => compilation.parameters;
-        readonly struct Uniform
-        {
-            internal readonly int property;
-            internal readonly string node, port;
-            internal readonly Vector4 fallback;
-            internal Uniform(int property, string node, string port, Vector4 fallback)
-            { this.property = property; this.node = node; this.port = port; this.fallback = fallback; }
-        }
-        ShaderGraphProgram(Shader shader, Material material, ShaderGraphCompilation compilation, ulong fingerprint)
-        {
-            this.shader = shader; Material = material; this.compilation = compilation;
-            this.fingerprint = fingerprint;
-            var added = new HashSet<int>();
-            foreach (var n in compilation.uniformNodes)
-            {
-                foreach (var port in ShaderGraphNodes.Inputs(n))
-                    if (port.type is not (ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve))
-                    {
-                        string name = ShaderGraphCompiler.InputName(n, port.name);
-                        if (!compilation.uniformNames.Contains(name)) continue;
-                        int property = Shader.PropertyToID(name);
-                        if (added.Add(property)) uniforms.Add(new Uniform(property, n.uniformNodeId ?? n.id, n.uniformPort ?? port.name, n.FindInput(port.name)?.value ?? port.value));
-                    }
-            }
-        }
-        internal static ShaderGraphProgram Create(ShaderGraph graph, string previewNode = null, string previewPort = "Out")
-        {
-            using var request = new CompilationRequest(graph, previewNode, previewPort, synchronous: true);
-            if (!request.TryComplete(out var result)) throw new InvalidOperationException("Graph shader compilation did not finish.");
-            return result;
-        }
-        internal Texture EmptyInput => bindings.Transparent;
-        internal static ShaderGraphProgram CreateCode(string source, List<ShaderFXParameter> parameters, string sourcePath)
-        {
-            var compilation = new ShaderGraphCompilation { source = source };
-            foreach (var parameter in parameters) compilation.parameters.Add(parameter.Copy());
-            compilation.shaderParameters.AddRange(compilation.parameters);
-            using var request = new CompilationRequest(null, compilation, 0, sourcePath, true);
-            if (!request.TryComplete(out var result)) throw new InvalidOperationException("Shader compilation did not finish.");
-            return result;
-        }
-        // Explicitly precompile the pass: Blit itself would force synchronous compilation.
-        internal sealed class CompilationRequest : IDisposable
-        {
-            internal static int ActiveCount { get; private set; }
-            readonly ShaderGraph graph;
-            readonly ShaderGraphCompilation compilation;
-            readonly ulong fingerprint;
-            Shader shader;
-            Material material;
-            bool counted;
-            internal CompilationRequest(ShaderGraph graph, string previewNode = null, string previewPort = "Out", bool synchronous = false)
-                : this(graph, ShaderGraphCompiler.Compile(graph, previewNode, previewPort),
-                    ShaderGraphCompiler.CodeFingerprint(graph), "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl", synchronous) { }
-            internal CompilationRequest(ShaderGraph graph, ShaderGraphCompilation compilation, ulong fingerprint, string sourcePath, bool synchronous)
-            {
-                this.graph = graph; this.fingerprint = fingerprint; this.compilation = compilation;
-                try
-                {
-                    string shaderSource = graph == null
-                        ? ShaderFXSourceBuilder.BuildLayer(compilation.source, compilation.shaderParameters, sourcePath)
-                        : ShaderFXSourceBuilder.BuildGenerated(compilation.source, compilation.shaderParameters,
-                            "Hidden/WhimTex/ShaderGraph", sourcePath, ShaderGraphSources.MaximumArchiveBytes + 1024 * 1024);
-                    compilation.contextDependencies = ShaderContextUsage.ReadMarker(shaderSource);
-                    shader = ShaderUtil.CreateShaderAsset(shaderSource, false);
-                    if (shader == null) throw new InvalidOperationException("Unity could not create the graph shader.");
-                    shader.hideFlags = HideFlags.HideAndDontSave;
-                    material = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
-                    bool previous = ShaderUtil.allowAsyncCompilation;
-                    try
-                    {
-                        ShaderUtil.allowAsyncCompilation = !synchronous;
-                        if (material.passCount > 0) ShaderUtil.CompilePass(material, 0, synchronous);
-                    }
-                    finally { ShaderUtil.allowAsyncCompilation = previous; }
-                    ActiveCount++; counted = true;
-                }
-                catch { Dispose(); throw; }
-            }
-            internal bool TryComplete(out ShaderGraphProgram result)
-            {
-                result = null;
-                if (shader == null) return false;
-                if (material.passCount > 0 && !ShaderUtil.IsPassCompiled(material, 0) && !ShaderUtil.ShaderHasError(shader)) return false;
-                var errors = new StringBuilder();
-                var messages = new List<ShaderGraphMessage>();
-                string errorNode = null;
-                foreach (var message in ShaderUtil.GetShaderMessages(shader))
-                {
-                    var level = message.severity == UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error ? ShaderGraphMessageLevel.Error :
-                        message.severity == UnityEditor.Rendering.ShaderCompilerMessageSeverity.Warning ? ShaderGraphMessageLevel.Warning : ShaderGraphMessageLevel.Info;
-                    string nodeId = graph?.FindNode(message.file)?.id;
-                    string text = message.message + " (line " + message.line + ")";
-                    messages.Add(new ShaderGraphMessage(nodeId, text, level));
-                    if (message.severity == UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error)
-                    {
-                        errors.AppendLine(text);
-                        errorNode ??= nodeId;
-                    }
-                }
-                if (!shader.isSupported || material.passCount == 0 || errors.Length > 0)
-                {
-                    string message = errors.Length > 0 ? errors.ToString() : "Graph shader is not supported by this graphics device.";
-                    if (errors.Length == 0) messages.Add(new ShaderGraphMessage(null, message, ShaderGraphMessageLevel.Error));
-                    throw new ShaderGraphException(errorNode, message, messages);
-                }
-                result = new ShaderGraphProgram(shader, material, compilation, fingerprint) { Messages = messages };
-                material = null; shader = null;
-                Dispose();
-                return true;
-            }
-            public void Dispose()
-            {
-                if (material != null) UnityEngine.Object.DestroyImmediate(material);
-                if (shader != null) UnityEngine.Object.DestroyImmediate(shader);
-                material = null; shader = null;
-                if (counted) { counted = false; ActiveCount--; }
-            }
-        }
-        internal void Bind(ShaderGraph graph, in LayerRenderContext context, ShaderGraphBindingState prepared = null, bool branchCurrent = false)
-        {
-            if (prepared == null) { bindingState.Prepare(graph); prepared = bindingState; }
-            var dimensions = new Vector2(context.activeDocument.width, context.activeDocument.height);
-            BindParameters(prepared.parameters, context, dimensions);
-            bool current = branchCurrent || prepared.Fingerprint == fingerprint;
-            for (int i = 0; i < uniforms.Count; i++)
-            {
-                var uniform = uniforms[i];
-                ShaderGraphNode node = null;
-                if (current) prepared.nodes.TryGetValue(uniform.node, out node);
-                ShaderGraphSubGraph definition = null;
-                if (node?.kind == ShaderGraphNodeKind.SubGraph) definition = graph.FindSubGraph(node.subGraphId);
-                else if (node != null) prepared.definitions.TryGetValue(node.id, out definition);
-                Vector4 value = UniformValue(node, uniform.port, uniform.fallback, definition);
-                Material.SetVector(uniform.property, value);
-                if (current) uniforms[i] = new Uniform(uniform.property, uniform.node, uniform.port, value);
-            }
-            BindGlobals(context, dimensions);
-        }
-        internal LayerRenderContext PrepareCoordinates(Layer layer, in LayerRenderContext context)
-        {
-            if (!compilation.usesCanvasPosition) return ProceduralUv.Prepare(Material, layer, context);
-            bool transformed = context.applyTransform;
-            Material.SetInt("_GraphCanvasCoordinates", transformed ? 1 : 0);
-            Material.SetInt("_GraphTiling", (int)layer.EffectiveTiling);
-            Material.SetInt("_UnboundedUv", transformed ? 1 : 0);
-            if (transformed) layer.SetRenderInverse(Material, "_UvRow", context);
-            var forward = transformed ? layer.RenderTransform.ToMatrix(context.activeDocument.width, context.activeDocument.height) : ProjectiveMatrix.Identity;
-            forward.SetShader(Material, "_GraphCanvasRow");
-            return ProceduralUv.WithoutTransform(context);
-        }
-        void BindGlobals(in LayerRenderContext context, Vector2 dimensions)
-        {
-            Material.SetVector("_InputSize", new Vector4(context.width, context.height, 1f / context.width, 1f / context.height));
-            Material.SetVector("_CanvasSize", new Vector4(dimensions.x, dimensions.y, 1f / dimensions.x, 1f / dimensions.y));
-            Material.SetFloat("_RenderScale", context.scaleMultiplier);
-            Material.SetFloat("_PixelScale", context.pixelScale);
-            context.shaderContext.Bind(Material);
-        }
-        internal void BindCode(IReadOnlyList<ShaderFXParameter> parameters, in LayerRenderContext context)
-        {
-            var values = bindingState.parameters;
-            values.Clear();
-            foreach (var parameter in parameters) if (parameter?.id != null) values[parameter.id] = parameter;
-            var dimensions = new Vector2(context.activeDocument.width, context.activeDocument.height);
-            BindParameters(values, context, dimensions);
-            BindGlobals(context, dimensions);
-            ShaderTextureView.BindFull(Material, ShaderTextureView.MainMapId, ShaderTextureView.MainSizeId);
-            // ApplyFX already receives the procedural layer's local coordinates.
-            ProjectiveMatrix.Identity.SetShader(Material, "_WhimTex_LayerToLocalRow");
-        }
-        void BindParameters(Dictionary<string, ShaderFXParameter> values, in LayerRenderContext context, Vector2 dimensions)
-        {
-            foreach (var declaration in compilation.parameters)
-            {
-                values.TryGetValue(declaration.id, out var value);
-                if (value == null || value.type != declaration.type || value.ValueType != declaration.ValueType) value = declaration;
-                bindings.Apply(Material, value, declaration, dimensions, context.pixelScale, textureViews: true);
-                if (!ReferenceEquals(value, declaration))
-                {
-                    // Keep the last bound values if a later draft removes or changes a declaration.
-                    declaration.floatValue = value.floatValue; declaration.vectorValue = value.vectorValue;
-                    declaration.colorValue = value.colorValue; declaration.pixelUnits = value.pixelUnits;
-                    declaration.transformValue = value.transformValue;
-                    declaration.gradientValue = value.gradientValue; declaration.curveValue = value.curveValue;
-                    declaration.integerValues = value.integerValues;
-                    declaration.textureSource = value.textureSource;
-                    declaration.textureLayerId = value.textureLayerId;
-                    declaration.textureValue = value.textureValue;
-                }
-            }
-        }
-        static Vector4 UniformValue(ShaderGraphNode node, string port, Vector4 fallback, ShaderGraphSubGraph definition)
-        {
-            if (node == null) return fallback;
-            var input = node.FindInput(port);
-            if (input != null) return input.value;
-            if (definition != null)
-            {
-                foreach (var pin in definition.inputs) if (pin.id == port) return pin.value;
-                foreach (var pin in definition.outputs) if (pin.id == port) return pin.value;
-            }
-            return fallback;
-        }
-        public void Dispose()
-        {
-            bindings.Dispose();
-            if (Material != null) UnityEngine.Object.DestroyImmediate(Material);
-            if (shader != null) UnityEngine.Object.DestroyImmediate(shader);
-        }
-    }
 }

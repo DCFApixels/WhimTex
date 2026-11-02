@@ -12,7 +12,7 @@ next_page: "zh/preview.md"
 
 # Shader FX
 
-**Shader FX** 修改一个图层，**Shader** 修改其下方合成的图像。两者都能使用预设或自定义 HLSL；调整现有预设不需要编写代码。
+**Shader FX** 修改一个图层，使用 Composite Below 的 **Shader** 图层则处理下方合成图像。两者共用 Code/Shader Graph 程序和预设目录。调整预设或搭建节点图都不需要编写代码。
 
 在原始像素缩放和 **Live Quality 100%** 下，逐像素效果可保留细节，无需处理整个大画布。
 读取相邻像素的效果仍可能需要更多时间。FX 设置中的预览显示完整输入，
@@ -21,6 +21,17 @@ next_page: "zh/preview.md"
 移动或缩放 Shader 可能需要更多计算。
 
 普通笔触期间，打开的 FX 预览以较低分辨率更新，同时保留画布细节。重复或镜像图层的预览仍可能需要更多计算。
+
+## 在 FX 中使用节点图
+
+选择 **Add FX → Custom Shader Graph**，然后点击 **Edit Graph**。效果会使用与 Shader
+图层相同的节点图窗口。**Sample Input** 读取效果链中前序效果输出的图像；将其经过计算连接到
+**Output**。节点图的公开参数显示在普通 FX 控件中。
+
+**Mode** 在 **Shader Graph** 和 **Code** 之间切换，保留两种内容及各自的参数值，不会相互转换。
+**Custom Shader FX** 从 Code 开始。保存文档可保留两种模式。
+读取邻近像素的节点图仍可能开销较大；Graph 模式本身不保证效果仅逐像素处理。
+将程序从 Shader 图层改用于 FX，或反向使用时，输入和坐标会变化，请比较图像，尤其是在有变换时。
 
 ## 影响一个图层还是下方图像？
 
@@ -201,11 +212,17 @@ Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已
 
 在开头注释中声明 `// @preset("GUID", 1)` 的预设，仅在源 `.hlsl` 的版本与文档保存的版本一致时跟随源码更新。项目、包和用户库预设都遵循此规则，参数值仍各自独立。使用 **Open HLSL Source** 编辑源文件。要独立编辑当前效果的代码，点击 **Code → Embed Copy**：它会断开 `.hlsl` 链接，在文档中保留当前代码和参数值，并允许本地编辑代码。此后源文件的修改不会再更新该效果。没有 `@preset` 的预设会作为独立副本添加，与文件所在位置无关。如果关联源码丢失、损坏或版本不同，效果会使用文档保存的代码，并保留链接，待匹配的源码重新可用时重试。要编写自己的代码，添加 **Add FX → Custom Shader FX**，输入 inline HLSL 并点击 **Compile**。参数显示在标题下方；**Code** 提供适用的代码操作、**Save Preset…** 和 **Shader Inputs** 参考。存在消息时才显示诊断。
 
-仅支持带标记的 `.hlsl` 预设和 inline HLSL，不能添加外部 Material、Shader 或 Shader FX `.asset` 引用。包含外部 FX 引用的旧 JSON/TIFF 会被拒绝并给出诊断，不会自动迁移或重写文档。请保留原件，并使用匹配的旧 checkout 打开。
+Code 支持带标记的 `.hlsl` 预设和 inline HLSL；Graph 支持 `.whimtexshader` 预设和文档中的可编辑节点图。不能添加外部 Material、Shader 或 Shader FX `.asset` 引用。包含外部 FX 引用的旧 JSON/TIFF 会被拒绝并给出诊断，不会自动迁移或重写文档。请保留原件，并使用匹配的旧 checkout 打开。
 
 ## 保存你自己的预设
 
-在效果的代码编辑器中，点击 **Save Preset…**。这会创建一个 `.hlsl` 文件，
+在 Graph 模式中，**Save Preset…** 创建 `.whimtexshader`，保留两种模式、函数、Sub Graphs
+和已收录的 include 源码。它与 Code 预设使用同一项目/用户目录，也可通过 Shader 图层的
+**Preset…** 选择。导出前，清除两种模式中 Texture 参数的 Layer 引用，包括未启用的引用。
+源预设缺失时，文档保留可编辑副本；**Embed Copy** 断开按 ID 和精确版本建立的链接，保留副本
+以便离线编辑。引用的纹理资源仍是独立依赖。
+
+在 Code 模式中点击 **Save Preset…**。这会创建一个 `.hlsl` 文件，
 其中以当前参数值作为默认值，包括颜色和 Transform 2D。
 文件名会成为预设名称。你可以保存到用户库的 **ShaderFX**
 子文件夹中，或项目 **Assets** 文件夹下的任意位置。覆盖保存会保留一份 `.bak` 副本。

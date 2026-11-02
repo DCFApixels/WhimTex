@@ -14,7 +14,7 @@ This extends [Agent API v1](AgentAPI.md) with reservations in **open documents**
 documents. The agent stays outside Unity. Image generation is performed by the agent's own tools;
 these commands neither call a model nor download images. All calls run on Unity's main thread in
 Edit Mode. They never trigger C# recompilation, refresh the AssetDatabase, or save the document.
-FX delivery and explicit Shader Code compilation can compile transient GPU shaders;
+FX delivery and explicit Shader Graph/Code compilation can compile transient GPU shaders;
 this is separate from script compilation.
 
 ## Immediate editing batches
@@ -33,12 +33,18 @@ This is an immediate edit, not a replacement for reserving an output while doing
 Use `whimtex_fx_catalog` to discover installed presets and `whimtex_render_probe` to inspect FX
 input/output or isolated channels without changing the document.
 
-Shader layers use shared `add`/`set` operations with `settings.shader`. `mode` selects
-`Graph` or `Code` without conversion; both contents and parameter values are retained.
-`code` updates only the WhimTex HLSL draft. Add `compile:true` to explicitly apply it after
-successful GPU compilation. Snapshots include `graph`, `code`, `compiledCode` and
-`codeParameters` for either mode. See the [Shader API contract](ShaderLayer.md#api-and-document-json)
-for exact roundtrip fields, failure rollback and explicit texture inputs.
+Shader layers use shared `add`/`set` operations with `settings.shader`; immediate `fx` edits
+also accept `program`, `mode` and `graph`. Both hosts use the same program shape: `mode`,
+`graph`, draft `code`, applied `compiledCode`, `codeParameters`, `presetId`, `presetVersion`.
+Mode switching retains both contents and parameter sets. Layer snapshots nest these under
+`program`; FX inspection includes `mode` and `program` alongside active parameter controls.
+For a Shader layer, `compile:true` compiles the selected mode; FX program edits compile by
+default, so use `compile:false` to retain a draft. Parameter-only FX `set` does not recompile.
+See the [Shader API contract](ShaderLayer.md#api-and-document-json) and [FX edits](AgentAPI.md#fx-edits-and-presets)
+for replacement rules, rollback and Input ownership. Graph FX read the preceding chain image.
+Reservation/lock FX delivery also accepts the shared program fields;
+`compile:false` postpones application by that operation, not every
+later loading/preparation path. See [Code preparation](ShaderFX.md#shared-program-in-an-fx).
 
 Make Seamless is a targeted layer (`type:"makeSeamless"`), not an FX preset. Use shared `add`/`set`
 operations with `settings.makeSeamless` and a `target` operation for its source. All four methods,
@@ -433,18 +439,20 @@ For generated Drawing content, `imagePath` and `fx` can be supplied together at 
 For parameter layers, put `fx` inside `layer` or at the root, never both. Pixel-replacement jobs do
 not accept FX changes; lock the existing layer for a separate FX edit instead.
 
-Each `fx` entry has `op` (`add` by default, `replace`, `remove`) and an optional FX `index`.
+Each `fx` entry has `op` (`add` by default, `replace`, `set`, `remove`) and an optional FX `index`.
 Add appends by default, or inserts at the specified index. Replace/remove require an explicit index
-from the layer's `fx` snapshot. Indices refer to the document-owned HLSL FX list,
+from the layer's `fx` snapshot; `set` also requires an existing index. Indices refer to the document-owned FX list,
 and each operation uses the list after the preceding operation. Unmentioned entries stay unchanged.
-Replace copies the new code into a fresh document-owned inline FX with independent values.
-Remove accepts only op/index. Add/replace accept `code`; define parameters with HLSL `@param` declarations.
+Replace creates a fresh document-owned FX with independent values. Remove accepts only op/index.
+Add/replace accept `presetId`, `program`, or flat `mode`/`graph`/Code fields. Set can edit the
+program, values and enabled state; use replace to change a preset or include base. The same
+program-field exclusions and name/value parameter formats apply as in [shared FX edits](AgentAPI.md#fx-edits-and-presets).
 
 Non-null `Layer.fx` entries are `ShaderFX` instances; persistent JSON also permits internal `$ref`
 references to these document models, but never `$asset` FX items. External Material, Shader and ShaderFX `.asset`
 references are unsupported; old JSON/TIFF containing them is rejected with a diagnostic, without
 migration or source-document rewrite. Internal Materials and compiled Unity Shaders still execute
-the HLSL. Catalog discovery and linked project/package versus embedded user-library presets are
+the HLSL. Catalog discovery and exact-version links in both project/package and user libraries are
 described in [FX edits and presets](AgentAPI.md#fx-edits-and-presets).
 
 - Code: 1..65,536 characters of HLSL with `float4 ApplyFX(PinnedUV uv, float4 color)`.
@@ -459,8 +467,8 @@ described in [FX edits and presets](AgentAPI.md#fx-edits-and-presets).
   before its first save). Prefer explicit project paths. An FX does not require its own shader file.
 - Declare at most 128 parameters in code using [HLSL metadata](ShaderFX.md#parameter-declarations),
   including their initial values. Do not redeclare the generated uniforms. The first-line catalog
-  marker is required only for catalog files. This reservation/lock workflow does not accept a
-  `parameters` array, value overrides, `presetId` or an FX `set` operation.
+  marker is required only for HLSL catalog files. `parameters` accepts a name/value object,
+  not an inspection-record array; Graph declarations live in `program.graph.parameters`.
 - To change values after completion, inspect the finished layer and use the shared
   [FX editing operations](AgentAPI.md#fx-edits-and-presets) through `whimtex_assistant_execute`.
   There, `parameters` is a name/value object. The shared contract defines supported value types,
@@ -470,7 +478,8 @@ described in [FX edits and presets](AgentAPI.md#fx-edits-and-presets).
   no unbounded loops or enormous per-pixel sampling loops. Successful compilation does not prove
   that a shader is fast or numerically stable; inspect a small preview and use HDR Debug as needed.
 
-The API compiles a temporary GPU shader before delivery. This is not a project/C# recompilation,
+Program edits compile a temporary GPU shader before delivery by default (`compile:false` postpones it).
+This is not a project/C# recompilation,
 AssetDatabase refresh or an exported `.shader` file. Compile errors return `shader_compile_failed`
 with compiler diagnostics; the live content stays unchanged, and the pending job can be corrected.
 Previews do not publish candidate effects or add Undo entries. Completion is one Undo action.
@@ -493,9 +502,9 @@ Groups support FX directly. FX process the combined children before group opacit
 ## Edit and lock an existing layer
 
 For custom FX code or layer-settings candidate edits, do not create a replacement placeholder:
-lock the existing layer's content instead. Linked preset insertion and parameter-only FX `set`
-use immediate editing batches **without a lock**. The lock's `changes.fx` schema does not accept
-`presetId` or `set`, and an active lock blocks immediate batches. A sequence of immediate `set`
+lock the existing layer's content instead. The lock's `changes.fx` accepts shared program edits,
+linked preset insertion and parameter-only `set`. Immediate batches require no active lock.
+A sequence of immediate `set`
 and render/probe calls edits the live document with Undo; it is not a detached candidate preview.
 
 ```powershell

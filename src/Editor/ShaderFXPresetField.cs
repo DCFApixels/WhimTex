@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using UnityEditor;
 using UnityEditor.UIElements;
@@ -8,16 +9,18 @@ namespace DCFApixels.WhimTex
 {
     internal sealed class ShaderFXPresetField : BaseField<string>
     {
-        private readonly ShaderFX effect;
+        private readonly Func<string> sourcePath;
         private readonly Image icon;
         private readonly Label fileName;
-        private Object asset;
+        private UnityEngine.Object asset;
 
-        internal ShaderFXPresetField(ShaderFX effect) : this(effect, new VisualElement()) { }
+        internal ShaderFXPresetField(ShaderFX effect) : this(() => effect != null ? effect.PresetSourcePath : null) { }
 
-        private ShaderFXPresetField(ShaderFX effect, VisualElement input) : base("Preset", input)
+        internal ShaderFXPresetField(Func<string> sourcePath, Action openSource = null) : this(sourcePath, openSource, new VisualElement()) { }
+
+        private ShaderFXPresetField(Func<string> sourcePath, Action openSource, VisualElement input) : base("Preset", input)
         {
-            this.effect = effect;
+            this.sourcePath = sourcePath ?? throw new ArgumentNullException(nameof(sourcePath));
             name = "shaderFXPresetSource";
             AddToClassList(ObjectField.ussClassName);
             AddToClassList("whimtex-shader-fx-preset-source");
@@ -36,7 +39,11 @@ namespace DCFApixels.WhimTex
             input.RegisterCallback<ClickEvent>(evt =>
             {
                 if (evt.button != 0) return;
-                if (evt.clickCount == 2) ShaderFXExternalCode.OpenPresetSource(value);
+                if (evt.clickCount == 2)
+                {
+                    if (openSource != null) openSource();
+                    else ShaderFXExternalCode.OpenPresetSource(value);
+                }
                 else if (evt.clickCount == 1 && asset != null) EditorGUIUtility.PingObject(asset);
                 evt.StopPropagation();
             });
@@ -56,7 +63,7 @@ namespace DCFApixels.WhimTex
 
         internal void Refresh()
         {
-            string path = effect != null ? effect.PresetSourcePath : null;
+            string path = sourcePath();
             EnableInClassList("whimtex-shader-fx-hidden", string.IsNullOrEmpty(path));
             if (path == value) return;
             SetValueWithoutNotify(path);

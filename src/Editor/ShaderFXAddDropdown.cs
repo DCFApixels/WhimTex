@@ -10,6 +10,8 @@ namespace DCFApixels.WhimTex
     {
         private readonly Action<ShaderFXCatalog.Entry> select;
         private readonly Action createCustom;
+        private readonly Action createGraph;
+        private readonly string title;
 
         private sealed class ActionItem : AdvancedDropdownItem
         {
@@ -34,29 +36,39 @@ namespace DCFApixels.WhimTex
             internal readonly List<ShaderFXCatalog.Entry> presets = new List<ShaderFXCatalog.Entry>();
         }
 
-        internal ShaderFXAddDropdown(Action<ShaderFXCatalog.Entry> select, Action createCustom)
+        internal ShaderFXAddDropdown(Action<ShaderFXCatalog.Entry> select, Action createCustom, Action createGraph = null, string title = "Add FX")
             : base(new AdvancedDropdownState())
         {
             this.select = select;
             this.createCustom = createCustom;
+            this.createGraph = createGraph;
+            this.title = title;
             minimumSize = new Vector2(340, 400);
         }
 
-        internal static Button CreateButton(Action<ShaderFXCatalog.Entry> select, Action createCustom)
+        internal static Button CreateButton(Action<ShaderFXCatalog.Entry> select, Action createCustom, Action createGraph = null)
         {
             var button = new Button { name = "addFx", text = "Add FX", tooltip = "Search effect presets or create a custom Shader FX." };
-            button.clicked += () => new ShaderFXAddDropdown(select, createCustom).Show(button.worldBound);
+            button.clicked += () => new ShaderFXAddDropdown(select, createCustom, createGraph).Show(button.worldBound);
+            return button;
+        }
+
+        internal static Button CreatePresetButton(Action<ShaderFXCatalog.Entry> select, string text = "Preset…")
+        {
+            var button = new Button { name = "shaderPreset", text = text, tooltip = "Choose a Code or Graph shader preset." };
+            button.clicked += () => new ShaderFXAddDropdown(select, null, null, "Shader Presets").Show(button.worldBound);
             return button;
         }
 
         protected override AdvancedDropdownItem BuildRoot()
         {
-            var root = new AdvancedDropdownItem("Add FX");
-            root.AddChild(new ActionItem("Custom Shader FX", createCustom) { icon = ShaderFXIconCache.Default });
-            root.AddSeparator();
+            var root = new AdvancedDropdownItem(title);
+            if (createCustom != null) root.AddChild(new ActionItem("Custom Shader FX", createCustom) { icon = ShaderFXIconCache.Default });
+            if (createGraph != null) root.AddChild(new ActionItem("Custom Shader Graph", createGraph) { icon = ShaderFXIconCache.Default });
+            if (createCustom != null || createGraph != null) root.AddSeparator();
             AddPresets(root, ShaderFXCatalog.GetMenuEntries());
             root.AddSeparator();
-            root.AddChild(new ActionItem("Open User Shader FX Folder", ShaderFXCatalog.OpenUserFolder));
+            root.AddChild(new ActionItem("Open User Shader Presets Folder", ShaderFXCatalog.OpenUserFolder));
             root.AddChild(new ActionItem("Library Settings…", WhimTexUserSettingsWindow.Open));
             return root;
         }
@@ -106,6 +118,7 @@ namespace DCFApixels.WhimTex
                 string path = (entry.user ? "User/" : "") + entry.menuPath;
                 string name = entry.menuPath.Substring(entry.menuPath.LastIndexOf('/') + 1);
                 string label = name;
+                if (entry.mode == ShaderLayerMode.Graph) label += " (Graph)";
                 if (counts[path] > 1) label += " (" + entry.path.Replace('\\', '›').Replace('/', '›') + ")";
                 if (entry.HasError) label += " — " + entry.error;
                 string group = entry.group ?? "";

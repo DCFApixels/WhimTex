@@ -58,12 +58,13 @@ namespace DCFApixels.WhimTex
             internal Value(ShaderGraphValueType type, string text) { this.type = type; this.text = text; }
         }
         ShaderGraphCompiler(ShaderGraph graph) { this.graph = graph; }
-        internal static void Validate(ShaderGraph graph) => Compile(graph);
-        internal static void ValidateStorage(ShaderGraph graph) => new ShaderGraphCompiler(graph).ValidateStructure();
-        internal static ShaderGraphCompilation Compile(ShaderGraph graph, string previewNode = null, string previewPort = "Out")
+        internal static void Validate(ShaderGraph graph, bool effectContext = false) => Compile(graph, effectContext: effectContext);
+        internal static void ValidateStorage(ShaderGraph graph, bool effectContext = false)
+            => new ShaderGraphCompiler(graph).ValidateStructure(effectContext: effectContext);
+        internal static ShaderGraphCompilation Compile(ShaderGraph graph, string previewNode = null, string previewPort = "Out", bool effectContext = false)
         {
             var compiler = new ShaderGraphCompiler(graph);
-            compiler.ValidateStructure();
+            compiler.ValidateStructure(effectContext: effectContext);
             if (graph.subGraphs.Count != 0 || graph.activeSubGraph != null)
             {
                 var expansion = ShaderGraphExpansion.Expand(graph);
@@ -71,7 +72,7 @@ namespace DCFApixels.WhimTex
                 { previewNode = endpoint.node; previewPort = endpoint.port; }
                 graph = expansion.graph;
                 compiler = new ShaderGraphCompiler(graph);
-                compiler.ValidateStructure(false, true);
+                compiler.ValidateStructure(false, true, effectContext);
             }
             var output = graph.nodes.Find(n => n.kind == ShaderGraphNodeKind.Output);
             Value color = previewNode == null ? compiler.Input(output, "RGBA") : compiler.Emit(previewNode, previewPort);
@@ -157,21 +158,26 @@ namespace DCFApixels.WhimTex
             source.AppendLine();
         }
 
-        void ValidateStructure(bool includeDefinitions = true, bool expanded = false)
+        void ValidateStructure(bool includeDefinitions = true, bool expanded = false, bool effectContext = false)
         {
             if (graph == null || graph.version != 1 || graph.nodes == null || graph.edges == null || graph.parameters == null)
                 throw new FormatException("Unsupported or incomplete Shader graph.");
             if (graph.nodes.Count > (expanded ? 4096 : 512) || graph.edges.Count > (expanded ? 32768 : 4096) || graph.parameters.Count > 256)
                 throw new FormatException("Shader graph exceeds the supported limits (512 nodes, 4096 edges, 256 parameters).");
             if (includeDefinitions || expanded) ValidateFunctions();
-            if (includeDefinitions) ValidateSubGraphs();
+            if (includeDefinitions) ValidateSubGraphs(effectContext);
             var ids = new HashSet<string>();
             foreach (var p in graph.parameters)
             {
                 if (p == null || !Identifier(p.id) || !ids.Add(p.id)) throw new FormatException("Invalid or duplicate Shader parameter ID.");
                 ShaderGraphNodes.ParameterType(p);
-                if (p.type == ShaderFXParameterType.Texture2D && p.textureSource == ShaderFXTextureSource.Self)
-                    throw new FormatException("A Shader layer cannot sample its own output. Choose a texture or another layer.");
+                if (p.type == ShaderFXParameterType.Texture2D)
+                {
+                    if (!Enum.IsDefined(typeof(ShaderFXTextureSource), p.textureSource))
+                        throw new FormatException("Unknown Shader graph texture source.");
+                    if (!effectContext && p.textureSource == ShaderFXTextureSource.Self)
+                        throw new FormatException("A Shader layer cannot sample its own output. Choose a texture or another layer.");
+                }
                 for (int i = 0; i < p.Components; i++)
                     ShaderFXNumericValue.Check(p.ValueType, p.GetNumber(i));
             }

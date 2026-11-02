@@ -37,44 +37,83 @@
           "$type": "ShaderFX",
           "$id": "fx0",
           "active": true,
-          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.38, 0.32)\r\n// @param float _Radius = 0.105 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 0.86,
-              "id": "07e6cc9675c04790818e033eeab09203"
-            },
-            {
-              "name": "_Center",
-              "type": "Point",
-              "vectorValue": [
-                0.38,
-                0.32,
-                0.0,
-                0.0
+          "program": {
+            "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.38, 0.32)\r\n// @param float _Radius = 0.105 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
               ],
-              "id": "08c3aa50e0b841e7b1b4883127513d06"
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Radius",
-              "type": "Float",
-              "floatValue": 0.105,
-              "id": "b2a0843d58af47deabd7fb60e8fabb9c"
-            },
-            {
-              "name": "_Detail",
-              "type": "Float",
-              "floatValue": 0.32,
-              "id": "f923c4d2ebb3466da0e1bd7fc80a546a"
-            },
-            {
-              "name": "_Softness",
-              "type": "Float",
-              "floatValue": 0.75,
-              "id": "1d9a359386664d64ba600393e28ea615"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 0.86,
+                "id": "07e6cc9675c04790818e033eeab09203"
+              },
+              {
+                "name": "_Center",
+                "type": "Point",
+                "vectorValue": [
+                  0.38,
+                  0.32,
+                  0.0,
+                  0.0
+                ],
+                "id": "08c3aa50e0b841e7b1b4883127513d06"
+              },
+              {
+                "name": "_Radius",
+                "type": "Float",
+                "floatValue": 0.105,
+                "id": "b2a0843d58af47deabd7fb60e8fabb9c"
+              },
+              {
+                "name": "_Detail",
+                "type": "Float",
+                "floatValue": 0.32,
+                "id": "f923c4d2ebb3466da0e1bd7fc80a546a"
+              },
+              {
+                "name": "_Softness",
+                "type": "Float",
+                "floatValue": 0.75,
+                "id": "1d9a359386664d64ba600393e28ea615"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.38, 0.32)\r\n// @param float _Radius = 0.105 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n"
+          },
           "shaderKey": "557407b864da4f2b8f75d6153a4e3d97",
           "$name": ""
         }
@@ -159,44 +198,83 @@
           "$type": "ShaderFX",
           "$id": "fx1",
           "active": true,
-          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.45, 0.64)\r\n// @param float _Radius = 0.08 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 0.86,
-              "id": "00bcc24c98f04067af1cd1bd80659027"
-            },
-            {
-              "name": "_Center",
-              "type": "Point",
-              "vectorValue": [
-                0.45,
-                0.64,
-                0.0,
-                0.0
+          "program": {
+            "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.45, 0.64)\r\n// @param float _Radius = 0.08 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
               ],
-              "id": "a6d7248dadc54146b9cdfd4fcb913b3d"
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Radius",
-              "type": "Float",
-              "floatValue": 0.08,
-              "id": "250c9ec2919746768c2ac52d8ef45e0c"
-            },
-            {
-              "name": "_Detail",
-              "type": "Float",
-              "floatValue": 0.32,
-              "id": "389dde5cff414744aaa0e847676900e4"
-            },
-            {
-              "name": "_Softness",
-              "type": "Float",
-              "floatValue": 0.75,
-              "id": "71ed9fbe469441f1b326c41450b76d60"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 0.86,
+                "id": "00bcc24c98f04067af1cd1bd80659027"
+              },
+              {
+                "name": "_Center",
+                "type": "Point",
+                "vectorValue": [
+                  0.45,
+                  0.64,
+                  0.0,
+                  0.0
+                ],
+                "id": "a6d7248dadc54146b9cdfd4fcb913b3d"
+              },
+              {
+                "name": "_Radius",
+                "type": "Float",
+                "floatValue": 0.08,
+                "id": "250c9ec2919746768c2ac52d8ef45e0c"
+              },
+              {
+                "name": "_Detail",
+                "type": "Float",
+                "floatValue": 0.32,
+                "id": "389dde5cff414744aaa0e847676900e4"
+              },
+              {
+                "name": "_Softness",
+                "type": "Float",
+                "floatValue": 0.75,
+                "id": "71ed9fbe469441f1b326c41450b76d60"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.45, 0.64)\r\n// @param float _Radius = 0.08 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n"
+          },
           "shaderKey": "463e09047c3d4e149f0495499f17992e",
           "$name": ""
         }
@@ -281,44 +359,83 @@
           "$type": "ShaderFX",
           "$id": "fx2",
           "active": true,
-          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.62, 0.57)\r\n// @param float _Radius = 0.115 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 0.86,
-              "id": "f03a4b38c3024c4db2f78ea337d66473"
-            },
-            {
-              "name": "_Center",
-              "type": "Point",
-              "vectorValue": [
-                0.62,
-                0.57,
-                0.0,
-                0.0
+          "program": {
+            "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.62, 0.57)\r\n// @param float _Radius = 0.115 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
               ],
-              "id": "0ec3fa31343246a9bae0d4cd9d224d27"
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Radius",
-              "type": "Float",
-              "floatValue": 0.115,
-              "id": "fb767760bda741488206a844c95f7705"
-            },
-            {
-              "name": "_Detail",
-              "type": "Float",
-              "floatValue": 0.32,
-              "id": "14144036faa94b5db4793a55622595fc"
-            },
-            {
-              "name": "_Softness",
-              "type": "Float",
-              "floatValue": 0.75,
-              "id": "5ee6b7c2cc8f48208de8676fd423375e"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 0.86,
+                "id": "f03a4b38c3024c4db2f78ea337d66473"
+              },
+              {
+                "name": "_Center",
+                "type": "Point",
+                "vectorValue": [
+                  0.62,
+                  0.57,
+                  0.0,
+                  0.0
+                ],
+                "id": "0ec3fa31343246a9bae0d4cd9d224d27"
+              },
+              {
+                "name": "_Radius",
+                "type": "Float",
+                "floatValue": 0.115,
+                "id": "fb767760bda741488206a844c95f7705"
+              },
+              {
+                "name": "_Detail",
+                "type": "Float",
+                "floatValue": 0.32,
+                "id": "14144036faa94b5db4793a55622595fc"
+              },
+              {
+                "name": "_Softness",
+                "type": "Float",
+                "floatValue": 0.75,
+                "id": "5ee6b7c2cc8f48208de8676fd423375e"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.62, 0.57)\r\n// @param float _Radius = 0.115 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n"
+          },
           "shaderKey": "2b52984a3659422a9f6ec410cc636596",
           "$name": ""
         }
@@ -403,44 +520,83 @@
           "$type": "ShaderFX",
           "$id": "fx3",
           "active": true,
-          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.54, 0.3)\r\n// @param float _Radius = 0.1 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 0.86,
-              "id": "9b5e785d18c747998785e4008ea8ee71"
-            },
-            {
-              "name": "_Center",
-              "type": "Point",
-              "vectorValue": [
-                0.54,
-                0.3,
-                0.0,
-                0.0
+          "program": {
+            "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.54, 0.3)\r\n// @param float _Radius = 0.1 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
               ],
-              "id": "f60f7cb2e65e41589d0cfb4d0f7f2fd8"
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Radius",
-              "type": "Float",
-              "floatValue": 0.1,
-              "id": "e6eb323a3b1b48c29d2ccb515a01f75f"
-            },
-            {
-              "name": "_Detail",
-              "type": "Float",
-              "floatValue": 0.32,
-              "id": "319106d37305494db0fd83b42eec6ea2"
-            },
-            {
-              "name": "_Softness",
-              "type": "Float",
-              "floatValue": 0.75,
-              "id": "ba91cc4c03f344b69166e97b301a9fe8"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 0.86,
+                "id": "9b5e785d18c747998785e4008ea8ee71"
+              },
+              {
+                "name": "_Center",
+                "type": "Point",
+                "vectorValue": [
+                  0.54,
+                  0.3,
+                  0.0,
+                  0.0
+                ],
+                "id": "f60f7cb2e65e41589d0cfb4d0f7f2fd8"
+              },
+              {
+                "name": "_Radius",
+                "type": "Float",
+                "floatValue": 0.1,
+                "id": "e6eb323a3b1b48c29d2ccb515a01f75f"
+              },
+              {
+                "name": "_Detail",
+                "type": "Float",
+                "floatValue": 0.32,
+                "id": "319106d37305494db0fd83b42eec6ea2"
+              },
+              {
+                "name": "_Softness",
+                "type": "Float",
+                "floatValue": 0.75,
+                "id": "ba91cc4c03f344b69166e97b301a9fe8"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.54, 0.3)\r\n// @param float _Radius = 0.1 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n"
+          },
           "shaderKey": "52bd8b8eaabf4770b87b20c743076feb",
           "$name": ""
         }
@@ -525,44 +681,83 @@
           "$type": "ShaderFX",
           "$id": "fx4",
           "active": true,
-          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.29, 0.51)\r\n// @param float _Radius = 0.095 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 0.86,
-              "id": "350fc59d65dc4c1bb728d9257cfe8559"
-            },
-            {
-              "name": "_Center",
-              "type": "Point",
-              "vectorValue": [
-                0.29,
-                0.51,
-                0.0,
-                0.0
+          "program": {
+            "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.29, 0.51)\r\n// @param float _Radius = 0.095 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
               ],
-              "id": "ebafba754ff34658965a5a291bcd08be"
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Radius",
-              "type": "Float",
-              "floatValue": 0.095,
-              "id": "9368424c3c114347997d6cc199756980"
-            },
-            {
-              "name": "_Detail",
-              "type": "Float",
-              "floatValue": 0.32,
-              "id": "8eb0b103a90644499b9659c0fc51a688"
-            },
-            {
-              "name": "_Softness",
-              "type": "Float",
-              "floatValue": 0.75,
-              "id": "8c9ed8e9b08c4ae7a6613213b936bc20"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 0.86,
+                "id": "350fc59d65dc4c1bb728d9257cfe8559"
+              },
+              {
+                "name": "_Center",
+                "type": "Point",
+                "vectorValue": [
+                  0.29,
+                  0.51,
+                  0.0,
+                  0.0
+                ],
+                "id": "ebafba754ff34658965a5a291bcd08be"
+              },
+              {
+                "name": "_Radius",
+                "type": "Float",
+                "floatValue": 0.095,
+                "id": "9368424c3c114347997d6cc199756980"
+              },
+              {
+                "name": "_Detail",
+                "type": "Float",
+                "floatValue": 0.32,
+                "id": "8eb0b103a90644499b9659c0fc51a688"
+              },
+              {
+                "name": "_Softness",
+                "type": "Float",
+                "floatValue": 0.75,
+                "id": "8c9ed8e9b08c4ae7a6613213b936bc20"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.29, 0.51)\r\n// @param float _Radius = 0.095 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n"
+          },
           "shaderKey": "4cbc7ee302ef4daabf4586d9f2c4717a",
           "$name": ""
         }
@@ -647,44 +842,83 @@
           "$type": "ShaderFX",
           "$id": "fx5",
           "active": true,
-          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.47, 0.51)\r\n// @param float _Radius = 0.14 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 0.86,
-              "id": "8ccadd8997a1468a9544b6555a9e9998"
-            },
-            {
-              "name": "_Center",
-              "type": "Point",
-              "vectorValue": [
-                0.47,
-                0.51,
-                0.0,
-                0.0
+          "program": {
+            "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.47, 0.51)\r\n// @param float _Radius = 0.14 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
               ],
-              "id": "a8bfeecc25a84be79bec901844267d0d"
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Radius",
-              "type": "Float",
-              "floatValue": 0.14,
-              "id": "563a380c6fdb455695bffa79201e8c1e"
-            },
-            {
-              "name": "_Detail",
-              "type": "Float",
-              "floatValue": 0.32,
-              "id": "35de75285f1542dcb2217629850d45f6"
-            },
-            {
-              "name": "_Softness",
-              "type": "Float",
-              "floatValue": 0.75,
-              "id": "337415568dab4a09beebc0b052b627ef"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 0.86,
+                "id": "8ccadd8997a1468a9544b6555a9e9998"
+              },
+              {
+                "name": "_Center",
+                "type": "Point",
+                "vectorValue": [
+                  0.47,
+                  0.51,
+                  0.0,
+                  0.0
+                ],
+                "id": "a8bfeecc25a84be79bec901844267d0d"
+              },
+              {
+                "name": "_Radius",
+                "type": "Float",
+                "floatValue": 0.14,
+                "id": "563a380c6fdb455695bffa79201e8c1e"
+              },
+              {
+                "name": "_Detail",
+                "type": "Float",
+                "floatValue": 0.32,
+                "id": "35de75285f1542dcb2217629850d45f6"
+              },
+              {
+                "name": "_Softness",
+                "type": "Float",
+                "floatValue": 0.75,
+                "id": "337415568dab4a09beebc0b052b627ef"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.47, 0.51)\r\n// @param float _Radius = 0.14 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n"
+          },
           "shaderKey": "715a971ee66a4e7382d7258d12e03410",
           "$name": ""
         }
@@ -769,44 +1003,83 @@
           "$type": "ShaderFX",
           "$id": "fx6",
           "active": true,
-          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.34, 0.64)\r\n// @param float _Radius = 0.14 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 0.86,
-              "id": "6b31115e63bd404b9cfd8eb5c7cd6e7c"
-            },
-            {
-              "name": "_Center",
-              "type": "Point",
-              "vectorValue": [
-                0.34,
-                0.64,
-                0.0,
-                0.0
+          "program": {
+            "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.34, 0.64)\r\n// @param float _Radius = 0.14 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
               ],
-              "id": "c57674c3c3cb4fc089faa4dbb1693a59"
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Radius",
-              "type": "Float",
-              "floatValue": 0.14,
-              "id": "c448fb746d9b4af89bdaa71f7e771000"
-            },
-            {
-              "name": "_Detail",
-              "type": "Float",
-              "floatValue": 0.32,
-              "id": "c8c8e4801e2b45508372c387e45fecd1"
-            },
-            {
-              "name": "_Softness",
-              "type": "Float",
-              "floatValue": 0.75,
-              "id": "5c99ae04830f4f46b0a8d9bad551ceab"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 0.86,
+                "id": "6b31115e63bd404b9cfd8eb5c7cd6e7c"
+              },
+              {
+                "name": "_Center",
+                "type": "Point",
+                "vectorValue": [
+                  0.34,
+                  0.64,
+                  0.0,
+                  0.0
+                ],
+                "id": "c57674c3c3cb4fc089faa4dbb1693a59"
+              },
+              {
+                "name": "_Radius",
+                "type": "Float",
+                "floatValue": 0.14,
+                "id": "c448fb746d9b4af89bdaa71f7e771000"
+              },
+              {
+                "name": "_Detail",
+                "type": "Float",
+                "floatValue": 0.32,
+                "id": "c8c8e4801e2b45508372c387e45fecd1"
+              },
+              {
+                "name": "_Softness",
+                "type": "Float",
+                "floatValue": 0.75,
+                "id": "5c99ae04830f4f46b0a8d9bad551ceab"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.34, 0.64)\r\n// @param float _Radius = 0.14 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n"
+          },
           "shaderKey": "8f011d67a010406185b82bd9591ea4e6",
           "$name": ""
         }
@@ -891,44 +1164,83 @@
           "$type": "ShaderFX",
           "$id": "fx7",
           "active": true,
-          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.52, 0.72)\r\n// @param float _Radius = 0.135 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 0.86,
-              "id": "6607405b037f480c901929369c41213f"
-            },
-            {
-              "name": "_Center",
-              "type": "Point",
-              "vectorValue": [
-                0.52,
-                0.72,
-                0.0,
-                0.0
+          "program": {
+            "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.52, 0.72)\r\n// @param float _Radius = 0.135 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
               ],
-              "id": "7dd00d8fb01242d39f12e9c562fdb06a"
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Radius",
-              "type": "Float",
-              "floatValue": 0.135,
-              "id": "de3d39ad0f0b447fbc90bf638fe2ca03"
-            },
-            {
-              "name": "_Detail",
-              "type": "Float",
-              "floatValue": 0.32,
-              "id": "52777b889abf4fe8af2c6446dd8c6f94"
-            },
-            {
-              "name": "_Softness",
-              "type": "Float",
-              "floatValue": 0.75,
-              "id": "fae1bc2d898d42dea98041ecb8738633"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 0.86,
+                "id": "6607405b037f480c901929369c41213f"
+              },
+              {
+                "name": "_Center",
+                "type": "Point",
+                "vectorValue": [
+                  0.52,
+                  0.72,
+                  0.0,
+                  0.0
+                ],
+                "id": "7dd00d8fb01242d39f12e9c562fdb06a"
+              },
+              {
+                "name": "_Radius",
+                "type": "Float",
+                "floatValue": 0.135,
+                "id": "de3d39ad0f0b447fbc90bf638fe2ca03"
+              },
+              {
+                "name": "_Detail",
+                "type": "Float",
+                "floatValue": 0.32,
+                "id": "52777b889abf4fe8af2c6446dd8c6f94"
+              },
+              {
+                "name": "_Softness",
+                "type": "Float",
+                "floatValue": 0.75,
+                "id": "fae1bc2d898d42dea98041ecb8738633"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.52, 0.72)\r\n// @param float _Radius = 0.135 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n"
+          },
           "shaderKey": "c6be7e49bd154801b312a1d27cf74fb3",
           "$name": ""
         }
@@ -1013,44 +1325,83 @@
           "$type": "ShaderFX",
           "$id": "fx8",
           "active": true,
-          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.71, 0.55)\r\n// @param float _Radius = 0.125 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 0.86,
-              "id": "8f34b3f0b82545d6962b6b9a93648c0c"
-            },
-            {
-              "name": "_Center",
-              "type": "Point",
-              "vectorValue": [
-                0.71,
-                0.55,
-                0.0,
-                0.0
+          "program": {
+            "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.71, 0.55)\r\n// @param float _Radius = 0.125 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
               ],
-              "id": "be4234d3d0834ceebc26b235ef7efc0d"
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Radius",
-              "type": "Float",
-              "floatValue": 0.125,
-              "id": "1e2291829ba841a6ad689932500cac65"
-            },
-            {
-              "name": "_Detail",
-              "type": "Float",
-              "floatValue": 0.32,
-              "id": "1aaa9fcae1ad42f880ff7058afe0a2ca"
-            },
-            {
-              "name": "_Softness",
-              "type": "Float",
-              "floatValue": 0.75,
-              "id": "62d6177ff317408db5ac44d40d3a8b5e"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 0.86,
+                "id": "8f34b3f0b82545d6962b6b9a93648c0c"
+              },
+              {
+                "name": "_Center",
+                "type": "Point",
+                "vectorValue": [
+                  0.71,
+                  0.55,
+                  0.0,
+                  0.0
+                ],
+                "id": "be4234d3d0834ceebc26b235ef7efc0d"
+              },
+              {
+                "name": "_Radius",
+                "type": "Float",
+                "floatValue": 0.125,
+                "id": "1e2291829ba841a6ad689932500cac65"
+              },
+              {
+                "name": "_Detail",
+                "type": "Float",
+                "floatValue": 0.32,
+                "id": "1aaa9fcae1ad42f880ff7058afe0a2ca"
+              },
+              {
+                "name": "_Softness",
+                "type": "Float",
+                "floatValue": 0.75,
+                "id": "62d6177ff317408db5ac44d40d3a8b5e"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.71, 0.55)\r\n// @param float _Radius = 0.125 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n"
+          },
           "shaderKey": "e5d7dd77a2704e48a009f0dd1e941a70",
           "$name": ""
         }
@@ -1135,44 +1486,83 @@
           "$type": "ShaderFX",
           "$id": "fx9",
           "active": true,
-          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.63, 0.39)\r\n// @param float _Radius = 0.145 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 0.86,
-              "id": "ff64276e66f2436983f819af3de50e33"
-            },
-            {
-              "name": "_Center",
-              "type": "Point",
-              "vectorValue": [
-                0.63,
-                0.39,
-                0.0,
-                0.0
+          "program": {
+            "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.63, 0.39)\r\n// @param float _Radius = 0.145 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
               ],
-              "id": "625d01f5ea0b4afea25c7694616a80e1"
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Radius",
-              "type": "Float",
-              "floatValue": 0.145,
-              "id": "3295ed934c244ff5a6751a2142de454f"
-            },
-            {
-              "name": "_Detail",
-              "type": "Float",
-              "floatValue": 0.32,
-              "id": "933d7c49d2254bff90ee06e64da870d4"
-            },
-            {
-              "name": "_Softness",
-              "type": "Float",
-              "floatValue": 0.75,
-              "id": "e9eb7bbda89b447eb3c1c12d7eb6b55e"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 0.86,
+                "id": "ff64276e66f2436983f819af3de50e33"
+              },
+              {
+                "name": "_Center",
+                "type": "Point",
+                "vectorValue": [
+                  0.63,
+                  0.39,
+                  0.0,
+                  0.0
+                ],
+                "id": "625d01f5ea0b4afea25c7694616a80e1"
+              },
+              {
+                "name": "_Radius",
+                "type": "Float",
+                "floatValue": 0.145,
+                "id": "3295ed934c244ff5a6751a2142de454f"
+              },
+              {
+                "name": "_Detail",
+                "type": "Float",
+                "floatValue": 0.32,
+                "id": "933d7c49d2254bff90ee06e64da870d4"
+              },
+              {
+                "name": "_Softness",
+                "type": "Float",
+                "floatValue": 0.75,
+                "id": "e9eb7bbda89b447eb3c1c12d7eb6b55e"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.63, 0.39)\r\n// @param float _Radius = 0.145 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n"
+          },
           "shaderKey": "b2b2a02f963e4f66899a5df83b6979ff",
           "$name": ""
         }
@@ -1257,44 +1647,83 @@
           "$type": "ShaderFX",
           "$id": "fx10",
           "active": true,
-          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.32, 0.42)\r\n// @param float _Radius = 0.135 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 0.86,
-              "id": "c146a152e511446fb42d6525bc4280ee"
-            },
-            {
-              "name": "_Center",
-              "type": "Point",
-              "vectorValue": [
-                0.32,
-                0.42,
-                0.0,
-                0.0
+          "program": {
+            "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.32, 0.42)\r\n// @param float _Radius = 0.135 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
               ],
-              "id": "9df98e2c36b84d1f8d295235c436c8da"
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Radius",
-              "type": "Float",
-              "floatValue": 0.135,
-              "id": "10e6c99778f6464fbff80a20cf7fdb06"
-            },
-            {
-              "name": "_Detail",
-              "type": "Float",
-              "floatValue": 0.32,
-              "id": "51248013d09e46cb804b96fc24c8c561"
-            },
-            {
-              "name": "_Softness",
-              "type": "Float",
-              "floatValue": 0.75,
-              "id": "e1fa7c4dea79452e84a9e66e74e18a53"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 0.86,
+                "id": "c146a152e511446fb42d6525bc4280ee"
+              },
+              {
+                "name": "_Center",
+                "type": "Point",
+                "vectorValue": [
+                  0.32,
+                  0.42,
+                  0.0,
+                  0.0
+                ],
+                "id": "9df98e2c36b84d1f8d295235c436c8da"
+              },
+              {
+                "name": "_Radius",
+                "type": "Float",
+                "floatValue": 0.135,
+                "id": "10e6c99778f6464fbff80a20cf7fdb06"
+              },
+              {
+                "name": "_Detail",
+                "type": "Float",
+                "floatValue": 0.32,
+                "id": "51248013d09e46cb804b96fc24c8c561"
+              },
+              {
+                "name": "_Softness",
+                "type": "Float",
+                "floatValue": 0.75,
+                "id": "e1fa7c4dea79452e84a9e66e74e18a53"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.32, 0.42)\r\n// @param float _Radius = 0.135 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n"
+          },
           "shaderKey": "da336814783944f487f71204e3741ece",
           "$name": ""
         }
@@ -1379,44 +1808,83 @@
           "$type": "ShaderFX",
           "$id": "fx11",
           "active": true,
-          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.12 [0 .. 1]\r\n// @param point _Center = (0.5, 0.49)\r\n// @param float _Radius = 0.33 [0.02 .. 0.4]\r\n// @param float _Detail = 0.25 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 0.12,
-              "id": "c4948a6da9bc43d994aa700d3061fd93"
-            },
-            {
-              "name": "_Center",
-              "type": "Point",
-              "vectorValue": [
-                0.5,
-                0.49,
-                0.0,
-                0.0
+          "program": {
+            "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.12 [0 .. 1]\r\n// @param point _Center = (0.5, 0.49)\r\n// @param float _Radius = 0.33 [0.02 .. 0.4]\r\n// @param float _Detail = 0.25 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
               ],
-              "id": "5affede4b28346279e96cc17e19d8c73"
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Radius",
-              "type": "Float",
-              "floatValue": 0.33,
-              "id": "69bc86008b374ddbb29cf0616c583c07"
-            },
-            {
-              "name": "_Detail",
-              "type": "Float",
-              "floatValue": 0.25,
-              "id": "c1ae1033a0e64ff49bd4d5f8f1016078"
-            },
-            {
-              "name": "_Softness",
-              "type": "Float",
-              "floatValue": 0.75,
-              "id": "56e2679639b249638d0390a6ce78a16a"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 0.12,
+                "id": "c4948a6da9bc43d994aa700d3061fd93"
+              },
+              {
+                "name": "_Center",
+                "type": "Point",
+                "vectorValue": [
+                  0.5,
+                  0.49,
+                  0.0,
+                  0.0
+                ],
+                "id": "5affede4b28346279e96cc17e19d8c73"
+              },
+              {
+                "name": "_Radius",
+                "type": "Float",
+                "floatValue": 0.33,
+                "id": "69bc86008b374ddbb29cf0616c583c07"
+              },
+              {
+                "name": "_Detail",
+                "type": "Float",
+                "floatValue": 0.25,
+                "id": "c1ae1033a0e64ff49bd4d5f8f1016078"
+              },
+              {
+                "name": "_Softness",
+                "type": "Float",
+                "floatValue": 0.75,
+                "id": "56e2679639b249638d0390a6ce78a16a"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.12 [0 .. 1]\r\n// @param point _Center = (0.5, 0.49)\r\n// @param float _Radius = 0.33 [0.02 .. 0.4]\r\n// @param float _Detail = 0.25 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n"
+          },
           "shaderKey": "9ae99130222f423eb1bdca3ed0cdf637",
           "$name": ""
         }

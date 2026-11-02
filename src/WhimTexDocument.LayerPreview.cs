@@ -16,6 +16,63 @@ namespace DCFApixels.WhimTex
 
         internal void RequestLayerPreviewRefresh() => LayerPreviewRequested?.Invoke(this);
 
+        internal RenderTexture RenderShaderFXInput(Layer layer, ShaderFX effect, int outputWidth, int outputHeight,
+            float scale = 1f, float? previewTime = null)
+        {
+            if (layer == null || effect == null) return null;
+            int count = layer.fx?.IndexOf(effect) ?? -1;
+            if (count < 0) return null;
+            return RenderShaderFXPreview(layer, count, outputWidth, outputHeight, scale, previewTime);
+        }
+
+        private RenderTexture RenderShaderFXPreview(Layer layer, int count, int outputWidth, int outputHeight,
+            float scale, float? previewTime, bool finishLayer = false, bool includeDisabled = true)
+        {
+            if (layer?.Behaviour == null || !includeDisabled && !layer.enabled ||
+                !TryFindLayer(layer, out var container, out int index)) return null;
+            RefreshTransformHierarchy();
+            var previous = RenderTexture.active;
+            bool srgb = GL.sRGBWrite, oldViewport = renderingViewport, oldQuality = interactiveEffects, oldPublishing = publishingLayerPreview;
+            bool oldCollectingErrors = collectingErrors;
+            var oldCache = effectCache; var oldLimit = viewportFxLimitLayer;
+            RenderTexture result = null;
+            try
+            {
+                renderingViewport = interactiveEffects = publishingLayerPreview = false;
+                collectingErrors = false;
+                effectCache = null; viewportFxLimitLayer = null; GL.sRGBWrite = false;
+                var context = new LayerRenderContext(this, null, outputWidth, outputHeight, scale,
+                    applyTransform: !layer.IsGroup,
+                    transformFxCoordinates: !layer.IsGroup).WithShaderGraphPreviewTime(previewTime);
+                var stack = new HashSet<Layer>();
+                if (layer.IsGroup)
+                {
+                    stack.Add(layer);
+                    result = GetClearRenderTexture(outputWidth, outputHeight);
+                    // Children keep their normal evaluation time; only this group's FX animate.
+                    RenderGroupGeometry(layer, ref result, outputWidth, outputHeight, scale, stack);
+                }
+                else result = RenderStandaloneUncached(container, index, outputWidth, outputHeight, scale, stack,
+                    applyFx: false, includeDisabled: includeDisabled, applyClipping: false, finishLayer: false, shaderGraphPreviewTime: previewTime);
+                result ??= GetClearRenderTexture(outputWidth, outputHeight);
+                layer.ApplyFx(ref result, context, layer.IsGroup ? FilterMode.Bilinear : layer.ResolveFilterMode(), count);
+                if (finishLayer)
+                {
+                    result = FinishStage(result, layer.colorRange == LayerColorRange.Standard, layer.channelMapping);
+                    if (layer.clippingMask) ApplyClippingCoverage(ref result, container, index, outputWidth, outputHeight, scale, stack);
+                }
+                var output = result; result = null; return output;
+            }
+            finally
+            {
+                RenderTexture.active = previous; GL.sRGBWrite = srgb;
+                if (result != null) ProfiledRenderTexture.ReleaseTemporary(result);
+                renderingViewport = oldViewport; interactiveEffects = oldQuality; publishingLayerPreview = oldPublishing;
+                collectingErrors = oldCollectingErrors;
+                effectCache = oldCache; viewportFxLimitLayer = oldLimit;
+            }
+        }
+
         internal RenderTexture RenderLayerPreviewFallback(Layer layer, int maxSize)
         {
             if (layer == null || !layer.IsGroup) return RenderLayerPreview(layer, maxSize);

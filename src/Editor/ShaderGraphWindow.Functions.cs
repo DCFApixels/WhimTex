@@ -52,11 +52,7 @@ namespace DCFApixels.WhimTex
             if (!functionCaretKeys.TryGetValue(id, out var key)) functionCaretKeys.Add(id, key = new object());
             return key;
         }
-        void DirtyFunctionDraft()
-        {
-            EditorUtility.SetDirty(document);
-            if (document.documentBinding != null) document.documentBinding.dirty = true;
-        }
+        void DirtyFunctionDraft() => Target.MarkChanged(layoutOnly: true);
         void RefreshFunctionCatalog()
         {
             ShaderGraphFunctionCatalog.Refresh();
@@ -66,7 +62,7 @@ namespace DCFApixels.WhimTex
         static T CopyFunctionData<T>(T value) => JsonUtility.FromJson<T>(JsonUtility.ToJson(value));
 
         // Compile a standalone invocation as well: disconnected functions must be validated too.
-        static void CheckFunction(ShaderGraphFunction function, List<ShaderGraphSource> sources)
+        static void CheckFunction(ShaderGraphFunction function, List<ShaderGraphSource> sources, bool effectContext)
         {
             function.Validate();
             var graph = new ShaderGraph { sources = sources };
@@ -83,10 +79,11 @@ namespace DCFApixels.WhimTex
                     graph.edges.Add(new ShaderGraphEdge { outputNode = input.id, inputNode = node.id, inputPort = p.name });
                 }
             // Boolean is a valid function output, although it cannot wire directly to Output's color input.
-            using var program = ShaderGraphProgram.Create(graph, node.id, function.OutputPorts()[0]);
+            using var program = ShaderGraphProgram.Create(graph, node.id, function.OutputPorts()[0], effectContext: effectContext);
         }
         void ApplyFunction(string nodeId, ShaderGraphFunction candidate, List<ShaderGraphSource> sources)
         {
+            if (!Editable) return;
             try
             {
                 if (candidate.inline)
@@ -96,7 +93,7 @@ namespace DCFApixels.WhimTex
                         ? ShaderGraphSources.CaptureRetainingIncludes(candidate.body, path, sources, candidate.sourceId)
                         : ShaderGraphSources.Capture(candidate.body, path, sources);
                 }
-                CheckFunction(candidate, sources);
+                CheckFunction(candidate, sources, Target.IsEffect);
                 canvas.SetMessages("function:" + nodeId, null);
                 Edit("Compile Shader Function", graph =>
                 {
@@ -120,7 +117,7 @@ namespace DCFApixels.WhimTex
             {
                 var staged = new ShaderGraph { sources = new List<ShaderGraphSource>(Graph.sources) };
                 var function = entry.Import(staged);
-                CheckFunction(function, staged.sources);
+                CheckFunction(function, staged.sources, Target.IsEffect);
                 Edit("Add HLSL Node", graph =>
                 {
                     graph.sources = staged.sources; graph.functions.Add(function);
@@ -145,7 +142,7 @@ namespace DCFApixels.WhimTex
                 candidate.body = candidate.draft = source.code; candidate.draftPorts = null; candidate.hasDraftPorts = false;
                 candidate.sourcePath = candidate.presetId = candidate.sourceFingerprint = null;
                 candidate.presetVersion = 0; candidate.reflected = false;
-                CheckFunction(candidate, Graph.sources);
+                CheckFunction(candidate, Graph.sources, Target.IsEffect);
                 canvas.SetMessages("function:" + nodeId, null);
                 Edit("Convert to Custom Function", graph =>
                 {
@@ -244,7 +241,12 @@ namespace DCFApixels.WhimTex
                 });
                 var signature = new Label(f.Signature()); signature.AddToClassList("whimtex-shader-graph-function-signature"); codeFoldout.Add(signature);
                 functionCode = new ShaderFXCodeField(window.document, window.FunctionCaretKey(Id), () => Function?.draft ?? "",
-                    code => { if (window.Editable && Function != null) { Function.draft = code; window.DirtyFunctionDraft(); } }, () => window.Editable);
+                    code =>
+                    {
+                        if (!window.Editable || Function == null) return;
+                        window.Target.RecordUndo("Edit Shader FX Code");
+                        Function.draft = code; window.DirtyFunctionDraft();
+                    }, () => window.Editable);
                 functionCode.AddToClassList("whimtex-shader-graph-function-code");
                 var codeArea = new VisualElement();
                 codeArea.Add(functionCode);
@@ -345,11 +347,12 @@ namespace DCFApixels.WhimTex
                 if (e.button != 0 || !node.window.Editable) return;
                 origin = e.position; size = new Vector2(node.resolvedStyle.width, node.functionCode.resolvedStyle.height);
                 pointer = e.pointerId; target.CapturePointer(pointer);
-                Undo.IncrementCurrentGroup(); Undo.RecordObject(node.window.document, "Resize Function Code"); e.StopPropagation();
+                Undo.IncrementCurrentGroup(); node.window.Target.RecordUndo("Resize Function Code"); e.StopPropagation();
             }
             void Move(PointerMoveEvent e)
             {
                 if (e.pointerId != pointer || !target.HasPointerCapture(pointer)) return;
+                if (!node.window.Editable || node.Data == null) { target.ReleasePointer(pointer); return; }
                 float scale = node.worldTransform.lossyScale.x;
                 var next = size + ((Vector2)e.position - origin) / Mathf.Max(scale, .001f);
                 // Inherit the graph's existing node minimum; code uses its own shared editor minimum.

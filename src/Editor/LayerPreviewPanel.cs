@@ -23,7 +23,7 @@ namespace DCFApixels.WhimTex
         private readonly VisualElement header;
         private readonly bool docked;
         private readonly bool animateShaderGraph;
-        private bool AnimatedGraph => animateShaderGraph && boundBehaviour is ShaderLayerBehaviour && boundLayer.UsesTime;
+        private bool AnimatedGraph => animateShaderGraph && boundLayer != null && boundLayer.UsesTime;
         internal VisualElement Header => header;
         private readonly VisualElement surface;
         private readonly Image image;

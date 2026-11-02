@@ -1,0 +1,72 @@
+using System;
+using System.Collections.Generic;
+using UnityEditor;
+
+namespace DCFApixels.WhimTex
+{
+    internal sealed class ShaderGraphEditorTarget
+    {
+        internal readonly WhimTexDocument Document;
+        internal readonly string LayerId;
+        internal readonly bool IsEffect;
+        private readonly ShaderFX effect;
+
+        internal ShaderGraphEditorTarget(WhimTexDocument document, string layerId, ShaderFX effect = null, bool effectTarget = false)
+        { Document = document; LayerId = layerId; this.effect = effect; IsEffect = effectTarget; }
+
+        internal Layer Layer => Document != null ? Document.FindLayer(LayerId) : null;
+        internal ShaderFX Effect => IsEffect && effect != null && Layer?.fx?.Contains(effect) == true ? effect : null;
+        internal ShaderLayerBehaviour Behaviour => !IsEffect ? Layer?.Behaviour as ShaderLayerBehaviour : null;
+        internal ShaderProgram Program => IsEffect ? Effect?.Program : Behaviour?.program;
+        internal ShaderGraph Graph => Program?.graph;
+        internal bool Available => Program != null;
+        internal bool GraphActive => Available && Program.mode == ShaderLayerMode.Graph;
+        internal bool IsLinked => IsEffect ? Effect?.IsCatalogLinked == true : ShaderPresetLink.IsLinked(Program);
+        internal bool IsReadOnly => !Available || WhimTexApi.IsLayerContentLocked(Document, Layer) ||
+            IsEffect && WhimTexApi.IsShaderFXContentLocked(Effect);
+        internal string Identity => UnityObjectID.FromObject(Document) + ":" + LayerId +
+            (IsEffect ? ":fx:" + UnityObjectID.FromObject(effect) : ":layer");
+        internal string Title => IsEffect ? Layer?.layerName + " / " + Effect?.name : Layer?.layerName;
+        internal string Diagnostics => IsEffect ? Effect?.GraphDiagnostics : Behaviour?.Diagnostics;
+        internal IReadOnlyList<ShaderGraphMessage> Messages =>
+            (IsEffect ? Effect?.GraphMessages : Behaviour?.Messages) ?? Array.Empty<ShaderGraphMessage>();
+        internal string GeneratedSource => IsEffect ? Effect?.GeneratedSource : Behaviour?.GeneratedSource;
+        internal bool HasCompileError
+        {
+            get
+            {
+                if (!IsEffect) return Behaviour?.HasCompileError == true;
+                foreach (var message in Messages) if (message.level == ShaderGraphMessageLevel.Error) return true;
+                return Effect?.GraphErrorNodeId != null;
+            }
+        }
+
+        internal void InvalidateGraph()
+        {
+            if (IsEffect) Effect?.InvalidateGraph();
+            else Behaviour?.InvalidateGraph();
+        }
+        internal bool CompileGraph() => IsEffect ? Effect != null && Effect.CompileGraph() : Behaviour?.CompileGraph(Document) == true;
+
+        internal void RecordUndo(string name)
+        {
+            if (Document != null) Undo.RecordObject(Document, name);
+            if (Effect != null) Undo.RecordObject(Effect, name);
+        }
+        internal void MarkChanged(bool layoutOnly = false)
+        {
+            if (Effect != null)
+            {
+                EditorUtility.SetDirty(Effect);
+                if (!layoutOnly) Effect.NotifyValuesChanged();
+            }
+            if (Document == null) return;
+            if (!layoutOnly) Document.MarkChanged();
+            else
+            {
+                EditorUtility.SetDirty(Document);
+                if (Document.documentBinding != null) Document.documentBinding.dirty = true;
+            }
+        }
+    }
+}

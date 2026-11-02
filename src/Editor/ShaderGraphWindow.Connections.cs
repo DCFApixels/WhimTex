@@ -211,7 +211,7 @@ namespace DCFApixels.WhimTex
                     {
                         staged = new ShaderGraph { sources = new List<ShaderGraphSource>(graph.sources) };
                         var function = choice.function.Import(staged);
-                        CheckFunction(function, staged.sources);
+                        CheckFunction(function, staged.sources, window.Target.IsEffect);
                         ShaderGraphNodes.SetFunction(node, function);
                     }
                     catch (Exception error) { window.ShowError(error.Message); return false; }

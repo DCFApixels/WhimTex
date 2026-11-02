@@ -48,12 +48,18 @@ namespace DCFApixels.WhimTex
         {
             this.source = source; this.effectControl = effectControl;
             previewDocument = document; previewLayer = layer; previewIndex = fxIndex;
+            if (effectControl)
+            {
+                RegisterCallback<ClickEvent>(evt => evt.StopPropagation());
+                RegisterCallback<NavigationSubmitEvent>(evt => evt.StopPropagation());
+            }
             Refresh();
         }
 
         internal void Refresh()
         {
             if (source == null) return;
+            source.RefreshParameters();
             parametersById.Clear();
             parametersByName.Clear();
             bool changed = !layoutBuilt || !ReferenceEquals(layoutParameters, source.Parameters) || parameterLayout.Count != source.Parameters.Count;
@@ -91,6 +97,9 @@ namespace DCFApixels.WhimTex
                 if (effectControl)
                 {
                     EnableInClassList("whimtex-fx-effect-control--seed", false);
+                    EnableInClassList("whimtex-fx-effect-control--bool", false);
+                    EnableInClassList("whimtex-fx-effect-control--vector", false);
+                    tooltip = string.Empty;
                     if (controlName != null && parametersByName.TryGetValue(controlName, out var parameter) && parameter.controls.Count == 1)
                     {
                         var control = parameter.controls[0];

@@ -23,7 +23,7 @@ namespace DCFApixels.WhimTex
                 if (!string.IsNullOrEmpty(query) && entry.menuPath.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0 &&
                     (entry.group == null || entry.group.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0)) continue;
                 var item = new JObject { ["id"] = id, ["path"] = entry.path, ["name"] = entry.menuPath,
-                    ["kind"] = "hlsl", ["group"] = entry.group, ["error"] = entry.error,
+                    ["kind"] = ShaderPresetIO.IsProgramPath(entry.path) ? "program" : "hlsl", ["mode"] = entry.mode.ToString(), ["group"] = entry.group, ["error"] = entry.error,
                     ["presetId"] = entry.id, ["presetVersion"] = entry.version, ["linkable"] = !entry.HasError && !string.IsNullOrEmpty(entry.id) };
                 item["icon"] = FxIconSnapshot(entry.icon, entry.path);
                 if (presetId != null && !entry.HasError)
@@ -48,6 +48,13 @@ namespace DCFApixels.WhimTex
 
         private static string PresetId(ShaderFXCatalog.Entry entry) => entry.HasError || string.IsNullOrEmpty(entry.id) ? entry.path : entry.id;
 
+        private static ShaderFXCatalog.Entry FindShaderPreset(string id)
+        {
+            var entry = ShaderFXCatalog.GetEntries().FirstOrDefault(e => PresetId(e) == id);
+            Require(entry != null, "Preset ID not found.", "preset_not_found");
+            return entry;
+        }
+
         private static JObject FxIconSnapshot(ShaderFXIconMetadata.Descriptor icon, string source)
         {
             if (icon == null) return new JObject { ["kind"] = "default" };
@@ -65,9 +72,10 @@ namespace DCFApixels.WhimTex
         {
             Require(!entry.HasError, entry.error ?? "Invalid preset.", "invalid_preset");
             if (execute) return ShaderFX.FromCatalog(owner, entry);
-            string source = ShaderFXCatalog.ReadSource(entry.path);
-            var parameters = ShaderFXMetadata.Parse(source, true, out _);
-            return ShaderFX.CreateAgentDraft(owner, source, parameters, entry.path);
+            var loaded = ShaderPresetIO.Load(entry);
+            var effect = ShaderFX.CreateAgentDraft(owner, loaded.program.code, loaded.program.codeParameters, loaded.path);
+            effect.ReplaceProgram(loaded.program);
+            return effect;
         }
 
         private static void ApplyFxOperations(WhimTexDocument document, Layer layer, JToken token, bool execute, Dictionary<string, Layer> aliases)
@@ -110,7 +118,7 @@ namespace DCFApixels.WhimTex
                     continue;
                 }
                 Require(op == "add" || op == "replace" || op == "set" || op == "copy", "Unknown FX edit: " + op);
-                Keys(spec, "op", "index", "code", "includeBasePath", "presetId", "parameters", "randomizeSeeds", "enabled", "sourceLayer", "sourceIndex");
+                Keys(spec, "op", "index", "program", "mode", "graph", "code", "compiledCode", "codeParameters", "compile", "includeBasePath", "presetId", "parameters", "randomizeSeeds", "enabled", "sourceLayer", "sourceIndex");
                 bool insert = op == "add" || op == "copy";
                 Require(op == "copy" || spec["sourceLayer"] == null && spec["sourceIndex"] == null, "Only copy takes sourceLayer/sourceIndex.");
                 int at = insert ? Int(spec, "index", layer.fx.Count, 0, layer.fx.Count) : RequiredFxIndex(layer, spec);
@@ -119,48 +127,31 @@ namespace DCFApixels.WhimTex
                 {
                     if (op == "set" || op == "copy")
                     {
-                        Require(spec["code"] == null && spec["presetId"] == null && spec["includeBasePath"] == null,
-                            "set/copy edits values without replacing code.");
+                        Require(spec["presetId"] == null && spec["includeBasePath"] == null,
+                            "set/copy retains its include base; use replace to load a preset or change includeBasePath.");
                         var sourceLayer = op == "copy" ? Resolve(document, Text(spec, "sourceLayer"), aliases) : layer;
                         Require(sourceLayer != null, "Copy source layer not found.", "layer_not_found");
                         Require(op != "copy" || spec["sourceIndex"] != null && sourceLayer.fx.Count > 0, "copy requires an existing sourceIndex.");
                         int sourceIndex = op == "copy" ? Int(spec, "sourceIndex", -1, 0, sourceLayer.fx.Count - 1) : at;
-                        Require(sourceLayer.fx[sourceIndex] != null, "The HLSL effect is missing.");
+                        Require(sourceLayer.fx[sourceIndex] != null, "The Shader effect is missing.");
                         // Copy-on-write never changes another layer's parameter values.
                         effect = ((ShaderFX)sourceLayer.fx[sourceIndex]).CloneForDocument(document);
+                        if (HasFxProgramEdit(spec))
+                        {
+                            effect.ReplaceProgram(ReadFxProgramEdit(effect.Program, spec, document, aliases));
+                            ApplyFxDraft(effect, execute && Bool(spec, "compile", true));
+                        }
+                        else if (Bool(spec, "compile")) ApplyFxDraft(effect, execute);
                     }
                     else
                     {
-                        Require((spec["code"] != null) != (spec["presetId"] != null), "Supply exactly one of code or presetId.");
-                        if (spec["presetId"] != null)
-                        {
-                            Require(spec["includeBasePath"] == null, "A preset supplies its own include base.");
-                            string id = Text(spec, "presetId");
-                            var entry = ShaderFXCatalog.GetEntries().FirstOrDefault(e => PresetId(e) == id);
-                            Require(entry != null, "Preset ID not found.", "preset_not_found");
-                            effect = ReadPreset(document, entry, execute);
-                        }
-                        else
-                        {
-                            Require(spec["code"].Type == JTokenType.String, "code must be a string.");
-                            string code = (string)spec["code"];
-                            Require(!string.IsNullOrWhiteSpace(code) && code.Length <= 65536, "code must contain 1..65536 characters.");
-                            string sourcePath = spec["includeBasePath"] == null ? null : ResolveShaderFXIncludeBasePath(Text(spec, "includeBasePath"));
-                            Require(sourcePath != null || !ShaderFXSourceBuilder.HasRelativeIncludes(code), "Relative includes require includeBasePath.");
-                            effect = ShaderFX.CreateAgentDraft(document, code, ShaderFXMetadata.Parse(code, false, out _), sourcePath);
-                            if (execute)
-                            {
-                                try { effect.ApplyAgentDraft(); }
-                                catch (Exception error) { throw new WhimTexApiException("shader_compile_failed", error.Message); }
-                            }
-                        }
+                        effect = CreateFxProgramDraft(document, spec, execute, aliases);
                     }
                     SetFxValues(effect, spec["parameters"], document);
                     RandomizeFxSeeds(effect, spec["randomizeSeeds"], spec["parameters"], execute);
                     if (spec["enabled"] != null) effect.Active = Bool(spec, "enabled");
                     Require(effect.Parameters.Count <= MaxFxParameters, "At most 128 FX parameters are supported.", "resource_limit");
-                    foreach (var parameter in effect.TextureLayerParameters())
-                        Require(document.IsUsableShaderTexture(layer, parameter.textureLayerId), "Texture input creates a cycle.", "invalid_target");
+                    WhimTexDocumentJson.ValidateShaderProgramInputs(document, layer, effect.Program, effectContext: true);
                     Require(!insert || layer.fx.Count < 32, "At most 32 FX entries per layer.", "resource_limit");
                     document.AdoptAgentShaderFX(effect, execute ? UndoName : null);
                     if (insert) layer.fx.Insert(at, effect); else layer.fx[at] = effect;
@@ -169,6 +160,60 @@ namespace DCFApixels.WhimTex
                 }
                 finally { if (effect != null) Object.DestroyImmediate(effect); }
             }
+        }
+
+        private static bool HasFxProgramEdit(JObject spec) => spec["program"] != null || spec["mode"] != null ||
+            spec["graph"] != null || spec["code"] != null || spec["compiledCode"] != null || spec["codeParameters"] != null;
+
+        private static ShaderProgram ReadFxProgramEdit(ShaderProgram current, JObject spec, WhimTexDocument document, Dictionary<string, Layer> aliases)
+        {
+            var program = ReadShaderProgramEdit(current, spec, document, aliases);
+            if (program.mode == ShaderLayerMode.Code && Bool(spec, "compile", true))
+            {
+                var declared = ShaderFXMetadata.Parse(program.code, false, out _);
+                ShaderFXMetadata.PreserveValues(declared, program.codeParameters);
+                WhimTexDocumentJson.PreserveShaderCodeParameterAssets(program.codeParameters, declared);
+                program.codeParameters = declared;
+            }
+            return program;
+        }
+
+        private static void ApplyFxDraft(ShaderFX effect, bool execute)
+        {
+            if (!execute) return;
+            try { effect.ApplyAgentDraft(); }
+            catch (Exception error) { throw new WhimTexApiException("shader_compile_failed", error.Message); }
+        }
+
+        private static ShaderFX CreateFxProgramDraft(WhimTexDocument document, JObject spec, bool execute, Dictionary<string, Layer> aliases)
+        {
+            if (spec["presetId"] != null)
+            {
+                Require(!HasFxProgramEdit(spec) && spec["includeBasePath"] == null,
+                    "presetId supplies the complete program and its include base.");
+                var entry = FindShaderPreset(Text(spec, "presetId"));
+                return ReadPreset(document, entry, execute && Bool(spec, "compile", true));
+            }
+            Require(spec["program"] != null || spec["graph"] != null || spec["code"] != null ||
+                Enum(spec, "mode", ShaderLayerMode.Code) == ShaderLayerMode.Graph,
+                "Supply program, graph, code or presetId (or mode:Graph for an empty effect graph).");
+            var initial = ShaderProgram.CreateEffect();
+            if (spec["graph"] != null && spec["mode"] == null) initial.mode = ShaderLayerMode.Graph;
+            var program = ReadFxProgramEdit(initial, spec, document, aliases);
+            string sourcePath = spec["includeBasePath"] == null ? null : ResolveShaderFXIncludeBasePath(Text(spec, "includeBasePath"));
+            if (spec["code"] != null)
+            {
+                Require(!string.IsNullOrWhiteSpace(program.code) && program.code.Length <= 65536, "code must contain 1..65536 characters.");
+                Require(sourcePath != null || !ShaderFXSourceBuilder.HasRelativeIncludes(program.code), "Relative includes require includeBasePath.");
+            }
+            var effect = ShaderFX.CreateAgentDraft(document, program.code, program.codeParameters, sourcePath);
+            try
+            {
+                effect.ReplaceProgram(program);
+                ApplyFxDraft(effect, execute && Bool(spec, "compile", true));
+                return effect;
+            }
+            catch { Object.DestroyImmediate(effect); throw; }
         }
 
         private static int RequiredFxIndex(Layer layer, JObject spec)

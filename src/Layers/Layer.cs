@@ -495,6 +495,21 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        internal void BindShaderFXCoordinates(Material material, in LayerRenderContext context)
+        {
+            if (!context.transformFxCoordinates && !(IsGroup && groupFxInLayerSpace))
+                ProjectiveMatrix.Identity.SetShader(material, "_WhimTex_LayerToLocalRow");
+            else if (Behaviour is DrawingLayerBehaviour drawing && drawing.HasBakedFxFrame)
+                drawing.GetBakedFxInverse(context.activeDocument.width, context.activeDocument.height).SetShader(material, "_WhimTex_LayerToLocalRow");
+            else if (transformCache != null)
+                transformCache.inverseGpu.Set(material, "_WhimTex_LayerToLocalRow");
+            else
+            {
+                CanvasTransform.ToMatrix(context.activeDocument.width, context.activeDocument.height).TryInverse(out var inverse);
+                inverse.SetShader(material, "_WhimTex_LayerToLocalRow");
+            }
+        }
+
         internal void ApplyFx(ref RenderTexture current, in LayerRenderContext context, FilterMode filter = FilterMode.Bilinear,
             int count = int.MaxValue, int start = 0)
         {
@@ -516,23 +531,13 @@ namespace DCFApixels.WhimTex
                     Material material;
                     using (WhimTexProfiler.Measure("fx.prepare"))
                     {
-                        textureInputs = context.activeDocument.BindShaderTextureLayers(effect, this, context, current);
                         material = effect.GetMaterial(context);
                         if (material == null) continue;
+                        textureInputs = context.activeDocument.BindShaderTextureLayers(effect, this, context, current);
                         textureInputs?.Apply(material);
                         {
                             material.SetFloat("_WhimTex_InputFilter", current.filterMode == FilterMode.Point ? 0f : 1f);
-                            if (!context.transformFxCoordinates && !(IsGroup && groupFxInLayerSpace))
-                                ProjectiveMatrix.Identity.SetShader(material, "_WhimTex_LayerToLocalRow");
-                            else if (Behaviour is DrawingLayerBehaviour drawing && drawing.HasBakedFxFrame)
-                                drawing.GetBakedFxInverse(context.activeDocument.width, context.activeDocument.height).SetShader(material, "_WhimTex_LayerToLocalRow");
-                            else if (transformCache != null)
-                                transformCache.inverseGpu.Set(material, "_WhimTex_LayerToLocalRow");
-                            else
-                            {
-                                CanvasTransform.ToMatrix(context.activeDocument.width, context.activeDocument.height).TryInverse(out var inverse);
-                                inverse.SetShader(material, "_WhimTex_LayerToLocalRow");
-                            }
+                            BindShaderFXCoordinates(material, context);
                         }
                         next = ProfiledRenderTexture.GetTemporary(context.width, context.height, 0,
                             RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);

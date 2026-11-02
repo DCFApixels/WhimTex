@@ -2,6 +2,7 @@ namespace DCFApixels.WhimTex
 {
     internal static class WhimTexJsonDefaultsV3
     {
+        internal const string ShaderFxData = @"{""active"":true}";
         internal const string NumericParameterData = @"{""valueType"":null,""integerValues"":[0,0,0,0]}";
         internal const string NumericControlData = @"{""valueType"":null,""rgba"":false,""valueMinimum"":0,""valueMaximum"":0}";
         internal const string CustomGradientData = @"{""customKeys"":null,""customCurveFormat"":0,""customColorMode"":""Perceptual"",""customApproximationError"":0}";

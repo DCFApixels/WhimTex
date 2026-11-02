@@ -5,7 +5,7 @@ namespace DCFApixels.WhimTex
 {
     internal sealed partial class ShaderGraphCompiler
     {
-        void ValidateSubGraphs()
+        void ValidateSubGraphs(bool effectContext)
         {
             if (graph.subGraphs == null || graph.subGraphs.Count > 128) throw new FormatException("Invalid Sub Graph table (maximum 128 definitions).");
             var ids = new HashSet<string>();
@@ -27,7 +27,7 @@ namespace DCFApixels.WhimTex
                 ValidatePins(definition.inputs); ValidatePins(definition.outputs);
                 foreach (var node in definition.nodes)
                     if (node == null || !nodeIds.Add(node.id)) throw new FormatException("Sub Graph node IDs must be unique across the document graph.");
-                new ShaderGraphCompiler(graph.SubGraphView(definition)).ValidateStructure(false);
+                new ShaderGraphCompiler(graph.SubGraphView(definition)).ValidateStructure(false, effectContext: effectContext);
             }
             var active = new HashSet<string>(); var depths = new Dictionary<string, int>();
             int Depth(ShaderGraphSubGraph definition)

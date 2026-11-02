@@ -37,15 +37,54 @@
           "$type": "ShaderFX",
           "$id": "fx0",
           "active": true,
-          "code": "// @param float _Steps = 6 [2 .. 32]\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float steps = max(2, floor(_Steps));\r\n    color.rgb = floor(saturate(color.rgb) * (steps - 1) + 0.5) / (steps - 1);\r\n    return color;\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Steps",
-              "type": "Float",
-              "floatValue": 6.0,
-              "id": "da3652a0d16e46f1bb7c746c49f1cc58"
-            }
-          ],
+          "program": {
+            "code": "// @param float _Steps = 6 [2 .. 32]\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float steps = max(2, floor(_Steps));\r\n    color.rgb = floor(saturate(color.rgb) * (steps - 1) + 0.5) / (steps - 1);\r\n    return color;\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
+              ],
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
+            },
+            "codeParameters": [
+              {
+                "name": "_Steps",
+                "type": "Float",
+                "floatValue": 6.0,
+                "id": "da3652a0d16e46f1bb7c746c49f1cc58"
+              }
+            ],
+            "compiledCode": "// @param float _Steps = 6 [2 .. 32]\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float steps = max(2, floor(_Steps));\r\n    color.rgb = floor(saturate(color.rgb) * (steps - 1) + 0.5) / (steps - 1);\r\n    return color;\r\n}\r\n"
+          },
           "shaderKey": "f980230bd42b41cf8d748018e07a2bac",
           "$name": "Posterize"
         }
@@ -82,10 +121,12 @@
       "behaviour": {
         "$type": "ShaderLayerBehaviour",
         "recoveryId": "0032831e4a484cadb6115350beb5fd1b",
-        "mode": "Code",
-        "inputMode": "CompositeBelow",
-        "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
-        "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+        "program": {
+          "mode": "Code",
+          "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+          "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+        },
+        "inputMode": "CompositeBelow"
       },
       "behaviourId": "0032831e4a484cadb6115350beb5fd1b",
       "children": null,

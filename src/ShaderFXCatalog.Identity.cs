@@ -11,7 +11,6 @@ namespace DCFApixels.WhimTex
         [Serializable] private sealed class Owner { public string id, path; }
         [Serializable] private sealed class OwnerIndex { public List<Owner> owners = new List<Owner>(); }
         private static Dictionary<string, string> owners;
-        private static readonly HashSet<ShaderFX> linkedEffects = new HashSet<ShaderFX>();
         private static readonly Dictionary<string, Entry> identifiedEntries = new Dictionary<string, Entry>(StringComparer.Ordinal);
         private static readonly HashSet<string> ambiguousIds = new HashSet<string>(StringComparer.Ordinal);
         private const string OwnerIndexPath = "Library/WhimTex/FXPresetOwners.json";
@@ -55,7 +54,7 @@ namespace DCFApixels.WhimTex
             bool dirty = false;
             for (int i = 0; i < moved.Length && i < from.Length; i++)
             {
-                if (!IsHlsl(moved[i])) continue;
+                if (!ShaderPresetIO.IsPresetPath(moved[i])) continue;
                 var ids = new List<string>();
                 foreach (var pair in owners) if (pair.Value == from[i]) ids.Add(pair.Key);
                 foreach (string id in ids) { owners[id] = moved[i]; dirty = true; }
@@ -117,10 +116,10 @@ namespace DCFApixels.WhimTex
                         if (PresetLibraryPaths.IsInside(physical, "Library/PackageCache"))
                             throw new IOException("Package cache presets cannot be rewritten.");
                         string original = ReadSource(duplicate.path);
-                        var current = ShaderFXPresetIdentity.Read(original);
+                        var current = ShaderPresetIO.ReadIdentity(duplicate.path, original);
                         if (current.id != pair.Key) throw new IOException("The preset changed during discovery.");
                         var replacement = ShaderFXPresetIdentity.Create();
-                        ShaderFXPresetIdentity.ReplaceFile(physical, original, ShaderFXPresetIdentity.Write(original, replacement));
+                        ShaderFXPresetIdentity.ReplaceFile(physical, original, ShaderPresetIO.WriteIdentity(duplicate.path, original, replacement));
                         var updated = ReadHeader(duplicate.path, physical, duplicate.user);
                         source[duplicate.path] = updated;
                         owners[replacement.id] = duplicate.path;
@@ -142,13 +141,12 @@ namespace DCFApixels.WhimTex
 
         internal static Entry FindPreset(string id)
         {
+            if (string.IsNullOrEmpty(id)) return null;
             if (!initialized || refreshProject) GetEntries();
             if (ambiguousIds.Contains(id)) return null;
             return identifiedEntries.TryGetValue(id, out var entry) && !entry.HasError ? entry : null;
         }
 
-        internal static void TrackLinked(ShaderFX effect) { if (effect != null && effect.IsCatalogLinked) linkedEffects.Add(effect); }
-        internal static void UntrackLinked(ShaderFX effect) => linkedEffects.Remove(effect);
         private static void QueueLinkedRefresh()
         {
             EditorApplication.delayCall -= RefreshLinked;
@@ -157,10 +155,8 @@ namespace DCFApixels.WhimTex
         private static void RefreshLinked()
         {
             // A source may reappear under another path, including in the external user library.
-            var effects = new List<ShaderFX>(linkedEffects);
-            foreach (var effect in effects)
-                if (effect == null || !effect.IsCatalogLinked) linkedEffects.Remove(effect);
-                else effect.ReloadCatalogSource();
+            ShaderPresetLink.RefreshTracked();
+
         }
     }
 }

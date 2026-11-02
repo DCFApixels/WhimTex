@@ -10,13 +10,27 @@ namespace DCFApixels.WhimTex
     {
         [NonSerialized] private RenderFingerprint.ObjectStamp shaderFingerprint, ownerFingerprint;
         [NonSerialized] private SourceFingerprint draftFingerprint, appliedFingerprint, expandedFingerprint;
-        [NonSerialized] private SourceFingerprint diagnosticFingerprint, includeFingerprint, keyFingerprint, guidFingerprint, pathFingerprint, dependencyFingerprint;
+        [NonSerialized] private SourceFingerprint diagnosticFingerprint, includeFingerprint, keyFingerprint, guidFingerprint, pathFingerprint;
 
         // Immutable HLSL is hashed once per string replacement. Mutable parameter
         // objects still participate every frame, including direct edits and Undo.
         internal ulong RenderCacheStamp()
         {
             ulong hash = Mix(14695981039346656037UL, active ? 1UL : 0UL);
+            hash = Mix(hash, (ulong)Mode);
+            if (Mode == ShaderLayerMode.Graph)
+            {
+                hash = Mix(hash, ShaderGraphCompiler.CodeFingerprint(Graph));
+                foreach (var node in Graph.AllNodes())
+                    if (node?.inputs != null) foreach (var input in node.inputs)
+                        if (input != null)
+                            for (int component = 0; component < 4; component++) hash = MixFloat(hash, input.value[component]);
+                foreach (var definition in Graph.subGraphs)
+                {
+                    foreach (var pin in definition.inputs) for (int i = 0; i < 4; i++) hash = MixFloat(hash, pin.value[i]);
+                    foreach (var pin in definition.outputs) for (int i = 0; i < 4; i++) hash = MixFloat(hash, pin.value[i]);
+                }
+            }
             hash = Mix(hash, shaderFingerprint.Get(compiledShader));
             hash = Mix(hash, diagnosticFingerprint.Get(diagnostics));
             hash = Mix(hash, lastApplyFailed ? 1UL : 0UL);
@@ -27,10 +41,9 @@ namespace DCFApixels.WhimTex
             hash = Mix(hash, guidFingerprint.Get(presetId));
             hash = Mix(hash, unchecked((ulong)presetVersion));
             hash = Mix(hash, pathFingerprint.Get(catalogSourcePath));
-            hash = Mix(hash, dependencyFingerprint.Get(catalogDependencyHash));
             hash = HashParameters(hash, parameters);
             hash = HashParameters(hash, appliedParameters);
-            hash = Mix(hash, draftFingerprint.Get(code));
+            if (Mode == ShaderLayerMode.Code) hash = Mix(hash, draftFingerprint.Get(code));
             hash = Mix(hash, appliedFingerprint.Get(appliedCode));
             return Mix(hash, expandedFingerprint.Get(appliedSource));
         }
@@ -170,7 +183,6 @@ namespace DCFApixels.WhimTex
         }
         private static void NormalizeShaderSettings(JObject data)
         {
-            data.Remove(nameof(ShaderLayerBehaviour.code));
             var inputMode = data[nameof(ShaderLayerBehaviour.inputMode)];
             bool texture = inputMode?.Type == JTokenType.Integer ? (int)inputMode == (int)ShaderLayerInputMode.Texture :
                 (string)inputMode == nameof(ShaderLayerInputMode.Texture);
@@ -178,6 +190,9 @@ namespace DCFApixels.WhimTex
                 (string)inputMode == nameof(ShaderLayerInputMode.Layer);
             if (!texture) data.Remove(nameof(ShaderLayerBehaviour.inputTexture));
             if (!layer) data.Remove(nameof(ShaderLayerBehaviour.inputLayerId));
+            data = data[nameof(ShaderLayerBehaviour.program)] as JObject ?? data;
+            data.Remove(nameof(ShaderLayerBehaviour.code));
+            data.Remove(nameof(ShaderProgram.presetId)); data.Remove(nameof(ShaderProgram.presetVersion));
             var mode = data[nameof(ShaderLayerBehaviour.mode)];
             bool codeMode = mode?.Type == JTokenType.Integer ? (int)mode == (int)ShaderLayerMode.Code :
                 (string)mode == nameof(ShaderLayerMode.Code);

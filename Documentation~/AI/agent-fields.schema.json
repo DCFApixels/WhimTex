@@ -7,6 +7,15 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "program": {
+          "$ref": "document.schema.json#/$defs/ShaderProgram",
+          "description": "Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/graph/code/compiledCode/codeParameters patches and presetId. Snapshots expose this same editable object."
+        },
+        "presetId": {
+          "type": "string",
+          "maxLength": 4096,
+          "description": "Load a discovered entry from the shared Shader/FX preset catalog. Supplies the entire program; cannot be combined with other program fields. Full local fallback is retained."
+        },
         "mode": {
           "type": "string",
           "enum": [
@@ -62,8 +71,78 @@
         "compile": {
           "type": "boolean",
           "default": false,
-          "description": "Explicitly compile the Code draft after applying supplied fields, in either mode. Success replaces compiledCode and codeParameters while preserving matching values. Failure reports shader_compile_failed and the batch is rolled back. Does not select Code; omitted from snapshots and stored documents."
+          "description": "Explicitly compile the selected mode after applying supplied fields. In Code, success replaces compiledCode and codeParameters while preserving matching values. In Graph, validates and compiles the graph. Failure reports shader_compile_failed and the batch is rolled back. Omitted from snapshots and stored documents."
         }
+      },
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "program",
+              "mode"
+            ]
+          },
+          {
+            "required": [
+              "program",
+              "graph"
+            ]
+          },
+          {
+            "required": [
+              "program",
+              "code"
+            ]
+          },
+          {
+            "required": [
+              "program",
+              "compiledCode"
+            ]
+          },
+          {
+            "required": [
+              "program",
+              "codeParameters"
+            ]
+          },
+          {
+            "required": [
+              "presetId",
+              "program"
+            ]
+          },
+          {
+            "required": [
+              "presetId",
+              "mode"
+            ]
+          },
+          {
+            "required": [
+              "presetId",
+              "graph"
+            ]
+          },
+          {
+            "required": [
+              "presetId",
+              "code"
+            ]
+          },
+          {
+            "required": [
+              "presetId",
+              "compiledCode"
+            ]
+          },
+          {
+            "required": [
+              "presetId",
+              "codeParameters"
+            ]
+          }
+        ]
       }
     },
     "gradientType": {
@@ -2412,6 +2491,805 @@
           }
         }
       ]
+    },
+    "shaderProgram": {
+      "$ref": "document.schema.json#/$defs/ShaderProgram"
+    },
+    "fxEdit": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "op": {
+              "const": "add"
+            },
+            "index": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 31
+            },
+            "program": {
+              "$ref": "document.schema.json#/$defs/ShaderProgram",
+              "description": "Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/graph/code/compiledCode/codeParameters patches and presetId. Snapshots expose this same editable object."
+            },
+            "presetId": {
+              "type": "string",
+              "maxLength": 4096,
+              "description": "Load a discovered entry from the shared Shader/FX preset catalog. Supplies the entire program; cannot be combined with other program fields. Full local fallback is retained."
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "Graph",
+                "Code"
+              ],
+              "default": "Code",
+              "description": "Select the active FX mode. Supplying graph without mode on add/replace selects Graph; set/copy retains the current mode unless supplied."
+            },
+            "graph": {
+              "$ref": "document.schema.json#/$defs/ShaderGraph",
+              "description": "Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references graph.functions and its drafts; sourceId references the embedded graph.sources archive. Loading never refreshes source files."
+            },
+            "code": {
+              "type": "string",
+              "maxLength": 65536,
+              "minLength": 1,
+              "description": "Inline Code source. Add/replace defaults to Code unless graph or mode selects Graph. Both modes remain stored."
+            },
+            "compiledCode": {
+              "type": "string",
+              "maxLength": 2097152,
+              "description": "Applied source for exact roundtrip with codeParameters. Rendering uses this text, never code. Direct assignment does not promise GPU validation."
+            },
+            "codeParameters": {
+              "type": "array",
+              "items": {
+                "$ref": "document.schema.json#/$defs/ShaderFXParameter"
+              },
+              "description": "Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of graph.parameters."
+            },
+            "compile": {
+              "type": "boolean",
+              "default": true,
+              "description": "Program changes compile the selected mode by default. false retains an editable draft and stored declarations. Value-only set/copy does not recompile unless explicitly true."
+            },
+            "includeBasePath": {
+              "type": "string",
+              "maxLength": 4096,
+              "description": "Include base for inline program creation; not accepted by set/copy or with presetId."
+            },
+            "parameters": {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "Values keyed by active parameter name, validated against declarations. Graph mode uses graph.parameters; Code uses codeParameters."
+            },
+            "randomizeSeeds": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 128,
+              "items": {
+                "type": "string",
+                "maxLength": 256
+              }
+            },
+            "enabled": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "op"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "program",
+                  "mode"
+                ]
+              },
+              {
+                "required": [
+                  "program",
+                  "graph"
+                ]
+              },
+              {
+                "required": [
+                  "program",
+                  "code"
+                ]
+              },
+              {
+                "required": [
+                  "program",
+                  "compiledCode"
+                ]
+              },
+              {
+                "required": [
+                  "program",
+                  "codeParameters"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "program"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "mode"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "graph"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "code"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "compiledCode"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "codeParameters"
+                ]
+              }
+            ]
+          },
+          "anyOf": [
+            {
+              "required": [
+                "program"
+              ]
+            },
+            {
+              "required": [
+                "presetId"
+              ]
+            },
+            {
+              "required": [
+                "graph"
+              ]
+            },
+            {
+              "required": [
+                "code"
+              ]
+            },
+            {
+              "required": [
+                "mode"
+              ],
+              "properties": {
+                "mode": {
+                  "const": "Graph"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "op": {
+              "const": "replace"
+            },
+            "index": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 31
+            },
+            "program": {
+              "$ref": "document.schema.json#/$defs/ShaderProgram",
+              "description": "Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/graph/code/compiledCode/codeParameters patches and presetId. Snapshots expose this same editable object."
+            },
+            "presetId": {
+              "type": "string",
+              "maxLength": 4096,
+              "description": "Load a discovered entry from the shared Shader/FX preset catalog. Supplies the entire program; cannot be combined with other program fields. Full local fallback is retained."
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "Graph",
+                "Code"
+              ],
+              "default": "Code",
+              "description": "Select the active FX mode. Supplying graph without mode on add/replace selects Graph; set/copy retains the current mode unless supplied."
+            },
+            "graph": {
+              "$ref": "document.schema.json#/$defs/ShaderGraph",
+              "description": "Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references graph.functions and its drafts; sourceId references the embedded graph.sources archive. Loading never refreshes source files."
+            },
+            "code": {
+              "type": "string",
+              "maxLength": 65536,
+              "minLength": 1,
+              "description": "Inline Code source. Add/replace defaults to Code unless graph or mode selects Graph. Both modes remain stored."
+            },
+            "compiledCode": {
+              "type": "string",
+              "maxLength": 2097152,
+              "description": "Applied source for exact roundtrip with codeParameters. Rendering uses this text, never code. Direct assignment does not promise GPU validation."
+            },
+            "codeParameters": {
+              "type": "array",
+              "items": {
+                "$ref": "document.schema.json#/$defs/ShaderFXParameter"
+              },
+              "description": "Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of graph.parameters."
+            },
+            "compile": {
+              "type": "boolean",
+              "default": true,
+              "description": "Program changes compile the selected mode by default. false retains an editable draft and stored declarations. Value-only set/copy does not recompile unless explicitly true."
+            },
+            "includeBasePath": {
+              "type": "string",
+              "maxLength": 4096,
+              "description": "Include base for inline program creation; not accepted by set/copy or with presetId."
+            },
+            "parameters": {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "Values keyed by active parameter name, validated against declarations. Graph mode uses graph.parameters; Code uses codeParameters."
+            },
+            "randomizeSeeds": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 128,
+              "items": {
+                "type": "string",
+                "maxLength": 256
+              }
+            },
+            "enabled": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "op",
+            "index"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "program",
+                  "mode"
+                ]
+              },
+              {
+                "required": [
+                  "program",
+                  "graph"
+                ]
+              },
+              {
+                "required": [
+                  "program",
+                  "code"
+                ]
+              },
+              {
+                "required": [
+                  "program",
+                  "compiledCode"
+                ]
+              },
+              {
+                "required": [
+                  "program",
+                  "codeParameters"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "program"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "mode"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "graph"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "code"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "compiledCode"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "codeParameters"
+                ]
+              }
+            ]
+          },
+          "anyOf": [
+            {
+              "required": [
+                "program"
+              ]
+            },
+            {
+              "required": [
+                "presetId"
+              ]
+            },
+            {
+              "required": [
+                "graph"
+              ]
+            },
+            {
+              "required": [
+                "code"
+              ]
+            },
+            {
+              "required": [
+                "mode"
+              ],
+              "properties": {
+                "mode": {
+                  "const": "Graph"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "op": {
+              "const": "set"
+            },
+            "index": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 31
+            },
+            "program": {
+              "$ref": "document.schema.json#/$defs/ShaderProgram",
+              "description": "Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/graph/code/compiledCode/codeParameters patches and presetId. Snapshots expose this same editable object."
+            },
+            "presetId": {
+              "type": "string",
+              "maxLength": 4096,
+              "description": "Load a discovered entry from the shared Shader/FX preset catalog. Supplies the entire program; cannot be combined with other program fields. Full local fallback is retained."
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "Graph",
+                "Code"
+              ],
+              "default": "Code",
+              "description": "Select the active FX mode. Supplying graph without mode on add/replace selects Graph; set/copy retains the current mode unless supplied."
+            },
+            "graph": {
+              "$ref": "document.schema.json#/$defs/ShaderGraph",
+              "description": "Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references graph.functions and its drafts; sourceId references the embedded graph.sources archive. Loading never refreshes source files."
+            },
+            "code": {
+              "type": "string",
+              "maxLength": 65536,
+              "minLength": 1,
+              "description": "Inline Code source. Add/replace defaults to Code unless graph or mode selects Graph. Both modes remain stored."
+            },
+            "compiledCode": {
+              "type": "string",
+              "maxLength": 2097152,
+              "description": "Applied source for exact roundtrip with codeParameters. Rendering uses this text, never code. Direct assignment does not promise GPU validation."
+            },
+            "codeParameters": {
+              "type": "array",
+              "items": {
+                "$ref": "document.schema.json#/$defs/ShaderFXParameter"
+              },
+              "description": "Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of graph.parameters."
+            },
+            "compile": {
+              "type": "boolean",
+              "default": true,
+              "description": "Program changes compile the selected mode by default. false retains an editable draft and stored declarations. Value-only set/copy does not recompile unless explicitly true."
+            },
+            "includeBasePath": {
+              "type": "string",
+              "maxLength": 4096,
+              "description": "Include base for inline program creation; not accepted by set/copy or with presetId."
+            },
+            "parameters": {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "Values keyed by active parameter name, validated against declarations. Graph mode uses graph.parameters; Code uses codeParameters."
+            },
+            "randomizeSeeds": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 128,
+              "items": {
+                "type": "string",
+                "maxLength": 256
+              }
+            },
+            "enabled": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "op",
+            "index"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "program",
+                  "mode"
+                ]
+              },
+              {
+                "required": [
+                  "program",
+                  "graph"
+                ]
+              },
+              {
+                "required": [
+                  "program",
+                  "code"
+                ]
+              },
+              {
+                "required": [
+                  "program",
+                  "compiledCode"
+                ]
+              },
+              {
+                "required": [
+                  "program",
+                  "codeParameters"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "program"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "mode"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "graph"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "code"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "compiledCode"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "codeParameters"
+                ]
+              },
+              {
+                "required": [
+                  "presetId"
+                ]
+              },
+              {
+                "required": [
+                  "includeBasePath"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "op": {
+              "const": "copy"
+            },
+            "index": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 31
+            },
+            "program": {
+              "$ref": "document.schema.json#/$defs/ShaderProgram",
+              "description": "Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/graph/code/compiledCode/codeParameters patches and presetId. Snapshots expose this same editable object."
+            },
+            "presetId": {
+              "type": "string",
+              "maxLength": 4096,
+              "description": "Load a discovered entry from the shared Shader/FX preset catalog. Supplies the entire program; cannot be combined with other program fields. Full local fallback is retained."
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "Graph",
+                "Code"
+              ],
+              "default": "Code",
+              "description": "Select the active FX mode. Supplying graph without mode on add/replace selects Graph; set/copy retains the current mode unless supplied."
+            },
+            "graph": {
+              "$ref": "document.schema.json#/$defs/ShaderGraph",
+              "description": "Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references graph.functions and its drafts; sourceId references the embedded graph.sources archive. Loading never refreshes source files."
+            },
+            "code": {
+              "type": "string",
+              "maxLength": 65536,
+              "minLength": 1,
+              "description": "Inline Code source. Add/replace defaults to Code unless graph or mode selects Graph. Both modes remain stored."
+            },
+            "compiledCode": {
+              "type": "string",
+              "maxLength": 2097152,
+              "description": "Applied source for exact roundtrip with codeParameters. Rendering uses this text, never code. Direct assignment does not promise GPU validation."
+            },
+            "codeParameters": {
+              "type": "array",
+              "items": {
+                "$ref": "document.schema.json#/$defs/ShaderFXParameter"
+              },
+              "description": "Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of graph.parameters."
+            },
+            "compile": {
+              "type": "boolean",
+              "default": true,
+              "description": "Program changes compile the selected mode by default. false retains an editable draft and stored declarations. Value-only set/copy does not recompile unless explicitly true."
+            },
+            "includeBasePath": {
+              "type": "string",
+              "maxLength": 4096,
+              "description": "Include base for inline program creation; not accepted by set/copy or with presetId."
+            },
+            "parameters": {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "Values keyed by active parameter name, validated against declarations. Graph mode uses graph.parameters; Code uses codeParameters."
+            },
+            "randomizeSeeds": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 128,
+              "items": {
+                "type": "string",
+                "maxLength": 256
+              }
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "sourceLayer": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "sourceIndex": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 31
+            }
+          },
+          "required": [
+            "op",
+            "sourceLayer",
+            "sourceIndex"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "program",
+                  "mode"
+                ]
+              },
+              {
+                "required": [
+                  "program",
+                  "graph"
+                ]
+              },
+              {
+                "required": [
+                  "program",
+                  "code"
+                ]
+              },
+              {
+                "required": [
+                  "program",
+                  "compiledCode"
+                ]
+              },
+              {
+                "required": [
+                  "program",
+                  "codeParameters"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "program"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "mode"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "graph"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "code"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "compiledCode"
+                ]
+              },
+              {
+                "required": [
+                  "presetId",
+                  "codeParameters"
+                ]
+              },
+              {
+                "required": [
+                  "presetId"
+                ]
+              },
+              {
+                "required": [
+                  "includeBasePath"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "op": {
+              "const": "remove"
+            },
+            "index": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 31
+            }
+          },
+          "required": [
+            "op",
+            "index"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "op": {
+              "const": "move"
+            },
+            "index": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 31
+            },
+            "toIndex": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 31
+            }
+          },
+          "required": [
+            "op",
+            "index",
+            "toIndex"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "op": {
+              "const": "apply"
+            },
+            "index": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 31
+            },
+            "allowRasterize": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "op",
+            "index"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "op": {
+              "const": "applyAll"
+            },
+            "allowRasterize": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "op"
+          ]
+        }
+      ],
+      "description": "Path/batch FX edit. add/replace accept Code, Graph, full shared programs or shared presets. set/copy retain omitted mode data. The live fx array accepts add/replace/set/remove with the same content fields (no copy/move/apply)."
     },
     "outline": {
       "type": "object",

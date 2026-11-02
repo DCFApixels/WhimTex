@@ -9,13 +9,32 @@ search_exclude: true
 
 # Shader layer contract
 
-The Shader layer generates its own image in either **Graph** or **Code** mode. The graph and
-WhimTex HLSL source belong to the layer's behavior. The artist workflow is in the
+The Shader layer generates its own image in either **Graph** or **Code** mode. Its behavior owns
+a serializable `ShaderProgram`, also used by Shader FX. The artist workflow is in the
 [Shader layer guide](en/shader-layer.md).
+
+## Shared ShaderProgram
+
+`ShaderLayerBehaviour.program` and `ShaderFX.program` use the same stored shape:
+`mode`, `graph`, `code`, `compiledCode`, `codeParameters`, `presetId` and `presetVersion`.
+The mode enum remains `ShaderLayerMode`; `Graph` is 0 and `Code` is 1. `compiledCode` is
+the saved applied Code text, corresponding to the FX applied-code state, not a GPU binary
+or the generated Graph source. An FX with no applied Code can store null here.
+`presetId`/`presetVersion` identify an exact catalog source; an unlinked program uses null/0.
+`WhimTexDocumentJson.ShaderProgramSnapshot` and `ReadShaderProgram` provide the shared codec
+for document, preset and API data, including inactive content.
+
+The program does not own a layer's Input, Transform or blending. The Shader behavior keeps
+`inputMode`, `inputTexture` and `inputLayerId`; the host supplies its evaluation context.
+In an FX, Sample Input reads the previous chain image, and graph parameters use the ordinary
+FX controls. Both hosts reuse the existing graph editor window. Moving the same program
+between a Shader layer and an FX changes its input and coordinate context; pixel-identical
+results are not guaranteed under all transforms. FX PixelLocal classification remains a
+conservative analysis of generated HLSL, not a property guaranteed by Graph mode.
 
 ## Independent Graph and Code modes
 
-`mode` selects `Graph` (default, enum value 0) or `Code` (value 1). The UI calls Graph
+`program.mode` selects `Graph` (the Shader layer default, enum value 0) or `Code` (value 1). The UI calls Graph
 **Shader Graph**. Switching mode never converts a graph to HLSL, builds a graph from HLSL,
 applies a code draft, or clears either mode's parameters. Both states survive save/reopen,
 JSON in every writing mode, clipboard transfer, duplication and Undo/Redo.
@@ -1258,7 +1277,7 @@ must therefore remain explicit in an imported module.
 
 ## Authoring and persistence
 
-The editable graph and parameter data belong to the behavior. Preserve its node identities,
+The editable graph and parameter data belong to the shared program. Preserve its node identities,
 connections, parameter declarations and values when storing or copying the layer; generated
 HLSL is a compilation product, not a substitute for the editable graph. The graph is the saved
 source of truth; retaining a working runtime shader does not replace the saved draft with it.
@@ -1271,8 +1290,15 @@ treating the current graph as a valid image generator.
 
 Use the [document format](JSON_FORMAT.md) and [generated model schema](AI/document.schema.json)
 for exact serialized fields, and the [Agent API](AgentAPI.md) for supported operations. This
-contract does not introduce a separate JSON envelope or new `@param` syntax. Effect directives
-describe HLSL FX and must not be substituted for the Shader layer's graph declarations.
+document model stores the shared `program` object; it does not introduce new `@param` syntax.
+Effect directives describe Code and must not replace Graph parameter declarations.
+Standalone presets use the separate [shader preset envelope](ShaderFX.md#portable-shader-presets).
+
+The embedded program retains both modes, functions, Sub Graphs and captured include sources
+for offline reopening and editing. Missing preset source must not erase the editable graph.
+Saving retains unapplied drafts and uses the document's atomic-save contract; saving is not
+an implicit Compile. A portable preset cannot retain document-layer texture references,
+including inactive selections: clear those references before export.
 
 ### Embedded HLSL source archive
 
@@ -1320,11 +1346,11 @@ visits to 65,536. Capture limits inspected input to 256 MiB and 65,536 file visi
 duplicate modules reduce the final archive size. Source IDs contain 1–128 ASCII letters,
 digits, underscores or hyphens; saved IDs are opaque and can remain stable during explicit edits.
 
-JSON, clipboard and Unity Undo retain plain source strings. Native TIFF encodes source `code`
-and function `body`/`draft` strings using tagged value 33 and container blocks named
+JSON, clipboard and Unity Undo retain plain source strings. Native TIFF encodes program
+`code`/`compiledCode`, graph source `code` and function `body`/`draft` strings using tagged value 33 and container blocks named
 `shader-source:sha256:<text digest>`; null drafts remain null.
 Compression uses the existing container codec; identical text is stored once across every
-graph in the TIFF, even when the modules have different include bindings. Bindings and source
+program in the TIFF, including layer and FX programs, even when modules have different include bindings. Bindings and source
 IDs stay in the document model. Reads check the block size and SHA-256 before reconstructing
 ordinary strings, with a 32 MiB limit on the unique shared text table. Older readers fail on
 the unknown tag instead of interpreting the block reference as source code.
@@ -1363,11 +1389,15 @@ Color to `float4` for computation.
 
 ### API and document JSON
 
-`settings.shader` accepts independent partial updates to `mode`, `inputMode`, `inputTexture`,
+`settings.shader` accepts a complete `program`, a catalog `presetId`, or independent partial
+updates to `mode`, `inputMode`, `inputTexture`,
 `inputLayerId`, `graph`, `code`, `compiledCode` and `codeParameters`. Omitted fields retain their current values. `graph` and `codeParameters`
 replace their complete objects/arrays; no implicit conversion or declaration parsing occurs.
-Inspection returns all these fields, including inactive selections. Discovery exposes
-`shaderModes`, `shaderInputModes` and the initial state in `shaderDefaults`.
+`program` cannot be combined with the flat program fields; `presetId` supplies the whole
+program and cannot be combined with program edits. Host Input fields remain separate.
+Inspection and stored JSON nest the program fields under `program`, retaining both modes
+and inactive selections. Discovery exposes `shaderModes`, `shaderInputModes`, `shaderDefaults`
+and `fxProgramDefaults`. FX edits accept the same program shape; see [FX operations](AgentAPI.md#fx-edits-and-presets).
 
 `inputTexture` accepts the document format's Texture2D `$asset` descriptor or `null` to clear it.
 `inputLayerId` accepts a layer/group ID, `null` to clear, or an `@alias` from an earlier operation
@@ -1387,8 +1417,8 @@ To use a source created earlier in the batch instead, supply
 `"inputMode":"Layer", "inputLayerId":"@source"` in the same `shader` object.
 
 The API-only `compile` flag defaults to false and is omitted from snapshots and documents.
-`compile:true` calls `CompileCode(document)` after assigning supplied fields, even while Graph
-is selected; it does not change `mode`. Code and compiledCode accept up to 2 Mi characters each,
+`compile:true` compiles the selected Graph or Code after assigning supplied fields;
+it does not change `mode`. Code and compiledCode accept up to 2 Mi characters each,
 within the API's overall request limit. A compile failure reports `shader_compile_failed` and
 uses the ordinary batch rollback. To retain an invalid draft, submit it without `compile:true`
 in a separate successful request. A dry run checks compilation on the detached probe.
@@ -1410,10 +1440,10 @@ For example, this operation selects Code and explicitly applies a tint generator
 
 Use `compiledCode` plus its matching `codeParameters` for exact roundtrip restoration. Direct
 assignment is a stored-state operation and does not promise GPU validation; `compile:true`
-instead applies `code` and replaces the applied pair on success. Supplying only `code` in
-document JSON retains the default applied white program. To author a Code document without
+instead applies `code` and replaces the applied pair on success in Code mode. A program with
+only `code` in document JSON has no saved applied source. To author a Code document without
 an API compile operation, provide the applied HLSL and matching parameter declarations/values
-explicitly. The document behavior uses `"$type":"ShaderLayerBehaviour"`; `compile` is never
+explicitly under `program`. The document behavior uses `"$type":"ShaderLayerBehaviour"`; `compile` is never
 a stored behavior field. Missing texture asset identities are retained in either mode.
 
 This complete `add` operation creates a Shader layer with one exposed Color parameter connected
@@ -1478,7 +1508,7 @@ Names, categories, mode labels, port sets, defaults and these fixed output types
 node model; descriptions explain units and evaluation. These discovery fields are not extra
 fields to copy into a serialized node.
 
-In stored `whimtex.document` JSON, place this same graph at `layers[].behaviour.graph`, with
+In stored `whimtex.document` JSON, place this same graph at `layers[].behaviour.program.graph`, with
 `behaviour.$type` set to `ShaderLayerBehaviour`; the API's `op`, `as` and `settings` wrapper is
 not stored. Keep `graph.version:1`. Graph parameter `controls` are saved declarations, not regenerated
 HLSL metadata. Texture parameters use the existing `textureSource`, `textureLayerId` and

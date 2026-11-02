@@ -20,6 +20,7 @@ namespace DCFApixels.WhimTex
         internal virtual Vector2 Dimensions => Vector2.one;
         internal abstract void Change(string id, Action<ShaderFXParameter> edit, bool recordUndo = true);
         internal abstract void ChangeParameters(string undoName, IReadOnlyList<ShaderFXParameter> values);
+        internal virtual void RefreshParameters() { }
         internal virtual void BeginDrag() { }
         internal virtual void EndDrag(bool changed) { }
         internal virtual void EditOnCanvas(ShaderFXParameterType type, string id) { }
@@ -71,12 +72,31 @@ namespace DCFApixels.WhimTex
     internal sealed class ShaderFXParameterViewSource : ShaderParameterViewSource
     {
         private readonly ShaderFX effect;
+        private readonly List<ShaderFXParameter> graphParameters = new List<ShaderFXParameter>();
+        private bool GraphMode => effect != null && effect.Mode == ShaderLayerMode.Graph;
         internal ShaderFX Effect => effect;
-        internal override ShaderFX PreviewEffect => effect;
+        internal override ShaderFX PreviewEffect => GraphMode ? null : effect;
         private int undoGroup;
-        internal ShaderFXParameterViewSource(ShaderFX effect) => this.effect = effect;
-        internal override IReadOnlyList<ShaderFXParameter> Parameters => effect != null ? effect.Parameters : Array.Empty<ShaderFXParameter>();
-        internal override string Code => effect != null ? effect.Code : string.Empty;
+        internal ShaderFXParameterViewSource(ShaderFX effect) { this.effect = effect; RefreshParameters(); }
+        internal override IReadOnlyList<ShaderFXParameter> Parameters => GraphMode ? graphParameters : effect != null ? effect.Parameters : Array.Empty<ShaderFXParameter>();
+        internal override string Code => effect != null && !GraphMode ? effect.Code : string.Empty;
+        internal override void RefreshParameters()
+        {
+            if (GraphMode) ShaderGraphParameterViewSource.RefreshDisplayParameters(graphParameters, effect.Parameters);
+            else graphParameters.Clear();
+        }
+        private ShaderFXParameter FindValue(string id)
+        {
+            if (effect != null) foreach (var parameter in effect.Parameters)
+                if (parameter?.id == id) return parameter;
+            return null;
+        }
+        private void RecordUndo(string name)
+        {
+            Undo.RecordObject(effect, name);
+            var document = Document;
+            if (document != null) Undo.RecordObject(document, name);
+        }
         internal override bool IsReadOnly => effect == null || WhimTexApi.IsShaderFXContentLocked(effect);
         internal override WhimTexDocument Document => effect != null
             ? effect.EmbeddedOwner ?? WhimTexWindow.FindFXTransformDocument(effect) : null;
@@ -86,30 +106,31 @@ namespace DCFApixels.WhimTex
         {
             get
             {
-                var document = WhimTexWindow.FindFXTransformDocument(effect);
+                var document = Document;
                 return document != null ? new Vector2(document.width, document.height) : Vector2.one;
             }
         }
         internal override void Change(string id, Action<ShaderFXParameter> edit, bool recordUndo = true)
         {
-            if (IsReadOnly || Find(id) is not ShaderFXParameter parameter) return;
-            if (recordUndo) Undo.RecordObject(effect, "Change FX Parameter");
-            edit(parameter); EditorUtility.SetDirty(effect); effect.NotifyValuesChanged();
+            if (IsReadOnly || FindValue(id) is not ShaderFXParameter parameter) return;
+            if (recordUndo) RecordUndo("Change FX Parameter");
+            edit(parameter); RefreshParameters(); EditorUtility.SetDirty(effect); effect.NotifyValuesChanged();
         }
         internal override void BeginDrag()
         {
+            if (IsReadOnly) return;
             Undo.IncrementCurrentGroup(); undoGroup = Undo.GetCurrentGroup();
-            Undo.SetCurrentGroupName("Change FX Parameter"); Undo.RecordObject(effect, "Change FX Parameter");
+            Undo.SetCurrentGroupName("Change FX Parameter"); RecordUndo("Change FX Parameter");
         }
         internal override void EndDrag(bool changed) { if (changed) Undo.CollapseUndoOperations(undoGroup); }
         internal override void ChangeParameters(string undoName, IReadOnlyList<ShaderFXParameter> values)
         {
             if (IsReadOnly || values.Count == 0) return;
             foreach (var value in values)
-                if (Find(value.id) is not ShaderFXParameter parameter || parameter.type != value.type) return;
-            Undo.RecordObject(effect, undoName);
-            foreach (var value in values) ShaderFXMetadata.CopyValue(value, Find(value.id));
-            EditorUtility.SetDirty(effect); effect.NotifyValuesChanged();
+                if (value == null || FindValue(value.id) is not ShaderFXParameter parameter || parameter.type != value.type || parameter.ValueType != value.ValueType) return;
+            RecordUndo(undoName);
+            foreach (var value in values) ShaderFXMetadata.CopyValue(value, FindValue(value.id));
+            RefreshParameters(); EditorUtility.SetDirty(effect); effect.NotifyValuesChanged();
         }
         internal override void EditOnCanvas(ShaderFXParameterType type, string id)
         {

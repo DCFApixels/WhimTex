@@ -26,6 +26,11 @@ namespace DCFApixels.WhimTex
             private readonly Dictionary<string, NodePreview> previews = new Dictionary<string, NodePreview>();
             private readonly List<NodePreview> previewQueue = new List<NodePreview>();
             private readonly ShaderGraphPreviewState previewState = new ShaderGraphPreviewState();
+            private readonly Dictionary<(int width, int height, float scale), RenderTexture> fxPreviewInputs = new();
+            private DCFApixels.WhimTex.Layer fxPreviewLayer;
+            private ShaderFX fxPreviewEffect;
+            private ulong fxPreviewFrame;
+            private bool fxInputsInvalidated = true;
             private bool previewsInvalidated = true;
             private int previewCursor;
             private readonly Dictionary<string, Port> inputPorts = new Dictionary<string, Port>();
@@ -37,7 +42,7 @@ namespace DCFApixels.WhimTex
             internal Canvas(ShaderGraphWindow window)
             {
                 this.window = window;
-                viewDataKey = "whimtex-shader-graph-" + window.layerId;
+                viewDataKey = "whimtex-shader-graph-" + window.Target.Identity;
                 AddToClassList("whimtex-shader-graph-canvas");
                 focusable = true;
                 SetupZoom(.08f, 3f);
@@ -88,6 +93,7 @@ namespace DCFApixels.WhimTex
             }
             public void Dispose()
             {
+                ReleaseFXPreviewInputs();
                 if (portSnapper != null) this.RemoveManipulator(portSnapper);
                 foreach (var preview in previews.Values) preview.Dispose();
                 previews.Clear();
@@ -118,6 +124,7 @@ namespace DCFApixels.WhimTex
             }
             internal void Rebuild()
             {
+                ReleaseFXPreviewInputs();
                 var selected = new HashSet<string>();
                 foreach (var element in selection) if (element is IGraphItemView node) selected.Add(node.Id);
                 if (selectAfterRebuild != null) { selected.Clear(); selected.Add(selectAfterRebuild); selectAfterRebuild = null; }
@@ -204,7 +211,48 @@ namespace DCFApixels.WhimTex
                 preview.RefreshOutputs();
                 return preview;
             }
-            internal void InvalidatePreviews() { previewsInvalidated = true; foreach (var preview in previews.Values) preview.Invalidate(); }
+            internal void InvalidatePreviews()
+            {
+                previewsInvalidated = fxInputsInvalidated = true;
+                foreach (var preview in previews.Values) preview.Invalidate();
+            }
+            internal RenderTexture BorrowFXPreviewInput(in LayerRenderContext context)
+            {
+                var host = window.Target;
+                var layer = host.Layer;
+                var effect = host.Effect;
+                if (fxInputsInvalidated || fxPreviewFrame != ShaderGraphClock.Frame ||
+                    !ReferenceEquals(fxPreviewLayer, layer) || fxPreviewEffect != effect)
+                {
+                    ReleaseFXPreviewInputs();
+                    fxPreviewFrame = ShaderGraphClock.Frame; fxPreviewLayer = layer; fxPreviewEffect = effect;
+                    fxInputsInvalidated = false;
+                }
+                var key = (context.width, context.height, context.scaleMultiplier);
+                if (!fxPreviewInputs.TryGetValue(key, out var input))
+                {
+                    input = window.document.RenderShaderFXInput(layer, effect, context.width, context.height,
+                        context.scaleMultiplier, ShaderGraphClock.Seconds);
+                    fxPreviewInputs.Add(key, input);
+                }
+                return input;
+            }
+            private void ReleaseFXPreviewInputs()
+            {
+                foreach (var input in fxPreviewInputs.Values) if (input != null) ProfiledRenderTexture.ReleaseTemporary(input);
+                fxPreviewInputs.Clear();
+                fxPreviewLayer = null; fxPreviewEffect = null; fxPreviewFrame = 0;
+                fxInputsInvalidated = true;
+            }
+            internal void SuspendPreviews()
+            {
+                ReleaseFXPreviewInputs();
+                foreach (var pair in previews)
+                {
+                    pair.Value.Suspend();
+                    SetMessages("preview:" + pair.Key, null);
+                }
+            }
             internal void TickPreviews()
             {
                 if (previews.Count == 0) return;

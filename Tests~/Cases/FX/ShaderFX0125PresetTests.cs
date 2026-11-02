@@ -1,8 +1,9 @@
 // Independent migrated assertions; compiled and executed only by the parent runner.
 using WhimTex.Tests;
 using WhimTex.Tests.UnityD;
-// run_script ShaderFX0125PresetTests.Run. Frozen tag source, canonical values, render parity,
-// TIFF save/reopen, linked catalog refresh and an owned standalone native FX preset.
+// run_script ShaderFX0125PresetTests.Run. Current metadata, canonical values, render parity,
+// TIFF save/reopen, linked catalog refresh and owned native serialization.
+// The historical class/scenario name is retained for the runner, not as a 0.12.5 compatibility claim.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -31,18 +32,18 @@ public static class ShaderFX0125PresetTests
     static List<ShaderFXParameter> Parse(string source) => (List<ShaderFXParameter>)Metadata.GetMethod("Parse", F)
         .Invoke(null, new object[] { source, false, null });
     static List<ShaderFXParameter> Parameters(ShaderFX fx) =>
-        (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+        (List<ShaderFXParameter>)typeof(ShaderFX).GetProperty("parameters", F).GetValue(fx);
     static void VerifyValues(ShaderFX fx, string id)
     {
         var parameters = Parameters(fx);
         var opacity = parameters.Find(p => p.name == "_Opacity");
         Check(opacity != null && Mathf.Abs(opacity.floatValue - .37f) < 1e-6f && opacity.id == id,
-            "0.12.5 canonical opacity and identity retained");
+            "Current preset opacity and identity retained");
         foreach (var p in parameters)
             Check(p.name != "_Amount" && p.name != "_Density", "No obsolete built-in parameter");
         var mask = parameters.Find(p => p.name == "_MaskChannel");
         if (mask != null)
-            Check(mask.controls[0].groupHeaderParameter == "_MaskChannel", "0.12.5 canonical group header retained");
+            Check(mask.controls[0].groupHeaderParameter == "_MaskChannel", "Current preset group header retained");
     }
     static void Compare(Color[] expected, WhimTexDocument doc, string context)
     {
@@ -75,11 +76,13 @@ public static class ShaderFX0125PresetTests
                 ShaderFX fx = null;
                 try
                 {
-                    string old = File.ReadAllText("Packages/com.dcfapixels.whimtex/Tests~/Fixtures/ShaderFX0125/" + name + ".hlsl");
                     string current = File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/" + name + ".hlsl");
-                    var saved = Parse(old);
+                    // Exercise current-format linking/persistence, not historical parser migration.
+                    // The comment distinguishes the embedded source from the catalog without changing pixels.
+                    string embedded = current + "\n// Independent document copy before catalog linking.\n";
+                    var saved = Parse(embedded);
                     var opacity = saved.Find(p => p.name == "_Opacity");
-                    Check(opacity != null, "Tag 0.12.5 already declares _Opacity: " + name);
+                    Check(opacity != null, "Current preset declares _Opacity: " + name);
                     opacity.floatValue = .37f;
                     string id = opacity.id;
                     doc = ScriptableObject.CreateInstance<WhimTexDocument>();
@@ -89,7 +92,7 @@ public static class ShaderFX0125PresetTests
                     doc.layers.Add(layer);
                     fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
                         new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
-                        .Invoke(null, new object[] { doc, old, saved });
+                        .Invoke(null, new object[] { doc, embedded, saved });
                     layer.fx.Add(fx);
                     Call(fx, "ApplyAgentDraft");
                     VerifyValues(fx, id);
@@ -97,16 +100,17 @@ public static class ShaderFX0125PresetTests
                     Color[] expected;
                     try { expected = reference.GetPixels(); }
                     finally { Object.DestroyImmediate(reference); }
-                    // A catalog refresh replaces the stored tag source, retaining values by canonical name.
+                    // Linking replaces the independent source, retaining current-schema values and IDs.
                     var identityType = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetIdentity", true);
                     object identity = identityType.GetMethod("Read", F).Invoke(null, new object[] { current });
                     string presetId = (string)identityType.GetField("id", F).GetValue(identity);
                     int presetVersion = (int)identityType.GetField("version", F).GetValue(identity);
                     Check(!string.IsNullOrEmpty(presetId) && presetVersion > 0, "Built-in preset ID/version: " + name);
-                    typeof(ShaderFX).GetField("presetId", F).SetValue(fx, presetId);
-                    typeof(ShaderFX).GetField("presetVersion", F).SetValue(fx, presetVersion);
+                    typeof(ShaderFX).GetProperty("presetId", F).SetValue(fx, presetId);
+                    typeof(ShaderFX).GetProperty("presetVersion", F).SetValue(fx, presetVersion);
                     Call(fx, "ReloadCatalogSource", true);
-                    Check((bool)typeof(ShaderFX).GetProperty("HasAppliedShader", F).GetValue(fx), "Catalog refresh compiled: " + name);
+                    Check((bool)typeof(ShaderFX).GetProperty("HasAppliedShader", F).GetValue(fx) &&
+                        !(bool)typeof(ShaderFX).GetProperty("UsingPresetFallback", F).GetValue(fx), "Catalog refresh compiled without fallback: " + name);
                     VerifyValues(fx, id);
                     Compare(expected, doc, name + ": canonical preset");
                     string path = WhimTexDocumentFile.Save(doc, folder + "/" + name + ".tiff");
@@ -115,13 +119,13 @@ public static class ShaderFX0125PresetTests
                         "Complete TIFF read: " + name);
                     VerifyValues((ShaderFX)loaded.layers[0].fx[0], id);
                     Compare(expected, loaded, name + ": TIFF reopen");
-                    // Native preset serialization remains supported; this is a current-writer test, not an old binary fixture.
+                    // Native object serialization only; this does not make .asset files catalog presets.
                     var native = ScriptableObject.CreateInstance<ShaderFX>();
                     string assetPath = folder + "/" + name + ".asset";
                     try
                     {
-                        typeof(ShaderFX).GetField("code", F).SetValue(native, current);
-                        typeof(ShaderFX).GetField("parameters", F).SetValue(native, Parameters(fx).ConvertAll(p =>
+                        typeof(ShaderFX).GetProperty("code", F).SetValue(native, current);
+                        typeof(ShaderFX).GetProperty("parameters", F).SetValue(native, Parameters(fx).ConvertAll(p =>
                             (ShaderFXParameter)p.GetType().GetMethod("Copy", F).Invoke(p, null)));
                         AssetDatabase.CreateAsset(native, assetPath);
                         AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);

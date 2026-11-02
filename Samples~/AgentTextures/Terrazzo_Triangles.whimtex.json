@@ -45,21 +45,60 @@
           "$type": "ShaderFX",
           "$id": "fx0",
           "active": true,
-          "code": "// @whimtex-effect Samples/Glaze Crazing\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.18 [0 .. 1]\r\n// @param float _Width = 0.004 [0.001 .. 0.03]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n float d=abs(color.r-.5);float coverage=1-smoothstep(_Width,_Width+fwidth(color.r),d);\r\n return float4(.06,.11,.105,coverage*_Opacity);}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 0.18,
-              "id": "3c0491a21e54446f93e16c380891d8f3"
+          "program": {
+            "code": "// @whimtex-effect Samples/Glaze Crazing\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.18 [0 .. 1]\r\n// @param float _Width = 0.004 [0.001 .. 0.03]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n float d=abs(color.r-.5);float coverage=1-smoothstep(_Width,_Width+fwidth(color.r),d);\r\n return float4(.06,.11,.105,coverage*_Opacity);}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
+              ],
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Width",
-              "type": "Float",
-              "floatValue": 0.004,
-              "id": "5deb4c3cb1d141ba841dfb0bcd49aba8"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 0.18,
+                "id": "3c0491a21e54446f93e16c380891d8f3"
+              },
+              {
+                "name": "_Width",
+                "type": "Float",
+                "floatValue": 0.004,
+                "id": "5deb4c3cb1d141ba841dfb0bcd49aba8"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Glaze Crazing\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.18 [0 .. 1]\r\n// @param float _Width = 0.004 [0.001 .. 0.03]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n float d=abs(color.r-.5);float coverage=1-smoothstep(_Width,_Width+fwidth(color.r),d);\r\n return float4(.06,.11,.105,coverage*_Opacity);}\r\n"
+          },
           "shaderKey": "39edc2b9464a4f2ebf2eee3cfee2a33d",
           "$name": ""
         }
@@ -140,15 +179,54 @@
           "$type": "ShaderFX",
           "$id": "fx1",
           "active": true,
-          "code": "// @whimtex-effect Samples/Mineral Chip Distribution\r\n// @param float _Density = 0.23 [0 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n float2 cell=floor(uv*79);float h=frac(sin(dot(cell,float2(19.7,93.1)))*43758.5);\r\n color.a*=step(1-_Density,h);return color;}\r\n",
-          "parameters": [
-            {
-              "name": "_Density",
-              "type": "Float",
-              "floatValue": 0.23,
-              "id": "c331fb27d63e4c55a5d02df1bb77d0c9"
-            }
-          ],
+          "program": {
+            "code": "// @whimtex-effect Samples/Mineral Chip Distribution\r\n// @param float _Density = 0.23 [0 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n float2 cell=floor(uv*79);float h=frac(sin(dot(cell,float2(19.7,93.1)))*43758.5);\r\n color.a*=step(1-_Density,h);return color;}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
+              ],
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
+            },
+            "codeParameters": [
+              {
+                "name": "_Density",
+                "type": "Float",
+                "floatValue": 0.23,
+                "id": "c331fb27d63e4c55a5d02df1bb77d0c9"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Mineral Chip Distribution\r\n// @param float _Density = 0.23 [0 .. 1]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n float2 cell=floor(uv*79);float h=frac(sin(dot(cell,float2(19.7,93.1)))*43758.5);\r\n color.a*=step(1-_Density,h);return color;}\r\n"
+          },
           "shaderKey": "d7a1118bbb504b9ca24e4fdfae2026cd",
           "$name": ""
         }
@@ -404,27 +482,66 @@
           "$type": "ShaderFX",
           "$id": "fx2",
           "active": true,
-          "code": "// @whimtex-effect Samples/Brightness Contrast\r\n// @control(_Opacity)\r\n// @group\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original colors and the adjusted result.\r\n// @param float _Brightness = 5 [~-100 .. ~100] // Adjust midtone brightness while retaining black and white. Soft bounds allow stronger values.\r\n// @param float _Contrast = 12 [~-100 .. ~100] // Positive increases tonal separation; negative brings tones toward middle gray. Soft bounds allow stronger values.\r\n// @endgroup\r\n\r\n\r\n// Rational tone curves avoid hard clipping and exponential overflow at extended settings.\r\n// Work in the incoming RGB space, retaining signed/HDR values outside the tonal interval.\r\nfloat AdjustTone(float value, float brightnessGain, float contrastGain)\r\n{\r\n    if (value <= 0.0 || value >= 1.0) return value;\r\n    float low = value;\r\n    float high = 1.0 - value;\r\n    if (_Brightness >= 0.0) high /= brightnessGain;\r\n    else low /= brightnessGain;\r\n    // Carry the unnormalized pair into contrast: normalizing brightness first loses\r\n    // the highlight distance to rounding, which extreme negative contrast amplifies.\r\n    float nearEdge = 2.0 * min(low, high);\r\n    float nearMiddle = abs(high - low);\r\n    if (_Contrast >= 0.0) nearEdge /= contrastGain;\r\n    else nearMiddle /= contrastGain;\r\n    float mapped = 0.5 * (nearEdge / (nearEdge + nearMiddle));\r\n    return low <= high ? mapped : 1.0 - mapped;\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    if (_Brightness == 0.0 && _Contrast == 0.0) return color;\r\n    float brightnessGain = 1.0 + abs(_Brightness) / 50.0;\r\n    float contrastGain = 1.0 + abs(_Contrast) / 50.0;\r\n\tfloat4 result = color;\r\n\tresult.rgb = float3(AdjustTone(color.r, brightnessGain, contrastGain),\r\n        AdjustTone(color.g, brightnessGain, contrastGain),\r\n        AdjustTone(color.b, brightnessGain, contrastGain));\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "f574ec118e3b4674bcabc279da56498c"
+          "program": {
+            "code": "// @whimtex-effect Samples/Brightness Contrast\r\n// @control(_Opacity)\r\n// @group\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original colors and the adjusted result.\r\n// @param float _Brightness = 5 [~-100 .. ~100] // Adjust midtone brightness while retaining black and white. Soft bounds allow stronger values.\r\n// @param float _Contrast = 12 [~-100 .. ~100] // Positive increases tonal separation; negative brings tones toward middle gray. Soft bounds allow stronger values.\r\n// @endgroup\r\n\r\n\r\n// Rational tone curves avoid hard clipping and exponential overflow at extended settings.\r\n// Work in the incoming RGB space, retaining signed/HDR values outside the tonal interval.\r\nfloat AdjustTone(float value, float brightnessGain, float contrastGain)\r\n{\r\n    if (value <= 0.0 || value >= 1.0) return value;\r\n    float low = value;\r\n    float high = 1.0 - value;\r\n    if (_Brightness >= 0.0) high /= brightnessGain;\r\n    else low /= brightnessGain;\r\n    // Carry the unnormalized pair into contrast: normalizing brightness first loses\r\n    // the highlight distance to rounding, which extreme negative contrast amplifies.\r\n    float nearEdge = 2.0 * min(low, high);\r\n    float nearMiddle = abs(high - low);\r\n    if (_Contrast >= 0.0) nearEdge /= contrastGain;\r\n    else nearMiddle /= contrastGain;\r\n    float mapped = 0.5 * (nearEdge / (nearEdge + nearMiddle));\r\n    return low <= high ? mapped : 1.0 - mapped;\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    if (_Brightness == 0.0 && _Contrast == 0.0) return color;\r\n    float brightnessGain = 1.0 + abs(_Brightness) / 50.0;\r\n    float contrastGain = 1.0 + abs(_Contrast) / 50.0;\r\n\tfloat4 result = color;\r\n\tresult.rgb = float3(AdjustTone(color.r, brightnessGain, contrastGain),\r\n        AdjustTone(color.g, brightnessGain, contrastGain),\r\n        AdjustTone(color.b, brightnessGain, contrastGain));\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
+              ],
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Brightness",
-              "type": "Float",
-              "floatValue": 5.0,
-              "id": "1113016be93a4dc99380d54de2a8e9b6"
-            },
-            {
-              "name": "_Contrast",
-              "type": "Float",
-              "floatValue": 12.0,
-              "id": "a9d913906d2a4065b008523895c55703"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "f574ec118e3b4674bcabc279da56498c"
+              },
+              {
+                "name": "_Brightness",
+                "type": "Float",
+                "floatValue": 5.0,
+                "id": "1113016be93a4dc99380d54de2a8e9b6"
+              },
+              {
+                "name": "_Contrast",
+                "type": "Float",
+                "floatValue": 12.0,
+                "id": "a9d913906d2a4065b008523895c55703"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Brightness Contrast\r\n// @control(_Opacity)\r\n// @group\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original colors and the adjusted result.\r\n// @param float _Brightness = 5 [~-100 .. ~100] // Adjust midtone brightness while retaining black and white. Soft bounds allow stronger values.\r\n// @param float _Contrast = 12 [~-100 .. ~100] // Positive increases tonal separation; negative brings tones toward middle gray. Soft bounds allow stronger values.\r\n// @endgroup\r\n\r\n\r\n// Rational tone curves avoid hard clipping and exponential overflow at extended settings.\r\n// Work in the incoming RGB space, retaining signed/HDR values outside the tonal interval.\r\nfloat AdjustTone(float value, float brightnessGain, float contrastGain)\r\n{\r\n    if (value <= 0.0 || value >= 1.0) return value;\r\n    float low = value;\r\n    float high = 1.0 - value;\r\n    if (_Brightness >= 0.0) high /= brightnessGain;\r\n    else low /= brightnessGain;\r\n    // Carry the unnormalized pair into contrast: normalizing brightness first loses\r\n    // the highlight distance to rounding, which extreme negative contrast amplifies.\r\n    float nearEdge = 2.0 * min(low, high);\r\n    float nearMiddle = abs(high - low);\r\n    if (_Contrast >= 0.0) nearEdge /= contrastGain;\r\n    else nearMiddle /= contrastGain;\r\n    float mapped = 0.5 * (nearEdge / (nearEdge + nearMiddle));\r\n    return low <= high ? mapped : 1.0 - mapped;\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    if (_Brightness == 0.0 && _Contrast == 0.0) return color;\r\n    float brightnessGain = 1.0 + abs(_Brightness) / 50.0;\r\n    float contrastGain = 1.0 + abs(_Contrast) / 50.0;\r\n\tfloat4 result = color;\r\n\tresult.rgb = float3(AdjustTone(color.r, brightnessGain, contrastGain),\r\n        AdjustTone(color.g, brightnessGain, contrastGain),\r\n        AdjustTone(color.b, brightnessGain, contrastGain));\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n"
+          },
           "shaderKey": "09e8e0e76a6641479d8a1ba8ff44aa5a",
           "$name": ""
         }
@@ -461,10 +578,12 @@
       "behaviour": {
         "$type": "ShaderLayerBehaviour",
         "recoveryId": "e565c83861094983b5c484566ad9c4a8",
-        "mode": "Code",
-        "inputMode": "CompositeBelow",
-        "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
-        "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+        "program": {
+          "mode": "Code",
+          "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+          "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+        },
+        "inputMode": "CompositeBelow"
       },
       "behaviourId": "e565c83861094983b5c484566ad9c4a8",
       "children": null,

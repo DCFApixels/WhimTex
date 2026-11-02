@@ -120,26 +120,43 @@ namespace DCFApixels.WhimTex
             {
                 JObject spec = Obj(item, "fx operation");
                 string op = Text(spec, "op", "add");
-                Require(op == "add" || op == "replace" || op == "remove", "FX op must be add, replace or remove.");
+                Require(op == "add" || op == "replace" || op == "set" || op == "remove", "FX op must be add, replace, set or remove.");
                 if (op == "remove") Keys(spec, "op", "index");
-                else Keys(spec, "op", "index", "code");
+                else Keys(spec, "op", "index", "program", "mode", "graph", "code", "compiledCode", "codeParameters", "compile",
+                    "presetId", "includeBasePath", "parameters", "randomizeSeeds", "enabled");
                 Require(op == "add" || spec["index"] != null, "replace/remove requires an explicit FX index.");
                 Require(op == "add" || layer.fx.Count > 0, "Cannot replace/remove from an empty FX list.");
                 int index = Int(spec, "index", layer.fx.Count, 0, op == "add" ? layer.fx.Count : layer.fx.Count - 1);
                 if (op == "remove") { layer.fx.RemoveAt(index); continue; }
-                Require(spec["code"]?.Type == JTokenType.String && ((string)spec["code"]).Length > 0 &&
-                    ((string)spec["code"]).Length <= 65536, "code must contain 1..65536 characters of inline HLSL.");
-
                 RequireGraphics();
-                var fx = ShaderFX.CreateAgentDraft(owner, (string)spec["code"], ShaderFXMetadata.Parse((string)spec["code"], false, out _));
-                created.Add(fx);
-                try { fx.ApplyAgentDraft(); }
-                catch (Exception error) { throw new WhimTexApiException("shader_compile_failed", error.Message); }
+                ShaderFX fx;
+                if (op == "set")
+                {
+                    Require(spec["presetId"] == null && spec["includeBasePath"] == null,
+                        "Use replace to load a preset or change includeBasePath.");
+                    Require(layer.fx[index] != null, "The Shader effect is missing.");
+                    fx = layer.fx[index].CloneForDocument(owner);
+                    created.Add(fx);
+                    if (HasFxProgramEdit(spec))
+                    {
+                        fx.ReplaceProgram(ReadFxProgramEdit(fx.Program, spec, owner, null));
+                        ApplyFxDraft(fx, Bool(spec, "compile", true));
+                    }
+                    else if (Bool(spec, "compile")) ApplyFxDraft(fx, true);
+                }
+                else
+                {
+                    fx = CreateFxProgramDraft(owner, spec, true, null);
+                    created.Add(fx);
+                }
+                SetFxValues(fx, spec["parameters"], owner);
+                RandomizeFxSeeds(fx, spec["randomizeSeeds"], spec["parameters"], true);
+                if (spec["enabled"] != null) fx.Active = Bool(spec, "enabled");
                 Require(fx.Parameters.Count <= MaxFxParameters, "At most 128 FX parameters are supported by live authoring.", "resource_limit");
                 if (op == "add") layer.fx.Insert(index, fx);
                 else layer.fx[index] = fx;
-                foreach (var parameter in fx.TextureLayerParameters())
-                    Require(owner.IsUsableShaderTexture(layer, parameter.textureLayerId), "Texture layer would create a cyclic dependency.", "invalid_target");
+                WhimTexDocumentJson.ValidateShaderProgramInputs(owner, layer, fx.Program, effectContext: true);
+                fx.NotifyValuesChanged();
                 Require(layer.fx.Count <= 32, "At most 32 FX entries per layer are supported by live authoring.", "resource_limit");
             }
         }
@@ -157,6 +174,8 @@ namespace DCFApixels.WhimTex
                     entry["type"] = "shaderFX"; entry["embedded"] = fx.EmbeddedOwner == owner;
                     entry["enabled"] = fx.Active;
                     entry["code"] = fx.Code;
+                    entry["mode"] = fx.Mode.ToString();
+                    entry["program"] = WhimTexDocumentJson.ShaderProgramSnapshot(fx.Program, owner, fx.SourcePath);
                     WriteFxDiagnostics(entry, fx);
                     entry["pendingChanges"] = fx.HasPendingChanges;
                     entry["lastApplyFailed"] = fx.LastApplyFailed;

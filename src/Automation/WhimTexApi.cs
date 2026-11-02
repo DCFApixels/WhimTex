@@ -281,14 +281,12 @@ namespace DCFApixels.WhimTex
                     foreach (var fxEntry in layer.fx)
                         if (fxEntry is ShaderFX fx)
                         {
-                            foreach (var parameter in fx.Parameters)
+                            WhimTexDocumentJson.ValidateShaderProgramInputs(document, layer, fx.Program, effectContext: true);
+                            foreach (var parameter in new ShaderGraphStorage.TextureParameters(fx.Program.graph.parameters, fx.Program.codeParameters, false))
                                 if (!string.IsNullOrEmpty(path) && parameter != null && parameter.type == ShaderFXParameterType.Texture2D &&
                                     parameter.textureSource == ShaderFXTextureSource.Texture && parameter.textureValue != null)
                                     Require(!string.Equals(AssetDatabase.GetAssetPath(parameter.textureValue), path, StringComparison.OrdinalIgnoreCase),
                                         "An FX cannot sample its own document output.", "invalid_target");
-                            foreach (var parameter in fx.StoredTextureLayerParameters())
-                                Require(document.IsUsableStoredShaderTexture(layer, parameter.textureLayerId),
-                                    "Invalid or cyclic FX texture source for " + layer.layerName + ": " + parameter.name, "invalid_target");
                         }
                 if (layer?.Behaviour is TargetedLayerBehaviour effect && effect.inputMode == EffectInputMode.Specific)
                     Require(document.IsUsableEffectTarget(effect, effect.TargetLayerId),

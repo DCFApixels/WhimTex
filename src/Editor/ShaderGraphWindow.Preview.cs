@@ -288,6 +288,7 @@ namespace DCFApixels.WhimTex
                 if (value) dirty = true;
             }
             internal void Invalidate() => dirty = true;
+            internal void Suspend() { Release(); dirty = true; }
             internal void RefreshOutputs()
             {
                 SyncExpanded();
@@ -329,13 +330,13 @@ namespace DCFApixels.WhimTex
                         if (current == null) { Release(); return false; }
                         attempted = true; fingerprint = next; compiledPort = output.value;
                         using var profile = WhimTexProfiler.Measure("shadergraph.preview.compile", window.document);
-                        pending = new ShaderGraphProgram.CompilationRequest(window.Graph, nodeId, output.value);
+                        pending = new ShaderGraphProgram.CompilationRequest(window.Graph, nodeId, output.value, effectContext: window.Target.IsEffect);
                         return true;
                     }
                     if (program == null || programFingerprint != next || programPort != output.value) { dirty = false; return false; }
                     int size = PreviewSize();
                     bool resize = texture == null || texture.width != size;
-                    bool animated = program.UsesTime;
+                    bool animated = program.UsesTime || window.Target.IsEffect && window.Target.Layer.UsesTime;
                     double now = EditorApplication.timeSinceStartup;
                     if (!dirty && !resize && (!animated || now < renderAt || renderedFrame == ShaderGraphClock.Frame)) return completed;
                     var previous = RenderTexture.active;
@@ -349,14 +350,24 @@ namespace DCFApixels.WhimTex
                             if (texture != null) ProfiledRenderTexture.ReleaseTemporary(texture);
                             texture = CreateTexture(size);
                         }
+                        var host = window.Target;
                         var context = new LayerRenderContext(window.document, null, size, size,
-                            (float)Mathf.Max(window.document.width, window.document.height) / size, applyTransform: false, applyFx: false)
+                            (float)Mathf.Max(window.document.width, window.document.height) / size, applyTransform: false, applyFx: false,
+                            transformFxCoordinates: host.IsEffect && !host.Layer.IsGroup)
                             .WithShaderGraphPreviewTime(ShaderGraphClock.Seconds);
-                        program.Bind(window.Graph, context, state.bindings, branchCurrent: true);
-                        program.PrepareCoordinates(window.Behaviour.Owner, context);
-                        using var input = window.document.ResolveShaderInput(window.Behaviour, context);
+                        if (host.IsEffect) program.BindEffect(window.Graph, context, state.bindings, branchCurrent: true);
+                        else
+                        {
+                            program.Bind(window.Graph, context, state.bindings, branchCurrent: true);
+                            program.PrepareCoordinates(host.Layer, context);
+                        }
+                        using var input = host.IsEffect
+                            ? new ShaderLayerInput(canvas.BorrowFXPreviewInput(context), context, owned: false)
+                            : window.document.ResolveShaderInput(host.Behaviour, context);
+                        if (host.IsEffect) host.Layer.BindShaderFXCoordinates(program.Material, context);
                         var inputTexture = input.Bind(program.Material, program.EmptyInput);
-                        using var bindings = window.document.BindShaderTextureLayers(program.Parameters, window.Behaviour.Owner, context, null);
+                        using var bindings = window.document.BindShaderTextureLayers(program.Parameters, host.Layer, context,
+                            host.IsEffect ? input.Texture as RenderTexture : null);
                         bindings?.Apply(program.Material);
                         GL.sRGBWrite = false;
                         Graphics.Blit(inputTexture, texture, program.Material, 0);

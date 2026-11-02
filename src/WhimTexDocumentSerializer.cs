@@ -68,8 +68,10 @@ namespace DCFApixels.WhimTex
         /// <summary>Derived or transient state: rebuilt from the rest of the document, never stored.</summary>
         private static readonly HashSet<string> SkippedFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "compiledShader", "appliedCode", "appliedSource", "appliedParameters", "appliedLocalityReasons", "diagnostics",
+            "compiledShader", "appliedMode", "appliedCode", "appliedSource", "appliedParameters", "appliedLocalityReasons", "diagnostics",
             "lastApplyFailed", "shaderCreationRecorded", "embeddedOwner", "transformCache",
+            "reloadShaderMode", "reloadShaderGraph", "reloadShaderCode", "reloadShaderCompiledCode",
+            "reloadShaderParameters", "reloadShaderPresetId", "reloadShaderPresetVersion", "hasSerializedProgram",
             "outputTexture", "documentLoadWarning", "documentBinding", "outputSrgb"
         };
 
@@ -79,6 +81,7 @@ namespace DCFApixels.WhimTex
         public static byte[] Serialize(object root, WhimTexDocumentContainer container)
         {
             var document = root as WhimTexDocument;
+            WhimTexDocumentJson.ValidateStoredShaderPrograms(document);
             byte[] comments = document?.EncodeCommentsBlock(container);
             using var stream = new MemoryStream();
             using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, true))
@@ -107,7 +110,11 @@ namespace DCFApixels.WhimTex
                 if (result != null && expectedType != null && !expectedType.IsInstanceOfType(result))
                     throw new WhimTexDocumentException("Unexpected document root type.");
                 if (stream.Position != stream.Length) throw new WhimTexDocumentException("Unexpected trailing model data.");
-                if (result is WhimTexDocument document) document.ReadCommentsBlock(container);
+                if (result is WhimTexDocument document)
+                {
+                    document.ReadCommentsBlock(container);
+                    WhimTexDocumentJson.ValidateStoredShaderPrograms(document);
+                }
                 return context.Result(result);
             }
             catch (OperationCanceledException)
@@ -572,6 +579,7 @@ namespace DCFApixels.WhimTex
 
             public void WriteAutomaticFields(object value) => WriteAutomaticFields(value, value.GetType());
 
+            private string _programSourcePath;
             private void WriteAutomaticFields(object value, Type type)
             {
                 FieldInfo[] fields = Fields(type);
@@ -580,17 +588,24 @@ namespace DCFApixels.WhimTex
                 {
                     _writer.Write(field.Name);
                     object fieldValue = field.GetValue(value);
+                    if (field.Name == "program" && (value is ShaderFX || value is ShaderLayerBehaviour))
+                    {
+                        string previousSourcePath = _programSourcePath;
+                        _programSourcePath = value is ShaderFX effect ? effect.SourcePath : ((ShaderLayerBehaviour)value).CodeSourcePath(_owner);
+                        try { Write(fieldValue, field.FieldType); }
+                        finally { _programSourcePath = previousSourcePath; }
+                        continue;
+                    }
+                    if (value is ShaderProgram && fieldValue is string programCode && (field.Name is "code" or "compiledCode"))
+                    {
+                        WriteShaderSource(WhimTexDocumentJson.PortableShaderCode(programCode, _programSourcePath, field.Name == "code"));
+                        continue;
+                    }
                     if (fieldValue is string code && (value is ShaderGraphSource && field.Name == "code" ||
                         value is ShaderGraphFunction && (field.Name is "body" or "draft")))
                     {
                         WriteShaderSource(code);
                         continue;
-                    }
-                    if (value is ShaderFX effect && field.Name == "code")
-                    {
-                        string source = ShaderFXIconMetadata.MakePortable((string)fieldValue, effect.SourcePath);
-                        fieldValue = effect.IsCatalogLinked ? ShaderFXSourceBuilder.ExportIncludes(source, effect.SourcePath)
-                            : ShaderFXSourceBuilder.DocumentCode(source, effect.SourcePath);
                     }
                     Write(fieldValue, field.FieldType);
                 }
@@ -1219,11 +1234,15 @@ namespace DCFApixels.WhimTex
                 int count = ReadCount(65536, 2);
                 bool readLayerFx = false;
                 bool readLayerMesh = false;
+                var shaderFields = value is ShaderProgram || value is ShaderFX || value is ShaderLayerBehaviour
+                    ? new HashSet<string>(StringComparer.Ordinal) : null;
                 var gradientFields = value is WhimTexGradient || value is WhimTexGradientCurveKey || value is MeshGradient
                     ? new HashSet<string>(StringComparer.Ordinal) : null;
                 for (int i = 0; i < count; i++)
                 {
                     string fieldName = ReadText();
+                    if (shaderFields != null && !shaderFields.Add(fieldName))
+                        throw new WhimTexDocumentException("Duplicate Shader field: " + fieldName);
                     if (gradientFields != null && !gradientFields.Add(fieldName))
                         throw new WhimTexDocumentException("Duplicate gradient field: " + fieldName);
                     if (type == typeof(Layer) && fieldName == "fx")
@@ -1237,6 +1256,8 @@ namespace DCFApixels.WhimTex
                         readLayerMesh = true;
                     }
                     FieldInfo field = FindField(type, fieldName);
+                    if (shaderFields != null && field == null)
+                        throw new WhimTexDocumentException("Unsupported Shader storage field: " + fieldName + ". A shared program is required.");
                     if (value is ShaderGraphNode && field == null)
                         throw new WhimTexDocumentException("Unsupported Shader node field: " + fieldName);
                     if (gradientFields != null && field == null)
@@ -1246,6 +1267,8 @@ namespace DCFApixels.WhimTex
                         ? ReadDeferredDrawingTexture((DrawingLayerBehaviour)value)
                         : Read(field?.FieldType);
                     if (field == null) continue;
+                    if (shaderFields != null && fieldValue == null && (fieldName == "program" || field.FieldType.IsValueType))
+                        throw new WhimTexDocumentException("Missing Shader value: " + fieldName);
                     if (gradientFields != null && fieldValue == null && field.FieldType.IsValueType)
                         throw new WhimTexDocumentException("Missing gradient value: " + fieldName);
                     try
@@ -1254,15 +1277,21 @@ namespace DCFApixels.WhimTex
                     }
                     catch (ArgumentException)
                     {
+                        if (shaderFields != null) throw new WhimTexDocumentException("Invalid Shader field: " + fieldName);
                         if (gradientFields != null) throw new WhimTexDocumentException("Invalid gradient field: " + fieldName);
                         RecordSkippedField(type, fieldName);
                     }
                     catch (InvalidCastException)
                     {
+                        if (shaderFields != null) throw new WhimTexDocumentException("Invalid Shader field: " + fieldName);
                         if (gradientFields != null) throw new WhimTexDocumentException("Invalid gradient field: " + fieldName);
                         RecordSkippedField(type, fieldName);
                     }
                 }
+                if ((value is ShaderFX || value is ShaderLayerBehaviour) && !shaderFields.Contains("program"))
+                    throw new WhimTexDocumentException("Shader storage requires a shared program object.");
+                if (value is ShaderProgram program && shaderFields.Contains("code") && !shaderFields.Contains("compiledCode"))
+                    program.compiledCode = null;
                 if (value is WhimTexGradient gradient && gradient.HasCustomCurves && !gradientFields.Contains("customColorMode"))
                     throw new WhimTexDocumentException("customColorMode is required with saved customKeys.");
                 if (value is WhimTexGradientCurveKey)

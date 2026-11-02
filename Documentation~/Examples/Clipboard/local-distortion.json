@@ -37,43 +37,82 @@
           "$type": "ShaderFX",
           "$id": "fx0",
           "active": true,
-          "code": "// @param float _Angle = 90 [-360 .. 360]\r\n// @param transform2D _Area = (0.5, 0.5, 0.6, 0.6, 0)\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float2 p = _Area_ToLocal(uv) - 0.5;\r\n    float weight = saturate(1 - length(p) * 2);\r\n    float angle = radians(_Angle) * weight * weight;\r\n    float s = sin(angle), c = cos(angle);\r\n    float2 q = float2(c * p.x - s * p.y, s * p.x + c * p.y);\r\n    return SampleInput(_Area_ToInput(q + 0.5));\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Angle",
-              "type": "Float",
-              "floatValue": 90.0,
-              "id": "c084e7e3c55f4caa87424eeeff706d82"
-            },
-            {
-              "name": "_Area",
-              "type": "Transform2D",
-              "transformValue": {
-                "position": {
-                  "x": 0.5,
-                  "y": 0.5
+          "program": {
+            "code": "// @param float _Angle = 90 [-360 .. 360]\r\n// @param transform2D _Area = (0.5, 0.5, 0.6, 0.6, 0)\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float2 p = _Area_ToLocal(uv) - 0.5;\r\n    float weight = saturate(1 - length(p) * 2);\r\n    float angle = radians(_Angle) * weight * weight;\r\n    float s = sin(angle), c = cos(angle);\r\n    float2 q = float2(c * p.x - s * p.y, s * p.x + c * p.y);\r\n    return SampleInput(_Area_ToInput(q + 0.5));\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
                 },
-                "size": {
-                  "x": 0.6,
-                  "y": 0.6
-                },
-                "rotation": 0.0,
-                "storage": "TRS",
-                "matrix": {
-                  "m00": 0.0,
-                  "m01": 0.0,
-                  "m02": 0.0,
-                  "m10": 0.0,
-                  "m11": 0.0,
-                  "m12": 0.0,
-                  "m20": 0.0,
-                  "m21": 0.0,
-                  "m22": 0.0
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
                 }
+              ],
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
+            },
+            "codeParameters": [
+              {
+                "name": "_Angle",
+                "type": "Float",
+                "floatValue": 90.0,
+                "id": "c084e7e3c55f4caa87424eeeff706d82"
               },
-              "id": "4128e1b15cc145d49eec3cc073b63a45"
-            }
-          ],
+              {
+                "name": "_Area",
+                "type": "Transform2D",
+                "transformValue": {
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.5
+                  },
+                  "size": {
+                    "x": 0.6,
+                    "y": 0.6
+                  },
+                  "rotation": 0.0,
+                  "storage": "TRS",
+                  "matrix": {
+                    "m00": 0.0,
+                    "m01": 0.0,
+                    "m02": 0.0,
+                    "m10": 0.0,
+                    "m11": 0.0,
+                    "m12": 0.0,
+                    "m20": 0.0,
+                    "m21": 0.0,
+                    "m22": 0.0
+                  }
+                },
+                "id": "4128e1b15cc145d49eec3cc073b63a45"
+              }
+            ],
+            "compiledCode": "// @param float _Angle = 90 [-360 .. 360]\r\n// @param transform2D _Area = (0.5, 0.5, 0.6, 0.6, 0)\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float2 p = _Area_ToLocal(uv) - 0.5;\r\n    float weight = saturate(1 - length(p) * 2);\r\n    float angle = radians(_Angle) * weight * weight;\r\n    float s = sin(angle), c = cos(angle);\r\n    float2 q = float2(c * p.x - s * p.y, s * p.x + c * p.y);\r\n    return SampleInput(_Area_ToInput(q + 0.5));\r\n}\r\n"
+          },
           "shaderKey": "c4a9b47fe8fd4717849e5458f53ff6d7",
           "$name": "Swirl"
         }
@@ -110,10 +149,12 @@
       "behaviour": {
         "$type": "ShaderLayerBehaviour",
         "recoveryId": "ebf9c9dad1b544069fe15453696e51a9",
-        "mode": "Code",
-        "inputMode": "CompositeBelow",
-        "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
-        "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+        "program": {
+          "mode": "Code",
+          "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+          "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+        },
+        "inputMode": "CompositeBelow"
       },
       "behaviourId": "ebf9c9dad1b544069fe15453696e51a9",
       "children": null,

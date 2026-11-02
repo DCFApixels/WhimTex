@@ -12,9 +12,35 @@ search_exclude: true
 For browser AI generation, start with the [JSON layers and HLSL authoring guide](AI/README.md).
 It is self-contained and includes clipboard-ready examples.
 
-Use **Add FX → Custom Shader FX** in a layer's settings, write `ApplyFX`, and click **Compile**.
-Code and parameters belong to the document. For an effect on the already-composited
+Use **Add FX → Custom Shader FX** for Code, or **Custom Shader Graph** for a node graph.
+Code and graph data belong to the document through the same `ShaderProgram` as a Shader layer.
+For an effect on the already-composited
 stack below a position, use **Shader** with **Composite Below**, passthrough Code and **Crossfade**.
+
+## Shared program in an FX
+
+**Mode** selects **Code** or **Shader Graph**, retaining both contents and parameter sets
+without conversion. **Edit Graph** opens the existing reusable graph window for this FX.
+Graph public parameters appear in the ordinary FX controls. Graph **Sample Input** and Code
+`SampleInput` read the image entering this effect after preceding FX, not the Shader layer's
+Input selector. Transform, chain position and blending remain host behavior.
+Reusing a program in a different host does not guarantee identical pixels under all transforms.
+
+Both hosts store `program` with `mode`, `graph`, draft `code`, applied `compiledCode`,
+`codeParameters`, `presetId` and `presetVersion`. See the [shared program contract](ShaderLayer.md#shared-shaderprogram)
+for the codec and draft/applied distinction. Persistence retains inactive data and the editable
+source closure; source loss does not replace a graph with generated HLSL.
+
+Code typing alone does not apply a draft. This is not a blanket guarantee for loading or API
+operations: program edits compile by default unless `compile:false` is supplied. Native FX
+restoration uses saved `compiledCode` when present, otherwise it compiles `code`. Current
+unlinked FX preparation for JSON/clipboard calls `ApplyAgentDraft`, so opening that content
+can apply `code` even when an applied snapshot exists. Shader-layer Code restoration instead
+uses `compiledCode`; see its separate [mode contract](ShaderLayer.md#independent-graph-and-code-modes).
+
+Graph compilation feeds the existing conservative HLSL locality analysis. Only proven
+pixel-local programs use that path; graph sampling, generated helpers and ambiguous dependencies
+may require full input. Do not advertise all graphs as PixelLocal.
 
 [FastNoiseLite](AI/README.md#built-in-noise-library) is automatically included in FX and
 HLSL brush tips. Prefer its spatial-noise functions when suitable; custom algorithms remain valid.
@@ -80,7 +106,8 @@ existing complete preview.
 
 ## Shader FX: a first snippet, parameters and reusable code
 
-Parameters are authored only with `// @param` in HLSL. Saved manual uniforms are not
+In Code mode, parameters are authored with `// @param` in HLSL; Graph uses its own declarations.
+Saved manual uniforms are not
 converted into declarations; there is no manual parameter authoring mode or migration.
 
 Declare the parameter in the code, then click **Compile**:
@@ -96,7 +123,7 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 
 Parameter declarations generate uniforms and editor controls automatically; the supported types are described below.
 The FX block's **Reset** menu action copies defaults from its current `@param` declarations into existing values, including hidden controls, textures, gradients, curves and transforms. Parameter IDs, controls, code, catalog linkage and enabled state are retained; no shader compilation is needed. It records one FX Undo and uses the normal value-change notification. Reset is disabled for locked FX, missing declarations or a draft whose declaration schema no longer matches the current parameters. It affects only this document-owned FX instance.
-Code and declarations stay drafts until **Compile**, including a compilation request from saving the working file in the bundled VS Code integration. A failed compilation skips the FX, including any previously compiled version, until successful recompilation. Code, values and enabled state remain editable. Yellow indicators in Layers, the FX section and the effect header expose errors and warnings even when collapsed. Warnings do not disable a successfully compiled FX. JSON loading/saving retains broken effects and reports diagnostics without aborting the document; TIFF save validation is unchanged.
+In the Code editor, text and declarations stay drafts until **Compile** or an external-code compilation request. Loading and API preparation follow the rules above and may also apply Code. A failed compilation skips the FX, including any previously compiled version, until successful recompilation. Code, values and enabled state remain editable. Yellow indicators in Layers, the FX section and the effect header expose errors and warnings even when collapsed. Warnings do not disable a successfully compiled FX. JSON loading/saving retains broken effects and reports diagnostics without aborting the document; TIFF save validation is unchanged.
 
 FX compilation, declaration validation, source/include failures and catalog reloads share one
 diagnostic list with `Error`, `Warning` and `Info` severity, message and optional source location.
@@ -363,10 +390,11 @@ it is not an editable user setting or a serialized promise independent of the so
 
 ### Document-owned HLSL effects
 
-`Layer.fx` is a `List<ShaderFX>`. Every FX instance is owned by the document, with independent parameter
-values and enabled state. A marked project/package or user-library `.hlsl` preset links only when
+`Layer.fx` is a `List<ShaderFX>`. Every FX instance owns a shared-shape program in the document,
+with independent parameter values and enabled state. Graph programs and inline HLSL are supported.
+A marked project/package or user-library `.hlsl` preset links only when
 its header declares `@preset("GUID", version)`; without it, the document stores an independent copy.
-Inline HLSL is also supported. A shared HLSL source
+Graph `.whimtexshader` presets carry the same identity pair in `program`. A shared source
 does not share mutable FX values. Save As, layer duplication and FX copying preserve independent
 instances. FX run in order after Transform; changing values does not regenerate shaders.
 
@@ -377,7 +405,7 @@ and makes the code editable inside the document, preserving values and the origi
 ShaderFX `.asset` catalog entries and its `CreateAssetMenu` workflow are removed.
 External Material and Shader objects cannot serve as FX entries; the separate Material
 render branch is removed. Unity Shader compilation and internal Materials remain execution resources
-for HLSL effects, not a user-facing FX source mode. Texture asset parameters remain supported.
+for Code and generated Graph HLSL, not a user-facing FX source mode. Texture asset parameters remain supported.
 
 JSON and TIFF containing old external FX references are rejected, including unresolved references,
 with `External FX references are no longer supported. Use a marked .hlsl preset or inline HLSL code.`
@@ -726,6 +754,10 @@ Catalog-linked code uses **Open HLSL Source** to edit its shared HLSL source; va
 
 ## HLSL catalog
 
+The shared catalog serves Shader-layer **Preset…** selection and **Add FX**. It contains
+marked Code `.hlsl` files and Graph `.whimtexshader` files from the project, packages and
+user `ShaderFX` library. The first-line marker rules below apply to HLSL files only.
+
 Add a `.hlsl` file anywhere in Assets or an installed package. Its **first physical line** must be
 `// @whimtex-effect Category/Name`. UTF-8 BOM is allowed, but no preceding blank line, indentation,
 license comment or other text. Unmarked HLSL files are not catalog effects. Discovery reads headers only,
@@ -762,21 +794,41 @@ Its context menu reveals the file in the OS file manager. User-library sources c
 `@preset` too. Embedded copies may retain `presetOriginPath` for navigation only; this path is not
 a source identity or a live dependency. Detaching a linked preset hides the field. Missing original
 files do not affect independent embedded code. Saved render fallback code expands custom includes.
-Only marked `.hlsl` files enter the catalog; ShaderFX `.asset`, Material and standalone ShaderLab
+Marked `.hlsl` and `.whimtexshader` files enter the catalog; ShaderFX `.asset`, Material and standalone ShaderLab
 sources are unsupported. No assets are created merely by adding an effect.
 
 The user library's `ShaderFX` subfolder is also scanned recursively when opening the catalog.
-The same first-line marker is required. `@preset` opts these external files into the same exact-version
+For HLSL, the same first-line marker is required. `@preset` opts these external files into the same exact-version
 linking contract as project/package sources; without it they are embedded copies. Custom includes
 are expanded for document fallback code; Unity includes stay external.
 Relative includes in a user preset must stay within the configured `ShaderFX` folder.
 Project/catalog discovery still uses AssetDatabase and import notifications.
 
-**Save Preset…** exports the current code with parameter declarations rewritten to current
+In Code mode, **Save Preset…** exports `.hlsl` with parameter declarations rewritten to current
 values, retaining float bounds and existing categories; the file name supplies the last category segment.
 Custom includes are expanded for portability (cyclic or oversized include trees are rejected).
 Engine includes remain external. Files can be saved under user `ShaderFX` or project `Assets`.
 Existing effects are not detached or switched to the saved file.
+
+### Portable shader presets
+
+In Graph mode, **Save Preset…** writes `.whimtexshader`: portable JSON with
+`format: "whimtex.shader-preset"`, `version: 1`, `program`, `menuPath`, optional `group`/`icon`,
+and a compressed shared `shaderSources` archive. The program retains both modes, parameters,
+functions, Sub Graphs and include closure, including drafts. HLSL `.hlsl` remains the Code
+preset format; exporting Code does not package an inactive graph.
+
+Shader layers and FX use the same preset selection and save workflow. Both file types use
+the catalog's exact GUID-plus-version identity: `.hlsl` declares `@preset`, while `.whimtexshader`
+stores `program.presetId` and `program.presetVersion`. A missing, invalid or differently versioned
+source retains the embedded editable program and link for retry; it must not destroy the graph.
+**Embed Copy** detaches the link while retaining both modes and their captured sources for
+offline reopening and editing. External texture assets remain separate dependencies.
+
+Clear all document-layer texture references before saving a portable preset, including
+inactive Graph/Code references. Export rejects them instead of carrying scene/document IDs
+into the catalog. Preset saving preserves atomic replacement and overwrite backup behavior;
+failure must not overwrite the destination or apply/discard an unsaved draft.
 
 ### Preset identity and version
 
@@ -794,15 +846,15 @@ case-insensitively; normalize IDs to lowercase N. The all-zero GUID is invalid. 
 and declarations after HLSL are errors. Block-commented examples are ignored. Blank lines and
 ordinary comments may precede the directive, but the catalog marker still requires the first physical line.
 
-Without `@preset`, adding any catalog entry creates a standalone embedded copy. A Unity `.meta`
+Without `@preset`, adding an HLSL catalog entry creates a standalone embedded copy. A Unity `.meta`
 GUID never supplies a missing preset identity. With the pair, project/package and external user-library
 sources both link by declared ID and **exact** version. Renaming or moving a discoverable source does
 not change its identity. A higher version is not implicitly compatible. If the source is missing,
-broken, conflicted or has a different version, use the document's saved code and retain the pair;
+broken, conflicted or has a different version, use the document's embedded program and retain the pair;
 retry when a matching usable source becomes available. A path hint must never select a different ID.
-Diagnostics explain the source failure even when fallback code renders successfully.
+Diagnostics explain the source failure even when the embedded program renders successfully.
 
-TIFF and JSON persist `presetId`, `presetVersion` and fallback code. Resolved source path and dependency
+TIFF and JSON persist `program.presetId`, `program.presetVersion` and the embedded program. Resolved source path and dependency
 hash are transient lookup/cache state. Render fallback code expands custom dependencies for both
 project/package and user-library sources; engine includes and external texture inputs remain dependencies.
 Icon stripping is deferred and is not part of this change. `shaderKey` remains the FX instance identity;

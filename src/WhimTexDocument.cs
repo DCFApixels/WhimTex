@@ -232,7 +232,10 @@ namespace DCFApixels.WhimTex
             {
                 GetCanvasRenderSize(maxSize, out int renderWidth, out int renderHeight, out float scaleMultiplier);
                 // Animated graph previews must neither consume nor populate the layer's time-zero caches.
-                if (shaderGraphPreviewTime.HasValue && layer.Behaviour is ShaderLayerBehaviour)
+                if (shaderGraphPreviewTime.HasValue && layer.IsGroup)
+                    return RenderShaderFXPreview(layer, int.MaxValue, renderWidth, renderHeight, scaleMultiplier,
+                        shaderGraphPreviewTime, finishLayer: true, includeDisabled: includeDisabled);
+                if (shaderGraphPreviewTime.HasValue && !layer.IsGroup)
                     return RenderStandaloneUncached(container, index, renderWidth, renderHeight, scaleMultiplier,
                         new HashSet<Layer>(), includeDisabled: includeDisabled, shaderGraphPreviewTime: shaderGraphPreviewTime);
                 if (preserveGroupColor && layer?.AsGroup() is Layer group)

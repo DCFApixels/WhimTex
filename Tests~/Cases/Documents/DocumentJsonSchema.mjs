@@ -72,8 +72,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const defaultsLiteral = defaultsSource.match(/internal const string Data = @"((?:[^"]|"")*)";/);
     assert(defaultsLiteral, 'Frozen JSON defaults must be available independently of Unity');
     const defaults = JSON.parse(defaultsLiteral[1].replaceAll('""', '"'));
-    defaults.ShaderFX.presetId = null;
-    defaults.ShaderFX.presetVersion = 0;
+    defaults.ShaderFX = JSON.parse(defaultsSource.match(/internal const string ShaderFxData = @"((?:[^"]|"")*)";/)[1].replaceAll('""', '"'));
     defaults.FileLayerBehaviour.externalSourcePath = null;
     Object.assign(defaults.ShaderFXParameter, JSON.parse(defaultsSource.match(/internal const string NumericParameterData = @"((?:[^"]|"")*)";/)[1].replaceAll('""', '"')));
     Object.assign(defaults.WhimTexGradient, JSON.parse(defaultsSource.match(/internal const string CustomGradientData = @"((?:[^"]|"")*)";/)[1].replaceAll('""', '"')));
@@ -172,7 +171,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const identities = new Set(['$type', '$id', '$name', 'contentOmitted', 'id', 'recoveryId', 'shaderKey']);
     // These models have no DefaultsFor table: the reader retains their constructors.
     // Mesh additionally requires its explicit lattice; Shader graphs validate their stored structure.
-    const constructorDefaults = new Set(['MeshGradient', 'ShaderLayerBehaviour', 'ShaderGraph', 'ShaderGraphNode', 'ShaderGraphInput', 'ShaderGraphEdge',
+    const constructorDefaults = new Set(['MeshGradient', 'ShaderLayerBehaviour', 'ShaderProgram', 'ShaderGraph', 'ShaderGraphNode', 'ShaderGraphInput', 'ShaderGraphEdge',
       'ShaderGraphFunction', 'ShaderGraphFunctionPort', 'ShaderGraphSource', 'ShaderGraphInclude',
       'ShaderGraphNote', 'ShaderGraphGroup', 'ShaderGraphSubGraph', 'ShaderGraphInterfacePort']);
     for (const [type, definition] of Object.entries(schema.$defs)) {
@@ -182,6 +181,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
         if (identities.has(field)) continue;
         // The reader explicitly retains the initial grid when inactive mesh data is omitted.
         if (type === 'GradientLayerBehaviour' && field === 'mesh') continue;
+        if (type === 'ShaderFX' && field === 'program' && definition.required?.includes(field)) continue;
         assert(field in defaults[type], `${type}.${field}: omitted input would use an unfrozen initializer or zero/null`);
         // A layer must explicitly supply its behaviour, despite the unused null baseline.
         if (type === 'Layer' && field === 'behaviour') continue;
@@ -220,7 +220,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const layerFx = fields => ({ format: 'whimtex.document', version: 3,
       layers: [{ id: 'fx', behaviour: { $type: 'ColorFillLayerBehaviour' }, ...fields }] });
     validate(layerFx({ fx: [] }), schema);
-    validate(layerFx({ fx: [{ $type: 'ShaderFX', $id: 'owned', code: 'float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return c;}' }, { $ref: 'owned' }, null] }), schema);
+    validate(layerFx({ fx: [{ $type: 'ShaderFX', $id: 'owned', program: { mode: 'Code', code: 'float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return c;}' } }, { $ref: 'owned' }, null] }), schema);
     for (const type of ['UnityEngine.Material', 'UnityEngine.Shader', 'DCFApixels.WhimTex.ShaderFX'])
       assert.throws(() => validate(layerFx({ fx: [{ $asset: { guid: 'missing', path: 'Assets/RemovedFX.asset', localId: '0', type } }] }), schema), 'Only HLSL model entries and internal identities are allowed');
     assert.throws(() => validate(layerFx({ modifiers: [] }), schema));
@@ -309,7 +309,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     validate(noise({ offset: [0, 1] }), schema);
     const shape = (settings) => ({ ...empty, layers: [{ id: 'shape', behaviour: { $type: 'ShapeLayerBehaviour', ...settings } }] });
     const vector = (vectorValue) => ({ ...empty, layers: [{ id: 'vector', behaviour: { $type: 'ColorFillLayerBehaviour' },
-      fx: [{ $type: 'ShaderFX', parameters: [{ type: 'Vector', vectorValue }] }] }] });
+      fx: [{ $type: 'ShaderFX', program: { mode: 'Code', codeParameters: [{ type: 'Vector', vectorValue }] } }] }] });
     for (const value of [[1, 2], [1, 2, 3], [1, 2, 3, 4]]) validate(vector(value), schema);
     for (const value of [[1], [1, 2, 3, 4, 5]]) assert.throws(() => validate(vector(value), schema));
     validate(shape({ rectangleCorners: [{ amount: .1 }, { style: 'Bevel', amount: .4 }, {}, {}], edgeMode: 'Step' }), schema);
@@ -329,7 +329,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     validate(noise({ scale: 0, scaleY: 0, seed: -2147483648, offset: [-100, 200, 0] }), schema);
     validate(noise({ scale: 2000, warpStrength: -25 }), schema);
     const curve = (key) => ({ ...empty, layers: [{ id: 'curve', behaviour: { $type: 'ColorFillLayerBehaviour' },
-      fx: [{ $type: 'ShaderFX', parameters: [{ type: 'Curve', curveValue: { preWrap: 'Default', postWrap: 'Default', keys: [key] } }] }] }] });
+      fx: [{ $type: 'ShaderFX', program: { mode: 'Code', codeParameters: [{ type: 'Curve', curveValue: { preWrap: 'Default', postWrap: 'Default', keys: [key] } }] } }] }] });
     validate(curve([0, 1, 'Infinity', '-Infinity', 0.3, 0.3, 'Both']), schema);
     for (const key of [[0, 1, 'NaN', 0, 0, 0, 'None'], [0, 1, 0, 0, 0, 0, '999'], ['Infinity', 1, 0, 0, 0, 0, 'None']])
       assert.throws(() => validate(curve(key), schema));

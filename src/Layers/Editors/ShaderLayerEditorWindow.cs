@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -20,6 +21,35 @@ namespace DCFApixels.WhimTex
             string layerId = layer.Id;
             ShaderLayerBehaviour Current() => document.FindLayer(layerId)?.Behaviour as ShaderLayerBehaviour;
             bool Editable() => Current() is ShaderLayerBehaviour current && !WhimTexApi.IsLayerContentLocked(document, current.Owner);
+            bool SourceEditable() => Editable() && !ShaderPresetLink.IsLinked(Current()?.program);
+            var presets = new VisualElement();
+            presets.AddToClassList("whimtex-layer-fx-toolbar");
+            presets.Add(ShaderFXAddDropdown.CreatePresetButton(entry =>
+            {
+                if (!Editable()) return;
+                apply("Assign Shader Preset", () =>
+                {
+                    if (!ShaderPresetLink.ApplyLayer(Current(), document, entry, out string error))
+                        EditorUtility.DisplayDialog("Shader Preset", error, "OK");
+                });
+            }));
+            presets.Add(new Button(() =>
+            {
+                if (!Editable()) return;
+                var current = Current();
+                string path = EditorUtility.SaveFilePanel("Save Shader Preset", ShaderFXCatalog.Folder, current.layerName, ShaderPresetIO.ExtensionFor(current.program));
+                if (string.IsNullOrEmpty(path)) return;
+                bool overwrite = System.IO.File.Exists(path);
+                if (overwrite && !EditorUtility.DisplayDialog("Overwrite Shader Preset", "Replace this preset? A .bak copy will be kept.", "Overwrite", "Cancel")) return;
+                try { ShaderFXPresetWriter.Save(path, current.program, document, overwrite, current.CodeSourcePath(document)); }
+                catch (Exception error) { EditorUtility.DisplayDialog("Shader Preset", error.Message, "OK"); }
+            }) { text = "Save Preset…" });
+            var detach = new Button(() =>
+            {
+                if (Editable()) apply("Embed Shader Preset", () => ShaderPresetLink.DetachLayer(Current()));
+            }) { text = "Embed Copy" };
+            presets.Add(detach); root.Add(presets);
+            var presetStatus = new Label(); root.Add(presetStatus);
             var inputMode = new DropdownField("Input", new List<string> { "None", "Texture", "Layer", "Composite Below" }, (int)layer.inputMode);
             var inputTexture = new ObjectField("Texture") { objectType = typeof(Texture2D), allowSceneObjects = false };
             static string InputName(Layer value) => value == null ? "None" : value.layerName + (value.IsGroup ? " [Group]" : "");
@@ -77,7 +107,7 @@ namespace DCFApixels.WhimTex
             {
                 var current = Current(); if (current == null) return;
                 current.code = value; document.MarkChanged();
-            }, Editable);
+            }, SourceEditable);
             codeArea.Add(code);
             var compile = WhimTexUI.CreateToolbarButton("Compile", () => apply("Compile Shader Code", () => Current()?.CompileCode(document)));
             codeArea.Add(compile);
@@ -92,6 +122,11 @@ namespace DCFApixels.WhimTex
             void Refresh()
             {
                 var current = Current(); if (current == null) return;
+                ShaderPresetLink.EnsureLayer(current, document);
+                bool linked = ShaderPresetLink.IsLinked(current.program);
+                detach.EnableInClassList("whimtex-hidden", !linked);
+                presetStatus.text = ShaderPresetLink.LayerError(current) ?? ShaderPresetLink.LayerSourcePath(current) ?? string.Empty;
+                presetStatus.EnableInClassList("whimtex-hidden", !linked);
                 bool manual = current.mode == ShaderLayerMode.Code;
                 inputMode.SetValueWithoutNotify(inputMode.choices[(int)current.inputMode]);
                 inputMode.SetEnabled(Editable());

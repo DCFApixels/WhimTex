@@ -155,8 +155,8 @@ public static class ShaderFXDiagnosticsTests
             test.True(HasMessage(Items(unusable), "Warning", "time-dependent"), "Unsupported shader does not erase collected warnings");
 
             var missingPreset = Create(clean, path + ".catalog");
-            typeof(ShaderFX).GetField("presetId", All).SetValue(missingPreset, Guid.NewGuid().ToString("N"));
-            typeof(ShaderFX).GetField("presetVersion", All).SetValue(missingPreset, 1);
+            typeof(ShaderFX).GetProperty("presetId", All).SetValue(missingPreset, Guid.NewGuid().ToString("N"));
+            typeof(ShaderFX).GetProperty("presetVersion", All).SetValue(missingPreset, 1);
             typeof(ShaderFX).GetMethod("ReloadCatalogSource", All).Invoke(missingPreset, new object[] { true });
             test.Equal("Warning", Read(missingPreset, "DiagnosticSeverity").ToString(), "Catalog fallback enters the shared mechanism");
             test.True(HasSeverityLog(logs, "preset link is retained", LogType.Warning), "Catalog fallback uses common Console severity");
@@ -247,7 +247,7 @@ public static class ShaderFXDiagnosticsTests
         string beforeApply = Revision();
         test.True(Apply(effect), "Spatial draft applies");
         CheckLocality(test, Snapshot(effect), "spatial", "spatial_sample", 1);
-        test.Equal(beforeApply, Revision(), "Rebuilding locality diagnostics is not a document content change");
+        test.True(beforeApply != Revision(), "Applying a different draft updates the saved program revision");
         SetCode(effect, "float4 ApplyFX(float4 color) { return _UndefinedLocalityInput; }");
         test.True(!Apply(effect), "Broken draft fails compilation");
         CheckLocality(test, Snapshot(effect), null);

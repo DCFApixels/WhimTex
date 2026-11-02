@@ -715,7 +715,7 @@
               }
             ]
           },
-          "description": "Document-owned HLSL effects only: inline code or marked .hlsl presets. Internal $ref identities are supported; external Material, Shader and ShaderFX asset references are rejected."
+          "description": "Document-owned shared Shader programs in Code or Graph mode. Both modes and a complete preset fallback are embedded. Internal $ref identities are supported; external Material, Shader and ShaderFX asset references are rejected."
         },
         "transform": {
           "$ref": "#/$defs/TextureTransform",
@@ -1220,6 +1220,103 @@
         "$name": {
           "type": "string"
         },
+        "active": {
+          "type": "boolean"
+        },
+        "program": {
+          "allOf": [
+            {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ShaderProgram"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "shaderKey": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "program"
+      ],
+      "description": "Document-owned Shader effect with an editable shared program. Graph and Code modes retain independent data. Graph SampleInput reads the image entering this effect in its chain. active controls application. $ref shares an owned FX object within the document; external ShaderFX assets are unsupported."
+    },
+    "ShaderProgram": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderProgram"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "Graph",
+            "Code"
+          ],
+          "default": "Graph",
+          "description": "Select an independent stored mode without conversion or draft application."
+        },
+        "graph": {
+          "allOf": [
+            {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ShaderGraph"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "code": {
+          "type": [
+            "string"
+          ],
+          "maxLength": 8388608,
+          "default": "// @whimtex-effect Shader\n\nfloat4 ApplyFX(PinnedUV uv, float4 color)\n{\n    return float4(1, 1, 1, 1);\n}\n",
+          "description": "Editable WhimTex HLSL ApplyFX/@param draft. Saving or changing mode does not apply it."
+        },
+        "compiledCode": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 8388608,
+          "default": "// @whimtex-effect Shader\n\nfloat4 ApplyFX(PinnedUV uv, float4 color)\n{\n    return float4(1, 1, 1, 1);\n}\n",
+          "description": "Last applied HLSL source used by Code rendering; not a compiled GPU binary. Null means no accepted Code source. Omission alongside an explicit code draft also means null, so a code-only FX recipe can apply its supplied source. Restore with matching codeParameters. Retained while Graph is active."
+        },
+        "codeParameters": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderFXParameter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Accepted Code declarations and current values, including control metadata and texture identities. Retained independently of graph.parameters. Array replacement; no reparse of draft code."
+        },
         "presetId": {
           "type": [
             "string",
@@ -1232,40 +1329,10 @@
           "type": "integer",
           "minimum": 0,
           "default": 0,
-          "description": "Exact expected preset version. Zero/omitted only without a preset ID. Missing, invalid or differently versioned sources use saved code and retain this reference."
-        },
-        "active": {
-          "type": "boolean"
-        },
-        "code": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "parameters": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderFXParameter"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "shaderKey": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "description": "Exact expected preset version. Zero/omitted only without a preset ID. Missing, invalid or differently versioned sources use the complete saved program and retain this reference."
         }
       },
+      "description": "Editable program shared by Shader layers and FX. mode selects Graph or Code without conversion. Both branches, parameter values, functions, subgraphs and embedded include sources persist in all write modes. presetId/presetVersion link the same catalog; the full local program remains usable and editable without the preset. Layer input settings and FX activation belong to the host. A Self texture is supported by FX only; layer hosts reject Self in either branch. Code text is limited to 8 MiB UTF-8 per field; TIFF deduplicates/compresses shader source text in a shared table with a 32 MiB budget.",
       "oneOf": [
         {
           "properties": {
@@ -1302,6 +1369,146 @@
           }
         }
       ]
+    },
+    "ShaderGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraph"
+        },
+        "version": {
+          "const": 1
+        },
+        "parameters": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderFXParameter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphNode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "edges": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphEdge"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "functions": {
+          "type": "array",
+          "default": [],
+          "maxItems": 512,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphFunction"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "sources": {
+          "type": "array",
+          "default": [],
+          "maxItems": 4096,
+          "items": {
+            "allOf": [
+              {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/ShaderGraphSource"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "object"
+              }
+            ]
+          },
+          "description": "Embedded HLSL source archive. At most 32 MiB of UTF-8 text across all entries, 8 MiB per entry, 32768 include directives and 64 nested modules. Capture and validation retain every source, including inactive preprocessor branches. TIFF deduplicates/compresses text across all graphs; JSON retains plain code."
+        },
+        "notes": {
+          "type": "array",
+          "default": [],
+          "maxItems": 512,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphNote"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Editor annotations only; excluded from shader/render fingerprints. IDs are unique across nodes, notes and groups. Groups contain node/note IDs in elements; one group per element, no nesting."
+        },
+        "groups": {
+          "type": "array",
+          "default": [],
+          "maxItems": 512,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphGroup"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Editor annotations only; excluded from shader/render fingerprints. IDs are unique across nodes, notes and groups. Groups contain node/note IDs in elements; one group per element, no nesting."
+        },
+        "subGraphs": {
+          "type": "array",
+          "default": [],
+          "maxItems": 128,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphSubGraph"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "description": "Shared Shader/FX fragment graph, version 1. Parameters retain their control declarations and stable IDs. Parameter.parameterId refers to a root parameter; SubGraphInput.parameterId refers to an input interface ID. Sub Graph instances reference the embedded subGraphs table and use stable interface IDs as port keys. Definitions share root parameters/functions/sources; nesting is limited to 16, recursion is forbidden, and compilation expands at most 4096 nodes. HDR values are retained. Arrays replace the complete corresponding graph data."
     },
     "ShaderFXParameter": {
       "type": "object",
@@ -2272,6 +2479,1000 @@
           "type": "number"
         }
       }
+    },
+    "ShaderGraphNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphNode"
+        },
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "Parameter",
+            "Constant",
+            "UV",
+            "CanvasData",
+            "TextureSize",
+            "SampleTexture",
+            "SampleGradient",
+            "SampleCurve",
+            "Split",
+            "Combine",
+            "Add",
+            "Subtract",
+            "Multiply",
+            "Divide",
+            "Min",
+            "Max",
+            "Clamp",
+            "Abs",
+            "OneMinus",
+            "Negate",
+            "Power",
+            "SquareRoot",
+            "Floor",
+            "Ceil",
+            "Round",
+            "Fraction",
+            "Sine",
+            "Cosine",
+            "Lerp",
+            "Remap",
+            "Step",
+            "Smoothstep",
+            "Length",
+            "Distance",
+            "Dot",
+            "Normalize",
+            "Compare",
+            "Select",
+            "TransformUV",
+            "Noise",
+            "Shape",
+            "Blend",
+            "Output",
+            "Reroute",
+            "CustomFunction",
+            "Swizzle",
+            "InstanceIndex",
+            "Time",
+            "Cellular",
+            "Random",
+            "Checkerboard",
+            "Stripes",
+            "Grid",
+            "Rings",
+            "GradientFactor",
+            "CombineDistance",
+            "PolarCoordinates",
+            "Repeat",
+            "Mirror",
+            "Kaleidoscope",
+            "DomainWarp",
+            "VectorDisplacement",
+            "Twirl",
+            "BulgePinch",
+            "Wave",
+            "Ripple",
+            "Hue",
+            "Saturation",
+            "Exposure",
+            "Lightness",
+            "Levels",
+            "ColorBalance",
+            "Posterize",
+            "ConvertColor",
+            "Luminance",
+            "GradientMap",
+            "ColorCurves",
+            "ColorMask",
+            "HueRange",
+            "MixColor",
+            "SetAlpha",
+            "HeightToNormal",
+            "NormalBlend",
+            "HeightToDistortion",
+            "NormalToDistortion",
+            "Sign",
+            "Saturate",
+            "Modulo",
+            "Atan2",
+            "Asin",
+            "Acos",
+            "Exp",
+            "Log",
+            "Cross",
+            "Reflect",
+            "Refract",
+            "And",
+            "Or",
+            "Not",
+            "NormalEncode",
+            "NormalDecode",
+            "NormalStrength",
+            "NormalLighting",
+            "Premultiply",
+            "Unpremultiply",
+            "Flipbook",
+            "TileableNoise",
+            "VoronoiEdge",
+            "Dither",
+            "Blur",
+            "Sharpen",
+            "EdgeDetection",
+            "Dilate",
+            "Erode",
+            "SubGraph",
+            "SubGraphInput",
+            "SubGraphOutput",
+            "Unlerp",
+            "PixelateUV",
+            "ChannelMixer",
+            "WhiteBalance",
+            "DirectionalBlur",
+            "RadialBlur",
+            "HeightBlend",
+            "TileUV",
+            "PerspectiveUV",
+            "GaborNoise",
+            "RotateVector",
+            "Blackbody",
+            "SlopeBlur",
+            "BilateralBlur",
+            "SampleInput",
+            "CanvasPosition"
+          ]
+        },
+        "position": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "valueType": {
+          "type": "string",
+          "enum": [
+            "Float",
+            "Float2",
+            "Float3",
+            "Float4",
+            "Boolean",
+            "Texture",
+            "Gradient",
+            "Curve",
+            "Color"
+          ]
+        },
+        "constant": {
+          "type": "string",
+          "enum": [
+            "PI",
+            "TAU",
+            "PHI",
+            "E",
+            "SQRT2"
+          ],
+          "default": "PI",
+          "description": "Constant node selection. Emits a Float HLSL literal; arbitrary values use parameters or unconnected inputs."
+        },
+        "swizzle": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": "xxxx",
+          "description": "Swizzle node mask: 1–4 xyzw/rgba letters (case-insensitive) or _ for zero. Output width is mask length. Input width is max(source width, highest mask component); connected scalars repeat and shorter vectors gain zeros. Unconnected values expose inferred components directly. Invalid masks may be retained as uncompiled drafts."
+        },
+        "parameterId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Parameter: root graph.parameters[].id. SubGraphInput: the enclosing definition's inputs[].id; output port is Out. Interface nodes cannot be created in the root graph."
+        },
+        "option": {
+          "type": "integer",
+          "default": 0,
+          "description": "Zero-based node mode; use discovery modes for kind-specific values. Blur/Sharpen/Dilate/Erode: 0=3x3, 1=5x5, 2=9x9; EdgeDetection has a fixed 3x3 Sobel kernel. RadialBlur: 0=Spin, 1=Zoom; DirectionalBlur has no mode. SlopeBlur: 0=Average, 1=Min, 2=Max. BilateralBlur: 0=Source, 1=Custom (adds dynamic numeric/Color Guide, default scalar 0; Out follows In only). TileUV: 0=Grid, 1=Staggered (activates RowOffset). RotateVector: 0=2D (Float2 In/Out), 1=3D (Float3 In/Out, adds Axis). Flipbook: 0=Bottom to Top, 1=Top to Bottom. Dither: 0=Bayer 4x4, 1=Bayer 2x2, 2=Bayer 8x8."
+        },
+        "fractal": {
+          "type": "string",
+          "enum": [
+            "None",
+            "FBm",
+            "Ridged",
+            "PingPong",
+            "Progressive",
+            "Independent"
+          ],
+          "default": "None",
+          "description": "Noise accepts None, FBm, Ridged or PingPong. DomainWarp accepts None, Progressive or Independent. Octaves, Lacunarity, Gain and PingPongStrength are numeric input ports, not additional mode fields."
+        },
+        "inputColorSpace": {
+          "type": "string",
+          "enum": [
+            "LinearRGB",
+            "SRGB",
+            "HSV",
+            "HSL",
+            "Oklab"
+          ],
+          "default": "LinearRGB",
+          "description": "ConvertColor's explicit source/destination space. HSV/HSL use sRGB-encoded RGB and hue in turns. HSV excludes negative RGB but preserves HDR Value; HSL is SDR (0..1). LinearRGB, SRGB and Oklab retain signed/HDR values. Alpha is unchanged."
+        },
+        "outputColorSpace": {
+          "type": "string",
+          "enum": [
+            "LinearRGB",
+            "SRGB",
+            "HSV",
+            "HSL",
+            "Oklab"
+          ],
+          "default": "SRGB",
+          "description": "ConvertColor's explicit source/destination space. HSV/HSL use sRGB-encoded RGB and hue in turns. HSV excludes negative RGB but preserves HDR Value; HSL is SDR (0..1). LinearRGB, SRGB and Oklab retain signed/HDR values. Alpha is unchanged."
+        },
+        "channel": {
+          "type": "string",
+          "enum": [
+            "Luminance",
+            "Red",
+            "Green",
+            "Blue",
+            "Alpha"
+          ],
+          "default": "Luminance",
+          "description": "GradientMap source channel, or HeightToNormal/HeightToDistortion channel when heightSource is Texture. Ignored for Value. Luminance uses linear RGB weights, without color conversion."
+        },
+        "derivative": {
+          "type": "string",
+          "enum": [
+            "Scharr",
+            "Sobel",
+            "CentralDifference"
+          ],
+          "default": "Scharr",
+          "description": "Height node finite-difference stencil. Radius uses bound-source texels for heightSource Texture or document pixels for Value; gradient magnitude is retained before normal encoding."
+        },
+        "normalEncoding": {
+          "type": "string",
+          "enum": [
+            "PackedRGB",
+            "SignedXYZ"
+          ],
+          "default": "PackedRGB",
+          "description": "HeightToNormal output; NormalBlend/NormalStrength input/output; NormalToDistortion/NormalLighting input encoding. PackedRGB decodes as 2*x-1; SignedXYZ is unchanged. NormalToDistortion never normalizes XY. Unconnected defaults follow the selected encoding. NormalEncode/NormalDecode have fixed directions and do not use this setting."
+        },
+        "heightSource": {
+          "type": "string",
+          "enum": [
+            "Texture",
+            "Value"
+          ],
+          "default": "Texture",
+          "description": "HeightToNormal/HeightToDistortion: Texture requires a Height resource, source-texel Radius and channel/wrap/filter; Value accepts Float Height and reevaluates its branch at neighboring UVs with document-pixel Radius. Both retain derivative, Strength and FlipX/FlipY."
+        },
+        "hdr": {
+          "type": "boolean"
+        },
+        "wrap": {
+          "type": "string",
+          "enum": [
+            "Clamp",
+            "Repeat",
+            "Mirror",
+            "Transparent"
+          ]
+        },
+        "filter": {
+          "type": "string",
+          "enum": [
+            "Point",
+            "Bilinear"
+          ]
+        },
+        "inputs": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "functionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "subGraphId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "SubGraph node reference to graph.subGraphs[].id. Ports are stable interface IDs from that definition, not pin display names."
+        },
+        "codeSize": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "codeExpanded": {
+          "type": "boolean"
+        },
+        "previewExpanded": {
+          "type": "boolean",
+          "default": true,
+          "description": "Per-node preview expansion, retained in the document and clipboard, including Sub Graph nodes. Editor layout only; excluded from shader compilation and rendered-image cache fingerprints."
+        }
+      }
+    },
+    "ShaderGraphInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphInput"
+        },
+        "port": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "Float",
+            "Float2",
+            "Float3",
+            "Float4",
+            "Boolean",
+            "Texture",
+            "Gradient",
+            "Curve",
+            "Color"
+          ]
+        },
+        "value": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        }
+      }
+    },
+    "ShaderGraphEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphEdge"
+        },
+        "outputNode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "outputPort": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputNode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputPort": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ShaderGraphFunction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphFunction"
+        },
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "menuPath": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inline": {
+          "type": "boolean"
+        },
+        "fullSource": {
+          "type": "boolean"
+        },
+        "entryPoint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "returnType": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "returnName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "returnValueType": {
+          "type": "string",
+          "enum": [
+            "Float",
+            "Float2",
+            "Float3",
+            "Float4",
+            "Boolean",
+            "Texture",
+            "Gradient",
+            "Curve",
+            "Color"
+          ]
+        },
+        "ports": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphFunctionPort"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "draftPorts": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphFunctionPort"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "hasDraftPorts": {
+          "type": "boolean",
+          "default": false,
+          "description": "Marks a pending port draft, including an intentionally empty draftPorts list. A nonempty draftPorts also implies a draft. An empty/null draftPorts without this flag uses the applied ports, including after Unity domain reload or JsonUtility copying."
+        },
+        "body": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "draft": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourcePath": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "presetId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceFingerprint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "presetVersion": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "reflected": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ShaderGraphFunctionPort": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphFunctionPort"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "Float",
+            "Float2",
+            "Float3",
+            "Float4",
+            "Boolean",
+            "Texture",
+            "Gradient",
+            "Curve",
+            "Color"
+          ]
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "Input",
+            "Output",
+            "InOut"
+          ]
+        },
+        "value": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "uvDefault": {
+          "type": "boolean"
+        },
+        "hasRange": {
+          "type": "boolean"
+        },
+        "minimum": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "maximum": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        }
+      }
+    },
+    "ShaderGraphSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphSource"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "code": {
+          "type": "string",
+          "maxLength": 8388608,
+          "description": "Unexpanded source text, limited to 8 MiB when encoded as UTF-8. Preserved verbatim in JSON/Undo. Native TIFF stores this string in a shared content-digest block."
+        },
+        "includes": {
+          "type": "array",
+          "default": [],
+          "maxItems": 32768,
+          "items": {
+            "allOf": [
+              {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/ShaderGraphInclude"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "object"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "id",
+        "code"
+      ],
+      "description": "Portable HLSL module. code retains original include directives; includes binds each distinct requested spelling within this module to another source ID. Missing non-engine bindings, unused bindings and cycles are rejected. Captured IDs hash code plus dependency bindings; IDs are opaque references and may be retained during explicit edits."
+    },
+    "ShaderGraphInclude": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphInclude"
+        },
+        "requested": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "^[^\\u0000\\r\\n\"<>]+$",
+          "description": "Exact include string without quotes/angle brackets, scoped to the including module. Duplicate requested spellings use one binding."
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "requested",
+        "sourceId"
+      ]
+    },
+    "ShaderGraphNote": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphNote"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_]{1,64}$"
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "contents": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "position": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "size": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "default": [
+            200,
+            160
+          ]
+        },
+        "theme": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
+        },
+        "fontSize": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 1
+        },
+        "hueShift": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180,
+          "default": 0,
+          "description": "HSV hue rotation in degrees, applied to the native note background, outlines and text palette. Saturation, value, alpha and non-color styling stay unchanged. Retained across note theme changes. Zero uses the unmodified native colors."
+        }
+      }
+    },
+    "ShaderGraphGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphGroup"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_]{1,64}$"
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "position": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "elements": {
+          "type": "array",
+          "default": [],
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ShaderGraphSubGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphSubGraph"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_]{1,64}$"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "inputs": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 64,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphInterfacePort"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphInterfacePort"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphNode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "edges": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphEdge"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "notes": {
+          "type": "array",
+          "default": [],
+          "maxItems": 512,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphNote"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Editor annotations only; excluded from shader/render fingerprints. IDs are unique across nodes, notes and groups. Groups contain node/note IDs in elements; one group per element, no nesting."
+        },
+        "groups": {
+          "type": "array",
+          "default": [],
+          "maxItems": 512,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderGraphGroup"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Editor annotations only; excluded from shader/render fingerprints. IDs are unique across nodes, notes and groups. Groups contain node/note IDs in elements; one group per element, no nesting."
+        }
+      },
+      "description": "Embedded reusable definition: id, name, inputs, outputs, nodes, edges, notes and groups. Contains exactly one SubGraphOutput, with input port keys from outputs[].id. SubGraphInput nodes reference inputs[].id through parameterId and expose Out. Node IDs must be unique across the root and all definitions. No separate parameter/function/source tables or external dependency.",
+      "required": [
+        "nodes",
+        "outputs"
+      ]
+    },
+    "ShaderGraphInterfacePort": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderGraphInterfacePort"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_]{1,64}$"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "Float",
+            "Float2",
+            "Float3",
+            "Float4",
+            "Boolean",
+            "Texture",
+            "Gradient",
+            "Curve",
+            "Color"
+          ]
+        },
+        "value": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "uvDefault": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use current evaluation UV when unconnected. Valid only with type Float2."
+        }
+      },
+      "description": "Typed Sub Graph interface pin. id is the stable wiring key, name is a display label, value is the unconnected default. uvDefault is valid only for Float2; resource types need a resource connection. IDs are unique across the definition's input and output pins.",
+      "anyOf": [
+        {
+          "properties": {
+            "uvDefault": {
+              "const": false
+            }
+          }
+        },
+        {
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "Float2"
+            }
+          }
+        }
+      ]
     },
     "TextureTransform": {
       "type": "object",
@@ -5240,14 +6441,22 @@
         "$type": {
           "const": "ShaderLayerBehaviour"
         },
-        "mode": {
-          "type": "string",
-          "enum": [
-            "Graph",
-            "Code"
-          ],
-          "default": "Graph",
-          "description": "Select an independent stored mode without conversion or draft application."
+        "program": {
+          "allOf": [
+            {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ShaderProgram"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            {
+              "type": "object"
+            }
+          ]
         },
         "inputMode": {
           "type": "string",
@@ -5308,41 +6517,6 @@
           "default": null,
           "description": "Source layer/group ID. Retained and remapped even when inputMode is not Layer. Empty selections read transparent black. Validation rejects unresolved nonempty selected IDs and self/cyclic dependencies."
         },
-        "graph": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ShaderGraph"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "code": {
-          "type": "string",
-          "default": "// @whimtex-effect Shader\n\nfloat4 ApplyFX(PinnedUV uv, float4 color)\n{\n    return float4(1, 1, 1, 1);\n}\n",
-          "description": "Editable WhimTex HLSL ApplyFX/@param draft. Saving or changing mode does not apply it."
-        },
-        "compiledCode": {
-          "type": "string",
-          "default": "// @whimtex-effect Shader\n\nfloat4 ApplyFX(PinnedUV uv, float4 color)\n{\n    return float4(1, 1, 1, 1);\n}\n",
-          "description": "Last applied HLSL source used by Code rendering; not a compiled GPU binary. Restore with matching codeParameters. Document loading does not apply code."
-        },
-        "codeParameters": {
-          "type": "array",
-          "default": [],
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderFXParameter"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "description": "Accepted Code declarations and current values, including control metadata and texture identities. Retained independently of graph.parameters. Array replacement; no reparse of draft code."
-        },
         "recoveryId": {
           "type": [
             "string",
@@ -5350,1140 +6524,9 @@
           ]
         }
       },
-      "description": "Procedural Shader layer with independent Graph (default) and Code modes. Switching mode converts nothing. Both graph and code state, declarations and values persist in every writing mode. Code uses WhimTex HLSL ApplyFX/@param: code is an editable draft, compiledCode is the last applied source, and codeParameters holds its accepted declarations and current values. Rendering uses compiledCode, never the draft. UV is local procedural UV. Shared Input supplies color/SampleInput in Code and SampleInput nodes in Graph; None and missing sources read transparent black. Output is straight RGBA followed by ordinary layer transform, FX and blending; reading CompositeBelow does not replace that composition. Stored texture parameters in both modes are validated/remapped. Shared inputLayerId is remapped even while inactive; only selected sources affect rendering dependencies and stamps."
-    },
-    "ShaderGraph": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$type": {
-          "const": "ShaderGraph"
-        },
-        "version": {
-          "const": 1
-        },
-        "parameters": {
-          "type": "array",
-          "maxItems": 256,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderFXParameter"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "nodes": {
-          "type": "array",
-          "maxItems": 512,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderGraphNode"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "edges": {
-          "type": "array",
-          "maxItems": 4096,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderGraphEdge"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "functions": {
-          "type": "array",
-          "default": [],
-          "maxItems": 512,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderGraphFunction"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "sources": {
-          "type": "array",
-          "default": [],
-          "maxItems": 4096,
-          "items": {
-            "allOf": [
-              {
-                "anyOf": [
-                  {
-                    "$ref": "#/$defs/ShaderGraphSource"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              {
-                "type": "object"
-              }
-            ]
-          },
-          "description": "Embedded HLSL source archive. At most 32 MiB of UTF-8 text across all entries, 8 MiB per entry, 32768 include directives and 64 nested modules. Capture and validation retain every source, including inactive preprocessor branches. TIFF deduplicates/compresses text across all graphs; JSON retains plain code."
-        },
-        "notes": {
-          "type": "array",
-          "default": [],
-          "maxItems": 512,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderGraphNote"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "description": "Editor annotations only; excluded from shader/render fingerprints. IDs are unique across nodes, notes and groups. Groups contain node/note IDs in elements; one group per element, no nesting."
-        },
-        "groups": {
-          "type": "array",
-          "default": [],
-          "maxItems": 512,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderGraphGroup"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "description": "Editor annotations only; excluded from shader/render fingerprints. IDs are unique across nodes, notes and groups. Groups contain node/note IDs in elements; one group per element, no nesting."
-        },
-        "subGraphs": {
-          "type": "array",
-          "default": [],
-          "maxItems": 128,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderGraphSubGraph"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        }
-      },
-      "description": "Shader-layer fragment graph, version 1. Parameters retain their control declarations and stable IDs. Parameter.parameterId refers to a root parameter; SubGraphInput.parameterId refers to an input interface ID. Sub Graph instances reference the embedded subGraphs table and use stable interface IDs as port keys. Definitions share root parameters/functions/sources; nesting is limited to 16, recursion is forbidden, and compilation expands at most 4096 nodes. HDR values are retained. Arrays replace the complete corresponding graph data."
-    },
-    "ShaderGraphNode": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$type": {
-          "const": "ShaderGraphNode"
-        },
-        "id": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "kind": {
-          "type": "string",
-          "enum": [
-            "Parameter",
-            "Constant",
-            "UV",
-            "CanvasData",
-            "TextureSize",
-            "SampleTexture",
-            "SampleGradient",
-            "SampleCurve",
-            "Split",
-            "Combine",
-            "Add",
-            "Subtract",
-            "Multiply",
-            "Divide",
-            "Min",
-            "Max",
-            "Clamp",
-            "Abs",
-            "OneMinus",
-            "Negate",
-            "Power",
-            "SquareRoot",
-            "Floor",
-            "Ceil",
-            "Round",
-            "Fraction",
-            "Sine",
-            "Cosine",
-            "Lerp",
-            "Remap",
-            "Step",
-            "Smoothstep",
-            "Length",
-            "Distance",
-            "Dot",
-            "Normalize",
-            "Compare",
-            "Select",
-            "TransformUV",
-            "Noise",
-            "Shape",
-            "Blend",
-            "Output",
-            "Reroute",
-            "CustomFunction",
-            "Swizzle",
-            "InstanceIndex",
-            "Time",
-            "Cellular",
-            "Random",
-            "Checkerboard",
-            "Stripes",
-            "Grid",
-            "Rings",
-            "GradientFactor",
-            "CombineDistance",
-            "PolarCoordinates",
-            "Repeat",
-            "Mirror",
-            "Kaleidoscope",
-            "DomainWarp",
-            "VectorDisplacement",
-            "Twirl",
-            "BulgePinch",
-            "Wave",
-            "Ripple",
-            "Hue",
-            "Saturation",
-            "Exposure",
-            "Lightness",
-            "Levels",
-            "ColorBalance",
-            "Posterize",
-            "ConvertColor",
-            "Luminance",
-            "GradientMap",
-            "ColorCurves",
-            "ColorMask",
-            "HueRange",
-            "MixColor",
-            "SetAlpha",
-            "HeightToNormal",
-            "NormalBlend",
-            "HeightToDistortion",
-            "NormalToDistortion",
-            "Sign",
-            "Saturate",
-            "Modulo",
-            "Atan2",
-            "Asin",
-            "Acos",
-            "Exp",
-            "Log",
-            "Cross",
-            "Reflect",
-            "Refract",
-            "And",
-            "Or",
-            "Not",
-            "NormalEncode",
-            "NormalDecode",
-            "NormalStrength",
-            "NormalLighting",
-            "Premultiply",
-            "Unpremultiply",
-            "Flipbook",
-            "TileableNoise",
-            "VoronoiEdge",
-            "Dither",
-            "Blur",
-            "Sharpen",
-            "EdgeDetection",
-            "Dilate",
-            "Erode",
-            "SubGraph",
-            "SubGraphInput",
-            "SubGraphOutput",
-            "Unlerp",
-            "PixelateUV",
-            "ChannelMixer",
-            "WhiteBalance",
-            "DirectionalBlur",
-            "RadialBlur",
-            "HeightBlend",
-            "TileUV",
-            "PerspectiveUV",
-            "GaborNoise",
-            "RotateVector",
-            "Blackbody",
-            "SlopeBlur",
-            "BilateralBlur",
-            "SampleInput",
-            "CanvasPosition"
-          ]
-        },
-        "position": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 2,
-          "items": {
-            "type": "number",
-            "minimum": -3.40282347E+38,
-            "maximum": 3.40282347E+38
-          }
-        },
-        "valueType": {
-          "type": "string",
-          "enum": [
-            "Float",
-            "Float2",
-            "Float3",
-            "Float4",
-            "Boolean",
-            "Texture",
-            "Gradient",
-            "Curve",
-            "Color"
-          ]
-        },
-        "constant": {
-          "type": "string",
-          "enum": [
-            "PI",
-            "TAU",
-            "PHI",
-            "E",
-            "SQRT2"
-          ],
-          "default": "PI",
-          "description": "Constant node selection. Emits a Float HLSL literal; arbitrary values use parameters or unconnected inputs."
-        },
-        "swizzle": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": "xxxx",
-          "description": "Swizzle node mask: 1–4 xyzw/rgba letters (case-insensitive) or _ for zero. Output width is mask length. Input width is max(source width, highest mask component); connected scalars repeat and shorter vectors gain zeros. Unconnected values expose inferred components directly. Invalid masks may be retained as uncompiled drafts."
-        },
-        "parameterId": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Parameter: root graph.parameters[].id. SubGraphInput: the enclosing definition's inputs[].id; output port is Out. Interface nodes cannot be created in the root graph."
-        },
-        "option": {
-          "type": "integer",
-          "default": 0,
-          "description": "Zero-based node mode; use discovery modes for kind-specific values. Blur/Sharpen/Dilate/Erode: 0=3x3, 1=5x5, 2=9x9; EdgeDetection has a fixed 3x3 Sobel kernel. RadialBlur: 0=Spin, 1=Zoom; DirectionalBlur has no mode. SlopeBlur: 0=Average, 1=Min, 2=Max. BilateralBlur: 0=Source, 1=Custom (adds dynamic numeric/Color Guide, default scalar 0; Out follows In only). TileUV: 0=Grid, 1=Staggered (activates RowOffset). RotateVector: 0=2D (Float2 In/Out), 1=3D (Float3 In/Out, adds Axis). Flipbook: 0=Bottom to Top, 1=Top to Bottom. Dither: 0=Bayer 4x4, 1=Bayer 2x2, 2=Bayer 8x8."
-        },
-        "fractal": {
-          "type": "string",
-          "enum": [
-            "None",
-            "FBm",
-            "Ridged",
-            "PingPong",
-            "Progressive",
-            "Independent"
-          ],
-          "default": "None",
-          "description": "Noise accepts None, FBm, Ridged or PingPong. DomainWarp accepts None, Progressive or Independent. Octaves, Lacunarity, Gain and PingPongStrength are numeric input ports, not additional mode fields."
-        },
-        "inputColorSpace": {
-          "type": "string",
-          "enum": [
-            "LinearRGB",
-            "SRGB",
-            "HSV",
-            "HSL",
-            "Oklab"
-          ],
-          "default": "LinearRGB",
-          "description": "ConvertColor's explicit source/destination space. HSV/HSL use sRGB-encoded RGB and hue in turns. HSV excludes negative RGB but preserves HDR Value; HSL is SDR (0..1). LinearRGB, SRGB and Oklab retain signed/HDR values. Alpha is unchanged."
-        },
-        "outputColorSpace": {
-          "type": "string",
-          "enum": [
-            "LinearRGB",
-            "SRGB",
-            "HSV",
-            "HSL",
-            "Oklab"
-          ],
-          "default": "SRGB",
-          "description": "ConvertColor's explicit source/destination space. HSV/HSL use sRGB-encoded RGB and hue in turns. HSV excludes negative RGB but preserves HDR Value; HSL is SDR (0..1). LinearRGB, SRGB and Oklab retain signed/HDR values. Alpha is unchanged."
-        },
-        "channel": {
-          "type": "string",
-          "enum": [
-            "Luminance",
-            "Red",
-            "Green",
-            "Blue",
-            "Alpha"
-          ],
-          "default": "Luminance",
-          "description": "GradientMap source channel, or HeightToNormal/HeightToDistortion channel when heightSource is Texture. Ignored for Value. Luminance uses linear RGB weights, without color conversion."
-        },
-        "derivative": {
-          "type": "string",
-          "enum": [
-            "Scharr",
-            "Sobel",
-            "CentralDifference"
-          ],
-          "default": "Scharr",
-          "description": "Height node finite-difference stencil. Radius uses bound-source texels for heightSource Texture or document pixels for Value; gradient magnitude is retained before normal encoding."
-        },
-        "normalEncoding": {
-          "type": "string",
-          "enum": [
-            "PackedRGB",
-            "SignedXYZ"
-          ],
-          "default": "PackedRGB",
-          "description": "HeightToNormal output; NormalBlend/NormalStrength input/output; NormalToDistortion/NormalLighting input encoding. PackedRGB decodes as 2*x-1; SignedXYZ is unchanged. NormalToDistortion never normalizes XY. Unconnected defaults follow the selected encoding. NormalEncode/NormalDecode have fixed directions and do not use this setting."
-        },
-        "heightSource": {
-          "type": "string",
-          "enum": [
-            "Texture",
-            "Value"
-          ],
-          "default": "Texture",
-          "description": "HeightToNormal/HeightToDistortion: Texture requires a Height resource, source-texel Radius and channel/wrap/filter; Value accepts Float Height and reevaluates its branch at neighboring UVs with document-pixel Radius. Both retain derivative, Strength and FlipX/FlipY."
-        },
-        "hdr": {
-          "type": "boolean"
-        },
-        "wrap": {
-          "type": "string",
-          "enum": [
-            "Clamp",
-            "Repeat",
-            "Mirror",
-            "Transparent"
-          ]
-        },
-        "filter": {
-          "type": "string",
-          "enum": [
-            "Point",
-            "Bilinear"
-          ]
-        },
-        "inputs": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderGraphInput"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "functionId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "subGraphId": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "SubGraph node reference to graph.subGraphs[].id. Ports are stable interface IDs from that definition, not pin display names."
-        },
-        "codeSize": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 2,
-          "items": {
-            "type": "number",
-            "minimum": -3.40282347E+38,
-            "maximum": 3.40282347E+38
-          }
-        },
-        "codeExpanded": {
-          "type": "boolean"
-        },
-        "previewExpanded": {
-          "type": "boolean",
-          "default": true,
-          "description": "Per-node preview expansion, retained in the document and clipboard, including Sub Graph nodes. Editor layout only; excluded from shader compilation and rendered-image cache fingerprints."
-        }
-      }
-    },
-    "ShaderGraphInput": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$type": {
-          "const": "ShaderGraphInput"
-        },
-        "port": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "type": {
-          "type": "string",
-          "enum": [
-            "Float",
-            "Float2",
-            "Float3",
-            "Float4",
-            "Boolean",
-            "Texture",
-            "Gradient",
-            "Curve",
-            "Color"
-          ]
-        },
-        "value": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 4,
-          "items": {
-            "type": "number",
-            "minimum": -3.40282347E+38,
-            "maximum": 3.40282347E+38
-          }
-        }
-      }
-    },
-    "ShaderGraphEdge": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$type": {
-          "const": "ShaderGraphEdge"
-        },
-        "outputNode": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "outputPort": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "inputNode": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "inputPort": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      }
-    },
-    "ShaderGraphFunction": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$type": {
-          "const": "ShaderGraphFunction"
-        },
-        "id": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "name": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "menuPath": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "inline": {
-          "type": "boolean"
-        },
-        "fullSource": {
-          "type": "boolean"
-        },
-        "entryPoint": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "returnType": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "returnName": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "returnValueType": {
-          "type": "string",
-          "enum": [
-            "Float",
-            "Float2",
-            "Float3",
-            "Float4",
-            "Boolean",
-            "Texture",
-            "Gradient",
-            "Curve",
-            "Color"
-          ]
-        },
-        "ports": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderGraphFunctionPort"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "draftPorts": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderGraphFunctionPort"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "hasDraftPorts": {
-          "type": "boolean",
-          "default": false,
-          "description": "Marks a pending port draft, including an intentionally empty draftPorts list. A nonempty draftPorts also implies a draft. An empty/null draftPorts without this flag uses the applied ports, including after Unity domain reload or JsonUtility copying."
-        },
-        "body": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "draft": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "sourceId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "sourcePath": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "presetId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "sourceFingerprint": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "presetVersion": {
-          "type": "integer",
-          "minimum": -2147483648,
-          "maximum": 2147483647
-        },
-        "reflected": {
-          "type": "boolean"
-        }
-      }
-    },
-    "ShaderGraphFunctionPort": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$type": {
-          "const": "ShaderGraphFunctionPort"
-        },
-        "name": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "label": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "type": {
-          "type": "string",
-          "enum": [
-            "Float",
-            "Float2",
-            "Float3",
-            "Float4",
-            "Boolean",
-            "Texture",
-            "Gradient",
-            "Curve",
-            "Color"
-          ]
-        },
-        "direction": {
-          "type": "string",
-          "enum": [
-            "Input",
-            "Output",
-            "InOut"
-          ]
-        },
-        "value": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 4,
-          "items": {
-            "type": "number",
-            "minimum": -3.40282347E+38,
-            "maximum": 3.40282347E+38
-          }
-        },
-        "uvDefault": {
-          "type": "boolean"
-        },
-        "hasRange": {
-          "type": "boolean"
-        },
-        "minimum": {
-          "type": "number",
-          "minimum": -3.40282347E+38,
-          "maximum": 3.40282347E+38
-        },
-        "maximum": {
-          "type": "number",
-          "minimum": -3.40282347E+38,
-          "maximum": 3.40282347E+38
-        }
-      }
-    },
-    "ShaderGraphSource": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$type": {
-          "const": "ShaderGraphSource"
-        },
-        "id": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128,
-          "pattern": "^[A-Za-z0-9_-]+$"
-        },
-        "code": {
-          "type": "string",
-          "maxLength": 8388608,
-          "description": "Unexpanded source text, limited to 8 MiB when encoded as UTF-8. Preserved verbatim in JSON/Undo. Native TIFF stores this string in a shared content-digest block."
-        },
-        "includes": {
-          "type": "array",
-          "default": [],
-          "maxItems": 32768,
-          "items": {
-            "allOf": [
-              {
-                "anyOf": [
-                  {
-                    "$ref": "#/$defs/ShaderGraphInclude"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              {
-                "type": "object"
-              }
-            ]
-          }
-        }
-      },
+      "description": "Procedural Shader layer with independent Graph (default) and Code modes. Switching mode converts nothing. Both graph and code state, declarations and values persist in every writing mode. Code uses WhimTex HLSL ApplyFX/@param: code is an editable draft, compiledCode is the last applied source, and codeParameters holds its accepted declarations and current values. Rendering uses compiledCode, never the draft. UV is local procedural UV. Shared Input supplies color/SampleInput in Code and SampleInput nodes in Graph; None and missing sources read transparent black. Output is straight RGBA followed by ordinary layer transform, FX and blending; reading CompositeBelow does not replace that composition. Stored texture parameters in both modes are validated/remapped. Shared inputLayerId is remapped even while inactive; only selected sources affect rendering dependencies and stamps.",
       "required": [
-        "id",
-        "code"
-      ],
-      "description": "Portable HLSL module. code retains original include directives; includes binds each distinct requested spelling within this module to another source ID. Missing non-engine bindings, unused bindings and cycles are rejected. Captured IDs hash code plus dependency bindings; IDs are opaque references and may be retained during explicit edits."
-    },
-    "ShaderGraphInclude": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$type": {
-          "const": "ShaderGraphInclude"
-        },
-        "requested": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 4096,
-          "pattern": "^[^\\u0000\\r\\n\"<>]+$",
-          "description": "Exact include string without quotes/angle brackets, scoped to the including module. Duplicate requested spellings use one binding."
-        },
-        "sourceId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128,
-          "pattern": "^[A-Za-z0-9_-]+$"
-        }
-      },
-      "required": [
-        "requested",
-        "sourceId"
-      ]
-    },
-    "ShaderGraphNote": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$type": {
-          "const": "ShaderGraphNote"
-        },
-        "id": {
-          "type": "string",
-          "pattern": "^[A-Za-z0-9_]{1,64}$"
-        },
-        "title": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "contents": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "position": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 2,
-          "items": {
-            "type": "number",
-            "minimum": -3.40282347E+38,
-            "maximum": 3.40282347E+38
-          }
-        },
-        "size": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 2,
-          "items": {
-            "type": "number",
-            "exclusiveMinimum": 0
-          },
-          "default": [
-            200,
-            160
-          ]
-        },
-        "theme": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 1,
-          "default": 0
-        },
-        "fontSize": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 3,
-          "default": 1
-        },
-        "hueShift": {
-          "type": "number",
-          "minimum": -180,
-          "maximum": 180,
-          "default": 0,
-          "description": "HSV hue rotation in degrees, applied to the native note background, outlines and text palette. Saturation, value, alpha and non-color styling stay unchanged. Retained across note theme changes. Zero uses the unmodified native colors."
-        }
-      }
-    },
-    "ShaderGraphGroup": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$type": {
-          "const": "ShaderGraphGroup"
-        },
-        "id": {
-          "type": "string",
-          "pattern": "^[A-Za-z0-9_]{1,64}$"
-        },
-        "title": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "position": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 2,
-          "items": {
-            "type": "number",
-            "minimum": -3.40282347E+38,
-            "maximum": 3.40282347E+38
-          }
-        },
-        "elements": {
-          "type": "array",
-          "default": [],
-          "uniqueItems": true,
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "ShaderGraphSubGraph": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$type": {
-          "const": "ShaderGraphSubGraph"
-        },
-        "id": {
-          "type": "string",
-          "pattern": "^[A-Za-z0-9_]{1,64}$"
-        },
-        "name": {
-          "type": "string",
-          "pattern": "\\S"
-        },
-        "inputs": {
-          "type": "array",
-          "minItems": 0,
-          "maxItems": 64,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderGraphInterfacePort"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "outputs": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 64,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderGraphInterfacePort"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "nodes": {
-          "type": "array",
-          "maxItems": 512,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderGraphNode"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "edges": {
-          "type": "array",
-          "maxItems": 4096,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderGraphEdge"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "notes": {
-          "type": "array",
-          "default": [],
-          "maxItems": 512,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderGraphNote"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "description": "Editor annotations only; excluded from shader/render fingerprints. IDs are unique across nodes, notes and groups. Groups contain node/note IDs in elements; one group per element, no nesting."
-        },
-        "groups": {
-          "type": "array",
-          "default": [],
-          "maxItems": 512,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ShaderGraphGroup"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "description": "Editor annotations only; excluded from shader/render fingerprints. IDs are unique across nodes, notes and groups. Groups contain node/note IDs in elements; one group per element, no nesting."
-        }
-      },
-      "description": "Embedded reusable definition: id, name, inputs, outputs, nodes, edges, notes and groups. Contains exactly one SubGraphOutput, with input port keys from outputs[].id. SubGraphInput nodes reference inputs[].id through parameterId and expose Out. Node IDs must be unique across the root and all definitions. No separate parameter/function/source tables or external dependency.",
-      "required": [
-        "nodes",
-        "outputs"
-      ]
-    },
-    "ShaderGraphInterfacePort": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$type": {
-          "const": "ShaderGraphInterfacePort"
-        },
-        "id": {
-          "type": "string",
-          "pattern": "^[A-Za-z0-9_]{1,64}$"
-        },
-        "name": {
-          "type": "string",
-          "pattern": "\\S"
-        },
-        "type": {
-          "type": "string",
-          "enum": [
-            "Float",
-            "Float2",
-            "Float3",
-            "Float4",
-            "Boolean",
-            "Texture",
-            "Gradient",
-            "Curve",
-            "Color"
-          ]
-        },
-        "value": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 4,
-          "items": {
-            "type": "number",
-            "minimum": -3.40282347E+38,
-            "maximum": 3.40282347E+38
-          }
-        },
-        "uvDefault": {
-          "type": "boolean",
-          "default": false,
-          "description": "Use current evaluation UV when unconnected. Valid only with type Float2."
-        }
-      },
-      "description": "Typed Sub Graph interface pin. id is the stable wiring key, name is a display label, value is the unconnected default. uvDefault is valid only for Float2; resource types need a resource connection. IDs are unique across the definition's input and output pins.",
-      "anyOf": [
-        {
-          "properties": {
-            "uvDefault": {
-              "const": false
-            }
-          }
-        },
-        {
-          "required": [
-            "type"
-          ],
-          "properties": {
-            "type": {
-              "const": "Float2"
-            }
-          }
-        }
+        "program"
       ]
     },
     "ShapeLayerBehaviour": {

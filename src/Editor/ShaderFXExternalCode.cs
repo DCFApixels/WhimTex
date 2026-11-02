@@ -154,8 +154,17 @@ namespace DCFApixels.WhimTex
         {
             try
             {
+                if (!ShaderPresetIO.IsPresetPath(sourcePath)) throw new InvalidOperationException("Choose a .hlsl or .whimtexshader preset source.");
                 string path = PresetLibraryPaths.PhysicalPath(sourcePath);
                 if (!File.Exists(path)) throw new FileNotFoundException("The preset source file could not be found.", path);
+                if (ShaderPresetIO.IsProgramPath(path))
+                {
+                    // A Graph preset is structured JSON, never a generated HLSL editing session.
+                    var jsonEditor = CodeEditor.Editor.CurrentCodeEditor;
+                    if (jsonEditor == null || !jsonEditor.OpenProject(path, 1, 1))
+                        EditorUtility.DisplayDialog("Open Shader Preset", "Could not open the preset with the script editor selected in Unity Preferences.", "OK");
+                    return;
+                }
                 string editorPath = FindVsCodePath();
                 if (!string.IsNullOrEmpty(editorPath)) OpenPathInVsCode(editorPath, path);
                 else
@@ -226,6 +235,10 @@ namespace DCFApixels.WhimTex
         private static string PrepareSession(ShaderFX effect)
         {
             if (effect == null) throw new ArgumentNullException(nameof(effect));
+            if (effect.Mode == ShaderLayerMode.Graph)
+                throw new InvalidOperationException("Open the Graph editor to edit a Graph program.");
+            if (effect.IsCatalogLinked)
+                throw new InvalidOperationException("Open the preset source or embed a copy before editing its Code.");
             Session session = FindSession(effect);
             if (session == null)
             {
@@ -315,6 +328,7 @@ namespace DCFApixels.WhimTex
 
         private static void PollSession(Session session, ShaderFX effect)
         {
+            if (effect.Mode != ShaderLayerMode.Code || effect.IsCatalogLinked) return;
             CodeState state = session.ReadCodeState(effect);
             if (File.Exists(session.ApplyRequestPath))
             {
@@ -409,7 +423,7 @@ namespace DCFApixels.WhimTex
 
         private static bool ApplyExternalCode(ShaderFX effect, string code)
         {
-            if (effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return false;
+            if (effect == null || effect.Mode != ShaderLayerMode.Code || effect.IsCatalogLinked || WhimTexApi.IsShaderFXContentLocked(effect)) return false;
             Undo.RecordObject(effect, "Edit Shader FX Code Externally");
             effect.SetDraftCode(code);
             Undo.FlushUndoRecordObjects();

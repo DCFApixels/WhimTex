@@ -12,6 +12,8 @@ namespace DCFApixels.WhimTex
         internal static string BuildSource(ShaderFX effect, string menuPath)
         {
             if (effect == null) throw new ArgumentNullException(nameof(effect));
+            if (effect.Mode == ShaderLayerMode.Graph)
+                throw new InvalidOperationException("Save a Graph program as " + ShaderPresetIO.FileExtension + " to retain its editable graph.");
             return BuildParameterSource(effect.Code, effect.Parameters, menuPath, "whimtex-effect", effect.SourcePath);
         }
 
@@ -237,14 +239,48 @@ namespace DCFApixels.WhimTex
 
         internal static void Save(string path, ShaderFX effect, bool overwrite)
         {
-            path = PresetLibraryPaths.ValidateDestination(path, ShaderFXCatalog.Folder, "hlsl");
-            ShaderFXMetadata.Parse(effect.Code, false, out string menuPath);
+            if (effect == null) throw new ArgumentNullException(nameof(effect));
+            Save(path, effect.Program, effect.EmbeddedOwner, overwrite, effect.SourcePath);
+        }
+
+        internal static void Save(string path, ShaderProgram program, WhimTexDocument document, bool overwrite, string sourcePath = null)
+        {
+            if (program == null) throw new ArgumentNullException(nameof(program));
+            bool portable = ShaderPresetIO.IsProgramPath(path);
+            if (program.mode == ShaderLayerMode.Graph && !portable)
+                throw new InvalidOperationException("Save a Graph program as " + ShaderPresetIO.FileExtension + " to retain its editable graph.");
+            path = PresetLibraryPaths.ValidateDestination(path, ShaderFXCatalog.Folder, portable ? ShaderPresetIO.Extension : ShaderPresetIO.HlslExtension);
+            string previous = File.Exists(path) ? ShaderPresetIO.ReadText(path) : null;
+            if (previous != null && !overwrite) throw new IOException("A preset with this name already exists.");
+            var linked = ShaderPresetLink.IsLinked(program) ? ShaderFXCatalog.FindPreset(program.presetId) : null;
+            string menuPath = linked?.version == program.presetVersion ? linked.menuPath : null;
+            if (menuPath == null)
+            {
+                using var reader = new StringReader(program.code ?? "");
+                ShaderFXMetadata.TryHeader(reader.ReadLine(), out menuPath);
+            }
             int slash = menuPath?.LastIndexOf('/') ?? -1;
             menuPath = (slash >= 0 ? menuPath.Substring(0, slash + 1) : "") + Path.GetFileNameWithoutExtension(path);
-            string source = BuildSource(effect, menuPath);
-            var identity = File.Exists(path) ? ShaderFXPresetIdentity.Read(File.ReadAllText(path)) : default;
+            var identity = previous == null ? default : ShaderPresetIO.ReadIdentity(path, previous);
             if (!identity.IsDefined) identity = ShaderFXPresetIdentity.Create();
-            source = ShaderFXPresetIdentity.Write(source, identity);
+            string source;
+            if (portable)
+            {
+                string metadata = ShaderFXIconMetadata.MakePortable(program.code, sourcePath);
+                string group = linked?.group ?? ShaderFXMetadata.ReadPresetGroup(metadata, out _);
+                var icon = linked?.icon ?? ShaderFXIconMetadata.Read(metadata);
+                if (icon != null)
+                {
+                    string iconSource = icon.svg != null ? "/* @icon-svg\n" + icon.svg + "\n*/\n" : "// @icon(\"" + icon.reference + "\")\n";
+                    icon = ShaderFXIconMetadata.Read(ShaderFXIconMetadata.MakePortable(iconSource, linked?.path ?? sourcePath));
+                }
+                source = ShaderPresetIO.Write(program, document, menuPath, identity, sourcePath, group, icon);
+            }
+            else
+            {
+                source = BuildParameterSource(program.code, program.codeParameters, menuPath, "whimtex-effect", sourcePath);
+                source = ShaderFXPresetIdentity.Write(source, identity);
+            }
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try
@@ -253,14 +289,30 @@ namespace DCFApixels.WhimTex
                 using (var writer = new StreamWriter(stream, new UTF8Encoding(false))) writer.Write(source);
                 if (File.Exists(path))
                 {
-                    if (!overwrite) throw new IOException("A preset with this name already exists.");
+                    if (!overwrite || previous == null || File.ReadAllText(path) != previous)
+                        throw new IOException("The preset changed while saving. Review it before overwriting.");
                     File.Replace(temporary, path, path + ".bak");
                 }
-                else File.Move(temporary, path);
+                else
+                {
+                    if (previous != null) throw new IOException("The preset was removed while saving. Retry with a new destination.");
+                    File.Move(temporary, path);
+                }
             }
             finally { if (File.Exists(temporary)) File.Delete(temporary); }
             PresetLibraryPaths.ImportSavedFile(path);
             ShaderFXCatalog.UserPresetsChanged();
+        }
+
+        internal static bool ShowSaveDialog(ShaderProgram program, WhimTexDocument document, string name, string sourcePath = null)
+        {
+            Directory.CreateDirectory(ShaderFXCatalog.Folder);
+            string path = EditorUtility.SaveFilePanel("Save Shader Preset", ShaderFXCatalog.Folder, name, ShaderPresetIO.ExtensionFor(program));
+            if (string.IsNullOrEmpty(path)) return false;
+            bool overwrite = File.Exists(path);
+            if (overwrite && !EditorUtility.DisplayDialog("Overwrite Shader Preset", "Replace this preset? A .bak copy will be kept.", "Overwrite", "Cancel")) return false;
+            Save(path, program, document, overwrite, sourcePath);
+            return true;
         }
     }
 }

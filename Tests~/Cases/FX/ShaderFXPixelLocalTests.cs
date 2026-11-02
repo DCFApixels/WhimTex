@@ -14,7 +14,7 @@ public static class ShaderFXPixelLocalTests
     static readonly Assembly A = typeof(ShaderFX).Assembly;
     static object Call(object value, string name, params object[] args) => value.GetType().GetMethod(name, F).Invoke(value, args);
     static Type Type(string name) => A.GetType("DCFApixels.WhimTex." + name, true);
-    static List<ShaderFXParameter> Values(ShaderFX fx) => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+    static List<ShaderFXParameter> Values(ShaderFX fx) => (List<ShaderFXParameter>)typeof(ShaderFX).GetProperty("parameters", F).GetValue(fx);
 
     public static string RunMasks() => TestContext.Run("Built-in pixel-local Mask and inspector preview", t =>
     {
@@ -312,7 +312,7 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
     static void BundledPresets(TestContext t, Fixture f)
     {
         var local = new HashSet<string>(StringComparer.Ordinal) {
-            "BrightnessContrast", "ColorBalance", "ColorFilter", "Gain", "GradientMap", "HueSaturation",
+            "BrightnessContrast", "ColorBalance", "ColorFilter", "ColorSpace", "Gain", "GradientMap", "HueSaturation",
             "Levels", "Negative", "Normalize", "Step", "Threshold", "NormalLighting", "Posterize", "ChromaKey", "DomainWarp", "Mask"
         };
         int localCount = 0;
@@ -431,7 +431,9 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
                 var material = (Material)Call(fx, "GetMaterial", context);
                 t.True(material != null, "Applied effect has a material");
                 if (preview != null) { preview.CopyPropertiesFromMaterial(material); material = preview; }
-                bindings = Call(Document, "BindShaderTextureLayers", fx, Consumer, context, self);
+                bindings = typeof(WhimTexDocument).GetMethod("BindShaderTextureLayers", F, null,
+                    new[] { typeof(ShaderFX), typeof(Layer), Type("LayerRenderContext").MakeByRefType(), typeof(RenderTexture) }, null)
+                    .Invoke(Document, new object[] { fx, Consumer, context, self });
                 if (bindings != null) Call(bindings, "Apply", material);
                 Graphics.Blit(input, target, material); RenderTexture.active = target;
                 readback.ReadPixels(new Rect(0, 0, Width, Height), 0, 0); readback.Apply(); return readback.GetPixel(x, y);

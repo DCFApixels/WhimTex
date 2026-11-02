@@ -163,6 +163,10 @@ namespace DCFApixels.WhimTex
         }
 
         private void RecordApplyFailure(Exception error, IReadOnlyList<ShaderFXDiagnostic> collected = null)
-            => SetDiagnostics(ShaderFXDiagnostics.Failure(error, SourcePath, collected), true);
+        {
+            graphErrorNodeId = (error as ShaderGraphException)?.nodeId;
+            graphMessages = (error as ShaderGraphException)?.messages ?? new[] { new ShaderGraphMessage(null, error.Message, ShaderGraphMessageLevel.Error) };
+            SetDiagnostics(ShaderFXDiagnostics.Failure(error, SourcePath, collected), true);
+        }
     }
 }

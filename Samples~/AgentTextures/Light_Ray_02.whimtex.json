@@ -45,38 +45,77 @@
           "$type": "ShaderFX",
           "$id": "fx0",
           "active": true,
-          "code": "// @whimtex-effect Light/Tint\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = #FFFFFF\r\n// @param float _Brightness = 1 [0 .. ~3]\r\n// @param float _LeftFade = 40 [0 .. 256]\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;float leftPx=max(0,uv.x*_CanvasSize.x-0.25);color.a*=_LeftFade>0?smoothstep(0,_LeftFade,leftPx):1;color.a*=smoothstep(0,1.5,min(uv.y,1-uv.y)*_CanvasSize.y);return float4(color.rgb*_Tint.rgb*_Brightness,color.a*_Tint.a*_Opacity);}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "506d839b824d41ad9e17d9ab80eee195"
-            },
-            {
-              "name": "_Tint",
-              "type": "Color",
-              "colorValue": [
-                1.0,
-                1.0,
-                1.0,
-                1.0
+          "program": {
+            "code": "// @whimtex-effect Light/Tint\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = #FFFFFF\r\n// @param float _Brightness = 1 [0 .. ~3]\r\n// @param float _LeftFade = 40 [0 .. 256]\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;float leftPx=max(0,uv.x*_CanvasSize.x-0.25);color.a*=_LeftFade>0?smoothstep(0,_LeftFade,leftPx):1;color.a*=smoothstep(0,1.5,min(uv.y,1-uv.y)*_CanvasSize.y);return float4(color.rgb*_Tint.rgb*_Brightness,color.a*_Tint.a*_Opacity);}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
               ],
-              "id": "b96391445bdb497aa395fd602fc9711b"
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Brightness",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "3389b82feaa94e788b3a1aa7a8a96063"
-            },
-            {
-              "name": "_LeftFade",
-              "type": "Float",
-              "floatValue": 10.0,
-              "id": "8ffd8da261ad44168178f416352f4458"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "506d839b824d41ad9e17d9ab80eee195"
+              },
+              {
+                "name": "_Tint",
+                "type": "Color",
+                "colorValue": [
+                  1.0,
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                "id": "b96391445bdb497aa395fd602fc9711b"
+              },
+              {
+                "name": "_Brightness",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "3389b82feaa94e788b3a1aa7a8a96063"
+              },
+              {
+                "name": "_LeftFade",
+                "type": "Float",
+                "floatValue": 10.0,
+                "id": "8ffd8da261ad44168178f416352f4458"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Light/Tint\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = #FFFFFF\r\n// @param float _Brightness = 1 [0 .. ~3]\r\n// @param float _LeftFade = 40 [0 .. 256]\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;float leftPx=max(0,uv.x*_CanvasSize.x-0.25);color.a*=_LeftFade>0?smoothstep(0,_LeftFade,leftPx):1;color.a*=smoothstep(0,1.5,min(uv.y,1-uv.y)*_CanvasSize.y);return float4(color.rgb*_Tint.rgb*_Brightness,color.a*_Tint.a*_Opacity);}\r\n"
+          },
           "shaderKey": "e7cfdd41a17c4ebfa7d24bd2a4dddb08",
           "$name": ""
         }
@@ -113,10 +152,12 @@
       "behaviour": {
         "$type": "ShaderLayerBehaviour",
         "recoveryId": "2b6c375f510842728de7d32bb9d0021c",
-        "mode": "Code",
-        "inputMode": "CompositeBelow",
-        "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
-        "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+        "program": {
+          "mode": "Code",
+          "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+          "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+        },
+        "inputMode": "CompositeBelow"
       },
       "behaviourId": "2b6c375f510842728de7d32bb9d0021c",
       "children": [],
@@ -140,139 +181,178 @@
           "$type": "ShaderFX",
           "$id": "fx1",
           "active": true,
-          "code": "// @whimtex-effect Light/Ray\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @group(Placement)\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Scale = (1, 1)\r\n// @param float _Angle = 0 [-180 .. 180]\r\n// @endgroup\r\n// @group(Beam)\r\n// @param float _Start = 0 [-0.1 .. 0.4]\r\n// @param float _Length = 1 [0.05 .. 1.2]\r\n// @param float _NearWidth = 0.18 [0.005 .. 0.5]\r\n// @param float _FarWidth = 0.28 [0.005 .. 0.5]\r\n// @param float _Edge = 0.002 [0.0001 .. 0.05]\r\n// @endgroup\r\n// @group(Light)\r\n// @param float _SourceRoundness = 0.016 [0 .. 0.05]\r\n// @param float _Entrance = 0.038 [0.001 .. 0.4]\r\n// @param float _Peak = 0.25 [0 .. 0.6]\r\n// @param float _Falloff = 1.7 [0.2 .. 5]\r\n// @param float _Rise = 0.36 [0 .. 2]\r\n// @param float _Brightness = 0.89 [0 .. 2]\r\n// @param float _EdgeLight = 2.5 [0 .. 5]\r\n// @param float _GlowStrength = 2 [1 .. 4]\r\n// @param float _GlowBalance = 0.85 [0 .. 1]\r\n// @param float _Strands = 0.025 [0 .. 1]\r\n// @param float _Seed = 52 [1 .. ~5000]\r\n// @endgroup\r\nfloat RayNoise(float2 p) {\r\n fnl_state s=fnlCreateState((int)_Seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n return .5+.5*fnlGetNoise2D(s,p.x,p.y);\r\n}\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv;\r\n float2 p=LayerToLocal(uv)-_Center;\r\n float c=cos(radians(_Angle)),s=sin(radians(_Angle));\r\n p=float2(c*p.x+s*p.y,-s*p.x+c*p.y)/max(abs(_Scale),.001);\r\n float x=p.x+.5;float t=(x-_Start)/max(_Length,.001);\r\n float w=lerp(_NearWidth,_FarWidth,saturate(t));\r\n float edge=max(_Edge,fwidth(p.y)*.65);\r\n float body=1-smoothstep(w-edge,w+edge,abs(p.y));\r\n float sourceShift=_SourceRoundness*pow(saturate(abs(p.y)/max(w,.001)),2);\r\n float entrance=1-exp(-pow(max(0,x-_Start-sourceShift)/max(_Entrance,.001),2));\r\n float peak=saturate(_Peak);\r\n float tail=saturate((t-peak)/max(1-peak,.001));\r\n float rise=pow(max(saturate(t/max(peak,.001)),.00001),_Rise);\r\n float light=entrance*rise*pow(saturate(1-tail*tail),_Falloff);\r\n float threads=RayNoise(float2(p.y/max(w,.001)*15,t*.7));\r\n float side=pow(saturate(abs(p.y)/max(w,.001)),4);\r\n float rim=1+_EdgeLight*pow(saturate(t),4)*(1-.6*saturate(t))*side;\r\n float target=saturate(light*_Brightness*rim);\r\n // Preserve the envelope's contrast when the companion glow is composited below it.\r\n float g=max(_GlowBalance,.0001);\r\n float qa=_GlowStrength-1-g*_GlowStrength;\r\n float qb=1+g*_GlowStrength-target*(_GlowStrength-1);\r\n float density=2*target/max(qb+sqrt(max(qb*qb+4*qa*target,0)),.0001);\r\n float alpha=body*density*lerp(1,.7+threads*.6,_Strands);\r\n return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "1dce6094894e40e4ba85e62538e1c95b"
-            },
-            {
-              "name": "_Center",
-              "type": "Point",
-              "vectorValue": [
-                0.5,
-                0.5,
-                0.0,
-                0.0
+          "program": {
+            "code": "// @whimtex-effect Light/Ray\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @group(Placement)\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Scale = (1, 1)\r\n// @param float _Angle = 0 [-180 .. 180]\r\n// @endgroup\r\n// @group(Beam)\r\n// @param float _Start = 0 [-0.1 .. 0.4]\r\n// @param float _Length = 1 [0.05 .. 1.2]\r\n// @param float _NearWidth = 0.18 [0.005 .. 0.5]\r\n// @param float _FarWidth = 0.28 [0.005 .. 0.5]\r\n// @param float _Edge = 0.002 [0.0001 .. 0.05]\r\n// @endgroup\r\n// @group(Light)\r\n// @param float _SourceRoundness = 0.016 [0 .. 0.05]\r\n// @param float _Entrance = 0.038 [0.001 .. 0.4]\r\n// @param float _Peak = 0.25 [0 .. 0.6]\r\n// @param float _Falloff = 1.7 [0.2 .. 5]\r\n// @param float _Rise = 0.36 [0 .. 2]\r\n// @param float _Brightness = 0.89 [0 .. 2]\r\n// @param float _EdgeLight = 2.5 [0 .. 5]\r\n// @param float _GlowStrength = 2 [1 .. 4]\r\n// @param float _GlowBalance = 0.85 [0 .. 1]\r\n// @param float _Strands = 0.025 [0 .. 1]\r\n// @param float _Seed = 52 [1 .. ~5000]\r\n// @endgroup\r\nfloat RayNoise(float2 p) {\r\n fnl_state s=fnlCreateState((int)_Seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n return .5+.5*fnlGetNoise2D(s,p.x,p.y);\r\n}\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv;\r\n float2 p=LayerToLocal(uv)-_Center;\r\n float c=cos(radians(_Angle)),s=sin(radians(_Angle));\r\n p=float2(c*p.x+s*p.y,-s*p.x+c*p.y)/max(abs(_Scale),.001);\r\n float x=p.x+.5;float t=(x-_Start)/max(_Length,.001);\r\n float w=lerp(_NearWidth,_FarWidth,saturate(t));\r\n float edge=max(_Edge,fwidth(p.y)*.65);\r\n float body=1-smoothstep(w-edge,w+edge,abs(p.y));\r\n float sourceShift=_SourceRoundness*pow(saturate(abs(p.y)/max(w,.001)),2);\r\n float entrance=1-exp(-pow(max(0,x-_Start-sourceShift)/max(_Entrance,.001),2));\r\n float peak=saturate(_Peak);\r\n float tail=saturate((t-peak)/max(1-peak,.001));\r\n float rise=pow(max(saturate(t/max(peak,.001)),.00001),_Rise);\r\n float light=entrance*rise*pow(saturate(1-tail*tail),_Falloff);\r\n float threads=RayNoise(float2(p.y/max(w,.001)*15,t*.7));\r\n float side=pow(saturate(abs(p.y)/max(w,.001)),4);\r\n float rim=1+_EdgeLight*pow(saturate(t),4)*(1-.6*saturate(t))*side;\r\n float target=saturate(light*_Brightness*rim);\r\n // Preserve the envelope's contrast when the companion glow is composited below it.\r\n float g=max(_GlowBalance,.0001);\r\n float qa=_GlowStrength-1-g*_GlowStrength;\r\n float qb=1+g*_GlowStrength-target*(_GlowStrength-1);\r\n float density=2*target/max(qb+sqrt(max(qb*qb+4*qa*target,0)),.0001);\r\n float alpha=body*density*lerp(1,.7+threads*.6,_Strands);\r\n return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
               ],
-              "id": "4ad3f017bed147f69ccf2ca70f00012e"
-            },
-            {
-              "name": "_Scale",
-              "type": "Vector2",
-              "vectorValue": [
-                1.0,
-                1.0,
-                0.0,
-                0.0
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
               ],
-              "id": "31ef56d5c7bf41eebe630da64456f4fb"
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Angle",
-              "type": "Float",
-              "floatValue": 0.0,
-              "id": "bc5580e6df4247b7aba2a8af8112bfe9"
-            },
-            {
-              "name": "_Start",
-              "type": "Float",
-              "floatValue": -0.022,
-              "id": "fa566f764b424138a25183721d387c52"
-            },
-            {
-              "name": "_Length",
-              "type": "Float",
-              "floatValue": 1.022,
-              "id": "8d777165e041422a818c7f5e9f9d417a"
-            },
-            {
-              "name": "_NearWidth",
-              "type": "Float",
-              "floatValue": 0.078,
-              "id": "5d9dbb3f19974888ad7c64744b3aef0a"
-            },
-            {
-              "name": "_FarWidth",
-              "type": "Float",
-              "floatValue": 0.466,
-              "id": "093f3ef64f5b4b0fb5b518c8fa16b83d"
-            },
-            {
-              "name": "_Edge",
-              "type": "Float",
-              "floatValue": 0.002,
-              "id": "a1e18d88c4164700b9cae26823d070a3"
-            },
-            {
-              "name": "_SourceRoundness",
-              "type": "Float",
-              "floatValue": 0.016,
-              "id": "8c77c09f58e441c8b3ff315628755dcf"
-            },
-            {
-              "name": "_Entrance",
-              "type": "Float",
-              "floatValue": 0.024,
-              "id": "e13e585d5e2641c4adb076db6f823c38"
-            },
-            {
-              "name": "_Peak",
-              "type": "Float",
-              "floatValue": 0.055,
-              "id": "43cb81bb734f400fac0a243785184bb5"
-            },
-            {
-              "name": "_Falloff",
-              "type": "Float",
-              "floatValue": 1.53,
-              "id": "806e2a20f28e4782aec289fa454a6ddc"
-            },
-            {
-              "name": "_Rise",
-              "type": "Float",
-              "floatValue": 0.0,
-              "id": "514cc927675e41cc8baaccb778265ed0"
-            },
-            {
-              "name": "_Brightness",
-              "type": "Float",
-              "floatValue": 1.03,
-              "id": "f6a364cb71d6438c89a43421c13e8ff0"
-            },
-            {
-              "name": "_EdgeLight",
-              "type": "Float",
-              "floatValue": 3.2,
-              "id": "d5c7369f8c0d419794c147c5ca5b60fa"
-            },
-            {
-              "name": "_GlowStrength",
-              "type": "Float",
-              "floatValue": 2.0,
-              "id": "6fe8a554c51641019e84977d9327ebed"
-            },
-            {
-              "name": "_GlowBalance",
-              "type": "Float",
-              "floatValue": 0.85,
-              "id": "c99c6fadcb2e4393a57924c050ef280a"
-            },
-            {
-              "name": "_Strands",
-              "type": "Float",
-              "floatValue": 0.012,
-              "id": "0c8f989b3d1146029bd0968d0979bbf6"
-            },
-            {
-              "name": "_Seed",
-              "type": "Float",
-              "floatValue": 52.0,
-              "id": "aa83f646e5f7461690be58f8899a869d"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "1dce6094894e40e4ba85e62538e1c95b"
+              },
+              {
+                "name": "_Center",
+                "type": "Point",
+                "vectorValue": [
+                  0.5,
+                  0.5,
+                  0.0,
+                  0.0
+                ],
+                "id": "4ad3f017bed147f69ccf2ca70f00012e"
+              },
+              {
+                "name": "_Scale",
+                "type": "Vector2",
+                "vectorValue": [
+                  1.0,
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                "id": "31ef56d5c7bf41eebe630da64456f4fb"
+              },
+              {
+                "name": "_Angle",
+                "type": "Float",
+                "floatValue": 0.0,
+                "id": "bc5580e6df4247b7aba2a8af8112bfe9"
+              },
+              {
+                "name": "_Start",
+                "type": "Float",
+                "floatValue": -0.022,
+                "id": "fa566f764b424138a25183721d387c52"
+              },
+              {
+                "name": "_Length",
+                "type": "Float",
+                "floatValue": 1.022,
+                "id": "8d777165e041422a818c7f5e9f9d417a"
+              },
+              {
+                "name": "_NearWidth",
+                "type": "Float",
+                "floatValue": 0.078,
+                "id": "5d9dbb3f19974888ad7c64744b3aef0a"
+              },
+              {
+                "name": "_FarWidth",
+                "type": "Float",
+                "floatValue": 0.466,
+                "id": "093f3ef64f5b4b0fb5b518c8fa16b83d"
+              },
+              {
+                "name": "_Edge",
+                "type": "Float",
+                "floatValue": 0.002,
+                "id": "a1e18d88c4164700b9cae26823d070a3"
+              },
+              {
+                "name": "_SourceRoundness",
+                "type": "Float",
+                "floatValue": 0.016,
+                "id": "8c77c09f58e441c8b3ff315628755dcf"
+              },
+              {
+                "name": "_Entrance",
+                "type": "Float",
+                "floatValue": 0.024,
+                "id": "e13e585d5e2641c4adb076db6f823c38"
+              },
+              {
+                "name": "_Peak",
+                "type": "Float",
+                "floatValue": 0.055,
+                "id": "43cb81bb734f400fac0a243785184bb5"
+              },
+              {
+                "name": "_Falloff",
+                "type": "Float",
+                "floatValue": 1.53,
+                "id": "806e2a20f28e4782aec289fa454a6ddc"
+              },
+              {
+                "name": "_Rise",
+                "type": "Float",
+                "floatValue": 0.0,
+                "id": "514cc927675e41cc8baaccb778265ed0"
+              },
+              {
+                "name": "_Brightness",
+                "type": "Float",
+                "floatValue": 1.03,
+                "id": "f6a364cb71d6438c89a43421c13e8ff0"
+              },
+              {
+                "name": "_EdgeLight",
+                "type": "Float",
+                "floatValue": 3.2,
+                "id": "d5c7369f8c0d419794c147c5ca5b60fa"
+              },
+              {
+                "name": "_GlowStrength",
+                "type": "Float",
+                "floatValue": 2.0,
+                "id": "6fe8a554c51641019e84977d9327ebed"
+              },
+              {
+                "name": "_GlowBalance",
+                "type": "Float",
+                "floatValue": 0.85,
+                "id": "c99c6fadcb2e4393a57924c050ef280a"
+              },
+              {
+                "name": "_Strands",
+                "type": "Float",
+                "floatValue": 0.012,
+                "id": "0c8f989b3d1146029bd0968d0979bbf6"
+              },
+              {
+                "name": "_Seed",
+                "type": "Float",
+                "floatValue": 52.0,
+                "id": "aa83f646e5f7461690be58f8899a869d"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Light/Ray\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @group(Placement)\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Scale = (1, 1)\r\n// @param float _Angle = 0 [-180 .. 180]\r\n// @endgroup\r\n// @group(Beam)\r\n// @param float _Start = 0 [-0.1 .. 0.4]\r\n// @param float _Length = 1 [0.05 .. 1.2]\r\n// @param float _NearWidth = 0.18 [0.005 .. 0.5]\r\n// @param float _FarWidth = 0.28 [0.005 .. 0.5]\r\n// @param float _Edge = 0.002 [0.0001 .. 0.05]\r\n// @endgroup\r\n// @group(Light)\r\n// @param float _SourceRoundness = 0.016 [0 .. 0.05]\r\n// @param float _Entrance = 0.038 [0.001 .. 0.4]\r\n// @param float _Peak = 0.25 [0 .. 0.6]\r\n// @param float _Falloff = 1.7 [0.2 .. 5]\r\n// @param float _Rise = 0.36 [0 .. 2]\r\n// @param float _Brightness = 0.89 [0 .. 2]\r\n// @param float _EdgeLight = 2.5 [0 .. 5]\r\n// @param float _GlowStrength = 2 [1 .. 4]\r\n// @param float _GlowBalance = 0.85 [0 .. 1]\r\n// @param float _Strands = 0.025 [0 .. 1]\r\n// @param float _Seed = 52 [1 .. ~5000]\r\n// @endgroup\r\nfloat RayNoise(float2 p) {\r\n fnl_state s=fnlCreateState((int)_Seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n return .5+.5*fnlGetNoise2D(s,p.x,p.y);\r\n}\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv;\r\n float2 p=LayerToLocal(uv)-_Center;\r\n float c=cos(radians(_Angle)),s=sin(radians(_Angle));\r\n p=float2(c*p.x+s*p.y,-s*p.x+c*p.y)/max(abs(_Scale),.001);\r\n float x=p.x+.5;float t=(x-_Start)/max(_Length,.001);\r\n float w=lerp(_NearWidth,_FarWidth,saturate(t));\r\n float edge=max(_Edge,fwidth(p.y)*.65);\r\n float body=1-smoothstep(w-edge,w+edge,abs(p.y));\r\n float sourceShift=_SourceRoundness*pow(saturate(abs(p.y)/max(w,.001)),2);\r\n float entrance=1-exp(-pow(max(0,x-_Start-sourceShift)/max(_Entrance,.001),2));\r\n float peak=saturate(_Peak);\r\n float tail=saturate((t-peak)/max(1-peak,.001));\r\n float rise=pow(max(saturate(t/max(peak,.001)),.00001),_Rise);\r\n float light=entrance*rise*pow(saturate(1-tail*tail),_Falloff);\r\n float threads=RayNoise(float2(p.y/max(w,.001)*15,t*.7));\r\n float side=pow(saturate(abs(p.y)/max(w,.001)),4);\r\n float rim=1+_EdgeLight*pow(saturate(t),4)*(1-.6*saturate(t))*side;\r\n float target=saturate(light*_Brightness*rim);\r\n // Preserve the envelope's contrast when the companion glow is composited below it.\r\n float g=max(_GlowBalance,.0001);\r\n float qa=_GlowStrength-1-g*_GlowStrength;\r\n float qb=1+g*_GlowStrength-target*(_GlowStrength-1);\r\n float density=2*target/max(qb+sqrt(max(qb*qb+4*qa*target,0)),.0001);\r\n float alpha=body*density*lerp(1,.7+threads*.6,_Strands);\r\n return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n"
+          },
           "shaderKey": "f5b9796cf15f4bbeacfd413541bb4191",
           "$name": ""
         }

@@ -81,13 +81,17 @@ namespace DCFApixels.WhimTex
             VisualElement root = new VisualElement { focusable = true };
             WhimTexUI.ApplyWindowStyles(root);
             root.AddToClassList("whimtex-shader-fx");
+            var mode = new DropdownField("Mode", new System.Collections.Generic.List<string> { "Shader Graph", "Code" }, (int)effect.Mode);
+            root.Add(mode);
+            var graphButton = new Button(() => ShaderGraphWindow.Open(effect, layer, document)) { text = "Edit Graph" };
+            root.Add(graphButton);
             ShaderFXCodeField code = new ShaderFXCodeField(effect);
             var codeFoldout = new Foldout { text = "Code", name = "shaderFXCodeFoldout", value = false,
                 tooltip = "Edit HLSL and declarations here. Parameter values update live without recompiling." };
             var codeInfo = new ShaderFXCodeInfo(code);
             codeFoldout.Add(codeInfo.PixelLocalStatus);
             var presetSource = new ShaderFXPresetField(effect);
-            codeFoldout.Add(presetSource);
+            root.Add(presetSource);
             codeFoldout.Add(code);
             root.Add(codeFoldout);
             var externalCodeButtons = new VisualElement();
@@ -112,10 +116,10 @@ namespace DCFApixels.WhimTex
             codeFoldout.Add(externalCodeButtons);
             var sourceButtons = new VisualElement();
             sourceButtons.AddToClassList("whimtex-layer-fx-toolbar");
-            sourceButtons.Add(new Button(() => ShaderFXExternalCode.OpenPresetSource(effect.PresetSourcePath)) { text = "Open HLSL Source" });
-            var detach = new Button { text = "Embed Copy", tooltip = "Stop following the HLSL file and edit a copy in this document." };
+            sourceButtons.Add(new Button(() => ShaderFXExternalCode.OpenPresetSource(effect.PresetSourcePath)) { text = "Open Preset Source" });
+            var detach = new Button { text = "Embed Copy", tooltip = "Stop following the preset and edit its embedded copy." };
             sourceButtons.Add(detach);
-            codeFoldout.Add(sourceButtons);
+            root.Add(sourceButtons);
 
             HelpBox status = new HelpBox(string.Empty, HelpBoxMessageType.Info);
             root.Add(status);
@@ -123,7 +127,7 @@ namespace DCFApixels.WhimTex
             var codeActions = new VisualElement();
             codeActions.AddToClassList("whimtex-layer-fx-toolbar");
             codeActions.Add(apply);
-            codeFoldout.Add(codeActions);
+            root.Add(codeActions);
             void SavePreset()
             {
                 if (WhimTexApi.IsShaderFXContentLocked(effect)) return;
@@ -132,18 +136,19 @@ namespace DCFApixels.WhimTex
                 try
                 {
                     System.IO.Directory.CreateDirectory(ShaderFXCatalog.Folder);
-                    string path = EditorUtility.SaveFilePanel("Save HLSL Preset", ShaderFXCatalog.Folder, effect.name, "hlsl");
+                    string path = EditorUtility.SaveFilePanel("Save Shader Preset", ShaderFXCatalog.Folder, effect.name,
+                        effect.Mode == ShaderLayerMode.Graph ? "whimtexshader" : "hlsl");
                     if (string.IsNullOrEmpty(path)) return;
                     bool overwrite = System.IO.File.Exists(path);
-                    if (overwrite && !EditorUtility.DisplayDialog("Overwrite HLSL Preset", "Replace this preset? A .bak copy will be kept.", "Overwrite", "Cancel")) return;
+                    if (overwrite && !EditorUtility.DisplayDialog("Overwrite Shader Preset", "Replace this preset? A .bak copy will be kept.", "Overwrite", "Cancel")) return;
                     ShaderFXPresetWriter.Save(path, effect, overwrite);
                     status.messageType = HelpBoxMessageType.Info;
-                    status.text = "HLSL preset saved. Find it in + Preset.";
+                    status.text = "Shader preset saved. Find it in + Preset.";
                     status.RemoveFromClassList("whimtex-shader-fx-hidden");
                 }
                 catch (System.Exception error) { EditorUtility.DisplayDialog("Shader FX Presets", error.Message, "OK"); }
             }
-            codeActions.Add(new Button(SavePreset) { text = "Save Preset…", tooltip = "Save HLSL with current parameter values as defaults. Layer sources remain document-local." });
+            codeActions.Add(new Button(SavePreset) { text = "Save Preset…", tooltip = "Save the shader with current parameter values as defaults." });
 
             TextField diagnostics = new TextField
             {
@@ -154,8 +159,9 @@ namespace DCFApixels.WhimTex
             };
             diagnostics.AddToClassList("whimtex-shader-fx-diagnostics");
             root.Add(diagnostics);
-            // Controls are owned by the HLSL @param declarations.
+            // The shared source supplies HLSL declarations or synthesized graph controls.
             var declaredParameters = new ShaderFXParameterView(effect, false, document, layer, fxIndex);
+            bool refreshingStatus = false;
             detach.clicked += () => { Undo.RecordObject(effect, "Embed FX Source"); effect.DetachCatalog(); EditorUtility.SetDirty(effect); effect.NotifyValuesChanged(); RefreshStatus(); };
             apply.clicked += () =>
             {
@@ -169,39 +175,57 @@ namespace DCFApixels.WhimTex
             };
             root.Add(declaredParameters);
             codeFoldout.Add(codeInfo);
+            mode.RegisterValueChangedCallback(evt =>
+            {
+                if (effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
+                Undo.RecordObject(effect, "Change Shader FX Mode");
+                if (document != null) Undo.RecordObject(document, "Change Shader FX Mode");
+                effect.SetMode(evt.newValue == "Code" ? ShaderLayerMode.Code : ShaderLayerMode.Graph);
+                serializedObject.Update(); RefreshStatus();
+            });
 
             void RefreshStatus()
             {
-                if (effect == null)
+                if (effect == null || refreshingStatus)
                     return;
-                code.SyncFromModel();
-                presetSource.Refresh();
-                code.SetEnabled(!effect.IsCatalogLinked);
-                externalCodeButtons.EnableInClassList("whimtex-shader-fx-hidden", effect.IsCatalogLinked);
-                sourceButtons.EnableInClassList("whimtex-shader-fx-hidden", !effect.IsCatalogLinked);
-                declaredParameters.EnableInClassList("whimtex-shader-fx-hidden", false);
-                declaredParameters.Refresh();
-                bool pendingChanges = effect.HasPendingChanges;
-                codeInfo.Refresh(effect, pendingChanges);
-                status.messageType = effect.DiagnosticSeverity == ShaderFXDiagnosticSeverity.Error ? HelpBoxMessageType.Error :
-                    effect.DiagnosticSeverity == ShaderFXDiagnosticSeverity.Warning ? HelpBoxMessageType.Warning : HelpBoxMessageType.Info;
-                status.EnableInClassList("whimtex-shader-fx-hidden", !effect.LastApplyFailed && !pendingChanges && effect.DiagnosticNotice == null);
-                status.text = effect.LastApplyFailed
-                    ? "Compilation failed. This FX is skipped until it compiles successfully."
-                    : pendingChanges ? "Uncompiled code or parameter declarations. Click Compile when ready."
-                    : effect.DiagnosticNotice != null ? "Compiled with warnings. This FX remains active."
-                    : "Compiled. Values update without recompiling. Click Compile again after editing an included library.";
-                diagnostics.SetValueWithoutNotify(effect.Diagnostics);
-                diagnostics.EnableInClassList("whimtex-shader-fx-hidden",
-                    !effect.LastApplyFailed && (string.IsNullOrWhiteSpace(effect.Diagnostics) || effect.Diagnostics == "Applied successfully."));
-                codeFoldout.text = pendingChanges ? "Code • uncompiled" : "Code";
-                apply.SetEnabled(effect != null);
+                refreshingStatus = true;
+                try
+                {
+                    bool graphMode = effect.Mode == ShaderLayerMode.Graph;
+                    mode.SetValueWithoutNotify(graphMode ? "Shader Graph" : "Code");
+                    mode.SetEnabled(!WhimTexApi.IsShaderFXContentLocked(effect));
+                    graphButton.EnableInClassList("whimtex-shader-fx-hidden", !graphMode);
+                    graphButton.SetEnabled(document != null && layer != null);
+                    codeFoldout.EnableInClassList("whimtex-shader-fx-hidden", graphMode);
+                    code.SyncFromModel();
+                    presetSource.Refresh();
+                    code.SetEnabled(!effect.IsCatalogLinked);
+                    externalCodeButtons.EnableInClassList("whimtex-shader-fx-hidden", effect.IsCatalogLinked);
+                    sourceButtons.EnableInClassList("whimtex-shader-fx-hidden", !effect.IsCatalogLinked);
+                    declaredParameters.EnableInClassList("whimtex-shader-fx-hidden", false);
+                    declaredParameters.Refresh();
+                    bool pendingChanges = effect.HasPendingChanges;
+                    codeInfo.Refresh(effect, pendingChanges);
+                    status.messageType = effect.DiagnosticSeverity == ShaderFXDiagnosticSeverity.Error ? HelpBoxMessageType.Error :
+                        effect.DiagnosticSeverity == ShaderFXDiagnosticSeverity.Warning ? HelpBoxMessageType.Warning : HelpBoxMessageType.Info;
+                    status.EnableInClassList("whimtex-shader-fx-hidden", !effect.LastApplyFailed && !pendingChanges && effect.DiagnosticNotice == null);
+                    status.text = effect.LastApplyFailed
+                        ? "Compilation failed. This FX is skipped until it compiles successfully."
+                        : pendingChanges ? "Uncompiled shader changes. Click Compile when ready."
+                        : effect.DiagnosticNotice != null ? "Compiled with warnings. This FX remains active."
+                        : "Compiled. Values update without recompiling. Click Compile again after editing an included library.";
+                    diagnostics.SetValueWithoutNotify(effect.Diagnostics);
+                    diagnostics.EnableInClassList("whimtex-shader-fx-hidden",
+                        !effect.LastApplyFailed && (string.IsNullOrWhiteSpace(effect.Diagnostics) || effect.Diagnostics == "Applied successfully."));
+                    codeFoldout.text = pendingChanges ? "Code • uncompiled" : "Code";
+                    apply.SetEnabled(effect != null);
+                }
+                finally { refreshingStatus = false; }
             }
 
             void ExternalCodeChanged(ShaderFX changed)
             {
                 if (changed != effect) return;
-                code.SyncFromModel();
                 RefreshStatus();
             }
             root.TrackSerializedObjectValue(serializedObject, _ => RefreshStatus());
@@ -213,12 +237,19 @@ namespace DCFApixels.WhimTex
                 WhimTexApi.LiveEditLocksChanged += RefreshLock;
                 ShaderFXExternalCode.CodeChanged -= ExternalCodeChanged;
                 ShaderFXExternalCode.CodeChanged += ExternalCodeChanged;
+                ShaderFX.Changed -= ExternalCodeChanged;
+                ShaderFX.Changed += ExternalCodeChanged;
+                Undo.undoRedoPerformed -= RefreshStatus;
+                Undo.undoRedoPerformed += RefreshStatus;
                 RefreshLock();
+                RefreshStatus();
             });
             root.RegisterCallback<DetachFromPanelEvent>(_ =>
             {
                 WhimTexApi.LiveEditLocksChanged -= RefreshLock;
                 ShaderFXExternalCode.CodeChanged -= ExternalCodeChanged;
+                ShaderFX.Changed -= ExternalCodeChanged;
+                Undo.undoRedoPerformed -= RefreshStatus;
             });
             RefreshLock();
             RefreshStatus();

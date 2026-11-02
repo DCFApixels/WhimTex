@@ -79,7 +79,7 @@ try
     string source = head + "// @param float _Amount = 0.25 [0 .. 1]\n// @param transform2D _Area\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; float2 p = _Area_ToLocal(uv); return float4(p, _Amount, 1); }";
     fx = (DCFApixels.WhimTex.ShaderFX)typeof(DCFApixels.WhimTex.ShaderFX).GetMethod("CreateAgentDraft", Hidden, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, source, new List<DCFApixels.WhimTex.ShaderFXParameter>() });
     typeof(DCFApixels.WhimTex.ShaderFX).GetMethod("ApplyAgentDraft", Hidden).Invoke(fx, null);
-    var list = (List<DCFApixels.WhimTex.ShaderFXParameter>)typeof(DCFApixels.WhimTex.ShaderFX).GetField("parameters", Hidden).GetValue(fx);
+    var list = (List<DCFApixels.WhimTex.ShaderFXParameter>)typeof(DCFApixels.WhimTex.ShaderFX).GetProperty("parameters", Hidden).GetValue(fx);
     Check(list.Count == 2, "Inline metadata parsed by actual Apply");
     var shaderField = typeof(DCFApixels.WhimTex.ShaderFX).GetField("compiledShader", Hidden);
     object shader = shaderField.GetValue(fx);
@@ -105,7 +105,7 @@ try
     Check(ReferenceEquals(shader, shaderField.GetValue(fx)), "Value edits reuse compiled shader");
     Check(id == list[1].id, "Stable ID after value edits");
     clone = (DCFApixels.WhimTex.ShaderFX)typeof(DCFApixels.WhimTex.ShaderFX).GetMethod("CloneForDocument", Hidden).Invoke(fx, new object[] { document });
-    var cloneList = (List<DCFApixels.WhimTex.ShaderFXParameter>)typeof(DCFApixels.WhimTex.ShaderFX).GetField("parameters", Hidden).GetValue(clone);
+    var cloneList = (List<DCFApixels.WhimTex.ShaderFXParameter>)typeof(DCFApixels.WhimTex.ShaderFX).GetProperty("parameters", Hidden).GetValue(clone);
     cloneList[0].floatValue = .5f;
     Check(list[0].floatValue == .75f, "Independent instance values");
     var editor = Editor.CreateEditor(fx);
@@ -137,7 +137,7 @@ try
     shaderField.SetValue(clone, null);
     if (cloneShader != null) UnityEngine.Object.DestroyImmediate(cloneShader);
     EditorJsonUtility.FromJsonOverwrite(json, clone);
-    cloneList = (List<DCFApixels.WhimTex.ShaderFXParameter>)typeof(DCFApixels.WhimTex.ShaderFX).GetField("parameters", Hidden).GetValue(clone);
+    cloneList = (List<DCFApixels.WhimTex.ShaderFXParameter>)typeof(DCFApixels.WhimTex.ShaderFX).GetProperty("parameters", Hidden).GetValue(clone);
     Check(cloneList[1].id == id && cloneList[1].transformValue.position == list[1].transformValue.position, "Serialization preserves transform and ID");
     // Do not leave two transient objects owning the same shader after the serialization check.
     shaderField.SetValue(clone, null);

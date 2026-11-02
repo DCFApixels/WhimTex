@@ -35,6 +35,20 @@ and read them with `SampleTexture`. The
 When returning to Shader Graph, your graph and its values are still there. An already open
 graph window is read-only while Code is selected; switch back to edit it.
 
+## Reuse a shader preset
+
+Choose **Preset…** in Properties to load a Code or Graph preset from the shared project/user
+catalog. The same presets can be used in [Shader FX](shader-fx.md). **Save Preset…** saves
+Code as `.hlsl` and Graph as `.whimtexshader`; Graph presets retain both modes, reusable
+functions, Sub Graphs and captured includes for later editing. Clear Texture parameters'
+Layer references in both modes before saving a preset, including inactive selections.
+
+A linked preset follows only its saved ID and exact version. If its source disappears, the
+document keeps its editable copy, including the graph. **Embed Copy** makes it independent.
+Save the document to retain drafts and both modes. Input, Transform and blending remain
+settings of this layer; using the same preset in an FX can produce different pixels because
+the input and coordinates differ. Check the result after changing placement or transforms.
+
 ## Choose an input image
 
 **Input** in Properties is shared by Shader Graph and Code:

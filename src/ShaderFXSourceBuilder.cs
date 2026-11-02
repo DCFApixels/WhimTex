@@ -13,7 +13,7 @@ namespace DCFApixels.WhimTex
     {
         internal const string NoiseLibraryInclude = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ThirdParty/FastNoiseLite.hlsl\"\n";
         internal const string ColorLibraryInclude = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc\"\n";
-        private const int MaximumCharacters = 2 * 1024 * 1024;
+        internal const int MaximumCharacters = 2 * 1024 * 1024;
         internal const string RegionalColorMarker = "// WhimTex regional color input v1\n";
         internal const string ViewportWrapperMarker = "// WhimTex viewport wrapper v5\n";
         // Conservative capability inference over expanded user code, including helpers.
@@ -195,6 +195,11 @@ float4 SampleInput(float2 uv, float tiling)
 
         internal static string BuildLayer(string source, IReadOnlyList<ShaderFXParameter> parameters, string sourcePath)
             => BuildCore(source, parameters, "Hidden/WhimTex/ShaderLayer", sourcePath, null, null, out _, proceduralInput: true);
+
+        internal static string BuildProgram(string source, IReadOnlyList<ShaderFXParameter> parameters, string sourcePath,
+            bool proceduralInput, int maximumCharacters, out ShaderFXLocalityReason[] reasons)
+            => BuildCore(source, parameters, "Hidden/WhimTex/ShaderProgram", sourcePath, null, null, out reasons,
+                maximumCharacters: maximumCharacters, proceduralInput: proceduralInput);
 
         private static string BuildCore(string code, IReadOnlyList<ShaderFXParameter> parameters, string shaderName,
             string assetPath, ShaderFXParameterControl preview, ShaderFXParameter previewParameter,

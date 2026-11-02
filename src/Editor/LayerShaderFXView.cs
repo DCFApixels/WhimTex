@@ -35,7 +35,12 @@ namespace DCFApixels.WhimTex
 
         internal Button CreateAddButton() => ShaderFXAddDropdown.CreateButton(
             entry => { if (CanEditStack()) Change("Add Catalog FX", () => owner.AddCatalogShaderFX(layer, entry)); },
-            () => { if (CanEditStack()) Change("Add Shader FX", () => owner.AddEmbeddedShaderFX(layer)); });
+            () => { if (CanEditStack()) Change("Add Shader FX", () => owner.AddEmbeddedShaderFX(layer)); },
+            () => { if (CanEditStack()) Change("Add Shader Graph FX", () =>
+            {
+                var effect = owner.AddEmbeddedShaderFX(layer);
+                effect.SetMode(ShaderLayerMode.Graph);
+            }); });
 
         internal void Refresh()
         {

@@ -12,7 +12,7 @@ next_page: "en/preview.md"
 
 # Shader FX
 
-Use **Shader FX** to change one layer or **Shader** to process the image below it. Both support ready-made presets and your own HLSL. No code is needed to use a preset.
+Use **Shader FX** to change one layer, or a **Shader** layer with Composite Below to process the image below it. Both use the same Code/Shader Graph programs and preset catalog. No code is needed to use a preset or build a graph.
 
 At native zoom and 100% **Live Quality**, pixel-local effects retain pixel detail
 without processing the whole large canvas. Effects that read neighboring pixels can
@@ -22,6 +22,19 @@ Keeping a Shader's **Transform** neutral also makes its pixel-local effects
 cheaper on large canvases. Moving or scaling the Shader can require more work.
 
 During ordinary brush strokes, open FX previews update at reduced resolution and preserve canvas detail. Repeated or mirrored layers can still cost more to preview.
+
+## Use a graph in an FX
+
+Choose **Add FX → Custom Shader Graph**, then **Edit Graph**. The same graph window used by
+Shader layers opens for this effect. **Sample Input** reads the image from earlier effects
+in the chain; connect it through your calculation to **Output**. Public graph parameters
+appear in the usual FX controls.
+
+**Mode** switches between **Shader Graph** and **Code** without converting or clearing either
+version or its values. **Custom Shader FX** starts in Code. Save the document to keep both.
+A graph that samples neighboring pixels can still be expensive; Graph mode alone does not
+make an effect pixel-local. Moving a program between a Shader layer and an FX changes its
+input and coordinates, so compare the result, especially with transforms.
 
 ## Affect one layer or the image below?
 
@@ -210,11 +223,18 @@ Every FX belongs to the document and has independent parameter values and enable
 
 Presets with `// @preset("GUID", 1)` in their initial comment header receive code changes from their source `.hlsl` file only while the declared version matches the version saved in the document. This applies to project, package and user-library presets; their parameter values remain independent. Use **Open HLSL Source** to edit that source. To edit this effect independently, choose **Code → Embed Copy**: it disconnects the `.hlsl` link, keeps the current code and values in the document, and enables local code editing. Later source-file changes no longer update this effect. Presets without `@preset` are independent copies, wherever their files are stored. If a linked source is missing, broken or has a different version, the effect uses the code saved in the document and keeps the link so it can retry when a matching source returns. For custom code, add **Add FX → Custom Shader FX**, write inline HLSL and click **Compile**. Parameters appear below the header; **Code** provides the applicable code controls, **Save Preset…** and **Shader Inputs**. Diagnostics appear when there is something to report.
 
-Only marked `.hlsl` presets and inline HLSL are supported. External Material, Shader and Shader FX `.asset` references cannot be added. Older JSON/TIFF documents containing external FX references are rejected with a diagnostic; there is no automatic migration or document rewrite. Keep the originals and use a matching older checkout to open them.
+Code supports marked `.hlsl` presets and inline HLSL; Graph supports `.whimtexshader` presets and editable document graphs. External Material, Shader and Shader FX `.asset` references cannot be added. Older JSON/TIFF documents containing external FX references are rejected with a diagnostic; there is no automatic migration or document rewrite. Keep the originals and use a matching older checkout to open them.
 
 ## Save your own preset
 
-In the effect's code editor, click **Save Preset…**. This creates an `.hlsl` file
+In Graph mode, **Save Preset…** creates `.whimtexshader`, retaining both modes, functions,
+Sub Graphs and captured includes. Use it from the same project/user catalog as Code presets
+or select it through a Shader layer's **Preset…** control. Clear Texture parameters' Layer
+references in both modes before export, including inactive selections. The document keeps
+an editable copy if the preset source disappears; **Embed Copy** detaches the exact-ID/version
+link while keeping that copy for offline editing. Referenced texture assets remain separate.
+
+In Code mode, click **Save Preset…**. This creates an `.hlsl` file
 with the current parameter values as defaults, including colors and Transform 2D.
 The file name becomes the preset name. You can save in the user library's **ShaderFX**
 subfolder or anywhere under the project's **Assets** folder. Overwriting keeps a `.bak` copy.

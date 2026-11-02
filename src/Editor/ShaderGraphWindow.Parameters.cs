@@ -111,7 +111,7 @@ namespace DCFApixels.WhimTex
                         p.softMinimum = p.softMaximum = p.cyclicRange = false;
                         if (p.type == ShaderFXParameterType.Gradient) p.gradientValue ??= new WhimTexGradient();
                         if (p.type == ShaderFXParameterType.Curve) p.curveValue ??= WhimTexCurveTexture.Default();
-                        if (p.textureSource == ShaderFXTextureSource.Self) p.textureSource = ShaderFXTextureSource.Texture;
+                        if (!Target.IsEffect && p.textureSource == ShaderFXTextureSource.Self) p.textureSource = ShaderFXTextureSource.Texture;
                     });
                 });
                 foldout.Add(typeField);

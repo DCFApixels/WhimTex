@@ -20242,7 +20242,7 @@
         "fx"
       ],
       "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
-      "setup": "owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>.",
+      "setup": "Current preset metadata and independent embedded copies; verify catalog linking, values/IDs, render parity, TIFF reopen and native serialization. Historical ID retained; no 0.12.5 reader compatibility. All imported assets limited to Assets/WhimTexTestMigration/<GUID>.",
       "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
       "result": {
         "kind": "structured"
@@ -20251,7 +20251,14 @@
         "Tests~/Framework/TestApi.cs",
         "Tests~/Framework/Unity/MigrationD.cs"
       ],
-      "reviewFiles": []
+      "reviewFiles": [
+        "src/FXPresets/ColorFilter.hlsl",
+        "src/FXPresets/Negative.hlsl",
+        "src/FXPresets/Mask.hlsl",
+        "src/FXPresets/GradientMap.hlsl",
+        "src/Shaders/HdrColor.cginc",
+        "src/Shaders/HueGradient.cginc"
+      ]
     },
     {
       "id": "shader-fx-diagnostics",

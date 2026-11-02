@@ -13,7 +13,7 @@ namespace DCFApixels.WhimTex
         [Serializable]
         private sealed class NodeClipboardData
         {
-            public string document, layer;
+            public string document, layer, target;
             public ShaderGraph graph;
             public Rect bounds;
             public bool hasBounds;
@@ -33,7 +33,7 @@ namespace DCFApixels.WhimTex
                     session = Guid.NewGuid().ToString("N");
                     SessionState.SetString(key, session);
                 }
-                return "WhimTex Shader Nodes v1 " + session + "\n";
+                return "WhimTex Shader Nodes v2 " + session + "\n";
             }
 
             protected override bool canCopySelection => selection.Any(item => item is IGraphItemView && item is GraphElement element &&
@@ -92,7 +92,7 @@ namespace DCFApixels.WhimTex
                 bool hasBounds = TryClipboardBounds(fragment, out Rect bounds);
                 return ClipboardPrefix + JsonUtility.ToJson(new NodeClipboardData
                 {
-                    document = UnityObjectID.FromObject(window.document).ToString(), layer = window.layerId,
+                    document = UnityObjectID.FromObject(window.document).ToString(), layer = window.layerId, target = window.Target.Identity,
                     graph = fragment, bounds = bounds, hasBounds = hasBounds
                 });
             }
@@ -129,7 +129,7 @@ namespace DCFApixels.WhimTex
                 if (copied.hasBounds && ValidClipboardBounds(copied.bounds)) return copied.bounds;
                 // A fragment already on the clipboard can recover its bounds from its still-open source.
                 foreach (var source in Resources.FindObjectsOfTypeAll<ShaderGraphWindow>())
-                    if (source.document != null && source.layerId == copied.layer &&
+                    if (source.document != null && source.Target.Identity == copied.target &&
                         UnityObjectID.FromObject(source.document).ToString() == copied.document &&
                         source.canvas != null && source.canvas.TryClipboardBounds(copied.graph, out Rect bounds)) return bounds;
                 throw new FormatException("Copy the nodes again after their layout is ready.");
@@ -163,7 +163,7 @@ namespace DCFApixels.WhimTex
                         notes = new List<ShaderGraphNote>(current.notes), groups = new List<ShaderGraphGroup>(current.groups)
                     };
                     bool sameDocument = copied.document == UnityObjectID.FromObject(window.document).ToString();
-                    bool sameGraph = sameDocument && copied.layer == window.layerId;
+                    bool sameGraph = sameDocument && copied.target == window.Target.Identity;
                     var parameterIds = new Dictionary<string, string>();
                     foreach (var parameter in fragment.parameters)
                     {
@@ -177,8 +177,10 @@ namespace DCFApixels.WhimTex
                         string name = parameter.name; int suffix = 1;
                         while (next.parameters.Exists(p => p.name == parameter.name)) parameter.name = name + " " + ++suffix;
                         if (parameter.type == ShaderFXParameterType.Texture2D && parameter.textureSource == ShaderFXTextureSource.Layer &&
-                            (!sameDocument || !window.document.IsUsableShaderTexture(window.Behaviour.Owner, parameter.textureLayerId)))
+                            (!sameDocument || !window.document.IsUsableStoredShaderTexture(window.Target.Layer, parameter.textureLayerId)))
                         { parameter.textureLayerId = null; parameter.textureSource = ShaderFXTextureSource.None; }
+                        if (parameter.textureSource == ShaderFXTextureSource.Self && !window.Target.IsEffect)
+                            parameter.textureSource = ShaderFXTextureSource.None;
                         next.parameters.Add(parameter); parameterIds.Add(oldId, parameter.id);
                     }
 
@@ -258,7 +260,7 @@ namespace DCFApixels.WhimTex
                         int index = next.subGraphs.FindIndex(item => item.id == definition.id);
                         next.subGraphs[index] = candidate; next.activeSubGraph = candidate;
                     }
-                    next.Validate();
+                    ShaderGraphCompiler.ValidateStorage(next, effectContext: window.Target.IsEffect);
                     // Keep the live definition referenced by sidebar callbacks after validation.
                     if (next.activeSubGraph != null)
                         next.subGraphs[next.subGraphs.FindIndex(item => item.id == current.activeSubGraph.id)] = current.activeSubGraph;

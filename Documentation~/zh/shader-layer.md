@@ -33,6 +33,18 @@ Code 在图层的局部坐标中生成图像。传入的颜色和 `SampleInput` 
 切回 Shader Graph 后，节点图和参数值保持原样。选择 Code 时，已经打开的节点图窗口
 为只读；切回 Shader Graph 即可继续编辑。
 
+## 复用着色器预设
+
+在 Properties 中点击 **Preset…**，从项目和用户库的共用目录选择 Code 或 Graph 预设。
+同一预设也可用于 [Shader FX](shader-fx.md)。**Save Preset…** 将 Code 保存为 `.hlsl`，
+将 Graph 保存为 `.whimtexshader`。Graph 预设保留两种模式、函数、Sub Graphs 和已收录的
+include 源码，便于继续编辑。保存预设前，清除两种模式中 Texture 参数的 Layer 引用，包括未启用的引用。
+
+关联预设只跟随已保存的 ID 和完全匹配的版本。源文件缺失时，文档仍保留可编辑的副本和节点图。
+**Embed Copy** 可将其变为独立副本。保存文档可保留草稿和两种模式。
+Input、Transform 和混合仍由图层设置决定；相同预设用于 FX 时，输入和坐标不同，像素结果可能不同。
+改变应用位置或变换后，请检查图像。
+
 ## 选择输入图像
 
 Properties 中的 **Input** 由 Shader Graph 和 Code 共用：

@@ -171,7 +171,9 @@
 | Layer | Слой | 图层 | |
 | Group | Группа | 组 | |
 | Effect Layer | Слой эффекта | 效果图层 | Отдельный слой, преобразующий входное изображение: например SDF или Outline. Не FX-блок в настройках слоя. |
-| FX | Шейдерные эффекты | 着色器效果 | Принадлежащий документу HLSL Shader FX в списке FX слоя. Не отдельный Effect Layer. |
+| FX | Шейдерные эффекты | 着色器效果 | Принадлежащий документу Shader FX с программой Graph/Code в списке FX слоя. Не отдельный Effect Layer. |
+| Shader Program | Шейдерная программа | 着色器程序 | Общие данные Graph/Code для слоя Shader и Shader FX; сериализуемый тип `ShaderProgram`, без Input, Transform и смешивания владельца. |
+| Shader Preset | Пресет шейдера | 着色器预设 | Code `.hlsl` или Graph `.whimtexshader` в общем каталоге; связь по GUID и точной версии, с редактируемой копией в документе. |
 | Rendering | Настройки вывода слоя | 图层渲染设置 | Общий блок Layer Settings: Opacity, Blend Mode, Color Range, Blend Range и Mapping. Прежнее название UI — Color & Blending. |
 | Channel Mapping | Назначение каналов | 通道映射 | Выбор значения для каждого выходного канала RGBA. Короткая подпись UI — Mapping; код и данные — LayerChannelMapping, ChannelMappingSource и channelMapping. |
 | Brush | Кисть | 画笔 | |
@@ -499,7 +501,28 @@ TIFF-контейнер, precision/sRGB, атомарная запись, identi
 
 ## FX/HLSL и кисти
 
-- Контракт только HLSL: `Layer.fx` — `List<ShaderFX>`. Каждый FX принадлежит документу и хранит
+- Общая программа: `ShaderLayerBehaviour.program` и `ShaderFX.program` используют `ShaderProgram`:
+  `mode` (`ShaderLayerMode.Graph/Code`), `graph`, черновик `code`, применённый `compiledCode`,
+  `codeParameters`, `presetId`, `presetVersion`. Оба режима сохраняются без преобразования.
+  Input None/Texture/Layer/CompositeBelow принадлежит слою; в FX Sample Input читает предыдущий
+  результат цепочки. Transform и смешивание остаются у владельца. Перенос программы между
+  этими местами не гарантирует одинаковые пиксели при всех трансформациях; PixelLocal определяется
+  консервативно по сгенерированному HLSL. Окно графа и controls параметров переиспользуются.
+- Graph-пресет — `.whimtexshader`, JSON `whimtex.shader-preset` v1: `program`, `menuPath`,
+  `group`/`icon`, сжатый общий архив исходников. Code остаётся `.hlsl`. Общий каталог проекта
+  и пользователя связывает по GUID и точной версии. Встроенная программа сохраняет оба режима,
+  функции, Sub Graphs и includes для редактирования без исходного пресета. Потеря файла не стирает граф.
+  Перед экспортом пресета очистить ссылки на слои документа, включая неактивные. Атомарное
+  сохранение и черновики сохраняют прежние гарантии. Общий codec — `ShaderProgramSnapshot`/`ReadShaderProgram`.
+  [Подробности](../Documentation~/ShaderLayer.md#shared-shaderprogram).
+- Проверены компиляция Unity, рендер Code/Graph с текстурами и временем, JSON/TIFF обоих режимов
+  с функциями, includes и дедупликацией, offline-пресеты, ID/версия и rollback обоих владельцев,
+  native roundtrip FX/Shader layer и анимированные FX групп. UI-проверки охватывают модель,
+  создание controls и Undo/Redo. Внешний вид UI, прикреплённого к панели, и вызов нативных
+  callbacks не проверены: соответствующие проверки без прикреплённого UI были пропущены.
+  Итоговый целевой прогон TextureView, Diagnostics, PixelLocal, Schema, DocumentDirty и
+  текущего preset-сценария завершился PASS; прежнее имя 0125 не означает проверку старого формата.
+- `Layer.fx` — `List<ShaderFX>`. Каждый FX принадлежит документу и хранит
   независимые значения параметров и Active. Помеченные `.hlsl`-пресеты проекта/пакетов и пользовательской
   библиотеки связываются с исходником только при наличии `@preset("GUID", version)`; без директивы
   добавляются независимой встроенной копией. Inline HLSL остаётся допустимым. Общий исходник не означает
@@ -508,7 +531,7 @@ TIFF-контейнер, precision/sRGB, атомарная запись, identi
   GUID формата D/N нормализуется в lowercase N; положительная целая версия обязательна вместе с ID.
   Unity GUID не заменяет отсутствующую директиву. Источник выбирается по ID и точному совпадению версии;
   отсутствующий, сломанный или несовпадающий исходник оставляет код документа и связь для повторного поиска.
-  TIFF/JSON хранят `presetId`, `presetVersion` и код с раскрытыми custom includes; source path/hash временны.
+  TIFF/JSON хранят `program.presetId`, `program.presetVersion` и оба режима с исходниками; source path/hash временны.
   `shaderKey` не меняется, миграции документов и удаление иконок из fallback вне задачи.
   Catalog ID — объявленный ID, иначе путь неидентифицируемой записи. Save Preset даёт новому файлу новый
   GUID/version 1, при перезаписи сохраняет пару назначения. Дубликаты ID, включая одинаковый код, получают

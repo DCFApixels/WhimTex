@@ -6,6 +6,20 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader layers and Shader FX share a ShaderProgram with retained Graph and Code modes,
+  parameter values, Code drafts and applied code. Add FX includes Custom Shader Graph;
+  both hosts use the same graph editor, and Graph parameters appear in ordinary FX controls.
+  FX Sample Input reads the preceding chain image. Layer Input, transforms and blending
+  remain host-specific, so changing placement can change the rendered result.
+
+- Shader layers and FX share preset selection and Save Preset. Portable `.whimtexshader`
+  presets retain both modes, functions, Sub Graphs and captured includes, with a compressed
+  shared source archive; Code presets remain `.hlsl`. Both use the project/user catalog with exact
+  GUID/version links. Documents retain editable embedded programs when a source is unavailable.
+  JSON/TIFF and native serialization preserve both modes and draft/applied state; failed
+  preset changes roll back without replacing the working program. Preset export requires
+  document-layer references to be cleared, including inactive references.
+
 - Crossfade blends layers and groups in premultiplied linear RGBA, weighting the transition by
   Opacity without mixing hidden transparent colors. It uses premultiplied before/after interpolation,
   appears beside Overwrite, and is also available in the Shader Graph Blend node. Clipping
@@ -669,6 +683,10 @@ All notable changes to WhimTex are documented in this file.
 - Removed nullable-annotation and obsolete UI-event warnings in the Clipper2 helper, layer-name field and slider controls.
 
 ### Upgrade notes
+
+- Shader layer and FX document JSON now stores mode, graph, code, parameters and preset
+  identity inside `program`. Former flat program fields are rejected without migration;
+  bundled examples, schemas and API descriptions use the new layout.
 
 - The retired None blend mode is unsupported in TIFF/JSON/API. Existing documents using it
   require a matching older editor; no automatic conversion is performed. Its numeric ID 3 is not reused.

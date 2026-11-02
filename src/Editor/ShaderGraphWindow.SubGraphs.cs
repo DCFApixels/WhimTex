@@ -15,7 +15,7 @@ namespace DCFApixels.WhimTex
         ShaderGraph subGraphView, subGraphRoot;
         ToolbarButton backToGraph;
         readonly List<Action> declarationRefresh = new List<Action>();
-        internal ShaderGraph RootGraph => Behaviour?.graph;
+        internal ShaderGraph RootGraph => Target.Graph;
         ShaderGraph ResolveGraph()
         {
             var root = RootGraph;

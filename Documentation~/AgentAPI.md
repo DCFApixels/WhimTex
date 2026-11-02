@@ -1208,33 +1208,51 @@ do not prove that a result layer/message still exists or has not subsequently ch
 
 ### FX edits and presets
 
-`whimtex_fx_catalog` accepts an optional `query` category/name/group substring. It discovers only `.hlsl`
-presets whose first physical line is `// @whimtex-effect Category/Name`, in Assets, installed
+`whimtex_fx_catalog` accepts an optional `query` category/name/group substring. It discovers
+Graph `.whimtexshader` presets and `.hlsl` presets whose first physical line is
+`// @whimtex-effect Category/Name`, in Assets, installed
 packages and the user preset library. ShaderFX `.asset`, Material and standalone ShaderLab
 sources are not catalog entries. Each result has `id`, `path`, `name`,
-`kind`, `group` (null when absent), `error` and `icon`. A leading `// @group("Name")`
+`kind` (`program` or `hlsl`), `mode`, `presetId`, `presetVersion`, `linkable`,
+`group` (null when absent), `error` and `icon`. A leading `// @group("Name")`
 organizes presets within each category submenu into alphabetical blocks separated by lines,
 without adding navigation levels or numeric priorities. See [preset list groups](ShaderFX.md#preset-list-groups).
 The icon descriptor reports `kind`, external `reference` and
 `warning`; document FX inspection returns the same fields. See [FX icons](ShaderFX.md#fx-icons).
-Pass an exact returned `presetId` to obtain `effect` with code and parameter
+Pass a returned catalog `id` as the request's `presetId` to obtain `effect` with `mode`,
+the shared `program` and active parameter
 types, current defaults, hard/soft bounds and enum options. Use IDs, not display names; invalid
 presets remain visible with an error. This command does not insert anything into a document.
-Project/package HLSL presets retain a source link; user-library presets are embedded snapshots.
+Project/package and user-library presets use the same exact GUID/version linking contract.
+Unmarked HLSL identities produce independent copies; `.whimtexshader` carries identity in `program`.
 All resulting FX instances are document-owned, with independent values and enabled state.
 
 `{"op":"fx","layer":"ID-or-@alias","edits":[...]}` supports:
 
 | Edit | Fields and behavior |
 |---|---|
-| `add` | Exactly one of `code` or `presetId`; optional insertion `index` (default append), `parameters`, `enabled`. Raw code supports optional `includeBasePath`, required for relative includes |
+| `add` | Supply `presetId`, a complete `program`, or flat program fields (`graph`, `code`, `mode`); `mode:"Graph"` alone starts an effect graph. Optional insertion `index` (default append), `parameters`, `enabled`, `compile` (default true). Raw code supports optional `includeBasePath`, required for relative includes |
 | `replace` | Existing `index`, otherwise the same fields as add |
-| `set` | Existing `index`, optional `parameters` and `enabled`; preserves code and does not recompile HLSL |
+| `set` | Existing `index`; optional `parameters`, `enabled` or program edits. Parameter-only changes preserve the program without recompiling. Program edits compile by default; `compile:false` retains a draft. Use `replace` to load a preset or change the include base |
 | `remove` | Existing `index` |
 | `move` | Existing `index` and `toIndex`, the final index after removal |
 | `copy` | `sourceLayer` ID or alias, `sourceIndex`; optional destination insertion `index`, `parameters`, `enabled`. Independent copy in the destination layer |
 | `apply` | Existing `index`; bake that FX and all preceding entries, including disabled entries (removed without rendering). Later FX remain |
 | `applyAll` | Bake the complete nonempty stack |
+
+The shared program shape is `mode` (`Graph`/`Code`, enum `ShaderLayerMode`), `graph`, draft
+`code`, applied `compiledCode`, `codeParameters`, `presetId` and `presetVersion`. `program`
+replaces the complete object and cannot be combined with flat program fields; `presetId`
+supplies the whole program and include base. Flat edits retain omitted fields; `graph` and
+`codeParameters` replace their complete contents. `copy` also accepts program edits, while
+retaining the source's include base. A new `graph` without `mode` selects Graph; on an existing
+FX, select the mode explicitly. Both modes survive switching, snapshots and document storage.
+
+Graph parameters use the same name/value overrides below. FX Graph Sample Input reads the
+preceding chain image. Input selection, transforms and blending remain host-specific; using
+the same program in a Shader layer need not produce identical pixels. The shared codec is
+`WhimTexDocumentJson.ShaderProgramSnapshot` / `ReadShaderProgram`.
+Inspect current discovery and snapshots before constructing operations.
 
 `add`, `replace`, `set` and `copy` also accept `randomizeSeeds:["_Seed"]`. Names must identify
 explicit `seed(float)` declarations; the first seed control defines each inclusive integer range.
@@ -1265,12 +1283,12 @@ operation, 32 FX per layer, 128 parameters per effect, 65,536 characters of raw 
 | `Transform2D` | Partial object with `position:[x,y]`, `size:[x,y]`, `rotation`, or nine row-major `matrix` values. Matrix excludes the other three fields. Components are finite, within ±1e15; size components must have absolute value at least 0.00001. Position and size use normalized input units (center `[0.5,0.5]`, full size `[1,1]`); rotation uses counterclockwise degrees |
 
 The reservation/lock `fx` format in [LiveAgentAPI](LiveAgentAPI.md#inline-shader-fx)
-accepts inline code with `@param` defaults. It does not accept this name/value object or
-inspection's parameter records. Finish pending jobs before using `whimtex_assistant_execute`
+accepts the same program fields and name/value object, not inspection's parameter records.
+It supports add/replace/set/remove with its own operation limit. Finish pending jobs before using `whimtex_assistant_execute`
 for FX value edits. See [HLSL declarations](ShaderFX.md#parameter-declarations)
 for the corresponding source syntax.
 
-`Layer.fx` is a `List<ShaderFX>`; these edits operate on document-owned HLSL FX with independent
+`Layer.fx` is a `List<ShaderFX>`; these edits operate on document-owned Graph/Code FX with independent
 values. JSON list items are `ShaderFX` models, `null`, or internal `$ref` references to those
 models, never `$asset`; see the [JSON model contract](JSON_FORMAT.md#envelope-and-model).
 There is no external Material/Shader/ShaderFX `.asset` source mode or
@@ -1575,7 +1593,7 @@ Current Sharp/MTSDF quality prototype: closed raster contours use line fits over
 | File | `source`: imported Texture2D path in Assets/Packages, or an absolute external image path. External PNG/JPEG/TGA/BMP/EXR and supported TIFF are decoded without importing. TIFF: little-endian straight RGBA, 8-bit or 32-bit float, None/Deflate compression, no predictor. Inspection returns the same path, `sourceSize` and `sourceError` when unavailable; `importedSourceSize` applies only to project textures. Assignment validates the decoder before changing the link. External links remain absolute and are not embedded; another machine must have the source at that path or replace it. |
 | Color | `color` (`[r,g,b,a]`, encoded RGB -107..107, alpha 0..1), `fillMode` (`Color`, `UV`, `Pattern`), `fillPattern` (partial settings below) |
 | Drawing | `brush` (partial brush settings below) |
-| Shader | `shader.mode` (`Graph`/`Code`), shared `inputMode` (`None`/`Texture`/`Layer`/`CompositeBelow`), `inputTexture` (`$asset` identity or null), `inputLayerId` (ID, earlier `@alias` or null), `graph`, draft `code`, applied `compiledCode`, `codeParameters`, and explicit API-only `compile:true`. Switching retains both contents, parameter sets and inactive input selections. Input affects reading only; ordinary blending remains. Graph/parameter arrays replace completely. See the [exact JSON examples and compile/roundtrip contract](ShaderLayer.md#api-and-document-json). |
+| Shader | `shader.program` (shared Graph/Code object) or catalog `presetId`; alternatively partial `mode`, `graph`, draft `code`, applied `compiledCode`, `codeParameters`. Host fields remain `inputMode` (`None`/`Texture`/`Layer`/`CompositeBelow`), `inputTexture` (`$asset` identity or null), `inputLayerId` (ID, earlier `@alias` or null). API-only `compile:true` compiles the selected mode. Switching retains both contents, parameter sets and inactive input selections. Input affects reading only; ordinary blending remains. Graph/parameter arrays replace completely. See the [compile/roundtrip contract](ShaderLayer.md#api-and-document-json). |
 | Gradient | `gradientType` (`Linear`, `Radial`, `Angular`, `Square`, `Freeform`, `Mesh`), `gradient` (ordinary palette), `freeform` (point settings below), `mesh` (complete control lattice below) |
 | Outline | `color`, `metric` (`EuclideanAntialiased` default; ten modes below), `miterLimit` (float, 1..64, default 4; Sharp/CornerFit/Spring), `sourceChannel` (`Alpha` default, `Red`, `Green`, `Blue`, `Luminance`), `outlineWidth`, `outlineSoftness` (0..16384), `outlinePosition` (`Outside`, `Inside`, `Center`), `outlineOffset` (-16384..16384), `fillCenter` (bool), `fillColor` (`[r,g,b,a]`) |
 | SDF | `metric` (`EuclideanAntialiased` default; ten modes below), `miterLimit` (float, 1..64, default 4; Sharp/CornerFit/Spring), `contourMergeDistance` (finite float, 0..2 inclusive, default 0/off; experimental, Sharp/MTSDF only, current render px), `sourceChannel` (`Alpha`, `Red`, `Green`, `Blue`, `Luminance`), `threshold` (integer 0..255), `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`), `encoding` (`Gradient` default, `LinearData`, `MultiChannelData`), `inverted` (bool; Gradient/LinearData), `maxDistance` (0..16384; zero = automatic), `sourceOffset` ([x,y], each -16384..16384 px), `sourceEdges` (`Transparent`, `Clamp`, `Repeat`, `Mirror`), `contourOffset` (-16384..16384 px; positive expands; Gradient/LinearData only), `insideDistance`/`outsideDistance` (Signed Gradient/LinearData only, 0..16384; 0 inherits maxDistance/auto), `profile` (FX curve string syntax, at most 4096 characters; default `linear`; Gradient/LinearData only) |

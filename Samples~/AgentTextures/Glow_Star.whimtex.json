@@ -45,26 +45,65 @@
           "$type": "ShaderFX",
           "$id": "fx0",
           "active": true,
-          "code": "// @whimtex-effect Samples/Master Tint\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = (1, 1, 1, 1)\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return float4(color.rgb*_Tint.rgb,color.a*_Opacity*_Tint.a);}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "32ed64cb33794754ad1ce2f418290585"
-            },
-            {
-              "name": "_Tint",
-              "type": "Color",
-              "colorValue": [
-                1.0,
-                1.0,
-                1.0,
-                1.0
+          "program": {
+            "code": "// @whimtex-effect Samples/Master Tint\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = (1, 1, 1, 1)\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return float4(color.rgb*_Tint.rgb,color.a*_Opacity*_Tint.a);}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
               ],
-              "id": "3a2287ea78cc4bf1bc61a397de8ae2aa"
-            }
-          ],
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
+            },
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "32ed64cb33794754ad1ce2f418290585"
+              },
+              {
+                "name": "_Tint",
+                "type": "Color",
+                "colorValue": [
+                  1.0,
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                "id": "3a2287ea78cc4bf1bc61a397de8ae2aa"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Master Tint\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = (1, 1, 1, 1)\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return float4(color.rgb*_Tint.rgb,color.a*_Opacity*_Tint.a);}\r\n"
+          },
           "shaderKey": "df8eb84e355241a0b8ad3aa6b840a4a1",
           "$name": ""
         }
@@ -101,10 +140,12 @@
       "behaviour": {
         "$type": "ShaderLayerBehaviour",
         "recoveryId": "41b8dfa8220d47f4b30f49a709e6a2ac",
-        "mode": "Code",
-        "inputMode": "CompositeBelow",
-        "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
-        "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+        "program": {
+          "mode": "Code",
+          "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+          "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+        },
+        "inputMode": "CompositeBelow"
       },
       "behaviourId": "41b8dfa8220d47f4b30f49a709e6a2ac",
       "children": null,
@@ -128,45 +169,84 @@
           "$type": "ShaderFX",
           "$id": "fx1",
           "active": true,
-          "code": "// @whimtex-effect Samples/Star Glare\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param enum _Part = 2 { Halo: 0, Rays: 1, Core: 2 }\r\n// @param float _Angle = 24 [-180 .. 180]\r\n// @param float _Size = 1 [0.2 .. 2]\r\n// @param float _RayWidth = 1 [0.3 .. 3]\r\n// @param float _RayLength = 1 [0.3 .. 1.5]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float2 p=(uv-.5)/_Size;\r\n    float r=length(p);float a=radians(_Angle);\r\n    float2 q=float2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));\r\n    float halo=exp(-r*10)*.65+exp(-r*r/.036)*.2;\r\n    float rays=exp(-abs(q.x)*180/_RayWidth-abs(q.y)*13/_RayLength)+exp(-abs(q.y)*230/_RayWidth-abs(q.x)*16/_RayLength);\r\n    float2 s=float2(q.x+q.y,q.y-q.x)*.7071;\r\n    rays+=.30*(exp(-abs(s.x)*300-abs(s.y)*22)+exp(-abs(s.y)*300-abs(s.x)*22));\r\n    float core=exp(-pow(r/.022,2.4))+.6*exp(-r*r/.0013);\r\n    float alpha=_Part<.5?halo:(_Part<1.5?rays:core);\r\n    alpha*=1-smoothstep(.42,.49,length(uv-.5));\r\n    return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "ce884dca26fc4e18a94c97285bbeb59a"
+          "program": {
+            "code": "// @whimtex-effect Samples/Star Glare\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param enum _Part = 2 { Halo: 0, Rays: 1, Core: 2 }\r\n// @param float _Angle = 24 [-180 .. 180]\r\n// @param float _Size = 1 [0.2 .. 2]\r\n// @param float _RayWidth = 1 [0.3 .. 3]\r\n// @param float _RayLength = 1 [0.3 .. 1.5]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float2 p=(uv-.5)/_Size;\r\n    float r=length(p);float a=radians(_Angle);\r\n    float2 q=float2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));\r\n    float halo=exp(-r*10)*.65+exp(-r*r/.036)*.2;\r\n    float rays=exp(-abs(q.x)*180/_RayWidth-abs(q.y)*13/_RayLength)+exp(-abs(q.y)*230/_RayWidth-abs(q.x)*16/_RayLength);\r\n    float2 s=float2(q.x+q.y,q.y-q.x)*.7071;\r\n    rays+=.30*(exp(-abs(s.x)*300-abs(s.y)*22)+exp(-abs(s.y)*300-abs(s.x)*22));\r\n    float core=exp(-pow(r/.022,2.4))+.6*exp(-r*r/.0013);\r\n    float alpha=_Part<.5?halo:(_Part<1.5?rays:core);\r\n    alpha*=1-smoothstep(.42,.49,length(uv-.5));\r\n    return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
+              ],
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Part",
-              "type": "Float",
-              "floatValue": 2.0,
-              "id": "b346237749bb4c2aa1b57e1e28c86766"
-            },
-            {
-              "name": "_Angle",
-              "type": "Float",
-              "floatValue": 24.0,
-              "id": "89c8460ef6234f6cba48491f5cdd1543"
-            },
-            {
-              "name": "_Size",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "bd1e582eec7a498695c4a14697e684e9"
-            },
-            {
-              "name": "_RayWidth",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "e56c569152f1428da21e5920ca8a30cc"
-            },
-            {
-              "name": "_RayLength",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "59de84373eec49ed97cfa418fa95182d"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "ce884dca26fc4e18a94c97285bbeb59a"
+              },
+              {
+                "name": "_Part",
+                "type": "Float",
+                "floatValue": 2.0,
+                "id": "b346237749bb4c2aa1b57e1e28c86766"
+              },
+              {
+                "name": "_Angle",
+                "type": "Float",
+                "floatValue": 24.0,
+                "id": "89c8460ef6234f6cba48491f5cdd1543"
+              },
+              {
+                "name": "_Size",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "bd1e582eec7a498695c4a14697e684e9"
+              },
+              {
+                "name": "_RayWidth",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "e56c569152f1428da21e5920ca8a30cc"
+              },
+              {
+                "name": "_RayLength",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "59de84373eec49ed97cfa418fa95182d"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Star Glare\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param enum _Part = 2 { Halo: 0, Rays: 1, Core: 2 }\r\n// @param float _Angle = 24 [-180 .. 180]\r\n// @param float _Size = 1 [0.2 .. 2]\r\n// @param float _RayWidth = 1 [0.3 .. 3]\r\n// @param float _RayLength = 1 [0.3 .. 1.5]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float2 p=(uv-.5)/_Size;\r\n    float r=length(p);float a=radians(_Angle);\r\n    float2 q=float2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));\r\n    float halo=exp(-r*10)*.65+exp(-r*r/.036)*.2;\r\n    float rays=exp(-abs(q.x)*180/_RayWidth-abs(q.y)*13/_RayLength)+exp(-abs(q.y)*230/_RayWidth-abs(q.x)*16/_RayLength);\r\n    float2 s=float2(q.x+q.y,q.y-q.x)*.7071;\r\n    rays+=.30*(exp(-abs(s.x)*300-abs(s.y)*22)+exp(-abs(s.y)*300-abs(s.x)*22));\r\n    float core=exp(-pow(r/.022,2.4))+.6*exp(-r*r/.0013);\r\n    float alpha=_Part<.5?halo:(_Part<1.5?rays:core);\r\n    alpha*=1-smoothstep(.42,.49,length(uv-.5));\r\n    return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n"
+          },
           "shaderKey": "fc329cd0c82249fb8ddfd608912e005c",
           "$name": ""
         }
@@ -290,45 +370,84 @@
           "$type": "ShaderFX",
           "$id": "fx2",
           "active": true,
-          "code": "// @whimtex-effect Samples/Star Glare\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param enum _Part = 1 { Halo: 0, Rays: 1, Core: 2 }\r\n// @param float _Angle = 24 [-180 .. 180]\r\n// @param float _Size = 1 [0.2 .. 2]\r\n// @param float _RayWidth = 1 [0.3 .. 3]\r\n// @param float _RayLength = 1 [0.3 .. 1.5]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float2 p=(uv-.5)/_Size;\r\n    float r=length(p);float a=radians(_Angle);\r\n    float2 q=float2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));\r\n    float halo=exp(-r*10)*.65+exp(-r*r/.036)*.2;\r\n    float rays=exp(-abs(q.x)*180/_RayWidth-abs(q.y)*13/_RayLength)+exp(-abs(q.y)*230/_RayWidth-abs(q.x)*16/_RayLength);\r\n    float2 s=float2(q.x+q.y,q.y-q.x)*.7071;\r\n    rays+=.30*(exp(-abs(s.x)*300-abs(s.y)*22)+exp(-abs(s.y)*300-abs(s.x)*22));\r\n    float core=exp(-pow(r/.022,2.4))+.6*exp(-r*r/.0013);\r\n    float alpha=_Part<.5?halo:(_Part<1.5?rays:core);\r\n    alpha*=1-smoothstep(.42,.49,length(uv-.5));\r\n    return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "9476a2192f1644308c7a0fe74612c13b"
+          "program": {
+            "code": "// @whimtex-effect Samples/Star Glare\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param enum _Part = 1 { Halo: 0, Rays: 1, Core: 2 }\r\n// @param float _Angle = 24 [-180 .. 180]\r\n// @param float _Size = 1 [0.2 .. 2]\r\n// @param float _RayWidth = 1 [0.3 .. 3]\r\n// @param float _RayLength = 1 [0.3 .. 1.5]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float2 p=(uv-.5)/_Size;\r\n    float r=length(p);float a=radians(_Angle);\r\n    float2 q=float2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));\r\n    float halo=exp(-r*10)*.65+exp(-r*r/.036)*.2;\r\n    float rays=exp(-abs(q.x)*180/_RayWidth-abs(q.y)*13/_RayLength)+exp(-abs(q.y)*230/_RayWidth-abs(q.x)*16/_RayLength);\r\n    float2 s=float2(q.x+q.y,q.y-q.x)*.7071;\r\n    rays+=.30*(exp(-abs(s.x)*300-abs(s.y)*22)+exp(-abs(s.y)*300-abs(s.x)*22));\r\n    float core=exp(-pow(r/.022,2.4))+.6*exp(-r*r/.0013);\r\n    float alpha=_Part<.5?halo:(_Part<1.5?rays:core);\r\n    alpha*=1-smoothstep(.42,.49,length(uv-.5));\r\n    return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
+              ],
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Part",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "a11b9aec665b4a40a6c6f32fd9fd1f26"
-            },
-            {
-              "name": "_Angle",
-              "type": "Float",
-              "floatValue": 24.0,
-              "id": "d6079607d99b4e1087ee5e018fb1a4e1"
-            },
-            {
-              "name": "_Size",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "2188d30028f2474ea6394286c72dbbe1"
-            },
-            {
-              "name": "_RayWidth",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "adeedb555006484aac7d5605794c2a22"
-            },
-            {
-              "name": "_RayLength",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "11553aedebb24eb2a82353518d044dbb"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "9476a2192f1644308c7a0fe74612c13b"
+              },
+              {
+                "name": "_Part",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "a11b9aec665b4a40a6c6f32fd9fd1f26"
+              },
+              {
+                "name": "_Angle",
+                "type": "Float",
+                "floatValue": 24.0,
+                "id": "d6079607d99b4e1087ee5e018fb1a4e1"
+              },
+              {
+                "name": "_Size",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "2188d30028f2474ea6394286c72dbbe1"
+              },
+              {
+                "name": "_RayWidth",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "adeedb555006484aac7d5605794c2a22"
+              },
+              {
+                "name": "_RayLength",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "11553aedebb24eb2a82353518d044dbb"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Star Glare\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param enum _Part = 1 { Halo: 0, Rays: 1, Core: 2 }\r\n// @param float _Angle = 24 [-180 .. 180]\r\n// @param float _Size = 1 [0.2 .. 2]\r\n// @param float _RayWidth = 1 [0.3 .. 3]\r\n// @param float _RayLength = 1 [0.3 .. 1.5]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float2 p=(uv-.5)/_Size;\r\n    float r=length(p);float a=radians(_Angle);\r\n    float2 q=float2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));\r\n    float halo=exp(-r*10)*.65+exp(-r*r/.036)*.2;\r\n    float rays=exp(-abs(q.x)*180/_RayWidth-abs(q.y)*13/_RayLength)+exp(-abs(q.y)*230/_RayWidth-abs(q.x)*16/_RayLength);\r\n    float2 s=float2(q.x+q.y,q.y-q.x)*.7071;\r\n    rays+=.30*(exp(-abs(s.x)*300-abs(s.y)*22)+exp(-abs(s.y)*300-abs(s.x)*22));\r\n    float core=exp(-pow(r/.022,2.4))+.6*exp(-r*r/.0013);\r\n    float alpha=_Part<.5?halo:(_Part<1.5?rays:core);\r\n    alpha*=1-smoothstep(.42,.49,length(uv-.5));\r\n    return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n"
+          },
           "shaderKey": "5215f4b7a51948248ba5fdeed6729592",
           "$name": ""
         }
@@ -395,45 +514,84 @@
           "$type": "ShaderFX",
           "$id": "fx3",
           "active": true,
-          "code": "// @whimtex-effect Samples/Star Glare\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.9 [0 .. 1]\r\n// @param enum _Part = 0 { Halo: 0, Rays: 1, Core: 2 }\r\n// @param float _Angle = 24 [-180 .. 180]\r\n// @param float _Size = 1 [0.2 .. 2]\r\n// @param float _RayWidth = 1 [0.3 .. 3]\r\n// @param float _RayLength = 1 [0.3 .. 1.5]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float2 p=(uv-.5)/_Size;\r\n    float r=length(p);float a=radians(_Angle);\r\n    float2 q=float2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));\r\n    float halo=exp(-r*10)*.65+exp(-r*r/.036)*.2;\r\n    float rays=exp(-abs(q.x)*180/_RayWidth-abs(q.y)*13/_RayLength)+exp(-abs(q.y)*230/_RayWidth-abs(q.x)*16/_RayLength);\r\n    float2 s=float2(q.x+q.y,q.y-q.x)*.7071;\r\n    rays+=.30*(exp(-abs(s.x)*300-abs(s.y)*22)+exp(-abs(s.y)*300-abs(s.x)*22));\r\n    float core=exp(-pow(r/.022,2.4))+.6*exp(-r*r/.0013);\r\n    float alpha=_Part<.5?halo:(_Part<1.5?rays:core);\r\n    alpha*=1-smoothstep(.42,.49,length(uv-.5));\r\n    return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 0.9,
-              "id": "c2fa2744247246df8933bc5f5aa59c61"
+          "program": {
+            "code": "// @whimtex-effect Samples/Star Glare\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.9 [0 .. 1]\r\n// @param enum _Part = 0 { Halo: 0, Rays: 1, Core: 2 }\r\n// @param float _Angle = 24 [-180 .. 180]\r\n// @param float _Size = 1 [0.2 .. 2]\r\n// @param float _RayWidth = 1 [0.3 .. 3]\r\n// @param float _RayLength = 1 [0.3 .. 1.5]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float2 p=(uv-.5)/_Size;\r\n    float r=length(p);float a=radians(_Angle);\r\n    float2 q=float2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));\r\n    float halo=exp(-r*10)*.65+exp(-r*r/.036)*.2;\r\n    float rays=exp(-abs(q.x)*180/_RayWidth-abs(q.y)*13/_RayLength)+exp(-abs(q.y)*230/_RayWidth-abs(q.x)*16/_RayLength);\r\n    float2 s=float2(q.x+q.y,q.y-q.x)*.7071;\r\n    rays+=.30*(exp(-abs(s.x)*300-abs(s.y)*22)+exp(-abs(s.y)*300-abs(s.x)*22));\r\n    float core=exp(-pow(r/.022,2.4))+.6*exp(-r*r/.0013);\r\n    float alpha=_Part<.5?halo:(_Part<1.5?rays:core);\r\n    alpha*=1-smoothstep(.42,.49,length(uv-.5));\r\n    return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
+              ],
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Part",
-              "type": "Float",
-              "floatValue": 0.0,
-              "id": "a5e6599ddc074aa3baaa9fbc73142cc2"
-            },
-            {
-              "name": "_Angle",
-              "type": "Float",
-              "floatValue": 24.0,
-              "id": "955fbd655c58462ca572a75407820469"
-            },
-            {
-              "name": "_Size",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "55cad6798f30418cade627d89d10e1ff"
-            },
-            {
-              "name": "_RayWidth",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "9eb89cfc2f8d4f6185bcbb7fd611b09e"
-            },
-            {
-              "name": "_RayLength",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "a6034e799e6544a6ab5de5756baf5b1c"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 0.9,
+                "id": "c2fa2744247246df8933bc5f5aa59c61"
+              },
+              {
+                "name": "_Part",
+                "type": "Float",
+                "floatValue": 0.0,
+                "id": "a5e6599ddc074aa3baaa9fbc73142cc2"
+              },
+              {
+                "name": "_Angle",
+                "type": "Float",
+                "floatValue": 24.0,
+                "id": "955fbd655c58462ca572a75407820469"
+              },
+              {
+                "name": "_Size",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "55cad6798f30418cade627d89d10e1ff"
+              },
+              {
+                "name": "_RayWidth",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "9eb89cfc2f8d4f6185bcbb7fd611b09e"
+              },
+              {
+                "name": "_RayLength",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "a6034e799e6544a6ab5de5756baf5b1c"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Samples/Star Glare\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.9 [0 .. 1]\r\n// @param enum _Part = 0 { Halo: 0, Rays: 1, Core: 2 }\r\n// @param float _Angle = 24 [-180 .. 180]\r\n// @param float _Size = 1 [0.2 .. 2]\r\n// @param float _RayWidth = 1 [0.3 .. 3]\r\n// @param float _RayLength = 1 [0.3 .. 1.5]\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n    float2 p=(uv-.5)/_Size;\r\n    float r=length(p);float a=radians(_Angle);\r\n    float2 q=float2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));\r\n    float halo=exp(-r*10)*.65+exp(-r*r/.036)*.2;\r\n    float rays=exp(-abs(q.x)*180/_RayWidth-abs(q.y)*13/_RayLength)+exp(-abs(q.y)*230/_RayWidth-abs(q.x)*16/_RayLength);\r\n    float2 s=float2(q.x+q.y,q.y-q.x)*.7071;\r\n    rays+=.30*(exp(-abs(s.x)*300-abs(s.y)*22)+exp(-abs(s.y)*300-abs(s.x)*22));\r\n    float core=exp(-pow(r/.022,2.4))+.6*exp(-r*r/.0013);\r\n    float alpha=_Part<.5?halo:(_Part<1.5?rays:core);\r\n    alpha*=1-smoothstep(.42,.49,length(uv-.5));\r\n    return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n"
+          },
           "shaderKey": "d920cb5b84334c60ad67bf4aaae69704",
           "$name": ""
         }

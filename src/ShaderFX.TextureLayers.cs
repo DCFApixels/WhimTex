@@ -96,9 +96,8 @@ namespace DCFApixels.WhimTex
         // Persistence/preflight must also validate drafts before a shader has been applied.
         internal IEnumerable<ShaderFXParameter> StoredTextureLayerParameters()
         {
-            foreach (var value in parameters)
-                if (value != null && value.type == ShaderFXParameterType.Texture2D &&
-                    value.textureSource == ShaderFXTextureSource.Layer) yield return value;
+            foreach (var value in new ShaderGraphStorage.TextureParameters(Program.graph?.parameters, Program.codeParameters, true))
+                yield return value;
         }
 
         internal TextureParameterEnumerable TextureParameters() => new TextureParameterEnumerable(PrepareTexturePlan(), false);
@@ -112,6 +111,7 @@ namespace DCFApixels.WhimTex
         {
             void Remap(List<ShaderFXParameter> values)
             {
+                if (values == null) return;
                 foreach (var p in values)
                 {
                     if (p == null || p.textureSource != ShaderFXTextureSource.Layer || string.IsNullOrEmpty(p.textureLayerId)) continue;
@@ -119,7 +119,7 @@ namespace DCFApixels.WhimTex
                     else if (clearExternal) p.textureLayerId = null;
                 }
             }
-            Remap(parameters); Remap(appliedParameters);
+            Remap(Program.graph?.parameters); Remap(Program.codeParameters); Remap(appliedParameters);
         }
     }
 
@@ -227,6 +227,10 @@ namespace DCFApixels.WhimTex
 
         internal ShaderTextureBindings BindShaderTextureLayers(ShaderFX effect, Layer consumer, in LayerRenderContext context, RenderTexture self)
         {
+            // BindEffect refreshes these declarations from public values and retains the
+            // generated uniform names used by graph texture ports.
+            if (effect.Mode == ShaderLayerMode.Graph)
+                return BindShaderTextureLayers(effect.BoundGraphParameters, consumer, context, self);
             ShaderTextureBindings bindings = null;
             var previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;

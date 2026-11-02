@@ -68,32 +68,71 @@
           "$type": "ShaderFX",
           "$id": "fx0",
           "active": true,
-          "code": "// @whimtex-effect Learn/Final Tint\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = #FFFFFF\r\n// @param float _Brightness = 1 [0 .. ~3]\r\n\r\n\r\nfloat LearnHash(float2 p){ return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453); }\r\nfloat LearnNoise(float2 p, float seed){\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat LearnFbm(float2 p,float seed){\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n s.fractal_type=FNL_FRACTAL_FBM;s.octaves=3;s.gain=.42;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat2 LearnRotate(float2 p,float angle){float c=cos(radians(angle)),s=sin(radians(angle));return float2(c*p.x-s*p.y,s*p.x+c*p.y);}\r\nfloat LearnEdge(float d,float softness){float w=max(fwidth(d),max(softness,.00001));return 1-smoothstep(-w,w,d);}\r\nfloat LearnGauss(float x){return exp(-x*x);}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n\r\nreturn float4(color.rgb*_Tint.rgb*_Brightness,color.a*_Tint.a*_Opacity);\r\n}\r\n",
-          "parameters": [
-            {
-              "name": "_Opacity",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "a4a500355ad94072806000dfb196bbe7"
-            },
-            {
-              "name": "_Tint",
-              "type": "Color",
-              "colorValue": [
-                1.0,
-                1.0,
-                1.0,
-                1.0
+          "program": {
+            "code": "// @whimtex-effect Learn/Final Tint\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = #FFFFFF\r\n// @param float _Brightness = 1 [0 .. ~3]\r\n\r\n\r\nfloat LearnHash(float2 p){ return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453); }\r\nfloat LearnNoise(float2 p, float seed){\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat LearnFbm(float2 p,float seed){\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n s.fractal_type=FNL_FRACTAL_FBM;s.octaves=3;s.gain=.42;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat2 LearnRotate(float2 p,float angle){float c=cos(radians(angle)),s=sin(radians(angle));return float2(c*p.x-s*p.y,s*p.x+c*p.y);}\r\nfloat LearnEdge(float d,float softness){float w=max(fwidth(d),max(softness,.00001));return 1-smoothstep(-w,w,d);}\r\nfloat LearnGauss(float x){return exp(-x*x);}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n\r\nreturn float4(color.rgb*_Tint.rgb*_Brightness,color.a*_Tint.a*_Opacity);\r\n}\r\n",
+            "mode": "Code",
+            "graph": {
+              "version": 1,
+              "parameters": [],
+              "nodes": [
+                {
+                  "id": "fxInput",
+                  "kind": "SampleInput",
+                  "position": [
+                    40,
+                    80
+                  ]
+                },
+                {
+                  "id": "fxOutput",
+                  "kind": "Output",
+                  "position": [
+                    360,
+                    80
+                  ]
+                }
               ],
-              "id": "734a258dae124ffaa0f165b1281a52ac"
+              "edges": [
+                {
+                  "outputNode": "fxInput",
+                  "outputPort": "Out",
+                  "inputNode": "fxOutput",
+                  "inputPort": "RGBA"
+                }
+              ],
+              "functions": [],
+              "sources": [],
+              "notes": [],
+              "groups": [],
+              "subGraphs": []
             },
-            {
-              "name": "_Brightness",
-              "type": "Float",
-              "floatValue": 1.0,
-              "id": "332f265d97bd46b6836ad63f01de96a1"
-            }
-          ],
+            "codeParameters": [
+              {
+                "name": "_Opacity",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "a4a500355ad94072806000dfb196bbe7"
+              },
+              {
+                "name": "_Tint",
+                "type": "Color",
+                "colorValue": [
+                  1.0,
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                "id": "734a258dae124ffaa0f165b1281a52ac"
+              },
+              {
+                "name": "_Brightness",
+                "type": "Float",
+                "floatValue": 1.0,
+                "id": "332f265d97bd46b6836ad63f01de96a1"
+              }
+            ],
+            "compiledCode": "// @whimtex-effect Learn/Final Tint\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = #FFFFFF\r\n// @param float _Brightness = 1 [0 .. ~3]\r\n\r\n\r\nfloat LearnHash(float2 p){ return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453); }\r\nfloat LearnNoise(float2 p, float seed){\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat LearnFbm(float2 p,float seed){\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n s.fractal_type=FNL_FRACTAL_FBM;s.octaves=3;s.gain=.42;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat2 LearnRotate(float2 p,float angle){float c=cos(radians(angle)),s=sin(radians(angle));return float2(c*p.x-s*p.y,s*p.x+c*p.y);}\r\nfloat LearnEdge(float d,float softness){float w=max(fwidth(d),max(softness,.00001));return 1-smoothstep(-w,w,d);}\r\nfloat LearnGauss(float x){return exp(-x*x);}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;\r\n\r\nreturn float4(color.rgb*_Tint.rgb*_Brightness,color.a*_Tint.a*_Opacity);\r\n}\r\n"
+          },
           "shaderKey": "c254585201b3412b90df7f84b8a5e5ed",
           "$name": ""
         }
@@ -130,10 +169,12 @@
       "behaviour": {
         "$type": "ShaderLayerBehaviour",
         "recoveryId": "88380e2c758343d895edff8957dfba38",
-        "mode": "Code",
-        "inputMode": "CompositeBelow",
-        "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
-        "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+        "program": {
+          "mode": "Code",
+          "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+          "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+        },
+        "inputMode": "CompositeBelow"
       },
       "behaviourId": "88380e2c758343d895edff8957dfba38",
       "children": [],
@@ -383,80 +424,119 @@
               "$type": "ShaderFX",
               "$id": "fx1",
               "active": true,
-              "code": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param toggle(float) _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
-              "parameters": [
-                {
-                  "name": "_Opacity",
-                  "type": "Float",
-                  "floatValue": 1.0,
-                  "id": "630fdc1d0cfe4dfdbda388292d145edc"
-                },
-                {
-                  "name": "_InBlack",
-                  "type": "Float",
-                  "floatValue": 0.0,
-                  "id": "07033562627642b5b35ac19e92ce02ae"
-                },
-                {
-                  "name": "_InWhite",
-                  "type": "Float",
-                  "floatValue": 1.0,
-                  "id": "e3ffdffb625b4e9f837cfb465d279e14"
-                },
-                {
-                  "name": "_Gamma",
-                  "type": "Float",
-                  "floatValue": 1.25,
-                  "id": "afab465d5dea42e98b259a0f469aeb37"
-                },
-                {
-                  "name": "_Curve",
-                  "type": "Curve",
-                  "curveValue": {
-                    "preWrap": "ClampForever",
-                    "postWrap": "ClampForever",
-                    "keys": [
-                      [
-                        0.0,
-                        0.0,
-                        0.0,
-                        0.0,
-                        0.0,
-                        0.0,
-                        "None"
-                      ],
-                      [
-                        1.0,
-                        1.0,
-                        0.0,
-                        0.0,
-                        0.0,
-                        0.0,
-                        "None"
+              "program": {
+                "code": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param toggle(float) _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+                "mode": "Code",
+                "graph": {
+                  "version": 1,
+                  "parameters": [],
+                  "nodes": [
+                    {
+                      "id": "fxInput",
+                      "kind": "SampleInput",
+                      "position": [
+                        40,
+                        80
                       ]
-                    ]
+                    },
+                    {
+                      "id": "fxOutput",
+                      "kind": "Output",
+                      "position": [
+                        360,
+                        80
+                      ]
+                    }
+                  ],
+                  "edges": [
+                    {
+                      "outputNode": "fxInput",
+                      "outputPort": "Out",
+                      "inputNode": "fxOutput",
+                      "inputPort": "RGBA"
+                    }
+                  ],
+                  "functions": [],
+                  "sources": [],
+                  "notes": [],
+                  "groups": [],
+                  "subGraphs": []
+                },
+                "codeParameters": [
+                  {
+                    "name": "_Opacity",
+                    "type": "Float",
+                    "floatValue": 1.0,
+                    "id": "630fdc1d0cfe4dfdbda388292d145edc"
                   },
-                  "id": "4e70115582f94f6dadb5c489a5b8c977"
-                },
-                {
-                  "name": "_OutBlack",
-                  "type": "Float",
-                  "floatValue": 0.0,
-                  "id": "b2dda7693035490a9a337770cd203e7b"
-                },
-                {
-                  "name": "_OutWhite",
-                  "type": "Float",
-                  "floatValue": 0.94,
-                  "id": "c2386c91308c41619926da308dbdda1e"
-                },
-                {
-                  "name": "_PreserveColor",
-                  "type": "Toggle",
-                  "floatValue": 1.0,
-                  "id": "dd002b53f65b418d8af5233ee8fcbd29"
-                }
-              ],
+                  {
+                    "name": "_InBlack",
+                    "type": "Float",
+                    "floatValue": 0.0,
+                    "id": "07033562627642b5b35ac19e92ce02ae"
+                  },
+                  {
+                    "name": "_InWhite",
+                    "type": "Float",
+                    "floatValue": 1.0,
+                    "id": "e3ffdffb625b4e9f837cfb465d279e14"
+                  },
+                  {
+                    "name": "_Gamma",
+                    "type": "Float",
+                    "floatValue": 1.25,
+                    "id": "afab465d5dea42e98b259a0f469aeb37"
+                  },
+                  {
+                    "name": "_Curve",
+                    "type": "Curve",
+                    "curveValue": {
+                      "preWrap": "ClampForever",
+                      "postWrap": "ClampForever",
+                      "keys": [
+                        [
+                          0.0,
+                          0.0,
+                          0.0,
+                          0.0,
+                          0.0,
+                          0.0,
+                          "None"
+                        ],
+                        [
+                          1.0,
+                          1.0,
+                          0.0,
+                          0.0,
+                          0.0,
+                          0.0,
+                          "None"
+                        ]
+                      ]
+                    },
+                    "id": "4e70115582f94f6dadb5c489a5b8c977"
+                  },
+                  {
+                    "name": "_OutBlack",
+                    "type": "Float",
+                    "floatValue": 0.0,
+                    "id": "b2dda7693035490a9a337770cd203e7b"
+                  },
+                  {
+                    "name": "_OutWhite",
+                    "type": "Float",
+                    "floatValue": 0.94,
+                    "id": "c2386c91308c41619926da308dbdda1e"
+                  },
+                  {
+                    "name": "_PreserveColor",
+                    "type": "Toggle",
+                    "floatValue": 1.0,
+                    "id": "dd002b53f65b418d8af5233ee8fcbd29"
+                  }
+                ],
+                "compiledCode": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param toggle(float) _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n"
+              },
               "shaderKey": "041bffc23c2b4601bab8c1a21c07fdf2",
               "$name": "Levels"
             },
@@ -464,132 +544,171 @@
               "$type": "ShaderFX",
               "$id": "fx2",
               "active": true,
-              "code": "// @whimtex-effect Color/Mask\r\n// @control(_Opacity)\r\n// @formerlyserializedas(_Amount)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group(Mask Channel; _MaskChannel)\r\n// @param hidden enum _MaskChannel = R {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}\r\n// @param texture2D _Mask = self // Mask source. Self uses the image before this FX.\r\n// @param transform2D _Transform = (0.5, 0.5, 1, 1, 0) // Position, scale and rotate the mask.\r\n// @endgroup\r\n// @group(Mask Shape)\r\n// @param label(Invert) toggle(float) _Invert = false\r\n// @param curve _Profile // Remap mask values; linear preserves the source.\r\n// @endgroup\r\n// @group(Apply To; _ApplyMode)\r\n// @param hidden enum _ApplyMode = Channels {Channels: 0, Color: 1}\r\n// @if _ApplyMode == 0\r\n// @param label(R) toggle(float) _ApplyRed = false\r\n// @param label(G) toggle(float) _ApplyGreen = false\r\n// @param label(B) toggle(float) _ApplyBlue = false\r\n// @param label(A) toggle(float) _ApplyAlpha = true\r\n// @endif\r\n// @if _ApplyMode == 1\r\n// @param label(Color) color _ApplyColor = (1, 1, 1, 0)\r\n// @endif\r\n// @endgroup\r\n\r\nfloat ReadMaskInput(float4 value)\r\n{\r\n    if (_MaskChannel < 0.5) return value.a;\r\n    if (_MaskChannel < 1.5) return dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    if (_MaskChannel < 2.5) return value.r;\r\n    if (_MaskChannel < 3.5) return value.g;\r\n    return value.b;\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float2 maskUV = _Transform_ToLocal(uv);\r\n    float2 halfTexel = 0.5 * _Mask_TexelSize.xy;\r\n    maskUV = clamp(maskUV, halfTexel, 1.0 - halfTexel);\r\n\r\n    float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(tex2D(_Mask, maskUV)))));\r\n    if (_Invert > 0.5) mask = 1.0 - mask;\r\n\tfloat multiplier = mask;\r\n    float4 channelMask = float4(_ApplyRed, _ApplyGreen, _ApplyBlue, _ApplyAlpha);\r\n    float4 applyWeights = lerp(channelMask, 1 - _ApplyColor, _ApplyMode);\r\n\tresult *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
-              "parameters": [
-                {
-                  "name": "_Opacity",
-                  "type": "Float",
-                  "floatValue": 1.0,
-                  "id": "d0dc544f61a84aaebc872bf2007ff9d3"
-                },
-                {
-                  "name": "_MaskChannel",
-                  "type": "Float",
-                  "floatValue": 0.0,
-                  "id": "2174f9a55d0740c6ba4fa939ac82de08"
-                },
-                {
-                  "name": "_Mask",
-                  "type": "Texture2D",
-                  "textureSource": "Layer",
-                  "textureLayerId": "761f54a0a8b44df597280b0d0ada0a28",
-                  "id": "ed2617c732f241389ff3ecd08ff7d4d3"
-                },
-                {
-                  "name": "_Transform",
-                  "type": "Transform2D",
-                  "transformValue": {
-                    "position": {
-                      "x": 0.5,
-                      "y": 0.5
-                    },
-                    "size": {
-                      "x": 1.0,
-                      "y": 1.0
-                    },
-                    "rotation": 0.0,
-                    "storage": "TRS",
-                    "matrix": {
-                      "m00": 0.0,
-                      "m01": 0.0,
-                      "m02": 0.0,
-                      "m10": 0.0,
-                      "m11": 0.0,
-                      "m12": 0.0,
-                      "m20": 0.0,
-                      "m21": 0.0,
-                      "m22": 0.0
-                    }
-                  },
-                  "id": "4f8b011d3fae4aba8f679b5d17f5acd7"
-                },
-                {
-                  "name": "_Invert",
-                  "type": "Toggle",
-                  "floatValue": 0.0,
-                  "id": "8c623bb6a42a4524a8ec95420078ee55"
-                },
-                {
-                  "name": "_Profile",
-                  "type": "Curve",
-                  "curveValue": {
-                    "preWrap": "ClampForever",
-                    "postWrap": "ClampForever",
-                    "keys": [
-                      [
-                        0.0,
-                        0.0,
-                        0.0,
-                        1.0,
-                        0.0,
-                        0.0,
-                        "None"
-                      ],
-                      [
-                        1.0,
-                        1.0,
-                        1.0,
-                        0.0,
-                        0.0,
-                        0.0,
-                        "None"
+              "program": {
+                "code": "// @whimtex-effect Color/Mask\r\n// @control(_Opacity)\r\n// @formerlyserializedas(_Amount)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group(Mask Channel; _MaskChannel)\r\n// @param hidden enum _MaskChannel = R {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}\r\n// @param texture2D _Mask = self // Mask source. Self uses the image before this FX.\r\n// @param transform2D _Transform = (0.5, 0.5, 1, 1, 0) // Position, scale and rotate the mask.\r\n// @endgroup\r\n// @group(Mask Shape)\r\n// @param label(Invert) toggle(float) _Invert = false\r\n// @param curve _Profile // Remap mask values; linear preserves the source.\r\n// @endgroup\r\n// @group(Apply To; _ApplyMode)\r\n// @param hidden enum _ApplyMode = Channels {Channels: 0, Color: 1}\r\n// @if _ApplyMode == 0\r\n// @param label(R) toggle(float) _ApplyRed = false\r\n// @param label(G) toggle(float) _ApplyGreen = false\r\n// @param label(B) toggle(float) _ApplyBlue = false\r\n// @param label(A) toggle(float) _ApplyAlpha = true\r\n// @endif\r\n// @if _ApplyMode == 1\r\n// @param label(Color) color _ApplyColor = (1, 1, 1, 0)\r\n// @endif\r\n// @endgroup\r\n\r\nfloat ReadMaskInput(float4 value)\r\n{\r\n    if (_MaskChannel < 0.5) return value.a;\r\n    if (_MaskChannel < 1.5) return dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    if (_MaskChannel < 2.5) return value.r;\r\n    if (_MaskChannel < 3.5) return value.g;\r\n    return value.b;\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float2 maskUV = _Transform_ToLocal(uv);\r\n    float2 halfTexel = 0.5 * _Mask_TexelSize.xy;\r\n    maskUV = clamp(maskUV, halfTexel, 1.0 - halfTexel);\r\n\r\n    float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(tex2D(_Mask, maskUV)))));\r\n    if (_Invert > 0.5) mask = 1.0 - mask;\r\n\tfloat multiplier = mask;\r\n    float4 channelMask = float4(_ApplyRed, _ApplyGreen, _ApplyBlue, _ApplyAlpha);\r\n    float4 applyWeights = lerp(channelMask, 1 - _ApplyColor, _ApplyMode);\r\n\tresult *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+                "mode": "Code",
+                "graph": {
+                  "version": 1,
+                  "parameters": [],
+                  "nodes": [
+                    {
+                      "id": "fxInput",
+                      "kind": "SampleInput",
+                      "position": [
+                        40,
+                        80
                       ]
-                    ]
-                  },
-                  "id": "6341f23cc0824d698b32fb5dc93db889"
-                },
-                {
-                  "name": "_ApplyMode",
-                  "type": "Float",
-                  "floatValue": 0.0,
-                  "id": "f3c6a93012224dbc8773e75d9ecda2f3"
-                },
-                {
-                  "name": "_ApplyRed",
-                  "type": "Toggle",
-                  "floatValue": 0.0,
-                  "id": "4b0d90b8b8e441249ab57db3f6273a3d"
-                },
-                {
-                  "name": "_ApplyGreen",
-                  "type": "Toggle",
-                  "floatValue": 0.0,
-                  "id": "b1742bb6bde34b169fb5f4fdb9ee444c"
-                },
-                {
-                  "name": "_ApplyBlue",
-                  "type": "Toggle",
-                  "floatValue": 0.0,
-                  "id": "d1c50f4e4bc142e5aee69ff62a463514"
-                },
-                {
-                  "name": "_ApplyAlpha",
-                  "type": "Toggle",
-                  "floatValue": 1.0,
-                  "id": "3dbc5209a5db40ba9fd74c3ba3aa7469"
-                },
-                {
-                  "name": "_ApplyColor",
-                  "type": "Color",
-                  "colorValue": [
-                    1.0,
-                    1.0,
-                    1.0,
-                    0.0
+                    },
+                    {
+                      "id": "fxOutput",
+                      "kind": "Output",
+                      "position": [
+                        360,
+                        80
+                      ]
+                    }
                   ],
-                  "id": "3aa6f0e86b454ade93153ccb244cfc53"
-                }
-              ],
+                  "edges": [
+                    {
+                      "outputNode": "fxInput",
+                      "outputPort": "Out",
+                      "inputNode": "fxOutput",
+                      "inputPort": "RGBA"
+                    }
+                  ],
+                  "functions": [],
+                  "sources": [],
+                  "notes": [],
+                  "groups": [],
+                  "subGraphs": []
+                },
+                "codeParameters": [
+                  {
+                    "name": "_Opacity",
+                    "type": "Float",
+                    "floatValue": 1.0,
+                    "id": "d0dc544f61a84aaebc872bf2007ff9d3"
+                  },
+                  {
+                    "name": "_MaskChannel",
+                    "type": "Float",
+                    "floatValue": 0.0,
+                    "id": "2174f9a55d0740c6ba4fa939ac82de08"
+                  },
+                  {
+                    "name": "_Mask",
+                    "type": "Texture2D",
+                    "textureSource": "Layer",
+                    "textureLayerId": "761f54a0a8b44df597280b0d0ada0a28",
+                    "id": "ed2617c732f241389ff3ecd08ff7d4d3"
+                  },
+                  {
+                    "name": "_Transform",
+                    "type": "Transform2D",
+                    "transformValue": {
+                      "position": {
+                        "x": 0.5,
+                        "y": 0.5
+                      },
+                      "size": {
+                        "x": 1.0,
+                        "y": 1.0
+                      },
+                      "rotation": 0.0,
+                      "storage": "TRS",
+                      "matrix": {
+                        "m00": 0.0,
+                        "m01": 0.0,
+                        "m02": 0.0,
+                        "m10": 0.0,
+                        "m11": 0.0,
+                        "m12": 0.0,
+                        "m20": 0.0,
+                        "m21": 0.0,
+                        "m22": 0.0
+                      }
+                    },
+                    "id": "4f8b011d3fae4aba8f679b5d17f5acd7"
+                  },
+                  {
+                    "name": "_Invert",
+                    "type": "Toggle",
+                    "floatValue": 0.0,
+                    "id": "8c623bb6a42a4524a8ec95420078ee55"
+                  },
+                  {
+                    "name": "_Profile",
+                    "type": "Curve",
+                    "curveValue": {
+                      "preWrap": "ClampForever",
+                      "postWrap": "ClampForever",
+                      "keys": [
+                        [
+                          0.0,
+                          0.0,
+                          0.0,
+                          1.0,
+                          0.0,
+                          0.0,
+                          "None"
+                        ],
+                        [
+                          1.0,
+                          1.0,
+                          1.0,
+                          0.0,
+                          0.0,
+                          0.0,
+                          "None"
+                        ]
+                      ]
+                    },
+                    "id": "6341f23cc0824d698b32fb5dc93db889"
+                  },
+                  {
+                    "name": "_ApplyMode",
+                    "type": "Float",
+                    "floatValue": 0.0,
+                    "id": "f3c6a93012224dbc8773e75d9ecda2f3"
+                  },
+                  {
+                    "name": "_ApplyRed",
+                    "type": "Toggle",
+                    "floatValue": 0.0,
+                    "id": "4b0d90b8b8e441249ab57db3f6273a3d"
+                  },
+                  {
+                    "name": "_ApplyGreen",
+                    "type": "Toggle",
+                    "floatValue": 0.0,
+                    "id": "b1742bb6bde34b169fb5f4fdb9ee444c"
+                  },
+                  {
+                    "name": "_ApplyBlue",
+                    "type": "Toggle",
+                    "floatValue": 0.0,
+                    "id": "d1c50f4e4bc142e5aee69ff62a463514"
+                  },
+                  {
+                    "name": "_ApplyAlpha",
+                    "type": "Toggle",
+                    "floatValue": 1.0,
+                    "id": "3dbc5209a5db40ba9fd74c3ba3aa7469"
+                  },
+                  {
+                    "name": "_ApplyColor",
+                    "type": "Color",
+                    "colorValue": [
+                      1.0,
+                      1.0,
+                      1.0,
+                      0.0
+                    ],
+                    "id": "3aa6f0e86b454ade93153ccb244cfc53"
+                  }
+                ],
+                "compiledCode": "// @whimtex-effect Color/Mask\r\n// @control(_Opacity)\r\n// @formerlyserializedas(_Amount)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group(Mask Channel; _MaskChannel)\r\n// @param hidden enum _MaskChannel = R {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}\r\n// @param texture2D _Mask = self // Mask source. Self uses the image before this FX.\r\n// @param transform2D _Transform = (0.5, 0.5, 1, 1, 0) // Position, scale and rotate the mask.\r\n// @endgroup\r\n// @group(Mask Shape)\r\n// @param label(Invert) toggle(float) _Invert = false\r\n// @param curve _Profile // Remap mask values; linear preserves the source.\r\n// @endgroup\r\n// @group(Apply To; _ApplyMode)\r\n// @param hidden enum _ApplyMode = Channels {Channels: 0, Color: 1}\r\n// @if _ApplyMode == 0\r\n// @param label(R) toggle(float) _ApplyRed = false\r\n// @param label(G) toggle(float) _ApplyGreen = false\r\n// @param label(B) toggle(float) _ApplyBlue = false\r\n// @param label(A) toggle(float) _ApplyAlpha = true\r\n// @endif\r\n// @if _ApplyMode == 1\r\n// @param label(Color) color _ApplyColor = (1, 1, 1, 0)\r\n// @endif\r\n// @endgroup\r\n\r\nfloat ReadMaskInput(float4 value)\r\n{\r\n    if (_MaskChannel < 0.5) return value.a;\r\n    if (_MaskChannel < 1.5) return dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    if (_MaskChannel < 2.5) return value.r;\r\n    if (_MaskChannel < 3.5) return value.g;\r\n    return value.b;\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float2 maskUV = _Transform_ToLocal(uv);\r\n    float2 halfTexel = 0.5 * _Mask_TexelSize.xy;\r\n    maskUV = clamp(maskUV, halfTexel, 1.0 - halfTexel);\r\n\r\n    float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(tex2D(_Mask, maskUV)))));\r\n    if (_Invert > 0.5) mask = 1.0 - mask;\r\n\tfloat multiplier = mask;\r\n    float4 channelMask = float4(_ApplyRed, _ApplyGreen, _ApplyBlue, _ApplyAlpha);\r\n    float4 applyWeights = lerp(channelMask, 1 - _ApplyColor, _ApplyMode);\r\n\tresult *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n"
+              },
               "shaderKey": "a7e07e32e120458e9d5bd4331c7c9cf0",
               "$name": "Mask"
             }
@@ -646,132 +765,171 @@
                   "$type": "ShaderFX",
                   "$id": "fx3",
                   "active": true,
-                  "code": "// @whimtex-effect Color/Mask\r\n// @control(_Opacity)\r\n// @formerlyserializedas(_Amount)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group(Mask Channel; _MaskChannel)\r\n// @param hidden enum _MaskChannel = R {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}\r\n// @param texture2D _Mask = self // Mask source. Self uses the image before this FX.\r\n// @param transform2D _Transform = (0.5, 0.5, 1, 1, 0) // Position, scale and rotate the mask.\r\n// @endgroup\r\n// @group(Mask Shape)\r\n// @param label(Invert) toggle(float) _Invert = false\r\n// @param curve _Profile // Remap mask values; linear preserves the source.\r\n// @endgroup\r\n// @group(Apply To; _ApplyMode)\r\n// @param hidden enum _ApplyMode = Channels {Channels: 0, Color: 1}\r\n// @if _ApplyMode == 0\r\n// @param label(R) toggle(float) _ApplyRed = false\r\n// @param label(G) toggle(float) _ApplyGreen = false\r\n// @param label(B) toggle(float) _ApplyBlue = false\r\n// @param label(A) toggle(float) _ApplyAlpha = true\r\n// @endif\r\n// @if _ApplyMode == 1\r\n// @param label(Color) color _ApplyColor = (1, 1, 1, 0)\r\n// @endif\r\n// @endgroup\r\n\r\nfloat ReadMaskInput(float4 value)\r\n{\r\n    if (_MaskChannel < 0.5) return value.a;\r\n    if (_MaskChannel < 1.5) return dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    if (_MaskChannel < 2.5) return value.r;\r\n    if (_MaskChannel < 3.5) return value.g;\r\n    return value.b;\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float2 maskUV = _Transform_ToLocal(uv);\r\n    float2 halfTexel = 0.5 * _Mask_TexelSize.xy;\r\n    maskUV = clamp(maskUV, halfTexel, 1.0 - halfTexel);\r\n\r\n    float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(tex2D(_Mask, maskUV)))));\r\n    if (_Invert > 0.5) mask = 1.0 - mask;\r\n\tfloat multiplier = mask;\r\n    float4 channelMask = float4(_ApplyRed, _ApplyGreen, _ApplyBlue, _ApplyAlpha);\r\n    float4 applyWeights = lerp(channelMask, 1 - _ApplyColor, _ApplyMode);\r\n\tresult *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
-                  "parameters": [
-                    {
-                      "name": "_Opacity",
-                      "type": "Float",
-                      "floatValue": 1.0,
-                      "id": "49b139af79f34ad3a3549996def6f973"
-                    },
-                    {
-                      "name": "_MaskChannel",
-                      "type": "Float",
-                      "floatValue": 2.0,
-                      "id": "3f6a0daf342f4b5db88b3c3d50cc153f"
-                    },
-                    {
-                      "name": "_Mask",
-                      "type": "Texture2D",
-                      "textureSource": "Layer",
-                      "textureLayerId": "2c9e40d78a7c40b8bce908619279a80e",
-                      "id": "82d5010cd9a74643a2036199f6f96015"
-                    },
-                    {
-                      "name": "_Transform",
-                      "type": "Transform2D",
-                      "transformValue": {
-                        "position": {
-                          "x": 0.5,
-                          "y": 0.5
-                        },
-                        "size": {
-                          "x": 1.0,
-                          "y": 1.0
-                        },
-                        "rotation": 0.0,
-                        "storage": "TRS",
-                        "matrix": {
-                          "m00": 0.0,
-                          "m01": 0.0,
-                          "m02": 0.0,
-                          "m10": 0.0,
-                          "m11": 0.0,
-                          "m12": 0.0,
-                          "m20": 0.0,
-                          "m21": 0.0,
-                          "m22": 0.0
-                        }
-                      },
-                      "id": "32e005cbed044327bcc829df4dec67c9"
-                    },
-                    {
-                      "name": "_Invert",
-                      "type": "Toggle",
-                      "floatValue": 1.0,
-                      "id": "ffb9c0a96b154e8c8cd292206b2b4d44"
-                    },
-                    {
-                      "name": "_Profile",
-                      "type": "Curve",
-                      "curveValue": {
-                        "preWrap": "ClampForever",
-                        "postWrap": "ClampForever",
-                        "keys": [
-                          [
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            "None"
-                          ],
-                          [
-                            1.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            "None"
+                  "program": {
+                    "code": "// @whimtex-effect Color/Mask\r\n// @control(_Opacity)\r\n// @formerlyserializedas(_Amount)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group(Mask Channel; _MaskChannel)\r\n// @param hidden enum _MaskChannel = R {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}\r\n// @param texture2D _Mask = self // Mask source. Self uses the image before this FX.\r\n// @param transform2D _Transform = (0.5, 0.5, 1, 1, 0) // Position, scale and rotate the mask.\r\n// @endgroup\r\n// @group(Mask Shape)\r\n// @param label(Invert) toggle(float) _Invert = false\r\n// @param curve _Profile // Remap mask values; linear preserves the source.\r\n// @endgroup\r\n// @group(Apply To; _ApplyMode)\r\n// @param hidden enum _ApplyMode = Channels {Channels: 0, Color: 1}\r\n// @if _ApplyMode == 0\r\n// @param label(R) toggle(float) _ApplyRed = false\r\n// @param label(G) toggle(float) _ApplyGreen = false\r\n// @param label(B) toggle(float) _ApplyBlue = false\r\n// @param label(A) toggle(float) _ApplyAlpha = true\r\n// @endif\r\n// @if _ApplyMode == 1\r\n// @param label(Color) color _ApplyColor = (1, 1, 1, 0)\r\n// @endif\r\n// @endgroup\r\n\r\nfloat ReadMaskInput(float4 value)\r\n{\r\n    if (_MaskChannel < 0.5) return value.a;\r\n    if (_MaskChannel < 1.5) return dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    if (_MaskChannel < 2.5) return value.r;\r\n    if (_MaskChannel < 3.5) return value.g;\r\n    return value.b;\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float2 maskUV = _Transform_ToLocal(uv);\r\n    float2 halfTexel = 0.5 * _Mask_TexelSize.xy;\r\n    maskUV = clamp(maskUV, halfTexel, 1.0 - halfTexel);\r\n\r\n    float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(tex2D(_Mask, maskUV)))));\r\n    if (_Invert > 0.5) mask = 1.0 - mask;\r\n\tfloat multiplier = mask;\r\n    float4 channelMask = float4(_ApplyRed, _ApplyGreen, _ApplyBlue, _ApplyAlpha);\r\n    float4 applyWeights = lerp(channelMask, 1 - _ApplyColor, _ApplyMode);\r\n\tresult *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+                    "mode": "Code",
+                    "graph": {
+                      "version": 1,
+                      "parameters": [],
+                      "nodes": [
+                        {
+                          "id": "fxInput",
+                          "kind": "SampleInput",
+                          "position": [
+                            40,
+                            80
                           ]
-                        ]
-                      },
-                      "id": "8b2b3686b55549ae85bbe22c9843b78f"
-                    },
-                    {
-                      "name": "_ApplyMode",
-                      "type": "Float",
-                      "floatValue": 0.0,
-                      "id": "1ee449b9521b427c816dacbf2d7c0fe0"
-                    },
-                    {
-                      "name": "_ApplyRed",
-                      "type": "Toggle",
-                      "floatValue": 0.0,
-                      "id": "33fedaf55e9642238899f3370d9c0559"
-                    },
-                    {
-                      "name": "_ApplyGreen",
-                      "type": "Toggle",
-                      "floatValue": 0.0,
-                      "id": "151fd45423a846dd81f6b6685d785d8d"
-                    },
-                    {
-                      "name": "_ApplyBlue",
-                      "type": "Toggle",
-                      "floatValue": 0.0,
-                      "id": "041604fc9e6d4483899844a241b23f44"
-                    },
-                    {
-                      "name": "_ApplyAlpha",
-                      "type": "Toggle",
-                      "floatValue": 1.0,
-                      "id": "c2193d72f84b409f91288a5636494356"
-                    },
-                    {
-                      "name": "_ApplyColor",
-                      "type": "Color",
-                      "colorValue": [
-                        1.0,
-                        1.0,
-                        1.0,
-                        0.0
+                        },
+                        {
+                          "id": "fxOutput",
+                          "kind": "Output",
+                          "position": [
+                            360,
+                            80
+                          ]
+                        }
                       ],
-                      "id": "a8752da17b25487184a42a1757b1c51f"
-                    }
-                  ],
+                      "edges": [
+                        {
+                          "outputNode": "fxInput",
+                          "outputPort": "Out",
+                          "inputNode": "fxOutput",
+                          "inputPort": "RGBA"
+                        }
+                      ],
+                      "functions": [],
+                      "sources": [],
+                      "notes": [],
+                      "groups": [],
+                      "subGraphs": []
+                    },
+                    "codeParameters": [
+                      {
+                        "name": "_Opacity",
+                        "type": "Float",
+                        "floatValue": 1.0,
+                        "id": "49b139af79f34ad3a3549996def6f973"
+                      },
+                      {
+                        "name": "_MaskChannel",
+                        "type": "Float",
+                        "floatValue": 2.0,
+                        "id": "3f6a0daf342f4b5db88b3c3d50cc153f"
+                      },
+                      {
+                        "name": "_Mask",
+                        "type": "Texture2D",
+                        "textureSource": "Layer",
+                        "textureLayerId": "2c9e40d78a7c40b8bce908619279a80e",
+                        "id": "82d5010cd9a74643a2036199f6f96015"
+                      },
+                      {
+                        "name": "_Transform",
+                        "type": "Transform2D",
+                        "transformValue": {
+                          "position": {
+                            "x": 0.5,
+                            "y": 0.5
+                          },
+                          "size": {
+                            "x": 1.0,
+                            "y": 1.0
+                          },
+                          "rotation": 0.0,
+                          "storage": "TRS",
+                          "matrix": {
+                            "m00": 0.0,
+                            "m01": 0.0,
+                            "m02": 0.0,
+                            "m10": 0.0,
+                            "m11": 0.0,
+                            "m12": 0.0,
+                            "m20": 0.0,
+                            "m21": 0.0,
+                            "m22": 0.0
+                          }
+                        },
+                        "id": "32e005cbed044327bcc829df4dec67c9"
+                      },
+                      {
+                        "name": "_Invert",
+                        "type": "Toggle",
+                        "floatValue": 1.0,
+                        "id": "ffb9c0a96b154e8c8cd292206b2b4d44"
+                      },
+                      {
+                        "name": "_Profile",
+                        "type": "Curve",
+                        "curveValue": {
+                          "preWrap": "ClampForever",
+                          "postWrap": "ClampForever",
+                          "keys": [
+                            [
+                              0.0,
+                              0.0,
+                              0.0,
+                              0.0,
+                              0.0,
+                              0.0,
+                              "None"
+                            ],
+                            [
+                              1.0,
+                              1.0,
+                              0.0,
+                              0.0,
+                              0.0,
+                              0.0,
+                              "None"
+                            ]
+                          ]
+                        },
+                        "id": "8b2b3686b55549ae85bbe22c9843b78f"
+                      },
+                      {
+                        "name": "_ApplyMode",
+                        "type": "Float",
+                        "floatValue": 0.0,
+                        "id": "1ee449b9521b427c816dacbf2d7c0fe0"
+                      },
+                      {
+                        "name": "_ApplyRed",
+                        "type": "Toggle",
+                        "floatValue": 0.0,
+                        "id": "33fedaf55e9642238899f3370d9c0559"
+                      },
+                      {
+                        "name": "_ApplyGreen",
+                        "type": "Toggle",
+                        "floatValue": 0.0,
+                        "id": "151fd45423a846dd81f6b6685d785d8d"
+                      },
+                      {
+                        "name": "_ApplyBlue",
+                        "type": "Toggle",
+                        "floatValue": 0.0,
+                        "id": "041604fc9e6d4483899844a241b23f44"
+                      },
+                      {
+                        "name": "_ApplyAlpha",
+                        "type": "Toggle",
+                        "floatValue": 1.0,
+                        "id": "c2193d72f84b409f91288a5636494356"
+                      },
+                      {
+                        "name": "_ApplyColor",
+                        "type": "Color",
+                        "colorValue": [
+                          1.0,
+                          1.0,
+                          1.0,
+                          0.0
+                        ],
+                        "id": "a8752da17b25487184a42a1757b1c51f"
+                      }
+                    ],
+                    "compiledCode": "// @whimtex-effect Color/Mask\r\n// @control(_Opacity)\r\n// @formerlyserializedas(_Amount)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group(Mask Channel; _MaskChannel)\r\n// @param hidden enum _MaskChannel = R {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}\r\n// @param texture2D _Mask = self // Mask source. Self uses the image before this FX.\r\n// @param transform2D _Transform = (0.5, 0.5, 1, 1, 0) // Position, scale and rotate the mask.\r\n// @endgroup\r\n// @group(Mask Shape)\r\n// @param label(Invert) toggle(float) _Invert = false\r\n// @param curve _Profile // Remap mask values; linear preserves the source.\r\n// @endgroup\r\n// @group(Apply To; _ApplyMode)\r\n// @param hidden enum _ApplyMode = Channels {Channels: 0, Color: 1}\r\n// @if _ApplyMode == 0\r\n// @param label(R) toggle(float) _ApplyRed = false\r\n// @param label(G) toggle(float) _ApplyGreen = false\r\n// @param label(B) toggle(float) _ApplyBlue = false\r\n// @param label(A) toggle(float) _ApplyAlpha = true\r\n// @endif\r\n// @if _ApplyMode == 1\r\n// @param label(Color) color _ApplyColor = (1, 1, 1, 0)\r\n// @endif\r\n// @endgroup\r\n\r\nfloat ReadMaskInput(float4 value)\r\n{\r\n    if (_MaskChannel < 0.5) return value.a;\r\n    if (_MaskChannel < 1.5) return dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    if (_MaskChannel < 2.5) return value.r;\r\n    if (_MaskChannel < 3.5) return value.g;\r\n    return value.b;\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float2 maskUV = _Transform_ToLocal(uv);\r\n    float2 halfTexel = 0.5 * _Mask_TexelSize.xy;\r\n    maskUV = clamp(maskUV, halfTexel, 1.0 - halfTexel);\r\n\r\n    float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(tex2D(_Mask, maskUV)))));\r\n    if (_Invert > 0.5) mask = 1.0 - mask;\r\n\tfloat multiplier = mask;\r\n    float4 channelMask = float4(_ApplyRed, _ApplyGreen, _ApplyBlue, _ApplyAlpha);\r\n    float4 applyWeights = lerp(channelMask, 1 - _ApplyColor, _ApplyMode);\r\n\tresult *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n"
+                  },
                   "shaderKey": "20b7c8c192cc43bbac98c328c756877f",
                   "$name": "Mask"
                 }
@@ -1093,80 +1251,119 @@
                   "$type": "ShaderFX",
                   "$id": "fx4",
                   "active": true,
-                  "code": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param toggle(float) _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
-                  "parameters": [
-                    {
-                      "name": "_Opacity",
-                      "type": "Float",
-                      "floatValue": 1.0,
-                      "id": "206a3bda6d224cc09888e13b983aca1d"
-                    },
-                    {
-                      "name": "_InBlack",
-                      "type": "Float",
-                      "floatValue": 0.0,
-                      "id": "b81f01a698e746029c7dc0734cec5f23"
-                    },
-                    {
-                      "name": "_InWhite",
-                      "type": "Float",
-                      "floatValue": 0.86,
-                      "id": "e0a54e9e774c42a094e195306549a379"
-                    },
-                    {
-                      "name": "_Gamma",
-                      "type": "Float",
-                      "floatValue": 0.82,
-                      "id": "29a0e2cfc0ca4b18b7e306fddffcae8e"
-                    },
-                    {
-                      "name": "_Curve",
-                      "type": "Curve",
-                      "curveValue": {
-                        "preWrap": "ClampForever",
-                        "postWrap": "ClampForever",
-                        "keys": [
-                          [
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            "None"
-                          ],
-                          [
-                            1.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            "None"
+                  "program": {
+                    "code": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param toggle(float) _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+                    "mode": "Code",
+                    "graph": {
+                      "version": 1,
+                      "parameters": [],
+                      "nodes": [
+                        {
+                          "id": "fxInput",
+                          "kind": "SampleInput",
+                          "position": [
+                            40,
+                            80
                           ]
-                        ]
+                        },
+                        {
+                          "id": "fxOutput",
+                          "kind": "Output",
+                          "position": [
+                            360,
+                            80
+                          ]
+                        }
+                      ],
+                      "edges": [
+                        {
+                          "outputNode": "fxInput",
+                          "outputPort": "Out",
+                          "inputNode": "fxOutput",
+                          "inputPort": "RGBA"
+                        }
+                      ],
+                      "functions": [],
+                      "sources": [],
+                      "notes": [],
+                      "groups": [],
+                      "subGraphs": []
+                    },
+                    "codeParameters": [
+                      {
+                        "name": "_Opacity",
+                        "type": "Float",
+                        "floatValue": 1.0,
+                        "id": "206a3bda6d224cc09888e13b983aca1d"
                       },
-                      "id": "bbc4d9fd256c4b5db796b9c958bf2817"
-                    },
-                    {
-                      "name": "_OutBlack",
-                      "type": "Float",
-                      "floatValue": 0.0,
-                      "id": "7e1d1281a3524116bd6d82fcf1a94e2b"
-                    },
-                    {
-                      "name": "_OutWhite",
-                      "type": "Float",
-                      "floatValue": 1.0,
-                      "id": "6f155161279e4ab79dc4ef60c347fa73"
-                    },
-                    {
-                      "name": "_PreserveColor",
-                      "type": "Toggle",
-                      "floatValue": 1.0,
-                      "id": "f23b6a56797149fe8a24b0bbd2453f79"
-                    }
-                  ],
+                      {
+                        "name": "_InBlack",
+                        "type": "Float",
+                        "floatValue": 0.0,
+                        "id": "b81f01a698e746029c7dc0734cec5f23"
+                      },
+                      {
+                        "name": "_InWhite",
+                        "type": "Float",
+                        "floatValue": 0.86,
+                        "id": "e0a54e9e774c42a094e195306549a379"
+                      },
+                      {
+                        "name": "_Gamma",
+                        "type": "Float",
+                        "floatValue": 0.82,
+                        "id": "29a0e2cfc0ca4b18b7e306fddffcae8e"
+                      },
+                      {
+                        "name": "_Curve",
+                        "type": "Curve",
+                        "curveValue": {
+                          "preWrap": "ClampForever",
+                          "postWrap": "ClampForever",
+                          "keys": [
+                            [
+                              0.0,
+                              0.0,
+                              0.0,
+                              0.0,
+                              0.0,
+                              0.0,
+                              "None"
+                            ],
+                            [
+                              1.0,
+                              1.0,
+                              0.0,
+                              0.0,
+                              0.0,
+                              0.0,
+                              "None"
+                            ]
+                          ]
+                        },
+                        "id": "bbc4d9fd256c4b5db796b9c958bf2817"
+                      },
+                      {
+                        "name": "_OutBlack",
+                        "type": "Float",
+                        "floatValue": 0.0,
+                        "id": "7e1d1281a3524116bd6d82fcf1a94e2b"
+                      },
+                      {
+                        "name": "_OutWhite",
+                        "type": "Float",
+                        "floatValue": 1.0,
+                        "id": "6f155161279e4ab79dc4ef60c347fa73"
+                      },
+                      {
+                        "name": "_PreserveColor",
+                        "type": "Toggle",
+                        "floatValue": 1.0,
+                        "id": "f23b6a56797149fe8a24b0bbd2453f79"
+                      }
+                    ],
+                    "compiledCode": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param toggle(float) _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n"
+                  },
                   "shaderKey": "97740ddd56af481b9c52cc8e374f2dc8",
                   "$name": "Levels"
                 }

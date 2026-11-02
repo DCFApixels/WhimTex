@@ -61,10 +61,12 @@ namespace DCFApixels.WhimTex
         private const int MaxCharacters = 64 * 1024 * 1024;
         private static readonly HashSet<string> TransientFields = new(StringComparer.Ordinal)
         {
-            "compiledShader", "appliedCode", "appliedSource", "appliedParameters", "appliedLocalityReasons", "diagnostics",
+            "compiledShader", "appliedMode", "appliedCode", "appliedSource", "appliedParameters", "appliedLocalityReasons", "diagnostics",
             "lastApplyFailed", "shaderCreationRecorded", "embeddedOwner", "transformCache", "jsonWriteMode",
             "outputTexture", "documentLoadWarning", "documentBinding",
             "embeddedShaderFX", "jsonMissingAssets",
+            "reloadShaderMode", "reloadShaderGraph", "reloadShaderCode", "reloadShaderCompiledCode",
+            "reloadShaderParameters", "reloadShaderPresetId", "reloadShaderPresetVersion", "hasSerializedProgram",
             "catalogSourcePath", "catalogDependencyHash", "documentIncludeBasePath"
         };
         private static readonly Dictionary<Type, FieldInfo[]> FieldCache = new();
@@ -101,6 +103,7 @@ namespace DCFApixels.WhimTex
             RestoreMissingAssets(document);
             document.EnsureCommentNumbers();
             if (selection != null) selection = FragmentRoots(document, selection);
+            ValidateStoredShaderPrograms(document, selection);
             var context = new Writer(options, document);
             var settings = context.ObjectFields(document);
             settings.Remove("layers");
@@ -352,9 +355,7 @@ namespace DCFApixels.WhimTex
                     if (layer?.fx != null)
                         foreach (var fxEntry in layer.fx)
                             if (fxEntry is ShaderFX fx)
-                                foreach (var parameter in fx.StoredTextureLayerParameters())
-                                    if (!document.IsUsableStoredShaderTexture(layer, parameter.textureLayerId))
-                                        throw new WhimTexDocumentException("Invalid or cyclic FX input: " + parameter.name);
+                                ValidateShaderProgramInputs(document, layer, fx.Program, effectContext: true);
                     if (layer?.children != null) Visit(layer.children);
                 }
             }
@@ -407,7 +408,7 @@ namespace DCFApixels.WhimTex
             private int depth, count;
             internal Writer(WhimTexJsonWriteOptions options, WhimTexDocument document) { this.options = options; this.document = document; }
 
-            internal JObject ObjectFields(object value, bool preserveParameterMetadata = false)
+            internal JObject ObjectFields(object value, bool preserveParameterMetadata = false, string sourcePath = null)
             {
                 ValidateVectorStorage(value);
                 ValidateShaderGraphStorage(value);
@@ -440,26 +441,11 @@ namespace DCFApixels.WhimTex
                     object item = field.GetValue(value);
                     if (value is MeshGradient && (field.Name == "nodeModes" || field.Name == "patchPriorities" || field.Name == "hueChroma") &&
                         item is Array array && array.Length == 0) item = null;
-                    if (value is ShaderFX effect && field.Name == "parameters")
-                    {
-                        // Store the valid draft's declarations without mutating its applied state.
-                        try
-                        {
-                            var declared = ShaderFXMetadata.Parse(effect.Code, false, out _);
-                            ShaderFXMetadata.PreserveValues(declared, effect.Parameters);
-                            foreach (var declaredParameter in declared)
-                                foreach (var stored in effect.Parameters)
-                                    if (stored != null && stored.id == declaredParameter.id && MissingAssets.TryGetValue(stored, out var missingParameterAssets))
-                                        foreach (var asset in missingParameterAssets) MissingAssets.GetOrCreateValue(declaredParameter)[asset.Key] = asset.Value.DeepClone();
-                            item = declared;
-                        }
-                        catch (FormatException) { /* Broken drafts keep their stored values. */ }
-                    }
                     JToken encoded;
                     if (IsNull(item) && MissingAssets.TryGetValue(value, out var missing) && missing.TryGetValue(field.Name, out var identity))
                         encoded = identity.DeepClone();
                     else if (value is ShaderGraph && field.Name == "parameters" ||
-                        value is ShaderLayerBehaviour && field.Name == "codeParameters")
+                        value is ShaderProgram && field.Name == "codeParameters")
                     {
                         // Retain declarations exactly, including the inactive mode and broken code drafts.
                         var declarations = new JArray();
@@ -467,11 +453,13 @@ namespace DCFApixels.WhimTex
                             declarations.Add(ObjectFields(declaration, preserveParameterMetadata: true));
                         encoded = declarations;
                     }
-                    else if (value is ShaderFX fx && field.Name == "code")
+                    else if (value is ShaderFX fx && field.Name == "program")
+                        encoded = ObjectFields(fx.Program, sourcePath: fx.SourcePath);
+                    else if (value is ShaderLayerBehaviour shader && field.Name == "program")
+                        encoded = ObjectFields(shader.program, sourcePath: shader.CodeSourcePath(document));
+                    else if (value is ShaderProgram && (field.Name is "code" or "compiledCode"))
                     {
-                        try { encoded = new JValue(ShaderFXSourceBuilder.ExportIncludes(ShaderFXIconMetadata.MakePortable(fx.Code, fx.SourcePath), fx.SourcePath)); }
-                        catch (Exception error) when (error is IOException || error is InvalidOperationException)
-                        { encoded = new JValue(fx.Code); }
+                        encoded = new JValue(PortableShaderCode((string)item, sourcePath, field.Name == "code"));
                     }
                     else if (value is VectorBrushDraft && field.Name == "coverage")
                         encoded = item == null ? JValue.CreateNull() : new JValue(Convert.ToBase64String((byte[])item));
@@ -642,6 +630,8 @@ namespace DCFApixels.WhimTex
                 }
                 if (type == typeof(GradientLayerBehaviour) && node["gradientType"] == null)
                     throw JsonError(node, "gradientType is required; specify Linear, Radial, Angular, Square, Freeform or Mesh.");
+                if ((type == typeof(ShaderFX) || type == typeof(ShaderLayerBehaviour)) && node["program"] is not JObject)
+                    throw JsonError(node, "Shader storage requires a shared program object; flattened Shader fields are unsupported.");
                 if (type == typeof(MeshGradient))
                 {
                     ((MeshGradient)result).patchPriorities = null;
@@ -667,6 +657,10 @@ namespace DCFApixels.WhimTex
                     else if (defaults != null && field.Name != "id" && field.Name != "recoveryId" && field.Name != "shaderKey")
                         field.SetValue(result, field.FieldType.IsValueType ? Activator.CreateInstance(field.FieldType) : null);
                 }
+                // A code-only recipe has no accepted source yet. In particular an FX must
+                // not replace its supplied code with ShaderProgram's white layer default.
+                if (result is ShaderProgram program && node["code"] != null && node["compiledCode"] == null)
+                    program.compiledCode = null;
                 if (result is ShapeLayerBehaviour shape)
                 {
                     if (node["rectangleCorners"] != null && (!(node["rectangleCorners"] is JArray rectangle) || rectangle.Count != 4))

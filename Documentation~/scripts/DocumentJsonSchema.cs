@@ -78,7 +78,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 var properties = new Dictionary<string, object>();
                 definitions[name] = D(("type", "object"), ("additionalProperties", false), ("properties", properties));
                 if (type == typeof(ShaderGraph))
-                    ((Dictionary<string, object>)definitions[name])["description"] = "Shader-layer fragment graph, version 1. Parameters retain their control declarations and stable IDs. Parameter.parameterId refers to a root parameter; SubGraphInput.parameterId refers to an input interface ID. Sub Graph instances reference the embedded subGraphs table and use stable interface IDs as port keys. Definitions share root parameters/functions/sources; nesting is limited to 16, recursion is forbidden, and compilation expands at most 4096 nodes. HDR values are retained. Arrays replace the complete corresponding graph data.";
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Shared Shader/FX fragment graph, version 1. Parameters retain their control declarations and stable IDs. Parameter.parameterId refers to a root parameter; SubGraphInput.parameterId refers to an input interface ID. Sub Graph instances reference the embedded subGraphs table and use stable interface IDs as port keys. Definitions share root parameters/functions/sources; nesting is limited to 16, recursion is forbidden, and compilation expands at most 4096 nodes. HDR values are retained. Arrays replace the complete corresponding graph data.";
                 if (type == typeof(ShaderGraphSubGraph))
                 {
                     var definition = (Dictionary<string, object>)definitions[name];
@@ -95,6 +95,12 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 }
                 if (type == typeof(ShaderLayerBehaviour))
                     ((Dictionary<string, object>)definitions[name])["description"] = "Procedural Shader layer with independent Graph (default) and Code modes. Switching mode converts nothing. Both graph and code state, declarations and values persist in every writing mode. Code uses WhimTex HLSL ApplyFX/@param: code is an editable draft, compiledCode is the last applied source, and codeParameters holds its accepted declarations and current values. Rendering uses compiledCode, never the draft. UV is local procedural UV. Shared Input supplies color/SampleInput in Code and SampleInput nodes in Graph; None and missing sources read transparent black. Output is straight RGBA followed by ordinary layer transform, FX and blending; reading CompositeBelow does not replace that composition. Stored texture parameters in both modes are validated/remapped. Shared inputLayerId is remapped even while inactive; only selected sources affect rendering dependencies and stamps.";
+                if (type == typeof(ShaderLayerBehaviour) || type == typeof(ShaderFX))
+                    ((Dictionary<string, object>)definitions[name])["required"] = new[] { "program" };
+                if (type == typeof(ShaderProgram))
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Editable program shared by Shader layers and FX. mode selects Graph or Code without conversion. Both branches, parameter values, functions, subgraphs and embedded include sources persist in all write modes. presetId/presetVersion link the same catalog; the full local program remains usable and editable without the preset. Layer input settings and FX activation belong to the host. A Self texture is supported by FX only; layer hosts reject Self in either branch. Code text is limited to 8 MiB UTF-8 per field; TIFF deduplicates/compresses shader source text in a shared table with a 32 MiB budget.";
+                if (type == typeof(ShaderFX))
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Document-owned Shader effect with an editable shared program. Graph and Code modes retain independent data. Graph SampleInput reads the image entering this effect in its chain. active controls application. $ref shares an owned FX object within the document; external ShaderFX assets are unsupported.";
                 if (type == typeof(GradientLayerBehaviour)) ((Dictionary<string, object>)definitions[name])["required"] = new[] { "gradientType" };
                 if (type == typeof(MeshGradient))
                 {
@@ -111,7 +117,11 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 if (type == typeof(DrawingLayerBehaviour)) properties["contentOmitted"] = D(("const", true));
                 foreach (FieldInfo f in (FieldInfo[])fields.Invoke(null, new object[] { type }))
                     if (!(type == typeof(WhimTexDocument) && f.Name == "layers") && !(type == typeof(DrawingLayerBehaviour) && f.Name == "pixels"))
-                        properties[f.Name] = type == typeof(ShaderLayerBehaviour) && f.Name == "mode"
+                        properties[f.Name] = (type == typeof(ShaderLayerBehaviour) || type == typeof(ShaderFX)) && f.Name == "program"
+                            ? D(("allOf", new[] { Schema(typeof(ShaderProgram)), D(("type", "object")) })) :
+                            type == typeof(ShaderProgram) && f.Name == "graph"
+                            ? D(("allOf", new[] { Schema(typeof(ShaderGraph)), D(("type", "object")) })) :
+                            type == typeof(ShaderProgram) && f.Name == "mode"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderLayerMode))), ("default", "Graph"),
                                 ("description", "Select an independent stored mode without conversion or draft application.")) :
                             type == typeof(ShaderLayerBehaviour) && f.Name == "inputMode"
@@ -120,11 +130,11 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                             type == typeof(ShaderLayerBehaviour) && f.Name == "inputLayerId"
                             ? D(("type", new[] { "string", "null" }), ("default", null),
                                 ("description", "Source layer/group ID. Retained and remapped even when inputMode is not Layer. Empty selections read transparent black. Validation rejects unresolved nonempty selected IDs and self/cyclic dependencies.")) :
-                            type == typeof(ShaderLayerBehaviour) && (f.Name == "code" || f.Name == "compiledCode")
-                            ? D(("type", "string"), ("default", ShaderLayerBehaviour.DefaultCode),
+                            type == typeof(ShaderProgram) && (f.Name == "code" || f.Name == "compiledCode")
+                            ? D(("type", f.Name == "code" ? new[] { "string" } : new[] { "string", "null" }), ("maxLength", 8 * 1024 * 1024), ("default", ShaderLayerBehaviour.DefaultCode),
                                 ("description", f.Name == "code" ? "Editable WhimTex HLSL ApplyFX/@param draft. Saving or changing mode does not apply it." :
-                                    "Last applied HLSL source used by Code rendering; not a compiled GPU binary. Restore with matching codeParameters. Document loading does not apply code.")) :
-                            type == typeof(ShaderLayerBehaviour) && f.Name == "codeParameters"
+                                    "Last applied HLSL source used by Code rendering; not a compiled GPU binary. Null means no accepted Code source. Omission alongside an explicit code draft also means null, so a code-only FX recipe can apply its supplied source. Restore with matching codeParameters. Retained while Graph is active.")) :
+                            type == typeof(ShaderProgram) && f.Name == "codeParameters"
                             ? D(("type", "array"), ("default", Array.Empty<object>()), ("items", Schema(typeof(ShaderFXParameter))),
                                 ("description", "Accepted Code declarations and current values, including control metadata and texture identities. Retained independently of graph.parameters. Array replacement; no reparse of draft code.")) :
                             type == typeof(ShaderGraph) && f.Name == "version"
@@ -321,12 +331,12 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                         ("description", "Exact include string without quotes/angle brackets, scoped to the including module. Duplicate requested spellings use one binding."));
                     properties["sourceId"] = D(("type", "string"), ("minLength", 1), ("maxLength", 128), ("pattern", "^[A-Za-z0-9_-]+$"));
                 }
-                if (type == typeof(ShaderFX))
+                if (type == typeof(ShaderProgram))
                 {
                     properties["presetId"] = D(("type", new[] { "string", "null" }), ("default", null),
                         ("description", "Optional @preset GUID in N or D form; editor writes lowercase N. A nonempty ID requires presetVersion >= 1. No Unity asset GUID or content/path matching."));
                     properties["presetVersion"] = D(("type", "integer"), ("minimum", 0), ("default", 0),
-                        ("description", "Exact expected preset version. Zero/omitted only without a preset ID. Missing, invalid or differently versioned sources use saved code and retain this reference."));
+                        ("description", "Exact expected preset version. Zero/omitted only without a preset ID. Missing, invalid or differently versioned sources use the complete saved program and retain this reference."));
                     ((Dictionary<string, object>)definitions[name])["oneOf"] = new[] {
                         D(("properties", D(("presetId", D(("enum", new object[] { null, "" }))), ("presetVersion", D(("const", 0)))))),
                         D(("required", new[] { "presetId", "presetVersion" }), ("properties", D(
@@ -390,7 +400,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                     ((Dictionary<string, object>)definitions[name])["allOf"] = new[] { D(("if", alphaChannel), ("then", alphaValue)) };
                 }
                 if (type == typeof(Layer))
-                    ((Dictionary<string, object>)properties["fx"])["description"] = "Document-owned HLSL effects only: inline code or marked .hlsl presets. Internal $ref identities are supported; external Material, Shader and ShaderFX asset references are rejected.";
+                    ((Dictionary<string, object>)properties["fx"])["description"] = "Document-owned shared Shader programs in Code or Graph mode. Both modes and a complete preset fallback are embedded. Internal $ref identities are supported; external Material, Shader and ShaderFX asset references are rejected.";
                 if (type == typeof(ShapeLayerBehaviour) || type == typeof(VectorShape))
                 {
                     var paintConstraints = new List<object>();

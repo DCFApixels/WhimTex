@@ -17,6 +17,7 @@ namespace DCFApixels.WhimTex
             [SerializeField] internal string id, path, menuPath, group, error;
             [SerializeField] internal int version;
             [SerializeField] internal bool user;
+            [SerializeField] internal ShaderLayerMode mode = ShaderLayerMode.Code;
             [SerializeField] internal ShaderFXIconMetadata.Descriptor icon;
             internal bool HasError => !string.IsNullOrEmpty(error);
         }
@@ -24,7 +25,7 @@ namespace DCFApixels.WhimTex
         [Serializable]
         private sealed class Snapshot { public List<Entry> entries = new List<Entry>(); }
         // SessionState survives domain reloads but is discarded when the Editor closes.
-        private const string SessionKey = "WhimTex.ShaderFXCatalog.Headers.v5";
+        private const string SessionKey = "WhimTex.ShaderFXCatalog.Headers.v6";
 
         internal static string Folder => Path.GetFullPath(Path.Combine(WhimTexUserSettings.PresetsFolder, "ShaderFX"));
 
@@ -33,8 +34,6 @@ namespace DCFApixels.WhimTex
         private static bool queued;
         private static readonly HashSet<string> changed = new HashSet<string>(StringComparer.Ordinal);
         private static readonly Dictionary<string, (long length, long modified)> userFiles = new Dictionary<string, (long, long)>(StringComparer.Ordinal);
-        private static readonly Dictionary<string, HashSet<ShaderFX>> shaderDependents =
-            new Dictionary<string, HashSet<ShaderFX>>(StringComparer.OrdinalIgnoreCase);
         private static IReadOnlyList<Entry> sortedEntries = Array.Empty<Entry>();
         private static Task<HeaderScan> pendingScan;
         private static bool refreshProject = true;
@@ -109,7 +108,7 @@ namespace DCFApixels.WhimTex
                 var packages = new Dictionary<string, string>(StringComparer.Ordinal);
                 foreach (string path in AssetDatabase.GetAllAssetPaths())
                 {
-                    if (!IsHlsl(path)) continue;
+                    if (!ShaderPresetIO.IsPresetPath(path)) continue;
                     string physical = path;
                     if (path.StartsWith("Packages/", StringComparison.Ordinal))
                     {
@@ -142,7 +141,8 @@ namespace DCFApixels.WhimTex
                     var entry = ReadHeader(source.Key, source.Value, false);
                     if (entry != null) scan.entries.Add(entry.path, entry);
                 }
-                foreach (string path in PresetLibraryPaths.UserFiles(scan.folder, "hlsl"))
+                foreach (string extension in new[] { ShaderPresetIO.HlslExtension, ShaderPresetIO.Extension })
+                foreach (string path in PresetLibraryPaths.UserFiles(scan.folder, extension))
                 {
                     if (Path.GetFullPath(path).StartsWith(assets, comparison) || projectFiles.Contains(Path.GetFullPath(path))) continue;
                     try
@@ -215,21 +215,15 @@ namespace DCFApixels.WhimTex
 
         internal static string ReadSource(string path)
         {
-            if (string.IsNullOrEmpty(path)) throw new IOException("The HLSL effect source is missing. The last applied shader is retained.");
-            string physical = path;
-            if (path.StartsWith("Packages/", StringComparison.Ordinal))
-            {
-                PackageInfo package = PackageInfo.FindForAssetPath(path);
-                if (package != null) physical = Path.Combine(package.resolvedPath, path.Substring(package.assetPath.Length + 1));
-            }
-            if (new FileInfo(physical).Length > 2 * 1024 * 1024) throw new IOException("HLSL effect exceeds 2 MiB.");
-            return File.ReadAllText(physical);
+            if (string.IsNullOrEmpty(path)) throw new IOException("The shader preset source is missing. The embedded program is retained.");
+            return ShaderPresetIO.ReadText(PresetLibraryPaths.PhysicalPath(path));
         }
 
         private static Entry ReadHeader(string path, string physical, bool user)
         {
             try
             {
+                if (ShaderPresetIO.IsProgramPath(path)) return ShaderPresetIO.ReadHeader(path, physical, user);
                 using var reader = new StreamReader(physical);
                 string header = ShaderFXIconMetadata.ReadHeader(reader);
                 using var firstLine = new StringReader(header);
@@ -249,12 +243,17 @@ namespace DCFApixels.WhimTex
             }
             catch (IOException) { return null; }
             catch (UnauthorizedAccessException) { return null; }
+            catch (Exception error) when (error is FormatException || error is Newtonsoft.Json.JsonException ||
+                error is WhimTexDocumentException || error is ArgumentException || error is OverflowException)
+            {
+                return new Entry { path = path, menuPath = Path.GetFileNameWithoutExtension(path), user = user, error = error.Message };
+            }
         }
 
         private static void Inspect(string path, bool user = false)
         {
             entries.Remove(path);
-            if (path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase))
+            if (ShaderPresetIO.IsPresetPath(path))
             {
                 var entry = ReadHeader(path, PresetLibraryPaths.PhysicalPath(path), user);
                 if (entry == null) return;
@@ -280,9 +279,11 @@ namespace DCFApixels.WhimTex
             return sortedEntries;
         }
 
-        internal static Entry InspectDroppedHlsl(string path)
+        internal static Entry InspectDroppedHlsl(string path) => InspectDroppedPreset(path);
+
+        internal static Entry InspectDroppedPreset(string path)
         {
-            if (string.IsNullOrEmpty(path) || !path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase)) return null;
+            if (!ShaderPresetIO.IsPresetPath(path)) return null;
             Inspect(path);
             revision++;
             GetEntries();
@@ -293,7 +294,7 @@ namespace DCFApixels.WhimTex
         internal static void ShowMenu(Action<Entry> select) => BuildMenu(select).ShowAsContext();
 
         internal static string EmptyMenuMessage => initialized
-            ? "No effects found — add a marked .hlsl file" : "Loading effect presets…";
+            ? "No shaders found — add a .hlsl or .whimtexshader preset" : "Loading shader presets…";
 
         internal static void OpenUserFolder()
         {
@@ -322,7 +323,7 @@ namespace DCFApixels.WhimTex
                 else menu.AddItem(content, false, () => select(entry));
             }
             menu.AddSeparator("");
-            menu.AddItem(new GUIContent("Open User Shader FX Folder"), false, OpenUserFolder);
+            menu.AddItem(new GUIContent("Open User Shader Presets Folder"), false, OpenUserFolder);
             menu.AddItem(new GUIContent("Library Settings…"), false, WhimTexUserSettingsWindow.Open);
             return menu;
         }
@@ -333,7 +334,7 @@ namespace DCFApixels.WhimTex
             {
                 foreach (string path in batch)
                 {
-                    if (!string.IsNullOrEmpty(path) && (IsHlsl(path) || IsInclude(path)))
+                    if (!string.IsNullOrEmpty(path) && (ShaderPresetIO.IsPresetPath(path) || IsInclude(path)))
                         changed.Add(path);
                 }
             }
@@ -360,55 +361,20 @@ namespace DCFApixels.WhimTex
             bool shaderSourceChanged = false;
             foreach (string path in changed)
             {
-                if (initialized && IsHlsl(path))
+                if (initialized && ShaderPresetIO.IsPresetPath(path))
                 {
                     entries.TryGetValue(path, out Entry previous);
                     Inspect(path);
                     entries.TryGetValue(path, out Entry current);
                     catalogChanged |= !SameEntry(previous, current);
                 }
-                shaderSourceChanged |= IsHlsl(path) || IsInclude(path);
+                shaderSourceChanged |= ShaderPresetIO.IsPresetPath(path) || IsInclude(path);
             }
             if (initialized && catalogChanged) ResolveIdentities(entries);
-            if (shaderSourceChanged) ReloadShaderDependents(changed);
             changed.Clear();
             if (initialized && catalogChanged) { SortEntries(); SaveHeaders(); }
-            if (catalogChanged) QueueLinkedRefresh();
+            if (catalogChanged || shaderSourceChanged) QueueLinkedRefresh();
             if (pendingScan != null || refreshProject) QueueRefresh();
-        }
-
-        internal static void SetShaderDependencies(ShaderFX effect, HashSet<string> dependencies)
-        {
-            if (effect == null || dependencies == null) return;
-            foreach (string path in dependencies)
-            {
-                string key = NormalizePath(path);
-                if (!shaderDependents.TryGetValue(key, out HashSet<ShaderFX> dependents))
-                    shaderDependents.Add(key, dependents = new HashSet<ShaderFX>());
-                dependents.Add(effect);
-            }
-        }
-
-        internal static void RemoveShaderDependencies(ShaderFX effect, HashSet<string> dependencies)
-        {
-            if (effect == null || dependencies == null) return;
-            foreach (string path in dependencies)
-            {
-                string key = NormalizePath(path);
-                if (!shaderDependents.TryGetValue(key, out HashSet<ShaderFX> dependents)) continue;
-                dependents.Remove(effect);
-                if (dependents.Count == 0) shaderDependents.Remove(key);
-            }
-        }
-
-        private static void ReloadShaderDependents(HashSet<string> paths)
-        {
-            var affected = new HashSet<ShaderFX>();
-            foreach (string path in paths)
-                if (shaderDependents.TryGetValue(NormalizePath(path), out HashSet<ShaderFX> dependents))
-                    affected.UnionWith(dependents);
-            foreach (ShaderFX effect in affected)
-                if (effect != null && effect.IsCatalogLinked) effect.ReloadCatalogSource(true);
         }
 
         private static bool SameEntry(Entry a, Entry b)
@@ -423,10 +389,9 @@ namespace DCFApixels.WhimTex
                 string.Equals(a.icon?.reference, b.icon?.reference, StringComparison.Ordinal) &&
                 string.Equals(a.icon?.svg, b.icon?.svg, StringComparison.Ordinal) &&
                 string.Equals(a.icon?.error, b.icon?.error, StringComparison.Ordinal) &&
-                a.user == b.user;
+                a.user == b.user && a.mode == b.mode;
         }
 
-        private static bool IsHlsl(string path) => path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase);
         private static bool IsInclude(string path) => path.EndsWith(".cginc", StringComparison.OrdinalIgnoreCase);
         private static string NormalizePath(string path) => path.Replace('\\', '/');
     }

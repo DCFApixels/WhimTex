@@ -11,6 +11,8 @@ namespace DCFApixels.WhimTex
     {
         [SerializeField] private WhimTexDocument document;
         [SerializeField] private string layerId;
+        [SerializeField] private ShaderFX effect;
+        [SerializeField] private bool effectTarget;
         [SerializeField] private Vector3 viewPosition;
         [SerializeField] private Vector3 viewScale = Vector3.one;
         [SerializeField] private LayerPreviewPanel.ViewState previewState = new LayerPreviewPanel.ViewState();
@@ -26,26 +28,45 @@ namespace DCFApixels.WhimTex
         private LayerPreviewPanel preview;
         private HelpBox diagnostics;
         private Label status;
+        private ToolbarButton compileButton;
         private VisualElement body;
         private TextField generatedSource;
         private VisualElement codePanel;
         private int codeCursor, codeSelection;
         private IVisualElementScheduledItem codeSelectionCapture;
         private ulong boundLayout;
+        private ShaderGraphEditorTarget target;
+        private ShaderGraph boundGraph;
+        private ShaderLayerMode boundMode;
         private bool applying, refreshRequested, rebuildRequested, compileRequested, ready;
 
-        internal ShaderLayerBehaviour Behaviour => document != null ? document.FindLayer(layerId)?.Behaviour as ShaderLayerBehaviour : null;
+        internal ShaderGraphEditorTarget Target => target ??= new ShaderGraphEditorTarget(document, layerId, effect, effectTarget);
         internal ShaderGraph Graph => ResolveGraph();
-        internal bool Editable => Behaviour != null && Behaviour.mode == ShaderLayerMode.Graph && !WhimTexApi.IsLayerContentLocked(document, Behaviour.Owner);
+        internal bool SourceEditable => !Target.IsReadOnly && !Target.IsLinked;
+        internal bool Editable => Target.GraphActive && SourceEditable;
 
         public static void Open(ShaderLayerBehaviour layer, WhimTexDocument document)
         {
             if (layer == null || document == null) return;
+            OpenTarget(document, layer.Owner, null, false);
+        }
+
+        public static void Open(ShaderFX effect, Layer layer, WhimTexDocument document)
+        {
+            if (effect == null || layer == null || document == null || layer.fx?.Contains(effect) != true ||
+                !ReferenceEquals(document.FindLayer(layer.Id), layer)) return;
+            OpenTarget(document, layer, effect, true);
+        }
+
+        private static void OpenTarget(WhimTexDocument document, Layer layer, ShaderFX effect, bool effectTarget)
+        {
+            if (layer == null) return;
             foreach (var existing in Resources.FindObjectsOfTypeAll<ShaderGraphWindow>())
-                if (existing.document == document && existing.layerId == layer.Id) { existing.Show(); existing.Focus(); return; }
+                if (existing.document == document && existing.layerId == layer.Id && existing.effectTarget == effectTarget &&
+                    (!effectTarget || existing.effect == effect)) { existing.Show(); existing.Focus(); return; }
             var window = CreateInstance<ShaderGraphWindow>();
-            window.document = document; window.layerId = layer.Id;
-            window.titleContent = WhimTexBranding.WindowTitle("Shader Graph — " + layer.layerName);
+            window.document = document; window.layerId = layer.Id; window.effect = effect; window.effectTarget = effectTarget;
+            window.titleContent = WhimTexBranding.WindowTitle("Shader Graph — " + window.Target.Title);
             window.minSize = new Vector2(680, 380);
             window.Show();
         }
@@ -54,6 +75,7 @@ namespace DCFApixels.WhimTex
         {
             WhimTexDocument.Changed += OnDocumentChanged;
             WhimTexDocument.RenderResourcesChanged += OnResourcesChanged;
+            ShaderFX.Changed += OnEffectChanged;
             WhimTexApi.LiveEditLocksChanged += OnLocksChanged;
             Undo.undoRedoPerformed += OnUndoRedo;
             refreshRequested = rebuildRequested = true;
@@ -62,15 +84,17 @@ namespace DCFApixels.WhimTex
         {
             WhimTexDocument.Changed -= OnDocumentChanged;
             WhimTexDocument.RenderResourcesChanged -= OnResourcesChanged;
+            ShaderFX.Changed -= OnEffectChanged;
             WhimTexApi.LiveEditLocksChanged -= OnLocksChanged;
             Undo.undoRedoPerformed -= OnUndoRedo;
             preview?.Dispose(); preview = null;
             canvas?.Dispose(); canvas = null;
+            parameterSource?.ReleasePreview();
             ready = false;
         }
         public void CreateGUI()
         {
-            preview?.Dispose(); canvas?.Dispose();
+            preview?.Dispose(); canvas?.Dispose(); parameterSource?.ReleasePreview();
             rootVisualElement.Clear();
             WhimTexUI.ApplyWindowStyles(rootVisualElement);
             var styles = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.dcfapixels.whimtex/src/Editor/ShaderGraphWindow.uss");
@@ -82,7 +106,8 @@ namespace DCFApixels.WhimTex
             backToGraph = new ToolbarButton(() => OpenSubGraph(null)) { text = "Back to Graph" };
             backToGraph.style.display = Graph?.activeSubGraph != null ? DisplayStyle.Flex : DisplayStyle.None;
             toolbar.Add(backToGraph);
-            toolbar.Add(new ToolbarButton(() => Compile()) { text = "Compile" });
+            compileButton = new ToolbarButton(() => Compile()) { text = "Compile" };
+            toolbar.Add(compileButton);
             toolbar.Add(new ToolbarButton(() => canvas?.FrameAll()) { text = "Frame All" });
             toolbar.Add(new ToolbarButton(() => canvas?.FrameSelection()) { text = "Frame Selection" });
             toolbar.Add(new ToolbarButton(RefreshFunctionCatalog) { text = "Refresh HLSL" });
@@ -110,7 +135,7 @@ namespace DCFApixels.WhimTex
             declarations.RegisterCallback<DragExitedEvent>(_ => HideParameterInsertion());
             // One scroll surface contains both declarations and their native value controls.
             scroll.Add(declarations);
-            parameterSource = new ShaderGraphParameterViewSource(document, layerId, graphOnly: true);
+            parameterSource = new ShaderGraphParameterViewSource(Target, graphOnly: true);
             parameterValues = new ShaderFXParameterView(parameterSource);
             var values = new Foldout { text = "Values", value = true };
             values.Add(parameterValues); scroll.Add(values);
@@ -143,7 +168,7 @@ namespace DCFApixels.WhimTex
             if (!ready) return;
             if (refreshRequested || rebuildRequested) RefreshInterface();
             if (compileRequested) Compile();
-            if (Behaviour?.mode == ShaderLayerMode.Graph) canvas?.TickPreviews();
+            if (Target.GraphActive && Graph != null) canvas?.TickPreviews();
         }
         private void OnDocumentChanged(WhimTexDocument changed)
         {
@@ -160,7 +185,20 @@ namespace DCFApixels.WhimTex
             refreshRequested = true; preview?.RequestLayerPreview();
             canvas?.InvalidatePreviews();
         }
-        private void OnLocksChanged() { if (ready) body.SetEnabled(Editable); }
+        private void OnEffectChanged(ShaderFX changed)
+        {
+            if (!effectTarget || changed != effect || applying) return;
+            subGraphView = null;
+            if (!string.IsNullOrEmpty(editingSubGraphId)) rebuildRequested = true;
+            refreshRequested = true;
+            canvas?.InvalidatePreviews(); preview?.RequestLayerPreview();
+        }
+        private void OnLocksChanged()
+        {
+            if (!ready) return;
+            body.SetEnabled(Editable); compileButton.SetEnabled(Editable);
+            refreshRequested = true;
+        }
         private void OnUndoRedo()
         {
             subGraphView = null;
@@ -174,15 +212,27 @@ namespace DCFApixels.WhimTex
         {
             if (!ready) return;
             refreshRequested = false;
-            var behaviour = Behaviour;
-            if (behaviour == null)
+            var host = Target;
+            compileButton.SetEnabled(Editable);
+            if (!host.Available || Graph == null)
             {
-                body.SetEnabled(false); status.text = "Layer unavailable";
-                diagnostics.text = "The Shader layer no longer exists in this document.";
+                body.SetEnabled(false); status.text = effectTarget ? "FX unavailable" : "Layer unavailable";
+                diagnostics.messageType = HelpBoxMessageType.Error;
+                diagnostics.text = effectTarget ? "The FX no longer exists on this layer." : "The Shader layer no longer exists in this document.";
+                boundGraph = null; rebuildRequested = compileRequested = false;
+                declarations.Clear(); parameterSource.RefreshParameters(); parameterValues.Refresh(); canvas.Rebuild();
+                preview.Bind(document, null); RefreshGeneratedSource();
                 diagnostics.RemoveFromClassList("whimtex-hidden"); return;
             }
             body.SetEnabled(Editable);
-            titleContent = WhimTexBranding.WindowTitle("Shader Graph — " + behaviour.layerName);
+            titleContent = WhimTexBranding.WindowTitle("Shader Graph — " + host.Title);
+            if (!ReferenceEquals(boundGraph, RootGraph) || boundMode != host.Program.mode)
+            {
+                boundGraph = RootGraph; boundMode = host.Program.mode;
+                rebuildRequested = true; compileRequested = host.GraphActive;
+                if (!host.GraphActive) canvas.SuspendPreviews();
+                canvas.InvalidatePreviews();
+            }
             Graph.BindFunctions();
             ulong layout = LayoutFingerprint(Graph);
             if (rebuildRequested || boundLayout != layout)
@@ -193,27 +243,22 @@ namespace DCFApixels.WhimTex
             else canvas.RefreshValues();
             foreach (var update in declarationRefresh) update();
             parameterSource.RefreshParameters(); parameterValues.Refresh();
-            preview.Bind(document, behaviour.Owner);
+            preview.Bind(document, host.Layer);
             RefreshDiagnostics();
         }
 
         internal void Edit(string name, Action<ShaderGraph> change, bool structural = true, bool rebuild = true, bool layoutOnly = false)
         {
             if (!Editable || Graph == null) return;
-            Undo.RecordObject(document, name);
+            Target.RecordUndo(name);
             applying = true;
             try
             {
                 change(Graph);
                 CommitGraphView();
-                if (structural) { RootGraph.PruneFunctions(); Graph.PruneGroups(); Behaviour.InvalidateGraph(); }
-                if (layoutOnly)
-                {
-                    if (!rebuild) boundLayout = LayoutFingerprint(Graph);
-                    EditorUtility.SetDirty(document);
-                    if (document.documentBinding != null) document.documentBinding.dirty = true;
-                }
-                else document.MarkChanged();
+                if (structural) { RootGraph.PruneFunctions(); Graph.PruneGroups(); Target.InvalidateGraph(); }
+                if (layoutOnly && !rebuild) boundLayout = LayoutFingerprint(Graph);
+                Target.MarkChanged(layoutOnly);
             }
             finally { applying = false; }
             if (structural) compileRequested = true;
@@ -230,17 +275,18 @@ namespace DCFApixels.WhimTex
         private void Compile()
         {
             compileRequested = false;
-            if (Behaviour == null || Behaviour.mode != ShaderLayerMode.Graph) return;
-            try { Behaviour.CompileGraph(document); }
+            if (!Editable) return;
+            try { Target.CompileGraph(); }
             catch (Exception error) { ShowError(error.Message); return; }
             RefreshDiagnostics(); preview?.RequestLayerPreview(true);
         }
         private void RefreshDiagnostics()
         {
-            bool error = Behaviour?.HasCompileError == true;
+            var host = Target;
+            bool error = host.HasCompileError;
             var global = new System.Text.StringBuilder();
             var level = ShaderGraphMessageLevel.Info;
-            if (Behaviour != null) foreach (var item in Behaviour.Messages)
+            foreach (var item in host.Messages)
             {
                 if (item.nodeId != null && Graph?.FindNode(item.nodeId) != null) continue;
                 if (global.Length > 0) global.AppendLine();
@@ -252,9 +298,11 @@ namespace DCFApixels.WhimTex
                 level == ShaderGraphMessageLevel.Warning ? HelpBoxMessageType.Warning : HelpBoxMessageType.Info;
             diagnostics.text = message;
             diagnostics.EnableInClassList("whimtex-hidden", message.Length == 0);
-            status.text = error ? "Compile error" : compileRequested ? "Compile pending" : Behaviour?.Diagnostics ?? "Fragment · RGBA";
+            status.text = !host.GraphActive ? "Code mode · Graph retained" : error ? "Compile error" :
+                host.IsLinked ? "Linked preset · Read-only" :
+                compileRequested ? "Compile pending" : host.Diagnostics ?? "Fragment · RGBA";
             RefreshGeneratedSource();
-            canvas.SetMessages("compile", Behaviour?.Messages);
+            canvas.SetMessages("compile", host.Messages);
         }
         internal void ShowError(string message)
         {
@@ -314,7 +362,7 @@ namespace DCFApixels.WhimTex
         private void RefreshGeneratedSource()
         {
             if (generatedSource?.panel == null) return;
-            string source = Behaviour?.GeneratedSource ?? string.Empty;
+            string source = Target.GeneratedSource ?? string.Empty;
             if (generatedSource.value != source) generatedSource.SetValueWithoutNotify(source);
         }
         internal void AddNode(ShaderGraphNodeKind kind, Vector2 position, string parameterId = null)

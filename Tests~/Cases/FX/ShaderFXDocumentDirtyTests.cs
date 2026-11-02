@@ -37,6 +37,7 @@ public static class ShaderFXDocumentDirtyTests
     static object Call(object target, string name, params object[] args) => Invoke(target.GetType(), target, name, args);
     static object Get(object target, string name) => target.GetType().GetField(name, Any).GetValue(target);
     static void Set(object target, string name, object value) => target.GetType().GetField(name, Any).SetValue(target, value);
+    static ShaderProgram Program(ShaderFX effect) => (ShaderProgram)typeof(ShaderFX).GetProperty("Program", Any).GetValue(effect);
     static void Check(bool condition, string message) { context.True(condition, message); }
     static void Changed(WhimTexDocument doc) { if (doc == observed) changes++; }
     static void Refreshed(WhimTexDocument doc) { if (doc == observed) refreshes++; }
@@ -206,15 +207,15 @@ public static class ShaderFXDocumentDirtyTests
                     AssertDirty(window, doc, false, "same catalog force-recompile");
                     Check(changes == 0 && refreshes == 1, "same catalog emits render only");
                     // Simulate an older portable source snapshot without modifying a real preset.
-                    Set(fx, "code", (string)Get(fx, "code") + "\n// Older saved source snapshot.\n");
-                    Set(fx, "catalogDependencyHash", "old-saved-revision");
+                    Program(fx).code += "\n// Older saved source snapshot.\n";
+                    Call(fx, "ReleaseCatalogDependencies");
                     Call(fx, "ReloadCatalogSource", false); Drain(fx);
                     AssertDirty(window, doc, true, "catalog revision changed");
                 }
             }
             // A changed catalog revision during OPEN (notification queued before SetDocument).
             var stale = Source("Levels.hlsl");
-            Set(stale.layers[0].fx[0], "code", (string)Get(stale.layers[0].fx[0], "code") + "\n// Older saved source snapshot.\n");
+            Program(stale.layers[0].fx[0]).code += "\n// Older saved source snapshot.\n";
             var updated = RoundTrip(stale);
             Invoke(typeof(WhimTexDocumentFile), null, "CompileEmbeddedEffects", updated);
             var updatedWindow = Window(updated);
@@ -222,8 +223,8 @@ public static class ShaderFXDocumentDirtyTests
             AssertDirty(updatedWindow, updated, true, "changed catalog on open");
 
             // Missing source retains the link and saved fallback without changing document content.
-            Set(stale.layers[0].fx[0], "presetId", Guid.NewGuid().ToString("N"));
-            Set(stale.layers[0].fx[0], "presetVersion", 1);
+            Program(stale.layers[0].fx[0]).presetId = Guid.NewGuid().ToString("N");
+            Program(stale.layers[0].fx[0]).presetVersion = 1;
             var fallback = RoundTrip(stale);
             Invoke(typeof(WhimTexDocumentFile), null, "CompileEmbeddedEffects", fallback);
             var fallbackWindow = Window(fallback);

@@ -67,7 +67,7 @@ namespace DCFApixels.WhimTex
         private SelectionStep activeStep;
 
         internal ShaderFXCodeField(ShaderFX effect = null) : this(effect, effect,
-            effect == null ? null : () => effect.Code, effect == null ? null : code => effect.SetDraftCode(code),
+            effect == null ? null : () => effect.Program.code, effect == null ? null : code => effect.SetDraftCode(code),
             effect == null ? null : () => !effect.IsCatalogLinked && !WhimTexApi.IsShaderFXContentLocked(effect), effect) { }
 
         internal ShaderFXCodeField(UnityEngine.Object owner, object historyKey, Func<string> read, Action<string> write, Func<bool> editable)

@@ -97,8 +97,47 @@
               "$type": "ShaderFX",
               "$id": "fx0",
               "active": true,
-              "code": "float4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    return color * color;\r\n}\r\n",
-              "parameters": [],
+              "program": {
+                "code": "float4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    return color * color;\r\n}\r\n",
+                "mode": "Code",
+                "graph": {
+                  "version": 1,
+                  "parameters": [],
+                  "nodes": [
+                    {
+                      "id": "fxInput",
+                      "kind": "SampleInput",
+                      "position": [
+                        40,
+                        80
+                      ]
+                    },
+                    {
+                      "id": "fxOutput",
+                      "kind": "Output",
+                      "position": [
+                        360,
+                        80
+                      ]
+                    }
+                  ],
+                  "edges": [
+                    {
+                      "outputNode": "fxInput",
+                      "outputPort": "Out",
+                      "inputNode": "fxOutput",
+                      "inputPort": "RGBA"
+                    }
+                  ],
+                  "functions": [],
+                  "sources": [],
+                  "notes": [],
+                  "groups": [],
+                  "subGraphs": []
+                },
+                "codeParameters": [],
+                "compiledCode": "float4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    return color * color;\r\n}\r\n"
+              },
               "shaderKey": "76cbe52813d8424aaf08fe36b3976e20",
               "$name": "Contrast Boost FX"
             }
@@ -135,10 +174,12 @@
           "behaviour": {
             "$type": "ShaderLayerBehaviour",
             "recoveryId": "59776fa010eb45c691a3ffbb94a466d1",
-            "mode": "Code",
-            "inputMode": "CompositeBelow",
-            "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
-            "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+            "program": {
+              "mode": "Code",
+              "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+              "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+            },
+            "inputMode": "CompositeBelow"
           },
           "behaviourId": "59776fa010eb45c691a3ffbb94a466d1",
           "children": null,
@@ -488,55 +529,94 @@
               "$type": "ShaderFX",
               "$id": "fx1",
               "active": true,
-              "code": "// @whimtex-effect Distortion/Polar Coordinates\r\n// @param enum _Mode = 0 {ToPolar: 0, FromPolar: 1} // Wrap a strip into a circle, or unwrap a circle into a strip.\r\n// @param float _AngleOffset = 0 [~-180 .. ~180] // Angular offset in degrees.\r\n// @param float _RadialOffset = 0 [~-1 .. ~1] // Radial offset in normalized coordinates.\r\n// @param transform2D _Area\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float2 sampleUV = uv;\r\n    if (_Mode < 0.5)\r\n    {\r\n        float2 p = (_Area_ToLocal(uv) - 0.5) * 2.0;\r\n        float radius = length(p);\r\n        // The center has no unique angle. Choose zero without evaluating atan2(0, 0).\r\n        float angle = 0.0;\r\n        if (radius > 0.0) angle = atan2(p.y, p.x) / 6.28318530718;\r\n        // Only the angular coordinate wraps; radius continues beyond the frame.\r\n        sampleUV = float2(frac(angle - _AngleOffset / 360.0), radius - _RadialOffset);\r\n    }\r\n    else\r\n    {\r\n        float angle = (uv.x + _AngleOffset / 360.0) * 6.28318530718;\r\n        float radius = uv.y + _RadialOffset;\r\n        float sine, cosine;\r\n        sincos(angle, sine, cosine);\r\n        float2 localUV = 0.5 + float2(cosine, sine) * radius * 0.5;\r\n        sampleUV = _Area_ToInput(localUV);\r\n    }\r\n    return SampleInput(sampleUV);\r\n}\r\n",
-              "parameters": [
-                {
-                  "name": "_Mode",
-                  "type": "Float",
-                  "floatValue": 0.0,
-                  "id": "81fa723ea73d40589762909731d9276e"
-                },
-                {
-                  "name": "_AngleOffset",
-                  "type": "Float",
-                  "floatValue": 0.0,
-                  "id": "35366c888b5249c297cd5ad9f13898b3"
-                },
-                {
-                  "name": "_RadialOffset",
-                  "type": "Float",
-                  "floatValue": 0.0,
-                  "id": "0ff1b0ed4225426d8f224d90e872d369"
-                },
-                {
-                  "name": "_Area",
-                  "type": "Transform2D",
-                  "transformValue": {
-                    "position": {
-                      "x": 0.5,
-                      "y": 0.5
+              "program": {
+                "code": "// @whimtex-effect Distortion/Polar Coordinates\r\n// @param enum _Mode = 0 {ToPolar: 0, FromPolar: 1} // Wrap a strip into a circle, or unwrap a circle into a strip.\r\n// @param float _AngleOffset = 0 [~-180 .. ~180] // Angular offset in degrees.\r\n// @param float _RadialOffset = 0 [~-1 .. ~1] // Radial offset in normalized coordinates.\r\n// @param transform2D _Area\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float2 sampleUV = uv;\r\n    if (_Mode < 0.5)\r\n    {\r\n        float2 p = (_Area_ToLocal(uv) - 0.5) * 2.0;\r\n        float radius = length(p);\r\n        // The center has no unique angle. Choose zero without evaluating atan2(0, 0).\r\n        float angle = 0.0;\r\n        if (radius > 0.0) angle = atan2(p.y, p.x) / 6.28318530718;\r\n        // Only the angular coordinate wraps; radius continues beyond the frame.\r\n        sampleUV = float2(frac(angle - _AngleOffset / 360.0), radius - _RadialOffset);\r\n    }\r\n    else\r\n    {\r\n        float angle = (uv.x + _AngleOffset / 360.0) * 6.28318530718;\r\n        float radius = uv.y + _RadialOffset;\r\n        float sine, cosine;\r\n        sincos(angle, sine, cosine);\r\n        float2 localUV = 0.5 + float2(cosine, sine) * radius * 0.5;\r\n        sampleUV = _Area_ToInput(localUV);\r\n    }\r\n    return SampleInput(sampleUV);\r\n}\r\n",
+                "mode": "Code",
+                "graph": {
+                  "version": 1,
+                  "parameters": [],
+                  "nodes": [
+                    {
+                      "id": "fxInput",
+                      "kind": "SampleInput",
+                      "position": [
+                        40,
+                        80
+                      ]
                     },
-                    "size": {
-                      "x": 1.0,
-                      "y": 1.0
-                    },
-                    "rotation": 0.0,
-                    "storage": "TRS",
-                    "matrix": {
-                      "m00": 0.0,
-                      "m01": 0.0,
-                      "m02": 0.0,
-                      "m10": 0.0,
-                      "m11": 0.0,
-                      "m12": 0.0,
-                      "m20": 0.0,
-                      "m21": 0.0,
-                      "m22": 0.0
+                    {
+                      "id": "fxOutput",
+                      "kind": "Output",
+                      "position": [
+                        360,
+                        80
+                      ]
                     }
+                  ],
+                  "edges": [
+                    {
+                      "outputNode": "fxInput",
+                      "outputPort": "Out",
+                      "inputNode": "fxOutput",
+                      "inputPort": "RGBA"
+                    }
+                  ],
+                  "functions": [],
+                  "sources": [],
+                  "notes": [],
+                  "groups": [],
+                  "subGraphs": []
+                },
+                "codeParameters": [
+                  {
+                    "name": "_Mode",
+                    "type": "Float",
+                    "floatValue": 0.0,
+                    "id": "81fa723ea73d40589762909731d9276e"
                   },
-                  "id": "eb9f224a015d4818bd585738f7f1a2f8"
-                }
-              ],
+                  {
+                    "name": "_AngleOffset",
+                    "type": "Float",
+                    "floatValue": 0.0,
+                    "id": "35366c888b5249c297cd5ad9f13898b3"
+                  },
+                  {
+                    "name": "_RadialOffset",
+                    "type": "Float",
+                    "floatValue": 0.0,
+                    "id": "0ff1b0ed4225426d8f224d90e872d369"
+                  },
+                  {
+                    "name": "_Area",
+                    "type": "Transform2D",
+                    "transformValue": {
+                      "position": {
+                        "x": 0.5,
+                        "y": 0.5
+                      },
+                      "size": {
+                        "x": 1.0,
+                        "y": 1.0
+                      },
+                      "rotation": 0.0,
+                      "storage": "TRS",
+                      "matrix": {
+                        "m00": 0.0,
+                        "m01": 0.0,
+                        "m02": 0.0,
+                        "m10": 0.0,
+                        "m11": 0.0,
+                        "m12": 0.0,
+                        "m20": 0.0,
+                        "m21": 0.0,
+                        "m22": 0.0
+                      }
+                    },
+                    "id": "eb9f224a015d4818bd585738f7f1a2f8"
+                  }
+                ],
+                "compiledCode": "// @whimtex-effect Distortion/Polar Coordinates\r\n// @param enum _Mode = 0 {ToPolar: 0, FromPolar: 1} // Wrap a strip into a circle, or unwrap a circle into a strip.\r\n// @param float _AngleOffset = 0 [~-180 .. ~180] // Angular offset in degrees.\r\n// @param float _RadialOffset = 0 [~-1 .. ~1] // Radial offset in normalized coordinates.\r\n// @param transform2D _Area\r\n\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float2 sampleUV = uv;\r\n    if (_Mode < 0.5)\r\n    {\r\n        float2 p = (_Area_ToLocal(uv) - 0.5) * 2.0;\r\n        float radius = length(p);\r\n        // The center has no unique angle. Choose zero without evaluating atan2(0, 0).\r\n        float angle = 0.0;\r\n        if (radius > 0.0) angle = atan2(p.y, p.x) / 6.28318530718;\r\n        // Only the angular coordinate wraps; radius continues beyond the frame.\r\n        sampleUV = float2(frac(angle - _AngleOffset / 360.0), radius - _RadialOffset);\r\n    }\r\n    else\r\n    {\r\n        float angle = (uv.x + _AngleOffset / 360.0) * 6.28318530718;\r\n        float radius = uv.y + _RadialOffset;\r\n        float sine, cosine;\r\n        sincos(angle, sine, cosine);\r\n        float2 localUV = 0.5 + float2(cosine, sine) * radius * 0.5;\r\n        sampleUV = _Area_ToInput(localUV);\r\n    }\r\n    return SampleInput(sampleUV);\r\n}\r\n"
+              },
               "shaderKey": "bb13b9328c6c4a4681a711d1c289d873",
               "$name": "Polar Coordinates"
             }

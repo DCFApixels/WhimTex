@@ -21,7 +21,7 @@ namespace DCFApixels.WhimTex
         internal ShaderFXTextureField(ShaderFX effect, string id, string label)
         {
             this.effect = effect; this.id = id;
-            document = WhimTexWindow.FindFXTransformDocument(effect);
+            document = effect.EmbeddedOwner ?? WhimTexWindow.FindFXTransformDocument(effect);
             source = new EnumField(label + " Source", ShaderFXTextureSource.Texture);
             TwoChoiceDropdown.Attach(source);
             source.tooltip = "None: transparent. Self: image immediately before this FX. Texture: asset (white if empty). Layer: another layer, including hidden sources.";
@@ -54,6 +54,7 @@ namespace DCFApixels.WhimTex
             var p = Parameter;
             if (p == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
             Undo.RecordObject(effect, "Change FX Texture Source");
+            if (document != null) Undo.RecordObject(document, "Change FX Texture Source");
             edit(p); EditorUtility.SetDirty(effect); effect.NotifyValuesChanged(); Refresh();
         }
 
