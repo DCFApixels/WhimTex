@@ -135,7 +135,7 @@ latest benchmark is retained in this Editor session; no archive is created.
 
 ## Comments
 
-Set your nickname in **WhimTex Settings → Comments → Nickname**. WhimTex first uses your personal
+Set your nickname in **WhimTex Settings → Profile → Nickname**. WhimTex first uses your personal
 Unity organization name, preserving its original capitalization when available. If the organization
 is unavailable, it uses the part of your Unity email before `@`. The result is remembered across
 projects. You can enter your own; **↺** detects the name again in this order. If account
@@ -151,7 +151,7 @@ Comment is selected, including on an empty canvas.
 The Comments icon in the right panel toolbar is outlined when the document has no comments. Once a comment is posted,
 it becomes filled, with transparent text lines; resolved comments count too. The Comment tool icon on the left always stays filled, without a status dot.
 
-New comments use your **WhimTex Settings → Comments → Color**. Until you choose a color,
+New comments use your **WhimTex Settings → Profile → Color**. Until you choose a color,
 WhimTex derives its hue from your nickname, keeping the saturation and brightness of the
 original blue. **↺** beside the setting returns to this automatic color. Changing your color
 also updates your automatic comments in open documents and when you reopen other documents.
@@ -399,7 +399,7 @@ Guides are not exported and are cleared when switching documents.
 
 Guides that are horizontal or vertical in the current Canvas View appear bright cyan; angled guides use a softer blue-gray. The colors update as you rotate the view, without changing snapping.
 
-In **User Settings → Guides & Snapping**, choose colors for **Aligned Guides**, **Angled Guides** and the **Active Guide** (hovered, selected or dragged). A guide about to be deleted stays red.
+In **User Settings → Tools & Input**, choose colors for **Aligned Guides**, **Angled Guides** and the **Active Guide** (hovered, selected or dragged). A guide about to be deleted stays red.
 **Snap Radius (px)** sets the attraction distance for guides, intersections, canvas edges and pivot anchors: 1–64 UI pixels, default 8, independent of zoom. Angular snapping is unchanged. These preferences apply across windows and are saved between sessions; **Reset Guides & Snapping** restores their defaults.
 
 ## Balance detail and responsiveness

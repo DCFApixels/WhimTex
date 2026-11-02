@@ -70,6 +70,8 @@ Vector Nodes 使用工具按钮上的空心箭头；Layer Select 保留操作系
 **Export 右侧的齿轮按钮**会打开 User Settings，你可以在其中更改透明棋盘格的颜色
 和尺寸，或启用 **Clean Canvas View Background** 来隐藏背景标志和阴影。在此设置窗口的底部，
 **Reset WhimTex Settings…** 会在确认后恢复工作区首选项，而不会删除你的文档或预设文件。
+设置分为五个展开的分区：**Profile**、**Canvas View**、**Tools & Input**、
+**Files & Editors** 和 **History**。相关控件之间以小间距分隔，重置按钮独立放在所有分区下方。
 
 关闭窗口或重启 Unity 后，工具选项会自动恢复：绘画和填充、Shape/Text/Gradient 的
 新建默认值、选区与套索模式、矢量画笔、Crop 模式、参考线吸附开关及 UV 线条外观。
@@ -93,7 +95,7 @@ Vector Nodes 使用工具按钮上的空心箭头；Layer Select 保留操作系
 
 ## 打开已有图像
 
-在 **User Settings → Open Images** 中选择双击 Project 资源时的行为：
+在 **User Settings → Files & Editors** 中选择双击 Project 资源时的行为：
 
 - **Tiff Documents Only：**打开 WhimTex TIFF 文档。
 - **All Supported Images**（默认）：还支持 PNG、JPEG、BMP、TGA、EXR、普通 TIFF 和 Texture2D `.asset`，不包括 PSD。

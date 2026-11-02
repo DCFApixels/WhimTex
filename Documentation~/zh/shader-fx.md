@@ -161,7 +161,7 @@ Gain、Levels、Threshold、环境光及扭曲偏移在适当位置提供软边�
 `point` 参数表示点的位置：左下角为 `(0, 0)`、右上角为 `(1, 1)`，默认值为 `(0.5, 0.5)`。
 点击字段右侧的手形按钮（**Edit on Canvas**）即可拖动该点，也可以拖到画布外。
 拖动时会吸附到画布边缘和可见参考线；按住 Ctrl 可禁用吸附。
-吸附半径在 **User Settings → Guides & Snapping → Snap Radius (px)** 中设置。
+吸附半径在 **User Settings → Tools & Input → Snap Radius (px)** 中设置。
 
 法线参数表示单位方向，也提供此按钮。拖动端点：靠近中心时朝向相机，到达最大半径时平行于画布。
 单击端点可切换 **+**（朝向相机）与 **−**（背向相机）。
@@ -218,7 +218,7 @@ Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已
 新文件会获得新的预设 ID 和版本 1。覆盖已有文件时，保留目标文件已声明的 ID 和版本。
 保存不会将当前效果切换到导出的文件。
 
-在 **User Settings → Presets → Presets Folder** 中设置共享库位置。其 **Brushes**
+在 **User Settings → Files & Editors → Presets Folder** 中设置共享库位置。其 **Brushes**
 和 **ShaderFX** 子文件夹分别存放两类预设。你也可以将现有的
 HLSL 预设放入 ShaderFX 或其子文件夹，它们会显示在 **Add FX → User** 中。
 返回 Unity 时，列表会在后台刷新。如果菜单打开时刷新尚未完成，请关闭后重新打开。
@@ -315,7 +315,7 @@ sampler 的名称本身并不构成绕过路径。
 
 - **Open Code** 在 Unity 所选的脚本编辑器中打开工作文件。保存会更新 WhimTex 中的草稿；点击 **Compile** 编译。
 - **Open in VS Code** 使用独立配置，自动安装 WhimTex 指令高亮、补全和检查。保存工作文件会向 Unity 请求 **Compile**，无需返回 WhimTex 窗口。语言模式仍为 **HLSL**，内置扩展支持 Restricted Mode。
-- 若没有 VS Code 按钮，可设置 **User Settings → External Code Editor → VS Code Command**。WhimTex 先检查 Unity 注册的编辑器和 PATH，再使用此备用路径。
+- 若没有 VS Code 按钮，可设置 **User Settings → Files & Editors → VS Code Command**。WhimTex 先检查 Unity 注册的编辑器和 PATH，再使用此备用路径。
 - VS Code 路径旁的文件夹图标可打开文件所在的文件夹。它位于浏览和重置按钮之间，仅在所选文件存在时可用。
 
 扩展不仅高亮指令名称，也区分类型、修饰符、参数名、数值和范围。它检查默认值、提示注释、关联控件、条件和分组；着色器编译错误仍由 Unity 检查。更新后通过 **Open in VS Code** 重新打开代码；已经运行的窗口可能需要执行 **Developer: Reload Window**。

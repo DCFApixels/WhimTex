@@ -156,7 +156,7 @@ This is a flat-texture operation: it does not match corresponding edges across a
 
 Choose **Layer Select** (`V`) and click the image. The topmost layer whose alpha
 meets **Alpha ≥ %** is selected; transparent areas let you pick layers below. The default threshold is **10%**.
-Change it in the tool settings in Canvas View or **User Settings → Layer Select**; both controls share the same preference.
+Change it in the tool settings in Canvas View or **User Settings → Tools & Input → Alpha ≥ %**; both controls share the same preference.
 Even at 0%, fully transparent pixels are ignored.
 
 - `Shift+click` toggles a layer in the selection. `Shift+click` on empty space leaves the selection unchanged.

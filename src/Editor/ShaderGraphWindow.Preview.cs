@@ -202,6 +202,10 @@ namespace DCFApixels.WhimTex
             private readonly VisualElement content;
             private readonly Button expand;
             private ShaderGraphProgram program;
+            private ShaderGraphProgram.CompilationRequest pending;
+            private ulong programFingerprint;
+            private string programPort;
+            private double renderAt;
             private RenderTexture texture;
             private readonly string nodeId;
             private string compiledPort;
@@ -282,58 +286,91 @@ namespace DCFApixels.WhimTex
                 output.EnableInClassList("whimtex-hidden", choices.Count <= 1);
                 dirty = true;
             }
-            internal bool Tick(ulong next, bool allowCompile)
+            internal bool Tick(ShaderGraphPreviewState state)
             {
-                if (disposed || !CanDisplay()) return false;
-                bool animated = program?.UsesTime == true;
-                if (!dirty && (!animated || renderedFrame == ShaderGraphClock.Frame)) return false;
-                bool compile = !attempted || next != fingerprint || output.value != compiledPort;
-                if (compile && !allowCompile) return false;
-                dirty = false;
-                renderedFrame = ShaderGraphClock.Frame;
-                var current = window.Graph?.FindNode(nodeId);
-                if (current == null) { Release(); return false; }
-                if (ShaderGraphNodes.Components(window.OutputType(current, output.value)) == 0)
-                { canvas.SetMessages("preview:" + nodeId, new[] { new ShaderGraphMessage(nodeId, "Connect a sampling node to preview this resource.", ShaderGraphMessageLevel.Info) }); Release(); return false; }
-
-                var previous = RenderTexture.active;
-                bool srgb = GL.sRGBWrite;
+                if (disposed) return false;
+                ulong next = state.Fingerprint(nodeId);
+                bool completed = false;
                 try
                 {
+                    if (pending != null)
+                    {
+                        if (!pending.TryComplete(out var compiled)) return false;
+                        pending.Dispose(); pending = null;
+                        if (fingerprint == next && compiledPort == output.value)
+                        {
+                            program?.Dispose(); program = compiled;
+                            programFingerprint = fingerprint; programPort = compiledPort;
+                            dirty = completed = true;
+                            SetMessages(program.Messages);
+                        }
+                        else { compiled.Dispose(); attempted = false; }
+                    }
+                    if (!CanDisplay()) return false;
+                    bool compile = !attempted || next != fingerprint || output.value != compiledPort;
                     if (compile)
                     {
-                        program?.Dispose(); program = null;
+                        if (ShaderGraphProgram.CompilationRequest.ActiveCount >= 2) return false;
+                        var current = window.Graph?.FindNode(nodeId);
+                        if (current == null) { Release(); return false; }
                         attempted = true; fingerprint = next; compiledPort = output.value;
-                        program = ShaderGraphProgram.Create(window.Graph, current.kind == ShaderGraphNodeKind.Output ? null : nodeId, output.value);
+                        using var profile = WhimTexProfiler.Measure("shadergraph.preview.compile", window.document);
+                        pending = new ShaderGraphProgram.CompilationRequest(window.Graph, nodeId, output.value);
+                        return true;
                     }
-                    if (program == null) return compile;
-                    texture ??= CreateTexture();
-                    var context = new LayerRenderContext(window.document, null, Size, Size,
-                        (float)Mathf.Max(window.document.width, window.document.height) / Size, applyTransform: false, applyFx: false)
-                        .WithShaderGraphPreviewTime(ShaderGraphClock.Seconds);
-                    program.Bind(window.Graph, context);
-                    ProceduralUv.Prepare(program.Material, window.Behaviour.Owner, context);
-                    using var bindings = window.document.BindShaderTextureLayers(program.Parameters, window.Behaviour.Owner, context, null);
-                    bindings?.Apply(program.Material);
-                    GL.sRGBWrite = false;
-                    Graphics.Blit(null, texture, program.Material, 0);
-                    image.image = texture;
-                    image.MarkDirtyRepaint();
-                    if (compile || renderError) SetMessages(program.Messages);
-                    renderError = false;
+                    if (program == null || programFingerprint != next || programPort != output.value) { dirty = false; return false; }
+                    int size = PreviewSize();
+                    bool resize = texture == null || texture.width != size;
+                    bool animated = program.UsesTime;
+                    double now = EditorApplication.timeSinceStartup;
+                    if (!dirty && !resize && (!animated || now < renderAt || renderedFrame == ShaderGraphClock.Frame)) return completed;
+                    var previous = RenderTexture.active;
+                    bool srgb = GL.sRGBWrite;
+                    try
+                    {
+                        using var profile = WhimTexProfiler.Measure("shadergraph.preview.render", window.document);
+                        if (resize)
+                        {
+                            image.image = null;
+                            if (texture != null) ProfiledRenderTexture.ReleaseTemporary(texture);
+                            texture = CreateTexture(size);
+                        }
+                        var context = new LayerRenderContext(window.document, null, size, size,
+                            (float)Mathf.Max(window.document.width, window.document.height) / size, applyTransform: false, applyFx: false)
+                            .WithShaderGraphPreviewTime(ShaderGraphClock.Seconds);
+                        program.Bind(window.Graph, context, state.bindings, branchCurrent: true);
+                        ProceduralUv.Prepare(program.Material, window.Behaviour.Owner, context);
+                        using var bindings = window.document.BindShaderTextureLayers(program.Parameters, window.Behaviour.Owner, context, null);
+                        bindings?.Apply(program.Material);
+                        GL.sRGBWrite = false;
+                        Graphics.Blit(null, texture, program.Material, 0);
+                        image.image = texture;
+                        image.MarkDirtyRepaint();
+                        if (renderError) SetMessages(program.Messages);
+                        renderError = false; dirty = false;
+                        renderedFrame = ShaderGraphClock.Frame;
+                        renderAt = now + (EditorWindow.focusedWindow == window ? 1d / 30 : .1d);
+                    }
+                    finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
+                    return true;
                 }
                 catch (Exception error)
                 {
-                    renderError = true;
+                    pending?.Dispose(); pending = null;
+                    renderError = true; dirty = false;
                     image.image = null;
                     SetMessages((error as ShaderGraphException)?.messages ??
                         new[] { new ShaderGraphMessage(nodeId, error.Message, ShaderGraphMessageLevel.Error) });
+                    return true;
                 }
-                finally
-                {
-                    RenderTexture.active = previous; GL.sRGBWrite = srgb;
-                }
-                return compile;
+            }
+            private int PreviewSize()
+            {
+                float pixels = Mathf.Max(surface.worldBound.width, surface.worldBound.height) * EditorGUIUtility.pixelsPerPoint;
+                int size = Mathf.Clamp(Mathf.NextPowerOfTwo(Mathf.CeilToInt(pixels)), 16, Size);
+                // Avoid reallocating repeatedly while zoom oscillates around a bucket boundary.
+                if (texture != null && size < texture.width && pixels > texture.width * .4f) return texture.width;
+                return size;
             }
             private void SetMessages(IReadOnlyList<ShaderGraphMessage> messages)
             {
@@ -357,15 +394,15 @@ namespace DCFApixels.WhimTex
                 }
                 return canvas.worldBound.Overlaps(bounds) && window.rootVisualElement.worldBound.Overlaps(bounds);
             }
-            private static RenderTexture CreateTexture()
+            private static RenderTexture CreateTexture(int size)
             {
-                var result = ProfiledRenderTexture.GetTemporary(Size, Size, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                var result = ProfiledRenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                 result.filterMode = FilterMode.Bilinear; result.wrapMode = TextureWrapMode.Clamp;
                 return result;
             }
             private void Release()
             {
-                image.image = null; program?.Dispose(); program = null;
+                image.image = null; pending?.Dispose(); pending = null; program?.Dispose(); program = null;
                 if (texture != null) ProfiledRenderTexture.ReleaseTemporary(texture);
                 texture = null; attempted = false;
             }

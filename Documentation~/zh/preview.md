@@ -112,7 +112,7 @@ GPU 计时还覆盖常见合成、图层与变换、缓存复制、Drawing 操�
 
 ## 评论
 
-在 **WhimTex Settings → Comments → Nickname** 中设置昵称。WhimTex 优先使用个人 Unity
+在 **WhimTex Settings → Profile → Nickname** 中设置昵称。WhimTex 优先使用个人 Unity
 组织名称，在可用时保留原始大小写；无法获取组织名称时使用邮箱中 `@` 前的部分，并为所有项目保存结果。
 你也可以输入自己的昵称；点击 **↺** 可按此顺序重新获取。账户信息不可用时，新消息署名为 **User**，下次打开
 WhimTex 或发布消息时会重试。更改名称只影响新消息和新回复，不会修改已有消息的署名。
@@ -125,7 +125,7 @@ WhimTex 或发布消息时会重试。更改名称只影响新消息和新回复
 文档没有评论时，右侧面板工具栏中的 Comments 图标为空心轮廓；提交评论后，图标变为实心，文字线条镂空。
 已完成的评论也会计入，未提交的草稿不会计入。左侧 Comment 工具图标始终为实心，不显示状态红点。
 
-新评论使用 **WhimTex Settings → Comments → Color**。未指定颜色时，WhimTex 根据昵称计算色相，
+新评论使用 **WhimTex Settings → Profile → Color**。未指定颜色时，WhimTex 根据昵称计算色相，
 保持原先蓝色的饱和度和明度。设置旁的 **↺** 恢复自动颜色。修改用户颜色会更新已打开文档中
 属于你的自动颜色评论；其他文档在下次打开时更新。
 
@@ -349,7 +349,7 @@ Crop 中的 **Flip Canvas Horizontal**、**Flip Canvas Vertical**、**Rotate Can
 
 在当前画布视图中水平或垂直的参考线显示为明亮的青色；倾斜的参考线使用更柔和的蓝灰色。颜色会随视图旋转而更新，但不改变吸附。
 
-在 **User Settings → Guides & Snapping** 中，为 **Aligned Guides**、**Angled Guides** 和 **Active Guide**（悬停、选中或拖拽中）选择颜色。即将被删除的参考线保持红色。
+在 **User Settings → Tools & Input** 中，为 **Aligned Guides**、**Angled Guides** 和 **Active Guide**（悬停、选中或拖拽中）选择颜色。即将被删除的参考线保持红色。
 **Snap Radius (px)** 设置参考线、交点、画布边缘和轴心锚点的吸引距离：1–64 个 UI 像素，默认 8，与缩放无关。角度吸附保持不变。这些偏好设置会跨窗口应用并在会话之间保存；**Reset Guides & Snapping** 会恢复其默认值。
 
 ## 平衡细节与响应速度

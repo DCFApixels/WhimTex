@@ -34,7 +34,7 @@ next_page: "zh/saving.md"
 选择 **Solid Color** 或 **Checkerboard**。
 背景会在后处理之前填充透明区域，因此发光及类似效果
 能有可见的衬托。你可以在这里或在 **User Settings…** 中调整它的外观。
-在 **User Settings → Post FX Preview** 中，**Background Mode** 和 **Background** 与
+在 **User Settings → Canvas View** 中，**Background Mode** 和 **Background** 与
 此面板共用相同的设置，并应用到所有 WhimTex 窗口。棋盘格的颜色和
 单元格大小位于 **Transparency Checkerboard** 下。你的选择会在会话之间保留。
 

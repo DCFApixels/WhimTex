@@ -49,15 +49,8 @@ namespace DCFApixels.WhimTex
                     ["inputs"] = ShaderNodeInputs(node),
                     ["outputs"] = new JArray(ShaderGraphNodes.Outputs(node))
                 };
-                if (ShaderGraphNodes.TryProceduralOutputType(kind, out var outputType) ||
-                    ShaderGraphNodes.TryColorOutputType(kind, out outputType) ||
-                    ShaderGraphNodes.TryExtendedOutputType(kind, out outputType) || kind == ShaderGraphNodeKind.TransformUV)
-                {
-                    if (kind == ShaderGraphNodeKind.TransformUV) outputType = ShaderGraphValueType.Float2;
-                    var outputTypes = new JObject();
-                    foreach (string port in ShaderGraphNodes.Outputs(node)) outputTypes[port] = outputType.ToString();
-                    entry["outputTypes"] = outputTypes;
-                }
+                var outputTypes = ShaderNodeOutputTypes(node);
+                if (outputTypes.Count > 0) entry["outputTypes"] = outputTypes;
                 var modeNames = ShaderGraphNodes.ModeNames(kind);
                 if (modeNames != null)
                 {
@@ -65,19 +58,19 @@ namespace DCFApixels.WhimTex
                     entry["modeLabel"] = ShaderGraphNodes.ModeLabel(kind);
                     entry["defaultOption"] = defaultOption;
                     var modes = new JArray();
+                    bool dynamicInputs = kind is ShaderGraphNodeKind.Shape or ShaderGraphNodeKind.RotateVector or ShaderGraphNodeKind.BilateralBlur;
                     for (int option = 0; option < modeNames.Length; option++)
                     {
+                        node.option = option;
                         var mode = new JObject { ["option"] = option, ["name"] = modeNames[option] };
-                        if (kind == ShaderGraphNodeKind.Shape)
-                        {
-                            node.option = option;
-                            mode["inputs"] = ShaderNodeInputs(node);
-                        }
+                        if (dynamicInputs) mode["inputs"] = ShaderNodeInputs(node);
+                        if (kind == ShaderGraphNodeKind.RotateVector) mode["outputTypes"] = ShaderNodeOutputTypes(node);
+                        if (kind == ShaderGraphNodeKind.BilateralBlur) mode["sampledInputs"] = ShaderNodeSampledInputs(node);
                         modes.Add(mode);
                     }
                     node.option = defaultOption;
                     entry["modes"] = modes;
-                    if (kind == ShaderGraphNodeKind.Shape) entry["dynamicInputs"] = true;
+                    if (dynamicInputs) entry["dynamicInputs"] = true;
                 }
                 if (kind is ShaderGraphNodeKind.Noise or ShaderGraphNodeKind.DomainWarp)
                 {
@@ -94,9 +87,9 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.UsesHeightTexture(kind)) entry["dynamicInputs"] = true;
                 if (ShaderGraphNodes.IsFilter(kind))
                 {
-                    entry["sampledInputs"] = new JArray("In");
+                    entry["sampledInputs"] = ShaderNodeSampledInputs(node);
                     entry["outputTypeFromInput"] = "In";
-                    if (kind != ShaderGraphNodeKind.RadialBlur) entry["radiusUnits"] = "OutputPixels";
+                    if (kind is not ShaderGraphNodeKind.RadialBlur and not ShaderGraphNodeKind.SlopeBlur) entry["radiusUnits"] = "DocumentPixels";
                 }
                 string description = ShaderNodeDescription(kind);
                 if (description != null) entry["description"] = description;
@@ -117,6 +110,29 @@ namespace DCFApixels.WhimTex
             }
             return result;
         }
+
+        private static JObject ShaderNodeOutputTypes(ShaderGraphNode node)
+        {
+            var result = new JObject();
+            foreach (string port in ShaderGraphNodes.Outputs(node))
+            {
+                if (ShaderGraphNodes.TrySurfaceOutputType(node, port, out var type) ||
+                    ShaderGraphNodes.TryProceduralOutputType(node.kind, out type) ||
+                    ShaderGraphNodes.TryColorOutputType(node.kind, out type) ||
+                    ShaderGraphNodes.TryExtendedOutputType(node.kind, out type))
+                    result[port] = type.ToString();
+                else if (node.kind == ShaderGraphNodeKind.TransformUV)
+                    result[port] = ShaderGraphValueType.Float2.ToString();
+            }
+            return result;
+        }
+
+        private static JArray ShaderNodeSampledInputs(ShaderGraphNode node) => node.kind switch
+        {
+            ShaderGraphNodeKind.SlopeBlur => new JArray("In", "Slope"),
+            ShaderGraphNodeKind.BilateralBlur when node.option == 1 => new JArray("In", "Guide"),
+            _ => new JArray("In")
+        };
 
         private static JArray ShaderNodeInputs(ShaderGraphNode node)
         {
@@ -155,7 +171,7 @@ namespace DCFApixels.WhimTex
                 {
                     node.heightSource = (ShaderGraphHeightSource)System.Enum.Parse(typeof(ShaderGraphHeightSource), (string)value["value"]);
                     value["inputs"] = ShaderNodeInputs(node);
-                    value["radiusUnits"] = node.heightSource == ShaderGraphHeightSource.Texture ? "SourceTexels" : "OutputPixels";
+                    value["radiusUnits"] = node.heightSource == ShaderGraphHeightSource.Texture ? "SourceTexels" : "DocumentPixels";
                 }
                 node.heightSource = original;
                 settings["heightSource"] = heightSource;
@@ -193,6 +209,14 @@ namespace DCFApixels.WhimTex
 
         private static string ShaderNodeDescription(ShaderGraphNodeKind kind) => kind switch
         {
+            ShaderGraphNodeKind.HeightBlend => "Blend signed/HDR scalar Bottom=0 and Top=1 by height, with Offset=0, Smoothness=0.1 and Opacity=1. Outputs Float Height and Mask; there is no Out. Offset shifts the top height, nonnegative Smoothness softens the height comparison and saturated Opacity controls the top contribution. At zero Smoothness the higher height wins, with weight 0.5 for a tie. Height is not clamped to 0..1.",
+            ShaderGraphNodeKind.TileUV => "Grid (option 0) or Staggered (1) cell-local UV with Count=(4,4), Offset=(0,0) in cells, RowOffset=0.5 active only in Staggered, RandomRotation=0 degrees, RandomScale=0 (clamped 0..1), Seed=1337. Outputs UV, Cell and Center as Float2, Random and Mask as Float; there is no Out. Cell identifies the original cell; Center is in UV coordinates. Random transformations stay in their own cell: Mask clips transformed motifs, with no cross-cell overlap.",
+            ShaderGraphNodeKind.PerspectiveUV => "Inverse projective mapping from a quadrilateral to unit-square source UV. Defaults BottomLeft=(0,0), BottomRight=(1,0), TopRight=(1,1), TopLeft=(0,1). Outputs Float2 UV and Float Mask, not Out. Mask selects the quad; invalid, degenerate or nonconvex quads return zero UV and zero Mask. Multiply sampled alpha by Mask for coverage.",
+            ShaderGraphNodeKind.GaborNoise => "2D directional Gaussian-windowed sparse convolution with approximate antialiasing. Defaults Scale=(8,8), Frequency=2, Anisotropy=0.8, Angle=0 degrees, Seed=1337. Float outputs Value, Phase and Intensity are in 0..1; there is no Out. The footprint includes coordinate and Frequency/Angle/Anisotropy variation, plus Gaussian-envelope minification; it is not exact area filtering. Angle controls direction and Anisotropy controls directional coherence. More expensive than simple noise; sampled filters multiply its evaluation cost.",
+            ShaderGraphNodeKind.RotateVector => "Rotate In by Angle degrees (default 0). option 0=2D uses Float2 In=(1,0) and Float2 Out; option 1=3D uses Float3 In=(1,0,0), Axis=(0,0,1) and Float3 Out. The 3D axis is normalized; a zero Axis preserves In. Vector magnitude is retained. Read modes[].inputs and modes[].outputTypes for the selected mode.",
+            ShaderGraphNodeKind.Blackbody => "Temperature=6500 Kelvin, clamped to 1000..40000, produces Color Out with normalized linear RGB and alpha 1. Planck/CIE 1931 colors are approximated by 16 generated cubic Hermite segments in logarithmic temperature, selected by four binary branch decisions without a lookup texture. Negative RGB is clipped and the largest component normalized to 1. Temperature controls chromaticity; set brightness separately with Multiply or Exposure.",
+            ShaderGraphNodeKind.SlopeBlur => "Reevaluate numeric/Color In along the negative, unnormalized gradient of scalar Slope=0, using central differences one document pixel apart on each side. Strength=8 scales document-pixel travel per unit UV-height slope; negative Strength reverses the path. Samples=16 rounds/clamps to 1..64 integration steps, plus the starting sample. option 0=Average, 1=Min, 2=Max. Out retains In's type; Average filters Color in premultiplied RGBA, while Min/Max process components independently. Constant Slope or zero Strength preserves In; a path with no movement returns the original evaluation, including its antialiasing and transparent RGB. No Radius input or radiusUnits; both In and Slope are sampled branches. Repeated slope and input evaluations can be expensive, especially with nested filters or noise.",
+            ShaderGraphNodeKind.BilateralBlur => "Soft edge-aware Gaussian filtering of numeric/Color In. Radius=2 uses document pixels; Tolerance=0.1 is nonnegative, with zero accepting exact guide matches only. option 0=Source guides by In; option 1=Custom adds dynamic numeric/Color Guide, default scalar 0, reevaluated with In. Color guides in either mode compare premultiplied RGBA to ignore hidden RGB; numeric guides retain their component values. Out retains In's type independently of Guide; Color filtering is premultiplied and returns straight RGBA. Zero Radius preserves In; results are not clamped. Larger radii and nested sampled branches increase cost.",
             ShaderGraphNodeKind.PixelateUV => "Float2 Out snaps UV to cell centers in document pixels: (floor((UV*CanvasSize-Offset)/size)+0.5)*size+Offset, divided by CanvasSize. CellSize defaults to (8,8), uses absolute values with a 1-pixel minimum; Offset defaults to (0,0) pixels. Coordinates remain unclamped. Connect before a texture or procedural UV input.",
             ShaderGraphNodeKind.ChannelMixer => "Color Out uses dot(Color.rgb, Red/Green/Blue) for each RGB channel and retains alpha. Float3 coefficient rows default to the identity matrix. Values are weights (1 means 100%), may be negative, and are not normalized or clamped; HDR is retained.",
             ShaderGraphNodeKind.WhiteBalance => "Bradford chromatic adaptation of linear RGB with neutral Temperature=0 and Tint=0. Both inputs clamp to -1..1; positive Temperature warms, negative cools; positive Tint adds magenta, negative green. Output remains Color with original alpha, signed RGB and HDR; no output clamp.",

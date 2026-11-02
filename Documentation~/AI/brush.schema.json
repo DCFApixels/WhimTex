@@ -532,15 +532,50 @@
           "maximum": 3.4028234663852886e+38,
           "default": 0
         },
-        "tangentMode": {
+        "inMode": {
           "type": "string",
           "enum": [
-            "Auto",
-            "Smooth",
-            "Broken",
+            "Free",
+            "ClampedAuto",
             "Linear",
-            "Constant"
+            "Constant",
+            "ConstantNext"
           ]
+        },
+        "outMode": {
+          "type": "string",
+          "enum": [
+            "Free",
+            "ClampedAuto",
+            "Linear",
+            "Constant",
+            "ConstantNext"
+          ]
+        },
+        "broken": {
+          "type": "boolean"
+        },
+        "inWeight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.3333333333333333
+        },
+        "outWeight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.3333333333333333
+        },
+        "weightedMode": {
+          "type": "string",
+          "enum": [
+            "None",
+            "In",
+            "Out",
+            "Both"
+          ],
+          "default": "None"
         }
       },
       "required": [
@@ -548,7 +583,9 @@
         "channel",
         "time",
         "value",
-        "tangentMode"
+        "inMode",
+        "outMode",
+        "broken"
       ],
       "allOf": [
         {
@@ -573,7 +610,7 @@
           }
         }
       ],
-      "description": "Stable positive unique id; channels 0..2 follow customColorMode, channel 3 is alpha. Keys are independent; no persistent links. Markers cluster all channels by time/id within 0.00001 of each earliest anchor, not transitively. Constant uses the right key between knots, like Fixed."
+      "description": "Weighted cubic Bezier keys evaluated by AnimationCurve. Stable positive unique id; channels 0..2 follow customColorMode, channel 3 is alpha. No persistent links. Joined sides must both be Free or ClampedAuto; Free joins share outTangent. Weights are fractions of the adjacent time span; an unweighted side uses 1/3. Constant holds the previous key, ConstantNext the next key (Fixed conversion/reversal). Markers cluster by time/id within 0.00001 of each earliest anchor, not transitively. Obsolete tangentMode is rejected."
     }
   }
 }

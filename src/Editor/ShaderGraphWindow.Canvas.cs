@@ -24,6 +24,10 @@ namespace DCFApixels.WhimTex
             internal readonly ShaderGraphWindow window;
             private readonly Dictionary<string, GraphNodeView> nodeViews = new Dictionary<string, GraphNodeView>();
             private readonly Dictionary<string, NodePreview> previews = new Dictionary<string, NodePreview>();
+            private readonly List<NodePreview> previewQueue = new List<NodePreview>();
+            private readonly ShaderGraphPreviewState previewState = new ShaderGraphPreviewState();
+            private bool previewsInvalidated = true;
+            private int previewCursor;
             private readonly Dictionary<string, Port> inputPorts = new Dictionary<string, Port>();
             private readonly Dictionary<string, Port> outputPorts = new Dictionary<string, Port>();
             private NodeSearch search;
@@ -87,6 +91,7 @@ namespace DCFApixels.WhimTex
                 if (portSnapper != null) this.RemoveManipulator(portSnapper);
                 foreach (var preview in previews.Values) preview.Dispose();
                 previews.Clear();
+                previewQueue.Clear();
                 if (search != null) UnityEngine.Object.DestroyImmediate(search);
                 search = null;
             }
@@ -123,7 +128,7 @@ namespace DCFApixels.WhimTex
                     foreach (var preview in previews.Values) preview.RemoveFromHierarchy();
                     foreach (var id in previews.Keys.ToList())
                         if (!NodePreview.Supports(window, window.Graph?.FindNode(id)))
-                        { previews[id].Dispose(); previews.Remove(id); }
+                        { previewQueue.Remove(previews[id]); previews[id].Dispose(); previews.Remove(id); }
                     foreach (var edge in edges.ToList()) { edge.input?.Disconnect(edge); edge.output?.Disconnect(edge); RemoveElement(edge); }
                     foreach (var node in nodes.ToList()) RemoveElement(node);
                     selection.Clear();
@@ -193,17 +198,29 @@ namespace DCFApixels.WhimTex
             }
             internal NodePreview GetPreview(ShaderGraphNode node)
             {
-                if (!previews.TryGetValue(node.id, out var preview)) previews.Add(node.id, preview = new NodePreview(window, this, node.id));
+                if (!previews.TryGetValue(node.id, out var preview))
+                { previews.Add(node.id, preview = new NodePreview(window, this, node.id)); previewQueue.Add(preview); }
+                previewsInvalidated = true;
                 preview.RefreshOutputs();
                 return preview;
             }
-            internal void InvalidatePreviews() { foreach (var preview in previews.Values) preview.Invalidate(); }
+            internal void InvalidatePreviews() { previewsInvalidated = true; foreach (var preview in previews.Values) preview.Invalidate(); }
             internal void TickPreviews()
             {
                 if (previews.Count == 0) return;
-                ulong fingerprint = ShaderGraphCompiler.CodeFingerprint(window.Graph);
-                bool compiled = false;
-                foreach (var preview in previews.Values) compiled |= preview.Tick(fingerprint, !compiled);
+                using var profile = WhimTexProfiler.Measure("shadergraph.preview.tick", window.document);
+                if (previewsInvalidated || !ReferenceEquals(previewState.bindings.Graph, window.Graph))
+                { previewState.Prepare(window.Graph); previewsInvalidated = false; }
+                long start = System.Diagnostics.Stopwatch.GetTimestamp();
+                int rendered = 0;
+                for (int i = 0; i < previewQueue.Count; i++)
+                {
+                    if (previewCursor >= previewQueue.Count) previewCursor = 0;
+                    var preview = previewQueue[previewCursor++];
+                    if (preview.Tick(previewState)) rendered++;
+                    // A native call cannot be interrupted; do not start another one after the budget.
+                    if (rendered >= 8 || (System.Diagnostics.Stopwatch.GetTimestamp() - start) * 1000.0 / System.Diagnostics.Stopwatch.Frequency >= 4) break;
+                }
             }
             private GraphViewChange Changed(GraphViewChange change)
             {
@@ -399,6 +416,7 @@ namespace DCFApixels.WhimTex
         {
             visiting ??= new HashSet<string>();
             if (node == null || !visiting.Add(node.id)) return ShaderGraphValueType.Float;
+            if (ShaderGraphNodes.TrySurfaceOutputType(node, port, out var surfaceType)) { visiting.Remove(node.id); return surfaceType; }
             if (ShaderGraphNodes.TryProceduralOutputType(node.kind, out var fixedType) || ShaderGraphNodes.TryColorOutputType(node.kind, out fixedType) || ShaderGraphNodes.TryExtendedOutputType(node.kind, out fixedType)) { visiting.Remove(node.id); return fixedType; }
             try
             {

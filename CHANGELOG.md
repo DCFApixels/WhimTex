@@ -6,6 +6,19 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader Graph adds Height Blend for signed/HDR heights; Tile UV with Grid/Staggered cells,
+  repeatable variation and coverage masks; Perspective UV for inverse projective quad mapping;
+  directional Gabor Noise with Value/Phase/Intensity; 2D/3D Rotate Vector; and Blackbody
+  temperature color. Slope Blur follows height gradients with Average/Min/Max modes, and
+  Bilateral Blur preserves guide edges with Source/Custom numeric or Color guides. Color averaging uses
+  premultiplied alpha. EN/RU/ZH guides and API discovery cover ports, modes, units and sampling cost.
+  Discovery reports per-port output types and mode-specific sampled inputs; document-space
+  filter and height radii use `radiusUnits: "DocumentPixels"`.
+  Blackbody uses a generated 16-segment cubic approximation in logarithmic temperature with
+  binary coefficient selection and no lookup texture. Slope Blur preserves the original
+  evaluation when its path does not move. Gabor's approximate AA includes spatial phase-parameter
+  changes and envelope minification; it does not claim exact area filtering.
+
 - Shader Graph adds Pixelate UV with document-pixel Cell Size/Offset, Channel Mixer with
   RGB coefficient rows, White Balance with Temperature/Tint, Directional Blur and Radial Blur
   with Spin/Zoom modes. Path blurs expose Samples, preserve numeric types and filter Color
@@ -307,6 +320,16 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- Shader Graph node previews compile asynchronously with at most two pending passes, a bounded
+  round-robin update queue, and 16–128 pixel targets selected by screen size. Branch fingerprints
+  avoid recompiling independent nodes; shared binding preparation and emitted-input uploads reduce
+  repeated CPU work. Animated node previews are capped at 30 Hz (10 Hz when the window is unfocused).
+  Preview timing scopes are available in the profiler. Final layer resolution and shader math are unchanged.
+
+- User Settings groups preferences into Profile, Canvas View, Tools & Input, Files & Editors and
+  History, with subtle headers and small gaps between related controls. Native field styling is
+  retained, sections reach the window edges, and Reset WhimTex Settings remains a separate bottom button.
 
 - Custom gradient curves use weighted cubic Bezier handles evaluated by Unity AnimationCurve.
   Handle angles and lengths, joined/broken sides, Clamped Auto, Flat and per-side tangent modes

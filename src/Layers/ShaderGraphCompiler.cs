@@ -15,7 +15,8 @@ namespace DCFApixels.WhimTex
         internal bool usesInstanceIndex => (contextDependencies & ShaderContextDependencies.InstanceIndex) != 0;
         internal readonly List<ShaderFXParameter> parameters = new List<ShaderFXParameter>();
         internal readonly Dictionary<string, ShaderGraphValueType> outputTypes = new Dictionary<string, ShaderGraphValueType>();
-        internal List<ShaderGraphNode> uniformNodes;
+        internal readonly List<ShaderGraphNode> uniformNodes = new List<ShaderGraphNode>();
+        internal HashSet<string> uniformNames;
     }
 
     internal enum ShaderGraphMessageLevel { Info, Warning, Error }
@@ -43,6 +44,7 @@ namespace DCFApixels.WhimTex
         Dictionary<string, Value> values = new Dictionary<string, Value>();
         readonly HashSet<string> visiting = new HashSet<string>();
         readonly HashSet<string> declarations = new HashSet<string>();
+        readonly HashSet<ShaderGraphNode> uniformNodes = new HashSet<ShaderGraphNode>();
         readonly StringBuilder inputDeclarations = new StringBuilder();
         StringBuilder body = new StringBuilder();
         readonly HashSet<string> usedParameters = new HashSet<string>();
@@ -68,7 +70,6 @@ namespace DCFApixels.WhimTex
                 compiler = new ShaderGraphCompiler(graph);
                 compiler.ValidateStructure(false, true);
             }
-            compiler.result.uniformNodes = graph.nodes;
             var output = graph.nodes.Find(n => n.kind == ShaderGraphNodeKind.Output);
             Value color = previewNode == null ? compiler.Input(output, "RGBA") : compiler.Emit(previewNode, previewPort);
             if (ShaderGraphNodes.Components(color.type) == 0) throw new ShaderGraphException(previewNode, "Resource outputs cannot be displayed as an image.");
@@ -90,6 +91,7 @@ namespace DCFApixels.WhimTex
                 .Append(compiler.usesSampleFootprint ? "static float2 _GraphSampleDx, _GraphSampleDy;\n" : "")
                 .Append(Helpers).Append(compiler.usesProcedural ? ProceduralHelpers : "")
                 .Append(compiler.usesColor ? ColorHelpers : "").Append(compiler.usesExtended ? ExtendedHelpers : "")
+                .Append(compiler.usesSurface ? SurfaceHelpers : "").Append(compiler.usesBlackbody ? BlackbodyHelpers : "")
                 .Append(compiler.functionCode)
                 .Append(compiler.samplingCode)
                 .AppendLine("float4 ApplyFX(PinnedUV uv, float4 color)")
@@ -100,6 +102,7 @@ namespace DCFApixels.WhimTex
                 for (string line; (line = lines.ReadLine()) != null;) source.Append("    ").AppendLine(line);
             compiler.result.source = source.AppendLine("}").ToString();
             compiler.result.parameterCount = compiler.result.parameters.Count + compiler.declarations.Count;
+            compiler.result.uniformNames = compiler.declarations;
             return compiler.result;
         }
 
@@ -289,6 +292,7 @@ namespace DCFApixels.WhimTex
                     var type = node.FindInput(name)?.type ?? port.type ?? ShaderGraphValueType.Float;
                     if (node.kind == ShaderGraphNodeKind.Swizzle) type = ShaderGraphNodes.SwizzleInputType(node.swizzle, type);
                     value = Uniform(InputName(node, name), type, node.FindInput(name)?.value ?? port.value);
+                    if (uniformNodes.Add(node)) result.uniformNodes.Add(node);
                 }
                 return port.type.HasValue ? Cast(value, port.type.Value, node) : value;
             }
@@ -424,6 +428,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Ripple: resultValue = EmitProcedural(n, port); break;
                 case ShaderGraphNodeKind.Blend: resultValue = new Value(ShaderGraphValueType.Color, $"GraphBlend({V("Background").text},{V("Foreground").text},{V("Opacity").text},{n.option},{(n.hdr ? 1 : 0)})"); break;
                 default:
+                    if (ShaderGraphNodes.SurfaceCategory(n.kind) != null) { resultValue = EmitSurface(n, port); break; }
                     if (ShaderGraphNodes.IsExtended(n.kind)) { resultValue = EmitExtended(n); break; }
                     if (ShaderGraphNodes.IsFilter(n.kind)) { resultValue = EmitFilter(n); break; }
                     if (ShaderGraphNodes.TryColorOutputType(n.kind, out _)) { resultValue = EmitColor(n); break; }

@@ -51,7 +51,7 @@ Hardness 保持程序化圆形笔尖的中心不透明，并控制边缘的柔�
 在 **Brushes** 中，可分别启用 **Pressure → Size**、**Opacity** 或 **Flow** 并编辑各自的响应曲线。
 Size 改变直径；Flow 改变图章强度并逐渐累积；Opacity 限制笔触内的局部覆盖，
 但不会降低已经涂上的颜料。默认只有 Flow 受压力控制。曲线输入和输出均为 0–1，
-鼠标使用曲线右端的值。**WhimTex Settings → Tablet Input → Pressure Curve** 在画笔曲线
+鼠标使用曲线右端的值。**WhimTex Settings → Tools & Input → Pressure Curve** 在画笔曲线
 之前调整全局输入响应，此设置不保存在画笔预设中。
 
 对于纹理画笔，请在 **Brushes → Tip** 中启用 **SDF** 以使用 Gradient 控件。
@@ -170,7 +170,7 @@ Dynamic 可按笔触、印章、累计路径长度或移动方向变化。**Seed
 设置。你的调色板颜色、Brush/Eraser 模式、Pencil/Fill 设置和图层对称
 保持不变。选择预设时预览会更新。
 
-在 **Window tab ⋮ → User Settings… → Presets** 中，用 **…** 选择 **Presets Folder**
+在 **Window tab ⋮ → User Settings… → Files & Editors** 中，用 **…** 选择 **Presets Folder**
 或输入绝对路径。该文件夹设置会在这台计算机上跨项目共享，
 适用于你的用户账户。**↺** 会恢复默认位置而不删除文件。
 **…** 和 **↺** 之间的文件夹图标可在文件管理器中打开此文件夹。
@@ -250,7 +250,7 @@ Dynamic 可按笔触、印章、累计路径长度或移动方向变化。**Seed
 但搜索可使用选区外的像素。按 **Escape** 或 **Cancel** 放弃笔触或后台计算。
 修改文档、选区或工具会取消待处理结果；保存前请等待计算完成。
 
-在 **User Settings → Healing Brush → Stroke Color** 中设置预览颜色与透明度。
+在 **User Settings → Canvas View → Stroke Color** 中设置预览颜色与透明度。
 该设置仅影响显示，不改变蒙版强度或修复结果。**Reset Canvas View Appearance** 恢复默认蓝色和 40% 不透明度。
 
 彩色预览显示实际绘制的蒙版，包括柔边与选区。反复涂过不会增加覆盖强度。

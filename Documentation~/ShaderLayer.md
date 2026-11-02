@@ -295,6 +295,127 @@ returns straight RGBA; numeric vectors process components independently. Samples
 to an odd count in 3..129. Longer paths or finer detail require more samples; nested filters multiply
 the work. Sampling retains the existing explicit AA footprint rules. Results are not clamped.
 
+## Height blending, tiling and surface detail
+
+These nodes use the exact output names below. In particular, Height Blend, Tile UV,
+Perspective UV and Gabor Noise have no `Out` port. Unconnected UV inputs use current-pixel UV.
+Scalar inputs are Float unless otherwise stated.
+
+| Category / kind | Inputs and defaults | Outputs |
+| --- | --- | --- |
+| Height / `HeightBlend` | Bottom=0; Top=1; Offset=0; Smoothness=0.1; Opacity=1 | Height: Float; Mask: Float |
+| UV / `TileUV` | UV: Float2; Count: Float2=(4,4); Offset: Float2=(0,0); RowOffset=0.5; RandomRotation=0; RandomScale=0; Seed=1337 | UV, Cell, Center: Float2; Random, Mask: Float |
+| UV / `PerspectiveUV` | UV: Float2; BottomLeft=(0,0); BottomRight=(1,0); TopRight=(1,1); TopLeft=(0,1), all Float2 | UV: Float2; Mask: Float |
+| Procedural/Noise / `GaborNoise` | UV: Float2; Scale: Float2=(8,8); Frequency=2; Anisotropy=0.8; Angle=0; Seed=1337 | Value, Phase, Intensity: Float, each in 0..1 |
+| Vector / `RotateVector` | 2D: In: Float2=(1,0), Angle=0. 3D: In: Float3=(1,0,0), Angle=0, Axis: Float3=(0,0,1) | Out: Float2 in 2D; Float3 in 3D |
+| Color/Generation / `Blackbody` | Temperature=6500 | Out: Color |
+| Filter / `SlopeBlur` | In: dynamic numeric/Color; UV: Float2; Slope=0; Strength=8; Samples=16 | Out: same type as In |
+| Filter / `BilateralBlur` | In: dynamic numeric/Color; UV: Float2; Radius=2; Tolerance=0.1; Custom mode adds Guide: dynamic numeric/Color, default Float=0 | Out: same type as In |
+
+| `kind` | Serialized `option` |
+| --- | --- |
+| `TileUV` | 0: Grid (default); 1: Staggered |
+| `RotateVector` | 0: 2D (default); 1: 3D |
+| `SlopeBlur` | 0: Average (default); 1: Min; 2: Max |
+| `BilateralBlur` | 0: Source (default); 1: Custom |
+
+### Height Blend
+
+Height Blend compares Bottom with `top = Top + Offset`. With nonnegative Smoothness `s`,
+`highest = max(Bottom, top)`, `a = max(top-highest+s, 0)` and `b = max(Bottom-highest+s, 0)`.
+The top weight is `a/(a+b)`; at effectively zero Smoothness, the higher height wins and ties
+use `0.5`. `Mask` is that weight multiplied by `saturate(Opacity)`; `Height` is
+`lerp(Bottom, top, Mask)`. Use Mask for a matching color/material blend. Signed and HDR heights
+remain available: Height is not clamped to `0..1`. Offset uses the same units as the heights.
+
+### Tile UV and Perspective UV
+
+Tile UV creates cell-local coordinates. Count uses rounded absolute components with a minimum
+of 1. Offset is measured in cells, and RowOffset shifts alternating rows only in Staggered mode.
+RandomRotation gives the symmetric random angle range in degrees. RandomScale clamps to `0..1`,
+interpolating from scale 1 at zero to per-cell scales in `[0.5,1.5)` at one.
+Seed makes the per-cell variations repeatable. `Cell` identifies
+the cell, `Center` gives its center in UV coordinates, and `Random` supplies a scalar per-cell
+variation. `Mask` clips the transformed motif to its original cell: rotated/scaled motifs do
+not overlap neighboring cells. Connect `UV` to a texture or procedural branch and use `Mask`
+for coverage; Tile UV does not sample or composite images itself.
+
+Perspective UV inversely maps the quadrilateral corners to unit-square source coordinates,
+using a projective transform rather than bilinear interpolation. The default corners preserve UV.
+`Mask` selects the quad; apply it to sampled alpha when the image should be confined to the quad.
+Invalid, degenerate or nonconvex quads produce zero `UV` and zero `Mask`.
+
+### Gabor Noise, Rotate Vector and Blackbody
+
+Gabor Noise is a 2D directional Gaussian-windowed sparse convolution with approximate antialiasing.
+Scale controls spatial density, Frequency controls the oscillation inside the kernels,
+Angle is in degrees and Anisotropy controls directional coherence. `Value`, `Phase` and
+`Intensity` expose the field, its phase and its amplitude, each bounded to `0..1`.
+It costs more than simple noise; upstream use in sampled filters multiplies that cost.
+
+The footprint includes UV/Scale and spatial changes in Frequency, Angle and saturated
+Anisotropy. Each impulse uses the derivative of its full unwrapped carrier phase; the
+Gaussian envelope also loses contrast under minification, including at zero Frequency
+and across the carrier direction. Direct evaluation captures derivatives before the kernel
+loops; sampled evaluation uses the captured pixel footprint and neighboring parameter-field
+values. The fixed impulse neighborhood is retained. This is approximate AA, not exact area
+filtering; Phase is meaningful only where the filtered Intensity is non-negligible.
+
+Rotate Vector rotates around the origin by Angle degrees while retaining vector magnitude.
+2D uses Float2 In/Out. 3D uses Float3 In/Out and normalizes Axis; a zero Axis returns In unchanged.
+It does not implicitly subtract a UV center: subtract the desired center before rotation and
+add it back afterward when rotating positions.
+
+Blackbody clamps Temperature to `1000..40000` Kelvin and returns normalized linear RGB in
+Color `Out`, with alpha 1. Negative RGB components are clipped, then RGB is divided by its
+largest component. This describes temperature color; it does not encode physical radiance
+or exposure. Adjust brightness separately with Multiply or Exposure.
+
+The [coefficient generator](scripts/build-blackbody-coefficients.py) integrates Planck spectra over
+380..780 nm with 2 nm trapezoidal steps, using the CIE 1931 analytic fit in Equation 4 and
+Table 1 of [Wyman, Sloan and Shirley, *Simple Analytic Approximations to the CIE XYZ Color Matching Functions* (2013)](https://jcgt.org/published/0002/02/01/paper.pdf).
+It implements the mathematical fit without copying the paper's sample implementation.
+The shader approximates RGB with 16 cubic Hermite segments in logarithmic temperature,
+selected by a binary tree with four branch decisions, before clipping and normalizing.
+It evaluates generated polynomial coefficients without a lookup texture or per-pixel spectral
+integration. The generator checks the approximation against direct spectral evaluation with
+the same analytic CIE fit; this measures interpolation error, not the fit's error against
+tabulated observer data.
+
+### Slope Blur and Bilateral Blur
+
+Slope Blur follows the **negative gradient** of the scalar Slope branch. The gradient is not
+normalized: scaling Slope changes the travel distance. Negative Strength reverses the path;
+zero Strength or a constant Slope preserves In. If no integration step moves the sample
+position, the original evaluation is returned unchanged, including its antialiasing and
+transparent RGB. The direct evaluation remains unconditional so neighboring pixels retain
+valid derivatives. Samples rounds/clamps to `1..64` integration
+steps, with the starting sample included in the result (Samples + 1 In evaluations). At each
+step, `g = 0.5 * (Slope(p+hx)-Slope(p-hx), Slope(p+hy)-Slope(p-hy))`, where hx/hy are one document
+pixel in UV along each axis, then `p -= g * Strength / Samples`. Equivalently, Strength scales
+document-pixel travel per unit of UV-height slope. Average filters
+Color in premultiplied RGBA and returns straight RGBA; Min/Max operate per component, including
+alpha. Numeric inputs are always component-wise. Both In and Slope are reevaluated along the
+path. Strength is not a fixed-radius control; this node has no Radius input.
+
+Bilateral Blur combines spatial Gaussian weights with soft similarity weights from the guide.
+Radius uses absolute document pixels. The kernel spans ±Radius with half-extent
+`max(1,ceil(abs(Radius)))`, keeping spacing at most one document pixel. Tolerance is nonnegative;
+zero accepts only exact guide matches. Positive Tolerance weights the mean squared guide
+difference `d2` by `exp(-0.5*d2/Tolerance^2)`, multiplied by the spatial Gaussian weight.
+Source mode uses In as the guide. Custom adds a dynamic numeric/Color Guide input, defaulting
+to scalar 0, that is reevaluated at each sample. In both modes, Color guides are compared as
+premultiplied RGBA, so hidden RGB at zero alpha does not create false edges; numeric guides
+retain their component values. Guide's type is independent of In and does not widen or change
+Out: only In determines the output type. Color In is filtered
+with premultiplied alpha and returned as straight RGBA; numeric In is component-wise.
+Zero Radius preserves In, and Out retains In's type without a result clamp.
+
+Both filters reevaluate upstream branches without intermediate textures. Slope Blur samples
+the height gradient as well as In; Bilateral Blur evaluates its guide as well as In. More path
+samples, larger neighborhoods, Gabor Noise and nested filters can make previews expensive.
+Deeply nested sampled branches can also take minutes during the first shader compilation.
+
 ## Reusable Sub Graphs
 
 `graph.subGraphs` is an embedded `List<ShaderGraphSubGraph>`, empty by default. Each definition
@@ -440,12 +561,21 @@ Resource ports require a Sample node; scalar values become opaque grayscale, `fl
 `(x, y, 0, 1)`, `float3` gains alpha 1, and `float4` and Color are displayed as RGBA. These display
 conversions do not change numeric wire conversions or math results.
 
-Each preview uses a 128 × 128 linear ARGBFloat target with Bilinear filtering, before the owning
+Each preview uses a 16–128 pixel square linear ARGBFloat target with Bilinear filtering, sized
+to its on-screen footprint (including display scaling). Zooming out reduces render resolution;
+zooming in restores it, with hysteresis at size boundaries. Rendering happens before the owning
 layer's Transform and FX. It is separate from Layer Preview and does not replace the graph's
 Output connection. Preview rendering is dirty-driven: a preview renders only when invalidated,
 expanded and visible in the graph viewport. Collapsed, hidden or off-screen previews do not
 render; pending invalidation is processed when they are expanded and visible again. Program
-reuse depends on the graph code fingerprint, the preview's node and its chosen output port;
+reuse depends on the upstream branch fingerprint and chosen output port; unrelated node edits
+do not recompile that branch. Shared function, parameter-layout and Sub Graph changes conservatively
+invalidate previews. At most two preview passes compile asynchronously; rendering waits for completion.
+A round-robin queue starts work within a 4 ms Editor-update budget (a single native call can exceed it),
+with at most eight work items per update. Animated node previews run at up to 30 Hz in the focused
+graph window and 10 Hz otherwise. Prepared bindings are shared across previews; only emitted numeric
+inputs are uploaded. The profiler records `shadergraph.preview.tick`, `.compile` and `.render`.
+The previous image remains visible while a replacement compiles;
 parameter values rebind without recompilation. A preview compilation/render error clears that
 preview's image and displays a diagnostic. This differs from retaining the last successful
 shader for the layer itself. Layer rendering, graph math and storage are unchanged by this UI.
@@ -471,18 +601,24 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Lerp, Remap, Step, Smoothstep | Interpolation, range mapping and thresholds. |
 | Unlerp | Component-wise `(T-A)/(B-A)` without clamping. Dynamic numeric inputs A=0, B=1, T=0; Out uses the widest input width, with Color treated as Float4. Equal bounds are undefined. |
 | Length, Distance, Dot, Normalize, Cross, Reflect, Refract | Vector calculations. |
+| Rotate Vector | Rotate Float2 or Float3 vectors by degrees, with an axis in 3D. |
 | Compare, Select, And, Or, Not | Boolean conditions and conditional values. |
 | Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope, Flipbook | Coordinate transforms and atlas-frame UVs. |
+| Tile UV, Perspective UV | Cell-local motif coordinates and inverse projective quad mapping, with masks. |
 | Domain Warp, Vector Displacement, Twirl, Bulge / Pinch, Wave, Ripple | UV distortions for downstream sampling and procedural nodes. |
 | Noise, Cellular, Random, Tileable Noise, Voronoi Edge | Spatial and repeating noise, cellular distances and cell boundaries. |
+| Gabor Noise | Directional sparse-convolution detail with Value, Phase and Intensity outputs. |
 | Checkerboard, Stripes, Grid, Rings, Gradient Factor, Dither | Procedural masks, gradient coordinates and dithering. |
 | Shape, Combine Distance | Antialiased shape masks and signed-distance operations. |
 | Hue, Saturation, Exposure, Lightness, Levels, Color Balance, Posterize | Color adjustments that preserve source alpha. Contrast is the existing cataloged HLSL function. |
 | Convert Color, Luminance, Gradient Map, Color Curves | Explicit color conversion, luminance extraction and resource-based remapping. |
 | Color Mask, Hue Range, Mix Color, Set Alpha, Premultiply, Unpremultiply | Color selection, interpolation, alpha control and alpha representation. |
 | Height to Normal, Normal Blend, Height to Distortion, Normal to Distortion | Normals and displacement from textures or height branches. |
+| Height Blend | Blend signed/HDR scalar heights and expose the top contribution as Mask. |
+| Blackbody | Normalized linear temperature color; brightness is controlled separately. |
 | Normal Encode, Normal Decode, Normal Strength, Normal Lighting | Normal representation, detail strength and lighting with specular. |
 | Blur, Sharpen, Edge Detection, Dilate, Erode | Sample an upstream numeric/Color branch at neighboring UVs. |
+| Slope Blur, Bilateral Blur | Follow a height slope or soften an image while retaining guide edges. |
 | Sub Graph | Reuse an embedded definition through its declared interface. |
 | Blend | RGBA blending using the existing blend semantics. |
 | Output | Final straight RGBA through a fixed Color input; modest visual distinction and no per-node preview. |
@@ -1158,16 +1294,24 @@ Each node catalog entry includes `category`, exact `inputs` and the existing str
 `outputs`. Nodes with fixed procedural, normal, color, vector or Boolean outputs additionally
 expose `outputTypes`, an output-name-to-type map; dynamic numeric types remain inferred from inputs.
 Nodes with shared mode metadata provide `modeLabel`, `defaultOption` and `modes` entries
-containing `{ option, name }`. Shape marks `dynamicInputs:true`; every Shape mode also contains
-its own `inputs` array, while the entry's top-level inputs describe the default mode.
+containing `{ option, name }`. Shape, RotateVector and BilateralBlur mark `dynamicInputs:true`;
+each mode contains its own `inputs` array, while top-level inputs describe the default mode.
+RotateVector also supplies per-mode `outputTypes` (Out is Float2 in 2D and Float3 in 3D).
+Mixed outputs use their actual per-port types: TileUV's UV/Cell/Center are Float2 and its
+Random/Mask are Float; PerspectiveUV's UV is Float2 and Mask is Float. HeightBlend uses
+Height/Mask and GaborNoise uses Value/Phase/Intensity, all Float. Blackbody has Color Out.
 Noise and DomainWarp provide `fractalModes` (serialized enum names) and `defaultFractal`.
 Color/normal nodes also expose applicable node-level `settings`: each field maps to
 `{ default, values: [{ value, name }] }`, where `value` is the serialized enum identifier and
 `name` is its UI label. For NormalBlend, NormalToDistortion, NormalStrength and NormalLighting, each normalEncoding value also
 includes `inputs` with that encoding's neutral defaults; top-level inputs use the default encoding.
 Height nodes mark `dynamicInputs:true`; `settings.heightSource.values[]` supplies the input layout
-and `radiusUnits` (SourceTexels or OutputPixels) for each source mode. Sampled filters expose
-`sampledInputs:["In"]`, `outputTypeFromInput:"In"` and `radiusUnits:"OutputPixels"`.
+and `radiusUnits` (SourceTexels or DocumentPixels) for each source mode. Sampled filters expose
+`outputTypeFromInput:"In"` and `sampledInputs:["In"]`, except SlopeBlur adds `"Slope"` and
+BilateralBlur's Custom mode adds `"Guide"`, a dynamic numeric/Color input with scalar-zero default.
+BilateralBlur lists `sampledInputs` in each mode;
+its top-level list describes Source mode. `radiusUnits:"DocumentPixels"` is present only for
+filters with Radius; RadialBlur and SlopeBlur omit it.
 ColorCurves resource inputs carry `optional:true` and evaluate as identity when disconnected.
 Names, categories, mode labels, port sets, defaults and these fixed output types come from the shared
 node model; descriptions explain units and evaluation. These discovery fields are not extra

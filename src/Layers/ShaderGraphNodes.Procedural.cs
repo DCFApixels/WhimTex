@@ -23,11 +23,12 @@ namespace DCFApixels.WhimTex
             [ShaderGraphNodeKind.DomainWarp] = new[] { "OpenSimplex2", "OpenSimplex2Reduced", "BasicGrid" },
             [ShaderGraphNodeKind.VectorDisplacement] = new[] { "Signed RG", "Packed RG" }
         };
-        internal static string[] ModeNames(ShaderGraphNodeKind kind) => UsesFilterKernel(kind) ? filterKernels : kind == ShaderGraphNodeKind.RadialBlur ? radialBlurModes : proceduralModes.TryGetValue(kind, out var modes) || colorModes.TryGetValue(kind, out modes) || extendedModes.TryGetValue(kind, out modes) ? modes : null;
+        internal static string[] ModeNames(ShaderGraphNodeKind kind) => SurfaceModes(kind) ?? (UsesFilterKernel(kind) ? filterKernels : kind == ShaderGraphNodeKind.RadialBlur ? radialBlurModes : proceduralModes.TryGetValue(kind, out var modes) || colorModes.TryGetValue(kind, out modes) || extendedModes.TryGetValue(kind, out modes) ? modes : null);
         internal static string ModeLabel(ShaderGraphNodeKind kind) => UsesFilterKernel(kind) ? "Minimum Kernel" : kind switch
         {
             ShaderGraphNodeKind.Noise or ShaderGraphNodeKind.DomainWarp => "Type",
             ShaderGraphNodeKind.Shape => "Shape", ShaderGraphNodeKind.Cellular => "Metric",
+            ShaderGraphNodeKind.RotateVector => "Dimensions", ShaderGraphNodeKind.BilateralBlur => "Guide",
             ShaderGraphNodeKind.Stripes => "Profile", ShaderGraphNodeKind.CombineDistance => "Operation",
             ShaderGraphNodeKind.Mirror => "Axes", ShaderGraphNodeKind.MixColor => "Color Model",
             ShaderGraphNodeKind.ColorMask => "Distance", ShaderGraphNodeKind.GradientMap => "Alpha",
@@ -35,6 +36,7 @@ namespace DCFApixels.WhimTex
         };
         internal static string InputInactiveReason(ShaderGraphNode node, string input) => node.kind switch
         {
+            ShaderGraphNodeKind.TileUV when input == "RowOffset" && node.option == 0 => "Used only by Staggered rows.",
             ShaderGraphNodeKind.Noise when (input is "Octaves" or "Lacunarity" or "Gain") && node.fractal == ShaderGraphFractal.None =>
                 "Used when Fractal is FBm, Ridged or Ping Pong.",
             ShaderGraphNodeKind.Noise when input == "PingPongStrength" && node.fractal != ShaderGraphFractal.PingPong =>
@@ -105,6 +107,11 @@ namespace DCFApixels.WhimTex
         {
             node.option = mode;
             var current = Inputs(node);
+            if (node.kind == ShaderGraphNodeKind.RotateVector && node.FindInput("In") is ShaderGraphInput vector)
+            {
+                vector.type = mode == 0 ? ShaderGraphValueType.Float2 : ShaderGraphValueType.Float3;
+                if (mode == 0) vector.value.z = 0;
+            }
             bool Has(string name) { foreach (var p in current) if (p.name == name) return true; return false; }
             node.inputs.RemoveAll(p => !Has(p.port));
             graph.edges.RemoveAll(e => e.inputNode == node.id && !Has(e.inputPort));

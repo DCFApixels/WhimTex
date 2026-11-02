@@ -128,6 +128,10 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 | **Color Mask**、**Hue Range**、**Mix Color**、**Set Alpha** | 选择颜色、混合颜色并控制透明度。 |
 | **Channel Mixer**、**White Balance** | 混合 RGB 通道，或调整 Temperature 和 Tint，同时保留 Alpha 与 HDR。 |
 | **Directional Blur**、**Radial Blur** | 沿直线、绕中心旋转或沿中心径向模糊连接的分支。 |
+| **Height Blend** | 混合高度，并用同一遮罩混合对应颜色。 |
+| **Tile UV**、**Perspective UV** | 在单元格中重复图案，或将图像映射到四边形。 |
+| **Gabor Noise**、**Rotate Vector**、**Blackbody** | 生成定向纹理细节、旋转向量或按温度生成颜色。 |
+| **Slope Blur**、**Bilateral Blur** | 沿高度坡面涂抹，或在保留引导边缘的同时柔化细节。 |
 | **Height to Normal**、**Normal Blend**、**Height to Distortion**、**Normal to Distortion** | 将纹理或高度计算转为法线或位移，并叠加法线细节。 |
 | **Blend** | 按混合模式与 Alpha 合成颜色。Mix Color 对颜色插值，Lerp 对数值分量插值。 |
 | **Output** | 输出最终 RGBA 图像。 |
@@ -162,6 +166,40 @@ Octaves、Lacunarity 和 Gain 不可用；PingPongStrength 仅在 Ping Pong 模�
 例如 `Cellular(F1)` 与 `Cellular(F2)`，也包括匹配的参数和 HLSL 函数。
 选择后会在放下位置创建节点并连接指定端口；已连接的输入会用新连线替换旧连线。
 一次 Undo 即可撤销创建和连接操作。取消搜索不会改变图。
+
+## 混合高度与放置表面细节
+
+**Height Blend** 混合 **Bottom** 与 **Top** 高度，输出 **Height** 和 **Mask**。
+将 Height 用于表面计算，Mask 用于混合对应颜色。Offset 抬高或降低 Top，Smoothness 柔化过渡，
+Opacity 减少 Top 的贡献。默认值为 Bottom `0`、Top `1`、Offset `0`、Smoothness `0.1`、Opacity `1`。
+负值和 HDR 高度会保留。
+
+**Tile UV** 在 **Grid** 或 **Staggered** 单元格中重复图案。将其 **UV** 输出连接到图案的 UV 输入，
+并用 **Mask** 乘以图案的 Alpha。**Count** 默认为 `(4,4)`，**Offset** 以单元格为单位。
+**RowOffset** 默认为 `0.5`，仅在 Staggered 中偏移交替行。**RandomRotation** 设置随机旋转角度范围，
+单位为度；**RandomScale** 在 `0..1` 范围内控制缩放变化。两者默认均为 `0`，**Seed** 默认为 `1337`，
+使变化可重复。**Cell**、**Center** 和 **Random** 分别提供单元格坐标、图像 UV 中的单元格中心和
+每格一个随机值。图案保持在原单元格内；旋转或放大后超出的部分会被裁切，不会覆盖相邻单元格。
+
+**Perspective UV** 将图像放入四个角点：**BottomLeft**、**BottomRight**、**TopRight** 和 **TopLeft**，
+默认分别为 `(0,0)`、`(1,0)`、`(1,1)` 和 `(0,1)`。将 **UV** 输出连接到图像采样器，
+用 **Mask** 乘以采样结果的 Alpha，以隐藏四边形外部区域。映射保留透视关系。
+退化、自相交或非凸四边形输出零 UV 和零 Mask。
+
+**Procedural/Noise** 中的 **Gabor Noise** 生成带近似抗锯齿处理的定向纹理细节。
+**Scale** `(8,8)` 控制密度，**Frequency** `2` 控制细微振荡，**Anisotropy** `0.8` 控制方向一致性，
+**Angle** `0` 以度数调整方向，**Seed** 默认为 `1337`。**Value**、**Phase** 和 **Intensity**
+分别输出不同的 `0..1` 场，可用于遮罩或渐变着色。Gabor Noise 比简单噪声耗费更多计算；
+将它接到需要反复采样的滤镜前，可能明显降低预览速度。
+
+**Vector** 中的 **Rotate Vector** 将 **In** 旋转 **Angle** 度，保留向量长度。
+**2D** 使用两个分量；**3D** 使用三个分量，并增加默认 `(0,0,1)` 的 **Axis**。
+In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
+若要围绕指定中心旋转 UV，先减去中心坐标，旋转后再加回。
+
+**Color/Generation** 中的 **Blackbody** 在 **Out** 输出近似的线性 RGB 温度颜色，Alpha 为 `1`。
+**Temperature** 默认为 `6500` 开尔文，限制在 `1000..40000`：较低值呈暖红或橙色，较高值呈冷蓝色。
+温度控制归一化颜色；亮度通过 Multiply 或 Exposure 单独调整。
 
 ## 创建程序化图案与扭曲
 
@@ -314,6 +352,23 @@ Edge Detection 的强度。结果可以超出 `0..1`；需要限制遮罩范围�
 大半径，尤其是多个滤镜串联时，可能使预览变慢。节点预览和完整图层渲染使用相同的文档像素尺度。
 Radius 可以随图像位置变化；内置形状和图案在滤镜内仍保留抗锯齿。Radius 为零时，Blur、Sharpen、Dilate 和 Erode 保留原始输入。
 
+**Slope Blur** 沿标量 **Slope** 场的下坡方向涂抹 **In**。将高度或噪声分支连接到 Slope；
+默认的 `0` 保持图像不变。**Strength** 默认为 `8`，负值反转路径。梯度不归一化，因此坡越陡，
+采样移动越远。**Samples** 默认为 `16`，取整并限制在 `1..64`；更多步数能更细致地跟随路径弯曲。
+**Average** 沿路径取平均，**Min** 保留较暗值，**Max** 保留较亮值。Average 会考虑 Color 的 Alpha；
+Min/Max 逐分量处理，包括 Alpha。零 Strength 保持 In 不变。此滤镜没有 Radius 控件。
+
+**Bilateral Blur** 柔化细节，同时保留引导信号中的边缘。**Radius** 默认为 `2` 文档像素。
+**Tolerance** 默认为 `0.1`：较小值保留更多引导差异，较大值允许跨越更多差异进行平滑。
+负值按零处理；`0` 只接受完全相同的引导值。**Guide = Source** 使用 In 本身；**Custom** 增加
+数值或 Color 类型的 **Guide** 输入，可连接独立图案，默认为标量 `0`。两种模式都使用预乘 RGBA
+比较 Color 引导，忽略完全透明区域的隐藏 RGB。Guide 不会改变输出类型，输出类型只由 In 决定。
+Color 滤波会考虑 Alpha；零 Radius 保持 In 不变。
+
+两种滤镜都保留输入的数值类型或 Color 类型。Slope Blur 反复采样图像与坡面，Bilateral Blur
+采样图像与引导。较大的 Samples、Radius 或多个滤镜串联可能减慢预览，输入含 Gabor Noise 时尤其明显。
+深度嵌套的滤镜链在首次编译时也可能需要数分钟。
+
 ## 复用 Sub Graph
 
 选择一组运算，在上下文菜单中选择 **Convert Selection to Sub Graph**。外部连线会成为
@@ -353,7 +408,10 @@ Reroute 只能在已有连线上创建，不会出现在节点搜索中。
 高亮边框表示固定方向；向远离边缘的方向拖动即可解除。窗口会记住位置、固定方向和尺寸。
 节点图的平移与缩放不会移动预览。标题中的 **R/G/B/A** 按钮仅切换预览通道。
 
-UV、采样、生成器和图像处理数学节点提供 **128 × 128** 预览。
+UV、采样、生成器和图像处理数学节点提供 最大 **128 × 128** 预览。
+
+节点预览异步编译，并共享每次更新的时间预算。缩小时按屏幕尺寸降低分辨率，放大时恢复。修改独立分支不会重新编译其他分支。动画在当前图窗口中最高以 30 Hz 更新，其他情况下为 10 Hz。
+
 **Constant**、**Image Size**、**Texture Size**、**Split**、**Compare**、**Output**、**Parameter**
 和 **Reroute** 不显示预览；相关信息通过字段和端口查看。
 无预览或预览已折叠的节点没有统一的最小宽度，宽度由内容决定。展开预览后会恢复其最小宽度。

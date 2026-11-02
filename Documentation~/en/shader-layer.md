@@ -142,6 +142,10 @@ The node clipboard also survives recompilation and remains valid until the Edito
 | **Color Mask**, **Hue Range**, **Mix Color**, **Set Alpha** | Select colors, mix them and control transparency. |
 | **Channel Mixer**, **White Balance** | Mix RGB channel contributions or adjust Temperature and Tint while retaining alpha and HDR. |
 | **Directional Blur**, **Radial Blur** | Blur a connected branch along a line, around a center or toward/away from that center. |
+| **Height Blend** | Combine height layers and reuse the blend mask for their colors. |
+| **Tile UV**, **Perspective UV** | Place repeated motifs in cells or map an image into a quadrilateral. |
+| **Gabor Noise**, **Rotate Vector**, **Blackbody** | Create directional texture detail, rotate vectors or generate temperature colors. |
+| **Slope Blur**, **Bilateral Blur** | Smear along a height slope or soften detail while preserving guide edges. |
 | **Height to Normal**, **Normal Blend**, **Height to Distortion**, **Normal to Distortion** | Turn a texture or height calculation into normals or displacement and combine normal detail. |
 | **Blend** | Composite two colors with a blend mode and alpha. Mix Color interpolates colors; Lerp interpolates numeric components. |
 | **Output** | Produce the final RGBA image. |
@@ -182,6 +186,43 @@ Dragging from an input lists compatible outputs, such as `Cellular(F1)` and `Cel
 including matching parameters and HLSL functions. Selecting creates and connects the node at the
 drop position in one Undo operation. An occupied input receives the new connection instead of
 the old one. Cancel the search to leave the graph unchanged.
+
+## Blend heights and place surface detail
+
+**Height Blend** combines **Bottom** and **Top** heights and returns **Height** plus **Mask**.
+Use Height for the surface and Mask to mix the matching colors. Offset raises or lowers Top;
+Smoothness softens the transition, and Opacity reduces the top contribution. Defaults are
+Bottom `0`, Top `1`, Offset `0`, Smoothness `0.1` and Opacity `1`. Signed and HDR heights are retained.
+
+**Tile UV** repeats a motif in **Grid** or **Staggered** cells. Connect its **UV** output to the
+motif's UV input and multiply its alpha by **Mask**. **Count** defaults to `(4,4)`; **Offset**
+uses cell units. **RowOffset** defaults to `0.5` and affects Staggered rows only. **RandomRotation**
+sets a random angle range in degrees; **RandomScale** controls scale variation from `0` to `1`.
+Both start at `0`; **Seed** `1337` makes the variation repeatable. **Cell**, **Center** and **Random**
+provide cell coordinates, the cell center in image UV and one random value per cell. Motifs stay
+within their original cells; rotated or enlarged parts are clipped rather than overlapping neighbors.
+
+**Perspective UV** fits an image into four corners: **BottomLeft**, **BottomRight**, **TopRight**
+and **TopLeft**. Their defaults are `(0,0)`, `(1,0)`, `(1,1)` and `(0,1)`. Connect **UV** to the
+image sampler and multiply sampled alpha by **Mask** to hide the area outside the quad.
+The mapping preserves perspective. Collapsed, crossed or nonconvex quads return zero UV and Mask.
+
+**Gabor Noise**, under **Procedural/Noise**, creates directional texture detail with approximate antialiasing.
+**Scale** `(8,8)` controls density, **Frequency** `2` controls the fine oscillations, **Anisotropy**
+`0.8` controls directional coherence, and **Angle** `0` rotates the direction in degrees.
+**Seed** defaults to `1337`. **Value**, **Phase** and **Intensity** each provide a different
+`0..1` field for masks or gradient colors. Gabor Noise costs more than simple noise; placing it
+before a sampled filter can noticeably slow previews.
+
+**Rotate Vector**, under **Vector**, rotates **In** by **Angle** degrees without changing its
+length. **2D** uses two components; **3D** adds **Axis**, initially `(0,0,1)`, and uses three.
+In starts along X, Angle starts at `0`, and a zero Axis leaves In unchanged. To rotate UV around
+a chosen center, subtract the center before rotation and add it back afterward.
+
+**Blackbody**, under **Color/Generation**, produces **Out**, an approximate linear RGB temperature color with
+alpha `1`. **Temperature** starts at `6500` Kelvin and is limited to `1000..40000`: lower values
+give warm reds/oranges and higher values give cool blues. Adjust brightness separately with
+Multiply or Exposure; temperature sets the normalized color.
 
 ## Build procedural patterns and distortions
 
@@ -349,6 +390,28 @@ filters, can slow previews. Radius uses the same document scale in node previews
 Radius can vary across the image; built-in shapes and patterns retain antialiasing inside
 the filter. At zero Radius, Blur, Sharpen, Dilate and Erode preserve the original input.
 
+**Slope Blur** smears **In** downhill along a scalar **Slope** field. Connect a height or noise
+branch to Slope; its default `0` leaves the image unchanged. **Strength** defaults to `8`;
+negative values reverse the path. Steeper slopes travel farther because the gradient is not
+normalized. **Samples** defaults to `16` and rounds to `1..64`; more steps follow the path more
+closely. **Average** softens the path, **Min** retains darker values and **Max** retains brighter
+values. Average accounts for Color alpha; Min/Max process each component, including alpha.
+Zero Strength preserves In. This filter has no Radius control.
+
+**Bilateral Blur** softens detail while retaining edges selected by a guide. **Radius** defaults
+to `2` document pixels. **Tolerance** defaults to `0.1`: smaller values preserve more guide
+differences; larger values allow more smoothing across them. It cannot be negative, and `0`
+accepts only exact guide matches. **Guide = Source** uses In itself; **Custom** adds a numeric
+or Color **Guide** input for an independent pattern, defaulting to scalar `0`. In both modes,
+Color guides compare premultiplied RGBA and ignore hidden RGB in fully transparent areas.
+Guide does not change the output type: it follows In. Color filtering respects alpha,
+and zero Radius preserves In.
+
+Both nodes keep the input's numeric or Color type. Slope Blur repeatedly samples both the image
+and its slope; Bilateral Blur reads both image and guide. High Samples, large Radius and chains
+of filters can slow previews, especially when their inputs contain Gabor Noise.
+The first compilation of a deeply nested filter chain can also take several minutes.
+
 ## Reuse a Sub Graph
 
 Select a calculation and choose **Convert Selection to Sub Graph** from the context menu.
@@ -396,7 +459,10 @@ attached when the window changes size; near a corner it attaches to both edges. 
 show the attachment. Drag away to detach. The window retains placement, attachments and size;
 graph zoom and panning do not move it. The header's **R/G/B/A** buttons change only the preview channels.
 
-UV, sampling, generators and image-processing math have **128 × 128** previews.
+UV, sampling, generators and image-processing math have previews up to **128 × 128**.
+
+Node previews compile asynchronously and share a limited update budget. Zooming out reduces their resolution to match their screen size; zooming in restores it. Unrelated branch edits reuse existing shaders. Animated node previews update at up to 30 Hz in the focused graph window and 10 Hz otherwise.
+
 **Constant**, **Image Size**, **Texture Size**, **Split**, **Compare**, **Output**, **Parameter**
 and **Reroute** have no preview; their fields and ports show the useful information.
 Nodes without a preview, or with their preview collapsed, have no shared minimum width;

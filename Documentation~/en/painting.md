@@ -53,7 +53,7 @@ In **Brushes**, enable **Pressure → Size**, **Opacity** or **Flow** independen
 each response curve. Size changes the diameter; Flow changes stamp strength and accumulates;
 Opacity limits coverage locally within the stroke, without fading paint already applied.
 Only Flow is pressure-controlled by default. Curve input and output are 0–1; for a mouse,
-the right endpoint applies. **WhimTex Settings → Tablet Input → Pressure Curve** adjusts
+the right endpoint applies. **WhimTex Settings → Tools & Input → Pressure Curve** adjusts
 the global input response before these brush curves; it is not saved in brush presets.
 
 For a textured brush, enable **SDF** in **Brushes → Tip** to use the Gradient control.
@@ -177,7 +177,7 @@ Presets include Size, Hardness, procedural Mode, Gradient, Spacing, Opacity, Flo
 settings. Your palette colors, Brush/Eraser mode, Pencil/Fill settings and layer symmetry
 stay unchanged. The preview updates when you select a preset.
 
-In **Window tab ⋮ → User Settings… → Presets**, choose **Presets Folder** with **…**
+In **Window tab ⋮ → User Settings… → Files & Editors**, choose **Presets Folder** with **…**
 or enter an absolute path. The folder setting is shared across projects on this computer
 for your user account. **↺** restores the default location without deleting files.
 The folder icon between **…** and **↺** opens this folder in your file manager.
@@ -262,7 +262,7 @@ The canvas selection limits the repair; the search can use pixels outside the se
 Press **Escape** or **Cancel** to discard the stroke or pending calculation. Changing
 the document, selection or tool cancels pending work; wait for completion before saving.
 
-Choose its color and opacity in **User Settings → Healing Brush → Stroke Color**.
+Choose its color and opacity in **User Settings → Canvas View → Stroke Color**.
 This changes only the overlay, not mask strength or the repaired image. **Reset Canvas View Appearance** restores the default blue at 40% opacity.
 
 The colored preview shows the painted mask, including its soft edge and selection. Painting

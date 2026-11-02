@@ -24,7 +24,8 @@ namespace DCFApixels.WhimTex
         NormalEncode, NormalDecode, NormalStrength, NormalLighting, Premultiply, Unpremultiply,
         Flipbook, TileableNoise, VoronoiEdge, Dither,
         Blur, Sharpen, EdgeDetection, Dilate, Erode, SubGraph, SubGraphInput, SubGraphOutput,
-        Unlerp, PixelateUV, ChannelMixer, WhiteBalance, DirectionalBlur, RadialBlur
+        Unlerp, PixelateUV, ChannelMixer, WhiteBalance, DirectionalBlur, RadialBlur,
+        HeightBlend, TileUV, PerspectiveUV, GaborNoise, RotateVector, Blackbody, SlopeBlur, BilateralBlur
     }
 
     [Serializable]
@@ -224,12 +225,13 @@ namespace DCFApixels.WhimTex
             BuildColorPorts(map);
             BuildSamplingPorts(map);
             BuildExtendedPorts(map);
+            BuildSurfacePorts(map);
             return map;
         }
         internal static IReadOnlyList<ShaderGraphPort> Inputs(ShaderGraphNode node) => node.kind == ShaderGraphNodeKind.CustomFunction
             ? node.function?.InputPorts() ?? none : SubGraphInputs(node) ?? (node.kind == ShaderGraphNodeKind.Shape ? ShapeInputs(node) :
             UsesHeightTexture(node.kind) && node.heightSource == ShaderGraphHeightSource.Value ? heightValuePorts :
-            ExtendedInputs(node) ?? NormalInputs(node) ?? (ports.TryGetValue(node.kind, out var result) ? result : none));
+            SurfaceInputs(node) ?? ExtendedInputs(node) ?? NormalInputs(node) ?? (ports.TryGetValue(node.kind, out var result) ? result : none));
         internal static string[] Outputs(ShaderGraphNode node) => node.kind switch
         {
             ShaderGraphNodeKind.Output => Array.Empty<string>(),
@@ -243,10 +245,14 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.DomainWarp => new[] { "Out", "Displacement" },
             ShaderGraphNodeKind.Shape => new[] { "Out", "Distance" },
             ShaderGraphNodeKind.CombineDistance => new[] { "Out", "Mask" },
+            ShaderGraphNodeKind.HeightBlend => new[] { "Height", "Mask" },
+            ShaderGraphNodeKind.TileUV => new[] { "UV", "Cell", "Center", "Random", "Mask" },
+            ShaderGraphNodeKind.PerspectiveUV => new[] { "UV", "Mask" },
+            ShaderGraphNodeKind.GaborNoise => new[] { "Value", "Phase", "Intensity" },
             _ => new[] { "Out" }
         };
         internal static string Name(ShaderGraphNodeKind kind) => kind == ShaderGraphNodeKind.BulgePinch ? "Bulge / Pinch" : UnityEditor.ObjectNames.NicifyVariableName(kind.ToString());
-        internal static string Category(ShaderGraphNodeKind kind) => ExtendedCategory(kind) ?? kind switch
+        internal static string Category(ShaderGraphNodeKind kind) => SurfaceCategory(kind) ?? ExtendedCategory(kind) ?? kind switch
         {
             ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.UV or ShaderGraphNodeKind.ImageSize or
             ShaderGraphNodeKind.InstanceIndex or ShaderGraphNodeKind.Time => "Input",

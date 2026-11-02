@@ -160,10 +160,10 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                             ? D(("type", new[] { "string", "null" }), ("description", "Parameter: root graph.parameters[].id. SubGraphInput: the enclosing definition's inputs[].id; output port is Out. Interface nodes cannot be created in the root graph.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "heightSource"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphHeightSource))), ("default", "Texture"),
-                                ("description", "HeightToNormal/HeightToDistortion: Texture requires a Height resource, source-texel Radius and channel/wrap/filter; Value accepts Float Height and reevaluates its branch at neighboring UVs with output-pixel Radius. Both retain derivative, Strength and FlipX/FlipY.")) :
+                                ("description", "HeightToNormal/HeightToDistortion: Texture requires a Height resource, source-texel Radius and channel/wrap/filter; Value accepts Float Height and reevaluates its branch at neighboring UVs with document-pixel Radius. Both retain derivative, Strength and FlipX/FlipY.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "option"
                             ? D(("type", "integer"), ("default", 0),
-                                ("description", "Zero-based node mode; use discovery modes for kind-specific values. Blur/Sharpen/Dilate/Erode: 0=3x3, 1=5x5, 2=9x9; EdgeDetection has a fixed 3x3 Sobel kernel. RadialBlur: 0=Spin, 1=Zoom; DirectionalBlur has no mode. Flipbook: 0=Bottom to Top, 1=Top to Bottom. Dither: 0=Bayer 4x4, 1=Bayer 2x2, 2=Bayer 8x8.")) :
+                                ("description", "Zero-based node mode; use discovery modes for kind-specific values. Blur/Sharpen/Dilate/Erode: 0=3x3, 1=5x5, 2=9x9; EdgeDetection has a fixed 3x3 Sobel kernel. RadialBlur: 0=Spin, 1=Zoom; DirectionalBlur has no mode. SlopeBlur: 0=Average, 1=Min, 2=Max. BilateralBlur: 0=Source, 1=Custom (adds dynamic numeric/Color Guide, default scalar 0; Out follows In only). TileUV: 0=Grid, 1=Staggered (activates RowOffset). RotateVector: 0=2D (Float2 In/Out), 1=3D (Float3 In/Out, adds Axis). Flipbook: 0=Bottom to Top, 1=Top to Bottom. Dither: 0=Bayer 4x4, 1=Bayer 2x2, 2=Bayer 8x8.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "constant"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphConstant))), ("default", "PI"),
                                 ("description", "Constant node selection. Emits a Float HLSL literal; arbitrary values use parameters or unconnected inputs.")) :
@@ -179,7 +179,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                                 ("description", "GradientMap source channel, or HeightToNormal/HeightToDistortion channel when heightSource is Texture. Ignored for Value. Luminance uses linear RGB weights, without color conversion.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "derivative"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphDerivative))), ("default", "Scharr"),
-                                ("description", "Height node finite-difference stencil. Radius uses bound-source texels for heightSource Texture or output pixels for Value; gradient magnitude is retained before normal encoding.")) :
+                                ("description", "Height node finite-difference stencil. Radius uses bound-source texels for heightSource Texture or document pixels for Value; gradient magnitude is retained before normal encoding.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "normalEncoding"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphNormalEncoding))), ("default", "PackedRGB"),
                                 ("description", "HeightToNormal output; NormalBlend/NormalStrength input/output; NormalToDistortion/NormalLighting input encoding. PackedRGB decodes as 2*x-1; SignedXYZ is unchanged. NormalToDistortion never normalizes XY. Unconnected defaults follow the selected encoding. NormalEncode/NormalDecode have fixed directions and do not use this setting.")) :
