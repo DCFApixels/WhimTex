@@ -195,6 +195,9 @@ predictable time-dependent behavior. This is the current warning-only policy, no
 Standard `#include` supports project/package paths and relative paths. Relative paths start in
 the document or linked HLSL source folder, or Assets before the first save. After library edits, click Compile again;
 after Save As to another folder, check relative paths. Libraries must suit the fragment-shader environment.
+Quoted and angle-bracket paths, an adjacent quoted path (`#include"file.hlsl"`), and directives
+continued with a backslash at the end of a line use the same resolution, dependency tracking
+and portable backup rules. Engine includes remain external dependencies.
 
 ### Pixel-local entry points and texture reads
 
@@ -822,6 +825,10 @@ Shader layers and FX use the same preset selection and save workflow. Both file 
 the catalog's exact GUID-plus-version identity: `.hlsl` declares `@preset`, while `.whimtexshader`
 stores `program.presetId` and `program.presetVersion`. A missing, invalid or differently versioned
 source retains the embedded editable program and link for retry; it must not destroy the graph.
+Preset application validates the retained Code executable even when Graph is active. An invalid
+pending Code draft may still be retained separately; it is never compiled in place of the saved
+executable. Failed updates leave both modes intact. Graph FX Reset matches defaults by parameter
+name and type, using the same binding names as preset refresh rather than source parameter IDs.
 **Embed Copy** detaches the link while retaining both modes and their captured sources for
 offline reopening and editing. External texture assets remain separate dependencies.
 

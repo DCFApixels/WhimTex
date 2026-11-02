@@ -32,6 +32,8 @@ appear in the usual FX controls.
 
 **Mode** switches between **Shader Graph** and **Code** without converting or clearing either
 version or its values. **Custom Shader FX** starts in Code. Save the document to keep both.
+Undo/Redo restores the rendered mode too. A failed preset update preserves the last working
+Code and its separate unfinished draft, even while Graph is selected and after reopening the document.
 A graph that samples neighboring pixels can still be expensive; Graph mode alone does not
 make an effect pixel-local. Moving a program between a Shader layer and an FX changes its
 input and coordinates, so compare the result, especially with transforms.

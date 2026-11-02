@@ -317,6 +317,13 @@ namespace DCFApixels.WhimTex
             notificationContainsChanges = false;
             ReleaseMaterial();
             InvalidateGraph();
+            // Native Undo restores the source fields, but an in-place Shader update is not
+            // reverted with them. Graph recompiles lazily; Code must restore its saved shader.
+            if (Mode == ShaderLayerMode.Code && HasAppliedShader && !string.IsNullOrEmpty(appliedSource))
+            {
+                try { ShaderUtil.UpdateShaderAsset(compiledShader, appliedSource, true); }
+                catch (Exception error) { RecordApplyFailure(error); }
+            }
             MarkDraftChanged();
             return true;
         }
@@ -711,10 +718,9 @@ namespace DCFApixels.WhimTex
                     foreach (var parameter in parameters)
                     {
                         if (parameter == null) return false;
-                        var value = stored.Find(p => p != null && p.id == parameter.id);
-                        // Linked refresh can retain a host's parameter IDs when the preset's
-                        // declarations were regenerated. Names identify those retained bindings.
-                        if (value == null) value = stored.Find(p => p != null && p.name == parameter.name);
+                        // Preset refresh matches by name and retains host IDs. A source ID can
+                        // therefore belong to a different name after a rename or reorder.
+                        var value = stored.Find(p => p != null && p.name == parameter.name);
                         if (value == null || value.type != parameter.type || value.ValueType != parameter.ValueType || !used.Add(value.id)) return false;
                         var copy = value.Copy();
                         copy.id = parameter.id;

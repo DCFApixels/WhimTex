@@ -529,6 +529,13 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Linked shader presets validate the retained Code executable even when Graph is active;
+  failed updates preserve both modes and the pending draft. Graph FX Reset matches preset
+  defaults by parameter name, consistently with preset refresh.
+- FX mode Undo/Redo restores the GPU shader together with the saved Code state.
+- Code include backups and dependency tracking recognize angle brackets, adjacent quoted
+  paths and continued directives. Relative user-library includes remain valid through compilation.
+
 - Node preview output selectors reuse compact node-field styling, avoiding excess width
   from the standard label reservation on Canvas Position and other multi-output nodes.
 

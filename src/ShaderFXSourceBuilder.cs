@@ -119,7 +119,7 @@ float4 SampleInput(float2 uv, float tiling)
     return result;
 }
 ";
-        private static readonly Regex Include = new Regex("^\\s*#\\s*(include|include_with_pragmas)\\s+\"([^\"]+)\"\\s*$");
+        private static readonly Regex Include = new Regex(@"^\s*#\s*(?:include|include_with_pragmas)\s*(?:""(?<path>[^""]+)""|<(?<path>[^>]+)>)\s*$");
         private static readonly Regex Identifier = new Regex("^[A-Za-z_][A-Za-z0-9_]*$");
         private static readonly Regex UnityTimeInput = new Regex(
             @"(?<![A-Za-z0-9_])(_Time|_SinTime|_CosTime|_TimeParameters|unity_DeltaTime|unity_Time|unity_SinTime|unity_CosTime)(?![A-Za-z0-9_])",
@@ -135,14 +135,13 @@ float4 SampleInput(float2 uv, float tiling)
                 if (depth > 32 || found.Count > 256) return;
                 bool block = false;
                 using var reader = new StringReader(text ?? "");
-                string line;
-                while ((line = reader.ReadLine()) != null)
+                while (ReadSourceLine(reader, out _, out string line, out _))
                 {
                     Match include = Include.Match(MaskComments(line, ref block));
                     if (!include.Success) continue;
                     try
                     {
-                        string dependency = builder.Resolve(include.Groups[2].Value, current);
+                        string dependency = builder.Resolve(include.Groups["path"].Value, current);
                         if (!found.Add(dependency)) continue;
                         string physical = builder.PhysicalPath(dependency);
                         if (File.Exists(physical) && new FileInfo(physical).Length <= MaximumCharacters)
@@ -348,12 +347,11 @@ float4 SampleInput(float2 uv, float tiling)
         {
             bool block = false;
             using var reader = new StringReader(source ?? "");
-            string line;
-            while ((line = reader.ReadLine()) != null)
+            while (ReadSourceLine(reader, out _, out string line, out _))
             {
                 var match = Include.Match(MaskComments(line, ref block));
                 if (!match.Success) continue;
-                string path = match.Groups[2].Value.Replace('\\', '/');
+                string path = match.Groups["path"].Value.Replace('\\', '/');
                 if (!path.StartsWith("Assets/", StringComparison.Ordinal) && !path.StartsWith("Packages/", StringComparison.Ordinal)) return true;
             }
             return false;
@@ -367,32 +365,34 @@ float4 SampleInput(float2 uv, float tiling)
             bool blockComment = false;
             using (StringReader reader = new StringReader(source))
             {
-                string original;
                 int lineNumber = 0;
-                while ((original = reader.ReadLine()) != null)
+                while (ReadSourceLine(reader, out string original, out string logical, out int lines))
                 {
-                    lineNumber++;
+                    int startLine = lineNumber + 1;
+                    lineNumber += lines;
                     string line = original;
-                    Match include = Include.Match(MaskComments(original, ref blockComment));
+                    Match include = Include.Match(MaskComments(logical, ref blockComment));
                     if (include.Success)
                     {
                         try
                         {
-                            string requested = include.Groups[2].Value.Replace('\\', '/');
+                            string requested = include.Groups["path"].Value.Replace('\\', '/');
                             string resolved = Resolve(requested, sourcePath);
-                            if (requested.StartsWith("Assets/", StringComparison.Ordinal) ||
+                            // User-library includes are expanded next. Keep their relative form:
+                            // Resolve intentionally rejects absolute paths supplied in source.
+                            if (!Path.IsPathRooted(resolved) && (requested.StartsWith("Assets/", StringComparison.Ordinal) ||
                                 requested.StartsWith("Packages/", StringComparison.Ordinal) ||
                                 requested.StartsWith(".", StringComparison.Ordinal) ||
-                                File.Exists(PhysicalPath(resolved)))
+                                File.Exists(PhysicalPath(resolved))))
                             {
-                                Group pathGroup = include.Groups[2];
-                                line = original.Substring(0, pathGroup.Index) + resolved +
-                                    original.Substring(pathGroup.Index + pathGroup.Length);
+                                Group pathGroup = include.Groups["path"];
+                                line = logical.Substring(0, pathGroup.Index) + resolved +
+                                    logical.Substring(pathGroup.Index + pathGroup.Length) + new string('\n', lines - 1);
                             }
                         }
                         catch (Exception exception)
                         {
-                            throw new InvalidOperationException($"{sourcePath}:{lineNumber}: {exception.Message}", exception);
+                            throw new InvalidOperationException($"{sourcePath}:{startLine}: {exception.Message}", exception);
                         }
                     }
                     result.AppendLine(line);
@@ -418,15 +418,14 @@ float4 SampleInput(float2 uv, float tiling)
                 var result = new StringBuilder();
                 using var reader = new StringReader(text);
                 bool block = false;
-                string line;
                 int lineNumber = 0;
-                while ((line = reader.ReadLine()) != null)
+                while (ReadSourceLine(reader, out string original, out string line, out int lines))
                 {
-                    lineNumber++;
+                    lineNumber += lines;
                     var include = Include.Match(MaskComments(line, ref block));
                     if (include.Success)
                     {
-                        string requested = include.Groups[2].Value;
+                        string requested = include.Groups["path"].Value;
                         string resolved = builder.Resolve(requested, path);
                         string physical = builder.PhysicalPath(resolved);
                         if (File.Exists(physical))
@@ -441,12 +440,37 @@ float4 SampleInput(float2 uv, float tiling)
                             throw new IOException("Missing shader include: " + resolved);
                         // Engine includes (UnityCG.cginc etc.) remain engine dependencies.
                     }
-                    result.AppendLine(line);
+                    result.AppendLine(original);
                 }
                 active.Remove(path);
                 return result.ToString();
             }
             return Expand(source, sourcePath, 0);
+        }
+
+        // Line splicing precedes comment parsing in HLSL. Keep physical lines for output
+        // and diagnostics, while every include consumer inspects the same logical line.
+        private static bool ReadSourceLine(StringReader reader, out string original, out string logical, out int lines)
+        {
+            original = logical = reader.ReadLine();
+            lines = original == null ? 0 : 1;
+            if (original == null) return false;
+            if (!original.EndsWith("\\", StringComparison.Ordinal)) return true;
+            var physical = new StringBuilder(original);
+            var joined = new StringBuilder(original);
+            string line = original;
+            while (line.EndsWith("\\", StringComparison.Ordinal))
+            {
+                line = reader.ReadLine();
+                if (line == null) break;
+                physical.Append('\n').Append(line);
+                joined.Length--;
+                joined.Append(line);
+                lines++;
+            }
+            original = physical.ToString();
+            logical = joined.ToString();
+            return true;
         }
 
         private string Resolve(string requested, string sourcePath)

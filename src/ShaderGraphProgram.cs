@@ -73,14 +73,23 @@ namespace DCFApixels.WhimTex
         }
         internal static ShaderGraphProgram Attach(Shader shader, ShaderGraphCompilation compilation, ulong fingerprint)
             => new ShaderGraphProgram(shader, new Material(shader) { hideFlags = HideFlags.HideAndDontSave }, compilation, fingerprint) { OwnsShader = false };
-        internal static ShaderGraphProgram CreateCode(string source, List<ShaderFXParameter> parameters, string sourcePath)
+        internal static ShaderGraphProgram CreateCode(string source, List<ShaderFXParameter> parameters, string sourcePath, bool effectContext = false)
         {
             var compilation = new ShaderGraphCompilation { source = source };
             foreach (var parameter in parameters) compilation.parameters.Add(parameter.Copy());
             compilation.shaderParameters.AddRange(compilation.parameters);
-            using var request = new CompilationRequest(null, compilation, 0, sourcePath, true);
+            using var request = new CompilationRequest(null, compilation, 0, sourcePath, true, effectContext);
             if (!request.TryComplete(out var result)) throw new InvalidOperationException("Shader compilation did not finish.");
             return result;
+        }
+        internal static void ValidateInactiveCode(ShaderProgram program, string sourcePath, bool effectContext)
+        {
+            if (program.mode != ShaderLayerMode.Graph || string.IsNullOrEmpty(program.compiledCode)) return;
+            // A preset may retain an invalid draft, but must not replace a working executable
+            // with unverified code merely because another mode is currently selected.
+            var parameters = ShaderFXMetadata.Parse(program.compiledCode, false, out _);
+            ShaderFXMetadata.PreserveValues(parameters, program.codeParameters);
+            using var compiled = CreateCode(program.compiledCode, parameters, sourcePath, effectContext);
         }
         // Explicitly precompile the pass: Blit itself would force synchronous compilation.
         internal sealed class CompilationRequest : IDisposable

@@ -70,6 +70,7 @@ namespace DCFApixels.WhimTex
             effect.presetOriginPath = loaded.path;
             try
             {
+                ShaderGraphProgram.ValidateInactiveCode(loaded.program, loaded.path, effectContext: true);
                 effect.RestoreSavedProgram();
                 if (effect.IsCatalogLinked) effect.PresetLink.Adopt(loaded);
                 return effect;
@@ -103,6 +104,8 @@ namespace DCFApixels.WhimTex
             bool restoreFallback = false;
             bool restored = link.Refresh(Program, candidate =>
             {
+                string candidatePath = ShaderFXCatalog.FindPreset(candidate.presetId)?.path;
+                ShaderGraphProgram.ValidateInactiveCode(candidate, candidatePath, effectContext: true);
                 var fallback = Program;
                 string previousPath = catalogSourcePath;
                 bool applied = false;
@@ -110,7 +113,7 @@ namespace DCFApixels.WhimTex
                 {
                     restoreFallback = true;
                     ReplaceProgram(candidate);
-                    catalogSourcePath = ShaderFXCatalog.FindPreset(candidate.presetId)?.path;
+                    catalogSourcePath = candidatePath;
                     RestoreCatalogProgram();
                     applied = true;
                     restoreFallback = false;

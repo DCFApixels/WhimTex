@@ -89,6 +89,8 @@ namespace DCFApixels.WhimTex
         private static bool ApplyLayerCandidate(ShaderLayerBehaviour shader, WhimTexDocument document, ShaderProgram candidate, out string error)
         {
             WhimTexDocumentJson.ValidateShaderProgramInputs(document, shader.Owner, candidate, false);
+            ShaderGraphProgram.ValidateInactiveCode(candidate,
+                ShaderFXCatalog.FindPreset(candidate.presetId)?.path ?? shader.CodeSourcePath(document), effectContext: false);
             var previous = shader.program;
             bool success = false;
             error = null;
