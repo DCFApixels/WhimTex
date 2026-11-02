@@ -324,6 +324,12 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Shader Graph emits only required built-in HLSL helpers and their dependencies, reducing
+  shader preparation for node previews and layer rendering without changing shader math.
+  Generated parameter models go directly to the shared ShaderLab builder; Generated HLSL
+  retains `@param` declarations. Type-range and source validation remain enabled. User HLSL
+  retains the complete enabled helper modules for macros and includes.
+
 - Shader Graph Output uses a horizontal terminal layout with left inputs, a filled Output / Layer result
   title area and rounded end cap, replacing the ordinary colored-header layout.
 

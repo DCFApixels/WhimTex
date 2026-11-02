@@ -268,6 +268,7 @@ float4 SampleInput(float2 uv, float tiling)
                 switch (parameter.type)
                 {
                     case ShaderFXParameterType.Float:
+                    case ShaderFXParameterType.Seed:
                     case ShaderFXParameterType.Toggle:
                     case ShaderFXParameterType.Enum:
                         properties.AppendLine($"{name} (\"{name}\", Float) = 0");

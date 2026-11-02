@@ -460,6 +460,12 @@ not ordinary catalog creation entries.
 The connected calculation generates a WhimTex FX script (`@param` declarations, helper functions
 and `ApplyFX`). The shared FX source builder then produces ShaderLab for a single
 fragment-shader generation pass. Layer rendering and individual node previews use this same path.
+Built-in helper functions are emitted only when referenced, together with their transitive
+dependencies and overloads; their bodies are unchanged. The fixed helper library is indexed once
+per script domain. Graphs containing user HLSL retain the complete enabled helper modules, so
+macros and includes keep their existing environment. Source and sampling validation still run.
+The builder receives parameter models directly, without reparsing generated `@param` comments;
+those comments remain in Generated HLSL. Numeric values are checked against their declared type.
 Intermediate numeric node values are shader expressions or variables, not an image allocated
 for every node. Declared resource inputs retain their normal resource preparation requirements;
 the subsequent layer FX and document composition remain separate from this generation pass.

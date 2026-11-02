@@ -14,6 +14,7 @@ namespace DCFApixels.WhimTex
         internal bool usesTime => (contextDependencies & ShaderContextDependencies.Time) != 0;
         internal bool usesInstanceIndex => (contextDependencies & ShaderContextDependencies.InstanceIndex) != 0;
         internal readonly List<ShaderFXParameter> parameters = new List<ShaderFXParameter>();
+        internal readonly List<ShaderFXParameter> shaderParameters = new List<ShaderFXParameter>();
         internal readonly Dictionary<string, ShaderGraphValueType> outputTypes = new Dictionary<string, ShaderGraphValueType>();
         internal readonly List<ShaderGraphNode> uniformNodes = new List<ShaderGraphNode>();
         internal HashSet<string> uniformNames;
@@ -46,6 +47,7 @@ namespace DCFApixels.WhimTex
         readonly HashSet<string> declarations = new HashSet<string>();
         readonly HashSet<ShaderGraphNode> uniformNodes = new HashSet<ShaderGraphNode>();
         readonly StringBuilder inputDeclarations = new StringBuilder();
+        readonly List<ShaderFXParameter> inputParameters = new List<ShaderFXParameter>();
         StringBuilder body = new StringBuilder();
         readonly HashSet<string> usedParameters = new HashSet<string>();
         readonly struct Value
@@ -88,27 +90,28 @@ namespace DCFApixels.WhimTex
                 rgba = "graphOutput";
             }
             compiler.body.Append("return ").Append(rgba).AppendLine(";");
+            string statements = compiler.body.ToString();
+            string helpers = compiler.BuiltInSource(statements, out bool blend);
             var source = new StringBuilder("// @whimtex-effect Shader Graph\n");
             foreach (var parameter in compiler.result.parameters)
                 AppendParameter(source, parameter);
             source.Append(compiler.inputDeclarations).AppendLine()
                 .AppendLine("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"")
-                .AppendLine("static float _HdrBlend = 1.0;")
-                .AppendLine("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"")
+                .Append(blend ? "static float _HdrBlend = 1.0;\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"\n" : "")
                 .Append(compiler.usesSampleFootprint ? "static float2 _GraphSampleDx, _GraphSampleDy;\n" : "")
-                .Append(Helpers).Append(compiler.usesProcedural ? ProceduralHelpers : "")
-                .Append(compiler.usesColor ? ColorHelpers : "").Append(compiler.usesExtended ? ExtendedHelpers : "")
-                .Append(compiler.usesSurface ? SurfaceHelpers : "").Append(compiler.usesBlackbody ? BlackbodyHelpers : "")
+                .Append(helpers)
                 .Append(compiler.functionCode)
                 .Append(compiler.samplingCode)
                 .AppendLine("float4 ApplyFX(PinnedUV uv, float4 color)")
                 .AppendLine("{").AppendLine("    float2 graphUV = ProceduralSourceUv(uv);");
             if (compiler.usesSampleFootprint)
                 source.AppendLine("    _GraphSampleDx = ddx(graphUV); _GraphSampleDy = ddy(graphUV);");
-            using (var lines = new System.IO.StringReader(compiler.body.ToString()))
+            using (var lines = new System.IO.StringReader(statements))
                 for (string line; (line = lines.ReadLine()) != null;) source.Append("    ").AppendLine(line);
             compiler.result.source = source.AppendLine("}").ToString();
             compiler.result.parameterCount = compiler.result.parameters.Count + compiler.declarations.Count;
+            compiler.result.shaderParameters.AddRange(compiler.result.parameters);
+            compiler.result.shaderParameters.AddRange(compiler.inputParameters);
             compiler.result.uniformNames = compiler.declarations;
             return compiler.result;
         }
@@ -164,7 +167,7 @@ namespace DCFApixels.WhimTex
                 if (p.type == ShaderFXParameterType.Texture2D && p.textureSource == ShaderFXTextureSource.Self)
                     throw new FormatException("A Shader layer cannot sample its own output. Choose a texture or another layer.");
                 for (int i = 0; i < p.Components; i++)
-                    if (double.IsNaN(p.GetNumber(i)) || double.IsInfinity(p.GetNumber(i))) throw new FormatException("Non-finite parameter: " + p.name);
+                    ShaderFXNumericValue.Check(p.ValueType, p.GetNumber(i));
             }
             int outputs = 0;
             foreach (var n in graph.nodes)
@@ -258,6 +261,7 @@ namespace DCFApixels.WhimTex
         {
             if (declarations.Add(name))
             {
+                inputParameters.Add(new ShaderFXParameter { name = name, id = name, type = ShaderFXParameterType.Vector, vectorValue = value });
                 inputDeclarations.Append("// @param hidden float4 ").Append(name).Append(" = (");
                 for (int i = 0; i < 4; i++)
                 {

@@ -463,6 +463,8 @@ UV, sampling, generators and image-processing math have previews up to **128 × 
 
 Node previews compile asynchronously and share a limited update budget. Zooming out reduces their resolution to match their screen size; zooming in restores it. Unrelated branch edits reuse existing shaders. Animated node previews update at up to 30 Hz in the focused graph window and 10 Hz otherwise.
 
+Initial previews of graphs using built-in nodes are prepared faster, without reducing their resolution or changing the calculations.
+
 **Constant**, **Image Size**, **Texture Size**, **Split**, **Compare**, **Output**, **Parameter**
 and **Reroute** have no preview; their fields and ports show the useful information.
 Nodes without a preview, or with their preview collapsed, have no shared minimum width;

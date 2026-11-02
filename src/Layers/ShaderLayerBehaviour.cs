@@ -149,9 +149,7 @@ namespace DCFApixels.WhimTex
                 compilation = ShaderGraphCompiler.Compile(graph, previewNode, previewPort);
                 try
                 {
-                    var parameters = ShaderFXMetadata.ParseGenerated(compilation.source, compilation.parameterCount);
-                    ShaderFXMetadata.PreserveValues(parameters, compilation.parameters);
-                    string shaderSource = ShaderFXSourceBuilder.BuildGenerated(compilation.source, parameters,
+                    string shaderSource = ShaderFXSourceBuilder.BuildGenerated(compilation.source, compilation.shaderParameters,
                         "Hidden/WhimTex/ShaderGraph", "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl",
                         ShaderGraphSources.MaximumArchiveBytes + 1024 * 1024);
                     shader = ShaderUtil.CreateShaderAsset(shaderSource, false);
