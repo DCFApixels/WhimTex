@@ -3175,7 +3175,7 @@
 
 .whimtex-user-settings-section {
     flex-shrink: 0;
-    margin-bottom: 8px;
+    margin-bottom: 0;
     background-color: rgba(128, 128, 128, 0.035);
 }
 
@@ -3183,13 +3183,21 @@
     margin-bottom: 0;
 }
 
+.whimtex-user-settings-header {
+    flex-direction: row;
+    align-items: center;
+    padding: 0 6px;
+    background-color: rgba(128, 128, 128, 0.09);
+    border-top-width: 1px;
+    border-top-color: rgba(0, 0, 0, 0.35);
+}
+
 .whimtex-user-settings-heading {
+    flex-grow: 1;
+    min-width: 0;
     -unity-font-style: bold;
     margin: 0;
-    padding: 4px 6px;
-    background-color: rgba(128, 128, 128, 0.09);
-    border-bottom-width: 1px;
-    border-bottom-color: rgba(128, 128, 128, 0.2);
+    padding: 4px 0;
 }
 
 .whimtex-user-settings-section-content {
@@ -3197,24 +3205,27 @@
     min-width: 0;
 }
 
-.whimtex-user-settings-subgroup {
-    flex-shrink: 0;
-    min-width: 0;
+.whimtex-user-settings-subsection-start {
     margin-top: 8px;
+}
+
+.whimtex-user-settings-appearance-actions {
+    margin-bottom: 0;
+    padding-top: 0;
 }
 
 .whimtex-user-settings-footer {
     flex-shrink: 0;
-    margin-top: 8px;
+    margin-top: 0;
 }
 
-.whimtex-user-settings-color > .unity-base-field__label {
-    min-width: 120px;
+.whimtex-user-settings-field {
+    min-width: 0;
 }
 
-.whimtex-user-settings-color > .unity-base-field__input {
+.whimtex-user-settings-field > .unity-base-field__input {
     flex-grow: 1;
-    min-width: 50px;
+    min-width: 0;
 }
 
 .whimtex-user-settings-folder-row {
@@ -3224,16 +3235,13 @@
 
 .whimtex-user-settings-folder {
     flex-grow: 1;
+    flex-shrink: 1;
     min-width: 0;
 }
 
-.whimtex-user-settings-folder > .unity-base-field__label {
-    min-width: 100px;
-    width: 100px;
-}
-
-.whimtex-user-settings-folder > .unity-base-field__input {
-    min-width: 0;
+/* Unity 6000.7.0a6 native Button horizontal margin: 3px. */
+.whimtex-user-settings-folder-row > .whimtex-user-settings-folder {
+    margin-right: 3px;
 }
 
 .whimtex-user-settings-folder-button {
@@ -3242,6 +3250,11 @@
     margin-left: 0;
     padding-left: 0;
     padding-right: 0;
+}
+
+/* Match the native aligned BaseField right margin in Unity 6000.7.0a6. */
+.whimtex-user-settings-folder-button--last {
+    margin-right: -2px;
 }
 
 .whimtex-user-settings-open-folder {

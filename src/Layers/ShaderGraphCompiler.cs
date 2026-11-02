@@ -80,6 +80,13 @@ namespace DCFApixels.WhimTex
                 ShaderGraphValueType.Float2 => "float4(" + color.text + ", 0, 1)",
                 _ => "float4((" + color.text + ").xxx, 1)"
             };
+            if (previewNode == null)
+            {
+                Value alphaScale = compiler.Input(output, "AlphaScale");
+                compiler.body.Append("float4 graphOutput = ").Append(rgba).AppendLine(";");
+                compiler.body.Append("graphOutput.a *= ").Append(alphaScale.text).AppendLine(";");
+                rgba = "graphOutput";
+            }
             compiler.body.Append("return ").Append(rgba).AppendLine(";");
             var source = new StringBuilder("// @whimtex-effect Shader Graph\n");
             foreach (var parameter in compiler.result.parameters)

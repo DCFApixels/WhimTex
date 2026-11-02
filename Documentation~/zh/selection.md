@@ -141,7 +141,7 @@ Sampling Distance 只改变细节的借用位置；它不会扩大填充区域�
 
 选择 **Layer Select**（`V`）并点击图像。透明通道
 满足 **Alpha ≥ %** 的最上层图层会被选中；通过透明区域可以选择下方的图层。默认阈值为 **10%**。
-可在画布视图中的工具设置或 **User Settings → Tools & Input → Alpha ≥ %** 中更改；两个控件共享同一项偏好设置。
+可在画布视图中的工具设置或 **User Settings → Layer Select** 中更改；两个控件共享同一项偏好设置。
 即使在 0% 时，完全透明的像素也会被忽略。
 
 - `Shift+click` 会在选区中切换某个图层。在空白区域 `Shift+click` 不会改变选区。

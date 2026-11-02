@@ -481,7 +481,10 @@ Numbers appear as grayscale; two-component vectors use red and green, three-comp
 use RGB, and four-component vectors and Color include alpha. Texture, Gradient and Curve resources cannot
 be shown directly: connect the corresponding Sample node and expand its preview.
 
-**Output** has a subtle visual accent to make the graph's destination easy to find. Use
+**Output** is a horizontal end block: input on the left, **Output / Layer result** on the right,
+with a rounded end. **RGBA** accepts color with alpha, or RGB with alpha 1.
+**Alpha Scale** defaults to **1** and multiplies the input alpha; connect a mask or enter a value.
+RGB is unchanged and the multiplier does not clamp the result. Use
 **Layer Preview** for the layer result. Node previews show values before the layer's Transform
 and FX. A node-preview error clears its image and shows a message,
 so it does not display an old image as the result of the selected calculation.

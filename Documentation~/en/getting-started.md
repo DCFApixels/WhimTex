@@ -70,8 +70,9 @@ Brushes keep their tip outlines; text editing, navigation and transform handles 
 The **gear button to the right of Export** opens User Settings, where you can change the transparency checkerboard's colors
 and size, or enable **Clean Canvas View Background** to hide the background logo and shadow. At the bottom of this settings window,
 **Reset WhimTex Settings…** restores the workspace preferences after confirmation, without deleting your documents or preset files.
-Settings are arranged in five open sections: **Profile**, **Canvas View**, **Tools & Input**,
-**Files & Editors** and **History**. Related controls are separated by small gaps; the reset button sits below all sections.
+Settings are arranged in open sections with subtle header backgrounds and separators; related fields and notes stay together.
+Labels and controls align in two columns, including rows with buttons on the right.
+**Canvas View** combines the background, transparency checkerboard and **Invalid Pixels** highlight settings.
 
 Tool options are remembered automatically when you close the window or restart Unity:
 painting and fill settings, Shape/Text/Gradient creation defaults, selection and lasso modes,
@@ -98,7 +99,7 @@ To keep a layer's settings in a separate window, use **layer ⋮ → Properties*
 
 ## Open an existing image
 
-In **User Settings → Files & Editors**, choose what a double-click in Project opens:
+In **User Settings → Open Images**, choose what a double-click in Project opens:
 
 - **Tiff Documents Only:** WhimTex TIFF documents.
 - **All Supported Images** (default): also PNG, JPEG, BMP, TGA, EXR, ordinary TIFF and Texture2D `.asset`; not PSD.

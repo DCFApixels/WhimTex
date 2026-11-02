@@ -68,7 +68,7 @@ Its white eyedropper cursor samples at the lower-left tip, without a separate ar
 Confirming a color already in Color History moves it to the front without a duplicate, including when entered manually.
 Matching includes alpha and HDR intensity. Fields outside a document have no Color History.
 
-Set the limit in **User Settings → History → Maximum Colors** (default **256**, minimum **1**). Each document has its own history. Adding or reusing a color removes excess entries from the end; manual reordering changes which entries are removed first. A lower limit takes effect on the next addition or reuse, not when opening a document. Undo restores an evicted color together with the previous order.
+Set the limit in **User Settings → Color History → Maximum Colors** (default **256**, minimum **1**). Each document has its own history. Adding or reusing a color removes excess entries from the end; manual reordering changes which entries are removed first. A lower limit takes effect on the next addition or reuse, not when opening a document. Undo restores an evicted color together with the previous order.
 
 | Action | Result |
 | :--- | :--- |

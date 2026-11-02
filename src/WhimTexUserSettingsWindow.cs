@@ -60,14 +60,10 @@ namespace DCFApixels.WhimTex
             root.AddToClassList("whimtex-user-settings");
             var scroll = new ScrollView { horizontalScrollerVisibility = ScrollerVisibility.Hidden };
             scroll.AddToClassList("whimtex-user-settings-scroll");
+            scroll.AddToClassList(InspectorElement.ussClassName);
             scroll.contentContainer.AddToClassList("whimtex-user-settings-content");
             root.Add(scroll);
-            var profile = AddSection(scroll, "Profile");
-            var canvas = AddSection(scroll, "Canvas View");
-            var tools = AddSection(scroll, "Tools & Input");
-            var files = AddSection(scroll, "Files & Editors");
-            var history = AddSection(scroll, "History", last: true);
-            var section = profile;
+            var section = AddSection(scroll, "Comments");
             var authorRow = new VisualElement();
             authorRow.AddToClassList("whimtex-user-settings-folder-row");
             commentAuthorName = new TextField("Nickname")
@@ -75,6 +71,7 @@ namespace DCFApixels.WhimTex
                 name = "commentAuthorName", isDelayed = true,
                 tooltip = "Nickname saved with new comments and replies. Automatic detection uses your personal Unity organization, then the part of your Unity email before @. Changing it does not rename existing messages."
             };
+            AlignField(commentAuthorName);
             commentAuthorName.AddToClassList("whimtex-user-settings-folder");
             commentAuthorName.RegisterValueChangedCallback(evt =>
             {
@@ -89,6 +86,7 @@ namespace DCFApixels.WhimTex
                 tooltip = "Detect your nickname from your personal Unity organization, falling back to your email before @. Replaces the saved name."
             };
             detectAuthor.AddToClassList("whimtex-user-settings-folder-button");
+            detectAuthor.AddToClassList("whimtex-user-settings-folder-button--last");
             authorRow.Add(detectAuthor);
             section.Add(authorRow);
             commentAuthorStatus = new Label { name = "commentAuthorStatus" };
@@ -103,36 +101,43 @@ namespace DCFApixels.WhimTex
             resetCommentAuthorColor = new Button(WhimTexUserSettings.ResetCommentAuthorColor)
             { name = "resetCommentAuthorColor", text = "↺", tooltip = "Use a color calculated from your nickname." };
             resetCommentAuthorColor.AddToClassList("whimtex-user-settings-folder-button");
+            resetCommentAuthorColor.AddToClassList("whimtex-user-settings-folder-button--last");
             authorColorRow.Add(resetCommentAuthorColor);
             section.Add(authorColorRow);
-            section = history;
+            section = AddSection(scroll, "Color History");
             colorHistoryLimit = new IntegerField("Maximum Colors")
             {
                 name = "colorHistoryLimit", isDelayed = true,
                 tooltip = "Maximum colors in each document's Color History. Default: 256. Minimum: 1. Adding or reusing a color removes the oldest entries beyond this limit. Lowering the limit takes effect on the next addition or reuse."
             };
-            colorHistoryLimit.AddToClassList("whimtex-user-settings-color");
+            AlignField(colorHistoryLimit);
             colorHistoryLimit.RegisterValueChangedCallback(evt =>
             {
                 WhimTexUserSettings.ColorHistoryLimit = evt.newValue;
                 colorHistoryLimit.SetValueWithoutNotify(WhimTexUserSettings.ColorHistoryLimit);
             });
             section.Add(colorHistoryLimit);
-            section = tools;
-            tabletPressureCurve = WhimTexUI.ConfigureField(new CurveField("Pressure Curve")
-            { ranges = new Rect(0, 0, 1, 1), tooltip = "Global pressure response before brush curves. Mouse input is 1. This setting is not stored in brush presets." });
+            section = AddSection(scroll, "Tablet Input");
+            var pressureRow = new VisualElement();
+            pressureRow.AddToClassList("whimtex-user-settings-folder-row");
+            tabletPressureCurve = new CurveField("Pressure Curve")
+            { ranges = new Rect(0, 0, 1, 1), tooltip = "Global pressure response before brush curves. Mouse input is 1. This setting is not stored in brush presets." };
+            AlignField(tabletPressureCurve);
+            tabletPressureCurve.AddToClassList("whimtex-user-settings-folder");
             tabletPressureCurve.RegisterValueChangedCallback(e => WhimTexUserSettings.TabletPressureCurve = e.newValue);
-            section.Add(tabletPressureCurve);
+            pressureRow.Add(tabletPressureCurve);
             var resetPressure = new Button(() => WhimTexUserSettings.TabletPressureCurve = WhimTexCurveTexture.Default())
-                { text = "Reset Pressure Curve" };
-            resetPressure.AddToClassList("whimtex-user-settings-reset");
-            section.Add(resetPressure);
-            section = files;
+                { name = "resetPressureCurve", text = "↺", tooltip = "Reset Pressure Curve" };
+            resetPressure.AddToClassList("whimtex-user-settings-folder-button");
+            resetPressure.AddToClassList("whimtex-user-settings-folder-button--last");
+            pressureRow.Add(resetPressure);
+            section.Add(pressureRow);
+            section = AddSection(scroll, "Open Images");
             imageOpening = new EnumField("Double Click", WhimTexUserSettings.ImageOpening)
             {
                 tooltip = "Open only layered WhimTex TIFF documents, or also PNG, JPEG, TGA, EXR, ordinary TIFF and Texture2D assets. PSD is excluded."
             };
-            imageOpening.AddToClassList("whimtex-user-settings-color");
+            AlignField(imageOpening);
             TwoChoiceDropdown.Attach(imageOpening);
             imageOpening.RegisterValueChangedCallback(evt => WhimTexUserSettings.ImageOpening = (ImageOpenMode)evt.newValue);
             section.Add(imageOpening);
@@ -140,11 +145,11 @@ namespace DCFApixels.WhimTex
             {
                 tooltip = "Drawing copies the imported pixels for painting. File references the imported texture. Layered TIFF documents always retain their layers. Source files and import settings are not changed."
             };
-            imageLayer.AddToClassList("whimtex-user-settings-color");
+            AlignField(imageLayer);
             TwoChoiceDropdown.Attach(imageLayer);
             imageLayer.RegisterValueChangedCallback(evt => WhimTexUserSettings.ImageLayer = (ImageOpenLayer)evt.newValue);
             section.Add(imageLayer);
-            section = AddSubgroup(files);
+            section = AddSection(scroll, "External Code Editor");
             var vsCodeRow = new VisualElement();
             vsCodeRow.AddToClassList("whimtex-user-settings-folder-row");
             vsCodeExecutable = new TextField("VS Code Command")
@@ -152,6 +157,7 @@ namespace DCFApixels.WhimTex
                 isDelayed = true,
                 tooltip = "Optional absolute path to the VS Code command or executable. WhimTex first checks Unity's registered editors and PATH, and uses this only as a fallback."
             };
+            AlignField(vsCodeExecutable);
             vsCodeExecutable.AddToClassList("whimtex-user-settings-folder");
             vsCodeExecutable.RegisterValueChangedCallback(evt => SetVsCodeExecutable(evt.newValue));
             vsCodeRow.Add(vsCodeExecutable);
@@ -170,81 +176,85 @@ namespace DCFApixels.WhimTex
             var resetVsCode = new Button(WhimTexUserSettings.ResetVsCodeExecutable)
                 { text = "↺", tooltip = "Clear the custom path and use automatic detection" };
             resetVsCode.AddToClassList("whimtex-user-settings-folder-button");
+            resetVsCode.AddToClassList("whimtex-user-settings-folder-button--last");
             vsCodeRow.Add(resetVsCode);
             section.Add(vsCodeRow);
             var vsCodeNote = new Label("Optional fallback for installations not found by Unity or PATH. On macOS, install the code shell command in PATH or select its executable here.");
             vsCodeNote.AddToClassList("whimtex-user-settings-note");
             section.Add(vsCodeNote);
-            section = canvas;
+            section = AddSection(scroll, "Canvas View");
             cleanBackground = new Toggle("Clean Canvas View Background")
             {
                 tooltip = "Hide the logo on the Canvas View background. Does not affect your image or exports."
             };
-            cleanBackground.AddToClassList("whimtex-user-settings-color");
+            AlignField(cleanBackground);
             cleanBackground.RegisterValueChangedCallback(evt => WhimTexUserSettings.ShowManta = !evt.newValue);
             section.Add(cleanBackground);
-            section = AddSubgroup(canvas);
             checkerLight = AddColor(section, "Light Squares", value => WhimTexUserSettings.CheckerLight = value);
+            checkerLight.AddToClassList("whimtex-user-settings-subsection-start");
             checkerDark = AddColor(section, "Dark Squares", value => WhimTexUserSettings.CheckerDark = value);
             checkerSize = new SliderInt("Cell Size", WhimTexUserSettings.MinimumCheckerSize, WhimTexUserSettings.MaximumCheckerSize)
             {
                 showInputField = true,
                 tooltip = "Size of one checkerboard square in UI pixels, independent of canvas zoom. Default: 16."
             };
-            checkerSize.AddToClassList("whimtex-user-settings-color");
+            AlignField(checkerSize);
             checkerSize.RegisterValueChangedCallback(evt =>
             {
                 WhimTexUserSettings.CheckerSize = evt.newValue;
                 checkerSize.SetValueWithoutNotify(WhimTexUserSettings.CheckerSize);
             });
             section.Add(checkerSize);
-            section = AddSubgroup(canvas);
             invalidPixels = AddColor(section, "Invalid Pixels", value => WhimTexUserSettings.InvalidPixels = value);
+            invalidPixels.AddToClassList("whimtex-user-settings-subsection-start");
             invalidPixels.tooltip = "Display color for the accumulated numeric-error mask when Debug is enabled. Does not change image pixels or exports.";
-            section = AddSubgroup(canvas);
+            section = AddSection(scroll, "Post FX Preview");
             postFxBackgroundMode = new EnumField("Background Mode", WhimTexUserSettings.PostFxBackgroundMode)
             {
                 name = "postFxBackgroundMode",
                 tooltip = "Solid Color or Checkerboard behind the composition before Post FX. Shared with the Post FX panel in every window."
             };
-            postFxBackgroundMode.AddToClassList("whimtex-user-settings-color");
+            AlignField(postFxBackgroundMode);
             TwoChoiceDropdown.Attach(postFxBackgroundMode);
             postFxBackgroundMode.RegisterValueChangedCallback(evt => WhimTexUserSettings.PostFxBackgroundMode = (PostFxBackground)evt.newValue);
             section.Add(postFxBackgroundMode);
             postFxBackground = AddColor(section, "Background", value => WhimTexUserSettings.PostFxBackground = value);
             postFxBackground.tooltip = "Opaque fill behind the composition before Post FX. Shared with the Post FX panel. Original alpha is still used for depth; document pixels and exports are unchanged.";
-            section = AddSubgroup(canvas);
+            section = AddSection(scroll, "Healing Brush");
             healingStrokeColor = AddColor(section, "Stroke Color", value => WhimTexUserSettings.HealingStrokeColor = value);
             healingStrokeColor.name = "healingStrokeColor";
             healingStrokeColor.showAlpha = true;
             healingStrokeColor.tooltip = "Color and opacity of the temporary repair-area overlay. Does not change the repair mask or result.";
-            var appearanceActions = AddSubgroup(canvas);
+            var appearanceActions = new VisualElement();
+            appearanceActions.AddToClassList("whimtex-user-settings-section-content");
+            appearanceActions.AddToClassList("whimtex-user-settings-appearance-actions");
             var note = new Label("Saved for your user account. Applies to all WhimTex windows; documents and exports are unaffected.");
             note.AddToClassList("whimtex-user-settings-note");
             appearanceActions.Add(note);
             var reset = new Button(WhimTexUserSettings.ResetCanvasViewAppearance) { text = "Reset Canvas View Appearance" };
             reset.AddToClassList("whimtex-user-settings-reset");
             appearanceActions.Add(reset);
-            section = AddSubgroup(tools);
+            scroll.Add(appearanceActions);
+            section = AddSection(scroll, "Layer Select");
             layerPickAlpha = new Slider("Alpha ≥ %", 0f, 100f)
             {
                 showInputField = true,
                 tooltip = "Minimum visible alpha when selecting layers on the canvas with Layer Select (V). Default: 10%. Fully transparent pixels are always ignored."
             };
-            layerPickAlpha.AddToClassList("whimtex-user-settings-color");
+            AlignField(layerPickAlpha);
             layerPickAlpha.RegisterValueChangedCallback(evt =>
             {
                 WhimTexUserSettings.LayerPickAlphaThreshold = evt.newValue * .01f;
                 layerPickAlpha.SetValueWithoutNotify(WhimTexUserSettings.LayerPickAlphaThreshold * 100f);
             });
             section.Add(layerPickAlpha);
-            section = AddSubgroup(tools);
+            section = AddSection(scroll, "Guides & Snapping", reset: WhimTexUserSettings.ResetGuidesAndSnapping);
             snapRadius = new Slider("Snap Radius (px)", WhimTexUserSettings.MinimumSnapRadius, WhimTexUserSettings.MaximumSnapRadius)
             {
                 showInputField = true,
                 tooltip = "Snapping distance in UI pixels, independent of canvas zoom. Applies to guides, intersections, canvas edges and pivot anchors. Default: 8. Does not change angular snapping or guide click targets."
             };
-            snapRadius.AddToClassList("whimtex-user-settings-color");
+            AlignField(snapRadius);
             snapRadius.RegisterValueChangedCallback(evt =>
             {
                 WhimTexUserSettings.SnapRadius = evt.newValue;
@@ -257,10 +267,7 @@ namespace DCFApixels.WhimTex
             guideAngledColor.tooltip = "Idle guides at other angles in the current canvas view.";
             guideActiveColor = AddColor(section, "Active Guide", value => WhimTexUserSettings.GuideActiveColor = value);
             guideActiveColor.tooltip = "A hovered, selected or dragged guide. A guide about to be deleted stays red.";
-            var resetGuides = new Button(WhimTexUserSettings.ResetGuidesAndSnapping) { text = "Reset Guides & Snapping" };
-            resetGuides.AddToClassList("whimtex-user-settings-reset");
-            section.Add(resetGuides);
-            section = AddSubgroup(files);
+            section = AddSection(scroll, "Presets");
             var folderRow = new VisualElement();
             folderRow.AddToClassList("whimtex-user-settings-folder-row");
             presetsFolder = new TextField("Presets Folder")
@@ -268,6 +275,7 @@ namespace DCFApixels.WhimTex
                 isDelayed = true,
                 tooltip = "Absolute path to the shared preset library. Saved in EditorPrefs for this user, independently of the project. Changing this path does not move or delete files."
             };
+            AlignField(presetsFolder);
             presetsFolder.AddToClassList("whimtex-user-settings-folder");
             presetsFolder.RegisterValueChangedCallback(evt => SetPresetsFolder(evt.newValue));
             folderRow.Add(presetsFolder);
@@ -285,20 +293,21 @@ namespace DCFApixels.WhimTex
             var defaultFolder = new Button(WhimTexUserSettings.ResetPresetsFolder)
                 { text = "↺", tooltip = "Use the default presets folder. Existing files are left untouched." };
             defaultFolder.AddToClassList("whimtex-user-settings-folder-button");
+            defaultFolder.AddToClassList("whimtex-user-settings-folder-button--last");
             folderRow.Add(defaultFolder);
             section.Add(folderRow);
             var folderNote = new Label("Shared across projects. Brushes and Shader FX use the Brushes and ShaderFX subfolders. Presets in the project are also available. Changing the path does not move files.");
             folderNote.AddToClassList("whimtex-user-settings-note");
             section.Add(folderNote);
-            section = AddSubgroup(history);
+            section = AddSection(scroll, "Paint Undo", last: true);
             undoDiskLimit = new IntegerField("Undo Disk Limit (GiB)") { name = "undoDiskLimit", isDelayed = true,
                 tooltip = "Shared by all WhimTex projects and Editor versions for this user. Includes queued writes and exact Half checkpoints. Range: 1–1024 GiB." };
-            undoDiskLimit.AddToClassList("whimtex-user-settings-color");
+            AlignField(undoDiskLimit);
             undoDiskLimit.RegisterValueChangedCallback(e => ChangeUndoLimits(() => WhimTexUserSettings.SetUndoDiskGiB(e.newValue)));
             section.Add(undoDiskLimit);
             paintUndoSteps = new IntegerField("Paint Undo Steps") { name = "paintUndoSteps", isDelayed = true,
                 tooltip = "Maximum retained Brush/Pencil pixel operations per document, including Redo. One stroke is one step, regardless of tile count. Parameter edits use Unity Undo and do not count toward this limit. Default: 50. Range: 1–10000." };
-            paintUndoSteps.AddToClassList("whimtex-user-settings-color");
+            AlignField(paintUndoSteps);
             paintUndoSteps.RegisterValueChangedCallback(e => ChangeUndoLimits(() => WhimTexUserSettings.SetPaintUndoSteps(e.newValue)));
             section.Add(paintUndoSteps);
             undoUsage = new Label { name = "paintUndoUsage" };
@@ -368,14 +377,25 @@ namespace DCFApixels.WhimTex
             vsCodeExecutable.SetValueWithoutNotify(WhimTexUserSettings.VsCodeExecutable);
         }
 
-        private static VisualElement AddSection(VisualElement parent, string text, bool last = false)
+        private static VisualElement AddSection(VisualElement parent, string text, bool last = false,
+            System.Action reset = null)
         {
             var section = new VisualElement();
             section.AddToClassList("whimtex-user-settings-section");
             if (last) section.AddToClassList("whimtex-user-settings-section--last");
+            var header = new VisualElement();
+            header.AddToClassList("whimtex-user-settings-header");
             var label = new Label(text);
             label.AddToClassList("whimtex-user-settings-heading");
-            section.Add(label);
+            header.Add(label);
+            if (reset != null)
+            {
+                var button = new Button(reset) { name = "resetSection", text = "↺", tooltip = "Reset " + text };
+                button.AddToClassList("whimtex-user-settings-folder-button");
+                button.AddToClassList("whimtex-user-settings-folder-button--last");
+                header.Add(button);
+            }
+            section.Add(header);
             var content = new VisualElement();
             content.AddToClassList("whimtex-user-settings-section-content");
             section.Add(content);
@@ -383,18 +403,16 @@ namespace DCFApixels.WhimTex
             return content;
         }
 
-        private static VisualElement AddSubgroup(VisualElement parent)
+        private static void AlignField(VisualElement field)
         {
-            var content = new VisualElement();
-            content.AddToClassList("whimtex-user-settings-subgroup");
-            parent.Add(content);
-            return content;
+            field.AddToClassList("whimtex-user-settings-field");
+            field.AddToClassList(BaseField<string>.alignedFieldUssClassName);
         }
 
         private static ColorField AddColor(VisualElement parent, string label, System.Action<Color> write)
         {
             var field = new ColorField(label) { hdr = false, showAlpha = false, Range = WhimTexColorRange.StandardOnly };
-            field.AddToClassList("whimtex-user-settings-color");
+            AlignField(field);
             field.RegisterValueChangedCallback(evt => write(evt.newValue));
             parent.Add(field);
             return field;

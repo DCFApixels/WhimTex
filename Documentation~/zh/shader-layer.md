@@ -426,7 +426,10 @@ HLSL 函数仅预览数值与 Color 输出，不显示 Boolean 或资源输出�
 数值显示为灰度；二维向量使用红、绿通道，三维向量使用 RGB，四维向量和 Color 还包含 Alpha。
 Texture、Gradient 和 Curve 资源不能直接显示：连接对应的 Sample 节点，再展开其预览。
 
-**Output** 通过轻微的外观区别便于查找。图层结果请查看 **Layer Preview**；
+**Output** 是横向终点块：左侧为输入，右侧为 **Output / Layer result** 标题，末端呈圆角。
+**RGBA** 接受带 Alpha 的颜色，或 Alpha 为 1 的 RGB。**Alpha Scale** 默认为 **1**，
+用于乘以输入 Alpha；可输入数值或连接遮罩。RGB 保持不变，乘法结果不限制在 0..1。
+图层结果请查看 **Layer Preview**；
 节点预览显示图层 Transform 和 FX 之前的数值。
 节点预览发生错误时会清空图像并显示提示，不会把旧图像当作当前计算的结果。
 

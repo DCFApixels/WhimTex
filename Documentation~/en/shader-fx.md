@@ -166,7 +166,7 @@ Vector parameters provide two, three or four numeric components.
 A `point` parameter sets a position: bottom-left `(0, 0)`, top-right `(1, 1)`, default `(0.5, 0.5)`.
 Click the hand icon (**Edit on Canvas**) beside the field to drag the point, including outside the canvas.
 Dragging snaps to canvas edges and visible guides; hold Ctrl to disable snapping.
-Set the snap radius in **User Settings → Tools & Input → Snap Radius (px)**.
+Set the snap radius in **User Settings → Guides & Snapping → Snap Radius (px)**.
 
 A normal parameter sets a unit direction and offers the same button.
 Drag its endpoint: near the center it faces the camera; at the maximum radius it points along the canvas.
@@ -227,7 +227,7 @@ subfolder or anywhere under the project's **Assets** folder. Overwriting keeps a
 A new file gets a fresh preset ID and version 1. Overwriting preserves the destination file’s
 ID and version when present. Saving does not switch the current effect to the exported file.
 
-Set the shared library location in **User Settings → Files & Editors → Presets Folder**. Its **Brushes**
+Set the shared library location in **User Settings → Presets → Presets Folder**. Its **Brushes**
 and **ShaderFX** subfolders hold the two kinds of presets. You can also place existing
 HLSL presets in ShaderFX or its subfolders; they appear under **User** in **Add FX**.
 The list refreshes in the background when you return to Unity. If you open it before the
@@ -331,7 +331,7 @@ For a preset, **Code → Preset** shows its source file in a read-only object-st
 
 - **Open Code** opens a working file in Unity's selected script editor. Saving updates the draft in WhimTex; click **Compile** to compile it.
 - **Open in VS Code** also installs WhimTex directive highlighting, completions and checks automatically in an isolated profile. Saving this working file requests **Compile** in Unity, without returning to the WhimTex window. The language mode remains **HLSL**; the bundled extension supports Restricted Mode.
-- If the VS Code button is missing, set **User Settings → Files & Editors → VS Code Command**. WhimTex checks Unity's registered editors and PATH before this fallback.
+- If the VS Code button is missing, set **User Settings → External Code Editor → VS Code Command**. WhimTex checks Unity's registered editors and PATH before this fallback.
 - The folder icon beside the VS Code path opens its containing folder. It sits between Browse and Reset and is available when the chosen file exists.
 
 The VS Code extension highlights types, modifiers, parameter names, values and ranges as well as directive names. It checks defaults, tooltips, linked controls, conditions and groups; shader compilation errors still come from Unity. After an extension update, reopen code through **Open in VS Code**; an already-running window may need **Developer: Reload Window**.

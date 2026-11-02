@@ -86,6 +86,7 @@ namespace DCFApixels.WhimTex
         internal static string PortDisplayName(ShaderGraphNode node, string port, bool output)
         {
             if (node == null) return port;
+            if (node.kind == ShaderGraphNodeKind.Output && !output && port == "AlphaScale") return "Alpha Scale";
             var list = node.kind == ShaderGraphNodeKind.SubGraph ? (output ? node.subGraph?.outputs : node.subGraph?.inputs)
                 : node.kind == ShaderGraphNodeKind.SubGraphOutput ? node.subGraph?.outputs : null;
             return list?.Find(p => p?.id == port)?.name ?? port;

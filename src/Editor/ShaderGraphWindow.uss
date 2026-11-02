@@ -144,6 +144,61 @@
 .whimtex-shader-graph-output #title-label {
     -unity-font-style: bold;
 }
+.whimtex-shader-graph-output--terminal #node-border {
+    flex-direction: row;
+    align-items: stretch;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-top-right-radius: 28px;
+    border-bottom-right-radius: 28px;
+    border-right-width: 3px;
+}
+.whimtex-shader-graph-output--terminal #selection-border {
+    border-top-left-radius: 9px;
+    border-bottom-left-radius: 9px;
+    border-top-right-radius: 31px;
+    border-bottom-right-radius: 31px;
+}
+.whimtex-shader-graph-output--terminal #contents {
+    justify-content: center;
+    background-color: transparent;
+}
+.whimtex-shader-graph-output--terminal #top {
+    background-color: transparent;
+}
+.whimtex-shader-graph-output--terminal #input {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+.whimtex-shader-graph-output--terminal #divider,
+.whimtex-shader-graph-output--terminal #title-button-container {
+    display: none;
+}
+.whimtex-shader-graph-output--terminal #title {
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 56px;
+    padding: 8px 22px 8px 14px;
+    border-width: 0;
+    border-left-width: 1px;
+    border-left-color: rgba(128, 128, 128, 0.3);
+    border-radius: 0;
+    border-top-right-radius: 26px;
+    border-bottom-right-radius: 26px;
+}
+.whimtex-shader-graph-output--terminal #title-label {
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+}
+.whimtex-shader-graph-output-destination {
+    margin: 2px 0 0 0;
+    padding: 0;
+    font-size: 10px;
+    opacity: 0.65;
+    -unity-font-style: normal;
+}
 .whimtex-shader-graph #node-border .whimtex-shader-graph-port--resource #connector,
 .whimtex-shader-graph #node-border .whimtex-shader-graph-port--resource #connector #cap,
 .whimtex-shader-graph #node-border .whimtex-shader-graph-port--boolean #connector,

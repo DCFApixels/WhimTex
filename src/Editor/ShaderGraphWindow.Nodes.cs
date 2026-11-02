@@ -152,6 +152,14 @@ namespace DCFApixels.WhimTex
                     extensionContainer.Add(preview);
                 }
                 if (node.kind == ShaderGraphNodeKind.CustomFunction) BuildFunctionEditor();
+                if (node.kind == ShaderGraphNodeKind.Output)
+                {
+                    AddToClassList("whimtex-shader-graph-output--terminal");
+                    titleContainer.BringToFront();
+                    var destination = new Label("Layer result") { pickingMode = PickingMode.Ignore };
+                    destination.AddToClassList("whimtex-shader-graph-output-destination");
+                    titleContainer.Add(destination);
+                }
                 RefreshExpandedState(); RefreshPorts();
                 RefreshValues();
             }
@@ -159,6 +167,8 @@ namespace DCFApixels.WhimTex
             {
                 var port = CreatePort(Id, name, direction, type, dynamic);
                 port.portName = PortLabel(ShaderGraphNodes.PortDisplayName(Data, name, direction == Direction.Output), type);
+                if (Data?.kind == ShaderGraphNodeKind.Output && name == "AlphaScale")
+                    port.tooltip = "Multiplies the RGBA input's alpha. Default 1 preserves it; RGB is unchanged.";
                 if (Data?.kind == ShaderGraphNodeKind.Swizzle && direction == Direction.Input)
                     port.tooltip = "Numeric or Color. Width is the maximum required by the source and mask; _ inserts zero.";
                 var definition = Data?.function?.ports.Find(p => p.name == name);

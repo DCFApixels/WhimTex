@@ -205,8 +205,12 @@ Both expose `Size` (width, height) and `Texel` (reciprocal width, reciprocal hei
 Transform UV changes coordinates for subsequent calculations, independently of the layer's
 ordinary Transform. Sampling uses the supplied coordinates.
 
-Output receives RGBA through a fixed Color input and uses a restrained visual distinction from
-ordinary calculation nodes. It has no per-node preview; Layer Preview shows the layer result.
+Output receives RGBA through a fixed Color input. Its horizontal terminal layout places the
+inputs on the left and the Output / Layer result title on the right, with a rounded end cap.
+The Float `AlphaScale` input (displayed as **Alpha Scale**) defaults to 1 and multiplies only
+RGBA.a: `float4(rgba.rgb, rgba.a * alphaScale)`. It accepts a literal or connected mask,
+without clamping. Numeric RGB gains alpha 1 through the Color input. This multiplication
+affects the final graph result, not upstream node previews. It has no per-node preview; Layer Preview shows the layer result.
 RGB is straight, not premultiplied by alpha. The graph adds no blanket
 `0..1` clamp to its numeric results: HDR and negative values remain available, subject to the
 selected operation and the normal layer Rendering settings. Alpha retains the existing layer

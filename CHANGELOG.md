@@ -6,6 +6,9 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader Graph Output adds Alpha Scale (default 1), multiplying RGBA alpha by a value or
+  connected mask while preserving RGB and unclamped results.
+
 - Shader Graph adds Height Blend for signed/HDR heights; Tile UV with Grid/Staggered cells,
   repeatable variation and coverage masks; Perspective UV for inverse projective quad mapping;
   directional Gabor Noise with Value/Phase/Intensity; 2D/3D Rotate Vector; and Blackbody
@@ -321,15 +324,23 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Shader Graph Output uses a horizontal terminal layout with left inputs, a filled Output / Layer result
+  title area and rounded end cap, replacing the ordinary colored-header layout.
+
 - Shader Graph node previews compile asynchronously with at most two pending passes, a bounded
   round-robin update queue, and 16–128 pixel targets selected by screen size. Branch fingerprints
   avoid recompiling independent nodes; shared binding preparation and emitted-input uploads reduce
   repeated CPU work. Animated node previews are capped at 30 Hz (10 Hz when the window is unfocused).
   Preview timing scopes are available in the profiler. Final layer resolution and shader math are unchanged.
 
-- User Settings groups preferences into Profile, Canvas View, Tools & Input, Files & Editors and
-  History, with subtle headers and small gaps between related controls. Native field styling is
-  retained, sections reach the window edges, and Reset WhimTex Settings remains a separate bottom button.
+- User Settings separates existing sections with subtle header backgrounds and dark top divider lines,
+  no gaps between blocks and more compact notes, retaining native field styling and control order.
+  Sections extend to the window edges, and Reset WhimTex Settings remains a separate bottom button.
+  Pressure Curve has a compact reset button on the right of its field, matching other setting rows.
+  Guides & Snapping has its reset icon on the right of the section header.
+  All setting fields share native Inspector label alignment, including rows with browse/reset buttons.
+  Row buttons retain a native-sized gap from the field and align with the other fields' right edge.
+  Canvas background, transparency checkerboard and numeric-error highlight settings share one Canvas View section.
 
 - Custom gradient curves use weighted cubic Bezier handles evaluated by Unity AnimationCurve.
   Handle angles and lengths, joined/broken sides, Clamped Auto, Flat and per-side tangent modes
