@@ -53,6 +53,10 @@ the affected files:
   debugger breaks with diagnostic messages so reading a font cannot request
   an interactive debugger. Parsing and return values are unchanged.
 
+- `WebFont/Woff2Reader.cs`, `Glyph.cs` and `Tables.BitmapAndSvgFonts/CBDT.cs`:
+  remove unused transform/layout flags and an unused exception binding. All binary
+  stream reads, glyph cloning and exception handling remain unchanged.
+
 All other imported C# files are byte-for-byte copies of the pinned checkout.
 
 ## Integration details and limitations

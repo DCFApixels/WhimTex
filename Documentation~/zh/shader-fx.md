@@ -315,7 +315,7 @@ LOD 0 读取所传入纹理的基础级别；函数本身不会生成 mipmap。
 当 `uv` 为 `PinnedUV` 时，`SampleTexture(_MainTex, uv)` 也保持 pixel-local，等同于 `SampleInput(uv)`；
 sampler 的名称本身并不构成绕过路径。
 后者支持 Texture、Layer、Self、None 遮罩来源；pixel-local 读取要求使用 `PinnedUV`。
-直接 HLSL 纹理读取属于绕过接口的方式。检测到绕过读取或导数时会警告，并不再确认 pixel-local 属性。
+直接 HLSL 纹理读取属于绕过接口的方式。检测到绕过读取或导数时，不再确认 pixel-local 属性；这属于信息提示，不会产生控制台警告，并使用完整图像输入。命名空间中的 Custom Function 调用也保守地视为未经验证。
 纹理输入使用只读的 `WhimTexTexture` 类型。`SampleTexture(_Mask, uv)` 等调用保持不变；
 自定义辅助函数和预览函数接收纹理时，请将参数声明为 `WhimTexTexture`。
 采样会自动换算到输入实际存储的区域；`_Mask.texelSize` 和 `_Mask_TexelSize`

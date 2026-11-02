@@ -152,7 +152,7 @@ included when known, including expanded project/package includes. Raw source wit
 the diagnostic label `Assets/WhimTexAgentInput.hlsl`; this is not a created file. Locations belong to
 the applied source snapshot and can differ from a subsequently edited draft or include.
 
-Current reason codes are `spatial_sample` (numeric sampling coordinates or explicit addressing), `unverified_sampling` (macro/conditional sampling that cannot be proven local), `direct_texture_read`
+Current reason codes are `spatial_sample` (numeric sampling coordinates or explicit addressing), `unverified_sampling` (macro/conditional sampling or qualified calls that cannot be proven local), `direct_texture_read`
 (direct sampling/load/gather), `derivative` (neighbor-fragment derivatives), `texture_internals`
 (direct access to texture-view storage/mapping), and `unverified_dependency` (compiler/engine dependencies,
 buffer access or preprocessor constructs outside the checked contract). Reasons explain the conservative

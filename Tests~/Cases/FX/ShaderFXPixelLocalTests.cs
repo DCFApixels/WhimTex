@@ -63,7 +63,7 @@ float4 ApplyFX(PinnedUV uv, float4 color)
         f.Pixel(f.Render(qualifiers, sample), sample, "Qualified input dispatch");
         var mainTexture = f.Fx("float4 ApplyFX(PinnedUV uv, float4 color) { return SampleTexture(_MainTex, uv); }");
         t.True(mainTexture.IsPixelLocal, "Incoming sampler passed to SampleTexture remains pixel-local");
-        t.True(!((string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(mainTexture)).Contains("IsPixelLocal is false"), "Safe MainTex sampling has no bypass warning");
+        t.True(!((string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(mainTexture)).Contains("Pixel locality is unverified."), "Safe MainTex sampling has no unverified-locality diagnostic");
         f.Pixel(f.Render(mainTexture, sample), sample, "SampleTexture MainTex matches SampleInput without changing HDR or alpha");
         var throughSampler = f.Fx("float4 ReadHere(WhimTexTexture source, PinnedUV coordinate) { return SampleTexture(source, coordinate); }\nfloat4 ApplyFX(PinnedUV uv, float4 color) { return ReadHere(_MainTex, uv); }");
         t.True(throughSampler.IsPixelLocal, "Passing MainTex to a pinned sampler helper is not a bypass");
@@ -293,7 +293,8 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
         {
             var fx = f.Fx("float4 ApplyFX(PinnedUV uv,float4 color) { " + body + " }");
             t.True(!fx.IsPixelLocal, "Bypass/derivative loses pixel-local confirmation");
-            t.True(((string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(fx)).Contains("IsPixelLocal is false"), "Bypass warning is visible through shared diagnostics");
+            string diagnostics = (string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(fx);
+            t.True(diagnostics.Contains("Info: Pixel locality is unverified.") && diagnostics.Contains("IsPixelLocal remains false"), "Unverified locality is visible as information through shared diagnostics");
         }
         var helper = f.Fx("float4 Other(float2 p) {return tex2D(_MainTex,p);}\nfloat4 ApplyFX(float4 color) {return Other(float2(.5,.5));}");
         t.True(!helper.IsPixelLocal, "Helper functions cannot hide obvious bypasses");

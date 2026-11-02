@@ -676,27 +676,23 @@ namespace Typography.OpenFont.WebFont
                     arg1and2 = reader.ReadUInt16();
                 }
                 //-----------------------------------------
+                // WhimTex: retain all stream reads, without unused transform flags.
                 float xscale = 1;
                 float scale01 = 0;
                 float scale10 = 0;
                 float yscale = 1;
-
-                bool useMatrix = false;
                 //-----------------------------------------
-                bool hasScale = false;
                 if (Glyf.HasFlag(flags, Glyf.CompositeGlyphFlags.WE_HAVE_A_SCALE))
                 {
                     //If the bit WE_HAVE_A_SCALE is set,
                     //the scale value is read in 2.14 format-the value can be between -2 to almost +2.
                     //The glyph will be scaled by this value before grid-fitting. 
                     xscale = yscale = reader.ReadF2Dot14(); /* Format 2.14 */
-                    hasScale = true;
                 }
                 else if (Glyf.HasFlag(flags, Glyf.CompositeGlyphFlags.WE_HAVE_AN_X_AND_Y_SCALE))
                 {
                     xscale = reader.ReadF2Dot14(); /* Format 2.14 */
                     yscale = reader.ReadF2Dot14(); /* Format 2.14 */
-                    hasScale = true;
                 }
                 else if (Glyf.HasFlag(flags, Glyf.CompositeGlyphFlags.WE_HAVE_A_TWO_BY_TWO))
                 {
@@ -714,8 +710,6 @@ namespace Typography.OpenFont.WebFont
                     //(or would need to be explicitly set with TrueType instructions).
 
                     //Note that the behavior of the USE_MY_METRICS operation is undefined for rotated composite components. 
-                    useMatrix = true;
-                    hasScale = true;
                     xscale = reader.ReadF2Dot14(); /* Format 2.14 */
                     scale01 = reader.ReadF2Dot14(); /* Format 2.14 */
                     scale10 = reader.ReadF2Dot14();/* Format 2.14 */

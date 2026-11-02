@@ -63,7 +63,7 @@ namespace Typography.OpenFont.Tables
                     _ms = null;
                 }
             }
-            catch (Exception ex)
+            catch (Exception) // WhimTex: no unused exception binding.
             {
                 //
             }

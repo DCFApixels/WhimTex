@@ -529,6 +529,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Removed obsolete graph-view transform reads and unused font-reader locals without
+  changing pan/zoom or font parsing. Unverified pixel locality remains conservative
+  and is shown as information instead of a Console warning; compilation errors and
+  shader warnings retain their severity.
+
 - Linked shader presets validate the retained Code executable even when Graph is active;
   failed updates preserve both modes and the pending draft. Graph FX Reset matches preset
   defaults by parameter name, consistently with preset refresh.

@@ -76,8 +76,8 @@
       "sourcePath": "Typography.OpenFont/Glyph.cs",
       "vendoredPath": "OpenFont/Glyph.cs",
       "sourceSha256": "4ef9e1bb8d7ce5284938667eafe5ce7acb8eb8f0e64834592b5de10b8082512f",
-      "vendoredSha256": "4ef9e1bb8d7ce5284938667eafe5ce7acb8eb8f0e64834592b5de10b8082512f",
-      "localChange": null
+      "vendoredSha256": "2b15741311986d48da4739f5afc427b30f3a882fe60df1010a45361196baa39f",
+      "localChange": "Remove unused layout-only flag; preserve glyph cloning."
     },
     {
       "sourcePath": "Typography.OpenFont/IGlyphTranslator.cs",
@@ -300,8 +300,8 @@
       "sourcePath": "Typography.OpenFont/Tables.BitmapAndSvgFonts/CBDT.cs",
       "vendoredPath": "OpenFont/Tables.BitmapAndSvgFonts/CBDT.cs",
       "sourceSha256": "211e474d07a40401928e45854b6970a7e5227b051dd28a724a2cead3d42181d9",
-      "vendoredSha256": "211e474d07a40401928e45854b6970a7e5227b051dd28a724a2cead3d42181d9",
-      "localChange": null
+      "vendoredSha256": "b7b313e697a66103df6ff53a04026ea6c65db39e72d610ed081d74ad666d3d02",
+      "localChange": "Remove unused exception binding; preserve exception handling."
     },
     {
       "sourcePath": "Typography.OpenFont/Tables.BitmapAndSvgFonts/CBLC.cs",
@@ -587,8 +587,8 @@
       "sourcePath": "Typography.OpenFont/WebFont/Woff2Reader.cs",
       "vendoredPath": "OpenFont/WebFont/Woff2Reader.cs",
       "sourceSha256": "c08a335072afc9cf54248c9a42469898f23b4ccf0a86596ca63e4c8708e9e8a7",
-      "vendoredSha256": "c08a335072afc9cf54248c9a42469898f23b4ccf0a86596ca63e4c8708e9e8a7",
-      "localChange": null
+      "vendoredSha256": "f48917cdd22ce17bf5825fcb64c69848a89ff4ec96e17641d8c95cbbe1c70918",
+      "localChange": "Remove unused transform flags in CompositeHasInstructions; preserve every stream read."
     },
     {
       "sourcePath": "Typography.OpenFont/WebFont/WoffReader.cs",

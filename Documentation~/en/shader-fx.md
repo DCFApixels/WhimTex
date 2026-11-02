@@ -333,7 +333,8 @@ LOD 0 reads the supplied texture's base level; they do not create mipmaps.
 the sampler name itself does not make a read a bypass.
 The latter also supports masks from Texture, Layer, Self or None; pixel-local reads require
 `PinnedUV`. Direct HLSL texture reads are bypass paths, and detected bypasses or derivatives
-produce a warning and prevent confirmation of pixel locality.
+prevent confirmation of pixel locality. This is shown as an informational status;
+complete image inputs are used. Namespaced Custom Function calls also remain unverified.
 Texture inputs use the read-only `WhimTexTexture` type. Keep calls such as
 `SampleTexture(_Mask, uv)`; use `WhimTexTexture` for texture arguments in your own
 helper and preview functions. Sampling automatically accounts for the input's stored

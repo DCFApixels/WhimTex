@@ -9,10 +9,7 @@ namespace Typography.OpenFont
     public class Glyph
     {
 
-        /// <summary>
-        /// glyph info has only essential layout detail (this is our extension)
-        /// </summary>
-        readonly bool _onlyLayoutEssMode;
+        // WhimTex: removed the unused layout-only flag; cloning is unchanged.
         bool _hasOrgAdvWidth;       //FOUND in all mode
 
         internal Glyph(
@@ -281,7 +278,6 @@ namespace Typography.OpenFont
         private Glyph(ushort glyphIndex)
         {
             //for Clone_NO_BuildingInstructions()
-            _onlyLayoutEssMode = true;
             GlyphIndex = glyphIndex;
         }
 

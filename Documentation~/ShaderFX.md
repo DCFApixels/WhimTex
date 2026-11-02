@@ -371,7 +371,9 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 
 Direct `tex2D`, resource `.Sample`/`.Load` and similar low-level reads are bypass paths,
 not the primary API. Detected bypass reads, derivatives and unresolved compiler dependencies
-leave the shader usable but prevent confirmation of pixel locality and produce a shared warning.
+leave the shader usable but prevent confirmation of pixel locality. Unverified locality
+is an informational diagnostic, not a Console warning; complete image inputs are used.
+Qualified calls, including namespaced Custom Functions, are also conservatively unverified.
 This is an authoring contract, not a sandbox against deliberately hidden HLSL bypasses.
 Generated curve/gradient lookups and the reserved hue lookup are independent of image-neighbor reads.
 The built-in Mask preset is pixel-local: it samples the current `PinnedUV` without a transform.

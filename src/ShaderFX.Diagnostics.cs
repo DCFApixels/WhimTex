@@ -79,7 +79,7 @@ namespace DCFApixels.WhimTex
                 result.AddRange(Parse(ShaderFXSourceBuilder.GetDeterminismWarning(source), ShaderFXDiagnosticSeverity.Warning));
             if (includeDeterminism && source != null && source.StartsWith(ShaderFXSourceBuilder.ViewportWrapperMarker +
                 ShaderFXEntryPoint.WrapperMarker + ShaderFXEntryPoint.UnverifiedMarker, StringComparison.Ordinal))
-                result.AddRange(Parse(ShaderFXEntryPoint.BypassWarning, ShaderFXDiagnosticSeverity.Warning));
+                result.AddRange(Parse(ShaderFXEntryPoint.UnverifiedInfo, ShaderFXDiagnosticSeverity.Info));
             result.AddRange(Parse(ShaderFXMetadata.ControlWarnings(code, parameters), ShaderFXDiagnosticSeverity.Warning, sourcePath));
             if (!usable && !HasErrors(result))
                 result.Add(new ShaderFXDiagnostic(ShaderFXDiagnosticSeverity.Error, "The shader is not supported on this graphics device."));

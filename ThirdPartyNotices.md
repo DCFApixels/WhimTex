@@ -65,7 +65,8 @@ MIT description does not replace these per-file licenses.
 Local changes add `Typeface.ContainsTable(string)` for format safety checks,
 make the 20 unimplemented CFF Type 2 operators throw `NotSupportedException`,
 suppress one automatic DEBUG file dump, and replace DEBUG debugger breaks with
-diagnostic messages. See the [integration notes](src/ThirdParty/Typography/README.md)
+diagnostic messages. Unused WOFF2 transform flags, a glyph layout flag and an exception
+binding are removed without changing stream reads or parsing. See the [integration notes](src/ThirdParty/Typography/README.md)
 for exact scope and limitations, and the
 [source manifest](src/ThirdParty/Typography/SOURCE-MANIFEST.json) for file hashes.
 

@@ -18,7 +18,7 @@ namespace DCFApixels.WhimTex
         internal const string WrapperMarker = "// WhimTex FX entry contract v3\n";
         internal const string PixelLocalMarker = "// WhimTex pixel-local v1\n";
         internal const string UnverifiedMarker = "// WhimTex pixel-local unverified v1\n";
-        internal const string BypassWarning = "Warning: Pixel locality could not be verified because of direct texture access, derivatives or an unverified dependency. IsPixelLocal is false; the effect uses complete image inputs. This is expected for effects that inspect neighboring pixels and does not indicate a compilation failure.";
+        internal const string UnverifiedInfo = "Pixel locality is unverified. The source uses operations or dependencies outside the verified sampling contract, including qualified function calls. IsPixelLocal remains false and complete image inputs are used. This is an informational status, not a compilation failure.";
         internal enum Kind { Color, Pinned }
         internal readonly Kind kind;
         internal readonly bool verified;
@@ -99,7 +99,7 @@ namespace DCFApixels.WhimTex
             foreach (int offset in analysis.spatialReads)
                 Add("spatial_sample", "Image sampling uses numeric coordinates, explicit addressing or explicit LOD and requires complete input.", offset);
             foreach (int offset in analysis.uncheckedReads)
-                Add("unverified_sampling", "Sampling outside a typed function body or through a macro cannot be verified as pixel-local.", offset);
+                Add("unverified_sampling", "Sampling through a macro, outside an analyzed function body, or through a qualified function call cannot be verified as pixel-local.", offset);
 
             // This reserved immutable hue LUT is not a document-image read. Mask it
             // without changing offsets or newlines used for diagnostic locations.

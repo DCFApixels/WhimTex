@@ -61,8 +61,9 @@ namespace DCFApixels.WhimTex
                 viewTransformChanged = _ =>
                 {
                     if (rebuilding) return;
-                    window.viewPosition = viewTransform.position;
-                    window.viewScale = viewTransform.scale;
+                    window.viewPosition = contentViewContainer.resolvedStyle.translate;
+                    Vector3 scale = contentViewContainer.resolvedStyle.scale.value;
+                    window.viewScale = new Vector3(scale.x, scale.y, 1f);
                 };
                 RegisterCallback<DragUpdatedEvent>(OnDragUpdated);
                 RegisterCallback<DragPerformEvent>(OnDragPerform);
